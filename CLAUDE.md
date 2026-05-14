@@ -37,11 +37,16 @@ AMI is a smart, faceted recipe UI that bridges the gap between factory progressi
 - Guides players naturally from Stone Age to Space Age
 
 ## Tech Stack
-- **Mod Framework**: NeoForge 21.1.228
+- **Mod Framework**: NeoForge 21.1.228 (client-side only)
 - **Minecraft Version**: 1.21.1
 - **Language**: Java 21
 - **Build System**: Gradle with ModDevGradle
 - **IDE**: IntelliJ IDEA (recommended)
+
+## Architecture
+- **Client-side only** — No server-side components
+- Compatible with JEI and EMI as optional integrations
+- Standalone shell UI when neither JEI nor EMI is present
 
 ## Project Structure
 - `src/main/java/com/example/ami/` - Main mod source code

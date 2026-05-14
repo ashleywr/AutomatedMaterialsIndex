@@ -1,10 +1,7 @@
 package com.ashleyww.ami.index;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -16,16 +13,19 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 
+/**
+ * Client-side indexer for AMI.
+ * Runs once on client load to categorize items by color, mod origin, and material tier.
+ */
 public class Indexer {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public static void index() {
-        LOGGER.info("Starting AMI indexing pipeline...");
+        LOGGER.info("Starting AMI indexing pipeline (client-side)...");
         long startTime = System.currentTimeMillis();
-        AMIIndex indexInstance = AMIIndex.getInstance();
-        indexInstance.clear();
+        AMIIndex index = AMIIndex.getInstance();
+        index.clear();
 
         int itemCount = 0;
         Set<String> mods = new HashSet<>();
@@ -55,89 +55,20 @@ public class Indexer {
                     variantGroup
             );
 
-            addToIndex(entry);
+            addToIndex(entry, index);
         }
 
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
 
-        indexInstance.setTotalItemsIndexed(itemCount);
-        indexInstance.setIndexBuildTime(duration);
+        index.setTotalItemsIndexed(itemCount);
+        index.setIndexBuildTime(duration);
 
         LOGGER.info("✓ AMI indexing complete: {} items from {} mods in {}ms", itemCount, mods.size(), duration);
         LOGGER.debug("Indexed mods: {}", mods);
     }
 
-    public static void indexForClient() {
-        LOGGER.info("Starting client-side AMI indexing...");
-        long startTime = System.currentTimeMillis();
-        AMIIndex clientIndex = AMIIndex.CLIENT_INSTANCE;
-        clientIndex.clear();
-
-        int itemCount = 0;
-        Set<String> mods = new HashSet<>();
-
-        LOGGER.debug("Scanning item registry for client...");
-        for (Item item : BuiltInRegistries.ITEM) {
-            if (item == null) continue;
-
-            ResourceLocation registryName = BuiltInRegistries.ITEM.getKey(item);
-            if (registryName == null || registryName.getNamespace().equals("air")) continue;
-
-            itemCount++;
-            String modId = registryName.getNamespace();
-            mods.add(modId);
-
-            String colorBucket = computeColorBucket(item);
-            MaterialEntry.MaterialTier tier = determineTier(item);
-            String variantGroup = getVariantGroup(item);
-            int dominantColor = 0xFFFFFF;
-
-            MaterialEntry entry = new MaterialEntry(
-                    item,
-                    modId,
-                    dominantColor,
-                    colorBucket,
-                    tier,
-                    variantGroup
-            );
-
-            addToClientIndex(entry);
-        }
-
-        long endTime = System.currentTimeMillis();
-        long duration = endTime - startTime;
-
-        clientIndex.setTotalItemsIndexed(itemCount);
-        clientIndex.setIndexBuildTime(duration);
-
-        LOGGER.info("✓ Client indexing complete: {} items from {} mods in {}ms", itemCount, mods.size(), duration);
-        LOGGER.debug("Indexed mods: {}", mods);
-    }
-
-    private static void addToClientIndex(MaterialEntry entry) {
-        AMIIndex index = AMIIndex.CLIENT_INSTANCE;
-
-        index.getCategoryIndex(IndexCategory.BY_COLOR)
-                .computeIfAbsent(entry.colorBucket(), k -> new ArrayList<>())
-                .add(entry);
-
-        index.getCategoryIndex(IndexCategory.BY_MOD)
-                .computeIfAbsent(entry.modId(), k -> new ArrayList<>())
-                .add(entry);
-
-        index.getCategoryIndex(IndexCategory.BY_TIER)
-                .computeIfAbsent(entry.materialTier().getDisplayName(), k -> new ArrayList<>())
-                .add(entry);
-
-        index.getCategoryIndex(IndexCategory.BY_VARIANT_GROUP)
-                .computeIfAbsent(entry.variantGroup(), k -> new ArrayList<>())
-                .add(entry);
-    }
-
-    private static void addToIndex(MaterialEntry entry) {
-        AMIIndex index = AMIIndex.getInstance();
-
+    private static void addToIndex(MaterialEntry entry, AMIIndex index) {
         index.getCategoryIndex(IndexCategory.BY_COLOR)
                 .computeIfAbsent(entry.colorBucket(), k -> new ArrayList<>())
                 .add(entry);

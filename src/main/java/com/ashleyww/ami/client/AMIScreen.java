@@ -18,7 +18,7 @@ public class AMIScreen extends Screen {
     @Override
     protected void init() {
         AMI.LOGGER.debug("AMI screen initialized - size: {}x{}", this.width, this.height);
-        this.gridWidget = new ItemGridWidget(this, 10, 40, this.width - 20, this.height - 80, AMIIndex.CLIENT_INSTANCE.getTotalItemsIndexed());
+        this.gridWidget = new ItemGridWidget(this, 10, 40, this.width - 20, this.height - 80, AMIIndex.getInstance().getTotalItemsIndexed());
     }
 
     @Override
@@ -27,7 +27,7 @@ public class AMIScreen extends Screen {
 
         guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 10, 0xFFFFFF);
 
-        String indexInfo = String.format("Indexed: %d items | Press I to close", AMIIndex.CLIENT_INSTANCE.getTotalItemsIndexed());
+        String indexInfo = String.format("Indexed: %d items | Press I to close", AMIIndex.getInstance().getTotalItemsIndexed());
         guiGraphics.drawString(this.font, indexInfo, 10, 25, 0xAAAAAA);
 
         if (gridWidget != null) {
