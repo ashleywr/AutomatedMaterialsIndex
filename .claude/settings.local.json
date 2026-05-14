@@ -28,7 +28,8 @@
       "WebFetch(domain:docs.neoforged.net)",
       "WebFetch(domain:nekoyue.github.io)",
       "Bash(./gradlew jar *)",
-      "Bash(dir \"C:\\\\Users\\\\ashle\\\\AppData\\\\Roaming\\\\PrismLauncher\\\\instances\\\\Mod Making\\\\minecraft\\\\mods\\\\\" | findstr ami *)"
+      "Bash(dir \"C:\\\\Users\\\\ashle\\\\AppData\\\\Roaming\\\\PrismLauncher\\\\instances\\\\Mod Making\\\\minecraft\\\\mods\\\\\" | findstr ami *)",
+      "Bash(git rm *)"
     ]
   }
 }

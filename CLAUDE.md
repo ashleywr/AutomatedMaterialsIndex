@@ -1,78 +1,79 @@
 # Automated Materials Index (AMI)
 
 ## Project Vision
-The next-generation recipe and progression UI for modded Minecraft.
+The next-generation recipe and progression UI for modded Minecraft. Target environment: large modpacks (ATM-scale, 200-500 mods).
 
 ### The Problem
-Modern modpacks have outgrown simple database dumps. Players are overwhelmed by 40 pages of micro-components when trying to build, and progression systems rely on clumsy external Quest Books.
+Modern modpacks have outgrown simple database dumps. Players are overwhelmed by thousands of micro-variants, progression is spoiled on Day 1, and complex mods require external spreadsheets.
 
 ### The AMI Solution
-AMI is a smart, faceted recipe UI that bridges the gap between factory progression and interior design without requiring pack developers to write thousands of lines of manual scripts.
+AMI is a smart, faceted recipe UI that indexes the entire game world at load time and surfaces it through a hierarchical Navigation Tree. Sidebar panel on inventory (JEI-style). No server required.
 
-## Core Features
+## Core Features (Roadmap)
 
-### 1. Material Root UI
-- Eliminates "Chisel bloat" automatically
-- Natively infers blockstates and semantic tags (like #forge:stone)
-- Collapses variants (stairs, slabs, pillars) into single, clean base texture nodes
-- Click the material, pick the shape from a sub-menu
+### 1. Material Root UI (Phase 1 - in progress)
+- Collapses stairs/slabs/walls/etc under a single material node
+- Faceted "Group By" pivot: by Mod, Material, Tier, or Color
+- Color-based "vibe" filtering (texture hex scanning)
 
-### 2. Curio-Powered "Ghost Crafting"
-- Building shouldn't break automation
-- Equip the Architect's Gauntlet curio to seamlessly select sub-shapes from the UI
-- Automatically craft the hard-coded item directly into your hand from base materials in inventory
+### 2. World Atlas (Phase 1 - implemented)
+- Biome, Structure, and Entity registry viewer
+- Cycled via Tab key in the inventory overlay
+- Populated from level registry on world load
 
-### 3. Automated Indexing Pipeline
-- No more manual KubeJS arrays
-- Lightweight map-reduce style client job runs on load
-- Automatically categorizes items by:
-  - Color hex values
-  - Mod origin
-  - Material tier
+### 3. Assembly Lab (Phase 2)
+- Real-time stat simulator for Silent Gear / Tinkers' Construct
+- Sandbox tool assembly with live DPS/durability calculation
+- Parametric recipe templates to replace thousands of unique entries
 
-### 4. Directed Progression Graph
-- Say goodbye to the Quest Book
-- Integrates natively with GameStages
-- Hides endgame machinery behind a visually branching tech-tree
-- Guides players naturally from Stone Age to Space Age
+### 4. Ghost Crafting & Architect's Gauntlet (Phase 3)
+- Curio-slotted item enabling "Architect Mode"
+- Select shapes from UI, craft directly into hand from inventory materials
+
+### 5. Directed Progression Graph (Phase 4)
+- GameStages integration: hides endgame items until unlocked
+- Visual tech-tree replacing the Quest Book
+- Operator controls for biome/mob weighting
 
 ## Tech Stack
-- **Mod Framework**: NeoForge 21.1.228 (client-side only)
-- **Minecraft Version**: 1.21.1
+- **Mod Framework**: NeoForge 21.1.228
+- **Minecraft Version**: 1.21.1 only (no multi-version)
 - **Language**: Java 21
-- **Build System**: Gradle with ModDevGradle
-- **IDE**: IntelliJ IDEA (recommended)
+- **Build System**: Gradle with ModDevGradle 2.0.141
+- **IDE**: IntelliJ IDEA
 
 ## Architecture
-- **Client-side only** — No server-side components
-- Compatible with JEI and EMI as optional integrations
+- **Client-side only** — all indexing runs on the client thread
+- Overlay renders via `ScreenEvent.Render.Post` on `AbstractContainerScreen`
+- Compatible with JEI and EMI as optional integrations (bridges deferred)
 - Standalone shell UI when neither JEI nor EMI is present
 
-## Project Structure
-- `src/main/java/com/example/ami/` - Main mod source code
-- `src/main/resources/` - Assets, lang files, recipes
-- `src/generated/resources/` - Data-generated content (recipes, tags, etc.)
-
-## Development Setup
-1. Open in IntelliJ IDEA → Select "Open" on this directory
-2. IntelliJ auto-detects Gradle project and downloads dependencies
-3. Run configurations available: `client`, `server`, `data` (datagen)
-4. Refresh dependencies if needed: `gradlew --refresh-dependencies`
-
-## Key Dependencies
-- **Curios API**: For the Architect's Gauntlet curio integration
-- **GameStages**: For progression gating
-- **NeoForge**: Core mod framework
-
-## Next Steps
-1. Rename package from `examplemod` to `ami` (in progress)
-2. Create core UI framework
-3. Implement Material Root indexing system
-4. Add Architect's Gauntlet curio item
-5. Build progression graph visualization
+## Package Structure
+```
+com.sanhiruzu.ami
+├── AMI.java              — @Mod entry point
+├── AMIClient.java        — Client init, world-load indexing trigger
+├── AMIConfig.java        — ModConfigSpec (enableAutoIndexing, etc.)
+├── client/
+│   ├── AMIKeyMappings.java       — Keybinds: I (open), Tab (cycle atlas)
+│   ├── AMIScreen.java            — Full-screen fallback (I keybind)
+│   ├── AtlasGridWidget.java      — Shared grid/list widget for all entry types
+│   ├── InventoryOverlayHandler.java — Sidebar panel on container screens
+│   └── RecipeViewerScreen.java   — Stub recipe detail screen
+└── index/
+    ├── AMIIndex.java             — Item index singleton
+    ├── IndexCategory.java        — Enum: BY_COLOR, BY_MOD, BY_TIER, BY_VARIANT_GROUP
+    ├── Indexer.java              — Item indexing pipeline (BuiltInRegistries)
+    ├── MaterialEntry.java        — Record: item, modId, colorBucket, tier, variantGroup
+    ├── WorldAtlasIndex.java      — Biome/structure/entity index singleton
+    └── WorldAtlasIndexer.java    — Atlas indexing from level.registryAccess()
+```
 
 ## Development Workflow
-- Use `gradlew runClient` to test in-game
-- Data generation: `gradlew runData`
-- Clean build: `gradlew clean`
-- Build JAR: `gradlew build`
+- `gradlew build` — builds and auto-copies JAR to PrismLauncher test instance
+- `gradlew runClient` — launch dev client
+- `gradlew clean` — clean build outputs
+
+## Key Bindings
+- `I` — open standalone AMIScreen (full-screen)
+- `Tab` (in inventory) — cycle overlay between Items → Biomes → Structures → Entities → Items
