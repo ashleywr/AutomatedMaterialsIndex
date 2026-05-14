@@ -101,12 +101,31 @@ public class InventoryOverlayHandler {
     static void onScreenMouseClick(ScreenEvent.MouseButtonPressed.Pre event) {
         if (!AMIConfig.ENABLE_AUTO_INDEXING.get() || gridWidget == null) return;
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
+        if (!gridWidget.isMouseOver(event.getMouseX(), event.getMouseY())) return;
 
-        if (gridWidget.isMouseOver(event.getMouseX(), event.getMouseY())) {
-            if (gridWidget.mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton())) {
-                event.setCanceled(true);
-            }
+        // Scrollbar takes priority over entry clicks
+        if (gridWidget.mouseClickedScrollbar(event.getMouseX(), event.getMouseY(), event.getButton())) {
+            event.setCanceled(true);
+        } else if (gridWidget.mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton())) {
+            event.setCanceled(true);
         }
+    }
+
+    @SubscribeEvent
+    static void onScreenMouseDragged(ScreenEvent.MouseDragged.Pre event) {
+        if (gridWidget == null) return;
+        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
+        if (gridWidget.mouseDragged(event.getMouseX(), event.getMouseY(),
+                event.getMouseButton(), event.getDragX(), event.getDragY())) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    static void onScreenMouseRelease(ScreenEvent.MouseButtonReleased.Pre event) {
+        if (gridWidget == null) return;
+        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
+        gridWidget.stopScrollbarDrag();
     }
 
     @SubscribeEvent

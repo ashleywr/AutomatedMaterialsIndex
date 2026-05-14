@@ -54,6 +54,11 @@ public class AtlasGridWidget {
 
     private int scrollOffset = 0;
 
+    // Scrollbar drag state
+    private boolean scrollbarDragging = false;
+    private int scrollbarDragStartY;
+    private int scrollbarDragStartOffset;
+
     // Deferred tooltips — collected during render, drawn last
     private ItemStack pendingItemTooltip = null;
     private List<Component> pendingTooltipLines = null;
@@ -139,7 +144,7 @@ public class AtlasGridWidget {
             renderAtlasList(g, mouseX, mouseY);
         }
 
-        renderScrollBar(g);
+        renderScrollBar(g, mouseX, mouseY);
 
         if (pendingItemTooltip != null) {
             g.renderTooltip(Minecraft.getInstance().font, pendingItemTooltip, mouseX, mouseY);
@@ -181,6 +186,12 @@ public class AtlasGridWidget {
 
         int textStartX = x + SWATCH_GAP + SWATCH_SIZE + SWATCH_GAP;
         int maxTextW   = width - (textStartX - x) - DIM_BADGE - 6;
+
+        if (atlasGroups.isEmpty()) {
+            g.drawString(font, Component.translatable("ami.gui.empty_list"),
+                    x + 4, y + HEADER_HEIGHT + 8, AMITheme.ENTRY_TEXT, false);
+            return;
+        }
 
         // Sample current biome/structure once per frame — cheap chunk lookups
         var currentBiomeId = currentBiomeId();
@@ -449,26 +460,67 @@ public class AtlasGridWidget {
         return 0xFFCC8844;
     }
 
-    private void renderScrollBar(GuiGraphics g) {
-        int total = totalRows();
-        if (total == 0) return;
-
+    private void renderScrollBar(GuiGraphics g, int mouseX, int mouseY) {
+        int total    = totalRows();
         int contentH = height - HEADER_HEIGHT - 4;
         int visible  = visibleRowCount(contentH);
         if (total <= visible) return;
 
-        int barX      = x + width - 4;
-        int barAreaY  = y + HEADER_HEIGHT + 4;
-        int barHeight = Math.max(10, (visible * contentH) / total);
-        int barY      = barAreaY + (scrollOffset * (contentH - barHeight)) / (total - visible);
+        boolean active = scrollbarDragging || isScrollbarHovered(mouseX, mouseY);
+        int barW     = active ? 5 : 3;
+        int barX     = x + width - 1 - barW;
+        int barAreaY = y + HEADER_HEIGHT + 4;
+        int thumbH   = Math.max(10, (visible * contentH) / total);
+        int thumbY   = barAreaY + (scrollOffset * (contentH - thumbH)) / (total - visible);
 
-        g.fill(barX, barAreaY, barX + 3, barAreaY + contentH, AMITheme.SCROLL_TRACK);
-        g.fill(barX, barY,     barX + 3, barY + barHeight,    AMITheme.SCROLL_THUMB);
+        g.fill(barX, barAreaY, barX + barW, barAreaY + contentH, AMITheme.SCROLL_TRACK);
+        g.fill(barX, thumbY,   barX + barW, thumbY + thumbH,
+                active ? AMITheme.SCROLL_THUMB_ACTIVE : AMITheme.SCROLL_THUMB);
+    }
+
+    public boolean isScrollbarHovered(int mouseX, int mouseY) {
+        int contentH = height - HEADER_HEIGHT - 4;
+        if (totalRows() <= visibleRowCount(contentH)) return false;
+        int barAreaY = y + HEADER_HEIGHT + 4;
+        // 6px hover zone covers both normal (3px) and expanded (5px) widths
+        return mouseX >= x + width - 6 && mouseX < x + width - 1
+                && mouseY >= barAreaY && mouseY < barAreaY + contentH;
     }
 
     // -------------------------------------------------------------------------
     // Input
     // -------------------------------------------------------------------------
+
+    /** Returns true if the scrollbar was clicked and a drag has started. */
+    public boolean mouseClickedScrollbar(double mouseX, double mouseY, int button) {
+        if (button != 0 || !isScrollbarHovered((int) mouseX, (int) mouseY)) return false;
+        scrollbarDragging = true;
+        scrollbarDragStartY = (int) mouseY;
+        scrollbarDragStartOffset = scrollOffset;
+        return true;
+    }
+
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (!scrollbarDragging || button != 0) return false;
+
+        int contentH = height - HEADER_HEIGHT - 4;
+        int total    = totalRows();
+        int visible  = visibleRowCount(contentH);
+        if (total <= visible) return true;
+
+        int thumbH    = Math.max(10, (visible * contentH) / total);
+        int dragRange = contentH - thumbH;
+        if (dragRange <= 0) return true;
+
+        int dy          = (int) mouseY - scrollbarDragStartY;
+        int offsetDelta = (int) Math.round((double) dy * (total - visible) / dragRange);
+        scrollOffset = Math.max(0, Math.min(total - visible, scrollbarDragStartOffset + offsetDelta));
+        return true;
+    }
+
+    public void stopScrollbarDrag() {
+        scrollbarDragging = false;
+    }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0) return false;
