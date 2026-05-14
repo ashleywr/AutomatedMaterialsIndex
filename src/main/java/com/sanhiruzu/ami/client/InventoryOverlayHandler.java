@@ -5,6 +5,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
@@ -21,8 +22,14 @@ import java.util.List;
 
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
 public class InventoryOverlayHandler {
+    // Checked once at class load — mod list is fixed after startup
+    private static final boolean RECIPE_VIEWER_PRESENT =
+            ModList.get().isLoaded("emi") || ModList.get().isLoaded("jei");
+
     private static AtlasGridWidget gridWidget;
-    private static WorldAtlasIndex.AtlasType atlasType = null; // null = items mode
+    // When a recipe viewer is present, start in atlas mode (items are covered by EMI/JEI)
+    private static WorldAtlasIndex.AtlasType atlasType =
+            RECIPE_VIEWER_PRESENT ? WorldAtlasIndex.AtlasType.values()[0] : null;
     private static int lastKnownItemCount = -1;
 
     @SubscribeEvent
@@ -31,10 +38,19 @@ public class InventoryOverlayHandler {
         if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
 
         try {
-            int panelX = containerScreen.getGuiLeft() + containerScreen.getXSize() + 6;
+            int panelX, panelWidth;
             int panelY = containerScreen.getGuiTop();
-            int panelWidth = event.getScreen().width - panelX - 6;
             int panelHeight = containerScreen.getYSize();
+
+            if (RECIPE_VIEWER_PRESENT) {
+                // EMI/JEI own the right side — render AMI atlas panel on the left
+                panelWidth = Math.min(120, containerScreen.getGuiLeft() - 12);
+                panelX = containerScreen.getGuiLeft() - panelWidth - 6;
+            } else {
+                // AMI owns the right side
+                panelX = containerScreen.getGuiLeft() + containerScreen.getXSize() + 6;
+                panelWidth = event.getScreen().width - panelX - 6;
+            }
 
             if (panelWidth < 60) return;
 
@@ -62,9 +78,14 @@ public class InventoryOverlayHandler {
 
         if (AMIKeyMappings.CYCLE_ATLAS.consumeClick()) {
             WorldAtlasIndex.AtlasType[] types = WorldAtlasIndex.AtlasType.values();
-            atlasType = (atlasType == null) ? types[0]
-                      : (atlasType.ordinal() == types.length - 1) ? null
-                      : atlasType.next();
+            if (RECIPE_VIEWER_PRESENT) {
+                // Items mode not available — cycle only through atlas types
+                atlasType = atlasType.next();
+            } else {
+                atlasType = (atlasType == null) ? types[0]
+                          : (atlasType.ordinal() == types.length - 1) ? null
+                          : atlasType.next();
+            }
             refreshEntries();
         }
     }
