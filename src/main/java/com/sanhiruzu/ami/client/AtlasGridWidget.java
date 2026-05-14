@@ -5,6 +5,7 @@ import java.util.List;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
 import com.sanhiruzu.ami.index.WorldAtlasIndex;
@@ -15,6 +16,11 @@ public class AtlasGridWidget {
     private final List<Object> entries;
     private int scrollOffset = 0;
     private String modeLabel = "Items";
+
+    // Deferred tooltip — collected during render, drawn last
+    private ItemStack pendingItemTooltip = null;
+    private Component pendingTextTooltip = null;
+
     private static final int ITEM_SIZE = 16;
     private static final int PADDING = 2;
     private static final int HEADER_HEIGHT = 12;
@@ -46,6 +52,9 @@ public class AtlasGridWidget {
     }
 
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        pendingItemTooltip = null;
+        pendingTextTooltip = null;
+
         // Panel background
         guiGraphics.fill(x, y, x + width, y + height, 0xCC000000);
         guiGraphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, 0xFF2A2A2A);
@@ -53,7 +62,6 @@ public class AtlasGridWidget {
         // Header bar
         guiGraphics.fill(x, y, x + width, y + HEADER_HEIGHT + 2, 0xFF1A3A1A);
         guiGraphics.fill(x, y + HEADER_HEIGHT + 2, x + width, y + HEADER_HEIGHT + 3, 0xFF4A6A4A);
-
         String headerText = modeLabel + " (" + entries.size() + ")";
         guiGraphics.drawString(Minecraft.getInstance().font, headerText, x + 3, y + 2, 0xFF88FF88, false);
 
@@ -64,6 +72,13 @@ public class AtlasGridWidget {
         }
 
         renderScrollBar(guiGraphics);
+
+        // Render tooltip last, on top of everything
+        if (pendingItemTooltip != null) {
+            guiGraphics.renderTooltip(Minecraft.getInstance().font, pendingItemTooltip, mouseX, mouseY);
+        } else if (pendingTextTooltip != null) {
+            guiGraphics.renderTooltip(Minecraft.getInstance().font, pendingTextTooltip, mouseX, mouseY);
+        }
     }
 
     private boolean isItemMode() {
@@ -89,14 +104,11 @@ public class AtlasGridWidget {
             boolean hovered = mouseX >= drawX && mouseX < drawX + ITEM_SIZE && mouseY >= drawY && mouseY < drawY + ITEM_SIZE;
             if (hovered) {
                 guiGraphics.fill(drawX - 1, drawY - 1, drawX + ITEM_SIZE + 1, drawY + ITEM_SIZE + 1, 0xFFAAAAAA);
+                pendingItemTooltip = stack;
             }
 
             guiGraphics.renderItem(stack, drawX, drawY);
             guiGraphics.renderItemDecorations(Minecraft.getInstance().font, stack, drawX, drawY);
-
-            if (hovered) {
-                guiGraphics.renderTooltip(Minecraft.getInstance().font, stack, mouseX, mouseY);
-            }
         }
     }
 
@@ -113,19 +125,13 @@ public class AtlasGridWidget {
 
             if (hovered) {
                 guiGraphics.fill(x + 2, drawY, x + width - 6, drawY + ENTRY_ROW_HEIGHT, 0xFF3A5A3A);
+                pendingTextTooltip = Component.literal(atlasEntry.id().toString());
             }
 
             String label = atlasEntry.name();
-            // truncate to fit
             int maxChars = (width - 14) / 5;
             if (label.length() > maxChars) label = label.substring(0, maxChars - 1) + "…";
             guiGraphics.drawString(Minecraft.getInstance().font, label, x + 4, drawY + 1, 0xFFCCCCCC, false);
-
-            if (hovered) {
-                guiGraphics.renderTooltip(Minecraft.getInstance().font,
-                        net.minecraft.network.chat.Component.literal(atlasEntry.id().toString()),
-                        mouseX, mouseY);
-            }
         }
     }
 
