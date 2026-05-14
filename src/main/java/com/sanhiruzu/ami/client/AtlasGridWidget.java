@@ -10,6 +10,7 @@ import java.util.Set;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.ItemStack;
 
 import com.sanhiruzu.ami.index.WorldAtlasIndex;
@@ -26,13 +27,9 @@ public class AtlasGridWidget {
     private static final int SWATCH_GAP    = 3;
     private static final int DIM_BADGE     = 4;
 
-    // Dimension badge colours
-    private static final int COL_NETHER = 0xFFCC4444;
-    private static final int COL_END    = 0xFF9944CC;
-
     private int x, y, width, height;
     private Mode mode = Mode.ITEMS;
-    private String modeLabel = "Items";
+    private Component modeLabel = Component.translatable("ami.gui.items");
 
     private final List<ItemStack> itemEntries = new ArrayList<>();
 
@@ -75,7 +72,7 @@ public class AtlasGridWidget {
         scrollOffset = 0;
     }
 
-    public void setAtlasEntries(List<WorldAtlasIndex.AtlasEntry> entries, String label) {
+    public void setAtlasEntries(List<WorldAtlasIndex.AtlasEntry> entries, Component label) {
         // Preserve which groups the user has already collapsed
         Set<String> collapsed = new HashSet<>();
         for (AtlasGroup g : atlasGroups) {
@@ -98,7 +95,7 @@ public class AtlasGridWidget {
         scrollOffset = 0;
     }
 
-    public void setItemModeLabel(String label) {
+    public void setItemModeLabel(Component label) {
         modeLabel = label;
     }
 
@@ -118,14 +115,15 @@ public class AtlasGridWidget {
         pendingTextTooltip = null;
 
         // Panel background
-        g.fill(x, y, x + width, y + height, 0xCC000000);
-        g.fill(x + 1, y + 1, x + width - 1, y + height - 1, 0xFF2A2A2A);
+        g.fill(x, y, x + width, y + height, AMITheme.PANEL_BG);
+        g.fill(x + 1, y + 1, x + width - 1, y + height - 1, AMITheme.PANEL_INNER);
 
         // Header bar
-        g.fill(x, y, x + width, y + HEADER_HEIGHT + 2, 0xFF1A3A1A);
-        g.fill(x, y + HEADER_HEIGHT + 2, x + width, y + HEADER_HEIGHT + 3, 0xFF4A6A4A);
-        g.drawString(Minecraft.getInstance().font,
-                modeLabel + " (" + entryCount() + ")", x + 3, y + 2, 0xFF88FF88, false);
+        g.fill(x, y, x + width, y + HEADER_HEIGHT + 2, AMITheme.HEADER_BG);
+        g.fill(x, y + HEADER_HEIGHT + 2, x + width, y + HEADER_HEIGHT + 3, AMITheme.HEADER_SEP);
+        MutableComponent headerText = modeLabel.copy()
+                .append(Component.literal(" (" + entryCount() + ")"));
+        g.drawString(Minecraft.getInstance().font, headerText, x + 3, y + 2, AMITheme.HEADER_TEXT, false);
 
         if (mode == Mode.ITEMS) {
             renderItemGrid(g, mouseX, mouseY);
@@ -155,11 +153,11 @@ public class AtlasGridWidget {
             int drawY = contentY + row * (ITEM_SIZE + PADDING);
             ItemStack stack = itemEntries.get(i);
 
-            g.fill(drawX - 1, drawY - 1, drawX + ITEM_SIZE + 1, drawY + ITEM_SIZE + 1, 0xFF555555);
+            g.fill(drawX - 1, drawY - 1, drawX + ITEM_SIZE + 1, drawY + ITEM_SIZE + 1, AMITheme.SLOT_BG);
             boolean hovered = mouseX >= drawX && mouseX < drawX + ITEM_SIZE
                     && mouseY >= drawY && mouseY < drawY + ITEM_SIZE;
             if (hovered) {
-                g.fill(drawX - 1, drawY - 1, drawX + ITEM_SIZE + 1, drawY + ITEM_SIZE + 1, 0xFFAAAAAA);
+                g.fill(drawX - 1, drawY - 1, drawX + ITEM_SIZE + 1, drawY + ITEM_SIZE + 1, AMITheme.SLOT_HOVER);
                 pendingItemTooltip = stack;
             }
             g.renderItem(stack, drawX, drawY);
@@ -184,11 +182,11 @@ public class AtlasGridWidget {
                 boolean hovered = isRowHovered(mouseX, mouseY, drawY);
 
                 g.fill(x + 1, drawY, x + width - 5, drawY + ROW_HEIGHT - 1,
-                        hovered ? 0xFF2A4A2A : 0xFF1E3A1E);
+                        hovered ? AMITheme.GROUP_BG_HOVER : AMITheme.GROUP_BG);
 
                 String arrow = group.expanded ? "▼ " : "▶ ";
                 String label = arrow + group.displayName + " (" + group.entries.size() + ")";
-                g.drawString(font, label, x + 4, drawY + 2, 0xFF99DD99, false);
+                g.drawString(font, label, x + 4, drawY + 2, AMITheme.GROUP_TEXT, false);
             }
             row++;
 
@@ -201,7 +199,7 @@ public class AtlasGridWidget {
                     boolean hovered = isRowHovered(mouseX, mouseY, drawY);
 
                     if (hovered) {
-                        g.fill(x + 2, drawY, x + width - 6, drawY + ROW_HEIGHT - 1, 0xFF3A5A3A);
+                        g.fill(x + 2, drawY, x + width - 6, drawY + ROW_HEIGHT - 1, AMITheme.ENTRY_HOVER);
                         pendingTextTooltip = buildTooltip(entry);
                     }
 
@@ -213,7 +211,7 @@ public class AtlasGridWidget {
                     // Dimension badge (top-right of the row, only for non-overworld)
                     if (entry.dimension() != WorldAtlasIndex.Dimension.OVERWORLD) {
                         int badgeColor = entry.dimension() == WorldAtlasIndex.Dimension.NETHER
-                                ? COL_NETHER : COL_END;
+                                ? AMITheme.DIM_NETHER : AMITheme.DIM_END;
                         int badgeX = x + width - DIM_BADGE - 6;
                         int badgeY = drawY + (ROW_HEIGHT - DIM_BADGE) / 2;
                         g.fill(badgeX, badgeY, badgeX + DIM_BADGE, badgeY + DIM_BADGE, badgeColor);
@@ -225,7 +223,7 @@ public class AtlasGridWidget {
                         name = name.substring(0, name.length() - 1);
                     }
                     if (font.width(entry.name()) > maxTextW) name += "…";
-                    g.drawString(font, name, textStartX, drawY + 2, 0xFFCCCCCC, false);
+                    g.drawString(font, name, textStartX, drawY + 2, AMITheme.ENTRY_TEXT, false);
                 }
                 row++;
             }
@@ -238,13 +236,14 @@ public class AtlasGridWidget {
     }
 
     private Component buildTooltip(WorldAtlasIndex.AtlasEntry entry) {
-        String dimLabel = switch (entry.dimension()) {
-            case NETHER -> " §c[Nether]§r";
-            case END    -> " §5[End]§r";
-            default     -> "";
-        };
-        return Component.literal(entry.id().toString() + dimLabel)
-                .append(Component.literal("\n" + WorldAtlasIndexer.modDisplayName(entry.id().getNamespace()))
+        MutableComponent main = Component.literal(entry.id().toString());
+        if (entry.dimension() != WorldAtlasIndex.Dimension.OVERWORLD) {
+            main.append(Component.literal(" ["))
+                .append(entry.dimension().displayName())
+                .append(Component.literal("]"));
+        }
+        return main.append(
+                Component.literal("\n" + WorldAtlasIndexer.modDisplayName(entry.id().getNamespace()))
                         .withStyle(s -> s.withColor(0x888888)));
     }
 
@@ -261,8 +260,8 @@ public class AtlasGridWidget {
         int barHeight = Math.max(10, (visible * contentH) / total);
         int barY      = barAreaY + (scrollOffset * (contentH - barHeight)) / (total - visible);
 
-        g.fill(barX, barAreaY, barX + 3, barAreaY + contentH, 0xFF333333);
-        g.fill(barX, barY,     barX + 3, barY + barHeight,    0xFF88AA88);
+        g.fill(barX, barAreaY, barX + 3, barAreaY + contentH, AMITheme.SCROLL_TRACK);
+        g.fill(barX, barY,     barX + 3, barY + barHeight,    AMITheme.SCROLL_THUMB);
     }
 
     // -------------------------------------------------------------------------

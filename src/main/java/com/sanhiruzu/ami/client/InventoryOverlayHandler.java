@@ -137,7 +137,7 @@ public class InventoryOverlayHandler {
         if (atlasType == null) {
             List<ItemStack> items = buildItemList();
             gridWidget.setItemEntries(items);
-            gridWidget.setItemModeLabel("Items");
+            gridWidget.setItemModeLabel(net.minecraft.network.chat.Component.translatable("ami.gui.items"));
             lastKnownItemCount = AMIIndex.getInstance().getTotalItemsIndexed();
         } else {
             List<WorldAtlasIndex.AtlasEntry> entries = WorldAtlasIndex.getInstance().getEntries(atlasType);
