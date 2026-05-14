@@ -182,6 +182,9 @@ public class AtlasGridWidget {
         int textStartX = x + SWATCH_GAP + SWATCH_SIZE + SWATCH_GAP;
         int maxTextW   = width - (textStartX - x) - DIM_BADGE - 6;
 
+        // Sample current biome once per frame — cheap O(1) chunk lookup
+        var currentBiomeId = currentBiomeId();
+
         int row = 0;
         for (AtlasGroup group : atlasGroups) {
             // --- group header ---
@@ -206,9 +209,16 @@ public class AtlasGridWidget {
                     int drawY = contentY + (row - scrollOffset) * ROW_HEIGHT;
                     boolean hovered = isRowHovered(mouseX, mouseY, drawY);
 
+                    boolean isCurrent = entry.type() == WorldAtlasIndex.AtlasType.BIOME
+                            && entry.id().equals(currentBiomeId);
+
+                    if (isCurrent) {
+                        g.fill(x + 2, drawY, x + width - 6, drawY + ROW_HEIGHT, AMITheme.CURRENT_BIOME_BG);
+                        g.fill(x + 2, drawY, x + 4, drawY + ROW_HEIGHT, AMITheme.CURRENT_BIOME_ACCENT);
+                    }
                     if (hovered) {
                         boolean cheatOn = AMICheatMode.isEnabled();
-                        g.fill(x + 2, drawY, x + width - 6, drawY + ROW_HEIGHT - 1,
+                        g.fill(x + 4, drawY, x + width - 6, drawY + ROW_HEIGHT,
                                 cheatOn ? AMITheme.CHEAT_ENTRY_HOVER : AMITheme.ENTRY_HOVER);
                         pendingTooltipLines = buildTooltip(entry, Screen.hasShiftDown());
                     }
@@ -384,6 +394,16 @@ public class AtlasGridWidget {
         int opaque = 0xFF000000 | rgb;
         return Component.literal(" #" + String.format("%06X", rgb & 0xFFFFFF))
                 .withStyle(s -> s.withColor(opaque));
+    }
+
+    /** Returns the resource location of the biome the player is currently standing in, or null. */
+    private static net.minecraft.resources.ResourceLocation currentBiomeId() {
+        var mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) return null;
+        return mc.level.getBiome(mc.player.blockPosition())
+                .unwrapKey()
+                .map(key -> key.location())
+                .orElse(null);
     }
 
     private static int tempColor(float temp) {
