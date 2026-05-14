@@ -28,9 +28,9 @@
   "ami.configuration.panel_side.right": "Right",
   "ami.configuration.panel_width_override": "Panel Width Override",
 
-  "ami.tooltip.shift_for_details": "⇧ Shift for details",
-  "ami.tooltip.cheat_locate": "⚡ Click to locate",
-  "ami.tooltip.cheat_entity": "⚡ Entity actions coming soon",
+  "ami.tooltip.shift_for_details": "[Shift] for details",
+  "ami.tooltip.cheat_locate": "[!] Click to locate",
+  "ami.tooltip.cheat_entity": "[!] Entity actions coming soon",
   "ami.configuration.cheat_mode": "Cheat Mode",
   "ami.tooltip.temperature": "Temperature",
   "ami.tooltip.precipitation": "Precipitation",
