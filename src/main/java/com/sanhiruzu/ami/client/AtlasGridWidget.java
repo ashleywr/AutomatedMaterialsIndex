@@ -449,31 +449,39 @@ public class AtlasGridWidget {
     }
 
     private boolean handleAtlasClick(double mouseX, double mouseY) {
+        int mx = (int) mouseX;
+        int my = (int) mouseY;
         int contentY = y + HEADER_HEIGHT + 4;
-        if (mouseY < contentY) return false; // header bar — not a content row
         int contentH = height - HEADER_HEIGHT - 4;
         int visRows  = contentH / ROW_HEIGHT;
 
-        int clickedLogicalRow = scrollOffset + (int) ((mouseY - contentY) / ROW_HEIGHT);
-
+        // Mirror the render loop exactly — use the same isRowHovered test so
+        // click and hover share identical pixel bounds, with no math inversion.
         int row = 0;
         for (AtlasGroup group : atlasGroups) {
-            if (row == clickedLogicalRow) {
-                group.expanded = !group.expanded;
-                int maxScroll = Math.max(0, totalRows() - visRows);
-                scrollOffset = Math.min(scrollOffset, maxScroll);
-                return true;
+            if (row >= scrollOffset && row < scrollOffset + visRows) {
+                int drawY = contentY + (row - scrollOffset) * ROW_HEIGHT;
+                if (isRowHovered(mx, my, drawY)) {
+                    group.expanded = !group.expanded;
+                    int maxScroll = Math.max(0, totalRows() - visRows);
+                    scrollOffset = Math.min(scrollOffset, maxScroll);
+                    return true;
+                }
             }
             row++;
+
             if (group.expanded) {
                 for (WorldAtlasIndex.AtlasEntry entry : group.entries) {
-                    if (row == clickedLogicalRow && AMICheatMode.isEnabled()) {
-                        switch (entry.type()) {
-                            case BIOME     -> AMICheatMode.locateBiome(entry.id());
-                            case STRUCTURE -> AMICheatMode.locateStructure(entry.id());
-                            case ENTITY    -> {} // future: summon
+                    if (row >= scrollOffset && row < scrollOffset + visRows) {
+                        int drawY = contentY + (row - scrollOffset) * ROW_HEIGHT;
+                        if (isRowHovered(mx, my, drawY) && AMICheatMode.isEnabled()) {
+                            switch (entry.type()) {
+                                case BIOME     -> AMICheatMode.locateBiome(entry.id());
+                                case STRUCTURE -> AMICheatMode.locateStructure(entry.id());
+                                case ENTITY    -> {} // future: summon
+                            }
+                            return true;
                         }
-                        return true;
                     }
                     row++;
                 }
