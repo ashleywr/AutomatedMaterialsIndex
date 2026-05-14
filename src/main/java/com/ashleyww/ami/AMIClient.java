@@ -42,6 +42,17 @@ public class AMIClient {
         }
 
         AMI.LOGGER.debug("Player: {}", Minecraft.getInstance().getUser().getName());
+
+        // TODO: Remove this once network sync is implemented
+        // For now, run indexing on client to populate CLIENT_INSTANCE
+        event.enqueueWork(() -> {
+            AMI.LOGGER.info("Running client-side indexing (temporary, until network sync)");
+            try {
+                com.ashleyww.ami.index.Indexer.indexForClient();
+            } catch (Exception e) {
+                AMI.LOGGER.error("Error during client indexing", e);
+            }
+        });
     }
 
     @SubscribeEvent
