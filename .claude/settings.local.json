@@ -9,7 +9,8 @@
       "Bash(rm template.zip)",
       "Bash(git init *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git config *)"
     ]
   }
 }
