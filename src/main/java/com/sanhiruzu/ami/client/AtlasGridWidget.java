@@ -242,7 +242,7 @@ public class AtlasGridWidget {
 
     private boolean isRowHovered(int mouseX, int mouseY, int drawY) {
         return mouseX >= x + 2 && mouseX < x + width - 5
-                && mouseY >= drawY && mouseY < drawY + ROW_HEIGHT - 1;
+                && mouseY >= drawY && mouseY < drawY + ROW_HEIGHT;
     }
 
     private List<Component> buildTooltip(WorldAtlasIndex.AtlasEntry entry, boolean shifted) {
@@ -450,6 +450,7 @@ public class AtlasGridWidget {
 
     private boolean handleAtlasClick(double mouseX, double mouseY) {
         int contentY = y + HEADER_HEIGHT + 4;
+        if (mouseY < contentY) return false; // header bar — not a content row
         int contentH = height - HEADER_HEIGHT - 4;
         int visRows  = contentH / ROW_HEIGHT;
 
