@@ -29,7 +29,10 @@
       "WebFetch(domain:nekoyue.github.io)",
       "Bash(./gradlew jar *)",
       "Bash(dir \"C:\\\\Users\\\\ashle\\\\AppData\\\\Roaming\\\\PrismLauncher\\\\instances\\\\Mod Making\\\\minecraft\\\\mods\\\\\" | findstr ami *)",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\ashle\\\\AppData\\\\Roaming\\\\PrismLauncher\\\\instances\\\\Mod Making\\\\minecraft\\\\mods\\\\\" | Where-Object { $_.Name -match \"jei|emi\" } | Select-Object Name)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\ashle\\\\AppData\\\\Roaming\\\\PrismLauncher\\\\instances\\\\Mod Making\\\\minecraft\\\\mods\\\\\" | Where-Object { $_.Name -match \"\\(?i\\)jei|emi\" } | Select-Object Name)",
+      "Bash(./gradlew dependencies *)"
     ]
   }
 }
