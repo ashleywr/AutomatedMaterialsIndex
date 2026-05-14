@@ -1,16 +1,30 @@
 {
   "key.categories.ami": "Automated Materials Index",
   "key.ami.open": "Open AMI Screen",
-  "key.ami.cycle_atlas": "Cycle World Atlas Type",
+  "key.ami.cycle_atlas": "Cycle World Atlas View",
 
   "ami.gui.registry_tree": "Registry Tree",
-  "ami.gui.cycle_hint": "Press %s to cycle",
-  "ami.gui.close_hint": "Press %s to close",
   "ami.gui.items": "Items",
   "ami.gui.biomes": "Biomes",
   "ami.gui.structures": "Structures",
   "ami.gui.entities": "Entities",
+  "ami.gui.cycle_hint": "Press %s to cycle",
+  "ami.gui.close_hint": "Press %s to close",
+
+  "ami.dimension.overworld": "Overworld",
+  "ami.dimension.nether": "Nether",
+  "ami.dimension.end": "The End",
 
   "ami.configuration.title": "AMI Configuration",
-  "ami.configuration.enable_auto_indexing": "Enable Auto Indexing"
+  "ami.configuration.features": "Features",
+  "ami.configuration.enable_auto_indexing": "Enable Auto Indexing",
+  "ami.configuration.enable_material_root_ui": "Enable Material Root UI",
+  "ami.configuration.enable_ghost_crafting": "Enable Ghost Crafting",
+  "ami.configuration.enable_progression_graph": "Enable Progression Graph",
+  "ami.configuration.overlay": "Overlay Panel",
+  "ami.configuration.panel_side": "Panel Side",
+  "ami.configuration.panel_side.auto": "Auto",
+  "ami.configuration.panel_side.left": "Left",
+  "ami.configuration.panel_side.right": "Right",
+  "ami.configuration.panel_width_override": "Panel Width Override"
 }

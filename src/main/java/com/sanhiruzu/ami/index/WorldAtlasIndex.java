@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.index;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,15 +11,16 @@ public class WorldAtlasIndex {
     private static final WorldAtlasIndex INSTANCE = new WorldAtlasIndex();
     
     public enum AtlasType {
-        BIOME("Biomes"),
-        STRUCTURE("Structures"),
-        ENTITY("Entities");
+        BIOME("ami.gui.biomes"),
+        STRUCTURE("ami.gui.structures"),
+        ENTITY("ami.gui.entities");
 
-        private final String displayName;
+        private final String translationKey;
 
-        AtlasType(String displayName) { this.displayName = displayName; }
+        AtlasType(String translationKey) { this.translationKey = translationKey; }
 
-        public String displayName() { return displayName; }
+        public String translationKey() { return translationKey; }
+        public Component displayName() { return Component.translatable(translationKey); }
 
         public AtlasType next() {
             AtlasType[] values = values();
@@ -57,7 +59,18 @@ public class WorldAtlasIndex {
         this.lastUpdateTime = time;
     }
 
-    public enum Dimension { OVERWORLD, NETHER, END }
+    public enum Dimension {
+        OVERWORLD("ami.dimension.overworld"),
+        NETHER("ami.dimension.nether"),
+        END("ami.dimension.end");
+
+        private final String translationKey;
+
+        Dimension(String translationKey) { this.translationKey = translationKey; }
+
+        public String translationKey() { return translationKey; }
+        public Component displayName() { return Component.translatable(translationKey); }
+    }
 
     public record AtlasEntry(ResourceLocation id, String name, AtlasType type, int color, Dimension dimension) {}
 }
