@@ -46,7 +46,10 @@ public class WorldAtlasIndexer {
             );
 
             // Structures
-            level.registryAccess().registry(Registries.STRUCTURE).ifPresent(structureRegistry ->
+            var structureOpt = level.registryAccess().registry(Registries.STRUCTURE);
+            LOGGER.debug("Structure registry present: {}, size: {}",
+                    structureOpt.isPresent(), structureOpt.map(r -> r.size()).orElse(0));
+            structureOpt.ifPresent(structureRegistry ->
                 structureRegistry.entrySet().forEach(entry -> {
                     ResourceLocation id = entry.getKey().location();
                     index.addEntry(WorldAtlasIndex.AtlasType.STRUCTURE, new WorldAtlasIndex.AtlasEntry(

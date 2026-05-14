@@ -27,8 +27,9 @@ public final class AMITheme {
     public static int ENTRY_TEXT     = 0xFFCCCCCC;
 
     // Scrollbar
-    public static int SCROLL_TRACK   = 0xFF333333;
-    public static int SCROLL_THUMB   = 0xFF88AA88;
+    public static int SCROLL_TRACK        = 0xFF333333;
+    public static int SCROLL_THUMB        = 0xFF88AA88;
+    public static int SCROLL_THUMB_ACTIVE = 0xFFAADD88; // hovered or dragging
 
     // Dimension badges
     public static int DIM_NETHER     = 0xFFCC4444;
