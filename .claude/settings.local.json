@@ -26,7 +26,9 @@
       "Read(//tmp/**)",
       "Bash(xargs -I{} bash -c 'jar tf {} 2>/dev/null | grep -l \"AbstractContainerScreen\" && echo {}')",
       "WebFetch(domain:docs.neoforged.net)",
-      "WebFetch(domain:nekoyue.github.io)"
+      "WebFetch(domain:nekoyue.github.io)",
+      "Bash(./gradlew jar *)",
+      "Bash(dir \"C:\\\\Users\\\\ashle\\\\AppData\\\\Roaming\\\\PrismLauncher\\\\instances\\\\Mod Making\\\\minecraft\\\\mods\\\\\" | findstr ami *)"
     ]
   }
 }
