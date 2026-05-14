@@ -11,7 +11,12 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git config *)",
-      "Bash(./gradlew build *)"
+      "Bash(./gradlew build *)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:deepwiki.com)",
+      "WebFetch(domain:mvnrepository.com)",
+      "Bash(./gradlew compileJava -q)"
     ]
   }
 }

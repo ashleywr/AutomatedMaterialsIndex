@@ -13,6 +13,8 @@ import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 
+import com.ashleyww.ami.index.Indexer;
+
 @Mod(AMI.MODID)
 public class AMI {
     public static final String MODID = "ami";
@@ -26,6 +28,7 @@ public class AMI {
 
     private void commonSetup(FMLCommonSetupEvent event) {
         LOGGER.info("Initializing Automated Materials Index");
+        event.enqueueWork(Indexer::index);
     }
 
     @SubscribeEvent
