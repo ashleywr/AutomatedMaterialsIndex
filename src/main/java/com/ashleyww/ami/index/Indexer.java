@@ -68,6 +68,73 @@ public class Indexer {
         LOGGER.debug("Indexed mods: {}", mods);
     }
 
+    public static void indexForClient() {
+        LOGGER.info("Starting client-side AMI indexing...");
+        long startTime = System.currentTimeMillis();
+        AMIIndex clientIndex = AMIIndex.CLIENT_INSTANCE;
+        clientIndex.clear();
+
+        int itemCount = 0;
+        Set<String> mods = new HashSet<>();
+
+        LOGGER.debug("Scanning item registry for client...");
+        for (Item item : BuiltInRegistries.ITEM) {
+            if (item == null) continue;
+
+            ResourceLocation registryName = BuiltInRegistries.ITEM.getKey(item);
+            if (registryName == null || registryName.getNamespace().equals("air")) continue;
+
+            itemCount++;
+            String modId = registryName.getNamespace();
+            mods.add(modId);
+
+            String colorBucket = computeColorBucket(item);
+            MaterialEntry.MaterialTier tier = determineTier(item);
+            String variantGroup = getVariantGroup(item);
+            int dominantColor = 0xFFFFFF;
+
+            MaterialEntry entry = new MaterialEntry(
+                    item,
+                    modId,
+                    dominantColor,
+                    colorBucket,
+                    tier,
+                    variantGroup
+            );
+
+            addToClientIndex(entry);
+        }
+
+        long endTime = System.currentTimeMillis();
+        long duration = endTime - startTime;
+
+        clientIndex.setTotalItemsIndexed(itemCount);
+        clientIndex.setIndexBuildTime(duration);
+
+        LOGGER.info("✓ Client indexing complete: {} items from {} mods in {}ms", itemCount, mods.size(), duration);
+        LOGGER.debug("Indexed mods: {}", mods);
+    }
+
+    private static void addToClientIndex(MaterialEntry entry) {
+        AMIIndex index = AMIIndex.CLIENT_INSTANCE;
+
+        index.getCategoryIndex(IndexCategory.BY_COLOR)
+                .computeIfAbsent(entry.colorBucket(), k -> new ArrayList<>())
+                .add(entry);
+
+        index.getCategoryIndex(IndexCategory.BY_MOD)
+                .computeIfAbsent(entry.modId(), k -> new ArrayList<>())
+                .add(entry);
+
+        index.getCategoryIndex(IndexCategory.BY_TIER)
+                .computeIfAbsent(entry.materialTier().getDisplayName(), k -> new ArrayList<>())
+                .add(entry);
+
+        index.getCategoryIndex(IndexCategory.BY_VARIANT_GROUP)
+                .computeIfAbsent(entry.variantGroup(), k -> new ArrayList<>())
+                .add(entry);
+    }
+
     private static void addToIndex(MaterialEntry entry) {
         AMIIndex index = AMIIndex.getInstance();
 
