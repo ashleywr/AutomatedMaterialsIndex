@@ -15,15 +15,14 @@ import com.ashleyww.ami.index.IndexCategory;
 import com.ashleyww.ami.index.MaterialEntry;
 
 public class ItemGridWidget {
-    private final AMIScreen parent;
-    private final int x, y, width, height;
+    private int x, y;
+    private final int width, height;
     private final List<ItemStack> items;
     private int scrollOffset = 0;
     private static final int ITEM_SIZE = 18;
     private static final int PADDING = 2;
 
-    public ItemGridWidget(AMIScreen parent, int x, int y, int width, int height, int totalItems) {
-        this.parent = parent;
+    public ItemGridWidget(int x, int y, int width, int height) {
         this.x = x;
         this.y = y;
         this.width = width;
@@ -104,5 +103,18 @@ public class ItemGridWidget {
         int maxScroll = Math.max(0, (items.size() - 1) / itemsPerRow - 3);
         scrollOffset = Math.max(0, Math.min(maxScroll, (int)(scrollOffset - scrollDelta)));
         return true;
+    }
+
+    public void setPosition(int newX, int newY) {
+        this.x = newX;
+        this.y = newY;
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
     }
 }

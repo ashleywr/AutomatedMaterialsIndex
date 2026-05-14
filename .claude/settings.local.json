@@ -17,7 +17,16 @@
       "WebFetch(domain:deepwiki.com)",
       "WebFetch(domain:mvnrepository.com)",
       "Bash(./gradlew compileJava -q)",
-      "Bash(./gradlew clean *)"
+      "Bash(./gradlew clean *)",
+      "Bash(dir C:\\\\WorkDir\\\\Minecraft\\\\AutomatedMaterialsIndex *)",
+      "Bash(jar tf *)",
+      "Bash(cd /tmp)",
+      "Bash(jar xf *)",
+      "Bash(mkdir -p /tmp/neoforge_extract)",
+      "Read(//tmp/**)",
+      "Bash(xargs -I{} bash -c 'jar tf {} 2>/dev/null | grep -l \"AbstractContainerScreen\" && echo {}')",
+      "WebFetch(domain:docs.neoforged.net)",
+      "WebFetch(domain:nekoyue.github.io)"
     ]
   }
 }
