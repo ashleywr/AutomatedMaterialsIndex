@@ -4,6 +4,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
+import com.ashleyww.ami.AMI;
 import com.ashleyww.ami.index.AMIIndex;
 
 public class AMIScreen extends Screen {
@@ -11,10 +12,12 @@ public class AMIScreen extends Screen {
 
     public AMIScreen() {
         super(Component.literal("Automated Materials Index"));
+        AMI.LOGGER.debug("AMI screen created");
     }
 
     @Override
     protected void init() {
+        AMI.LOGGER.debug("AMI screen initialized - size: {}x{}", this.width, this.height);
         this.gridWidget = new ItemGridWidget(this, 10, 40, this.width - 20, this.height - 80, AMIIndex.CLIENT_INSTANCE.getTotalItemsIndexed());
     }
 

@@ -24,19 +24,30 @@ public class AMIClient {
 
     @SubscribeEvent
     static void onClientSetup(FMLClientSetupEvent event) {
+        AMI.LOGGER.info("================================");
         AMI.LOGGER.info("AMI client setup initialized");
-        AMI.LOGGER.info("Player: {}", Minecraft.getInstance().getUser().getName());
+        AMI.LOGGER.info("================================");
 
         boolean jeiLoaded = ModList.get().isLoaded("jei");
         boolean emiLoaded = ModList.get().isLoaded("emi");
-        if (jeiLoaded || emiLoaded) {
-            AMI.LOGGER.info("JEI or EMI detected - using shell UI as fallback");
+
+        if (jeiLoaded) {
+            AMI.LOGGER.info("✓ JEI detected - plugin will integrate when ready");
         }
+        if (emiLoaded) {
+            AMI.LOGGER.info("✓ EMI detected - plugin will integrate when ready");
+        }
+        if (!jeiLoaded && !emiLoaded) {
+            AMI.LOGGER.info("✓ No recipe UI detected - AMI shell UI will be used");
+        }
+
+        AMI.LOGGER.debug("Player: {}", Minecraft.getInstance().getUser().getName());
     }
 
     @SubscribeEvent
     static void onKeyInput(InputEvent.Key event) {
         if (AMIKeyMappings.OPEN_AMI.consumeClick()) {
+            AMI.LOGGER.debug("Opening AMI screen");
             Minecraft.getInstance().setScreen(new AMIScreen());
         }
     }

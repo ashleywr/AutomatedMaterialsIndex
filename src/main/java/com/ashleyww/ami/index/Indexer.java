@@ -22,6 +22,7 @@ public class Indexer {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public static void index() {
+        LOGGER.info("Starting AMI indexing pipeline...");
         long startTime = System.currentTimeMillis();
         AMIIndex indexInstance = AMIIndex.getInstance();
         indexInstance.clear();
@@ -29,6 +30,7 @@ public class Indexer {
         int itemCount = 0;
         Set<String> mods = new HashSet<>();
 
+        LOGGER.debug("Scanning item registry...");
         for (Item item : BuiltInRegistries.ITEM) {
             if (item == null) continue;
 
@@ -62,7 +64,8 @@ public class Indexer {
         indexInstance.setTotalItemsIndexed(itemCount);
         indexInstance.setIndexBuildTime(duration);
 
-        LOGGER.info("AMI indexed {} items across {} mods in {}ms", itemCount, mods.size(), duration);
+        LOGGER.info("✓ AMI indexing complete: {} items from {} mods in {}ms", itemCount, mods.size(), duration);
+        LOGGER.debug("Indexed mods: {}", mods);
     }
 
     private static void addToIndex(MaterialEntry entry) {
