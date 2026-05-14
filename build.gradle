@@ -85,17 +85,18 @@ neoForge {
 
         // applies to all the run configs above
         configureEach {
-            // Recommended logging data for a userdev environment
-            // The markers can be added/remove as needed separated by commas.
-            // "SCAN": For mods scan.
-            // "REGISTRIES": For firing of registry events.
-            // "REGISTRYDUMP": For getting the contents of all registries.
-            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            // Logging markers (comma-separated):
+            //   SCAN          - mod scanning phase, shows what's being picked up
+            //   REGISTRIES    - registry event firing
+            //   REGISTRYDUMP  - full dump of all registry contents (very noisy, enable only when debugging a specific registry)
+            //   LOADING       - mod loading lifecycle events
+            systemProperty 'forge.logging.markers', 'SCAN,REGISTRIES,LOADING'
 
-            // Recommended logging level for the console
-            // You can set various levels here.
-            // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
             logLevel = org.slf4j.event.Level.DEBUG
+
+            // Enable Java assertions — catches contract violations (e.g. assert x != null) that
+            // would otherwise silently produce wrong results instead of failing fast.
+            jvmArguments.addAll '-ea', '-Dmixin.debug.export=true'
         }
     }
 
