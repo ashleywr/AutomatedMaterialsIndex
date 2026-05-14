@@ -118,9 +118,14 @@ configurations {
 }
 
 dependencies {
-    // JEI integration deferred - will add in follow-up
+    // Recipe UI integrations (deferred - will add in follow-up)
+    // JEI
     // compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
     // localRuntime "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+
+    // EMI
+    // compileOnly "dev.emi:emi-neoforge:${minecraft_version}:api"
+    // localRuntime "dev.emi:emi-neoforge:${minecraft_version}"
 
     // Example mod dependency using a mod jar from ./libs with a flat dir repository
     // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
