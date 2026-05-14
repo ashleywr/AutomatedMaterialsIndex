@@ -8,11 +8,10 @@ import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.level.LevelEvent;
 
 import com.sanhiruzu.ami.client.AMIKeyMappings;
 import com.sanhiruzu.ami.client.AMIScreen;
@@ -50,14 +49,15 @@ public class AMIClient {
     }
 
     @SubscribeEvent
-    static void onWorldLoad(LevelEvent.Load event) {
-        if (event.getLevel() != null && event.getLevel().isClientSide()) {
-            try {
-                com.sanhiruzu.ami.index.Indexer.index();
-                WorldAtlasIndexer.index();
-            } catch (Exception e) {
-                AMI.LOGGER.error("Error during world-load indexing", e);
-            }
+    static void onPlayerLoggingIn(ClientPlayerNetworkEvent.LoggingIn event) {
+        // LoggingIn fires after mc.level is set and the client is fully connected —
+        // safer than LevelEvent.Load which can fire before mc.level is assigned.
+        var level = event.getPlayer().clientLevel;
+        try {
+            com.sanhiruzu.ami.index.Indexer.index();
+            WorldAtlasIndexer.index(level);
+        } catch (Exception e) {
+            AMI.LOGGER.error("Error during world-load indexing", e);
         }
     }
 

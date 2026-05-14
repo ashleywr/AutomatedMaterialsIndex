@@ -7,11 +7,10 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import com.mojang.logging.LogUtils;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 
 public class WorldAtlasIndexer {
@@ -24,17 +23,14 @@ public class WorldAtlasIndexer {
                       .thenComparing(e -> e.id().getNamespace())
                       .thenComparing(WorldAtlasIndex.AtlasEntry::name);
 
-    public static void index() {
+    public static void index(ClientLevel level) {
         try {
-            Minecraft mc = Minecraft.getInstance();
-            if (mc.level == null) return;
-
             LOGGER.info("Starting World Atlas indexing...");
             WorldAtlasIndex index = WorldAtlasIndex.getInstance();
             index.clear();
 
             // Biomes — use water color as the swatch
-            mc.level.registryAccess().registry(Registries.BIOME).ifPresent(biomeRegistry ->
+            level.registryAccess().registry(Registries.BIOME).ifPresent(biomeRegistry ->
                 biomeRegistry.entrySet().forEach(entry -> {
                     ResourceLocation id = entry.getKey().location();
                     int waterColor = entry.getValue().getSpecialEffects().getWaterColor();
@@ -45,7 +41,7 @@ public class WorldAtlasIndexer {
             );
 
             // Structures — hash namespace to a stable pastel color
-            mc.level.registryAccess().registry(Registries.STRUCTURE).ifPresent(structureRegistry ->
+            level.registryAccess().registry(Registries.STRUCTURE).ifPresent(structureRegistry ->
                 structureRegistry.entrySet().forEach(entry -> {
                     ResourceLocation id = entry.getKey().location();
                     index.addEntry(WorldAtlasIndex.AtlasType.STRUCTURE, new WorldAtlasIndex.AtlasEntry(
