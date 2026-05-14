@@ -4,9 +4,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import com.mojang.logging.LogUtils;
-
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -16,7 +13,7 @@ import net.minecraft.world.entity.MobCategory;
 import net.neoforged.fml.ModList;
 
 public class WorldAtlasIndexer {
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final org.slf4j.Logger LOGGER = com.sanhiruzu.ami.AMI.LOGGER;
 
     private static final Comparator<WorldAtlasIndex.AtlasEntry> ENTRY_ORDER =
             Comparator.comparing((WorldAtlasIndex.AtlasEntry e) -> e.id().getNamespace().equals("minecraft") ? 0 : 1)

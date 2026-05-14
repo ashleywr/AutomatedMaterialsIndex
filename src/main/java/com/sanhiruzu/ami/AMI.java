@@ -1,8 +1,7 @@
 package com.sanhiruzu.ami;
 
 import org.slf4j.Logger;
-
-import com.mojang.logging.LogUtils;
+import org.slf4j.LoggerFactory;
 
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -16,7 +15,9 @@ import net.neoforged.neoforge.event.server.ServerStartingEvent;
 @Mod(AMI.MODID)
 public class AMI {
     public static final String MODID = "ami";
-    public static final Logger LOGGER = LogUtils.getLogger();
+    // Named "AMI" so log lines show [AMI/] — class-derived names abbreviate
+    // com.sanhiruzu.ami → co.sa.am, making searches for "ami" miss all output.
+    public static final Logger LOGGER = LoggerFactory.getLogger("AMI");
 
     public AMI(IEventBus modEventBus, ModContainer modContainer) {
         modEventBus.addListener(this::commonSetup);
