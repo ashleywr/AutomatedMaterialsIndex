@@ -28,6 +28,12 @@ public class AMIConfig {
             .comment("Enable the directed progression graph")
             .define("enableProgressionGraph", true);
 
+    public static final ModConfigSpec.BooleanValue CHEAT_MODE = BUILDER
+            .comment("Enable cheat-mode features: give items, locate biomes and structures.",
+                     "In singleplayer (and as LAN host) this works immediately.",
+                     "On a dedicated server the player must have permission level 2 (OP).")
+            .define("cheatMode", false);
+
     static {
         BUILDER.pop();
     }
