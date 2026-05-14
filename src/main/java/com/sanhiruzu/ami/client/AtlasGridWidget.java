@@ -182,8 +182,9 @@ public class AtlasGridWidget {
         int textStartX = x + SWATCH_GAP + SWATCH_SIZE + SWATCH_GAP;
         int maxTextW   = width - (textStartX - x) - DIM_BADGE - 6;
 
-        // Sample current biome once per frame — cheap O(1) chunk lookup
+        // Sample current biome/structure once per frame — cheap chunk lookups
         var currentBiomeId = currentBiomeId();
+        var currentStructureIds = currentStructureIds();
 
         int row = 0;
         for (AtlasGroup group : atlasGroups) {
@@ -209,12 +210,19 @@ public class AtlasGridWidget {
                     int drawY = contentY + (row - scrollOffset) * ROW_HEIGHT;
                     boolean hovered = isRowHovered(mouseX, mouseY, drawY);
 
-                    boolean isCurrent = entry.type() == WorldAtlasIndex.AtlasType.BIOME
-                            && entry.id().equals(currentBiomeId);
+                    boolean isCurrent = switch (entry.type()) {
+                        case BIOME     -> entry.id().equals(currentBiomeId);
+                        case STRUCTURE -> currentStructureIds.contains(entry.id());
+                        default        -> false;
+                    };
 
                     if (isCurrent) {
-                        g.fill(x + 2, drawY, x + width - 6, drawY + ROW_HEIGHT, AMITheme.CURRENT_BIOME_BG);
-                        g.fill(x + 2, drawY, x + 4, drawY + ROW_HEIGHT, AMITheme.CURRENT_BIOME_ACCENT);
+                        int accentBg = entry.type() == WorldAtlasIndex.AtlasType.BIOME
+                                ? AMITheme.CURRENT_BIOME_BG : AMITheme.CURRENT_STRUCT_BG;
+                        int accentBar = entry.type() == WorldAtlasIndex.AtlasType.BIOME
+                                ? AMITheme.CURRENT_BIOME_ACCENT : AMITheme.CURRENT_STRUCT_ACCENT;
+                        g.fill(x + 2, drawY, x + width - 6, drawY + ROW_HEIGHT, accentBg);
+                        g.fill(x + 2, drawY, x + 4, drawY + ROW_HEIGHT, accentBar);
                     }
                     if (hovered) {
                         boolean cheatOn = AMICheatMode.isEnabled();
@@ -404,6 +412,33 @@ public class AtlasGridWidget {
                 .unwrapKey()
                 .map(key -> key.location())
                 .orElse(null);
+    }
+
+    /**
+     * Returns resource locations of structures whose starts are in the player's current chunk
+     * and whose bounding box contains the player's position.
+     *
+     * Note: structure starts live in the origin chunk only. Large structures (mansions, strongholds)
+     * will only match while the player is in that specific origin chunk.
+     */
+    private static java.util.Set<net.minecraft.resources.ResourceLocation> currentStructureIds() {
+        var mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) return java.util.Set.of();
+
+        var pos = mc.player.blockPosition();
+        var chunk = mc.level.getChunk(pos.getX() >> 4, pos.getZ() >> 4);
+        var reg = mc.level.registryAccess().registry(Registries.STRUCTURE).orElse(null);
+        if (reg == null) return java.util.Set.of();
+
+        var found = new java.util.HashSet<net.minecraft.resources.ResourceLocation>();
+        for (var entry : chunk.getAllStarts().entrySet()) {
+            var start = entry.getValue();
+            if (start.getPieces().isEmpty()) continue;
+            if (!start.getBoundingBox().isInside(pos)) continue;
+            reg.getResourceKey(entry.getKey())
+                    .ifPresent(key -> found.add(key.location()));
+        }
+        return found;
     }
 
     private static int tempColor(float temp) {
