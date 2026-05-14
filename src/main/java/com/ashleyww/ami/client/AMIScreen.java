@@ -18,7 +18,7 @@ public class AMIScreen extends Screen {
     @Override
     protected void init() {
         AMI.LOGGER.debug("AMI screen initialized - size: {}x{}", this.width, this.height);
-        this.gridWidget = new ItemGridWidget(this, 10, 40, this.width - 20, this.height - 80, AMIIndex.getInstance().getTotalItemsIndexed());
+        this.gridWidget = new ItemGridWidget(10, 40, this.width - 20, this.height - 80);
     }
 
     @Override
