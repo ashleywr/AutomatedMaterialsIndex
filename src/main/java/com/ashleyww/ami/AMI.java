@@ -29,14 +29,8 @@ public class AMI {
     private void commonSetup(FMLCommonSetupEvent event) {
         LOGGER.info("================================");
         LOGGER.info("Initializing Automated Materials Index");
+        LOGGER.info("AMI is a client-side recipe UI mod");
         LOGGER.info("================================");
-        event.enqueueWork(() -> {
-            try {
-                Indexer.index();
-            } catch (Exception e) {
-                LOGGER.error("Error during indexing", e);
-            }
-        });
     }
 
     @SubscribeEvent

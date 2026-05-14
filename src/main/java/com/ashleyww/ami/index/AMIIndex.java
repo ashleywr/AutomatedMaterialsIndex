@@ -4,9 +4,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * AMI Index - Client-side only.
+ * Holds indexed item data categorized by color, mod origin, material tier, and variant groups.
+ */
 public class AMIIndex {
     private static final AMIIndex INSTANCE = new AMIIndex();
-    public static final AMIIndex CLIENT_INSTANCE = new AMIIndex();
 
     private final Map<IndexCategory, Map<String, List<MaterialEntry>>> index;
     private long indexBuildTimeMs;

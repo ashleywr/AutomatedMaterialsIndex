@@ -37,7 +37,7 @@ public class ItemGridWidget {
     private void loadItems() {
         items.clear();
 
-        AMIIndex index = AMIIndex.CLIENT_INSTANCE;
+        AMIIndex index = AMIIndex.getInstance();
         if (index.getTotalItemsIndexed() == 0) {
             AMI.LOGGER.debug("Loading items from registry (no index data available)");
             for (Item item : BuiltInRegistries.ITEM) {
