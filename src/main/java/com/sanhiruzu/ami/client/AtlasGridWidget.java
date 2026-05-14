@@ -56,7 +56,7 @@ public class AtlasGridWidget {
 
     // Deferred tooltips — collected during render, drawn last
     private ItemStack pendingItemTooltip = null;
-    private Component pendingTextTooltip = null;
+    private List<Component> pendingTooltipLines = null;
 
     public AtlasGridWidget(int x, int y, int width, int height) {
         this.x = x;
@@ -116,7 +116,7 @@ public class AtlasGridWidget {
 
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         pendingItemTooltip = null;
-        pendingTextTooltip = null;
+        pendingTooltipLines = null;
 
         // Panel background
         g.fill(x, y, x + width, y + height, AMITheme.PANEL_BG);
@@ -129,7 +129,7 @@ public class AtlasGridWidget {
         MutableComponent headerText = modeLabel.copy()
                 .append(Component.literal(" (" + entryCount() + ")"));
         if (cheat) {
-            headerText.append(Component.literal(" ⚡").withStyle(s -> s.withColor(AMITheme.CHEAT_INDICATOR)));
+            headerText.append(Component.literal(" [!]").withStyle(s -> s.withColor(AMITheme.CHEAT_INDICATOR)));
         }
         g.drawString(Minecraft.getInstance().font, headerText, x + 3, y + 2, cheat ? AMITheme.CHEAT_INDICATOR : AMITheme.HEADER_TEXT, false);
 
@@ -143,8 +143,8 @@ public class AtlasGridWidget {
 
         if (pendingItemTooltip != null) {
             g.renderTooltip(Minecraft.getInstance().font, pendingItemTooltip, mouseX, mouseY);
-        } else if (pendingTextTooltip != null) {
-            g.renderTooltip(Minecraft.getInstance().font, pendingTextTooltip, mouseX, mouseY);
+        } else if (pendingTooltipLines != null) {
+            g.renderComponentTooltip(Minecraft.getInstance().font, pendingTooltipLines, mouseX, mouseY);
         }
     }
 
@@ -210,7 +210,7 @@ public class AtlasGridWidget {
                         boolean cheatOn = AMICheatMode.isEnabled();
                         g.fill(x + 2, drawY, x + width - 6, drawY + ROW_HEIGHT - 1,
                                 cheatOn ? AMITheme.CHEAT_ENTRY_HOVER : AMITheme.ENTRY_HOVER);
-                        pendingTextTooltip = buildTooltip(entry, Screen.hasShiftDown());
+                        pendingTooltipLines = buildTooltip(entry, Screen.hasShiftDown());
                     }
 
                     // Water-color swatch
@@ -245,27 +245,32 @@ public class AtlasGridWidget {
                 && mouseY >= drawY && mouseY < drawY + ROW_HEIGHT - 1;
     }
 
-    private Component buildTooltip(WorldAtlasIndex.AtlasEntry entry, boolean shifted) {
-        MutableComponent tip = Component.literal(entry.name());
+    private List<Component> buildTooltip(WorldAtlasIndex.AtlasEntry entry, boolean shifted) {
+        List<Component> lines = new ArrayList<>();
 
+        // Header: name + dimension tag if not overworld
+        MutableComponent header = Component.literal(entry.name());
         if (entry.dimension() != WorldAtlasIndex.Dimension.OVERWORLD) {
-            tip.append(Component.literal(" [").withStyle(s -> s.withColor(0x888888)))
-               .append(entry.dimension().displayName())
-               .append(Component.literal("]").withStyle(s -> s.withColor(0x888888)));
+            header.append(Component.literal(" [").withStyle(s -> s.withColor(0x888888)))
+                  .append(entry.dimension().displayName())
+                  .append(Component.literal("]").withStyle(s -> s.withColor(0x888888)));
         }
+        lines.add(header);
 
-        tip.append(line(entry.id().toString(), 0x666666))
-           .append(line(WorldAtlasIndexer.modDisplayName(entry.id().getNamespace()), 0x888888));
+        lines.add(Component.literal(entry.id().toString()).withStyle(s -> s.withColor(0x666666)));
+        lines.add(Component.literal(WorldAtlasIndexer.modDisplayName(entry.id().getNamespace()))
+                .withStyle(s -> s.withColor(0x888888)));
 
         if (shifted) {
+            lines.add(Component.empty()); // blank separator between header block and details
             switch (entry.type()) {
-                case BIOME     -> appendBiomeDetails(tip, entry);
-                case ENTITY    -> appendEntityDetails(tip, entry);
-                case STRUCTURE -> appendStructureDetails(tip, entry);
+                case BIOME     -> appendBiomeDetails(lines, entry);
+                case ENTITY    -> appendEntityDetails(lines, entry);
+                case STRUCTURE -> appendStructureDetails(lines, entry);
             }
         } else {
-            tip.append(line(Component.translatable("ami.tooltip.shift_for_details")
-                    .withStyle(s -> s.withColor(0x555555))));
+            lines.add(Component.translatable("ami.tooltip.shift_for_details")
+                    .withStyle(s -> s.withColor(0x555555)));
         }
 
         if (AMICheatMode.isEnabled()) {
@@ -273,13 +278,13 @@ public class AtlasGridWidget {
                 case BIOME, STRUCTURE -> Component.translatable("ami.tooltip.cheat_locate");
                 case ENTITY           -> Component.translatable("ami.tooltip.cheat_entity");
             };
-            tip.append(line(clickHint.copy().withStyle(s -> s.withColor(AMITheme.CHEAT_INDICATOR))));
+            lines.add(clickHint.copy().withStyle(s -> s.withColor(AMITheme.CHEAT_INDICATOR)));
         }
 
-        return tip;
+        return lines;
     }
 
-    private void appendBiomeDetails(MutableComponent tip, WorldAtlasIndex.AtlasEntry entry) {
+    private void appendBiomeDetails(List<Component> lines, WorldAtlasIndex.AtlasEntry entry) {
         var mc = Minecraft.getInstance();
         if (mc.level == null) return;
 
@@ -287,27 +292,26 @@ public class AtlasGridWidget {
         mc.level.registryAccess().registry(Registries.BIOME).ifPresent(reg ->
             reg.getHolder(biomeKey).ifPresent(holder -> {
                 var biome = holder.value();
-
                 float temp = biome.getBaseTemperature();
                 String precip = !biome.hasPrecipitation() ? "None"
                               : temp < 0.15f ? "Snow" : "Rain";
-
                 var effects = biome.getSpecialEffects();
 
-                tip.append(line(Component.translatable("ami.tooltip.temperature")
+                lines.add(Component.translatable("ami.tooltip.temperature")
                         .append(Component.literal(": " + String.format("%.2f", temp))
-                                .withStyle(s -> s.withColor(tempColor(temp))))));
+                                .withStyle(s -> s.withColor(tempColor(temp)))));
 
-                tip.append(line(Component.translatable("ami.tooltip.precipitation")
-                        .append(Component.literal(": " + precip).withStyle(s -> s.withColor(0xAAAAFF)))));
+                lines.add(Component.translatable("ami.tooltip.precipitation")
+                        .append(Component.literal(": " + precip)
+                                .withStyle(s -> s.withColor(0xAAAAFF))));
 
-                tip.append(line(Component.translatable("ami.tooltip.water_color")
-                        .append(colorSwatch(effects.getWaterColor()))));
+                lines.add(Component.translatable("ami.tooltip.water_color")
+                        .append(colorSwatch(effects.getWaterColor())));
 
-                tip.append(line(Component.translatable("ami.tooltip.sky_color")
-                        .append(colorSwatch(effects.getSkyColor()))));
+                lines.add(Component.translatable("ami.tooltip.sky_color")
+                        .append(colorSwatch(effects.getSkyColor())));
 
-                // Tags — show is_* descriptors first, then modded, cap at 6
+                // Tags — is_* descriptors first, capped at 6
                 var tags = holder.tags()
                         .sorted((a, b) -> {
                             boolean aIs = a.location().getPath().startsWith("is_");
@@ -319,19 +323,18 @@ public class AtlasGridWidget {
                         .toList();
 
                 if (!tags.isEmpty()) {
-                    MutableComponent tagLine = Component.translatable("ami.tooltip.tags")
-                            .append(Component.literal(":").withStyle(s -> s.withColor(0x888888)));
+                    lines.add(Component.translatable("ami.tooltip.tags")
+                            .append(Component.literal(":").withStyle(s -> s.withColor(0x888888))));
                     for (var tag : tags) {
-                        tagLine.append(Component.literal("\n  #" + tag.location())
+                        lines.add(Component.literal("  #" + tag.location())
                                 .withStyle(s -> s.withColor(0x667766)));
                     }
-                    tip.append(Component.literal("\n").append(tagLine));
                 }
             })
         );
     }
 
-    private void appendEntityDetails(MutableComponent tip, WorldAtlasIndex.AtlasEntry entry) {
+    private void appendEntityDetails(List<Component> lines, WorldAtlasIndex.AtlasEntry entry) {
         BuiltInRegistries.ENTITY_TYPE.getOptional(entry.id()).ifPresent(entityType -> {
             String category = switch (entityType.getCategory()) {
                 case MONSTER                        -> "Hostile";
@@ -343,19 +346,20 @@ public class AtlasGridWidget {
             };
 
             var dims = entityType.getDimensions();
-            tip.append(line(Component.translatable("ami.tooltip.category")
-                    .append(Component.literal(": " + category).withStyle(s -> s.withColor(0xAAAAFF)))));
-            tip.append(line(Component.translatable("ami.tooltip.size")
-                    .append(Component.literal(String.format(": %.1fw × %.1fh", dims.width(), dims.height()))
-                            .withStyle(s -> s.withColor(0xAAAAFF)))));
+            lines.add(Component.translatable("ami.tooltip.category")
+                    .append(Component.literal(": " + category)
+                            .withStyle(s -> s.withColor(0xAAAAFF))));
+            lines.add(Component.translatable("ami.tooltip.size")
+                    .append(Component.literal(String.format(": %.1f x %.1f (WxH)", dims.width(), dims.height()))
+                            .withStyle(s -> s.withColor(0xAAAAFF))));
             if (entityType.fireImmune()) {
-                tip.append(line(Component.translatable("ami.tooltip.fire_immune")
-                        .withStyle(s -> s.withColor(0xFFAA44))));
+                lines.add(Component.translatable("ami.tooltip.fire_immune")
+                        .withStyle(s -> s.withColor(0xFFAA44)));
             }
         });
     }
 
-    private void appendStructureDetails(MutableComponent tip, WorldAtlasIndex.AtlasEntry entry) {
+    private void appendStructureDetails(List<Component> lines, WorldAtlasIndex.AtlasEntry entry) {
         var mc = Minecraft.getInstance();
         if (mc.level == null) return;
 
@@ -364,25 +368,15 @@ public class AtlasGridWidget {
             reg.getHolder(key).ifPresent(holder -> {
                 var tags = holder.tags().limit(6).toList();
                 if (!tags.isEmpty()) {
-                    MutableComponent tagLine = Component.translatable("ami.tooltip.tags")
-                            .append(Component.literal(":").withStyle(s -> s.withColor(0x888888)));
+                    lines.add(Component.translatable("ami.tooltip.tags")
+                            .append(Component.literal(":").withStyle(s -> s.withColor(0x888888))));
                     for (var tag : tags) {
-                        tagLine.append(Component.literal("\n  #" + tag.location())
+                        lines.add(Component.literal("  #" + tag.location())
                                 .withStyle(s -> s.withColor(0x667766)));
                     }
-                    tip.append(Component.literal("\n").append(tagLine));
                 }
             })
         );
-    }
-
-    /** Newline + content, dimmed label colour. */
-    private static MutableComponent line(String text, int color) {
-        return Component.literal("\n" + text).withStyle(s -> s.withColor(color));
-    }
-
-    private static MutableComponent line(Component content) {
-        return Component.literal("\n").append(content);
     }
 
     /** " #RRGGBB" with the hex rendered in that colour. */
