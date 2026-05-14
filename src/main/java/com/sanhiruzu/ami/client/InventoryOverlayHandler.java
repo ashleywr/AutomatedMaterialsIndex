@@ -38,18 +38,25 @@ public class InventoryOverlayHandler {
         if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
 
         try {
-            int panelX, panelWidth;
             int panelY = containerScreen.getGuiTop();
             int panelHeight = containerScreen.getYSize();
 
-            if (RECIPE_VIEWER_PRESENT) {
-                // EMI/JEI own the right side — render AMI atlas panel on the left
-                panelWidth = Math.min(120, containerScreen.getGuiLeft() - 12);
+            boolean goLeft = switch (AMIConfig.PANEL_SIDE.get()) {
+                case LEFT  -> true;
+                case RIGHT -> false;
+                case AUTO  -> RECIPE_VIEWER_PRESENT;
+            };
+
+            int panelX, panelWidth;
+            int widthOverride = AMIConfig.PANEL_WIDTH_OVERRIDE.get();
+            if (goLeft) {
+                int available = containerScreen.getGuiLeft() - 12;
+                panelWidth = widthOverride > 0 ? widthOverride : Math.min(120, available);
                 panelX = containerScreen.getGuiLeft() - panelWidth - 6;
             } else {
-                // AMI owns the right side
                 panelX = containerScreen.getGuiLeft() + containerScreen.getXSize() + 6;
-                panelWidth = event.getScreen().width - panelX - 6;
+                int available = event.getScreen().width - panelX - 6;
+                panelWidth = widthOverride > 0 ? widthOverride : available;
             }
 
             if (panelWidth < 60) return;
