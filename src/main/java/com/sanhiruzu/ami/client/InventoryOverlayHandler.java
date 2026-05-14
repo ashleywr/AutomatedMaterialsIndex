@@ -30,33 +30,29 @@ public class InventoryOverlayHandler {
         if (!AMIConfig.ENABLE_AUTO_INDEXING.get()) return;
         if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
 
-        int panelX = containerScreen.getGuiLeft() + containerScreen.getXSize() + 6;
-        int panelY = containerScreen.getGuiTop();
-        int panelWidth = event.getScreen().width - panelX - 6;
-        int panelHeight = containerScreen.getYSize();
+        try {
+            int panelX = containerScreen.getGuiLeft() + containerScreen.getXSize() + 6;
+            int panelY = containerScreen.getGuiTop();
+            int panelWidth = event.getScreen().width - panelX - 6;
+            int panelHeight = containerScreen.getYSize();
 
-        if (panelWidth < 60) return;
+            if (panelWidth < 60) return;
 
-        if (gridWidget == null) {
-            gridWidget = new AtlasGridWidget(panelX, panelY, panelWidth, panelHeight);
-            refreshEntries();
-        }
+            if (gridWidget == null) {
+                gridWidget = new AtlasGridWidget(panelX, panelY, panelWidth, panelHeight);
+                refreshEntries();
+            }
 
-        checkAndRefreshIfStale();
+            checkAndRefreshIfStale();
 
-        gridWidget.updateLayout(panelX, panelY, panelWidth, panelHeight);
+            gridWidget.updateLayout(panelX, panelY, panelWidth, panelHeight);
 
-        event.getGuiGraphics().pose().pushPose();
-        event.getGuiGraphics().pose().translate(0, 0, 100);
-        gridWidget.render(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
-        event.getGuiGraphics().pose().popPose();
-    }
-
-    @SubscribeEvent
-    static void onScreenOpen(ScreenEvent.Opening event) {
-        // Reset widget when switching screens so layout recalculates fresh
-        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) {
-            gridWidget = null;
+            event.getGuiGraphics().pose().pushPose();
+            event.getGuiGraphics().pose().translate(0, 0, 100);
+            gridWidget.render(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
+            event.getGuiGraphics().pose().popPose();
+        } catch (Exception e) {
+            AMI.LOGGER.error("AMI overlay render failed", e);
         }
     }
 
