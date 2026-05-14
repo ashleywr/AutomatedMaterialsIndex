@@ -8,9 +8,13 @@ import java.util.Map;
 import java.util.Set;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
 
 import com.sanhiruzu.ami.index.WorldAtlasIndex;
@@ -200,7 +204,7 @@ public class AtlasGridWidget {
 
                     if (hovered) {
                         g.fill(x + 2, drawY, x + width - 6, drawY + ROW_HEIGHT - 1, AMITheme.ENTRY_HOVER);
-                        pendingTextTooltip = buildTooltip(entry);
+                        pendingTextTooltip = buildTooltip(entry, Screen.hasShiftDown());
                     }
 
                     // Water-color swatch
@@ -235,16 +239,151 @@ public class AtlasGridWidget {
                 && mouseY >= drawY && mouseY < drawY + ROW_HEIGHT - 1;
     }
 
-    private Component buildTooltip(WorldAtlasIndex.AtlasEntry entry) {
-        MutableComponent main = Component.literal(entry.id().toString());
+    private Component buildTooltip(WorldAtlasIndex.AtlasEntry entry, boolean shifted) {
+        MutableComponent tip = Component.literal(entry.name());
+
         if (entry.dimension() != WorldAtlasIndex.Dimension.OVERWORLD) {
-            main.append(Component.literal(" ["))
-                .append(entry.dimension().displayName())
-                .append(Component.literal("]"));
+            tip.append(Component.literal(" [").withStyle(s -> s.withColor(0x888888)))
+               .append(entry.dimension().displayName())
+               .append(Component.literal("]").withStyle(s -> s.withColor(0x888888)));
         }
-        return main.append(
-                Component.literal("\n" + WorldAtlasIndexer.modDisplayName(entry.id().getNamespace()))
-                        .withStyle(s -> s.withColor(0x888888)));
+
+        tip.append(line(entry.id().toString(), 0x666666))
+           .append(line(WorldAtlasIndexer.modDisplayName(entry.id().getNamespace()), 0x888888));
+
+        if (shifted) {
+            switch (entry.type()) {
+                case BIOME     -> appendBiomeDetails(tip, entry);
+                case ENTITY    -> appendEntityDetails(tip, entry);
+                case STRUCTURE -> appendStructureDetails(tip, entry);
+            }
+        } else {
+            tip.append(line(Component.translatable("ami.tooltip.shift_for_details")
+                    .withStyle(s -> s.withColor(0x555555))));
+        }
+
+        return tip;
+    }
+
+    private void appendBiomeDetails(MutableComponent tip, WorldAtlasIndex.AtlasEntry entry) {
+        var mc = Minecraft.getInstance();
+        if (mc.level == null) return;
+
+        var biomeKey = ResourceKey.create(Registries.BIOME, entry.id());
+        mc.level.registryAccess().registry(Registries.BIOME).ifPresent(reg ->
+            reg.getHolder(biomeKey).ifPresent(holder -> {
+                var biome = holder.value();
+
+                float temp = biome.getBaseTemperature();
+                String precip = !biome.hasPrecipitation() ? "None"
+                              : temp < 0.15f ? "Snow" : "Rain";
+
+                var effects = biome.getSpecialEffects();
+
+                tip.append(line(Component.translatable("ami.tooltip.temperature")
+                        .append(Component.literal(": " + String.format("%.2f", temp))
+                                .withStyle(s -> s.withColor(tempColor(temp))))));
+
+                tip.append(line(Component.translatable("ami.tooltip.precipitation")
+                        .append(Component.literal(": " + precip).withStyle(s -> s.withColor(0xAAAAFF)))));
+
+                tip.append(line(Component.translatable("ami.tooltip.water_color")
+                        .append(colorSwatch(effects.getWaterColor()))));
+
+                tip.append(line(Component.translatable("ami.tooltip.sky_color")
+                        .append(colorSwatch(effects.getSkyColor()))));
+
+                // Tags — show is_* descriptors first, then modded, cap at 6
+                var tags = holder.tags()
+                        .sorted((a, b) -> {
+                            boolean aIs = a.location().getPath().startsWith("is_");
+                            boolean bIs = b.location().getPath().startsWith("is_");
+                            if (aIs != bIs) return aIs ? -1 : 1;
+                            return a.location().toString().compareTo(b.location().toString());
+                        })
+                        .limit(6)
+                        .toList();
+
+                if (!tags.isEmpty()) {
+                    MutableComponent tagLine = Component.translatable("ami.tooltip.tags")
+                            .append(Component.literal(":").withStyle(s -> s.withColor(0x888888)));
+                    for (var tag : tags) {
+                        tagLine.append(Component.literal("\n  #" + tag.location())
+                                .withStyle(s -> s.withColor(0x667766)));
+                    }
+                    tip.append(Component.literal("\n").append(tagLine));
+                }
+            })
+        );
+    }
+
+    private void appendEntityDetails(MutableComponent tip, WorldAtlasIndex.AtlasEntry entry) {
+        BuiltInRegistries.ENTITY_TYPE.getOptional(entry.id()).ifPresent(entityType -> {
+            String category = switch (entityType.getCategory()) {
+                case MONSTER                        -> "Hostile";
+                case CREATURE                       -> "Passive";
+                case AMBIENT                        -> "Ambient";
+                case WATER_CREATURE, WATER_AMBIENT,
+                     UNDERGROUND_WATER_CREATURE     -> "Aquatic";
+                default                             -> "Misc";
+            };
+
+            var dims = entityType.getDimensions();
+            tip.append(line(Component.translatable("ami.tooltip.category")
+                    .append(Component.literal(": " + category).withStyle(s -> s.withColor(0xAAAAFF)))));
+            tip.append(line(Component.translatable("ami.tooltip.size")
+                    .append(Component.literal(String.format(": %.1fw × %.1fh", dims.width(), dims.height()))
+                            .withStyle(s -> s.withColor(0xAAAAFF)))));
+            if (entityType.fireImmune()) {
+                tip.append(line(Component.translatable("ami.tooltip.fire_immune")
+                        .withStyle(s -> s.withColor(0xFFAA44))));
+            }
+        });
+    }
+
+    private void appendStructureDetails(MutableComponent tip, WorldAtlasIndex.AtlasEntry entry) {
+        var mc = Minecraft.getInstance();
+        if (mc.level == null) return;
+
+        var key = ResourceKey.create(Registries.STRUCTURE, entry.id());
+        mc.level.registryAccess().registry(Registries.STRUCTURE).ifPresent(reg ->
+            reg.getHolder(key).ifPresent(holder -> {
+                var tags = holder.tags().limit(6).toList();
+                if (!tags.isEmpty()) {
+                    MutableComponent tagLine = Component.translatable("ami.tooltip.tags")
+                            .append(Component.literal(":").withStyle(s -> s.withColor(0x888888)));
+                    for (var tag : tags) {
+                        tagLine.append(Component.literal("\n  #" + tag.location())
+                                .withStyle(s -> s.withColor(0x667766)));
+                    }
+                    tip.append(Component.literal("\n").append(tagLine));
+                }
+            })
+        );
+    }
+
+    /** Newline + content, dimmed label colour. */
+    private static MutableComponent line(String text, int color) {
+        return Component.literal("\n" + text).withStyle(s -> s.withColor(color));
+    }
+
+    private static MutableComponent line(Component content) {
+        return Component.literal("\n").append(content);
+    }
+
+    /** " #RRGGBB" with the hex rendered in that colour. */
+    private static MutableComponent colorSwatch(int rgb) {
+        int opaque = 0xFF000000 | rgb;
+        return Component.literal(" #" + String.format("%06X", rgb & 0xFFFFFF))
+                .withStyle(s -> s.withColor(opaque));
+    }
+
+    private static int tempColor(float temp) {
+        if (temp <= 0.0f) return 0xFF4488CC;
+        if (temp <  0.3f) return 0xFF44AACC;
+        if (temp <  0.6f) return 0xFF88CC44;
+        if (temp <  1.0f) return 0xFFCCCC44;
+        return 0xFFCC8844;
     }
 
     private void renderScrollBar(GuiGraphics g) {

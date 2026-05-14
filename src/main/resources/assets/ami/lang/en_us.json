@@ -26,5 +26,15 @@
   "ami.configuration.panel_side.auto": "Auto",
   "ami.configuration.panel_side.left": "Left",
   "ami.configuration.panel_side.right": "Right",
-  "ami.configuration.panel_width_override": "Panel Width Override"
+  "ami.configuration.panel_width_override": "Panel Width Override",
+
+  "ami.tooltip.shift_for_details": "⇧ Shift for details",
+  "ami.tooltip.temperature": "Temperature",
+  "ami.tooltip.precipitation": "Precipitation",
+  "ami.tooltip.water_color": "Water",
+  "ami.tooltip.sky_color": "Sky",
+  "ami.tooltip.tags": "Tags",
+  "ami.tooltip.category": "Category",
+  "ami.tooltip.size": "Size",
+  "ami.tooltip.fire_immune": "Fire Immune"
 }
