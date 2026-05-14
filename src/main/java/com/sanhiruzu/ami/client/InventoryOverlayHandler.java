@@ -98,6 +98,18 @@ public class InventoryOverlayHandler {
     }
 
     @SubscribeEvent
+    static void onScreenMouseClick(ScreenEvent.MouseButtonPressed.Pre event) {
+        if (!AMIConfig.ENABLE_AUTO_INDEXING.get() || gridWidget == null) return;
+        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
+
+        if (gridWidget.isMouseOver(event.getMouseX(), event.getMouseY())) {
+            if (gridWidget.mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton())) {
+                event.setCanceled(true);
+            }
+        }
+    }
+
+    @SubscribeEvent
     static void onScreenMouseScroll(ScreenEvent.MouseScrolled.Pre event) {
         if (!AMIConfig.ENABLE_AUTO_INDEXING.get() || gridWidget == null) return;
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;

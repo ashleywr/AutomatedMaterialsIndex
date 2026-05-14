@@ -57,5 +57,7 @@ public class WorldAtlasIndex {
         this.lastUpdateTime = time;
     }
 
-    public record AtlasEntry(ResourceLocation id, String name, AtlasType type, int color) {}
+    public enum Dimension { OVERWORLD, NETHER, END }
+
+    public record AtlasEntry(ResourceLocation id, String name, AtlasType type, int color, Dimension dimension) {}
 }
