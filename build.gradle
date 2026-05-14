@@ -187,3 +187,21 @@ idea {
         downloadJavadoc = true
     }
 }
+
+// Copy built JAR to Prism Launcher mods folder
+def modsFolder = new File(System.getenv('APPDATA'), 'PrismLauncher/instances/Mod Making/minecraft/mods')
+
+tasks.register('copyToModsFolder', Copy) {
+    from tasks.named('jar')
+    into modsFolder
+    doFirst {
+        println "Copying AMI JAR to ${modsFolder.absolutePath}"
+    }
+    doLast {
+        println "✓ AMI JAR copied to mods folder"
+    }
+}
+
+tasks.named('build').configure {
+    finalizedBy copyToModsFolder
+}
