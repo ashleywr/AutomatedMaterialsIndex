@@ -16,7 +16,8 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:deepwiki.com)",
       "WebFetch(domain:mvnrepository.com)",
-      "Bash(./gradlew compileJava -q)"
+      "Bash(./gradlew compileJava -q)",
+      "Bash(./gradlew clean *)"
     ]
   }
 }
