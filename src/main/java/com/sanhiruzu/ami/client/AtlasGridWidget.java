@@ -8,8 +8,8 @@ import java.util.Map;
 import java.util.Set;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -122,12 +122,16 @@ public class AtlasGridWidget {
         g.fill(x, y, x + width, y + height, AMITheme.PANEL_BG);
         g.fill(x + 1, y + 1, x + width - 1, y + height - 1, AMITheme.PANEL_INNER);
 
-        // Header bar
-        g.fill(x, y, x + width, y + HEADER_HEIGHT + 2, AMITheme.HEADER_BG);
-        g.fill(x, y + HEADER_HEIGHT + 2, x + width, y + HEADER_HEIGHT + 3, AMITheme.HEADER_SEP);
+        // Header bar — amber tint when cheat mode active
+        boolean cheat = AMICheatMode.isEnabled();
+        g.fill(x, y, x + width, y + HEADER_HEIGHT + 2, cheat ? AMITheme.CHEAT_HEADER_BG : AMITheme.HEADER_BG);
+        g.fill(x, y + HEADER_HEIGHT + 2, x + width, y + HEADER_HEIGHT + 3, cheat ? AMITheme.CHEAT_HEADER_SEP : AMITheme.HEADER_SEP);
         MutableComponent headerText = modeLabel.copy()
                 .append(Component.literal(" (" + entryCount() + ")"));
-        g.drawString(Minecraft.getInstance().font, headerText, x + 3, y + 2, AMITheme.HEADER_TEXT, false);
+        if (cheat) {
+            headerText.append(Component.literal(" ⚡").withStyle(s -> s.withColor(AMITheme.CHEAT_INDICATOR)));
+        }
+        g.drawString(Minecraft.getInstance().font, headerText, x + 3, y + 2, cheat ? AMITheme.CHEAT_INDICATOR : AMITheme.HEADER_TEXT, false);
 
         if (mode == Mode.ITEMS) {
             renderItemGrid(g, mouseX, mouseY);
@@ -203,7 +207,9 @@ public class AtlasGridWidget {
                     boolean hovered = isRowHovered(mouseX, mouseY, drawY);
 
                     if (hovered) {
-                        g.fill(x + 2, drawY, x + width - 6, drawY + ROW_HEIGHT - 1, AMITheme.ENTRY_HOVER);
+                        boolean cheatOn = AMICheatMode.isEnabled();
+                        g.fill(x + 2, drawY, x + width - 6, drawY + ROW_HEIGHT - 1,
+                                cheatOn ? AMITheme.CHEAT_ENTRY_HOVER : AMITheme.ENTRY_HOVER);
                         pendingTextTooltip = buildTooltip(entry, Screen.hasShiftDown());
                     }
 
@@ -260,6 +266,14 @@ public class AtlasGridWidget {
         } else {
             tip.append(line(Component.translatable("ami.tooltip.shift_for_details")
                     .withStyle(s -> s.withColor(0x555555))));
+        }
+
+        if (AMICheatMode.isEnabled()) {
+            Component clickHint = switch (entry.type()) {
+                case BIOME, STRUCTURE -> Component.translatable("ami.tooltip.cheat_locate");
+                case ENTITY           -> Component.translatable("ami.tooltip.cheat_entity");
+            };
+            tip.append(line(clickHint.copy().withStyle(s -> s.withColor(AMITheme.CHEAT_INDICATOR))));
         }
 
         return tip;
@@ -408,27 +422,67 @@ public class AtlasGridWidget {
     // -------------------------------------------------------------------------
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button != 0 || mode != Mode.ATLAS) return false;
+        if (button != 0) return false;
 
+        if (mode == Mode.ITEMS) {
+            return AMICheatMode.isEnabled() && handleItemCheatClick(mouseX, mouseY);
+        }
+
+        if (mode == Mode.ATLAS) {
+            return handleAtlasClick(mouseX, mouseY);
+        }
+
+        return false;
+    }
+
+    private boolean handleItemCheatClick(double mouseX, double mouseY) {
+        int contentY = y + HEADER_HEIGHT + 4;
+        if (mouseY < contentY) return false;
+
+        int itemsPerRow = Math.max(1, (width - 12) / (ITEM_SIZE + PADDING));
+        int vRow = (int) ((mouseY - contentY) / (ITEM_SIZE + PADDING));
+        int vCol = (int) ((mouseX - (x + 4)) / (ITEM_SIZE + PADDING));
+        if (vCol < 0 || vCol >= itemsPerRow) return false;
+
+        int idx = scrollOffset + vRow * itemsPerRow + vCol;
+        if (idx < 0 || idx >= itemEntries.size()) return false;
+
+        var itemId = BuiltInRegistries.ITEM.getKey(itemEntries.get(idx).getItem());
+        if (itemId != null) {
+            AMICheatMode.giveItem(itemId);
+        }
+        return true;
+    }
+
+    private boolean handleAtlasClick(double mouseX, double mouseY) {
         int contentY = y + HEADER_HEIGHT + 4;
         int contentH = height - HEADER_HEIGHT - 4;
         int visRows  = contentH / ROW_HEIGHT;
 
-        // Find which logical row was clicked
         int clickedLogicalRow = scrollOffset + (int) ((mouseY - contentY) / ROW_HEIGHT);
 
         int row = 0;
         for (AtlasGroup group : atlasGroups) {
             if (row == clickedLogicalRow) {
-                // Clicked a group header — toggle
                 group.expanded = !group.expanded;
-                // Clamp scroll so we don't end up past the end
                 int maxScroll = Math.max(0, totalRows() - visRows);
                 scrollOffset = Math.min(scrollOffset, maxScroll);
                 return true;
             }
             row++;
-            if (group.expanded) row += group.entries.size();
+            if (group.expanded) {
+                for (WorldAtlasIndex.AtlasEntry entry : group.entries) {
+                    if (row == clickedLogicalRow && AMICheatMode.isEnabled()) {
+                        switch (entry.type()) {
+                            case BIOME     -> AMICheatMode.locateBiome(entry.id());
+                            case STRUCTURE -> AMICheatMode.locateStructure(entry.id());
+                            case ENTITY    -> {} // future: summon
+                        }
+                        return true;
+                    }
+                    row++;
+                }
+            }
         }
         return false;
     }

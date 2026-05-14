@@ -37,4 +37,10 @@ public final class AMITheme {
     // Item grid
     public static int SLOT_BG        = 0xFF555555;
     public static int SLOT_HOVER     = 0xFFAAAAAA;
+
+    // Cheat mode
+    public static int CHEAT_HEADER_BG   = 0xFF3A2800; // dark amber replaces normal header bg
+    public static int CHEAT_HEADER_SEP  = 0xFF7A5200;
+    public static int CHEAT_INDICATOR   = 0xFFFFAA00; // gold indicator text
+    public static int CHEAT_ENTRY_HOVER = 0xFF5A4A00; // amber entry highlight
 }
