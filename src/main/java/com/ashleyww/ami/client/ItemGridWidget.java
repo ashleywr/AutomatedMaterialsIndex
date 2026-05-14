@@ -9,6 +9,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
+import com.ashleyww.ami.AMI;
 import com.ashleyww.ami.index.AMIIndex;
 import com.ashleyww.ami.index.IndexCategory;
 import com.ashleyww.ami.index.MaterialEntry;
@@ -30,6 +31,7 @@ public class ItemGridWidget {
         this.items = new ArrayList<>();
 
         loadItems();
+        AMI.LOGGER.debug("ItemGridWidget created with {} items", items.size());
     }
 
     private void loadItems() {
@@ -37,6 +39,7 @@ public class ItemGridWidget {
 
         AMIIndex index = AMIIndex.CLIENT_INSTANCE;
         if (index.getTotalItemsIndexed() == 0) {
+            AMI.LOGGER.debug("Loading items from registry (no index data available)");
             for (Item item : BuiltInRegistries.ITEM) {
                 if (item != null && !BuiltInRegistries.ITEM.getKey(item).getNamespace().equals("air")) {
                     items.add(new ItemStack(item));
@@ -44,6 +47,7 @@ public class ItemGridWidget {
                 }
             }
         } else {
+            AMI.LOGGER.debug("Loading items from AMI index");
             var categoryIndex = index.getCategoryIndex(IndexCategory.BY_MOD);
             for (List<MaterialEntry> entries : categoryIndex.values()) {
                 for (MaterialEntry entry : entries) {
@@ -53,6 +57,7 @@ public class ItemGridWidget {
                 if (items.size() >= 200) break;
             }
         }
+        AMI.LOGGER.debug("Loaded {} items into grid", items.size());
     }
 
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
