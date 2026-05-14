@@ -38,6 +38,10 @@ public final class AMITheme {
     public static int SLOT_BG        = 0xFF555555;
     public static int SLOT_HOVER     = 0xFFAAAAAA;
 
+    // Current biome indicator
+    public static int CURRENT_BIOME_BG     = 0xFF1A2E1A; // subtle tint for the current-biome row
+    public static int CURRENT_BIOME_ACCENT = 0xFF44DD44; // bright left-edge bar
+
     // Cheat mode
     public static int CHEAT_HEADER_BG   = 0xFF3A2800; // dark amber replaces normal header bg
     public static int CHEAT_HEADER_SEP  = 0xFF7A5200;
