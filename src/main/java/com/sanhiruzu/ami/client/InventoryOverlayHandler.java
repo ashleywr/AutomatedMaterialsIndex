@@ -6,8 +6,8 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
 
 import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.AMIConfig;
@@ -131,14 +131,13 @@ public class InventoryOverlayHandler {
     }
 
     @SubscribeEvent
-    static void onMouseScroll(InputEvent.MouseScrollingEvent event) {
+    static void onScreenMouseScroll(ScreenEvent.MouseScrolled.Pre event) {
         if (!AMIConfig.ENABLE_AUTO_INDEXING.get() || gridWidget == null) return;
-        if (!(Minecraft.getInstance().screen instanceof AbstractContainerScreen<?>)) return;
+        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
 
         if (gridWidget.isMouseOver(event.getMouseX(), event.getMouseY())) {
-            if (gridWidget.mouseScrolled(event.getMouseX(), event.getMouseY(), event.getScrollDeltaY())) {
-                event.setCanceled(true);
-            }
+            gridWidget.mouseScrolled(event.getMouseX(), event.getMouseY(), event.getScrollDeltaY());
+            event.setCanceled(true);
         }
     }
 }
