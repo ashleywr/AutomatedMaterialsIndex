@@ -27,7 +27,10 @@ sourceSets.main.resources {
 }
 
 repositories {
-    // Add here additional repositories if required by some of the dependencies below.
+    // JEI
+    maven { url = "https://maven.blamejared.com" }
+    // EMI (via Modrinth Maven — more reliable than maven.emi.dev for classifier builds)
+    maven { url = "https://api.modrinth.com/maven" }
 }
 
 base {
@@ -119,14 +122,14 @@ configurations {
 }
 
 dependencies {
-    // Recipe UI integrations (deferred - will add in follow-up)
-    // JEI
-    // compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
-    // localRuntime "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+    // JEI — compileOnly gives us the API to code against; localRuntime runs it in dev
+    // Version format for 1.21.1: 19.21.x.xxx — check maven.blamejared.com or match your Prism version
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
+    localRuntime "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
 
-    // EMI
-    // compileOnly "dev.emi:emi-neoforge:${minecraft_version}:api"
-    // localRuntime "dev.emi:emi-neoforge:${minecraft_version}"
+    // EMI — Modrinth Maven; no separate api classifier published, main jar has all API classes
+    compileOnly "maven.modrinth:emi:${emi_version}+${minecraft_version}+neoforge"
+    localRuntime "maven.modrinth:emi:${emi_version}+${minecraft_version}+neoforge"
 
     // Example mod dependency using a mod jar from ./libs with a flat dir repository
     // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
