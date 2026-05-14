@@ -56,22 +56,41 @@ public class ItemGridWidget {
     }
 
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        guiGraphics.fill(x, y, x + width, y + height, 0xFF3F3F3F);
-        guiGraphics.drawCenteredString(Minecraft.getInstance().font, "Items", x + width / 2, y + 5, 0xFFFFFF);
+        // Background
+        guiGraphics.fill(x, y, x + width, y + height, 0xFF1F1F1F);
+        guiGraphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, 0xFF3F3F3F);
 
-        int itemsPerRow = width / (ITEM_SIZE + PADDING);
-        int visibleRows = height / (ITEM_SIZE + PADDING);
+        // Header
+        guiGraphics.drawString(Minecraft.getInstance().font, "Items (" + items.size() + ")", x + 5, y + 5, 0xFFFFFF);
 
+        int itemsPerRow = Math.max(1, (width - 20) / (ITEM_SIZE + PADDING));
+        int visibleRows = (height - 30) / (ITEM_SIZE + PADDING);
+
+        // Render items
         for (int i = scrollOffset; i < Math.min(scrollOffset + visibleRows * itemsPerRow, items.size()); i++) {
             int row = (i - scrollOffset) / itemsPerRow;
             int col = (i - scrollOffset) % itemsPerRow;
-            int drawX = x + 10 + col * (ITEM_SIZE + PADDING);
+            int drawX = x + 5 + col * (ITEM_SIZE + PADDING);
             int drawY = y + 20 + row * (ITEM_SIZE + PADDING);
 
+            // Slot background
             guiGraphics.fill(drawX, drawY, drawX + ITEM_SIZE, drawY + ITEM_SIZE, 0xFF8B8B8B);
+
             if (i < items.size()) {
-                guiGraphics.renderItem(items.get(i), drawX + 1, drawY + 1);
+                ItemStack stack = items.get(i);
+                if (!stack.isEmpty()) {
+                    guiGraphics.renderItem(stack, drawX + 1, drawY + 1);
+                    guiGraphics.renderItemDecorations(Minecraft.getInstance().font, stack, drawX + 1, drawY + 1);
+                }
             }
+        }
+
+        // Scroll bar
+        int totalRows = (items.size() - 1) / itemsPerRow + 1;
+        if (totalRows > visibleRows) {
+            int scrollBarHeight = Math.max(10, (visibleRows * height) / totalRows);
+            int scrollBarY = y + 20 + (scrollOffset * (height - 30 - scrollBarHeight)) / (totalRows - visibleRows);
+            guiGraphics.fill(x + width - 5, scrollBarY, x + width - 2, scrollBarY + scrollBarHeight, 0xFFAAAAAA);
         }
     }
 
