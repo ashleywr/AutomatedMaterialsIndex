@@ -1,4 +1,4 @@
-package com.ashleyww.ami;
+package com.sanhiruzu.ami;
 
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
