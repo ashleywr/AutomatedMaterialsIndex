@@ -203,7 +203,7 @@ tasks.register('copyToModsFolder', Copy) {
         println "Copying AMI JAR to ${modsFolder.absolutePath}"
     }
     doLast {
-        println "✓ AMI JAR copied to mods folder"
+        println "[SUCCESS] AMI JAR copied to mods folder"
     }
 }
 

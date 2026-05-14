@@ -1,4 +1,4 @@
-package com.ashleyww.ami.index;
+package com.sanhiruzu.ami.index;
 
 import java.util.ArrayList;
 import java.util.HashSet;

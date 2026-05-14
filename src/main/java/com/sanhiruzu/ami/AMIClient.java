@@ -1,4 +1,4 @@
-package com.ashleyww.ami;
+package com.sanhiruzu.ami;
 
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
@@ -11,9 +11,12 @@ import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.level.LevelEvent;
 
-import com.ashleyww.ami.client.AMIKeyMappings;
-import com.ashleyww.ami.client.AMIScreen;
+import com.sanhiruzu.ami.client.AMIKeyMappings;
+import com.sanhiruzu.ami.client.AMIScreen;
+import com.sanhiruzu.ami.index.WorldAtlasIndexer;
 
 @Mod(value = AMI.MODID, dist = Dist.CLIENT)
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
@@ -41,16 +44,21 @@ public class AMIClient {
             AMI.LOGGER.info("✓ No recipe UI detected - AMI shell UI will be used");
         }
 
-        AMI.LOGGER.debug("Player: {}", Minecraft.getInstance().getUser().getName());
+        if (Minecraft.getInstance().getUser() != null) {
+            AMI.LOGGER.debug("Player: {}", Minecraft.getInstance().getUser().getName());
+        }
+    }
 
-        // Run client-side indexing
-        event.enqueueWork(() -> {
+    @SubscribeEvent
+    static void onWorldLoad(LevelEvent.Load event) {
+        if (event.getLevel() != null && event.getLevel().isClientSide()) {
             try {
-                com.ashleyww.ami.index.Indexer.index();
+                com.sanhiruzu.ami.index.Indexer.index();
+                WorldAtlasIndexer.index();
             } catch (Exception e) {
-                AMI.LOGGER.error("Error during indexing", e);
+                AMI.LOGGER.error("Error during world-load indexing", e);
             }
-        });
+        }
     }
 
     @SubscribeEvent

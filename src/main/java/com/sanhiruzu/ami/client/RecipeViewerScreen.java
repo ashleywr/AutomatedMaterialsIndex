@@ -1,4 +1,4 @@
-package com.ashleyww.ami.client;
+package com.sanhiruzu.ami.client;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;

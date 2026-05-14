@@ -1,24 +1,41 @@
-package com.ashleyww.ami.client;
+package com.sanhiruzu.ami.client;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 
-import com.ashleyww.ami.AMI;
-import com.ashleyww.ami.index.AMIIndex;
+import com.sanhiruzu.ami.AMI;
+import com.sanhiruzu.ami.index.AMIIndex;
+import com.sanhiruzu.ami.index.IndexCategory;
+import com.sanhiruzu.ami.index.MaterialEntry;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class AMIScreen extends Screen {
-    private ItemGridWidget gridWidget;
+    private AtlasGridWidget gridWidget;
 
     public AMIScreen() {
-        super(Component.literal("Automated Materials Index"));
+        super(Component.translatable("ami.gui.registry_tree"));
         AMI.LOGGER.debug("AMI screen created");
     }
 
     @Override
     protected void init() {
         AMI.LOGGER.debug("AMI screen initialized - size: {}x{}", this.width, this.height);
-        this.gridWidget = new ItemGridWidget(10, 40, this.width - 20, this.height - 80);
+        this.gridWidget = new AtlasGridWidget(10, 40, this.width - 20, this.height - 80);
+        
+        List<ItemStack> items = new ArrayList<>();
+        var categoryIndex = AMIIndex.getInstance().getCategoryIndex(IndexCategory.BY_MOD);
+        if (categoryIndex != null) {
+            for (List<MaterialEntry> entries : categoryIndex.values()) {
+                for (MaterialEntry entry : entries) {
+                    items.add(new ItemStack(entry.item()));
+                }
+            }
+        }
+        this.gridWidget.setEntries(items);
     }
 
     @Override
@@ -27,8 +44,11 @@ public class AMIScreen extends Screen {
 
         guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 10, 0xFFFFFF);
 
-        String indexInfo = String.format("Indexed: %d items | Press I to close", AMIIndex.getInstance().getTotalItemsIndexed());
-        guiGraphics.drawString(this.font, indexInfo, 10, 25, 0xAAAAAA);
+        Component cycleHint = Component.translatable("ami.gui.cycle_hint", AMIKeyMappings.CYCLE_ATLAS.getTranslatedKeyMessage());
+        Component closeHint = Component.translatable("ami.gui.close_hint", AMIKeyMappings.OPEN_AMI.getTranslatedKeyMessage());
+        
+        String info = String.format("%s | %s", cycleHint.getString(), closeHint.getString());
+        guiGraphics.drawString(this.font, info, 10, 25, 0xAAAAAA);
 
         if (gridWidget != null) {
             guiGraphics.pose().pushPose();
@@ -39,7 +59,7 @@ public class AMIScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == AMIKeyMappings.OPEN_AMI.getKey().getValue()) {
+        if (AMIKeyMappings.OPEN_AMI.isActiveAndMatches(com.mojang.blaze3d.platform.InputConstants.getKey(keyCode, scanCode))) {
             this.onClose();
             return true;
         }

@@ -1,4 +1,4 @@
-package com.ashleyww.ami;
+package com.sanhiruzu.ami;
 
 import org.slf4j.Logger;
 
@@ -13,8 +13,6 @@ import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 
-import com.ashleyww.ami.index.Indexer;
-
 @Mod(AMI.MODID)
 public class AMI {
     public static final String MODID = "ami";
@@ -23,7 +21,7 @@ public class AMI {
     public AMI(IEventBus modEventBus, ModContainer modContainer) {
         modEventBus.addListener(this::commonSetup);
         NeoForge.EVENT_BUS.register(this);
-        modContainer.registerConfig(ModConfig.Type.COMMON, AMIConfig.SPEC);
+        modContainer.registerConfig(ModConfig.Type.CLIENT, AMIConfig.SPEC);
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {

@@ -1,4 +1,4 @@
-package com.ashleyww.ami.index;
+package com.sanhiruzu.ami.index;
 
 public enum IndexCategory {
     BY_COLOR("Color"),

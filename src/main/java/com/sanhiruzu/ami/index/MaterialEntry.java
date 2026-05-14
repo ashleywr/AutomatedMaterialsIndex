@@ -1,4 +1,4 @@
-package com.ashleyww.ami.index;
+package com.sanhiruzu.ami.index;
 
 import net.minecraft.world.item.Item;
 
