@@ -4,10 +4,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.slf4j.Logger;
-
-import com.mojang.logging.LogUtils;
-
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -19,7 +15,7 @@ import net.minecraft.world.item.Item;
  * Runs once on client load to categorize items by color, mod origin, and material tier.
  */
 public class Indexer {
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final org.slf4j.Logger LOGGER = com.sanhiruzu.ami.AMI.LOGGER;
 
     public static void index() {
         LOGGER.info("Starting AMI indexing pipeline (client-side)...");
