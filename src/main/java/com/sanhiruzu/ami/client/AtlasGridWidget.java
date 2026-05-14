@@ -117,10 +117,16 @@ public class AtlasGridWidget {
         }
     }
 
+    private static final int SWATCH_SIZE = 6;
+    private static final int SWATCH_MARGIN = 3;
+
     private void renderAtlasList(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        var font = Minecraft.getInstance().font;
         int contentY = y + HEADER_HEIGHT + 4;
         int contentHeight = height - HEADER_HEIGHT - 4;
         int visibleRows = contentHeight / (ENTRY_ROW_HEIGHT + 1);
+        int textX = x + SWATCH_MARGIN + SWATCH_SIZE + SWATCH_MARGIN + 1;
+        int maxTextWidth = width - (textX - x) - 8;
 
         for (int i = scrollOffset; i < Math.min(scrollOffset + visibleRows, atlasEntries.size()); i++) {
             WorldAtlasIndex.AtlasEntry entry = atlasEntries.get(i);
@@ -130,13 +136,23 @@ public class AtlasGridWidget {
 
             if (hovered) {
                 guiGraphics.fill(x + 2, drawY, x + width - 6, drawY + ENTRY_ROW_HEIGHT, 0xFF3A5A3A);
-                pendingTextTooltip = Component.literal(entry.id().toString());
+                pendingTextTooltip = Component.literal(entry.id().toString())
+                        .append(Component.literal("\n" + entry.id().getNamespace())
+                                .withStyle(s -> s.withColor(0x888888)));
             }
 
+            // Color swatch
+            int swatchY = drawY + (ENTRY_ROW_HEIGHT - SWATCH_SIZE) / 2;
+            guiGraphics.fill(x + SWATCH_MARGIN, swatchY,
+                    x + SWATCH_MARGIN + SWATCH_SIZE, swatchY + SWATCH_SIZE, entry.color());
+
+            // Name — truncate by measured pixel width, not character count
             String label = entry.name();
-            int maxChars = (width - 14) / 5;
-            if (label.length() > maxChars) label = label.substring(0, maxChars - 1) + "…";
-            guiGraphics.drawString(Minecraft.getInstance().font, label, x + 4, drawY + 1, 0xFFCCCCCC, false);
+            while (font.width(label) > maxTextWidth && label.length() > 1) {
+                label = label.substring(0, label.length() - 1);
+            }
+            if (font.width(entry.name()) > maxTextWidth) label += "…";
+            guiGraphics.drawString(font, label, textX, drawY + 1, 0xFFCCCCCC, false);
         }
     }
 

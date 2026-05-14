@@ -57,5 +57,5 @@ public class WorldAtlasIndex {
         this.lastUpdateTime = time;
     }
 
-    public record AtlasEntry(ResourceLocation id, String name, AtlasType type) {}
+    public record AtlasEntry(ResourceLocation id, String name, AtlasType type, int color) {}
 }
