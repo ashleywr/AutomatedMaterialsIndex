@@ -35,7 +35,7 @@ public class AMIScreen extends Screen {
                 }
             }
         }
-        this.gridWidget.setEntries(items);
+        this.gridWidget.setItemEntries(items);
     }
 
     @Override

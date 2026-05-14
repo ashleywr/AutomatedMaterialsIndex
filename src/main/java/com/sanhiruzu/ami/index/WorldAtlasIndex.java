@@ -10,7 +10,20 @@ public class WorldAtlasIndex {
     private static final WorldAtlasIndex INSTANCE = new WorldAtlasIndex();
     
     public enum AtlasType {
-        BIOME, STRUCTURE, ENTITY
+        BIOME("Biomes"),
+        STRUCTURE("Structures"),
+        ENTITY("Entities");
+
+        private final String displayName;
+
+        AtlasType(String displayName) { this.displayName = displayName; }
+
+        public String displayName() { return displayName; }
+
+        public AtlasType next() {
+            AtlasType[] values = values();
+            return values[(ordinal() + 1) % values.length];
+        }
     }
 
     private final Map<AtlasType, List<AtlasEntry>> registryData = new HashMap<>();

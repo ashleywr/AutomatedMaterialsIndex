@@ -18,12 +18,11 @@ import com.sanhiruzu.ami.index.WorldAtlasIndex;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
 public class InventoryOverlayHandler {
     private static AtlasGridWidget gridWidget;
-    private static WorldAtlasIndex.AtlasType currentType = null; // null means items mode
+    private static WorldAtlasIndex.AtlasType atlasType = null; // null = items mode
     private static int lastKnownItemCount = -1;
 
     @SubscribeEvent
@@ -31,27 +30,18 @@ public class InventoryOverlayHandler {
         if (!AMIConfig.ENABLE_AUTO_INDEXING.get()) return;
         if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
 
-        int guiLeft = containerScreen.getGuiLeft();
-        int guiTop = containerScreen.getGuiTop();
-        int xSize = containerScreen.getXSize();
-        int ySize = containerScreen.getYSize();
-        int screenWidth = event.getScreen().width;
-
-        int margin = 6;
-        int panelX = guiLeft + xSize + margin;
-        int panelY = guiTop;
-        int panelWidth = screenWidth - panelX - margin;
-        int panelHeight = ySize;
+        int panelX = containerScreen.getGuiLeft() + containerScreen.getXSize() + 6;
+        int panelY = containerScreen.getGuiTop();
+        int panelWidth = event.getScreen().width - panelX - 6;
+        int panelHeight = containerScreen.getYSize();
 
         if (panelWidth < 60) return;
 
         if (gridWidget == null) {
             gridWidget = new AtlasGridWidget(panelX, panelY, panelWidth, panelHeight);
-            gridWidget.setModeLabel(currentModeLabel());
             refreshEntries();
         }
 
-        // Refresh if index populated after widget was created
         checkAndRefreshIfStale();
 
         gridWidget.updateLayout(panelX, panelY, panelWidth, panelHeight);
@@ -62,55 +52,12 @@ public class InventoryOverlayHandler {
         event.getGuiGraphics().pose().popPose();
     }
 
-    private static void checkAndRefreshIfStale() {
-        if (currentType == null) {
-            int currentItemCount = AMIIndex.getInstance().getTotalItemsIndexed();
-            if (currentItemCount != lastKnownItemCount) {
-                lastKnownItemCount = currentItemCount;
-                refreshEntries();
-            }
-        } else if (gridWidget.getEntryCount() == 0) {
-            refreshEntries();
+    @SubscribeEvent
+    static void onScreenOpen(ScreenEvent.Opening event) {
+        // Reset widget when switching screens so layout recalculates fresh
+        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) {
+            gridWidget = null;
         }
-    }
-
-    private static void refreshEntries() {
-        if (gridWidget == null) return;
-
-        try {
-            if (currentType == null) {
-                List<ItemStack> items = new ArrayList<>();
-                Map<String, List<MaterialEntry>> categoryIndex = AMIIndex.getInstance().getCategoryIndex(IndexCategory.BY_MOD);
-                if (categoryIndex != null) {
-                    for (List<MaterialEntry> entries : new ArrayList<>(categoryIndex.values())) {
-                        for (MaterialEntry entry : entries) {
-                            if (entry != null && entry.item() != null) {
-                                items.add(new ItemStack(entry.item()));
-                            }
-                        }
-                    }
-                }
-                gridWidget.setEntries(items);
-                lastKnownItemCount = AMIIndex.getInstance().getTotalItemsIndexed();
-            } else {
-                List<WorldAtlasIndex.AtlasEntry> entries = WorldAtlasIndex.getInstance().getEntries(currentType);
-                gridWidget.setEntries(entries != null ? new ArrayList<>(entries) : new ArrayList<>());
-            }
-
-            gridWidget.setModeLabel(currentModeLabel());
-            AMI.LOGGER.debug("AMI overlay refreshed: {} {} entries", gridWidget.getEntryCount(), currentModeLabel());
-        } catch (Exception e) {
-            AMI.LOGGER.error("Error refreshing AMI entries", e);
-        }
-    }
-
-    private static String currentModeLabel() {
-        if (currentType == null) return "Items";
-        return switch (currentType) {
-            case BIOME -> "Biomes";
-            case STRUCTURE -> "Structures";
-            case ENTITY -> "Entities";
-        };
     }
 
     @SubscribeEvent
@@ -118,16 +65,12 @@ public class InventoryOverlayHandler {
         if (!(Minecraft.getInstance().screen instanceof AbstractContainerScreen<?>)) return;
 
         if (AMIKeyMappings.CYCLE_ATLAS.consumeClick()) {
-            cycleType();
+            WorldAtlasIndex.AtlasType[] types = WorldAtlasIndex.AtlasType.values();
+            atlasType = (atlasType == null) ? types[0]
+                      : (atlasType.ordinal() == types.length - 1) ? null
+                      : atlasType.next();
             refreshEntries();
         }
-    }
-
-    private static void cycleType() {
-        if (currentType == null) currentType = WorldAtlasIndex.AtlasType.BIOME;
-        else if (currentType == WorldAtlasIndex.AtlasType.BIOME) currentType = WorldAtlasIndex.AtlasType.STRUCTURE;
-        else if (currentType == WorldAtlasIndex.AtlasType.STRUCTURE) currentType = WorldAtlasIndex.AtlasType.ENTITY;
-        else currentType = null;
     }
 
     @SubscribeEvent
@@ -139,5 +82,50 @@ public class InventoryOverlayHandler {
             gridWidget.mouseScrolled(event.getMouseX(), event.getMouseY(), event.getScrollDeltaY());
             event.setCanceled(true);
         }
+    }
+
+    private static void checkAndRefreshIfStale() {
+        if (atlasType == null) {
+            int currentCount = AMIIndex.getInstance().getTotalItemsIndexed();
+            if (currentCount != lastKnownItemCount) {
+                refreshEntries();
+            }
+        } else if (gridWidget.getEntryCount() == 0) {
+            refreshEntries();
+        }
+    }
+
+    private static void refreshEntries() {
+        if (gridWidget == null) return;
+
+        if (atlasType == null) {
+            List<ItemStack> items = buildItemList();
+            gridWidget.setItemEntries(items);
+            gridWidget.setItemModeLabel("Items");
+            lastKnownItemCount = AMIIndex.getInstance().getTotalItemsIndexed();
+        } else {
+            List<WorldAtlasIndex.AtlasEntry> entries = WorldAtlasIndex.getInstance().getEntries(atlasType);
+            gridWidget.setAtlasEntries(
+                    entries != null ? entries : List.of(),
+                    atlasType.displayName()
+            );
+        }
+
+        AMI.LOGGER.debug("AMI overlay refreshed: {} entries", gridWidget.getEntryCount());
+    }
+
+    private static List<ItemStack> buildItemList() {
+        List<ItemStack> items = new ArrayList<>();
+        var categoryIndex = AMIIndex.getInstance().getCategoryIndex(IndexCategory.BY_MOD);
+        if (categoryIndex == null) return items;
+
+        for (List<MaterialEntry> entries : new ArrayList<>(categoryIndex.values())) {
+            for (MaterialEntry entry : entries) {
+                if (entry != null && entry.item() != null) {
+                    items.add(new ItemStack(entry.item()));
+                }
+            }
+        }
+        return items;
     }
 }
