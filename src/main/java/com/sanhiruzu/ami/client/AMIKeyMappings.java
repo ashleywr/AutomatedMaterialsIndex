@@ -11,7 +11,7 @@ import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 
 import com.sanhiruzu.ami.AMI;
 
-@EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
 public class AMIKeyMappings {
     public static final String CATEGORY = "key.categories.ami";
 
