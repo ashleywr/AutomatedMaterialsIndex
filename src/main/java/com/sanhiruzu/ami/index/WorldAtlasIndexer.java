@@ -11,13 +11,13 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.entity.MobCategory;
+import net.neoforged.fml.ModList;
 
 public class WorldAtlasIndexer {
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    // Vanilla-first comparator: minecraft: namespace sorts before everything else,
-    // then alphabetically by namespace, then by display name.
     private static final Comparator<WorldAtlasIndex.AtlasEntry> ENTRY_ORDER =
             Comparator.comparing((WorldAtlasIndex.AtlasEntry e) -> e.id().getNamespace().equals("minecraft") ? 0 : 1)
                       .thenComparing(e -> e.id().getNamespace())
@@ -29,37 +29,41 @@ public class WorldAtlasIndexer {
             WorldAtlasIndex index = WorldAtlasIndex.getInstance();
             index.clear();
 
-            // Biomes — use water color as the swatch
+            // Biomes — use holders() to access tags for dimension detection
             level.registryAccess().registry(Registries.BIOME).ifPresent(biomeRegistry ->
-                biomeRegistry.entrySet().forEach(entry -> {
-                    ResourceLocation id = entry.getKey().location();
-                    int waterColor = entry.getValue().getSpecialEffects().getWaterColor();
+                biomeRegistry.holders().forEach(holder -> {
+                    ResourceLocation id = holder.key().location();
+                    int waterColor = holder.value().getSpecialEffects().getWaterColor();
+
+                    WorldAtlasIndex.Dimension dimension = WorldAtlasIndex.Dimension.OVERWORLD;
+                    if (holder.is(BiomeTags.IS_NETHER)) dimension = WorldAtlasIndex.Dimension.NETHER;
+                    else if (holder.is(BiomeTags.IS_END)) dimension = WorldAtlasIndex.Dimension.END;
+
                     index.addEntry(WorldAtlasIndex.AtlasType.BIOME, new WorldAtlasIndex.AtlasEntry(
                             id, formatPath(id.getPath()), WorldAtlasIndex.AtlasType.BIOME,
-                            0xFF000000 | waterColor));
+                            0xFF000000 | waterColor, dimension));
                 })
             );
 
-            // Structures — hash namespace to a stable pastel color
+            // Structures
             level.registryAccess().registry(Registries.STRUCTURE).ifPresent(structureRegistry ->
                 structureRegistry.entrySet().forEach(entry -> {
                     ResourceLocation id = entry.getKey().location();
                     index.addEntry(WorldAtlasIndex.AtlasType.STRUCTURE, new WorldAtlasIndex.AtlasEntry(
                             id, formatPath(id.getPath()), WorldAtlasIndex.AtlasType.STRUCTURE,
-                            namespaceColor(id.getNamespace())));
+                            namespaceColor(id.getNamespace()), WorldAtlasIndex.Dimension.OVERWORLD));
                 })
             );
 
-            // Entities — color by mob category
+            // Entities
             BuiltInRegistries.ENTITY_TYPE.entrySet().forEach(entry -> {
                 ResourceLocation id = entry.getKey().location();
                 MobCategory category = entry.getValue().getCategory();
                 index.addEntry(WorldAtlasIndex.AtlasType.ENTITY, new WorldAtlasIndex.AtlasEntry(
                         id, formatPath(id.getPath()), WorldAtlasIndex.AtlasType.ENTITY,
-                        categoryColor(category)));
+                        categoryColor(category), WorldAtlasIndex.Dimension.OVERWORLD));
             });
 
-            // Sort each list: vanilla first, then by namespace, then by name
             for (WorldAtlasIndex.AtlasType type : WorldAtlasIndex.AtlasType.values()) {
                 index.getEntries(type).sort(ENTRY_ORDER);
             }
@@ -74,15 +78,21 @@ public class WorldAtlasIndexer {
         }
     }
 
+    /** Resolves a namespace to a human-readable mod name, falling back to title-cased namespace. */
+    public static String modDisplayName(String namespace) {
+        return ModList.get().getModContainerById(namespace)
+                .map(mc -> mc.getModInfo().getDisplayName())
+                .orElse(formatPath(namespace));
+    }
+
     /** "dark_forest" → "Dark Forest" */
-    static String formatPath(String path) {
+    public static String formatPath(String path) {
         return Arrays.stream(path.split("_"))
                 .map(word -> word.isEmpty() ? word
                         : Character.toUpperCase(word.charAt(0)) + word.substring(1))
                 .collect(Collectors.joining(" "));
     }
 
-    /** Deterministic pastel color from a namespace string. */
     private static int namespaceColor(String namespace) {
         int hash = namespace.hashCode();
         int r = 128 + ((hash >> 16) & 0x7F);
@@ -93,13 +103,13 @@ public class WorldAtlasIndexer {
 
     private static int categoryColor(MobCategory category) {
         return switch (category) {
-            case MONSTER              -> 0xFFCC4444; // red
-            case CREATURE             -> 0xFF44AA44; // green
-            case AMBIENT              -> 0xFFAAAA44; // yellow
+            case MONSTER              -> 0xFFCC4444;
+            case CREATURE             -> 0xFF44AA44;
+            case AMBIENT              -> 0xFFAAAA44;
             case WATER_CREATURE,
                  WATER_AMBIENT,
-                 UNDERGROUND_WATER_CREATURE -> 0xFF4488CC; // blue
-            default                   -> 0xFF888888; // gray
+                 UNDERGROUND_WATER_CREATURE -> 0xFF4488CC;
+            default                   -> 0xFF888888;
         };
     }
 }
