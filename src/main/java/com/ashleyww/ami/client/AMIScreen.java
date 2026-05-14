@@ -7,10 +7,7 @@ import net.minecraft.network.chat.Component;
 import com.ashleyww.ami.index.AMIIndex;
 
 public class AMIScreen extends Screen {
-    private static final int GRID_SIZE = 9;
-    private int itemsPerRow = 9;
     private ItemGridWidget gridWidget;
-    private int scrollOffset = 0;
 
     public AMIScreen() {
         super(Component.literal("Automated Materials Index"));
@@ -18,22 +15,23 @@ public class AMIScreen extends Screen {
 
     @Override
     protected void init() {
-        this.gridWidget = new ItemGridWidget(this, this.width / 4, this.height / 4, this.width / 2, this.height / 2, AMIIndex.CLIENT_INSTANCE.getTotalItemsIndexed());
+        this.gridWidget = new ItemGridWidget(this, 10, 40, this.width - 20, this.height - 80, AMIIndex.CLIENT_INSTANCE.getTotalItemsIndexed());
     }
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(guiGraphics, 0, 0, partialTick);
-        guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 20, 0xFFFFFF);
 
-        String indexInfo = String.format("Indexed: %d items", AMIIndex.CLIENT_INSTANCE.getTotalItemsIndexed());
-        guiGraphics.drawString(this.font, indexInfo, 20, 40, 0xAAAAAA);
+        guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 10, 0xFFFFFF);
+
+        String indexInfo = String.format("Indexed: %d items | Press I to close", AMIIndex.CLIENT_INSTANCE.getTotalItemsIndexed());
+        guiGraphics.drawString(this.font, indexInfo, 10, 25, 0xAAAAAA);
 
         if (gridWidget != null) {
+            guiGraphics.pose().pushPose();
             gridWidget.render(guiGraphics, mouseX, mouseY, partialTick);
+            guiGraphics.pose().popPose();
         }
-
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
     @Override
@@ -43,6 +41,14 @@ public class AMIScreen extends Screen {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollDeltaX, double scrollDeltaY) {
+        if (gridWidget != null) {
+            return gridWidget.mouseScrolled(mouseX, mouseY, scrollDeltaY);
+        }
+        return super.mouseScrolled(mouseX, mouseY, scrollDeltaX, scrollDeltaY);
     }
 
     @Override
