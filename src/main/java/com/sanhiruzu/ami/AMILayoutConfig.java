@@ -58,7 +58,7 @@ public class AMILayoutConfig {
 
     public static final ModConfigSpec.IntValue SEARCH_BAR_WIDTH = BUILDER
             .comment("Width of the search bar in GUI pixels.")
-            .defineInRange("width", 160, 60, 400);
+            .defineInRange("width", 240, 60, 400);
 
     public static final ModConfigSpec.EnumValue<Anchor> SEARCH_BAR_ANCHOR = BUILDER
             .comment("Anchor point for the search bar.",
