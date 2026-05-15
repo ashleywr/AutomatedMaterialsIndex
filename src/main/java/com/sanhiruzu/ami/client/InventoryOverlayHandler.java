@@ -215,13 +215,20 @@ public class InventoryOverlayHandler {
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
         if (resultsPanel == null || !resultsPanel.isSearchFocused()) return;
 
-        if (event.getKeyCode() == GLFW.GLFW_KEY_BACKSPACE) {
+        // When search is focused, handle search keys and block everything else
+        // to prevent inventory close key (E) and other screen controls from firing
+        int keyCode = event.getKeyCode();
+
+        if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
             resultsPanel.deleteSearchChar();
             triggerSearch();
             event.setCanceled(true);
-        } else if (event.getKeyCode() == GLFW.GLFW_KEY_ESCAPE) {
+        } else if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             resultsPanel.clearSearch();
             refreshEntries();
+            event.setCanceled(true);
+        } else {
+            // Block all other keys (including inventory close key) while searching
             event.setCanceled(true);
         }
     }
