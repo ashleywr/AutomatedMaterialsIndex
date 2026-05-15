@@ -3,7 +3,6 @@ plugins {
     id 'maven-publish'
     id 'net.neoforged.moddev' version '2.0.141'
     id 'idea'
-    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
 tasks.named('wrapper', Wrapper).configure {
@@ -223,7 +222,7 @@ idea {
 def modsFolder = new File(System.getenv('APPDATA'), 'PrismLauncher/instances/Mod Making/minecraft/mods')
 
 tasks.register('copyToModsFolder', Copy) {
-    from tasks.named('shadowJar')
+    from tasks.named('jar')
     into modsFolder
     doFirst {
         println "Copying AMI JAR to ${modsFolder.absolutePath}"
@@ -231,17 +230,6 @@ tasks.register('copyToModsFolder', Copy) {
     doLast {
         println "[SUCCESS] AMI JAR copied to mods folder"
     }
-}
-
-// Configure shadow jar relocation and make it produce an ordinary artifact (no classifier)
-shadowJar {
-    archiveClassifier.set('')
-    // Avoid duplicate META-INF signing files that cause ZIP errors
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    mergeServiceFiles()
-    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/DEPENDENCIES', 'META-INF/LICENSE', 'META-INF/LICENSE.txt', 'META-INF/NOTICE', 'META-INF/NOTICE.txt'
-    // Relocate concurrent-trees to avoid API conflicts when loaded with other mods
-    relocate 'com.googlecode.concurrenttrees', 'com.sanhiruzu.ami.shaded.concurrenttrees'
 }
 
 tasks.named('build').configure {

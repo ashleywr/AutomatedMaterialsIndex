@@ -6,7 +6,11 @@ import java.util.stream.Collectors;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import com.sanhiruzu.ami.client.ItemIconCache;
+import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 
@@ -20,6 +24,8 @@ public class ItemGridView {
     private static final int HEADER_H   = 12;
     private static final int SCROLLBAR_W = 5;
 
+    private static final Map<ResourceLocation, ItemStack> stackCache = new HashMap<>();
+
     private int x, y, width, height;
     private List<TreeNode> rootNodes = new ArrayList<>();
     private int pixelScrollOffset = 0;
@@ -31,8 +37,9 @@ public class ItemGridView {
     /** Set by UniversalResultsPanel to route clicks to the recipe bridge. */
     private BiConsumer<SearchNode, Integer> onItemClick;
 
-    // Deferred tooltip — built during render, drawn after scissor is popped
+    // Deferred tooltips — built during render, drawn after scissor is popped
     private ItemStack pendingTooltip = null;
+    private List<Component> pendingTextTooltip = null;
 
     // Virtual row cache — rebuilt whenever rootNodes changes or a group is toggled
     private List<VirtualRow> cachedRows = null;
@@ -77,12 +84,17 @@ public class ItemGridView {
         this.onItemClick = callback;
     }
 
+    public static void clearStackCache() {
+        stackCache.clear();
+    }
+
     // =========================================================
     // Rendering
     // =========================================================
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
         pendingTooltip = null;
+        pendingTextTooltip = null;
 
         if (rootNodes.isEmpty()) {
             g.drawString(Minecraft.getInstance().font,
@@ -113,8 +125,11 @@ public class ItemGridView {
 
         renderScrollbar(g, totalH, mouseX, mouseY);
 
-        if (pendingTooltip != null) {
-            g.renderTooltip(Minecraft.getInstance().font, pendingTooltip, mouseX, mouseY);
+        var font = Minecraft.getInstance().font;
+        if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
+            g.renderTooltip(font, pendingTooltip, mouseX, mouseY);
+        } else if (pendingTextTooltip != null) {
+            g.renderComponentTooltip(font, pendingTextTooltip, mouseX, mouseY);
         }
     }
 
@@ -130,25 +145,51 @@ public class ItemGridView {
     }
 
     private void renderItemRow(GuiGraphics g, ItemRow ir, int drawY, int mouseX, int mouseY) {
-        var font = Minecraft.getInstance().font;
         for (int i = 0; i < ir.items().size(); i++) {
             int cellX = x + 1 + i * CELL_SIZE;
             int cellY = drawY;
 
             TreeNode node = ir.items().get(i);
-            ItemStack stack = resolveStack(node.getEntry());
-            if (stack.isEmpty()) continue;
+            SearchNode entry = node.getEntry();
+            if (entry == null) continue;
 
             boolean hovered = mouseX >= cellX && mouseX < cellX + CELL_SIZE
                     && mouseY >= cellY && mouseY < cellY + CELL_SIZE;
             if (hovered) {
                 g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, 0xFF3A3A3A);
-                pendingTooltip = stack;
+                if (entry.type() == NodeType.ITEM) {
+                    pendingTooltip = resolveStack(entry);
+                } else {
+                    pendingTextTooltip = RendererRegistry.get(entry.type()).getTooltip(entry);
+                }
             }
 
-            g.renderItem(stack, cellX + 1, cellY + 1);
-            g.renderItemDecorations(font, stack, cellX + 1, cellY + 1);
+            if (entry.type() == NodeType.ITEM) {
+                ItemStack stack = resolveStack(entry);
+                if (!stack.isEmpty()) g.renderItem(stack, cellX + 1, cellY + 1);
+            } else {
+                RendererRegistry.get(entry.type()).render(g, entry, cellX + 1, cellY + 1, 16);
+            }
         }
+    }
+
+    private void primeIconCache(GuiGraphics g, List<VirtualRow> rows) {
+        List<Map.Entry<ResourceLocation, ItemStack>> uncached = new ArrayList<>();
+        int drawY = y - pixelScrollOffset;
+        for (VirtualRow row : rows) {
+            if (drawY + row.height() > y && drawY < y + height && row instanceof ItemRow ir) {
+                for (TreeNode node : ir.items()) {
+                    SearchNode entry = node.getEntry();
+                    if (entry != null && entry.type() == NodeType.ITEM
+                            && !ItemIconCache.isCached(entry.id())) {
+                        ItemStack stack = resolveStack(entry);
+                        if (!stack.isEmpty()) uncached.add(Map.entry(entry.id(), stack));
+                    }
+                }
+            }
+            drawY += row.height();
+        }
+        if (!uncached.isEmpty()) ItemIconCache.primeVisible(g, uncached);
     }
 
     // =========================================================
@@ -171,14 +212,14 @@ public class ItemGridView {
             for (TreeNode root : rootNodes) {
                 if (!root.isLeaf()) {
                     addGroupRows(root, cols, rows);
-                } else if (root.isLeaf() && root.getEntry().type() == NodeType.ITEM) {
+                } else {
                     rows.add(new ItemRow(List.of(root)));
                 }
             }
         } else {
             // Flat list of leaves — pack directly into item rows
             List<TreeNode> items = rootNodes.stream()
-                    .filter(n -> n.isLeaf() && n.getEntry().type() == NodeType.ITEM)
+                    .filter(TreeNode::isLeaf)
                     .collect(Collectors.toList());
             packIntoRows(items, cols, rows);
         }
@@ -205,7 +246,7 @@ public class ItemGridView {
 
     private void collectItemLeaves(TreeNode node, List<TreeNode> out) {
         if (node.isLeaf()) {
-            if (node.getEntry().type() == NodeType.ITEM) out.add(node);
+            out.add(node);
         } else {
             for (TreeNode child : node.getChildren()) {
                 collectItemLeaves(child, out);
@@ -227,11 +268,10 @@ public class ItemGridView {
     // ItemStack resolution
     // =========================================================
 
-    private ItemStack resolveStack(SearchNode node) {
+    private static ItemStack resolveStack(SearchNode node) {
         if (node == null) return ItemStack.EMPTY;
-        return BuiltInRegistries.ITEM.getOptional(node.id())
-                .map(ItemStack::new)
-                .orElse(ItemStack.EMPTY);
+        return stackCache.computeIfAbsent(node.id(),
+                id -> BuiltInRegistries.ITEM.getOptional(id).map(ItemStack::new).orElse(ItemStack.EMPTY));
     }
 
     // =========================================================

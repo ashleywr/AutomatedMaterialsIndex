@@ -14,6 +14,10 @@ import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 
 import com.sanhiruzu.ami.client.AMIKeyMappings;
 import com.sanhiruzu.ami.client.AMIScreen;
+import com.sanhiruzu.ami.client.ItemIconCache;
+import com.sanhiruzu.ami.client.icon.RendererRegistry;
+import com.sanhiruzu.ami.client.results.ItemGridView;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 
 @Mod(value = AMI.MODID, dist = Dist.CLIENT)
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
@@ -45,6 +49,13 @@ public class AMIClient {
         if (Minecraft.getInstance().getUser() != null) {
             AMI.LOGGER.debug("Player: {}", Minecraft.getInstance().getUser().getName());
         }
+    }
+
+    @SubscribeEvent
+    static void onPlayerLogout(ClientPlayerNetworkEvent.LoggingOut event) {
+        ItemIconCache.invalidate();
+        ItemGridView.clearStackCache();
+        RendererRegistry.invalidateAll();
     }
 
     // Disabled: Indexing now happens lazily on first inventory open
