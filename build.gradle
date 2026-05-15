@@ -142,6 +142,10 @@ dependencies {
     // Use fastutil for a high-performance primitive-friendly trie (compileOnly)
     compileOnly "it.unimi.dsi:fastutil:8.5.9"
 
+    // Test dependencies (runtime for unit tests)
+    testImplementation "org.junit.jupiter:junit-jupiter:5.9.3"
+    testImplementation "it.unimi.dsi:fastutil:8.5.9"
+
     // Example mod dependency using a mod jar from ./libs with a flat dir repository
     // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
     // The group id is ignored when searching -- in this case, it is "blank"
@@ -157,10 +161,6 @@ dependencies {
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
 }
-
-// Test dependencies
-testImplementation "org.junit.jupiter:junit-jupiter:5.9.3"
-testImplementation "it.unimi.dsi:fastutil:8.5.9"
 
 // This block of code expands all declared replace properties in the specified resource targets.
 // A missing property will result in an error. Properties are expanded using ${} Groovy notation.
