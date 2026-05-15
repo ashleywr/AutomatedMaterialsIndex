@@ -31,6 +31,13 @@
   "ami.configuration.panel_side.left": "Left",
   "ami.configuration.panel_side.right": "Right",
   "ami.configuration.panel_width_override": "Panel Width Override",
+
+  "ami.configuration.panel": "Panel",
+  "ami.configuration.search_bar": "Search Bar",
+  "ami.configuration.search_bar_width": "Search Bar Width",
+  "ami.configuration.search_bar_anchor": "Search Bar Anchor",
+  "ami.configuration.ami_button": "AMI Button",
+  "ami.configuration.ami_button_anchor": "AMI Button Anchor",
   "ami.gui.empty_list": "(nothing indexed yet)",
 
   "ami.tooltip.shift_for_details": "[Shift] for details",
