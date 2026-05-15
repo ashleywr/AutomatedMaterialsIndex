@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client;
 
 import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -21,32 +22,32 @@ public class InventoryOverlayHandler {
         manager.onRenderPost(event);
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGH)
     static void onScreenMouseClick(ScreenEvent.MouseButtonPressed.Pre event) {
         manager.onMouseClick(event);
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGH)
     static void onScreenMouseDragged(ScreenEvent.MouseDragged.Pre event) {
         manager.onMouseDragged(event);
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGH)
     static void onScreenMouseRelease(ScreenEvent.MouseButtonReleased.Pre event) {
         manager.onMouseRelease(event);
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGH)
     static void onScreenMouseScroll(ScreenEvent.MouseScrolled.Pre event) {
         manager.onMouseScroll(event);
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGH)
     static void onScreenKeyPressed(ScreenEvent.KeyPressed.Pre event) {
         manager.onKeyPressed(event);
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGH)
     static void onScreenCharacterTyped(ScreenEvent.CharacterTyped.Pre event) {
         manager.onCharTyped(event);
     }
