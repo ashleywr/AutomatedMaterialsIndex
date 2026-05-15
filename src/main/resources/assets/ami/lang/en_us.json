@@ -8,6 +8,7 @@
   "ami.gui.biomes": "Biomes",
   "ami.gui.structures": "Structures",
   "ami.gui.entities": "Entities",
+  "ami.gui.dimensions": "Dimensions",
   "ami.gui.cycle_hint": "Press %s to cycle",
   "ami.gui.close_hint": "Press %s to close",
 

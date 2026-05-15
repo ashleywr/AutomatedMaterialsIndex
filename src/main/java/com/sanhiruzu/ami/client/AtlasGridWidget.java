@@ -302,6 +302,7 @@ public class AtlasGridWidget {
                 case BIOME     -> appendBiomeDetails(lines, entry);
                 case ENTITY    -> appendEntityDetails(lines, entry);
                 case STRUCTURE -> appendStructureDetails(lines, entry);
+                case DIMENSION -> {} // No extra details for dimensions yet
             }
         } else {
             lines.add(Component.translatable("ami.tooltip.shift_for_details")
@@ -312,6 +313,7 @@ public class AtlasGridWidget {
             Component clickHint = switch (entry.type()) {
                 case BIOME, STRUCTURE -> Component.translatable("ami.tooltip.cheat_locate");
                 case ENTITY           -> Component.translatable("ami.tooltip.cheat_entity");
+                case DIMENSION        -> Component.literal("(dimension info)");
             };
             lines.add(clickHint.copy().withStyle(s -> s.withColor(AMITheme.CHEAT_INDICATOR)));
         }
@@ -592,6 +594,7 @@ public class AtlasGridWidget {
                                 case BIOME     -> AMICheatMode.locateBiome(entry.id());
                                 case STRUCTURE -> AMICheatMode.locateStructure(entry.id());
                                 case ENTITY    -> {} // future: summon
+                                case DIMENSION -> {} // future: dimension tp
                             }
                             return true;
                         }
