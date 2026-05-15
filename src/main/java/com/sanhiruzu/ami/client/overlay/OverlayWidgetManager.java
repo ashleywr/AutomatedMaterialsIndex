@@ -20,8 +20,8 @@ import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchService;
 
 public class OverlayWidgetManager {
-    private static final int BOTTOM_BAR_H = 18;
-    private static final int SEARCH_H = 14;
+    private static final int BOTTOM_BAR_H = 24;
+    private static final int SEARCH_H = 20;
     private static final int MIN_PANEL_WIDTH = 60;
 
     private final ResultsPanelWidget resultsPanel;

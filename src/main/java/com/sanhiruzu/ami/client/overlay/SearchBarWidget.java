@@ -33,16 +33,37 @@ public class SearchBarWidget implements AmiWidget {
 
     private List<TokenColorizer.ColorSpan> colorSpans = List.of();
 
-    private void drawColorizedText(GuiGraphics g, net.minecraft.client.gui.Font font, int startX, int startY) {
-        if (colorSpans.isEmpty()) {
-            g.drawString(font, query, startX, startY, 0xFFCCCCCC, false);
-        } else {
-            int currentX = startX;
-            for (TokenColorizer.ColorSpan span : colorSpans) {
-                String spanText = query.substring(span.startIndex(), span.endIndex());
-                g.drawString(font, spanText, currentX, startY, span.argbColor(), false);
-                currentX += font.width(spanText);
+    private void drawColorizedText(GuiGraphics g, net.minecraft.client.gui.Font font, int startX, int startY, int maxWidth) {
+        if (query.isEmpty()) return;
+
+        int maxTextWidth = maxWidth - 6; // Account for padding on both sides
+        String displayText = query;
+
+        // Truncate if text is too wide
+        while (!displayText.isEmpty() && font.width(displayText) > maxTextWidth) {
+            displayText = displayText.substring(0, displayText.length() - 1);
+        }
+
+        if (displayText.isEmpty()) return;
+
+        g.enableScissor(startX - 3, startY - 2, startX + maxWidth, startY + 14);
+        try {
+            if (colorSpans.isEmpty()) {
+                g.drawString(font, displayText, startX, startY, 0xFFCCCCCC, false);
+            } else {
+                int currentX = startX;
+                for (TokenColorizer.ColorSpan span : colorSpans) {
+                    if (span.endIndex() > displayText.length()) break;
+
+                    String spanText = displayText.substring(span.startIndex(), Math.min(span.endIndex(), displayText.length()));
+                    if (!spanText.isEmpty()) {
+                        g.drawString(font, spanText, currentX, startY, span.argbColor(), false);
+                        currentX += font.width(spanText);
+                    }
+                }
             }
+        } finally {
+            g.disableScissor();
         }
     }
 
@@ -88,8 +109,8 @@ public class SearchBarWidget implements AmiWidget {
             g.fill(x + w, y - 1, x + w + 1, y + h + 1, highlightBorder);
         }
 
-        int textX = x + 3;
-        int textY = y + 3;
+        int textX = x + 5;
+        int textY = y + (h - font.lineHeight) / 2 + 1;
         if (query.isEmpty() && !focused) {
             // Cycle placeholder text every 3 seconds
             long now = System.currentTimeMillis();
@@ -99,12 +120,12 @@ public class SearchBarWidget implements AmiWidget {
             }
             g.drawString(font, PLACEHOLDER_HINTS[placeholderIndex], textX, textY, 0xFF666666, false);
         } else {
-            drawColorizedText(g, font, textX, textY);
+            drawColorizedText(g, font, textX, textY, w);
         }
 
-        if (focused && (System.currentTimeMillis() % 1000) < 500) {
+        if (focused && !query.isEmpty() && (System.currentTimeMillis() % 1000) < 500) {
             int cursorX = textX + font.width(query) + 1;
-            g.fill(cursorX, textY, cursorX + 1, textY + font.lineHeight, 0xFFCCCCCC);
+            g.fill(cursorX, textY - 1, cursorX + 1, textY + font.lineHeight, 0xFFCCCCCC);
         }
     }
 
