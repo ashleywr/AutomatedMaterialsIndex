@@ -27,6 +27,11 @@ public class WorldAtlasIndex {
             AtlasType[] values = values();
             return values[(ordinal() + 1) % values.length];
         }
+
+        public AtlasType prev() {
+            AtlasType[] values = values();
+            return values[(ordinal() - 1 + values.length) % values.length];
+        }
     }
 
     private final Map<AtlasType, List<AtlasEntry>> registryData = new HashMap<>();

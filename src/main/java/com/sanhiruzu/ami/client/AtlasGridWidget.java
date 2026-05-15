@@ -25,11 +25,12 @@ public class AtlasGridWidget {
 
     private static final int ITEM_SIZE     = 16;
     private static final int PADDING       = 2;
-    private static final int HEADER_HEIGHT = 12;
+    private static final int HEADER_HEIGHT = 14;
     private static final int ROW_HEIGHT    = 11;
     private static final int SWATCH_SIZE   = 6;
     private static final int SWATCH_GAP    = 3;
     private static final int DIM_BADGE     = 4;
+    private static final int ARROW_W       = 9;
 
     private int x, y, width, height;
     private Mode mode = Mode.ITEMS;
@@ -60,9 +61,9 @@ public class AtlasGridWidget {
     private int scrollbarDragStartY;
     private int scrollbarDragStartOffset;
 
-    // Tab indicator click bounds
-    private int tabIndicatorX = -1;
-    private int tabIndicatorWidth = 0;
+    // Navigation arrow positions (set during header render)
+    private int leftArrowX = -1;
+    private int rightArrowX = -1;
 
     // Deferred tooltips — collected during render, drawn last
     private ItemStack pendingItemTooltip = null;
@@ -137,34 +138,40 @@ public class AtlasGridWidget {
         boolean cheat = AMICheatMode.isEnabled();
         g.fill(x, y, x + width, y + HEADER_HEIGHT + 2, cheat ? AMITheme.CHEAT_HEADER_BG : AMITheme.HEADER_BG);
         g.fill(x, y + HEADER_HEIGHT + 2, x + width, y + HEADER_HEIGHT + 3, cheat ? AMITheme.CHEAT_HEADER_SEP : AMITheme.HEADER_SEP);
-        // Show current atlas type position in cycle if applicable
+
         var font = Minecraft.getInstance().font;
-        MutableComponent headerText = modeLabel.copy()
+
+        // Navigation arrows
+        leftArrowX = x + 2;
+        rightArrowX = x + width - 2 - ARROW_W;
+
+        boolean leftHovered = isLeftArrowHovered(mouseX, mouseY);
+        boolean rightHovered = isRightArrowHovered(mouseX, mouseY);
+
+        // Draw arrows
+        g.drawString(font, "◀", leftArrowX, y + 3, leftHovered ? AMITheme.ARROW_HOVER : AMITheme.ARROW_NORMAL, false);
+        g.drawString(font, "▶", rightArrowX, y + 3, rightHovered ? AMITheme.ARROW_HOVER : AMITheme.ARROW_NORMAL, false);
+
+        // Center text: "TabName (count) [pos/total]"
+        MutableComponent centerText = modeLabel.copy()
                 .append(Component.literal(" (" + entryCount() + ")"));
 
         if (currentAtlasType != null) {
             WorldAtlasIndex.AtlasType[] types = WorldAtlasIndex.AtlasType.values();
             int position = currentAtlasType.ordinal() + 1;
-
-            // Calculate tab indicator position before appending (for click detection)
-            int preTabWidth = font.width(headerText);
-            String tabIndicatorStr = " [" + position + "/" + types.length + "]";
-
-            headerText.append(Component.literal(tabIndicatorStr)
+            centerText.append(Component.literal(" [" + position + "/" + types.length + "]")
                     .withStyle(s -> s.withColor(0xAAAAAA)));
-
-            // Store tab indicator bounds for click detection
-            tabIndicatorX = x + 3 + preTabWidth;
-            tabIndicatorWidth = font.width(tabIndicatorStr);
-        } else {
-            tabIndicatorX = -1;
-            tabIndicatorWidth = 0;
         }
 
         if (cheat) {
-            headerText.append(Component.literal(" [!]").withStyle(s -> s.withColor(AMITheme.CHEAT_INDICATOR)));
+            centerText.append(Component.literal(" [!]").withStyle(s -> s.withColor(AMITheme.CHEAT_INDICATOR)));
         }
-        g.drawString(font, headerText, x + 3, y + 2, cheat ? AMITheme.CHEAT_INDICATOR : AMITheme.HEADER_TEXT, false);
+
+        // Draw centered, clamped between arrow areas
+        int textWidth = font.width(centerText);
+        int centerX = x + (width - textWidth) / 2;
+        centerX = Math.max(leftArrowX + ARROW_W + 2, Math.min(centerX, rightArrowX - textWidth - 2));
+        g.drawString(font, centerText, centerX, y + 2, cheat ? AMITheme.CHEAT_INDICATOR : AMITheme.HEADER_TEXT, false);
 
         if (mode == Mode.ITEMS) {
             renderItemGrid(g, mouseX, mouseY);
@@ -526,9 +533,15 @@ public class AtlasGridWidget {
                 && mouseY >= barAreaY && mouseY < barAreaY + contentH;
     }
 
-    public boolean isTabIndicatorHovered(int mouseX, int mouseY) {
-        if (tabIndicatorX < 0) return false;
-        return mouseX >= tabIndicatorX && mouseX < tabIndicatorX + tabIndicatorWidth
+    public boolean isLeftArrowHovered(int mouseX, int mouseY) {
+        if (leftArrowX < 0) return false;
+        return mouseX >= leftArrowX && mouseX < leftArrowX + ARROW_W
+                && mouseY >= y && mouseY < y + HEADER_HEIGHT + 2;
+    }
+
+    public boolean isRightArrowHovered(int mouseX, int mouseY) {
+        if (rightArrowX < 0) return false;
+        return mouseX >= rightArrowX && mouseX < rightArrowX + ARROW_W
                 && mouseY >= y && mouseY < y + HEADER_HEIGHT + 2;
     }
 
