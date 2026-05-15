@@ -35,10 +35,10 @@ public class MultiSelectDropdown<T> implements Dropdown {
         g.fill(x, y, x + width, y + HEIGHT, bgColor);
         String countLabel = selected.size() + "/" + options.size();
         g.drawString(Minecraft.getInstance().font, countLabel, x + 3, y + 2, 0xFFCCCCCC, false);
+    }
 
-        if (open) {
-            renderDropdown(g, mouseX, mouseY);
-        }
+    public void renderList(GuiGraphics g, int mouseX, int mouseY) {
+        if (open) renderDropdown(g, mouseX, mouseY);
     }
 
     private void renderDropdown(GuiGraphics g, int mouseX, int mouseY) {

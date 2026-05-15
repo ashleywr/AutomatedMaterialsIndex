@@ -7,9 +7,9 @@ import net.minecraft.network.chat.Component;
 import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
+import com.sanhiruzu.ami.index.SearchNode;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class AMIScreen extends Screen {
     private UniversalResultsPanel resultsPanel;
@@ -24,8 +24,11 @@ public class AMIScreen extends Screen {
         AMI.LOGGER.debug("AMI screen initialized - size: {}x{}", this.width, this.height);
         this.resultsPanel = new UniversalResultsPanel(10, 40, this.width - 20, this.height - 80);
 
-        var biomeEntries = GlobalIndex.getInstance().getNodes(NodeType.BIOME);
-        resultsPanel.setAtlasEntries(biomeEntries, Component.literal("Biomes"), NodeType.BIOME);
+        var all = new ArrayList<SearchNode>();
+        for (NodeType t : NodeType.atlasValues()) {
+            all.addAll(GlobalIndex.getInstance().getNodes(t));
+        }
+        resultsPanel.setEntries(all);
     }
 
     @Override

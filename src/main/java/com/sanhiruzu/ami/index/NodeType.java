@@ -24,11 +24,7 @@ public enum NodeType {
         return Component.translatable(translationKey);
     }
 
-    /**
-     * Cycles through BIOME → STRUCTURE → ENTITY → DIMENSION → BIOME (never includes ITEM).
-     * Matches the former AtlasType.next() contract exactly.
-     * Throws IllegalStateException if called on ITEM.
-     */
+    /** Cycles: ITEM → BIOME → STRUCTURE → ENTITY → DIMENSION → ITEM. */
     public NodeType next() {
         NodeType[] atlas = atlasValues();
         int idx = atlasOrdinal();
@@ -42,10 +38,10 @@ public enum NodeType {
     }
 
     /**
-     * Atlas-only values (excludes ITEM). Use for tab cycling in the overlay.
+     * All browseable types in Tab-cycle order: Items → Biomes → Structures → Entities → Dimensions.
      */
     public static NodeType[] atlasValues() {
-        return new NodeType[]{BIOME, STRUCTURE, ENTITY, DIMENSION};
+        return new NodeType[]{ITEM, BIOME, STRUCTURE, ENTITY, DIMENSION};
     }
 
     private int atlasOrdinal() {
@@ -53,6 +49,6 @@ public enum NodeType {
         for (int i = 0; i < atlas.length; i++) {
             if (atlas[i] == this) return i;
         }
-        throw new IllegalStateException("NodeType.next()/prev() called on non-atlas type: " + this);
+        throw new IllegalStateException("NodeType.next()/prev() called on non-cycleable type: " + this);
     }
 }

@@ -44,5 +44,7 @@
   "ami.tooltip.tags": "Tags",
   "ami.tooltip.category": "Category",
   "ami.tooltip.size": "Size",
-  "ami.tooltip.fire_immune": "Fire Immune"
+  "ami.tooltip.fire_immune": "Fire Immune",
+
+  "ami.gui.open_full_screen": "Open AMI Full Screen"
 }

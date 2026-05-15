@@ -80,7 +80,11 @@ public class ResultsProcessor {
                 default -> "Overworld";
             };
 
-            TreeNode dimNode = dimGroups.computeIfAbsent(dimDisplay, TreeNode::new);
+            TreeNode dimNode = dimGroups.computeIfAbsent(dimDisplay, k -> {
+                TreeNode n = new TreeNode(k);
+                n.setExpanded(true);
+                return n;
+            });
             TreeNode modNode = findOrCreateChild(dimNode, entry.id().getNamespace());
             modNode.addChild(new TreeNode(entry.displayName(), entry));
         }
@@ -93,9 +97,11 @@ public class ResultsProcessor {
 
         for (SearchNode entry : entries) {
             String namespace = entry.id().getNamespace();
-            TreeNode modNode = modGroups.computeIfAbsent(namespace, TreeNode::new);
-
-            // Group by type under each mod
+            TreeNode modNode = modGroups.computeIfAbsent(namespace, k -> {
+                TreeNode n = new TreeNode(k);
+                n.setExpanded(true);
+                return n;
+            });
             TreeNode typeNode = findOrCreateChild(modNode, entry.type().displayName().getString());
             typeNode.addChild(new TreeNode(entry.displayName(), entry));
         }
@@ -108,10 +114,11 @@ public class ResultsProcessor {
 
         for (SearchNode entry : entries) {
             NodeType type = entry.type();
-            TreeNode typeNode = typeGroups.computeIfAbsent(type,
-                t -> new TreeNode(t.displayName().getString()));
-
-            // Group by mod under each type
+            TreeNode typeNode = typeGroups.computeIfAbsent(type, t -> {
+                TreeNode n = new TreeNode(t.displayName().getString());
+                n.setExpanded(true);
+                return n;
+            });
             TreeNode modNode = findOrCreateChild(typeNode, entry.id().getNamespace());
             modNode.addChild(new TreeNode(entry.displayName(), entry));
         }

@@ -197,44 +197,35 @@ public class ResultsTreeView {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0) return false;
 
-        int contentY = y;
-        int contentH = height;
-        int visRows = Math.max(1, contentH / ROW_HEIGHT);
-
+        int visRows = Math.max(1, height / ROW_HEIGHT);
         int row = 0;
         for (TreeNode node : rootNodes) {
-            row = handleNodeClick(node, 0, row, (int) mouseX, (int) mouseY, scrollOffset, visRows, contentY);
-            if (row < 0) return true; // Click was handled
-            row = -row; // Convert back to normal row count
+            int result = handleNodeClick(node, 0, row, (int) mouseX, (int) mouseY, scrollOffset, visRows, y);
+            if (result == Integer.MIN_VALUE) return true;
+            row = result;
         }
-
         return false;
     }
 
     private int handleNodeClick(TreeNode node, int depth, int row, int mouseX, int mouseY, int scrollOffset, int visRows, int contentY) {
-        int indent = depth * INDENT;
-
-        // Check if this row is clicked
         if (row >= scrollOffset && row < scrollOffset + visRows) {
             int drawY = contentY + (row - scrollOffset) * ROW_HEIGHT;
             if (isRowHovered(mouseX, mouseY, drawY)) {
                 if (!node.isLeaf()) {
                     node.setExpanded(!node.isExpanded());
                 }
-                return -row; // Signal that click was handled
+                return Integer.MIN_VALUE;
             }
         }
         row++;
 
-        // Check children
         if (!node.isLeaf() && node.isExpanded()) {
             for (TreeNode child : node.getChildren()) {
                 int result = handleNodeClick(child, depth + 1, row, mouseX, mouseY, scrollOffset, visRows, contentY);
-                if (result < 0) return result;
+                if (result == Integer.MIN_VALUE) return Integer.MIN_VALUE;
                 row = result;
             }
         }
-
         return row;
     }
 

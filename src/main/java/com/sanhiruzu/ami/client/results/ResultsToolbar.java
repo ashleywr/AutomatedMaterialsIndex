@@ -43,7 +43,7 @@ public class ResultsToolbar {
                 "Group",
                 groupByOptions,
                 g -> g.displayName,
-                ResultsProcessor.GroupBy.DIMENSION,
+                ResultsProcessor.GroupBy.MOD,
                 selected -> {}
         );
 
@@ -128,7 +128,14 @@ public class ResultsToolbar {
         return false;
     }
 
-    private void closeAllDropdowns() {
+    /** Renders only the open dropdown lists — call AFTER the tree view so they appear on top. */
+    public void renderOpenDropdownLists(GuiGraphics g, int mouseX, int mouseY) {
+        for (Dropdown dropdown : dropdowns) {
+            dropdown.renderList(g, mouseX, mouseY);
+        }
+    }
+
+    public void closeAllDropdowns() {
         for (Dropdown dropdown : dropdowns) {
             dropdown.close();
         }
