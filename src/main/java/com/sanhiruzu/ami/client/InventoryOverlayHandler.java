@@ -145,8 +145,16 @@ public class InventoryOverlayHandler {
             if (currentCount != lastKnownItemCount) {
                 refreshEntries();
             }
-        } else if (gridWidget.getEntryCount() == 0) {
-            refreshEntries();
+        } else {
+            // Refresh if empty (including when structures are loading) or when data is populated
+            var index = WorldAtlasIndex.getInstance();
+            int currentCount = index.getEntries(atlasType).size();
+            boolean isLoading = index.isLoading(atlasType);
+
+            if ((gridWidget.getEntryCount() == 0 && currentCount > 0) ||
+                (isLoading && gridWidget.getEntryCount() == 0)) {
+                refreshEntries();
+            }
         }
     }
 
@@ -162,7 +170,8 @@ public class InventoryOverlayHandler {
             List<WorldAtlasIndex.AtlasEntry> entries = WorldAtlasIndex.getInstance().getEntries(atlasType);
             gridWidget.setAtlasEntries(
                     entries != null ? entries : List.of(),
-                    atlasType.displayName()
+                    atlasType.displayName(),
+                    atlasType
             );
         }
 

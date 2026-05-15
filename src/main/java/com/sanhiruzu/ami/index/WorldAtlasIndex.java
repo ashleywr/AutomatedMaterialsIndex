@@ -29,6 +29,7 @@ public class WorldAtlasIndex {
     }
 
     private final Map<AtlasType, List<AtlasEntry>> registryData = new HashMap<>();
+    private final java.util.Set<AtlasType> loadingTypes = new java.util.HashSet<>();
     private long lastUpdateTime = 0;
 
     private WorldAtlasIndex() {
@@ -57,6 +58,18 @@ public class WorldAtlasIndex {
 
     public void setLastUpdateTime(long time) {
         this.lastUpdateTime = time;
+    }
+
+    public void setLoading(AtlasType type, boolean loading) {
+        if (loading) {
+            loadingTypes.add(type);
+        } else {
+            loadingTypes.remove(type);
+        }
+    }
+
+    public boolean isLoading(AtlasType type) {
+        return loadingTypes.contains(type);
     }
 
     public enum Dimension {
