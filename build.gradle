@@ -3,6 +3,7 @@ plugins {
     id 'maven-publish'
     id 'net.neoforged.moddev' version '2.0.141'
     id 'idea'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
 tasks.named('wrapper', Wrapper).configure {
@@ -137,6 +138,9 @@ dependencies {
         localRuntime "maven.modrinth:emi:${emi_version}+${minecraft_version}+neoforge"
     }
 
+    // Concurrent-trees for high-performance prefix/substring search (shaded)
+    implementation "com.googlecode.concurrent-trees:concurrent-trees:2.6.1"
+
     // Example mod dependency using a mod jar from ./libs with a flat dir repository
     // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
     // The group id is ignored when searching -- in this case, it is "blank"
@@ -207,7 +211,7 @@ idea {
 def modsFolder = new File(System.getenv('APPDATA'), 'PrismLauncher/instances/Mod Making/minecraft/mods')
 
 tasks.register('copyToModsFolder', Copy) {
-    from tasks.named('jar')
+    from tasks.named('shadowJar')
     into modsFolder
     doFirst {
         println "Copying AMI JAR to ${modsFolder.absolutePath}"
@@ -215,6 +219,13 @@ tasks.register('copyToModsFolder', Copy) {
     doLast {
         println "[SUCCESS] AMI JAR copied to mods folder"
     }
+}
+
+// Configure shadow jar relocation and make it produce an ordinary artifact (no classifier)
+shadowJar {
+    archiveClassifier.set('')
+    // Relocate concurrent-trees to avoid API conflicts when loaded with other mods
+    relocate 'com.googlecode.concurrenttrees', 'com.sanhiruzu.ami.shaded.concurrenttrees'
 }
 
 tasks.named('build').configure {
