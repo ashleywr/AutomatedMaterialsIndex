@@ -3,18 +3,16 @@ package com.sanhiruzu.ami.client;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.ItemStack;
 
 import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
-import net.minecraft.core.registries.BuiltInRegistries;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class AMIScreen extends Screen {
-    private AtlasGridWidget gridWidget;
+    private UniversalResultsPanel resultsPanel;
 
     public AMIScreen() {
         super(Component.translatable("ami.gui.registry_tree"));
@@ -24,14 +22,10 @@ public class AMIScreen extends Screen {
     @Override
     protected void init() {
         AMI.LOGGER.debug("AMI screen initialized - size: {}x{}", this.width, this.height);
-        this.gridWidget = new AtlasGridWidget(10, 40, this.width - 20, this.height - 80);
+        this.resultsPanel = new UniversalResultsPanel(10, 40, this.width - 20, this.height - 80);
 
-        List<ItemStack> items = new ArrayList<>();
-        for (var node : GlobalIndex.getInstance().getNodes(NodeType.ITEM)) {
-            BuiltInRegistries.ITEM.getOptional(node.id()).ifPresent(item ->
-                items.add(new ItemStack(item)));
-        }
-        this.gridWidget.setItemEntries(items);
+        var biomeEntries = GlobalIndex.getInstance().getNodes(NodeType.BIOME);
+        resultsPanel.setAtlasEntries(biomeEntries, Component.literal("Biomes"), NodeType.BIOME);
     }
 
     @Override
@@ -42,13 +36,13 @@ public class AMIScreen extends Screen {
 
         Component cycleHint = Component.translatable("ami.gui.cycle_hint", AMIKeyMappings.CYCLE_ATLAS.getTranslatedKeyMessage());
         Component closeHint = Component.translatable("ami.gui.close_hint", AMIKeyMappings.OPEN_AMI.getTranslatedKeyMessage());
-        
+
         String info = String.format("%s | %s", cycleHint.getString(), closeHint.getString());
         guiGraphics.drawString(this.font, info, 10, 25, 0xAAAAAA);
 
-        if (gridWidget != null) {
+        if (resultsPanel != null) {
             guiGraphics.pose().pushPose();
-            gridWidget.render(guiGraphics, mouseX, mouseY, partialTick);
+            resultsPanel.render(guiGraphics, mouseX, mouseY, partialTick);
             guiGraphics.pose().popPose();
         }
     }
@@ -64,8 +58,8 @@ public class AMIScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollDeltaX, double scrollDeltaY) {
-        if (gridWidget != null) {
-            return gridWidget.mouseScrolled(mouseX, mouseY, scrollDeltaY);
+        if (resultsPanel != null) {
+            return resultsPanel.mouseScrolled(mouseX, mouseY, scrollDeltaY);
         }
         return super.mouseScrolled(mouseX, mouseY, scrollDeltaX, scrollDeltaY);
     }

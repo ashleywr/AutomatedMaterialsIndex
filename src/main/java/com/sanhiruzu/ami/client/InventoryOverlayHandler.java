@@ -27,8 +27,7 @@ public class InventoryOverlayHandler {
     static final boolean RECIPE_VIEWER_PRESENT =
             ModList.get().isLoaded("emi") || ModList.get().isLoaded("jei");
 
-    private static AtlasGridWidget gridWidget;
-    private static CommandPaletteWidget paletteWidget;
+    private static UniversalResultsPanel resultsPanel;
 
     // Always start in atlas mode - focus on World Atlas, not Items
     private static NodeType atlasType = NodeType.BIOME;
@@ -50,7 +49,7 @@ public class InventoryOverlayHandler {
                 var level = Minecraft.getInstance().level;
                 if (level != null) {
                     indexingInProgress = true;
-                    if (gridWidget != null) gridWidget.setIndexingInProgress(true);
+                    if (resultsPanel != null) resultsPanel.setIndexingInProgress(true);
 
                     GlobalIndexCache.loadOrIndexAsync(level, () -> {
                         // Runs on render thread after background indexing completes
@@ -59,7 +58,7 @@ public class InventoryOverlayHandler {
                         searchService = SearchService.buildFrom(GlobalIndex.getInstance());
                         indexingInProgress = false;
                         indexingDispatched = true;
-                        if (gridWidget != null) gridWidget.setIndexingInProgress(false);
+                        if (resultsPanel != null) resultsPanel.setIndexingInProgress(false);
                         refreshEntries();
                     });
                 }
@@ -79,8 +78,8 @@ public class InventoryOverlayHandler {
                 }
             }
 
-            int panelY = containerScreen.getGuiTop();
-            int panelHeight = containerScreen.getYSize();
+            int panelY = 0;
+            int panelHeight = event.getScreen().height;
 
             boolean goLeft = switch (AMIConfig.PANEL_SIDE.get()) {
                 case LEFT  -> true;
@@ -102,18 +101,18 @@ public class InventoryOverlayHandler {
 
             if (panelWidth < 60) return;
 
-            if (gridWidget == null) {
-                gridWidget = new AtlasGridWidget(panelX, panelY, panelWidth, panelHeight);
+            if (resultsPanel == null) {
+                resultsPanel = new UniversalResultsPanel(panelX, panelY, panelWidth, panelHeight);
                 refreshEntries();
             }
 
             checkAndRefreshIfStale();
 
-            gridWidget.updateLayout(panelX, panelY, panelWidth, panelHeight);
+            resultsPanel.updateLayout(panelX, panelY, panelWidth, panelHeight);
 
             event.getGuiGraphics().pose().pushPose();
-            event.getGuiGraphics().pose().translate(0, 0, 100);
-            gridWidget.render(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
+            event.getGuiGraphics().pose().translate(0, 0, 1000);
+            resultsPanel.render(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
             event.getGuiGraphics().pose().popPose();
         } catch (Exception e) {
             AMI.LOGGER.error("AMI overlay render failed", e);
@@ -125,14 +124,14 @@ public class InventoryOverlayHandler {
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
 
         // Handle search bar keyboard input (Backspace, Escape)
-        if (gridWidget != null && gridWidget.isSearchFocused()) {
+        if (resultsPanel != null && resultsPanel.isSearchFocused()) {
             if (event.getKeyCode() == GLFW.GLFW_KEY_BACKSPACE) {
-                gridWidget.deleteSearchChar();
+                resultsPanel.deleteSearchChar();
                 triggerSearch();
                 event.setCanceled(true);
                 return;
             } else if (event.getKeyCode() == GLFW.GLFW_KEY_ESCAPE) {
-                gridWidget.clearSearch();
+                resultsPanel.clearSearch();
                 refreshEntries();
                 event.setCanceled(true);
                 return;
@@ -140,8 +139,8 @@ public class InventoryOverlayHandler {
         }
 
         if (AMIKeyMappings.CYCLE_ATLAS.matches(event.getKeyCode(), event.getScanCode())) {
-            if (gridWidget != null) {
-                gridWidget.clearSearch();
+            if (resultsPanel != null) {
+                resultsPanel.clearSearch();
             }
             atlasType = atlasType.next();
             refreshEntries();
@@ -151,44 +150,30 @@ public class InventoryOverlayHandler {
 
     @SubscribeEvent
     static void onScreenMouseClick(ScreenEvent.MouseButtonPressed.Pre event) {
-        if (!AMIConfig.ENABLE_AUTO_INDEXING.get() || gridWidget == null) return;
+        if (!AMIConfig.ENABLE_AUTO_INDEXING.get() || resultsPanel == null) return;
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
-        if (!gridWidget.isMouseOver(event.getMouseX(), event.getMouseY())) {
+        if (!resultsPanel.isMouseOver(event.getMouseX(), event.getMouseY())) {
             // Click outside panel: unfocus search bar
-            gridWidget.setSearchFocused(false);
+            resultsPanel.setSearchFocused(false);
             return;
         }
 
-        // Check for search bar clicks (focus/clear button)
-        if (gridWidget.isSearchBarHovered(event.getMouseX(), event.getMouseY())) {
-            gridWidget.setSearchFocused(true);
-            event.setCanceled(true);
-            return;
-        }
-
-        // Navigation arrows take priority over other clicks
-        if (gridWidget.isLeftArrowHovered((int) event.getMouseX(), (int) event.getMouseY())) {
-            atlasType = atlasType.prev();
-            refreshEntries();
-            event.setCanceled(true);
-        } else if (gridWidget.isRightArrowHovered((int) event.getMouseX(), (int) event.getMouseY())) {
-            atlasType = atlasType.next();
-            refreshEntries();
+        // Scrollbar takes priority over other clicks
+        if (resultsPanel.mouseClickedScrollbar(event.getMouseX(), event.getMouseY(), event.getButton())) {
             event.setCanceled(true);
         }
-        // Scrollbar takes priority over entry clicks
-        else if (gridWidget.mouseClickedScrollbar(event.getMouseX(), event.getMouseY(), event.getButton())) {
-            event.setCanceled(true);
-        } else if (gridWidget.mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton())) {
+        // Handle toolbar and tree clicks
+        else if (resultsPanel.mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton())) {
+            triggerSearch();
             event.setCanceled(true);
         }
     }
 
     @SubscribeEvent
     static void onScreenMouseDragged(ScreenEvent.MouseDragged.Pre event) {
-        if (gridWidget == null) return;
+        if (resultsPanel == null) return;
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
-        if (gridWidget.mouseDragged(event.getMouseX(), event.getMouseY(),
+        if (resultsPanel.mouseDragged(event.getMouseX(), event.getMouseY(),
                 event.getMouseButton(), event.getDragX(), event.getDragY())) {
             event.setCanceled(true);
         }
@@ -196,18 +181,18 @@ public class InventoryOverlayHandler {
 
     @SubscribeEvent
     static void onScreenMouseRelease(ScreenEvent.MouseButtonReleased.Pre event) {
-        if (gridWidget == null) return;
+        if (resultsPanel == null) return;
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
-        gridWidget.stopScrollbarDrag();
+        resultsPanel.stopScrollbarDrag();
     }
 
     @SubscribeEvent
     static void onScreenMouseScroll(ScreenEvent.MouseScrolled.Pre event) {
-        if (!AMIConfig.ENABLE_AUTO_INDEXING.get() || gridWidget == null) return;
+        if (!AMIConfig.ENABLE_AUTO_INDEXING.get() || resultsPanel == null) return;
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
 
-        if (gridWidget.isMouseOver(event.getMouseX(), event.getMouseY())) {
-            gridWidget.mouseScrolled(event.getMouseX(), event.getMouseY(), event.getScrollDeltaY());
+        if (resultsPanel.isMouseOver(event.getMouseX(), event.getMouseY())) {
+            resultsPanel.mouseScrolled(event.getMouseX(), event.getMouseY(), event.getScrollDeltaY());
             event.setCanceled(true);
         }
     }
@@ -216,43 +201,52 @@ public class InventoryOverlayHandler {
     static void onScreenCharacterTyped(ScreenEvent.CharacterTyped.Pre event) {
         if (!AMIConfig.ENABLE_AUTO_INDEXING.get()) return;
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
-        if (gridWidget == null || !gridWidget.isSearchFocused()) return;
+        if (resultsPanel == null || !resultsPanel.isSearchFocused()) return;
 
         char c = (char) event.getCodePoint();
-        gridWidget.typeCharacter(c);
+        resultsPanel.typeCharacter(c);
         triggerSearch();
         event.setCanceled(true);
     }
 
     private static void checkAndRefreshIfStale() {
+        if (resultsPanel == null) return;
         // Refresh if empty (including when structures are loading) or when data is populated
         var index = GlobalIndex.getInstance();
         int currentCount = index.getNodes(atlasType).size();
         boolean isLoading = index.isLoading(atlasType);
 
-        if ((gridWidget.getEntryCount() == 0 && currentCount > 0) ||
-            (isLoading && gridWidget.getEntryCount() == 0)) {
+        if ((resultsPanel.getEntryCount() == 0 && currentCount > 0) ||
+            (isLoading && resultsPanel.getEntryCount() == 0)) {
             refreshEntries();
         }
     }
 
     private static void refreshEntries() {
-        if (gridWidget == null) return;
+        if (resultsPanel == null) return;
 
         var entries = GlobalIndex.getInstance().getNodes(atlasType);
-        gridWidget.setAtlasEntries(entries, atlasType.displayName(), atlasType);
+        resultsPanel.setAtlasEntries(entries, atlasType.displayName(), atlasType);
 
-        AMI.LOGGER.debug("AMI overlay refreshed: {} entries of type {}", gridWidget.getEntryCount(), atlasType);
+        AMI.LOGGER.debug("AMI overlay refreshed: {} entries of type {}", resultsPanel.getEntryCount(), atlasType);
     }
 
     private static void triggerSearch() {
-        if (searchService == null || gridWidget == null) return;
-        String query = gridWidget.getSearchQuery();
+        if (searchService == null || resultsPanel == null) return;
+        String query = resultsPanel.getSearchQuery();
         if (query.isEmpty()) {
             refreshEntries();
             return;
         }
         var results = searchService.query(query);
-        gridWidget.setSearchResults(results, query);
+        resultsPanel.setSearchResults(results, query);
+    }
+
+    // -------------------------------------------------------------------------
+    // Public accessors for exclusion areas
+    // -------------------------------------------------------------------------
+
+    public static UniversalResultsPanel getResultsPanel() {
+        return resultsPanel;
     }
 }
