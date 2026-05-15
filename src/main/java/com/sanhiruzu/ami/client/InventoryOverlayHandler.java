@@ -141,21 +141,19 @@ public class InventoryOverlayHandler {
         if (lastPanelW <= 0) return;
         var font = Minecraft.getInstance().font;
 
-        int barY    = lastScreenH - BOTTOM_BAR_H;
-        int btnX    = lastPanelX;
-        int btnY    = barY + 2;
-        int searchX = btnX + AMI_BTN_W + 2;
-        int searchW = lastPanelW - AMI_BTN_W - 2;
+        // EMI-style: search bar at panel's column, AMI button at screen's absolute left
+        int barY     = lastScreenH - BOTTOM_BAR_H;
+        int btnX     = 2;  // Screen's absolute left edge (like EMI's settings button)
+        int btnY     = barY + 2;
+        int searchX  = lastPanelX;  // At the panel's left edge
+        int searchW  = lastPanelW;  // Full panel width
 
-        // Separator line between panel and bottom bar
-        g.fill(lastPanelX, barY, lastPanelX + lastPanelW, barY + 1, 0xFF333333);
-
-        // AMI button
+        // AMI button — at screen's lower-left corner
         boolean btnHovered = mouseX >= btnX && mouseX < btnX + AMI_BTN_W
                 && mouseY >= btnY && mouseY < btnY + SEARCH_H;
-        int btnBorder    = btnHovered ? 0xFFFFAA00 : 0xFF444444;
+        int btnBorder    = btnHovered ? 0xFFFFAA00 : 0xFF555555;
         int btnTextColor = btnHovered ? 0xFFFFDD44 : 0xFFFFAA00;
-        g.fill(btnX, btnY, btnX + AMI_BTN_W, btnY + SEARCH_H, 0xFF111111);
+        g.fill(btnX, btnY, btnX + AMI_BTN_W, btnY + SEARCH_H, 0xFF0A0A0A);
         g.fill(btnX,              btnY,              btnX + AMI_BTN_W, btnY + 1,              btnBorder);
         g.fill(btnX,              btnY + SEARCH_H - 1, btnX + AMI_BTN_W, btnY + SEARCH_H,      btnBorder);
         g.fill(btnX,              btnY,              btnX + 1,           btnY + SEARCH_H,      btnBorder);
@@ -163,32 +161,30 @@ public class InventoryOverlayHandler {
         int labelW = font.width("AMI");
         g.drawString(font, "AMI", btnX + (AMI_BTN_W - labelW) / 2, btnY + 3, btnTextColor, false);
 
-        // Search bar
-        if (searchW > 0) {
-            boolean focused = resultsPanel != null && resultsPanel.isSearchFocused();
-            String query    = resultsPanel != null ? resultsPanel.getSearchQuery() : "";
+        // Search bar — in the panel's column
+        boolean focused = resultsPanel != null && resultsPanel.isSearchFocused();
+        String query    = resultsPanel != null ? resultsPanel.getSearchQuery() : "";
 
-            g.fill(searchX, btnY, searchX + searchW, btnY + SEARCH_H,
-                    focused ? 0xFF2E2E2E : 0xFF1A1A1A);
-            int border = focused ? 0xFFAAAA44 : 0xFF555555;
-            g.fill(searchX,              btnY,              searchX + searchW, btnY + 1,         border);
-            g.fill(searchX,              btnY + SEARCH_H - 1, searchX + searchW, btnY + SEARCH_H, border);
-            g.fill(searchX,              btnY,              searchX + 1,        btnY + SEARCH_H, border);
-            g.fill(searchX + searchW - 1, btnY,            searchX + searchW, btnY + SEARCH_H,  border);
+        g.fill(searchX, btnY, searchX + searchW, btnY + SEARCH_H,
+                focused ? 0xFF2E2E2E : 0xFF1A1A1A);
+        int border = focused ? 0xFFAAAA44 : 0xFF555555;
+        g.fill(searchX,              btnY,              searchX + searchW, btnY + 1,         border);
+        g.fill(searchX,              btnY + SEARCH_H - 1, searchX + searchW, btnY + SEARCH_H, border);
+        g.fill(searchX,              btnY,              searchX + 1,        btnY + SEARCH_H, border);
+        g.fill(searchX + searchW - 1, btnY,            searchX + searchW, btnY + SEARCH_H,  border);
 
-            int textX = searchX + 3;
-            int textY = btnY + 3;
-            if (query.isEmpty() && !focused) {
-                g.drawString(font, Component.translatable("ami.gui.search.placeholder"),
-                        textX, textY, 0xFF666666, false);
-            } else {
-                g.drawString(font, query, textX, textY, 0xFFCCCCCC, false);
-            }
+        int textX = searchX + 3;
+        int textY = btnY + 3;
+        if (query.isEmpty() && !focused) {
+            g.drawString(font, Component.translatable("ami.gui.search.placeholder"),
+                    textX, textY, 0xFF666666, false);
+        } else {
+            g.drawString(font, query, textX, textY, 0xFFCCCCCC, false);
+        }
 
-            if (focused && (System.currentTimeMillis() % 1000) < 500) {
-                int cursorX = textX + font.width(query) + 1;
-                g.fill(cursorX, textY, cursorX + 1, textY + font.lineHeight, 0xFFCCCCCC);
-            }
+        if (focused && (System.currentTimeMillis() % 1000) < 500) {
+            int cursorX = textX + font.width(query) + 1;
+            g.fill(cursorX, textY, cursorX + 1, textY + font.lineHeight, 0xFFCCCCCC);
         }
     }
 
@@ -197,21 +193,17 @@ public class InventoryOverlayHandler {
     // -------------------------------------------------------------------------
 
     private static boolean isAmiBtnHit(double mx, double my) {
-        int btnX = lastPanelX;
+        int btnX = 2;
         int btnY = lastScreenH - BOTTOM_BAR_H + 2;
         return mx >= btnX && mx < btnX + AMI_BTN_W && my >= btnY && my < btnY + SEARCH_H;
     }
 
     private static boolean isSearchBarHit(double mx, double my) {
         if (lastPanelW <= 0) return false;
-        int searchX = lastPanelX + AMI_BTN_W + 2;
+        int searchX = lastPanelX;
         int searchY = lastScreenH - BOTTOM_BAR_H + 2;
-        int searchW = lastPanelW - AMI_BTN_W - 2;
+        int searchW = lastPanelW;
         return mx >= searchX && mx < searchX + searchW && my >= searchY && my < searchY + SEARCH_H;
-    }
-
-    private static boolean isBottomBarHit(double mx, double my) {
-        return isAmiBtnHit(mx, my) || isSearchBarHit(mx, my);
     }
 
     // -------------------------------------------------------------------------
