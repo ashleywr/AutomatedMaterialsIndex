@@ -1,8 +1,8 @@
 package com.sanhiruzu.ami.compat;
 
+import com.sanhiruzu.ami.AMIConfig;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
-import com.sanhiruzu.ami.AMIConfig;
 
 public class RecipeViewerBridge {
 

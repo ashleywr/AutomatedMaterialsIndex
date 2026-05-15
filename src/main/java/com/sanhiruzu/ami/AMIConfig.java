@@ -68,24 +68,49 @@ public class AMIConfig {
     public static final ModConfigSpec.IntValue PALETTE_SEARCH_PLACEHOLDER = BUILDER
             .comment("Search bar placeholder text color (RGB hex).")
             .defineInRange("searchPlaceholder", 0xFF888888, Integer.MIN_VALUE, Integer.MAX_VALUE);
+// Result cards
+public static final ModConfigSpec.IntValue PALETTE_CARD_BG = BUILDER
+        .comment("Result card background color (RGB hex).")
+        .defineInRange("cardBg", 0xFF2A2A2A, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
-    // Result cards
-    public static final ModConfigSpec.IntValue PALETTE_CARD_BG = BUILDER
-            .comment("Result card background color (RGB hex).")
-            .defineInRange("cardBg", 0xFF2A2A2A, Integer.MIN_VALUE, Integer.MAX_VALUE);
+public static final ModConfigSpec.IntValue PALETTE_CARD_BG_HOVER = BUILDER
+        .comment("Result card background color when hovered (RGB hex).")
+        .defineInRange("cardBgHover", 0x4DFFB7C5, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
-    public static final ModConfigSpec.IntValue PALETTE_CARD_BG_HOVER = BUILDER
-            .comment("Result card background color when hovered (RGB hex).")
-            .defineInRange("cardBgHover", 0xFF3A3A3A, Integer.MIN_VALUE, Integer.MAX_VALUE);
+public static final ModConfigSpec.IntValue PALETTE_CARD_TEXT_NAME = BUILDER
+        .comment("Result card item name text color (RGB hex).")
+        .defineInRange("cardTextName", 0xFFDDDDDD, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
-    public static final ModConfigSpec.IntValue PALETTE_CARD_TEXT_NAME = BUILDER
-            .comment("Result card item name text color (RGB hex).")
-            .defineInRange("cardTextName", 0xFFEEEEEE, Integer.MIN_VALUE, Integer.MAX_VALUE);
+public static final ModConfigSpec.IntValue PALETTE_CARD_TEXT_SUBTITLE = BUILDER
+        .comment("Result card subtitle text color (RGB hex).")
+        .defineInRange("cardTextSubtitle", 0xFF888888, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
-    public static final ModConfigSpec.IntValue PALETTE_CARD_TEXT_SUBTITLE = BUILDER
-            .comment("Result card subtitle text color (RGB hex).")
-            .defineInRange("cardTextSubtitle", 0xFF888888, Integer.MIN_VALUE, Integer.MAX_VALUE);
+// Layout (CSS-like)
+static {
+    BUILDER.push("layout");
+}
 
+public static final ModConfigSpec.IntValue GLOBAL_PADDING = BUILDER
+        .comment("Global internal padding for the results panel (px).")
+        .defineInRange("padding", 6, 0, 20);
+
+public static final ModConfigSpec.IntValue ROW_HEIGHT = BUILDER
+        .comment("Height of each item row in the list view (px).")
+        .defineInRange("rowHeight", 24, 16, 48);
+
+public static final ModConfigSpec.IntValue ICON_SIZE = BUILDER
+        .comment("Size of the item icon (px).")
+        .defineInRange("iconSize", 16, 8, 32);
+
+public static final ModConfigSpec.IntValue ELEMENT_GAP = BUILDER
+        .comment("Vertical gap between UI elements (px).")
+        .defineInRange("elementGap", 4, 0, 10);
+
+static {
+    BUILDER.pop();
+}
+
+// Search behavior
     public static final ModConfigSpec.IntValue PALETTE_CARD_ACTION_HINT = BUILDER
             .comment("Result card action hint color (RGB hex).")
             .defineInRange("cardActionHint", 0xFF555555, Integer.MIN_VALUE, Integer.MAX_VALUE);

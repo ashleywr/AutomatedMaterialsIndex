@@ -1,10 +1,9 @@
 package com.sanhiruzu.ami.client;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
-
 import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.AMIConfig;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.ResourceLocation;
 
 public final class AMICheatMode {
     private AMICheatMode() {}

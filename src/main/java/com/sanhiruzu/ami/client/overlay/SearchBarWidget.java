@@ -1,13 +1,12 @@
 package com.sanhiruzu.ami.client.overlay;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.sanhiruzu.ami.index.query.TokenColorizer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class SearchBarWidget implements AmiWidget {
     private String query = "";

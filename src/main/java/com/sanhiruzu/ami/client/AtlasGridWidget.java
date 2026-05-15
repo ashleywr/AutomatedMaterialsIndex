@@ -1,12 +1,10 @@
 package com.sanhiruzu.ami.client;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.sanhiruzu.ami.index.GlobalIndex;
+import com.sanhiruzu.ami.index.NodeType;
+import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.index.providers.RegistryUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -17,11 +15,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
 
-import com.sanhiruzu.ami.index.GlobalIndex;
-import com.sanhiruzu.ami.index.NodeType;
-import com.sanhiruzu.ami.index.SearchNode;
-import com.sanhiruzu.ami.index.SearchNodeKeys;
-import com.sanhiruzu.ami.index.providers.RegistryUtils;
+import java.util.*;
 
 public class AtlasGridWidget {
     public enum Mode { ITEMS, ATLAS, SEARCH }

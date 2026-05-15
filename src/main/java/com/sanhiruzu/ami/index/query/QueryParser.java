@@ -1,8 +1,7 @@
 package com.sanhiruzu.ami.index.query;
 
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class QueryParser {
     private QueryParser() {}

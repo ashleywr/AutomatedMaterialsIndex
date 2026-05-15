@@ -58,6 +58,16 @@
   "ami.gui.view_mode.grid": "Grid view",
   "ami.gui.view_mode.list": "List view",
 
+  "ami.gui.pinned_discover": "Pinned & Discover",
+  "ami.gui.badge.storage": "[STR x%s]",
+  "ami.gui.badge.tier": "[%s Tier]",
+  "ami.gui.facet.storage": "STR",
+  "ami.gui.facet.weapons": "WPN",
+  "ami.gui.facet.food": "EAT",
+  "ami.gui.facet.tools": "TLS",
+  "ami.gui.facet.magic": "MAG",
+  "ami.gui.facet.hint": "FILTERS",
+
   "ami.configuration.item_click_action": "Item Click Action",
   "ami.configuration.item_click_action.recipes": "Show Recipes",
   "ami.configuration.item_click_action.uses": "Show Uses",

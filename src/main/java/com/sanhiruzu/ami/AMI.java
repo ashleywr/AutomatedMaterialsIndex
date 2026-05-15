@@ -1,16 +1,15 @@
 package com.sanhiruzu.ami;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
-import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Mod(AMI.MODID)
 public class AMI {
@@ -28,7 +27,7 @@ public class AMI {
 
     private void commonSetup(FMLCommonSetupEvent event) {
         LOGGER.info("================================");
-        LOGGER.info("Initializing Automated Materials Index");
+        LOGGER.info("Initializing Automated Materials Index...");
         LOGGER.info("AMI is a client-side recipe UI mod");
         LOGGER.info("================================");
     }

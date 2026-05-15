@@ -1,11 +1,8 @@
 package com.sanhiruzu.ami.client;
 
-import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.AMIConfig;
-import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
-import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.providers.RegistryUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;

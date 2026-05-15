@@ -1,12 +1,11 @@
 package com.sanhiruzu.ami.mixin;
 
+import com.sanhiruzu.ami.AMIConfig;
+import dev.emi.emi.screen.EmiScreenManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-
-import com.sanhiruzu.ami.AMIConfig;
-import dev.emi.emi.screen.EmiScreenManager;
 
 @Mixin(EmiScreenManager.class)
 public class EmiButtonMixin {

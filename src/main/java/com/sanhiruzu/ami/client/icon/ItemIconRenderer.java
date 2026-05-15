@@ -1,15 +1,16 @@
 package com.sanhiruzu.ami.client.icon;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.sanhiruzu.ami.client.ItemIconCache;
+import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import com.sanhiruzu.ami.client.ItemIconCache;
-import com.sanhiruzu.ami.index.SearchNode;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ItemIconRenderer implements IIconRenderer {
 

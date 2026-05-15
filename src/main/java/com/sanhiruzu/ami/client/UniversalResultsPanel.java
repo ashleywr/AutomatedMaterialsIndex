@@ -1,20 +1,19 @@
 package com.sanhiruzu.ami.client;
 
-import java.util.*;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
+import com.sanhiruzu.ami.client.results.*;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.index.GlobalIndex;
-import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.NodeType;
-import com.sanhiruzu.ami.client.results.FacetBar;
-import com.sanhiruzu.ami.client.results.ItemGridView;
-import com.sanhiruzu.ami.client.results.ResultsToolbar;
-import com.sanhiruzu.ami.client.results.ResultsTreeView;
-import com.sanhiruzu.ami.client.results.ResultsProcessor;
+import com.sanhiruzu.ami.index.SearchNode;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class UniversalResultsPanel {
 
@@ -50,16 +49,16 @@ public class UniversalResultsPanel {
     }
 
     private void initChildren() {
-        int innerX = x + 2;
-        int innerW = width - 4;
+        int innerX = x + AMITheme.GLOBAL_PADDING;
+        int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
 
-        this.facetBar = new FacetBar(innerX, y + 2, innerW);
+        this.facetBar = new FacetBar(innerX, y + AMITheme.GLOBAL_PADDING, innerW);
 
-        int toolbarY = y + 2 + FacetBar.HEIGHT + 2;
+        int toolbarY = y + AMITheme.GLOBAL_PADDING + FacetBar.HEIGHT + AMITheme.ELEMENT_GAP;
         this.toolbar = new ResultsToolbar(innerX, toolbarY, innerW);
 
-        int contentY = toolbarY + toolbar.getHeight() + 2;
-        int contentH = height - (contentY - y) - 2;
+        int contentY = toolbarY + toolbar.getHeight() + AMITheme.ELEMENT_GAP;
+        int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
 
         this.treeView = new ResultsTreeView(innerX, contentY, innerW, contentH);
         this.gridView = new ItemGridView(innerX, contentY, innerW, contentH);
@@ -85,24 +84,26 @@ public class UniversalResultsPanel {
         this.width = width;
         this.height = height;
 
-        int innerX = x + 2;
-        int innerW = width - 4;
+        int innerX = x + AMITheme.GLOBAL_PADDING;
+        int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
 
-        facetBar.updateLayout(innerX, y + 2, innerW);
+        facetBar.updateLayout(innerX, y + AMITheme.GLOBAL_PADDING, innerW);
 
-        int toolbarY = y + 2 + FacetBar.HEIGHT + 2;
+        int toolbarY = y + AMITheme.GLOBAL_PADDING + FacetBar.HEIGHT + AMITheme.ELEMENT_GAP;
         toolbar.updateLayout(innerX, toolbarY, innerW);
 
-        int contentY = toolbarY + toolbar.getHeight() + 2;
-        int contentH = height - (contentY - y) - 2;
+        int contentY = toolbarY + toolbar.getHeight() + AMITheme.ELEMENT_GAP;
+        int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
         treeView.updateLayout(innerX, contentY, innerW, contentH);
         gridView.updateLayout(innerX, contentY, innerW, contentH);
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        AMITheme.sync(); // CSS-like hot-reloading of config values
+
         // Panel background
-        g.fill(x, y, x + width, y + height, 0xFF0A0A0A);
-        g.fill(x + 1, y + 1, x + width - 1, y + height - 1, 0xFF1A1A1A);
+        g.fill(x, y, x + width, y + height, AMITheme.PANEL_BG);
+        g.fill(x + 1, y + 1, x + width - 1, y + height - 1, AMITheme.PANEL_INNER);
 
         facetBar.render(g, mouseX, mouseY);
 
@@ -114,7 +115,7 @@ public class UniversalResultsPanel {
             gridView.render(g, mouseX, mouseY);
         } else {
             treeView.render(g, mouseX, mouseY, toolbar.isAnyDropdownOpen(),
-                    currentQuery.isEmpty() ? "Pinned & Discover" : null);
+                    currentQuery.isEmpty() ? Component.translatable("ami.gui.pinned_discover") : null);
         }
 
         toolbar.renderOpenDropdownLists(g, mouseX, mouseY);

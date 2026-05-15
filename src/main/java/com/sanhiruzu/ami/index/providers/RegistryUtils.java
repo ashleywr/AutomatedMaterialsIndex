@@ -1,9 +1,10 @@
 package com.sanhiruzu.ami.index.providers;
 
 import com.sanhiruzu.ami.index.SearchNode;
-import net.minecraft.world.entity.MobCategory;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.MobCategory;
 import net.neoforged.fml.ModList;
+
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.stream.Collectors;

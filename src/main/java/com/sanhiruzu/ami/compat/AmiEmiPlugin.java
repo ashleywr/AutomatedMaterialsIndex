@@ -1,17 +1,14 @@
 package com.sanhiruzu.ami.compat;
 
-import dev.emi.emi.api.EmiEntrypoint;
-import dev.emi.emi.api.EmiPlugin;
-import dev.emi.emi.api.EmiRegistry;
-import dev.emi.emi.api.EmiExclusionArea;
-import dev.emi.emi.api.widget.Bounds;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-
 import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.AMIConfig;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.overlay.WidgetBounds;
+import dev.emi.emi.api.EmiEntrypoint;
+import dev.emi.emi.api.EmiPlugin;
+import dev.emi.emi.api.EmiRegistry;
+import dev.emi.emi.api.widget.Bounds;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 
 @EmiEntrypoint
 public class AmiEmiPlugin implements EmiPlugin {

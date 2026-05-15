@@ -1,16 +1,17 @@
 package com.sanhiruzu.ami.client.icon;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.sanhiruzu.ami.index.NodeType;
+import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import com.sanhiruzu.ami.index.NodeType;
-import com.sanhiruzu.ami.index.SearchNode;
-import com.sanhiruzu.ami.index.SearchNodeKeys;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Renders biomes and structures as a "hero block" item over a dimension-tinted

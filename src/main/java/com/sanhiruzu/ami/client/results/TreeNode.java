@@ -1,8 +1,9 @@
 package com.sanhiruzu.ami.client.results;
 
+import com.sanhiruzu.ami.index.SearchNode;
+
 import java.util.ArrayList;
 import java.util.List;
-import com.sanhiruzu.ami.index.SearchNode;
 
 public class TreeNode {
     private final String label;

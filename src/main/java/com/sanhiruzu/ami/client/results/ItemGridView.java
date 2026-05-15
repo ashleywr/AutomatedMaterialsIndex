@@ -1,18 +1,22 @@
 package com.sanhiruzu.ami.client.results;
 
-import java.util.*;
-import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
+import com.sanhiruzu.ami.client.ItemIconCache;
+import com.sanhiruzu.ami.client.icon.RendererRegistry;
+import com.sanhiruzu.ami.index.NodeType;
+import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import com.sanhiruzu.ami.client.ItemIconCache;
-import com.sanhiruzu.ami.client.icon.RendererRegistry;
-import com.sanhiruzu.ami.index.NodeType;
-import com.sanhiruzu.ami.index.SearchNode;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 /**
  * Renders ITEM-type SearchNodes as a 3D item icon grid (18×18 cells).

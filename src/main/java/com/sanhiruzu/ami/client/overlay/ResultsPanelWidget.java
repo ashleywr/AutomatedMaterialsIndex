@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client.overlay;
 
-import net.minecraft.client.gui.GuiGraphics;
 import com.sanhiruzu.ami.client.UniversalResultsPanel;
+import net.minecraft.client.gui.GuiGraphics;
 
 public class ResultsPanelWidget implements AmiWidget {
     private UniversalResultsPanel panel;

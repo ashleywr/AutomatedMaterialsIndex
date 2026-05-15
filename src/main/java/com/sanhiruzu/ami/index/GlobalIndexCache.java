@@ -7,16 +7,20 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.ModList;
-import org.jetbrains.annotations.Nullable;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
-import java.util.*;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.zip.*;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Serialization cache for GlobalIndex.
@@ -24,6 +28,8 @@ import java.util.zip.*;
  * STRUCTURE and DIMENSION are always live-loaded (world/datapack-specific).
  */
 public final class GlobalIndexCache {
+    private static final int CACHE_VERSION = 2; // Bump this when index data format changes
+
     private static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
             .create();

@@ -1,6 +1,9 @@
 package com.sanhiruzu.ami.index.resolvers;
 
-import com.sanhiruzu.ami.index.*;
+import com.sanhiruzu.ami.index.IQueryResolver;
+import com.sanhiruzu.ami.index.NodeType;
+import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.index.SearchNodeKeys;
 
 import java.util.*;
 

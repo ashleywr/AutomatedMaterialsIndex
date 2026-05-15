@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.index.query;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class TokenColorizer {
     private TokenColorizer() {}
