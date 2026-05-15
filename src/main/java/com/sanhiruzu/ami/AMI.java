@@ -23,6 +23,7 @@ public class AMI {
         modEventBus.addListener(this::commonSetup);
         NeoForge.EVENT_BUS.register(this);
         modContainer.registerConfig(ModConfig.Type.CLIENT, AMIConfig.SPEC);
+        modContainer.registerConfig(ModConfig.Type.CLIENT, AMILayoutConfig.SPEC, "ami-layout.toml");
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {

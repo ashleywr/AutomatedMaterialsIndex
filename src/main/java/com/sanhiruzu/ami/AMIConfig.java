@@ -39,36 +39,6 @@ public class AMIConfig {
     }
 
     // -------------------------------------------------------------------------
-    // Overlay panel
-    // -------------------------------------------------------------------------
-
-    /** Which side of the inventory the AMI panel appears on. */
-    public enum PanelSide {
-        /** Use the left side when EMI/JEI are present, right side otherwise. */
-        AUTO,
-        LEFT,
-        RIGHT
-    }
-
-    static {
-        BUILDER.push("overlay");
-    }
-
-    public static final ModConfigSpec.EnumValue<PanelSide> PANEL_SIDE = BUILDER
-            .comment("Which side of the inventory to render the AMI panel on.",
-                     "AUTO = left when EMI/JEI present, right otherwise.")
-            .defineEnum("side", PanelSide.RIGHT);
-
-    public static final ModConfigSpec.IntValue PANEL_WIDTH_OVERRIDE = BUILDER
-            .comment("Override the AMI panel width in GUI pixels.",
-                     "0 = auto-calculate from available space.")
-            .defineInRange("widthOverride", 0, 0, 400);
-
-    static {
-        BUILDER.pop();
-    }
-
-    // -------------------------------------------------------------------------
     // Command Palette Colors (all configurable for in-mod menu customization)
     // -------------------------------------------------------------------------
 

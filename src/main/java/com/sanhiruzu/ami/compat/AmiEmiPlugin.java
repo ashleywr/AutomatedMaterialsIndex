@@ -11,6 +11,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.AMIConfig;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+import com.sanhiruzu.ami.client.overlay.WidgetBounds;
 
 @EmiEntrypoint
 public class AmiEmiPlugin implements EmiPlugin {
@@ -22,19 +23,15 @@ public class AmiEmiPlugin implements EmiPlugin {
         if (AMIConfig.SUPPRESS_RECIPE_VIEWERS.get()) {
             // Register exclusion areas where AMI renders
             registry.addGenericExclusionArea((screen, consumer) -> {
-                if (!(screen instanceof AbstractContainerScreen<?> containerScreen)) {
+                if (!(screen instanceof AbstractContainerScreen<?>)) {
                     return;
                 }
 
-                var resultsPanel = InventoryOverlayHandler.getResultsPanel();
+                WidgetBounds bounds = InventoryOverlayHandler.getManager().getResultsBounds();
 
                 // Use actual panel bounds if available, otherwise use fallback right-side coverage
-                if (resultsPanel != null && resultsPanel.getWidth() > 0) {
-                    int panelX = resultsPanel.getX();
-                    int panelY = resultsPanel.getY();
-                    int panelWidth = resultsPanel.getWidth();
-                    int panelHeight = resultsPanel.getHeight();
-                    consumer.accept(new Bounds(panelX, panelY, panelWidth, panelHeight));
+                if (bounds != null && bounds.width() > 0) {
+                    consumer.accept(new Bounds(bounds.x(), bounds.y(), bounds.width(), bounds.height()));
                 } else {
                     // Fallback: exclude entire right half of screen if panel isn't ready
                     int screenMid = screen.width / 2;

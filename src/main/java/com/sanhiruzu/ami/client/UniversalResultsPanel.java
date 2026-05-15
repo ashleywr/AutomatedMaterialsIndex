@@ -16,10 +16,6 @@ public class UniversalResultsPanel {
     private ResultsToolbar toolbar;
     private ResultsTreeView treeView;
 
-    // Search state owned here, rendered externally by InventoryOverlayHandler
-    private String searchQuery = "";
-    private boolean searchFocused = false;
-
     private List<SearchNode> currentResults = new ArrayList<>();
 
     public UniversalResultsPanel(int x, int y, int width, int height) {
@@ -36,13 +32,10 @@ public class UniversalResultsPanel {
 
     public void setEntries(List<SearchNode> entries) {
         this.currentResults = entries;
-        this.searchQuery = "";
-        this.searchFocused = false;
         refreshTree();
     }
 
     public void setSearchResults(Map<NodeType, List<SearchNode>> results, String query) {
-        this.searchQuery = query;
         List<SearchNode> flat = new ArrayList<>();
         for (List<SearchNode> list : results.values()) {
             flat.addAll(list);
@@ -140,30 +133,10 @@ public class UniversalResultsPanel {
         treeView.stopScrollbarDrag();
     }
 
-    public void typeCharacter(char c) {
-        if (c >= 32 && c < 127) {
-            searchQuery += c;
-        }
-    }
-
-    public void deleteSearchChar() {
-        if (!searchQuery.isEmpty()) {
-            searchQuery = searchQuery.substring(0, searchQuery.length() - 1);
-        }
-    }
-
-    public void clearSearch() {
-        searchQuery = "";
-        searchFocused = false;
-    }
-
     // =========================================================================
     // Accessors
     // =========================================================================
 
-    public boolean isSearchFocused() { return searchFocused; }
-    public void setSearchFocused(boolean focused) { this.searchFocused = focused; }
-    public String getSearchQuery() { return searchQuery; }
     public void setIndexingInProgress(boolean inProgress) { /* reserved */ }
     public int getEntryCount() { return currentResults.size(); }
 
@@ -175,4 +148,5 @@ public class UniversalResultsPanel {
     public int getY() { return y; }
     public int getWidth() { return width; }
     public int getHeight() { return height; }
+    public ResultsToolbar getToolbar() { return toolbar; }
 }
