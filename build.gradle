@@ -146,6 +146,7 @@ dependencies {
     testImplementation "org.junit.jupiter:junit-jupiter:5.9.3"
     testImplementation "it.unimi.dsi:fastutil:8.5.9"
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.9.3"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.9.3"
 
     // Example mod dependency using a mod jar from ./libs with a flat dir repository
     // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
