@@ -51,6 +51,15 @@ public class AtlasGridWidget {
     // Indexing state
     private boolean indexingInProgress = false;
 
+    // -------------------------------------------------------------------------
+    // Layout helpers
+    // -------------------------------------------------------------------------
+
+    /** Height available for scrollable content — below header, above search bar. */
+    private int contentAreaHeight() {
+        return height - HEADER_HEIGHT - 4 - SEARCH_BAR_HEIGHT - 4;
+    }
+
     /** One group per namespace in the atlas list, or per NodeType in search results. */
     static final class AtlasGroup {
         final String namespace;
@@ -190,8 +199,7 @@ public class AtlasGridWidget {
     }
 
     public boolean isSearchBarHovered(double mouseX, double mouseY) {
-        if (mode == Mode.ITEMS) return false;
-        int searchBarY = y + HEADER_HEIGHT + 3;
+        int searchBarY = y + height - SEARCH_BAR_HEIGHT - 3;
         int searchBarH = SEARCH_BAR_HEIGHT + 1;
         return mouseX >= x + 1 && mouseX < x + width - 1
                 && mouseY >= searchBarY && mouseY < searchBarY + searchBarH;
@@ -259,10 +267,8 @@ public class AtlasGridWidget {
         centerX = Math.max(leftArrowX + ARROW_W + 2, Math.min(centerX, rightArrowX - textWidth - 2));
         g.drawString(font, centerText, centerX, y + 2, cheat ? AMITheme.CHEAT_INDICATOR : AMITheme.HEADER_TEXT, false);
 
-        // Render search bar (in ATLAS and SEARCH modes)
-        if (mode != Mode.ITEMS) {
-            renderSearchBar(g, mouseX, mouseY);
-        }
+        // Search bar always at bottom (persistent, like JEI/EMI)
+        renderSearchBar(g, mouseX, mouseY);
 
         if (mode == Mode.ITEMS) {
             renderItemGrid(g, mouseX, mouseY);
@@ -281,7 +287,7 @@ public class AtlasGridWidget {
 
     private void renderSearchBar(GuiGraphics g, int mouseX, int mouseY) {
         var font = Minecraft.getInstance().font;
-        int searchBarY = y + HEADER_HEIGHT + 3;
+        int searchBarY = y + height - SEARCH_BAR_HEIGHT - 3;
         int searchBarX = x + 2;
         int searchBarW = width - 4;
 
@@ -326,7 +332,7 @@ public class AtlasGridWidget {
 
     private void renderItemGrid(GuiGraphics g, int mouseX, int mouseY) {
         int contentY = y + HEADER_HEIGHT + 4;
-        int contentH = height - HEADER_HEIGHT - 4;
+        int contentH = contentAreaHeight();
         int perRow   = Math.max(1, (width - 12) / (ITEM_SIZE + PADDING));
         int visRows  = contentH / (ITEM_SIZE + PADDING);
 
@@ -351,8 +357,8 @@ public class AtlasGridWidget {
 
     private void renderAtlasList(GuiGraphics g, int mouseX, int mouseY) {
         var font = Minecraft.getInstance().font;
-        int contentY = y + HEADER_HEIGHT + 4 + (mode != Mode.ITEMS ? SEARCH_BAR_HEIGHT + 2 : 0);
-        int contentH = height - HEADER_HEIGHT - 4 - (mode != Mode.ITEMS ? SEARCH_BAR_HEIGHT + 2 : 0);
+        int contentY = y + HEADER_HEIGHT + 4;
+        int contentH = contentAreaHeight();
         int visRows  = Math.max(1, contentH / ROW_HEIGHT);
 
         int textStartX = x + SWATCH_GAP + SWATCH_SIZE + SWATCH_GAP;
@@ -656,7 +662,7 @@ public class AtlasGridWidget {
 
     private void renderScrollBar(GuiGraphics g, int mouseX, int mouseY) {
         int total    = totalRows();
-        int contentH = height - HEADER_HEIGHT - 4;
+        int contentH = contentAreaHeight();
         int visible  = visibleRowCount(contentH);
         if (total <= visible) return;
 
@@ -673,7 +679,7 @@ public class AtlasGridWidget {
     }
 
     public boolean isScrollbarHovered(int mouseX, int mouseY) {
-        int contentH = height - HEADER_HEIGHT - 4;
+        int contentH = contentAreaHeight();
         if (totalRows() <= visibleRowCount(contentH)) return false;
         int barAreaY = y + HEADER_HEIGHT + 4;
         // 6px hover zone covers both normal (3px) and expanded (5px) widths
@@ -709,7 +715,7 @@ public class AtlasGridWidget {
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (!scrollbarDragging || button != 0) return false;
 
-        int contentH = height - HEADER_HEIGHT - 4;
+        int contentH = contentAreaHeight();
         int total    = totalRows();
         int visible  = visibleRowCount(contentH);
         if (total <= visible) return true;
@@ -731,8 +737,8 @@ public class AtlasGridWidget {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0) return false;
 
-        // Check for search bar click (ATLAS and SEARCH modes)
-        if (mode != Mode.ITEMS && isSearchBarHovered(mouseX, mouseY)) {
+        // Search bar always clickable (at bottom, regardless of mode)
+        if (isSearchBarHovered(mouseX, mouseY)) {
             setSearchFocused(true);
             return true;
         }
@@ -770,8 +776,8 @@ public class AtlasGridWidget {
     private boolean handleAtlasClick(double mouseX, double mouseY) {
         int mx = (int) mouseX;
         int my = (int) mouseY;
-        int contentY = y + HEADER_HEIGHT + 4 + (mode != Mode.ITEMS ? SEARCH_BAR_HEIGHT + 2 : 0);
-        int contentH = height - HEADER_HEIGHT - 4 - (mode != Mode.ITEMS ? SEARCH_BAR_HEIGHT + 2 : 0);
+        int contentY = y + HEADER_HEIGHT + 4;
+        int contentH = contentAreaHeight();
         int visRows  = Math.max(1, contentH / ROW_HEIGHT);
 
         // Mirror the render loop exactly — use the same isRowHovered test so
@@ -813,7 +819,7 @@ public class AtlasGridWidget {
     }
 
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollDelta) {
-        int contentH = height - HEADER_HEIGHT - 4;
+        int contentH = contentAreaHeight();
         int maxScroll = Math.max(0, totalRows() - visibleRowCount(contentH));
         scrollOffset = Math.max(0, Math.min(maxScroll, (int) (scrollOffset - scrollDelta)));
         return true;
@@ -857,6 +863,8 @@ public class AtlasGridWidget {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
     }
 
+    public int getX()          { return x; }
+    public int getY()          { return y; }
     public int getWidth()      { return width; }
     public int getHeight()     { return height; }
     public int getEntryCount() { return entryCount(); }

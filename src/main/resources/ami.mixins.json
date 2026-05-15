@@ -1,0 +1,9 @@
+{
+  "spec": "0.2",
+  "package": "com.sanhiruzu.ami.mixin",
+  "compatLevel": "JAVA_21",
+  "minVersion": "0.8.4",
+  "mixins": [
+    "EmiScreenManagerMixin"
+  ]
+}

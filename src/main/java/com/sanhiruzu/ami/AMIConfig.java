@@ -57,7 +57,7 @@ public class AMIConfig {
     public static final ModConfigSpec.EnumValue<PanelSide> PANEL_SIDE = BUILDER
             .comment("Which side of the inventory to render the AMI panel on.",
                      "AUTO = left when EMI/JEI present, right otherwise.")
-            .defineEnum("side", PanelSide.AUTO);
+            .defineEnum("side", PanelSide.RIGHT);
 
     public static final ModConfigSpec.IntValue PANEL_WIDTH_OVERRIDE = BUILDER
             .comment("Override the AMI panel width in GUI pixels.",
@@ -80,67 +80,67 @@ public class AMIConfig {
     public static final ModConfigSpec.IntValue PALETTE_OVERLAY_BG = BUILDER
             .comment("Overlay background color (ARGB hex). Alpha in high byte.",
                      "0x99000000 = 60% transparent black.")
-            .defineInRange("overlayBg", 0x99000000, 0, 0xFFFFFFFF);
+            .defineInRange("overlayBg", 0x99000000, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     // Search bar
     public static final ModConfigSpec.IntValue PALETTE_SEARCH_BAR_BG = BUILDER
             .comment("Search bar background color (RGB hex).")
-            .defineInRange("searchBarBg", 0xFF1A1A1A, 0, 0xFFFFFFFF);
+            .defineInRange("searchBarBg", 0xFF1A1A1A, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.IntValue PALETTE_SEARCH_BAR_BORDER = BUILDER
             .comment("Search bar border color (RGB hex).")
-            .defineInRange("searchBarBorder", 0xFF4488FF, 0, 0xFFFFFFFF);
+            .defineInRange("searchBarBorder", 0xFF4488FF, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.IntValue PALETTE_SEARCH_TEXT = BUILDER
             .comment("Search bar text color (RGB hex).")
-            .defineInRange("searchText", 0xFFEEEEEE, 0, 0xFFFFFFFF);
+            .defineInRange("searchText", 0xFFEEEEEE, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.IntValue PALETTE_SEARCH_PLACEHOLDER = BUILDER
             .comment("Search bar placeholder text color (RGB hex).")
-            .defineInRange("searchPlaceholder", 0xFF888888, 0, 0xFFFFFFFF);
+            .defineInRange("searchPlaceholder", 0xFF888888, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     // Result cards
     public static final ModConfigSpec.IntValue PALETTE_CARD_BG = BUILDER
             .comment("Result card background color (RGB hex).")
-            .defineInRange("cardBg", 0xFF2A2A2A, 0, 0xFFFFFFFF);
+            .defineInRange("cardBg", 0xFF2A2A2A, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.IntValue PALETTE_CARD_BG_HOVER = BUILDER
             .comment("Result card background color when hovered (RGB hex).")
-            .defineInRange("cardBgHover", 0xFF3A3A3A, 0, 0xFFFFFFFF);
+            .defineInRange("cardBgHover", 0xFF3A3A3A, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.IntValue PALETTE_CARD_TEXT_NAME = BUILDER
             .comment("Result card item name text color (RGB hex).")
-            .defineInRange("cardTextName", 0xFFEEEEEE, 0, 0xFFFFFFFF);
+            .defineInRange("cardTextName", 0xFFEEEEEE, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.IntValue PALETTE_CARD_TEXT_SUBTITLE = BUILDER
             .comment("Result card subtitle text color (RGB hex).")
-            .defineInRange("cardTextSubtitle", 0xFF888888, 0, 0xFFFFFFFF);
+            .defineInRange("cardTextSubtitle", 0xFF888888, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.IntValue PALETTE_CARD_ACTION_HINT = BUILDER
             .comment("Result card action hint color (RGB hex).")
-            .defineInRange("cardActionHint", 0xFF555555, 0, 0xFFFFFFFF);
+            .defineInRange("cardActionHint", 0xFF555555, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     // Group headers
     public static final ModConfigSpec.IntValue PALETTE_GROUP_HEADER_BG = BUILDER
             .comment("Group header background color (RGB hex).")
-            .defineInRange("groupHeaderBg", 0xFF1A1A1A, 0, 0xFFFFFFFF);
+            .defineInRange("groupHeaderBg", 0xFF1A1A1A, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.IntValue PALETTE_GROUP_HEADER_TEXT = BUILDER
             .comment("Group header text color (RGB hex).")
-            .defineInRange("groupHeaderText", 0xFFAAAA00, 0, 0xFFFFFFFF);
+            .defineInRange("groupHeaderText", 0xFFAAAA00, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     // Scrollbar
     public static final ModConfigSpec.IntValue PALETTE_SCROLLBAR_BG = BUILDER
             .comment("Scrollbar background color (RGB hex).")
-            .defineInRange("scrollbarBg", 0xFF1A1A1A, 0, 0xFFFFFFFF);
+            .defineInRange("scrollbarBg", 0xFF1A1A1A, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.IntValue PALETTE_SCROLLBAR_THUMB = BUILDER
             .comment("Scrollbar thumb color (RGB hex).")
-            .defineInRange("scrollbarThumb", 0xFF555555, 0, 0xFFFFFFFF);
+            .defineInRange("scrollbarThumb", 0xFF555555, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.IntValue PALETTE_SCROLLBAR_THUMB_HOVER = BUILDER
             .comment("Scrollbar thumb color when hovered (RGB hex).")
-            .defineInRange("scrollbarThumbHover", 0xFF888888, 0, 0xFFFFFFFF);
+            .defineInRange("scrollbarThumbHover", 0xFF888888, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     // Search behavior
     public static final ModConfigSpec.BooleanValue SUPPRESS_RECIPE_VIEWERS = BUILDER
