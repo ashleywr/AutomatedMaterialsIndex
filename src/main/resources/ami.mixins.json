@@ -4,6 +4,7 @@
   "compatLevel": "JAVA_21",
   "minVersion": "0.8.4",
   "mixins": [
-    "EmiScreenManagerMixin"
+    "EmiScreenManagerMixin",
+    "EmiButtonMixin"
   ]
 }
