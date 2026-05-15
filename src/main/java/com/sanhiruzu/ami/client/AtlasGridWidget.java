@@ -17,38 +17,52 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
 
-import com.sanhiruzu.ami.index.WorldAtlasIndex;
-import com.sanhiruzu.ami.index.WorldAtlasIndexer;
+import com.sanhiruzu.ami.index.GlobalIndex;
+import com.sanhiruzu.ami.index.NodeType;
+import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.index.providers.RegistryUtils;
 
 public class AtlasGridWidget {
-    public enum Mode { ITEMS, ATLAS }
+    public enum Mode { ITEMS, ATLAS, SEARCH }
 
-    private static final int ITEM_SIZE     = 16;
-    private static final int PADDING       = 2;
-    private static final int HEADER_HEIGHT = 14;
-    private static final int ROW_HEIGHT    = 11;
-    private static final int SWATCH_SIZE   = 6;
-    private static final int SWATCH_GAP    = 3;
-    private static final int DIM_BADGE     = 4;
-    private static final int ARROW_W       = 9;
+    private static final int ITEM_SIZE       = 16;
+    private static final int PADDING         = 2;
+    private static final int HEADER_HEIGHT   = 14;
+    private static final int SEARCH_BAR_HEIGHT = 12;
+    private static final int ROW_HEIGHT      = 11;
+    private static final int SWATCH_SIZE     = 6;
+    private static final int SWATCH_GAP      = 3;
+    private static final int DIM_BADGE       = 4;
+    private static final int ARROW_W         = 9;
 
     private int x, y, width, height;
     private Mode mode = Mode.ITEMS;
     private Component modeLabel = Component.translatable("ami.gui.items");
-    private WorldAtlasIndex.AtlasType currentAtlasType = null;
+    private NodeType currentAtlasType = null;
 
     private final List<ItemStack> itemEntries = new ArrayList<>();
 
-    /** One group per namespace in the atlas list. */
+    // Search state
+    private String searchQuery = "";
+    private boolean searchFocused = false;
+    private final List<AtlasGroup> searchGroups = new ArrayList<>();
+
+    /** One group per namespace in the atlas list, or per NodeType in search results. */
     static final class AtlasGroup {
         final String namespace;
         final String displayName;
-        final List<WorldAtlasIndex.AtlasEntry> entries = new ArrayList<>();
+        final List<SearchNode> entries = new ArrayList<>();
         boolean expanded = true;
 
         AtlasGroup(String namespace) {
             this.namespace = namespace;
-            this.displayName = WorldAtlasIndexer.modDisplayName(namespace);
+            this.displayName = RegistryUtils.modDisplayName(namespace);
+        }
+
+        AtlasGroup(String namespace, String explicitDisplayName) {
+            this.namespace = namespace;
+            this.displayName = explicitDisplayName;
         }
     }
 
@@ -87,7 +101,7 @@ public class AtlasGridWidget {
         scrollOffset = 0;
     }
 
-    public void setAtlasEntries(List<WorldAtlasIndex.AtlasEntry> entries, Component label, WorldAtlasIndex.AtlasType type) {
+    public void setAtlasEntries(List<SearchNode> entries, Component label, NodeType type) {
         // Preserve which groups the user has already collapsed
         Set<String> collapsed = new HashSet<>();
         for (AtlasGroup g : atlasGroups) {
@@ -96,7 +110,7 @@ public class AtlasGridWidget {
 
         atlasGroups.clear();
         Map<String, AtlasGroup> byNamespace = new LinkedHashMap<>();
-        for (WorldAtlasIndex.AtlasEntry entry : entries) {
+        for (SearchNode entry : entries) {
             byNamespace.computeIfAbsent(entry.id().getNamespace(), AtlasGroup::new).entries.add(entry);
         }
         atlasGroups.addAll(byNamespace.values());
@@ -113,6 +127,67 @@ public class AtlasGridWidget {
 
     public void setItemModeLabel(Component label) {
         modeLabel = label;
+    }
+
+    // =========================================================================
+    // Search-related methods
+    // =========================================================================
+
+    public void setSearchResults(Map<NodeType, List<SearchNode>> results, String query) {
+        searchGroups.clear();
+
+        for (NodeType type : NodeType.values()) {
+            List<SearchNode> typeResults = results.getOrDefault(type, new ArrayList<>());
+            if (typeResults.isEmpty()) continue;
+
+            String groupName = type.displayName().getString();
+            AtlasGroup group = new AtlasGroup(type.name(), groupName);
+            group.entries.addAll(typeResults);
+            searchGroups.add(group);
+        }
+
+        mode = Mode.SEARCH;
+        modeLabel = Component.literal("Search Results");
+        currentAtlasType = null;
+        scrollOffset = 0;
+        searchQuery = query;
+    }
+
+    public void clearSearch() {
+        searchQuery = "";
+        searchFocused = false;
+    }
+
+    public void typeCharacter(char c) {
+        if (c >= 32 && c < 127) {
+            searchQuery += c;
+        }
+    }
+
+    public void deleteSearchChar() {
+        if (!searchQuery.isEmpty()) {
+            searchQuery = searchQuery.substring(0, searchQuery.length() - 1);
+        }
+    }
+
+    public boolean isSearchFocused() {
+        return searchFocused;
+    }
+
+    public void setSearchFocused(boolean focused) {
+        this.searchFocused = focused;
+    }
+
+    public String getSearchQuery() {
+        return searchQuery;
+    }
+
+    public boolean isSearchBarHovered(double mouseX, double mouseY) {
+        if (mode == Mode.ITEMS) return false;
+        int searchBarY = y + HEADER_HEIGHT + 3;
+        int searchBarH = SEARCH_BAR_HEIGHT + 1;
+        return mouseX >= x + 1 && mouseX < x + width - 1
+                && mouseY >= searchBarY && mouseY < searchBarY + searchBarH;
     }
 
     public void updateLayout(int x, int y, int width, int height) {
@@ -156,10 +231,14 @@ public class AtlasGridWidget {
         MutableComponent centerText = modeLabel.copy()
                 .append(Component.literal(" (" + entryCount() + ")"));
 
-        if (currentAtlasType != null) {
-            WorldAtlasIndex.AtlasType[] types = WorldAtlasIndex.AtlasType.values();
-            int position = currentAtlasType.ordinal() + 1;
-            centerText.append(Component.literal(" [" + position + "/" + types.length + "]")
+        if (currentAtlasType != null && mode != Mode.SEARCH) {
+            NodeType[] atlas = NodeType.atlasValues();
+            int idx = 0;
+            for (int i = 0; i < atlas.length; i++) {
+                if (atlas[i] == currentAtlasType) { idx = i; break; }
+            }
+            int position = idx + 1;
+            centerText.append(Component.literal(" [" + position + "/" + atlas.length + "]")
                     .withStyle(s -> s.withColor(0xAAAAAA)));
         }
 
@@ -173,6 +252,11 @@ public class AtlasGridWidget {
         centerX = Math.max(leftArrowX + ARROW_W + 2, Math.min(centerX, rightArrowX - textWidth - 2));
         g.drawString(font, centerText, centerX, y + 2, cheat ? AMITheme.CHEAT_INDICATOR : AMITheme.HEADER_TEXT, false);
 
+        // Render search bar (in ATLAS and SEARCH modes)
+        if (mode != Mode.ITEMS) {
+            renderSearchBar(g, mouseX, mouseY);
+        }
+
         if (mode == Mode.ITEMS) {
             renderItemGrid(g, mouseX, mouseY);
         } else {
@@ -185,6 +269,51 @@ public class AtlasGridWidget {
             g.renderTooltip(Minecraft.getInstance().font, pendingItemTooltip, mouseX, mouseY);
         } else if (pendingTooltipLines != null) {
             g.renderComponentTooltip(Minecraft.getInstance().font, pendingTooltipLines, mouseX, mouseY);
+        }
+    }
+
+    private void renderSearchBar(GuiGraphics g, int mouseX, int mouseY) {
+        var font = Minecraft.getInstance().font;
+        int searchBarY = y + HEADER_HEIGHT + 3;
+        int searchBarX = x + 2;
+        int searchBarW = width - 4;
+
+        // Background
+        g.fill(searchBarX, searchBarY, searchBarX + searchBarW, searchBarY + SEARCH_BAR_HEIGHT,
+                searchFocused ? 0xFF3A3A3A : 0xFF2A2A2A);
+        g.fill(searchBarX + 1, searchBarY + 1, searchBarX + searchBarW - 1, searchBarY + SEARCH_BAR_HEIGHT - 1,
+                0xFF1A1A1A);
+
+        // Border
+        int borderColor = searchFocused ? 0xFFAAAA44 : 0xFF555555;
+        g.fill(searchBarX, searchBarY, searchBarX + searchBarW, searchBarY + 1, borderColor);
+        g.fill(searchBarX, searchBarY + SEARCH_BAR_HEIGHT - 1, searchBarX + searchBarW, searchBarY + SEARCH_BAR_HEIGHT, borderColor);
+        g.fill(searchBarX, searchBarY, searchBarX + 1, searchBarY + SEARCH_BAR_HEIGHT, borderColor);
+        g.fill(searchBarX + searchBarW - 1, searchBarY, searchBarX + searchBarW, searchBarY + SEARCH_BAR_HEIGHT, borderColor);
+
+        // Text rendering area
+        int textX = searchBarX + 3;
+        int textMaxW = searchBarW - 6;
+        String displayText = searchQuery;
+        if (searchQuery.isEmpty() && !searchFocused) {
+            displayText = "Filter...";
+            g.drawString(font, displayText, textX, searchBarY + 2, 0xFF666666, false);
+        } else if (!searchQuery.isEmpty()) {
+            g.drawString(font, displayText, textX, searchBarY + 2, 0xFFCCCCCC, false);
+        }
+
+        // Cursor blink
+        if (searchFocused && (System.currentTimeMillis() % 1000) < 500) {
+            int cursorX = textX + font.width(displayText) + 1;
+            g.fill(cursorX, searchBarY + 2, cursorX + 1, searchBarY + SEARCH_BAR_HEIGHT - 2, 0xFFCCCCCC);
+        }
+
+        // Clear button (x)
+        if (!searchQuery.isEmpty()) {
+            int clearX = searchBarX + searchBarW - 9;
+            boolean clearHovered = mouseX >= clearX && mouseX < searchBarX + searchBarW - 1
+                    && mouseY >= searchBarY && mouseY < searchBarY + SEARCH_BAR_HEIGHT;
+            g.drawString(font, "x", clearX + 1, searchBarY + 2, clearHovered ? 0xFFFF6666 : 0xFFCC6666, false);
         }
     }
 
@@ -215,15 +344,18 @@ public class AtlasGridWidget {
 
     private void renderAtlasList(GuiGraphics g, int mouseX, int mouseY) {
         var font = Minecraft.getInstance().font;
-        int contentY = y + HEADER_HEIGHT + 4;
-        int contentH = height - HEADER_HEIGHT - 4;
-        int visRows  = contentH / ROW_HEIGHT;
+        int contentY = y + HEADER_HEIGHT + 4 + (mode != Mode.ITEMS ? SEARCH_BAR_HEIGHT + 2 : 0);
+        int contentH = height - HEADER_HEIGHT - 4 - (mode != Mode.ITEMS ? SEARCH_BAR_HEIGHT + 2 : 0);
+        int visRows  = Math.max(1, contentH / ROW_HEIGHT);
 
         int textStartX = x + SWATCH_GAP + SWATCH_SIZE + SWATCH_GAP;
         int maxTextW   = width - (textStartX - x) - DIM_BADGE - 6;
 
-        if (atlasGroups.isEmpty()) {
-            var index = com.sanhiruzu.ami.index.WorldAtlasIndex.getInstance();
+        // Use searchGroups if in SEARCH mode, else use atlasGroups
+        List<AtlasGroup> groups = (mode == Mode.SEARCH) ? searchGroups : atlasGroups;
+
+        if (groups.isEmpty()) {
+            var index = GlobalIndex.getInstance();
             var message = currentAtlasType != null && index.isLoading(currentAtlasType)
                     ? Component.literal("Loading...")
                     : Component.translatable("ami.gui.empty_list");
@@ -242,7 +374,7 @@ public class AtlasGridWidget {
         var currentStructureIds = currentStructureIds();
 
         int row = 0;
-        for (AtlasGroup group : atlasGroups) {
+        for (AtlasGroup group : groups) {
             // --- group header ---
             if (row >= scrollOffset && row < scrollOffset + visRows) {
                 int drawY = contentY + (row - scrollOffset) * ROW_HEIGHT;
@@ -260,7 +392,7 @@ public class AtlasGridWidget {
             if (!group.expanded) continue;
 
             // --- group entries ---
-            for (WorldAtlasIndex.AtlasEntry entry : group.entries) {
+            for (SearchNode entry : group.entries) {
                 if (row >= scrollOffset && row < scrollOffset + visRows) {
                     int drawY = contentY + (row - scrollOffset) * ROW_HEIGHT;
                     boolean hovered = isRowHovered(mouseX, mouseY, drawY);
@@ -272,9 +404,9 @@ public class AtlasGridWidget {
                     };
 
                     if (isCurrent) {
-                        int accentBg = entry.type() == WorldAtlasIndex.AtlasType.BIOME
+                        int accentBg = entry.type() == NodeType.BIOME
                                 ? AMITheme.CURRENT_BIOME_BG : AMITheme.CURRENT_STRUCT_BG;
-                        int accentBar = entry.type() == WorldAtlasIndex.AtlasType.BIOME
+                        int accentBar = entry.type() == NodeType.BIOME
                                 ? AMITheme.CURRENT_BIOME_ACCENT : AMITheme.CURRENT_STRUCT_ACCENT;
                         g.fill(x + 2, drawY, x + width - 6, drawY + ROW_HEIGHT, accentBg);
                         g.fill(x + 2, drawY, x + 4, drawY + ROW_HEIGHT, accentBar);
@@ -286,26 +418,26 @@ public class AtlasGridWidget {
                         pendingTooltipLines = buildTooltip(entry, Screen.hasShiftDown());
                     }
 
-                    // Water-color swatch
+                    // Color swatch
                     int swatchY = drawY + (ROW_HEIGHT - SWATCH_SIZE) / 2;
                     g.fill(x + SWATCH_GAP, swatchY,
                             x + SWATCH_GAP + SWATCH_SIZE, swatchY + SWATCH_SIZE, entry.color());
 
                     // Dimension badge (top-right of the row, only for non-overworld)
-                    if (entry.dimension() != WorldAtlasIndex.Dimension.OVERWORLD) {
-                        int badgeColor = entry.dimension() == WorldAtlasIndex.Dimension.NETHER
-                                ? AMITheme.DIM_NETHER : AMITheme.DIM_END;
+                    String dim = entry.meta(SearchNodeKeys.DIMENSION, "overworld");
+                    if (!"overworld".equals(dim)) {
+                        int badgeColor = "nether".equals(dim) ? AMITheme.DIM_NETHER : AMITheme.DIM_END;
                         int badgeX = x + width - DIM_BADGE - 6;
                         int badgeY = drawY + (ROW_HEIGHT - DIM_BADGE) / 2;
                         g.fill(badgeX, badgeY, badgeX + DIM_BADGE, badgeY + DIM_BADGE, badgeColor);
                     }
 
                     // Name — truncate to fit between swatch and badge
-                    String name = entry.name();
+                    String name = entry.displayName();
                     while (font.width(name) > maxTextW && name.length() > 1) {
                         name = name.substring(0, name.length() - 1);
                     }
-                    if (font.width(entry.name()) > maxTextW) name += "…";
+                    if (font.width(entry.displayName()) > maxTextW) name += "…";
                     g.drawString(font, name, textStartX, drawY + 2, AMITheme.ENTRY_TEXT, false);
                 }
                 row++;
@@ -318,20 +450,22 @@ public class AtlasGridWidget {
                 && mouseY >= drawY && mouseY < drawY + ROW_HEIGHT;
     }
 
-    private List<Component> buildTooltip(WorldAtlasIndex.AtlasEntry entry, boolean shifted) {
+    private List<Component> buildTooltip(SearchNode entry, boolean shifted) {
         List<Component> lines = new ArrayList<>();
 
         // Header: name + dimension tag if not overworld
-        MutableComponent header = Component.literal(entry.name());
-        if (entry.dimension() != WorldAtlasIndex.Dimension.OVERWORLD) {
+        MutableComponent header = Component.literal(entry.displayName());
+        String dim = entry.meta(SearchNodeKeys.DIMENSION, "overworld");
+        if (!"overworld".equals(dim)) {
+            Component dimLabel = Component.translatable("ami.dimension." + dim);
             header.append(Component.literal(" [").withStyle(s -> s.withColor(0x888888)))
-                  .append(entry.dimension().displayName())
+                  .append(dimLabel)
                   .append(Component.literal("]").withStyle(s -> s.withColor(0x888888)));
         }
         lines.add(header);
 
         lines.add(Component.literal(entry.id().toString()).withStyle(s -> s.withColor(0x666666)));
-        lines.add(Component.literal(WorldAtlasIndexer.modDisplayName(entry.id().getNamespace()))
+        lines.add(Component.literal(RegistryUtils.modDisplayName(entry.id().getNamespace()))
                 .withStyle(s -> s.withColor(0x888888)));
 
         if (shifted) {
@@ -341,6 +475,7 @@ public class AtlasGridWidget {
                 case ENTITY    -> appendEntityDetails(lines, entry);
                 case STRUCTURE -> appendStructureDetails(lines, entry);
                 case DIMENSION -> {} // No extra details for dimensions yet
+                case ITEM      -> {} // unreachable in atlas mode
             }
         } else {
             lines.add(Component.translatable("ami.tooltip.shift_for_details")
@@ -352,6 +487,7 @@ public class AtlasGridWidget {
                 case BIOME, STRUCTURE -> Component.translatable("ami.tooltip.cheat_locate");
                 case ENTITY           -> Component.translatable("ami.tooltip.cheat_entity");
                 case DIMENSION        -> Component.literal("(dimension info)");
+                case ITEM             -> Component.empty(); // unreachable in atlas mode
             };
             lines.add(clickHint.copy().withStyle(s -> s.withColor(AMITheme.CHEAT_INDICATOR)));
         }
@@ -359,7 +495,7 @@ public class AtlasGridWidget {
         return lines;
     }
 
-    private void appendBiomeDetails(List<Component> lines, WorldAtlasIndex.AtlasEntry entry) {
+    private void appendBiomeDetails(List<Component> lines, SearchNode entry) {
         var mc = Minecraft.getInstance();
         if (mc.level == null) return;
 
@@ -409,7 +545,7 @@ public class AtlasGridWidget {
         );
     }
 
-    private void appendEntityDetails(List<Component> lines, WorldAtlasIndex.AtlasEntry entry) {
+    private void appendEntityDetails(List<Component> lines, SearchNode entry) {
         BuiltInRegistries.ENTITY_TYPE.getOptional(entry.id()).ifPresent(entityType -> {
             String category = switch (entityType.getCategory()) {
                 case MONSTER                        -> "Hostile";
@@ -434,7 +570,7 @@ public class AtlasGridWidget {
         });
     }
 
-    private void appendStructureDetails(List<Component> lines, WorldAtlasIndex.AtlasEntry entry) {
+    private void appendStructureDetails(List<Component> lines, SearchNode entry) {
         var mc = Minecraft.getInstance();
         if (mc.level == null) return;
 
@@ -583,11 +719,17 @@ public class AtlasGridWidget {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0) return false;
 
+        // Check for search bar click (ATLAS and SEARCH modes)
+        if (mode != Mode.ITEMS && isSearchBarHovered(mouseX, mouseY)) {
+            setSearchFocused(true);
+            return true;
+        }
+
         if (mode == Mode.ITEMS) {
             return AMICheatMode.isEnabled() && handleItemCheatClick(mouseX, mouseY);
         }
 
-        if (mode == Mode.ATLAS) {
+        if (mode == Mode.ATLAS || mode == Mode.SEARCH) {
             return handleAtlasClick(mouseX, mouseY);
         }
 
@@ -616,14 +758,15 @@ public class AtlasGridWidget {
     private boolean handleAtlasClick(double mouseX, double mouseY) {
         int mx = (int) mouseX;
         int my = (int) mouseY;
-        int contentY = y + HEADER_HEIGHT + 4;
-        int contentH = height - HEADER_HEIGHT - 4;
-        int visRows  = contentH / ROW_HEIGHT;
+        int contentY = y + HEADER_HEIGHT + 4 + (mode != Mode.ITEMS ? SEARCH_BAR_HEIGHT + 2 : 0);
+        int contentH = height - HEADER_HEIGHT - 4 - (mode != Mode.ITEMS ? SEARCH_BAR_HEIGHT + 2 : 0);
+        int visRows  = Math.max(1, contentH / ROW_HEIGHT);
 
         // Mirror the render loop exactly — use the same isRowHovered test so
         // click and hover share identical pixel bounds, with no math inversion.
+        List<AtlasGroup> groups = (mode == Mode.SEARCH) ? searchGroups : atlasGroups;
         int row = 0;
-        for (AtlasGroup group : atlasGroups) {
+        for (AtlasGroup group : groups) {
             if (row >= scrollOffset && row < scrollOffset + visRows) {
                 int drawY = contentY + (row - scrollOffset) * ROW_HEIGHT;
                 if (isRowHovered(mx, my, drawY)) {
@@ -636,7 +779,7 @@ public class AtlasGridWidget {
             row++;
 
             if (group.expanded) {
-                for (WorldAtlasIndex.AtlasEntry entry : group.entries) {
+                for (SearchNode entry : group.entries) {
                     if (row >= scrollOffset && row < scrollOffset + visRows) {
                         int drawY = contentY + (row - scrollOffset) * ROW_HEIGHT;
                         if (isRowHovered(mx, my, drawY) && AMICheatMode.isEnabled()) {
@@ -645,6 +788,7 @@ public class AtlasGridWidget {
                                 case STRUCTURE -> AMICheatMode.locateStructure(entry.id());
                                 case ENTITY    -> {} // future: summon
                                 case DIMENSION -> {} // future: dimension tp
+                                case ITEM      -> {} // unreachable in atlas mode
                             }
                             return true;
                         }
@@ -673,8 +817,9 @@ public class AtlasGridWidget {
             int perRow = Math.max(1, (width - 12) / (ITEM_SIZE + PADDING));
             return (itemEntries.size() + perRow - 1) / perRow;
         }
+        List<AtlasGroup> groups = (mode == Mode.SEARCH) ? searchGroups : atlasGroups;
         int rows = 0;
-        for (AtlasGroup g : atlasGroups) {
+        for (AtlasGroup g : groups) {
             rows++; // header
             if (g.expanded) rows += g.entries.size();
         }
@@ -686,13 +831,14 @@ public class AtlasGridWidget {
             int perRow = Math.max(1, (width - 12) / (ITEM_SIZE + PADDING));
             return perRow * (contentH / (ITEM_SIZE + PADDING));
         }
-        return contentH / ROW_HEIGHT;
+        return Math.max(1, contentH / ROW_HEIGHT);
     }
 
     /** Total flat entry count (for the header label). */
     private int entryCount() {
         if (mode == Mode.ITEMS) return itemEntries.size();
-        return atlasGroups.stream().mapToInt(g -> g.entries.size()).sum();
+        List<AtlasGroup> groups = (mode == Mode.SEARCH) ? searchGroups : atlasGroups;
+        return groups.stream().mapToInt(g -> g.entries.size()).sum();
     }
 
     public boolean isMouseOver(double mouseX, double mouseY) {
