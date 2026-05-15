@@ -26,12 +26,37 @@ public class InventoryOverlayHandler {
     private static WorldAtlasIndex.AtlasType atlasType =
             WorldAtlasIndex.AtlasType.BIOME;
 
+    private static boolean hasIndexed = false;
+    private static int retryCount = 0;
+    private static final int MAX_RETRIES = 5;
+
     @SubscribeEvent
     static void onScreenRenderPost(ScreenEvent.Render.Post event) {
         if (!AMIConfig.ENABLE_AUTO_INDEXING.get()) return;
         if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
 
         try {
+            // Lazy-load indexing on first inventory open
+            if (!hasIndexed) {
+                var level = Minecraft.getInstance().level;
+                if (level != null) {
+                    com.sanhiruzu.ami.index.Indexer.index();
+                    com.sanhiruzu.ami.index.WorldAtlasIndexer.index(level);
+                    com.sanhiruzu.ami.index.WorldAtlasIndexer.indexStructuresFromConnection();
+                    hasIndexed = true;
+                }
+            } else if (retryCount < MAX_RETRIES) {
+                // Retry if structures/dimensions are empty
+                var index = com.sanhiruzu.ami.index.WorldAtlasIndex.getInstance();
+                int structures = index.getEntries(WorldAtlasIndex.AtlasType.STRUCTURE).size();
+                int dimensions = index.getEntries(WorldAtlasIndex.AtlasType.DIMENSION).size();
+
+                if (structures == 0 || dimensions == 0) {
+                    com.sanhiruzu.ami.index.WorldAtlasIndexer.indexStructuresFromConnection();
+                    retryCount++;
+                }
+            }
+
             int panelY = containerScreen.getGuiTop();
             int panelHeight = containerScreen.getYSize();
 

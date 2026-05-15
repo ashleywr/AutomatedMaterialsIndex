@@ -27,8 +27,9 @@ public class WorldAtlasIndexer {
             LOGGER.info("Starting World Atlas indexing...");
             WorldAtlasIndex index = WorldAtlasIndex.getInstance();
             index.clear();
-            // Mark structures as loading since they're deferred
+            // Mark structures and dimensions as loading since they're deferred
             index.setLoading(WorldAtlasIndex.AtlasType.STRUCTURE, true);
+            index.setLoading(WorldAtlasIndex.AtlasType.DIMENSION, true);
 
             // Biomes — use holders() to access tags for dimension detection
             level.registryAccess().registry(Registries.BIOME).ifPresent(biomeRegistry ->
@@ -84,19 +85,20 @@ public class WorldAtlasIndexer {
                         categoryColor(category), WorldAtlasIndex.Dimension.OVERWORLD));
             });
 
-            // Dimensions
+            // Dimensions — not synced to client, will be loaded deferred
             var dimensionOpt = level.registryAccess().registry(Registries.DIMENSION);
-            if (dimensionOpt.isPresent()) {
+            if (dimensionOpt.isPresent() && dimensionOpt.get().size() > 0) {
                 int dimensionCount = dimensionOpt.get().size();
-                LOGGER.debug("Dimension registry found with {} entries", dimensionCount);
+                LOGGER.info("Dimension registry found with {} entries", dimensionCount);
                 dimensionOpt.get().entrySet().forEach(entry -> {
                     ResourceLocation id = entry.getKey().location();
                     index.addEntry(WorldAtlasIndex.AtlasType.DIMENSION, new WorldAtlasIndex.AtlasEntry(
                             id, formatPath(id.getPath()), WorldAtlasIndex.AtlasType.DIMENSION,
                             dimensionColor(id), WorldAtlasIndex.Dimension.OVERWORLD));
                 });
+                index.setLoading(WorldAtlasIndex.AtlasType.DIMENSION, false);
             } else {
-                LOGGER.debug("Dimension registry not found");
+                LOGGER.debug("Dimension registry not available at LoggingIn - will retry deferred");
             }
 
             for (WorldAtlasIndex.AtlasType type : WorldAtlasIndex.AtlasType.values()) {
@@ -210,6 +212,34 @@ public class WorldAtlasIndexer {
         } catch (Exception e) {
             LOGGER.debug("Could not access server structure registry: {}", e.getMessage());
             index.setLoading(WorldAtlasIndex.AtlasType.STRUCTURE, false);
+        }
+
+        // Also try to load dimensions from server
+        try {
+            var minecraft = Minecraft.getInstance();
+            var server = minecraft.getSingleplayerServer();
+            if (server != null) {
+                var serverLevel = server.overworld();
+                if (serverLevel != null) {
+                    var dimensionOpt = serverLevel.registryAccess().registry(Registries.DIMENSION);
+                    if (dimensionOpt.isPresent() && dimensionOpt.get().size() > 0) {
+                        LOGGER.info("Dimension registry found on server with {} entries", dimensionOpt.get().size());
+                        index.getEntries(WorldAtlasIndex.AtlasType.DIMENSION).clear();
+                        dimensionOpt.get().entrySet().forEach(entry -> {
+                            ResourceLocation id = entry.getKey().location();
+                            index.addEntry(WorldAtlasIndex.AtlasType.DIMENSION, new WorldAtlasIndex.AtlasEntry(
+                                    id, formatPath(id.getPath()), WorldAtlasIndex.AtlasType.DIMENSION,
+                                    dimensionColor(id), WorldAtlasIndex.Dimension.OVERWORLD));
+                        });
+                        index.getEntries(WorldAtlasIndex.AtlasType.DIMENSION).sort(ENTRY_ORDER);
+                        LOGGER.info("Dimensions loaded from server: {} entries", index.getEntries(WorldAtlasIndex.AtlasType.DIMENSION).size());
+                        index.setLoading(WorldAtlasIndex.AtlasType.DIMENSION, false);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.debug("Could not access server dimension registry: {}", e.getMessage());
+            index.setLoading(WorldAtlasIndex.AtlasType.DIMENSION, false);
         }
     }
 
