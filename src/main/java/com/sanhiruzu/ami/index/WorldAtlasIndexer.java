@@ -104,10 +104,11 @@ public class WorldAtlasIndexer {
             }
 
             index.setLastUpdateTime(System.currentTimeMillis());
-            LOGGER.info("World Atlas indexed: {} biomes, {} structures, {} entities",
+            LOGGER.info("World Atlas indexed: {} biomes, {} structures, {} entities, {} dimensions",
                     index.getEntries(WorldAtlasIndex.AtlasType.BIOME).size(),
                     index.getEntries(WorldAtlasIndex.AtlasType.STRUCTURE).size(),
-                    index.getEntries(WorldAtlasIndex.AtlasType.ENTITY).size());
+                    index.getEntries(WorldAtlasIndex.AtlasType.ENTITY).size(),
+                    index.getEntries(WorldAtlasIndex.AtlasType.DIMENSION).size());
         } catch (Exception e) {
             LOGGER.error("Failed to index World Atlas", e);
         }
