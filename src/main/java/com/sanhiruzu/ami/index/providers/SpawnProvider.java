@@ -39,8 +39,7 @@ public class SpawnProvider implements IAmiDataProvider {
                                     // Try to extract the entity type from SpawnerData via reflection
                                     try {
                                         EntityType<?> et = (EntityType<?>) sp.getClass().getMethod("type").invoke(sp);
-                                        var id = BuiltInRegistries.ENTITY_TYPE.getKey(et).location();
-                                        AMI.LOGGER.debug("Entity {} spawns in biome {}", id, biomeId);
+                                                                                AMI.LOGGER.debug("Entity type {} spawns in biome {}", et, biomeId);
                                     } catch (Exception inner) {
                                         // ignore
                                     }

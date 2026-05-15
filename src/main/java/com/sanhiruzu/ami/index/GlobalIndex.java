@@ -1,6 +1,8 @@
 package com.sanhiruzu.ami.index;
 
+import net.minecraft.resources.ResourceLocation;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 /**
@@ -15,6 +17,9 @@ public class GlobalIndex {
     private volatile boolean indexReady = false;
     private long indexBuildTimeMs;
 
+    // Fast lookup by ResourceLocation
+    private final ConcurrentMap<ResourceLocation, SearchNode> idIndex = new ConcurrentHashMap<>();
+
     private GlobalIndex() {
         for (NodeType t : NodeType.values()) {
             nodes.put(t, new ArrayList<>());
@@ -27,6 +32,11 @@ public class GlobalIndex {
 
     public void addNode(SearchNode node) {
         nodes.get(node.type()).add(node);
+        idIndex.put(node.id(), node);
+    }
+
+    public Optional<SearchNode> getNode(ResourceLocation id) {
+        return Optional.ofNullable(idIndex.get(id));
     }
 
     public List<SearchNode> getNodes(NodeType type) {
@@ -38,12 +48,16 @@ public class GlobalIndex {
      */
     public void replaceNodes(NodeType type, List<SearchNode> newNodes) {
         List<SearchNode> list = nodes.get(type);
+        // Remove old entries from id index
+        for (SearchNode n : list) idIndex.remove(n.id());
         list.clear();
         list.addAll(newNodes);
+        for (SearchNode n : newNodes) idIndex.put(n.id(), n);
     }
 
     public void clear() {
         nodes.values().forEach(List::clear);
+        idIndex.clear();
         loadingTypes.clear();
         indexReady = false;
         indexBuildTimeMs = 0;
