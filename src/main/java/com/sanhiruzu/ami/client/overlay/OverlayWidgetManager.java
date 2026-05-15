@@ -165,26 +165,22 @@ public class OverlayWidgetManager {
 
         // Priority: button, then searchBar (when focused), then panel
         if (amiButton.mouseClicked(mx, my, event.getButton())) {
-            AMI.LOGGER.debug("AMI button clicked at ({}, {}), canceling event", (int)mx, (int)my);
             event.setCanceled(true);
             return;
         }
 
         if (searchBar.mouseClicked(mx, my, event.getButton())) {
-            AMI.LOGGER.debug("Search bar clicked at ({}, {}), canceling event", (int)mx, (int)my);
             event.setCanceled(true);
             return;
         }
 
         // Check scrollbar priority
         if (resultsPanel.mouseClickedScrollbar(mx, my, event.getButton())) {
-            AMI.LOGGER.debug("Results panel scrollbar clicked at ({}, {}), canceling event", (int)mx, (int)my);
             event.setCanceled(true);
             return;
         }
 
         if (resultsPanel.mouseClicked(mx, my, event.getButton())) {
-            AMI.LOGGER.debug("Results panel clicked at ({}, {}), canceling event", (int)mx, (int)my);
             event.setCanceled(true);
             return;
         }
