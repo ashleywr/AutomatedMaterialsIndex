@@ -53,5 +53,13 @@
   "ami.tooltip.size": "Size",
   "ami.tooltip.fire_immune": "Fire Immune",
 
-  "ami.gui.open_full_screen": "Open AMI Full Screen"
+  "ami.gui.open_full_screen": "Open AMI Full Screen",
+
+  "ami.gui.view_mode.grid": "Grid view",
+  "ami.gui.view_mode.list": "List view",
+
+  "ami.configuration.item_click_action": "Item Click Action",
+  "ami.configuration.item_click_action.recipes": "Show Recipes",
+  "ami.configuration.item_click_action.uses": "Show Uses",
+  "ami.configuration.item_click_action.none": "None"
 }
