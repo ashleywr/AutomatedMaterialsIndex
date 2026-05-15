@@ -70,7 +70,7 @@ public class InventoryOverlayHandler {
             int widthOverride = AMIConfig.PANEL_WIDTH_OVERRIDE.get();
             if (goLeft) {
                 int available = containerScreen.getGuiLeft() - 12;
-                panelWidth = widthOverride > 0 ? widthOverride : Math.min(120, available);
+                panelWidth = widthOverride > 0 ? widthOverride : available;
                 panelX = containerScreen.getGuiLeft() - panelWidth - 6;
             } else {
                 panelX = containerScreen.getGuiLeft() + containerScreen.getXSize() + 6;
@@ -99,13 +99,13 @@ public class InventoryOverlayHandler {
     }
 
     @SubscribeEvent
-    static void onKeyInput(InputEvent.Key event) {
-        if (!(Minecraft.getInstance().screen instanceof AbstractContainerScreen<?>)) return;
+    static void onScreenKeyPressed(ScreenEvent.KeyPressed.Pre event) {
+        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
 
-        if (AMIKeyMappings.CYCLE_ATLAS.consumeClick()) {
-            // Cycle through atlas types only: Biome → Structure → Entity → Dimension → Biome
+        if (AMIKeyMappings.CYCLE_ATLAS.matches(event.getKeyCode(), event.getScanCode())) {
             atlasType = atlasType.next();
             refreshEntries();
+            event.setCanceled(true);
         }
     }
 
@@ -115,8 +115,12 @@ public class InventoryOverlayHandler {
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
         if (!gridWidget.isMouseOver(event.getMouseX(), event.getMouseY())) return;
 
-        // Tab indicator takes priority - click to cycle tabs
-        if (gridWidget.isTabIndicatorHovered((int) event.getMouseX(), (int) event.getMouseY())) {
+        // Navigation arrows take priority over other clicks
+        if (gridWidget.isLeftArrowHovered((int) event.getMouseX(), (int) event.getMouseY())) {
+            atlasType = atlasType.prev();
+            refreshEntries();
+            event.setCanceled(true);
+        } else if (gridWidget.isRightArrowHovered((int) event.getMouseX(), (int) event.getMouseY())) {
             atlasType = atlasType.next();
             refreshEntries();
             event.setCanceled(true);

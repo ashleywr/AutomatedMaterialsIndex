@@ -8,28 +8,32 @@ package com.sanhiruzu.ami.client;
 public final class AMITheme {
     private AMITheme() {}
 
-    // Panel chrome
-    public static int PANEL_BG       = 0xCC000000;
-    public static int PANEL_INNER    = 0xFF2A2A2A;
+    // Panel chrome — neutral MC-standard dark grey
+    public static int PANEL_BG       = 0xF0100010; // Near-black with slight depth (like MC tooltips)
+    public static int PANEL_INNER    = 0xFF1A1A1A; // Dark grey content area
 
     // Header bar (mode label row at the top of every panel)
-    public static int HEADER_BG      = 0xFF1A3A1A;
-    public static int HEADER_SEP     = 0xFF4A6A4A;
-    public static int HEADER_TEXT    = 0xFF88FF88;
+    public static int HEADER_BG      = 0xFF252525; // Slightly lighter than inner
+    public static int HEADER_SEP     = 0xFF3A3A3A; // Subtle 1px separator
+    public static int HEADER_TEXT    = 0xFFE0E0E0; // MC standard text color
+
+    // Navigation arrows in header
+    public static int ARROW_NORMAL   = 0xFF888888; // Grey when not hovered
+    public static int ARROW_HOVER    = 0xFFFFFFFF; // White on hover
 
     // Namespace group headers in atlas lists
-    public static int GROUP_BG       = 0xFF1E3A1E;
-    public static int GROUP_BG_HOVER = 0xFF2A4A2A;
-    public static int GROUP_TEXT     = 0xFF99DD99;
+    public static int GROUP_BG       = 0xFF2A2A2A;
+    public static int GROUP_BG_HOVER = 0xFF363636;
+    public static int GROUP_TEXT     = 0xFFBBBBBB;
 
     // Atlas entry rows
-    public static int ENTRY_HOVER    = 0xFF3A5A3A;
-    public static int ENTRY_TEXT     = 0xFFCCCCCC;
+    public static int ENTRY_HOVER    = 0xFF3A3A3A; // Subtle highlight
+    public static int ENTRY_TEXT     = 0xFFCCCCCC; // Standard MC text grey
 
     // Scrollbar
-    public static int SCROLL_TRACK        = 0xFF333333;
-    public static int SCROLL_THUMB        = 0xFF88AA88;
-    public static int SCROLL_THUMB_ACTIVE = 0xFFAADD88; // hovered or dragging
+    public static int SCROLL_TRACK        = 0xFF1A1A1A;
+    public static int SCROLL_THUMB        = 0xFF555555;
+    public static int SCROLL_THUMB_ACTIVE = 0xFF777777; // hovered or dragging
 
     // Dimension badges
     public static int DIM_NETHER     = 0xFFCC4444;
