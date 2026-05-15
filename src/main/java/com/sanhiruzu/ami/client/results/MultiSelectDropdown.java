@@ -1,10 +1,11 @@
 package com.sanhiruzu.ami.client.results;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 
 public class MultiSelectDropdown<T> implements Dropdown {
     private final List<T> options;

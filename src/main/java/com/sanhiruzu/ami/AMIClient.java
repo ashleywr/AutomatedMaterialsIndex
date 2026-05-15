@@ -1,5 +1,8 @@
 package com.sanhiruzu.ami;
 
+import com.sanhiruzu.ami.client.ItemIconCache;
+import com.sanhiruzu.ami.client.icon.RendererRegistry;
+import com.sanhiruzu.ami.client.results.ItemGridView;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -8,16 +11,9 @@ import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
-import net.neoforged.neoforge.client.event.InputEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
-
-import com.sanhiruzu.ami.client.AMIKeyMappings;
-import com.sanhiruzu.ami.client.AMIScreen;
-import com.sanhiruzu.ami.client.ItemIconCache;
-import com.sanhiruzu.ami.client.icon.RendererRegistry;
-import com.sanhiruzu.ami.client.results.ItemGridView;
-import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 
 @Mod(value = AMI.MODID, dist = Dist.CLIENT)
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)

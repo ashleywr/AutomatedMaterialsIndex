@@ -1,14 +1,15 @@
 package com.sanhiruzu.ami.client.icon;
 
-import java.util.List;
-import java.util.UUID;
+import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import com.sanhiruzu.ami.index.SearchNode;
-import com.sanhiruzu.ami.index.SearchNodeKeys;
+
+import java.util.List;
+import java.util.UUID;
 
 /**
  * Renders the 8×8-pixel face from a player's skin texture into the icon cell.

@@ -29,15 +29,17 @@ public class AmiButtonWidget implements AmiWidget {
 
         int x = bounds.x();
         int y = bounds.y();
+        int w = bounds.width();
+        int h = bounds.height();
 
-        g.fill(x, y, x + WIDTH, y + HEIGHT, 0xFF0A0A0A);
-        g.fill(x, y, x + WIDTH, y + 1, btnBorder);
-        g.fill(x, y + HEIGHT - 1, x + WIDTH, y + HEIGHT, btnBorder);
-        g.fill(x, y, x + 1, y + HEIGHT, btnBorder);
-        g.fill(x + WIDTH - 1, y, x + WIDTH, y + HEIGHT, btnBorder);
+        g.fill(x, y, x + w, y + h, 0xFF0A0A0A);
+        g.fill(x, y, x + w, y + 1, btnBorder);
+        g.fill(x, y + h - 1, x + w, y + h, btnBorder);
+        g.fill(x, y, x + 1, y + h, btnBorder);
+        g.fill(x + w - 1, y, x + w, y + h, btnBorder);
 
         int labelW = font.width("AMI");
-        g.drawString(font, "AMI", x + (WIDTH - labelW) / 2, y + PADDING, btnTextColor, false);
+        g.drawString(font, "AMI", x + (w - labelW) / 2, y + (h - font.lineHeight) / 2 + 1, btnTextColor, false);
     }
 
     @Override

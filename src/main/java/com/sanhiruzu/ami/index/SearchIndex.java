@@ -3,7 +3,8 @@ package com.sanhiruzu.ami.index;
 import it.unimi.dsi.fastutil.chars.Char2ObjectOpenHashMap;
 
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Tokenized Trie implementation using fastutil's primitive-char map to avoid boxing.

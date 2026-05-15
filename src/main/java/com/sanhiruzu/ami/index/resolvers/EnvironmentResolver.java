@@ -1,8 +1,13 @@
 package com.sanhiruzu.ami.index.resolvers;
 
-import com.sanhiruzu.ami.index.*;
+import com.sanhiruzu.ami.index.IQueryResolver;
+import com.sanhiruzu.ami.index.NodeType;
+import com.sanhiruzu.ami.index.SearchNode;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class EnvironmentResolver implements IQueryResolver {
     private final List<SearchNode> dimensionNodes = new ArrayList<>();

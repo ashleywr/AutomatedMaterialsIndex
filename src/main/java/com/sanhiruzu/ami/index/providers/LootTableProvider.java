@@ -4,7 +4,6 @@ import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.index.EdgeType;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.IAmiDataProvider;
-import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;

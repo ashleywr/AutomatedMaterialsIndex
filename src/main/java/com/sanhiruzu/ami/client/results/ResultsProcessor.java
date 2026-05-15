@@ -1,10 +1,11 @@
 package com.sanhiruzu.ami.client.results;
 
+import com.sanhiruzu.ami.index.NodeType;
+import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.index.SearchNodeKeys;
+
 import java.util.*;
 import java.util.stream.Collectors;
-import com.sanhiruzu.ami.index.SearchNode;
-import com.sanhiruzu.ami.index.NodeType;
-import com.sanhiruzu.ami.index.SearchNodeKeys;
 
 public class ResultsProcessor {
     public enum SortField {
@@ -133,6 +134,7 @@ public class ResultsProcessor {
             }
         }
         TreeNode newChild = new TreeNode(label);
+        newChild.setExpanded(true);
         parent.addChild(newChild);
         return newChild;
     }

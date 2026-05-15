@@ -1,27 +1,20 @@
 package com.sanhiruzu.ami.client.overlay;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.neoforged.neoforge.client.event.ScreenEvent;
-
 import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.AMIConfig;
 import com.sanhiruzu.ami.AMILayoutConfig;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
-import com.sanhiruzu.ami.index.GlobalIndex;
-import com.sanhiruzu.ami.index.GlobalIndexCache;
-import com.sanhiruzu.ami.index.NodeType;
-import com.sanhiruzu.ami.index.ProviderRegistry;
-import com.sanhiruzu.ami.index.SearchNode;
-import com.sanhiruzu.ami.index.SearchService;
+import com.sanhiruzu.ami.index.*;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.neoforged.neoforge.client.event.ScreenEvent;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class OverlayWidgetManager {
-    private static final int BOTTOM_BAR_H = 24;
-    private static final int SEARCH_H = 20;
+    private static final int BOTTOM_BAR_H = 32;
+    private static final int SEARCH_H = 24;
     private static final int MIN_PANEL_WIDTH = 60;
 
     private final ResultsPanelWidget resultsPanel;
@@ -91,7 +84,7 @@ public class OverlayWidgetManager {
 
             // Render all widgets
             event.getGuiGraphics().pose().pushPose();
-            event.getGuiGraphics().pose().translate(0, 0, 1000);
+            event.getGuiGraphics().pose().translate(0, 0, 0);
 
             // First pass: render all widgets
             for (AmiWidget widget : widgets) {
@@ -153,7 +146,7 @@ public class OverlayWidgetManager {
         // Layout AMI button (screen lower-left)
         int btnX = 2;
         int btnY = screenH - BOTTOM_BAR_H + 2;
-        WidgetBounds amiButtonBounds = new WidgetBounds(btnX, btnY, 22, SEARCH_H);
+        WidgetBounds amiButtonBounds = new WidgetBounds(btnX, btnY + 2, 22, 20);
         amiButton.updateBounds(amiButtonBounds);
     }
 

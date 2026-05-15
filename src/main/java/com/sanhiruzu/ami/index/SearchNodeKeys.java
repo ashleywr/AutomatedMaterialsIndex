@@ -10,11 +10,11 @@ public final class SearchNodeKeys {
     public static final String MOD_ID          = "modId";
 
     // Item-specific
-    public static final String TIER            = "tier";
     public static final String VARIANT_GROUP   = "variantGroup";
     public static final String COLOR_BUCKET    = "colorBucket";
     public static final String TAGS            = "tags";  // Comma-separated tag paths
     public static final String ESM_CAPACITY    = "emsCapacity";  // Equivalent Stack Metric
+    public static final String REQUIRED_TOOL   = "requiredTool";
 
     // Atlas-specific
     public static final String DIMENSION       = "dimension";

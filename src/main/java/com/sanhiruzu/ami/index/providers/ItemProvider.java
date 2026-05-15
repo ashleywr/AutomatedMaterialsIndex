@@ -2,12 +2,16 @@ package com.sanhiruzu.ami.index.providers;
 
 import com.sanhiruzu.ami.index.*;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.tags.BlockTags;
 import org.jetbrains.annotations.Nullable;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -26,37 +30,62 @@ public class ItemProvider implements IAmiDataProvider {
 
             String modId        = id.getNamespace();
             String displayName  = item.getName(new ItemStack(item)).getString();
-            String tier         = determineTier(item).name();
             String variantGroup = getVariantGroup(item);
             String colorBucket  = "gray";
             int color           = 0xFFFFFF;
             String tags         = collectTags(item);
+            String requiredTool = determineRequiredTool(item);
 
             Map<String, String> meta = new HashMap<>();
             meta.put(SearchNodeKeys.MOD_ID, modId);
-            meta.put(SearchNodeKeys.TIER, tier);
             meta.put(SearchNodeKeys.VARIANT_GROUP, variantGroup);
             meta.put(SearchNodeKeys.COLOR_BUCKET, colorBucket);
             if (!tags.isEmpty()) {
                 meta.put(SearchNodeKeys.TAGS, tags);
+            }
+            if (requiredTool != null) {
+                meta.put(SearchNodeKeys.REQUIRED_TOOL, requiredTool);
             }
 
             index.addNode(new SearchNode(id, NodeType.ITEM, displayName, color, 0, meta));
         }
     }
 
-    private MaterialTier determineTier(Item item) {
-        if (item.builtInRegistryHolder().is(ItemTags.create(ResourceLocation.parse("c:netherite"))))
-            return MaterialTier.NETHERITE;
-        if (item.builtInRegistryHolder().is(ItemTags.create(ResourceLocation.parse("c:diamonds"))))
-            return MaterialTier.DIAMOND;
-        if (item.builtInRegistryHolder().is(ItemTags.create(ResourceLocation.parse("c:ingots"))))
-            return MaterialTier.IRON;
-        if (item.builtInRegistryHolder().is(ItemTags.create(ResourceLocation.parse("c:raw_materials"))))
-            return MaterialTier.STONE;
-        if (item.builtInRegistryHolder().is(ItemTags.create(ResourceLocation.parse("c:gems"))))
-            return MaterialTier.DIAMOND;
-        return MaterialTier.MODDED;
+    @Nullable
+    private String determineRequiredTool(Item item) {
+        if (!(item instanceof BlockItem blockItem)) {
+            return null;
+        }
+        BlockState state = blockItem.getBlock().defaultBlockState();
+
+        String req = null;
+        if (state.is(BlockTags.MINEABLE_WITH_PICKAXE)) {
+            if (state.is(BlockTags.NEEDS_DIAMOND_TOOL)) req = "minecraft:diamond_pickaxe";
+            else if (state.is(BlockTags.NEEDS_IRON_TOOL)) req = "minecraft:iron_pickaxe";
+            else if (state.is(BlockTags.NEEDS_STONE_TOOL)) req = "minecraft:stone_pickaxe";
+            else req = "minecraft:wooden_pickaxe";
+        } else if (state.is(BlockTags.MINEABLE_WITH_AXE)) {
+            if (state.is(BlockTags.NEEDS_DIAMOND_TOOL)) req = "minecraft:diamond_axe";
+            else if (state.is(BlockTags.NEEDS_IRON_TOOL)) req = "minecraft:iron_axe";
+            else if (state.is(BlockTags.NEEDS_STONE_TOOL)) req = "minecraft:stone_axe";
+            else req = "minecraft:wooden_axe";
+        } else if (state.is(BlockTags.MINEABLE_WITH_SHOVEL)) {
+            if (state.is(BlockTags.NEEDS_DIAMOND_TOOL)) req = "minecraft:diamond_shovel";
+            else if (state.is(BlockTags.NEEDS_IRON_TOOL)) req = "minecraft:iron_shovel";
+            else if (state.is(BlockTags.NEEDS_STONE_TOOL)) req = "minecraft:stone_shovel";
+            else req = "minecraft:wooden_shovel";
+        } else if (state.is(BlockTags.MINEABLE_WITH_HOE)) {
+            if (state.is(BlockTags.NEEDS_DIAMOND_TOOL)) req = "minecraft:diamond_hoe";
+            else if (state.is(BlockTags.NEEDS_IRON_TOOL)) req = "minecraft:iron_hoe";
+            else if (state.is(BlockTags.NEEDS_STONE_TOOL)) req = "minecraft:stone_hoe";
+            else req = "minecraft:wooden_hoe";
+        }
+
+        if (req != null && BuiltInRegistries.ITEM.getKey(item).getPath().equals("stone")) {
+            com.sanhiruzu.ami.AMI.LOGGER.info("AMI DEBUG: Stone required tool is " + req);
+        }
+
+        return req;
     }
 
     private String getVariantGroup(Item item) {
@@ -77,9 +106,5 @@ public class ItemProvider implements IAmiDataProvider {
         return item.builtInRegistryHolder().tags()
             .map(tag -> tag.location().toString().toLowerCase())
             .collect(Collectors.joining(","));
-    }
-
-    enum MaterialTier {
-        WOOD, STONE, IRON, GOLD, DIAMOND, NETHERITE, MODDED
     }
 }

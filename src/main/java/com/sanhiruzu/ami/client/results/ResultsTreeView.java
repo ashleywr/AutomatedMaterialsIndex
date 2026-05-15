@@ -1,13 +1,18 @@
 package com.sanhiruzu.ami.client.results;
 
-import java.util.*;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.network.chat.Component;
-import com.sanhiruzu.ami.client.ItemIconCache;
+import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Item;
+
+import java.util.*;
 
 /**
  * "Suginami" rich-card list view.
@@ -22,15 +27,9 @@ import com.sanhiruzu.ami.index.SearchNodeKeys;
 public class ResultsTreeView {
 
     // ── Layout constants ──────────────────────────────────────────────────────
-    private static final int ROW_HEIGHT   = 24;
-    private static final int ICON_SIZE    = 16;
-    private static final int X_PAD        = 6;
     private static final int INDENT       = 10;
     private static final int SCROLLBAR_W  = 5;
     private static final int HEADER_LABEL_H = 13; // height reserved for the optional pinned header
-
-    // Cherry-blossom pink @ 30 % opacity
-    private static final int HOVER_COLOR = 0x4DFFB7C5;
 
     // Swatch dots for variant collapsing
     private static final int SWATCH_SIZE = 5;
@@ -81,25 +80,25 @@ public class ResultsTreeView {
      *                     (e.g. "Pinned & Discover"). Pass null to omit.
      */
     public void render(GuiGraphics g, int mouseX, int mouseY, boolean toolbarDropdownOpen,
-                       String sectionLabel) {
+                       Component sectionLabel) {
         pendingTooltipLines = null;
 
         int topOffset = 0;
         if (sectionLabel != null) {
             g.drawString(Minecraft.getInstance().font,
-                    sectionLabel, x + X_PAD, y + 3, 0xFF8888AA, false);
+                    sectionLabel, x + AMITheme.GLOBAL_PADDING, y + 3, 0xFF8888AA, false);
             topOffset = HEADER_LABEL_H;
         }
 
         if (rootNodes.isEmpty()) {
             g.drawString(Minecraft.getInstance().font,
-                    Component.literal("No results"), x + X_PAD, y + topOffset + 6, 0xFFCCCCCC, false);
+                    Component.translatable("ami.gui.search.empty"), x + AMITheme.GLOBAL_PADDING, y + topOffset + 6, 0xFFCCCCCC, false);
             return;
         }
 
         int contentH = height - topOffset;
         lastContentH = contentH;
-        int totalH   = countAllNodes() * ROW_HEIGHT;
+        int totalH   = countAllNodes() * AMITheme.ROW_HEIGHT;
         clampScroll(totalH, contentH);
 
         g.enableScissor(x, y + topOffset, x + width, y + height);
@@ -122,7 +121,7 @@ public class ResultsTreeView {
 
     /** Backwards-compatible overload used when no section label is needed. */
     public void render(GuiGraphics g, int mouseX, int mouseY, boolean toolbarDropdownOpen) {
-        render(g, mouseX, mouseY, toolbarDropdownOpen, null);
+        render(g, mouseX, mouseY, toolbarDropdownOpen, (Component) null);
     }
 
     /**
@@ -132,16 +131,20 @@ public class ResultsTreeView {
      */
     private int renderNode(GuiGraphics g, TreeNode node, int depth, int rowIdx,
                            int mouseX, int mouseY, int originY, int contentH) {
-        int drawY = originY - pixelScrollOffset + rowIdx * ROW_HEIGHT;
+        int drawY = originY - pixelScrollOffset + rowIdx * AMITheme.ROW_HEIGHT;
 
         // Only draw if even partially visible
-        if (drawY + ROW_HEIGHT > originY && drawY < originY + contentH) {
+        if (drawY + AMITheme.ROW_HEIGHT > originY && drawY < originY + contentH) {
             boolean hovered = !node.isLeaf()
                     ? isGroupRowHovered(mouseX, mouseY, drawY)
                     : isLeafRowHovered(mouseX, mouseY, drawY);
 
+            if (!node.isLeaf()) {
+                g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + AMITheme.ROW_HEIGHT, AMITheme.GROUP_HEADER_BG);
+            }
+
             if (hovered) {
-                g.fill(x + 2, drawY, x + width - SCROLLBAR_W - 1, drawY + ROW_HEIGHT, HOVER_COLOR);
+                g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + AMITheme.ROW_HEIGHT, AMITheme.ENTRY_HOVER);
             }
 
             if (node.isLeaf()) {
@@ -168,75 +171,89 @@ public class ResultsTreeView {
         var font = Minecraft.getInstance().font;
         SearchNode entry = node.getEntry();
 
-        int iconX = x + X_PAD + depth * INDENT;
-        int iconY = drawY + (ROW_HEIGHT - ICON_SIZE) / 2;
+        int iconX = x + AMITheme.GLOBAL_PADDING + depth * INDENT;
+        int iconY = drawY + (AMITheme.ROW_HEIGHT - AMITheme.ICON_SIZE) / 2;
 
         // Z-lift prevents dark-background clipping on 3D item models
         g.pose().pushPose();
         g.pose().translate(0, 0, 150);
-        RendererRegistry.get(entry.type()).render(g, entry, iconX, iconY, ICON_SIZE);
+        RendererRegistry.get(entry.type()).render(g, entry, iconX, iconY, AMITheme.ICON_SIZE);
         g.pose().popPose();
 
-        int textX = iconX + ICON_SIZE + 4;
+        int textX = iconX + AMITheme.ICON_SIZE + 4;
         int maxTextW = x + width - SCROLLBAR_W - 6 - textX;
 
+        // Right-aligned badges
+        int rightEdge = x + width - SCROLLBAR_W - 5;
+        int badgeW = badgeWidth(font, entry);
+        
         // Line 1 — item name
-        String name = truncate(font, node.getLabel(), maxTextW - badgeWidth(font, entry));
-        g.drawString(font, name, textX, drawY + 2, 0xFFDDDDDD, false);
+        String name = truncate(font, node.getLabel(), maxTextW - badgeW);
+        g.drawString(font, name, textX, drawY + 2, AMITheme.ENTRY_TEXT, false);
 
         // Line 2 — mod namespace (subtitle)
         String modId = entry.id().getNamespace();
-        g.drawString(font, modId, textX, drawY + 13, 0xFF888888, false);
+        g.drawString(font, modId, textX, drawY + 12, AMITheme.ENTRY_SUBTITLE, false);
 
-        // Right-aligned JRPG badge
-        renderBadge(g, font, entry, drawY);
+        renderBadges(g, font, entry, drawY, rightEdge);
 
         if (hovered) {
             pendingTooltipLines = buildTooltip(entry);
         }
     }
 
-    // ── Badge ─────────────────────────────────────────────────────────────────
+    // ── Badges ────────────────────────────────────────────────────────────────
 
-    private void renderBadge(GuiGraphics g, net.minecraft.client.gui.Font font,
-                              SearchNode entry, int drawY) {
-        String tier = entry.meta(SearchNodeKeys.TIER, "");
-        String cap  = entry.meta(SearchNodeKeys.ESM_CAPACITY, "");
+    private void renderBadges(GuiGraphics g, net.minecraft.client.gui.Font font,
+                              SearchNode entry, int drawY, int rightEdge) {
+        int currentX = rightEdge;
 
-        String badge;
-        int color;
-        if (!tier.isEmpty()) {
-            badge = "[" + tier + "]";
-            color = tierColor(tier);
-        } else if (!cap.isEmpty()) {
-            badge = "[x" + cap + "]";
-            color = 0xFF88DDFF;
-        } else {
-            return;
+        // Render Tool Requirement Badge
+        String reqToolStr = entry.meta(SearchNodeKeys.REQUIRED_TOOL, "");
+        if (!reqToolStr.isEmpty()) {
+            ResourceLocation toolId = ResourceLocation.tryParse(reqToolStr);
+            if (toolId != null) {
+                Item toolItem = BuiltInRegistries.ITEM.get(toolId);
+                if (toolItem != null && toolItem != net.minecraft.world.item.Items.AIR) {
+                    ItemStack toolStack = new ItemStack(toolItem);
+                    int scaledIconSize = 8;
+                    currentX -= scaledIconSize;
+                    
+                    int badgeY = drawY + 2; // Align with top text line
+                    
+                    g.pose().pushPose();
+                    g.pose().translate(currentX, badgeY, 150);
+                    g.pose().scale(0.5f, 0.5f, 1.0f);
+                    g.renderItem(toolStack, 0, 0);
+                    g.pose().popPose();
+                    
+                    currentX -= 5; // Padding before next badge
+                }
+            }
         }
 
-        int bw = font.width(badge);
-        g.drawString(font, badge, x + width - SCROLLBAR_W - 5 - bw, drawY + 7, color, false);
+        // Render ESM Capacity Badge
+        String cap  = entry.meta(SearchNodeKeys.ESM_CAPACITY, "");
+        if (!cap.isEmpty()) {
+            Component badge = Component.translatable("ami.gui.badge.storage", cap);
+            int bw = font.width(badge);
+            currentX -= bw;
+            g.drawString(font, badge, currentX, drawY + 7, 0xFF88DDFF, false);
+        }
     }
 
     private int badgeWidth(net.minecraft.client.gui.Font font, SearchNode entry) {
-        String tier = entry.meta(SearchNodeKeys.TIER, "");
+        int w = 0;
+        String reqToolStr = entry.meta(SearchNodeKeys.REQUIRED_TOOL, "");
+        if (!reqToolStr.isEmpty()) {
+            w += 8 + 5; // 8px for scaled icon, 5px padding
+        }
+        
         String cap  = entry.meta(SearchNodeKeys.ESM_CAPACITY, "");
-        if (!tier.isEmpty()) return font.width("[" + tier + "]") + 5;
-        if (!cap.isEmpty())  return font.width("[x" + cap + "]") + 5;
-        return 0;
-    }
-
-    private static int tierColor(String tier) {
-        return switch (tier.toLowerCase(Locale.ROOT)) {
-            case "wood"    -> 0xFFCCAA55;
-            case "stone"   -> 0xFF999999;
-            case "iron"    -> 0xFFCCCCCC;
-            case "gold"    -> 0xFFFFDD44;
-            case "diamond" -> 0xFF44EEFF;
-            case "netherite" -> 0xFFAA77AA;
-            default        -> 0xFFAAAA88;
-        };
+        if (!cap.isEmpty()) {
+            w += font.width(Component.translatable("ami.gui.badge.storage", cap)) + 5;
+        }
+        return w;
     }
 
     // ── Group header ──────────────────────────────────────────────────────────
@@ -247,23 +264,21 @@ public class ResultsTreeView {
 
         String arrow = node.isExpanded() ? "▼ " : "▶ ";
         String label = arrow + node.getLabel() + " (" + node.getChildCount() + ")";
-        g.drawString(font, label, x + X_PAD + indent, drawY + 7, 0xFFAAAA88, false);
+        g.drawString(font, label, x + AMITheme.GLOBAL_PADDING + indent, drawY + 2, AMITheme.GROUP_HEADER_TEXT, false);
 
-        // Colour swatches from variant-grouped children
-        renderSwatches(g, node, drawY);
+        // Colour swatches from variant-grouped children — rendered as a subtitle
+        renderSwatches(g, node, drawY + 12, depth);
     }
 
     /**
-     * Draws up to MAX_SWATCHES coloured dots on the right side of a group row.
-     * Dots are derived from the COLOR_BUCKET metadata of leaf descendants.
+     * Draws up to MAX_SWATCHES coloured dots as a subtitle for group rows.
      */
-    private void renderSwatches(GuiGraphics g, TreeNode group, int drawY) {
+    private void renderSwatches(GuiGraphics g, TreeNode group, int drawY, int depth) {
         List<Integer> swatchColors = collectSwatchColors(group, MAX_SWATCHES);
         if (swatchColors.isEmpty()) return;
 
-        int rightEdge = x + width - SCROLLBAR_W - 6;
-        int swatchY   = drawY + (ROW_HEIGHT - SWATCH_SIZE) / 2;
-        int bx = rightEdge - swatchColors.size() * (SWATCH_SIZE + SWATCH_GAP) + SWATCH_GAP;
+        int bx = x + AMITheme.GLOBAL_PADDING + depth * INDENT + 10; // offset from arrow
+        int swatchY = drawY + 2;
 
         for (int argb : swatchColors) {
             g.fill(bx, swatchY, bx + SWATCH_SIZE, swatchY + SWATCH_SIZE, 0xFF000000 | argb);
@@ -325,13 +340,13 @@ public class ResultsTreeView {
     // ── Hit-testing ───────────────────────────────────────────────────────────
 
     private boolean isLeafRowHovered(int mouseX, int mouseY, int drawY) {
-        return mouseX >= x + 2 && mouseX < x + width - SCROLLBAR_W - 1
-                && mouseY >= drawY && mouseY < drawY + ROW_HEIGHT;
+        return mouseX >= x && mouseX < x + width - SCROLLBAR_W
+                && mouseY >= drawY && mouseY < drawY + AMITheme.ROW_HEIGHT;
     }
 
     private boolean isGroupRowHovered(int mouseX, int mouseY, int drawY) {
-        return mouseX >= x + 2 && mouseX < x + width - SCROLLBAR_W - 1
-                && mouseY >= drawY && mouseY < drawY + ROW_HEIGHT;
+        return mouseX >= x && mouseX < x + width - SCROLLBAR_W
+                && mouseY >= drawY && mouseY < drawY + AMITheme.ROW_HEIGHT;
     }
 
     // ── Tooltip ───────────────────────────────────────────────────────────────
@@ -341,11 +356,6 @@ public class ResultsTreeView {
         lines.add(Component.literal(entry.displayName()));
         lines.add(Component.literal(entry.id().toString())
                 .withStyle(s -> s.withColor(0x666666)));
-        String tier = entry.meta(SearchNodeKeys.TIER, "");
-        if (!tier.isEmpty()) {
-            lines.add(Component.literal("Tier: " + tier)
-                    .withStyle(s -> s.withColor(0xAAAA44)));
-        }
         lines.add(Component.literal("Shift for details")
                 .withStyle(s -> s.withColor(0x555555)));
         return lines;
@@ -364,9 +374,9 @@ public class ResultsTreeView {
         int maxScroll = totalH - contentH;
         int thumbY = originY + (pixelScrollOffset * (contentH - thumbH)) / maxScroll;
 
-        g.fill(barX, originY, barX + barW, originY + contentH, 0xFF2A2A2A);
+        g.fill(barX, originY, barX + barW, originY + contentH, AMITheme.SCROLL_TRACK);
         g.fill(barX, thumbY, barX + barW, thumbY + thumbH,
-                active ? 0xFFAAAA88 : 0xFF666666);
+                active ? AMITheme.SCROLL_THUMB_ACTIVE : AMITheme.SCROLL_THUMB);
     }
 
     private boolean isScrollbarHovered(int mouseX, int mouseY, int totalH, int contentH, int originY) {
@@ -410,7 +420,7 @@ public class ResultsTreeView {
         if (button != 0) return false;
 
         // Which row is under the cursor?
-        int targetRow = (int) (mouseY - y + pixelScrollOffset) / ROW_HEIGHT;
+        int targetRow = (int) (mouseY - y + pixelScrollOffset) / AMITheme.ROW_HEIGHT;
         if (targetRow < 0) return false;
 
         int[] counter = {0};
@@ -440,17 +450,17 @@ public class ResultsTreeView {
 
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         int contentH = lastContentH > 0 ? lastContentH : height;
-        int totalH = countAllNodes() * ROW_HEIGHT;
+        int totalH = countAllNodes() * AMITheme.ROW_HEIGHT;
         int maxScroll = Math.max(0, totalH - contentH);
         pixelScrollOffset = Math.max(0, Math.min(maxScroll,
-                (int) (pixelScrollOffset - delta * ROW_HEIGHT)));
+                (int) (pixelScrollOffset - delta * AMITheme.ROW_HEIGHT)));
         return true;
     }
 
     public boolean mouseClickedScrollbar(double mouseX, double mouseY, int button) {
         if (button != 0) return false;
         int contentH = lastContentH > 0 ? lastContentH : height;
-        int totalH = countAllNodes() * ROW_HEIGHT;
+        int totalH = countAllNodes() * AMITheme.ROW_HEIGHT;
         if (!isScrollbarHovered((int) mouseX, (int) mouseY, totalH, contentH, y)) return false;
         scrollbarDragging = true;
         scrollbarDragStartY = (int) mouseY;
@@ -462,7 +472,7 @@ public class ResultsTreeView {
         if (!scrollbarDragging || button != 0) return false;
 
         int contentH = lastContentH > 0 ? lastContentH : height;
-        int totalH = countAllNodes() * ROW_HEIGHT;
+        int totalH = countAllNodes() * AMITheme.ROW_HEIGHT;
         if (totalH <= contentH) return true;
 
         int thumbH = Math.max(10, (contentH * contentH) / totalH);

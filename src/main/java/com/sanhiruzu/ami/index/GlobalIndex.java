@@ -1,8 +1,10 @@
 package com.sanhiruzu.ami.index;
 
 import net.minecraft.resources.ResourceLocation;
+
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 /**

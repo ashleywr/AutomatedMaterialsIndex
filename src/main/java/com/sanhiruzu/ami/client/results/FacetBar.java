@@ -1,8 +1,14 @@
 package com.sanhiruzu.ami.client.results;
 
-import java.util.*;
+import com.sanhiruzu.ami.client.AMITheme;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Horizontal strip of quick-filter facet badges pinned to the top of the results panel.
@@ -14,17 +20,16 @@ public class FacetBar {
 
     private static final int BADGE_SIZE = 12;
     private static final int BADGE_GAP  = 4;
-    private static final int PAD_X      = 5;
     private static final int PAD_Y      = (HEIGHT - BADGE_SIZE) / 2;
 
-    private record Facet(String id, String label, int color) {}
+    private record Facet(String id, String translationKey, int color) {}
 
     private static final List<Facet> FACETS = List.of(
-            new Facet("storage", "STR", 0xFF4169E1),
-            new Facet("weapons", "WPN", 0xFFCC3333),
-            new Facet("food",    "EAT", 0xFF33AA33),
-            new Facet("tools",   "TLS", 0xFFCCAA00),
-            new Facet("magic",   "MAG", 0xFF9933CC)
+            new Facet("storage", "ami.gui.facet.storage", 0xFF4169E1),
+            new Facet("weapons", "ami.gui.facet.weapons", 0xFF69E1),
+            new Facet("food",    "ami.gui.facet.food",    0xFF33AA33),
+            new Facet("tools",   "ami.gui.facet.tools",   0xFFCCAA00),
+            new Facet("magic",   "ami.gui.facet.magic",   0xFF9933CC)
     );
 
     private int x, y, width;
@@ -44,10 +49,10 @@ public class FacetBar {
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
         // Bar background - slightly lighter than the panel background
-        g.fill(x, y, x + width, y + HEIGHT, 0xFF111118);
+        g.fill(x, y, x + width, y + HEIGHT, AMITheme.PANEL_INNER);
 
         var font = Minecraft.getInstance().font;
-        int bx = x + PAD_X;
+        int bx = x + AMITheme.GLOBAL_PADDING;
         int by = y + PAD_Y;
 
         for (Facet facet : FACETS) {
@@ -56,34 +61,56 @@ public class FacetBar {
                     && mouseY >= by && mouseY < by + BADGE_SIZE;
 
             if (isActive) {
-                // White 1px border
-                g.fill(bx - 1, by - 1, bx + BADGE_SIZE + 1, by + BADGE_SIZE + 1, 0xFFFFFFFF);
+                // White circular border (slightly larger than badge)
+                renderCircle(g, bx - 1, by - 1, BADGE_SIZE + 2, 0xFFFFFFFF);
             }
 
             // Badge fill — dimmer when inactive, full colour when active/hovered
             int fill = (isActive || hovered) ? facet.color() : (0x99000000 | (facet.color() & 0x00FFFFFF));
-            g.fill(bx, by, bx + BADGE_SIZE, by + BADGE_SIZE, fill);
+            renderCircle(g, bx, by, BADGE_SIZE, fill);
 
             // Label — centred inside badge
-            int tw = font.width(facet.label());
+            Component label = Component.translatable(facet.translationKey());
+            int tw = font.width(label);
             // Only render label when badge is active or hovered; otherwise icon colour alone conveys identity
             if (isActive || hovered) {
-                g.drawString(font, facet.label(), bx + (BADGE_SIZE - tw) / 2, by + 2, 0xFFFFFFFF, false);
+                g.drawString(font, label, bx + (BADGE_SIZE - tw) / 2, by + 2, 0xFFFFFFFF, false);
             }
 
             bx += BADGE_SIZE + BADGE_GAP;
         }
 
         // "FILTERS" hint text at the right edge
-        String hint = "FILTERS";
-        g.drawString(font, hint, x + width - font.width(hint) - PAD_X, y + PAD_Y + 2, 0xFF444455, false);
+        Component hint = Component.translatable("ami.gui.facet.hint");
+        g.drawString(font, hint, x + width - font.width(hint) - AMITheme.GLOBAL_PADDING, y + PAD_Y + 2, 0xFF444455, false);
+    }
+
+    /**
+     * Approximates a circular fill for a 12x12 or 14x14 area.
+     */
+    private void renderCircle(GuiGraphics g, int cx, int cy, int size, int color) {
+        if (size <= 12) {
+            // 12x12 circle approximation
+            g.fill(cx + 2, cy,     cx + 10, cy + 1,  color); // Row 0
+            g.fill(cx + 1, cy + 1, cx + 11, cy + 2,  color); // Row 1
+            g.fill(cx,     cy + 2, cx + 12, cy + 10, color); // Rows 2-9
+            g.fill(cx + 1, cy + 10, cx + 11, cy + 11, color); // Row 10
+            g.fill(cx + 2, cy + 11, cx + 10, cy + 12, color); // Row 11
+        } else {
+            // 14x14 border approximation
+            g.fill(cx + 3, cy,     cx + 11, cy + 1,  color);
+            g.fill(cx + 1, cy + 1, cx + 13, cy + 2,  color);
+            g.fill(cx,     cy + 2, cx + 14, cy + 12, color);
+            g.fill(cx + 1, cy + 12, cx + 13, cy + 13, color);
+            g.fill(cx + 3, cy + 13, cx + 11, cy + 14, color);
+        }
     }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0) return false;
         if (mouseY < y || mouseY >= y + HEIGHT) return false;
 
-        int bx = x + PAD_X;
+        int bx = x + AMITheme.GLOBAL_PADDING;
         int by = y + PAD_Y;
         for (Facet facet : FACETS) {
             if (mouseX >= bx && mouseX < bx + BADGE_SIZE

@@ -1,10 +1,11 @@
 package com.sanhiruzu.ami.client.results;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import com.sanhiruzu.ami.index.SearchNode;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class ResultsToolbar {
     public enum ViewMode { GRID, LIST }
@@ -16,7 +17,7 @@ public class ResultsToolbar {
 
     private int x, y, width;
     private boolean ascending = true;
-    private ViewMode viewMode = ViewMode.GRID;
+    private ViewMode viewMode = ViewMode.LIST;
 
     // Registered dropdowns - add or remove here to customize the toolbar
     private final List<Dropdown> dropdowns = new ArrayList<>();
@@ -71,16 +72,28 @@ public class ResultsToolbar {
     }
 
     private void updateDropdownPositions() {
-        int buttonX = x + 2 + BUTTON_W + 3 + BUTTON_W + 3; // view-mode + sort-dir buttons
-        for (Dropdown dropdown : dropdowns) {
-            dropdown.updatePosition(buttonX, y + 3, getDropdownWidth(dropdown));
-            buttonX += getDropdownWidth(dropdown) + 3;
+        int startX = x + 2 + BUTTON_W + 3 + BUTTON_W + 3; // view-mode + sort-dir buttons
+        int availableW = width - (startX - x) - 2; // remaining width in the panel
+
+        int n = dropdowns.size();
+        if (n == 0) return;
+
+        int gap = 3;
+        int totalGaps = (n - 1) * gap;
+        int widthPerDropdown = (availableW - totalGaps) / n;
+
+        int currentX = startX;
+        for (int i = 0; i < n; i++) {
+            Dropdown dropdown = dropdowns.get(i);
+            int w = (i == n - 1) ? (x + width - 2 - currentX) : widthPerDropdown;
+            dropdown.updatePosition(currentX, y + 3, Math.max(10, w));
+            currentX += w + gap;
         }
     }
 
     private int getDropdownWidth(Dropdown dropdown) {
-        if (dropdown == modFilterDropdown) return MOD_FILTER_W;
-        return DROPDOWN_W;
+        // Obsolete, widths are now calculated dynamically
+        return 0;
     }
 
     public void setAvailableMods(Set<String> mods) {

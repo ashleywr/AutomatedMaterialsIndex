@@ -1,8 +1,9 @@
 package com.sanhiruzu.ami.client.results;
 
-import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+
+import java.util.List;
 
 public class SingleSelectDropdown<T> implements Dropdown {
     private final String label;
@@ -35,7 +36,12 @@ public class SingleSelectDropdown<T> implements Dropdown {
     public void render(GuiGraphics g, int mouseX, int mouseY) {
         int bgColor = open ? 0xFF3A3A3A : 0xFF2A2A2A;
         g.fill(x, y, x + width, y + HEIGHT, bgColor);
-        g.drawString(Minecraft.getInstance().font, displayName.apply(selected), x + 3, y + 2, 0xFFCCCCCC, false);
+        String text = displayName.apply(selected);
+        var font = Minecraft.getInstance().font;
+        if (font.width(text) > width - 6) {
+            text = font.plainSubstrByWidth(text, width - 6);
+        }
+        g.drawString(font, text, x + 3, y + 2, 0xFFCCCCCC, false);
     }
 
     public void renderList(GuiGraphics g, int mouseX, int mouseY) {

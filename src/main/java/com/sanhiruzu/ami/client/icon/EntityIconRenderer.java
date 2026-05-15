@@ -1,8 +1,6 @@
 package com.sanhiruzu.ami.client.icon;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -14,7 +12,10 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
-import com.sanhiruzu.ami.index.SearchNode;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Renders 3D mob miniatures using InventoryScreen.renderEntityInInventory.

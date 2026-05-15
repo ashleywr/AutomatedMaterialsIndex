@@ -1,10 +1,11 @@
 package com.sanhiruzu.ami.client.icon;
 
-import java.util.List;
+import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import com.sanhiruzu.ami.index.SearchNode;
+
+import java.util.List;
 
 public class FallbackTextRenderer implements IIconRenderer {
 
