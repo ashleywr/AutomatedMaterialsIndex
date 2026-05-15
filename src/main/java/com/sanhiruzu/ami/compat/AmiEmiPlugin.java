@@ -35,12 +35,10 @@ public class AmiEmiPlugin implements EmiPlugin {
                     int panelWidth = resultsPanel.getWidth();
                     int panelHeight = resultsPanel.getHeight();
                     consumer.accept(new Bounds(panelX, panelY, panelWidth, panelHeight));
-                    AMI.LOGGER.debug("AMI exclusion area: x={}, y={}, w={}, h={}", panelX, panelY, panelWidth, panelHeight);
                 } else {
                     // Fallback: exclude entire right half of screen if panel isn't ready
                     int screenMid = screen.width / 2;
                     consumer.accept(new Bounds(screenMid, 0, screen.width - screenMid, screen.height));
-                    AMI.LOGGER.debug("AMI exclusion area (fallback): x={}, y=0, w={}, h={}", screenMid, screen.width - screenMid, screen.height);
                 }
             });
         }
