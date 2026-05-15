@@ -6,9 +6,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
 import com.sanhiruzu.ami.AMI;
-import com.sanhiruzu.ami.index.AMIIndex;
-import com.sanhiruzu.ami.index.IndexCategory;
-import com.sanhiruzu.ami.index.MaterialEntry;
+import com.sanhiruzu.ami.index.GlobalIndex;
+import com.sanhiruzu.ami.index.NodeType;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,15 +25,11 @@ public class AMIScreen extends Screen {
     protected void init() {
         AMI.LOGGER.debug("AMI screen initialized - size: {}x{}", this.width, this.height);
         this.gridWidget = new AtlasGridWidget(10, 40, this.width - 20, this.height - 80);
-        
+
         List<ItemStack> items = new ArrayList<>();
-        var categoryIndex = AMIIndex.getInstance().getCategoryIndex(IndexCategory.BY_MOD);
-        if (categoryIndex != null) {
-            for (List<MaterialEntry> entries : categoryIndex.values()) {
-                for (MaterialEntry entry : entries) {
-                    items.add(new ItemStack(entry.item()));
-                }
-            }
+        for (var node : GlobalIndex.getInstance().getNodes(NodeType.ITEM)) {
+            BuiltInRegistries.ITEM.getOptional(node.id()).ifPresent(item ->
+                items.add(new ItemStack(item)));
         }
         this.gridWidget.setItemEntries(items);
     }

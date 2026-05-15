@@ -11,7 +11,12 @@ import net.neoforged.neoforge.client.event.ScreenEvent;
 
 import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.AMIConfig;
-import com.sanhiruzu.ami.index.WorldAtlasIndex;
+import com.sanhiruzu.ami.index.GlobalIndex;
+import com.sanhiruzu.ami.index.GlobalIndexCache;
+import com.sanhiruzu.ami.index.NodeType;
+import com.sanhiruzu.ami.index.ProviderRegistry;
+import com.sanhiruzu.ami.index.SearchService;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 
@@ -23,8 +28,8 @@ public class InventoryOverlayHandler {
 
     private static AtlasGridWidget gridWidget;
     // Always start in atlas mode - focus on World Atlas, not Items
-    private static WorldAtlasIndex.AtlasType atlasType =
-            WorldAtlasIndex.AtlasType.BIOME;
+    private static NodeType atlasType = NodeType.BIOME;
+    private static SearchService searchService = null;
 
     private static boolean hasIndexed = false;
     private static int retryCount = 0;
@@ -40,19 +45,24 @@ public class InventoryOverlayHandler {
             if (!hasIndexed) {
                 var level = Minecraft.getInstance().level;
                 if (level != null) {
-                    com.sanhiruzu.ami.index.Indexer.index();
-                    com.sanhiruzu.ami.index.WorldAtlasIndexer.index(level);
-                    com.sanhiruzu.ami.index.WorldAtlasIndexer.indexStructuresFromConnection();
+                    GlobalIndexCache.loadOrIndex(level);
+                    searchService = SearchService.buildFrom(GlobalIndex.getInstance());
+                    ProviderRegistry.indexStructuresDeferred(level);
+                    searchService = SearchService.buildFrom(GlobalIndex.getInstance());
                     hasIndexed = true;
                 }
             } else if (retryCount < MAX_RETRIES) {
                 // Retry if structures/dimensions are empty
-                var index = com.sanhiruzu.ami.index.WorldAtlasIndex.getInstance();
-                int structures = index.getEntries(WorldAtlasIndex.AtlasType.STRUCTURE).size();
-                int dimensions = index.getEntries(WorldAtlasIndex.AtlasType.DIMENSION).size();
+                var index = GlobalIndex.getInstance();
+                int structures = index.getNodes(NodeType.STRUCTURE).size();
+                int dimensions = index.getNodes(NodeType.DIMENSION).size();
 
                 if (structures == 0 || dimensions == 0) {
-                    com.sanhiruzu.ami.index.WorldAtlasIndexer.indexStructuresFromConnection();
+                    var level = Minecraft.getInstance().level;
+                    if (level != null) {
+                        ProviderRegistry.indexStructuresDeferred(level);
+                        searchService = SearchService.buildFrom(GlobalIndex.getInstance());
+                    }
                     retryCount++;
                 }
             }
@@ -102,7 +112,25 @@ public class InventoryOverlayHandler {
     static void onScreenKeyPressed(ScreenEvent.KeyPressed.Pre event) {
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
 
+        // Handle search bar keyboard input (Backspace, Escape)
+        if (gridWidget != null && gridWidget.isSearchFocused()) {
+            if (event.getKeyCode() == GLFW.GLFW_KEY_BACKSPACE) {
+                gridWidget.deleteSearchChar();
+                triggerSearch();
+                event.setCanceled(true);
+                return;
+            } else if (event.getKeyCode() == GLFW.GLFW_KEY_ESCAPE) {
+                gridWidget.clearSearch();
+                refreshEntries();
+                event.setCanceled(true);
+                return;
+            }
+        }
+
         if (AMIKeyMappings.CYCLE_ATLAS.matches(event.getKeyCode(), event.getScanCode())) {
+            if (gridWidget != null) {
+                gridWidget.clearSearch();
+            }
             atlasType = atlasType.next();
             refreshEntries();
             event.setCanceled(true);
@@ -113,7 +141,18 @@ public class InventoryOverlayHandler {
     static void onScreenMouseClick(ScreenEvent.MouseButtonPressed.Pre event) {
         if (!AMIConfig.ENABLE_AUTO_INDEXING.get() || gridWidget == null) return;
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
-        if (!gridWidget.isMouseOver(event.getMouseX(), event.getMouseY())) return;
+        if (!gridWidget.isMouseOver(event.getMouseX(), event.getMouseY())) {
+            // Click outside panel: unfocus search bar
+            gridWidget.setSearchFocused(false);
+            return;
+        }
+
+        // Check for search bar clicks (focus/clear button)
+        if (gridWidget.isSearchBarHovered(event.getMouseX(), event.getMouseY())) {
+            gridWidget.setSearchFocused(true);
+            event.setCanceled(true);
+            return;
+        }
 
         // Navigation arrows take priority over other clicks
         if (gridWidget.isLeftArrowHovered((int) event.getMouseX(), (int) event.getMouseY())) {
@@ -161,10 +200,22 @@ public class InventoryOverlayHandler {
         }
     }
 
+    @SubscribeEvent
+    static void onScreenCharacterTyped(ScreenEvent.CharacterTyped.Pre event) {
+        if (!AMIConfig.ENABLE_AUTO_INDEXING.get()) return;
+        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
+        if (gridWidget == null || !gridWidget.isSearchFocused()) return;
+
+        char c = (char) event.getCodePoint();
+        gridWidget.typeCharacter(c);
+        triggerSearch();
+        event.setCanceled(true);
+    }
+
     private static void checkAndRefreshIfStale() {
         // Refresh if empty (including when structures are loading) or when data is populated
-        var index = WorldAtlasIndex.getInstance();
-        int currentCount = index.getEntries(atlasType).size();
+        var index = GlobalIndex.getInstance();
+        int currentCount = index.getNodes(atlasType).size();
         boolean isLoading = index.isLoading(atlasType);
 
         if ((gridWidget.getEntryCount() == 0 && currentCount > 0) ||
@@ -176,13 +227,20 @@ public class InventoryOverlayHandler {
     private static void refreshEntries() {
         if (gridWidget == null) return;
 
-        List<WorldAtlasIndex.AtlasEntry> entries = WorldAtlasIndex.getInstance().getEntries(atlasType);
-        gridWidget.setAtlasEntries(
-                entries != null ? entries : List.of(),
-                atlasType.displayName(),
-                atlasType
-        );
+        var entries = GlobalIndex.getInstance().getNodes(atlasType);
+        gridWidget.setAtlasEntries(entries, atlasType.displayName(), atlasType);
 
         AMI.LOGGER.debug("AMI overlay refreshed: {} entries of type {}", gridWidget.getEntryCount(), atlasType);
+    }
+
+    private static void triggerSearch() {
+        if (searchService == null || gridWidget == null) return;
+        String query = gridWidget.getSearchQuery();
+        if (query.isEmpty()) {
+            refreshEntries();
+            return;
+        }
+        var results = searchService.query(query);
+        gridWidget.setSearchResults(results, query);
     }
 }

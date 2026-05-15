@@ -11,6 +11,8 @@
   "ami.gui.dimensions": "Dimensions",
   "ami.gui.cycle_hint": "Press %s to cycle",
   "ami.gui.close_hint": "Press %s to close",
+  "ami.gui.search.placeholder": "Filter...",
+  "ami.gui.search.empty": "No results",
 
   "ami.dimension.overworld": "Overworld",
   "ami.dimension.nether": "Nether",
