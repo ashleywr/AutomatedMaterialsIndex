@@ -32,6 +32,7 @@ repositories {
     maven { url = "https://maven.blamejared.com" }
     // EMI (via Modrinth Maven — more reliable than maven.emi.dev for classifier builds)
     maven { url = "https://api.modrinth.com/maven" }
+    mavenCentral()
 }
 
 base {
