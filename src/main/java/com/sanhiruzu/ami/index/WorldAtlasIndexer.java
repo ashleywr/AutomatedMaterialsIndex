@@ -84,6 +84,21 @@ public class WorldAtlasIndexer {
                         categoryColor(category), WorldAtlasIndex.Dimension.OVERWORLD));
             });
 
+            // Dimensions
+            var dimensionOpt = level.registryAccess().registry(Registries.DIMENSION);
+            if (dimensionOpt.isPresent()) {
+                int dimensionCount = dimensionOpt.get().size();
+                LOGGER.debug("Dimension registry found with {} entries", dimensionCount);
+                dimensionOpt.get().entrySet().forEach(entry -> {
+                    ResourceLocation id = entry.getKey().location();
+                    index.addEntry(WorldAtlasIndex.AtlasType.DIMENSION, new WorldAtlasIndex.AtlasEntry(
+                            id, formatPath(id.getPath()), WorldAtlasIndex.AtlasType.DIMENSION,
+                            dimensionColor(id), WorldAtlasIndex.Dimension.OVERWORLD));
+                });
+            } else {
+                LOGGER.debug("Dimension registry not found");
+            }
+
             for (WorldAtlasIndex.AtlasType type : WorldAtlasIndex.AtlasType.values()) {
                 index.getEntries(type).sort(ENTRY_ORDER);
             }
@@ -222,6 +237,15 @@ public class WorldAtlasIndexer {
                  WATER_AMBIENT,
                  UNDERGROUND_WATER_CREATURE -> 0xFF4488CC;
             default                   -> 0xFF888888;
+        };
+    }
+
+    private static int dimensionColor(ResourceLocation id) {
+        return switch (id.toString()) {
+            case "minecraft:overworld" -> 0xFF66BB6A;
+            case "minecraft:the_nether" -> 0xFFCC4444;
+            case "minecraft:the_end" -> 0xFF7A51A6;
+            default -> namespaceColor(id.getNamespace());
         };
     }
 }

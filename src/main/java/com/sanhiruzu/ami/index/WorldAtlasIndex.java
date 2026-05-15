@@ -13,7 +13,8 @@ public class WorldAtlasIndex {
     public enum AtlasType {
         BIOME("ami.gui.biomes"),
         STRUCTURE("ami.gui.structures"),
-        ENTITY("ami.gui.entities");
+        ENTITY("ami.gui.entities"),
+        DIMENSION("ami.gui.dimensions");
 
         private final String translationKey;
 
