@@ -138,8 +138,8 @@ dependencies {
         localRuntime "maven.modrinth:emi:${emi_version}+${minecraft_version}+neoforge"
     }
 
-    // Concurrent-trees for high-performance prefix/substring search (shaded)
-    implementation "com.googlecode.concurrent-trees:concurrent-trees:2.6.1"
+    // Use fastutil for a high-performance primitive-friendly trie (compileOnly)
+    compileOnly "it.unimi.dsi:fastutil:8.5.9"
 
     // Example mod dependency using a mod jar from ./libs with a flat dir repository
     // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
@@ -224,6 +224,10 @@ tasks.register('copyToModsFolder', Copy) {
 // Configure shadow jar relocation and make it produce an ordinary artifact (no classifier)
 shadowJar {
     archiveClassifier.set('')
+    // Avoid duplicate META-INF signing files that cause ZIP errors
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    mergeServiceFiles()
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/DEPENDENCIES', 'META-INF/LICENSE', 'META-INF/LICENSE.txt', 'META-INF/NOTICE', 'META-INF/NOTICE.txt'
     // Relocate concurrent-trees to avoid API conflicts when loaded with other mods
     relocate 'com.googlecode.concurrenttrees', 'com.sanhiruzu.ami.shaded.concurrenttrees'
 }
