@@ -41,12 +41,13 @@ public class InventoryOverlayHandler {
 
     private static void registerHandlers() {
         NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.Render.Post.class, manager::onRenderPost);
-        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.MouseButtonPressed.Pre.class, manager::onMouseClick);
-        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.MouseDragged.Pre.class, manager::onMouseDragged);
-        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.MouseButtonReleased.Pre.class, manager::onMouseRelease);
-        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.MouseScrolled.Pre.class, manager::onMouseScroll);
-        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.KeyPressed.Pre.class, manager::onKeyPressed);
-        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.CharacterTyped.Pre.class, manager::onCharTyped);
+        // Use HIGH priority for input events to ensure we process clicks before EMI
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGH, false, ScreenEvent.MouseButtonPressed.Pre.class, manager::onMouseClick);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGH, false, ScreenEvent.MouseDragged.Pre.class, manager::onMouseDragged);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGH, false, ScreenEvent.MouseButtonReleased.Pre.class, manager::onMouseRelease);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGH, false, ScreenEvent.MouseScrolled.Pre.class, manager::onMouseScroll);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGH, false, ScreenEvent.KeyPressed.Pre.class, manager::onKeyPressed);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGH, false, ScreenEvent.CharacterTyped.Pre.class, manager::onCharTyped);
     }
 
     public static OverlayWidgetManager getManager() {
