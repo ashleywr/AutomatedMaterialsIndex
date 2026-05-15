@@ -27,6 +27,8 @@ public class WorldAtlasIndexer {
             LOGGER.info("Starting World Atlas indexing...");
             WorldAtlasIndex index = WorldAtlasIndex.getInstance();
             index.clear();
+            // Mark structures as loading since they're deferred
+            index.setLoading(WorldAtlasIndex.AtlasType.STRUCTURE, true);
 
             // Biomes — use holders() to access tags for dimension detection
             level.registryAccess().registry(Registries.BIOME).ifPresent(biomeRegistry ->
@@ -149,6 +151,7 @@ public class WorldAtlasIndexer {
     }
 
     private static void tryServerStructureRegistry() {
+        WorldAtlasIndex index = WorldAtlasIndex.getInstance();
         try {
             var minecraft = Minecraft.getInstance();
             var server = minecraft.getSingleplayerServer();
@@ -176,7 +179,6 @@ public class WorldAtlasIndexer {
             }
 
             LOGGER.info("Structure registry found on server with {} entries", structureCount);
-            WorldAtlasIndex index = WorldAtlasIndex.getInstance();
             index.getEntries(WorldAtlasIndex.AtlasType.STRUCTURE).clear();
 
             structureOpt.get().entrySet().forEach(entry -> {
@@ -188,8 +190,10 @@ public class WorldAtlasIndexer {
 
             index.getEntries(WorldAtlasIndex.AtlasType.STRUCTURE).sort(ENTRY_ORDER);
             LOGGER.info("Structures loaded from server: {} entries", index.getEntries(WorldAtlasIndex.AtlasType.STRUCTURE).size());
+            index.setLoading(WorldAtlasIndex.AtlasType.STRUCTURE, false);
         } catch (Exception e) {
             LOGGER.debug("Could not access server structure registry: {}", e.getMessage());
+            index.setLoading(WorldAtlasIndex.AtlasType.STRUCTURE, false);
         }
     }
 

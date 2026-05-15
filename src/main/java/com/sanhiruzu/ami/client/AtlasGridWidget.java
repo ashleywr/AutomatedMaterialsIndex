@@ -34,6 +34,7 @@ public class AtlasGridWidget {
     private int x, y, width, height;
     private Mode mode = Mode.ITEMS;
     private Component modeLabel = Component.translatable("ami.gui.items");
+    private WorldAtlasIndex.AtlasType currentAtlasType = null;
 
     private final List<ItemStack> itemEntries = new ArrayList<>();
 
@@ -81,7 +82,7 @@ public class AtlasGridWidget {
         scrollOffset = 0;
     }
 
-    public void setAtlasEntries(List<WorldAtlasIndex.AtlasEntry> entries, Component label) {
+    public void setAtlasEntries(List<WorldAtlasIndex.AtlasEntry> entries, Component label, WorldAtlasIndex.AtlasType type) {
         // Preserve which groups the user has already collapsed
         Set<String> collapsed = new HashSet<>();
         for (AtlasGroup g : atlasGroups) {
@@ -101,6 +102,7 @@ public class AtlasGridWidget {
 
         mode = Mode.ATLAS;
         modeLabel = label;
+        currentAtlasType = type;
         scrollOffset = 0;
     }
 
@@ -188,7 +190,11 @@ public class AtlasGridWidget {
         int maxTextW   = width - (textStartX - x) - DIM_BADGE - 6;
 
         if (atlasGroups.isEmpty()) {
-            g.drawString(font, Component.translatable("ami.gui.empty_list"),
+            var index = com.sanhiruzu.ami.index.WorldAtlasIndex.getInstance();
+            var message = currentAtlasType != null && index.isLoading(currentAtlasType)
+                    ? Component.literal("Loading...")
+                    : Component.translatable("ami.gui.empty_list");
+            g.drawString(font, message,
                     x + 4, y + HEADER_HEIGHT + 8, AMITheme.ENTRY_TEXT, false);
             return;
         }
