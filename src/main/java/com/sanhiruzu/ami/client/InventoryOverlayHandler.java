@@ -2,7 +2,6 @@ package com.sanhiruzu.ami.client;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
@@ -12,12 +11,8 @@ import net.neoforged.neoforge.client.event.ScreenEvent;
 
 import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.AMIConfig;
-import com.sanhiruzu.ami.index.AMIIndex;
-import com.sanhiruzu.ami.index.IndexCategory;
-import com.sanhiruzu.ami.index.MaterialEntry;
 import com.sanhiruzu.ami.index.WorldAtlasIndex;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
@@ -27,10 +22,9 @@ public class InventoryOverlayHandler {
             ModList.get().isLoaded("emi") || ModList.get().isLoaded("jei");
 
     private static AtlasGridWidget gridWidget;
-    // When a recipe viewer is present, start in atlas mode (items are covered by EMI/JEI)
+    // Always start in atlas mode - focus on World Atlas, not Items
     private static WorldAtlasIndex.AtlasType atlasType =
-            RECIPE_VIEWER_PRESENT ? WorldAtlasIndex.AtlasType.values()[0] : null;
-    private static int lastKnownItemCount = -1;
+            WorldAtlasIndex.AtlasType.BIOME;
 
     @SubscribeEvent
     static void onScreenRenderPost(ScreenEvent.Render.Post event) {
@@ -84,15 +78,8 @@ public class InventoryOverlayHandler {
         if (!(Minecraft.getInstance().screen instanceof AbstractContainerScreen<?>)) return;
 
         if (AMIKeyMappings.CYCLE_ATLAS.consumeClick()) {
-            WorldAtlasIndex.AtlasType[] types = WorldAtlasIndex.AtlasType.values();
-            if (RECIPE_VIEWER_PRESENT) {
-                // Items mode not available — cycle only through atlas types
-                atlasType = atlasType.next();
-            } else {
-                atlasType = (atlasType == null) ? types[0]
-                          : (atlasType.ordinal() == types.length - 1) ? null
-                          : atlasType.next();
-            }
+            // Cycle through atlas types only: Biome → Structure → Entity → Dimension → Biome
+            atlasType = atlasType.next();
             refreshEntries();
         }
     }
@@ -140,56 +127,27 @@ public class InventoryOverlayHandler {
     }
 
     private static void checkAndRefreshIfStale() {
-        if (atlasType == null) {
-            int currentCount = AMIIndex.getInstance().getTotalItemsIndexed();
-            if (currentCount != lastKnownItemCount) {
-                refreshEntries();
-            }
-        } else {
-            // Refresh if empty (including when structures are loading) or when data is populated
-            var index = WorldAtlasIndex.getInstance();
-            int currentCount = index.getEntries(atlasType).size();
-            boolean isLoading = index.isLoading(atlasType);
+        // Refresh if empty (including when structures are loading) or when data is populated
+        var index = WorldAtlasIndex.getInstance();
+        int currentCount = index.getEntries(atlasType).size();
+        boolean isLoading = index.isLoading(atlasType);
 
-            if ((gridWidget.getEntryCount() == 0 && currentCount > 0) ||
-                (isLoading && gridWidget.getEntryCount() == 0)) {
-                refreshEntries();
-            }
+        if ((gridWidget.getEntryCount() == 0 && currentCount > 0) ||
+            (isLoading && gridWidget.getEntryCount() == 0)) {
+            refreshEntries();
         }
     }
 
     private static void refreshEntries() {
         if (gridWidget == null) return;
 
-        if (atlasType == null) {
-            List<ItemStack> items = buildItemList();
-            gridWidget.setItemEntries(items);
-            gridWidget.setItemModeLabel(net.minecraft.network.chat.Component.translatable("ami.gui.items"));
-            lastKnownItemCount = AMIIndex.getInstance().getTotalItemsIndexed();
-        } else {
-            List<WorldAtlasIndex.AtlasEntry> entries = WorldAtlasIndex.getInstance().getEntries(atlasType);
-            gridWidget.setAtlasEntries(
-                    entries != null ? entries : List.of(),
-                    atlasType.displayName(),
-                    atlasType
-            );
-        }
+        List<WorldAtlasIndex.AtlasEntry> entries = WorldAtlasIndex.getInstance().getEntries(atlasType);
+        gridWidget.setAtlasEntries(
+                entries != null ? entries : List.of(),
+                atlasType.displayName(),
+                atlasType
+        );
 
-        AMI.LOGGER.debug("AMI overlay refreshed: {} entries", gridWidget.getEntryCount());
-    }
-
-    private static List<ItemStack> buildItemList() {
-        List<ItemStack> items = new ArrayList<>();
-        var categoryIndex = AMIIndex.getInstance().getCategoryIndex(IndexCategory.BY_MOD);
-        if (categoryIndex == null) return items;
-
-        for (List<MaterialEntry> entries : new ArrayList<>(categoryIndex.values())) {
-            for (MaterialEntry entry : entries) {
-                if (entry != null && entry.item() != null) {
-                    items.add(new ItemStack(entry.item()));
-                }
-            }
-        }
-        return items;
+        AMI.LOGGER.debug("AMI overlay refreshed: {} entries of type {}", gridWidget.getEntryCount(), atlasType);
     }
 }
