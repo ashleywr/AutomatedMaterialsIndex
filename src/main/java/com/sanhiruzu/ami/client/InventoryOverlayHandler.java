@@ -31,6 +31,7 @@ public class InventoryOverlayHandler {
     // Bottom bar dimensions (search bar + AMI button rendered BELOW the panel)
     private static final int BOTTOM_BAR_H = 18;
     private static final int SEARCH_H     = 14;
+    private static final int SEARCH_W     = 160;  // Centered search bar width (EMI pattern)
     private static final int AMI_BTN_W    = 22;
 
     private static UniversalResultsPanel resultsPanel;
@@ -138,15 +139,15 @@ public class InventoryOverlayHandler {
     // -------------------------------------------------------------------------
 
     private static void renderBottomBar(GuiGraphics g, int mouseX, int mouseY) {
-        if (lastPanelW <= 0) return;
         var font = Minecraft.getInstance().font;
 
-        // EMI-style: search bar at panel's column, AMI button at screen's absolute left
+        // EMI-style: search bar centered on screen, AMI button at screen's absolute left
+        int screenW = g.guiWidth();
         int barY     = lastScreenH - BOTTOM_BAR_H;
         int btnX     = 2;  // Screen's absolute left edge (like EMI's settings button)
         int btnY     = barY + 2;
-        int searchX  = lastPanelX;  // At the panel's left edge
-        int searchW  = lastPanelW;  // Full panel width
+        int searchX  = (screenW - SEARCH_W) / 2;  // Centered on screen
+        int searchW  = SEARCH_W;
 
         // AMI button — at screen's lower-left corner
         boolean btnHovered = mouseX >= btnX && mouseX < btnX + AMI_BTN_W
@@ -199,11 +200,10 @@ public class InventoryOverlayHandler {
     }
 
     private static boolean isSearchBarHit(double mx, double my) {
-        if (lastPanelW <= 0) return false;
-        int searchX = lastPanelX;
+        int screenW = Minecraft.getInstance().getWindow().getWidth();
+        int searchX = (screenW - SEARCH_W) / 2;
         int searchY = lastScreenH - BOTTOM_BAR_H + 2;
-        int searchW = lastPanelW;
-        return mx >= searchX && mx < searchX + searchW && my >= searchY && my < searchY + SEARCH_H;
+        return mx >= searchX && mx < searchX + SEARCH_W && my >= searchY && my < searchY + SEARCH_H;
     }
 
     // -------------------------------------------------------------------------
