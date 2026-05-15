@@ -1,5 +1,8 @@
 package com.sanhiruzu.ami.client.overlay;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -11,6 +14,8 @@ public class SearchBarWidget implements AmiWidget {
     private WidgetBounds bounds = new WidgetBounds(0, 0, 160, 14);
 
     private final Listener listener;
+    private final List<String> history = new LinkedList<>();
+    private int historyIndex = -1;
 
     public interface Listener {
         void onQueryChanged(String query);
@@ -59,7 +64,15 @@ public class SearchBarWidget implements AmiWidget {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && isMouseOver(mouseX, mouseY)) {
+        if (!isMouseOver(mouseX, mouseY)) return false;
+
+        if (button == 0) {
+            // Left click: activate search
+            setFocused(true);
+            return true;
+        } else if (button == 1) {
+            // Right click: clear and activate
+            clear();
             setFocused(true);
             return true;
         }
@@ -88,9 +101,35 @@ public class SearchBarWidget implements AmiWidget {
         if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
             deleteChar();
             if (listener != null) listener.onQueryChanged(query);
+            historyIndex = -1;
             return true;
         } else if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             clear();
+            return true;
+        } else if (keyCode == GLFW.GLFW_KEY_UP) {
+            // Navigate history backwards
+            if (!history.isEmpty()) {
+                if (historyIndex < 0) {
+                    historyIndex = history.size() - 1;
+                } else if (historyIndex > 0) {
+                    historyIndex--;
+                }
+                query = history.get(historyIndex);
+                if (listener != null) listener.onQueryChanged(query);
+            }
+            return true;
+        } else if (keyCode == GLFW.GLFW_KEY_DOWN) {
+            // Navigate history forwards
+            if (!history.isEmpty()) {
+                historyIndex++;
+                if (historyIndex >= history.size()) {
+                    historyIndex = -1;
+                    query = "";
+                } else {
+                    query = history.get(historyIndex);
+                }
+                if (listener != null) listener.onQueryChanged(query);
+            }
             return true;
         } else {
             // Block all other keys when focused (prevents E key from closing inventory)
@@ -104,6 +143,7 @@ public class SearchBarWidget implements AmiWidget {
 
         if (c >= 32 && c < 127) {
             query += c;
+            historyIndex = -1;
             if (listener != null) listener.onQueryChanged(query);
             return true;
         }
@@ -130,11 +170,29 @@ public class SearchBarWidget implements AmiWidget {
     public void clear() {
         query = "";
         focused = false;
+        historyIndex = -1;
     }
 
     private void deleteChar() {
         if (!query.isEmpty()) {
             query = query.substring(0, query.length() - 1);
         }
+    }
+
+    public void addToHistory(String searchTerm) {
+        if (searchTerm == null || searchTerm.isEmpty()) return;
+
+        // Remove if already in history to avoid duplicates
+        history.remove(searchTerm);
+
+        // Add to end of history
+        history.add(searchTerm);
+
+        // Keep history size reasonable (last 50 searches)
+        if (history.size() > 50) {
+            history.remove(0);
+        }
+
+        historyIndex = -1;
     }
 }

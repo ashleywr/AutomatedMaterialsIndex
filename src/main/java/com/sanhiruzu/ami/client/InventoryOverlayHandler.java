@@ -40,26 +40,13 @@ public class InventoryOverlayHandler {
     }
 
     private static void registerHandlers() {
-        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.Render.Post.class,
-            event -> manager.onRenderPost((ScreenEvent.Render.Post) event));
-
-        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.MouseButtonPressed.Pre.class,
-            event -> manager.onMouseClick((ScreenEvent.MouseButtonPressed.Pre) event));
-
-        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.MouseDragged.Pre.class,
-            event -> manager.onMouseDragged((ScreenEvent.MouseDragged.Pre) event));
-
-        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.MouseButtonReleased.Pre.class,
-            event -> manager.onMouseRelease((ScreenEvent.MouseButtonReleased.Pre) event));
-
-        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.MouseScrolled.Pre.class,
-            event -> manager.onMouseScroll((ScreenEvent.MouseScrolled.Pre) event));
-
-        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.KeyPressed.Pre.class,
-            event -> manager.onKeyPressed((ScreenEvent.KeyPressed.Pre) event));
-
-        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.CharacterTyped.Pre.class,
-            event -> manager.onCharTyped((ScreenEvent.CharacterTyped.Pre) event));
+        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.Render.Post.class, manager::onRenderPost);
+        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.MouseButtonPressed.Pre.class, manager::onMouseClick);
+        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.MouseDragged.Pre.class, manager::onMouseDragged);
+        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.MouseButtonReleased.Pre.class, manager::onMouseRelease);
+        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.MouseScrolled.Pre.class, manager::onMouseScroll);
+        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.KeyPressed.Pre.class, manager::onKeyPressed);
+        NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ScreenEvent.CharacterTyped.Pre.class, manager::onCharTyped);
     }
 
     public static OverlayWidgetManager getManager() {
