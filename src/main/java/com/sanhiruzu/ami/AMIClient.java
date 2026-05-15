@@ -20,6 +20,7 @@ import com.sanhiruzu.ami.index.WorldAtlasIndexer;
 @Mod(value = AMI.MODID, dist = Dist.CLIENT)
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
 public class AMIClient {
+
     public AMIClient(ModContainer container) {
         container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
     }
