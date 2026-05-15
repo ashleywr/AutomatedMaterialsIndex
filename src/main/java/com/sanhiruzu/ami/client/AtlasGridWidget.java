@@ -60,6 +60,10 @@ public class AtlasGridWidget {
     private int scrollbarDragStartY;
     private int scrollbarDragStartOffset;
 
+    // Tab indicator click bounds
+    private int tabIndicatorX = -1;
+    private int tabIndicatorWidth = 0;
+
     // Deferred tooltips — collected during render, drawn last
     private ItemStack pendingItemTooltip = null;
     private List<Component> pendingTooltipLines = null;
@@ -134,20 +138,33 @@ public class AtlasGridWidget {
         g.fill(x, y, x + width, y + HEADER_HEIGHT + 2, cheat ? AMITheme.CHEAT_HEADER_BG : AMITheme.HEADER_BG);
         g.fill(x, y + HEADER_HEIGHT + 2, x + width, y + HEADER_HEIGHT + 3, cheat ? AMITheme.CHEAT_HEADER_SEP : AMITheme.HEADER_SEP);
         // Show current atlas type position in cycle if applicable
+        var font = Minecraft.getInstance().font;
         MutableComponent headerText = modeLabel.copy()
                 .append(Component.literal(" (" + entryCount() + ")"));
 
         if (currentAtlasType != null) {
             WorldAtlasIndex.AtlasType[] types = WorldAtlasIndex.AtlasType.values();
             int position = currentAtlasType.ordinal() + 1;
-            headerText.append(Component.literal(" [" + position + "/" + types.length + "]")
+
+            // Calculate tab indicator position before appending (for click detection)
+            int preTabWidth = font.width(headerText);
+            String tabIndicatorStr = " [" + position + "/" + types.length + "]";
+
+            headerText.append(Component.literal(tabIndicatorStr)
                     .withStyle(s -> s.withColor(0xAAAAAA)));
+
+            // Store tab indicator bounds for click detection
+            tabIndicatorX = x + 3 + preTabWidth;
+            tabIndicatorWidth = font.width(tabIndicatorStr);
+        } else {
+            tabIndicatorX = -1;
+            tabIndicatorWidth = 0;
         }
 
         if (cheat) {
             headerText.append(Component.literal(" [!]").withStyle(s -> s.withColor(AMITheme.CHEAT_INDICATOR)));
         }
-        g.drawString(Minecraft.getInstance().font, headerText, x + 3, y + 2, cheat ? AMITheme.CHEAT_INDICATOR : AMITheme.HEADER_TEXT, false);
+        g.drawString(font, headerText, x + 3, y + 2, cheat ? AMITheme.CHEAT_INDICATOR : AMITheme.HEADER_TEXT, false);
 
         if (mode == Mode.ITEMS) {
             renderItemGrid(g, mouseX, mouseY);
@@ -507,6 +524,12 @@ public class AtlasGridWidget {
         // 6px hover zone covers both normal (3px) and expanded (5px) widths
         return mouseX >= x + width - 6 && mouseX < x + width - 1
                 && mouseY >= barAreaY && mouseY < barAreaY + contentH;
+    }
+
+    public boolean isTabIndicatorHovered(int mouseX, int mouseY) {
+        if (tabIndicatorX < 0) return false;
+        return mouseX >= tabIndicatorX && mouseX < tabIndicatorX + tabIndicatorWidth
+                && mouseY >= y && mouseY < y + HEADER_HEIGHT + 2;
     }
 
     // -------------------------------------------------------------------------

@@ -115,8 +115,14 @@ public class InventoryOverlayHandler {
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
         if (!gridWidget.isMouseOver(event.getMouseX(), event.getMouseY())) return;
 
+        // Tab indicator takes priority - click to cycle tabs
+        if (gridWidget.isTabIndicatorHovered((int) event.getMouseX(), (int) event.getMouseY())) {
+            atlasType = atlasType.next();
+            refreshEntries();
+            event.setCanceled(true);
+        }
         // Scrollbar takes priority over entry clicks
-        if (gridWidget.mouseClickedScrollbar(event.getMouseX(), event.getMouseY(), event.getButton())) {
+        else if (gridWidget.mouseClickedScrollbar(event.getMouseX(), event.getMouseY(), event.getButton())) {
             event.setCanceled(true);
         } else if (gridWidget.mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton())) {
             event.setCanceled(true);
