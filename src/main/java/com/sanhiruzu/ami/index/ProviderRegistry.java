@@ -19,7 +19,9 @@ public final class ProviderRegistry {
             new ItemProvider(),
             new BiomeProvider(),
             new EntityProvider(),
-            new DimensionProvider()
+            new DimensionProvider(),
+            new LootTableProvider(),
+            new SpawnProvider()
     );
 
     /**
