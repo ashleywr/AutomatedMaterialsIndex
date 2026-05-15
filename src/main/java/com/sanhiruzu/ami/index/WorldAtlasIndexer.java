@@ -4,12 +4,14 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.stream.Collectors;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.level.levelgen.structure.Structure;
 import net.neoforged.fml.ModList;
 
 public class WorldAtlasIndexer {
@@ -42,19 +44,33 @@ public class WorldAtlasIndexer {
                 })
             );
 
-            // Structures — try client registry, then server registry (for integrated server)
-            var structureOpt = level.registryAccess().registry(Registries.STRUCTURE);
-            if (structureOpt.isPresent() && structureOpt.get().size() > 0) {
-                int structureCount = structureOpt.get().size();
-                LOGGER.info("Structure registry found with {} entries", structureCount);
-                structureOpt.get().entrySet().forEach(entry -> {
-                    ResourceLocation id = entry.getKey().location();
-                    index.addEntry(WorldAtlasIndex.AtlasType.STRUCTURE, new WorldAtlasIndex.AtlasEntry(
-                            id, formatPath(id.getPath()), WorldAtlasIndex.AtlasType.STRUCTURE,
-                            namespaceColor(id.getNamespace()), WorldAtlasIndex.Dimension.OVERWORLD));
-                });
+            // Structures — use connection.registryAccess() for synced datapack registries
+            var minecraft = Minecraft.getInstance();
+            var connection = minecraft.getConnection();
+            LOGGER.debug("Connection available: {}", connection != null);
+            if (connection != null) {
+                try {
+                    var registryAccess = connection.registryAccess();
+                    LOGGER.debug("RegistryAccess available: {}", registryAccess != null);
+                    var structureOpt = registryAccess.registry(Registries.STRUCTURE);
+                    LOGGER.info("Structure registry present: {}", structureOpt.isPresent());
+                    if (structureOpt.isPresent()) {
+                        int structureCount = structureOpt.get().size();
+                        LOGGER.info("Structure registry found with {} entries", structureCount);
+                        structureOpt.get().entrySet().forEach(entry -> {
+                            ResourceLocation id = entry.getKey().location();
+                            index.addEntry(WorldAtlasIndex.AtlasType.STRUCTURE, new WorldAtlasIndex.AtlasEntry(
+                                    id, formatPath(id.getPath()), WorldAtlasIndex.AtlasType.STRUCTURE,
+                                    namespaceColor(id.getNamespace()), WorldAtlasIndex.Dimension.OVERWORLD));
+                        });
+                    } else {
+                        LOGGER.warn("Structure registry not found in connection");
+                    }
+                } catch (Exception e) {
+                    LOGGER.error("Error accessing structure registry from connection", e);
+                }
             } else {
-                LOGGER.warn("Structure registry not available on client - structures disabled in this version");
+                LOGGER.warn("No connection available at indexing time - structures may not be synced yet");
             }
 
             // Entities
@@ -87,6 +103,95 @@ public class WorldAtlasIndexer {
                 .orElse(formatPath(namespace));
     }
 
+
+    public static void indexStructuresFromConnection() {
+        try {
+            var minecraft = Minecraft.getInstance();
+            var connection = minecraft.getConnection();
+            if (connection == null) {
+                LOGGER.warn("No connection available - trying server access");
+                tryServerStructureRegistry();
+                return;
+            }
+
+            var registryAccess = connection.registryAccess();
+            var structureOpt = registryAccess.registry(Registries.STRUCTURE);
+
+            if (!structureOpt.isPresent()) {
+                LOGGER.warn("Structure registry not in client - known NeoForge 1.21.1 issue with datapack registry sync");
+                LOGGER.debug("Attempting server registry access as fallback");
+                tryServerStructureRegistry();
+                return;
+            }
+
+            int structureCount = structureOpt.get().size();
+            if (structureCount == 0) {
+                LOGGER.warn("Structure registry is empty");
+                return;
+            }
+
+            LOGGER.info("Structure registry found (deferred) with {} entries", structureCount);
+            WorldAtlasIndex index = WorldAtlasIndex.getInstance();
+            index.getEntries(WorldAtlasIndex.AtlasType.STRUCTURE).clear();
+
+            structureOpt.get().entrySet().forEach(entry -> {
+                ResourceLocation id = entry.getKey().location();
+                index.addEntry(WorldAtlasIndex.AtlasType.STRUCTURE, new WorldAtlasIndex.AtlasEntry(
+                        id, formatPath(id.getPath()), WorldAtlasIndex.AtlasType.STRUCTURE,
+                        namespaceColor(id.getNamespace()), WorldAtlasIndex.Dimension.OVERWORLD));
+            });
+
+            index.getEntries(WorldAtlasIndex.AtlasType.STRUCTURE).sort(ENTRY_ORDER);
+            LOGGER.info("Structures loaded: {} entries", index.getEntries(WorldAtlasIndex.AtlasType.STRUCTURE).size());
+        } catch (Exception e) {
+            LOGGER.error("Failed to load structures from connection", e);
+        }
+    }
+
+    private static void tryServerStructureRegistry() {
+        try {
+            var minecraft = Minecraft.getInstance();
+            var server = minecraft.getSingleplayerServer();
+            if (server == null) {
+                LOGGER.info("No single-player server available (multiplayer?)");
+                return;
+            }
+
+            var serverLevel = server.overworld();
+            if (serverLevel == null) {
+                LOGGER.warn("Could not access server overworld");
+                return;
+            }
+
+            var structureOpt = serverLevel.registryAccess().registry(Registries.STRUCTURE);
+            if (!structureOpt.isPresent()) {
+                LOGGER.warn("Structure registry not available on server either");
+                return;
+            }
+
+            int structureCount = structureOpt.get().size();
+            if (structureCount == 0) {
+                LOGGER.warn("Server structure registry is empty");
+                return;
+            }
+
+            LOGGER.info("Structure registry found on server with {} entries", structureCount);
+            WorldAtlasIndex index = WorldAtlasIndex.getInstance();
+            index.getEntries(WorldAtlasIndex.AtlasType.STRUCTURE).clear();
+
+            structureOpt.get().entrySet().forEach(entry -> {
+                ResourceLocation id = entry.getKey().location();
+                index.addEntry(WorldAtlasIndex.AtlasType.STRUCTURE, new WorldAtlasIndex.AtlasEntry(
+                        id, formatPath(id.getPath()), WorldAtlasIndex.AtlasType.STRUCTURE,
+                        namespaceColor(id.getNamespace()), WorldAtlasIndex.Dimension.OVERWORLD));
+            });
+
+            index.getEntries(WorldAtlasIndex.AtlasType.STRUCTURE).sort(ENTRY_ORDER);
+            LOGGER.info("Structures loaded from server: {} entries", index.getEntries(WorldAtlasIndex.AtlasType.STRUCTURE).size());
+        } catch (Exception e) {
+            LOGGER.debug("Could not access server structure registry: {}", e.getMessage());
+        }
+    }
 
     /** "dark_forest" → "Dark Forest" */
     public static String formatPath(String path) {
