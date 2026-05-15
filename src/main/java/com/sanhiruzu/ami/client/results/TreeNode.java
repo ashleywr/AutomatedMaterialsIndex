@@ -8,7 +8,7 @@ public class TreeNode {
     private final String label;
     private final SearchNode entry; // null for group nodes
     private final List<TreeNode> children = new ArrayList<>();
-    private boolean expanded = true;
+    private boolean expanded = false;
 
     public TreeNode(String label) {
         this.label = label;

@@ -1,13 +1,15 @@
 package com.sanhiruzu.ami.client;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
+import org.lwjgl.glfw.GLFW;
 
 import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.AMIConfig;
@@ -15,22 +17,29 @@ import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.GlobalIndexCache;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.ProviderRegistry;
+import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchService;
-import org.lwjgl.glfw.GLFW;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
 public class InventoryOverlayHandler {
-    // Checked once at class load — mod list is fixed after startup
-    // Package-accessible so CommandPaletteWidget can check it
     static final boolean RECIPE_VIEWER_PRESENT =
             ModList.get().isLoaded("emi") || ModList.get().isLoaded("jei");
 
+    // Bottom bar dimensions (search bar + AMI button rendered BELOW the panel)
+    private static final int BOTTOM_BAR_H = 18;
+    private static final int SEARCH_H     = 14;
+    private static final int AMI_BTN_W    = 22;
+
     private static UniversalResultsPanel resultsPanel;
 
-    // Always start in atlas mode - focus on World Atlas, not Items
-    private static NodeType atlasType = NodeType.BIOME;
+    // Panel geometry remembered between render and click frames
+    private static int lastPanelX    = 0;
+    private static int lastPanelW    = 0;
+    private static int lastScreenH   = 0;
+
     private static SearchService searchService = null;
 
     private static volatile boolean indexingInProgress = false;
@@ -44,7 +53,7 @@ public class InventoryOverlayHandler {
         if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
 
         try {
-            // Async lazy-load indexing on first inventory open
+            // Async lazy-load on first open
             if (!indexingDispatched && !indexingInProgress) {
                 var level = Minecraft.getInstance().level;
                 if (level != null) {
@@ -52,7 +61,6 @@ public class InventoryOverlayHandler {
                     if (resultsPanel != null) resultsPanel.setIndexingInProgress(true);
 
                     GlobalIndexCache.loadOrIndexAsync(level, () -> {
-                        // Runs on render thread after background indexing completes
                         searchService = SearchService.buildFrom(GlobalIndex.getInstance());
                         ProviderRegistry.indexStructuresDeferred(level);
                         searchService = SearchService.buildFrom(GlobalIndex.getInstance());
@@ -63,11 +71,9 @@ public class InventoryOverlayHandler {
                     });
                 }
             } else if (indexingDispatched && retryCount < MAX_RETRIES) {
-                // Retry if structures/dimensions are still empty
                 var index = GlobalIndex.getInstance();
                 int structures = index.getNodes(NodeType.STRUCTURE).size();
                 int dimensions = index.getNodes(NodeType.DIMENSION).size();
-
                 if (structures == 0 || dimensions == 0) {
                     var level = Minecraft.getInstance().level;
                     if (level != null) {
@@ -78,8 +84,10 @@ public class InventoryOverlayHandler {
                 }
             }
 
-            int panelY = 0;
-            int panelHeight = event.getScreen().height;
+            // Panel occupies everything ABOVE the bottom bar
+            int screenW = event.getScreen().width;
+            int screenH = event.getScreen().height;
+            int panelH  = screenH - BOTTOM_BAR_H;
 
             boolean goLeft = switch (AMIConfig.PANEL_SIDE.get()) {
                 case LEFT  -> true;
@@ -87,62 +95,140 @@ public class InventoryOverlayHandler {
                 case AUTO  -> RECIPE_VIEWER_PRESENT;
             };
 
-            int panelX, panelWidth;
+            int panelX, panelW;
             int widthOverride = AMIConfig.PANEL_WIDTH_OVERRIDE.get();
             if (goLeft) {
                 int available = containerScreen.getGuiLeft() - 12;
-                panelWidth = widthOverride > 0 ? widthOverride : available;
-                panelX = containerScreen.getGuiLeft() - panelWidth - 6;
+                panelW = widthOverride > 0 ? widthOverride : available;
+                panelX = containerScreen.getGuiLeft() - panelW - 6;
             } else {
                 panelX = containerScreen.getGuiLeft() + containerScreen.getXSize() + 6;
-                int available = event.getScreen().width - panelX - 6;
-                panelWidth = widthOverride > 0 ? widthOverride : available;
+                int available = screenW - panelX - 6;
+                panelW = widthOverride > 0 ? widthOverride : available;
             }
 
-            if (panelWidth < 60) return;
+            if (panelW < 60) return;
+
+            lastPanelX  = panelX;
+            lastPanelW  = panelW;
+            lastScreenH = screenH;
 
             if (resultsPanel == null) {
-                resultsPanel = new UniversalResultsPanel(panelX, panelY, panelWidth, panelHeight);
+                resultsPanel = new UniversalResultsPanel(panelX, 0, panelW, panelH);
                 refreshEntries();
             }
 
             checkAndRefreshIfStale();
-
-            resultsPanel.updateLayout(panelX, panelY, panelWidth, panelHeight);
+            resultsPanel.updateLayout(panelX, 0, panelW, panelH);
 
             event.getGuiGraphics().pose().pushPose();
             event.getGuiGraphics().pose().translate(0, 0, 1000);
             resultsPanel.render(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
+            // Bottom bar (search + AMI button) rendered after panel, same Z-layer
+            renderBottomBar(event.getGuiGraphics(), event.getMouseX(), event.getMouseY());
             event.getGuiGraphics().pose().popPose();
+
         } catch (Exception e) {
             AMI.LOGGER.error("AMI overlay render failed", e);
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Bottom bar rendering (external to the panel widget)
+    // -------------------------------------------------------------------------
+
+    private static void renderBottomBar(GuiGraphics g, int mouseX, int mouseY) {
+        if (lastPanelW <= 0) return;
+        var font = Minecraft.getInstance().font;
+
+        int barY    = lastScreenH - BOTTOM_BAR_H;
+        int btnX    = lastPanelX;
+        int btnY    = barY + 2;
+        int searchX = btnX + AMI_BTN_W + 2;
+        int searchW = lastPanelW - AMI_BTN_W - 2;
+
+        // Separator line between panel and bottom bar
+        g.fill(lastPanelX, barY, lastPanelX + lastPanelW, barY + 1, 0xFF333333);
+
+        // AMI button
+        boolean btnHovered = mouseX >= btnX && mouseX < btnX + AMI_BTN_W
+                && mouseY >= btnY && mouseY < btnY + SEARCH_H;
+        int btnBorder    = btnHovered ? 0xFFFFAA00 : 0xFF444444;
+        int btnTextColor = btnHovered ? 0xFFFFDD44 : 0xFFFFAA00;
+        g.fill(btnX, btnY, btnX + AMI_BTN_W, btnY + SEARCH_H, 0xFF111111);
+        g.fill(btnX,              btnY,              btnX + AMI_BTN_W, btnY + 1,              btnBorder);
+        g.fill(btnX,              btnY + SEARCH_H - 1, btnX + AMI_BTN_W, btnY + SEARCH_H,      btnBorder);
+        g.fill(btnX,              btnY,              btnX + 1,           btnY + SEARCH_H,      btnBorder);
+        g.fill(btnX + AMI_BTN_W - 1, btnY,          btnX + AMI_BTN_W, btnY + SEARCH_H,        btnBorder);
+        int labelW = font.width("AMI");
+        g.drawString(font, "AMI", btnX + (AMI_BTN_W - labelW) / 2, btnY + 3, btnTextColor, false);
+
+        // Search bar
+        if (searchW > 0) {
+            boolean focused = resultsPanel != null && resultsPanel.isSearchFocused();
+            String query    = resultsPanel != null ? resultsPanel.getSearchQuery() : "";
+
+            g.fill(searchX, btnY, searchX + searchW, btnY + SEARCH_H,
+                    focused ? 0xFF2E2E2E : 0xFF1A1A1A);
+            int border = focused ? 0xFFAAAA44 : 0xFF555555;
+            g.fill(searchX,              btnY,              searchX + searchW, btnY + 1,         border);
+            g.fill(searchX,              btnY + SEARCH_H - 1, searchX + searchW, btnY + SEARCH_H, border);
+            g.fill(searchX,              btnY,              searchX + 1,        btnY + SEARCH_H, border);
+            g.fill(searchX + searchW - 1, btnY,            searchX + searchW, btnY + SEARCH_H,  border);
+
+            int textX = searchX + 3;
+            int textY = btnY + 3;
+            if (query.isEmpty() && !focused) {
+                g.drawString(font, Component.translatable("ami.gui.search.placeholder"),
+                        textX, textY, 0xFF666666, false);
+            } else {
+                g.drawString(font, query, textX, textY, 0xFFCCCCCC, false);
+            }
+
+            if (focused && (System.currentTimeMillis() % 1000) < 500) {
+                int cursorX = textX + font.width(query) + 1;
+                g.fill(cursorX, textY, cursorX + 1, textY + font.lineHeight, 0xFFCCCCCC);
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Hit tests for bottom bar elements
+    // -------------------------------------------------------------------------
+
+    private static boolean isAmiBtnHit(double mx, double my) {
+        int btnX = lastPanelX;
+        int btnY = lastScreenH - BOTTOM_BAR_H + 2;
+        return mx >= btnX && mx < btnX + AMI_BTN_W && my >= btnY && my < btnY + SEARCH_H;
+    }
+
+    private static boolean isSearchBarHit(double mx, double my) {
+        if (lastPanelW <= 0) return false;
+        int searchX = lastPanelX + AMI_BTN_W + 2;
+        int searchY = lastScreenH - BOTTOM_BAR_H + 2;
+        int searchW = lastPanelW - AMI_BTN_W - 2;
+        return mx >= searchX && mx < searchX + searchW && my >= searchY && my < searchY + SEARCH_H;
+    }
+
+    private static boolean isBottomBarHit(double mx, double my) {
+        return isAmiBtnHit(mx, my) || isSearchBarHit(mx, my);
+    }
+
+    // -------------------------------------------------------------------------
+    // Events
+    // -------------------------------------------------------------------------
+
     @SubscribeEvent
     static void onScreenKeyPressed(ScreenEvent.KeyPressed.Pre event) {
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
+        if (resultsPanel == null || !resultsPanel.isSearchFocused()) return;
 
-        // Handle search bar keyboard input (Backspace, Escape)
-        if (resultsPanel != null && resultsPanel.isSearchFocused()) {
-            if (event.getKeyCode() == GLFW.GLFW_KEY_BACKSPACE) {
-                resultsPanel.deleteSearchChar();
-                triggerSearch();
-                event.setCanceled(true);
-                return;
-            } else if (event.getKeyCode() == GLFW.GLFW_KEY_ESCAPE) {
-                resultsPanel.clearSearch();
-                refreshEntries();
-                event.setCanceled(true);
-                return;
-            }
-        }
-
-        if (AMIKeyMappings.CYCLE_ATLAS.matches(event.getKeyCode(), event.getScanCode())) {
-            if (resultsPanel != null) {
-                resultsPanel.clearSearch();
-            }
-            atlasType = atlasType.next();
+        if (event.getKeyCode() == GLFW.GLFW_KEY_BACKSPACE) {
+            resultsPanel.deleteSearchChar();
+            triggerSearch();
+            event.setCanceled(true);
+        } else if (event.getKeyCode() == GLFW.GLFW_KEY_ESCAPE) {
+            resultsPanel.clearSearch();
             refreshEntries();
             event.setCanceled(true);
         }
@@ -152,19 +238,33 @@ public class InventoryOverlayHandler {
     static void onScreenMouseClick(ScreenEvent.MouseButtonPressed.Pre event) {
         if (!AMIConfig.ENABLE_AUTO_INDEXING.get() || resultsPanel == null) return;
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
-        if (!resultsPanel.isMouseOver(event.getMouseX(), event.getMouseY())) {
-            // Click outside panel: unfocus search bar
+
+        double mx = event.getMouseX(), my = event.getMouseY();
+
+        // AMI button → open full-screen AMI
+        if (isAmiBtnHit(mx, my)) {
+            Minecraft.getInstance().setScreen(new AMIScreen());
+            event.setCanceled(true);
+            return;
+        }
+
+        // Search bar → focus it (no search trigger — typing does that)
+        if (isSearchBarHit(mx, my)) {
+            resultsPanel.setSearchFocused(true);
+            event.setCanceled(true);
+            return;
+        }
+
+        // Click outside panel AND bottom bar → unfocus search
+        if (!resultsPanel.isMouseOver(mx, my)) {
             resultsPanel.setSearchFocused(false);
             return;
         }
 
-        // Scrollbar takes priority over other clicks
-        if (resultsPanel.mouseClickedScrollbar(event.getMouseX(), event.getMouseY(), event.getButton())) {
+        // Panel clicks: scrollbar takes priority
+        if (resultsPanel.mouseClickedScrollbar(mx, my, event.getButton())) {
             event.setCanceled(true);
-        }
-        // Handle toolbar and tree clicks
-        else if (resultsPanel.mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton())) {
-            triggerSearch();
+        } else if (resultsPanel.mouseClicked(mx, my, event.getButton())) {
             event.setCanceled(true);
         }
     }
@@ -203,32 +303,36 @@ public class InventoryOverlayHandler {
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
         if (resultsPanel == null || !resultsPanel.isSearchFocused()) return;
 
-        char c = (char) event.getCodePoint();
-        resultsPanel.typeCharacter(c);
+        resultsPanel.typeCharacter((char) event.getCodePoint());
         triggerSearch();
         event.setCanceled(true);
     }
 
+    // -------------------------------------------------------------------------
+    // Data management
+    // -------------------------------------------------------------------------
+
     private static void checkAndRefreshIfStale() {
         if (resultsPanel == null) return;
-        // Refresh if empty (including when structures are loading) or when data is populated
-        var index = GlobalIndex.getInstance();
-        int currentCount = index.getNodes(atlasType).size();
-        boolean isLoading = index.isLoading(atlasType);
-
-        if ((resultsPanel.getEntryCount() == 0 && currentCount > 0) ||
-            (isLoading && resultsPanel.getEntryCount() == 0)) {
+        int totalCount = 0;
+        for (NodeType t : NodeType.atlasValues()) {
+            totalCount += GlobalIndex.getInstance().getNodes(t).size();
+        }
+        if (resultsPanel.getEntryCount() == 0 && totalCount > 0) {
             refreshEntries();
         }
     }
 
-    private static void refreshEntries() {
+    static void refreshEntries() {
         if (resultsPanel == null) return;
 
-        var entries = GlobalIndex.getInstance().getNodes(atlasType);
-        resultsPanel.setAtlasEntries(entries, atlasType.displayName(), atlasType);
+        List<SearchNode> all = new ArrayList<>();
+        for (NodeType t : NodeType.atlasValues()) {
+            all.addAll(GlobalIndex.getInstance().getNodes(t));
+        }
 
-        AMI.LOGGER.debug("AMI overlay refreshed: {} entries of type {}", resultsPanel.getEntryCount(), atlasType);
+        resultsPanel.setEntries(all);
+        AMI.LOGGER.debug("AMI overlay refreshed: {} total entries across all types", all.size());
     }
 
     private static void triggerSearch() {
@@ -243,7 +347,7 @@ public class InventoryOverlayHandler {
     }
 
     // -------------------------------------------------------------------------
-    // Public accessors for exclusion areas
+    // Exclusion area accessor for EMI plugin
     // -------------------------------------------------------------------------
 
     public static UniversalResultsPanel getResultsPanel() {
