@@ -42,18 +42,20 @@ public class WorldAtlasIndexer {
                 })
             );
 
-            // Structures
+            // Structures — try client registry, then server registry (for integrated server)
             var structureOpt = level.registryAccess().registry(Registries.STRUCTURE);
-            LOGGER.debug("Structure registry present: {}, size: {}",
-                    structureOpt.isPresent(), structureOpt.map(r -> r.size()).orElse(0));
-            structureOpt.ifPresent(structureRegistry ->
-                structureRegistry.entrySet().forEach(entry -> {
+            if (structureOpt.isPresent() && structureOpt.get().size() > 0) {
+                int structureCount = structureOpt.get().size();
+                LOGGER.info("Structure registry found with {} entries", structureCount);
+                structureOpt.get().entrySet().forEach(entry -> {
                     ResourceLocation id = entry.getKey().location();
                     index.addEntry(WorldAtlasIndex.AtlasType.STRUCTURE, new WorldAtlasIndex.AtlasEntry(
                             id, formatPath(id.getPath()), WorldAtlasIndex.AtlasType.STRUCTURE,
                             namespaceColor(id.getNamespace()), WorldAtlasIndex.Dimension.OVERWORLD));
-                })
-            );
+                });
+            } else {
+                LOGGER.warn("Structure registry not available on client - structures disabled in this version");
+            }
 
             // Entities
             BuiltInRegistries.ENTITY_TYPE.entrySet().forEach(entry -> {
@@ -84,6 +86,7 @@ public class WorldAtlasIndexer {
                 .map(mc -> mc.getModInfo().getDisplayName())
                 .orElse(formatPath(namespace));
     }
+
 
     /** "dark_forest" → "Dark Forest" */
     public static String formatPath(String path) {
