@@ -33,29 +33,20 @@ public class SearchBarWidget implements AmiWidget {
 
     private List<TokenColorizer.ColorSpan> colorSpans = List.of();
 
-    private void drawColorizedText(GuiGraphics g, net.minecraft.client.gui.Font font, int startX, int startY, int maxWidth) {
-        if (query.isEmpty()) return;
+    private void drawColorizedText(GuiGraphics g, net.minecraft.client.gui.Font font, int startX, int startY, String visibleText, int scrollStart, int maxTextWidth) {
+        if (visibleText.isEmpty()) return;
 
-        int maxTextWidth = maxWidth - 6; // Account for padding on both sides
-        String displayText = query;
-
-        // Truncate if text is too wide
-        while (!displayText.isEmpty() && font.width(displayText) > maxTextWidth) {
-            displayText = displayText.substring(0, displayText.length() - 1);
-        }
-
-        if (displayText.isEmpty()) return;
-
-        g.enableScissor(startX - 3, startY - 2, startX + maxWidth, startY + 14);
+        g.enableScissor(startX, startY - 1, startX + maxTextWidth, startY + font.lineHeight + 1);
         try {
-            if (colorSpans.isEmpty()) {
-                g.drawString(font, displayText, startX, startY, 0xFFCCCCCC, false);
+            if (colorSpans.isEmpty() || scrollStart > 0) {
+                g.drawString(font, visibleText, startX, startY, 0xFFCCCCCC, false);
             } else {
                 int currentX = startX;
                 for (TokenColorizer.ColorSpan span : colorSpans) {
-                    if (span.endIndex() > displayText.length()) break;
-
-                    String spanText = displayText.substring(span.startIndex(), Math.min(span.endIndex(), displayText.length()));
+                    int sStart = span.startIndex();
+                    int sEnd = Math.min(span.endIndex(), visibleText.length());
+                    if (sEnd <= sStart || sStart >= visibleText.length()) continue;
+                    String spanText = visibleText.substring(sStart, sEnd);
                     if (!spanText.isEmpty()) {
                         g.drawString(font, spanText, currentX, startY, span.argbColor(), false);
                         currentX += font.width(spanText);
@@ -65,6 +56,14 @@ public class SearchBarWidget implements AmiWidget {
         } finally {
             g.disableScissor();
         }
+    }
+
+    private String computeVisibleText(net.minecraft.client.gui.Font font, int maxTextWidth) {
+        int start = 0;
+        while (start < query.length() && font.width(query.substring(start)) > maxTextWidth) {
+            start++;
+        }
+        return query.substring(start);
     }
 
     private void updateColorSpans() {
@@ -111,6 +110,8 @@ public class SearchBarWidget implements AmiWidget {
 
         int textX = x + 5;
         int textY = y + (h - font.lineHeight) / 2 + 1;
+        int maxTextWidth = w - 10;
+
         if (query.isEmpty() && !focused) {
             // Cycle placeholder text every 3 seconds
             long now = System.currentTimeMillis();
@@ -118,14 +119,18 @@ public class SearchBarWidget implements AmiWidget {
                 placeholderIndex = (placeholderIndex + 1) % PLACEHOLDER_HINTS.length;
                 lastPlaceholderSwap = now;
             }
+            g.enableScissor(textX, textY - 1, textX + maxTextWidth, textY + font.lineHeight + 1);
             g.drawString(font, PLACEHOLDER_HINTS[placeholderIndex], textX, textY, 0xFF666666, false);
+            g.disableScissor();
         } else {
-            drawColorizedText(g, font, textX, textY, w);
-        }
+            String visibleText = computeVisibleText(font, maxTextWidth);
+            int scrollStart = query.length() - visibleText.length();
+            drawColorizedText(g, font, textX, textY, visibleText, scrollStart, maxTextWidth);
 
-        if (focused && !query.isEmpty() && (System.currentTimeMillis() % 1000) < 500) {
-            int cursorX = textX + font.width(query) + 1;
-            g.fill(cursorX, textY - 1, cursorX + 1, textY + font.lineHeight, 0xFFCCCCCC);
+            if (focused && (System.currentTimeMillis() % 1000) < 500) {
+                int cursorX = textX + font.width(visibleText) + 1;
+                g.fill(cursorX, textY - 1, cursorX + 1, textY + font.lineHeight, 0xFFCCCCCC);
+            }
         }
     }
 
