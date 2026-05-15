@@ -85,11 +85,12 @@ public class AMIClient {
         }
     }
 
-    @SubscribeEvent
-    static void onKeyInput(InputEvent.Key event) {
-        if (AMIKeyMappings.OPEN_AMI.consumeClick()) {
-            AMI.LOGGER.debug("Opening AMI screen");
-            Minecraft.getInstance().setScreen(new AMIScreen());
-        }
-    }
+    // Disabled - focus on World Atlas overlay instead of full-screen Items GUI
+    // @SubscribeEvent
+    // static void onKeyInput(InputEvent.Key event) {
+    //     if (AMIKeyMappings.OPEN_AMI.consumeClick()) {
+    //         AMI.LOGGER.debug("Opening AMI screen");
+    //         Minecraft.getInstance().setScreen(new AMIScreen());
+    //     }
+    // }
 }
