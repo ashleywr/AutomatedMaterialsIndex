@@ -7,6 +7,8 @@ import net.minecraft.client.gui.GuiGraphics;
 import com.sanhiruzu.ami.index.SearchNode;
 
 public class ResultsToolbar {
+    public enum ViewMode { GRID, LIST }
+
     private static final int TOOLBAR_HEIGHT = 20;
     private static final int BUTTON_W = 14;
     private static final int DROPDOWN_W = 80;
@@ -14,6 +16,7 @@ public class ResultsToolbar {
 
     private int x, y, width;
     private boolean ascending = true;
+    private ViewMode viewMode = ViewMode.GRID;
 
     // Registered dropdowns - add or remove here to customize the toolbar
     private final List<Dropdown> dropdowns = new ArrayList<>();
@@ -68,7 +71,7 @@ public class ResultsToolbar {
     }
 
     private void updateDropdownPositions() {
-        int buttonX = x + 2 + BUTTON_W + 3; // Account for sort direction button
+        int buttonX = x + 2 + BUTTON_W + 3 + BUTTON_W + 3; // view-mode + sort-dir buttons
         for (Dropdown dropdown : dropdowns) {
             dropdown.updatePosition(buttonX, y + 3, getDropdownWidth(dropdown));
             buttonX += getDropdownWidth(dropdown) + 3;
@@ -89,7 +92,14 @@ public class ResultsToolbar {
     public void render(GuiGraphics g, int mouseX, int mouseY) {
         int buttonX = x + 2;
 
-        // Sort direction button (⬆/⬇)
+        // View mode toggle button (G = grid, L = list)
+        String modeLabel = viewMode == ViewMode.GRID ? "G" : "L";
+        boolean modeHovered = isPointInRect(mouseX, mouseY, buttonX, y + 3, BUTTON_W, 14);
+        int modeColor = modeHovered ? 0xFF88AAFF : 0xFF6688CC;
+        g.drawString(Minecraft.getInstance().font, modeLabel, buttonX + 4, y + 3, modeColor, false);
+        buttonX += BUTTON_W + 3;
+
+        // Sort direction button (▲/▼)
         String dirLabel = ascending ? "▲" : "▼";
         boolean dirHovered = isPointInRect(mouseX, mouseY, buttonX, y + 3, BUTTON_W, 14);
         int dirColor = dirHovered ? 0xFFAAAA44 : 0xFF888888;
@@ -105,6 +115,14 @@ public class ResultsToolbar {
         if (button != 0) return false;
 
         int buttonX = x + 2;
+
+        // View mode toggle
+        if (isPointInRect((int) mouseX, (int) mouseY, buttonX, y + 3, BUTTON_W, 14)) {
+            viewMode = (viewMode == ViewMode.GRID) ? ViewMode.LIST : ViewMode.GRID;
+            closeAllDropdowns();
+            return true;
+        }
+        buttonX += BUTTON_W + 3;
 
         // Sort direction button
         if (isPointInRect((int) mouseX, (int) mouseY, buttonX, y + 3, BUTTON_W, 14)) {
@@ -150,6 +168,7 @@ public class ResultsToolbar {
     public boolean isAscending() { return ascending; }
     public ResultsProcessor.GroupBy getGroupBy() { return groupByDropdown.getSelected(); }
     public Set<String> getSelectedMods() { return modFilterDropdown.getSelected(); }
+    public ViewMode getViewMode() { return viewMode; }
 
     public boolean isAnyDropdownOpen() {
         for (Dropdown dropdown : dropdowns) {

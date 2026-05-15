@@ -117,6 +117,15 @@ public class AMIConfig {
             .comment("Suppress EMI/JEI rendering when AMI search is focused")
             .define("suppressRecipeViewers", true);
 
+    public enum ItemClickAction { RECIPES, USES, NONE }
+
+    public static final ModConfigSpec.EnumValue<ItemClickAction> ITEM_CLICK_ACTION = BUILDER
+            .comment("What left-clicking an item in the AMI grid does.",
+                     "RECIPES = open recipe viewer for crafting recipes (default),",
+                     "USES = open recipe viewer for item uses,",
+                     "NONE = do nothing. Right-click always opens uses.")
+            .defineEnum("itemClickAction", ItemClickAction.RECIPES);
+
     static {
         BUILDER.pop();
     }
