@@ -9,6 +9,7 @@
   "ami.gui.structures": "Structures",
   "ami.gui.entities": "Entities",
   "ami.gui.dimensions": "Dimensions",
+  "ami.gui.players": "Players",
   "ami.gui.cycle_hint": "Press %s to cycle",
   "ami.gui.close_hint": "Press %s to close",
   "ami.gui.search.placeholder": "Filter...",

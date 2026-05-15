@@ -12,6 +12,7 @@ public class GlobalIndex {
 
     private final Map<NodeType, List<SearchNode>> nodes = new EnumMap<>(NodeType.class);
     private final Set<NodeType> loadingTypes = EnumSet.noneOf(NodeType.class);
+    private volatile boolean indexReady = false;
     private long indexBuildTimeMs;
 
     private GlobalIndex() {
@@ -44,7 +45,16 @@ public class GlobalIndex {
     public void clear() {
         nodes.values().forEach(List::clear);
         loadingTypes.clear();
+        indexReady = false;
         indexBuildTimeMs = 0;
+    }
+
+    public void markIndexReady() {
+        this.indexReady = true;
+    }
+
+    public boolean isIndexReady() {
+        return indexReady;
     }
 
     public void setLoading(NodeType type, boolean loading) {

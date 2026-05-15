@@ -7,7 +7,8 @@ public enum NodeType {
     BIOME("ami.gui.biomes"),
     STRUCTURE("ami.gui.structures"),
     ENTITY("ami.gui.entities"),
-    DIMENSION("ami.gui.dimensions");
+    DIMENSION("ami.gui.dimensions"),
+    PLAYER("ami.gui.players");
 
     private final String translationKey;
 
@@ -52,6 +53,6 @@ public enum NodeType {
         for (int i = 0; i < atlas.length; i++) {
             if (atlas[i] == this) return i;
         }
-        throw new IllegalStateException("NodeType.next()/prev() called on ITEM");
+        throw new IllegalStateException("NodeType.next()/prev() called on non-atlas type: " + this);
     }
 }

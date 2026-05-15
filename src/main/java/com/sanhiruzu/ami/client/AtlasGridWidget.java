@@ -48,6 +48,9 @@ public class AtlasGridWidget {
     private boolean searchFocused = false;
     private final List<AtlasGroup> searchGroups = new ArrayList<>();
 
+    // Indexing state
+    private boolean indexingInProgress = false;
+
     /** One group per namespace in the atlas list, or per NodeType in search results. */
     static final class AtlasGroup {
         final String namespace;
@@ -180,6 +183,10 @@ public class AtlasGridWidget {
 
     public String getSearchQuery() {
         return searchQuery;
+    }
+
+    public void setIndexingInProgress(boolean inProgress) {
+        this.indexingInProgress = inProgress;
     }
 
     public boolean isSearchBarHovered(double mouseX, double mouseY) {
@@ -355,10 +362,15 @@ public class AtlasGridWidget {
         List<AtlasGroup> groups = (mode == Mode.SEARCH) ? searchGroups : atlasGroups;
 
         if (groups.isEmpty()) {
-            var index = GlobalIndex.getInstance();
-            var message = currentAtlasType != null && index.isLoading(currentAtlasType)
-                    ? Component.literal("Loading...")
-                    : Component.translatable("ami.gui.empty_list");
+            Component message;
+            if (indexingInProgress) {
+                message = Component.literal("Indexing...");
+            } else {
+                var index = GlobalIndex.getInstance();
+                message = currentAtlasType != null && index.isLoading(currentAtlasType)
+                        ? Component.literal("Loading...")
+                        : Component.translatable("ami.gui.empty_list");
+            }
             g.drawString(font, message,
                     x + 4, y + HEADER_HEIGHT + 8, AMITheme.ENTRY_TEXT, false);
 
@@ -475,7 +487,7 @@ public class AtlasGridWidget {
                 case ENTITY    -> appendEntityDetails(lines, entry);
                 case STRUCTURE -> appendStructureDetails(lines, entry);
                 case DIMENSION -> {} // No extra details for dimensions yet
-                case ITEM      -> {} // unreachable in atlas mode
+                case ITEM, PLAYER -> {} // unreachable in atlas mode
             }
         } else {
             lines.add(Component.translatable("ami.tooltip.shift_for_details")
@@ -487,7 +499,7 @@ public class AtlasGridWidget {
                 case BIOME, STRUCTURE -> Component.translatable("ami.tooltip.cheat_locate");
                 case ENTITY           -> Component.translatable("ami.tooltip.cheat_entity");
                 case DIMENSION        -> Component.literal("(dimension info)");
-                case ITEM             -> Component.empty(); // unreachable in atlas mode
+                case ITEM, PLAYER     -> Component.empty(); // unreachable in atlas mode
             };
             lines.add(clickHint.copy().withStyle(s -> s.withColor(AMITheme.CHEAT_INDICATOR)));
         }
@@ -788,7 +800,7 @@ public class AtlasGridWidget {
                                 case STRUCTURE -> AMICheatMode.locateStructure(entry.id());
                                 case ENTITY    -> {} // future: summon
                                 case DIMENSION -> {} // future: dimension tp
-                                case ITEM      -> {} // unreachable in atlas mode
+                                case ITEM, PLAYER -> {} // unreachable in atlas mode
                             }
                             return true;
                         }
