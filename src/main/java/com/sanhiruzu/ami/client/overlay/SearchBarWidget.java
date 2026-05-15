@@ -59,7 +59,7 @@ public class SearchBarWidget implements AmiWidget {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (isMouseOver(mouseX, mouseY)) {
+        if (button == 0 && isMouseOver(mouseX, mouseY)) {
             setFocused(true);
             return true;
         }
