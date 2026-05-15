@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import com.google.gson.*;
 import com.sanhiruzu.ami.AMI;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.resources.ResourceLocation;
@@ -14,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.zip.*;
 
 /**
@@ -66,12 +68,34 @@ public final class GlobalIndexCache {
     /**
      * Try cache load first; if miss, run full indexing and save to cache.
      * Deferred structure/dimension indexing still runs regardless of cache hit.
+     * @deprecated Use loadOrIndexAsync for non-blocking load.
      */
+    @Deprecated
     public static void loadOrIndex(ClientLevel level) {
         if (!tryLoad()) {
             ProviderRegistry.indexAll(level);
             save();
         }
+    }
+
+    /**
+     * Async entry point. Captures level reference on calling (render) thread,
+     * then dispatches background work.
+     *
+     * @param level         captured on render thread before returning
+     * @param onComplete    scheduled back on render thread when indexing is done
+     * @return future that completes when indexing is done
+     */
+    public static CompletableFuture<Void> loadOrIndexAsync(ClientLevel level, Runnable onComplete) {
+        return CompletableFuture
+            .runAsync(() -> {
+                if (!tryLoad()) {
+                    ProviderRegistry.indexAll(level);
+                    save();
+                }
+                GlobalIndex.getInstance().markIndexReady();
+            }, Util.backgroundExecutor())
+            .thenRunAsync(onComplete, cmd -> Minecraft.getInstance().execute(cmd));
     }
 
     private static Path resolveCacheFile() {

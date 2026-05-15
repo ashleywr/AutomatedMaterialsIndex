@@ -18,4 +18,7 @@ public final class SearchNodeKeys {
     public static final String DIMENSION       = "dimension";
     public static final String ENTITY_CATEGORY = "entityCategory";
     public static final String FIRE_IMMUNE     = "fireImmune";
+
+    // Player-specific (transient, never persisted)
+    public static final String PLAYER_UUID     = "playerUuid";
 }

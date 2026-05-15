@@ -23,15 +23,19 @@ import java.util.List;
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
 public class InventoryOverlayHandler {
     // Checked once at class load — mod list is fixed after startup
-    private static final boolean RECIPE_VIEWER_PRESENT =
+    // Package-accessible so CommandPaletteWidget can check it
+    static final boolean RECIPE_VIEWER_PRESENT =
             ModList.get().isLoaded("emi") || ModList.get().isLoaded("jei");
 
     private static AtlasGridWidget gridWidget;
+    private static CommandPaletteWidget paletteWidget;
+
     // Always start in atlas mode - focus on World Atlas, not Items
     private static NodeType atlasType = NodeType.BIOME;
     private static SearchService searchService = null;
 
-    private static boolean hasIndexed = false;
+    private static volatile boolean indexingInProgress = false;
+    private static boolean indexingDispatched = false;
     private static int retryCount = 0;
     private static final int MAX_RETRIES = 5;
 
@@ -41,18 +45,26 @@ public class InventoryOverlayHandler {
         if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
 
         try {
-            // Lazy-load indexing on first inventory open
-            if (!hasIndexed) {
+            // Async lazy-load indexing on first inventory open
+            if (!indexingDispatched && !indexingInProgress) {
                 var level = Minecraft.getInstance().level;
                 if (level != null) {
-                    GlobalIndexCache.loadOrIndex(level);
-                    searchService = SearchService.buildFrom(GlobalIndex.getInstance());
-                    ProviderRegistry.indexStructuresDeferred(level);
-                    searchService = SearchService.buildFrom(GlobalIndex.getInstance());
-                    hasIndexed = true;
+                    indexingInProgress = true;
+                    if (gridWidget != null) gridWidget.setIndexingInProgress(true);
+
+                    GlobalIndexCache.loadOrIndexAsync(level, () -> {
+                        // Runs on render thread after background indexing completes
+                        searchService = SearchService.buildFrom(GlobalIndex.getInstance());
+                        ProviderRegistry.indexStructuresDeferred(level);
+                        searchService = SearchService.buildFrom(GlobalIndex.getInstance());
+                        indexingInProgress = false;
+                        indexingDispatched = true;
+                        if (gridWidget != null) gridWidget.setIndexingInProgress(false);
+                        refreshEntries();
+                    });
                 }
-            } else if (retryCount < MAX_RETRIES) {
-                // Retry if structures/dimensions are empty
+            } else if (indexingDispatched && retryCount < MAX_RETRIES) {
+                // Retry if structures/dimensions are still empty
                 var index = GlobalIndex.getInstance();
                 int structures = index.getNodes(NodeType.STRUCTURE).size();
                 int dimensions = index.getNodes(NodeType.DIMENSION).size();
