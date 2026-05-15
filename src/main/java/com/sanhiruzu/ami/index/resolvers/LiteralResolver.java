@@ -3,56 +3,31 @@ package com.sanhiruzu.ami.index.resolvers;
 import com.sanhiruzu.ami.index.IQueryResolver;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.index.SearchIndex;
 
 import java.util.*;
 
 /**
  * Wraps the trie + substring fallback logic for indexed nodes.
- * This is the primary resolver — it covers all cached NodeTypes.
+ * Delegates to SearchIndex which is concurrency-friendly and pluggable.
  */
 public final class LiteralResolver implements IQueryResolver {
 
-    private static final class TrieNode {
-        final Map<Character, TrieNode> children = new HashMap<>();
-        final List<SearchNode> hits = new ArrayList<>();
-    }
-
-    private final TrieNode root = new TrieNode();
-    private final List<SearchNode> allNodes = new ArrayList<>();
+    private final SearchIndex index = new SearchIndex();
 
     /** Called during SearchService.buildFrom() to pre-load the trie. */
     public void addNode(SearchNode node) {
-        allNodes.add(node);
-        insert(node.displayName().toLowerCase(), node);
-    }
-
-    private void insert(String key, SearchNode node) {
-        TrieNode current = root;
-        for (char c : key.toCharArray()) {
-            current = current.children.computeIfAbsent(c, k -> new TrieNode());
-        }
-        current.hits.add(node);
+        index.addNode(node);
     }
 
     @Override
     public Map<NodeType, List<SearchNode>> resolve(String query) {
         String lower = query.toLowerCase();
-        Set<SearchNode> prefixHits = new LinkedHashSet<>();
 
-        // Step 1: Walk trie for prefix matches
-        TrieNode current = root;
-        for (char c : lower.toCharArray()) {
-            current = current.children.get(c);
-            if (current == null) break;
-        }
-        if (current != null) bfsCollect(current, prefixHits);
-
-        // Step 2: Linear scan for substring fallback (not already found)
+        Set<SearchNode> prefixHits = new LinkedHashSet<>(index.prefixSearch(lower));
         List<SearchNode> substringHits = new ArrayList<>();
-        for (SearchNode node : allNodes) {
-            if (!prefixHits.contains(node) && node.displayName().toLowerCase().contains(lower)) {
-                substringHits.add(node);
-            }
+        for (SearchNode node : index.substringSearch(lower)) {
+            if (!prefixHits.contains(node)) substringHits.add(node);
         }
 
         // Step 3: Merge into result map grouped by type
@@ -77,15 +52,5 @@ public final class LiteralResolver implements IQueryResolver {
         }
 
         return result;
-    }
-
-    private void bfsCollect(TrieNode start, Set<SearchNode> out) {
-        Queue<TrieNode> q = new LinkedList<>();
-        q.add(start);
-        while (!q.isEmpty()) {
-            TrieNode t = q.poll();
-            out.addAll(t.hits);
-            q.addAll(t.children.values());
-        }
     }
 }
