@@ -10,6 +10,7 @@ import net.minecraft.tags.ItemTags;
 import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Populates the GlobalIndex with all items from BuiltInRegistries.ITEM.
@@ -29,12 +30,16 @@ public class ItemProvider implements IAmiDataProvider {
             String variantGroup = getVariantGroup(item);
             String colorBucket  = "gray";
             int color           = 0xFFFFFF;
+            String tags         = collectTags(item);
 
             Map<String, String> meta = new HashMap<>();
             meta.put(SearchNodeKeys.MOD_ID, modId);
             meta.put(SearchNodeKeys.TIER, tier);
             meta.put(SearchNodeKeys.VARIANT_GROUP, variantGroup);
             meta.put(SearchNodeKeys.COLOR_BUCKET, colorBucket);
+            if (!tags.isEmpty()) {
+                meta.put(SearchNodeKeys.TAGS, tags);
+            }
 
             index.addNode(new SearchNode(id, NodeType.ITEM, displayName, color, 0, meta));
         }
@@ -66,6 +71,12 @@ public class ItemProvider implements IAmiDataProvider {
         if (path.contains("_button")) return "button";
         if (path.contains("_pressure_plate")) return "pressure_plate";
         return "block";
+    }
+
+    private String collectTags(Item item) {
+        return item.builtInRegistryHolder().tags()
+            .map(tag -> tag.location().toString().toLowerCase())
+            .collect(Collectors.joining(","));
     }
 
     enum MaterialTier {

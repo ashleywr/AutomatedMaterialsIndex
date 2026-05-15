@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.client.overlay;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.sanhiruzu.ami.index.query.TokenColorizer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -29,6 +30,25 @@ public class SearchBarWidget implements AmiWidget {
     private static final long PLACEHOLDER_CYCLE_MS = 3000;
     private int placeholderIndex = 0;
     private long lastPlaceholderSwap = 0;
+
+    private List<TokenColorizer.ColorSpan> colorSpans = List.of();
+
+    private void drawColorizedText(GuiGraphics g, net.minecraft.client.gui.Font font, int startX, int startY) {
+        if (colorSpans.isEmpty()) {
+            g.drawString(font, query, startX, startY, 0xFFCCCCCC, false);
+        } else {
+            int currentX = startX;
+            for (TokenColorizer.ColorSpan span : colorSpans) {
+                String spanText = query.substring(span.startIndex(), span.endIndex());
+                g.drawString(font, spanText, currentX, startY, span.argbColor(), false);
+                currentX += font.width(spanText);
+            }
+        }
+    }
+
+    private void updateColorSpans() {
+        colorSpans = TokenColorizer.colorize(query);
+    }
 
     public interface Listener {
         void onQueryChanged(String query);
@@ -79,7 +99,7 @@ public class SearchBarWidget implements AmiWidget {
             }
             g.drawString(font, PLACEHOLDER_HINTS[placeholderIndex], textX, textY, 0xFF666666, false);
         } else {
-            g.drawString(font, query, textX, textY, 0xFFCCCCCC, false);
+            drawColorizedText(g, font, textX, textY);
         }
 
         if (focused && (System.currentTimeMillis() % 1000) < 500) {
@@ -133,6 +153,7 @@ public class SearchBarWidget implements AmiWidget {
 
         if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
             deleteChar();
+            updateColorSpans();
             if (listener != null) listener.onQueryChanged(query);
             historyIndex = -1;
             return true;
@@ -151,6 +172,7 @@ public class SearchBarWidget implements AmiWidget {
                     historyIndex++;
                 }
                 query = history.get(historyIndex);
+                updateColorSpans();
                 if (listener != null) listener.onQueryChanged(query);
             }
             return true;
@@ -164,6 +186,7 @@ public class SearchBarWidget implements AmiWidget {
                     query = liveQuery;
                     liveQuery = "";
                 }
+                updateColorSpans();
                 if (listener != null) listener.onQueryChanged(query);
             }
             return true;
@@ -179,6 +202,7 @@ public class SearchBarWidget implements AmiWidget {
         if (c >= 32 && c < 127 && query.length() < 256) {
             query += c;
             historyIndex = -1;
+            updateColorSpans();
             if (listener != null) listener.onQueryChanged(query);
             return true;
         }
@@ -217,6 +241,7 @@ public class SearchBarWidget implements AmiWidget {
         historyIndex = -1;
         liveQuery = "";
         highlight = false;
+        colorSpans = List.of();
     }
 
     private void deleteChar() {
