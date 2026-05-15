@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.client.overlay;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
@@ -14,8 +14,21 @@ public class SearchBarWidget implements AmiWidget {
     private WidgetBounds bounds = new WidgetBounds(0, 0, 160, 14);
 
     private final Listener listener;
-    private final List<String> history = new LinkedList<>();
+    private final List<String> history = new ArrayList<>();
     private int historyIndex = -1;
+    private String liveQuery = "";  // Save current query when entering history nav
+    private long lastClickTime = 0;
+    private boolean highlight = false;
+
+    private static final String[] PLACEHOLDER_HINTS = {
+        "Search items, biomes, or players...",
+        "Try #storage or #ore for tag search...",
+        "Try &nether to filter by environment...",
+        "Type a player name to see their location..."
+    };
+    private static final long PLACEHOLDER_CYCLE_MS = 3000;
+    private int placeholderIndex = 0;
+    private long lastPlaceholderSwap = 0;
 
     public interface Listener {
         void onQueryChanged(String query);
@@ -47,11 +60,24 @@ public class SearchBarWidget implements AmiWidget {
         g.fill(x, y, x + 1, y + h, border);
         g.fill(x + w - 1, y, x + w, y + h, border);
 
+        if (highlight) {
+            int highlightBorder = 0xFFEEEE00;
+            g.fill(x - 1, y - 1, x + w + 1, y, highlightBorder);
+            g.fill(x - 1, y + h, x + w + 1, y + h + 1, highlightBorder);
+            g.fill(x - 1, y - 1, x, y + h + 1, highlightBorder);
+            g.fill(x + w, y - 1, x + w + 1, y + h + 1, highlightBorder);
+        }
+
         int textX = x + 3;
         int textY = y + 3;
         if (query.isEmpty() && !focused) {
-            g.drawString(font, Component.translatable("ami.gui.search.placeholder"),
-                    textX, textY, 0xFF666666, false);
+            // Cycle placeholder text every 3 seconds
+            long now = System.currentTimeMillis();
+            if (now - lastPlaceholderSwap >= PLACEHOLDER_CYCLE_MS) {
+                placeholderIndex = (placeholderIndex + 1) % PLACEHOLDER_HINTS.length;
+                lastPlaceholderSwap = now;
+            }
+            g.drawString(font, PLACEHOLDER_HINTS[placeholderIndex], textX, textY, 0xFF666666, false);
         } else {
             g.drawString(font, query, textX, textY, 0xFFCCCCCC, false);
         }
@@ -67,7 +93,14 @@ public class SearchBarWidget implements AmiWidget {
         if (!isMouseOver(mouseX, mouseY)) return false;
 
         if (button == 0) {
-            // Left click: activate search
+            long now = System.currentTimeMillis();
+            if (now - lastClickTime < 500) {
+                // Double-click: toggle highlight
+                highlight = !highlight;
+                lastClickTime = 0;
+            } else {
+                lastClickTime = now;
+            }
             setFocused(true);
             return true;
         } else if (button == 1) {
@@ -104,35 +137,37 @@ public class SearchBarWidget implements AmiWidget {
             historyIndex = -1;
             return true;
         } else if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-            clear();
+            setFocused(false);
+            return true;
+        } else if (keyCode == GLFW.GLFW_KEY_ENTER) {
+            setFocused(false);
             return true;
         } else if (keyCode == GLFW.GLFW_KEY_UP) {
-            // Navigate history backwards
             if (!history.isEmpty()) {
                 if (historyIndex < 0) {
-                    historyIndex = history.size() - 1;
-                } else if (historyIndex > 0) {
-                    historyIndex--;
+                    liveQuery = query;
+                    historyIndex = 0;
+                } else if (historyIndex < history.size() - 1) {
+                    historyIndex++;
                 }
                 query = history.get(historyIndex);
                 if (listener != null) listener.onQueryChanged(query);
             }
             return true;
         } else if (keyCode == GLFW.GLFW_KEY_DOWN) {
-            // Navigate history forwards
             if (!history.isEmpty()) {
-                historyIndex++;
-                if (historyIndex >= history.size()) {
-                    historyIndex = -1;
-                    query = "";
-                } else {
+                if (historyIndex > 0) {
+                    historyIndex--;
                     query = history.get(historyIndex);
+                } else if (historyIndex == 0) {
+                    historyIndex = -1;
+                    query = liveQuery;
+                    liveQuery = "";
                 }
                 if (listener != null) listener.onQueryChanged(query);
             }
             return true;
         } else {
-            // Block all other keys when focused (prevents E key from closing inventory)
             return true;
         }
     }
@@ -141,7 +176,7 @@ public class SearchBarWidget implements AmiWidget {
     public boolean charTyped(char c, int modifiers) {
         if (!focused) return false;
 
-        if (c >= 32 && c < 127) {
+        if (c >= 32 && c < 127 && query.length() < 256) {
             query += c;
             historyIndex = -1;
             if (listener != null) listener.onQueryChanged(query);
@@ -164,13 +199,24 @@ public class SearchBarWidget implements AmiWidget {
     }
 
     public void setFocused(boolean focused) {
+        if (focused == this.focused) return;
+
+        if (!focused && !query.isEmpty()) {
+            addToHistory(query);
+        }
+
         this.focused = focused;
+        historyIndex = -1;
+        liveQuery = "";
+        highlight = false;
     }
 
     public void clear() {
         query = "";
         focused = false;
         historyIndex = -1;
+        liveQuery = "";
+        highlight = false;
     }
 
     private void deleteChar() {
@@ -182,15 +228,11 @@ public class SearchBarWidget implements AmiWidget {
     public void addToHistory(String searchTerm) {
         if (searchTerm == null || searchTerm.isEmpty()) return;
 
-        // Remove if already in history to avoid duplicates
         history.remove(searchTerm);
+        history.add(0, searchTerm);
 
-        // Add to end of history
-        history.add(searchTerm);
-
-        // Keep history size reasonable (last 50 searches)
         if (history.size() > 50) {
-            history.remove(0);
+            history.remove(history.size() - 1);
         }
 
         historyIndex = -1;

@@ -268,9 +268,6 @@ public class OverlayWidgetManager {
         }
         var results = searchService.query(query);
         panel.setSearchResults(results, query);
-
-        // Add to search history
-        searchBar.addToHistory(query);
     }
 
     private void openAmiScreen() {
