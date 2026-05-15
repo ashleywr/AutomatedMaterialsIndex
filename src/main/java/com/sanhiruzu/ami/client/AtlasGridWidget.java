@@ -133,8 +133,17 @@ public class AtlasGridWidget {
         boolean cheat = AMICheatMode.isEnabled();
         g.fill(x, y, x + width, y + HEADER_HEIGHT + 2, cheat ? AMITheme.CHEAT_HEADER_BG : AMITheme.HEADER_BG);
         g.fill(x, y + HEADER_HEIGHT + 2, x + width, y + HEADER_HEIGHT + 3, cheat ? AMITheme.CHEAT_HEADER_SEP : AMITheme.HEADER_SEP);
+        // Show current atlas type position in cycle if applicable
         MutableComponent headerText = modeLabel.copy()
                 .append(Component.literal(" (" + entryCount() + ")"));
+
+        if (currentAtlasType != null) {
+            WorldAtlasIndex.AtlasType[] types = WorldAtlasIndex.AtlasType.values();
+            int position = currentAtlasType.ordinal() + 1;
+            headerText.append(Component.literal(" [" + position + "/" + types.length + "]")
+                    .withStyle(s -> s.withColor(0xAAAAAA)));
+        }
+
         if (cheat) {
             headerText.append(Component.literal(" [!]").withStyle(s -> s.withColor(AMITheme.CHEAT_INDICATOR)));
         }
@@ -196,6 +205,11 @@ public class AtlasGridWidget {
                     : Component.translatable("ami.gui.empty_list");
             g.drawString(font, message,
                     x + 4, y + HEADER_HEIGHT + 8, AMITheme.ENTRY_TEXT, false);
+
+            // Hint to press Tab to cycle through tabs
+            g.drawString(font, Component.translatable("ami.gui.cycle_hint", "TAB")
+                    .withStyle(s -> s.withColor(0x888888)),
+                    x + 4, y + HEADER_HEIGHT + 20, AMITheme.ENTRY_TEXT, false);
             return;
         }
 
