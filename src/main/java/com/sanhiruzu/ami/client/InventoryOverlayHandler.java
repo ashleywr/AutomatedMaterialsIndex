@@ -5,7 +5,6 @@ import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.AMIConfig;
 import com.sanhiruzu.ami.client.overlay.OverlayWidgetManager;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -21,6 +20,8 @@ public class InventoryOverlayHandler {
     private static final OverlayWidgetManager manager = new OverlayWidgetManager();
     private static boolean amiEnabled = false;
     private static boolean pendingScreenReinit = false;
+    /** True when the user has clicked the search bar and it should receive keyboard input. */
+    private static boolean searchBarInputActive = false;
 
     private static boolean isAmiAvailable() {
         return AMIConfig.ENABLE_AUTO_INDEXING.get();
@@ -52,11 +53,12 @@ public class InventoryOverlayHandler {
         event.addListener(manager.getAmiButton());
 
         if (amiEnabled) {
-            event.addListener(manager.getSearchBar());
             event.addListener(manager.getResultsPanel());
-            // Clear any pre-existing focus (e.g. EMI auto-focused its search bar).
-            event.getScreen().setFocused(null);
         }
+
+        // Reset our own focus tracking so the user must explicitly re-click the search bar.
+        searchBarInputActive = false;
+        manager.getSearchBar().setFocused(false);
     }
 
     @SubscribeEvent
@@ -77,12 +79,11 @@ public class InventoryOverlayHandler {
 
         manager.renderAll(event);
 
-        if (amiEnabled) {
-            // Prevent EMI or any other widget from stealing keyboard focus from our search bar.
-            GuiEventListener focused = event.getScreen().getFocused();
-            if (focused != null && focused != manager.getSearchBar()) {
-                event.getScreen().setFocused(null);
-            }
+        // Re-assert the widget's own focused flag each frame so the cursor/border render correctly.
+        // We route input directly via event handlers, so we don't need to fight for screen focus.
+        if (amiEnabled && manager.isPanelVisible() && searchBarInputActive) {
+            var searchBar = manager.getSearchBar();
+            if (!searchBar.isFocused()) searchBar.setFocused(true);
         }
     }
 
@@ -101,6 +102,37 @@ public class InventoryOverlayHandler {
     }
 
     @SubscribeEvent
+    static void onMouseButtonPressed(ScreenEvent.MouseButtonPressed.Pre event) {
+        if (!amiEnabled || !manager.isPanelVisible()) return;
+        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
+
+        var searchBar = manager.getSearchBar();
+        if (searchBar.isMouseOver(event.getMouseX(), event.getMouseY())) {
+            searchBarInputActive = true;
+            searchBar.setFocused(true);
+            // Handle the click ourselves and cancel so the container screen cannot reset focus.
+            searchBar.mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton());
+            event.setCanceled(true);
+        } else if (searchBarInputActive) {
+            searchBarInputActive = false;
+            searchBar.setFocused(false);
+        }
+    }
+
+    @SubscribeEvent
+    static void onCharTyped(ScreenEvent.CharacterTyped.Pre event) {
+        if (!amiEnabled || !searchBarInputActive || !manager.isPanelVisible()) return;
+        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
+
+        var searchBar = manager.getSearchBar();
+        // Re-assert focus in case another mod cleared it since our last mouse click.
+        if (!searchBar.isFocused()) searchBar.setFocused(true);
+        if (searchBar.charTyped(event.getCodePoint(), event.getModifiers())) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
     static void onKeyPressed(ScreenEvent.KeyPressed.Pre event) {
         if (!isAmiAvailable()) return;
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
@@ -108,6 +140,21 @@ public class InventoryOverlayHandler {
         InputConstants.Key pressed = InputConstants.getKey(event.getKeyCode(), event.getScanCode());
         if (AMIKeyMappings.TOGGLE_AMI.isActiveAndMatches(pressed)) {
             toggleAmi();
+            event.setCanceled(true);
+            return;
+        }
+
+        if (!amiEnabled || !searchBarInputActive || !manager.isPanelVisible()) return;
+
+        var searchBar = manager.getSearchBar();
+        if (!searchBar.isFocused()) searchBar.setFocused(true);
+        boolean handled = searchBar.keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers());
+        if (handled) {
+            event.setCanceled(true);
+        }
+        // If the search bar released its own focus (e.g. on Escape), mirror that here.
+        if (!searchBar.isFocused()) {
+            searchBarInputActive = false;
         }
     }
 
