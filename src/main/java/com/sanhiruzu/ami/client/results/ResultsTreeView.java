@@ -321,13 +321,27 @@ public class ResultsTreeView {
             g.pose().popPose();
         }
 
-        // Count Badge (computed first so we know the available label width)
+        // Count Badge
         String badge = "[" + node.getChildren().size() + " " + node.getLabel() + "]";
         int badgeW = font.width(badge);
         int badgeX = x + width - SCROLLBAR_W - badgeW - 5;
 
-        // Label (truncated to prevent overlap with the badge)
-        int labelMaxW = badgeX - (rowX + 32) - 4;
+        // Colour swatches — right-aligned, between label and badge
+        List<Integer> swatchColors = collectSwatchColors(node, MAX_SWATCHES);
+        int swatchBlockW = swatchColors.isEmpty() ? 0
+                : swatchColors.size() * (SWATCH_SIZE + SWATCH_GAP);
+        if (!swatchColors.isEmpty()) {
+            int sx = badgeX - 4 - swatchBlockW;
+            int sy = drawY + (AMITheme.ROW_HEIGHT - SWATCH_SIZE) / 2;
+            for (int argb : swatchColors) {
+                g.fill(sx, sy, sx + SWATCH_SIZE, sy + SWATCH_SIZE, argb);
+                sx += SWATCH_SIZE + SWATCH_GAP;
+            }
+        }
+
+        // Label (truncated to avoid overlap with swatches and badge)
+        int labelRightBound = badgeX - (swatchBlockW > 0 ? swatchBlockW + 8 : 0);
+        int labelMaxW = labelRightBound - (rowX + 32) - 4;
         int fullTextY = drawY + (AMITheme.ROW_HEIGHT - font.lineHeight) / 2;
         String label = truncate(font, node.getLabel(), Math.max(0, (int)(labelMaxW / currentLabelScale)));
 
