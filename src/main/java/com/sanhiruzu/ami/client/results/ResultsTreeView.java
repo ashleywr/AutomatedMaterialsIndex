@@ -6,6 +6,7 @@ import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -27,7 +28,7 @@ import java.util.*;
 public class ResultsTreeView {
 
     // ── Layout constants ──────────────────────────────────────────────────────
-    private static final int INDENT       = 10;
+    private static final int INDENT       = 12;
     private static final int SCROLLBAR_W  = 5;
     private static final int HEADER_LABEL_H = 13; // height reserved for the optional pinned header
 
@@ -139,6 +140,10 @@ public class ResultsTreeView {
                     ? isGroupRowHovered(mouseX, mouseY, drawY)
                     : isLeafRowHovered(mouseX, mouseY, drawY);
 
+            if (rowIdx % 2 == 0) {
+                g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + AMITheme.ROW_HEIGHT, 0x11FFFFFF);
+            }
+
             if (!node.isLeaf()) {
                 g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + AMITheme.ROW_HEIGHT, AMITheme.GROUP_HEADER_BG);
             }
@@ -191,16 +196,27 @@ public class ResultsTreeView {
         // Right-aligned badges
         int rightEdge = x + width - SCROLLBAR_W - 5;
         int badgeW = badgeWidth(font, entry);
-        
+
+        // Subtitle text (computed early so we know whether it's a 1- or 2-line row)
+        String subtitle = RowFieldConfig.buildSubtitle(entry);
+        boolean hasSubtitle = !subtitle.isEmpty();
+
+        // Vertically centre the text block in the row (matches the sprite centring)
+        int lineH = font.lineHeight;
+        int textY1 = hasSubtitle
+                ? drawY + Math.max(1, (AMITheme.ROW_HEIGHT - lineH * 2 - 1) / 2)
+                : drawY + (AMITheme.ROW_HEIGHT - lineH) / 2;
+        int textY2 = textY1 + lineH + 1;
+
         // Line 1 — item name
         String name = truncate(font, node.getLabel(), maxTextW - badgeW);
-        g.drawString(font, name, textX, drawY + 1, AMITheme.ENTRY_TEXT, false);
+        g.drawString(font, name, textX, textY1, AMITheme.ENTRY_TEXT, false);
 
-        // Line 2 — configurable subtitle fields
-        String subtitle = RowFieldConfig.buildSubtitle(entry);
-        if (!subtitle.isEmpty()) {
+        // Line 2 — subtitle right-aligned against the scrollbar edge
+        if (hasSubtitle) {
             String subtitleTrunc = truncate(font, subtitle, maxTextW);
-            g.drawString(font, subtitleTrunc, textX, drawY + 10, AMITheme.ENTRY_SUBTITLE, false);
+            int subtitleX = Math.max(textX, rightEdge - font.width(subtitleTrunc));
+            g.drawString(font, subtitleTrunc, subtitleX, textY2, AMITheme.ENTRY_SUBTITLE, false);
         }
 
         renderBadges(g, font, entry, drawY, rightEdge);
@@ -269,13 +285,49 @@ public class ResultsTreeView {
     private void renderGroup(GuiGraphics g, TreeNode node, int depth, int drawY, boolean hovered) {
         var font = Minecraft.getInstance().font;
         int indent = depth * INDENT;
+        int rowX = x + AMITheme.GLOBAL_PADDING + indent;
 
-        String arrow = node.isExpanded() ? "▼ " : "▶ ";
-        String label = arrow + node.getLabel() + " (" + node.getChildCount() + ")";
-        g.drawString(font, label, x + AMITheme.GLOBAL_PADDING + indent, drawY + 4, AMITheme.GROUP_HEADER_TEXT, false);
+        // Expansion Toggle
+        String arrow = node.isExpanded() ? "▼" : "▶";
+        g.drawString(font, arrow, rowX, drawY + 5, AMITheme.GROUP_HEADER_TEXT, false);
 
-        // Colour swatches from variant-grouped children — rendered as a subtitle
-        renderSwatches(g, node, drawY + 8, depth);
+        // Stacked Icon Effect (Representative Item)
+        if (!node.getChildren().isEmpty()) {
+            // Find first leaf child to use for the icon
+            SearchNode representative = null;
+            for (TreeNode child : node.getChildren()) {
+                if (child.isLeaf()) {
+                    representative = child.getEntry();
+                    break;
+                }
+            }
+
+            if (representative != null) {
+                net.minecraft.world.item.Item item = BuiltInRegistries.ITEM.get(representative.id());
+                ItemStack icon = new ItemStack(item);
+                int iconX = rowX + 12;
+                int iconY = drawY + 1;
+                
+                // Base Icon
+                g.renderItem(icon, iconX, iconY);
+                
+                // Stacked Icon (Darkened & Offset)
+                g.pose().pushPose();
+                g.pose().translate(2, -2, 100);
+                g.fill(iconX, iconY, iconX + 16, iconY + 16, 0x44000000);
+                g.renderItem(icon, iconX, iconY);
+                g.pose().popPose();
+            }
+        }
+
+        // Label
+        String label = node.getLabel();
+        g.drawString(font, label, rowX + 32, drawY + 5, AMITheme.GROUP_HEADER_TEXT, false);
+
+        // Count Badge
+        String badge = "[" + node.getChildren().size() + " " + node.getLabel() + "s]";
+        int badgeW = font.width(badge);
+        g.drawString(font, badge, x + width - SCROLLBAR_W - badgeW - 5, drawY + 5, 0xFFAAAAAA, false);
     }
 
     /**
@@ -360,12 +412,14 @@ public class ResultsTreeView {
     // ── Tooltip ───────────────────────────────────────────────────────────────
 
     private List<Component> buildTooltip(SearchNode entry) {
+        if (Screen.hasControlDown()) {
+            return DebugTooltip.build(entry);
+        }
         List<Component> lines = new ArrayList<>();
         lines.add(Component.literal(entry.displayName()));
         lines.add(Component.literal(entry.id().toString())
                 .withStyle(s -> s.withColor(0x666666)));
-        lines.add(Component.literal("Shift for details")
-                .withStyle(s -> s.withColor(0x555555)));
+        lines.add(Component.literal("§8Hold Ctrl for AMI debug info"));
         return lines;
     }
 
