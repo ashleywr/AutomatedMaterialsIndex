@@ -87,13 +87,13 @@ public class ResultsTreeView {
         int topOffset = 0;
         if (sectionLabel != null) {
             g.drawString(Minecraft.getInstance().font,
-                    sectionLabel, x + AMITheme.GLOBAL_PADDING, y + 3, 0xFF8888AA, true);
+                    sectionLabel, x + AMITheme.GLOBAL_PADDING, y + 3, AMITheme.TEXT_HEADER, false);
             topOffset = HEADER_LABEL_H;
         }
 
         if (rootNodes.isEmpty()) {
             g.drawString(Minecraft.getInstance().font,
-                    Component.translatable("ami.gui.search.empty"), x + AMITheme.GLOBAL_PADDING, y + topOffset + 6, 0xFFCCCCCC, true);
+                    Component.translatable("ami.gui.search.empty"), x + AMITheme.GLOBAL_PADDING, y + topOffset + 6, AMITheme.TEXT_SUBTLE, false);
             return;
         }
 
@@ -102,7 +102,7 @@ public class ResultsTreeView {
         int totalH   = countAllNodes() * AMITheme.ROW_HEIGHT;
         clampScroll(totalH, contentH);
 
-        g.enableScissor(x + 2, y + topOffset + 2, x + width - 2, y + height - 2);
+        g.enableScissor(x + 2, y + topOffset, x + width - 2, y + height - 2);
 
         int[] rowCounter = {0};
         int effectiveMouseX = toolbarDropdownOpen ? -1 : mouseX;
@@ -141,7 +141,7 @@ public class ResultsTreeView {
                     : isLeafRowHovered(mouseX, mouseY, drawY);
 
             if (rowIdx % 2 == 0) {
-                g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + AMITheme.ROW_HEIGHT, 0x11000000);
+                g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + AMITheme.ROW_HEIGHT, 0x15000000);
             }
 
             if (!node.isLeaf()) {
@@ -182,7 +182,7 @@ public class ResultsTreeView {
         SearchNode entry = node.getEntry();
 
         int iconX = x + AMITheme.GLOBAL_PADDING + depth * INDENT;
-        int iconY = drawY + (AMITheme.ROW_HEIGHT - AMITheme.ICON_SIZE) / 2;
+        int iconY = drawY + (AMITheme.ROW_HEIGHT - 16) / 2;
 
         // Z-lift prevents dark-background clipping on 3D item models
         g.pose().pushPose();
@@ -201,22 +201,20 @@ public class ResultsTreeView {
         String subtitle = RowFieldConfig.buildSubtitle(entry);
         boolean hasSubtitle = !subtitle.isEmpty();
 
-        // Vertically centre the text block in the row (matches the sprite centring)
+        // Vertically centre the text block in the row
         int lineH = font.lineHeight;
-        int textY1 = hasSubtitle
-                ? drawY + Math.max(1, (AMITheme.ROW_HEIGHT - lineH * 2 - 1) / 2)
-                : drawY + (AMITheme.ROW_HEIGHT - lineH) / 2;
+        int textY1 = drawY + (AMITheme.ROW_HEIGHT - lineH) / 2;
         int textY2 = textY1 + lineH + 1;
 
         // Line 1 — item name
         String name = truncate(font, node.getLabel(), maxTextW - badgeW);
-        g.drawString(font, name, textX, textY1, AMITheme.ENTRY_TEXT, true);
+        g.drawString(font, name, textX, textY1, AMITheme.TEXT_PRIMARY, true);
 
         // Line 2 — subtitle right-aligned against the scrollbar edge
         if (hasSubtitle) {
             String subtitleTrunc = truncate(font, subtitle, maxTextW);
             int subtitleX = Math.max(textX, rightEdge - font.width(subtitleTrunc));
-            g.drawString(font, subtitleTrunc, subtitleX, textY2, AMITheme.ENTRY_SUBTITLE, true);
+            g.drawString(font, subtitleTrunc, subtitleX, textY2, AMITheme.TEXT_SUBTLE, false);
         }
 
         renderBadges(g, font, entry, drawY, rightEdge);
@@ -262,7 +260,7 @@ public class ResultsTreeView {
             Component badge = Component.translatable("ami.gui.badge.storage", cap);
             int bw = font.width(badge);
             currentX -= bw;
-            g.drawString(font, badge, currentX, drawY + 5, 0xFF88DDFF, true);
+            g.drawString(font, badge, currentX, drawY + 5, AMITheme.TEXT_SUBTLE, false);
         }
     }
 
@@ -289,7 +287,7 @@ public class ResultsTreeView {
 
         // Expansion Toggle
         String arrow = node.isExpanded() ? "▼" : "▶";
-        g.drawString(font, arrow, rowX, drawY + 5, AMITheme.GROUP_HEADER_TEXT, true);
+        g.drawString(font, arrow, rowX, drawY + 5, AMITheme.TEXT_HEADER, false);
 
         // Stacked Icon Effect (Representative Item)
         if (!node.getChildren().isEmpty()) {
@@ -321,16 +319,16 @@ public class ResultsTreeView {
         }
 
         // Count Badge (computed first so we know the available label width)
-        String badge = "[" + node.getChildren().size() + " " + node.getLabel() + "s]";
+        String badge = "[" + node.getChildren().size() + " " + node.getLabel() + "]";
         int badgeW = font.width(badge);
         int badgeX = x + width - SCROLLBAR_W - badgeW - 5;
 
         // Label (truncated to prevent overlap with the badge)
         int labelMaxW = badgeX - (rowX + 32) - 4;
         String label = truncate(font, node.getLabel(), Math.max(0, labelMaxW));
-        g.drawString(font, label, rowX + 32, drawY + 5, AMITheme.GROUP_HEADER_TEXT, true);
+        g.drawString(font, label, rowX + 32, drawY + 5, AMITheme.TEXT_HEADER, false);
 
-        g.drawString(font, badge, badgeX, drawY + 5, 0xFFAAAAAA, true);
+        g.drawString(font, badge, badgeX, drawY + 5, AMITheme.TEXT_SUBTLE, false);
     }
 
     /**
