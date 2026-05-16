@@ -10,6 +10,7 @@ public class TreeNode {
     private final SearchNode entry; // null for group nodes
     private final List<TreeNode> children = new ArrayList<>();
     private boolean expanded = false;
+    private boolean modGroup = false; // true when this group represents a mod namespace
 
     public TreeNode(String label) {
         this.label = label;
@@ -32,4 +33,6 @@ public class TreeNode {
     public boolean isExpanded() { return expanded; }
     public void setExpanded(boolean expanded) { this.expanded = expanded; }
     public int getChildCount() { return children.size(); }
+    public boolean isModGroup() { return modGroup; }
+    public void setModGroup(boolean modGroup) { this.modGroup = modGroup; }
 }

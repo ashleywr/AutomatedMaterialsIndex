@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 
 public class ResultsProcessor {
     public enum SortField {
-        ALPHABETICAL("Alphabetical"),
+        ALPHABETICAL("Name"),
         COLOR("Color"),
         MOD("Mod");
 
@@ -92,6 +92,7 @@ public class ResultsProcessor {
                 return n;
             });
             TreeNode modNode = findOrCreateChild(dimNode, entry.id().getNamespace());
+            modNode.setModGroup(true);
             modNode.addChild(new TreeNode(entry.displayName(), entry));
         }
 
@@ -106,6 +107,7 @@ public class ResultsProcessor {
             TreeNode modNode = modGroups.computeIfAbsent(namespace, k -> {
                 TreeNode n = new TreeNode(k);
                 n.setExpanded(true);
+                n.setModGroup(true);
                 return n;
             });
             TreeNode typeNode = findOrCreateChild(modNode, entry.type().displayName().getString());
@@ -142,6 +144,7 @@ public class ResultsProcessor {
             } else {
                 // Fall back to mod namespace grouping for items without sub-category data
                 TreeNode modNode = findOrCreateChild(catNode, entry.id().getNamespace());
+                modNode.setModGroup(true);
                 modNode.addChild(new TreeNode(entry.displayName(), entry));
             }
         }

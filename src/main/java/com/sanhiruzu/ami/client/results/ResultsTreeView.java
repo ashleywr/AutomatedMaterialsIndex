@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
+import com.sanhiruzu.ami.util.AmiColors;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.client.Minecraft;
@@ -108,7 +109,7 @@ public class ResultsTreeView {
         int effectiveMouseX = toolbarDropdownOpen ? -1 : mouseX;
         for (TreeNode node : rootNodes) {
             rowCounter[0] = renderNode(g, node, 0, rowCounter[0],
-                    effectiveMouseX, mouseY, y + topOffset, contentH, currentQuery);
+                    effectiveMouseX, mouseY, y + topOffset, contentH);
         }
 
         g.disableScissor();
@@ -131,7 +132,7 @@ public class ResultsTreeView {
      * @param contentH height of the scrollable content region
      */
     private int renderNode(GuiGraphics g, TreeNode node, int depth, int rowIdx,
-                           int mouseX, int mouseY, int originY, int contentH, String currentQuery) {
+                           int mouseX, int mouseY, int originY, int contentH) {
         int drawY = originY - pixelScrollOffset + rowIdx * AMITheme.ROW_HEIGHT;
 
         // Only draw if even partially visible
@@ -151,7 +152,7 @@ public class ResultsTreeView {
             }
 
             if (node.isLeaf()) {
-                renderLeaf(g, node, depth, drawY, hovered, currentQuery);
+                renderLeaf(g, node, depth, drawY, hovered);
             } else {
                 renderGroup(g, node, depth, drawY, hovered);
             }
@@ -166,7 +167,7 @@ public class ResultsTreeView {
 
         if (!node.isLeaf() && node.isExpanded()) {
             for (TreeNode child : node.getChildren()) {
-                rowIdx = renderNode(g, child, depth + 1, rowIdx, mouseX, mouseY, originY, contentH, currentQuery);
+                rowIdx = renderNode(g, child, depth + 1, rowIdx, mouseX, mouseY, originY, contentH);
             }
         }
 
@@ -175,7 +176,7 @@ public class ResultsTreeView {
 
     // ── Leaf (rich card) ──────────────────────────────────────────────────────
 
-    private void renderLeaf(GuiGraphics g, TreeNode node, int depth, int drawY, boolean hovered, String currentQuery) {
+    private void renderLeaf(GuiGraphics g, TreeNode node, int depth, int drawY, boolean hovered) {
         var font = Minecraft.getInstance().font;
         SearchNode entry = node.getEntry();
 
@@ -212,10 +213,7 @@ public class ResultsTreeView {
         if (hasSubtitle) {
             String subtitleTrunc = truncate(font, subtitle, maxTextW);
             int subtitleX = Math.max(textX, rightEdge - font.width(subtitleTrunc));
-            
-            boolean matched = modQueryMatches(currentQuery, entry.id().getNamespace());
-            g.drawString(font, subtitleTrunc, subtitleX, textY2,
-                    matched ? AMITheme.TEXT_HIGHLIGHT : AMITheme.TEXT_SUBTLE, matched);
+            g.drawString(font, subtitleTrunc, subtitleX, textY2, AmiColors.MOD_COLOR, false);
         }
 
         renderBadges(g, font, entry, drawY, rightEdge);
@@ -330,7 +328,8 @@ public class ResultsTreeView {
         int labelMaxW = badgeX - (rowX + 32) - 4;
         int textY = drawY + (AMITheme.ROW_HEIGHT - font.lineHeight) / 2;
         String label = truncate(font, node.getLabel(), Math.max(0, labelMaxW));
-        g.drawString(font, label, rowX + 32, textY, AMITheme.TEXT_HEADER, false);
+        g.drawString(font, label, rowX + 32, textY,
+                node.isModGroup() ? AmiColors.MOD_COLOR : AMITheme.TEXT_HEADER, false);
 
         g.drawString(font, badge, badgeX, textY, AMITheme.TEXT_SUBTLE, false);
     }
@@ -471,17 +470,6 @@ public class ResultsTreeView {
     private static String truncate(net.minecraft.client.gui.Font font, String text, int maxW) {
         if (maxW <= 0) return "";
         return font.plainSubstrByWidth(text, maxW);
-    }
-
-    /** Returns true when {@code query} contains an exact {@code @modId} token (word-boundary delimited). */
-    private static boolean modQueryMatches(String query, String modId) {
-        if (query == null || query.isEmpty()) return false;
-        String q = query.toLowerCase();
-        String token = "@" + modId.toLowerCase();
-        int idx = q.indexOf(token);
-        if (idx < 0) return false;
-        int end = idx + token.length();
-        return end == q.length() || !Character.isLetterOrDigit(q.charAt(end));
     }
 
     // ── Input handlers ────────────────────────────────────────────────────────
