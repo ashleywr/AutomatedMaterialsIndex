@@ -45,3 +45,4 @@ vendor-sources/
 .qwen/
 /.claude/
 .gemini/
+internal/

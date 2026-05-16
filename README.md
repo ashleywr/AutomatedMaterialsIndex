@@ -1,45 +1,58 @@
+# Automated Materials Index (AMI)
 
-Installation information
-=======
+AMI is an optimized search mod for Neoforge 1.21.1 designed to manage the massive item registries of large-scale Minecraft modpacks. It operates entirely client-side to organize inventory clutter into a clean, mathematically searchable data structure without requiring server installation.
 
-This template repository can be directly cloned to get you started with a new
-mod. Simply create a new repository cloned from this one, by following the
-instructions provided by [GitHub](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template).
+* **Material Grouping**: Collapses endless variants of building blocks, such as stairs, slabs, and walls, under a single material node to streamline the inventory interface.
+* **Universal Query Language**: Replaces basic text matching with relational database filtering, allowing players to execute mathematical queries like "energy>50000" or "damage>15" directly in the search bar.
+* **Deep Component Simulation**: Evaluates Data Components to calculate and display simulated DPS, durability, and trait synergies for modular weapons and tools.
+* **Normalized Metrics**: Assigns standardized integer values to diverse modded storage systems, fluid tanks, and energy generators to enable direct cross-mod utility comparisons.
+* **Entity Behavioral Indexing**: Scans entity registries to allow filtering mobs by live game mechanics, such as mountability, base health, or specific taming requirements.
+* **Spatial Awareness**: Bridges inventory management with world navigation by integrating natively with map mods to support waypoint, biome, and structure searching.
+* **Advanced Filtering**: Allows players to pivot search results by source mod, tech tier, or color by scanning item textures to match specific aesthetic requirements.
+* **Built for Scale**: Engineered for modpacks containing hundreds of mods, providing rapid search queries with minimal memory overhead.
+* **Seamless Integration**: Functions as a standalone search tool or integrates directly alongside existing recipe viewers like JEI and EMI.
 
-Once you have your clone, simply open the repository in the IDE of your choice. The usual recommendation for an IDE is either IntelliJ IDEA or Eclipse.
+## Performance & Benchmarks
 
-If at any point you are missing libraries in your IDE, or you've run into problems you can
-run `gradlew --refresh-dependencies` to refresh the local cache. `gradlew clean` to reset everything 
-{this does not affect your code} and then start the process again.
+We use a headless NeoForge GameTest suite to keep track of how the search index performs.
 
-Mapping Names:
-============
-By default, the MDK is configured to use the official mapping names from Mojang for methods and fields 
-in the Minecraft codebase. These names are covered by a specific license. All modders should be aware of this
-license. For the latest license text, refer to the mapping file itself, or the reference copy here:
-https://github.com/NeoForged/NeoForm/blob/main/Mojang.md
+To run the tests and the benchmark locally:
 
-Additional Resources: 
-==========
-Community Documentation: https://docs.neoforged.net/  
-NeoForged Discord: https://discord.neoforged.net/
-
-Performance Benchmarks:
-==========
-AMI has a headless NeoForge GameTest benchmark suite for registry-backed search performance.
-
-Run the full local verification pipeline with:
-
-```
+```bash
 ./gradlew check
 ```
 
-`check` runs the JUnit test suite and the AMI GameTest benchmark. Benchmark results are appended as JSON Lines to `run/config/ami_benchmark_history.jsonl`; the `run/` directory is intentionally ignored so local performance history does not pollute commits.
+The results are saved to `run/config/ami_benchmark_history.jsonl` as JSON Lines. This file is ignored by git so your local results don't clutter up the repo.
 
-For longer benchmark samples, override the iteration count:
+If you need a larger sample size for more accurate numbers, you can increase the iteration count:
 
-```
+```bash
 ./gradlew runAmiBenchmarks -Pami_benchmark_iterations=500
 ```
 
-When publishing releases, use the newest JSONL row as the source for release-note telemetry such as indexed item count, average search latency, P99 latency, and skipped anomalies.
+When putting together release notes, the latest entry in that JSONL file provides the stats for things like indexed item counts and search latency (average and P99).
+
+## Development Setup
+
+This project uses NeoForge. Opening it in IntelliJ or Eclipse should handle most of the setup automatically.
+
+If dependencies get weird or something isn't loading right, you can try:
+
+```bash
+./gradlew --refresh-dependencies
+./gradlew clean
+```
+
+### Mappings
+
+We use Mojang's official mappings. You can find the license for those here:
+https://github.com/NeoForged/NeoForm/blob/main/Mojang.md
+
+## Resources
+
+- [NeoForged Docs](https://docs.neoforged.net/)
+- [NeoForged Discord](https://discord.neoforged.net/)
+
+## License
+
+This project is open-source and licensed under the MIT License. See the `LICENSE` file for details.
