@@ -47,7 +47,6 @@ public final class SubtypeExpander {
     /**
      * Expand {@code item} into its visual subtypes.
      *
-     * @param item          the item from the registry
      * @param baseId        its registry key (e.g. {@code minecraft:potion})
      * @param registryAccess live registry access for data-driven registries (enchantments, instruments)
      * @return an ordered list of subtypes, or an empty list if no expansion is defined

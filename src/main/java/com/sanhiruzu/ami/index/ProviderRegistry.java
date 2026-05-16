@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.AMI;
+import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.index.providers.*;
 import net.minecraft.client.multiplayer.ClientLevel;
 import java.util.List;
@@ -32,6 +33,7 @@ public final class ProviderRegistry {
         long start = System.currentTimeMillis();
         GlobalIndex index = GlobalIndex.getInstance();
         index.clear();
+        ItemIconRenderer.clearPersistent();
 
         // Mark deferred types as loading
         index.setLoading(NodeType.STRUCTURE, true);

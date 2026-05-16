@@ -43,3 +43,4 @@ repo/
 vendor-sources/
 .aider*
 .qwen/
+/.claude/

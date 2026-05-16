@@ -74,6 +74,9 @@ Process in strict order; stop at the first hit:
 - ~~Removed the broken mod-filter multi-select dropdown from the toolbar (was displaying "0/N" and doing nothing).~~
 - [x] **Unified Row Tooltips**: Appended "Required Tool" information to the item tooltip in the results list view. logic now builds a composite tooltip including vanilla lines and AMI-specific data.
 - [x] **Interactive Mod Filtering**: Clicking the mod name badge now appends `@modid` to the search bar. implemented via a callback from `ResultsTreeView` to `SearchBarWidget`.
+- [x] **Synthetic Item Fix**: Resolved issue where potions, enchanted books, and other synthetic variants were missing icons due to renderer invalidation.
+- [x] **High-Cardinality Grouping**: Implemented automatic collapsing of large item clusters (e.g. books) in both Grid and List views with visual gold borders and smart expansion.
+- [ ] **String Handling Pass**: Fix remaining issues with translatable components and string truncation in search results (Audit all string-to-component conversions).
 - [ ] **Harvest Level Indicators**: Add a small overlay (number or color tint) to tool icons to indicate required harvest levels.
 - [ ] **UI Consistency**: Port the "reserved tool slot" and ellipsis truncation logic to `CommandPaletteWidget.java` for layout parity.
 - [x] **Dynamic Badge Fields**: Connected the "Fields" toolbar dropdown to `ResultsTreeView` so badges (Mod, Storage, DPS) can be toggled by the user. logic now uses `RowFieldConfig` and supports per-field color highlighting.

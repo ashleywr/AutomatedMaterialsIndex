@@ -1,13 +1,13 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.ItemIconCache;
+import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -15,12 +15,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
 
 /**
  * Renders ITEM-type SearchNodes as a 3D item icon grid (18×18 cells).
@@ -31,8 +29,6 @@ public class ItemGridView {
     private static final int CELL_SIZE  = 18;
     private static final int HEADER_H   = 12;
     private static final int SCROLLBAR_W = 5;
-
-    private static final Map<ResourceLocation, ItemStack> stackCache = new HashMap<>();
 
     private int x, y, width, height;
     private List<TreeNode> rootNodes = new ArrayList<>();
@@ -94,7 +90,7 @@ public class ItemGridView {
     }
 
     public static void clearStackCache() {
-        stackCache.clear();
+        // Managed by ItemIconRenderer
     }
 
     // =========================================================
@@ -150,7 +146,7 @@ public class ItemGridView {
             g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + HEADER_H, 0xFF282820);
         }
         String arrow = hr.node().isExpanded() ? "▼ " : "▶ ";
-        String label = arrow + hr.node().getLabel() + " (" + hr.itemCount() + ")";
+        String label = arrow + hr.node().getLabel().getString() + " (" + hr.itemCount() + ")";
         g.drawString(Minecraft.getInstance().font, label, x + 4, drawY + 2, 0xFFAAAA88, false);
     }
 
@@ -160,14 +156,31 @@ public class ItemGridView {
             int cellY = drawY;
 
             TreeNode node = ir.items().get(i);
-            SearchNode entry = node.getEntry();
+            
+            // High-cardinality group header in grid? Use representative child
+            SearchNode entry;
+            if (node.isLeaf()) {
+                entry = node.getEntry();
+            } else if (node.isHighCardinality() && !node.isExpanded()) {
+                entry = node.getChildren().get(0).getEntry();
+            } else {
+                continue; // Normal group headers are handled by renderHeader
+            }
+            
             if (entry == null) continue;
 
             boolean hovered = mouseX >= cellX && mouseX < cellX + CELL_SIZE
                     && mouseY >= cellY && mouseY < cellY + CELL_SIZE;
             if (hovered) {
                 g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, 0xFF3A3A3A);
-                if (Screen.hasControlDown()) {
+                
+                if (node.isHighCardinality() && !node.isExpanded()) {
+                    List<Component> lines = new ArrayList<>();
+                    lines.add(node.getLabel().copy().append(" (" + node.getChildCount() + " items)"));
+                    lines.add(Component.literal("§7Click to expand group"));
+                    pendingTextTooltip = lines;
+                    pendingTooltipImage = Optional.empty();
+                } else if (Screen.hasControlDown()) {
                     pendingTextTooltip = DebugTooltip.build(entry);
                     pendingTooltipImage = Optional.empty();
                 } else if (entry.type() == NodeType.ITEM) {
@@ -179,6 +192,21 @@ public class ItemGridView {
                 }
             }
 
+            // Group styling
+            if (node.isHighCardinality() && !node.isExpanded()) {
+                // Gold border for collapsed groups
+                g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + 1, 0xFFAAAA00);
+                g.fill(cellX, cellY + CELL_SIZE - 1, cellX + CELL_SIZE, cellY + CELL_SIZE, 0xFFAAAA00);
+                g.fill(cellX, cellY, cellX + 1, cellY + CELL_SIZE, 0xFFAAAA00);
+                g.fill(cellX + CELL_SIZE - 1, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, 0xFFAAAA00);
+            } else if (isChildOfHighCardinality(node)) {
+                // Dimmer border for items inside an expanded group
+                g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + 1, 0x44AAAA00);
+                g.fill(cellX, cellY + CELL_SIZE - 1, cellX + CELL_SIZE, cellY + CELL_SIZE, 0x44AAAA00);
+                g.fill(cellX, cellY, cellX + 1, cellY + CELL_SIZE, 0x44AAAA00);
+                g.fill(cellX + CELL_SIZE - 1, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, 0x44AAAA00);
+            }
+
             if (entry.type() == NodeType.ITEM) {
                 ItemStack stack = resolveStack(entry);
                 if (!stack.isEmpty()) g.renderItem(stack, cellX + 1, cellY + 1);
@@ -187,6 +215,13 @@ public class ItemGridView {
             }
         }
     }
+    
+    private boolean isChildOfHighCardinality(TreeNode node) {
+        // Find if this node exists as a child of any high-cardinality group that is expanded
+        return rootNodes.stream()
+                .filter(n -> !n.isLeaf() && n.isHighCardinality() && n.isExpanded())
+                .anyMatch(group -> group.getChildren().contains(node));
+    }
 
     private void primeIconCache(GuiGraphics g, List<VirtualRow> rows) {
         List<Map.Entry<ResourceLocation, ItemStack>> uncached = new ArrayList<>();
@@ -194,7 +229,10 @@ public class ItemGridView {
         for (VirtualRow row : rows) {
             if (drawY + row.height() > y && drawY < y + height && row instanceof ItemRow ir) {
                 for (TreeNode node : ir.items()) {
-                    SearchNode entry = node.getEntry();
+                    SearchNode entry = null;
+                    if (node.isLeaf()) entry = node.getEntry();
+                    else if (node.isHighCardinality() && !node.isExpanded()) entry = node.getChildren().get(0).getEntry();
+
                     if (entry != null && entry.type() == NodeType.ITEM
                             && !ItemIconCache.isCached(entry.id())) {
                         ItemStack stack = resolveStack(entry);
@@ -222,27 +260,32 @@ public class ItemGridView {
     private List<VirtualRow> buildVirtualRows(int cols) {
         List<VirtualRow> rows = new ArrayList<>();
 
-        boolean hasGroups = rootNodes.stream().anyMatch(n -> !n.isLeaf());
-        if (hasGroups) {
-            for (TreeNode root : rootNodes) {
-                if (!root.isLeaf()) {
-                    addGroupRows(root, cols, rows);
+        // rootNodes now contains special HighCardinality groups
+        List<TreeNode> linearItems = new ArrayList<>();
+        
+        for (TreeNode root : rootNodes) {
+            if (root.isLeaf()) {
+                linearItems.add(root);
+            } else if (root.isHighCardinality()) {
+                if (root.isExpanded()) {
+                    linearItems.addAll(root.getChildren());
                 } else {
-                    rows.add(new ItemRow(List.of(root)));
+                    linearItems.add(root); // Add group header itself as a clickable grid item
                 }
+            } else {
+                // Section header (mod, category, etc.)
+                packIntoRows(linearItems, cols, rows);
+                linearItems.clear();
+                addGroupRows(root, cols, rows);
             }
-        } else {
-            // Flat list of leaves — pack directly into item rows
-            List<TreeNode> items = rootNodes.stream()
-                    .filter(TreeNode::isLeaf)
-                    .collect(Collectors.toList());
-            packIntoRows(items, cols, rows);
         }
+        packIntoRows(linearItems, cols, rows);
 
         return rows;
     }
 
     private void addGroupRows(TreeNode group, int cols, List<VirtualRow> out) {
+        // This is for standard groups (section headers)
         List<TreeNode> items = new ArrayList<>();
         collectItemLeaves(group, items);
         if (items.isEmpty()) return;
@@ -262,6 +305,9 @@ public class ItemGridView {
     private void collectItemLeaves(TreeNode node, List<TreeNode> out) {
         if (node.isLeaf()) {
             out.add(node);
+        } else if (node.isHighCardinality()) {
+            if (node.isExpanded()) out.addAll(node.getChildren());
+            else out.add(node);
         } else {
             for (TreeNode child : node.getChildren()) {
                 collectItemLeaves(child, out);
@@ -285,8 +331,7 @@ public class ItemGridView {
 
     private static ItemStack resolveStack(SearchNode node) {
         if (node == null) return ItemStack.EMPTY;
-        return stackCache.computeIfAbsent(node.id(),
-                id -> BuiltInRegistries.ITEM.getOptional(id).map(ItemStack::new).orElse(ItemStack.EMPTY));
+        return ItemIconRenderer.resolveStack(node.id());
     }
 
     // =========================================================
@@ -336,9 +381,16 @@ public class ItemGridView {
                 } else if (row instanceof ItemRow ir) {
                     int col = ((int) mouseX - x - 1) / CELL_SIZE;
                     if (col >= 0 && col < ir.items().size()) {
-                        SearchNode node = ir.items().get(col).getEntry();
-                        if (node != null && onItemClick != null) {
-                            onItemClick.accept(node, button);
+                        TreeNode node = ir.items().get(col);
+                        if (node.isHighCardinality()) {
+                            node.setExpanded(!node.isExpanded());
+                            cachedRows = null;
+                            return true;
+                        }
+                        
+                        SearchNode entry = node.getEntry();
+                        if (entry != null && onItemClick != null) {
+                            onItemClick.accept(entry, button);
                             return true;
                         }
                     }

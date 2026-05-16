@@ -1,7 +1,6 @@
 package com.sanhiruzu.ami.api;
 
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.world.item.ItemStack;
 import java.util.List;
