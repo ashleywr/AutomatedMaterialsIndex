@@ -14,10 +14,12 @@ public final class SearchNodeKeys {
     public static final String ONTOLOGY_SUBCATEGORY = "ontologySubcategory"; // AmiOntology.SubCategory.id
     public static final String VARIANT_GROUP   = "variantGroup";
     public static final String COLOR_BUCKET    = "colorBucket";
+    public static final String MATERIAL_GROUP  = "materialGroup";
     public static final String TAGS            = "tags";  // Comma-separated tag paths
     public static final String ESM_CAPACITY    = "emsCapacity";  // Equivalent Stack Metric
     public static final String REQUIRED_TOOL   = "requiredTool";
     public static final String DPS             = "dps";          // Damage per second (Assembly Lab)
+    public static final String ACCESS_LEVEL    = "accessLevel";  // "survival", "creative", "cheat", or "dev"
     public static final String VISIBILITY      = "visibility";    // "hidden" = not in any creative tab
     public static final String OBTAINABILITY   = "obtainability"; // "no_recipe" = no recipe output
     public static final String SUBTYPE_OF      = "subtypeOf";     // base item id for subtype nodes

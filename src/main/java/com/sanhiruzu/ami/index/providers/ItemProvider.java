@@ -30,7 +30,6 @@ public class ItemProvider implements IAmiDataProvider {
 
     @Override
     public void populate(GlobalIndex index, @Nullable ClientLevel level) {
-        boolean hideNonCreative = AMIConfig.HIDE_NON_CREATIVE_ITEMS.get();
         boolean strictSurvival  = AMIConfig.STRICT_SURVIVAL_MODE.get();
 
         Set<Item> creativeItems = ItemFilter.buildCreativeItemSet(level);
@@ -45,20 +44,16 @@ public class ItemProvider implements IAmiDataProvider {
 
         for (Item item : BuiltInRegistries.ITEM) {
             ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
-            if (id == null || id.getNamespace().equals("air")) continue;
-
-            // Layer 1: hardcoded system-item blacklist — always excluded
-            if (ItemFilter.isSystemItem(id)) continue;
+            if (id == null || id.getNamespace().equals("air") || id.getPath().equals("air")) continue;
 
             // Layer 2: creative-tab membership
             boolean inCreative = !hasCreativeData || creativeItems.contains(item);
-            if (!inCreative && hideNonCreative) continue;
+            String accessLevel = ItemFilter.classifyAccessLevel(id, inCreative);
 
             // Layer 3: recipe availability (only evaluated when strictSurvival is on)
             boolean hasRecipe = !hasRecipeData || recipeOutputs.contains(item);
-            if (!hasRecipe && strictSurvival) continue;
 
-            // Attempt subtype expansion before adding the base node.
+            // Generated subtypes should not be suppressed just because the dummy base item is dev-only.
             List<SubtypeExpander.SubtypeEntry> subtypes =
                     SubtypeExpander.expand(id, registryAccess);
             if (!subtypes.isEmpty()) {
@@ -74,10 +69,15 @@ public class ItemProvider implements IAmiDataProvider {
                 continue;
             }
 
+            if (!ItemFilter.shouldShowAccessLevel(accessLevel)) continue;
+            if (!hasRecipe && strictSurvival) continue;
+
             String modId        = id.getNamespace();
             String displayName  = item.getName(new ItemStack(item)).getString();
-            String variantGroup = getVariantGroup(item);
-            String colorBucket  = extractColorBucket(id);
+            ItemStack defaultStack = new ItemStack(item);
+            String variantGroup = GroupingEngine.classifyShape(item);
+            String colorBucket  = GroupingEngine.classifyColor(defaultStack);
+            String materialGroup = GroupingEngine.classifyMaterialRoot(defaultStack);
             int color           = 0xFFFFFF;
             String tags         = collectTags(item);
             String requiredTool = determineRequiredTool(item);
@@ -86,6 +86,8 @@ public class ItemProvider implements IAmiDataProvider {
             meta.put(SearchNodeKeys.MOD_ID, modId);
             meta.put(SearchNodeKeys.VARIANT_GROUP, variantGroup);
             meta.put(SearchNodeKeys.COLOR_BUCKET, colorBucket);
+            meta.put(SearchNodeKeys.MATERIAL_GROUP, materialGroup);
+            meta.put(SearchNodeKeys.ACCESS_LEVEL, accessLevel);
             if (!tags.isEmpty()) {
                 meta.put(SearchNodeKeys.TAGS, tags);
             }
@@ -186,20 +188,6 @@ public class ItemProvider implements IAmiDataProvider {
         return req;
     }
 
-    private String getVariantGroup(Item item) {
-        String path = BuiltInRegistries.ITEM.getKey(item).getPath();
-        if (path.contains("_stair")) return "stair";
-        if (path.contains("_slab")) return "slab";
-        if (path.contains("_wall")) return "wall";
-        if (path.contains("_door")) return "door";
-        if (path.contains("_trapdoor")) return "trapdoor";
-        if (path.contains("_fence_gate")) return "fence_gate";
-        if (path.contains("_fence")) return "fence";
-        if (path.contains("_button")) return "button";
-        if (path.contains("_pressure_plate")) return "pressure_plate";
-        return "block";
-    }
-
     private String collectTags(Item item) {
         return item.builtInRegistryHolder().tags()
             .map(tag -> tag.location().toString().toLowerCase())
@@ -238,6 +226,8 @@ public class ItemProvider implements IAmiDataProvider {
         meta.put(SearchNodeKeys.MOD_ID, baseId.getNamespace());
         meta.put(SearchNodeKeys.SUBTYPE_OF, baseId.toString());
         meta.put(SearchNodeKeys.COLOR_BUCKET, colorBucket);
+        meta.put(SearchNodeKeys.MATERIAL_GROUP, baseId.toString());
+        meta.put(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL);
         return meta;
     }
 }

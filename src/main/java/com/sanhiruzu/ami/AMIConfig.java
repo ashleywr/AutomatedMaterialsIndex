@@ -43,6 +43,12 @@ public class AMIConfig {
             .comment("Enable developer mode features: extended tooltips, visual exclusion zones, etc.")
             .define("devMode", false);
 
+    public static final ModConfigSpec.BooleanValue SHOW_SPAWN_EGGS = BUILDER
+            .comment("Show spawn eggs in the item index.",
+                     "Spawn eggs are hidden by default because entities are indexed separately.",
+                     "They are always shown when devMode or cheatMode is enabled.")
+            .define("showSpawnEggs", false);
+
     public static final ModConfigSpec.BooleanValue HIDE_NON_CREATIVE_ITEMS = BUILDER
             .comment("Filter items that do not appear in any creative-mode tab.",
                      "Removes mod placeholders, internal system items, and developer leftovers.",
