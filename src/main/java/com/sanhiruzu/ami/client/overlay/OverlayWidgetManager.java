@@ -4,6 +4,7 @@ import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.AMIConfig;
 import com.sanhiruzu.ami.AMILayoutConfig;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.index.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -15,218 +16,143 @@ import java.util.List;
 public class OverlayWidgetManager {
     private static final int BOTTOM_BAR_H = 32;
     private static final int SEARCH_H = 24;
-    // 120 GUI px is the minimum sidebar width where AMI is usable.
-    // Below this, (screenW - inventoryW) / 2 < 120, so we hide everything.
-    private static final int MIN_PANEL_WIDTH = 120;
+    private static final int MIN_PANEL_WIDTH = 70;
+    private static final int PANEL_MARGIN_V = 6;
 
     private final ResultsPanelWidget resultsPanel;
     private final SearchBarWidget searchBar;
     private final AmiButtonWidget amiButton;
-    private final List<AmiWidget> widgets;
 
     private SearchService searchService = null;
     private volatile boolean indexingInProgress = false;
     private boolean indexingDispatched = false;
     private int retryCount = 0;
     private static final int MAX_RETRIES = 5;
+    private boolean panelVisible = false;
+    private String lastSyncedQuery = "";
 
     private WidgetBounds lastResultsBounds = null;
     private int lastScreenH = 0;
+    private boolean onLeft = true;
+    private boolean pendingEmiReinit = false;
 
     public OverlayWidgetManager() {
         this.resultsPanel = new ResultsPanelWidget();
         this.searchBar = new SearchBarWidget(this::triggerSearch);
-        this.amiButton = new AmiButtonWidget(this::openAmiScreen);
-        this.widgets = List.of(resultsPanel, searchBar, amiButton);
+        this.amiButton = new AmiButtonWidget(InventoryOverlayHandler::toggleAmi, () -> panelVisible);
     }
 
-    public void onRenderPost(ScreenEvent.Render.Post event) {
-        if (!AMIConfig.ENABLE_AUTO_INDEXING.get()) return;
-        if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
+    /** Updates widget bounds for the current screen geometry. Called from both onScreenInit and renderAll. */
+    public void computeLayouts(AbstractContainerScreen<?> containerScreen, int screenW, int screenH) {
+        lastScreenH = screenH;
 
-        try {
-            // Indexing state machine
-            if (!indexingDispatched && !indexingInProgress) {
-                var level = Minecraft.getInstance().level;
-                if (level != null) {
-                    indexingInProgress = true;
-
-                    GlobalIndexCache.loadOrIndexAsync(level, () -> {
-                        searchService = SearchService.buildFrom(GlobalIndex.getInstance());
-                        ProviderRegistry.indexStructuresDeferred(level);
-                        searchService = SearchService.buildFrom(GlobalIndex.getInstance());
-                        indexingInProgress = false;
-                        indexingDispatched = true;
-                        refreshEntries();
-                    });
-                }
-            } else if (indexingDispatched && retryCount < MAX_RETRIES) {
-                var index = GlobalIndex.getInstance();
-                int structures = index.getNodes(NodeType.STRUCTURE).size();
-                int dimensions = index.getNodes(NodeType.DIMENSION).size();
-                if (structures == 0 || dimensions == 0) {
-                    var level = Minecraft.getInstance().level;
-                    if (level != null) {
-                        ProviderRegistry.indexStructuresDeferred(level);
-                        searchService = SearchService.buildFrom(GlobalIndex.getInstance());
-                    }
-                    retryCount++;
-                }
-            }
-
-            // Compute layouts
-            int screenW = event.getScreen().width;
-            int screenH = event.getScreen().height;
-            lastScreenH = screenH;
-
-            computeLayouts(containerScreen, screenW, screenH);
-
-            // Check if index has become stale
-            checkAndRefreshIfStale();
-
-            // Render all widgets
-            event.getGuiGraphics().pose().pushPose();
-            event.getGuiGraphics().pose().translate(0, 0, 0);
-
-            // First pass: render all widgets
-            for (AmiWidget widget : widgets) {
-                widget.render(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
-            }
-
-            // Second pass: render overlays (dropdowns, etc.)
-            for (AmiWidget widget : widgets) {
-                widget.renderOverlay(event.getGuiGraphics(), event.getMouseX(), event.getMouseY());
-            }
-
-            event.getGuiGraphics().pose().popPose();
-
-        } catch (Exception e) {
-            AMI.LOGGER.error("AMI overlay render failed", e);
-        }
-    }
-
-    private void computeLayouts(AbstractContainerScreen<?> containerScreen, int screenW, int screenH) {
-        int panelH = screenH - BOTTOM_BAR_H;
-
-        // Resolve panel side
         boolean goLeft = switch (AMILayoutConfig.PANEL_SIDE.get()) {
             case LEFT  -> true;
             case RIGHT -> false;
             case AUTO  -> InventoryOverlayHandler.RECIPE_VIEWER_PRESENT;
         };
+        this.onLeft = goLeft;
 
-        // Compute panel bounds
+        int panelH = screenH - PANEL_MARGIN_V * 2;
         int panelX, panelW;
         int widthOverride = AMILayoutConfig.PANEL_WIDTH_OVERRIDE.get();
         if (goLeft) {
             int available = containerScreen.getGuiLeft() - 12;
-            panelW = widthOverride > 0 ? widthOverride : available;
+            panelW = widthOverride > 0 ? widthOverride : Math.max(0, available);
             panelX = containerScreen.getGuiLeft() - panelW - 6;
         } else {
             panelX = containerScreen.getGuiLeft() + containerScreen.getXSize() + 6;
             int available = screenW - panelX - 6;
-            panelW = widthOverride > 0 ? widthOverride : available;
+            panelW = widthOverride > 0 ? widthOverride : Math.max(0, available);
         }
+
+        int btnY = screenH - BOTTOM_BAR_H + 2;
+        amiButton.updateBounds(new WidgetBounds(2, btnY - 22, 22, 20));
 
         if (panelW < MIN_PANEL_WIDTH) {
             WidgetBounds zero = new WidgetBounds(0, 0, 0, 0);
             resultsPanel.updateBounds(zero);
             searchBar.updateBounds(zero);
-            amiButton.updateBounds(zero);
             return;
         }
 
-        // Layout results panel
-        WidgetBounds panelBounds = new WidgetBounds(panelX, 0, panelW, panelH);
-        resultsPanel.updateBounds(panelBounds);
-        lastResultsBounds = panelBounds;
+        resultsPanel.updateBounds(new WidgetBounds(panelX, PANEL_MARGIN_V, panelW, panelH));
+        lastResultsBounds = resultsPanel.getBounds();
 
-        // Layout search bar (centered on screen)
-        int searchBarW = AMILayoutConfig.SEARCH_BAR_WIDTH.get();
-        int searchBarX = (screenW - searchBarW) / 2;
+        int searchBarW = Math.min(AMILayoutConfig.SEARCH_BAR_WIDTH.get(), screenW - 8);
+        int searchBarX = Math.max(4, (screenW - searchBarW) / 2);
         int searchBarY = screenH - BOTTOM_BAR_H + 2;
-        WidgetBounds searchBarBounds = new WidgetBounds(searchBarX, searchBarY, searchBarW, SEARCH_H);
-        searchBar.updateBounds(searchBarBounds);
-
-        // Layout AMI button (screen lower-left)
-        int btnX = 2;
-        int btnY = screenH - BOTTOM_BAR_H + 2;
-        WidgetBounds amiButtonBounds = new WidgetBounds(btnX, btnY + 2, 22, 20);
-        amiButton.updateBounds(amiButtonBounds);
+        searchBar.updateBounds(new WidgetBounds(searchBarX, searchBarY, searchBarW, SEARCH_H));
     }
 
-    public void onMouseClick(ScreenEvent.MouseButtonPressed.Pre event) {
+    /** Drives indexing, search sync, and stale-refresh — only when the panel is visible. */
+    public void tick(ScreenEvent.Render.Post event) {
         if (!AMIConfig.ENABLE_AUTO_INDEXING.get()) return;
-        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
+        if (!panelVisible) return;
 
-        double mx = event.getMouseX(), my = event.getMouseY();
-
-        // Priority: button, then searchBar (when focused), then panel
-        if (amiButton.mouseClicked(mx, my, event.getButton())) {
-            event.setCanceled(true);
-            return;
+        if (!indexingDispatched && !indexingInProgress) {
+            var level = Minecraft.getInstance().level;
+            if (level != null) {
+                indexingInProgress = true;
+                GlobalIndexCache.loadOrIndexAsync(level, () -> {
+                    searchService = SearchService.buildFrom(GlobalIndex.getInstance());
+                    ProviderRegistry.indexStructuresDeferred(level);
+                    searchService = SearchService.buildFrom(GlobalIndex.getInstance());
+                    indexingInProgress = false;
+                    indexingDispatched = true;
+                    refreshEntries();
+                });
+            }
+        } else if (indexingDispatched && retryCount < MAX_RETRIES) {
+            var index = GlobalIndex.getInstance();
+            int structures = index.getNodes(NodeType.STRUCTURE).size();
+            int dimensions = index.getNodes(NodeType.DIMENSION).size();
+            if (structures == 0 || dimensions == 0) {
+                var level = Minecraft.getInstance().level;
+                if (level != null) {
+                    ProviderRegistry.indexStructuresDeferred(level);
+                    searchService = SearchService.buildFrom(GlobalIndex.getInstance());
+                }
+                retryCount++;
+            }
         }
 
-        if (searchBar.mouseClicked(mx, my, event.getButton())) {
-            event.setCanceled(true);
-            return;
-        }
-
-        // Check scrollbar priority
-        if (resultsPanel.mouseClickedScrollbar(mx, my, event.getButton())) {
-            event.setCanceled(true);
-            return;
-        }
-
-        if (resultsPanel.mouseClicked(mx, my, event.getButton())) {
-            event.setCanceled(true);
-            return;
-        }
-
-        // Click outside all widgets: unfocus search
-        if (!searchBar.isMouseOver(mx, my)) {
-            searchBar.setFocused(false);
-        }
+        syncFromRecipeViewer();
+        checkAndRefreshIfStale();
     }
 
-    public void onMouseDragged(ScreenEvent.MouseDragged.Pre event) {
-        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
+    /** Renders all AMI widgets. Button always; search bar and panel only when the panel is visible. */
+    public void renderAll(ScreenEvent.Render.Post event) {
+        if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
 
-        if (resultsPanel.mouseDragged(event.getMouseX(), event.getMouseY(),
-                event.getMouseButton(), event.getDragX(), event.getDragY())) {
-            event.setCanceled(true);
+        try {
+            computeLayouts(containerScreen, event.getScreen().width, event.getScreen().height);
+
+            var g = event.getGuiGraphics();
+            int mx = event.getMouseX(), my = event.getMouseY();
+            float pt = event.getPartialTick();
+
+            g.pose().pushPose();
+            g.pose().translate(0, 0, 0);
+
+            amiButton.render(g, mx, my, pt);
+
+            if (panelVisible) {
+                searchBar.render(g, mx, my, pt);
+                resultsPanel.render(g, mx, my, pt);
+                resultsPanel.renderOverlay(g, mx, my);
+            }
+
+            g.pose().popPose();
+
+        } catch (Exception e) {
+            AMI.LOGGER.error("AMI overlay render failed", e);
         }
-    }
 
-    public void onMouseRelease(ScreenEvent.MouseButtonReleased.Pre event) {
-        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
-
-        resultsPanel.mouseReleased(event.getMouseX(), event.getMouseY(), event.getButton());
-    }
-
-    public void onMouseScroll(ScreenEvent.MouseScrolled.Pre event) {
-        if (!AMIConfig.ENABLE_AUTO_INDEXING.get()) return;
-        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
-
-        if (resultsPanel.mouseScrolled(event.getMouseX(), event.getMouseY(), event.getScrollDeltaY())) {
-            event.setCanceled(true);
-        }
-    }
-
-    public void onKeyPressed(ScreenEvent.KeyPressed.Pre event) {
-        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
-
-        if (searchBar.keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
-            event.setCanceled(true);
-        }
-    }
-
-    public void onCharTyped(ScreenEvent.CharacterTyped.Pre event) {
-        if (!AMIConfig.ENABLE_AUTO_INDEXING.get()) return;
-        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
-
-        if (searchBar.charTyped((char) event.getCodePoint(), event.getModifiers())) {
-            event.setCanceled(true);
+        if (pendingEmiReinit) {
+            pendingEmiReinit = false;
+            var mc = Minecraft.getInstance();
+            if (mc.screen != null) mc.screen.init(mc, mc.screen.width, mc.screen.height);
         }
     }
 
@@ -235,10 +161,8 @@ public class OverlayWidgetManager {
         if (panel == null) return;
 
         int totalCount = 0;
-        for (NodeType t : NodeType.atlasValues()) {
-            totalCount += GlobalIndex.getInstance().getNodes(t).size();
-        }
-        if (panel.getEntryCount() == 0 && totalCount > 0) {
+        for (NodeType t : NodeType.atlasValues()) totalCount += GlobalIndex.getInstance().getNodes(t).size();
+        if (panel.getEntryCount() == 0 && totalCount > 0 && panel.getCurrentQuery().isEmpty()) {
             refreshEntries();
         }
     }
@@ -248,10 +172,7 @@ public class OverlayWidgetManager {
         if (panel == null) return;
 
         List<SearchNode> all = new ArrayList<>();
-        for (NodeType t : NodeType.atlasValues()) {
-            all.addAll(GlobalIndex.getInstance().getNodes(t));
-        }
-
+        for (NodeType t : NodeType.atlasValues()) all.addAll(GlobalIndex.getInstance().getNodes(t));
         panel.setEntries(all);
         AMI.LOGGER.debug("AMI overlay refreshed: {} total entries across all types", all.size());
     }
@@ -262,17 +183,73 @@ public class OverlayWidgetManager {
 
         if (query.isEmpty()) {
             refreshEntries();
-            return;
+        } else {
+            var results = searchService.query(query);
+            panel.setSearchResults(results, query);
         }
-        var results = searchService.query(query);
-        panel.setSearchResults(results, query);
+
+        if (!query.equals(lastSyncedQuery)) {
+            lastSyncedQuery = query;
+            RecipeViewerBridge.setSearchText(query);
+        }
     }
 
-    private void openAmiScreen() {
-        Minecraft.getInstance().setScreen(new com.sanhiruzu.ami.client.AMIScreen());
+    private void syncFromRecipeViewer() {
+        if (!RecipeViewerBridge.isAvailable()) return;
+        String rvQuery = RecipeViewerBridge.getSearchText();
+        if (!rvQuery.equals(lastSyncedQuery)) {
+            lastSyncedQuery = rvQuery;
+            searchBar.setQuery(rvQuery);
+            var panel = resultsPanel.getInnerPanel();
+            if (panel == null || searchService == null) return;
+            if (rvQuery.isEmpty()) {
+                refreshEntries();
+            } else {
+                panel.setSearchResults(searchService.query(rvQuery), rvQuery);
+            }
+        }
+    }
+
+    private void togglePanelVisible() {
+        boolean wasVisible = panelVisible;
+        panelVisible = !panelVisible;
+
+        if (wasVisible && !panelVisible) {
+            indexingDispatched = false;
+            retryCount = 0;
+            searchBar.clear();
+            lastSyncedQuery = "";
+            pendingEmiReinit = true;
+        } else if (!wasVisible && panelVisible) {
+            pendingEmiReinit = true;
+        }
+    }
+
+    public boolean isPanelVisible() {
+        return panelVisible;
+    }
+
+    public void setPanelVisible(boolean visible) {
+        if (visible != panelVisible) togglePanelVisible();
+    }
+
+    public boolean isOnLeft() {
+        return onLeft;
     }
 
     public WidgetBounds getResultsBounds() {
         return lastResultsBounds;
+    }
+
+    public AmiButtonWidget getAmiButton() {
+        return amiButton;
+    }
+
+    public SearchBarWidget getSearchBar() {
+        return searchBar;
+    }
+
+    public ResultsPanelWidget getResultsPanel() {
+        return resultsPanel;
     }
 }
