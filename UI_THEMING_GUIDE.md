@@ -1,8 +1,6 @@
-# AMI UI Theming & Layout Guide (AI Reference)
+# AMI UI Theming & Layout Guide
 
-**Purpose:** This document is designed for AI assistants analyzing screenshots of the AMI (Automated Materials Index) inventory overlay. It maps the visual GUI elements you see on screen to the exposed "CSS-like" properties in the mod's configuration (`AMIConfig`).
-
-If you are suggesting visual improvements based on a screenshot, use the properties listed below to formulate your suggestions.
+**Purpose:** This document defines the visual GUI elements of the AMI (Automated Materials Index) inventory overlay and maps them to the "CSS-like" properties in the mod's configuration (`AMIConfig`). Use this as a reference when tweaking the layout or colors.
 
 ## Architecture Overview
 *   **Values live in:** `AMIConfig.java` (These are what the user actually edits).
@@ -58,10 +56,3 @@ The vertical scrollbar on the right edge of the List View or Grid View.
 *   `scrollbarBg`: The background track of the scrollbar.
 *   `scrollbarThumb`: The normal color of the scrollbar draggable handle.
 *   `scrollbarThumbHover`: The color of the scrollbar handle when dragged or hovered.
-
----
-
-## Example AI Suggestion Output
-*If you detect that the text inside the Search Bar is too hard to read against its background, and the items in the List View feel too cramped:*
-
-> "To fix the contrast in the **Search Bar**, change `searchBarBg` to a darker shade like `0xFF111111` and `searchText` to `0xFFFFFFFF`. To make the **Rich Cards** feel less cramped, increase the `rowHeight` property in `AMIConfig` from `24` to `28`."
