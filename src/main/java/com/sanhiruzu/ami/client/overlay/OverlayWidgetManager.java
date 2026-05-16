@@ -16,7 +16,9 @@ import java.util.List;
 public class OverlayWidgetManager {
     private static final int BOTTOM_BAR_H = 32;
     private static final int SEARCH_H = 24;
-    private static final int MIN_PANEL_WIDTH = 70;
+    private static final int MIN_PANEL_WIDTH = 120;
+    private static final int MAX_PANEL_WIDTH = 280;
+    private static final int PANEL_MARGIN = 6;
     private static final int PANEL_MARGIN_V = 6;
 
     private final ResultsPanelWidget resultsPanel;
@@ -47,26 +49,37 @@ public class OverlayWidgetManager {
         lastScreenH = screenH;
         this.onLeft = false;
 
-        // 35% of screen width, hard-capped at 280 scaled pixels
-        int panelW = Math.min((int)(screenW * 0.35f), 280);
-        // Screen height minus 40px headroom, hard-capped at 600 scaled pixels
-        int panelH = Math.min(screenH - 40, 600);
-        // Right-anchored: 6px margin from the right edge
-        int panelX = screenW - panelW - 6;
-        // Vertically centred on the screen
-        int panelY = (screenH - panelH) / 2;
-
+        // Button is always positioned regardless of panel state.
         int btnY = screenH - BOTTOM_BAR_H + 2;
         amiButton.updateBounds(new WidgetBounds(2, btnY - 22, 22, 20));
 
-        if (panelW < MIN_PANEL_WIDTH) {
+        // Task 1: right edge of the container GUI in screen-pixel space.
+        int containerRightEdge = containerScreen.getGuiLeft() + containerScreen.getXSize();
+
+        // Task 2: usable width between the container's right edge and the screen edge.
+        int safeWidth = screenW - containerRightEdge - (PANEL_MARGIN * 2);
+
+        // Task 4: no room for even a minimal panel — hide rather than draw an unusable sliver.
+        if (safeWidth < MIN_PANEL_WIDTH) {
             WidgetBounds zero = new WidgetBounds(0, 0, 0, 0);
             resultsPanel.updateBounds(zero);
             searchBar.updateBounds(zero);
             return;
         }
 
-        resultsPanel.updateBounds(new WidgetBounds(panelX, panelY, panelW, panelH));
+        // Task 3: preferred width is 35% of screen, then clamped so it neither exceeds the
+        // safe region nor falls below the minimum readable size.
+        int preferredWidth = (int)(screenW * 0.35f);
+        int actualWidth = Math.clamp(preferredWidth, MIN_PANEL_WIDTH, Math.min(safeWidth, MAX_PANEL_WIDTH));
+
+        // Screen height minus 40px headroom, hard-capped at 600 scaled pixels.
+        int panelH = Math.min(screenH - 40, 600);
+        // Right-anchor: PANEL_MARGIN from the right screen edge.
+        int startX = screenW - actualWidth - PANEL_MARGIN;
+        // Vertically centred on the screen.
+        int panelY = (screenH - panelH) / 2;
+
+        resultsPanel.updateBounds(new WidgetBounds(startX, panelY, actualWidth, panelH));
         lastResultsBounds = resultsPanel.getBounds();
 
         int searchBarW = Math.min(AMILayoutConfig.SEARCH_BAR_WIDTH.get(), screenW - 8);
