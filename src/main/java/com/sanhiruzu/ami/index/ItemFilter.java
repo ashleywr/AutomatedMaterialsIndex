@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.AMI;
+import com.sanhiruzu.ami.AMIConfig;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -15,21 +16,21 @@ import java.util.Set;
 /**
  * Three-layer filter for the item index.
  *
- *  Layer 1 – hardcoded system-item blacklist: always excluded, no config toggle.
- *  Layer 2 – creative-tab check: excluded by default (AMIConfig.HIDE_NON_CREATIVE_ITEMS).
- *             Items that pass when the setting is off are tagged VISIBILITY=hidden.
+ *  Layer 1 – access-level check: survival, creative, cheat, or dev.
+ *  Layer 2 – creative-tab check: non-creative leftovers are tagged dev by default.
  *  Layer 3 – recipe-output check: opt-in (AMIConfig.STRICT_SURVIVAL_MODE).
  *             Items with no recipe are tagged OBTAINABILITY=no_recipe.
  */
 public final class ItemFilter {
+    public static final String ACCESS_SURVIVAL = "survival";
+    public static final String ACCESS_CREATIVE = "creative";
+    public static final String ACCESS_CHEAT = "cheat";
+    public static final String ACCESS_DEV = "dev";
 
     /**
-     * Items that are useless or harmful in a player-facing search index.
-     * Covers admin/debug tools, unobtainable survival blocks, and "dummy base"
-     * items whose variants (potions, enchanted books) are handled separately.
+     * Items that are command/admin oriented rather than normal player-facing content.
      */
-    public static final Set<String> SYSTEM_ITEM_IDS = Set.of(
-        // Admin & debug tools
+    public static final Set<String> CHEAT_ITEM_IDS = Set.of(
         "minecraft:command_block",
         "minecraft:chain_command_block",
         "minecraft:repeating_command_block",
@@ -41,12 +42,18 @@ public final class ItemFilter {
         "minecraft:light",
         "minecraft:debug_stick",
         "minecraft:knowledge_book",
-        // Unobtainable survival blocks
-        "minecraft:air",
         "minecraft:bedrock",
         "minecraft:end_portal_frame",
         "minecraft:reinforced_deepslate",
-        "minecraft:spawner",
+        "minecraft:spawner"
+    );
+
+    /**
+     * Internal placeholders and implementation-detail entries. Some of these
+     * have generated subtype nodes; the base registry item is not useful to players.
+     */
+    public static final Set<String> DEV_ITEM_IDS = Set.of(
+        "minecraft:air",
         "minecraft:petrified_oak_slab",
         "minecraft:infested_stone",
         "minecraft:infested_cobblestone",
@@ -55,7 +62,6 @@ public final class ItemFilter {
         "minecraft:infested_cracked_stone_bricks",
         "minecraft:infested_chiseled_stone_bricks",
         "minecraft:infested_deepslate",
-        // Unspecialized base items — specific variants are indexed separately
         "minecraft:potion",
         "minecraft:splash_potion",
         "minecraft:lingering_potion",
@@ -66,8 +72,48 @@ public final class ItemFilter {
 
     private ItemFilter() {}
 
+    /**
+     * @deprecated Use {@link #classifyAccessLevel(ResourceLocation, boolean)} and
+     * {@link #shouldShowAccessLevel(String)} for new filtering.
+     */
+    @Deprecated
     public static boolean isSystemItem(ResourceLocation id) {
-        return SYSTEM_ITEM_IDS.contains(id.toString());
+        String accessLevel = classifyAccessLevel(id, true);
+        return ACCESS_CHEAT.equals(accessLevel) || ACCESS_DEV.equals(accessLevel);
+    }
+
+    public static boolean isSpawnEgg(ResourceLocation id) {
+        return id.getPath().endsWith("_spawn_egg");
+    }
+
+    public static String classifyAccessLevel(ResourceLocation id, boolean inCreative) {
+        String key = id.toString();
+        if (CHEAT_ITEM_IDS.contains(key)) return ACCESS_CHEAT;
+        if (DEV_ITEM_IDS.contains(key)) return ACCESS_DEV;
+        if (isSpawnEgg(id)) return ACCESS_CREATIVE;
+        if (!inCreative) return ACCESS_DEV;
+        return ACCESS_SURVIVAL;
+    }
+
+    public static boolean shouldShowAccessLevel(String accessLevel) {
+        return switch (accessLevel) {
+            case ACCESS_SURVIVAL -> true;
+            case ACCESS_CREATIVE -> AMIConfig.SHOW_SPAWN_EGGS.get()
+                    || AMIConfig.DEV_MODE.get()
+                    || AMIConfig.CHEAT_MODE.get();
+            case ACCESS_CHEAT -> AMIConfig.CHEAT_MODE.get() || AMIConfig.DEV_MODE.get();
+            case ACCESS_DEV -> AMIConfig.DEV_MODE.get() || !AMIConfig.HIDE_NON_CREATIVE_ITEMS.get();
+            default -> false;
+        };
+    }
+
+    /**
+     * @deprecated Use {@link #classifyAccessLevel(ResourceLocation, boolean)} and
+     * {@link #shouldShowAccessLevel(String)} for new filtering.
+     */
+    @Deprecated
+    public static boolean shouldHideSpawnEgg(ResourceLocation id) {
+        return isSpawnEgg(id) && !shouldShowAccessLevel(ACCESS_CREATIVE);
     }
 
     /**

@@ -46,11 +46,18 @@ public final class AmiIndexerService {
             if (id == null || "air".equals(id.getPath())) {
                 continue;
             }
+            String accessLevel = ItemFilter.classifyAccessLevel(id, true);
+            if (!ItemFilter.shouldShowAccessLevel(accessLevel)) {
+                continue;
+            }
 
             Map<String, String> meta = new HashMap<>();
+            ItemStack stack = new ItemStack(item);
             meta.put(SearchNodeKeys.MOD_ID, id.getNamespace());
-            meta.put(SearchNodeKeys.VARIANT_GROUP, variantGroup(id));
-            meta.put(SearchNodeKeys.COLOR_BUCKET, colorBucket(id));
+            meta.put(SearchNodeKeys.VARIANT_GROUP, GroupingEngine.classifyShape(item));
+            meta.put(SearchNodeKeys.COLOR_BUCKET, GroupingEngine.classifyColor(stack));
+            meta.put(SearchNodeKeys.MATERIAL_GROUP, GroupingEngine.classifyMaterialRoot(stack));
+            meta.put(SearchNodeKeys.ACCESS_LEVEL, accessLevel);
 
             String tags = collectTags(item);
             if (!tags.isBlank()) {
@@ -96,53 +103,6 @@ public final class AmiIndexerService {
         return item.builtInRegistryHolder().tags()
                 .map(tag -> tag.location().toString().toLowerCase())
                 .collect(Collectors.joining(","));
-    }
-
-    private static String variantGroup(ResourceLocation id) {
-        String path = id.getPath();
-        if (path.contains("_stair")) return "stair";
-        if (path.contains("_slab")) return "slab";
-        if (path.contains("_wall")) return "wall";
-        if (path.contains("_door")) return "door";
-        if (path.contains("_trapdoor")) return "trapdoor";
-        if (path.contains("_fence_gate")) return "fence_gate";
-        if (path.contains("_fence")) return "fence";
-        if (path.contains("_button")) return "button";
-        if (path.contains("_pressure_plate")) return "pressure_plate";
-        if (path.contains("_sword")) return "sword";
-        if (path.contains("_pickaxe")) return "pickaxe";
-        if (path.contains("_axe")) return "axe";
-        if (path.contains("_shovel")) return "shovel";
-        if (path.contains("_hoe")) return "hoe";
-        return "item";
-    }
-
-    private static final String[] COLOR_KEYWORDS = {
-            "light_blue", "light_gray", "magenta", "orange", "yellow", "purple",
-            "white", "black", "brown", "cyan", "green", "lime", "pink", "blue", "gray", "red"
-    };
-
-    private static String colorBucket(ResourceLocation id) {
-        String path = id.getPath();
-        for (String color : COLOR_KEYWORDS) {
-            if (hasToken(path, color)) {
-                return color;
-            }
-        }
-        return "";
-    }
-
-    private static boolean hasToken(String path, String token) {
-        int idx = path.indexOf(token);
-        while (idx >= 0) {
-            boolean beforeOk = idx == 0 || path.charAt(idx - 1) == '_';
-            boolean afterOk = idx + token.length() == path.length() || path.charAt(idx + token.length()) == '_';
-            if (beforeOk && afterOk) {
-                return true;
-            }
-            idx = path.indexOf(token, idx + 1);
-        }
-        return false;
     }
 
     private static String requiredTool(Item item) {
