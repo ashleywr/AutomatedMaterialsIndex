@@ -1,6 +1,5 @@
 package com.sanhiruzu.ami.client;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.AMIConfig;
 import com.sanhiruzu.ami.client.overlay.OverlayWidgetManager;
@@ -168,13 +167,6 @@ public class InventoryOverlayHandler {
     static void onKeyPressed(ScreenEvent.KeyPressed.Pre event) {
         if (!isAmiAvailable()) return;
         if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
-
-        InputConstants.Key pressed = InputConstants.getKey(event.getKeyCode(), event.getScanCode());
-        if (AMIKeyMappings.TOGGLE_AMI.isActiveAndMatches(pressed)) {
-            toggleAmi();
-            event.setCanceled(true);
-            return;
-        }
 
         var searchBar = manager.getSearchBar();
         if (!amiEnabled || !manager.isPanelVisible() || !searchBar.isFocused()) return;

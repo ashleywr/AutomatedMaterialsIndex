@@ -78,7 +78,6 @@ Process in strict order; stop at the first hit:
 - [x] **Dynamic Badge Fields**: Connected the "Fields" toolbar dropdown to `ResultsTreeView` so badges (Mod, Storage, DPS) can be toggled by the user. logic now uses `RowFieldConfig` and supports per-field color highlighting.
 - [ ] **Fix Fields Picker**: Investigation needed on why only "Mod" appears even when other fields are selected in the picker.
 - [ ] **Fix Results Scrollbar**: The scrollbar in `ResultsTreeView` is currently non-functional for vertical scrolling.
-- [ ] **Cleanup Keybinds**: Remove the "toggle" keybind for syncing/switching between AMI and EMI as it's no longer desired.
 - ~~Removed the active-field count badge from the "Fields" button label to prevent overflow.~~
 - **TODO:** Mod filtering is genuinely useful — revisit as a dedicated filter surface (e.g. a searchable popover or sidebar chip list) when the panel layout has more room.
 
