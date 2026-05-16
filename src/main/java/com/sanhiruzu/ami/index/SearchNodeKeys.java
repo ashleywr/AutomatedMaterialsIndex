@@ -20,6 +20,7 @@ public final class SearchNodeKeys {
     public static final String DPS             = "dps";          // Damage per second (Assembly Lab)
     public static final String VISIBILITY      = "visibility";    // "hidden" = not in any creative tab
     public static final String OBTAINABILITY   = "obtainability"; // "no_recipe" = no recipe output
+    public static final String SUBTYPE_OF      = "subtypeOf";     // base item id for subtype nodes
 
     // Atlas-specific
     public static final String DIMENSION       = "dimension";

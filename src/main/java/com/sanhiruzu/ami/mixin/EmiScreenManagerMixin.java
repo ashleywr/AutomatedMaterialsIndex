@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(EmiScreenManager.class)
 public class EmiScreenManagerMixin {
@@ -26,6 +27,39 @@ public class EmiScreenManagerMixin {
     private static void suppressWidgetsWhenAmiActive(Screen screen, CallbackInfo ci) {
         if (shouldHideEmi()) {
             ci.cancel();
+        }
+    }
+
+    // EMI hooks mouse and keyboard events via its own Mixin on Mouse/Keyboard — it does not use
+    // NeoForge's ScreenEvent system, so our event handlers cannot cancel EMI's input processing.
+    // We intercept the EmiScreenManager static methods directly so clicks/scrolls in EMI's panel
+    // area are not consumed while AMI is showing.
+
+    @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true, remap = false)
+    private static void suppressMouseClickedWhenAmiActive(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
+        if (shouldHideEmi()) {
+            cir.setReturnValue(false);
+        }
+    }
+
+    @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true, remap = false)
+    private static void suppressMouseReleasedWhenAmiActive(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
+        if (shouldHideEmi()) {
+            cir.setReturnValue(false);
+        }
+    }
+
+    @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true, remap = false)
+    private static void suppressMouseScrolledWhenAmiActive(double mouseX, double mouseY, double amount, CallbackInfoReturnable<Boolean> cir) {
+        if (shouldHideEmi()) {
+            cir.setReturnValue(false);
+        }
+    }
+
+    @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, remap = false)
+    private static void suppressKeyPressedWhenAmiActive(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
+        if (shouldHideEmi()) {
+            cir.setReturnValue(false);
         }
     }
 

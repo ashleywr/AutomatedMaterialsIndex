@@ -1,11 +1,13 @@
 package com.sanhiruzu.ami.index.providers;
 
 import com.sanhiruzu.ami.AMIConfig;
+import com.sanhiruzu.ami.api.AmiPluginRegistry;
+import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.index.*;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.BlockItem;
@@ -15,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -38,6 +41,8 @@ public class ItemProvider implements IAmiDataProvider {
         boolean hasCreativeData = !creativeItems.isEmpty();
         boolean hasRecipeData   = !recipeOutputs.isEmpty();
 
+        RegistryAccess registryAccess = level != null ? level.registryAccess() : null;
+
         for (Item item : BuiltInRegistries.ITEM) {
             ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
             if (id == null || id.getNamespace().equals("air")) continue;
@@ -52,6 +57,22 @@ public class ItemProvider implements IAmiDataProvider {
             // Layer 3: recipe availability (only evaluated when strictSurvival is on)
             boolean hasRecipe = !hasRecipeData || recipeOutputs.contains(item);
             if (!hasRecipe && strictSurvival) continue;
+
+            // Attempt subtype expansion before adding the base node.
+            List<SubtypeExpander.SubtypeEntry> subtypes =
+                    SubtypeExpander.expand(id, registryAccess);
+            if (!subtypes.isEmpty()) {
+                String tags = collectTags(item);
+                for (SubtypeExpander.SubtypeEntry entry : subtypes) {
+                    ItemIconRenderer.registerStack(entry.id(), entry.stack());
+                    Map<String, String> meta = buildSubtypeMeta(id, extractColorBucket(entry.id()));
+                    if (!tags.isEmpty()) meta.put(SearchNodeKeys.TAGS, tags);
+                    index.addNode(new SearchNode(entry.id(), NodeType.ITEM,
+                            entry.displayName(), 0xFFFFFF, 0, meta));
+                }
+                // Skip the plain base node — its subtypes represent the full item space.
+                continue;
+            }
 
             String modId        = id.getNamespace();
             String displayName  = item.getName(new ItemStack(item)).getString();
@@ -89,6 +110,47 @@ public class ItemProvider implements IAmiDataProvider {
 
             index.addNode(new SearchNode(id, NodeType.ITEM, displayName, color, 0, meta));
         }
+
+        // Collect hero items from registered plugins (mods with infinite modular variants).
+        indexHeroItems(index, registryAccess);
+    }
+
+    private void indexHeroItems(GlobalIndex index, @Nullable RegistryAccess registryAccess) {
+        for (var plugin : AmiPluginRegistry.getPlugins()) {
+            List<ItemStack> heroItems;
+            try {
+                heroItems = plugin.getHeroItems();
+            } catch (Exception e) {
+                com.sanhiruzu.ami.AMI.LOGGER.warn(
+                        "IAmiPlugin.getHeroItems() threw from {}", plugin.getClass().getName(), e);
+                continue;
+            }
+            if (heroItems.isEmpty()) continue;
+
+            // Use full class name to avoid collisions between two plugins in the same package.
+            String pluginKey = plugin.getClass().getName().replace('.', '_').toLowerCase();
+            int count = 0;
+            for (ItemStack stack : heroItems) {
+                if (stack == null || stack.isEmpty()) continue;
+                if (count >= SubtypeExpander.HARD_CAP) {
+                    com.sanhiruzu.ami.AMI.LOGGER.warn(
+                            "IAmiPlugin.getHeroItems() from {} exceeded HARD_CAP; truncating",
+                            plugin.getClass().getName());
+                    break;
+                }
+                ResourceLocation baseId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                if (baseId == null) continue;
+
+                ResourceLocation syntheticId = ResourceLocation.fromNamespaceAndPath("ami",
+                        "hero/" + pluginKey + "/" + count);
+                ItemIconRenderer.registerStack(syntheticId, stack);
+
+                Map<String, String> meta = buildSubtypeMeta(baseId, extractColorBucket(baseId));
+                index.addNode(new SearchNode(syntheticId, NodeType.ITEM,
+                        stack.getHoverName().getString(), 0xFFFFFF, 0, meta));
+                count++;
+            }
+        }
     }
 
     @Nullable
@@ -121,10 +183,6 @@ public class ItemProvider implements IAmiDataProvider {
             else req = "minecraft:wooden_hoe";
         }
 
-        if (req != null && BuiltInRegistries.ITEM.getKey(item).getPath().equals("stone")) {
-            com.sanhiruzu.ami.AMI.LOGGER.info("AMI DEBUG: Stone required tool is " + req);
-        }
-
         return req;
     }
 
@@ -135,8 +193,8 @@ public class ItemProvider implements IAmiDataProvider {
         if (path.contains("_wall")) return "wall";
         if (path.contains("_door")) return "door";
         if (path.contains("_trapdoor")) return "trapdoor";
-        if (path.contains("_fence")) return "fence";
         if (path.contains("_fence_gate")) return "fence_gate";
+        if (path.contains("_fence")) return "fence";
         if (path.contains("_button")) return "button";
         if (path.contains("_pressure_plate")) return "pressure_plate";
         return "block";
@@ -173,5 +231,13 @@ public class ItemProvider implements IAmiDataProvider {
             idx = path.indexOf(color, idx + 1);
         }
         return false;
+    }
+
+    private static Map<String, String> buildSubtypeMeta(ResourceLocation baseId, String colorBucket) {
+        Map<String, String> meta = new HashMap<>();
+        meta.put(SearchNodeKeys.MOD_ID, baseId.getNamespace());
+        meta.put(SearchNodeKeys.SUBTYPE_OF, baseId.toString());
+        meta.put(SearchNodeKeys.COLOR_BUCKET, colorBucket);
+        return meta;
     }
 }

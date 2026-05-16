@@ -11,6 +11,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ScreenEvent;
+import org.lwjgl.glfw.GLFW;
 
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
 public class InventoryOverlayHandler {
@@ -149,7 +150,11 @@ public class InventoryOverlayHandler {
         var searchBar = manager.getSearchBar();
         if (!searchBar.isFocused()) searchBar.setFocused(true);
         boolean handled = searchBar.keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers());
-        if (handled) {
+        // Cancel the event for every key except Escape while the search bar is active.
+        // Without this, letter keys that match mod-configured keybinds (e.g. "I") fire
+        // their actions even though the user is just typing into the search field.
+        // Escape is the only exception — we let it propagate so the screen can close.
+        if (handled || event.getKeyCode() != GLFW.GLFW_KEY_ESCAPE) {
             event.setCanceled(true);
         }
         // If the search bar released its own focus (e.g. on Escape), mirror that here.
