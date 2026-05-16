@@ -87,6 +87,9 @@ public final class AmiIndexerService {
                 if (ontology.length > 1) {
                     meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, ontology[1]);
                 }
+                if (ontology.length > 2 && ontology[2] != null) {
+                    meta.put(SearchNodeKeys.BLOCKS_MATERIAL, ontology[2]);
+                }
             }
 
             index.addNode(new SearchNode(id, NodeType.ITEM, displayName(item), 0xFFFFFF, 0, meta));

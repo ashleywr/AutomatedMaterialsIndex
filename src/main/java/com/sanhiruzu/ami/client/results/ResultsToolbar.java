@@ -6,7 +6,7 @@ import net.minecraft.client.gui.GuiGraphics;
 
 import java.util.*;
 
-public class ResultsToolbar {
+public class ResultsToolbar implements SearchState.Listener {
     public enum ViewMode { GRID, LIST }
 
     private static final int TOOLBAR_HEIGHT  = 20;
@@ -15,10 +15,10 @@ public class ResultsToolbar {
     private static final int DROPDOWN_W     = 80;
     private static final int MOD_FILTER_W   = 60;
     private static final int FIELDS_BTN_W   = 44; // wide enough for "Fields (3)"
+    private static final int RESET_BUTTON_W = 32;
 
     private int x, y, width;
-    private boolean ascending = true;
-    private ViewMode viewMode = ViewMode.LIST;
+    private final SearchState state;
 
     // Registered dropdowns - add or remove here to customize the toolbar
     private final List<Dropdown> dropdowns = new ArrayList<>();
@@ -30,28 +30,30 @@ public class ResultsToolbar {
     // Field picker — pinned to right end of toolbar, not in the auto-sized list
     private final RowFieldPickerDropdown fieldsPicker = new RowFieldPickerDropdown();
 
-    public ResultsToolbar(int x, int y, int width) {
+    public ResultsToolbar(int x, int y, int width, SearchState state) {
         this.x = x;
         this.y = y;
         this.width = width;
+        this.state = state;
+        state.addListener(this);
 
         // Create dropdowns
         List<ResultsProcessor.SortField> sortFields = Arrays.asList(ResultsProcessor.SortField.values());
         this.sortFieldDropdown = new SingleSelectDropdown<>(
-                "Sort",
+                Component.translatable("ami.gui.sort"),
                 sortFields,
                 f -> f.displayName,
-                ResultsProcessor.SortField.ALPHABETICAL,
-                selected -> {}
+                state.getSortField(),
+                selected -> state.setSortField(selected)
         );
 
         List<ResultsProcessor.GroupBy> groupByOptions = Arrays.asList(ResultsProcessor.GroupBy.values());
         this.groupByDropdown = new SingleSelectDropdown<>(
-                "Group",
+                Component.translatable("ami.gui.group"),
                 groupByOptions,
                 g -> g.displayName,
-                ResultsProcessor.GroupBy.CATEGORY,
-                selected -> {}
+                state.getGroupBy(),
+                selected -> state.setGroupBy(selected)
         );
 
         // Register dropdowns in order
@@ -59,6 +61,12 @@ public class ResultsToolbar {
         dropdowns.add(groupByDropdown);
 
         updateDropdownPositions();
+    }
+
+    @Override
+    public void onSearchStateChanged(SearchState state) {
+        this.sortFieldDropdown.setSelected(state.getSortField());
+        this.groupByDropdown.setSelected(state.getGroupBy());
     }
 
     public void updateLayout(int x, int y, int width) {
@@ -69,7 +77,7 @@ public class ResultsToolbar {
     }
 
     private void updateDropdownPositions() {
-        int startX = x + 2 + MODE_BUTTON_W + 3 + BUTTON_W + 3; // view-mode + sort-dir buttons
+        int startX = x + 2 + MODE_BUTTON_W + 3 + BUTTON_W + 3 + RESET_BUTTON_W + 3; // view-mode + sort-dir + reset buttons
         int availableW = width - (startX - x) - FIELDS_BTN_W - 5; // reserve right edge for Fields picker
 
         int n = dropdowns.size();
@@ -93,23 +101,23 @@ public class ResultsToolbar {
         fieldsPicker.updatePosition(x + width - FIELDS_BTN_W - 2, y + 3, FIELDS_BTN_W);
     }
 
-    private int getDropdownWidth(Dropdown dropdown) {
-        // Obsolete, widths are now calculated dynamically
-        return 0;
-    }
-
     public void render(GuiGraphics g, int mouseX, int mouseY) {
         var font = Minecraft.getInstance().font;
         int buttonX = x + 2;
 
         // View mode toggle button
-        String modeLabel = viewMode == ViewMode.GRID ? "Grid" : "List";
+        String modeLabel = state.getViewMode() == ViewMode.GRID ? "Grid" : "List";
         g.drawString(font, modeLabel, buttonX + 2, y + 3, AMITheme.TEXT_HEADER, false);
         buttonX += MODE_BUTTON_W + 3;
 
         // Sort direction button (▲/▼)
-        String dirLabel = ascending ? "▲" : "▼";
+        String dirLabel = state.isAscending() ? "▲" : "▼";
         g.drawString(font, dirLabel, buttonX + 2, y + 3, AMITheme.TEXT_HEADER, false);
+        buttonX += BUTTON_W + 3;
+
+        // Reset button (↺)
+        boolean resetHovered = Dropdown.contains(mouseX, mouseY, buttonX, y + 3, RESET_BUTTON_W, 14);
+        g.drawString(font, "↺", buttonX + 2, y + 3, resetHovered ? 0xFFFFFFFF : AMITheme.TEXT_SUBTLE, false);
 
         // Render all registered dropdowns
         for (Dropdown dropdown : dropdowns) {
@@ -125,7 +133,7 @@ public class ResultsToolbar {
 
         // View mode toggle
         if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, y + 3, MODE_BUTTON_W, 14)) {
-            viewMode = (viewMode == ViewMode.GRID) ? ViewMode.LIST : ViewMode.GRID;
+            state.setViewMode(state.getViewMode() == ViewMode.GRID ? ViewMode.LIST : ViewMode.GRID);
             closeAllDropdowns();
             return true;
         }
@@ -133,7 +141,16 @@ public class ResultsToolbar {
 
         // Sort direction button
         if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, y + 3, BUTTON_W, 14)) {
-            ascending = !ascending;
+            state.setAscending(!state.isAscending());
+            closeAllDropdowns();
+            return true;
+        }
+        buttonX += BUTTON_W + 3;
+
+        // Reset button
+        if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, y + 3, RESET_BUTTON_W, 14)) {
+            state.reset();
+            RowFieldConfig.setSubtitleFields(List.of(RowField.MOD_NAME));
             closeAllDropdowns();
             return true;
         }
@@ -173,11 +190,6 @@ public class ResultsToolbar {
 
 
     public int getHeight() { return TOOLBAR_HEIGHT; }
-    public ResultsProcessor.SortField getSortField() { return sortFieldDropdown.getSelected(); }
-    public boolean isAscending() { return ascending; }
-    public ResultsProcessor.GroupBy getGroupBy() { return groupByDropdown.getSelected(); }
-    public Set<String> getSelectedMods() { return Set.of(); }
-    public ViewMode getViewMode() { return viewMode; }
 
     public boolean isAnyDropdownOpen() {
         if (fieldsPicker.isOpen()) return true;
@@ -195,5 +207,8 @@ public class ResultsToolbar {
         dropdowns.add(dropdown);
         updateDropdownPositions();
     }
-
+}
+   dropdowns.add(dropdown);
+        updateDropdownPositions();
+    }
 }

@@ -1,33 +1,35 @@
 package com.sanhiruzu.ami.client.results;
 
+import com.sanhiruzu.ami.AMIConfig;
 import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import net.minecraft.network.chat.Component;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class ResultsProcessor {
     public enum SortField {
-        ALPHABETICAL("Name"),
-        COLOR("Color"),
-        MOD("Mod"),
-        STORAGE_CAPACITY("Storage"),
-        DPS("DPS");
+        ALPHABETICAL("ami.sort.alphabetical"),
+        COLOR("ami.sort.color"),
+        MOD("ami.sort.mod"),
+        STORAGE_CAPACITY("ami.sort.storage"),
+        DPS("ami.sort.dps");
 
-        public final String displayName;
-        SortField(String displayName) { this.displayName = displayName; }
+        public final Component displayName;
+        SortField(String key) { this.displayName = Component.translatable(key); }
     }
 
     public enum GroupBy {
-        DIMENSION("Dimension"),
-        MOD("Mod"),
-        CATEGORY("Category"),
-        MATERIAL("Material"),
-        SHAPE("Shape");
+        DIMENSION("ami.group.dimension"),
+        MOD("ami.group.mod"),
+        CATEGORY("ami.group.category"),
+        MATERIAL("ami.group.material"),
+        SHAPE("ami.group.shape");
 
-        public final String displayName;
-        GroupBy(String displayName) { this.displayName = displayName; }
+        public final Component displayName;
+        GroupBy(String key) { this.displayName = Component.translatable(key); }
     }
 
 
@@ -149,13 +151,22 @@ public class ResultsProcessor {
             catGroups.put(cat.id, n);
         }
 
+        boolean blocksMaterial = AMIConfig.BLOCK_SUBGROUP.get() == AMIConfig.BlockSubgroup.MATERIAL;
+
         for (SearchNode entry : entries) {
             AmiOntology.Category cat = AmiOntology.classifyNode(entry);
             TreeNode catNode = catGroups.get(cat.id);
 
             String subId = entry.meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "");
+
+            // For building-type block shapes, swap to material grouping when config says so.
+            // Structural subcategories (functional/redstone/decorative) are never swapped.
+            if (cat == AmiOntology.BLOCKS && blocksMaterial && isBuildingShape(subId)) {
+                String matId = entry.meta(SearchNodeKeys.BLOCKS_MATERIAL, "");
+                if (!matId.isEmpty()) subId = matId;
+            }
+
             if (!subId.isEmpty()) {
-                // Use named sub-category as the second level when available
                 String subName = cat.subCategories.stream()
                         .filter(s -> s.id().equals(subId))
                         .map(AmiOntology.SubCategory::displayName)

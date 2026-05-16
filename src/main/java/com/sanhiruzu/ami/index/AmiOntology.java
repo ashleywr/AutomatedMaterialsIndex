@@ -190,10 +190,23 @@ public final class AmiOntology {
             "blocks", "Blocks", "Blocks",
             "minecraft:bricks", 0xFF888888,
             List.of(
-                new SubCategory("building",   "Building Blocks"),
-                new SubCategory("functional", "Functional & Interactive"),
-                new SubCategory("redstone",   "Redstone & Logic"),
-                new SubCategory("decorative", "Decorative")
+                // Always-visible structural subcategories
+                new SubCategory("functional",     "Functional & Interactive"),
+                new SubCategory("redstone",       "Redstone & Logic"),
+                new SubCategory("decorative",     "Decorative"),
+                // Shape subcategories (shown when blockSubgroup = SHAPE)
+                new SubCategory("full_block",     "Full Blocks"),
+                new SubCategory("stairs",         "Stairs"),
+                new SubCategory("slab",           "Slabs"),
+                new SubCategory("wall",           "Walls"),
+                new SubCategory("fence",          "Fences"),
+                new SubCategory("pane",           "Panes"),
+                // Material subcategories (shown when blockSubgroup = MATERIAL)
+                new SubCategory("stone",          "Stone & Masonry"),
+                new SubCategory("wood",           "Wood & Planks"),
+                new SubCategory("soil",           "Soil & Terrain"),
+                new SubCategory("glass",          "Glass & Light"),
+                new SubCategory("other_building", "Other Building")
             ),
             List.of() // catch-all
         );

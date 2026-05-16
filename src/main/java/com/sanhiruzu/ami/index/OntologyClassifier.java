@@ -9,13 +9,16 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Locale;
+import java.util.stream.Collectors;
+
 /**
- * Classifies BlockItem instances into AmiOntology categories at index time.
+ * Classifies Item instances into AmiOntology categories at index time.
  *
  * Returns a two-element array {categoryId, subcategoryId}, or null when the item
  * should be left for the runtime heuristics in AmiOntology.classifyItem().
  *
- * Decision order (first match wins):
+ * BlockItem decision order (first match wins):
  *   1. Redstone  – checked before nature so sculk sensors win
  *   2. Nature    – logs, leaves, saplings, flowers, crops, fungi, etc. → null (runtime → "nature")
  *   3. Ores      – all ore block types → null (runtime → "tech")
@@ -23,6 +26,9 @@ import org.jetbrains.annotations.Nullable;
  *   5. Functional – beds, doors, block entities, crafting stations, etc.
  *   6. Decorative – carpets, candles, banners, signs, torches, etc.
  *   7. Building   – everything else that is a BlockItem
+ *
+ * Non-BlockItem decision order uses item tags + path heuristics:
+ *   Armor → Weapons/Tools → Magic → Food → Tech → Nature → Social → Entities
  */
 public final class OntologyClassifier {
 
@@ -31,7 +37,9 @@ public final class OntologyClassifier {
      */
     @Nullable
     public static String[] classifyItem(Item item, ResourceLocation id) {
-        if (!(item instanceof BlockItem bi)) return null;
+        if (!(item instanceof BlockItem bi)) {
+            return classifyNonBlockItem(item, id);
+        }
 
         Block block = bi.getBlock();
         BlockState state = block.defaultBlockState();
@@ -102,11 +110,244 @@ public final class OntologyClassifier {
         }
         if (isDecorativeBlock(path)) return blocks("decorative");
 
-        // ── 7. Building — default for all remaining BlockItems ────────────────
-        return blocks("building");
+        // ── 7. Building — split by shape (subcategory) and material (3rd element) ──
+        return blocks(classifyBlockShape(path), classifyBlockMaterial(state, path));
     }
 
-    // ── Helper predicates ─────────────────────────────────────────────────────
+    // ── Non-BlockItem classification ──────────────────────────────────────────
+
+    @Nullable
+    private static String[] classifyNonBlockItem(Item item, ResourceLocation id) {
+        String path = id.getPath();
+        String tags = item.builtInRegistryHolder().tags()
+                .map(tag -> tag.location().toString().toLowerCase(Locale.ROOT))
+                .collect(Collectors.joining(","));
+        // Single combined string so each pattern is checked against both at once.
+        String combined = tags + "," + path;
+
+        // ── Armor (check slot-specific tags first for precision) ──────────────
+        if (combined.contains("head_armor") || path.endsWith("_helmet") || path.equals("turtle_helmet")) {
+            return armor("head");
+        }
+        if (combined.contains("chest_armor") || path.endsWith("_chestplate")) {
+            return armor("chest");
+        }
+        if (combined.contains("leg_armor") || path.endsWith("_leggings")) {
+            return armor("legs");
+        }
+        if (combined.contains("foot_armor") || path.endsWith("_boots")) {
+            return armor("feet");
+        }
+        if (path.equals("elytra")) return armor("curios");
+        if (combined.contains(":armor")) return armor("chest"); // generic armor fallback
+
+        // ── Weapons & Tools ───────────────────────────────────────────────────
+        if (combined.contains(":swords") || path.endsWith("_sword")
+                || path.equals("trident") || path.equals("mace")) {
+            return weapons("melee");
+        }
+        if (combined.contains(":bows") || path.equals("bow") || path.equals("crossbow")) {
+            return weapons("ranged");
+        }
+        if (combined.contains(":arrows") || path.endsWith("_arrow") || path.equals("arrow")) {
+            return weapons("ranged");
+        }
+        if (combined.contains(":pickaxes") || path.endsWith("_pickaxe")) return weapons("harvest");
+        if (combined.contains(":shovels")  || path.endsWith("_shovel"))  return weapons("harvest");
+        if (combined.contains(":hoes")     || path.endsWith("_hoe"))     return weapons("harvest");
+        if (combined.contains(":axes")     || path.endsWith("_axe"))     return weapons("harvest");
+        if (path.equals("fishing_rod") || path.equals("shears")
+                || path.equals("flint_and_steel") || path.equals("brush")) {
+            return weapons("utility");
+        }
+        if (combined.contains(":tools")) return weapons("utility"); // generic tool fallback
+
+        // ── Magic ─────────────────────────────────────────────────────────────
+        if (path.contains("potion")) return magic("potions");
+        if (path.equals("enchanted_book")) return magic("books");
+        if (path.equals("totem_of_undying") || path.equals("nether_star")) return magic("artifacts");
+        if (isMagicReagent(path)) return magic("reagents");
+
+        // ── Food ──────────────────────────────────────────────────────────────
+        if (path.startsWith("cooked_")) return food("meals");
+        if (isRawProtein(path)) return food("proteins");
+        if (path.equals("cod") || path.equals("salmon")
+                || path.equals("tropical_fish") || path.equals("pufferfish")) {
+            return food("proteins");
+        }
+        if (path.equals("mushroom_stew") || path.equals("beetroot_soup") || path.equals("rabbit_stew")
+                || path.equals("suspicious_stew") || path.equals("honey_bottle")
+                || path.equals("milk_bucket")) {
+            return food("drinks");
+        }
+        if (combined.contains(":foods") || combined.contains(":food")) return food("snacks");
+
+        // ── Tech (non-block materials) ────────────────────────────────────────
+        if (combined.contains(":ingots") || path.endsWith("_ingot")) return tech("ingots");
+        if (combined.contains(":gems")
+                || path.equals("diamond") || path.equals("emerald") || path.equals("amethyst_shard")
+                || path.equals("quartz") || path.equals("lapis_lazuli")
+                || path.equals("prismarine_crystals")) {
+            return tech("ingots");
+        }
+        if (combined.contains(":nuggets") || path.endsWith("_nugget")) return tech("ingots");
+        if (isRawOre(path)) return tech("ingots");
+        if (combined.contains(":dusts") || path.equals("redstone") || path.equals("glowstone_dust")
+                || path.equals("blaze_rod") || path.equals("coal") || path.equals("charcoal")
+                || path.equals("nether_brick") || path.equals("bone_meal")) {
+            return tech("dusts");
+        }
+
+        // ── Nature (non-block) ────────────────────────────────────────────────
+        if (combined.contains(":seeds") || path.endsWith("_seeds")) return nature("seeds");
+        if (isHarvestCrop(path)) return nature("crops");
+        if (path.equals("red_mushroom") || path.equals("brown_mushroom")) return nature("fungi");
+        if (path.equals("bamboo") || path.equals("stick")) return nature("wood");
+
+        // ── Social (navigational items) ───────────────────────────────────────
+        if (path.equals("compass") || path.equals("recovery_compass")
+                || path.equals("filled_map") || path.equals("clock") || path.equals("spyglass")) {
+            return social("waypoints");
+        }
+        if (path.equals("player_head")) return social("players");
+        if (path.equals("lodestone"))   return social("claims");
+
+        // ── Entities (spawn eggs, vehicles) ───────────────────────────────────
+        if (path.endsWith("_spawn_egg")) return entities(classifySpawnEgg(path));
+        if (path.contains("minecart") || path.endsWith("_boat") || path.endsWith("_chest_boat")) {
+            return entities("vehicles");
+        }
+
+        return null; // leave remaining items to AmiOntology runtime heuristics → BLOCKS
+    }
+
+    // ── Non-BlockItem helpers ─────────────────────────────────────────────────
+
+    private static boolean isMagicReagent(String path) {
+        return switch (path) {
+            case "blaze_powder", "ender_pearl", "ender_eye", "fermented_spider_eye",
+                 "ghast_tear", "phantom_membrane", "rabbit_foot", "spider_eye",
+                 "glistering_melon_slice", "dragon_breath", "experience_bottle",
+                 "magma_cream", "nether_wart", "slime_ball" -> true;
+            default -> false;
+        };
+    }
+
+    private static boolean isRawProtein(String path) {
+        return switch (path) {
+            case "raw_beef", "raw_chicken", "raw_porkchop",
+                 "raw_cod", "raw_salmon", "raw_rabbit", "raw_mutton" -> true;
+            default -> false;
+        };
+    }
+
+    private static boolean isRawOre(String path) {
+        return switch (path) {
+            case "raw_iron", "raw_gold", "raw_copper" -> true;
+            default -> false;
+        };
+    }
+
+    private static boolean isHarvestCrop(String path) {
+        return switch (path) {
+            case "wheat", "carrot", "potato", "beetroot",
+                 "melon_slice", "pumpkin", "chorus_fruit",
+                 "cocoa_beans", "sweet_berries", "glow_berries" -> true;
+            default -> false;
+        };
+    }
+
+    private static String classifySpawnEgg(String path) {
+        // Strip the "_spawn_egg" suffix to get the mob name prefix.
+        String mob = path.substring(0, path.length() - "_spawn_egg".length());
+        return switch (mob) {
+            // Passive
+            case "pig", "chicken", "cow", "sheep", "horse", "donkey", "mule",
+                 "rabbit", "squid", "glow_squid", "bat", "ocelot", "cat",
+                 "axolotl", "frog", "tadpole", "parrot", "mooshroom",
+                 "strider", "cod", "salmon", "tropical_fish", "pufferfish",
+                 "turtle", "sniffer", "allay" -> "passive";
+            // Neutral
+            case "wolf", "bee", "polar_bear", "dolphin", "panda",
+                 "llama", "trader_llama", "goat", "iron_golem",
+                 "piglin", "zombified_piglin", "enderman",
+                 "spider", "cave_spider" -> "neutral";
+            // Default: hostile (covers zombies, skeletons, creepers, most modded mobs)
+            default -> "hostile";
+        };
+    }
+
+    // ── Category return helpers ───────────────────────────────────────────────
+
+    private static String[] armor(String sub)    { return new String[]{"armor",    sub}; }
+    private static String[] weapons(String sub)  { return new String[]{"weapons",  sub}; }
+    private static String[] magic(String sub)    { return new String[]{"magic",    sub}; }
+    private static String[] food(String sub)     { return new String[]{"food",     sub}; }
+    private static String[] tech(String sub)     { return new String[]{"tech",     sub}; }
+    private static String[] nature(String sub)   { return new String[]{"nature",   sub}; }
+    private static String[] social(String sub)   { return new String[]{"social",   sub}; }
+    private static String[] entities(String sub) { return new String[]{"entities", sub}; }
+    /** Two-element return for non-building block subcategories (functional/redstone/decorative). */
+    private static String[] blocks(String sub)   { return new String[]{"blocks",   sub}; }
+    /** Three-element return for building blocks: [category, shapeSubcategory, materialSubcategory]. */
+    private static String[] blocks(String shape, String material) { return new String[]{"blocks", shape, material}; }
+
+    // ── Building block shape & material classifiers ───────────────────────────
+
+    private static String classifyBlockShape(String path) {
+        if (path.endsWith("_stairs"))     return "stairs";
+        if (path.endsWith("_slab"))       return "slab";
+        if (path.endsWith("_wall"))       return "wall";
+        if (path.endsWith("_fence_gate")) return "fence";
+        if (path.endsWith("_fence"))      return "fence";
+        if (path.endsWith("_pane"))       return "pane";
+        return "full_block";
+    }
+
+    private static String classifyBlockMaterial(BlockState state, String path) {
+        // Glass — check first, "glass" is unambiguous
+        if (path.contains("glass")) return "glass";
+
+        // Wood — use tags for precision across all wood types (vanilla + mods)
+        if (state.is(BlockTags.PLANKS)
+                || state.is(BlockTags.WOODEN_SLABS)
+                || state.is(BlockTags.WOODEN_STAIRS)
+                || state.is(BlockTags.WOODEN_FENCES)
+                || path.endsWith("_wood")
+                || path.equals("bamboo_block")
+                || path.equals("bamboo_mosaic")) {
+            return "wood";
+        }
+
+        // Soil & Terrain — check concrete_powder before concrete to avoid mismatch
+        if (path.contains("concrete_powder")
+                || containsAny(path, "dirt", "gravel", "clay", "mud", "podzol", "mycelium",
+                               "snow", "ice", "terracotta", "soul_sand", "soul_soil")
+                || path.equals("sand") || path.endsWith("_sand")) {
+            return "soil";
+        }
+
+        // Stone & Masonry — broad catch for stone-like and mineral building materials
+        if (state.is(BlockTags.STONE_BRICKS)
+                || containsAny(path, "stone", "cobble", "brick", "sandstone",
+                               "andesite", "diorite", "granite", "deepslate", "tuff",
+                               "basalt", "calcite", "dripstone", "blackstone",
+                               "netherrack", "end_stone", "obsidian",
+                               "prismarine", "purpur", "magma", "concrete")) {
+            return "stone";
+        }
+
+        return "other_building";
+    }
+
+    private static boolean containsAny(String path, String... tokens) {
+        for (String token : tokens) {
+            if (path.contains(token)) return true;
+        }
+        return false;
+    }
+
+    // ── BlockItem helper predicates ───────────────────────────────────────────
 
     private static boolean isRedstoneBlock(String path) {
         return switch (path) {
@@ -183,10 +424,6 @@ public final class OntologyClassifier {
             default -> path.contains("torch")  // torch, soul_torch (redstone_torch already returned above)
                        || (path.contains("coral") && !path.contains("coral_block")); // coral fans / plants
         };
-    }
-
-    private static String[] blocks(String subcategory) {
-        return new String[]{"blocks", subcategory};
     }
 
     private OntologyClassifier() {}

@@ -25,7 +25,7 @@ public class SearchBarWidget extends EditBox {
     private int cursorPos = 0;
     private int highlightPos = 0;
 
-    private static final String PLACEHOLDER_HINT = "Search anything here...";
+    private static final Component PLACEHOLDER_HINT = Component.translatable("ami.gui.search.placeholder_hint");
 
     private List<TokenColorizer.ColorSpan> colorSpans = List.of();
 

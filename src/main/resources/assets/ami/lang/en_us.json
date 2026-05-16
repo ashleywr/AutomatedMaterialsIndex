@@ -13,6 +13,7 @@
   "ami.gui.cycle_hint": "Press %s to cycle",
   "ami.gui.close_hint": "Press %s to close",
   "ami.gui.search.placeholder": "Filter...",
+  "ami.gui.search.placeholder_hint": "Search anything here...",
   "ami.gui.search.empty": "No results",
 
   "ami.dimension.overworld": "Overworld",
@@ -55,9 +56,27 @@
   "ami.tooltip.required_tool": "Requires: %s",
 
   "ami.gui.open_full_screen": "Open AMI Full Screen",
+  "ami.gui.reset": "Reset",
 
   "ami.gui.view_mode.grid": "Grid view",
   "ami.gui.view_mode.list": "List view",
+  "ami.gui.view_mode.grid_short": "Grid",
+  "ami.gui.view_mode.list_short": "List",
+  "ami.gui.sort": "Sort",
+  "ami.gui.group": "Group",
+  "ami.gui.fields": "Fields",
+
+  "ami.sort.alphabetical": "Name",
+  "ami.sort.color": "Color",
+  "ami.sort.mod": "Mod",
+  "ami.sort.storage": "Storage",
+  "ami.sort.dps": "DPS",
+
+  "ami.group.dimension": "Dimension",
+  "ami.group.mod": "Mod",
+  "ami.group.category": "Category",
+  "ami.group.material": "Material",
+  "ami.group.shape": "Shape",
 
   "ami.gui.pinned_discover": "Pinned & Discover",
   "ami.gui.badge.storage": "[STR x%s]",

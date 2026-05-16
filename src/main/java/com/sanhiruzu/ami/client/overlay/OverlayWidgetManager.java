@@ -51,6 +51,7 @@ public class OverlayWidgetManager {
 
         // Connect mod-badge clicking to search bar filtering
         this.resultsPanel.setOnModClick(searchBar::appendQuery);
+        this.resultsPanel.setOnReset(searchBar::clear);
 
         widgetsReady = true;
     }
@@ -113,6 +114,8 @@ public class OverlayWidgetManager {
                     searchService = SearchService.buildFrom(GlobalIndex.getInstance());
                     ProviderRegistry.indexStructuresDeferred(level);
                     searchService = SearchService.buildFrom(GlobalIndex.getInstance());
+                    var panel = resultsPanel.getInnerPanel();
+                    if (panel != null) panel.setSearchService(searchService);
                     indexingInProgress = false;
                     indexingDispatched = true;
                     refreshEntries();
@@ -127,6 +130,8 @@ public class OverlayWidgetManager {
                 if (level != null) {
                     ProviderRegistry.indexStructuresDeferred(level);
                     searchService = SearchService.buildFrom(GlobalIndex.getInstance());
+                    var panel = resultsPanel.getInnerPanel();
+                    if (panel != null) panel.setSearchService(searchService);
                 }
                 retryCount++;
             }
@@ -205,12 +210,7 @@ public class OverlayWidgetManager {
         var panel = resultsPanel.getInnerPanel();
         if (searchService == null || panel == null) return;
 
-        if (query.isEmpty()) {
-            refreshEntries();
-        } else {
-            var results = searchService.query(query);
-            panel.setSearchResults(results, query);
-        }
+        panel.getState().setQuery(query);
 
         if (!query.equals(lastSyncedQuery)) {
             lastSyncedQuery = query;
@@ -226,11 +226,7 @@ public class OverlayWidgetManager {
             searchBar.setQuery(rvQuery);
             var panel = resultsPanel.getInnerPanel();
             if (panel == null || searchService == null) return;
-            if (rvQuery.isEmpty()) {
-                refreshEntries();
-            } else {
-                panel.setSearchResults(searchService.query(rvQuery), rvQuery);
-            }
+            panel.getState().setQuery(rvQuery);
         }
     }
 
