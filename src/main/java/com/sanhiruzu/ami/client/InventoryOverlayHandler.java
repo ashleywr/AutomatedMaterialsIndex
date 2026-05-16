@@ -125,6 +125,34 @@ public class InventoryOverlayHandler {
     }
 
     @SubscribeEvent
+    static void onMouseDragged(ScreenEvent.MouseDragged.Pre event) {
+        if (!amiEnabled || !manager.isPanelVisible()) return;
+        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
+
+        var searchBar = manager.getSearchBar();
+        if (!searchBar.isFocused()) return;
+
+        if (searchBar.mouseDragged(
+                event.getMouseX(), event.getMouseY(),
+                event.getMouseButton(), event.getDragX(), event.getDragY())) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    static void onMouseButtonReleased(ScreenEvent.MouseButtonReleased.Pre event) {
+        if (!amiEnabled || !manager.isPanelVisible()) return;
+        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
+
+        var searchBar = manager.getSearchBar();
+        if (!searchBar.isFocused()) return;
+
+        if (searchBar.mouseReleased(event.getMouseX(), event.getMouseY(), event.getButton())) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
     static void onCharTyped(ScreenEvent.CharacterTyped.Pre event) {
         if (!amiEnabled || !manager.isPanelVisible()) return;
         var searchBar = manager.getSearchBar();
