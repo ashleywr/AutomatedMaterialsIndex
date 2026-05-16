@@ -287,7 +287,8 @@ public class ResultsTreeView {
 
         // Expansion Toggle
         String arrow = node.isExpanded() ? "▼" : "▶";
-        g.drawString(font, arrow, rowX, drawY + 5, AMITheme.TEXT_HEADER, false);
+        int caretY = drawY + (AMITheme.ROW_HEIGHT - font.lineHeight) / 2;
+        g.drawString(font, arrow, rowX, caretY, AMITheme.TEXT_HEADER, false);
 
         // Stacked Icon Effect (Representative Item)
         if (!node.getChildren().isEmpty()) {
