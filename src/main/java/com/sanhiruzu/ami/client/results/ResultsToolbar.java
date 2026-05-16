@@ -50,7 +50,7 @@ public class ResultsToolbar {
                 "Group",
                 groupByOptions,
                 g -> g.displayName,
-                ResultsProcessor.GroupBy.MOD,
+                ResultsProcessor.GroupBy.CATEGORY,
                 selected -> {}
         );
 

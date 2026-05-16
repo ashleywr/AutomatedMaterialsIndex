@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.index.query.QueryParser;
 import com.sanhiruzu.ami.index.resolvers.EnvironmentResolver;
 import com.sanhiruzu.ami.index.resolvers.LiteralResolver;
+import com.sanhiruzu.ami.index.resolvers.ModResolver;
 import com.sanhiruzu.ami.index.resolvers.NumericMetadataResolver;
 import com.sanhiruzu.ami.index.resolvers.PlayerResolver;
 import com.sanhiruzu.ami.index.resolvers.PropertyResolver;
@@ -17,14 +18,17 @@ import java.util.*;
 public final class SearchService {
     private final List<IQueryResolver> resolvers;
     private final TagResolver tagResolver;
+    private final ModResolver modResolver;
     private final EnvironmentResolver envResolver;
     private final NumericMetadataResolver numericResolver;
     private final PropertyResolver propertyResolver;
 
-    private SearchService(List<IQueryResolver> resolvers, TagResolver tagResolver, EnvironmentResolver envResolver,
-                          NumericMetadataResolver numericResolver, PropertyResolver propertyResolver) {
+    private SearchService(List<IQueryResolver> resolvers, TagResolver tagResolver, ModResolver modResolver,
+                          EnvironmentResolver envResolver, NumericMetadataResolver numericResolver,
+                          PropertyResolver propertyResolver) {
         this.resolvers = List.copyOf(resolvers);
         this.tagResolver = tagResolver;
+        this.modResolver = modResolver;
         this.envResolver = envResolver;
         this.numericResolver = numericResolver;
         this.propertyResolver = propertyResolver;
@@ -42,6 +46,7 @@ public final class SearchService {
     public static SearchService buildFrom(GlobalIndex index, boolean includePlayers) {
         LiteralResolver literal = new LiteralResolver();
         TagResolver tagResolver = new TagResolver();
+        ModResolver modResolver = new ModResolver();
         EnvironmentResolver envResolver = new EnvironmentResolver();
         NumericMetadataResolver numericResolver = new NumericMetadataResolver();
         PropertyResolver propertyResolver = new PropertyResolver();
@@ -51,6 +56,7 @@ public final class SearchService {
             for (SearchNode node : index.getNodes(type)) {
                 literal.addNode(node);
                 tagResolver.addNode(node);
+                modResolver.addNode(node);
                 envResolver.addNode(node);
                 numericResolver.addNode(node);
                 propertyResolver.addNode(node);
@@ -63,7 +69,7 @@ public final class SearchService {
             resolvers.add(new PlayerResolver());
         }
 
-        return new SearchService(resolvers, tagResolver, envResolver, numericResolver, propertyResolver);
+        return new SearchService(resolvers, tagResolver, modResolver, envResolver, numericResolver, propertyResolver);
     }
 
     /**
@@ -89,6 +95,7 @@ public final class SearchService {
         List<String> includeParts = new ArrayList<>();
         List<String> excludeParts = new ArrayList<>();
         List<String> tagParts = new ArrayList<>();
+        List<String> modParts = new ArrayList<>();
         List<String> envParts = new ArrayList<>();
         List<String> propertyParts = new ArrayList<>();
         List<String> numericParts = new ArrayList<>();
@@ -99,6 +106,7 @@ public final class SearchService {
             switch (token.type()) {
                 case INCLUDE -> includeParts.add(value);
                 case TAG -> tagParts.add(value);
+                case MOD -> modParts.add(value);
                 case ENV -> envParts.add(value);
                 case PROP -> propertyParts.add(value);
                 case EXCLUDE -> excludeParts.add(value);
@@ -119,6 +127,9 @@ public final class SearchService {
 
         for (String tagPart : tagParts) {
             hasActiveResultSet = applyPositiveFilter(results, tagResolver.resolve(tagPart), hasActiveResultSet);
+        }
+        for (String modPart : modParts) {
+            hasActiveResultSet = applyPositiveFilter(results, modResolver.resolve(modPart), hasActiveResultSet);
         }
         for (String envPart : envParts) {
             hasActiveResultSet = applyPositiveFilter(results, envResolver.resolve(envPart), hasActiveResultSet);
@@ -152,6 +163,9 @@ public final class SearchService {
     private Map<NodeType, List<SearchNode>> resolveExclude(String excludePart) {
         if (excludePart.startsWith("#")) {
             return tagResolver.resolve(excludePart.substring(1));
+        }
+        if (excludePart.startsWith("@")) {
+            return modResolver.resolve(excludePart.substring(1));
         }
         if (excludePart.startsWith("&")) {
             return envResolver.resolve(excludePart.substring(1));

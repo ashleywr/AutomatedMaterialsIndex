@@ -154,7 +154,7 @@ public class SearchBarWidget extends EditBox {
 
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             setFocused(false);
-            return false;   // propagate so the screen can close
+            return true;   // consume so the screen doesn't close
         }
         if (keyCode == GLFW.GLFW_KEY_TAB) {
             return false;   // propagate for atlas-cycling keybind
