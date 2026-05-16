@@ -2,33 +2,25 @@ package com.sanhiruzu.ami.client.overlay;
 
 import com.sanhiruzu.ami.index.query.TokenColorizer;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class SearchBarWidget extends AbstractWidget {
-    private String query = "";
+public class SearchBarWidget extends EditBox {
     private final Listener listener;
     private final List<String> history = new ArrayList<>();
     private int historyIndex = -1;
     private String liveQuery = "";
     private long lastClickTime = 0;
     private boolean highlight = false;
+    private boolean silentUpdate = false;
 
-    private static final String[] PLACEHOLDER_HINTS = {
-        "Search items, biomes, or players...",
-        "Try #storage or #ore for tag search...",
-        "Try &nether to filter by environment...",
-        "Type a player name to see their location..."
-    };
-    private static final long PLACEHOLDER_CYCLE_MS = 3000;
-    private int placeholderIndex = 0;
-    private long lastPlaceholderSwap = 0;
+    private static final String PLACEHOLDER_HINT = "Search anything here...";
 
     private List<TokenColorizer.ColorSpan> colorSpans = List.of();
 
@@ -37,8 +29,12 @@ public class SearchBarWidget extends AbstractWidget {
     }
 
     public SearchBarWidget(Listener listener) {
-        super(0, 0, 160, 14, Component.empty());
+        super(Minecraft.getInstance().font, 0, 0, 160, 14, Component.empty());
         this.listener = listener;
+        setMaxLength(256);
+        setResponder(this::onTextChanged);
+        setBordered(false);
+        setFilter(s -> s.chars().allMatch(c -> c >= 32 && c < 127));
     }
 
     public void updateBounds(WidgetBounds bounds) {
@@ -56,8 +52,8 @@ public class SearchBarWidget extends AbstractWidget {
     public void setFocused(boolean focused) {
         boolean wasFocused = isFocused();
         super.setFocused(focused);
-        if (wasFocused && !focused && !query.isEmpty()) {
-            addToHistory(query);
+        if (wasFocused && !focused && !getValue().isEmpty()) {
+            addToHistory(getValue());
         }
         if (!focused) {
             historyIndex = -1;
@@ -67,9 +63,9 @@ public class SearchBarWidget extends AbstractWidget {
     }
 
     @Override
-    protected void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         if (width <= 0 || height <= 0) return;
-        var font = Minecraft.getInstance().font;
+        Font font = Minecraft.getInstance().font;
 
         int x = getX(), y = getY(), w = width, h = height;
         boolean focused = isFocused();
@@ -93,22 +89,19 @@ public class SearchBarWidget extends AbstractWidget {
         int textY = y + (h - font.lineHeight) / 2 + 1;
         int maxTextWidth = w - 10;
 
-        if (query.isEmpty() && !focused) {
-            long now = System.currentTimeMillis();
-            if (now - lastPlaceholderSwap >= PLACEHOLDER_CYCLE_MS) {
-                placeholderIndex = (placeholderIndex + 1) % PLACEHOLDER_HINTS.length;
-                lastPlaceholderSwap = now;
-            }
+        String value = getValue();
+        if (value.isEmpty() && !focused) {
             g.enableScissor(textX, textY - 1, textX + maxTextWidth, textY + font.lineHeight + 1);
-            g.drawString(font, PLACEHOLDER_HINTS[placeholderIndex], textX, textY, 0xFF666666, false);
+            g.drawString(font, PLACEHOLDER_HINT, textX, textY, 0xFF666666, false);
             g.disableScissor();
         } else {
-            String visibleText = computeVisibleText(font, maxTextWidth);
-            int scrollStart = query.length() - visibleText.length();
-            drawColorizedText(g, font, textX, textY, visibleText, scrollStart, maxTextWidth);
+            int displayStart = computeDisplayStart(font, maxTextWidth);
+            String visibleText = value.substring(displayStart);
+            drawColorizedText(g, font, textX, textY, visibleText, displayStart, maxTextWidth);
 
             if (focused && (System.currentTimeMillis() % 1000) < 500) {
-                int cursorX = textX + font.width(visibleText) + 1;
+                int cursorInVisible = Math.max(0, Math.min(getCursorPosition() - displayStart, visibleText.length()));
+                int cursorX = textX + font.width(visibleText.substring(0, cursorInVisible)) + 1;
                 g.fill(cursorX, textY - 1, cursorX + 1, textY + font.lineHeight, 0xFFCCCCCC);
             }
         }
@@ -126,76 +119,43 @@ public class SearchBarWidget extends AbstractWidget {
             } else {
                 lastClickTime = now;
             }
-            setFocused(true);
-            return true;
         } else if (button == 1) {
             clear();
             setFocused(true);
             return true;
         }
-        return false;
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (!isFocused()) return false;
 
-        if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
-            deleteChar();
-            updateColorSpans();
-            if (listener != null) listener.onQueryChanged(query);
-            historyIndex = -1;
-            return true;
-        } else if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             setFocused(false);
-            return false;  // let Escape propagate so the screen can close
-        } else if (keyCode == GLFW.GLFW_KEY_ENTER) {
+            return false;   // propagate so the screen can close
+        }
+        if (keyCode == GLFW.GLFW_KEY_TAB) {
+            return false;   // propagate for atlas-cycling keybind
+        }
+        if (keyCode == GLFW.GLFW_KEY_ENTER) {
             setFocused(false);
             return true;
-        } else if (keyCode == GLFW.GLFW_KEY_UP) {
-            if (!history.isEmpty()) {
-                if (historyIndex < 0) {
-                    liveQuery = query;
-                    historyIndex = 0;
-                } else if (historyIndex < history.size() - 1) {
-                    historyIndex++;
-                }
-                query = history.get(historyIndex);
-                updateColorSpans();
-                if (listener != null) listener.onQueryChanged(query);
-            }
-            return true;
-        } else if (keyCode == GLFW.GLFW_KEY_DOWN) {
-            if (!history.isEmpty()) {
-                if (historyIndex > 0) {
-                    historyIndex--;
-                    query = history.get(historyIndex);
-                } else if (historyIndex == 0) {
-                    historyIndex = -1;
-                    query = liveQuery;
-                    liveQuery = "";
-                }
-                updateColorSpans();
-                if (listener != null) listener.onQueryChanged(query);
-            }
-            return true;
-        } else {
-            return false;
         }
-    }
-
-    @Override
-    public boolean charTyped(char c, int modifiers) {
-        if (!isFocused()) return false;
-
-        if (c >= 32 && c < 127 && query.length() < 256) {
-            query += c;
-            historyIndex = -1;
-            updateColorSpans();
-            if (listener != null) listener.onQueryChanged(query);
+        if (keyCode == GLFW.GLFW_KEY_UP) {
+            navigateHistory(+1);
             return true;
         }
-        return false;
+        if (keyCode == GLFW.GLFW_KEY_DOWN) {
+            navigateHistory(-1);
+            return true;
+        }
+
+        // Delegate to EditBox for Backspace, Delete, Ctrl+A, Ctrl+V, Ctrl+X, Ctrl+C,
+        // Ctrl+Backspace, arrows, Home, End. Always return true when focused so the screen
+        // doesn't also act on the key (e.g. 'E' closing inventory).
+        super.keyPressed(keyCode, scanCode, modifiers);
+        return true;
     }
 
     @Override
@@ -203,27 +163,25 @@ public class SearchBarWidget extends AbstractWidget {
         return false;
     }
 
-    @Override
-    protected void updateWidgetNarration(NarrationElementOutput output) {
-    }
-
     public String getQuery() {
-        return query;
+        return getValue();
     }
 
     /** Sets the displayed query without firing the listener. Used for external sync (e.g. EMI). */
-    public void setQuery(String query) {
-        this.query = query == null ? "" : query;
-        updateColorSpans();
+    public void setQuery(String q) {
+        silentUpdate = true;
+        setValue(q == null ? "" : q);
+        silentUpdate = false;
     }
 
     public void clear() {
-        query = "";
+        silentUpdate = true;
+        setValue("");
+        silentUpdate = false;
         super.setFocused(false);
         historyIndex = -1;
         liveQuery = "";
         highlight = false;
-        colorSpans = List.of();
     }
 
     public void addToHistory(String searchTerm) {
@@ -234,38 +192,86 @@ public class SearchBarWidget extends AbstractWidget {
         historyIndex = -1;
     }
 
-    private void deleteChar() {
-        if (!query.isEmpty()) query = query.substring(0, query.length() - 1);
+    private void onTextChanged(String newValue) {
+        historyIndex = -1;
+        updateColorSpans();
+        if (!silentUpdate && listener != null) listener.onQueryChanged(newValue);
+    }
+
+    private void navigateHistory(int direction) {
+        if (history.isEmpty()) return;
+        int newIndex = historyIndex;
+        String newValue;
+        if (direction > 0) {
+            if (newIndex < 0) {
+                liveQuery = getValue();
+                newIndex = 0;
+            } else if (newIndex < history.size() - 1) {
+                newIndex++;
+            } else {
+                return;
+            }
+            newValue = history.get(newIndex);
+        } else {
+            if (newIndex > 0) {
+                newIndex--;
+                newValue = history.get(newIndex);
+            } else if (newIndex == 0) {
+                newIndex = -1;
+                newValue = liveQuery;
+                liveQuery = "";
+            } else {
+                return;
+            }
+        }
+        setValue(newValue); // fires onTextChanged → resets historyIndex to -1
+        historyIndex = newIndex; // restore after responder reset it
     }
 
     private void updateColorSpans() {
-        colorSpans = TokenColorizer.colorize(query);
+        colorSpans = TokenColorizer.colorize(getValue());
     }
 
-    private String computeVisibleText(net.minecraft.client.gui.Font font, int maxTextWidth) {
-        int start = 0;
-        while (start < query.length() && font.width(query.substring(start)) > maxTextWidth) start++;
-        return query.substring(start);
+    private int computeDisplayStart(Font font, int maxTextWidth) {
+        String value = getValue();
+        int cursor = getCursorPosition();
+        if (font.width(value) <= maxTextWidth) return 0;
+        // Walk backward from cursor until adding one more character would overflow.
+        int displayPos = cursor;
+        while (displayPos > 0 && font.width(value.substring(displayPos - 1, cursor)) <= maxTextWidth) {
+            displayPos--;
+        }
+        return displayPos;
     }
 
-    private void drawColorizedText(GuiGraphics g, net.minecraft.client.gui.Font font, int startX, int startY, String visibleText, int scrollStart, int maxTextWidth) {
+    private void drawColorizedText(GuiGraphics g, Font font, int startX, int startY, String visibleText, int scrollStart, int maxTextWidth) {
         if (visibleText.isEmpty()) return;
 
         g.enableScissor(startX, startY - 1, startX + maxTextWidth, startY + font.lineHeight + 1);
         try {
-            if (colorSpans.isEmpty() || scrollStart > 0) {
+            if (colorSpans.isEmpty()) {
                 g.drawString(font, visibleText, startX, startY, 0xFFCCCCCC, false);
             } else {
                 int currentX = startX;
+                int coveredUntil = 0;
                 for (TokenColorizer.ColorSpan span : colorSpans) {
-                    int sStart = span.startIndex();
-                    int sEnd = Math.min(span.endIndex(), visibleText.length());
+                    int sStart = Math.max(span.startIndex() - scrollStart, 0);
+                    int sEnd = Math.min(span.endIndex() - scrollStart, visibleText.length());
                     if (sEnd <= sStart || sStart >= visibleText.length()) continue;
+                    if (sStart > coveredUntil) {
+                        String gap = visibleText.substring(coveredUntil, sStart);
+                        g.drawString(font, gap, currentX, startY, 0xFFCCCCCC, false);
+                        currentX += font.width(gap);
+                    }
                     String spanText = visibleText.substring(sStart, sEnd);
                     if (!spanText.isEmpty()) {
                         g.drawString(font, spanText, currentX, startY, span.argbColor(), false);
                         currentX += font.width(spanText);
                     }
+                    coveredUntil = sEnd;
+                }
+                if (coveredUntil < visibleText.length()) {
+                    g.drawString(font, visibleText.substring(coveredUntil), currentX, startY, 0xFFCCCCCC, false);
                 }
             }
         } finally {

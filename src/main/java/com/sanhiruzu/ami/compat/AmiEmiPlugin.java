@@ -1,6 +1,5 @@
 package com.sanhiruzu.ami.compat;
 
-import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.AMIConfig;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.overlay.WidgetBounds;

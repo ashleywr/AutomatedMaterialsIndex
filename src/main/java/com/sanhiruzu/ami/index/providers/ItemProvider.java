@@ -6,6 +6,7 @@ import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.index.metrics.DpsMetricSniffer;
 import com.sanhiruzu.ami.index.metrics.StorageMetricSniffer;
+import com.sanhiruzu.ami.index.sniffers.EnergyCapacitySniffer;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -21,6 +22,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.OptionalDouble;
 import java.util.OptionalLong;
@@ -31,6 +33,7 @@ import java.util.stream.Collectors;
  * Port of Indexer.java logic.
  */
 public class ItemProvider implements IAmiDataProvider {
+    private final EnergyCapacitySniffer energyCapacitySniffer = new EnergyCapacitySniffer();
 
     @Override
     public void populate(GlobalIndex index, @Nullable ClientLevel level) {
@@ -66,6 +69,7 @@ public class ItemProvider implements IAmiDataProvider {
                     ItemIconRenderer.registerStack(entry.id(), entry.stack());
                     Map<String, String> meta = buildSubtypeMeta(id, extractColorBucket(entry.id()));
                     if (!tags.isEmpty()) meta.put(SearchNodeKeys.TAGS, tags);
+                    energyCapacitySniffer.sniff(entry.stack()).ifPresent(capacity -> addEnergyCapacity(meta, capacity));
                     index.addNode(new SearchNode(entry.id(), NodeType.ITEM,
                             entry.displayName(), 0xFFFFFF, 0, meta));
                 }
@@ -87,6 +91,7 @@ public class ItemProvider implements IAmiDataProvider {
             String requiredTool = determineRequiredTool(item);
             OptionalDouble dps = DpsMetricSniffer.estimate(defaultStack);
             OptionalLong esmCapacity = StorageMetricSniffer.estimate(defaultStack, id);
+            Optional<Integer> energyCapacity = energyCapacitySniffer.sniff(defaultStack);
 
             Map<String, String> meta = new HashMap<>();
             meta.put(SearchNodeKeys.MOD_ID, modId);
@@ -102,6 +107,7 @@ public class ItemProvider implements IAmiDataProvider {
             }
             dps.ifPresent(value -> meta.put(SearchNodeKeys.DPS, formatDps(value)));
             esmCapacity.ifPresent(value -> meta.put(SearchNodeKeys.ESM_CAPACITY, Long.toString(value)));
+            energyCapacity.ifPresent(capacity -> addEnergyCapacity(meta, capacity));
             if (!inCreative) {
                 meta.put(SearchNodeKeys.VISIBILITY, "hidden");
             }
@@ -156,6 +162,7 @@ public class ItemProvider implements IAmiDataProvider {
                 ItemIconRenderer.registerStack(syntheticId, stack);
 
                 Map<String, String> meta = buildSubtypeMeta(baseId, extractColorBucket(baseId));
+                energyCapacitySniffer.sniff(stack).ifPresent(capacity -> addEnergyCapacity(meta, capacity));
                 index.addNode(new SearchNode(syntheticId, NodeType.ITEM,
                         stack.getHoverName().getString(), 0xFFFFFF, 0, meta));
                 count++;
@@ -204,6 +211,12 @@ public class ItemProvider implements IAmiDataProvider {
 
     private static String formatDps(double value) {
         return String.format(java.util.Locale.ROOT, "%.1f", value);
+    }
+
+    private static void addEnergyCapacity(Map<String, String> meta, int capacity) {
+        meta.put(SearchNodeKeys.ENERGY_CAPACITY, Integer.toString(capacity));
+        meta.merge(SearchNodeKeys.SEARCH_TOKENS, "has_energy", (existing, token) ->
+                existing.contains(token) ? existing : existing + " " + token);
     }
 
     // Color keywords in longest-first order so "light_blue" wins over "blue".
