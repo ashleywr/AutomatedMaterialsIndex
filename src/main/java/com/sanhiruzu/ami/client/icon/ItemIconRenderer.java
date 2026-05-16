@@ -43,6 +43,11 @@ public class ItemIconRenderer implements IIconRenderer {
         poses.popPose();
     }
 
+    /** Pre-register a custom ItemStack for a synthetic node id (e.g. subtype nodes). */
+    public static void registerStack(ResourceLocation id, ItemStack stack) {
+        stackCache.putIfAbsent(id, stack.copy());
+    }
+
     public ItemStack resolveStack(ResourceLocation id) {
         return stackCache.computeIfAbsent(id,
                 k -> BuiltInRegistries.ITEM.getOptional(k).map(ItemStack::new).orElse(ItemStack.EMPTY));
