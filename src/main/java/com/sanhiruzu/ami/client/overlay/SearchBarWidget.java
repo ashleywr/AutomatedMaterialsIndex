@@ -5,7 +5,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -19,6 +22,8 @@ public class SearchBarWidget extends EditBox {
     private long lastClickTime = 0;
     private boolean highlight = false;
     private boolean silentUpdate = false;
+    private int cursorPos = 0;
+    private int highlightPos = 0;
 
     private static final String PLACEHOLDER_HINT = "Search anything here...";
 
@@ -97,6 +102,7 @@ public class SearchBarWidget extends EditBox {
         } else {
             int displayStart = computeDisplayStart(font, maxTextWidth);
             String visibleText = value.substring(displayStart);
+            renderSelection(g, font, textX, textY, visibleText, displayStart, maxTextWidth);
             drawColorizedText(g, font, textX, textY, visibleText, displayStart, maxTextWidth);
 
             if (focused && (System.currentTimeMillis() % 1000) < 500) {
@@ -125,6 +131,28 @@ public class SearchBarWidget extends EditBox {
             return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public void onClick(double mouseX, double mouseY) {
+        moveCursorTo(cursorPositionFromMouse(mouseX), Screen.hasShiftDown());
+    }
+
+    @Override
+    protected void onDrag(double mouseX, double mouseY, double dragX, double dragY) {
+        moveCursorTo(cursorPositionFromMouse(mouseX), true);
+    }
+
+    @Override
+    public void setCursorPosition(int pos) {
+        super.setCursorPosition(pos);
+        cursorPos = getCursorPosition();
+    }
+
+    @Override
+    public void setHighlightPos(int position) {
+        super.setHighlightPos(position);
+        highlightPos = Mth.clamp(position, 0, getValue().length());
     }
 
     @Override
@@ -242,6 +270,39 @@ public class SearchBarWidget extends EditBox {
             displayPos--;
         }
         return displayPos;
+    }
+
+    private int cursorPositionFromMouse(double mouseX) {
+        Font font = Minecraft.getInstance().font;
+        int textX = getX() + 5;
+        int maxTextWidth = width - 10;
+        String value = getValue();
+        if (value.isEmpty()) return 0;
+
+        if (mouseX <= textX) return 0;
+        if (mouseX >= textX + maxTextWidth) return value.length();
+
+        int displayStart = computeDisplayStart(font, maxTextWidth);
+        String visibleText = font.plainSubstrByWidth(value.substring(displayStart), maxTextWidth);
+        int relativeX = Mth.floor(mouseX) - textX;
+        return displayStart + font.plainSubstrByWidth(visibleText, relativeX).length();
+    }
+
+    private void renderSelection(GuiGraphics g, Font font, int textX, int textY, String visibleText, int displayStart, int maxTextWidth) {
+        int selectionStart = Math.min(cursorPos, highlightPos);
+        int selectionEnd = Math.max(cursorPos, highlightPos);
+        if (selectionStart == selectionEnd || visibleText.isEmpty()) return;
+
+        int visibleLength = font.plainSubstrByWidth(visibleText, maxTextWidth).length();
+        int visibleStart = displayStart;
+        int visibleEnd = displayStart + visibleLength;
+        int clippedStart = Mth.clamp(selectionStart, visibleStart, visibleEnd);
+        int clippedEnd = Mth.clamp(selectionEnd, visibleStart, visibleEnd);
+        if (clippedStart == clippedEnd) return;
+
+        int startX = textX + font.width(visibleText.substring(0, clippedStart - displayStart));
+        int endX = textX + font.width(visibleText.substring(0, clippedEnd - displayStart));
+        g.fill(RenderType.guiTextHighlight(), startX, textY - 1, endX, textY + font.lineHeight, 0xFF0000FF);
     }
 
     private void drawColorizedText(GuiGraphics g, Font font, int startX, int startY, String visibleText, int scrollStart, int maxTextWidth) {
