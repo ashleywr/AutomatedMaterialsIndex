@@ -33,6 +33,7 @@ public final class SearchNodeKeys {
     public static final String ENTITY_HEALTH   = "entityHealth";
     public static final String ENTITY_ATTACK_DAMAGE = "entityAttackDamage";
     public static final String FIRE_IMMUNE     = "fireImmune";
+    public static final String TEMPERATURE     = "temperature"; // Biome base temperature (float string)
 
     // Player-specific (transient, never persisted)
     public static final String PLAYER_UUID     = "playerUuid";

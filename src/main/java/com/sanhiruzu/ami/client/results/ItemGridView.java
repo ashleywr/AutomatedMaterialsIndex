@@ -12,10 +12,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
@@ -45,6 +48,7 @@ public class ItemGridView {
     // Deferred tooltips — built during render, drawn after scissor is popped
     private ItemStack pendingTooltip = null;
     private List<Component> pendingTextTooltip = null;
+    private Optional<TooltipComponent> pendingTooltipImage = Optional.empty();
 
     // Virtual row cache — rebuilt whenever rootNodes changes or a group is toggled
     private List<VirtualRow> cachedRows = null;
@@ -100,6 +104,7 @@ public class ItemGridView {
     public void render(GuiGraphics g, int mouseX, int mouseY) {
         pendingTooltip = null;
         pendingTextTooltip = null;
+        pendingTooltipImage = Optional.empty();
 
         if (rootNodes.isEmpty()) {
             g.drawString(Minecraft.getInstance().font,
@@ -134,7 +139,7 @@ public class ItemGridView {
         if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
             g.renderTooltip(font, pendingTooltip, mouseX, mouseY);
         } else if (pendingTextTooltip != null) {
-            g.renderComponentTooltip(font, pendingTextTooltip, mouseX, mouseY);
+            g.renderTooltip(font, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY);
         }
     }
 
@@ -164,10 +169,13 @@ public class ItemGridView {
                 g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, 0xFF3A3A3A);
                 if (Screen.hasControlDown()) {
                     pendingTextTooltip = DebugTooltip.build(entry);
+                    pendingTooltipImage = Optional.empty();
                 } else if (entry.type() == NodeType.ITEM) {
                     pendingTooltip = resolveStack(entry);
                 } else {
-                    pendingTextTooltip = RendererRegistry.get(entry.type()).getTooltip(entry);
+                    var renderer = RendererRegistry.get(entry.type());
+                    pendingTextTooltip = renderer.getTooltip(entry);
+                    pendingTooltipImage = renderer.getTooltipImage(entry);
                 }
             }
 

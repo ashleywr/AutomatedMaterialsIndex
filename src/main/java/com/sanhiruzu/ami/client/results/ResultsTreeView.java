@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
+import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.util.AmiColors;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
@@ -11,10 +12,12 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Item;
 
 import java.util.*;
+import java.util.Optional;
 
 /**
  * "Suginami" rich-card list view.
@@ -65,6 +68,10 @@ public class ResultsTreeView {
     private int scrollbarDragStartOffset;
 
     private List<Component> pendingTooltipLines = null;
+    private Optional<TooltipComponent> pendingTooltipImage = Optional.empty();
+    private ItemStack pendingItemStack = null;
+
+    private java.util.function.Consumer<String> onModClick = null;
 
     // ── Construction ──────────────────────────────────────────────────────────
 
@@ -73,6 +80,10 @@ public class ResultsTreeView {
         this.y = y;
         this.width = width;
         this.height = height;
+    }
+
+    public void setOnModClick(java.util.function.Consumer<String> callback) {
+        this.onModClick = callback;
     }
 
     public void setRootNodes(List<TreeNode> nodes) {
@@ -97,6 +108,8 @@ public class ResultsTreeView {
     public void render(GuiGraphics g, int mouseX, int mouseY, boolean toolbarDropdownOpen,
                        Component sectionLabel, String currentQuery) {
         pendingTooltipLines = null;
+        pendingTooltipImage = Optional.empty();
+        pendingItemStack = null;
         currentLabelScale = computeLabelScale();
 
         int topOffset = 0;
@@ -130,8 +143,13 @@ public class ResultsTreeView {
 
         renderScrollbar(g, totalH, contentH, y + topOffset, mouseX, mouseY);
 
-        if (!toolbarDropdownOpen && pendingTooltipLines != null) {
-            g.renderComponentTooltip(Minecraft.getInstance().font, pendingTooltipLines, mouseX, mouseY);
+        if (!toolbarDropdownOpen) {
+            var font = Minecraft.getInstance().font;
+            if (pendingItemStack != null && !pendingItemStack.isEmpty()) {
+                g.renderTooltip(font, pendingItemStack, mouseX, mouseY);
+            } else if (pendingTooltipLines != null) {
+                g.renderTooltip(font, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY);
+            }
         }
     }
 
@@ -239,6 +257,13 @@ public class ResultsTreeView {
 
         if (hovered) {
             pendingTooltipLines = buildTooltip(entry);
+            if (entry.type() != NodeType.ITEM) {
+                var renderer = RendererRegistry.get(entry.type());
+                pendingTooltipImage = renderer.getTooltipImage(entry);
+            } else {
+                pendingTooltipImage = Optional.empty();
+            }
+            pendingItemStack = null;
         }
     }
 
@@ -263,46 +288,75 @@ public class ResultsTreeView {
                     g.pose().translate(0, 0, 150);
                     g.renderItem(toolStack, iconX, iconY);
                     g.pose().popPose();
-                    currentX = iconX - 4;
                 }
             }
         }
+        
+        // Always skip the tool icon slot (16px + 4px gap) to keep mod names aligned
+        currentX -= (16 + 4);
 
-        // Mod name — anchored left of the tool icon (or flush to right edge when no icon)
-        String modName = entry.id().getNamespace();
-        if (!modName.isEmpty()) {
-            int textWidth = font.width(modName);
-            int textX = currentX - textWidth;
-            g.drawString(font, modName, textX, textY, modNameColor, dropShadow);
-            currentX = textX - 4;
+        // Subtitle fields (Mod, Storage, DPS, etc.) from RowFieldConfig
+        List<RowField> active = RowFieldConfig.getSubtitleFields();
+        if (active.isEmpty()) return;
+
+        // Build list of parts that actually have data
+        record BadgePart(RowField field, String text) {}
+        List<BadgePart> parts = new ArrayList<>();
+        for (RowField f : active) {
+            String val = f.extract(entry);
+            if (!val.isEmpty()) parts.add(new BadgePart(f, val));
         }
 
-        // ESM Capacity Badge
-        String cap = entry.meta(SearchNodeKeys.ESM_CAPACITY, "");
-        if (!cap.isEmpty()) {
-            Component badge = Component.translatable("ami.gui.badge.storage", cap);
-            int bw = font.width(badge);
-            currentX -= bw;
-            g.drawString(font, badge, currentX, textY, AMITheme.TEXT_SUBTLE, false);
+        if (parts.isEmpty()) return;
+
+        // Calculate total width and handle truncation if needed
+        int maxGroupW = (int)(width * 0.45);
+        String fullJoined = RowFieldConfig.buildSubtitle(entry);
+        if (font.width(fullJoined) > maxGroupW) {
+            // If the whole thing is too long, we'll render a single truncated string in subtle color
+            // (Simpler than per-part truncation while maintaining colors)
+            String truncated = truncate(font, fullJoined, maxGroupW);
+            int tw = font.width(truncated);
+            g.drawString(font, truncated, currentX - tw, textY, AMITheme.TEXT_SUBTLE, false);
+            return;
+        }
+
+        // Render from right to left to anchor against the tool slot
+        for (int i = parts.size() - 1; i >= 0; i--) {
+            BadgePart part = parts.get(i);
+            int color = (part.field == RowField.MOD_NAME) ? modNameColor : AMITheme.TEXT_SUBTLE;
+            boolean shadow = (part.field == RowField.MOD_NAME) ? dropShadow : false;
+            
+            int tw = font.width(part.text);
+            g.drawString(font, part.text, currentX - tw, textY, color, shadow);
+            currentX -= tw;
+
+            if (i > 0) {
+                String sep = " · ";
+                int sw = font.width(sep);
+                g.drawString(font, sep, currentX - sw, textY, AMITheme.TEXT_SUBTLE, false);
+                currentX -= sw;
+            }
         }
     }
 
     private int badgeWidth(net.minecraft.client.gui.Font font, SearchNode entry) {
-        int w = 0;
-        String reqToolStr = entry.meta(SearchNodeKeys.REQUIRED_TOOL, "");
-        if (!reqToolStr.isEmpty()) {
-            w += 16 + 4; // 16px full-size icon + 4px gap
+        // Start with 20px (16px icon + 4px gap) reserved for the tool slot
+        int w = 16 + 4;
+
+        List<RowField> active = RowFieldConfig.getSubtitleFields();
+        List<String> parts = new ArrayList<>();
+        for (RowField f : active) {
+            String val = f.extract(entry);
+            if (!val.isEmpty()) parts.add(val);
         }
 
-        String modName = entry.id().getNamespace();
-        if (!modName.isEmpty()) {
-            w += font.width(modName) + 4;
+        if (!parts.isEmpty()) {
+            String joined = String.join(" · ", parts);
+            int maxGroupW = (int)(width * 0.45);
+            w += font.width(truncate(font, joined, maxGroupW)) + 4;
         }
-
-        String cap = entry.meta(SearchNodeKeys.ESM_CAPACITY, "");
-        if (!cap.isEmpty()) {
-            w += font.width(Component.translatable("ami.gui.badge.storage", cap)) + 4;
-        }
+        
         return w;
     }
 
@@ -480,20 +534,6 @@ public class ResultsTreeView {
                 && mouseY >= drawY && mouseY < drawY + AMITheme.ROW_HEIGHT;
     }
 
-    // ── Tooltip ───────────────────────────────────────────────────────────────
-
-    private List<Component> buildTooltip(SearchNode entry) {
-        if (Screen.hasControlDown()) {
-            return DebugTooltip.build(entry);
-        }
-        List<Component> lines = new ArrayList<>();
-        lines.add(Component.literal(entry.displayName()));
-        lines.add(Component.literal(entry.id().toString())
-                .withStyle(s -> s.withColor(0x666666)));
-        lines.add(Component.literal("§8Hold Ctrl for AMI debug info"));
-        return lines;
-    }
-
     // ── Scrollbar ─────────────────────────────────────────────────────────────
 
     private void renderScrollbar(GuiGraphics g, int totalH, int contentH, int originY,
@@ -541,7 +581,13 @@ public class ResultsTreeView {
 
     private static String truncate(net.minecraft.client.gui.Font font, String text, int maxW) {
         if (maxW <= 0) return "";
-        return font.plainSubstrByWidth(text, maxW);
+        if (font.width(text) <= maxW) return text;
+
+        String ellipsis = "...";
+        int ellipsisW = font.width(ellipsis);
+        if (maxW <= ellipsisW) return ellipsis;
+
+        return font.plainSubstrByWidth(text, maxW - ellipsisW) + ellipsis;
     }
 
     // ── Input handlers ────────────────────────────────────────────────────────
@@ -555,15 +601,26 @@ public class ResultsTreeView {
 
         int[] counter = {0};
         for (TreeNode node : rootNodes) {
-            if (handleNodeClick(node, targetRow, counter)) return true;
+            if (handleNodeClick(node, targetRow, counter, mouseX)) return true;
         }
         return false;
     }
 
     /** DFS click handler. Returns true when the target row was found and handled. */
-    private boolean handleNodeClick(TreeNode node, int targetRow, int[] counter) {
+    private boolean handleNodeClick(TreeNode node, int targetRow, int[] counter, double mouseX) {
         if (counter[0] == targetRow) {
-            if (!node.isLeaf()) {
+            if (node.isLeaf()) {
+                // Check if mod badge was clicked (approximate area check)
+                int rightEdge = x + width - SCROLLBAR_W - 4;
+                int bWidth = badgeWidth(Minecraft.getInstance().font, node.getEntry());
+                int badgeStartX = rightEdge - bWidth;
+
+                if (onModClick != null && mouseX >= badgeStartX && mouseX <= rightEdge) {
+                    onModClick.accept("@" + node.getEntry().id().getNamespace());
+                } else {
+                    // Normal leaf click
+                }
+            } else {
                 node.setExpanded(!node.isExpanded());
             }
             return true;
@@ -572,7 +629,7 @@ public class ResultsTreeView {
 
         if (!node.isLeaf() && node.isExpanded()) {
             for (TreeNode child : node.getChildren()) {
-                if (handleNodeClick(child, targetRow, counter)) return true;
+                if (handleNodeClick(child, targetRow, counter, mouseX)) return true;
             }
         }
         return false;
@@ -621,5 +678,50 @@ public class ResultsTreeView {
 
     public boolean isMouseOver(double mouseX, double mouseY) {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
+    }
+
+    // ── Tooltip ───────────────────────────────────────────────────────────────
+
+    private List<Component> buildTooltip(SearchNode entry) {
+        if (Screen.hasControlDown()) {
+            return DebugTooltip.build(entry);
+        }
+
+        List<Component> lines = new ArrayList<>();
+
+        if (entry.type() == NodeType.ITEM) {
+            ItemStack stack = BuiltInRegistries.ITEM.getOptional(entry.id())
+                    .map(ItemStack::new).orElse(ItemStack.EMPTY);
+            if (!stack.isEmpty()) {
+                lines.addAll(Screen.getTooltipFromItem(Minecraft.getInstance(), stack));
+            } else {
+                lines.add(Component.literal(entry.displayName()));
+            }
+        } else {
+            lines.add(Component.literal(entry.displayName()));
+            var renderer = RendererRegistry.get(entry.type());
+            List<Component> extra = renderer.getTooltip(entry);
+            if (extra != null) lines.addAll(extra);
+        }
+
+        // Add ID
+        lines.add(Component.literal(entry.id().toString()).withStyle(s -> s.withColor(0x666666)));
+
+        // Unified Info: Required Tool
+        String reqToolStr = entry.meta(SearchNodeKeys.REQUIRED_TOOL, "");
+        if (!reqToolStr.isEmpty()) {
+            ResourceLocation toolId = ResourceLocation.tryParse(reqToolStr);
+            if (toolId != null) {
+                Item toolItem = BuiltInRegistries.ITEM.get(toolId);
+                if (toolItem != null && toolItem != net.minecraft.world.item.Items.AIR) {
+                    lines.add(Component.empty());
+                    lines.add(Component.translatable("ami.tooltip.required_tool", toolItem.getDescription())
+                            .withStyle(s -> s.withColor(0x888888)));
+                }
+            }
+        }
+
+        lines.add(Component.literal("§8Hold Ctrl for AMI debug info"));
+        return lines;
     }
 }

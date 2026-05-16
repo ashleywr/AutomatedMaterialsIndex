@@ -60,6 +60,10 @@ public class UniversalResultsPanel {
         refreshTree();
     }
 
+    public void setOnModClick(java.util.function.Consumer<String> callback) {
+        this.treeView.setOnModClick(callback);
+    }
+
     public void setSearchResults(Map<NodeType, List<SearchNode>> results, String query) {
         this.currentQuery = query == null ? "" : query.trim();
         List<SearchNode> flat = new ArrayList<>();

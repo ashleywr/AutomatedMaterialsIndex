@@ -49,6 +49,13 @@ public class EmiScreenManagerMixin {
         }
     }
 
+    @Inject(method = "mouseDragged", at = @At("HEAD"), cancellable = true, remap = false)
+    private static void suppressMouseDraggedWhenAmiActive(double mouseX, double mouseY, int button, double deltaX, double deltaY, CallbackInfoReturnable<Boolean> cir) {
+        if (shouldHideEmi()) {
+            cir.setReturnValue(false);
+        }
+    }
+
     @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true, remap = false)
     private static void suppressMouseScrolledWhenAmiActive(double mouseX, double mouseY, double amount, CallbackInfoReturnable<Boolean> cir) {
         if (shouldHideEmi()) {

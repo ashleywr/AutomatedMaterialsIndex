@@ -20,6 +20,7 @@ public class SearchBarWidget extends EditBox {
     private int historyIndex = -1;
     private String liveQuery = "";
     private long lastClickTime = 0;
+    private boolean highlight = false;
     private boolean silentUpdate = false;
     private int cursorPos = 0;
     private int highlightPos = 0;

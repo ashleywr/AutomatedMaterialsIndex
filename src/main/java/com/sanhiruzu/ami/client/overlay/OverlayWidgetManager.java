@@ -48,6 +48,10 @@ public class OverlayWidgetManager {
         this.resultsPanel = new ResultsPanelWidget();
         this.searchBar = new SearchBarWidget(this::triggerSearch);
         this.amiButton = new AmiButtonWidget(InventoryOverlayHandler::toggleAmi, () -> panelVisible);
+
+        // Connect mod-badge clicking to search bar filtering
+        this.resultsPanel.setOnModClick(searchBar::appendQuery);
+
         widgetsReady = true;
     }
 
