@@ -39,6 +39,10 @@ public class AMIConfig {
                      "On a dedicated server the player must have permission level 2 (OP).")
             .define("cheatMode", false);
 
+    public static final ModConfigSpec.BooleanValue DEV_MODE = BUILDER
+            .comment("Enable developer mode features: extended tooltips, visual exclusion zones, etc.")
+            .define("devMode", false);
+
     public static final ModConfigSpec.BooleanValue HIDE_NON_CREATIVE_ITEMS = BUILDER
             .comment("Filter items that do not appear in any creative-mode tab.",
                      "Removes mod placeholders, internal system items, and developer leftovers.",
@@ -64,43 +68,43 @@ public class AMIConfig {
     }
 
     // Overlay & background
-    public static final ModConfigSpec.IntValue PALETTE_OVERLAY_BG = BUILDER
+    public static final ModConfigSpec.ConfigValue<String> PALETTE_OVERLAY_BG = BUILDER
             .comment("Overlay background color (ARGB hex). Alpha in high byte.",
-                     "0x99000000 = 60% transparent black.")
-            .defineInRange("overlayBg", 0x99000000, Integer.MIN_VALUE, Integer.MAX_VALUE);
+                     "Example: #99000000 = 60% transparent black.")
+            .define("overlayBg", "0x99000000");
 
     // Search bar
-    public static final ModConfigSpec.IntValue PALETTE_SEARCH_BAR_BG = BUILDER
+    public static final ModConfigSpec.ConfigValue<String> PALETTE_SEARCH_BAR_BG = BUILDER
             .comment("Search bar background color (RGB hex).")
-            .defineInRange("searchBarBg", 0xFF1A1A1A, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            .define("searchBarBg", "0xFF1A1A1A");
 
-    public static final ModConfigSpec.IntValue PALETTE_SEARCH_BAR_BORDER = BUILDER
+    public static final ModConfigSpec.ConfigValue<String> PALETTE_SEARCH_BAR_BORDER = BUILDER
             .comment("Search bar border color (RGB hex).")
-            .defineInRange("searchBarBorder", 0xFF4488FF, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            .define("searchBarBorder", "0xFF4488FF");
 
-    public static final ModConfigSpec.IntValue PALETTE_SEARCH_TEXT = BUILDER
+    public static final ModConfigSpec.ConfigValue<String> PALETTE_SEARCH_TEXT = BUILDER
             .comment("Search bar text color (RGB hex).")
-            .defineInRange("searchText", 0xFFEEEEEE, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            .define("searchText", "0xFFEEEEEE");
 
-    public static final ModConfigSpec.IntValue PALETTE_SEARCH_PLACEHOLDER = BUILDER
+    public static final ModConfigSpec.ConfigValue<String> PALETTE_SEARCH_PLACEHOLDER = BUILDER
             .comment("Search bar placeholder text color (RGB hex).")
-            .defineInRange("searchPlaceholder", 0xFF888888, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            .define("searchPlaceholder", "0xFF888888");
 // Result cards
-public static final ModConfigSpec.IntValue PALETTE_CARD_BG = BUILDER
+public static final ModConfigSpec.ConfigValue<String> PALETTE_CARD_BG = BUILDER
         .comment("Result card background color (RGB hex).")
-        .defineInRange("cardBg", 0xFF2A2A2A, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        .define("cardBg", "0xFF2A2A2A");
 
-public static final ModConfigSpec.IntValue PALETTE_CARD_BG_HOVER = BUILDER
+public static final ModConfigSpec.ConfigValue<String> PALETTE_CARD_BG_HOVER = BUILDER
         .comment("Result card background color when hovered (RGB hex).")
-        .defineInRange("cardBgHover", 0x4DFFB7C5, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        .define("cardBgHover", "0x4DFFB7C5");
 
-public static final ModConfigSpec.IntValue PALETTE_CARD_TEXT_NAME = BUILDER
+public static final ModConfigSpec.ConfigValue<String> PALETTE_CARD_TEXT_NAME = BUILDER
         .comment("Result card item name text color (RGB hex).")
-        .defineInRange("cardTextName", 0xFFDDDDDD, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        .define("cardTextName", "0xFFDDDDDD");
 
-public static final ModConfigSpec.IntValue PALETTE_CARD_TEXT_SUBTITLE = BUILDER
+public static final ModConfigSpec.ConfigValue<String> PALETTE_CARD_TEXT_SUBTITLE = BUILDER
         .comment("Result card subtitle text color (RGB hex).")
-        .defineInRange("cardTextSubtitle", 0xFF888888, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        .define("cardTextSubtitle", "0xFF888888");
 
 // Layout (CSS-like)
 static {
@@ -128,31 +132,31 @@ static {
 }
 
 // Search behavior
-    public static final ModConfigSpec.IntValue PALETTE_CARD_ACTION_HINT = BUILDER
+    public static final ModConfigSpec.ConfigValue<String> PALETTE_CARD_ACTION_HINT = BUILDER
             .comment("Result card action hint color (RGB hex).")
-            .defineInRange("cardActionHint", 0xFF555555, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            .define("cardActionHint", "0xFF555555");
 
     // Group headers
-    public static final ModConfigSpec.IntValue PALETTE_GROUP_HEADER_BG = BUILDER
+    public static final ModConfigSpec.ConfigValue<String> PALETTE_GROUP_HEADER_BG = BUILDER
             .comment("Group header background color (RGB hex).")
-            .defineInRange("groupHeaderBg", 0xFF1E1E2A, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            .define("groupHeaderBg", "0xFF1E1E2A");
 
-    public static final ModConfigSpec.IntValue PALETTE_GROUP_HEADER_TEXT = BUILDER
+    public static final ModConfigSpec.ConfigValue<String> PALETTE_GROUP_HEADER_TEXT = BUILDER
             .comment("Group header text color (RGB hex).")
-            .defineInRange("groupHeaderText", 0xFFAAAA00, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            .define("groupHeaderText", "0xFFAAAA00");
 
     // Scrollbar
-    public static final ModConfigSpec.IntValue PALETTE_SCROLLBAR_BG = BUILDER
+    public static final ModConfigSpec.ConfigValue<String> PALETTE_SCROLLBAR_BG = BUILDER
             .comment("Scrollbar background color (RGB hex).")
-            .defineInRange("scrollbarBg", 0xFF1A1A1A, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            .define("scrollbarBg", "0xFF1A1A1A");
 
-    public static final ModConfigSpec.IntValue PALETTE_SCROLLBAR_THUMB = BUILDER
+    public static final ModConfigSpec.ConfigValue<String> PALETTE_SCROLLBAR_THUMB = BUILDER
             .comment("Scrollbar thumb color (RGB hex).")
-            .defineInRange("scrollbarThumb", 0xFF555555, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            .define("scrollbarThumb", "0xFF555555");
 
-    public static final ModConfigSpec.IntValue PALETTE_SCROLLBAR_THUMB_HOVER = BUILDER
+    public static final ModConfigSpec.ConfigValue<String> PALETTE_SCROLLBAR_THUMB_HOVER = BUILDER
             .comment("Scrollbar thumb color when hovered (RGB hex).")
-            .defineInRange("scrollbarThumbHover", 0xFF888888, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            .define("scrollbarThumbHover", "0xFF888888");
 
     // Search behavior
     public static final ModConfigSpec.BooleanValue SUPPRESS_RECIPE_VIEWERS = BUILDER

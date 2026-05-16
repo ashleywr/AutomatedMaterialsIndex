@@ -71,5 +71,16 @@
   "ami.configuration.item_click_action": "Item Click Action",
   "ami.configuration.item_click_action.recipes": "Show Recipes",
   "ami.configuration.item_click_action.uses": "Show Uses",
-  "ami.configuration.item_click_action.none": "None"
+  "ami.configuration.item_click_action.none": "None",
+
+  "ami.dev.id": "ID: %s",
+  "ami.dev.tag": "#%s",
+  "ami.dev.comp": "Comp: %s",
+  "ami.dev.group": "AMI Group: %s",
+  "ami.dev.group.none": "None",
+  "ami.dev.group.default": "Default",
+
+  "ami.gui.search.typing": "Start typing to search...",
+  "ami.gui.search.clear": "x",
+  "ami.gui.search.recipe": "▶ Recipe"
 }
