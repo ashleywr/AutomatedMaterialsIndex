@@ -5,6 +5,7 @@ import com.sanhiruzu.ami.index.resolvers.EnvironmentResolver;
 import com.sanhiruzu.ami.index.resolvers.LiteralResolver;
 import com.sanhiruzu.ami.index.resolvers.NumericMetadataResolver;
 import com.sanhiruzu.ami.index.resolvers.PlayerResolver;
+import com.sanhiruzu.ami.index.resolvers.PropertyResolver;
 import com.sanhiruzu.ami.index.resolvers.TagResolver;
 
 import java.util.*;
@@ -18,13 +19,15 @@ public final class SearchService {
     private final TagResolver tagResolver;
     private final EnvironmentResolver envResolver;
     private final NumericMetadataResolver numericResolver;
+    private final PropertyResolver propertyResolver;
 
     private SearchService(List<IQueryResolver> resolvers, TagResolver tagResolver, EnvironmentResolver envResolver,
-                          NumericMetadataResolver numericResolver) {
+                          NumericMetadataResolver numericResolver, PropertyResolver propertyResolver) {
         this.resolvers = List.copyOf(resolvers);
         this.tagResolver = tagResolver;
         this.envResolver = envResolver;
         this.numericResolver = numericResolver;
+        this.propertyResolver = propertyResolver;
     }
 
     /**
@@ -41,6 +44,7 @@ public final class SearchService {
         TagResolver tagResolver = new TagResolver();
         EnvironmentResolver envResolver = new EnvironmentResolver();
         NumericMetadataResolver numericResolver = new NumericMetadataResolver();
+        PropertyResolver propertyResolver = new PropertyResolver();
 
         // Pre-load all resolvers with indexed nodes
         for (NodeType type : NodeType.values()) {
@@ -49,6 +53,7 @@ public final class SearchService {
                 tagResolver.addNode(node);
                 envResolver.addNode(node);
                 numericResolver.addNode(node);
+                propertyResolver.addNode(node);
             }
         }
 
@@ -58,7 +63,7 @@ public final class SearchService {
             resolvers.add(new PlayerResolver());
         }
 
-        return new SearchService(resolvers, tagResolver, envResolver, numericResolver);
+        return new SearchService(resolvers, tagResolver, envResolver, numericResolver, propertyResolver);
     }
 
     /**
@@ -75,14 +80,17 @@ public final class SearchService {
         QueryParser.ParsedQuery parsed = QueryParser.parse(trimmed);
         Map<NodeType, List<SearchNode>> results = new LinkedHashMap<>();
         Set<SearchNode> excluded = new HashSet<>();
+        boolean hasActiveResultSet = false;
 
         if (parsed.tokens().isEmpty()) {
             return new LinkedHashMap<>();
         }
 
-        // Separate tokens by type
         List<String> includeParts = new ArrayList<>();
         List<String> excludeParts = new ArrayList<>();
+        List<String> tagParts = new ArrayList<>();
+        List<String> envParts = new ArrayList<>();
+        List<String> propertyParts = new ArrayList<>();
         List<String> numericParts = new ArrayList<>();
 
         for (QueryParser.QueryToken token : parsed.tokens()) {
@@ -90,17 +98,12 @@ public final class SearchService {
 
             switch (token.type()) {
                 case INCLUDE -> includeParts.add(value);
-                case TAG -> {
-                    Map<NodeType, List<SearchNode>> tagResults = tagResolver.resolve(value);
-                    mergeResults(results, tagResults);
-                }
-                case ENV -> {
-                    Map<NodeType, List<SearchNode>> envResults = envResolver.resolve(value);
-                    mergeResults(results, envResults);
-                }
+                case TAG -> tagParts.add(value);
+                case ENV -> envParts.add(value);
+                case PROP -> propertyParts.add(value);
                 case EXCLUDE -> excludeParts.add(value);
                 case ESM -> numericParts.add(value);
-                default -> {} // PROP, ESSENTIAL handled in Phase 3
+                default -> {} // ESSENTIAL is reserved for curated result sets.
             }
         }
 
@@ -111,28 +114,26 @@ public final class SearchService {
                 Map<NodeType, List<SearchNode>> partial = resolver.resolve(combinedInclude);
                 mergeResults(results, partial);
             }
+            hasActiveResultSet = true;
         }
 
-        // If we have EXCLUDE parts, resolve them and collect to exclude
-        if (!excludeParts.isEmpty()) {
-            String combinedExclude = String.join(" ", excludeParts);
-            for (IQueryResolver resolver : resolvers) {
-                Map<NodeType, List<SearchNode>> partial = resolver.resolve(combinedExclude);
-                for (var entry : partial.entrySet()) {
-                    excluded.addAll(entry.getValue());
-                }
-            }
+        for (String tagPart : tagParts) {
+            hasActiveResultSet = applyPositiveFilter(results, tagResolver.resolve(tagPart), hasActiveResultSet);
+        }
+        for (String envPart : envParts) {
+            hasActiveResultSet = applyPositiveFilter(results, envResolver.resolve(envPart), hasActiveResultSet);
+        }
+        for (String propertyPart : propertyParts) {
+            hasActiveResultSet = applyPositiveFilter(results, propertyResolver.resolve(propertyPart), hasActiveResultSet);
+        }
+        for (String numericPart : numericParts) {
+            hasActiveResultSet = applyPositiveFilter(results, numericResolver.resolve(numericPart), hasActiveResultSet);
         }
 
-        if (!numericParts.isEmpty()) {
-            boolean hadPriorResults = !results.isEmpty();
-            for (String numericPart : numericParts) {
-                Map<NodeType, List<SearchNode>> numericResults = numericResolver.resolve(numericPart);
-                if (hadPriorResults || !results.isEmpty()) {
-                    intersectResults(results, numericResults);
-                } else {
-                    mergeResults(results, numericResults);
-                }
+        for (String excludePart : excludeParts) {
+            Map<NodeType, List<SearchNode>> partial = resolveExclude(excludePart);
+            for (var entry : partial.entrySet()) {
+                excluded.addAll(entry.getValue());
             }
         }
 
@@ -146,6 +147,35 @@ public final class SearchService {
         }
 
         return results;
+    }
+
+    private Map<NodeType, List<SearchNode>> resolveExclude(String excludePart) {
+        if (excludePart.startsWith("#")) {
+            return tagResolver.resolve(excludePart.substring(1));
+        }
+        if (excludePart.startsWith("&")) {
+            return envResolver.resolve(excludePart.substring(1));
+        }
+        if (excludePart.startsWith("?")) {
+            return propertyResolver.resolve(excludePart.substring(1));
+        }
+
+        Map<NodeType, List<SearchNode>> results = new LinkedHashMap<>();
+        for (IQueryResolver resolver : resolvers) {
+            Map<NodeType, List<SearchNode>> partial = resolver.resolve(excludePart);
+            mergeResults(results, partial);
+        }
+        return results;
+    }
+
+    private boolean applyPositiveFilter(Map<NodeType, List<SearchNode>> results, Map<NodeType, List<SearchNode>> filter,
+                                        boolean hasActiveResultSet) {
+        if (!hasActiveResultSet) {
+            mergeResults(results, filter);
+        } else {
+            intersectResults(results, filter);
+        }
+        return true;
     }
 
     private void mergeResults(Map<NodeType, List<SearchNode>> dest, Map<NodeType, List<SearchNode>> src) {

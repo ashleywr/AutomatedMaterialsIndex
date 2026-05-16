@@ -24,6 +24,8 @@ public final class SearchIndex {
             SearchNodeKeys.DIMENSION,
             SearchNodeKeys.ENTITY_CATEGORY,
             SearchNodeKeys.ENTITY_TRAITS,
+            SearchNodeKeys.ENTITY_HEALTH,
+            SearchNodeKeys.ENTITY_ATTACK_DAMAGE,
             SearchNodeKeys.REQUIRED_TOOL,
             SearchNodeKeys.ACCESS_LEVEL,
             SearchNodeKeys.OBTAINABILITY,

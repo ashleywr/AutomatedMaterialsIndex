@@ -30,6 +30,8 @@ public final class SearchNodeKeys {
     public static final String DIMENSION       = "dimension";
     public static final String ENTITY_CATEGORY = "entityCategory";
     public static final String ENTITY_TRAITS   = "entityTraits"; // Space-separated semantic entity traits
+    public static final String ENTITY_HEALTH   = "entityHealth";
+    public static final String ENTITY_ATTACK_DAMAGE = "entityAttackDamage";
     public static final String FIRE_IMMUNE     = "fireImmune";
 
     // Player-specific (transient, never persisted)
