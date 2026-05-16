@@ -27,11 +27,18 @@ public class EntityProvider implements IAmiDataProvider {
             var entityType = e.getValue();
             var category = entityType.getCategory();
             List<String> searchTags = entityDataSniffer.extractSearchTags(entityType);
+            Map<String, String> numericMetadata = entityDataSniffer.extractNumericMetadata(entityType);
 
             Map<String, String> meta = new HashMap<>();
             meta.put(SearchNodeKeys.MOD_ID, id.getNamespace());
             meta.put(SearchNodeKeys.ENTITY_CATEGORY, category.name());
             meta.put(SearchNodeKeys.FIRE_IMMUNE, String.valueOf(entityType.fireImmune()));
+            if (numericMetadata.containsKey("health")) {
+                meta.put(SearchNodeKeys.ENTITY_HEALTH, numericMetadata.get("health"));
+            }
+            if (numericMetadata.containsKey("attack_damage")) {
+                meta.put(SearchNodeKeys.ENTITY_ATTACK_DAMAGE, numericMetadata.get("attack_damage"));
+            }
             if (!searchTags.isEmpty()) {
                 meta.put(SearchNodeKeys.ENTITY_TRAITS, String.join(" ", searchTags));
                 meta.put(SearchNodeKeys.SEARCH_TOKENS, String.join(" ", searchTags));

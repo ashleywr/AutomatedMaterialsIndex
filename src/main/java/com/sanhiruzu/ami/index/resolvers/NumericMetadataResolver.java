@@ -81,6 +81,8 @@ public final class NumericMetadataResolver {
                 case "dps", "damage", "damagepersecond" -> SearchNodeKeys.DPS;
                 case "storage", "capacity", "esm", "items" -> SearchNodeKeys.ESM_CAPACITY;
                 case "energy", "energycapacity", "fe", "rf", "power" -> SearchNodeKeys.ENERGY_CAPACITY;
+                case "health", "hp", "entityhealth" -> SearchNodeKeys.ENTITY_HEALTH;
+                case "attack", "attackdamage", "entityattack", "entitydamage" -> SearchNodeKeys.ENTITY_ATTACK_DAMAGE;
                 default -> null;
             };
         }

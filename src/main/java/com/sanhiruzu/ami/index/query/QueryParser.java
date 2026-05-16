@@ -98,8 +98,14 @@ public final class QueryParser {
 
         if (value.isEmpty()) return null;
 
-        // Apply exclusion if needed
         if (isExclude) {
+            value = switch (type) {
+                case TAG -> "#" + value;
+                case ENV -> "&" + value;
+                case PROP -> "?" + value;
+                case ESSENTIAL -> "!" + value;
+                default -> value;
+            };
             type = TokenType.EXCLUDE;
         }
 

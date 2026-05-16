@@ -14,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +63,7 @@ public final class EntityDataSniffer {
     );
 
     private final ConcurrentHashMap<EntityType<?>, List<String>> cache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<EntityType<?>, Map<String, String>> metadataCache = new ConcurrentHashMap<>();
 
     public List<String> extractSearchTags(SpawnEggItem eggItem) {
         if (eggItem == null) {
@@ -75,6 +77,13 @@ public final class EntityDataSniffer {
             return List.of();
         }
         return cache.computeIfAbsent(entityType, EntityDataSniffer::extractUncached);
+    }
+
+    public Map<String, String> extractNumericMetadata(EntityType<?> entityType) {
+        if (entityType == null) {
+            return Map.of();
+        }
+        return metadataCache.computeIfAbsent(entityType, EntityDataSniffer::extractNumericMetadataUncached);
     }
 
     private static List<String> extractUncached(EntityType<?> entityType) {
@@ -110,13 +119,31 @@ public final class EntityDataSniffer {
         return List.copyOf(tags);
     }
 
-    @SuppressWarnings("unchecked")
+    private static Map<String, String> extractNumericMetadataUncached(EntityType<?> entityType) {
+        Map<String, String> metadata = new LinkedHashMap<>();
+        AttributeSupplier attributes = attributeSupplier(entityType);
+        if (attributes == null) {
+            return Map.of();
+        }
+
+        if (attributes.hasAttribute(Attributes.MAX_HEALTH)) {
+            metadata.put("health", Long.toString(Math.round(attributes.getBaseValue(Attributes.MAX_HEALTH))));
+        }
+        if (attributes.hasAttribute(Attributes.ATTACK_DAMAGE)) {
+            long attackDamage = Math.round(attributes.getBaseValue(Attributes.ATTACK_DAMAGE));
+            if (attackDamage > 0) {
+                metadata.put("attack_damage", Long.toString(attackDamage));
+            }
+        }
+        return Map.copyOf(metadata);
+    }
+
     private static void addAttributes(EntityType<?> entityType, Set<String> tags) {
-        if (!DefaultAttributes.hasSupplier(entityType)) {
+        AttributeSupplier attributes = attributeSupplier(entityType);
+        if (attributes == null) {
             return;
         }
 
-        AttributeSupplier attributes = DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) entityType);
         if (attributes.hasAttribute(Attributes.MAX_HEALTH)) {
             tags.add("health:" + Math.round(attributes.getBaseValue(Attributes.MAX_HEALTH)));
         }
@@ -127,6 +154,14 @@ public final class EntityDataSniffer {
                 tags.add("attack_damage:" + attackDamage);
             }
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static AttributeSupplier attributeSupplier(EntityType<?> entityType) {
+        if (!DefaultAttributes.hasSupplier(entityType)) {
+            return null;
+        }
+        return DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) entityType);
     }
 
     private static boolean isMountable(EntityType<?> entityType, ResourceLocation id) {
