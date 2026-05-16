@@ -37,6 +37,8 @@ public class ResultsTreeView {
     private static final int SWATCH_SIZE = 5;
     private static final int SWATCH_GAP  = 2;
     private static final int MAX_SWATCHES = 3;
+    
+    private static final int TEXT_HIGHLIGHT = 0xFF55FFFF; // Aqua
 
     // Recomputed each frame — 0.75× when guiScale ≥ 3, otherwise 1.0×.
     private float currentLabelScale = 1.0f;
@@ -121,7 +123,7 @@ public class ResultsTreeView {
         int effectiveMouseX = toolbarDropdownOpen ? -1 : mouseX;
         for (TreeNode node : rootNodes) {
             rowCounter[0] = renderNode(g, node, 0, rowCounter[0],
-                    effectiveMouseX, mouseY, y + topOffset, contentH);
+                    effectiveMouseX, mouseY, y + topOffset, contentH, currentQuery);
         }
 
         g.disableScissor();
@@ -144,7 +146,7 @@ public class ResultsTreeView {
      * @param contentH height of the scrollable content region
      */
     private int renderNode(GuiGraphics g, TreeNode node, int depth, int rowIdx,
-                           int mouseX, int mouseY, int originY, int contentH) {
+                           int mouseX, int mouseY, int originY, int contentH, String currentQuery) {
         int drawY = originY - pixelScrollOffset + rowIdx * AMITheme.ROW_HEIGHT;
 
         // Only draw if even partially visible
@@ -164,7 +166,7 @@ public class ResultsTreeView {
             }
 
             if (node.isLeaf()) {
-                renderLeaf(g, node, depth, drawY, hovered);
+                renderLeaf(g, node, depth, drawY, hovered, currentQuery);
             } else {
                 renderGroup(g, node, depth, drawY, hovered);
             }
@@ -179,7 +181,7 @@ public class ResultsTreeView {
 
         if (!node.isLeaf() && node.isExpanded()) {
             for (TreeNode child : node.getChildren()) {
-                rowIdx = renderNode(g, child, depth + 1, rowIdx, mouseX, mouseY, originY, contentH);
+                rowIdx = renderNode(g, child, depth + 1, rowIdx, mouseX, mouseY, originY, contentH, currentQuery);
             }
         }
 
@@ -188,7 +190,7 @@ public class ResultsTreeView {
 
     // ── Leaf (rich card) ──────────────────────────────────────────────────────
 
-    private void renderLeaf(GuiGraphics g, TreeNode node, int depth, int drawY, boolean hovered) {
+    private void renderLeaf(GuiGraphics g, TreeNode node, int depth, int drawY, boolean hovered, String currentQuery) {
         var font = Minecraft.getInstance().font;
         SearchNode entry = node.getEntry();
 
@@ -221,7 +223,19 @@ public class ResultsTreeView {
                 AMITheme.TEXT_PRIMARY, currentLabelScale >= 1f);
         g.pose().popPose();
 
-        renderBadges(g, font, entry, drawY, rightEdge);
+        // Mod name (on the second line, right aligned)
+        // Check for @modid match
+        boolean matched = false;
+        if (currentQuery != null && !currentQuery.isEmpty()) {
+            String modId = entry.id().getNamespace();
+            if (currentQuery.toLowerCase().contains("@" + modId.toLowerCase())) {
+                matched = true;
+            }
+        }
+        
+        int modNameColor = matched ? TEXT_HIGHLIGHT : AmiColors.MOD_COLOR;
+        
+        renderBadges(g, font, entry, drawY, rightEdge, modNameColor, matched);
 
         if (hovered) {
             pendingTooltipLines = buildTooltip(entry);
@@ -231,7 +245,7 @@ public class ResultsTreeView {
     // ── Badges ────────────────────────────────────────────────────────────────
 
     private void renderBadges(GuiGraphics g, net.minecraft.client.gui.Font font,
-                              SearchNode entry, int drawY, int rightEdge) {
+                              SearchNode entry, int drawY, int rightEdge, int modNameColor, boolean dropShadow) {
         int currentX = rightEdge;
         int textY = drawY + (AMITheme.ROW_HEIGHT - font.lineHeight) / 2;
 
@@ -259,7 +273,7 @@ public class ResultsTreeView {
         if (!modName.isEmpty()) {
             int textWidth = font.width(modName);
             int textX = currentX - textWidth;
-            g.drawString(font, modName, textX, textY, AmiColors.MOD_COLOR, false);
+            g.drawString(font, modName, textX, textY, modNameColor, dropShadow);
             currentX = textX - 4;
         }
 
