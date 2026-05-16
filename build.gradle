@@ -218,6 +218,14 @@ idea {
     }
 }
 
+tasks.register('clearAmiCacheAndConfig', Delete) {
+    group = 'build'
+    description = 'Clears AMI configuration files and cache directories in the run folder.'
+    delete fileTree(dir: 'run/config', include: 'ami-client*.toml')
+    delete fileTree(dir: 'run/config', include: 'ami-layout.toml')
+    delete 'run/config/ami'
+}
+
 // Copy built JAR to Prism Launcher mods folder
 def modsFolder = new File(System.getenv('APPDATA'), 'PrismLauncher/instances/Mod Making/minecraft/mods')
 
