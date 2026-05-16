@@ -44,3 +44,4 @@ vendor-sources/
 .aider*
 .qwen/
 /.claude/
+.gemini/
