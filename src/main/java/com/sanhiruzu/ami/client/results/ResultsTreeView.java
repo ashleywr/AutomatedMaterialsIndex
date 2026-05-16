@@ -182,7 +182,7 @@ public class ResultsTreeView {
         SearchNode entry = node.getEntry();
 
         int iconX = x + AMITheme.GLOBAL_PADDING + depth * INDENT;
-        int iconY = drawY + (AMITheme.ROW_HEIGHT - 16) / 2;
+        int iconY = drawY + (AMITheme.ROW_HEIGHT - AMITheme.ICON_SIZE) / 2;
 
         // Z-lift prevents dark-background clipping on 3D item models
         g.pose().pushPose();
@@ -327,9 +327,9 @@ public class ResultsTreeView {
         // Label (truncated to prevent overlap with the badge)
         int labelMaxW = badgeX - (rowX + 32) - 4;
         String label = truncate(font, node.getLabel(), Math.max(0, labelMaxW));
-        g.drawString(font, label, rowX + 32, drawY + 5, AMITheme.TEXT_HEADER, false);
+        g.drawString(font, label, rowX + 32, drawY + 5, AMITheme.TEXT_HEADER, true);
 
-        g.drawString(font, badge, badgeX, drawY + 5, AMITheme.TEXT_SUBTLE, false);
+        g.drawString(font, badge, badgeX, drawY + 5, AMITheme.TEXT_SUBTLE, true);
     }
 
     /**
