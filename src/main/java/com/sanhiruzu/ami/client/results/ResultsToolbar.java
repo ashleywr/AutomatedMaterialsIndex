@@ -208,7 +208,3 @@ public class ResultsToolbar implements SearchState.Listener {
         updateDropdownPositions();
     }
 }
-   dropdowns.add(dropdown);
-        updateDropdownPositions();
-    }
-}

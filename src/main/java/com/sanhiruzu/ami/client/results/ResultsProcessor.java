@@ -242,6 +242,14 @@ public class ResultsProcessor {
         return newChild;
     }
 
+    private static final Set<String> BUILDING_SHAPES =
+            Set.of("full_block", "stairs", "slab", "wall", "fence", "pane", "building");
+
+    /** True for subcategory IDs that represent a building block shape (not functional/redstone/decorative). */
+    private static boolean isBuildingShape(String subId) {
+        return BUILDING_SHAPES.contains(subId);
+    }
+
     /**
      * Returns true when the node's ontology category is among the active facets,
      * or when no facets are active (show everything).
