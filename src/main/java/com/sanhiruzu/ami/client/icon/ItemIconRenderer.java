@@ -14,7 +14,14 @@ import java.util.Map;
 
 public class ItemIconRenderer implements IIconRenderer {
 
-    private static final Map<ResourceLocation, ItemStack> stackCache = new HashMap<>();
+    /** 
+     * Stacks for synthetic nodes (potions, enchanted books) registered during indexing.
+     * These are NOT cleared on invalidate because they cannot be recovered from the registry.
+     */
+    private static final Map<ResourceLocation, ItemStack> persistentStacks = new HashMap<>();
+    
+    /** Lazy cache for regular items; cleared on resource reload. */
+    private static final Map<ResourceLocation, ItemStack> lazyCache = new HashMap<>();
 
     @Override
     public void render(GuiGraphics g, SearchNode node, int x, int y, int size) {
@@ -45,11 +52,14 @@ public class ItemIconRenderer implements IIconRenderer {
 
     /** Pre-register a custom ItemStack for a synthetic node id (e.g. subtype nodes). */
     public static void registerStack(ResourceLocation id, ItemStack stack) {
-        stackCache.putIfAbsent(id, stack.copy());
+        persistentStacks.put(id, stack.copy());
     }
 
-    public ItemStack resolveStack(ResourceLocation id) {
-        return stackCache.computeIfAbsent(id,
+    public static ItemStack resolveStack(ResourceLocation id) {
+        ItemStack persistent = persistentStacks.get(id);
+        if (persistent != null) return persistent;
+
+        return lazyCache.computeIfAbsent(id,
                 k -> BuiltInRegistries.ITEM.getOptional(k).map(ItemStack::new).orElse(ItemStack.EMPTY));
     }
 
@@ -61,6 +71,11 @@ public class ItemIconRenderer implements IIconRenderer {
 
     @Override
     public void invalidate() {
-        stackCache.clear();
+        lazyCache.clear();
+    }
+
+    /** Clear synthetic stacks; called when the entire index is being rebuilt. */
+    public static void clearPersistent() {
+        persistentStacks.clear();
     }
 }

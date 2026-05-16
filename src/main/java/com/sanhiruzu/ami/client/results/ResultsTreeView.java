@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.AMITheme;
+import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.util.AmiColors;
@@ -17,7 +18,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Item;
 
 import java.util.*;
-import java.util.Optional;
 
 /**
  * "Suginami" rich-card list view.
@@ -231,7 +231,7 @@ public class ResultsTreeView {
         // Item name — truncated in font-pixel space (divide screen px by scale),
         // then drawn at reduced scale so long names fit.
         int availScreenPx = maxTextW - badgeW;
-        String name = truncate(font, node.getLabel(), (int)(availScreenPx / currentLabelScale));
+        String name = truncate(font, node.getLabel().getString(), (int)(availScreenPx / currentLabelScale));
 
         int screenTextY = drawY + (int)((AMITheme.ROW_HEIGHT - font.lineHeight * currentLabelScale) / 2);
         g.pose().pushPose();
@@ -375,22 +375,23 @@ public class ResultsTreeView {
         // Stacked Icon Effect (Representative Item)
         SearchNode representative = getRepresentative(node);
         if (representative != null) {
-            Item item = BuiltInRegistries.ITEM.get(representative.id());
-            ItemStack icon = new ItemStack(item);
+            ItemStack icon = ItemIconRenderer.resolveStack(representative.id());
             int iconX = rowX + 12;
             int iconY = drawY + 1;
 
-            g.renderItem(icon, iconX, iconY);
+            if (!icon.isEmpty()) {
+                g.renderItem(icon, iconX, iconY);
 
-            g.pose().pushPose();
-            g.pose().translate(2, -2, 100);
-            g.fill(iconX, iconY, iconX + 16, iconY + 16, 0x44000000);
-            g.renderItem(icon, iconX, iconY);
-            g.pose().popPose();
+                g.pose().pushPose();
+                g.pose().translate(2, -2, 100);
+                g.fill(iconX, iconY, iconX + 16, iconY + 16, 0x44000000);
+                g.renderItem(icon, iconX, iconY);
+                g.pose().popPose();
+            }
         }
 
         // Count Badge
-        String badge = "[" + node.getChildren().size() + " " + node.getLabel() + "]";
+        String badge = "[" + node.getChildren().size() + " " + node.getLabel().getString() + "]";
         int badgeW = font.width(badge);
         int badgeX = x + width - SCROLLBAR_W - badgeW - 5;
 
@@ -410,17 +411,24 @@ public class ResultsTreeView {
         // Label (truncated to avoid overlap with swatches and badge)
         int labelRightBound = badgeX - (swatchBlockW > 0 ? swatchBlockW + 8 : 0);
         int labelMaxW = labelRightBound - (rowX + 32) - 4;
-        int fullTextY = drawY + (AMITheme.ROW_HEIGHT - font.lineHeight) / 2;
-        String label = truncate(font, node.getLabel(), Math.max(0, (int)(labelMaxW / currentLabelScale)));
+        String labelStr = node.getLabel().getString();
+        String label = truncate(font, labelStr, Math.max(0, (int)(labelMaxW / currentLabelScale)));
 
         int screenLabelY = drawY + (int)((AMITheme.ROW_HEIGHT - font.lineHeight * currentLabelScale) / 2);
         g.pose().pushPose();
         g.pose().scale(currentLabelScale, currentLabelScale, 1f);
+
+        int labelColor = node.isModGroup() ? AmiColors.MOD_COLOR : AMITheme.TEXT_HEADER;
+        if (node.isHighCardinality()) {
+            labelColor = 0xFFAAAA00; // Gold for high-cardinality groups
+        }
+
         g.drawString(font, label,
                 Math.round((rowX + 32) / currentLabelScale), Math.round(screenLabelY / currentLabelScale),
-                node.isModGroup() ? AmiColors.MOD_COLOR : AMITheme.TEXT_HEADER, false);
+                labelColor, false);
         g.pose().popPose();
 
+        int fullTextY = drawY + (AMITheme.ROW_HEIGHT - font.lineHeight) / 2;
         g.drawString(font, badge, badgeX, fullTextY, AMITheme.TEXT_SUBTLE, false);
     }
 
@@ -445,8 +453,8 @@ public class ResultsTreeView {
                 .toList();
 
         for (SearchNode candidate : sortedLeaves) {
-            Item item = BuiltInRegistries.ITEM.get(candidate.id());
-            if (item != null && item != net.minecraft.world.item.Items.AIR) {
+            ItemStack stack = ItemIconRenderer.resolveStack(candidate.id());
+            if (!stack.isEmpty()) {
                 return candidate;
             }
         }
@@ -690,8 +698,7 @@ public class ResultsTreeView {
         List<Component> lines = new ArrayList<>();
 
         if (entry.type() == NodeType.ITEM) {
-            ItemStack stack = BuiltInRegistries.ITEM.getOptional(entry.id())
-                    .map(ItemStack::new).orElse(ItemStack.EMPTY);
+            ItemStack stack = ItemIconRenderer.resolveStack(entry.id());
             if (!stack.isEmpty()) {
                 lines.addAll(Screen.getTooltipFromItem(Minecraft.getInstance(), stack));
             } else {

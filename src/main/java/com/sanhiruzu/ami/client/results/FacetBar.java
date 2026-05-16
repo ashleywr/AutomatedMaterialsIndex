@@ -9,9 +9,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -21,7 +19,7 @@ import java.util.Set;
  * Active pills receive a white 1-px border; hovering shows the category name
  * as a deferred tooltip (call {@link #renderTooltip} after the panel draws).
  */
-public class FacetBar {
+public class FacetBar implements SearchState.Listener {
 
     public static final int HEIGHT = 22;
 
@@ -34,16 +32,18 @@ public class FacetBar {
     private static final Map<String, ItemStack> ICON_CACHE = new HashMap<>();
 
     private int x, y, width;
-    private final Set<String> active = new HashSet<>();
+    private SearchState state;
 
     /** Set during render(); consumed by renderTooltip(). */
     private String hoveredTooltip = null;
     private int hoveredTooltipX, hoveredTooltipY;
 
-    public FacetBar(int x, int y, int width) {
+    public FacetBar(int x, int y, int width, SearchState state) {
         this.x = x;
         this.y = y;
         this.width = width;
+        this.state = state;
+        state.addListener(this);
     }
 
     public void updateLayout(int x, int y, int width) {
@@ -61,8 +61,9 @@ public class FacetBar {
         int px = x + AMITheme.GLOBAL_PADDING;
         int py = y + PAD_Y;
 
+        Set<String> activeFacets = state.getActiveFacets();
         for (AmiOntology.Category cat : AmiOntology.CATEGORIES) {
-            boolean isActive = active.contains(cat.id);
+            boolean isActive = activeFacets.contains(cat.id);
             boolean hovered  = mouseX >= px && mouseX < px + PILL_W
                     && mouseY >= py && mouseY < py + PILL_H;
 
@@ -95,7 +96,7 @@ public class FacetBar {
             }
 
             if (hovered) {
-                hoveredTooltip  = cat.displayName;
+                hoveredTooltip  = cat.displayName.getString();
                 hoveredTooltipX = mouseX;
                 hoveredTooltipY = mouseY;
             }
@@ -154,11 +155,6 @@ public class FacetBar {
             if (rl == null) return ItemStack.EMPTY;
             return BuiltInRegistries.ITEM.getOptional(rl)
                     .map(ItemStack::new)
-                    .orElse(ItemStack.EMPTY);
-        });
-    }
-}
-Stack::new)
                     .orElse(ItemStack.EMPTY);
         });
     }

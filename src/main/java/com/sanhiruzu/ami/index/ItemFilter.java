@@ -96,15 +96,20 @@ public final class ItemFilter {
     }
 
     public static boolean shouldShowAccessLevel(String accessLevel) {
-        return switch (accessLevel) {
-            case ACCESS_SURVIVAL -> true;
-            case ACCESS_CREATIVE -> AMIConfig.SHOW_SPAWN_EGGS.get()
-                    || AMIConfig.DEV_MODE.get()
-                    || AMIConfig.CHEAT_MODE.get();
-            case ACCESS_CHEAT -> AMIConfig.CHEAT_MODE.get() || AMIConfig.DEV_MODE.get();
-            case ACCESS_DEV -> AMIConfig.DEV_MODE.get() || !AMIConfig.HIDE_NON_CREATIVE_ITEMS.get();
-            default -> false;
-        };
+        try {
+            return switch (accessLevel) {
+                case ACCESS_SURVIVAL -> true;
+                case ACCESS_CREATIVE -> AMIConfig.SHOW_SPAWN_EGGS.get()
+                        || AMIConfig.DEV_MODE.get()
+                        || AMIConfig.CHEAT_MODE.get();
+                case ACCESS_CHEAT -> AMIConfig.CHEAT_MODE.get() || AMIConfig.DEV_MODE.get();
+                case ACCESS_DEV -> AMIConfig.DEV_MODE.get() || !AMIConfig.HIDE_NON_CREATIVE_ITEMS.get();
+                default -> false;
+            };
+        } catch (IllegalStateException e) {
+            // Configs might not be loaded during early GameTests
+            return accessLevel.equals(ACCESS_SURVIVAL) || accessLevel.equals(ACCESS_CREATIVE);
+        }
     }
 
     /**

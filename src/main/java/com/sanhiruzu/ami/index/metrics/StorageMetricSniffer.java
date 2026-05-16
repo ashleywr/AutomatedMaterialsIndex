@@ -1,6 +1,5 @@
 package com.sanhiruzu.ami.index.metrics;
 
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
