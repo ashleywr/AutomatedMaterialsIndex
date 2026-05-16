@@ -29,6 +29,10 @@ public final class SearchService {
      * plus a PlayerResolver for live multiplayer lookups.
      */
     public static SearchService buildFrom(GlobalIndex index) {
+        return buildFrom(index, true);
+    }
+
+    public static SearchService buildFrom(GlobalIndex index, boolean includePlayers) {
         LiteralResolver literal = new LiteralResolver();
         TagResolver tagResolver = new TagResolver();
         EnvironmentResolver envResolver = new EnvironmentResolver();
@@ -42,7 +46,13 @@ public final class SearchService {
             }
         }
 
-        return new SearchService(List.of(literal, new PlayerResolver()), tagResolver, envResolver);
+        List<IQueryResolver> resolvers = new ArrayList<>();
+        resolvers.add(literal);
+        if (includePlayers) {
+            resolvers.add(new PlayerResolver());
+        }
+
+        return new SearchService(resolvers, tagResolver, envResolver);
     }
 
     /**

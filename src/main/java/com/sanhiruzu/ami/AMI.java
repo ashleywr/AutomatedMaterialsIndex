@@ -7,6 +7,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,7 @@ public class AMI {
 
     public AMI(IEventBus modEventBus, ModContainer modContainer) {
         modEventBus.addListener(this::commonSetup);
+        modEventBus.addListener(this::registerGameTests);
         NeoForge.EVENT_BUS.register(this);
         modContainer.registerConfig(ModConfig.Type.CLIENT, AMIConfig.SPEC);
         modContainer.registerConfig(ModConfig.Type.CLIENT, AMILayoutConfig.SPEC, "ami-layout.toml");
@@ -30,6 +32,10 @@ public class AMI {
         LOGGER.info("Initializing Automated Materials Index...");
         LOGGER.info("AMI is a client-side recipe UI mod");
         LOGGER.info("================================");
+    }
+
+    private void registerGameTests(RegisterGameTestsEvent event) {
+        event.register(com.sanhiruzu.ami.benchmark.AmiBenchmarkGameTests.class);
     }
 
     @SubscribeEvent
