@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.client.results;
 
+import com.sanhiruzu.ami.client.AMITheme;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 
@@ -32,10 +33,9 @@ public class MultiSelectDropdown<T> implements Dropdown {
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
-        int bgColor = open ? 0xFF3A3A3A : 0xFF2A2A2A;
-        g.fill(x, y, x + width, y + HEIGHT, bgColor);
+        g.fill(x, y, x + width, y + HEIGHT, open ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG);
         String countLabel = selected.size() + "/" + options.size();
-        g.drawString(Minecraft.getInstance().font, countLabel, x + 3, y + 2, 0xFFCCCCCC, false);
+        g.drawString(Minecraft.getInstance().font, countLabel, x + 3, y + 2, AMITheme.TEXT_HEADER, false);
     }
 
     public void renderList(GuiGraphics g, int mouseX, int mouseY) {
@@ -43,19 +43,21 @@ public class MultiSelectDropdown<T> implements Dropdown {
     }
 
     private void renderDropdown(GuiGraphics g, int mouseX, int mouseY) {
+        var font = Minecraft.getInstance().font;
         int dropH = Math.min(MAX_DROPDOWN_HEIGHT, options.size() * ITEM_HEIGHT + 2);
-        g.fill(x, y + HEIGHT + 2, x + width, y + HEIGHT + 2 + dropH, 0xFF1A1A1A);
-        g.fill(x, y + HEIGHT + 2, x + width, y + HEIGHT + 3, 0xFF555555);
+        g.fill(x, y + HEIGHT + 2, x + width, y + HEIGHT + 2 + dropH, AMITheme.DROPDOWN_LIST_BG);
+        g.fill(x, y + HEIGHT + 2, x + width, y + HEIGHT + 3, AMITheme.SECTION_SEP);
 
         int itemY = y + HEIGHT + 3;
         for (T option : options) {
             if (itemY >= y + HEIGHT + 2 + dropH - ITEM_HEIGHT) break;
 
-            boolean hovered = isPointInRect(mouseX, mouseY, x, itemY, width, ITEM_HEIGHT);
-            if (hovered) g.fill(x, itemY, x + width, itemY + ITEM_HEIGHT, 0xFF333333);
+            if (Dropdown.contains(mouseX, mouseY, x, itemY, width, ITEM_HEIGHT)) {
+                g.fill(x, itemY, x + width, itemY + ITEM_HEIGHT, AMITheme.DROPDOWN_BG);
+            }
 
-            String checkmark = selected.contains(option) ? "✓ " : "  ";
-            g.drawString(Minecraft.getInstance().font, checkmark + displayName.apply(option), x + 2, itemY + 1, 0xFFCCCCCC, false);
+            String label = (selected.contains(option) ? "✓ " : "  ") + displayName.apply(option);
+            g.drawString(font, label, x + 2, itemY + 1, AMITheme.TEXT_SUBTLE, false);
             itemY += ITEM_HEIGHT;
         }
     }
@@ -64,7 +66,7 @@ public class MultiSelectDropdown<T> implements Dropdown {
         if (button != 0) return false;
 
         // Toggle on button click
-        if (isPointInRect((int) mouseX, (int) mouseY, x, y, width, HEIGHT)) {
+        if (Dropdown.contains((int) mouseX, (int) mouseY, x, y, width, HEIGHT)) {
             open = !open;
             return true;
         }
@@ -76,7 +78,7 @@ public class MultiSelectDropdown<T> implements Dropdown {
             for (T option : options) {
                 if (itemY >= y + HEIGHT + 2 + dropH - ITEM_HEIGHT) break;
 
-                if (isPointInRect((int) mouseX, (int) mouseY, x, itemY, width, ITEM_HEIGHT)) {
+                if (Dropdown.contains((int) mouseX, (int) mouseY, x, itemY, width, ITEM_HEIGHT)) {
                     if (selected.contains(option)) {
                         selected.remove(option);
                     } else {
@@ -119,7 +121,4 @@ public class MultiSelectDropdown<T> implements Dropdown {
         selected.addAll(kept);
     }
 
-    private boolean isPointInRect(int x, int y, int rx, int ry, int rw, int rh) {
-        return x >= rx && x < rx + rw && y >= ry && y < ry + rh;
-    }
 }

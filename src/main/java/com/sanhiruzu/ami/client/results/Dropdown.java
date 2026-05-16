@@ -15,4 +15,8 @@ public interface Dropdown {
     boolean mouseClicked(double mouseX, double mouseY, int button);
     void close();
     boolean isOpen();
+
+    static boolean contains(int mx, int my, int rx, int ry, int rw, int rh) {
+        return mx >= rx && mx < rx + rw && my >= ry && my < ry + rh;
+    }
 }

@@ -112,7 +112,7 @@ public class UniversalResultsPanel {
         if (gridMode) {
             gridView.render(g, mouseX, mouseY);
         } else {
-            treeView.render(g, mouseX, mouseY, toolbar.isAnyDropdownOpen(), null);
+            treeView.render(g, mouseX, mouseY, toolbar.isAnyDropdownOpen(), null, currentQuery);
         }
 
         toolbar.renderOpenDropdownLists(g, mouseX, mouseY);

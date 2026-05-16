@@ -50,6 +50,12 @@ public final class AMITheme {
     public static int DIM_NETHER     = 0xFFCC4444;
     public static int DIM_END        = 0xFF9944CC;
 
+    // Typography (light-panel palette — do not use ChatFormatting enums for these)
+    public static final int TEXT_HEADER    = 0xFF404040; // static UI labels, no drop shadow
+    public static final int TEXT_PRIMARY   = 0xFFFFFFFF; // primary item names, with drop shadow
+    public static final int TEXT_SUBTLE    = 0xFF555555; // metadata, counts, badges, no drop shadow
+    public static final int TEXT_HIGHLIGHT = 0xFF55FFFF; // active query match (e.g. @modid), with drop shadow
+
     // Row and section separators (not configurable — aesthetic constants)
     public static final int ROW_SEPARATOR = 0xFF999999; // 1px line between list rows
     public static final int SECTION_SEP   = 0xFF888888; // 1px line between FacetBar/Toolbar/Results
@@ -57,6 +63,11 @@ public final class AMITheme {
     // Item grid
     public static int SLOT_BG        = 0xFF555555;
     public static int SLOT_HOVER     = 0xFFAAAAAA;
+
+    // Dropdown buttons and panels
+    public static final int DROPDOWN_BG        = 0xFFAAAAAA; // button idle + list item hover
+    public static final int DROPDOWN_BG_ACTIVE = 0xFF989898; // button when open or hovered
+    public static final int DROPDOWN_LIST_BG   = 0xFFBBBBBB; // open list panel background
 
     // Current location indicators
     public static int CURRENT_BIOME_BG       = 0xFF1A2E1A; // subtle green tint

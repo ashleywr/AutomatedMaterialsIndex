@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.client.results;
 
+import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -113,20 +114,17 @@ public class ResultsToolbar {
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
+        var font = Minecraft.getInstance().font;
         int buttonX = x + 2;
 
         // View mode toggle button
         String modeLabel = viewMode == ViewMode.GRID ? "Grid" : "List";
-        boolean modeHovered = isPointInRect(mouseX, mouseY, buttonX, y + 3, MODE_BUTTON_W, 14);
-        int modeColor = modeHovered ? 0xFF88AAFF : 0xFF6688CC;
-        g.drawString(Minecraft.getInstance().font, modeLabel, buttonX + 2, y + 3, modeColor, false);
+        g.drawString(font, modeLabel, buttonX + 2, y + 3, AMITheme.TEXT_HEADER, false);
         buttonX += MODE_BUTTON_W + 3;
 
         // Sort direction button (▲/▼)
         String dirLabel = ascending ? "▲" : "▼";
-        boolean dirHovered = isPointInRect(mouseX, mouseY, buttonX, y + 3, BUTTON_W, 14);
-        int dirColor = dirHovered ? 0xFFAAAA44 : 0xFF888888;
-        g.drawString(Minecraft.getInstance().font, dirLabel, buttonX + 2, y + 3, dirColor, false);
+        g.drawString(font, dirLabel, buttonX + 2, y + 3, AMITheme.TEXT_HEADER, false);
 
         // Render all registered dropdowns
         for (Dropdown dropdown : dropdowns) {
@@ -141,7 +139,7 @@ public class ResultsToolbar {
         int buttonX = x + 2;
 
         // View mode toggle
-        if (isPointInRect((int) mouseX, (int) mouseY, buttonX, y + 3, MODE_BUTTON_W, 14)) {
+        if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, y + 3, MODE_BUTTON_W, 14)) {
             viewMode = (viewMode == ViewMode.GRID) ? ViewMode.LIST : ViewMode.GRID;
             closeAllDropdowns();
             return true;
@@ -149,7 +147,7 @@ public class ResultsToolbar {
         buttonX += MODE_BUTTON_W + 3;
 
         // Sort direction button
-        if (isPointInRect((int) mouseX, (int) mouseY, buttonX, y + 3, BUTTON_W, 14)) {
+        if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, y + 3, BUTTON_W, 14)) {
             ascending = !ascending;
             closeAllDropdowns();
             return true;
@@ -188,9 +186,6 @@ public class ResultsToolbar {
         fieldsPicker.close();
     }
 
-    private boolean isPointInRect(int x, int y, int rx, int ry, int rw, int rh) {
-        return x >= rx && x < rx + rw && y >= ry && y < ry + rh;
-    }
 
     public int getHeight() { return TOOLBAR_HEIGHT; }
     public ResultsProcessor.SortField getSortField() { return sortFieldDropdown.getSelected(); }

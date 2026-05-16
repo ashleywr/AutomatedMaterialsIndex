@@ -36,7 +36,7 @@ public class ResultsTreeView {
     private static final int SWATCH_SIZE = 5;
     private static final int SWATCH_GAP  = 2;
     private static final int MAX_SWATCHES = 3;
-
+    
     // ── State ─────────────────────────────────────────────────────────────────
     private int x, y, width, height;
     private List<TreeNode> rootNodes = new ArrayList<>();
@@ -81,7 +81,7 @@ public class ResultsTreeView {
      *                     (e.g. "Pinned & Discover"). Pass null to omit.
      */
     public void render(GuiGraphics g, int mouseX, int mouseY, boolean toolbarDropdownOpen,
-                       Component sectionLabel) {
+                       Component sectionLabel, String currentQuery) {
         pendingTooltipLines = null;
 
         int topOffset = 0;
@@ -108,7 +108,7 @@ public class ResultsTreeView {
         int effectiveMouseX = toolbarDropdownOpen ? -1 : mouseX;
         for (TreeNode node : rootNodes) {
             rowCounter[0] = renderNode(g, node, 0, rowCounter[0],
-                    effectiveMouseX, mouseY, y + topOffset, contentH);
+                    effectiveMouseX, mouseY, y + topOffset, contentH, currentQuery);
         }
 
         g.disableScissor();
@@ -121,8 +121,8 @@ public class ResultsTreeView {
     }
 
     /** Backwards-compatible overload used when no section label is needed. */
-    public void render(GuiGraphics g, int mouseX, int mouseY, boolean toolbarDropdownOpen) {
-        render(g, mouseX, mouseY, toolbarDropdownOpen, (Component) null);
+    public void render(GuiGraphics g, int mouseX, int mouseY, boolean toolbarDropdownOpen, String currentQuery) {
+        render(g, mouseX, mouseY, toolbarDropdownOpen, (Component) null, currentQuery);
     }
 
     /**
@@ -131,14 +131,12 @@ public class ResultsTreeView {
      * @param contentH height of the scrollable content region
      */
     private int renderNode(GuiGraphics g, TreeNode node, int depth, int rowIdx,
-                           int mouseX, int mouseY, int originY, int contentH) {
+                           int mouseX, int mouseY, int originY, int contentH, String currentQuery) {
         int drawY = originY - pixelScrollOffset + rowIdx * AMITheme.ROW_HEIGHT;
 
         // Only draw if even partially visible
         if (drawY + AMITheme.ROW_HEIGHT > originY && drawY < originY + contentH) {
-            boolean hovered = !node.isLeaf()
-                    ? isGroupRowHovered(mouseX, mouseY, drawY)
-                    : isLeafRowHovered(mouseX, mouseY, drawY);
+            boolean hovered = isRowHovered(mouseX, mouseY, drawY);
 
             if (rowIdx % 2 == 0) {
                 g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + AMITheme.ROW_HEIGHT, 0x15000000);
@@ -153,7 +151,7 @@ public class ResultsTreeView {
             }
 
             if (node.isLeaf()) {
-                renderLeaf(g, node, depth, drawY, hovered);
+                renderLeaf(g, node, depth, drawY, hovered, currentQuery);
             } else {
                 renderGroup(g, node, depth, drawY, hovered);
             }
@@ -168,7 +166,7 @@ public class ResultsTreeView {
 
         if (!node.isLeaf() && node.isExpanded()) {
             for (TreeNode child : node.getChildren()) {
-                rowIdx = renderNode(g, child, depth + 1, rowIdx, mouseX, mouseY, originY, contentH);
+                rowIdx = renderNode(g, child, depth + 1, rowIdx, mouseX, mouseY, originY, contentH, currentQuery);
             }
         }
 
@@ -177,7 +175,7 @@ public class ResultsTreeView {
 
     // ── Leaf (rich card) ──────────────────────────────────────────────────────
 
-    private void renderLeaf(GuiGraphics g, TreeNode node, int depth, int drawY, boolean hovered) {
+    private void renderLeaf(GuiGraphics g, TreeNode node, int depth, int drawY, boolean hovered, String currentQuery) {
         var font = Minecraft.getInstance().font;
         SearchNode entry = node.getEntry();
 
@@ -214,7 +212,10 @@ public class ResultsTreeView {
         if (hasSubtitle) {
             String subtitleTrunc = truncate(font, subtitle, maxTextW);
             int subtitleX = Math.max(textX, rightEdge - font.width(subtitleTrunc));
-            g.drawString(font, subtitleTrunc, subtitleX, textY2, AMITheme.TEXT_SUBTLE, false);
+            
+            boolean matched = modQueryMatches(currentQuery, entry.id().getNamespace());
+            g.drawString(font, subtitleTrunc, subtitleX, textY2,
+                    matched ? AMITheme.TEXT_HIGHLIGHT : AMITheme.TEXT_SUBTLE, matched);
         }
 
         renderBadges(g, font, entry, drawY, rightEdge);
@@ -229,6 +230,7 @@ public class ResultsTreeView {
     private void renderBadges(GuiGraphics g, net.minecraft.client.gui.Font font,
                               SearchNode entry, int drawY, int rightEdge) {
         int currentX = rightEdge;
+        int textY = drawY + (AMITheme.ROW_HEIGHT - font.lineHeight) / 2;
 
         // Render Tool Requirement Badge
         String reqToolStr = entry.meta(SearchNodeKeys.REQUIRED_TOOL, "");
@@ -260,7 +262,7 @@ public class ResultsTreeView {
             Component badge = Component.translatable("ami.gui.badge.storage", cap);
             int bw = font.width(badge);
             currentX -= bw;
-            g.drawString(font, badge, currentX, drawY + 5, AMITheme.TEXT_SUBTLE, false);
+            g.drawString(font, badge, currentX, textY, AMITheme.TEXT_SUBTLE, false);
         }
     }
 
@@ -326,10 +328,11 @@ public class ResultsTreeView {
 
         // Label (truncated to prevent overlap with the badge)
         int labelMaxW = badgeX - (rowX + 32) - 4;
+        int textY = drawY + (AMITheme.ROW_HEIGHT - font.lineHeight) / 2;
         String label = truncate(font, node.getLabel(), Math.max(0, labelMaxW));
-        g.drawString(font, label, rowX + 32, drawY + 5, AMITheme.TEXT_HEADER, true);
+        g.drawString(font, label, rowX + 32, textY, AMITheme.TEXT_HEADER, false);
 
-        g.drawString(font, badge, badgeX, drawY + 5, AMITheme.TEXT_SUBTLE, true);
+        g.drawString(font, badge, badgeX, textY, AMITheme.TEXT_SUBTLE, false);
     }
 
     /**
@@ -401,12 +404,7 @@ public class ResultsTreeView {
 
     // ── Hit-testing ───────────────────────────────────────────────────────────
 
-    private boolean isLeafRowHovered(int mouseX, int mouseY, int drawY) {
-        return mouseX >= x && mouseX < x + width - SCROLLBAR_W
-                && mouseY >= drawY && mouseY < drawY + AMITheme.ROW_HEIGHT;
-    }
-
-    private boolean isGroupRowHovered(int mouseX, int mouseY, int drawY) {
+    private boolean isRowHovered(int mouseX, int mouseY, int drawY) {
         return mouseX >= x && mouseX < x + width - SCROLLBAR_W
                 && mouseY >= drawY && mouseY < drawY + AMITheme.ROW_HEIGHT;
     }
@@ -473,6 +471,17 @@ public class ResultsTreeView {
     private static String truncate(net.minecraft.client.gui.Font font, String text, int maxW) {
         if (maxW <= 0) return "";
         return font.plainSubstrByWidth(text, maxW);
+    }
+
+    /** Returns true when {@code query} contains an exact {@code @modId} token (word-boundary delimited). */
+    private static boolean modQueryMatches(String query, String modId) {
+        if (query == null || query.isEmpty()) return false;
+        String q = query.toLowerCase();
+        String token = "@" + modId.toLowerCase();
+        int idx = q.indexOf(token);
+        if (idx < 0) return false;
+        int end = idx + token.length();
+        return end == q.length() || !Character.isLetterOrDigit(q.charAt(end));
     }
 
     // ── Input handlers ────────────────────────────────────────────────────────
