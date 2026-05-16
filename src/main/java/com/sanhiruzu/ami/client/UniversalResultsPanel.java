@@ -4,6 +4,7 @@ import com.sanhiruzu.ami.client.results.*;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.index.SearchService;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -13,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class UniversalResultsPanel {
+public class UniversalResultsPanel implements SearchState.Listener {
 
     private static final ResourceLocation PANEL_SPRITE =
             ResourceLocation.withDefaultNamespace("recipe_book/overlay_recipe");
@@ -25,8 +26,11 @@ public class UniversalResultsPanel {
     private ResultsTreeView treeView;
     private ItemGridView    gridView;
 
+    private final SearchState state = new SearchState();
     private List<SearchNode> currentResults = new ArrayList<>();
     private String currentQuery = "";
+    private SearchService searchService;
+    private Runnable externalResetCallback;
 
     public UniversalResultsPanel(int x, int y, int width, int height) {
         this.x = x;
@@ -34,6 +38,7 @@ public class UniversalResultsPanel {
         this.width = width;
         this.height = height;
 
+        state.addListener(this);
         initChildren();
     }
 
@@ -41,10 +46,10 @@ public class UniversalResultsPanel {
         int innerX = x + AMITheme.GLOBAL_PADDING;
         int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
 
-        this.facetBar = new FacetBar(innerX, y + AMITheme.GLOBAL_PADDING, innerW);
+        this.facetBar = new FacetBar(innerX, y + AMITheme.GLOBAL_PADDING, innerW, state);
 
         int toolbarY = y + AMITheme.GLOBAL_PADDING + FacetBar.HEIGHT + AMITheme.ELEMENT_GAP;
-        this.toolbar = new ResultsToolbar(innerX, toolbarY, innerW);
+        this.toolbar = new ResultsToolbar(innerX, toolbarY, innerW, state);
 
         int contentY = toolbarY + toolbar.getHeight() + AMITheme.ELEMENT_GAP;
         int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
@@ -55,7 +60,6 @@ public class UniversalResultsPanel {
     }
 
     public void setEntries(List<SearchNode> entries) {
-        this.currentQuery = "";
         this.currentResults = entries;
         refreshTree();
     }
@@ -65,10 +69,29 @@ public class UniversalResultsPanel {
     }
 
     public void setSearchResults(Map<NodeType, List<SearchNode>> results, String query) {
-        this.currentQuery = query == null ? "" : query.trim();
         List<SearchNode> flat = new ArrayList<>();
         for (List<SearchNode> list : results.values()) flat.addAll(list);
         this.currentResults = flat;
+        state.setQuery(query == null ? "" : query.trim());
+    }
+
+    public void setSearchService(SearchService service) {
+        this.searchService = service;
+        refreshTree();
+    }
+
+    public void setOnReset(Runnable callback) {
+        this.externalResetCallback = callback;
+    }
+
+    public void reset() {
+        state.reset();
+        if (externalResetCallback != null) externalResetCallback.run();
+    }
+
+    @Override
+    public void onSearchStateChanged(SearchState state) {
+        this.currentQuery = state.getQuery();
         refreshTree();
     }
 
@@ -111,7 +134,7 @@ public class UniversalResultsPanel {
         int sep2Y = toolbarY + toolbar.getHeight();
         g.fill(x + 3, sep2Y, x + width - 3, sep2Y + 1, AMITheme.SECTION_SEP);
 
-        boolean gridMode = toolbar.getViewMode() == ResultsToolbar.ViewMode.GRID;
+        boolean gridMode = state.getViewMode() == ResultsToolbar.ViewMode.GRID;
         if (gridMode) {
             gridView.render(g, mouseX, mouseY);
         } else {
@@ -128,24 +151,17 @@ public class UniversalResultsPanel {
 
     private void refreshTree() {
         List<SearchNode> source = resolveSource();
+        String query = state.getQuery();
 
-        ResultsProcessor processor = new ResultsProcessor(
-                toolbar.getSortField(),
-                toolbar.isAscending(),
-                toolbar.getGroupBy(),
-                toolbar.getSelectedMods(),
-                facetBar.getActiveFacets()
-        );
+        if (!query.isEmpty() && searchService != null) {
+            Map<NodeType, List<SearchNode>> results = searchService.query(query);
+            source = new ArrayList<>();
+            for (List<SearchNode> list : results.values()) source.addAll(list);
+        }
+
+        ResultsProcessor processor = state.createProcessor();
         treeView.setRootNodes(processor.process(source));
-
-        ResultsProcessor gridProcessor = new ResultsProcessor(
-                toolbar.getSortField(),
-                toolbar.isAscending(),
-                toolbar.getGroupBy(),
-                toolbar.getSelectedMods(),
-                facetBar.getActiveFacets()
-        );
-        gridView.setRootNodes(gridProcessor.process(source));
+        gridView.setRootNodes(processor.process(source));
     }
 
     private List<SearchNode> resolveSource() {
@@ -168,26 +184,22 @@ public class UniversalResultsPanel {
 
         // Facet bar intercepts left-clicks on its badges
         if (button == 0 && facetBar.mouseClicked(mouseX, mouseY, button)) {
-            refreshTree();
             return true;
         }
 
         if (toolbar.isAnyDropdownOpen()) {
             boolean handled = toolbar.mouseClicked(mouseX, mouseY, button);
-            if (handled) {
-                refreshTree();
-            } else {
+            if (!handled) {
                 toolbar.closeAllDropdowns();
             }
             return true;
         }
 
         if (button == 0 && toolbar.mouseClicked(mouseX, mouseY, button)) {
-            refreshTree();
             return true;
         }
 
-        boolean gridMode = toolbar.getViewMode() == ResultsToolbar.ViewMode.GRID;
+        boolean gridMode = state.getViewMode() == ResultsToolbar.ViewMode.GRID;
         if (gridMode) {
             return gridView.mouseClicked(mouseX, mouseY, button);
         }
@@ -201,7 +213,7 @@ public class UniversalResultsPanel {
             return false;
         }
 
-        boolean gridMode = toolbar.getViewMode() == ResultsToolbar.ViewMode.GRID;
+        boolean gridMode = state.getViewMode() == ResultsToolbar.ViewMode.GRID;
         if (gridMode) {
             gridView.mouseScrolled(mouseX, mouseY, scrollDelta);
             return true;
@@ -214,13 +226,13 @@ public class UniversalResultsPanel {
     }
 
     public boolean mouseClickedScrollbar(double mouseX, double mouseY, int button) {
-        boolean gridMode = toolbar.getViewMode() == ResultsToolbar.ViewMode.GRID;
+        boolean gridMode = state.getViewMode() == ResultsToolbar.ViewMode.GRID;
         if (gridMode) return gridView.mouseClickedScrollbar(mouseX, mouseY, button);
         return treeView.mouseClickedScrollbar(mouseX, mouseY, button);
     }
 
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        boolean gridMode = toolbar.getViewMode() == ResultsToolbar.ViewMode.GRID;
+        boolean gridMode = state.getViewMode() == ResultsToolbar.ViewMode.GRID;
         if (gridMode) return gridView.mouseDragged(mouseX, mouseY, button, dragX, dragY);
         return treeView.mouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
@@ -245,4 +257,5 @@ public class UniversalResultsPanel {
     public int getWidth()   { return width; }
     public int getHeight()  { return height; }
     public ResultsToolbar getToolbar() { return toolbar; }
+    public SearchState getState() { return state; }
 }

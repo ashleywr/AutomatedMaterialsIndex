@@ -9,6 +9,7 @@ import net.minecraft.network.chat.Component;
 public class ResultsPanelWidget extends AbstractWidget {
     private UniversalResultsPanel panel;
     private java.util.function.Consumer<String> modClickCallback;
+    private Runnable resetCallback;
 
     public ResultsPanelWidget() {
         super(0, 0, 0, 0, Component.empty());
@@ -17,6 +18,11 @@ public class ResultsPanelWidget extends AbstractWidget {
     public void setOnModClick(java.util.function.Consumer<String> callback) {
         this.modClickCallback = callback;
         if (panel != null) panel.setOnModClick(callback);
+    }
+
+    public void setOnReset(Runnable callback) {
+        this.resetCallback = callback;
+        if (panel != null) panel.setOnReset(callback);
     }
 
     public void updateBounds(WidgetBounds bounds) {
@@ -28,6 +34,7 @@ public class ResultsPanelWidget extends AbstractWidget {
         if (panel == null) {
             panel = new UniversalResultsPanel(bounds.x(), bounds.y(), bounds.width(), bounds.height());
             if (modClickCallback != null) panel.setOnModClick(modClickCallback);
+            if (resetCallback != null) panel.setOnReset(resetCallback);
         } else {
             panel.updateLayout(bounds.x(), bounds.y(), bounds.width(), bounds.height());
         }

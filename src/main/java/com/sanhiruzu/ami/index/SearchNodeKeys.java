@@ -25,6 +25,7 @@ public final class SearchNodeKeys {
     public static final String VISIBILITY      = "visibility";    // "hidden" = not in any creative tab
     public static final String OBTAINABILITY   = "obtainability"; // "no_recipe" = no recipe output
     public static final String SUBTYPE_OF      = "subtypeOf";     // base item id for subtype nodes
+    public static final String BLOCKS_MATERIAL = "blocksMaterial"; // material family for block subcategory (shape/material toggle)
 
     // Atlas-specific
     public static final String DIMENSION       = "dimension";

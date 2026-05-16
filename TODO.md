@@ -76,6 +76,9 @@ Process in strict order; stop at the first hit:
 - [ ] **Harvest Level Indicators**: Add a small overlay (number or color tint) to tool icons to indicate required harvest levels.
 - [ ] **UI Consistency**: Port the "reserved tool slot" and ellipsis truncation logic to `CommandPaletteWidget.java` for layout parity.
 - [x] **Dynamic Badge Fields**: Connected the "Fields" toolbar dropdown to `ResultsTreeView` so badges (Mod, Storage, DPS) can be toggled by the user. logic now uses `RowFieldConfig` and supports per-field color highlighting.
+- [x] **Centralized Search State**: Implemented a robust `SearchState` model that encapsulates query, sorting, grouping, and facets. UI widgets now use a listener pattern to stay synchronized with this single source of truth.
+- [x] **Reset Button**: Added a localized "Reset" button to the search toolbar that clears all filters and restores the search state to its best-default "show everything" configuration.
+- [x] **UI Localization Audit**: Conducted a thorough audit and replaced all hardcoded user-facing strings with translatable `Component` keys.
 - [ ] **Fix Fields Picker**: Investigation needed on why only "Mod" appears even when other fields are selected in the picker.
 - [ ] **Fix Results Scrollbar**: The scrollbar in `ResultsTreeView` is currently non-functional for vertical scrolling.
 - ~~Removed the active-field count badge from the "Fields" button label to prevent overflow.~~

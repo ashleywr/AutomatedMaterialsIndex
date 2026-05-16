@@ -7,9 +7,9 @@ import net.minecraft.client.gui.GuiGraphics;
 import java.util.List;
 
 public class SingleSelectDropdown<T> implements Dropdown {
-    private final String label;
+    private final Component label;
     private final List<T> options;
-    private final java.util.function.Function<T, String> displayName;
+    private final java.util.function.Function<T, Component> displayName;
     private final java.util.function.Consumer<T> onSelect;
     private T selected;
 
@@ -19,7 +19,7 @@ public class SingleSelectDropdown<T> implements Dropdown {
 
     private boolean open = false;
 
-    public SingleSelectDropdown(String label, List<T> options, java.util.function.Function<T, String> displayName,
+    public SingleSelectDropdown(Component label, List<T> options, java.util.function.Function<T, Component> displayName,
                                  T selected, java.util.function.Consumer<T> onSelect) {
         this.label = label;
         this.options = options;
@@ -37,7 +37,8 @@ public class SingleSelectDropdown<T> implements Dropdown {
     public void render(GuiGraphics g, int mouseX, int mouseY) {
         int bgColor = open ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
         g.fill(x, y, x + width, y + HEIGHT, bgColor);
-        String text = displayName.apply(selected);
+        Component textComp = displayName.apply(selected);
+        String text = textComp.getString();
         var font = Minecraft.getInstance().font;
         if (font.width(text) > width - 6) {
             text = font.plainSubstrByWidth(text, width - 6);
@@ -61,7 +62,8 @@ public class SingleSelectDropdown<T> implements Dropdown {
             if (hovered) g.fill(x, itemY, x + width, itemY + ITEM_HEIGHT, AMITheme.DROPDOWN_BG);
 
             boolean isSelected = option.equals(selected);
-            String text = (isSelected ? "✓ " : "") + displayName.apply(option);
+            Component labelComp = displayName.apply(option);
+            String text = (isSelected ? "✓ " : "") + labelComp.getString();
             g.drawString(font, text, x + 2, itemY + 1, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
             itemY += ITEM_HEIGHT;
         }
@@ -101,6 +103,10 @@ public class SingleSelectDropdown<T> implements Dropdown {
 
     public boolean isOpen() {
         return open;
+    }
+
+    public void setSelected(T selected) {
+        this.selected = selected;
     }
 
     public T getSelected() {

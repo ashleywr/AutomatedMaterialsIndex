@@ -169,6 +169,14 @@ static {
             .comment("Suppress EMI/JEI rendering when AMI search is focused")
             .define("suppressRecipeViewers", true);
 
+    public enum BlockSubgroup { SHAPE, MATERIAL }
+
+    public static final ModConfigSpec.EnumValue<BlockSubgroup> BLOCK_SUBGROUP = BUILDER
+            .comment("How to subdivide the Blocks category in the AMI results panel.",
+                     "SHAPE    = group by block shape: Stairs, Slabs, Walls, Fences, Panes, Full Blocks",
+                     "MATERIAL = group by material family: Stone & Masonry, Wood & Planks, Soil & Terrain, Glass & Light")
+            .defineEnum("blockSubgroup", BlockSubgroup.SHAPE);
+
     public enum ItemClickAction { RECIPES, USES, NONE }
 
     public static final ModConfigSpec.EnumValue<ItemClickAction> ITEM_CLICK_ACTION = BUILDER

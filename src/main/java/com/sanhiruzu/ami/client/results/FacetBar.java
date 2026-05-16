@@ -127,8 +127,7 @@ public class FacetBar {
         for (AmiOntology.Category cat : AmiOntology.CATEGORIES) {
             if (mouseX >= px && mouseX < px + PILL_W
                     && mouseY >= py && mouseY < py + PILL_H) {
-                if (active.contains(cat.id)) active.remove(cat.id);
-                else                         active.add(cat.id);
+                state.toggleFacet(cat.id);
                 return true;
             }
             px += PILL_W + PILL_GAP;
@@ -136,9 +135,15 @@ public class FacetBar {
         return false;
     }
 
+    @Override
+    public void onSearchStateChanged(SearchState state) {
+        // We don't need to do much here since we pull from state during render,
+        // but it ensures we have a hook if we ever cache anything.
+    }
+
     /** Returns the currently active category IDs (e.g. "food", "weapons"). */
     public Set<String> getActiveFacets() {
-        return Collections.unmodifiableSet(active);
+        return state.getActiveFacets();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -149,6 +154,11 @@ public class FacetBar {
             if (rl == null) return ItemStack.EMPTY;
             return BuiltInRegistries.ITEM.getOptional(rl)
                     .map(ItemStack::new)
+                    .orElse(ItemStack.EMPTY);
+        });
+    }
+}
+Stack::new)
                     .orElse(ItemStack.EMPTY);
         });
     }
