@@ -57,6 +57,15 @@ Process in strict order; stop at the first hit:
 ## UI/UX Polish
 - Ensure the tree view scrolls smoothly and maintains high framerates even with large modpacks.
 - Check the layout constraints so that switching between Grid and List view is seamless.
+- Search bar: verify `Home`, `End`, `Ctrl+Left`, `Ctrl+Right`, and `Shift` selection behave like a normal text field in all container screens.
+- Search bar: replace the current double-click highlight toggle with standard word/token selection.
+- Search bar: add a right-click context menu for Cut, Copy, Paste, and Clear.
+- Search bar: refine `Escape` so the first press only unfocuses the field and a second press can close the screen if needed.
+- Search bar: add a clear button inside the field when text is present.
+- Search bar: make cursor movement token-aware for AMI operators like `@mod`, `#tag`, and `-exclude`.
+- Search bar: show a recent-search dropdown when the field is focused and empty.
+- Search bar: decide whether the input filter should stay ASCII-only or allow broader Unicode / IME-friendly entry.
+- Search bar: show placeholder guidance while focused and empty, not only when unfocused.
 - ~~Removed the `tier` metadata feature which cluttered the UI with "TIER: MODDED".~~
 - ~~Centralised semantic UI colours into `AmiColors` (MOD_COLOR, TAG_COLOR, EXCLUDE_COLOR); removed hardcoded hex values from `TokenColorizer`, `ResultsTreeView`, and the search bar formatter.~~
 - ~~Mod group headers in the tree view now render in `AmiColors.MOD_COLOR` (blue, no shadow) to match the mod-ID subtitle colour.~~
