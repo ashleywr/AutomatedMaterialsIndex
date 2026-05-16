@@ -11,22 +11,24 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Horizontal strip of quick-filter facet badges pinned to the top of the results panel.
- * Each badge is a 12×12 coloured square; an active badge gains a 1px white border.
+ * Horizontal strip of quick-filter facet pills pinned to the top of the results panel.
+ * Each pill shows its label at all times; active pills get a white 1px border and full
+ * colour, inactive pills are darkened.
  */
 public class FacetBar {
 
     public static final int HEIGHT = 20;
 
-    private static final int BADGE_SIZE = 12;
-    private static final int BADGE_GAP  = 4;
-    private static final int PAD_Y      = (HEIGHT - BADGE_SIZE) / 2;
+    private static final int PILL_H    = 12;
+    private static final int PILL_PAD  = 5;  // horizontal padding each side
+    private static final int PILL_GAP  = 4;
+    private static final int PAD_Y     = (HEIGHT - PILL_H) / 2;
 
     private record Facet(String id, String translationKey, int color) {}
 
     private static final List<Facet> FACETS = List.of(
             new Facet("storage", "ami.gui.facet.storage", 0xFF4169E1),
-            new Facet("weapons", "ami.gui.facet.weapons", 0xFF69E1),
+            new Facet("weapons", "ami.gui.facet.weapons", 0xFFCC3333),
             new Facet("food",    "ami.gui.facet.food",    0xFF33AA33),
             new Facet("tools",   "ami.gui.facet.tools",   0xFFCCAA00),
             new Facet("magic",   "ami.gui.facet.magic",   0xFF9933CC)
@@ -48,7 +50,6 @@ public class FacetBar {
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
-        // Bar background - slightly lighter than the panel background
         g.fill(x, y, x + width, y + HEIGHT, AMITheme.PANEL_INNER);
 
         var font = Minecraft.getInstance().font;
@@ -56,65 +57,64 @@ public class FacetBar {
         int by = y + PAD_Y;
 
         for (Facet facet : FACETS) {
-            boolean isActive = active.contains(facet.id());
-            boolean hovered  = mouseX >= bx && mouseX < bx + BADGE_SIZE
-                    && mouseY >= by && mouseY < by + BADGE_SIZE;
-
-            if (isActive) {
-                // White circular border (slightly larger than badge)
-                renderCircle(g, bx - 1, by - 1, BADGE_SIZE + 2, 0xFFFFFFFF);
-            }
-
-            // Badge fill — dimmer when inactive, full colour when active/hovered
-            int fill = (isActive || hovered) ? facet.color() : (0x99000000 | (facet.color() & 0x00FFFFFF));
-            renderCircle(g, bx, by, BADGE_SIZE, fill);
-
-            // Label — centred inside badge
             Component label = Component.translatable(facet.translationKey());
-            int tw = font.width(label);
-            // Only render label when badge is active or hovered; otherwise icon colour alone conveys identity
-            if (isActive || hovered) {
-                g.drawString(font, label, bx + (BADGE_SIZE - tw) / 2, by + 2, 0xFFFFFFFF, false);
-            }
+            int tw  = font.width(label);
+            int pw  = tw + PILL_PAD * 2;
 
-            bx += BADGE_SIZE + BADGE_GAP;
+            boolean isActive = active.contains(facet.id());
+            boolean hovered  = mouseX >= bx && mouseX < bx + pw
+                    && mouseY >= by && mouseY < by + PILL_H;
+
+            int fill = (isActive || hovered) ? facet.color() : darken(facet.color(), 0.40f);
+
+            // White 1px border for active pills
+            if (isActive) {
+                renderPill(g, bx - 1, by - 1, pw + 2, PILL_H + 2, 0xFFFFFFFF);
+            }
+            renderPill(g, bx, by, pw, PILL_H, fill);
+
+            int textColor = (isActive || hovered) ? 0xFFFFFFFF : 0xFFBBBBBB;
+            int textY = by + (PILL_H - font.lineHeight) / 2;
+            g.drawString(font, label, bx + PILL_PAD, textY, textColor, false);
+
+            bx += pw + PILL_GAP;
         }
 
-        // "FILTERS" hint text at the right edge
         Component hint = Component.translatable("ami.gui.facet.hint");
-        g.drawString(font, hint, x + width - font.width(hint) - AMITheme.GLOBAL_PADDING, y + PAD_Y + 2, 0xFF444455, false);
+        g.drawString(font, hint, x + width - font.width(hint) - AMITheme.GLOBAL_PADDING,
+                y + PAD_Y + 2, 0xFF555566, false);
     }
 
-    /**
-     * Approximates a circular fill for a 12x12 or 14x14 area.
-     */
-    private void renderCircle(GuiGraphics g, int cx, int cy, int size, int color) {
-        if (size <= 12) {
-            // 12x12 circle approximation
-            g.fill(cx + 2, cy,     cx + 10, cy + 1,  color); // Row 0
-            g.fill(cx + 1, cy + 1, cx + 11, cy + 2,  color); // Row 1
-            g.fill(cx,     cy + 2, cx + 12, cy + 10, color); // Rows 2-9
-            g.fill(cx + 1, cy + 10, cx + 11, cy + 11, color); // Row 10
-            g.fill(cx + 2, cy + 11, cx + 10, cy + 12, color); // Row 11
-        } else {
-            // 14x14 border approximation
-            g.fill(cx + 3, cy,     cx + 11, cy + 1,  color);
-            g.fill(cx + 1, cy + 1, cx + 13, cy + 2,  color);
-            g.fill(cx,     cy + 2, cx + 14, cy + 12, color);
-            g.fill(cx + 1, cy + 12, cx + 13, cy + 13, color);
-            g.fill(cx + 3, cy + 13, cx + 11, cy + 14, color);
-        }
+    /** Rounded rectangle with 1px corner cutouts. */
+    private static void renderPill(GuiGraphics g, int px, int py, int pw, int ph, int color) {
+        if (pw < 3 || ph < 3) return;
+        g.fill(px + 1, py,      px + pw - 1, py + ph,     color); // main body
+        g.fill(px,     py + 1,  px + 1,      py + ph - 1, color); // left cap
+        g.fill(px + pw - 1, py + 1, px + pw, py + ph - 1, color); // right cap
+    }
+
+    /** Scale each RGB channel by {@code factor}, preserving alpha. */
+    private static int darken(int argb, float factor) {
+        int a = (argb >> 24) & 0xFF;
+        int r = (int) (((argb >> 16) & 0xFF) * factor);
+        int g = (int) (((argb >> 8)  & 0xFF) * factor);
+        int b = (int) ((argb         & 0xFF) * factor);
+        return (a << 24) | (r << 16) | (g << 8) | b;
     }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0) return false;
         if (mouseY < y || mouseY >= y + HEIGHT) return false;
 
+        var font = Minecraft.getInstance().font;
         int bx = x + AMITheme.GLOBAL_PADDING;
         int by = y + PAD_Y;
+
         for (Facet facet : FACETS) {
-            if (mouseX >= bx && mouseX < bx + BADGE_SIZE
-                    && mouseY >= by && mouseY < by + BADGE_SIZE) {
+            int pw = font.width(Component.translatable(facet.translationKey())) + PILL_PAD * 2;
+
+            if (mouseX >= bx && mouseX < bx + pw
+                    && mouseY >= by && mouseY < by + PILL_H) {
                 if (active.contains(facet.id())) {
                     active.remove(facet.id());
                 } else {
@@ -122,7 +122,7 @@ public class FacetBar {
                 }
                 return true;
             }
-            bx += BADGE_SIZE + BADGE_GAP;
+            bx += pw + PILL_GAP;
         }
         return false;
     }

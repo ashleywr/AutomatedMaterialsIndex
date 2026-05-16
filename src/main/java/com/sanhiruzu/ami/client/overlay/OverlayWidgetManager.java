@@ -15,7 +15,9 @@ import java.util.List;
 public class OverlayWidgetManager {
     private static final int BOTTOM_BAR_H = 32;
     private static final int SEARCH_H = 24;
-    private static final int MIN_PANEL_WIDTH = 60;
+    // 120 GUI px is the minimum sidebar width where AMI is usable.
+    // Below this, (screenW - inventoryW) / 2 < 120, so we hide everything.
+    private static final int MIN_PANEL_WIDTH = 120;
 
     private final ResultsPanelWidget resultsPanel;
     private final SearchBarWidget searchBar;
@@ -127,7 +129,10 @@ public class OverlayWidgetManager {
         }
 
         if (panelW < MIN_PANEL_WIDTH) {
-            resultsPanel.updateBounds(new WidgetBounds(0, 0, 0, 0));
+            WidgetBounds zero = new WidgetBounds(0, 0, 0, 0);
+            resultsPanel.updateBounds(zero);
+            searchBar.updateBounds(zero);
+            amiButton.updateBounds(zero);
             return;
         }
 

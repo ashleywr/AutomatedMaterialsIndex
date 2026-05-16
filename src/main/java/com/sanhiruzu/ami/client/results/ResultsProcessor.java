@@ -26,22 +26,36 @@ public class ResultsProcessor {
         GroupBy(String displayName) { this.displayName = displayName; }
     }
 
+    // Tag-substring patterns that qualify a node for each facet.
+    // Tags are stored as comma-joined resource locations (e.g. "minecraft:foods,c:chests").
+    private static final Map<String, List<String>> FACET_TAG_PATTERNS = Map.of(
+        "storage", List.of("chest", "shulker", "barrel", "storage", "bundle"),
+        "weapons", List.of("sword", "bow", "weapon", "trident"),
+        "food",    List.of("food"),
+        "tools",   List.of("pickaxe", "shovel", ":hoes", ":axes", ":tools"),
+        "magic",   List.of("potion", "magic", "enchant")
+    );
+
     private final SortField sortField;
     private final boolean ascending;
     private final GroupBy groupBy;
-    private final Set<String> selectedMods; // null = all mods selected
+    private final Set<String> selectedMods; // empty = all mods
+    private final Set<String> activeFacets; // empty = no facet filter
 
-    public ResultsProcessor(SortField sortField, boolean ascending, GroupBy groupBy, Set<String> selectedMods) {
-        this.sortField = sortField;
-        this.ascending = ascending;
-        this.groupBy = groupBy;
-        this.selectedMods = selectedMods != null ? selectedMods : new HashSet<>();
+    public ResultsProcessor(SortField sortField, boolean ascending, GroupBy groupBy,
+                            Set<String> selectedMods, Set<String> activeFacets) {
+        this.sortField    = sortField;
+        this.ascending    = ascending;
+        this.groupBy      = groupBy;
+        this.selectedMods = selectedMods  != null ? selectedMods  : new HashSet<>();
+        this.activeFacets = activeFacets != null ? activeFacets : new HashSet<>();
     }
 
     public List<TreeNode> process(List<SearchNode> results) {
-        // Filter by selected mods
+        // Filter by selected mods, then by active facets
         List<SearchNode> filtered = results.stream()
                 .filter(n -> selectedMods.isEmpty() || selectedMods.contains(n.id().getNamespace()))
+                .filter(this::matchesFacets)
                 .collect(Collectors.toList());
 
         // Sort
@@ -139,6 +153,25 @@ public class ResultsProcessor {
         return newChild;
     }
 
+    /**
+     * Returns true when the node should be shown given the current active facets.
+     * Non-ITEM nodes are excluded whenever any facet is active, since facets are
+     * tag-based and only item tags are populated.
+     */
+    private boolean matchesFacets(SearchNode node) {
+        if (activeFacets.isEmpty()) return true;
+        if (node.type() != NodeType.ITEM) return false;
+
+        String tags = node.meta(SearchNodeKeys.TAGS, "").toLowerCase(Locale.ROOT);
+        for (String facetId : activeFacets) {
+            List<String> patterns = FACET_TAG_PATTERNS.getOrDefault(facetId, List.of());
+            for (String pattern : patterns) {
+                if (tags.contains(pattern)) return true;
+            }
+        }
+        return false;
+    }
+
     public Set<String> getAllMods(List<SearchNode> results) {
         return results.stream()
                 .map(n -> n.id().getNamespace())
@@ -150,4 +183,5 @@ public class ResultsProcessor {
     public boolean isAscending() { return ascending; }
     public GroupBy getGroupBy() { return groupBy; }
     public Set<String> getSelectedMods() { return selectedMods; }
+    public Set<String> getActiveFacets() { return activeFacets; }
 }
