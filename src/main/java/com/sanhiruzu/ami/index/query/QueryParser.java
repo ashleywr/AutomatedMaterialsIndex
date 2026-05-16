@@ -10,6 +10,7 @@ public final class QueryParser {
         INCLUDE,     // Plain text or -less
         EXCLUDE,     // Negation: -word
         TAG,         // #tag
+        MOD,         // @modid
         ENV,         // &env
         PROP,        // ?property
         ESSENTIAL,   // !curated
@@ -79,6 +80,9 @@ public final class QueryParser {
         if (part.startsWith("#")) {
             type = TokenType.TAG;
             value = part.substring(1);
+        } else if (part.startsWith("@")) {
+            type = TokenType.MOD;
+            value = part.substring(1);
         } else if (part.startsWith("&")) {
             type = TokenType.ENV;
             value = part.substring(1);
@@ -101,6 +105,7 @@ public final class QueryParser {
         if (isExclude) {
             value = switch (type) {
                 case TAG -> "#" + value;
+                case MOD -> "@" + value;
                 case ENV -> "&" + value;
                 case PROP -> "?" + value;
                 case ESSENTIAL -> "!" + value;
