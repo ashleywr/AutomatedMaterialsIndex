@@ -12,21 +12,14 @@ import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 public class AMIKeyMappings {
     public static final String CATEGORY = "key.categories.ami";
 
-    public static final KeyMapping OPEN_AMI = new KeyMapping(
-            "key.ami.open",
+    public static final KeyMapping TOGGLE_AMI = new KeyMapping(
+            "key.ami.toggle",
             InputConstants.KEY_I,
-            CATEGORY
-    );
-
-    public static final KeyMapping CYCLE_ATLAS = new KeyMapping(
-            "key.ami.cycle_atlas",
-            InputConstants.KEY_TAB,
             CATEGORY
     );
 
     @SubscribeEvent
     public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
-        event.register(OPEN_AMI);
-        event.register(CYCLE_ATLAS);
+        event.register(TOGGLE_AMI);
     }
 }

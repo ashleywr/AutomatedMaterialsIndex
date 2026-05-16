@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.client.results;
 
-import com.sanhiruzu.ami.index.NodeType;
+import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 
@@ -26,15 +26,6 @@ public class ResultsProcessor {
         GroupBy(String displayName) { this.displayName = displayName; }
     }
 
-    // Tag-substring patterns that qualify a node for each facet.
-    // Tags are stored as comma-joined resource locations (e.g. "minecraft:foods,c:chests").
-    private static final Map<String, List<String>> FACET_TAG_PATTERNS = Map.of(
-        "storage", List.of("chest", "shulker", "barrel", "storage", "bundle"),
-        "weapons", List.of("sword", "bow", "weapon", "trident"),
-        "food",    List.of("food"),
-        "tools",   List.of("pickaxe", "shovel", ":hoes", ":axes", ":tools"),
-        "magic",   List.of("potion", "magic", "enchant")
-    );
 
     private final SortField sortField;
     private final boolean ascending;
@@ -125,20 +116,40 @@ public class ResultsProcessor {
     }
 
     private List<TreeNode> groupByCategory(List<SearchNode> entries) {
-        Map<NodeType, TreeNode> typeGroups = new LinkedHashMap<>();
+        Map<String, TreeNode> catGroups = new LinkedHashMap<>();
 
-        for (SearchNode entry : entries) {
-            NodeType type = entry.type();
-            TreeNode typeNode = typeGroups.computeIfAbsent(type, t -> {
-                TreeNode n = new TreeNode(t.displayName().getString());
-                n.setExpanded(true);
-                return n;
-            });
-            TreeNode modNode = findOrCreateChild(typeNode, entry.id().getNamespace());
-            modNode.addChild(new TreeNode(entry.displayName(), entry));
+        // Pre-insert all category nodes to preserve CATEGORIES order
+        for (AmiOntology.Category cat : AmiOntology.CATEGORIES) {
+            TreeNode n = new TreeNode(cat.displayName);
+            n.setExpanded(true);
+            catGroups.put(cat.id, n);
         }
 
-        return typeGroups.values().stream().collect(Collectors.toList());
+        for (SearchNode entry : entries) {
+            AmiOntology.Category cat = AmiOntology.classifyNode(entry);
+            TreeNode catNode = catGroups.get(cat.id);
+
+            String subId = entry.meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "");
+            if (!subId.isEmpty()) {
+                // Use named sub-category as the second level when available
+                String subName = cat.subCategories.stream()
+                        .filter(s -> s.id().equals(subId))
+                        .map(AmiOntology.SubCategory::displayName)
+                        .findFirst()
+                        .orElse(subId);
+                TreeNode subNode = findOrCreateChild(catNode, subName);
+                subNode.addChild(new TreeNode(entry.displayName(), entry));
+            } else {
+                // Fall back to mod namespace grouping for items without sub-category data
+                TreeNode modNode = findOrCreateChild(catNode, entry.id().getNamespace());
+                modNode.addChild(new TreeNode(entry.displayName(), entry));
+            }
+        }
+
+        // Only include categories that actually have children
+        return catGroups.values().stream()
+                .filter(n -> !n.getChildren().isEmpty())
+                .collect(Collectors.toList());
     }
 
     private TreeNode findOrCreateChild(TreeNode parent, String label) {
@@ -154,22 +165,12 @@ public class ResultsProcessor {
     }
 
     /**
-     * Returns true when the node should be shown given the current active facets.
-     * Non-ITEM nodes are excluded whenever any facet is active, since facets are
-     * tag-based and only item tags are populated.
+     * Returns true when the node's ontology category is among the active facets,
+     * or when no facets are active (show everything).
      */
     private boolean matchesFacets(SearchNode node) {
         if (activeFacets.isEmpty()) return true;
-        if (node.type() != NodeType.ITEM) return false;
-
-        String tags = node.meta(SearchNodeKeys.TAGS, "").toLowerCase(Locale.ROOT);
-        for (String facetId : activeFacets) {
-            List<String> patterns = FACET_TAG_PATTERNS.getOrDefault(facetId, List.of());
-            for (String pattern : patterns) {
-                if (tags.contains(pattern)) return true;
-            }
-        }
-        return false;
+        return activeFacets.contains(AmiOntology.classifyNode(node).id);
     }
 
     public Set<String> getAllMods(List<SearchNode> results) {

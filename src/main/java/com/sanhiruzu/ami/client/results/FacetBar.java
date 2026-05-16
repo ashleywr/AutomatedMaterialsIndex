@@ -1,41 +1,44 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.AMITheme;
+import com.sanhiruzu.ami.index.AmiOntology;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
- * Horizontal strip of quick-filter facet pills pinned to the top of the results panel.
- * Each pill shows its label at all times; active pills get a white 1px border and full
- * colour, inactive pills are darkened.
+ * Horizontal strip of quick-filter pills, one per ontology category.
+ * Each pill renders the category's representative item icon (16×16).
+ * Active pills receive a white 1-px border; hovering shows the category name
+ * as a deferred tooltip (call {@link #renderTooltip} after the panel draws).
  */
 public class FacetBar {
 
-    public static final int HEIGHT = 20;
+    public static final int HEIGHT = 22;
 
-    private static final int PILL_H    = 12;
-    private static final int PILL_PAD  = 5;  // horizontal padding each side
-    private static final int PILL_GAP  = 4;
+    private static final int ICON_SIZE = 16;
+    private static final int PILL_W    = ICON_SIZE + 2; // 1px border each side
+    private static final int PILL_H    = ICON_SIZE + 2;
+    private static final int PILL_GAP  = 3;
     private static final int PAD_Y     = (HEIGHT - PILL_H) / 2;
 
-    private record Facet(String id, String translationKey, int color) {}
-
-    private static final List<Facet> FACETS = List.of(
-            new Facet("storage", "ami.gui.facet.storage", 0xFF4169E1),
-            new Facet("weapons", "ami.gui.facet.weapons", 0xFFCC3333),
-            new Facet("food",    "ami.gui.facet.food",    0xFF33AA33),
-            new Facet("tools",   "ami.gui.facet.tools",   0xFFCCAA00),
-            new Facet("magic",   "ami.gui.facet.magic",   0xFF9933CC)
-    );
+    private static final Map<String, ItemStack> ICON_CACHE = new HashMap<>();
 
     private int x, y, width;
     private final Set<String> active = new HashSet<>();
+
+    /** Set during render(); consumed by renderTooltip(). */
+    private String hoveredTooltip = null;
+    private int hoveredTooltipX, hoveredTooltipY;
 
     public FacetBar(int x, int y, int width) {
         this.x = x;
@@ -50,85 +53,105 @@ public class FacetBar {
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
+        hoveredTooltip = null;
+
         g.fill(x, y, x + width, y + HEIGHT, AMITheme.PANEL_INNER);
 
-        var font = Minecraft.getInstance().font;
-        int bx = x + AMITheme.GLOBAL_PADDING;
-        int by = y + PAD_Y;
+        // Clip pills to our strip so they don't spill right
+        g.enableScissor(x, y, x + width, y + HEIGHT);
 
-        for (Facet facet : FACETS) {
-            Component label = Component.translatable(facet.translationKey());
-            int tw  = font.width(label);
-            int pw  = tw + PILL_PAD * 2;
+        int px = x + AMITheme.GLOBAL_PADDING;
+        int py = y + PAD_Y;
 
-            boolean isActive = active.contains(facet.id());
-            boolean hovered  = mouseX >= bx && mouseX < bx + pw
-                    && mouseY >= by && mouseY < by + PILL_H;
+        for (AmiOntology.Category cat : AmiOntology.CATEGORIES) {
+            boolean isActive = active.contains(cat.id);
+            boolean hovered  = mouseX >= px && mouseX < px + PILL_W
+                    && mouseY >= py && mouseY < py + PILL_H;
 
-            int fill = (isActive || hovered) ? facet.color() : darken(facet.color(), 0.40f);
+            // Background fill — semi-transparent category color
+            int alpha  = isActive ? 0xAA : (hovered ? 0x66 : 0x33);
+            int bgRgb  = cat.color & 0x00FFFFFF;
+            g.fill(px, py, px + PILL_W, py + PILL_H, (alpha << 24) | bgRgb);
 
-            // White 1px border for active pills
+            // White 1-px outline for active pills
             if (isActive) {
-                renderPill(g, bx - 1, by - 1, pw + 2, PILL_H + 2, 0xFFFFFFFF);
+                int bx = px - 1, by = py - 1, bx2 = px + PILL_W + 1, by2 = py + PILL_H + 1;
+                g.fill(bx,  by,      bx2,      by  + 1, 0xFFFFFFFF); // top
+                g.fill(bx,  by2,     bx2,      by2 + 1, 0xFFFFFFFF); // bottom
+                g.fill(bx,  by,      bx  + 1,  by2 + 1, 0xFFFFFFFF); // left
+                g.fill(bx2, by,      bx2 + 1,  by2 + 1, 0xFFFFFFFF); // right
+            } else if (hovered) {
+                // Colored 1-px outline for hovered pills
+                int bx = px - 1, by = py - 1, bx2 = px + PILL_W + 1, by2 = py + PILL_H + 1;
+                int outline = 0xFF000000 | bgRgb;
+                g.fill(bx,      by,  bx2,      by  + 1, outline); // top
+                g.fill(bx,      by2, bx2,      by2 + 1, outline); // bottom
+                g.fill(bx,      by,  bx  + 1,  by2 + 1, outline); // left
+                g.fill(bx2,     by,  bx2 + 1,  by2 + 1, outline); // right
             }
-            renderPill(g, bx, by, pw, PILL_H, fill);
 
-            int textColor = (isActive || hovered) ? 0xFFFFFFFF : 0xFFBBBBBB;
-            int textY = by + (PILL_H - font.lineHeight) / 2;
-            g.drawString(font, label, bx + PILL_PAD, textY, textColor, false);
+            // Item icon (16×16 at px+1, py+1)
+            ItemStack stack = getIconStack(cat.iconItemId);
+            if (!stack.isEmpty()) {
+                g.renderItem(stack, px + 1, py + 1);
+            }
 
-            bx += pw + PILL_GAP;
+            if (hovered) {
+                hoveredTooltip  = cat.displayName;
+                hoveredTooltipX = mouseX;
+                hoveredTooltipY = mouseY;
+            }
+
+            px += PILL_W + PILL_GAP;
         }
 
-        Component hint = Component.translatable("ami.gui.facet.hint");
-        g.drawString(font, hint, x + width - font.width(hint) - AMITheme.GLOBAL_PADDING,
-                y + PAD_Y + 2, 0xFF555566, false);
+        g.disableScissor();
     }
 
-    /** Rounded rectangle with 1px corner cutouts. */
-    private static void renderPill(GuiGraphics g, int px, int py, int pw, int ph, int color) {
-        if (pw < 3 || ph < 3) return;
-        g.fill(px + 1, py,      px + pw - 1, py + ph,     color); // main body
-        g.fill(px,     py + 1,  px + 1,      py + ph - 1, color); // left cap
-        g.fill(px + pw - 1, py + 1, px + pw, py + ph - 1, color); // right cap
-    }
-
-    /** Scale each RGB channel by {@code factor}, preserving alpha. */
-    private static int darken(int argb, float factor) {
-        int a = (argb >> 24) & 0xFF;
-        int r = (int) (((argb >> 16) & 0xFF) * factor);
-        int g = (int) (((argb >> 8)  & 0xFF) * factor);
-        int b = (int) ((argb         & 0xFF) * factor);
-        return (a << 24) | (r << 16) | (g << 8) | b;
+    /**
+     * Call this after the panel and all overlays have been drawn so the tooltip
+     * appears on top of everything.
+     */
+    public void renderTooltip(GuiGraphics g, int mouseX, int mouseY) {
+        if (hoveredTooltip != null) {
+            g.renderTooltip(Minecraft.getInstance().font,
+                    Component.literal(hoveredTooltip), hoveredTooltipX, hoveredTooltipY);
+        }
     }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0) return false;
         if (mouseY < y || mouseY >= y + HEIGHT) return false;
 
-        var font = Minecraft.getInstance().font;
-        int bx = x + AMITheme.GLOBAL_PADDING;
-        int by = y + PAD_Y;
+        int px = x + AMITheme.GLOBAL_PADDING;
+        int py = y + PAD_Y;
 
-        for (Facet facet : FACETS) {
-            int pw = font.width(Component.translatable(facet.translationKey())) + PILL_PAD * 2;
-
-            if (mouseX >= bx && mouseX < bx + pw
-                    && mouseY >= by && mouseY < by + PILL_H) {
-                if (active.contains(facet.id())) {
-                    active.remove(facet.id());
-                } else {
-                    active.add(facet.id());
-                }
+        for (AmiOntology.Category cat : AmiOntology.CATEGORIES) {
+            if (mouseX >= px && mouseX < px + PILL_W
+                    && mouseY >= py && mouseY < py + PILL_H) {
+                if (active.contains(cat.id)) active.remove(cat.id);
+                else                         active.add(cat.id);
                 return true;
             }
-            bx += pw + PILL_GAP;
+            px += PILL_W + PILL_GAP;
         }
         return false;
     }
 
-    /** Returns the currently active facet IDs (e.g. "storage", "weapons"). */
+    /** Returns the currently active category IDs (e.g. "food", "weapons"). */
     public Set<String> getActiveFacets() {
         return Collections.unmodifiableSet(active);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static ItemStack getIconStack(String itemId) {
+        return ICON_CACHE.computeIfAbsent(itemId, id -> {
+            ResourceLocation rl = ResourceLocation.tryParse(id);
+            if (rl == null) return ItemStack.EMPTY;
+            return BuiltInRegistries.ITEM.getOptional(rl)
+                    .map(ItemStack::new)
+                    .orElse(ItemStack.EMPTY);
+        });
     }
 }

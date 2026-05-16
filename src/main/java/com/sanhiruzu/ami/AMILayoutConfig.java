@@ -37,7 +37,7 @@ public class AMILayoutConfig {
     public static final ModConfigSpec.EnumValue<PanelSide> PANEL_SIDE = BUILDER
             .comment("Which side of the inventory to render the AMI panel on.",
                      "AUTO = left when EMI/JEI present, right otherwise.")
-            .defineEnum("side", PanelSide.RIGHT);
+            .defineEnum("side", PanelSide.AUTO);
 
     public static final ModConfigSpec.IntValue PANEL_WIDTH_OVERRIDE = BUILDER
             .comment("Override the AMI panel width in GUI pixels.",

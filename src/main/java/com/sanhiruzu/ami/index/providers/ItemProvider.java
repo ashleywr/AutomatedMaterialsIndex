@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.index.providers;
 
+import com.sanhiruzu.ami.AMIConfig;
 import com.sanhiruzu.ami.index.*;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -12,8 +13,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.tags.BlockTags;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -24,9 +27,31 @@ public class ItemProvider implements IAmiDataProvider {
 
     @Override
     public void populate(GlobalIndex index, @Nullable ClientLevel level) {
+        boolean hideNonCreative = AMIConfig.HIDE_NON_CREATIVE_ITEMS.get();
+        boolean strictSurvival  = AMIConfig.STRICT_SURVIVAL_MODE.get();
+
+        Set<Item> creativeItems = ItemFilter.buildCreativeItemSet(level);
+        Set<Item> recipeOutputs = strictSurvival
+            ? ItemFilter.buildRecipeOutputSet(level)
+            : Collections.emptySet();
+
+        boolean hasCreativeData = !creativeItems.isEmpty();
+        boolean hasRecipeData   = !recipeOutputs.isEmpty();
+
         for (Item item : BuiltInRegistries.ITEM) {
             ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
             if (id == null || id.getNamespace().equals("air")) continue;
+
+            // Layer 1: hardcoded system-item blacklist — always excluded
+            if (ItemFilter.isSystemItem(id)) continue;
+
+            // Layer 2: creative-tab membership
+            boolean inCreative = !hasCreativeData || creativeItems.contains(item);
+            if (!inCreative && hideNonCreative) continue;
+
+            // Layer 3: recipe availability (only evaluated when strictSurvival is on)
+            boolean hasRecipe = !hasRecipeData || recipeOutputs.contains(item);
+            if (!hasRecipe && strictSurvival) continue;
 
             String modId        = id.getNamespace();
             String displayName  = item.getName(new ItemStack(item)).getString();
@@ -45,6 +70,21 @@ public class ItemProvider implements IAmiDataProvider {
             }
             if (requiredTool != null) {
                 meta.put(SearchNodeKeys.REQUIRED_TOOL, requiredTool);
+            }
+            if (!inCreative) {
+                meta.put(SearchNodeKeys.VISIBILITY, "hidden");
+            }
+            if (!hasRecipe) {
+                meta.put(SearchNodeKeys.OBTAINABILITY, "no_recipe");
+            }
+
+            // Pre-compute ontology category during indexing for accuracy and performance.
+            String[] ontology = OntologyClassifier.classifyItem(item, id);
+            if (ontology != null) {
+                meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, ontology[0]);
+                if (ontology.length > 1) {
+                    meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, ontology[1]);
+                }
             }
 
             index.addNode(new SearchNode(id, NodeType.ITEM, displayName, color, 0, meta));

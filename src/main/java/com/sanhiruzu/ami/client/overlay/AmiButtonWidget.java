@@ -2,82 +2,66 @@ package com.sanhiruzu.ami.client.overlay;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.network.chat.Component;
 
-public class AmiButtonWidget implements AmiWidget {
-    private static final int WIDTH = 22;
-    private static final int HEIGHT = 14;
-    private static final int PADDING = 2;
+import java.util.function.BooleanSupplier;
 
-    private WidgetBounds bounds = new WidgetBounds(2, 0, WIDTH, HEIGHT);
-    private final Runnable onOpen;
+public class AmiButtonWidget extends AbstractWidget {
+    private final Runnable onClickCallback;
+    private final BooleanSupplier isPanelVisible;
 
-    public AmiButtonWidget(Runnable onOpen) {
-        this.onOpen = onOpen;
+    public AmiButtonWidget(Runnable onClick, BooleanSupplier isPanelVisible) {
+        super(2, 0, 22, 14, Component.empty());
+        this.onClickCallback = onClick;
+        this.isPanelVisible = isPanelVisible;
     }
 
     public void updateBounds(WidgetBounds bounds) {
-        this.bounds = bounds;
+        setX(bounds.x());
+        setY(bounds.y());
+        this.width = bounds.width();
+        this.height = bounds.height();
+    }
+
+    public WidgetBounds getBounds() {
+        return new WidgetBounds(getX(), getY(), width, height);
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         var font = Minecraft.getInstance().font;
 
-        boolean btnHovered = isMouseOver(mouseX, mouseY);
-        int btnBorder = btnHovered ? 0xFFFFAA00 : 0xFF555555;
-        int btnTextColor = btnHovered ? 0xFFFFDD44 : 0xFFFFAA00;
+        boolean panelVisible = isPanelVisible.getAsBoolean();
+        boolean hovered = isMouseOver(mouseX, mouseY);
 
-        int x = bounds.x();
-        int y = bounds.y();
-        int w = bounds.width();
-        int h = bounds.height();
+        int bg     = panelVisible ? 0xFF0A0A0A : 0xFF181818;
+        int border = hovered ? (panelVisible ? 0xFFFFAA00 : 0xFF888888) : (panelVisible ? 0xFF555555 : 0xFF333333);
+        int text   = hovered ? (panelVisible ? 0xFFFFDD44 : 0xFFAAAAAA) : (panelVisible ? 0xFFFFAA00 : 0xFF666666);
 
-        g.fill(x, y, x + w, y + h, 0xFF0A0A0A);
-        g.fill(x, y, x + w, y + 1, btnBorder);
-        g.fill(x, y + h - 1, x + w, y + h, btnBorder);
-        g.fill(x, y, x + 1, y + h, btnBorder);
-        g.fill(x + w - 1, y, x + w, y + h, btnBorder);
+        int x = getX(), y = getY(), w = width, h = height;
+
+        g.fill(x, y, x + w, y + h, bg);
+        g.fill(x, y, x + w, y + 1, border);
+        g.fill(x, y + h - 1, x + w, y + h, border);
+        g.fill(x, y, x + 1, y + h, border);
+        g.fill(x + w - 1, y, x + w, y + h, border);
 
         int labelW = font.width("AMI");
-        g.drawString(font, "AMI", x + (w - labelW) / 2, y + (h - font.lineHeight) / 2 + 1, btnTextColor, false);
+        g.drawString(font, "AMI", x + (w - labelW) / 2, y + (h - font.lineHeight) / 2 + 1, text, false);
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0 && isMouseOver(mouseX, mouseY)) {
-            if (onOpen != null) onOpen.run();
+            if (onClickCallback != null) onClickCallback.run();
             return true;
         }
         return false;
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        return false;
-    }
-
-    @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        return false;
-    }
-
-    @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        return false;
-    }
-
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        return false;
-    }
-
-    @Override
-    public boolean charTyped(char c, int modifiers) {
-        return false;
-    }
-
-    @Override
-    public WidgetBounds getBounds() {
-        return bounds;
+    protected void updateWidgetNarration(NarrationElementOutput output) {
     }
 }
