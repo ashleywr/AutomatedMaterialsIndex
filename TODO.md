@@ -58,7 +58,7 @@ Process in strict order; stop at the first hit:
 - Ensure the tree view scrolls smoothly and maintains high framerates even with large modpacks.
 - Check the layout constraints so that switching between Grid and List view is seamless.
 - ~~Search bar: verified `Home`, `End`, `Ctrl+Left`, `Ctrl+Right`, and `Shift` selection route through `EditBox` from `ScreenEvent.KeyPressed.Pre` for all `AbstractContainerScreen` instances.~~
-- Search bar: replace the current double-click highlight toggle with standard word/token selection.
+- ~~Search bar: replaced the double-click highlight toggle with token selection on the current query token.~~
 - Search bar: add a right-click context menu for Cut, Copy, Paste, and Clear.
 - Search bar: refine `Escape` so the first press only unfocuses the field and a second press can close the screen if needed.
 - Search bar: add a clear button inside the field when text is present.
@@ -71,11 +71,11 @@ Process in strict order; stop at the first hit:
 - ~~Mod group headers in the tree view now render in `AmiColors.MOD_COLOR` (blue, no shadow) to match the mod-ID subtitle colour.~~
 - ~~`@modId` tokens in the search bar are now highlighted blue (matching MOD_COLOR) via `TokenColorizer`.~~
 - ~~Removed the broken mod-filter multi-select dropdown from the toolbar (was displaying "0/N" and doing nothing).~~
-- [ ] **Unified Row Tooltips**: Append "Required Tool" and "Harvest Level" information to the bottom of the standard item tooltip in the results list view to avoid "jumpy" per-icon tooltips.
+- [x] **Unified Row Tooltips**: Appended "Required Tool" information to the item tooltip in the results list view. logic now builds a composite tooltip including vanilla lines and AMI-specific data.
 - [ ] **Interactive Mod Filtering**: Make the mod name badge clickable; clicking it appends `@modid` to the search bar (configurable/toggleable).
 - [ ] **Harvest Level Indicators**: Add a small overlay (number or color tint) to tool icons to indicate required harvest levels.
 - [ ] **UI Consistency**: Port the "reserved tool slot" and ellipsis truncation logic to `CommandPaletteWidget.java` for layout parity.
-- [ ] **Dynamic Badge Fields**: Connect the "Fields" toolbar dropdown to `ResultsTreeView` so badges (Mod, Storage, DPS) can be toggled by the user.
+- [x] **Dynamic Badge Fields**: Connected the "Fields" toolbar dropdown to `ResultsTreeView` so badges (Mod, Storage, DPS) can be toggled by the user. logic now uses `RowFieldConfig` and supports per-field color highlighting.
 - ~~Removed the active-field count badge from the "Fields" button label to prevent overflow.~~
 - **TODO:** Mod filtering is genuinely useful — revisit as a dedicated filter surface (e.g. a searchable popover or sidebar chip list) when the panel layout has more room.
 

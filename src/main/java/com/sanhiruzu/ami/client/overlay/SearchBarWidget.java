@@ -20,7 +20,6 @@ public class SearchBarWidget extends EditBox {
     private int historyIndex = -1;
     private String liveQuery = "";
     private long lastClickTime = 0;
-    private boolean highlight = false;
     private boolean silentUpdate = false;
     private int cursorPos = 0;
     private int highlightPos = 0;
@@ -63,7 +62,7 @@ public class SearchBarWidget extends EditBox {
         if (!focused) {
             historyIndex = -1;
             liveQuery = "";
-            highlight = false;
+            lastClickTime = 0;
         }
     }
 
@@ -81,14 +80,6 @@ public class SearchBarWidget extends EditBox {
         g.fill(x, y + h - 1, x + w, y + h, border);
         g.fill(x, y, x + 1, y + h, border);
         g.fill(x + w - 1, y, x + w, y + h, border);
-
-        if (highlight) {
-            int highlightBorder = 0xFFEEEE00;
-            g.fill(x - 1, y - 1, x + w + 1, y, highlightBorder);
-            g.fill(x - 1, y + h, x + w + 1, y + h + 1, highlightBorder);
-            g.fill(x - 1, y - 1, x, y + h + 1, highlightBorder);
-            g.fill(x + w, y - 1, x + w + 1, y + h + 1, highlightBorder);
-        }
 
         int textX = x + 5;
         int textY = y + (h - font.lineHeight) / 2 + 1;
@@ -119,12 +110,13 @@ public class SearchBarWidget extends EditBox {
 
         if (button == 0) {
             long now = System.currentTimeMillis();
+            int clickedPos = cursorPositionFromMouse(mouseX);
             if (now - lastClickTime < 500) {
-                highlight = !highlight;
+                selectTokenAt(clickedPos);
                 lastClickTime = 0;
-            } else {
-                lastClickTime = now;
+                return true;
             }
+            lastClickTime = now;
         } else if (button == 1) {
             clear();
             setFocused(true);
@@ -212,6 +204,17 @@ public class SearchBarWidget extends EditBox {
         highlight = false;
     }
 
+    public void appendQuery(String text) {
+        String current = getValue();
+        if (current.contains(text)) return;
+
+        if (!current.isEmpty() && !current.endsWith(" ")) {
+            current += " ";
+        }
+        setValue(current + text);
+        setFocused(true);
+    }
+
     public void addToHistory(String searchTerm) {
         if (searchTerm == null || searchTerm.isEmpty()) return;
         history.remove(searchTerm);
@@ -286,6 +289,40 @@ public class SearchBarWidget extends EditBox {
         String visibleText = font.plainSubstrByWidth(value.substring(displayStart), maxTextWidth);
         int relativeX = Mth.floor(mouseX) - textX;
         return displayStart + font.plainSubstrByWidth(visibleText, relativeX).length();
+    }
+
+    private void selectTokenAt(int cursorIndex) {
+        String value = getValue();
+        if (value.isEmpty()) {
+            return;
+        }
+
+        int pos = Mth.clamp(cursorIndex, 0, value.length());
+        if (pos >= value.length() && pos > 0) {
+            pos--;
+        }
+        if (pos < 0 || pos >= value.length()) {
+            return;
+        }
+
+        if (Character.isWhitespace(value.charAt(pos))) {
+            setCursorPosition(pos);
+            setHighlightPos(pos);
+            return;
+        }
+
+        int start = pos;
+        while (start > 0 && !Character.isWhitespace(value.charAt(start - 1))) {
+            start--;
+        }
+
+        int end = pos;
+        while (end < value.length() && !Character.isWhitespace(value.charAt(end))) {
+            end++;
+        }
+
+        setCursorPosition(end);
+        setHighlightPos(start);
     }
 
     private void renderSelection(GuiGraphics g, Font font, int textX, int textY, String visibleText, int displayStart, int maxTextWidth) {
