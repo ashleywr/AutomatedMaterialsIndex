@@ -33,7 +33,7 @@ public final class QueryParser {
      * - Environment: "&nether" → ENV
      * - Properties: "?precipitation:rain" → PROP
      * - Essential: "!storage" → ESSENTIAL
-     * - ESM: ">capacity:100" → ESM
+     * - Numeric metrics: ">storage:100", ">dps:8", "<storage:4096" → ESM
      *
      * Tokens are space-separated. Quoted strings ("iron chest") treated as single token.
      * Leading "-" on any prefix inverts it to EXCLUDE.
@@ -88,9 +88,9 @@ public final class QueryParser {
         } else if (part.startsWith("!")) {
             type = TokenType.ESSENTIAL;
             value = part.substring(1);
-        } else if (part.startsWith(">")) {
+        } else if (part.startsWith(">") || part.startsWith("<") || part.startsWith("=")) {
             type = TokenType.ESM;
-            value = part.substring(1);
+            value = part;
         } else {
             type = TokenType.INCLUDE;
             value = part;

@@ -11,7 +11,9 @@ public class ResultsProcessor {
     public enum SortField {
         ALPHABETICAL("Name"),
         COLOR("Color"),
-        MOD("Mod");
+        MOD("Mod"),
+        STORAGE_CAPACITY("Storage"),
+        DPS("DPS");
 
         public final String displayName;
         SortField(String displayName) { this.displayName = displayName; }
@@ -20,7 +22,9 @@ public class ResultsProcessor {
     public enum GroupBy {
         DIMENSION("Dimension"),
         MOD("Mod"),
-        CATEGORY("Category");
+        CATEGORY("Category"),
+        MATERIAL("Material"),
+        SHAPE("Shape");
 
         public final String displayName;
         GroupBy(String displayName) { this.displayName = displayName; }
@@ -64,7 +68,23 @@ public class ResultsProcessor {
             case ALPHABETICAL -> a.displayName().compareTo(b.displayName());
             case COLOR -> Integer.compare(a.color(), b.color());
             case MOD -> a.id().getNamespace().compareTo(b.id().getNamespace());
+            case STORAGE_CAPACITY -> compareNumericMeta(a, b, SearchNodeKeys.ESM_CAPACITY);
+            case DPS -> compareNumericMeta(a, b, SearchNodeKeys.DPS);
         };
+    }
+
+    private int compareNumericMeta(SearchNode a, SearchNode b, String metadataKey) {
+        return Double.compare(parseNumericMeta(a, metadataKey), parseNumericMeta(b, metadataKey));
+    }
+
+    private double parseNumericMeta(SearchNode node, String metadataKey) {
+        String value = node.meta(metadataKey, "");
+        if (value.isBlank()) return Double.NEGATIVE_INFINITY;
+        try {
+            return Double.parseDouble(value);
+        } catch (NumberFormatException ignored) {
+            return Double.NEGATIVE_INFINITY;
+        }
     }
 
     private List<TreeNode> buildTree(List<SearchNode> sorted) {
@@ -72,6 +92,8 @@ public class ResultsProcessor {
             case DIMENSION -> groupByDimension(sorted);
             case MOD -> groupByMod(sorted);
             case CATEGORY -> groupByCategory(sorted);
+            case MATERIAL -> groupByMetadata(sorted, SearchNodeKeys.MATERIAL_GROUP, "Unknown Material", true);
+            case SHAPE -> groupByMetadata(sorted, SearchNodeKeys.VARIANT_GROUP, "Unknown Shape", false);
         };
     }
 
@@ -153,6 +175,48 @@ public class ResultsProcessor {
         return catGroups.values().stream()
                 .filter(n -> !n.getChildren().isEmpty())
                 .collect(Collectors.toList());
+    }
+
+    private List<TreeNode> groupByMetadata(List<SearchNode> entries, String metadataKey, String fallback, boolean compactResourceIds) {
+        Map<String, TreeNode> groups = new LinkedHashMap<>();
+
+        for (SearchNode entry : entries) {
+            String groupValue = entry.meta(metadataKey, "");
+            String label = formatGroupLabel(groupValue, fallback, compactResourceIds);
+            TreeNode groupNode = groups.computeIfAbsent(label, k -> {
+                TreeNode n = new TreeNode(k);
+                n.setExpanded(true);
+                return n;
+            });
+            groupNode.addChild(new TreeNode(entry.displayName(), entry));
+        }
+
+        return new ArrayList<>(groups.values());
+    }
+
+    private String formatGroupLabel(String value, String fallback, boolean compactResourceIds) {
+        if (value == null || value.isBlank()) return fallback;
+
+        String label = value;
+        if (compactResourceIds) {
+            int namespaceSep = label.indexOf(':');
+            if (namespaceSep >= 0 && namespaceSep + 1 < label.length()) {
+                label = label.substring(namespaceSep + 1);
+            }
+        }
+
+        label = label.replace('_', ' ').trim();
+        if (label.isEmpty()) return fallback;
+
+        String[] words = label.split("\\s+");
+        StringBuilder out = new StringBuilder(label.length());
+        for (String word : words) {
+            if (word.isEmpty()) continue;
+            if (out.length() > 0) out.append(' ');
+            out.append(Character.toUpperCase(word.charAt(0)));
+            if (word.length() > 1) out.append(word.substring(1));
+        }
+        return out.toString();
     }
 
     private TreeNode findOrCreateChild(TreeNode parent, String label) {

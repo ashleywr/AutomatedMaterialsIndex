@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.index.query.QueryParser;
 import com.sanhiruzu.ami.index.resolvers.EnvironmentResolver;
 import com.sanhiruzu.ami.index.resolvers.LiteralResolver;
+import com.sanhiruzu.ami.index.resolvers.NumericMetadataResolver;
 import com.sanhiruzu.ami.index.resolvers.PlayerResolver;
 import com.sanhiruzu.ami.index.resolvers.TagResolver;
 
@@ -16,11 +17,14 @@ public final class SearchService {
     private final List<IQueryResolver> resolvers;
     private final TagResolver tagResolver;
     private final EnvironmentResolver envResolver;
+    private final NumericMetadataResolver numericResolver;
 
-    private SearchService(List<IQueryResolver> resolvers, TagResolver tagResolver, EnvironmentResolver envResolver) {
+    private SearchService(List<IQueryResolver> resolvers, TagResolver tagResolver, EnvironmentResolver envResolver,
+                          NumericMetadataResolver numericResolver) {
         this.resolvers = List.copyOf(resolvers);
         this.tagResolver = tagResolver;
         this.envResolver = envResolver;
+        this.numericResolver = numericResolver;
     }
 
     /**
@@ -36,6 +40,7 @@ public final class SearchService {
         LiteralResolver literal = new LiteralResolver();
         TagResolver tagResolver = new TagResolver();
         EnvironmentResolver envResolver = new EnvironmentResolver();
+        NumericMetadataResolver numericResolver = new NumericMetadataResolver();
 
         // Pre-load all resolvers with indexed nodes
         for (NodeType type : NodeType.values()) {
@@ -43,6 +48,7 @@ public final class SearchService {
                 literal.addNode(node);
                 tagResolver.addNode(node);
                 envResolver.addNode(node);
+                numericResolver.addNode(node);
             }
         }
 
@@ -52,7 +58,7 @@ public final class SearchService {
             resolvers.add(new PlayerResolver());
         }
 
-        return new SearchService(resolvers, tagResolver, envResolver);
+        return new SearchService(resolvers, tagResolver, envResolver, numericResolver);
     }
 
     /**
@@ -77,6 +83,7 @@ public final class SearchService {
         // Separate tokens by type
         List<String> includeParts = new ArrayList<>();
         List<String> excludeParts = new ArrayList<>();
+        List<String> numericParts = new ArrayList<>();
 
         for (QueryParser.QueryToken token : parsed.tokens()) {
             String value = token.value();
@@ -92,7 +99,8 @@ public final class SearchService {
                     mergeResults(results, envResults);
                 }
                 case EXCLUDE -> excludeParts.add(value);
-                default -> {} // PROP, ESSENTIAL, ESM handled in Phase 3
+                case ESM -> numericParts.add(value);
+                default -> {} // PROP, ESSENTIAL handled in Phase 3
             }
         }
 
@@ -112,6 +120,18 @@ public final class SearchService {
                 Map<NodeType, List<SearchNode>> partial = resolver.resolve(combinedExclude);
                 for (var entry : partial.entrySet()) {
                     excluded.addAll(entry.getValue());
+                }
+            }
+        }
+
+        if (!numericParts.isEmpty()) {
+            boolean hadPriorResults = !results.isEmpty();
+            for (String numericPart : numericParts) {
+                Map<NodeType, List<SearchNode>> numericResults = numericResolver.resolve(numericPart);
+                if (hadPriorResults || !results.isEmpty()) {
+                    intersectResults(results, numericResults);
+                } else {
+                    mergeResults(results, numericResults);
                 }
             }
         }
@@ -142,5 +162,17 @@ public final class SearchService {
                 }
             }
         }
+    }
+
+    private void intersectResults(Map<NodeType, List<SearchNode>> dest, Map<NodeType, List<SearchNode>> filter) {
+        Set<SearchNode> allowed = new HashSet<>();
+        for (List<SearchNode> nodes : filter.values()) {
+            allowed.addAll(nodes);
+        }
+
+        for (List<SearchNode> nodes : dest.values()) {
+            nodes.removeIf(node -> !allowed.contains(node));
+        }
+        dest.entrySet().removeIf(entry -> entry.getValue().isEmpty());
     }
 }

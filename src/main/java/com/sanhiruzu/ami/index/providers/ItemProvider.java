@@ -4,6 +4,8 @@ import com.sanhiruzu.ami.AMIConfig;
 import com.sanhiruzu.ami.api.AmiPluginRegistry;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.index.*;
+import com.sanhiruzu.ami.index.metrics.DpsMetricSniffer;
+import com.sanhiruzu.ami.index.metrics.StorageMetricSniffer;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -20,6 +22,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.OptionalDouble;
+import java.util.OptionalLong;
 import java.util.stream.Collectors;
 
 /**
@@ -81,6 +85,8 @@ public class ItemProvider implements IAmiDataProvider {
             int color           = 0xFFFFFF;
             String tags         = collectTags(item);
             String requiredTool = determineRequiredTool(item);
+            OptionalDouble dps = DpsMetricSniffer.estimate(defaultStack);
+            OptionalLong esmCapacity = StorageMetricSniffer.estimate(defaultStack, id);
 
             Map<String, String> meta = new HashMap<>();
             meta.put(SearchNodeKeys.MOD_ID, modId);
@@ -94,6 +100,8 @@ public class ItemProvider implements IAmiDataProvider {
             if (requiredTool != null) {
                 meta.put(SearchNodeKeys.REQUIRED_TOOL, requiredTool);
             }
+            dps.ifPresent(value -> meta.put(SearchNodeKeys.DPS, formatDps(value)));
+            esmCapacity.ifPresent(value -> meta.put(SearchNodeKeys.ESM_CAPACITY, Long.toString(value)));
             if (!inCreative) {
                 meta.put(SearchNodeKeys.VISIBILITY, "hidden");
             }
@@ -192,6 +200,10 @@ public class ItemProvider implements IAmiDataProvider {
         return item.builtInRegistryHolder().tags()
             .map(tag -> tag.location().toString().toLowerCase())
             .collect(Collectors.joining(","));
+    }
+
+    private static String formatDps(double value) {
+        return String.format(java.util.Locale.ROOT, "%.1f", value);
     }
 
     // Color keywords in longest-first order so "light_blue" wins over "blue".

@@ -18,7 +18,7 @@ public enum RowField {
     STORAGE_CAPACITY("Storage") {
         @Override public String extract(SearchNode node) {
             String cap = node.meta(SearchNodeKeys.ESM_CAPACITY, "");
-            return cap.isEmpty() ? "" : cap + " slots";
+            return cap.isEmpty() ? "" : cap + " items";
         }
     },
 

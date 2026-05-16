@@ -70,3 +70,12 @@ Process in strict order; stop at the first hit:
 - **Robust Searching:** Improve tokenization and multi-field queries.
 - **Provider Expansion:** Add or refine metadata for `BiomeProvider`, `StructureProvider`, and other node types so the rich list view can display more relevant badges/icons.
 - **Recipe Integration:** Seamlessly bridge item clicks from the AMI tree view into EMI/JEI (via `RecipeViewerBridge`).
+
+## Metric Compat Plugins
+
+Storage metric support should expand through isolated `StorageMetricAdapter` implementations instead of adding mod-specific logic to the generic sniffer.
+
+- **Functional Storage:** compute drawer capacity from drawer type, slot count, stack multiplier, and installed upgrades.
+- **Applied Energistics 2:** compute ESM for storage cells from bytes and type limits; document the bytes-to-items assumption.
+- **Refined Storage:** compute ESM from disk item capacity where the API exposes a fixed item count.
+- **Sophisticated Backpacks:** replace current tier defaults with API/config-backed values when the mod is present.
