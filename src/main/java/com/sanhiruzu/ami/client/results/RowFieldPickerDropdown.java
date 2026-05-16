@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.client.results;
 
+import com.sanhiruzu.ami.client.AMITheme;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 
@@ -29,15 +30,14 @@ public class RowFieldPickerDropdown {
     // ── Render ────────────────────────────────────────────────────────────────
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
-        boolean hovered = hit(mouseX, mouseY, x, y, width, BTN_H);
-        g.fill(x, y, x + width, y + BTN_H, open || hovered ? 0xFF3A3A3A : 0xFF2A2A2A);
+        boolean hovered = Dropdown.contains(mouseX, mouseY, x, y, width, BTN_H);
+        g.fill(x, y, x + width, y + BTN_H, open || hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG);
 
         var font = Minecraft.getInstance().font;
         int count = RowFieldConfig.getSubtitleFields().size();
         String label = count > 0 ? "Fields (" + count + ")" : "Fields";
         int textX = x + Math.max(2, (width - font.width(label)) / 2);
-        g.drawString(font, label, textX, y + 2,
-                hovered || open ? 0xFFFFFFFF : 0xFFCCCCCC, false);
+        g.drawString(font, label, textX, y + 2, AMITheme.TEXT_HEADER, false);
     }
 
     public void renderList(GuiGraphics g, int mouseX, int mouseY) {
@@ -50,17 +50,17 @@ public class RowFieldPickerDropdown {
         int dy    = y + BTN_H + 2;
 
         // Background + top rule
-        g.fill(x, dy, x + width, dy + dropH, 0xFF1A1A1A);
-        g.fill(x, dy, x + width, dy + 1,     0xFF555555);
+        g.fill(x, dy, x + width, dy + dropH, AMITheme.DROPDOWN_LIST_BG);
+        g.fill(x, dy, x + width, dy + 1,     AMITheme.SECTION_SEP);
 
         var font = Minecraft.getInstance().font;
         int iy = dy + 2;
         for (RowField field : fields) {
-            if (hit(mouseX, mouseY, x, iy, width, ITEM_H)) {
-                g.fill(x, iy, x + width, iy + ITEM_H, 0xFF333333);
+            if (Dropdown.contains(mouseX, mouseY, x, iy, width, ITEM_H)) {
+                g.fill(x, iy, x + width, iy + ITEM_H, AMITheme.DROPDOWN_BG);
             }
             String check = active.contains(field) ? "✓ " : "  ";
-            g.drawString(font, check + field.displayName, x + 3, iy + 1, 0xFFCCCCCC, false);
+            g.drawString(font, check + field.displayName, x + 3, iy + 1, AMITheme.TEXT_SUBTLE, false);
             iy += ITEM_H;
         }
     }
@@ -71,7 +71,7 @@ public class RowFieldPickerDropdown {
         if (button != 0) return false;
 
         // Header button — toggle open/closed
-        if (hit((int) mouseX, (int) mouseY, x, y, width, BTN_H)) {
+        if (Dropdown.contains((int) mouseX, (int) mouseY, x, y, width, BTN_H)) {
             open = !open;
             return true;
         }
@@ -82,10 +82,10 @@ public class RowFieldPickerDropdown {
         int dropH = fields.length * ITEM_H + 4;
         int dy    = y + BTN_H + 2;
 
-        if (hit((int) mouseX, (int) mouseY, x, dy, width, dropH)) {
+        if (Dropdown.contains((int) mouseX, (int) mouseY, x, dy, width, dropH)) {
             int iy = dy + 2;
             for (RowField field : fields) {
-                if (hit((int) mouseX, (int) mouseY, x, iy, width, ITEM_H)) {
+                if (Dropdown.contains((int) mouseX, (int) mouseY, x, iy, width, ITEM_H)) {
                     List<RowField> current = new ArrayList<>(RowFieldConfig.getSubtitleFields());
                     if (current.contains(field)) current.remove(field);
                     else current.add(field);
@@ -105,7 +105,4 @@ public class RowFieldPickerDropdown {
     public void close()       { open = false; }
     public boolean isOpen()   { return open; }
 
-    private static boolean hit(int mx, int my, int rx, int ry, int rw, int rh) {
-        return mx >= rx && mx < rx + rw && my >= ry && my < ry + rh;
-    }
 }
