@@ -43,7 +43,8 @@ Dynamically fold items into collapsible parent nodes on three axes so the UI nev
 
 ### Group by Material — Three-Phase Waterfall
 Process in strict order; stop at the first hit:
-1. **BlockFamilies API** — query 1.21.1's native `BlockFamilies` registry for guaranteed exact family membership (Copper Block → Cut Copper → Chiseled Copper, etc.).
+1. **Material Family Pass (Indexed)** — [DONE] Items are categorized into material groups (Stone, Wood, Soil, Glass) during indexing via `OntologyClassifier`. `ResultsProcessor` swaps shape subcategories for these material families when `BLOCK_SUBGROUP` config is set to `MATERIAL`.
+2. **BlockFamilies API** — query 1.21.1's native `BlockFamilies` registry for guaranteed exact family membership (Copper Block → Cut Copper → Chiseled Copper, etc.).
 2. **Stonecutter Heuristics** — reverse-engineer crafting intent: if a Stonecutter recipe maps `X Block → X Stair`, group them under the `X` material namespace.
 3. **Tag-Lexical Fallback** — for tools and armors, intersect tags (`#c:ingots`, `#minecraft:pickaxes`) with suffix stripping (remove `_pickaxe`) to identify the root material namespace.
 
