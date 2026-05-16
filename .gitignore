@@ -41,6 +41,4 @@ repo/
 
 ### Third-party sources (for reference only) ###
 vendor-sources/
-.aider*
-.qwen/
 internal/
