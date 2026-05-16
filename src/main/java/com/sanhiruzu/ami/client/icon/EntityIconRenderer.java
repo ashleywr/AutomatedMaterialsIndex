@@ -1,21 +1,31 @@
 package com.sanhiruzu.ami.client.icon;
 
+import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
+import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
+import com.sanhiruzu.ami.client.tooltip.StatIconRowTooltipComponent;
 import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Renders 3D mob miniatures using InventoryScreen.renderEntityInInventory.
@@ -82,10 +92,84 @@ public class EntityIconRenderer implements IIconRenderer {
 
     @Override
     public List<Component> getTooltip(SearchNode node) {
-        return List.of(
-                Component.literal(node.displayName()),
-                Component.literal(node.id().toString()).withStyle(s -> s.withColor(0x666666))
-        );
+        List<Component> lines = new ArrayList<>();
+        lines.add(Component.literal(node.displayName()));
+        lines.add(Component.literal(node.id().toString()).withStyle(s -> s.withColor(0x666666)));
+
+        String category = node.meta(SearchNodeKeys.ENTITY_CATEGORY, "");
+        if (!category.isEmpty()) {
+            lines.add(Component.literal("Category: " + formatCategory(category))
+                    .withStyle(s -> s.withColor(0x888888)));
+        }
+
+        String traits = node.meta(SearchNodeKeys.ENTITY_TRAITS, "");
+        if (!traits.isEmpty()) {
+            lines.add(Component.literal(formatTraits(traits)).withStyle(s -> s.withColor(0x55FFFF)));
+        }
+
+        lines.add(Component.literal("§8Hold Ctrl for AMI debug info"));
+        return lines;
+    }
+
+    @Override
+    public Optional<TooltipComponent> getTooltipImage(SearchNode node) {
+        HeartBarTooltipComponent heartBar = buildHeartBar(node);
+        StatIconRowTooltipComponent attackRow = buildAttackRow(node);
+
+        if (heartBar != null && attackRow != null) {
+            return Optional.of(new CompositeTooltipComponent(List.of(heartBar, attackRow)));
+        } else if (heartBar != null) {
+            return Optional.of(heartBar);
+        } else if (attackRow != null) {
+            return Optional.of(attackRow);
+        }
+        return Optional.empty();
+    }
+
+    private static HeartBarTooltipComponent buildHeartBar(SearchNode node) {
+        String s = node.meta(SearchNodeKeys.ENTITY_HEALTH, "");
+        if (s.isEmpty()) return null;
+        try {
+            return new HeartBarTooltipComponent(Integer.parseInt(s));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static StatIconRowTooltipComponent buildAttackRow(SearchNode node) {
+        String s = node.meta(SearchNodeKeys.ENTITY_ATTACK_DAMAGE, "");
+        if (s.isEmpty()) return null;
+        try {
+            int dmg = Integer.parseInt(s);
+            ItemStack sword = new ItemStack(BuiltInRegistries.ITEM
+                    .getOptional(ResourceLocation.withDefaultNamespace("iron_sword"))
+                    .orElse(Items.AIR));
+            return new StatIconRowTooltipComponent(sword, dmg + " dmg", 0xFFFF5555);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static String formatCategory(String raw) {
+        return switch (raw.toUpperCase()) {
+            case "MONSTER"   -> "Hostile";
+            case "CREATURE"  -> "Passive";
+            case "AMBIENT"   -> "Ambient";
+            case "WATER_CREATURE", "WATER_AMBIENT" -> "Aquatic";
+            case "MISC"      -> "Misc";
+            default          -> raw;
+        };
+    }
+
+    private static String formatTraits(String raw) {
+        StringBuilder sb = new StringBuilder();
+        for (String token : raw.split(" ")) {
+            if (token.startsWith("#")) {
+                if (sb.length() > 0) sb.append("  ");
+                sb.append(token.substring(1));
+            }
+        }
+        return sb.toString();
     }
 
     @Override

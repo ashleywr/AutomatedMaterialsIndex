@@ -30,9 +30,12 @@ public class BiomeProvider implements IAmiDataProvider {
                 if (holder.is(BiomeTags.IS_NETHER)) dimension = "nether";
                 else if (holder.is(BiomeTags.IS_END)) dimension = "end";
 
+                float temperature = holder.value().getBaseTemperature();
+
                 Map<String, String> meta = new HashMap<>();
                 meta.put(SearchNodeKeys.MOD_ID, id.getNamespace());
                 meta.put(SearchNodeKeys.DIMENSION, dimension);
+                meta.put(SearchNodeKeys.TEMPERATURE, String.format("%.3f", temperature));
 
                 nodes.add(new SearchNode(
                     id, NodeType.BIOME,

@@ -72,10 +72,13 @@ Process in strict order; stop at the first hit:
 - ~~`@modId` tokens in the search bar are now highlighted blue (matching MOD_COLOR) via `TokenColorizer`.~~
 - ~~Removed the broken mod-filter multi-select dropdown from the toolbar (was displaying "0/N" and doing nothing).~~
 - [x] **Unified Row Tooltips**: Appended "Required Tool" information to the item tooltip in the results list view. logic now builds a composite tooltip including vanilla lines and AMI-specific data.
-- [ ] **Interactive Mod Filtering**: Make the mod name badge clickable; clicking it appends `@modid` to the search bar (configurable/toggleable).
+- [x] **Interactive Mod Filtering**: Clicking the mod name badge now appends `@modid` to the search bar. implemented via a callback from `ResultsTreeView` to `SearchBarWidget`.
 - [ ] **Harvest Level Indicators**: Add a small overlay (number or color tint) to tool icons to indicate required harvest levels.
 - [ ] **UI Consistency**: Port the "reserved tool slot" and ellipsis truncation logic to `CommandPaletteWidget.java` for layout parity.
 - [x] **Dynamic Badge Fields**: Connected the "Fields" toolbar dropdown to `ResultsTreeView` so badges (Mod, Storage, DPS) can be toggled by the user. logic now uses `RowFieldConfig` and supports per-field color highlighting.
+- [ ] **Fix Fields Picker**: Investigation needed on why only "Mod" appears even when other fields are selected in the picker.
+- [ ] **Fix Results Scrollbar**: The scrollbar in `ResultsTreeView` is currently non-functional for vertical scrolling.
+- [ ] **Cleanup Keybinds**: Remove the "toggle" keybind for syncing/switching between AMI and EMI as it's no longer desired.
 - ~~Removed the active-field count badge from the "Fields" button label to prevent overflow.~~
 - **TODO:** Mod filtering is genuinely useful — revisit as a dedicated filter surface (e.g. a searchable popover or sidebar chip list) when the panel layout has more room.
 

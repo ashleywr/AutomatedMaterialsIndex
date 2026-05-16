@@ -430,10 +430,14 @@ public class AtlasGridWidget {
                         pendingTooltipLines = buildTooltip(entry, Screen.hasShiftDown());
                     }
 
-                    // Color swatch
-                    int swatchY = drawY + (ROW_HEIGHT - SWATCH_SIZE) / 2;
-                    g.fill(x + SWATCH_GAP, swatchY,
-                            x + SWATCH_GAP + SWATCH_SIZE, swatchY + SWATCH_SIZE, entry.color());
+                    // Color swatch / temperature gauge
+                    if (entry.type() == NodeType.BIOME) {
+                        renderBiomeTempGauge(g, entry, drawY);
+                    } else {
+                        int swatchY = drawY + (ROW_HEIGHT - SWATCH_SIZE) / 2;
+                        g.fill(x + SWATCH_GAP, swatchY,
+                                x + SWATCH_GAP + SWATCH_SIZE, swatchY + SWATCH_SIZE, entry.color());
+                    }
 
                     // Dimension badge (top-right of the row, only for non-overworld)
                     String dim = entry.meta(SearchNodeKeys.DIMENSION, "overworld");
@@ -600,6 +604,38 @@ public class AtlasGridWidget {
                 }
             })
         );
+    }
+
+    /**
+     * For biome rows: a 3px-wide vertical fill bar (temperature level) plus a 4px water-color swatch.
+     * Both fit in x+3 … x+11, matching the standard swatch area so textStartX (x+12) is unchanged.
+     *
+     * Temperature is normalized from [-0.5, 2.0] to [0, 1] for the fill height.
+     */
+    private void renderBiomeTempGauge(GuiGraphics g, SearchNode entry, int drawY) {
+        float temp;
+        try {
+            temp = Float.parseFloat(entry.meta(SearchNodeKeys.TEMPERATURE, "0.5"));
+        } catch (NumberFormatException e) {
+            temp = 0.5f;
+        }
+        float normalized = (Math.max(-0.5f, Math.min(2.0f, temp)) + 0.5f) / 2.5f;
+
+        // Vertical fill bar: 3px wide, spans row interior height
+        int gaugeX   = x + SWATCH_GAP;
+        int gaugeTop = drawY + 1;
+        int gaugeBot = drawY + ROW_HEIGHT - 1;
+        int gaugeH   = gaugeBot - gaugeTop;
+        int fillH    = Math.round(normalized * gaugeH);
+        g.fill(gaugeX, gaugeTop, gaugeX + 3, gaugeBot, 0xFF1A1A1A);
+        if (fillH > 0) {
+            g.fill(gaugeX, gaugeBot - fillH, gaugeX + 3, gaugeBot, tempColor(temp));
+        }
+
+        // Water color swatch: 4px wide, vertically centered
+        int swatchX = gaugeX + 4;
+        int swatchY = drawY + (ROW_HEIGHT - SWATCH_SIZE) / 2;
+        g.fill(swatchX, swatchY, swatchX + 4, swatchY + SWATCH_SIZE, entry.color());
     }
 
     /** " #RRGGBB" with the hex rendered in that colour. */

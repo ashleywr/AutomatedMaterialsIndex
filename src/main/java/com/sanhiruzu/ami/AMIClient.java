@@ -3,6 +3,9 @@ package com.sanhiruzu.ami;
 import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.client.results.ItemGridView;
+import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
+import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
+import com.sanhiruzu.ami.client.tooltip.StatIconRowTooltipComponent;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -12,6 +15,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 
@@ -45,6 +49,13 @@ public class AMIClient {
         if (Minecraft.getInstance().getUser() != null) {
             AMI.LOGGER.debug("Player: {}", Minecraft.getInstance().getUser().getName());
         }
+    }
+
+    @SubscribeEvent
+    static void onRegisterTooltipFactories(RegisterClientTooltipComponentFactoriesEvent event) {
+        event.register(CompositeTooltipComponent.class, c -> c);
+        event.register(HeartBarTooltipComponent.class, c -> c);
+        event.register(StatIconRowTooltipComponent.class, c -> c);
     }
 
     @SubscribeEvent
