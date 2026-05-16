@@ -95,17 +95,21 @@ public final class AMITheme {
         ROW_HEIGHT     = com.sanhiruzu.ami.AMIConfig.ROW_HEIGHT.get();
         ICON_SIZE      = com.sanhiruzu.ami.AMIConfig.ICON_SIZE.get();
         ELEMENT_GAP    = com.sanhiruzu.ami.AMIConfig.ELEMENT_GAP.get();
-
-        PANEL_INNER    = com.sanhiruzu.ami.AMIConfig.PALETTE_SEARCH_BAR_BG.get();
-        ENTRY_HOVER    = com.sanhiruzu.ami.AMIConfig.PALETTE_CARD_BG_HOVER.get();
-        ENTRY_TEXT     = com.sanhiruzu.ami.AMIConfig.PALETTE_CARD_TEXT_NAME.get();
-        ENTRY_SUBTITLE = com.sanhiruzu.ami.AMIConfig.PALETTE_CARD_TEXT_SUBTITLE.get();
-
-        SCROLL_TRACK   = com.sanhiruzu.ami.AMIConfig.PALETTE_SCROLLBAR_BG.get();
-        SCROLL_THUMB   = com.sanhiruzu.ami.AMIConfig.PALETTE_SCROLLBAR_THUMB.get();
-        SCROLL_THUMB_ACTIVE = com.sanhiruzu.ami.AMIConfig.PALETTE_SCROLLBAR_THUMB_HOVER.get();
-        
-        GROUP_HEADER_BG = com.sanhiruzu.ami.AMIConfig.PALETTE_GROUP_HEADER_BG.get();
-        GROUP_HEADER_TEXT = com.sanhiruzu.ami.AMIConfig.PALETTE_GROUP_HEADER_TEXT.get();
     }
+
+    public static void load() {
+        PANEL_BG       = com.sanhiruzu.ami.util.ColorUtils.parseHexColor(com.sanhiruzu.ami.AMIConfig.PALETTE_OVERLAY_BG.get());
+        PANEL_INNER    = com.sanhiruzu.ami.util.ColorUtils.parseHexColor(com.sanhiruzu.ami.AMIConfig.PALETTE_SEARCH_BAR_BG.get());
+        ENTRY_HOVER    = com.sanhiruzu.ami.util.ColorUtils.parseHexColor(com.sanhiruzu.ami.AMIConfig.PALETTE_CARD_BG_HOVER.get());
+        ENTRY_TEXT     = com.sanhiruzu.ami.util.ColorUtils.parseHexColor(com.sanhiruzu.ami.AMIConfig.PALETTE_CARD_TEXT_NAME.get());
+        ENTRY_SUBTITLE = com.sanhiruzu.ami.util.ColorUtils.parseHexColor(com.sanhiruzu.ami.AMIConfig.PALETTE_CARD_TEXT_SUBTITLE.get());
+
+        SCROLL_TRACK   = com.sanhiruzu.ami.util.ColorUtils.parseHexColor(com.sanhiruzu.ami.AMIConfig.PALETTE_SCROLLBAR_BG.get());
+        SCROLL_THUMB   = com.sanhiruzu.ami.util.ColorUtils.parseHexColor(com.sanhiruzu.ami.AMIConfig.PALETTE_SCROLLBAR_THUMB.get());
+        SCROLL_THUMB_ACTIVE = com.sanhiruzu.ami.util.ColorUtils.parseHexColor(com.sanhiruzu.ami.AMIConfig.PALETTE_SCROLLBAR_THUMB_HOVER.get());
+
+        GROUP_HEADER_BG = com.sanhiruzu.ami.util.ColorUtils.parseHexColor(com.sanhiruzu.ami.AMIConfig.PALETTE_GROUP_HEADER_BG.get());
+        GROUP_HEADER_TEXT = com.sanhiruzu.ami.util.ColorUtils.parseHexColor(com.sanhiruzu.ami.AMIConfig.PALETTE_GROUP_HEADER_TEXT.get());
+    }
+
 }

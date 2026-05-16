@@ -45,26 +45,16 @@ public class OverlayWidgetManager {
     /** Updates widget bounds for the current screen geometry. Called from both onScreenInit and renderAll. */
     public void computeLayouts(AbstractContainerScreen<?> containerScreen, int screenW, int screenH) {
         lastScreenH = screenH;
+        this.onLeft = false;
 
-        boolean goLeft = switch (AMILayoutConfig.PANEL_SIDE.get()) {
-            case LEFT  -> true;
-            case RIGHT -> false;
-            case AUTO  -> InventoryOverlayHandler.RECIPE_VIEWER_PRESENT;
-        };
-        this.onLeft = goLeft;
-
-        int panelH = screenH - PANEL_MARGIN_V * 2;
-        int panelX, panelW;
-        int widthOverride = AMILayoutConfig.PANEL_WIDTH_OVERRIDE.get();
-        if (goLeft) {
-            int available = containerScreen.getGuiLeft() - 12;
-            panelW = widthOverride > 0 ? widthOverride : Math.max(0, available);
-            panelX = containerScreen.getGuiLeft() - panelW - 6;
-        } else {
-            panelX = containerScreen.getGuiLeft() + containerScreen.getXSize() + 6;
-            int available = screenW - panelX - 6;
-            panelW = widthOverride > 0 ? widthOverride : Math.max(0, available);
-        }
+        // 35% of screen width, hard-capped at 280 scaled pixels
+        int panelW = Math.min((int)(screenW * 0.35f), 280);
+        // Screen height minus 40px headroom, hard-capped at 600 scaled pixels
+        int panelH = Math.min(screenH - 40, 600);
+        // Right-anchored: 6px margin from the right edge
+        int panelX = screenW - panelW - 6;
+        // Vertically centred on the screen
+        int panelY = (screenH - panelH) / 2;
 
         int btnY = screenH - BOTTOM_BAR_H + 2;
         amiButton.updateBounds(new WidgetBounds(2, btnY - 22, 22, 20));
@@ -76,7 +66,7 @@ public class OverlayWidgetManager {
             return;
         }
 
-        resultsPanel.updateBounds(new WidgetBounds(panelX, PANEL_MARGIN_V, panelW, panelH));
+        resultsPanel.updateBounds(new WidgetBounds(panelX, panelY, panelW, panelH));
         lastResultsBounds = resultsPanel.getBounds();
 
         int searchBarW = Math.min(AMILayoutConfig.SEARCH_BAR_WIDTH.get(), screenW - 8);
@@ -124,6 +114,15 @@ public class OverlayWidgetManager {
     /** Renders all AMI widgets. Button always; search bar and panel only when the panel is visible. */
     public void renderAll(ScreenEvent.Render.Post event) {
         if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
+
+        // Debug visualizer
+        if (AMIConfig.DEV_MODE.get()) {
+            for (var plugin : com.sanhiruzu.ami.api.AmiPluginRegistry.getPlugins()) {
+                for (var zone : plugin.getExclusionZones(event.getScreen())) {
+                    event.getGuiGraphics().fill(zone.getX(), zone.getY(), zone.getX() + zone.getWidth(), zone.getY() + zone.getHeight(), 0x55FF0000);
+                }
+            }
+        }
 
         try {
             computeLayouts(containerScreen, event.getScreen().width, event.getScreen().height);

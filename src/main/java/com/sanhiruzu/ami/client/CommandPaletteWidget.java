@@ -160,7 +160,7 @@ public class CommandPaletteWidget {
     }
 
     private void drawOverlay(GuiGraphics g) {
-        int overlayColor = AMIConfig.PALETTE_OVERLAY_BG.get();
+        int overlayColor = com.sanhiruzu.ami.util.ColorUtils.parseHexColor(AMIConfig.PALETTE_OVERLAY_BG.get());
         int a = (int) (((overlayColor >> 24) & 0xFF) * alpha);
         int rgb = overlayColor & 0xFFFFFF;
         int color = (a << 24) | rgb;
@@ -172,40 +172,46 @@ public class CommandPaletteWidget {
         int h = SEARCH_BAR_HEIGHT;
 
         // Background
-        g.fill(x, y, x + w, y + h, AMIConfig.PALETTE_SEARCH_BAR_BG.get());
+        g.fill(x, y, x + w, y + h, com.sanhiruzu.ami.util.ColorUtils.parseHexColor(AMIConfig.PALETTE_SEARCH_BAR_BG.get()));
 
         // Border
-        g.fill(x, y, x + w, y + 1, AMIConfig.PALETTE_SEARCH_BAR_BORDER.get());
-        g.fill(x, y + h - 1, x + w, y + h, AMIConfig.PALETTE_SEARCH_BAR_BORDER.get());
-        g.fill(x, y, x + 1, y + h, AMIConfig.PALETTE_SEARCH_BAR_BORDER.get());
-        g.fill(x + w - 1, y, x + w, y + h, AMIConfig.PALETTE_SEARCH_BAR_BORDER.get());
+        int borderColor = com.sanhiruzu.ami.util.ColorUtils.parseHexColor(AMIConfig.PALETTE_SEARCH_BAR_BORDER.get());
+        g.fill(x, y, x + w, y + 1, borderColor);
+        g.fill(x, y + h - 1, x + w, y + h, borderColor);
+        g.fill(x, y, x + 1, y + h, borderColor);
+        g.fill(x + w - 1, y, x + w, y + h, borderColor);
 
         var font = Minecraft.getInstance().font;
-        String displayText = searchQuery.isEmpty() ? "Filter..." : searchQuery;
+        Component displayText = searchQuery.isEmpty() 
+            ? Component.translatable("ami.gui.search.placeholder") 
+            : Component.literal(searchQuery);
+            
         int textColor = searchQuery.isEmpty()
-                ? AMIConfig.PALETTE_SEARCH_PLACEHOLDER.get()
-                : AMIConfig.PALETTE_SEARCH_TEXT.get();
+                ? com.sanhiruzu.ami.util.ColorUtils.parseHexColor(AMIConfig.PALETTE_SEARCH_PLACEHOLDER.get())
+                : com.sanhiruzu.ami.util.ColorUtils.parseHexColor(AMIConfig.PALETTE_SEARCH_TEXT.get());
 
         g.drawString(font, displayText, x + 4, y + 5, textColor, false);
 
         // Blinking cursor
         if (!searchQuery.isEmpty() && (System.currentTimeMillis() % 1000) < 500) {
             int cursorX = x + 4 + font.width(displayText);
-            g.fill(cursorX, y + 4, cursorX + 1, y + 16, AMIConfig.PALETTE_SEARCH_TEXT.get());
+            g.fill(cursorX, y + 4, cursorX + 1, y + 16, com.sanhiruzu.ami.util.ColorUtils.parseHexColor(AMIConfig.PALETTE_SEARCH_TEXT.get()));
         }
 
         // Clear button [x]
         if (!searchQuery.isEmpty()) {
             int xX = x + w - 10;
             int xY = y + 6;
-            g.drawString(font, "x", xX, xY, AMIConfig.PALETTE_SEARCH_TEXT.get(), false);
+            g.drawString(font, Component.translatable("ami.gui.search.clear"), xX, xY, com.sanhiruzu.ami.util.ColorUtils.parseHexColor(AMIConfig.PALETTE_SEARCH_TEXT.get()), false);
         }
     }
 
     private void drawResults(GuiGraphics g, int mouseX, int mouseY, int x, int y, int h) {
         if (resultGroups.isEmpty()) {
             var font = Minecraft.getInstance().font;
-            String msg = searchQuery.isEmpty() ? "Start typing to search..." : "No results";
+            Component msg = searchQuery.isEmpty() 
+                ? Component.translatable("ami.gui.search.typing") 
+                : Component.translatable("ami.gui.search.empty");
             g.drawString(font, msg, x + PADDING, y + PADDING, 0xFFAAAA00, false);
             return;
         }
@@ -220,11 +226,11 @@ public class CommandPaletteWidget {
                 int drawY = y + (row - scrollOffset) * CARD_HEIGHT;
                 boolean hovered = isCardHovered(mouseX, mouseY, x, drawY, cardW);
                 if (hovered) {
-                    g.fill(x, drawY, x + cardW, drawY + CARD_HEIGHT, AMIConfig.PALETTE_CARD_BG_HOVER.get());
+                    g.fill(x, drawY, x + cardW, drawY + CARD_HEIGHT, com.sanhiruzu.ami.util.ColorUtils.parseHexColor(AMIConfig.PALETTE_CARD_BG_HOVER.get()));
                 }
                 String arrow = group.expanded ? "▼ " : "▶ ";
                 g.drawString(Minecraft.getInstance().font, arrow + group.displayName + " (" + group.entries.size() + ")",
-                        x + PADDING, drawY + 6, AMIConfig.PALETTE_GROUP_HEADER_TEXT.get(), false);
+                        x + PADDING, drawY + 6, com.sanhiruzu.ami.util.ColorUtils.parseHexColor(AMIConfig.PALETTE_GROUP_HEADER_TEXT.get()), false);
             }
             row++;
 
@@ -251,10 +257,10 @@ public class CommandPaletteWidget {
         boolean hovered = isCardHovered(mouseX, mouseY, x, y, w);
 
         if (hovered) {
-            g.fill(x, y, x + w, y + CARD_HEIGHT, AMIConfig.PALETTE_CARD_BG_HOVER.get());
+            g.fill(x, y, x + w, y + CARD_HEIGHT, com.sanhiruzu.ami.util.ColorUtils.parseHexColor(AMIConfig.PALETTE_CARD_BG_HOVER.get()));
             pendingTooltipLines = buildTooltip(entry);
         } else {
-            g.fill(x, y, x + w, y + CARD_HEIGHT, AMIConfig.PALETTE_CARD_BG.get());
+            g.fill(x, y, x + w, y + CARD_HEIGHT, com.sanhiruzu.ami.util.ColorUtils.parseHexColor(AMIConfig.PALETTE_CARD_BG.get()));
         }
 
         // Icon
@@ -273,7 +279,7 @@ public class CommandPaletteWidget {
         // Name
         int textX = iconX + ICON_SIZE + PADDING;
         g.drawString(Minecraft.getInstance().font, entry.displayName(), textX, y + 4,
-                AMIConfig.PALETTE_CARD_TEXT_NAME.get(), false);
+                com.sanhiruzu.ami.util.ColorUtils.parseHexColor(AMIConfig.PALETTE_CARD_TEXT_NAME.get()), false);
 
         // Subtitle (mod name or dimension)
         String subtitle = entry.id().getNamespace();
@@ -281,28 +287,28 @@ public class CommandPaletteWidget {
             subtitle = RegistryUtils.modDisplayName(subtitle);
         }
         g.drawString(Minecraft.getInstance().font, subtitle, textX, y + 14,
-                AMIConfig.PALETTE_CARD_TEXT_SUBTITLE.get(), false);
+                com.sanhiruzu.ami.util.ColorUtils.parseHexColor(AMIConfig.PALETTE_CARD_TEXT_SUBTITLE.get()), false);
 
         // Action hint (right-aligned)
         if (entry.type() == NodeType.ITEM && InventoryOverlayHandler.RECIPE_VIEWER_PRESENT) {
-            String hint = "▶ Recipe";
+            Component hint = Component.translatable("ami.gui.search.recipe");
             int hintW = Minecraft.getInstance().font.width(hint);
             g.drawString(Minecraft.getInstance().font, hint, x + w - hintW - PADDING, y + 6,
-                    AMIConfig.PALETTE_CARD_ACTION_HINT.get(), false);
+                    com.sanhiruzu.ami.util.ColorUtils.parseHexColor(AMIConfig.PALETTE_CARD_ACTION_HINT.get()), false);
         }
     }
 
     private void drawScrollbar(GuiGraphics g, int x, int y, int w, int h, int totalRows, int visibleRows) {
         // Background
-        g.fill(x, y, x + w, y + h, AMIConfig.PALETTE_SCROLLBAR_BG.get());
+        g.fill(x, y, x + w, y + h, com.sanhiruzu.ami.util.ColorUtils.parseHexColor(AMIConfig.PALETTE_SCROLLBAR_BG.get()));
 
         // Thumb
         int thumbH = Math.max(10, (h * visibleRows) / totalRows);
         int thumbY = y + (h * scrollOffset) / totalRows;
         boolean thumbHovered = scrollbarDragging || (true);  // TODO: hover detection
         int thumbColor = thumbHovered
-                ? AMIConfig.PALETTE_SCROLLBAR_THUMB_HOVER.get()
-                : AMIConfig.PALETTE_SCROLLBAR_THUMB.get();
+                ? com.sanhiruzu.ami.util.ColorUtils.parseHexColor(AMIConfig.PALETTE_SCROLLBAR_THUMB_HOVER.get())
+                : com.sanhiruzu.ami.util.ColorUtils.parseHexColor(AMIConfig.PALETTE_SCROLLBAR_THUMB.get());
         g.fill(x, thumbY, x + w, thumbY + thumbH, thumbColor);
     }
 
