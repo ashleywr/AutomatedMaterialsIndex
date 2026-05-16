@@ -34,8 +34,7 @@ public class RowFieldPickerDropdown {
         g.fill(x, y, x + width, y + BTN_H, open || hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG);
 
         var font = Minecraft.getInstance().font;
-        int count = RowFieldConfig.getSubtitleFields().size();
-        String label = count > 0 ? "Fields (" + count + ")" : "Fields";
+        String label = "Fields";
         int textX = x + Math.max(2, (width - font.width(label)) / 2);
         g.drawString(font, label, textX, y + 2, AMITheme.TEXT_HEADER, false);
     }

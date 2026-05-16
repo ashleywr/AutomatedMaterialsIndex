@@ -100,7 +100,6 @@ public class UniversalResultsPanel {
         int sep1Y = y + AMITheme.GLOBAL_PADDING + FacetBar.HEIGHT;
         g.fill(x + 3, sep1Y, x + width - 3, sep1Y + 1, AMITheme.SECTION_SEP);
 
-        toolbar.setAvailableMods(toolbar.getAllMods(currentResults));
         toolbar.render(g, mouseX, mouseY);
 
         // Section separator: Toolbar → Results

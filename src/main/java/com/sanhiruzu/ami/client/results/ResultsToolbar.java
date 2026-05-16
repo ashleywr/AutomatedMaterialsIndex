@@ -1,12 +1,10 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.AMITheme;
-import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class ResultsToolbar {
     public enum ViewMode { GRID, LIST }
@@ -28,7 +26,6 @@ public class ResultsToolbar {
     // Specific dropdown references for getters
     private SingleSelectDropdown<ResultsProcessor.SortField> sortFieldDropdown;
     private SingleSelectDropdown<ResultsProcessor.GroupBy> groupByDropdown;
-    private MultiSelectDropdown<String> modFilterDropdown;
 
     // Field picker — pinned to right end of toolbar, not in the auto-sized list
     private final RowFieldPickerDropdown fieldsPicker = new RowFieldPickerDropdown();
@@ -57,15 +54,9 @@ public class ResultsToolbar {
                 selected -> {}
         );
 
-        this.modFilterDropdown = new MultiSelectDropdown<>(
-                new ArrayList<>(),
-                s -> s
-        );
-
         // Register dropdowns in order
         dropdowns.add(sortFieldDropdown);
         dropdowns.add(groupByDropdown);
-        dropdowns.add(modFilterDropdown);
 
         updateDropdownPositions();
     }
@@ -105,12 +96,6 @@ public class ResultsToolbar {
     private int getDropdownWidth(Dropdown dropdown) {
         // Obsolete, widths are now calculated dynamically
         return 0;
-    }
-
-    public void setAvailableMods(Set<String> mods) {
-        List<String> modList = new ArrayList<>(mods);
-        Collections.sort(modList);
-        modFilterDropdown.setOptions(modList);
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
@@ -191,7 +176,7 @@ public class ResultsToolbar {
     public ResultsProcessor.SortField getSortField() { return sortFieldDropdown.getSelected(); }
     public boolean isAscending() { return ascending; }
     public ResultsProcessor.GroupBy getGroupBy() { return groupByDropdown.getSelected(); }
-    public Set<String> getSelectedMods() { return modFilterDropdown.getSelected(); }
+    public Set<String> getSelectedMods() { return Set.of(); }
     public ViewMode getViewMode() { return viewMode; }
 
     public boolean isAnyDropdownOpen() {
@@ -211,9 +196,4 @@ public class ResultsToolbar {
         updateDropdownPositions();
     }
 
-    public Set<String> getAllMods(java.util.List<SearchNode> results) {
-        return results.stream()
-                .map(n -> n.id().getNamespace())
-                .collect(Collectors.toSet());
-    }
 }

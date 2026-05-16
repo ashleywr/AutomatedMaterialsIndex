@@ -12,7 +12,14 @@ Right now, the `ItemProvider` sets all item `colorBucket` metadata to `"gray"`. 
 ## UI/UX Polish
 - Ensure the tree view scrolls smoothly and maintains high framerates even with large modpacks.
 - Check the layout constraints so that switching between Grid and List view is seamless.
-- (Completed) Removed the `tier` metadata feature which cluttered the UI with "TIER: MODDED".
+- ~~Removed the `tier` metadata feature which cluttered the UI with "TIER: MODDED".~~
+- ~~Centralised semantic UI colours into `AmiColors` (MOD_COLOR, TAG_COLOR, EXCLUDE_COLOR); removed hardcoded hex values from `TokenColorizer`, `ResultsTreeView`, and the search bar formatter.~~
+- ~~Mod group headers in the tree view now render in `AmiColors.MOD_COLOR` (blue, no shadow) to match the mod-ID subtitle colour.~~
+- ~~`@modId` tokens in the search bar are now highlighted blue (matching MOD_COLOR) via `TokenColorizer`.~~
+- ~~Removed the broken mod-filter multi-select dropdown from the toolbar (was displaying "0/N" and doing nothing).~~
+- ~~Renamed sort option "Alphabetical" → "Name" to fit toolbar width.~~
+- ~~Removed the active-field count badge from the "Fields" button label to prevent overflow.~~
+- **TODO:** Mod filtering is genuinely useful — revisit as a dedicated filter surface (e.g. a searchable popover or sidebar chip list) when the panel layout has more room.
 
 ## Long-term Vision
 - **Robust Searching:** Improve tokenization and multi-field queries.

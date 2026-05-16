@@ -1,5 +1,7 @@
 package com.sanhiruzu.ami.index.query;
 
+import com.sanhiruzu.ami.util.AmiColors;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,13 +10,14 @@ public final class TokenColorizer {
 
     public record ColorSpan(int startIndex, int endIndex, int argbColor) {}
 
-    static final int COLOR_TAG       = 0xFF44BBBB;  // Teal
+    static final int COLOR_TAG       = AmiColors.TAG_COLOR;   // Gold  — #tag
+    static final int COLOR_MOD       = AmiColors.MOD_COLOR;   // Blue  — @mod
+    static final int COLOR_EXCLUDE   = AmiColors.EXCLUDE_COLOR; // Red — bare negation
     static final int COLOR_ENV       = 0xFF44BB44;  // Green
     static final int COLOR_PROP      = 0xFFBBBB44;  // Yellow
     static final int COLOR_ESSENTIAL = 0xFFBB44BB;  // Magenta
     static final int COLOR_ESM       = 0xFFBB8844;  // Orange
-    static final int COLOR_EXCLUDE   = 0xFFBB4444;  // Red
-    static final int COLOR_PLAIN     = 0xFFCCCCCC;  // White
+    static final int COLOR_PLAIN     = 0xFFCCCCCC;  // Light grey
 
     /**
      * Colorize a query string, returning color spans for each token.
@@ -71,6 +74,7 @@ public final class TokenColorizer {
         char prefix = stripped.charAt(0);
         int color = switch (prefix) {
             case '#' -> COLOR_TAG;
+            case '@' -> COLOR_MOD;
             case '&' -> COLOR_ENV;
             case '?' -> COLOR_PROP;
             case '!' -> COLOR_ESSENTIAL;
@@ -78,8 +82,9 @@ public final class TokenColorizer {
             default -> COLOR_PLAIN;
         };
 
-        // If it's an exclude token and didn't have another prefix, use exclude color
-        if (isExclude && prefix != '#' && prefix != '&' && prefix != '?' && prefix != '!' && prefix != '>') {
+        // Bare negation (no recognised prefix) → exclude color
+        if (isExclude && prefix != '#' && prefix != '@' && prefix != '&'
+                && prefix != '?' && prefix != '!' && prefix != '>') {
             color = COLOR_EXCLUDE;
         }
 
