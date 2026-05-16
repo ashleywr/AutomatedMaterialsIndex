@@ -2,12 +2,10 @@ package com.sanhiruzu.ami.client;
 
 import com.sanhiruzu.ami.client.results.*;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
-import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
@@ -15,18 +13,6 @@ import java.util.List;
 import java.util.Map;
 
 public class UniversalResultsPanel {
-
-    // Hardcoded IDs shown in the "pinned" zero-query view
-    private static final List<ResourceLocation> PINNED_IDS = List.of(
-            ResourceLocation.fromNamespaceAndPath("minecraft", "chest"),
-            ResourceLocation.fromNamespaceAndPath("minecraft", "crafting_table"),
-            ResourceLocation.fromNamespaceAndPath("minecraft", "furnace"),
-            ResourceLocation.fromNamespaceAndPath("minecraft", "diamond"),
-            ResourceLocation.fromNamespaceAndPath("minecraft", "iron_ingot"),
-            ResourceLocation.fromNamespaceAndPath("minecraft", "oak_log"),
-            ResourceLocation.fromNamespaceAndPath("minecraft", "torch"),
-            ResourceLocation.fromNamespaceAndPath("minecraft", "stone")
-    );
 
     private int x, y, width, height;
 
@@ -65,6 +51,7 @@ public class UniversalResultsPanel {
     }
 
     public void setEntries(List<SearchNode> entries) {
+        this.currentQuery = "";
         this.currentResults = entries;
         refreshTree();
     }
@@ -130,6 +117,9 @@ public class UniversalResultsPanel {
         }
 
         toolbar.renderOpenDropdownLists(g, mouseX, mouseY);
+
+        // FacetBar tooltip drawn last so it layers above everything else
+        facetBar.renderTooltip(g, mouseX, mouseY);
     }
 
     // ── Tree refresh ──────────────────────────────────────────────────────────
@@ -156,26 +146,8 @@ public class UniversalResultsPanel {
         gridView.setRootNodes(gridProcessor.process(source));
     }
 
-    /**
-     * Returns the node list to display: pinned items when query is empty,
-     * or the current search results otherwise.
-     */
     private List<SearchNode> resolveSource() {
-        if (!currentQuery.isEmpty()) {
-            return currentResults;
-        }
-
-        // Zero-query: resolve pinned IDs from GlobalIndex
-        GlobalIndex gi = GlobalIndex.getInstance();
-        if (!gi.isIndexReady()) {
-            return currentResults; // fall back to whatever we have
-        }
-
-        List<SearchNode> pinned = new ArrayList<>();
-        for (ResourceLocation id : PINNED_IDS) {
-            gi.getNode(id).ifPresent(pinned::add);
-        }
-        return pinned.isEmpty() ? currentResults : pinned;
+        return currentResults;
     }
 
     // ── Item click (grid) ─────────────────────────────────────────────────────
@@ -222,14 +194,21 @@ public class UniversalResultsPanel {
     }
 
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollDelta) {
+        boolean isOver = mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
+        if (!isOver) {
+            return false;
+        }
+
         boolean gridMode = toolbar.getViewMode() == ResultsToolbar.ViewMode.GRID;
         if (gridMode) {
-            return gridView.mouseScrolled(mouseX, mouseY, scrollDelta);
+            gridView.mouseScrolled(mouseX, mouseY, scrollDelta);
+            return true;
         }
         if (treeView.isMouseOver(mouseX, mouseY)) {
-            return treeView.mouseScrolled(mouseX, mouseY, scrollDelta);
+            treeView.mouseScrolled(mouseX, mouseY, scrollDelta);
+            return true;
         }
-        return false;
+        return true;
     }
 
     public boolean mouseClickedScrollbar(double mouseX, double mouseY, int button) {
@@ -253,6 +232,7 @@ public class UniversalResultsPanel {
 
     public void setIndexingInProgress(boolean inProgress) { /* reserved */ }
     public int getEntryCount() { return currentResults.size(); }
+    public String getCurrentQuery() { return currentQuery; }
 
     public boolean isMouseOver(double mouseX, double mouseY) {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;

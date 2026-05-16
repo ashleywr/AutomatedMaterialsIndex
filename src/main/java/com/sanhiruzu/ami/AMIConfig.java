@@ -16,6 +16,11 @@ public class AMIConfig {
             .comment("Automatically index items and world data on world load")
             .define("enableAutoIndexing", true);
 
+    public static final ModConfigSpec.BooleanValue RENDER_OVERLAY = BUILDER
+            .comment("Show AMI overlay on inventory screens (toggle with I key).",
+                     "When disabled, AMI is completely hidden until activated.")
+            .define("renderOverlay", false);
+
     public static final ModConfigSpec.BooleanValue ENABLE_MATERIAL_ROOT_UI = BUILDER
             .comment("Enable the Material Root UI (collapse blockstate variants into one node)")
             .define("enableMaterialRootUI", true);
@@ -33,6 +38,18 @@ public class AMIConfig {
                      "In singleplayer (and as LAN host) this works immediately.",
                      "On a dedicated server the player must have permission level 2 (OP).")
             .define("cheatMode", false);
+
+    public static final ModConfigSpec.BooleanValue HIDE_NON_CREATIVE_ITEMS = BUILDER
+            .comment("Filter items that do not appear in any creative-mode tab.",
+                     "Removes mod placeholders, internal system items, and developer leftovers.",
+                     "Disable only if you need to see every registered item regardless of tab status.")
+            .define("hideNonCreativeItems", true);
+
+    public static final ModConfigSpec.BooleanValue STRICT_SURVIVAL_MODE = BUILDER
+            .comment("Hide items that have no crafting, smelting, or other recipe output.",
+                     "WARNING: naturally spawning items without recipes (ores, mob drops) are also affected.",
+                     "Intended for progression-focused servers. Disabled by default.")
+            .define("strictSurvivalMode", false);
 
     static {
         BUILDER.pop();

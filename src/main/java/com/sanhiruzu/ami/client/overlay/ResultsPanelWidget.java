@@ -2,19 +2,41 @@ package com.sanhiruzu.ami.client.overlay;
 
 import com.sanhiruzu.ami.client.UniversalResultsPanel;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.network.chat.Component;
 
-public class ResultsPanelWidget implements AmiWidget {
+public class ResultsPanelWidget extends AbstractWidget {
     private UniversalResultsPanel panel;
-    private WidgetBounds bounds;
 
-    @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        if (panel == null || bounds == null) return;
+    public ResultsPanelWidget() {
+        super(0, 0, 0, 0, Component.empty());
+    }
 
-        panel.render(g, mouseX, mouseY, partialTick);
+    public void updateBounds(WidgetBounds bounds) {
+        setX(bounds.x());
+        setY(bounds.y());
+        this.width = bounds.width();
+        this.height = bounds.height();
+
+        if (panel == null) {
+            panel = new UniversalResultsPanel(bounds.x(), bounds.y(), bounds.width(), bounds.height());
+        } else {
+            panel.updateLayout(bounds.x(), bounds.y(), bounds.width(), bounds.height());
+        }
+    }
+
+    public WidgetBounds getBounds() {
+        return new WidgetBounds(getX(), getY(), width, height);
     }
 
     @Override
+    protected void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        if (panel == null || width <= 0 || height <= 0) return;
+        panel.render(g, mouseX, mouseY, partialTick);
+    }
+
+    /** Renders dropdowns and tooltips that must draw above everything else. */
     public void renderOverlay(GuiGraphics g, int mouseX, int mouseY) {
         if (panel == null) return;
         panel.getToolbar().renderOpenDropdownLists(g, mouseX, mouseY);
@@ -23,7 +45,12 @@ public class ResultsPanelWidget implements AmiWidget {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (panel == null) return false;
-        return panel.mouseClicked(mouseX, mouseY, button);
+        if (!isMouseOver(mouseX, mouseY)) return false;
+        panel.mouseClickedScrollbar(mouseX, mouseY, button);
+        panel.mouseClicked(mouseX, mouseY, button);
+        // Always return true for in-bounds clicks so the screen focuses this widget,
+        // enabling mouseDragged (scrollbar) and mouseReleased to route here correctly.
+        return true;
     }
 
     @Override
@@ -40,43 +67,16 @@ public class ResultsPanelWidget implements AmiWidget {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         if (panel == null) return false;
-        return panel.mouseScrolled(mouseX, mouseY, delta);
+        return panel.mouseScrolled(mouseX, mouseY, scrollY);
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        return false;
-    }
-
-    @Override
-    public boolean charTyped(char c, int modifiers) {
-        return false;
-    }
-
-    @Override
-    public WidgetBounds getBounds() {
-        return bounds != null ? bounds : new WidgetBounds(0, 0, 0, 0);
-    }
-
-    public void updateBounds(WidgetBounds bounds) {
-        this.bounds = bounds;
-
-        // Lazy-create panel on first layout
-        if (panel == null) {
-            panel = new UniversalResultsPanel(bounds.x(), bounds.y(), bounds.width(), bounds.height());
-        } else {
-            panel.updateLayout(bounds.x(), bounds.y(), bounds.width(), bounds.height());
-        }
+    protected void updateWidgetNarration(NarrationElementOutput output) {
     }
 
     public UniversalResultsPanel getInnerPanel() {
         return panel;
-    }
-
-    public boolean mouseClickedScrollbar(double mouseX, double mouseY, int button) {
-        if (panel == null) return false;
-        return panel.mouseClickedScrollbar(mouseX, mouseY, button);
     }
 }

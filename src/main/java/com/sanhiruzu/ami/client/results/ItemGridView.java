@@ -6,6 +6,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -161,7 +162,9 @@ public class ItemGridView {
                     && mouseY >= cellY && mouseY < cellY + CELL_SIZE;
             if (hovered) {
                 g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, 0xFF3A3A3A);
-                if (entry.type() == NodeType.ITEM) {
+                if (Screen.hasControlDown()) {
+                    pendingTextTooltip = DebugTooltip.build(entry);
+                } else if (entry.type() == NodeType.ITEM) {
                     pendingTooltip = resolveStack(entry);
                 } else {
                     pendingTextTooltip = RendererRegistry.get(entry.type()).getTooltip(entry);

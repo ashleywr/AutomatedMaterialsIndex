@@ -15,24 +15,19 @@ public class AmiEmiPlugin implements EmiPlugin {
 
     @Override
     public void register(EmiRegistry registry) {
-        AMI.LOGGER.info("AmiEmiPlugin.register() called - EMI integration active");
-
         if (AMIConfig.SUPPRESS_RECIPE_VIEWERS.get()) {
-            // Register exclusion areas where AMI renders
             registry.addGenericExclusionArea((screen, consumer) -> {
                 if (!(screen instanceof AbstractContainerScreen<?>)) {
                     return;
                 }
 
-                WidgetBounds bounds = InventoryOverlayHandler.getManager().getResultsBounds();
+                if (!InventoryOverlayHandler.isAmiEnabled()) {
+                    return;
+                }
 
-                // Use actual panel bounds if available, otherwise use fallback right-side coverage
+                WidgetBounds bounds = InventoryOverlayHandler.getManager().getResultsBounds();
                 if (bounds != null && bounds.width() > 0) {
                     consumer.accept(new Bounds(bounds.x(), bounds.y(), bounds.width(), bounds.height()));
-                } else {
-                    // Fallback: exclude entire right half of screen if panel isn't ready
-                    int screenMid = screen.width / 2;
-                    consumer.accept(new Bounds(screenMid, 0, screen.width - screenMid, screen.height));
                 }
             });
         }

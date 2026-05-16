@@ -10,6 +10,17 @@ public class RecipeViewerBridge {
         return ModList.get().isLoaded("emi") || ModList.get().isLoaded("jei");
     }
 
+    /** Returns the current search text from the active recipe viewer, or "" if none loaded. */
+    public static String getSearchText() {
+        if (ModList.get().isLoaded("emi")) return EmiSearchSyncBridge.getSearchText();
+        return "";
+    }
+
+    /** Pushes a search string into the active recipe viewer's search bar. */
+    public static void setSearchText(String text) {
+        if (ModList.get().isLoaded("emi")) EmiSearchSyncBridge.setSearchText(text);
+    }
+
     /** Open the recipe viewer for the item's crafting recipes (what produces it). */
     public static void openRecipes(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return;

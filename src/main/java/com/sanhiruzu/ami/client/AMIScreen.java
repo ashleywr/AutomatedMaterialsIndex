@@ -36,26 +36,11 @@ public class AMIScreen extends Screen {
 
         guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 10, 0xFFFFFF);
 
-        Component cycleHint = Component.translatable("ami.gui.cycle_hint", AMIKeyMappings.CYCLE_ATLAS.getTranslatedKeyMessage());
-        Component closeHint = Component.translatable("ami.gui.close_hint", AMIKeyMappings.OPEN_AMI.getTranslatedKeyMessage());
-
-        String info = String.format("%s | %s", cycleHint.getString(), closeHint.getString());
-        guiGraphics.drawString(this.font, info, 10, 25, 0xAAAAAA);
-
         if (resultsPanel != null) {
             guiGraphics.pose().pushPose();
             resultsPanel.render(guiGraphics, mouseX, mouseY, partialTick);
             guiGraphics.pose().popPose();
         }
-    }
-
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (AMIKeyMappings.OPEN_AMI.isActiveAndMatches(com.mojang.blaze3d.platform.InputConstants.getKey(keyCode, scanCode))) {
-            this.onClose();
-            return true;
-        }
-        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
