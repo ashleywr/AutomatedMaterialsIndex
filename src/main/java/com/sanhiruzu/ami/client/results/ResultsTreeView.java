@@ -37,10 +37,20 @@ public class ResultsTreeView {
     private static final int SWATCH_SIZE = 5;
     private static final int SWATCH_GAP  = 2;
     private static final int MAX_SWATCHES = 3;
+
+    // Recomputed each frame — 0.75× when guiScale ≥ 3, otherwise 1.0×.
+    private float currentLabelScale = 1.0f;
+
+    private static float computeLabelScale() {
+        return Minecraft.getInstance().getWindow().getGuiScale() >= 3.0 ? 0.75f : 1.0f;
+    }
     
     // ── State ─────────────────────────────────────────────────────────────────
     private int x, y, width, height;
     private List<TreeNode> rootNodes = new ArrayList<>();
+
+    /** Cached representative SearchNode per group TreeNode; cleared whenever rootNodes changes. */
+    private final Map<TreeNode, SearchNode> representativeCache = new HashMap<>();
 
     /** Pixel scroll offset — increases as user scrolls down. */
     private int pixelScrollOffset = 0;
@@ -66,6 +76,7 @@ public class ResultsTreeView {
     public void setRootNodes(List<TreeNode> nodes) {
         this.rootNodes = nodes;
         this.pixelScrollOffset = 0;
+        this.representativeCache.clear();
     }
 
     public void updateLayout(int x, int y, int width, int height) {
@@ -84,6 +95,7 @@ public class ResultsTreeView {
     public void render(GuiGraphics g, int mouseX, int mouseY, boolean toolbarDropdownOpen,
                        Component sectionLabel, String currentQuery) {
         pendingTooltipLines = null;
+        currentLabelScale = computeLabelScale();
 
         int topOffset = 0;
         if (sectionLabel != null) {
@@ -193,28 +205,21 @@ public class ResultsTreeView {
         int maxTextW = x + width - SCROLLBAR_W - 6 - textX;
 
         // Right-aligned badges
-        int rightEdge = x + width - SCROLLBAR_W - 5;
+        int rightEdge = x + width - SCROLLBAR_W - 4;
         int badgeW = badgeWidth(font, entry);
 
-        // Subtitle text (computed early so we know whether it's a 1- or 2-line row)
-        String subtitle = RowFieldConfig.buildSubtitle(entry);
-        boolean hasSubtitle = !subtitle.isEmpty();
+        // Item name — truncated in font-pixel space (divide screen px by scale),
+        // then drawn at reduced scale so long names fit.
+        int availScreenPx = maxTextW - badgeW;
+        String name = truncate(font, node.getLabel(), (int)(availScreenPx / currentLabelScale));
 
-        // Vertically centre the text block in the row
-        int lineH = font.lineHeight;
-        int textY1 = drawY + (AMITheme.ROW_HEIGHT - lineH) / 2;
-        int textY2 = textY1 + lineH + 1;
-
-        // Line 1 — item name
-        String name = truncate(font, node.getLabel(), maxTextW - badgeW);
-        g.drawString(font, name, textX, textY1, AMITheme.TEXT_PRIMARY, true);
-
-        // Line 2 — subtitle right-aligned against the scrollbar edge
-        if (hasSubtitle) {
-            String subtitleTrunc = truncate(font, subtitle, maxTextW);
-            int subtitleX = Math.max(textX, rightEdge - font.width(subtitleTrunc));
-            g.drawString(font, subtitleTrunc, subtitleX, textY2, AmiColors.MOD_COLOR, false);
-        }
+        int screenTextY = drawY + (int)((AMITheme.ROW_HEIGHT - font.lineHeight * currentLabelScale) / 2);
+        g.pose().pushPose();
+        g.pose().scale(currentLabelScale, currentLabelScale, 1f);
+        g.drawString(font, name,
+                Math.round(textX / currentLabelScale), Math.round(screenTextY / currentLabelScale),
+                AMITheme.TEXT_PRIMARY, currentLabelScale >= 1f);
+        g.pose().popPose();
 
         renderBadges(g, font, entry, drawY, rightEdge);
 
@@ -230,7 +235,7 @@ public class ResultsTreeView {
         int currentX = rightEdge;
         int textY = drawY + (AMITheme.ROW_HEIGHT - font.lineHeight) / 2;
 
-        // Render Tool Requirement Badge
+        // Tool Requirement Badge — full 16×16, vertically centred
         String reqToolStr = entry.meta(SearchNodeKeys.REQUIRED_TOOL, "");
         if (!reqToolStr.isEmpty()) {
             ResourceLocation toolId = ResourceLocation.tryParse(reqToolStr);
@@ -238,24 +243,28 @@ public class ResultsTreeView {
                 Item toolItem = BuiltInRegistries.ITEM.get(toolId);
                 if (toolItem != null && toolItem != net.minecraft.world.item.Items.AIR) {
                     ItemStack toolStack = new ItemStack(toolItem);
-                    int scaledIconSize = 8;
-                    currentX -= scaledIconSize;
-                    
-                    int badgeY = drawY + 1; // Align with top text line
-                    
+                    int iconX = currentX - 16;
+                    int iconY = drawY + (AMITheme.ROW_HEIGHT - 16) / 2;
                     g.pose().pushPose();
-                    g.pose().translate(currentX, badgeY, 150);
-                    g.pose().scale(0.5f, 0.5f, 1.0f);
-                    g.renderItem(toolStack, 0, 0);
+                    g.pose().translate(0, 0, 150);
+                    g.renderItem(toolStack, iconX, iconY);
                     g.pose().popPose();
-                    
-                    currentX -= 5; // Padding before next badge
+                    currentX = iconX - 4;
                 }
             }
         }
 
-        // Render ESM Capacity Badge
-        String cap  = entry.meta(SearchNodeKeys.ESM_CAPACITY, "");
+        // Mod name — anchored left of the tool icon (or flush to right edge when no icon)
+        String modName = entry.id().getNamespace();
+        if (!modName.isEmpty()) {
+            int textWidth = font.width(modName);
+            int textX = currentX - textWidth;
+            g.drawString(font, modName, textX, textY, AmiColors.MOD_COLOR, false);
+            currentX = textX - 4;
+        }
+
+        // ESM Capacity Badge
+        String cap = entry.meta(SearchNodeKeys.ESM_CAPACITY, "");
         if (!cap.isEmpty()) {
             Component badge = Component.translatable("ami.gui.badge.storage", cap);
             int bw = font.width(badge);
@@ -268,12 +277,17 @@ public class ResultsTreeView {
         int w = 0;
         String reqToolStr = entry.meta(SearchNodeKeys.REQUIRED_TOOL, "");
         if (!reqToolStr.isEmpty()) {
-            w += 8 + 5; // 8px for scaled icon, 5px padding
+            w += 16 + 4; // 16px full-size icon + 4px gap
         }
-        
-        String cap  = entry.meta(SearchNodeKeys.ESM_CAPACITY, "");
+
+        String modName = entry.id().getNamespace();
+        if (!modName.isEmpty()) {
+            w += font.width(modName) + 4;
+        }
+
+        String cap = entry.meta(SearchNodeKeys.ESM_CAPACITY, "");
         if (!cap.isEmpty()) {
-            w += font.width(Component.translatable("ami.gui.badge.storage", cap)) + 5;
+            w += font.width(Component.translatable("ami.gui.badge.storage", cap)) + 4;
         }
         return w;
     }
@@ -291,32 +305,20 @@ public class ResultsTreeView {
         g.drawString(font, arrow, rowX, caretY, AMITheme.TEXT_HEADER, false);
 
         // Stacked Icon Effect (Representative Item)
-        if (!node.getChildren().isEmpty()) {
-            // Find first leaf child to use for the icon
-            SearchNode representative = null;
-            for (TreeNode child : node.getChildren()) {
-                if (child.isLeaf()) {
-                    representative = child.getEntry();
-                    break;
-                }
-            }
+        SearchNode representative = getRepresentative(node);
+        if (representative != null) {
+            Item item = BuiltInRegistries.ITEM.get(representative.id());
+            ItemStack icon = new ItemStack(item);
+            int iconX = rowX + 12;
+            int iconY = drawY + 1;
 
-            if (representative != null) {
-                net.minecraft.world.item.Item item = BuiltInRegistries.ITEM.get(representative.id());
-                ItemStack icon = new ItemStack(item);
-                int iconX = rowX + 12;
-                int iconY = drawY + 1;
-                
-                // Base Icon
-                g.renderItem(icon, iconX, iconY);
-                
-                // Stacked Icon (Darkened & Offset)
-                g.pose().pushPose();
-                g.pose().translate(2, -2, 100);
-                g.fill(iconX, iconY, iconX + 16, iconY + 16, 0x44000000);
-                g.renderItem(icon, iconX, iconY);
-                g.pose().popPose();
-            }
+            g.renderItem(icon, iconX, iconY);
+
+            g.pose().pushPose();
+            g.pose().translate(2, -2, 100);
+            g.fill(iconX, iconY, iconX + 16, iconY + 16, 0x44000000);
+            g.renderItem(icon, iconX, iconY);
+            g.pose().popPose();
         }
 
         // Count Badge (computed first so we know the available label width)
@@ -326,12 +328,54 @@ public class ResultsTreeView {
 
         // Label (truncated to prevent overlap with the badge)
         int labelMaxW = badgeX - (rowX + 32) - 4;
-        int textY = drawY + (AMITheme.ROW_HEIGHT - font.lineHeight) / 2;
-        String label = truncate(font, node.getLabel(), Math.max(0, labelMaxW));
-        g.drawString(font, label, rowX + 32, textY,
-                node.isModGroup() ? AmiColors.MOD_COLOR : AMITheme.TEXT_HEADER, false);
+        int fullTextY = drawY + (AMITheme.ROW_HEIGHT - font.lineHeight) / 2;
+        String label = truncate(font, node.getLabel(), Math.max(0, (int)(labelMaxW / currentLabelScale)));
 
-        g.drawString(font, badge, badgeX, textY, AMITheme.TEXT_SUBTLE, false);
+        int screenLabelY = drawY + (int)((AMITheme.ROW_HEIGHT - font.lineHeight * currentLabelScale) / 2);
+        g.pose().pushPose();
+        g.pose().scale(currentLabelScale, currentLabelScale, 1f);
+        g.drawString(font, label,
+                Math.round((rowX + 32) / currentLabelScale), Math.round(screenLabelY / currentLabelScale),
+                node.isModGroup() ? AmiColors.MOD_COLOR : AMITheme.TEXT_HEADER, false);
+        g.pose().popPose();
+
+        g.drawString(font, badge, badgeX, fullTextY, AMITheme.TEXT_SUBTLE, false);
+    }
+
+    // ── Representative icon helpers ───────────────────────────────────────────
+
+    private SearchNode getRepresentative(TreeNode node) {
+        if (!representativeCache.containsKey(node)) {
+            representativeCache.put(node, findRepresentative(node));
+        }
+        return representativeCache.get(node);
+    }
+
+    /**
+     * Returns the alphabetically-first leaf in the subtree whose item registry
+     * lookup is non-AIR. Prefers immediate children; falls back to child groups.
+     */
+    private SearchNode findRepresentative(TreeNode node) {
+        List<SearchNode> sortedLeaves = node.getChildren().stream()
+                .filter(TreeNode::isLeaf)
+                .sorted(Comparator.comparing(c -> c.getEntry().displayName()))
+                .map(TreeNode::getEntry)
+                .toList();
+
+        for (SearchNode candidate : sortedLeaves) {
+            Item item = BuiltInRegistries.ITEM.get(candidate.id());
+            if (item != null && item != net.minecraft.world.item.Items.AIR) {
+                return candidate;
+            }
+        }
+
+        for (TreeNode child : node.getChildren()) {
+            if (!child.isLeaf()) {
+                SearchNode rep = findRepresentative(child);
+                if (rep != null) return rep;
+            }
+        }
+        return null;
     }
 
     /**
