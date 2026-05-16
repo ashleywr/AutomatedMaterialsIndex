@@ -9,6 +9,9 @@ Right now, the `ItemProvider` sets all item `colorBucket` metadata to `"gray"`. 
 - **Implementation Strategy:** Write a utility method that inspects an item's registry name, translation key, or tags for color keywords (e.g., "red", "blue", "cyan", "magenta"). 
 - Map these keywords to the known buckets in `ResultsTreeView.bucketToArgb` so the UI can render accurate color dots for grouped variants (like a stack of coloured wool).
 
+## Bugs
+- ~~Search box did not respond to typing — fixed by subscribing `ScreenEvent.CharacterTyped.Pre` and `ScreenEvent.MouseButtonPressed.Pre` in `InventoryOverlayHandler` to bypass the screen focus system (which EMI can clear). We now track focus with `searchBarInputActive` and forward events directly.~~
+
 ## UI/UX Polish
 - Ensure the tree view scrolls smoothly and maintains high framerates even with large modpacks.
 - Check the layout constraints so that switching between Grid and List view is seamless.
