@@ -2,12 +2,54 @@
 
 This document outlines the current state and the upcoming tasks to fully realize the Suginami-style interface for the Automated Materials Index (AMI).
 
-## Immediate Goal: Better Visual Grouping and Colour Extraction
-Right now, the `ItemProvider` sets all item `colorBucket` metadata to `"gray"`. This causes the variant group swatches in the list view (the little colored dots under the folder header) to always show up as gray squares, regardless of what's inside.
+## ~~Immediate Goal: Better Visual Grouping and Colour Extraction~~
+~~Right now, the `ItemProvider` sets all item `colorBucket` metadata to `"gray"`. This causes the variant group swatches in the list view (the little colored dots under the folder header) to always show up as gray squares, regardless of what's inside.~~
 
-**Task:** Improve the colour parsing logic in `ItemProvider.java`.
-- **Implementation Strategy:** Write a utility method that inspects an item's registry name, translation key, or tags for color keywords (e.g., "red", "blue", "cyan", "magenta"). 
-- Map these keywords to the known buckets in `ResultsTreeView.bucketToArgb` so the UI can render accurate color dots for grouped variants (like a stack of coloured wool).
+~~**Task:** Improve the colour parsing logic in `ItemProvider.java`.~~
+~~- **Implementation Strategy:** Write a utility method that inspects an item's registry name, translation key, or tags for color keywords (e.g., "red", "blue", "cyan", "magenta").~~ 
+~~- Map these keywords to the known buckets in `ResultsTreeView.bucketToArgb` so the UI can render accurate color dots for grouped variants (like a stack of coloured wool).~~
+
+## Subtype Engine (Vanilla Edge Cases + Modded Hero Items)
+
+Handle items where one registry ID covers many visual variants, without melting the client.
+
+**Vanilla permutation loops** — write manual `ItemStack` generation for each known edge case:
+- `minecraft:potion` — all potion effects × splash/lingering
+- `minecraft:enchanted_book` — all enchantments × all levels
+- `minecraft:spawn_egg` — iterate `BuiltInRegistries.ENTITY_TYPE` for all tagged eggs
+- `minecraft:suspicious_stew` — all effect variants
+- `minecraft:firework_rocket` — representative shapes/colors only
+- `minecraft:goat_horn` — all instrument variants
+
+**Hard cap** — if any generation loop exceeds **150 variants**, abort and register only the base item. Prevents poorly-coded mods from producing 10,000-entry batteries that crash the indexer.
+
+**`IAmiPlugin` Hero Item API (modded)** — for mods like Silent Gear / Apotheosis that generate infinite modular variants, do *not* attempt to compute them. Expose an API hook where those mod devs (or our own compat layer) can hand us a curated list of "Hero Items" (e.g., all-diamond pick, all-wood pick) to stand in as representatives.
+
+**Files to touch:** `ItemProvider.java`, `IAmiPlugin.java`, `AmiPluginRegistry.java`, possibly a new `SubtypeExpander.java`.
+
+---
+
+## Group By Engine (Condensing the Material List)
+
+Dynamically fold items into collapsible parent nodes on three axes so the UI never becomes a chaotic wall of blocks.
+
+### Group by Shape
+- Rely exclusively on Mojang's `BlockTags` (`STAIRS`, `SLABS`, `WALLS`, `FENCES`, `DOORS`, `TRAPDOORS`, `BUTTONS`, `PRESSURE_PLATES`) to bucket shape variants together — no regex, no string matching.
+- Already partly done in `ItemProvider.getVariantGroup`; needs to be promoted to the `GroupingEngine` as a first-class pass.
+
+### Group by Color
+- Hybrid approach: check `c:dyes/*` / `minecraft:*_wool` tags first, then fall back to lexical prefix matching (`red_`, `blue_`, etc.).
+- Apply a **sorting weight** so the Base Block (e.g., Red Wool, Red Terracotta) is always chosen as the group representative icon — not a carpet, bed, or banner.
+
+### Group by Material — Three-Phase Waterfall
+Process in strict order; stop at the first hit:
+1. **BlockFamilies API** — query 1.21.1's native `BlockFamilies` registry for guaranteed exact family membership (Copper Block → Cut Copper → Chiseled Copper, etc.).
+2. **Stonecutter Heuristics** — reverse-engineer crafting intent: if a Stonecutter recipe maps `X Block → X Stair`, group them under the `X` material namespace.
+3. **Tag-Lexical Fallback** — for tools and armors, intersect tags (`#c:ingots`, `#minecraft:pickaxes`) with suffix stripping (remove `_pickaxe`) to identify the root material namespace.
+
+**Files to touch:** `GroupingEngine.java`, `ItemProvider.java`, `ResultsProcessor.java`.
+
+---
 
 ## Bugs
 - ~~Search box did not respond to typing — fixed by subscribing `ScreenEvent.CharacterTyped.Pre` and `ScreenEvent.MouseButtonPressed.Pre` in `InventoryOverlayHandler` to bypass the screen focus system (which EMI can clear). We now track focus with `searchBarInputActive` and forward events directly.~~
