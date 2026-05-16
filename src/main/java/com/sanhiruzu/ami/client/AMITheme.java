@@ -15,44 +15,44 @@ public final class AMITheme {
     public static int ICON_SIZE      = 16;
     public static int ELEMENT_GAP    = 4;
 
-    // Panel chrome — neutral MC-standard dark grey
-    public static int PANEL_BG       = 0xF0100010; // Near-black with slight depth (like MC tooltips)
-    public static int PANEL_INNER    = 0xFF1A1A1A; // Dark grey content area
+    // Panel chrome — vanilla MC light grey palette
+    public static int PANEL_BG       = 0xFFC6C6C6; // Vanilla inventory grey
+    public static int PANEL_INNER    = 0xFFD0D0D0; // Slightly lighter inner surface
 
-    // Header bar (mode label row at the top of every panel)
-    public static int HEADER_BG      = 0xFF252525; // Slightly lighter than inner
-    public static int HEADER_SEP     = 0xFF3A3A3A; // Subtle 1px separator
-    public static int HEADER_TEXT    = 0xFFE0E0E0; // MC standard text color
+    // Header bar
+    public static int HEADER_BG      = 0xFFBBBBBB;
+    public static int HEADER_SEP     = 0xFF999999;
+    public static int HEADER_TEXT    = 0xFF111111;
 
     // Navigation arrows in header
-    public static int ARROW_NORMAL   = 0xFF888888; // Grey when not hovered
-    public static int ARROW_HOVER    = 0xFFFFFFFF; // White on hover
+    public static int ARROW_NORMAL   = 0xFF555555;
+    public static int ARROW_HOVER    = 0xFF000000;
 
     // Namespace group headers in atlas lists
-    public static int GROUP_BG       = 0xFF2A2A2A;
-    public static int GROUP_BG_HOVER = 0xFF363636;
-    public static int GROUP_TEXT     = 0xFFBBBBBB;
+    public static int GROUP_BG       = 0xFFBBBBBB;
+    public static int GROUP_BG_HOVER = 0xFFAAAAAA;
+    public static int GROUP_TEXT     = 0xFF222222;
 
-    public static int GROUP_HEADER_BG   = 0xFF1E1E2A; // slightly blue-tinted to read apart from leaf rows
-    public static int GROUP_HEADER_TEXT = 0xFFAAAA00;
+    public static int GROUP_HEADER_BG   = 0xFFB0B0B0; // slightly darker than panel to separate from leaf rows
+    public static int GROUP_HEADER_TEXT = 0xFF333333;
 
     // Atlas entry rows
-    public static int ENTRY_HOVER    = 0x4DFFB7C5; // Cherry Blossom Pink @ 30%
-    public static int ENTRY_TEXT     = 0xFFDDDDDD; // Standard MC text grey
-    public static int ENTRY_SUBTITLE = 0xFF888888;
+    public static int ENTRY_HOVER    = 0x3300AAFF; // vanilla-style blue tint @ ~20%
+    public static int ENTRY_TEXT     = 0xFF111111; // near-black on light background
+    public static int ENTRY_SUBTITLE = 0xFF555555;
 
     // Scrollbar
-    public static int SCROLL_TRACK        = 0xFF1A1A1A;
-    public static int SCROLL_THUMB        = 0xFF555555;
-    public static int SCROLL_THUMB_ACTIVE = 0xFF777777; // hovered or dragging
+    public static int SCROLL_TRACK        = 0xFFAAAAAA;
+    public static int SCROLL_THUMB        = 0xFF777777;
+    public static int SCROLL_THUMB_ACTIVE = 0xFF555555; // darker when hovered or dragging
 
     // Dimension badges
     public static int DIM_NETHER     = 0xFFCC4444;
     public static int DIM_END        = 0xFF9944CC;
 
     // Row and section separators (not configurable — aesthetic constants)
-    public static final int ROW_SEPARATOR = 0xFF1F1F26; // 1px line between list rows
-    public static final int SECTION_SEP   = 0xFF282838; // 1px line between FacetBar/Toolbar/Results
+    public static final int ROW_SEPARATOR = 0xFF999999; // 1px line between list rows
+    public static final int SECTION_SEP   = 0xFF888888; // 1px line between FacetBar/Toolbar/Results
 
     // Item grid
     public static int SLOT_BG        = 0xFF555555;

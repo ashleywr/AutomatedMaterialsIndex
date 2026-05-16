@@ -55,8 +55,6 @@ public class FacetBar {
     public void render(GuiGraphics g, int mouseX, int mouseY) {
         hoveredTooltip = null;
 
-        g.fill(x, y, x + width, y + HEIGHT, AMITheme.PANEL_INNER);
-
         // Clip pills to our strip so they don't spill right
         g.enableScissor(x, y, x + width, y + HEIGHT);
 

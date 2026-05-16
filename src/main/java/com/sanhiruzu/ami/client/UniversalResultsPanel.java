@@ -6,6 +6,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
@@ -13,6 +14,9 @@ import java.util.List;
 import java.util.Map;
 
 public class UniversalResultsPanel {
+
+    private static final ResourceLocation PANEL_SPRITE =
+            ResourceLocation.withDefaultNamespace("recipe_book/overlay_recipe");
 
     private int x, y, width, height;
 
@@ -87,13 +91,8 @@ public class UniversalResultsPanel {
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         AMITheme.sync(); // CSS-like hot-reloading of config values
 
-        // Drop shadow — drawn first so the panel covers the overlapping portion
-        g.fill(x + 3, y + 3, x + width + 3, y + height + 3, 0x33000000);
-        g.fill(x + 2, y + 2, x + width + 2, y + height + 2, 0x44000000);
-
-        // Rounded panel border + inner background
-        AMITheme.fillRounded(g, x, y, width, height, AMITheme.PANEL_BG);
-        AMITheme.fillRounded(g, x + 1, y + 1, width - 2, height - 2, AMITheme.PANEL_INNER);
+        // Vanilla 9-slice panel background
+        g.blitSprite(PANEL_SPRITE, x, y, width, height);
 
         facetBar.render(g, mouseX, mouseY);
 
