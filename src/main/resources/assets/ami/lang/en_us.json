@@ -88,7 +88,7 @@
   "ami.config.enable_auto_indexing": "Enable Auto Indexing",
   "ami.config.enable_auto_indexing.desc": "Automatically index items and world data on world load",
   "ami.config.render_overlay": "Render Overlay",
-  "ami.config.render_overlay.desc": "Show AMI overlay on inventory screens (toggle with I key). When disabled, AMI is completely hidden until activated.",
+  "ami.config.render_overlay.desc": "Show AMI overlay on inventory screens. When disabled, AMI is completely hidden until activated.",
   "ami.config.enable_material_root_ui": "Enable Material Root UI",
   "ami.config.enable_material_root_ui.desc": "Enable the Material Root UI (collapse blockstate variants into one node)",
   "ami.config.enable_ghost_crafting": "Enable Ghost Crafting",

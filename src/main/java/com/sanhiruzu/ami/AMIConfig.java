@@ -17,7 +17,7 @@ public class AMIConfig {
             .define("enableAutoIndexing", true);
 
     public static final ModConfigSpec.BooleanValue RENDER_OVERLAY = BUILDER
-            .comment("Show AMI overlay on inventory screens (toggle with I key).",
+            .comment("Show AMI overlay on inventory screens.",
                      "When disabled, AMI is completely hidden until activated.")
             .define("renderOverlay", true);
 
