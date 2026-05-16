@@ -1,5 +1,7 @@
 package com.sanhiruzu.ami.index;
 
+import com.sanhiruzu.ami.index.metrics.DpsMetricSniffer;
+import com.sanhiruzu.ami.index.metrics.StorageMetricSniffer;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
@@ -9,7 +11,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.tags.BlockTags;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.OptionalDouble;
+import java.util.OptionalLong;
 import java.util.stream.Collectors;
 
 /**
@@ -53,11 +58,15 @@ public final class AmiIndexerService {
 
             Map<String, String> meta = new HashMap<>();
             ItemStack stack = new ItemStack(item);
+            OptionalDouble dps = DpsMetricSniffer.estimate(stack);
+            OptionalLong esmCapacity = StorageMetricSniffer.estimate(stack, id);
             meta.put(SearchNodeKeys.MOD_ID, id.getNamespace());
             meta.put(SearchNodeKeys.VARIANT_GROUP, GroupingEngine.classifyShape(item));
             meta.put(SearchNodeKeys.COLOR_BUCKET, GroupingEngine.classifyColor(stack));
             meta.put(SearchNodeKeys.MATERIAL_GROUP, GroupingEngine.classifyMaterialRoot(stack));
             meta.put(SearchNodeKeys.ACCESS_LEVEL, accessLevel);
+            dps.ifPresent(value -> meta.put(SearchNodeKeys.DPS, formatDps(value)));
+            esmCapacity.ifPresent(value -> meta.put(SearchNodeKeys.ESM_CAPACITY, Long.toString(value)));
 
             String tags = collectTags(item);
             if (!tags.isBlank()) {
@@ -103,6 +112,10 @@ public final class AmiIndexerService {
         return item.builtInRegistryHolder().tags()
                 .map(tag -> tag.location().toString().toLowerCase())
                 .collect(Collectors.joining(","));
+    }
+
+    private static String formatDps(double value) {
+        return String.format(Locale.ROOT, "%.1f", value);
     }
 
     private static String requiredTool(Item item) {

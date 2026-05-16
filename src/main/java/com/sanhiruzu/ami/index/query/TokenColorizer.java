@@ -21,7 +21,7 @@ public final class TokenColorizer {
 
     /**
      * Colorize a query string, returning color spans for each token.
-     * Handles prefixes (#, &, ?, !, >) and negation (-).
+     * Handles prefixes (#, &, ?, !, >, <, =) and negation (-).
      */
     public static List<ColorSpan> colorize(String queryText) {
         if (queryText == null || queryText.isEmpty()) {
@@ -78,13 +78,13 @@ public final class TokenColorizer {
             case '&' -> COLOR_ENV;
             case '?' -> COLOR_PROP;
             case '!' -> COLOR_ESSENTIAL;
-            case '>' -> COLOR_ESM;
+            case '>', '<', '=' -> COLOR_ESM;
             default -> COLOR_PLAIN;
         };
 
         // Bare negation (no recognised prefix) → exclude color
         if (isExclude && prefix != '#' && prefix != '@' && prefix != '&'
-                && prefix != '?' && prefix != '!' && prefix != '>') {
+                && prefix != '?' && prefix != '!' && prefix != '>' && prefix != '<' && prefix != '=') {
             color = COLOR_EXCLUDE;
         }
 

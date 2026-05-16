@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -35,5 +36,30 @@ public class SearchIndexTest {
 
         List<SearchNode> substring = idx.substringSearch("backpack");
         assertTrue(substring.stream().anyMatch(n -> n.displayName().equals("Sophisticated Backpack")));
+    }
+
+    @Test
+    public void metadataAliasesAreSearchable() {
+        SearchIndex idx = new SearchIndex();
+
+        var oakStairs = new SearchNode(
+                ResourceLocation.parse("minecraft:oak_stairs"),
+                NodeType.ITEM,
+                "Oak Stairs",
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.MATERIAL_GROUP, "minecraft:oak",
+                        SearchNodeKeys.VARIANT_GROUP, "stairs",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "building_blocks"
+                )
+        );
+
+        idx.addNode(oakStairs);
+
+        assertTrue(idx.prefixSearch("stairs").contains(oakStairs));
+        assertTrue(idx.substringSearch("building blocks").contains(oakStairs));
+        assertTrue(idx.substringSearch("building_blocks").contains(oakStairs));
+        assertTrue(idx.substringSearch("minecraft:oak").contains(oakStairs));
     }
 }

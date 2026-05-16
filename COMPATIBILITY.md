@@ -60,6 +60,11 @@ AMI core is always active. Integration plugins activate only when their respecti
 - [x] Shell UI (fallback)
 - [ ] JEI plugin integration (deferred)
 - [ ] EMI plugin integration (deferred)
+- [ ] Storage metric compat adapters:
+  - Functional Storage drawer capacity
+  - Applied Energistics 2 cell bytes/types conversion
+  - Refined Storage disk capacity
+  - Sophisticated Backpacks API/config-backed tier capacity
 - [ ] Material Root UI (blockstate collapsing)
 - [ ] Ghost Crafting (Architect's Gauntlet)
 - [ ] Progression Graph (GameStages integration)
