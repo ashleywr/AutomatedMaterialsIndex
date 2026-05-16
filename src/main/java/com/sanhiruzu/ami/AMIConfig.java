@@ -76,7 +76,7 @@ public class AMIConfig {
     // Search bar
     public static final ModConfigSpec.ConfigValue<String> PALETTE_SEARCH_BAR_BG = BUILDER
             .comment("Search bar background color (RGB hex).")
-            .define("searchBarBg", "0xFF1A1A1A");
+            .define("searchBarBg", "0xFFD0D0D0");
 
     public static final ModConfigSpec.ConfigValue<String> PALETTE_SEARCH_BAR_BORDER = BUILDER
             .comment("Search bar border color (RGB hex).")
@@ -96,15 +96,15 @@ public static final ModConfigSpec.ConfigValue<String> PALETTE_CARD_BG = BUILDER
 
 public static final ModConfigSpec.ConfigValue<String> PALETTE_CARD_BG_HOVER = BUILDER
         .comment("Result card background color when hovered (RGB hex).")
-        .define("cardBgHover", "0x4DFFB7C5");
+        .define("cardBgHover", "0x3300AAFF");
 
 public static final ModConfigSpec.ConfigValue<String> PALETTE_CARD_TEXT_NAME = BUILDER
         .comment("Result card item name text color (RGB hex).")
-        .define("cardTextName", "0xFFDDDDDD");
+        .define("cardTextName", "0xFF111111");
 
 public static final ModConfigSpec.ConfigValue<String> PALETTE_CARD_TEXT_SUBTITLE = BUILDER
         .comment("Result card subtitle text color (RGB hex).")
-        .define("cardTextSubtitle", "0xFF888888");
+        .define("cardTextSubtitle", "0xFF555555");
 
 // Layout (CSS-like)
 static {
@@ -139,24 +139,24 @@ static {
     // Group headers
     public static final ModConfigSpec.ConfigValue<String> PALETTE_GROUP_HEADER_BG = BUILDER
             .comment("Group header background color (RGB hex).")
-            .define("groupHeaderBg", "0xFF1E1E2A");
+            .define("groupHeaderBg", "0xFFB0B0B0");
 
     public static final ModConfigSpec.ConfigValue<String> PALETTE_GROUP_HEADER_TEXT = BUILDER
             .comment("Group header text color (RGB hex).")
-            .define("groupHeaderText", "0xFFAAAA00");
+            .define("groupHeaderText", "0xFF333333");
 
     // Scrollbar
     public static final ModConfigSpec.ConfigValue<String> PALETTE_SCROLLBAR_BG = BUILDER
             .comment("Scrollbar background color (RGB hex).")
-            .define("scrollbarBg", "0xFF1A1A1A");
+            .define("scrollbarBg", "0xFFAAAAAA");
 
     public static final ModConfigSpec.ConfigValue<String> PALETTE_SCROLLBAR_THUMB = BUILDER
             .comment("Scrollbar thumb color (RGB hex).")
-            .define("scrollbarThumb", "0xFF555555");
+            .define("scrollbarThumb", "0xFF777777");
 
     public static final ModConfigSpec.ConfigValue<String> PALETTE_SCROLLBAR_THUMB_HOVER = BUILDER
             .comment("Scrollbar thumb color when hovered (RGB hex).")
-            .define("scrollbarThumbHover", "0xFF888888");
+            .define("scrollbarThumbHover", "0xFF555555");
 
     // Search behavior
     public static final ModConfigSpec.BooleanValue SUPPRESS_RECIPE_VIEWERS = BUILDER
