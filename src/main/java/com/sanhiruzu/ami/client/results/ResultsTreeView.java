@@ -17,9 +17,9 @@ import java.util.*;
 /**
  * "Suginami" rich-card list view.
  *
- * Each leaf row is 24 px tall:
- *   [X_PAD][16×16 icon][4px][Item Name  (line 1, y+2)   |  badge right-aligned]
- *                            [mod.name   (line 2, y+12)                        ]
+ * Each leaf row is 18 px tall:
+ *   [X_PAD][16×16 icon][4px][Item Name  (line 1, y+1)   |  badge right-aligned]
+ *                            [mod.name   (line 2, y+10)                        ]
  *
  * Group rows sit at the same 24 px row height and may show up to 3 colour-swatch
  * dots on the right when their children belong to a shared variant group.
@@ -152,6 +152,11 @@ public class ResultsTreeView {
             } else {
                 renderGroup(g, node, depth, drawY, hovered);
             }
+
+            // 1px separator at the bottom of every row
+            g.fill(x + 3, drawY + AMITheme.ROW_HEIGHT - 1,
+                   x + width - SCROLLBAR_W - 3, drawY + AMITheme.ROW_HEIGHT,
+                   AMITheme.ROW_SEPARATOR);
         }
 
         rowIdx++;
@@ -189,11 +194,14 @@ public class ResultsTreeView {
         
         // Line 1 — item name
         String name = truncate(font, node.getLabel(), maxTextW - badgeW);
-        g.drawString(font, name, textX, drawY + 2, AMITheme.ENTRY_TEXT, false);
+        g.drawString(font, name, textX, drawY + 1, AMITheme.ENTRY_TEXT, false);
 
-        // Line 2 — mod namespace (subtitle)
-        String modId = entry.id().getNamespace();
-        g.drawString(font, modId, textX, drawY + 12, AMITheme.ENTRY_SUBTITLE, false);
+        // Line 2 — configurable subtitle fields
+        String subtitle = RowFieldConfig.buildSubtitle(entry);
+        if (!subtitle.isEmpty()) {
+            String subtitleTrunc = truncate(font, subtitle, maxTextW);
+            g.drawString(font, subtitleTrunc, textX, drawY + 10, AMITheme.ENTRY_SUBTITLE, false);
+        }
 
         renderBadges(g, font, entry, drawY, rightEdge);
 
@@ -219,7 +227,7 @@ public class ResultsTreeView {
                     int scaledIconSize = 8;
                     currentX -= scaledIconSize;
                     
-                    int badgeY = drawY + 2; // Align with top text line
+                    int badgeY = drawY + 1; // Align with top text line
                     
                     g.pose().pushPose();
                     g.pose().translate(currentX, badgeY, 150);
@@ -238,7 +246,7 @@ public class ResultsTreeView {
             Component badge = Component.translatable("ami.gui.badge.storage", cap);
             int bw = font.width(badge);
             currentX -= bw;
-            g.drawString(font, badge, currentX, drawY + 7, 0xFF88DDFF, false);
+            g.drawString(font, badge, currentX, drawY + 5, 0xFF88DDFF, false);
         }
     }
 
@@ -264,10 +272,10 @@ public class ResultsTreeView {
 
         String arrow = node.isExpanded() ? "▼ " : "▶ ";
         String label = arrow + node.getLabel() + " (" + node.getChildCount() + ")";
-        g.drawString(font, label, x + AMITheme.GLOBAL_PADDING + indent, drawY + 2, AMITheme.GROUP_HEADER_TEXT, false);
+        g.drawString(font, label, x + AMITheme.GLOBAL_PADDING + indent, drawY + 4, AMITheme.GROUP_HEADER_TEXT, false);
 
         // Colour swatches from variant-grouped children — rendered as a subtitle
-        renderSwatches(g, node, drawY + 12, depth);
+        renderSwatches(g, node, drawY + 8, depth);
     }
 
     /**

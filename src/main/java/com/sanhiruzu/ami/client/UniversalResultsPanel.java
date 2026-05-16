@@ -7,7 +7,6 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
@@ -101,21 +100,33 @@ public class UniversalResultsPanel {
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         AMITheme.sync(); // CSS-like hot-reloading of config values
 
-        // Panel background
-        g.fill(x, y, x + width, y + height, AMITheme.PANEL_BG);
-        g.fill(x + 1, y + 1, x + width - 1, y + height - 1, AMITheme.PANEL_INNER);
+        // Drop shadow — drawn first so the panel covers the overlapping portion
+        g.fill(x + 3, y + 3, x + width + 3, y + height + 3, 0x33000000);
+        g.fill(x + 2, y + 2, x + width + 2, y + height + 2, 0x44000000);
+
+        // Rounded panel border + inner background
+        AMITheme.fillRounded(g, x, y, width, height, AMITheme.PANEL_BG);
+        AMITheme.fillRounded(g, x + 1, y + 1, width - 2, height - 2, AMITheme.PANEL_INNER);
 
         facetBar.render(g, mouseX, mouseY);
 
+        // Section separator: FacetBar → Toolbar
+        int sep1Y = y + AMITheme.GLOBAL_PADDING + FacetBar.HEIGHT;
+        g.fill(x + 3, sep1Y, x + width - 3, sep1Y + 1, AMITheme.SECTION_SEP);
+
         toolbar.setAvailableMods(toolbar.getAllMods(currentResults));
         toolbar.render(g, mouseX, mouseY);
+
+        // Section separator: Toolbar → Results
+        int toolbarY = y + AMITheme.GLOBAL_PADDING + FacetBar.HEIGHT + AMITheme.ELEMENT_GAP;
+        int sep2Y = toolbarY + toolbar.getHeight();
+        g.fill(x + 3, sep2Y, x + width - 3, sep2Y + 1, AMITheme.SECTION_SEP);
 
         boolean gridMode = toolbar.getViewMode() == ResultsToolbar.ViewMode.GRID;
         if (gridMode) {
             gridView.render(g, mouseX, mouseY);
         } else {
-            treeView.render(g, mouseX, mouseY, toolbar.isAnyDropdownOpen(),
-                    currentQuery.isEmpty() ? Component.translatable("ami.gui.pinned_discover") : null);
+            treeView.render(g, mouseX, mouseY, toolbar.isAnyDropdownOpen(), null);
         }
 
         toolbar.renderOpenDropdownLists(g, mouseX, mouseY);
@@ -130,7 +141,8 @@ public class UniversalResultsPanel {
                 toolbar.getSortField(),
                 toolbar.isAscending(),
                 toolbar.getGroupBy(),
-                toolbar.getSelectedMods()
+                toolbar.getSelectedMods(),
+                facetBar.getActiveFacets()
         );
         treeView.setRootNodes(processor.process(source));
 
@@ -138,7 +150,8 @@ public class UniversalResultsPanel {
                 toolbar.getSortField(),
                 toolbar.isAscending(),
                 toolbar.getGroupBy(),
-                toolbar.getSelectedMods()
+                toolbar.getSelectedMods(),
+                facetBar.getActiveFacets()
         );
         gridView.setRootNodes(gridProcessor.process(source));
     }

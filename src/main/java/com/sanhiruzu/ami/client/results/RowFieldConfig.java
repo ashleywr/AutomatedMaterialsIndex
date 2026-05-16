@@ -1,0 +1,89 @@
+package com.sanhiruzu.ami.client.results;
+
+import com.sanhiruzu.ami.AMIConfig;
+import com.sanhiruzu.ami.index.SearchNode;
+import net.neoforged.fml.ModList;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * Manages which fields are shown on the subtitle line of list-view rows.
+ *
+ * Persists to AMIConfig as a comma-separated list of RowField names.
+ * Resets to the default (MOD_NAME) whenever the installed mod list changes,
+ * detected via a stored hashCode of the sorted mod-ID list.
+ */
+public final class RowFieldConfig {
+    private RowFieldConfig() {}
+
+    private static volatile boolean initialized = false;
+
+    // ── Init / checksum ───────────────────────────────────────────────────────
+
+    private static synchronized void ensureInitialized() {
+        if (initialized) return;
+        initialized = true;
+        int current = computeChecksum();
+        if (current != AMIConfig.SUBTITLE_FIELDS_CHECKSUM.get()) {
+            AMIConfig.SUBTITLE_FIELDS.set(RowField.MOD_NAME.name());
+            AMIConfig.SUBTITLE_FIELDS_CHECKSUM.set(current);
+        }
+    }
+
+    /** Java hashCode of the sorted mod-ID list — cheap and sufficient for invalidation. */
+    private static int computeChecksum() {
+        return ModList.get().getMods().stream()
+                .map(info -> info.getModId())
+                .sorted()
+                .collect(Collectors.joining(","))
+                .hashCode();
+    }
+
+    // ── Read / write ──────────────────────────────────────────────────────────
+
+    /**
+     * Returns the active subtitle fields in display order (RowField ordinal).
+     * Empty list means no subtitle line should be drawn.
+     */
+    public static List<RowField> getSubtitleFields() {
+        ensureInitialized();
+        String raw = AMIConfig.SUBTITLE_FIELDS.get();
+        if (raw == null || raw.isBlank()) return List.of();
+
+        EnumSet<RowField> result = EnumSet.noneOf(RowField.class);
+        for (String part : raw.split(",")) {
+            String trimmed = part.trim();
+            if (trimmed.isEmpty()) continue;
+            try {
+                result.add(RowField.valueOf(trimmed));
+            } catch (IllegalArgumentException ignored) {}
+        }
+        return new ArrayList<>(result); // EnumSet iterates in declaration order
+    }
+
+    /** Persists a new set of subtitle fields. */
+    public static void setSubtitleFields(Collection<RowField> fields) {
+        EnumSet<RowField> ordered = fields.isEmpty()
+                ? EnumSet.noneOf(RowField.class)
+                : EnumSet.copyOf(fields);
+        AMIConfig.SUBTITLE_FIELDS.set(
+                ordered.stream().map(Enum::name).collect(Collectors.joining(",")));
+    }
+
+    // ── Rendering helper ──────────────────────────────────────────────────────
+
+    /**
+     * Builds the joined subtitle string for one node.
+     * Fields with no data for this node are silently skipped.
+     * Returns "" when nothing should be shown.
+     */
+    public static String buildSubtitle(SearchNode node) {
+        List<String> parts = new ArrayList<>();
+        for (RowField field : getSubtitleFields()) {
+            String val = field.extract(node);
+            if (!val.isEmpty()) parts.add(val);
+        }
+        return String.join(" · ", parts);
+    }
+}

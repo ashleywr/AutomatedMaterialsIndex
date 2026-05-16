@@ -15,6 +15,7 @@ public final class SearchNodeKeys {
     public static final String TAGS            = "tags";  // Comma-separated tag paths
     public static final String ESM_CAPACITY    = "emsCapacity";  // Equivalent Stack Metric
     public static final String REQUIRED_TOOL   = "requiredTool";
+    public static final String DPS             = "dps";          // Damage per second (Assembly Lab)
 
     // Atlas-specific
     public static final String DIMENSION       = "dimension";

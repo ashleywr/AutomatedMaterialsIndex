@@ -96,7 +96,7 @@ public static final ModConfigSpec.IntValue GLOBAL_PADDING = BUILDER
 
 public static final ModConfigSpec.IntValue ROW_HEIGHT = BUILDER
         .comment("Height of each item row in the list view (px).")
-        .defineInRange("rowHeight", 24, 16, 48);
+        .defineInRange("rowHeight", 18, 14, 48);
 
 public static final ModConfigSpec.IntValue ICON_SIZE = BUILDER
         .comment("Size of the item icon (px).")
@@ -118,7 +118,7 @@ static {
     // Group headers
     public static final ModConfigSpec.IntValue PALETTE_GROUP_HEADER_BG = BUILDER
             .comment("Group header background color (RGB hex).")
-            .defineInRange("groupHeaderBg", 0xFF1A1A1A, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            .defineInRange("groupHeaderBg", 0xFF1E1E2A, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.IntValue PALETTE_GROUP_HEADER_TEXT = BUILDER
             .comment("Group header text color (RGB hex).")
@@ -150,6 +150,29 @@ static {
                      "USES = open recipe viewer for item uses,",
                      "NONE = do nothing. Right-click always opens uses.")
             .defineEnum("itemClickAction", ItemClickAction.RECIPES);
+
+    static {
+        BUILDER.pop();
+    }
+
+    // -------------------------------------------------------------------------
+    // Row field configuration
+    // -------------------------------------------------------------------------
+
+    static {
+        BUILDER.push("rowfields");
+    }
+
+    public static final ModConfigSpec.ConfigValue<String> SUBTITLE_FIELDS = BUILDER
+            .comment("Comma-separated subtitle fields shown on list-row line 2.",
+                     "Valid values: MOD_NAME, STORAGE_CAPACITY, DPS",
+                     "Empty string hides the subtitle line entirely.")
+            .define("subtitleFields", "MOD_NAME");
+
+    public static final ModConfigSpec.IntValue SUBTITLE_FIELDS_CHECKSUM = BUILDER
+            .comment("Checksum of the mod list when subtitle fields were last configured.",
+                     "Changes automatically on mod-list change to reset fields to defaults.")
+            .defineInRange("subtitleFieldsChecksum", 0, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     static {
         BUILDER.pop();

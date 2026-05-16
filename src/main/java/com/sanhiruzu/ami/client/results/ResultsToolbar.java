@@ -10,10 +10,12 @@ import java.util.stream.Collectors;
 public class ResultsToolbar {
     public enum ViewMode { GRID, LIST }
 
-    private static final int TOOLBAR_HEIGHT = 20;
-    private static final int BUTTON_W = 14;
-    private static final int DROPDOWN_W = 80;
-    private static final int MOD_FILTER_W = 60;
+    private static final int TOOLBAR_HEIGHT  = 20;
+    private static final int MODE_BUTTON_W  = 26; // wide enough for "Grid"/"List"
+    private static final int BUTTON_W       = 14;
+    private static final int DROPDOWN_W     = 80;
+    private static final int MOD_FILTER_W   = 60;
+    private static final int FIELDS_BTN_W   = 44; // wide enough for "Fields (3)"
 
     private int x, y, width;
     private boolean ascending = true;
@@ -26,6 +28,9 @@ public class ResultsToolbar {
     private SingleSelectDropdown<ResultsProcessor.SortField> sortFieldDropdown;
     private SingleSelectDropdown<ResultsProcessor.GroupBy> groupByDropdown;
     private MultiSelectDropdown<String> modFilterDropdown;
+
+    // Field picker — pinned to right end of toolbar, not in the auto-sized list
+    private final RowFieldPickerDropdown fieldsPicker = new RowFieldPickerDropdown();
 
     public ResultsToolbar(int x, int y, int width) {
         this.x = x;
@@ -72,8 +77,8 @@ public class ResultsToolbar {
     }
 
     private void updateDropdownPositions() {
-        int startX = x + 2 + BUTTON_W + 3 + BUTTON_W + 3; // view-mode + sort-dir buttons
-        int availableW = width - (startX - x) - 2; // remaining width in the panel
+        int startX = x + 2 + MODE_BUTTON_W + 3 + BUTTON_W + 3; // view-mode + sort-dir buttons
+        int availableW = width - (startX - x) - FIELDS_BTN_W - 5; // reserve right edge for Fields picker
 
         int n = dropdowns.size();
         if (n == 0) return;
@@ -85,10 +90,15 @@ public class ResultsToolbar {
         int currentX = startX;
         for (int i = 0; i < n; i++) {
             Dropdown dropdown = dropdowns.get(i);
-            int w = (i == n - 1) ? (x + width - 2 - currentX) : widthPerDropdown;
+            int w = (i == n - 1)
+                    ? (x + width - FIELDS_BTN_W - 4 - currentX)
+                    : widthPerDropdown;
             dropdown.updatePosition(currentX, y + 3, Math.max(10, w));
             currentX += w + gap;
         }
+
+        // Fields picker: fixed width, right-aligned
+        fieldsPicker.updatePosition(x + width - FIELDS_BTN_W - 2, y + 3, FIELDS_BTN_W);
     }
 
     private int getDropdownWidth(Dropdown dropdown) {
@@ -105,12 +115,12 @@ public class ResultsToolbar {
     public void render(GuiGraphics g, int mouseX, int mouseY) {
         int buttonX = x + 2;
 
-        // View mode toggle button (G = grid, L = list)
-        String modeLabel = viewMode == ViewMode.GRID ? "G" : "L";
-        boolean modeHovered = isPointInRect(mouseX, mouseY, buttonX, y + 3, BUTTON_W, 14);
+        // View mode toggle button
+        String modeLabel = viewMode == ViewMode.GRID ? "Grid" : "List";
+        boolean modeHovered = isPointInRect(mouseX, mouseY, buttonX, y + 3, MODE_BUTTON_W, 14);
         int modeColor = modeHovered ? 0xFF88AAFF : 0xFF6688CC;
-        g.drawString(Minecraft.getInstance().font, modeLabel, buttonX + 4, y + 3, modeColor, false);
-        buttonX += BUTTON_W + 3;
+        g.drawString(Minecraft.getInstance().font, modeLabel, buttonX + 2, y + 3, modeColor, false);
+        buttonX += MODE_BUTTON_W + 3;
 
         // Sort direction button (▲/▼)
         String dirLabel = ascending ? "▲" : "▼";
@@ -122,6 +132,7 @@ public class ResultsToolbar {
         for (Dropdown dropdown : dropdowns) {
             dropdown.render(g, mouseX, mouseY);
         }
+        fieldsPicker.render(g, mouseX, mouseY);
     }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
@@ -130,12 +141,12 @@ public class ResultsToolbar {
         int buttonX = x + 2;
 
         // View mode toggle
-        if (isPointInRect((int) mouseX, (int) mouseY, buttonX, y + 3, BUTTON_W, 14)) {
+        if (isPointInRect((int) mouseX, (int) mouseY, buttonX, y + 3, MODE_BUTTON_W, 14)) {
             viewMode = (viewMode == ViewMode.GRID) ? ViewMode.LIST : ViewMode.GRID;
             closeAllDropdowns();
             return true;
         }
-        buttonX += BUTTON_W + 3;
+        buttonX += MODE_BUTTON_W + 3;
 
         // Sort direction button
         if (isPointInRect((int) mouseX, (int) mouseY, buttonX, y + 3, BUTTON_W, 14)) {
@@ -144,14 +155,19 @@ public class ResultsToolbar {
             return true;
         }
 
+        // Fields picker
+        if (fieldsPicker.mouseClicked(mouseX, mouseY, button)) {
+            for (Dropdown d : dropdowns) d.close();
+            return true;
+        }
+
         // Handle dropdown clicks - close others when one is clicked
         for (Dropdown dropdown : dropdowns) {
             if (dropdown.mouseClicked(mouseX, mouseY, button)) {
                 for (Dropdown other : dropdowns) {
-                    if (other != dropdown) {
-                        other.close();
-                    }
+                    if (other != dropdown) other.close();
                 }
+                fieldsPicker.close();
                 return true;
             }
         }
@@ -164,12 +180,12 @@ public class ResultsToolbar {
         for (Dropdown dropdown : dropdowns) {
             dropdown.renderList(g, mouseX, mouseY);
         }
+        fieldsPicker.renderList(g, mouseX, mouseY);
     }
 
     public void closeAllDropdowns() {
-        for (Dropdown dropdown : dropdowns) {
-            dropdown.close();
-        }
+        for (Dropdown dropdown : dropdowns) dropdown.close();
+        fieldsPicker.close();
     }
 
     private boolean isPointInRect(int x, int y, int rx, int ry, int rw, int rh) {
@@ -184,6 +200,7 @@ public class ResultsToolbar {
     public ViewMode getViewMode() { return viewMode; }
 
     public boolean isAnyDropdownOpen() {
+        if (fieldsPicker.isOpen()) return true;
         for (Dropdown dropdown : dropdowns) {
             if (dropdown.isOpen()) return true;
         }

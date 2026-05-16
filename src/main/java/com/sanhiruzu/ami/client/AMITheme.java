@@ -1,5 +1,7 @@
 package com.sanhiruzu.ami.client;
 
+import net.minecraft.client.gui.GuiGraphics;
+
 /**
  * Central palette for all AMI UI colours.
  * All rendering code reads from here so the entire look can be changed in one place.
@@ -9,7 +11,7 @@ public final class AMITheme {
 
     // Layout (CSS-like constants)
     public static int GLOBAL_PADDING = 6;
-    public static int ROW_HEIGHT     = 24;
+    public static int ROW_HEIGHT     = 18;
     public static int ICON_SIZE      = 16;
     public static int ELEMENT_GAP    = 4;
 
@@ -31,7 +33,7 @@ public final class AMITheme {
     public static int GROUP_BG_HOVER = 0xFF363636;
     public static int GROUP_TEXT     = 0xFFBBBBBB;
 
-    public static int GROUP_HEADER_BG   = 0xFF1A1A1A;
+    public static int GROUP_HEADER_BG   = 0xFF1E1E2A; // slightly blue-tinted to read apart from leaf rows
     public static int GROUP_HEADER_TEXT = 0xFFAAAA00;
 
     // Atlas entry rows
@@ -48,6 +50,10 @@ public final class AMITheme {
     public static int DIM_NETHER     = 0xFFCC4444;
     public static int DIM_END        = 0xFF9944CC;
 
+    // Row and section separators (not configurable — aesthetic constants)
+    public static final int ROW_SEPARATOR = 0xFF1F1F26; // 1px line between list rows
+    public static final int SECTION_SEP   = 0xFF282838; // 1px line between FacetBar/Toolbar/Results
+
     // Item grid
     public static int SLOT_BG        = 0xFF555555;
     public static int SLOT_HOVER     = 0xFFAAAAAA;
@@ -63,6 +69,22 @@ public final class AMITheme {
     public static int CHEAT_HEADER_SEP  = 0xFF7A5200;
     public static int CHEAT_INDICATOR   = 0xFFFFAA00; // gold indicator text
     public static int CHEAT_ENTRY_HOVER = 0xFF5A4A00; // amber entry highlight
+
+    // ── Rendering helpers ─────────────────────────────────────────────────────
+
+    /**
+     * Fills a rectangle with 2px-radius rounded corners (3 fill calls, corner pixels omitted).
+     * Falls back to a plain fill when the rectangle is too small to round.
+     */
+    public static void fillRounded(GuiGraphics g, int x, int y, int w, int h, int color) {
+        if (w < 5 || h < 5) {
+            g.fill(x, y, x + w, y + h, color);
+            return;
+        }
+        g.fill(x + 2, y,     x + w - 2, y + h,     color); // centre strip — cuts top/bottom corners
+        g.fill(x + 1, y + 1, x + w - 1, y + h - 1, color); // wider middle band
+        g.fill(x,     y + 2, x + w,     y + h - 2, color); // full width — cuts side corners
+    }
 
     /**
      * Synchronizes theme fields with AMIConfig values.
