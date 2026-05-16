@@ -23,3 +23,23 @@ Additional Resources:
 ==========
 Community Documentation: https://docs.neoforged.net/  
 NeoForged Discord: https://discord.neoforged.net/
+
+Performance Benchmarks:
+==========
+AMI has a headless NeoForge GameTest benchmark suite for registry-backed search performance.
+
+Run the full local verification pipeline with:
+
+```
+./gradlew check
+```
+
+`check` runs the JUnit test suite and the AMI GameTest benchmark. Benchmark results are appended as JSON Lines to `run/config/ami_benchmark_history.jsonl`; the `run/` directory is intentionally ignored so local performance history does not pollute commits.
+
+For longer benchmark samples, override the iteration count:
+
+```
+./gradlew runAmiBenchmarks -Pami_benchmark_iterations=500
+```
+
+When publishing releases, use the newest JSONL row as the source for release-note telemetry such as indexed item count, average search latency, P99 latency, and skipped anomalies.

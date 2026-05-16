@@ -77,6 +77,14 @@ neoForge {
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
 
+        amiBenchmarks {
+            type = "gameTestServer"
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            systemProperty 'ami.benchmark.iterations', findProperty('ami_benchmark_iterations') ?: '120'
+            systemProperty 'forge.logging.markers', ''
+            jvmArguments.addAll '-Xms512m', '-Xmx2G', '-XX:+UseG1GC'
+        }
+
         data {
             data()
 
@@ -208,6 +216,10 @@ tasks.withType(JavaCompile).configureEach {
 // Configure test task to use JUnit Platform (JUnit 5)
 test {
     useJUnitPlatform()
+}
+
+tasks.named('check').configure {
+    dependsOn tasks.named('runAmiBenchmarks')
 }
 
 // IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.
