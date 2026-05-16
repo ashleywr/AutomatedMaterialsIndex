@@ -19,12 +19,15 @@ public final class SearchIndex {
             SearchNodeKeys.COLOR_BUCKET,
             SearchNodeKeys.MATERIAL_GROUP,
             SearchNodeKeys.ESM_CAPACITY,
+            SearchNodeKeys.ENERGY_CAPACITY,
             SearchNodeKeys.DPS,
             SearchNodeKeys.DIMENSION,
             SearchNodeKeys.ENTITY_CATEGORY,
+            SearchNodeKeys.ENTITY_TRAITS,
             SearchNodeKeys.REQUIRED_TOOL,
             SearchNodeKeys.ACCESS_LEVEL,
-            SearchNodeKeys.OBTAINABILITY
+            SearchNodeKeys.OBTAINABILITY,
+            SearchNodeKeys.SEARCH_TOKENS
     );
 
     private static final class TrieNode {

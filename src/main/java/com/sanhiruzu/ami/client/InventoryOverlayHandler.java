@@ -11,7 +11,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ScreenEvent;
-import org.lwjgl.glfw.GLFW;
 
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
 public class InventoryOverlayHandler {
@@ -21,8 +20,7 @@ public class InventoryOverlayHandler {
     private static final OverlayWidgetManager manager = new OverlayWidgetManager();
     private static boolean amiEnabled = false;
     private static boolean pendingScreenReinit = false;
-    /** True when the user has clicked the search bar and it should receive keyboard input. */
-    private static boolean searchBarInputActive = false;
+    private static boolean sessionInitialized = false;
 
     private static boolean isAmiAvailable() {
         return AMIConfig.ENABLE_AUTO_INDEXING.get();
@@ -47,6 +45,12 @@ public class InventoryOverlayHandler {
     static void onScreenInit(ScreenEvent.Init.Post event) {
         if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
 
+        if (!sessionInitialized) {
+            sessionInitialized = true;
+            amiEnabled = true;
+            manager.setPanelVisible(true);
+        }
+
         // Compute widget positions from current screen geometry.
         manager.computeLayouts(containerScreen, containerScreen.width, containerScreen.height);
 
@@ -54,11 +58,10 @@ public class InventoryOverlayHandler {
         event.addListener(manager.getAmiButton());
 
         if (amiEnabled) {
+            event.addListener(manager.getSearchBar());
             event.addListener(manager.getResultsPanel());
         }
 
-        // Reset our own focus tracking so the user must explicitly re-click the search bar.
-        searchBarInputActive = false;
         manager.getSearchBar().setFocused(false);
     }
 
@@ -79,13 +82,6 @@ public class InventoryOverlayHandler {
         }
 
         manager.renderAll(event);
-
-        // Re-assert the widget's own focused flag each frame so the cursor/border render correctly.
-        // We route input directly via event handlers, so we don't need to fight for screen focus.
-        if (amiEnabled && manager.isPanelVisible() && searchBarInputActive) {
-            var searchBar = manager.getSearchBar();
-            if (!searchBar.isFocused()) searchBar.setFocused(true);
-        }
     }
 
     @SubscribeEvent
@@ -104,30 +100,37 @@ public class InventoryOverlayHandler {
 
     @SubscribeEvent
     static void onMouseButtonPressed(ScreenEvent.MouseButtonPressed.Pre event) {
+        if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
+
+        // Handle the AMI button directly — some container screens override mouseClicked without
+        // calling super, so we can't rely on the screen routing clicks to our registered child.
+        if (event.getButton() == 0 && manager.getAmiButton().isMouseOver(event.getMouseX(), event.getMouseY())) {
+            toggleAmi();
+            event.setCanceled(true);
+            return;
+        }
+
         if (!amiEnabled || !manager.isPanelVisible()) return;
-        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
 
         var searchBar = manager.getSearchBar();
         if (searchBar.isMouseOver(event.getMouseX(), event.getMouseY())) {
-            searchBarInputActive = true;
             searchBar.setFocused(true);
+            containerScreen.setFocused(searchBar);
             // Handle the click ourselves and cancel so the container screen cannot reset focus.
             searchBar.mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton());
             event.setCanceled(true);
-        } else if (searchBarInputActive) {
-            searchBarInputActive = false;
+        } else if (searchBar.isFocused()) {
             searchBar.setFocused(false);
         }
     }
 
     @SubscribeEvent
     static void onCharTyped(ScreenEvent.CharacterTyped.Pre event) {
-        if (!amiEnabled || !searchBarInputActive || !manager.isPanelVisible()) return;
-        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
-
+        if (!amiEnabled || !manager.isPanelVisible()) return;
         var searchBar = manager.getSearchBar();
-        // Re-assert focus in case another mod cleared it since our last mouse click.
-        if (!searchBar.isFocused()) searchBar.setFocused(true);
+        if (!searchBar.isFocused()) return;
+        // Route the char ourselves and cancel so container screens that override charTyped
+        // directly (e.g. CreativeModeInventoryScreen → its search box) don't also receive it.
         if (searchBar.charTyped(event.getCodePoint(), event.getModifiers())) {
             event.setCanceled(true);
         }
@@ -136,7 +139,7 @@ public class InventoryOverlayHandler {
     @SubscribeEvent
     static void onKeyPressed(ScreenEvent.KeyPressed.Pre event) {
         if (!isAmiAvailable()) return;
-        if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
+        if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
 
         InputConstants.Key pressed = InputConstants.getKey(event.getKeyCode(), event.getScanCode());
         if (AMIKeyMappings.TOGGLE_AMI.isActiveAndMatches(pressed)) {
@@ -145,21 +148,13 @@ public class InventoryOverlayHandler {
             return;
         }
 
-        if (!amiEnabled || !searchBarInputActive || !manager.isPanelVisible()) return;
-
         var searchBar = manager.getSearchBar();
-        if (!searchBar.isFocused()) searchBar.setFocused(true);
-        boolean handled = searchBar.keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers());
-        // Cancel the event for every key except Escape while the search bar is active.
-        // Without this, letter keys that match mod-configured keybinds (e.g. "I") fire
-        // their actions even though the user is just typing into the search field.
-        // Escape is the only exception — we let it propagate so the screen can close.
-        if (handled || event.getKeyCode() != GLFW.GLFW_KEY_ESCAPE) {
+        if (!amiEnabled || !manager.isPanelVisible() || !searchBar.isFocused()) return;
+
+        // Route the key directly and cancel if consumed — same pattern as onCharTyped.
+        // searchBar.keyPressed returns false for Escape and Tab so those propagate normally.
+        if (searchBar.keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
             event.setCanceled(true);
-        }
-        // If the search bar released its own focus (e.g. on Escape), mirror that here.
-        if (!searchBar.isFocused()) {
-            searchBarInputActive = false;
         }
     }
 

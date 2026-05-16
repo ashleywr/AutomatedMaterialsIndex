@@ -19,7 +19,7 @@ public class AMIConfig {
     public static final ModConfigSpec.BooleanValue RENDER_OVERLAY = BUILDER
             .comment("Show AMI overlay on inventory screens (toggle with I key).",
                      "When disabled, AMI is completely hidden until activated.")
-            .define("renderOverlay", false);
+            .define("renderOverlay", true);
 
     public static final ModConfigSpec.BooleanValue ENABLE_MATERIAL_ROOT_UI = BUILDER
             .comment("Enable the Material Root UI (collapse blockstate variants into one node)")

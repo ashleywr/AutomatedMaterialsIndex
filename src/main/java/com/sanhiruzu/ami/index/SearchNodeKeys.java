@@ -17,8 +17,10 @@ public final class SearchNodeKeys {
     public static final String MATERIAL_GROUP  = "materialGroup";
     public static final String TAGS            = "tags";  // Comma-separated tag paths
     public static final String ESM_CAPACITY    = "emsCapacity";  // Equivalent Stack Metric
+    public static final String ENERGY_CAPACITY = "energy_capacity"; // Maximum FE/RF capacity
     public static final String REQUIRED_TOOL   = "requiredTool";
     public static final String DPS             = "dps";          // Damage per second (Assembly Lab)
+    public static final String SEARCH_TOKENS   = "searchTokens";  // Space-separated synthetic search tokens
     public static final String ACCESS_LEVEL    = "accessLevel";  // "survival", "creative", "cheat", or "dev"
     public static final String VISIBILITY      = "visibility";    // "hidden" = not in any creative tab
     public static final String OBTAINABILITY   = "obtainability"; // "no_recipe" = no recipe output
@@ -27,6 +29,7 @@ public final class SearchNodeKeys {
     // Atlas-specific
     public static final String DIMENSION       = "dimension";
     public static final String ENTITY_CATEGORY = "entityCategory";
+    public static final String ENTITY_TRAITS   = "entityTraits"; // Space-separated semantic entity traits
     public static final String FIRE_IMMUNE     = "fireImmune";
 
     // Player-specific (transient, never persisted)

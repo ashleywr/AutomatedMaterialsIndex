@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.index.metrics.DpsMetricSniffer;
 import com.sanhiruzu.ami.index.metrics.StorageMetricSniffer;
+import com.sanhiruzu.ami.index.sniffers.EnergyCapacitySniffer;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
@@ -45,6 +46,7 @@ public final class AmiIndexerService {
         long started = System.nanoTime();
         GlobalIndex index = GlobalIndex.getInstance();
         index.clear();
+        EnergyCapacitySniffer energyCapacitySniffer = new EnergyCapacitySniffer();
 
         for (Item item : BuiltInRegistries.ITEM) {
             ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
@@ -60,6 +62,7 @@ public final class AmiIndexerService {
             ItemStack stack = new ItemStack(item);
             OptionalDouble dps = DpsMetricSniffer.estimate(stack);
             OptionalLong esmCapacity = StorageMetricSniffer.estimate(stack, id);
+            energyCapacitySniffer.sniff(stack).ifPresent(capacity -> addEnergyCapacity(meta, capacity));
             meta.put(SearchNodeKeys.MOD_ID, id.getNamespace());
             meta.put(SearchNodeKeys.VARIANT_GROUP, GroupingEngine.classifyShape(item));
             meta.put(SearchNodeKeys.COLOR_BUCKET, GroupingEngine.classifyColor(stack));
@@ -116,6 +119,12 @@ public final class AmiIndexerService {
 
     private static String formatDps(double value) {
         return String.format(Locale.ROOT, "%.1f", value);
+    }
+
+    private static void addEnergyCapacity(Map<String, String> meta, int capacity) {
+        meta.put(SearchNodeKeys.ENERGY_CAPACITY, Integer.toString(capacity));
+        meta.merge(SearchNodeKeys.SEARCH_TOKENS, "has_energy", (existing, token) ->
+                existing.contains(token) ? existing : existing + " " + token);
     }
 
     private static String requiredTool(Item item) {

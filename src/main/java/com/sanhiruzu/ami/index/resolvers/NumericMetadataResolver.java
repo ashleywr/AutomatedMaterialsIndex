@@ -80,6 +80,7 @@ public final class NumericMetadataResolver {
             return switch (normalized) {
                 case "dps", "damage", "damagepersecond" -> SearchNodeKeys.DPS;
                 case "storage", "capacity", "esm", "items" -> SearchNodeKeys.ESM_CAPACITY;
+                case "energy", "energycapacity", "fe", "rf", "power" -> SearchNodeKeys.ENERGY_CAPACITY;
                 default -> null;
             };
         }

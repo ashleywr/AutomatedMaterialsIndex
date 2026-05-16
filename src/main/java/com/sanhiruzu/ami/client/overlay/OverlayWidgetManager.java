@@ -21,9 +21,10 @@ public class OverlayWidgetManager {
     private static final int PANEL_MARGIN = 6;
     private static final int PANEL_MARGIN_V = 6;
 
-    private final ResultsPanelWidget resultsPanel;
-    private final SearchBarWidget searchBar;
-    private final AmiButtonWidget amiButton;
+    private ResultsPanelWidget resultsPanel;
+    private SearchBarWidget searchBar;
+    private AmiButtonWidget amiButton;
+    private boolean widgetsReady = false;
 
     private SearchService searchService = null;
     private volatile boolean indexingInProgress = false;
@@ -39,13 +40,20 @@ public class OverlayWidgetManager {
     private boolean pendingEmiReinit = false;
 
     public OverlayWidgetManager() {
+        // Widgets are created on first computeLayouts() call so Minecraft.font is available.
+    }
+
+    private void ensureWidgets() {
+        if (widgetsReady) return;
         this.resultsPanel = new ResultsPanelWidget();
         this.searchBar = new SearchBarWidget(this::triggerSearch);
         this.amiButton = new AmiButtonWidget(InventoryOverlayHandler::toggleAmi, () -> panelVisible);
+        widgetsReady = true;
     }
 
     /** Updates widget bounds for the current screen geometry. Called from both onScreenInit and renderAll. */
     public void computeLayouts(AbstractContainerScreen<?> containerScreen, int screenW, int screenH) {
+        ensureWidgets();
         lastScreenH = screenH;
         this.onLeft = false;
 

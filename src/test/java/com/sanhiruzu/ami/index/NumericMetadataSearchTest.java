@@ -45,10 +45,19 @@ public class NumericMetadataSearchTest {
                 0,
                 Map.of(SearchNodeKeys.ESM_CAPACITY, "1728")
         );
+        SearchNode energyCell = new SearchNode(
+                ResourceLocation.parse("example:energy_cell"),
+                NodeType.ITEM,
+                "Energy Cell",
+                0,
+                0,
+                Map.of(SearchNodeKeys.ENERGY_CAPACITY, "100000")
+        );
 
         index.addNode(sword);
         index.addNode(chest);
         index.addNode(barrel);
+        index.addNode(energyCell);
         SearchService service = SearchService.buildFrom(index, false);
 
         List<SearchNode> highDps = service.query(">dps:10").get(NodeType.ITEM);
@@ -63,5 +72,9 @@ public class NumericMetadataSearchTest {
         assertTrue(shorthandStorage.contains(chest));
         assertTrue(shorthandStorage.contains(barrel));
         assertFalse(shorthandStorage.contains(sword));
+
+        List<SearchNode> highEnergy = service.query(">energy:50000").get(NodeType.ITEM);
+        assertTrue(highEnergy.contains(energyCell));
+        assertFalse(highEnergy.contains(chest));
     }
 }
