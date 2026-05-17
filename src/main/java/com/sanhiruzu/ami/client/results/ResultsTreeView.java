@@ -73,6 +73,7 @@ public class ResultsTreeView {
     private List<Component> pendingTooltipLines = null;
     private Optional<TooltipComponent> pendingTooltipImage = Optional.empty();
     private ItemStack pendingItemStack = null;
+    private SearchNode hoveredNode = null;
 
     private java.util.function.Consumer<String> onModClick = null;
     private java.util.function.BiConsumer<SearchNode, Integer> onItemClick = null;
@@ -118,6 +119,7 @@ public class ResultsTreeView {
         pendingTooltipLines = null;
         pendingTooltipImage = Optional.empty();
         pendingItemStack = null;
+        hoveredNode = null;
         currentLabelScale = computeLabelScale();
 
         String currentQuery = state.getQuery();
@@ -228,8 +230,19 @@ public class ResultsTreeView {
 
         // Z-lift prevents dark-background clipping on 3D item models
         g.pose().pushPose();
-        g.pose().translate(0, 0, 150);
-        RendererRegistry.get(entry.type()).render(g, entry, iconX, iconY, AMITheme.ICON_SIZE);
+        g.pose().translate(iconX + 8, iconY + 8, 150);
+        
+        boolean dragging = com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging();
+        if (dragging || hovered) {
+            float time = (System.currentTimeMillis() % 1000) / 1000f;
+            float wiggle = (float) Math.sin(time * Math.PI * 2) * 0.05f;
+            g.pose().scale(1.1f + wiggle, 1.1f + wiggle, 1.1f);
+            if (dragging) {
+                g.pose().mulPose(com.mojang.math.Axis.ZP.rotationDegrees((float) Math.sin(time * Math.PI * 4) * 2f));
+            }
+        }
+        
+        RendererRegistry.get(entry.type()).render(g, entry, -8, -8, AMITheme.ICON_SIZE);
         g.pose().popPose();
 
         int textX = iconX + AMITheme.ICON_SIZE + 4;
@@ -267,6 +280,7 @@ public class ResultsTreeView {
         renderBadges(g, font, entry, drawY, rightEdge, modNameColor, matched);
 
         if (hovered) {
+            hoveredNode = entry;
             pendingTooltipLines = buildTooltip(entry);
             if (entry.type() != NodeType.ITEM) {
                 var renderer = RendererRegistry.get(entry.type());
@@ -405,10 +419,10 @@ public class ResultsTreeView {
             g.pose().popPose();
         }
 
-        // Count Badge
+        // Count Badge — just the number, no repeated label
         String labelStr = node.getLabel().getString();
-        String badge = "[" + node.getChildren().size() + " " + labelStr + "]";
-        int badgeW = font.width(badge);
+        String badge = "[" + node.getChildren().size() + "]";
+        int badgeW = (int)(font.width(badge) * currentLabelScale);
         int badgeX = x + width - SCROLLBAR_W - badgeW - 5;
 
         // Colour swatches — right-aligned, between label and badge
@@ -443,8 +457,15 @@ public class ResultsTreeView {
                 labelColor, false);
         g.pose().popPose();
 
-        int fullTextY = drawY + (AMITheme.ROW_HEIGHT - font.lineHeight) / 2;
-        g.drawString(font, badge, badgeX, fullTextY, AMITheme.TEXT_SUBTLE, false);
+        // Render badge at the same scale as the group label
+        int badgeY = drawY + (int)((AMITheme.ROW_HEIGHT - font.lineHeight * currentLabelScale) / 2);
+        g.pose().pushPose();
+        g.pose().scale(currentLabelScale, currentLabelScale, 1f);
+        g.drawString(font, badge,
+                Math.round(badgeX / currentLabelScale),
+                Math.round(badgeY / currentLabelScale),
+                AMITheme.TEXT_SUBTLE, false);
+        g.pose().popPose();
     }
 
     // ── Representative icon helpers ───────────────────────────────────────────
@@ -716,6 +737,12 @@ public class ResultsTreeView {
     }
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == GLFW.GLFW_KEY_A) {
+            if (hoveredNode != null) {
+                com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().toggleFavorite(hoveredNode);
+                return true;
+            }
+        }
         if (keyCode == GLFW.GLFW_KEY_C && Screen.hasControlDown()) {
             if (pendingItemStack != null && !pendingItemStack.isEmpty()) {
                 AmiClipboardHelper.copyItemTooltipToClipboard(pendingItemStack);
@@ -776,10 +803,23 @@ public class ResultsTreeView {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
     }
 
+    public SearchNode getHoveredNode() {
+        return hoveredNode;
+    }
+
+    public int getDropIndex(double mouseX, double mouseY) {
+        if (!isMouseOver(mouseX, mouseY)) return -1;
+        int contentH = lastContentH > 0 ? lastContentH : height;
+        int topOffset = height - contentH;
+        int relativeY = (int) mouseY - y - topOffset + pixelScrollOffset;
+        int rowIndex = relativeY / AMITheme.ROW_HEIGHT;
+        return Math.max(0, rowIndex);
+    }
+
     // ── Tooltip ───────────────────────────────────────────────────────────────
 
     private List<Component> buildTooltip(SearchNode entry) {
-        if (Screen.hasControlDown()) {
+        if (Screen.hasAltDown() && GLFW.glfwGetKey(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_A) == GLFW.GLFW_PRESS) {
             return DebugTooltip.build(entry);
         }
 
