@@ -87,6 +87,27 @@ public class ItemGridView {
         this.cachedRows = null;
     }
 
+    public void collapseAll() {
+        for (TreeNode node : rootNodes) {
+            setNodeExpanded(node, false);
+        }
+        this.cachedRows = null;
+    }
+
+    public void expandAll() {
+        for (TreeNode node : rootNodes) {
+            setNodeExpanded(node, true);
+        }
+        this.cachedRows = null;
+    }
+
+    private void setNodeExpanded(TreeNode node, boolean expanded) {
+        node.setExpanded(expanded);
+        for (TreeNode child : node.getChildren()) {
+            setNodeExpanded(child, expanded);
+        }
+    }
+
     public void updateLayout(int x, int y, int width, int height) {
         this.x = x; this.y = y; this.width = width; this.height = height;
         this.cachedRows = null; // cols may have changed
