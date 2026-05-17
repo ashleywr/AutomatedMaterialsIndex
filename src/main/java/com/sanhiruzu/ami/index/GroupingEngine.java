@@ -288,19 +288,36 @@ public class GroupingEngine {
         return 10;
     }
 
-    public static Map<String, List<SearchNode>> sortGroups(Map<String, List<SearchNode>> groups, List<String> order) {
+    private static final java.util.Set<String> UNKNOWN_GROUP_MARKERS = java.util.Set.of(
+        "", "item", "minecraft:item", "block"
+    );
+
+    private static boolean isUnknownGroup(String key) {
+        return UNKNOWN_GROUP_MARKERS.contains(key) || key.toLowerCase().contains("unknown");
+    }
+
+    public static Map<String, List<SearchNode>> sortGroups(Map<String, List<SearchNode>> groups, List<String> order, boolean ascending) {
+        java.util.Map<String, Integer> orderMap = new java.util.HashMap<>();
+        for (int i = 0; i < order.size(); i++) {
+            orderMap.put(order.get(i), i);
+        }
+
         List<Map.Entry<String, List<SearchNode>>> entries = new ArrayList<>(groups.entrySet());
         entries.sort((a, b) -> {
             String k1 = a.getKey(); String k2 = b.getKey();
-            int i1 = order.indexOf(k1); int i2 = order.indexOf(k2);
-            if (i1 != -1 && i2 != -1) return Integer.compare(i1, i2);
-            if (i1 != -1) return -1;
-            if (i2 != -1) return 1;
-            boolean u1 = k1.isEmpty() || k1.equals("item") || k1.equals("minecraft:item") || k1.equals("block") || k1.toLowerCase().contains("unknown");
-            boolean u2 = k2.isEmpty() || k2.equals("item") || k2.equals("minecraft:item") || k2.equals("block") || k2.toLowerCase().contains("unknown");
-            if (u1 && !u2) return 1;
-            if (!u1 && u2) return -1;
-            return k1.compareTo(k2);
+            Integer i1 = orderMap.get(k1); Integer i2 = orderMap.get(k2);
+            int cmp;
+            if (i1 != null && i2 != null) cmp = Integer.compare(i1, i2);
+            else if (i1 != null) cmp = -1;
+            else if (i2 != null) cmp = 1;
+            else {
+                boolean u1 = isUnknownGroup(k1);
+                boolean u2 = isUnknownGroup(k2);
+                if (u1 && !u2) cmp = 1;
+                else if (!u1 && u2) cmp = -1;
+                else cmp = k1.compareTo(k2);
+            }
+            return ascending ? cmp : -cmp;
         });
         Map<String, List<SearchNode>> result = new LinkedHashMap<>();
         for (var entry : entries) result.put(entry.getKey(), entry.getValue());
@@ -308,15 +325,20 @@ public class GroupingEngine {
     }
 
     private static Map<String, List<ItemStack>> sortAndFilterGroups(Map<String, List<ItemStack>> groups, List<String> order) {
+        java.util.Map<String, Integer> orderMap = new java.util.HashMap<>();
+        for (int i = 0; i < order.size(); i++) {
+            orderMap.put(order.get(i), i);
+        }
+
         List<Map.Entry<String, List<ItemStack>>> entries = new ArrayList<>(groups.entrySet());
         entries.sort((a, b) -> {
             String k1 = a.getKey(); String k2 = b.getKey();
-            int i1 = order.indexOf(k1); int i2 = order.indexOf(k2);
-            if (i1 != -1 && i2 != -1) return Integer.compare(i1, i2);
-            if (i1 != -1) return -1;
-            if (i2 != -1) return 1;
-            boolean u1 = k1.isEmpty() || k1.equals("item") || k1.equals("minecraft:item") || k1.equals("block");
-            boolean u2 = k2.isEmpty() || k2.equals("item") || k2.equals("minecraft:item") || k2.equals("block");
+            Integer i1 = orderMap.get(k1); Integer i2 = orderMap.get(k2);
+            if (i1 != null && i2 != null) return Integer.compare(i1, i2);
+            if (i1 != null) return -1;
+            if (i2 != null) return 1;
+            boolean u1 = isUnknownGroup(k1);
+            boolean u2 = isUnknownGroup(k2);
             if (u1 && !u2) return 1;
             if (!u1 && u2) return -1;
             return k1.compareTo(k2);
