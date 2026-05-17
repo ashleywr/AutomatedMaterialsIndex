@@ -156,7 +156,7 @@ public class CommandPaletteWidget {
             var font = Minecraft.getInstance().font;
             int tooltipY = mouseY;
             for (Component line : pendingTooltipLines) {
-                g.drawString(font, line, mouseX + 10, tooltipY, 0xFFFFFF, true);
+                g.drawString(font, line, mouseX + 10, tooltipY, com.sanhiruzu.ami.client.AMITheme.WHITE, true);
                 tooltipY += 10;
             }
         }
@@ -165,7 +165,7 @@ public class CommandPaletteWidget {
     private void drawOverlay(GuiGraphics g) {
         int overlayColor = AmiConfig.overlayBg;
         int a = (int) (((overlayColor >> 24) & 0xFF) * alpha);
-        int rgb = overlayColor & 0xFFFFFF;
+        int rgb = overlayColor & com.sanhiruzu.ami.client.AMITheme.WHITE;
         int color = (a << 24) | rgb;
         g.fill(0, 0, screenWidth, screenHeight, color);
     }
@@ -213,7 +213,7 @@ public class CommandPaletteWidget {
             Component msg = searchQuery.isEmpty() 
                 ? Component.translatable("ami.gui.search.typing") 
                 : Component.translatable("ami.gui.search.empty");
-            g.drawString(font, msg, x + PADDING, y + PADDING, 0xFFAAAA00, false);
+            g.drawString(font, msg, x + PADDING, y + PADDING, com.sanhiruzu.ami.client.AMITheme.ACCENT_GOLD, false);
             return;
         }
 
@@ -233,7 +233,7 @@ public class CommandPaletteWidget {
                 // Assuming palette had group header color, using a default or adding to AmiConfig if needed
                 // Using card name color for now as a fallback
                 g.drawString(Minecraft.getInstance().font, arrow + group.displayName + " (" + group.entries.size() + ")",
-                        x + PADDING, drawY + 6, 0xFF333333, false);
+                        x + PADDING, drawY + 6, com.sanhiruzu.ami.client.AMITheme.GROUP_HEADER_TEXT, false);
             }
             row++;
 
@@ -295,26 +295,26 @@ public class CommandPaletteWidget {
             Component hint = Component.translatable("ami.gui.search.recipe");
             int hintW = Minecraft.getInstance().font.width(hint);
             // Fallback action hint color
-            g.drawString(Minecraft.getInstance().font, hint, x + w - hintW - PADDING, y + 6, 0xFF555555, false);
+            g.drawString(Minecraft.getInstance().font, hint, x + w - hintW - PADDING, y + 6, com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE, false);
         }
     }
 
     private void drawScrollbar(GuiGraphics g, int x, int y, int w, int h, int totalRows, int visibleRows) {
         // Fallback scrollbar colors
-        g.fill(x, y, x + w, y + h, 0xFFAAAAAA);
+        g.fill(x, y, x + w, y + h, com.sanhiruzu.ami.client.AMITheme.SCROLL_TRACK);
 
         // Thumb
         int thumbH = Math.max(10, (h * visibleRows) / totalRows);
         int thumbY = y + (h * scrollOffset) / totalRows;
         boolean thumbHovered = scrollbarDragging || (true);  // TODO: hover detection
-        int thumbColor = thumbHovered ? 0xFF555555 : 0xFF777777;
+        int thumbColor = thumbHovered ? com.sanhiruzu.ami.client.AMITheme.SCROLL_THUMB_ACTIVE : com.sanhiruzu.ami.client.AMITheme.SCROLL_THUMB;
         g.fill(x, thumbY, x + w, thumbY + thumbH, thumbColor);
     }
 
     private List<Component> buildTooltip(SearchNode entry) {
         List<Component> lines = new ArrayList<>();
-        lines.add(Component.literal(entry.displayName()).withStyle(s -> s.withColor(0xFFFFFF)));
-        lines.add(Component.literal(entry.id().toString()).withStyle(s -> s.withColor(0xAAAAAA)));
+        lines.add(Component.literal(entry.displayName()).withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.WHITE)));
+        lines.add(Component.literal(entry.id().toString()).withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE)));
         return lines;
     }
 
