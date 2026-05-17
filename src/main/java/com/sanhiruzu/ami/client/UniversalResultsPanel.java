@@ -40,6 +40,11 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private String currentQuery = "";
     private SearchService searchService;
     private Runnable externalResetCallback;
+    private boolean isFavoritesPanel = false;
+
+    private SearchNode pressedNode = null;
+    private double pressedX, pressedY;
+    private static final double DRAG_THRESHOLD = 5.0;
 
     // State tracking to trigger auto-refreshes when player context changes
     private net.minecraft.world.level.GameType lastPlayerMode = null;
@@ -219,11 +224,14 @@ public class UniversalResultsPanel implements SearchState.Listener {
             g.fill(toggleX + TOGGLE_W - 1, toggleY,           toggleX + TOGGLE_W, toggleY + TOGGLE_H,       border); // right
         }
 
-        var font = Minecraft.getInstance().font;
-        String label = compact ? "≡" : "⊡"; // ≡ / ⊡
-        int textColor = compact ? 0xFFAADDFF : (hovered ? 0xFFFFFFA0 : 0xFFAAAAAA);
-        g.drawCenteredString(font, label, toggleX + TOGGLE_W / 2,
-                toggleY + (TOGGLE_H - font.lineHeight) / 2, textColor);
+        int iconColor = compact ? 0xFFAADDFF : (hovered ? 0xFFFFFFA0 : 0xFFAAAAAA);
+        int cx = toggleX + TOGGLE_W / 2;
+        int cy = toggleY + TOGGLE_H / 2;
+        if (compact) {
+            AmiGuiIcons.expand(g, cx, cy, iconColor);
+        } else {
+            AmiGuiIcons.compact(g, cx, cy, iconColor);
+        }
     }
 
     private void checkPlayerStateChanged() {
@@ -283,6 +291,19 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0 && button != 1) return false;
+
+        pressedNode = null;
+        if (button == 0) {
+            if (isGridActive()) {
+                pressedNode = gridView.getHoveredNode();
+            } else {
+                pressedNode = treeView.getHoveredNode();
+            }
+            if (pressedNode != null) {
+                pressedX = mouseX;
+                pressedY = mouseY;
+            }
+        }
 
         // Compact toggle — always first, regardless of mode
         if (button == 0 && isOverToggle(mouseX, mouseY)) {
@@ -359,8 +380,51 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (pressedNode != null && button == 0 && !com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging()) {
+            double dx = mouseX - pressedX;
+            double dy = mouseY - pressedY;
+            if (dx * dx + dy * dy > DRAG_THRESHOLD * DRAG_THRESHOLD) {
+                ItemStack stack = com.sanhiruzu.ami.client.icon.ItemIconRenderer.resolveStack(pressedNode.id());
+                if (!stack.isEmpty()) {
+                    com.sanhiruzu.ami.compat.RecipeViewerBridge.startDrag(stack);
+                    pressedNode = null;
+                }
+            }
+        }
+
         if (isGridActive()) return gridView.mouseDragged(mouseX, mouseY, button, dragX, dragY);
         return treeView.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    public void setFavoritesPanel(boolean favoritesPanel) {
+        isFavoritesPanel = favoritesPanel;
+    }
+
+    public void mouseReleased(double mouseX, double mouseY, int button) {
+        if (button == 0) {
+            if (com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging()) {
+                boolean handled = false;
+                
+                // Check if dropped into a favorites panel
+                var manager = com.sanhiruzu.ami.client.InventoryOverlayHandler.getManager();
+                var favPanel = manager.getFavoritesPanel();
+                if (favPanel != null && favPanel.visible && favPanel.getInnerPanel().isMouseOver(mouseX, mouseY)) {
+                    int dropIndex = favPanel.getInnerPanel().getDropIndex(mouseX, mouseY);
+                    ItemStack stack = com.sanhiruzu.ami.compat.RecipeViewerBridge.getDraggedStack();
+                    if (!stack.isEmpty()) {
+                        com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().addFavoriteAt(stack, dropIndex);
+                        com.sanhiruzu.ami.compat.RecipeViewerBridge.stopDrag();
+                        handled = true;
+                    }
+                }
+                
+                if (!handled) {
+                    com.sanhiruzu.ami.compat.RecipeViewerBridge.handleDrop(mouseX, mouseY);
+                }
+            }
+            pressedNode = null;
+        }
+        stopScrollbarDrag();
     }
 
     public void stopScrollbarDrag() {
@@ -384,4 +448,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
     public int getHeight()  { return height; }
     public ResultsToolbar getToolbar() { return toolbar; }
     public SearchState getState() { return state; }
+
+    public int getDropIndex(double mouseX, double mouseY) {
+        if (isGridActive()) return gridView.getDropIndex(mouseX, mouseY);
+        return treeView.getDropIndex(mouseX, mouseY);
+    }
 }

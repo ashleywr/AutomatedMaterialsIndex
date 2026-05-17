@@ -16,4 +16,32 @@ class EmiRecipeBridge {
     static void openUses(ItemStack stack) {
         EmiApi.displayUses(EmiStack.of(stack));
     }
+
+    static void startDrag(ItemStack stack) {
+        dev.emi.emi.screen.EmiScreenManager.draggedStack = EmiStack.of(stack);
+    }
+
+    static ItemStack getDraggedStack() {
+        dev.emi.emi.api.stack.EmiIngredient stack = dev.emi.emi.screen.EmiScreenManager.draggedStack;
+        if (stack instanceof EmiStack es) {
+            return es.getItemStack();
+        }
+        return ItemStack.EMPTY;
+    }
+
+    static boolean isDragging() {
+        return !dev.emi.emi.screen.EmiScreenManager.draggedStack.isEmpty();
+    }
+
+    static void stopDrag() {
+        dev.emi.emi.screen.EmiScreenManager.draggedStack = EmiStack.EMPTY;
+    }
+
+    static boolean handleDrop(net.minecraft.client.gui.screens.Screen screen, double mouseX, double mouseY) {
+        dev.emi.emi.api.stack.EmiIngredient stack = dev.emi.emi.screen.EmiScreenManager.draggedStack;
+        if (stack.isEmpty()) return false;
+        boolean handled = dev.emi.emi.registry.EmiDragDropHandlers.dropStack(screen, stack, (int)mouseX, (int)mouseY);
+        dev.emi.emi.screen.EmiScreenManager.draggedStack = EmiStack.EMPTY;
+        return handled;
+    }
 }

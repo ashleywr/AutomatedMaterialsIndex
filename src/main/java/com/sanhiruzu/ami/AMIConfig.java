@@ -270,6 +270,26 @@ static {
     }
 
     // -------------------------------------------------------------------------
+    // Side Panels
+    // -------------------------------------------------------------------------
+
+    static {
+        BUILDER.push("sidepanels");
+    }
+
+    public static final ModConfigSpec.BooleanValue SHOW_FAVORITES = BUILDER
+            .comment("Whether to show the favorites panel on the left.")
+            .define("showFavorites", true);
+
+    public static final ModConfigSpec.IntValue FAVORITES_PANEL_WIDTH = BUILDER
+            .comment("Width of the favorites panel in pixels.")
+            .defineInRange("favoritesPanelWidth", 140, 100, 400);
+
+    static {
+        BUILDER.pop();
+    }
+
+    // -------------------------------------------------------------------------
 
     public static final ModConfigSpec SPEC = BUILDER.build();
 }
