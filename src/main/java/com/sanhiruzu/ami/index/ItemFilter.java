@@ -57,8 +57,9 @@ public final class ItemFilter {
     public static String classifyAccessLevel(ResourceLocation id, boolean inCreative) {
         String path = id.getPath();
 
-        // Explicitly hidden items are always dev-only
-        if (path.contains("debug") || path.contains("test_")) return ACCESS_DEV;
+        // Explicitly hidden/technical items are always dev-only
+        if (path.contains("debug") || path.contains("test_") || path.contains("fireball")
+            || path.contains("effect") || path.contains("particle")) return ACCESS_DEV;
 
         // Special restricted items
         if (path.endsWith("_egg") || path.contains("spawner")) return ACCESS_CREATIVE;
