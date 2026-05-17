@@ -254,6 +254,8 @@
 
   "ami.config.value.ui.theme": "UI Theme",
   "ami.config.tooltip.ui.theme": "Overall visual style of the AMI overlay.",
+  "ami.config.value.ui.use-transparent-theme": "Transparent Backgrounds",
+  "ami.config.tooltip.ui.use-transparent-theme": "Replaces opaque vanilla backgrounds with modern semi-transparent fills.",
   "ami.config.value.ui.accent-color": "Accent Color",
   "ami.config.tooltip.ui.accent-color": "Color used for highlights and headers.",
   "ami.config.value.ui.show-header": "Show Header",
@@ -265,6 +267,8 @@
 
   "ami.config.value.palette.overlay-bg": "Overlay BG Color",
   "ami.config.tooltip.palette.overlay-bg": "Color of the full-screen background tint.",
+  "ami.config.value.palette.panel-bg": "Panel BG Color",
+  "ami.config.tooltip.palette.panel-bg": "Background color for sidebar and result panels.",
   "ami.config.value.palette.search-bar-bg": "Search Bar BG Color",
   "ami.config.tooltip.palette.search-bar-bg": "Background color of the search input.",
   "ami.config.value.palette.search-bar-border": "Search Bar Border",
