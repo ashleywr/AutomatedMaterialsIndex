@@ -1,12 +1,7 @@
 package com.sanhiruzu.ami.benchmark;
 
 import com.sanhiruzu.ami.AMI;
-import com.sanhiruzu.ami.index.AmiIndexerService;
-import com.sanhiruzu.ami.index.GlobalIndex;
-import com.sanhiruzu.ami.index.NodeType;
-import com.sanhiruzu.ami.index.SearchNode;
-import com.sanhiruzu.ami.index.SearchNodeKeys;
-import com.sanhiruzu.ami.index.SearchService;
+import com.sanhiruzu.ami.index.*;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;

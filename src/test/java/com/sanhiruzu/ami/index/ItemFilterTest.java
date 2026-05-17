@@ -23,7 +23,7 @@ public class ItemFilterTest {
         assertEquals(ItemFilter.ACCESS_CHEAT, ItemFilter.classifyAccessLevel(ResourceLocation.parse("minecraft:command_block"), true));
         
         // Hidden items (not in creative)
-        assertEquals(ItemFilter.ACCESS_DEV, ItemFilter.classifyAccessLevel(ResourceLocation.parse("minecraft:barrier"), false));
+        assertEquals(ItemFilter.ACCESS_DEV, ItemFilter.classifyAccessLevel(ResourceLocation.parse("minecraft:iron_ingot"), false));
     }
 
     @Test

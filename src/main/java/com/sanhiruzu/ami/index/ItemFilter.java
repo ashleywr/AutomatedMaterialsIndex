@@ -8,7 +8,6 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.loading.FMLLoader;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -56,11 +55,18 @@ public final class ItemFilter {
     }
 
     public static String classifyAccessLevel(ResourceLocation id, boolean inCreative) {
-        if (!inCreative) return ACCESS_DEV;
         String path = id.getPath();
+
+        // Explicitly hidden items are always dev-only
         if (path.contains("debug") || path.contains("test_")) return ACCESS_DEV;
+
+        // Special restricted items
         if (path.endsWith("_egg") || path.contains("spawner")) return ACCESS_CREATIVE;
         if (path.contains("command_block") || path.equals("structure_block") || path.equals("barrier")) return ACCESS_CHEAT;
+
+        // Items not in creative tabs get ACCESS_DEV by default, but this can be overridden
+        if (!inCreative) return ACCESS_DEV;
+
         return ACCESS_SURVIVAL;
     }
 
