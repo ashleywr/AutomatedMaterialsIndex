@@ -44,4 +44,40 @@ class EmiRecipeBridge {
         dev.emi.emi.screen.EmiScreenManager.draggedStack = EmiStack.EMPTY;
         return handled;
     }
+
+    static java.util.List<ItemStack> getCraftables() {
+        return dev.emi.emi.runtime.EmiSidebars.craftables.stream()
+                .map(EmiRecipeBridge::toItemStack)
+                .filter(s -> !s.isEmpty())
+                .toList();
+    }
+
+    static java.util.List<ItemStack> getLookupHistory() {
+        return dev.emi.emi.runtime.EmiSidebars.lookupHistory.stream()
+                .map(EmiRecipeBridge::toItemStack)
+                .filter(s -> !s.isEmpty())
+                .toList();
+    }
+
+    static java.util.List<ItemStack> getCraftHistory() {
+        return dev.emi.emi.runtime.EmiSidebars.craftHistory.stream()
+                .map(EmiRecipeBridge::toItemStack)
+                .filter(s -> !s.isEmpty())
+                .toList();
+    }
+
+    private static ItemStack toItemStack(dev.emi.emi.api.stack.EmiIngredient ingredient) {
+        if (ingredient instanceof EmiStack es) {
+            return es.getItemStack();
+        }
+        var stacks = ingredient.getEmiStacks();
+        if (!stacks.isEmpty()) {
+            return stacks.get(0).getItemStack();
+        }
+        return ItemStack.EMPTY;
+    }
+
+    static void handleShiftClick(ItemStack stack) {
+        EmiApi.displayRecipes(EmiStack.of(stack));
+    }
 }

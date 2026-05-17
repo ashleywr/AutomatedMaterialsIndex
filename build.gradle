@@ -132,8 +132,8 @@ configurations {
 
     // dev_recipe_viewer controls which recipe viewer runs at runtime (set in gradle.properties).
     // Both are always on the compile classpath so AMI can reference both APIs.
-    // Values: emi | jei | both
-def devRecipeViewer = findProperty('dev_recipe_viewer') ?: 'emi'
+    // Values: emi | jei | both (default: both)
+def devRecipeViewer = findProperty('dev_recipe_viewer') ?: 'both'
 
 dependencies {
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"

@@ -13,7 +13,7 @@ public class AmiConfig {
     }
 
     public enum PanelContent {
-        NONE, EMPTY, FAVORITES, GRID, LIST, COMPACT, LOOKUP_HISTORY, CRAFTING_HISTORY
+        NONE, EMPTY, FAVORITES, GRID, LIST, COMPACT, LOOKUP_HISTORY, CRAFTING_HISTORY, CRAFTABLE
     }
 
     public enum Theme {
@@ -63,8 +63,14 @@ public class AmiConfig {
     @ConfigValue("sidepanels.left.content")
     public static PanelContent leftPanelContent = PanelContent.FAVORITES;
 
+    @ConfigValue("sidepanels.left.secondary-content")
+    public static PanelContent leftPanelSecondaryContent = PanelContent.NONE;
+
     @ConfigValue("sidepanels.right.content")
     public static PanelContent rightPanelContent = PanelContent.GRID;
+
+    @ConfigValue("sidepanels.right.secondary-content")
+    public static PanelContent rightPanelSecondaryContent = PanelContent.NONE;
 
     @ConfigValue("sidepanels.left.width")
     public static int leftPanelWidth = 140;
