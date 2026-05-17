@@ -343,13 +343,14 @@ public class ItemGridView {
     private void renderScrollbar(GuiGraphics g, int totalH, int mouseX, int mouseY) {
         if (totalH <= height) return;
         boolean active = scrollbarDragging || isScrollbarHovered(mouseX, mouseY);
-        int barW = active ? 5 : 3;
+        int barW = active ? 6 : 4;
         int barX = x + width - 1 - barW;
-        int thumbH = Math.max(10, (height * height) / totalH);
+        int thumbH = Math.max(12, (height * height) / totalH);
         int maxScroll = totalH - height;
         int thumbY = y + (pixelScrollOffset * (height - thumbH)) / maxScroll;
 
-        g.fill(barX, y, barX + barW, y + height, 0xFF2A2A2A);
+        // Higher contrast track background
+        g.fill(x + width - SCROLLBAR_W, y, x + width, y + height, 0x44000000);
         g.fill(barX, thumbY, barX + barW, thumbY + thumbH,
                 active ? 0xFFAAAA88 : 0xFF666666);
     }
@@ -358,7 +359,8 @@ public class ItemGridView {
         int cols = computeCols();
         int totalH = calcTotalHeight(getVirtualRows(cols));
         if (totalH <= height) return false;
-        return mouseX >= x + width - 6 && mouseX < x + width - 1
+        // Widen hitbox to 10px
+        return mouseX >= x + width - 10 && mouseX < x + width
                 && mouseY >= y && mouseY < y + height;
     }
 

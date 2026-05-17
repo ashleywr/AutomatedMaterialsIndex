@@ -7,6 +7,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.*;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.item.alchemy.PotionContents;
@@ -61,7 +62,7 @@ public final class SubtypeExpander {
                                             RegistryAccess registryAccess) {
         if (!baseId.getNamespace().equals("minecraft")) return List.of();
 
-        return switch (baseId.getPath()) {
+        List<SubtypeEntry> result = switch (baseId.getPath()) {
             case "potion"          -> expandPotions(Items.POTION,          "potion");
             case "splash_potion"   -> expandPotions(Items.SPLASH_POTION,   "splash_potion");
             case "lingering_potion" -> expandPotions(Items.LINGERING_POTION, "lingering_potion");
@@ -70,8 +71,17 @@ public final class SubtypeExpander {
             case "suspicious_stew" -> expandSuspiciousStew();
             case "firework_rocket" -> expandFireworkRockets();
             case "goat_horn"       -> expandGoatHorns(registryAccess);
+            case "spawn_egg"       -> expandSpawnEggs();
             default -> List.of();
         };
+
+        if (result.isEmpty() && !baseId.getPath().equals("air")) {
+            // Check if it was aborted due to HARD_CAP.
+            // We can't easily know if it returned empty because it was empty or because it aborted,
+            // so we'll let the individual methods handle the abort signal.
+        }
+
+        return result;
     }
 
     // ── Potions (and tipped arrows which share PotionContents) ───────────────
@@ -80,8 +90,8 @@ public final class SubtypeExpander {
         List<SubtypeEntry> result = new ArrayList<>();
         for (Holder.Reference<Potion> potionRef : BuiltInRegistries.POTION.holders().toList()) {
             if (result.size() >= HARD_CAP) {
-                AMI.LOGGER.warn("SubtypeExpander: hit HARD_CAP for {}", itemPath);
-                break;
+                AMI.LOGGER.warn("SubtypeExpander: hit HARD_CAP for {}; aborting expansion.", itemPath);
+                return List.of();
             }
             ResourceLocation potionId = potionRef.key().location();
             String effectPath = potionId.getPath();
@@ -110,16 +120,15 @@ public final class SubtypeExpander {
 
         List<SubtypeEntry> result = new ArrayList<>();
         for (Holder.Reference<Enchantment> enchRef : enchantmentRegistry.holders().toList()) {
-            if (result.size() >= HARD_CAP) {
-                AMI.LOGGER.warn("SubtypeExpander: hit HARD_CAP for enchanted_book");
-                break;
-            }
             Enchantment enchantment = enchRef.value();
             ResourceLocation enchId = enchRef.key().location();
             int maxLevel = enchantment.getMaxLevel();
 
             for (int level = 1; level <= maxLevel; level++) {
-                if (result.size() >= HARD_CAP) break;
+                if (result.size() >= HARD_CAP) {
+                    AMI.LOGGER.warn("SubtypeExpander: hit HARD_CAP for enchanted_book; aborting expansion.");
+                    return List.of();
+                }
 
                 ItemStack stack = new ItemStack(Items.ENCHANTED_BOOK);
                 ItemEnchantments.Mutable mutable = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
@@ -144,10 +153,6 @@ public final class SubtypeExpander {
         Set<ResourceLocation> seenEffectIds = new HashSet<>();
 
         for (Block block : BuiltInRegistries.BLOCK) {
-            if (result.size() >= HARD_CAP) {
-                AMI.LOGGER.warn("SubtypeExpander: hit HARD_CAP for suspicious_stew");
-                break;
-            }
             SuspiciousEffectHolder holder = SuspiciousEffectHolder.tryGet(block);
             if (holder == null) continue;
 
@@ -159,6 +164,11 @@ public final class SubtypeExpander {
             ResourceLocation effectId = BuiltInRegistries.MOB_EFFECT
                     .getKey(firstEntry.effect().value());
             if (effectId == null || !seenEffectIds.add(effectId)) continue;
+
+            if (result.size() >= HARD_CAP) {
+                AMI.LOGGER.warn("SubtypeExpander: hit HARD_CAP for suspicious_stew; aborting expansion.");
+                return List.of();
+            }
 
             ItemStack stack = new ItemStack(Items.SUSPICIOUS_STEW);
             stack.set(DataComponents.SUSPICIOUS_STEW_EFFECTS, effects);
@@ -218,8 +228,8 @@ public final class SubtypeExpander {
         List<SubtypeEntry> result = new ArrayList<>();
         for (Holder.Reference<Instrument> instrRef : instrumentRegistry.holders().toList()) {
             if (result.size() >= HARD_CAP) {
-                AMI.LOGGER.warn("SubtypeExpander: hit HARD_CAP for goat_horn");
-                break;
+                AMI.LOGGER.warn("SubtypeExpander: hit HARD_CAP for goat_horn; aborting expansion.");
+                return List.of();
             }
 
             ItemStack stack = new ItemStack(Items.GOAT_HORN);
@@ -229,6 +239,32 @@ public final class SubtypeExpander {
             ResourceLocation syntheticId = syntheticId("goat_horn",
                     instrId.getNamespace(), instrId.getPath());
             result.add(new SubtypeEntry(syntheticId, stack, stack.getHoverName().getString()));
+        }
+        return result;
+    }
+
+    // ── Spawn eggs ───────────────────────────────────────────────────────────
+
+    private static List<SubtypeEntry> expandSpawnEggs() {
+        List<SubtypeEntry> result = new ArrayList<>();
+        for (Item item : BuiltInRegistries.ITEM) {
+            if (item instanceof SpawnEggItem egg) {
+                if (result.size() >= HARD_CAP) {
+                    AMI.LOGGER.warn("SubtypeExpander: hit HARD_CAP for spawn_egg; aborting expansion.");
+                    return List.of();
+                }
+
+                ItemStack stack = new ItemStack(egg);
+                EntityType<?> entityType = egg.getType(stack);
+                if (entityType == null) continue;
+
+                ResourceLocation entityId = BuiltInRegistries.ENTITY_TYPE.getKey(entityType);
+                if (entityId == null) continue;
+
+                ResourceLocation syntheticId = syntheticId("spawn_egg",
+                        entityId.getNamespace(), entityId.getPath());
+                result.add(new SubtypeEntry(syntheticId, stack, stack.getHoverName().getString()));
+            }
         }
         return result;
     }

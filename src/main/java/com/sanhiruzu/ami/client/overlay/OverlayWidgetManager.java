@@ -2,7 +2,6 @@ package com.sanhiruzu.ami.client.overlay;
 
 import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.AMIConfig;
-import com.sanhiruzu.ami.AMILayoutConfig;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
@@ -101,7 +100,7 @@ public class OverlayWidgetManager {
         resultsPanel.updateBounds(new WidgetBounds(startX, panelY, actualWidth, panelH));
         lastResultsBounds = resultsPanel.getBounds();
 
-        int searchBarW = Math.min(AMILayoutConfig.SEARCH_BAR_WIDTH.get(), screenW - 8);
+        int searchBarW = Math.min(AMIConfig.SEARCH_BAR_WIDTH.get(), screenW - 8);
         int searchBarX = Math.max(4, (screenW - searchBarW) / 2);
         int searchBarY = screenH - BOTTOM_BAR_H + 2;
         searchBar.updateBounds(new WidgetBounds(searchBarX, searchBarY, searchBarW, SEARCH_H));

@@ -178,10 +178,13 @@ public class ResultsToolbar implements SearchState.Listener {
 
     /** Renders only the open dropdown lists — call AFTER the tree view so they appear on top. */
     public void renderOpenDropdownLists(GuiGraphics g, int mouseX, int mouseY) {
+        g.pose().pushPose();
+        g.pose().translate(0, 0, 400); // Lift above icons (Z=150) and other UI elements
         for (Dropdown dropdown : dropdowns) {
             dropdown.renderList(g, mouseX, mouseY);
         }
         fieldsPicker.renderList(g, mouseX, mouseY);
+        g.pose().popPose();
     }
 
     public void closeAllDropdowns() {
