@@ -110,7 +110,8 @@
   "ami.group.unknown_family": "Unknown Family",
   "ami.group.unknown_shape": "Unknown Shape",
 
-  "ami.category.social": "Social & Navigation",
+  "ami.category.navigation": "Navigation",
+  "ami.category.social": "Social",
   "ami.category.entities": "Mobs",
   "ami.category.magic": "Magic & Alchemy",
   "ami.category.armor": "Armor & Wearables",
@@ -121,8 +122,10 @@
   "ami.category.environment": "Environment",
   "ami.category.blocks": "Blocks",
 
+  "ami.subcategory.navigation.instruments": "Instruments",
+  "ami.subcategory.navigation.waypoints": "Waypoints",
+
   "ami.subcategory.social.players": "Online Players",
-  "ami.subcategory.social.waypoints": "Saved Waypoints",
   "ami.subcategory.social.teams": "Team Members",
   "ami.subcategory.social.claims": "Public Server Claims",
 
