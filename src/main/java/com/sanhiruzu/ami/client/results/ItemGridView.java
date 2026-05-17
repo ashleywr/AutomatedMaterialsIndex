@@ -521,8 +521,14 @@ public class ItemGridView {
         int cols = computeCols();
         int totalH = calcTotalHeight(getVirtualRows(cols));
         int maxScroll = Math.max(0, totalH - height);
+
+        // Adaptive scroll speed: 1/2 of visible height per tick
+        // With 400 mods, this provides snappy scrolling like EMI
+        int visibleRows = Math.max(1, height / CELL_SIZE);
+        int scrollAmount = (visibleRows * CELL_SIZE) / 2;
+
         pixelScrollOffset = Math.max(0, Math.min(maxScroll,
-                (int) (pixelScrollOffset - delta * CELL_SIZE * 3)));
+                (int) (pixelScrollOffset - delta * scrollAmount)));
         return true;
     }
 
