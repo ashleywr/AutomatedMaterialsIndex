@@ -40,7 +40,10 @@ public class ItemProvider implements IAmiDataProvider {
         boolean strictSurvival  = AmiConfig.strictSurvivalMode;
 
         Set<Item> creativeItems = ItemFilter.buildCreativeItemSet(level);
-        Set<Item> recipeOutputs = ItemFilter.buildRecipeOutputSet(level);
+        // Build recipe set if we'll use it (strict survival or allowing hidden items with recipes)
+        Set<Item> recipeOutputs = (strictSurvival || !AmiConfig.hideNonCreativeItems)
+            ? ItemFilter.buildRecipeOutputSet(level)
+            : Collections.emptySet();
 
         boolean hasCreativeData = !creativeItems.isEmpty();
         boolean hasRecipeData   = !recipeOutputs.isEmpty();
