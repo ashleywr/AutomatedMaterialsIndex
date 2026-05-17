@@ -127,7 +127,7 @@ public class ResultsToolbar implements SearchState.Listener {
 
         // Reset button
         boolean resetHovered = Dropdown.contains(effectiveMouseX, mouseY, buttonX, y + 3, RESET_BUTTON_W, 14);
-        int resetColor = resetHovered ? 0xFFFFFFFF : AMITheme.TEXT_SUBTLE;
+        int resetColor = resetHovered ? com.sanhiruzu.ami.client.AMITheme.WHITE : AMITheme.TEXT_SUBTLE;
         com.sanhiruzu.ami.client.AmiGuiIcons.reset(g,
                 buttonX + RESET_BUTTON_W / 2, y + 3 + 7, resetColor);
         buttonX += RESET_BUTTON_W + 3;
@@ -136,13 +136,13 @@ public class ResultsToolbar implements SearchState.Listener {
         if (state.getViewMode() != ViewMode.GRID && onCollapseAll != null) {
             // Collapse button (◀)
             boolean collapseHovered = Dropdown.contains(effectiveMouseX, mouseY, buttonX, y + 3, BUTTON_W, 14);
-            int collapseColor = collapseHovered ? 0xFFFFFFFF : AMITheme.TEXT_SUBTLE;
+            int collapseColor = collapseHovered ? com.sanhiruzu.ami.client.AMITheme.WHITE : AMITheme.TEXT_SUBTLE;
             g.drawString(font, "◀", buttonX + 2, y + 3, collapseColor, false);
             buttonX += BUTTON_W + 3;
 
             // Expand button (▶)
             boolean expandHovered = Dropdown.contains(effectiveMouseX, mouseY, buttonX, y + 3, BUTTON_W, 14);
-            int expandColor = expandHovered ? 0xFFFFFFFF : AMITheme.TEXT_SUBTLE;
+            int expandColor = expandHovered ? com.sanhiruzu.ami.client.AMITheme.WHITE : AMITheme.TEXT_SUBTLE;
             g.drawString(font, "▶", buttonX + 2, y + 3, expandColor, false);
         }
 

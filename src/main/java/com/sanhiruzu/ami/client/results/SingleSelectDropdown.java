@@ -83,7 +83,7 @@ public class SingleSelectDropdown<T> implements Dropdown {
             boolean isSelected = option.equals(selected);
             if (isSelected) {
                 // Draw selection indicator (a small accent bar on the left)
-                g.fill(x + 2, itemY + 2, x + 4, itemY + ITEM_HEIGHT - 2, 0xFF4488FF);
+                g.fill(x + 2, itemY + 2, x + 4, itemY + ITEM_HEIGHT - 2, com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE);
             }
             
             Component labelComp = displayName.apply(option);

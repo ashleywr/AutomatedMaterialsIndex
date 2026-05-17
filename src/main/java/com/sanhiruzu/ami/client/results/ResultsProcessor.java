@@ -63,7 +63,7 @@ public class ResultsProcessor {
         // Handle background indexing state
         if (!com.sanhiruzu.ami.index.GlobalIndex.getInstance().isIndexReady()) {
             return List.of(new TreeNode("indexing", Component.translatable("ami.gui.background_indexing")
-                    .withStyle(s -> s.withColor(0xFFAA00))));
+                    .withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.CHEAT_INDICATOR))));
         }
 
         // Filter

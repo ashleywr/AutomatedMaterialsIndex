@@ -250,7 +250,7 @@ public class AtlasGridWidget {
             }
             int position = idx + 1;
             centerText.append(Component.literal(" [" + position + "/" + atlas.length + "]")
-                    .withStyle(s -> s.withColor(0xAAAAAA)));
+                    .withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE)));
         }
 
         if (cheat) {
@@ -289,12 +289,12 @@ public class AtlasGridWidget {
 
         // Background
         g.fill(searchBarX, searchBarY, searchBarX + searchBarW, searchBarY + SEARCH_BAR_HEIGHT,
-                searchFocused ? 0xFF3A3A3A : 0xFF2A2A2A);
+                searchFocused ? com.sanhiruzu.ami.client.AMITheme.PANEL_INNER : com.sanhiruzu.ami.client.AMITheme.SLOT_BG);
         g.fill(searchBarX + 1, searchBarY + 1, searchBarX + searchBarW - 1, searchBarY + SEARCH_BAR_HEIGHT - 1,
-                0xFF1A1A1A);
+                com.sanhiruzu.ami.client.AMITheme.PANEL_BG);
 
         // Border
-        int borderColor = searchFocused ? 0xFFAAAA44 : 0xFF555555;
+        int borderColor = searchFocused ? com.sanhiruzu.ami.config.AmiConfig.accentColor : com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE;
         g.fill(searchBarX, searchBarY, searchBarX + searchBarW, searchBarY + 1, borderColor);
         g.fill(searchBarX, searchBarY + SEARCH_BAR_HEIGHT - 1, searchBarX + searchBarW, searchBarY + SEARCH_BAR_HEIGHT, borderColor);
         g.fill(searchBarX, searchBarY, searchBarX + 1, searchBarY + SEARCH_BAR_HEIGHT, borderColor);
@@ -306,15 +306,15 @@ public class AtlasGridWidget {
         String displayText = searchQuery;
         if (searchQuery.isEmpty() && !searchFocused) {
             displayText = "Filter...";
-            g.drawString(font, displayText, textX, searchBarY + 2, 0xFF666666, false);
+            g.drawString(font, displayText, textX, searchBarY + 2, com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE, false);
         } else if (!searchQuery.isEmpty()) {
-            g.drawString(font, displayText, textX, searchBarY + 2, 0xFFCCCCCC, false);
+            g.drawString(font, displayText, textX, searchBarY + 2, com.sanhiruzu.ami.client.AMITheme.TEXT_PRIMARY, false);
         }
 
         // Cursor blink
         if (searchFocused && (System.currentTimeMillis() % 1000) < 500) {
             int cursorX = textX + font.width(displayText) + 1;
-            g.fill(cursorX, searchBarY + 2, cursorX + 1, searchBarY + SEARCH_BAR_HEIGHT - 2, 0xFFCCCCCC);
+            g.fill(cursorX, searchBarY + 2, cursorX + 1, searchBarY + SEARCH_BAR_HEIGHT - 2, com.sanhiruzu.ami.client.AMITheme.WHITE);
         }
 
         // Clear button (x)
@@ -322,7 +322,8 @@ public class AtlasGridWidget {
             int clearX = searchBarX + searchBarW - 9;
             boolean clearHovered = mouseX >= clearX && mouseX < searchBarX + searchBarW - 1
                     && mouseY >= searchBarY && mouseY < searchBarY + SEARCH_BAR_HEIGHT;
-            g.drawString(font, "x", clearX + 1, searchBarY + 2, clearHovered ? 0xFFFF6666 : 0xFFCC6666, false);
+            int clearColor = clearHovered ? com.sanhiruzu.ami.client.AMITheme.NEGATIVE : com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE;
+            g.drawString(font, "x", clearX + 1, searchBarY + 2, clearColor, false);
         }
     }
 
@@ -378,7 +379,7 @@ public class AtlasGridWidget {
 
             // Hint to press Tab to cycle through tabs
             g.drawString(font, Component.translatable("ami.gui.cycle_hint", "TAB")
-                    .withStyle(s -> s.withColor(0x888888)),
+                    .withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE)),
                     x + 4, y + HEADER_HEIGHT + 20, AMITheme.ENTRY_TEXT, false);
             return;
         }
@@ -476,15 +477,15 @@ public class AtlasGridWidget {
         String dim = entry.meta(SearchNodeKeys.DIMENSION, "overworld");
         if (!"overworld".equals(dim)) {
             Component dimLabel = Component.translatable("ami.dimension." + dim);
-            header.append(Component.literal(" [").withStyle(s -> s.withColor(0x888888)))
+            header.append(Component.literal(" [").withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE)))
                   .append(dimLabel)
-                  .append(Component.literal("]").withStyle(s -> s.withColor(0x888888)));
+                  .append(Component.literal("]").withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE)));
         }
         lines.add(header);
 
-        lines.add(Component.literal(entry.id().toString()).withStyle(s -> s.withColor(0x666666)));
+        lines.add(Component.literal(entry.id().toString()).withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE)));
         lines.add(Component.literal(RegistryUtils.modDisplayName(entry.id().getNamespace()))
-                .withStyle(s -> s.withColor(0x888888)));
+                .withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE)));
 
         if (shifted) {
             lines.add(Component.empty()); // blank separator between header block and details
@@ -497,7 +498,7 @@ public class AtlasGridWidget {
             }
         } else {
             lines.add(Component.translatable("ami.tooltip.shift_for_details")
-                    .withStyle(s -> s.withColor(0x555555)));
+                    .withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE)));
         }
 
         if (AMICheatMode.isEnabled()) {
@@ -532,7 +533,7 @@ public class AtlasGridWidget {
 
                 lines.add(Component.translatable("ami.tooltip.precipitation")
                         .append(Component.literal(": ").append(precip)
-                                .withStyle(s -> s.withColor(0xAAAAFF))));
+                                .withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE))));
 
                 lines.add(Component.translatable("ami.tooltip.water_color")
                         .append(colorSwatch(effects.getWaterColor())));
@@ -553,10 +554,10 @@ public class AtlasGridWidget {
 
                 if (!tags.isEmpty()) {
                     lines.add(Component.translatable("ami.tooltip.tags")
-                            .append(Component.literal(":").withStyle(s -> s.withColor(0x888888))));
+                            .append(Component.literal(":").withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE))));
                     for (var tag : tags) {
                         lines.add(Component.literal("  #" + tag.location())
-                                .withStyle(s -> s.withColor(0x667766)));
+                                .withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.POSITIVE)));
                     }
                 }
             })
@@ -577,13 +578,13 @@ public class AtlasGridWidget {
             var dims = entityType.getDimensions();
             lines.add(Component.translatable("ami.tooltip.category")
                     .append(Component.literal(": ").append(category)
-                            .withStyle(s -> s.withColor(0xAAAAFF))));
+                            .withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE))));
             lines.add(Component.translatable("ami.tooltip.size")
                     .append(Component.literal(String.format(": %.1f x %.1f (WxH)", dims.width(), dims.height()))
-                            .withStyle(s -> s.withColor(0xAAAAFF))));
+                            .withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE))));
             if (entityType.fireImmune()) {
                 lines.add(Component.translatable("ami.tooltip.fire_immune")
-                        .withStyle(s -> s.withColor(0xFFAA44)));
+                        .withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.ACCENT_GOLD)));
             }
         });
     }
@@ -598,10 +599,10 @@ public class AtlasGridWidget {
                 var tags = holder.tags().limit(6).toList();
                 if (!tags.isEmpty()) {
                     lines.add(Component.translatable("ami.tooltip.tags")
-                            .append(Component.literal(":").withStyle(s -> s.withColor(0x888888))));
+                            .append(Component.literal(":").withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE))));
                     for (var tag : tags) {
                         lines.add(Component.literal("  #" + tag.location())
-                                .withStyle(s -> s.withColor(0x667766)));
+                                .withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.POSITIVE)));
                     }
                 }
             })
@@ -629,7 +630,7 @@ public class AtlasGridWidget {
         int gaugeBot = drawY + ROW_HEIGHT - 1;
         int gaugeH   = gaugeBot - gaugeTop;
         int fillH    = Math.round(normalized * gaugeH);
-        g.fill(gaugeX, gaugeTop, gaugeX + 3, gaugeBot, 0xFF1A1A1A);
+        g.fill(gaugeX, gaugeTop, gaugeX + 3, gaugeBot, com.sanhiruzu.ami.client.AMITheme.BLACK);
         if (fillH > 0) {
             g.fill(gaugeX, gaugeBot - fillH, gaugeX + 3, gaugeBot, tempColor(temp));
         }
@@ -684,13 +685,14 @@ public class AtlasGridWidget {
         return found;
     }
 
-    private static int tempColor(float temp) {
-        if (temp <= 0.0f) return 0xFF4488CC;
+    private int tempColor(float temp) {
+        if (temp <= 0.0f) return com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE;
         if (temp <  0.3f) return 0xFF44AACC;
-        if (temp <  0.6f) return 0xFF88CC44;
+        if (temp <  0.6f) return com.sanhiruzu.ami.client.AMITheme.POSITIVE;
         if (temp <  1.0f) return 0xFFCCCC44;
         return 0xFFCC8844;
     }
+
 
     private void renderScrollBar(GuiGraphics g, int mouseX, int mouseY) {
         int total    = totalRows();
