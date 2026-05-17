@@ -352,7 +352,6 @@ public class OverlayWidgetManager {
     private void togglePanelVisible() {
         panelVisible = !panelVisible;
         if (!panelVisible) {
-            indexingStarted = false;
             searchBar.clear();
             lastSyncedQuery = "";
         }

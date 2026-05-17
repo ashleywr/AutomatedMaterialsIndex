@@ -176,7 +176,17 @@ public class UniversalResultsPanel implements SearchState.Listener {
         AMITheme.sync();
         checkPlayerStateChanged();
 
-        g.blitSprite(PANEL_SPRITE, x, y, width, height);
+        if (AmiConfig.useTransparentTheme) {
+            AMITheme.fillRounded(g, x, y, width, height, AmiConfig.overlayBg);
+            // Add a subtle border
+            int border = 0x33FFFFFF;
+            g.fill(x, y, x + width, y + 1, border);
+            g.fill(x, y + height - 1, x + width, y + height, border);
+            g.fill(x, y, x + 1, y + height, border);
+            g.fill(x + width - 1, y, x + width, y + height, border);
+        } else {
+            g.blitSprite(PANEL_SPRITE, x, y, width, height);
+        }
 
         boolean compact = AmiConfig.compactMode;
 
