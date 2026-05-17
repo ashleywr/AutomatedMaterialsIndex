@@ -40,8 +40,8 @@ public class AmiKeybindHandler {
 
         // 1. Try hovering over an item in the AMI panels
         SearchNode hoveredNode = InventoryOverlayHandler.getManager().getResultsPanel().getInnerPanel().getHoveredNode();
-        if (hoveredNode == null && InventoryOverlayHandler.getManager().getFavoritesPanel() != null) {
-            hoveredNode = InventoryOverlayHandler.getManager().getFavoritesPanel().getInnerPanel().getHoveredNode();
+        if (hoveredNode == null && InventoryOverlayHandler.getManager().getLeftPanel() != null) {
+            hoveredNode = InventoryOverlayHandler.getManager().getLeftPanel().getInnerPanel().getHoveredNode();
         }
 
         if (hoveredNode != null) {

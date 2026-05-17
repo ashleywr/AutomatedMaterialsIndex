@@ -121,6 +121,8 @@ Process in strict order; stop at the first hit:
 - [x] **EMI-Style Click Logic**: Support right-click to find usages vs left-click to find recipes (mimicking EMI behavior) in the results panel. (Fixed click routing in `UniversalResultsPanel.java`).
 - [x] **Drag-and-Drop Filters**: Support for dragging icons from AMI results into mod filter slots (e.g., Create, Sophisticated Backpacks).
 - [x] **Synchronized Favorites**: Favorite system (default key `A`) with an optional, configurable side panel, synchronized with EMI/JEI state.
+- [x] **Advanced Sidebar Views**: Implemented Craftable, Lookup History, and Crafting History views for the sidebar, synchronized with EMI. Added an internal AMI history fallback for JEI.
+- [x] **Split Sidebar Layout**: Support for splitting both left and right sidebars to show primary and secondary content simultaneously.
 - [x] **Visual Polish**: Wiggle animations on hover/drag for improved interface feedback.
 - **TODO:** Mod filtering is genuinely useful — revisit as a dedicated filter surface (e.g. a searchable popover or sidebar chip list) when the panel layout has more room.
 

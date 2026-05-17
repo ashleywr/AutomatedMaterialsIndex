@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client.overlay;
 
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.client.UniversalResultsPanel;
-import com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -11,23 +11,38 @@ import net.minecraft.network.chat.Component;
 import java.util.List;
 
 /**
- * A panel that displays favorited items, typically shown on the left side.
+ * A panel that displays various types of content (favorites, history, craftables) in a sidebar.
  * Reuses UniversalResultsPanel for its grid and list views.
  */
-public class FavoritesPanelWidget extends AbstractWidget {
+public class SidebarPanelWidget extends AbstractWidget {
     private final UniversalResultsPanel panel;
+    private AmiConfig.PanelContent contentType;
 
-    public FavoritesPanelWidget(int x, int y, int width, int height) {
-        super(x, y, width, height, Component.translatable("ami.gui.favorites"));
+    public SidebarPanelWidget(int x, int y, int width, int height, AmiConfig.PanelContent contentType) {
+        super(x, y, width, height, Component.translatable("ami.gui.sidebar." + contentType.name().toLowerCase()));
+        this.contentType = contentType;
         this.panel = new UniversalResultsPanel(x, y, width, height);
-        this.panel.setFavoritesPanel(true);
-        // Favorites panel usually stays in grid mode by default
+        this.panel.setFavoritesPanel(true); // This tells it to use the smaller icons/sidebar style
+        
+        if (contentType == AmiConfig.PanelContent.LOOKUP_HISTORY) {
+            com.sanhiruzu.ami.client.favorites.AmiHistoryHandler.getInstance().setOnChange(this::refresh);
+        }
+        
+        refresh();
+    }
+
+    public void setContentType(AmiConfig.PanelContent contentType) {
+        this.contentType = contentType;
         refresh();
     }
 
     public void refresh() {
-        List<SearchNode> favorites = AmiFavoritesHandler.getInstance().getFavorites();
-        panel.setEntries(favorites);
+        if (contentType == null || contentType == AmiConfig.PanelContent.NONE) {
+            panel.setEntries(List.of());
+            return;
+        }
+        List<SearchNode> nodes = AmiSidebarSyncHandler.getNodesForContent(contentType);
+        panel.setEntries(nodes);
     }
 
     public void updateLayout(int x, int y, int width, int height) {
