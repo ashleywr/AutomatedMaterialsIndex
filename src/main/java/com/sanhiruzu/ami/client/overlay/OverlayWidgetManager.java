@@ -22,6 +22,7 @@ public class OverlayWidgetManager {
     private static final int PANEL_MARGIN_V  = 6;
 
     private ResultsPanelWidget resultsPanel;
+    private FavoritesPanelWidget favoritesPanel;
     private SearchBarWidget    searchBar;
     private AmiButtonWidget    amiButton;
     private boolean widgetsReady = false;
@@ -45,9 +46,10 @@ public class OverlayWidgetManager {
 
     private void ensureWidgets() {
         if (widgetsReady) return;
-        this.resultsPanel = new ResultsPanelWidget();
-        this.searchBar    = new SearchBarWidget(this::triggerSearch);
-        this.amiButton    = new AmiButtonWidget(InventoryOverlayHandler::toggleAmi, () -> panelVisible);
+        this.resultsPanel   = new ResultsPanelWidget();
+        this.favoritesPanel = new FavoritesPanelWidget(0, 0, 0, 0);
+        this.searchBar      = new SearchBarWidget(this::triggerSearch);
+        this.amiButton      = new AmiButtonWidget(InventoryOverlayHandler::toggleAmi, () -> panelVisible);
 
         this.resultsPanel.setOnModClick(token -> {
             searchBar.toggleToken(token);
@@ -57,6 +59,9 @@ public class OverlayWidgetManager {
         });
         this.resultsPanel.setOnReset(searchBar::clear);
         this.resultsPanel.setOnFacetInject(token -> searchBar.toggleToken(token));
+
+        this.favoritesPanel.getInnerPanel().setOnReset(this::refreshFavorites);
+        com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().setOnChange(this::refreshFavorites);
 
         widgetsReady = true;
     }
@@ -70,9 +75,26 @@ public class OverlayWidgetManager {
         int btnY = screenH - BOTTOM_BAR_H + 2;
         amiButton.updateBounds(new WidgetBounds(2, btnY - 22, 22, 20));
 
+        int containerLeftEdge = containerScreen.getGuiLeft();
         int containerRightEdge = containerScreen.getGuiLeft() + containerScreen.getXSize();
-        int safeWidth = screenW - containerRightEdge - (PANEL_MARGIN * 2);
+        
+        // Favorites Panel (Left)
+        if (AMIConfig.SHOW_FAVORITES.get()) {
+            int favW = Math.min(AMIConfig.FAVORITES_PANEL_WIDTH.get(), containerLeftEdge - (PANEL_MARGIN * 2));
+            if (favW >= 40) {
+                int panelH = Math.min(screenH - 40, 600);
+                int panelY = (screenH - panelH) / 2;
+                favoritesPanel.updateLayout(PANEL_MARGIN, panelY, favW, panelH);
+                favoritesPanel.visible = true;
+            } else {
+                favoritesPanel.visible = false;
+            }
+        } else {
+            favoritesPanel.visible = false;
+        }
 
+        // Results Panel (Right)
+        int safeWidth = screenW - containerRightEdge - (PANEL_MARGIN * 2);
         int panelH = Math.min(screenH - 40, 600);
         int panelY = (screenH - panelH) / 2;
         int panelStartX = screenW; // sentinel: panel off-screen when hidden
@@ -177,6 +199,9 @@ public class OverlayWidgetManager {
                 searchBar.render(g, mx, my, pt);
                 resultsPanel.render(g, mx, my, pt);
                 resultsPanel.renderOverlay(g, mx, my);
+                if (favoritesPanel.visible) {
+                    favoritesPanel.render(g, mx, my, pt);
+                }
             }
 
             g.pose().popPose();
@@ -211,6 +236,11 @@ public class OverlayWidgetManager {
         for (NodeType t : NodeType.atlasValues()) all.addAll(GlobalIndex.getInstance().getNodes(t));
         panel.setEntries(all);
         AMI.LOGGER.debug("AMI overlay refreshed: {} total entries across all types", all.size());
+        refreshFavorites();
+    }
+
+    public void refreshFavorites() {
+        if (favoritesPanel != null) favoritesPanel.refresh();
     }
 
     private void triggerSearch(String query) {
@@ -267,4 +297,6 @@ public class OverlayWidgetManager {
     public SearchBarWidget getSearchBar() { return searchBar; }
 
     public ResultsPanelWidget getResultsPanel() { return resultsPanel; }
+
+    public FavoritesPanelWidget getFavoritesPanel() { return favoritesPanel; }
 }

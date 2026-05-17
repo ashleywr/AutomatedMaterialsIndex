@@ -38,6 +38,30 @@ public class RecipeViewerBridge {
         }
     }
 
+    public static void startDrag(ItemStack stack) {
+        if (ModList.get().isLoaded("emi")) EmiRecipeBridge.startDrag(stack);
+    }
+
+    public static ItemStack getDraggedStack() {
+        if (ModList.get().isLoaded("emi")) return EmiRecipeBridge.getDraggedStack();
+        return ItemStack.EMPTY;
+    }
+
+    public static boolean isDragging() {
+        return ModList.get().isLoaded("emi") && EmiRecipeBridge.isDragging();
+    }
+
+    public static void stopDrag() {
+        if (ModList.get().isLoaded("emi")) EmiRecipeBridge.stopDrag();
+    }
+
+    public static boolean handleDrop(double mouseX, double mouseY) {
+        if (ModList.get().isLoaded("emi")) {
+            return EmiRecipeBridge.handleDrop(net.minecraft.client.Minecraft.getInstance().screen, mouseX, mouseY);
+        }
+        return false;
+    }
+
     /**
      * Dispatch a click on an item according to the configured ITEM_CLICK_ACTION.
      * button: 0 = left, 1 = right.

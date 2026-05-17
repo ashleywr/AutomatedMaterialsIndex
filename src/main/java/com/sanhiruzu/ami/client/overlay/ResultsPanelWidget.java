@@ -80,7 +80,7 @@ public class ResultsPanelWidget extends AbstractWidget {
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         if (panel == null) return false;
-        panel.stopScrollbarDrag();
+        panel.mouseReleased(mouseX, mouseY, button);
         return false;
     }
 
