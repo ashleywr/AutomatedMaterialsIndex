@@ -560,13 +560,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
                 TreeNode modNode = new TreeNode(modId, Component.literal(modName));
 
-                // Process each mod's items through ResultsProcessor for high cardinality (folders)
-                List<TreeNode> leafNodes = entry.getValue().stream()
-                        .map(sn -> new TreeNode(Component.literal(sn.displayName()), sn))
-                        .collect(java.util.stream.Collectors.toList());
-
-                // We need a helper or a way to trigger HC grouping on leaf nodes
-                modNode.getChildren().addAll(applySmartGrouping(entry.getValue(), processor));
+                // Create leaf nodes directly (don't re-apply grouping since we already grouped by MOD)
+                for (SearchNode sn : entry.getValue()) {
+                    modNode.addChild(new TreeNode(Component.literal(sn.displayName()), sn));
+                }
                 node.addChild(modNode);
             }
         } else {
@@ -577,12 +574,6 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private List<TreeNode> applySmartGrouping(List<SearchNode> nodes, ResultsProcessor processor) {
         // ResultsProcessor.process() handles both filtering/sorting and high-cardinality grouping
         // We bypass filtering here because we are in an explicit category browsing mode
-        List<TreeNode> leaves = nodes.stream()
-                .map(sn -> new TreeNode(Component.literal(sn.displayName()), sn))
-                .collect(java.util.stream.Collectors.toList());
-        
-        // Invoke the private applyHighCardinalityGrouping logic by reusing the processor's process method
-        // with the specific subset of nodes.
         return processor.process(nodes);
     }
 
