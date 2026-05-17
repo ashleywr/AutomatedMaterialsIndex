@@ -4,6 +4,11 @@ import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.index.providers.*;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /**
@@ -49,6 +54,25 @@ public final class ProviderRegistry {
 
         index.setIndexBuildTime(System.currentTimeMillis() - start);
         AMI.LOGGER.info("GlobalIndex populated in {}ms", index.getIndexBuildTimeMs());
+    }
+
+    /**
+     * Re-registers ItemStack instances for all subtype nodes after a cache load.
+     * ItemProvider.populate() is skipped on cache hits, so persistentStacks is otherwise
+     * empty — causing synthetic node IDs (potions, enchanted books, etc.) to resolve to
+     * ItemStack.EMPTY and render as fallback icons.
+     */
+    public static void rehydrateSubtypeStacks(@Nullable ClientLevel level) {
+        ItemIconRenderer.clearPersistent();
+        RegistryAccess registryAccess = level != null ? level.registryAccess() : null;
+        for (Item item : BuiltInRegistries.ITEM) {
+            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+            if (id == null) continue;
+            for (SubtypeExpander.SubtypeEntry entry : SubtypeExpander.expand(id, registryAccess)) {
+                ItemIconRenderer.registerStack(entry.id(), entry.stack());
+            }
+        }
+        AMI.LOGGER.debug("AMI: rehydrated subtype icon stacks from cache");
     }
 
     /**

@@ -18,6 +18,9 @@ import java.util.OptionalDouble;
 import java.util.OptionalLong;
 import java.util.stream.Collectors;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 /**
  * Server-safe facade for constructing AMI's searchable item index from the live registry.
  */
@@ -26,6 +29,7 @@ public final class AmiIndexerService {
 
     private volatile SearchService searchService;
     private volatile int indexedItemCount;
+    private final AtomicBoolean isRebuilding = new AtomicBoolean(false);
 
     private AmiIndexerService() {
     }
@@ -34,16 +38,37 @@ public final class AmiIndexerService {
         return INSTANCE;
     }
 
-    public synchronized SearchService getOrBuildSearchService() {
-        GlobalIndex index = GlobalIndex.getInstance();
-        if (searchService == null || !index.isIndexReady() || indexedItemCount == 0) {
+    public SearchService getOrBuildSearchService() {
+        if (searchService == null) {
             rebuild();
+            // Return an empty service for the very first frame to avoid null
+            return SearchService.buildFrom(GlobalIndex.getInstance(), false);
         }
         return searchService;
     }
 
-    public synchronized void rebuild() {
+    public boolean isReady() {
+        return searchService != null && !isRebuilding.get();
+    }
+
+    public void rebuild() {
+        if (!isRebuilding.compareAndSet(false, true)) return;
+
+        net.minecraft.client.multiplayer.ClientLevel level = net.minecraft.client.Minecraft.getInstance().level;
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                performRebuild(level);
+            } finally {
+                isRebuilding.set(false);
+            }
+        });
+    }
+
+    private void performRebuild(net.minecraft.client.multiplayer.ClientLevel level) {
         long started = System.nanoTime();
+        GroupingEngine.initialize(level);
+        
         GlobalIndex index = GlobalIndex.getInstance();
         index.clear();
         EnergyCapacitySniffer energyCapacitySniffer = new EnergyCapacitySniffer();

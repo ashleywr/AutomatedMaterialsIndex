@@ -78,6 +78,16 @@ public class SearchState {
         else activeFacets.add(facetId);
         notifyListeners();
     }
+    /** Selects only this facet, deselecting all others. If already the sole active facet, clears it. */
+    public void selectOnlyFacet(String facetId) {
+        if (activeFacets.size() == 1 && activeFacets.contains(facetId)) {
+            activeFacets.clear();
+        } else {
+            activeFacets.clear();
+            activeFacets.add(facetId);
+        }
+        notifyListeners();
+    }
     public void clearFacets() {
         activeFacets.clear();
         notifyListeners();

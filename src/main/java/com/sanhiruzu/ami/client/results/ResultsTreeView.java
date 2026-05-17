@@ -75,6 +75,7 @@ public class ResultsTreeView {
     private ItemStack pendingItemStack = null;
 
     private java.util.function.Consumer<String> onModClick = null;
+    private java.util.function.BiConsumer<SearchNode, Integer> onItemClick = null;
 
     // ── Construction ──────────────────────────────────────────────────────────
 
@@ -87,6 +88,10 @@ public class ResultsTreeView {
 
     public void setOnModClick(java.util.function.Consumer<String> callback) {
         this.onModClick = callback;
+    }
+
+    public void setItemClickCallback(java.util.function.BiConsumer<SearchNode, Integer> callback) {
+        this.onItemClick = callback;
     }
 
     public void setRootNodes(List<TreeNode> nodes) {
@@ -434,6 +439,20 @@ public class ResultsTreeView {
     // ── Representative icon helpers ───────────────────────────────────────────
 
     private ItemStack resolveGroupIcon(TreeNode node) {
+        if (node.isHighCardinality()) {
+            String key = node.getKey();
+            if (key.startsWith("cardinality:")) {
+                String baseIdStr = key.substring(12);
+                ResourceLocation baseLoc = ResourceLocation.tryParse(baseIdStr);
+                if (baseLoc != null) {
+                    Item item = BuiltInRegistries.ITEM.get(baseLoc);
+                    if (item != null && item != net.minecraft.world.item.Items.AIR) {
+                        return new ItemStack(item);
+                    }
+                }
+            }
+        }
+
         // Category-level nodes use the ontology's designated icon item.
         for (AmiOntology.Category cat : AmiOntology.CATEGORIES) {
             if (cat.id.equals(node.getKey())) {
@@ -623,34 +642,36 @@ public class ResultsTreeView {
     // ── Input handlers ────────────────────────────────────────────────────────
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button != 0) return false;
+        if (button != 0 && button != 1) return false;
         if (mouseX < x || mouseX >= x + width - SCROLLBAR_W) return false;
 
-        // Which row is under the cursor?
         int targetRow = (int) (mouseY - y + pixelScrollOffset) / AMITheme.ROW_HEIGHT;
         if (targetRow < 0) return false;
 
         int[] counter = {0};
         for (TreeNode node : rootNodes) {
-            if (handleNodeClick(node, targetRow, counter, mouseX)) return true;
+            if (handleNodeClick(node, targetRow, counter, mouseX, button)) return true;
         }
         return false;
     }
 
     /** DFS click handler. Returns true when the target row was found and handled. */
-    private boolean handleNodeClick(TreeNode node, int targetRow, int[] counter, double mouseX) {
+    private boolean handleNodeClick(TreeNode node, int targetRow, int[] counter, double mouseX, int button) {
         if (counter[0] == targetRow) {
             if (node.isLeaf()) {
-                // Check if mod badge was clicked (approximate area check)
+                SearchNode entry = node.getEntry();
                 int rightEdge = x + width - SCROLLBAR_W - 4;
-                int bWidth = badgeWidth(Minecraft.getInstance().font, node.getEntry());
+                int bWidth = badgeWidth(Minecraft.getInstance().font, entry);
                 int badgeStartX = rightEdge - bWidth;
 
-                if (onModClick != null && mouseX >= badgeStartX && mouseX <= rightEdge) {
-                    onModClick.accept("@" + node.getEntry().id().getNamespace());
+                if (onModClick != null && button == 0 && mouseX >= badgeStartX && mouseX <= rightEdge) {
+                    onModClick.accept("@" + entry.id().getNamespace());
+                } else if (onItemClick != null && entry.type() == NodeType.ITEM) {
+                    onItemClick.accept(entry, button);
                 }
             } else {
-                node.setExpanded(!node.isExpanded());
+                // Group header: only expand/collapse on left-click
+                if (button == 0) node.setExpanded(!node.isExpanded());
             }
             return true;
         }
@@ -658,7 +679,7 @@ public class ResultsTreeView {
 
         if (!node.isLeaf() && node.isExpanded()) {
             for (TreeNode child : node.getChildren()) {
-                if (handleNodeClick(child, targetRow, counter, mouseX)) return true;
+                if (handleNodeClick(child, targetRow, counter, mouseX, button)) return true;
             }
         }
         return false;
@@ -669,7 +690,7 @@ public class ResultsTreeView {
         int totalH = countAllNodes() * AMITheme.ROW_HEIGHT;
         int maxScroll = Math.max(0, totalH - contentH);
         pixelScrollOffset = Math.max(0, Math.min(maxScroll,
-                (int) (pixelScrollOffset - delta * AMITheme.ROW_HEIGHT)));
+                (int) (pixelScrollOffset - delta * AMITheme.ROW_HEIGHT * 3)));
         return true;
     }
 

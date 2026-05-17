@@ -25,6 +25,10 @@ public class ResultsPanelWidget extends AbstractWidget {
         if (panel != null) panel.setOnReset(callback);
     }
 
+    public void setOnFacetInject(java.util.function.Consumer<String> callback) {
+        if (panel != null) panel.setOnFacetInject(callback);
+    }
+
     public void updateBounds(WidgetBounds bounds) {
         setX(bounds.x());
         setY(bounds.y());
