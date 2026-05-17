@@ -99,7 +99,8 @@ public class EntityIconRenderer implements IIconRenderer {
 
         String category = node.meta(SearchNodeKeys.ENTITY_CATEGORY, "");
         if (!category.isEmpty()) {
-            lines.add(Component.literal("Category: " + formatCategory(category))
+            lines.add(Component.translatable("ami.tooltip.category")
+                    .append(": ").append(formatCategoryComponent(category))
                     .withStyle(s -> s.withColor(0x888888)));
         }
 
@@ -108,7 +109,7 @@ public class EntityIconRenderer implements IIconRenderer {
             lines.add(Component.literal(formatTraits(traits)).withStyle(s -> s.withColor(0x55FFFF)));
         }
 
-        lines.add(Component.literal("§8Hold Ctrl for AMI debug info"));
+        lines.add(Component.translatable("ami.gui.debug_hint").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
         return lines;
     }
 
@@ -151,14 +152,14 @@ public class EntityIconRenderer implements IIconRenderer {
         }
     }
 
-    private static String formatCategory(String raw) {
+    private static Component formatCategoryComponent(String raw) {
         return switch (raw.toUpperCase()) {
-            case "MONSTER"   -> "Hostile";
-            case "CREATURE"  -> "Passive";
-            case "AMBIENT"   -> "Ambient";
-            case "WATER_CREATURE", "WATER_AMBIENT" -> "Aquatic";
-            case "MISC"      -> "Misc";
-            default          -> raw;
+            case "MONSTER"   -> Component.translatable("ami.entity_category.hostile");
+            case "CREATURE"  -> Component.translatable("ami.entity_category.passive");
+            case "AMBIENT"   -> Component.translatable("ami.entity_category.ambient");
+            case "WATER_CREATURE", "WATER_AMBIENT" -> Component.translatable("ami.entity_category.aquatic");
+            case "MISC"      -> Component.translatable("ami.entity_category.misc");
+            default          -> Component.literal(raw);
         };
     }
 

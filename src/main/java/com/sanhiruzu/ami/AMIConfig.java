@@ -66,6 +66,11 @@ public class AMIConfig {
                      "Intended for progression-focused servers. Disabled by default.")
             .define("strictSurvivalMode", false);
 
+    public static final ModConfigSpec.BooleanValue ENABLE_SEARCH_BAR_CONTEXT_MENU = BUILDER
+            .comment("Enable the right-click context menu in the search bar (Cut, Copy, Paste, Clear).",
+                     "When disabled, right-clicking the search bar immediately clears it.")
+            .define("enableSearchBarContextMenu", false);
+
     static {
         BUILDER.pop();
     }

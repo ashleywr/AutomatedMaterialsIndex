@@ -28,6 +28,11 @@ public class SearchBarWidget extends EditBox {
     private boolean undoing = false;
     private int cursorPos = 0;
     private int highlightPos = 0;
+    private boolean contextMenuOpen = false;
+    private int menuX, menuY;
+
+    private static final List<String> MENU_OPTIONS = List.of("Cut", "Copy", "Paste", "Clear");
+    private static final int MENU_ITEM_H = 12;
 
     private static final Component PLACEHOLDER_HINT = Component.translatable("ami.gui.search.placeholder_hint");
 
@@ -88,7 +93,7 @@ public class SearchBarWidget extends EditBox {
 
         int textX = x + 5;
         int textY = y + (h - font.lineHeight) / 2 + 1;
-        int maxTextWidth = w - 10;
+        int maxTextWidth = w - 10 - (getValue().isEmpty() ? 0 : 12); // Reserve space for 'x'
 
         String value = getValue();
         if (value.isEmpty() && !focused) {
@@ -106,14 +111,75 @@ public class SearchBarWidget extends EditBox {
                 int cursorX = textX + font.width(visibleText.substring(0, cursorInVisible)) + 1;
                 g.fill(cursorX, textY - 1, cursorX + 1, textY + font.lineHeight, 0xFFCCCCCC);
             }
+
+            // Draw 'x' clear button
+            if (!value.isEmpty()) {
+                int clearX = x + w - 14;
+                int clearY = y + (h - 10) / 2;
+                boolean hovered = mouseX >= clearX && mouseX < clearX + 12 && mouseY >= clearY && mouseY < clearY + 10;
+                g.drawString(font, "x", clearX + 3, clearY, hovered ? 0xFFFFFFFF : 0xFFAAAAAA, false);
+            }
         }
+
+        if (contextMenuOpen) {
+            renderContextMenu(g, mouseX, mouseY);
+        }
+    }
+
+    private void renderContextMenu(GuiGraphics g, int mouseX, int mouseY) {
+        Font font = Minecraft.getInstance().font;
+        int menuW = 50;
+        int menuH = MENU_OPTIONS.size() * MENU_ITEM_H + 2;
+        
+        g.pose().pushPose();
+        g.pose().translate(0, 0, 500); // Topmost
+        
+        g.fill(menuX, menuY, menuX + menuW, menuY + menuH, 0xFF222222);
+        g.fill(menuX, menuY, menuX + menuW, menuY + 1, 0xFF555555);
+        g.fill(menuX, menuY + menuH - 1, menuX + menuW, menuY + menuH, 0xFF555555);
+        g.fill(menuX, menuY, menuX + 1, menuY + menuH, 0xFF555555);
+        g.fill(menuX + menuW - 1, menuY, menuX + menuW, menuY + menuH, 0xFF555555);
+        
+        for (int i = 0; i < MENU_OPTIONS.size(); i++) {
+            int itemY = menuY + 1 + i * MENU_ITEM_H;
+            boolean hovered = mouseX >= menuX && mouseX < menuX + menuW && mouseY >= itemY && mouseY < itemY + MENU_ITEM_H;
+            if (hovered) g.fill(menuX + 1, itemY, menuX + menuW - 1, itemY + MENU_ITEM_H, 0xFF444444);
+            g.drawString(font, MENU_OPTIONS.get(i), menuX + 4, itemY + 2, 0xFFCCCCCC, false);
+        }
+        
+        g.pose().popPose();
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (contextMenuOpen) {
+            int menuW = 50;
+            int menuH = MENU_OPTIONS.size() * MENU_ITEM_H + 2;
+            if (mouseX >= menuX && mouseX < menuX + menuW && mouseY >= menuY && mouseY < menuY + menuH) {
+                int idx = (int) (mouseY - menuY - 1) / MENU_ITEM_H;
+                if (idx >= 0 && idx < MENU_OPTIONS.size()) {
+                    handleMenuSelection(MENU_OPTIONS.get(idx));
+                }
+                contextMenuOpen = false;
+                return true;
+            }
+            contextMenuOpen = false;
+        }
+
         if (!isMouseOver(mouseX, mouseY)) return false;
 
+        String value = getValue();
         if (button == 0) {
+            // Check clear button click
+            if (!value.isEmpty()) {
+                int clearX = getX() + width - 14;
+                int clearY = getY() + (height - 10) / 2;
+                if (mouseX >= clearX && mouseX < clearX + 12 && mouseY >= clearY && mouseY < clearY + 10) {
+                    clear();
+                    return true;
+                }
+            }
+
             long now = System.currentTimeMillis();
             int clickedPos = cursorPositionFromMouse(mouseX);
             if (now - lastClickTime < 500) {
@@ -123,10 +189,38 @@ public class SearchBarWidget extends EditBox {
             }
             lastClickTime = now;
         } else if (button == 1) {
-            clear();
+            // Right-click behavior depends on config
+            if (com.sanhiruzu.ami.AMIConfig.ENABLE_SEARCH_BAR_CONTEXT_MENU.get()) {
+                contextMenuOpen = true;
+                menuX = (int) mouseX;
+                menuY = (int) mouseY;
+                setFocused(true);
+            } else {
+                clear();
+            }
             return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    private void handleMenuSelection(String option) {
+        Minecraft mc = Minecraft.getInstance();
+        switch (option) {
+            case "Cut" -> {
+                mc.keyboardHandler.setClipboard(getSelectedText());
+                insertText("");
+            }
+            case "Copy" -> mc.keyboardHandler.setClipboard(getSelectedText());
+            case "Paste" -> insertText(mc.keyboardHandler.getClipboard());
+            case "Clear" -> clear();
+        }
+    }
+
+    private String getSelectedText() {
+        int start = Math.min(cursorPos, highlightPos);
+        int end = Math.max(cursorPos, highlightPos);
+        if (start == end) return "";
+        return getValue().substring(start, end);
     }
 
     @Override
@@ -179,12 +273,44 @@ public class SearchBarWidget extends EditBox {
             return true;
         }
 
+        // Token-aware movement
+        if (Screen.hasControlDown()) {
+            if (keyCode == GLFW.GLFW_KEY_LEFT) {
+                moveCursorTokenWise(-1, Screen.hasShiftDown());
+                return true;
+            } else if (keyCode == GLFW.GLFW_KEY_RIGHT) {
+                moveCursorTokenWise(1, Screen.hasShiftDown());
+                return true;
+            }
+        }
+
         // Delegate to EditBox for Backspace, Delete, Ctrl+A, Ctrl+V, Ctrl+X, Ctrl+C,
         // Ctrl+Backspace, arrows, Home, End. Ctrl+Z is handled above because EditBox
         // does not provide undo. Always return true when focused so the screen
         // doesn't also act on the key (e.g. 'E' closing inventory).
         super.keyPressed(keyCode, scanCode, modifiers);
         return true;
+    }
+
+    private void moveCursorTokenWise(int direction, boolean select) {
+        String value = getValue();
+        int pos = getCursorPosition();
+        
+        if (direction < 0) { // Left
+            if (pos <= 0) return;
+            // Skip trailing spaces
+            while (pos > 0 && value.charAt(pos - 1) == ' ') pos--;
+            // Find start of token
+            while (pos > 0 && value.charAt(pos - 1) != ' ') pos--;
+        } else { // Right
+            if (pos >= value.length()) return;
+            // Skip leading spaces
+            while (pos < value.length() && value.charAt(pos) == ' ') pos++;
+            // Find end of token
+            while (pos < value.length() && value.charAt(pos) != ' ') pos++;
+        }
+        
+        moveCursorTo(pos, select);
     }
 
     @Override

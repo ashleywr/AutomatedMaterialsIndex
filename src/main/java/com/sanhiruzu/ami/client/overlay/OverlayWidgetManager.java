@@ -14,19 +14,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class OverlayWidgetManager {
-    private static final int BOTTOM_BAR_H    = 32;
-    private static final int SEARCH_H        = 24;
-    private static final int MIN_PANEL_WIDTH  = 120;
-    private static final int MAX_PANEL_WIDTH  = 280;
-    // 5 columns × 18px cell + 2×6px padding + 5px scrollbar = 113px; round up for comfort
-    private static final int COMPACT_PANEL_W  = 116;
-    private static final int PANEL_MARGIN     = 6;
-    private static final int PANEL_MARGIN_V   = 6;
+    private static final int BOTTOM_BAR_H   = 32;
+    private static final int SEARCH_H       = 24;
+    private static final int MIN_PANEL_WIDTH = 100;
+    private static final int MAX_PANEL_WIDTH = 280;
+    private static final int PANEL_MARGIN    = 6;
+    private static final int PANEL_MARGIN_V  = 6;
 
-    private ResultsPanelWidget   resultsPanel;
-    private SearchBarWidget      searchBar;
-    private AmiButtonWidget      amiButton;
-    private CompactToggleWidget  compactToggle;
+    private ResultsPanelWidget resultsPanel;
+    private SearchBarWidget    searchBar;
+    private AmiButtonWidget    amiButton;
     private boolean widgetsReady = false;
 
     private SearchService searchService = null;
@@ -48,12 +45,10 @@ public class OverlayWidgetManager {
 
     private void ensureWidgets() {
         if (widgetsReady) return;
-        this.resultsPanel  = new ResultsPanelWidget();
-        this.searchBar     = new SearchBarWidget(this::triggerSearch);
-        this.amiButton     = new AmiButtonWidget(InventoryOverlayHandler::toggleAmi, () -> panelVisible);
-        this.compactToggle = new CompactToggleWidget();
+        this.resultsPanel = new ResultsPanelWidget();
+        this.searchBar    = new SearchBarWidget(this::triggerSearch);
+        this.amiButton    = new AmiButtonWidget(InventoryOverlayHandler::toggleAmi, () -> panelVisible);
 
-        // Connect mod-badge clicking to search bar filtering
         this.resultsPanel.setOnModClick(token -> {
             searchBar.toggleToken(token);
             String modId = token.startsWith("@") ? token.substring(1) : token;
@@ -61,9 +56,7 @@ public class OverlayWidgetManager {
             if (inner != null) inner.getState().toggleMod(modId);
         });
         this.resultsPanel.setOnReset(searchBar::clear);
-        this.resultsPanel.setOnFacetInject(token -> {
-            searchBar.toggleToken(token);
-        });
+        this.resultsPanel.setOnFacetInject(token -> searchBar.toggleToken(token));
 
         widgetsReady = true;
     }
@@ -74,44 +67,38 @@ public class OverlayWidgetManager {
         lastScreenH = screenH;
         this.onLeft = false;
 
-        // Buttons are always positioned regardless of panel state.
         int btnY = screenH - BOTTOM_BAR_H + 2;
         amiButton.updateBounds(new WidgetBounds(2, btnY - 22, 22, 20));
-        compactToggle.updateBounds(new WidgetBounds(26, btnY - 22, 22, 20));
 
-        // Task 1: right edge of the container GUI in screen-pixel space.
         int containerRightEdge = containerScreen.getGuiLeft() + containerScreen.getXSize();
-
-        // Task 2: usable width between the container's right edge and the screen edge.
         int safeWidth = screenW - containerRightEdge - (PANEL_MARGIN * 2);
 
-        // Task 4: no room for even a minimal panel — hide rather than draw an unusable sliver.
-        if (safeWidth < MIN_PANEL_WIDTH) {
-            WidgetBounds zero = new WidgetBounds(0, 0, 0, 0);
-            resultsPanel.updateBounds(zero);
-            searchBar.updateBounds(zero);
-            return;
+        int panelH = Math.min(screenH - 40, 600);
+        int panelY = (screenH - panelH) / 2;
+        int panelStartX = screenW; // sentinel: panel off-screen when hidden
+
+        if (safeWidth >= MIN_PANEL_WIDTH) {
+            // Same width in compact and full modes — only the panel content changes.
+            int actualWidth = Math.clamp((int)(screenW * 0.35f), MIN_PANEL_WIDTH, Math.min(safeWidth, MAX_PANEL_WIDTH));
+            panelStartX = screenW - actualWidth - PANEL_MARGIN;
+            resultsPanel.updateBounds(new WidgetBounds(panelStartX, panelY, actualWidth, panelH));
+            lastResultsBounds = resultsPanel.getBounds();
+        } else {
+            resultsPanel.updateBounds(new WidgetBounds(0, 0, 0, 0));
         }
 
-        // Task 3: compact mode uses a fixed narrow width; full mode uses 35% clamped.
-        int actualWidth = AMIConfig.COMPACT_MODE.get()
-                ? Math.min(COMPACT_PANEL_W, safeWidth)
-                : Math.clamp((int)(screenW * 0.35f), MIN_PANEL_WIDTH, Math.min(safeWidth, MAX_PANEL_WIDTH));
-
-        // Screen height minus 40px headroom, hard-capped at 600 scaled pixels.
-        int panelH = Math.min(screenH - 40, 600);
-        // Right-anchor: PANEL_MARGIN from the right screen edge.
-        int startX = screenW - actualWidth - PANEL_MARGIN;
-        // Vertically centred on the screen.
-        int panelY = (screenH - panelH) / 2;
-
-        resultsPanel.updateBounds(new WidgetBounds(startX, panelY, actualWidth, panelH));
-        lastResultsBounds = resultsPanel.getBounds();
-
-        int searchBarW = Math.min(AMIConfig.SEARCH_BAR_WIDTH.get(), screenW - 8);
-        int searchBarX = Math.max(4, (screenW - searchBarW) / 2);
+        // Search bar: centered, but clamped so its right edge never overlaps the panel's left edge.
+        int maxBarRight = (safeWidth >= MIN_PANEL_WIDTH) ? (panelStartX - PANEL_MARGIN) : (screenW - 4);
+        int rawBarW = Math.min(AMIConfig.SEARCH_BAR_WIDTH.get(), screenW - 8);
+        int barX   = Math.max(4, (screenW - rawBarW) / 2);
+        int barW   = rawBarW;
+        if (barX + barW > maxBarRight) {
+            barX = Math.max(4, maxBarRight - barW);
+            barW = Math.min(barW, maxBarRight - barX);
+            barW = Math.max(60, barW); // always keep a usable minimum
+        }
         int searchBarY = screenH - BOTTOM_BAR_H + 2;
-        searchBar.updateBounds(new WidgetBounds(searchBarX, searchBarY, searchBarW, SEARCH_H));
+        searchBar.updateBounds(new WidgetBounds(barX, searchBarY, barW, SEARCH_H));
     }
 
     /** Drives indexing, search sync, and stale-refresh — only when the panel is visible. */
@@ -124,7 +111,6 @@ public class OverlayWidgetManager {
             if (level != null) {
                 indexingInProgress = true;
                 GlobalIndexCache.loadOrIndexAsync(level, () -> {
-                    // Start deferred indexing in background immediately after cache load
                     java.util.concurrent.CompletableFuture.runAsync(() -> {
                         ProviderRegistry.indexStructuresDeferred(level);
                     }, net.minecraft.Util.backgroundExecutor()).thenRunAsync(() -> {
@@ -167,7 +153,6 @@ public class OverlayWidgetManager {
     public void renderAll(ScreenEvent.Render.Post event) {
         if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
 
-        // Debug visualizer
         if (AMIConfig.DEV_MODE.get()) {
             for (var plugin : com.sanhiruzu.ami.api.AmiPluginRegistry.getPlugins()) {
                 for (var zone : plugin.getExclusionZones(event.getScreen())) {
@@ -187,7 +172,6 @@ public class OverlayWidgetManager {
             g.pose().translate(0, 0, 0);
 
             amiButton.render(g, mx, my, pt);
-            compactToggle.render(g, mx, my, pt);
 
             if (panelVisible) {
                 searchBar.render(g, mx, my, pt);
@@ -268,35 +252,19 @@ public class OverlayWidgetManager {
         }
     }
 
-    public boolean isPanelVisible() {
-        return panelVisible;
-    }
+    public boolean isPanelVisible() { return panelVisible; }
 
     public void setPanelVisible(boolean visible) {
         if (visible != panelVisible) togglePanelVisible();
     }
 
-    public boolean isOnLeft() {
-        return onLeft;
-    }
+    public boolean isOnLeft() { return onLeft; }
 
-    public WidgetBounds getResultsBounds() {
-        return lastResultsBounds;
-    }
+    public WidgetBounds getResultsBounds() { return lastResultsBounds; }
 
-    public AmiButtonWidget getAmiButton() {
-        return amiButton;
-    }
+    public AmiButtonWidget getAmiButton() { return amiButton; }
 
-    public CompactToggleWidget getCompactToggle() {
-        return compactToggle;
-    }
+    public SearchBarWidget getSearchBar() { return searchBar; }
 
-    public SearchBarWidget getSearchBar() {
-        return searchBar;
-    }
-
-    public ResultsPanelWidget getResultsPanel() {
-        return resultsPanel;
-    }
+    public ResultsPanelWidget getResultsPanel() { return resultsPanel; }
 }

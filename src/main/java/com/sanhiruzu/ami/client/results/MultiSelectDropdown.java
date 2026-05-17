@@ -33,31 +33,53 @@ public class MultiSelectDropdown<T> implements Dropdown {
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
-        g.fill(x, y, x + width, y + HEIGHT, open ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG);
+        boolean canOpen = options != null && !options.isEmpty();
+        boolean hovered = canOpen && Dropdown.contains(mouseX, mouseY, x, y, width, HEIGHT);
+        g.fill(x, y, x + width, y + HEIGHT, (open || hovered) ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG);
+        
+        var font = Minecraft.getInstance().font;
+        if (canOpen) {
+            String arrow = open ? "▲" : "▼";
+            g.drawString(font, arrow, x + width - 9, y + 2, AMITheme.TEXT_SUBTLE, false);
+        }
+        
         String countLabel = selected.size() + "/" + options.size();
-        g.drawString(Minecraft.getInstance().font, countLabel, x + 3, y + 2, AMITheme.TEXT_HEADER, false);
+        g.drawString(font, countLabel, x + 3, y + 2, canOpen ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
     }
 
     public void renderList(GuiGraphics g, int mouseX, int mouseY) {
-        if (open) renderDropdown(g, mouseX, mouseY);
+        if (open && options != null && !options.isEmpty()) renderDropdown(g, mouseX, mouseY);
     }
 
     private void renderDropdown(GuiGraphics g, int mouseX, int mouseY) {
         var font = Minecraft.getInstance().font;
+        
+        // Calculate required width
+        int listWidth = width;
+        for (T option : options) {
+            listWidth = Math.max(listWidth, font.width(displayName.apply(option)) + 20);
+        }
+        
         int dropH = Math.min(MAX_DROPDOWN_HEIGHT, options.size() * ITEM_HEIGHT + 2);
-        g.fill(x, y + HEIGHT + 2, x + width, y + HEIGHT + 2 + dropH, AMITheme.DROPDOWN_LIST_BG);
-        g.fill(x, y + HEIGHT + 2, x + width, y + HEIGHT + 3, AMITheme.SECTION_SEP);
+        g.fill(x, y + HEIGHT + 2, x + listWidth, y + HEIGHT + 2 + dropH, AMITheme.DROPDOWN_LIST_BG);
+        g.fill(x, y + HEIGHT + 2, x + listWidth, y + HEIGHT + 3, AMITheme.SECTION_SEP);
 
         int itemY = y + HEIGHT + 3;
         for (T option : options) {
             if (itemY >= y + HEIGHT + 2 + dropH - ITEM_HEIGHT) break;
 
-            if (Dropdown.contains(mouseX, mouseY, x, itemY, width, ITEM_HEIGHT)) {
-                g.fill(x, itemY, x + width, itemY + ITEM_HEIGHT, AMITheme.DROPDOWN_BG);
+            boolean hovered = Dropdown.contains(mouseX, mouseY, x, itemY, listWidth, ITEM_HEIGHT);
+            if (hovered) {
+                g.fill(x, itemY, x + listWidth, itemY + ITEM_HEIGHT, AMITheme.DROPDOWN_BG);
             }
 
-            String label = (selected.contains(option) ? "✓ " : "  ") + displayName.apply(option);
-            g.drawString(font, label, x + 2, itemY + 1, AMITheme.TEXT_SUBTLE, false);
+            boolean isSelected = selected.contains(option);
+            if (isSelected) {
+                // Small accent bar on the left
+                g.fill(x + 2, itemY + 2, x + 4, itemY + ITEM_HEIGHT - 2, 0xFF4488FF);
+            }
+            
+            g.drawString(font, displayName.apply(option), x + 8, itemY + 1, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
             itemY += ITEM_HEIGHT;
         }
     }
@@ -67,18 +89,26 @@ public class MultiSelectDropdown<T> implements Dropdown {
 
         // Toggle on button click
         if (Dropdown.contains((int) mouseX, (int) mouseY, x, y, width, HEIGHT)) {
-            open = !open;
+            if (options != null && !options.isEmpty()) {
+                open = !open;
+            }
             return true;
         }
 
         // Handle dropdown item clicks
         if (open) {
+            var font = Minecraft.getInstance().font;
+            int listWidth = width;
+            for (T option : options) {
+                listWidth = Math.max(listWidth, font.width(displayName.apply(option)) + 20);
+            }
+
             int itemY = y + HEIGHT + 3;
             int dropH = Math.min(MAX_DROPDOWN_HEIGHT, options.size() * ITEM_HEIGHT + 2);
             for (T option : options) {
                 if (itemY >= y + HEIGHT + 2 + dropH - ITEM_HEIGHT) break;
 
-                if (Dropdown.contains((int) mouseX, (int) mouseY, x, itemY, width, ITEM_HEIGHT)) {
+                if (Dropdown.contains((int) mouseX, (int) mouseY, x, itemY, listWidth, ITEM_HEIGHT)) {
                     if (selected.contains(option)) {
                         selected.remove(option);
                     } else {

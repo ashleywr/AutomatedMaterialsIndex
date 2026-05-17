@@ -60,10 +60,30 @@
   "ami.tooltip.category": "Category",
   "ami.tooltip.size": "Size",
   "ami.tooltip.fire_immune": "Fire Immune",
+  "ami.tooltip.dimension_info": "(dimension info)",
+
+  "ami.precipitation.none": "None",
+  "ami.precipitation.snow": "Snow",
+  "ami.precipitation.rain": "Rain",
+
+  "ami.entity_category.hostile": "Hostile",
+  "ami.entity_category.passive": "Passive",
+  "ami.entity_category.ambient": "Ambient",
+  "ami.entity_category.aquatic": "Aquatic",
+  "ami.entity_category.misc": "Misc",
+
   "ami.tooltip.required_tool": "Requires: %s",
 
   "ami.gui.open_full_screen": "Open AMI Full Screen",
   "ami.gui.reset": "Reset",
+  "ami.gui.indexing": "Indexing...",
+  "ami.gui.loading": "Loading...",
+  "ami.gui.background_indexing": "Indexing in background...",
+  "ami.gui.items_count": "(%s items)",
+  "ami.gui.search_results": "Search Results",
+  "ami.gui.debug_hint": "Hold Ctrl for AMI debug info",
+  "ami.gui.collapse_hint": "Click to collapse group",
+  "ami.gui.expand_hint": "Click to expand group",
 
   "ami.gui.view_mode.grid": "Grid view",
   "ami.gui.view_mode.list": "List view",
