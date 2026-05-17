@@ -530,30 +530,44 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         if (nodes.isEmpty()) return;
 
-        // Use ResultsProcessor for smart grouping (e.g., potions into folders)
-        // When viewing an ontology category, don't re-group by the same category to avoid nesting.
-        // If grouping by CATEGORY, just show items without grouping (respects user's grouping choice).
+        // When viewing an ontology category in CATEGORY mode, avoid re-grouping by category.
+        // Still apply high-cardinality grouping for potions, books, etc.
         SearchState tempState = new SearchState();
         tempState.setViewMode(state.getViewMode());
         tempState.setSortField(state.getSortField());
         tempState.setAscending(state.isAscending());
 
-        // If viewing an ontology category in CATEGORY mode, show just the items (no grouping)
         if (isOntologyCategory && state.getGroupBy() == ResultsProcessor.GroupBy.CATEGORY) {
-            tempState.setGroupBy(ResultsProcessor.GroupBy.MOD); // Dummy value, will just create leaf nodes
+            // Just create leaf nodes with high-cardinality grouping (no main grouping)
+            node.getChildren().addAll(createLeafNodesWithHighCardinalityGrouping(nodes, tempState));
         } else {
+            // Apply normal grouping through processor
             tempState.setGroupBy(state.getGroupBy());
+            ResultsProcessor processor = tempState.createProcessor();
+            node.getChildren().addAll(applySmartGrouping(nodes, processor));
         }
+    }
 
+    private List<TreeNode> createLeafNodesWithHighCardinalityGrouping(List<SearchNode> nodes, SearchState tempState) {
+        // Create leaf nodes from search nodes (no main grouping)
+        List<TreeNode> leaves = nodes.stream()
+                .map(sn -> new TreeNode(Component.literal(sn.displayName()), sn))
+                .collect(java.util.stream.Collectors.toList());
+
+        // Apply high-cardinality grouping (for potions, books, etc.) via a processor
+        // We use MOD grouping as a dummy value since we're only calling applyHighCardinalityGrouping
+        tempState.setGroupBy(ResultsProcessor.GroupBy.MOD);
         ResultsProcessor processor = tempState.createProcessor();
 
-        // Create leaf nodes directly for large categories to avoid nested grouping
-        if (nodes.size() > 500 && isOntologyCategory && state.getGroupBy() == ResultsProcessor.GroupBy.CATEGORY) {
-            for (SearchNode sn : nodes) {
-                node.addChild(new TreeNode(Component.literal(sn.displayName()), sn));
-            }
-        } else {
-            node.getChildren().addAll(applySmartGrouping(nodes, processor));
+        try {
+            var method = ResultsProcessor.class.getDeclaredMethod("applyHighCardinalityGrouping", List.class);
+            method.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            List<TreeNode> result = (List<TreeNode>) method.invoke(processor, leaves);
+            return result;
+        } catch (Exception e) {
+            // Fallback: return leaves as-is if reflection fails
+            return leaves;
         }
     }
 
