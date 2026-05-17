@@ -464,13 +464,15 @@ public class ResultsTreeView {
      * lookup is non-AIR. Prefers immediate children; falls back to child groups.
      */
     private SearchNode findRepresentative(TreeNode node) {
-        List<SearchNode> sortedLeaves = node.getChildren().stream()
+        List<SearchNode> weightedLeaves = node.getChildren().stream()
                 .filter(TreeNode::isLeaf)
-                .sorted(Comparator.comparing(c -> c.getEntry().displayName()))
                 .map(TreeNode::getEntry)
+                .sorted(Comparator.comparingInt((SearchNode n) ->
+                                com.sanhiruzu.ami.index.GroupingEngine.representativeWeight(ItemIconRenderer.resolveStack(n.id())))
+                        .thenComparing(SearchNode::displayName))
                 .toList();
 
-        for (SearchNode candidate : sortedLeaves) {
+        for (SearchNode candidate : weightedLeaves) {
             ItemStack stack = ItemIconRenderer.resolveStack(candidate.id());
             if (!stack.isEmpty()) {
                 return candidate;
@@ -567,20 +569,22 @@ public class ResultsTreeView {
         if (totalH <= contentH) return;
 
         boolean active = scrollbarDragging || isScrollbarHovered(mouseX, mouseY, totalH, contentH, originY);
-        int barW = active ? 5 : 3;
+        int barW = active ? 6 : 4;
         int barX = x + width - 1 - barW;
-        int thumbH = Math.max(10, (contentH * contentH) / totalH);
+        int thumbH = Math.max(12, (contentH * contentH) / totalH);
         int maxScroll = totalH - contentH;
         int thumbY = originY + (pixelScrollOffset * (contentH - thumbH)) / maxScroll;
 
-        g.fill(barX, originY, barX + barW, originY + contentH, AMITheme.SCROLL_TRACK);
+        // Higher contrast track background
+        g.fill(x + width - SCROLLBAR_W, originY, x + width, originY + contentH, 0x44000000);
         g.fill(barX, thumbY, barX + barW, thumbY + thumbH,
                 active ? AMITheme.SCROLL_THUMB_ACTIVE : AMITheme.SCROLL_THUMB);
     }
 
     private boolean isScrollbarHovered(int mouseX, int mouseY, int totalH, int contentH, int originY) {
         if (totalH <= contentH) return false;
-        return mouseX >= x + width - 6 && mouseX < x + width - 1
+        // Widen hitbox to 10px for easier clicking
+        return mouseX >= x + width - 10 && mouseX < x + width
                 && mouseY >= originY && mouseY < originY + contentH;
     }
 
