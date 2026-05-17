@@ -13,6 +13,8 @@ public class ResultsToolbar implements SearchState.Listener {
     private static final int TOOLBAR_HEIGHT  = 20;
     private static final int MODE_BUTTON_W  = 26; // wide enough for "Grid"/"List"
     private static final int BUTTON_W       = 14;
+    private static final int COLLAPSE_BTN_W = 28; // "−" with padding
+    private static final int EXPAND_BTN_W   = 28; // "+" with padding
     private static final int DROPDOWN_W     = 80;
     private static final int MOD_FILTER_W   = 60;
     private static final int FIELDS_BTN_W   = 44; // wide enough for "Fields (3)"
@@ -84,6 +86,10 @@ public class ResultsToolbar implements SearchState.Listener {
     private void updateDropdownPositions() {
         boolean gridMode = state.getViewMode() == ViewMode.GRID;
         int startX = x + 2 + MODE_BUTTON_W + 3 + BUTTON_W + 3 + RESET_BUTTON_W + 3;
+        // Account for collapse/expand buttons in list view
+        if (!gridMode && onCollapseAll != null) {
+            startX += COLLAPSE_BTN_W + 1 + EXPAND_BTN_W + 3;
+        }
         // In grid mode the Fields picker is hidden, so give its space to Sort/Group dropdowns.
         int rightReserved = gridMode ? 0 : (FIELDS_BTN_W + 5);
         int availableW = width - (startX - x) - rightReserved;
@@ -134,16 +140,17 @@ public class ResultsToolbar implements SearchState.Listener {
 
         // Collapse/Expand all buttons (only in list view)
         if (state.getViewMode() != ViewMode.GRID && onCollapseAll != null) {
-            // Collapse button (◀)
-            boolean collapseHovered = Dropdown.contains(effectiveMouseX, mouseY, buttonX, y + 3, BUTTON_W, 14);
-            int collapseColor = collapseHovered ? com.sanhiruzu.ami.client.AMITheme.WHITE : AMITheme.TEXT_SUBTLE;
-            g.drawString(font, "◀", buttonX + 2, y + 3, collapseColor, false);
-            buttonX += BUTTON_W + 3;
+            // Collapse button (−)
+            boolean collapseHovered = Dropdown.contains(effectiveMouseX, mouseY, buttonX, y + 3, COLLAPSE_BTN_W, 14);
+            int collapseColor = collapseHovered ? com.sanhiruzu.ami.client.AMITheme.WHITE : AMITheme.TEXT_HEADER;
+            g.drawString(font, "−", buttonX + 9, y + 3, collapseColor, false);
+            buttonX += COLLAPSE_BTN_W + 1;
 
-            // Expand button (▶)
-            boolean expandHovered = Dropdown.contains(effectiveMouseX, mouseY, buttonX, y + 3, BUTTON_W, 14);
-            int expandColor = expandHovered ? com.sanhiruzu.ami.client.AMITheme.WHITE : AMITheme.TEXT_SUBTLE;
-            g.drawString(font, "▶", buttonX + 2, y + 3, expandColor, false);
+            // Expand button (+)
+            boolean expandHovered = Dropdown.contains(effectiveMouseX, mouseY, buttonX, y + 3, EXPAND_BTN_W, 14);
+            int expandColor = expandHovered ? com.sanhiruzu.ami.client.AMITheme.WHITE : AMITheme.TEXT_HEADER;
+            g.drawString(font, "+", buttonX + 11, y + 3, expandColor, false);
+            buttonX += EXPAND_BTN_W + 3;
         }
 
         // Render all registered dropdowns
@@ -189,14 +196,14 @@ public class ResultsToolbar implements SearchState.Listener {
         // Collapse/Expand all buttons (only in list view)
         if (state.getViewMode() != ViewMode.GRID && onCollapseAll != null) {
             // Collapse button
-            if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, y + 3, BUTTON_W, 14)) {
+            if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, y + 3, COLLAPSE_BTN_W, 14)) {
                 onCollapseAll.run();
                 return true;
             }
-            buttonX += BUTTON_W + 3;
+            buttonX += COLLAPSE_BTN_W + 1;
 
             // Expand button
-            if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, y + 3, BUTTON_W, 14)) {
+            if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, y + 3, EXPAND_BTN_W, 14)) {
                 onExpandAll.run();
                 return true;
             }
