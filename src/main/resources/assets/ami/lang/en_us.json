@@ -13,7 +13,7 @@
   "ami.gui.cycle_hint": "Press %s to cycle",
   "ami.gui.close_hint": "Press %s to close",
   "ami.gui.search.placeholder": "Filter...",
-  "ami.gui.search.placeholder_hint": "Search anything here...",
+  "ami.gui.search.placeholder_hint": "Search...",
   "ami.gui.search.empty": "No results",
 
   "ami.dimension.overworld": "Overworld",
@@ -207,7 +207,7 @@
   "ami.dev.group.none": "None",
   "ami.dev.group.default": "Default",
 
-  "ami.gui.search.typing": "Start typing to search...",
+  "ami.gui.search.typing": "Start typing...",
   "ami.gui.search.clear": "x",
   "ami.gui.search.recipe": "▶ Recipe",
 
