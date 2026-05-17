@@ -24,6 +24,10 @@ public class ResultsToolbar implements SearchState.Listener {
     // Registered dropdowns - add or remove here to customize the toolbar
     private final List<Dropdown> dropdowns = new ArrayList<>();
 
+    // Collapse/expand callbacks (only shown in list view with groups)
+    private Runnable onCollapseAll = null;
+    private Runnable onExpandAll = null;
+
     // Specific dropdown references for getters
     private SingleSelectDropdown<ResultsProcessor.SortField> sortFieldDropdown;
     private SingleSelectDropdown<ResultsProcessor.GroupBy> groupByDropdown;
@@ -126,6 +130,21 @@ public class ResultsToolbar implements SearchState.Listener {
         int resetColor = resetHovered ? 0xFFFFFFFF : AMITheme.TEXT_SUBTLE;
         com.sanhiruzu.ami.client.AmiGuiIcons.reset(g,
                 buttonX + RESET_BUTTON_W / 2, y + 3 + 7, resetColor);
+        buttonX += RESET_BUTTON_W + 3;
+
+        // Collapse/Expand all buttons (only in list view)
+        if (state.getViewMode() != ViewMode.GRID && onCollapseAll != null) {
+            // Collapse button (◀)
+            boolean collapseHovered = Dropdown.contains(effectiveMouseX, mouseY, buttonX, y + 3, BUTTON_W, 14);
+            int collapseColor = collapseHovered ? 0xFFFFFFFF : AMITheme.TEXT_SUBTLE;
+            g.drawString(font, "◀", buttonX + 2, y + 3, collapseColor, false);
+            buttonX += BUTTON_W + 3;
+
+            // Expand button (▶)
+            boolean expandHovered = Dropdown.contains(effectiveMouseX, mouseY, buttonX, y + 3, BUTTON_W, 14);
+            int expandColor = expandHovered ? 0xFFFFFFFF : AMITheme.TEXT_SUBTLE;
+            g.drawString(font, "▶", buttonX + 2, y + 3, expandColor, false);
+        }
 
         // Render all registered dropdowns
         for (Dropdown dropdown : dropdowns) {
@@ -164,6 +183,23 @@ public class ResultsToolbar implements SearchState.Listener {
             RowFieldConfig.setSubtitleFields(List.of(RowField.MOD_NAME));
             closeAllDropdowns();
             return true;
+        }
+        buttonX += RESET_BUTTON_W + 3;
+
+        // Collapse/Expand all buttons (only in list view)
+        if (state.getViewMode() != ViewMode.GRID && onCollapseAll != null) {
+            // Collapse button
+            if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, y + 3, BUTTON_W, 14)) {
+                onCollapseAll.run();
+                return true;
+            }
+            buttonX += BUTTON_W + 3;
+
+            // Expand button
+            if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, y + 3, BUTTON_W, 14)) {
+                onExpandAll.run();
+                return true;
+            }
         }
 
         // Fields picker — only in list mode
@@ -222,5 +258,10 @@ public class ResultsToolbar implements SearchState.Listener {
     public void registerDropdown(Dropdown dropdown) {
         dropdowns.add(dropdown);
         updateDropdownPositions();
+    }
+
+    public void setCollapseExpandCallbacks(Runnable onCollapseAll, Runnable onExpandAll) {
+        this.onCollapseAll = onCollapseAll;
+        this.onExpandAll = onExpandAll;
     }
 }

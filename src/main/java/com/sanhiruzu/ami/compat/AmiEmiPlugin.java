@@ -24,11 +24,38 @@ public class AmiEmiPlugin implements EmiPlugin {
                     return;
                 }
 
-                WidgetBounds bounds = InventoryOverlayHandler.getManager().getResultsBounds();
+                var manager = InventoryOverlayHandler.getManager();
+                if (!manager.isPanelVisible()) return;
+
+                // Results Panel
+                WidgetBounds bounds = manager.getResultsBounds();
                 if (bounds != null && bounds.width() > 0) {
                     consumer.accept(new Bounds(bounds.x(), bounds.y(), bounds.width(), bounds.height()));
                 }
+
+                // Left Sidebars
+                addPanelBounds(manager.getLeftPanel(), consumer);
+                addPanelBounds(manager.getLeftPanelSecondary(), consumer);
+
+                // Right Sidebars
+                addPanelBounds(manager.getRightPanelPrimary(), consumer);
+                addPanelBounds(manager.getRightPanelSecondary(), consumer);
+
+                // Search Bar
+                var searchBar = manager.getSearchBar();
+                if (searchBar != null && searchBar.visible) {
+                    var b = searchBar.getBounds();
+                    if (b != null) {
+                        consumer.accept(new Bounds(b.x(), b.y(), b.width(), b.height()));
+                    }
+                }
             });
+        }
+    }
+
+    private void addPanelBounds(com.sanhiruzu.ami.client.overlay.SidebarPanelWidget panel, java.util.function.Consumer<Bounds> consumer) {
+        if (panel != null && panel.visible) {
+            consumer.accept(new Bounds(panel.getX(), panel.getY(), panel.getWidth(), panel.getHeight()));
         }
     }
 }

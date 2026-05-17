@@ -94,6 +94,11 @@ public class UniversalResultsPanel implements SearchState.Listener {
         this.gridView = new ItemGridView(innerX, contentY, innerW, contentH);
         this.gridView.setItemClickCallback(this::onItemClicked);
         this.treeView.setItemClickCallback(this::onItemClicked);
+
+        toolbar.setCollapseExpandCallbacks(
+            () -> treeView.collapseAll(),
+            () -> treeView.expandAll()
+        );
     }
 
     public void setEntries(List<SearchNode> entries) {
