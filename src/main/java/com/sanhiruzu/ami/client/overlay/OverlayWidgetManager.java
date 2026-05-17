@@ -64,6 +64,7 @@ public class OverlayWidgetManager {
         });
         this.resultsPanel.setOnReset(searchBar::clear);
         this.resultsPanel.setOnFacetInject(token -> searchBar.toggleToken(token));
+        this.resultsPanel.setOnTokenInject(token -> searchBar.toggleToken(token));
 
         Runnable refreshSidebars = this::refreshSidebars;
         this.leftPanel.getInnerPanel().setOnReset(refreshSidebars);
