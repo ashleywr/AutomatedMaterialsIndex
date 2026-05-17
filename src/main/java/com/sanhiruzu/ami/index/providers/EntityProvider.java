@@ -48,10 +48,13 @@ public class EntityProvider implements IAmiDataProvider {
             }
 
             // MISC covers projectiles, vehicles, dropped items, etc. — hide by default.
-            // experience_orb is the only MISC entity worth surfacing; it goes under Magic.
+            // experience_orb goes under Magic; vehicles go under Environment → transport.
             if (category == MobCategory.MISC) {
                 if (id.getPath().equals("experience_orb")) {
                     meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, "magic");
+                } else if (isVehicleEntity(id.getPath())) {
+                    meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, "environment");
+                    meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "transport");
                 } else {
                     meta.put(SearchNodeKeys.ACCESS_LEVEL, "dev");
                 }
@@ -67,6 +70,10 @@ public class EntityProvider implements IAmiDataProvider {
 
         nodes.sort(RegistryUtils.ENTRY_ORDER);
         nodes.forEach(index::addNode);
+    }
+
+    private static boolean isVehicleEntity(String path) {
+        return path.contains("boat") || path.contains("minecart") || path.contains("raft");
     }
 
     private static final Set<String> NEUTRAL_MOBS = Set.of(
