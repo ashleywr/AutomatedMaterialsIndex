@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.client.results;
 import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
+import com.sanhiruzu.ami.util.AmiClipboardHelper;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.Minecraft;
@@ -13,6 +14,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -414,6 +416,16 @@ public class ItemGridView {
     }
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == GLFW.GLFW_KEY_C && Screen.hasControlDown()) {
+            if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
+                AmiClipboardHelper.copyItemTooltipToClipboard(pendingTooltip);
+                return true;
+            } else if (pendingTextTooltip != null && !pendingTextTooltip.isEmpty()) {
+                AmiClipboardHelper.copyComponentsToClipboard(pendingTextTooltip);
+                return true;
+            }
+        }
+
         if (keyCode == 266) { // Page Up
             pixelScrollOffset = Math.max(0, pixelScrollOffset - height);
             return true;

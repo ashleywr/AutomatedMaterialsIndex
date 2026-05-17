@@ -5,6 +5,7 @@ import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchService;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -160,8 +161,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
 
         ResultsProcessor processor = state.createProcessor();
-        treeView.setRootNodes(processor.process(source));
-        gridView.setRootNodes(processor.process(source));
+        List<TreeNode> processed = processor.process(source);
+        treeView.setRootNodes(processed);
+        gridView.setRootNodes(processed);
     }
 
     private List<SearchNode> resolveSource() {
@@ -208,10 +210,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollDelta) {
-        boolean isOver = mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
-        if (!isOver) {
-            return false;
-        }
+        if (!isMouseOver(mouseX, mouseY)) return false;
 
         boolean gridMode = state.getViewMode() == ResultsToolbar.ViewMode.GRID;
         if (gridMode) {
@@ -226,10 +225,14 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        double mx = Minecraft.getInstance().mouseHandler.x() * (double)Minecraft.getInstance().getWindow().getGuiScaledWidth() / (double)Minecraft.getInstance().getWindow().getScreenWidth();
-        double my = Minecraft.getInstance().mouseHandler.y() * (double)Minecraft.getInstance().getWindow().getGuiScaledHeight() / (double)Minecraft.getInstance().getWindow().getScreenHeight();
+        Minecraft mc = Minecraft.getInstance();
+        var window = mc.getWindow();
+        double mx = mc.mouseHandler.xpos() * window.getGuiScaledWidth() / (double) window.getScreenWidth();
+        double my = mc.mouseHandler.ypos() * window.getGuiScaledHeight() / (double) window.getScreenHeight();
 
         if (!isMouseOver(mx, my)) return false;
+
+        if (facetBar.keyPressed(keyCode, scanCode, modifiers)) return true;
 
         boolean gridMode = state.getViewMode() == ResultsToolbar.ViewMode.GRID;
         if (gridMode) return gridView.keyPressed(keyCode, scanCode, modifiers);

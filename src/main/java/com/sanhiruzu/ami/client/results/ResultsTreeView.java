@@ -7,7 +7,9 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.util.AmiColors;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.util.AmiClipboardHelper;
 import net.minecraft.client.Minecraft;
+import org.lwjgl.glfw.GLFW;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -626,8 +628,6 @@ public class ResultsTreeView {
 
                 if (onModClick != null && mouseX >= badgeStartX && mouseX <= rightEdge) {
                     onModClick.accept("@" + node.getEntry().id().getNamespace());
-                } else {
-                    // Normal leaf click
                 }
             } else {
                 node.setExpanded(!node.isExpanded());
@@ -654,10 +654,20 @@ public class ResultsTreeView {
     }
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == 266) { // Page Up
+        if (keyCode == GLFW.GLFW_KEY_C && Screen.hasControlDown()) {
+            if (pendingItemStack != null && !pendingItemStack.isEmpty()) {
+                AmiClipboardHelper.copyItemTooltipToClipboard(pendingItemStack);
+                return true;
+            } else if (pendingTooltipLines != null && !pendingTooltipLines.isEmpty()) {
+                AmiClipboardHelper.copyComponentsToClipboard(pendingTooltipLines);
+                return true;
+            }
+        }
+
+        if (keyCode == GLFW.GLFW_KEY_PAGE_UP) {
             pixelScrollOffset = Math.max(0, pixelScrollOffset - (lastContentH > 0 ? lastContentH : height));
             return true;
-        } else if (keyCode == 267) { // Page Down
+        } else if (keyCode == GLFW.GLFW_KEY_PAGE_DOWN) {
             int contentH = lastContentH > 0 ? lastContentH : height;
             int totalH = countAllNodes() * AMITheme.ROW_HEIGHT;
             int maxScroll = Math.max(0, totalH - contentH);
