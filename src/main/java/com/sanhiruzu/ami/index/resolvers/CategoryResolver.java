@@ -27,23 +27,19 @@ public class CategoryResolver implements IQueryResolver {
     @Override
     public Map<NodeType, List<SearchNode>> resolve(String query) {
         String id = query.toLowerCase(java.util.Locale.ROOT);
+        
+        // Exact match check
+        if (byCategory.containsKey(id)) {
+            return byCategory.get(id);
+        }
 
-        // Exact match first
-        if (byCategory.containsKey(id)) return copy(byCategory.get(id));
-
-        // Prefix match (e.g. "mag" → "magic", "mob" → "mobs" if that were a category id)
+        // Prefix match check
         for (var entry : byCategory.entrySet()) {
-            if (entry.getKey().startsWith(id)) return copy(entry.getValue());
+            if (entry.getKey().startsWith(id)) {
+                return entry.getValue();
+            }
         }
 
-        return Map.of();
-    }
-
-    private static Map<NodeType, List<SearchNode>> copy(Map<NodeType, List<SearchNode>> src) {
-        Map<NodeType, List<SearchNode>> result = new LinkedHashMap<>();
-        for (var entry : src.entrySet()) {
-            result.put(entry.getKey(), new ArrayList<>(entry.getValue()));
-        }
-        return result;
+        return Collections.emptyMap();
     }
 }

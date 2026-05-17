@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.AMIConfig;
+import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
 
@@ -68,13 +69,12 @@ public class RecipeViewerBridge {
      */
     public static void handleItemClick(ItemStack stack, int button) {
         if (stack == null || stack.isEmpty()) return;
-        AMIConfig.ItemClickAction action = AMIConfig.ITEM_CLICK_ACTION.get();
         if (button == 1) {
             // Right-click always opens uses regardless of config
             openUses(stack);
             return;
         }
-        switch (action) {
+        switch (AmiConfig.itemClickAction) {
             case RECIPES -> openRecipes(stack);
             case USES    -> openUses(stack);
             case NONE    -> {}

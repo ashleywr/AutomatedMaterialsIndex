@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client;
 
 import com.sanhiruzu.ami.AMI;
-import com.sanhiruzu.ami.AMIConfig;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.client.overlay.OverlayWidgetManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -22,7 +22,7 @@ public class InventoryOverlayHandler {
     private static boolean sessionInitialized = false;
 
     private static boolean isAmiAvailable() {
-        return AMIConfig.ENABLE_AUTO_INDEXING.get();
+        return AmiConfig.enableAutoIndexing;
     }
 
     public static void toggleAmi() {
@@ -89,7 +89,7 @@ public class InventoryOverlayHandler {
     @SubscribeEvent
     static void onMouseScroll(ScreenEvent.MouseScrolled.Pre event) {
         if (!amiEnabled) return;
-        if (!AMIConfig.ENABLE_AUTO_INDEXING.get()) return;
+        if (!AmiConfig.enableAutoIndexing) return;
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
         // ContainerEventHandler.mouseScrolled routes only to getFocused(), not the hovered widget.
         // We must handle the results panel scroll ourselves.
@@ -213,6 +213,12 @@ public class InventoryOverlayHandler {
     static void onKeyPressed(ScreenEvent.KeyPressed.Pre event) {
         if (!isAmiAvailable()) return;
         if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
+
+        // Process global AMI keybinds first
+        if (AmiKeybindHandler.onKeyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
+            event.setCanceled(true);
+            return;
+        }
 
         var resultsPanel = manager.getResultsPanel();
         if (amiEnabled && manager.isPanelVisible()) {

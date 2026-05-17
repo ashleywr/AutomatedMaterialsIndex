@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.client.overlay;
 
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.query.TokenColorizer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -18,9 +19,7 @@ import java.util.List;
 
 public class SearchBarWidget extends EditBox {
     private final Listener listener;
-    private final List<String> history = new ArrayList<>();
     private final Deque<String> undoStack = new ArrayDeque<>();
-    private int historyIndex = -1;
     private String liveQuery = "";
     private String lastValue = "";
     private long lastClickTime = 0;
@@ -28,12 +27,6 @@ public class SearchBarWidget extends EditBox {
     private boolean undoing = false;
     private int cursorPos = 0;
     private int highlightPos = 0;
-    private boolean contextMenuOpen = false;
-    private int menuX, menuY;
-    private boolean historyDropdownOpen = false;
-
-    private static final List<String> MENU_OPTIONS = List.of("Cut", "Copy", "Paste", "Clear");
-    private static final int MENU_ITEM_H = 12;
 
     private static final Component PLACEHOLDER_HINT = Component.translatable("ami.gui.search.placeholder_hint");
     private static final Component TYPING_HINT = Component.translatable("ami.gui.search.typing");
@@ -66,18 +59,10 @@ public class SearchBarWidget extends EditBox {
 
     @Override
     public void setFocused(boolean focused) {
-        boolean wasFocused = isFocused();
         super.setFocused(focused);
-        if (wasFocused && !focused && !getValue().isEmpty()) {
-            addToHistory(getValue());
-        }
         if (!focused) {
-            historyIndex = -1;
             liveQuery = "";
             lastClickTime = 0;
-            historyDropdownOpen = false;
-        } else if (getValue().isEmpty() && !history.isEmpty() && com.sanhiruzu.ami.AMIConfig.ENABLE_RECENT_SEARCH_DROPDOWN.get()) {
-            historyDropdownOpen = true;
         }
     }
 
@@ -93,8 +78,8 @@ public class SearchBarWidget extends EditBox {
         int border = focused ? 0xFFFFFFFF : 0xFF555555;
         g.fill(x, y, x + w, y + 1, border);
         g.fill(x, y + h - 1, x + w, y + h, border);
-        g.fill(x, y, x + 1, y + h, border);
-        g.fill(x + w - 1, y, x + w, y + h, border);
+        g.fill(x, y + 1, x + 1, y + h - 1, border);
+        g.fill(x + w - 1, y + 1, x + w, y + h - 1, border);
 
         int textX = x + 5;
         int textY = y + (h - font.lineHeight) / 2 + 1;
@@ -125,110 +110,10 @@ public class SearchBarWidget extends EditBox {
             int cursorX = textX + font.width(value.substring(displayStart, displayStart + cursorInVisible)) + 1;
             g.fill(cursorX, textY - 1, cursorX + 1, textY + font.lineHeight, 0xFFCCCCCC);
         }
-
-        if (contextMenuOpen) {
-            renderContextMenu(g, mouseX, mouseY);
-        }
-        if (historyDropdownOpen && com.sanhiruzu.ami.AMIConfig.ENABLE_RECENT_SEARCH_DROPDOWN.get()) {
-            renderHistoryDropdown(g, mouseX, mouseY);
-        }
-    }
-
-    private void renderContextMenu(GuiGraphics g, int mouseX, int mouseY) {
-        Font font = Minecraft.getInstance().font;
-        int menuW = 50;
-        int menuH = MENU_OPTIONS.size() * MENU_ITEM_H + 2;
-        
-        g.pose().pushPose();
-        g.pose().translate(0, 0, 500); // Topmost
-        
-        g.fill(menuX, menuY, menuX + menuW, menuY + menuH, 0xFF222222);
-        g.fill(menuX, menuY, menuX + menuW, menuY + 1, 0xFF555555);
-        g.fill(menuX, menuY + menuH - 1, menuX + menuW, menuY + menuH, 0xFF555555);
-        g.fill(menuX, menuY, menuX + 1, menuY + menuH, 0xFF555555);
-        g.fill(menuX + menuW - 1, menuY, menuX + menuW, menuY + menuH, 0xFF555555);
-        
-        for (int i = 0; i < MENU_OPTIONS.size(); i++) {
-            int itemY = menuY + 1 + i * MENU_ITEM_H;
-            boolean hovered = mouseX >= menuX && mouseX < menuX + menuW && mouseY >= itemY && mouseY < itemY + MENU_ITEM_H;
-            if (hovered) g.fill(menuX + 1, itemY, menuX + menuW - 1, itemY + MENU_ITEM_H, 0xFF444444);
-            g.drawString(font, MENU_OPTIONS.get(i), menuX + 4, itemY + 2, 0xFFCCCCCC, false);
-        }
-        
-        g.pose().popPose();
-    }
-
-    private void renderHistoryDropdown(GuiGraphics g, int mouseX, int mouseY) {
-        if (history.isEmpty()) return;
-
-        Font font = Minecraft.getInstance().font;
-        int maxItems = 8;
-        int listSize = Math.min(history.size(), maxItems);
-        int menuW = width;
-        int menuH = listSize * MENU_ITEM_H + 2;
-        int mX = getX();
-        int mY = getY() + height;
-
-        g.pose().pushPose();
-        g.pose().translate(0, 0, 500); // Topmost
-
-        g.fill(mX, mY, mX + menuW, mY + menuH, 0xFF1A1A1A);
-        g.fill(mX, mY, mX + menuW, mY + 1, 0xFF555555);
-        g.fill(mX, mY + menuH - 1, mX + menuW, mY + menuH, 0xFF555555);
-        g.fill(mX, mY, mX + 1, mY + menuH, 0xFF555555);
-        g.fill(mX + menuW - 1, mY, mX + menuW, mY + menuH, 0xFF555555);
-
-        for (int i = 0; i < listSize; i++) {
-            int itemY = mY + 1 + i * MENU_ITEM_H;
-            boolean hovered = mouseX >= mX && mouseX < mX + menuW && mouseY >= itemY && mouseY < itemY + MENU_ITEM_H;
-            if (hovered) g.fill(mX + 1, itemY, mX + menuW - 1, itemY + MENU_ITEM_H, 0xFF333333);
-
-            String text = history.get(i);
-            int tw = font.width(text);
-            if (tw > menuW - 10) {
-                text = font.plainSubstrByWidth(text, menuW - 15) + "...";
-            }
-            g.drawString(font, text, mX + 5, itemY + 2, 0xFFCCCCCC, false);
-        }
-
-        g.pose().popPose();
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (historyDropdownOpen) {
-            int maxItems = 8;
-            int listSize = Math.min(history.size(), maxItems);
-            int menuW = width;
-            int menuH = listSize * MENU_ITEM_H + 2;
-            int mX = getX();
-            int mY = getY() + height;
-            if (mouseX >= mX && mouseX < mX + menuW && mouseY >= mY && mouseY < mY + menuH) {
-                int idx = (int) (mouseY - mY - 1) / MENU_ITEM_H;
-                if (idx >= 0 && idx < listSize) {
-                    setValue(history.get(idx));
-                    setFocused(true);
-                }
-                historyDropdownOpen = false;
-                return true;
-            }
-            historyDropdownOpen = false;
-        }
-
-        if (contextMenuOpen) {
-            int menuW = 50;
-            int menuH = MENU_OPTIONS.size() * MENU_ITEM_H + 2;
-            if (mouseX >= menuX && mouseX < menuX + menuW && mouseY >= menuY && mouseY < menuY + menuH) {
-                int idx = (int) (mouseY - menuY - 1) / MENU_ITEM_H;
-                if (idx >= 0 && idx < MENU_OPTIONS.size()) {
-                    handleMenuSelection(MENU_OPTIONS.get(idx));
-                }
-                contextMenuOpen = false;
-                return true;
-            }
-            contextMenuOpen = false;
-        }
-
         if (!isMouseOver(mouseX, mouseY)) return false;
 
         String value = getValue();
@@ -252,58 +137,10 @@ public class SearchBarWidget extends EditBox {
             }
             lastClickTime = now;
         } else if (button == 1) {
-            // Right-click behavior depends on config
-            if (com.sanhiruzu.ami.AMIConfig.ENABLE_SEARCH_BAR_CONTEXT_MENU.get()) {
-                contextMenuOpen = true;
-                menuX = (int) mouseX;
-                menuY = (int) mouseY;
-                setFocused(true);
-            } else {
-                clear();
-            }
+            clear();
             return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
-    }
-
-    @Override
-    public boolean isMouseOver(double mouseX, double mouseY) {
-        if (super.isMouseOver(mouseX, mouseY)) return true;
-        if (historyDropdownOpen && com.sanhiruzu.ami.AMIConfig.ENABLE_RECENT_SEARCH_DROPDOWN.get()) {
-            int maxItems = 8;
-            int listSize = Math.min(history.size(), maxItems);
-            int menuW = width;
-            int menuH = listSize * MENU_ITEM_H + 2;
-            int mX = getX();
-            int mY = getY() + height;
-            return mouseX >= mX && mouseX < mX + menuW && mouseY >= mY && mouseY < mY + menuH;
-        }
-        if (contextMenuOpen) {
-            int menuW = 50;
-            int menuH = MENU_OPTIONS.size() * MENU_ITEM_H + 2;
-            return mouseX >= menuX && mouseX < menuX + menuW && mouseY >= menuY && mouseY < menuY + menuH;
-        }
-        return false;
-    }
-
-    private void handleMenuSelection(String option) {
-        Minecraft mc = Minecraft.getInstance();
-        switch (option) {
-            case "Cut" -> {
-                mc.keyboardHandler.setClipboard(getSelectedText());
-                insertText("");
-            }
-            case "Copy" -> mc.keyboardHandler.setClipboard(getSelectedText());
-            case "Paste" -> insertText(mc.keyboardHandler.getClipboard());
-            case "Clear" -> clear();
-        }
-    }
-
-    private String getSelectedText() {
-        int start = Math.min(cursorPos, highlightPos);
-        int end = Math.max(cursorPos, highlightPos);
-        if (start == end) return "";
-        return getValue().substring(start, end);
     }
 
     @Override
@@ -343,14 +180,6 @@ public class SearchBarWidget extends EditBox {
             setFocused(false);
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_UP) {
-            navigateHistory(+1);
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_DOWN) {
-            navigateHistory(-1);
-            return true;
-        }
         if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_Z) {
             undoLastEdit();
             return true;
@@ -367,10 +196,6 @@ public class SearchBarWidget extends EditBox {
             }
         }
 
-        // Delegate to EditBox for Backspace, Delete, Ctrl+A, Ctrl+V, Ctrl+X, Ctrl+C,
-        // Ctrl+Backspace, arrows, Home, End. Ctrl+Z is handled above because EditBox
-        // does not provide undo. Always return true when focused so the screen
-        // doesn't also act on the key (e.g. 'E' closing inventory).
         super.keyPressed(keyCode, scanCode, modifiers);
         return true;
     }
@@ -423,16 +248,7 @@ public class SearchBarWidget extends EditBox {
         setFocused(true);
     }
 
-    public void addToHistory(String searchTerm) {
-        if (searchTerm == null || searchTerm.isEmpty()) return;
-        history.remove(searchTerm);
-        history.add(0, searchTerm);
-        if (history.size() > 50) history.remove(history.size() - 1);
-        historyIndex = -1;
-    }
-
     private void onTextChanged(String newValue) {
-        historyIndex = -1;
         updateColorSpans();
         if (!silentUpdate && !undoing && !newValue.equals(lastValue)) {
             undoStack.push(lastValue);
@@ -441,12 +257,6 @@ public class SearchBarWidget extends EditBox {
             }
         }
         lastValue = newValue;
-
-        if (isFocused() && newValue.isEmpty() && !history.isEmpty() && com.sanhiruzu.ami.AMIConfig.ENABLE_RECENT_SEARCH_DROPDOWN.get()) {
-            historyDropdownOpen = true;
-        } else {
-            historyDropdownOpen = false;
-        }
 
         if (!silentUpdate && listener != null) listener.onQueryChanged(newValue);
     }
@@ -459,36 +269,6 @@ public class SearchBarWidget extends EditBox {
         setHighlightPos(getCursorPosition());
         undoing = false;
         lastValue = getValue();
-    }
-
-    private void navigateHistory(int direction) {
-        if (history.isEmpty()) return;
-        int newIndex = historyIndex;
-        String newValue;
-        if (direction > 0) {
-            if (newIndex < 0) {
-                liveQuery = getValue();
-                newIndex = 0;
-            } else if (newIndex < history.size() - 1) {
-                newIndex++;
-            } else {
-                return;
-            }
-            newValue = history.get(newIndex);
-        } else {
-            if (newIndex > 0) {
-                newIndex--;
-                newValue = history.get(newIndex);
-            } else if (newIndex == 0) {
-                newIndex = -1;
-                newValue = liveQuery;
-                liveQuery = "";
-            } else {
-                return;
-            }
-        }
-        setValue(newValue); // fires onTextChanged → resets historyIndex to -1
-        historyIndex = newIndex; // restore after responder reset it
     }
 
     private void updateColorSpans() {

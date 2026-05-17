@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.client;
 
-import com.sanhiruzu.ami.AMIConfig;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.client.results.*;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.index.NodeType;
@@ -9,6 +9,7 @@ import com.sanhiruzu.ami.index.SearchService;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
@@ -24,6 +25,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
     // Compact toggle button dimensions
     private static final int TOGGLE_W = 18;
     private static final int TOGGLE_H = 18;
+    // Favorites panel heart header height
+    private static final int FAV_HEADER_H = 16;
 
     private int x, y, width, height;
 
@@ -76,7 +79,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
         this.toolbar = new ResultsToolbar(innerX, toolbarY, innerW, state);
 
         int contentY, contentH;
-        if (AMIConfig.COMPACT_MODE.get()) {
+        if (isFavoritesPanel) {
+            contentY = y + FAV_HEADER_H;
+            contentH = height - FAV_HEADER_H - AMITheme.GLOBAL_PADDING;
+        } else if (AmiConfig.compactMode) {
             contentY = y + AMITheme.GLOBAL_PADDING;
             contentH = height - AMITheme.GLOBAL_PADDING * 2;
         } else {
@@ -143,7 +149,11 @@ public class UniversalResultsPanel implements SearchState.Listener {
         this.toggleX = x + width - AMITheme.GLOBAL_PADDING - TOGGLE_W;
         this.toggleY = y + AMITheme.GLOBAL_PADDING;
 
-        if (AMIConfig.COMPACT_MODE.get()) {
+        if (isFavoritesPanel) {
+            int contentY = y + FAV_HEADER_H;
+            int contentH = height - FAV_HEADER_H - AMITheme.GLOBAL_PADDING;
+            gridView.updateLayout(innerX, contentY, innerW, contentH);
+        } else if (AmiConfig.compactMode) {
             // Compact: grid fills the full panel area; toggle button is overlaid in top-right corner
             int contentY = y + AMITheme.GLOBAL_PADDING;
             int contentH = height - AMITheme.GLOBAL_PADDING * 2;
@@ -168,7 +178,16 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         g.blitSprite(PANEL_SPRITE, x, y, width, height);
 
-        boolean compact = AMIConfig.COMPACT_MODE.get();
+        boolean compact = AmiConfig.compactMode;
+
+        if (isFavoritesPanel) {
+            var font = Minecraft.getInstance().font;
+            Component title = Component.translatable("ami.gui.favorites");
+            g.drawString(font, "♥ " + title.getString(), x + AMITheme.GLOBAL_PADDING, y + (FAV_HEADER_H - font.lineHeight) / 2, AMITheme.TEXT_HEADER, false);
+            g.fill(x + 3, y + FAV_HEADER_H - 1, x + width - 3, y + FAV_HEADER_H, AMITheme.SECTION_SEP);
+            gridView.render(g, mouseX, mouseY);
+            return;
+        }
 
         if (compact) {
             if (!com.sanhiruzu.ami.index.GlobalIndex.getInstance().isIndexReady()) {
@@ -214,7 +233,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     private void renderToggleBtn(GuiGraphics g, int mouseX, int mouseY) {
-        boolean compact = AMIConfig.COMPACT_MODE.get();
+        boolean compact = AmiConfig.compactMode;
         boolean hovered = mouseX >= toggleX && mouseX < toggleX + TOGGLE_W
                 && mouseY >= toggleY && mouseY < toggleY + TOGGLE_H;
 
@@ -242,7 +261,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private void checkPlayerStateChanged() {
         var mc = Minecraft.getInstance();
         var gameMode = mc.gameMode != null ? mc.gameMode.getPlayerMode() : null;
-        boolean devMode = AMIConfig.DEV_MODE.get();
+        boolean devMode = AmiConfig.devMode;
 
         if (gameMode != lastPlayerMode || devMode != lastDevMode) {
             lastPlayerMode = gameMode;
@@ -276,15 +295,15 @@ public class UniversalResultsPanel implements SearchState.Listener {
     // ── Item click (grid + list) ──────────────────────────────────────────────
 
     private void onItemClicked(SearchNode node, int button) {
-        ItemStack stack = com.sanhiruzu.ami.client.icon.ItemIconRenderer.resolveStack(node.id());
+        ItemStack stack = com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node);
         if (!stack.isEmpty()) RecipeViewerBridge.handleItemClick(stack, button);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /** True when the grid view should be active — either explicit grid mode or compact mode. */
+    /** True when the grid view should be active — favorites panel, compact mode, or explicit grid mode. */
     private boolean isGridActive() {
-        return AMIConfig.COMPACT_MODE.get() || state.getViewMode() == ResultsToolbar.ViewMode.GRID;
+        return isFavoritesPanel || AmiConfig.compactMode || state.getViewMode() == ResultsToolbar.ViewMode.GRID;
     }
 
     private boolean isOverToggle(double mouseX, double mouseY) {
@@ -310,15 +329,19 @@ public class UniversalResultsPanel implements SearchState.Listener {
             }
         }
 
+        // Favorites panel — only grid clicks, no toggle/toolbar/facetbar
+        if (isFavoritesPanel) {
+            return gridView.mouseClicked(mouseX, mouseY, button);
+        }
+
         // Compact toggle — always first, regardless of mode
         if (button == 0 && isOverToggle(mouseX, mouseY)) {
-            AMIConfig.COMPACT_MODE.set(!AMIConfig.COMPACT_MODE.get());
-            AMIConfig.SPEC.save();
+            AmiConfig.compactMode = !AmiConfig.compactMode;
             updateLayout(x, y, width, height);
             return true;
         }
 
-        boolean compact = AMIConfig.COMPACT_MODE.get();
+        boolean compact = AmiConfig.compactMode;
         if (compact) {
             return gridView.mouseClicked(mouseX, mouseY, button);
         }
@@ -350,7 +373,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (!isMouseOver(mouseX, mouseY)) return false;
 
         // In full mode, the facet bar scrolls horizontally when the mouse is over it
-        if (!AMIConfig.COMPACT_MODE.get() && facetBar.isMouseOver(mouseX, mouseY)) {
+        if (!AmiConfig.compactMode && facetBar.isMouseOver(mouseX, mouseY)) {
             return facetBar.mouseScrolled(mouseX, mouseY, scrollDelta);
         }
 
@@ -373,7 +396,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         if (!isMouseOver(mx, my)) return false;
 
-        if (!AMIConfig.COMPACT_MODE.get() && facetBar.keyPressed(keyCode, scanCode, modifiers)) return true;
+        if (!AmiConfig.compactMode && facetBar.keyPressed(keyCode, scanCode, modifiers)) return true;
 
         if (isGridActive()) return gridView.keyPressed(keyCode, scanCode, modifiers);
         return treeView.keyPressed(keyCode, scanCode, modifiers);
@@ -389,7 +412,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             double dx = mouseX - pressedX;
             double dy = mouseY - pressedY;
             if (dx * dx + dy * dy > DRAG_THRESHOLD * DRAG_THRESHOLD) {
-                ItemStack stack = com.sanhiruzu.ami.client.icon.ItemIconRenderer.resolveStack(pressedNode.id());
+                ItemStack stack = com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(pressedNode);
                 if (!stack.isEmpty()) {
                     com.sanhiruzu.ami.compat.RecipeViewerBridge.startDrag(stack);
                     pressedNode = null;
@@ -403,26 +426,30 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     public void setFavoritesPanel(boolean favoritesPanel) {
         isFavoritesPanel = favoritesPanel;
+        initChildren(); // re-layout now that mode is known
     }
 
     public void mouseReleased(double mouseX, double mouseY, int button) {
         if (button == 0) {
             if (com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging()) {
                 boolean handled = false;
-                
-                // Check if dropped into a favorites panel
+
+                // Check if dropped into a favorites panel using inner grid bounds
                 var manager = com.sanhiruzu.ami.client.InventoryOverlayHandler.getManager();
                 var favPanel = manager.getFavoritesPanel();
-                if (favPanel != null && favPanel.visible && favPanel.getInnerPanel().isMouseOver(mouseX, mouseY)) {
-                    int dropIndex = favPanel.getInnerPanel().getDropIndex(mouseX, mouseY);
-                    ItemStack stack = com.sanhiruzu.ami.compat.RecipeViewerBridge.getDraggedStack();
-                    if (!stack.isEmpty()) {
-                        com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().addFavoriteAt(stack, dropIndex);
-                        com.sanhiruzu.ami.compat.RecipeViewerBridge.stopDrag();
-                        handled = true;
+                if (favPanel != null && favPanel.visible) {
+                    var innerPanel = favPanel.getInnerPanel();
+                    if (innerPanel.isMouseOver(mouseX, mouseY)) {
+                        int dropIndex = innerPanel.getDropIndex(mouseX, mouseY);
+                        ItemStack stack = com.sanhiruzu.ami.compat.RecipeViewerBridge.getDraggedStack();
+                        if (!stack.isEmpty()) {
+                            com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().addFavoriteAt(stack, dropIndex);
+                            com.sanhiruzu.ami.compat.RecipeViewerBridge.stopDrag();
+                            handled = true;
+                        }
                     }
                 }
-                
+
                 if (!handled) {
                     com.sanhiruzu.ami.compat.RecipeViewerBridge.handleDrop(mouseX, mouseY);
                 }
@@ -457,5 +484,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
     public int getDropIndex(double mouseX, double mouseY) {
         if (isGridActive()) return gridView.getDropIndex(mouseX, mouseY);
         return treeView.getDropIndex(mouseX, mouseY);
+    }
+
+    public SearchNode getHoveredNode() {
+        if (isGridActive()) return gridView.getHoveredNode();
+        return treeView.getHoveredNode();
     }
 }

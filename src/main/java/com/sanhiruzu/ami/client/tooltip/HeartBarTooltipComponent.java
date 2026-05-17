@@ -9,25 +9,18 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
 /**
  * Renders a row of heart icons representing entity max health, mirroring the vanilla HUD.
  * Each heart = 2 HP. Caps display at MAX_HEARTS hearts; shows overflow label for higher values.
- * Implements both TooltipComponent (marker) and ClientTooltipComponent (renderer) so it can be
- * passed directly as the Optional<TooltipComponent> image argument after identity-factory registration.
+ * Updated for 1.21.1 to use sprites instead of a texture sheet.
  */
 public final class HeartBarTooltipComponent implements TooltipComponent, ClientTooltipComponent {
 
-    private static final ResourceLocation ICONS = ResourceLocation.withDefaultNamespace("textures/gui/icons.png");
+    private static final ResourceLocation HEART_FULL = ResourceLocation.withDefaultNamespace("hud/heart/full");
+    private static final ResourceLocation HEART_HALF = ResourceLocation.withDefaultNamespace("hud/heart/half");
+    private static final ResourceLocation HEART_CONTAINER = ResourceLocation.withDefaultNamespace("hud/heart/container");
 
     private static final int MAX_HEARTS   = 10;
     private static final int HEART_SIZE   = 9;
     private static final int HEART_GAP    = 1;
     private static final int ROW_HEIGHT   = HEART_SIZE + 4;
-
-    // icons.png UVs (64×256 sheet)
-    private static final int HEART_BG_U  = 16; // empty heart background
-    private static final int HEART_BG_V  = 0;
-    private static final int HEART_U     = 52; // full red heart
-    private static final int HEART_V     = 0;
-    private static final int HALF_U      = 61; // half red heart
-    private static final int HALF_V      = 0;
 
     private final int maxHealth; // raw HP value (e.g. 20 = 10 hearts)
 
@@ -59,7 +52,7 @@ public final class HeartBarTooltipComponent implements TooltipComponent, ClientT
         // Draw empty background hearts first
         for (int i = 0; i < heartCount; i++) {
             int hx = x + i * (HEART_SIZE + HEART_GAP);
-            g.blit(ICONS, hx, y, HEART_BG_U, HEART_BG_V, HEART_SIZE, HEART_SIZE, 256, 256);
+            g.blitSprite(HEART_CONTAINER, hx, y, HEART_SIZE, HEART_SIZE);
         }
 
         // Draw filled hearts over backgrounds
@@ -67,9 +60,9 @@ public final class HeartBarTooltipComponent implements TooltipComponent, ClientT
             int hx = x + i * (HEART_SIZE + HEART_GAP);
             boolean isFull = (shown - i * 2) >= 2;
             if (isFull) {
-                g.blit(ICONS, hx, y, HEART_U, HEART_V, HEART_SIZE, HEART_SIZE, 256, 256);
+                g.blitSprite(HEART_FULL, hx, y, HEART_SIZE, HEART_SIZE);
             } else {
-                g.blit(ICONS, hx, y, HALF_U, HALF_V, HEART_SIZE, HEART_SIZE, 256, 256);
+                g.blitSprite(HEART_HALF, hx, y, HEART_SIZE, HEART_SIZE);
             }
         }
 

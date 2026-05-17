@@ -12,11 +12,15 @@ import java.util.Locale;
  */
 public final class AmiOntology {
 
-    public record SubCategory(String id, Component displayName) {}
+    public record SubCategory(String id, String translationKey) {
+        public Component displayName() {
+            return Component.translatable(translationKey);
+        }
+    }
 
     public static final class Category {
         public final String id;
-        public final Component displayName;
+        public final String translationKey;
         public final String shortName;
         public final String iconItemId;   // e.g. "minecraft:compass"
         public final int color;           // ARGB
@@ -25,17 +29,21 @@ public final class AmiOntology {
         // First category whose any pattern matches wins.
         public final List<String> matchPatterns;
 
-        public Category(String id, Component displayName, String shortName,
+        public Category(String id, String translationKey, String shortName,
                         String iconItemId, int color,
                         List<SubCategory> subCategories,
                         List<String> matchPatterns) {
             this.id = id;
-            this.displayName = displayName;
+            this.translationKey = translationKey;
             this.shortName = shortName;
             this.iconItemId = iconItemId;
             this.color = color;
             this.subCategories = subCategories;
             this.matchPatterns = matchPatterns;
+        }
+
+        public Component displayName() {
+            return Component.translatable(translationKey);
         }
     }
 
@@ -58,46 +66,46 @@ public final class AmiOntology {
 
     static {
         NAVIGATION = new Category(
-            "navigation", Component.translatable("ami.category.navigation"), "Nav",
+            "navigation", "ami.category.navigation", "Nav",
             "minecraft:compass", 0xFF4499EE,
             List.of(
-                new SubCategory("instruments", Component.translatable("ami.subcategory.navigation.instruments")),
-                new SubCategory("waypoints",   Component.translatable("ami.subcategory.navigation.waypoints"))
+                new SubCategory("instruments", "ami.subcategory.navigation.instruments"),
+                new SubCategory("waypoints",   "ami.subcategory.navigation.waypoints")
             ),
             List.of("compass", "recovery_compass", "spyglass", "clock", ":map")
         );
 
         SOCIAL = new Category(
-            "social", Component.translatable("ami.category.social"), "Social",
+            "social", "ami.category.social", "Social",
             "minecraft:player_head", 0xFF66CCFF,
             List.of(
-                new SubCategory("players",   Component.translatable("ami.subcategory.social.players")),
-                new SubCategory("teams",     Component.translatable("ami.subcategory.social.teams")),
-                new SubCategory("claims",    Component.translatable("ami.subcategory.social.claims"))
+                new SubCategory("players",   "ami.subcategory.social.players"),
+                new SubCategory("teams",     "ami.subcategory.social.teams"),
+                new SubCategory("claims",    "ami.subcategory.social.claims")
             ),
             List.of("player_head")
         );
 
         ENTITIES = new Category(
-            "entities", Component.translatable("ami.category.entities"), "Mobs",
+            "entities", "ami.category.entities", "Mobs",
             "minecraft:zombie_head", 0xFFAA3322,
             List.of(
-                new SubCategory("passive",  Component.translatable("ami.subcategory.entities.passive")),
-                new SubCategory("hostile",  Component.translatable("ami.subcategory.entities.hostile")),
-                new SubCategory("neutral",  Component.translatable("ami.subcategory.entities.neutral")),
-                new SubCategory("vehicles", Component.translatable("ami.subcategory.entities.vehicles"))
+                new SubCategory("passive",  "ami.subcategory.entities.passive"),
+                new SubCategory("hostile",  "ami.subcategory.entities.hostile"),
+                new SubCategory("neutral",  "ami.subcategory.entities.neutral"),
+                new SubCategory("vehicles", "ami.subcategory.entities.vehicles")
             ),
             List.of("spawn_egg", "minecart", "chest_boat", "_boat")
         );
 
         MAGIC = new Category(
-            "magic", Component.translatable("ami.category.magic"), "Magic",
+            "magic", "ami.category.magic", "Magic",
             "minecraft:enchanting_table", 0xFF9933CC,
             List.of(
-                new SubCategory("potions",   Component.translatable("ami.subcategory.magic.potions")),
-                new SubCategory("books",     Component.translatable("ami.subcategory.magic.books")),
-                new SubCategory("artifacts", Component.translatable("ami.subcategory.magic.artifacts")),
-                new SubCategory("reagents",  Component.translatable("ami.subcategory.magic.reagents"))
+                new SubCategory("potions",   "ami.subcategory.magic.potions"),
+                new SubCategory("books",     "ami.subcategory.magic.books"),
+                new SubCategory("artifacts", "ami.subcategory.magic.artifacts"),
+                new SubCategory("reagents",  "ami.subcategory.magic.reagents")
             ),
             List.of("potion", "enchant", "blaze", "ender_pearl", "ender_eye",
                     "nether_star", "totem", "dragon_breath", "experience_bottle",
@@ -106,14 +114,14 @@ public final class AmiOntology {
         );
 
         ARMOR = new Category(
-            "armor", Component.translatable("ami.category.armor"), "Armor",
+            "armor", "ami.category.armor", "Armor",
             "minecraft:iron_chestplate", 0xFF4488CC,
             List.of(
-                new SubCategory("head",   Component.translatable("ami.subcategory.armor.head")),
-                new SubCategory("chest",  Component.translatable("ami.subcategory.armor.chest")),
-                new SubCategory("legs",   Component.translatable("ami.subcategory.armor.legs")),
-                new SubCategory("feet",   Component.translatable("ami.subcategory.armor.feet")),
-                new SubCategory("curios", Component.translatable("ami.subcategory.armor.curios"))
+                new SubCategory("head",   "ami.subcategory.armor.head"),
+                new SubCategory("chest",  "ami.subcategory.armor.chest"),
+                new SubCategory("legs",   "ami.subcategory.armor.legs"),
+                new SubCategory("feet",   "ami.subcategory.armor.feet"),
+                new SubCategory("curios", "ami.subcategory.armor.curios")
             ),
             List.of("head_armor", "chest_armor", "leg_armor", "foot_armor",
                     "helmet", "chestplate", "leggings", "boots", "elytra",
@@ -121,13 +129,13 @@ public final class AmiOntology {
         );
 
         WEAPONS = new Category(
-            "weapons", Component.translatable("ami.category.weapons"), "Weapons",
+            "weapons", "ami.category.weapons", "Weapons",
             "minecraft:iron_sword", 0xFFCC4444,
             List.of(
-                new SubCategory("melee",   Component.translatable("ami.subcategory.weapons.melee")),
-                new SubCategory("ranged",  Component.translatable("ami.subcategory.weapons.ranged")),
-                new SubCategory("harvest", Component.translatable("ami.subcategory.weapons.harvest")),
-                new SubCategory("utility", Component.translatable("ami.subcategory.weapons.utility"))
+                new SubCategory("melee",   "ami.subcategory.weapons.melee"),
+                new SubCategory("ranged",  "ami.subcategory.weapons.ranged"),
+                new SubCategory("harvest", "ami.subcategory.weapons.harvest"),
+                new SubCategory("utility", "ami.subcategory.weapons.utility")
             ),
             List.of("swords", "sword", "bows", "bow", "crossbow", "trident",
                     "arrows", ":arrow",
@@ -138,15 +146,15 @@ public final class AmiOntology {
         );
 
         FOOD = new Category(
-            "food", Component.translatable("ami.category.food"), "Food",
+            "food", "ami.category.food", "Food",
             "minecraft:apple", 0xFF44AA44,
             List.of(
-                new SubCategory("meals",    Component.translatable("ami.subcategory.food.meals")),
-                new SubCategory("snacks",   Component.translatable("ami.subcategory.food.snacks")),
-                new SubCategory("drinks",   Component.translatable("ami.subcategory.food.drinks")),
-                new SubCategory("proteins", Component.translatable("ami.subcategory.food.proteins"))
+                new SubCategory("meals",    "ami.subcategory.food.meals"),
+                new SubCategory("snacks",   "ami.subcategory.food.snacks"),
+                new SubCategory("drinks",   "ami.subcategory.food.drinks"),
+                new SubCategory("proteins", "ami.subcategory.food.proteins")
             ),
-            List.of("foods", "food", "cooked_", "stew", "soup",
+            List.of("foods", "food", "cooked_", "stew", "soup", "apple",
                     "sweet_berries", "glow_berries", "cake", "cookie", "bread",
                     "honey_bottle", "dried_kelp", "chorus_fruit",
                     "raw_beef", "raw_chicken", "raw_porkchop", "raw_cod",
@@ -154,13 +162,13 @@ public final class AmiOntology {
         );
 
         TECH = new Category(
-            "tech", Component.translatable("ami.category.tech"), "Tech",
+            "tech", "ami.category.tech", "Tech",
             "minecraft:iron_ingot", 0xFFCC8833,
             List.of(
-                new SubCategory("ingots",   Component.translatable("ami.subcategory.tech.ingots")),
-                new SubCategory("dusts",    Component.translatable("ami.subcategory.tech.dusts")),
-                new SubCategory("parts",    Component.translatable("ami.subcategory.tech.parts")),
-                new SubCategory("circuits", Component.translatable("ami.subcategory.tech.circuits"))
+                new SubCategory("ingots",   "ami.subcategory.tech.ingots"),
+                new SubCategory("dusts",    "ami.subcategory.tech.dusts"),
+                new SubCategory("parts",    "ami.subcategory.tech.parts"),
+                new SubCategory("circuits", "ami.subcategory.tech.circuits")
             ),
             List.of("ingots", "ingot", "gems", ":gem", "dusts", "dust",
                     "nuggets", "nugget", ":ores", ":ore",
@@ -170,14 +178,14 @@ public final class AmiOntology {
         );
 
         NATURE = new Category(
-            "nature", Component.translatable("ami.category.nature"), "Nature",
+            "nature", "ami.category.nature", "Nature",
             "minecraft:wheat", 0xFF66CC44,
             List.of(
-                new SubCategory("seeds", Component.translatable("ami.subcategory.nature.seeds")),
-                new SubCategory("crops", Component.translatable("ami.subcategory.nature.crops")),
-                new SubCategory("flora", Component.translatable("ami.subcategory.nature.flora")),
-                new SubCategory("fungi", Component.translatable("ami.subcategory.nature.fungi")),
-                new SubCategory("wood",  Component.translatable("ami.subcategory.nature.wood"))
+                new SubCategory("seeds", "ami.subcategory.nature.seeds"),
+                new SubCategory("crops", "ami.subcategory.nature.crops"),
+                new SubCategory("flora", "ami.subcategory.nature.flora"),
+                new SubCategory("fungi", "ami.subcategory.nature.fungi"),
+                new SubCategory("wood",  "ami.subcategory.nature.wood")
             ),
             List.of("saplings", "sapling", "seeds", ":seed",
                     "flowers", ":flower", "mushroom", "leaves", ":log", "logs",
@@ -187,38 +195,38 @@ public final class AmiOntology {
         );
 
         ENVIRONMENT = new Category(
-            "environment", Component.translatable("ami.category.environment"), "World",
+            "environment", "ami.category.environment", "World",
             "minecraft:grass_block", 0xFF339966,
             List.of(
-                new SubCategory("biomes",     Component.translatable("ami.subcategory.environment.biomes")),
-                new SubCategory("dimensions", Component.translatable("ami.subcategory.environment.dimensions")),
-                new SubCategory("structures", Component.translatable("ami.subcategory.environment.structures")),
-                new SubCategory("transport",  Component.translatable("ami.subcategory.environment.transport"))
+                new SubCategory("biomes",     "ami.subcategory.environment.biomes"),
+                new SubCategory("dimensions", "ami.subcategory.environment.dimensions"),
+                new SubCategory("structures", "ami.subcategory.environment.structures"),
+                new SubCategory("transport",  "ami.subcategory.environment.transport")
             ),
             List.of() // handled by NodeType in classifyNode()
         );
 
         BLOCKS = new Category(
-            "blocks", Component.translatable("ami.category.blocks"), "Blocks",
+            "blocks", "ami.category.blocks", "Blocks",
             "minecraft:bricks", 0xFF888888,
             List.of(
                 // Always-visible structural subcategories
-                new SubCategory("functional",     Component.translatable("ami.subcategory.blocks.functional")),
-                new SubCategory("redstone",       Component.translatable("ami.subcategory.blocks.redstone")),
-                new SubCategory("decorative",     Component.translatable("ami.subcategory.blocks.decorative")),
+                new SubCategory("functional",     "ami.subcategory.blocks.functional"),
+                new SubCategory("redstone",       "ami.subcategory.blocks.redstone"),
+                new SubCategory("decorative",     "ami.subcategory.blocks.decorative"),
                 // Shape subcategories (shown when blockSubgroup = SHAPE)
-                new SubCategory("full_block",     Component.translatable("ami.subcategory.blocks.full_block")),
-                new SubCategory("stairs",         Component.translatable("ami.subcategory.blocks.stairs")),
-                new SubCategory("slab",           Component.translatable("ami.subcategory.blocks.slab")),
-                new SubCategory("wall",           Component.translatable("ami.subcategory.blocks.wall")),
-                new SubCategory("fence",          Component.translatable("ami.subcategory.blocks.fence")),
-                new SubCategory("pane",           Component.translatable("ami.subcategory.blocks.pane")),
+                new SubCategory("full_block",     "ami.subcategory.blocks.full_block"),
+                new SubCategory("stairs",         "ami.subcategory.blocks.stairs"),
+                new SubCategory("slab",           "ami.subcategory.blocks.slab"),
+                new SubCategory("wall",           "ami.subcategory.blocks.wall"),
+                new SubCategory("fence",          "ami.subcategory.blocks.fence"),
+                new SubCategory("pane",           "ami.subcategory.blocks.pane"),
                 // Material subcategories (shown when blockSubgroup = MATERIAL)
-                new SubCategory("stone",          Component.translatable("ami.subcategory.blocks.stone")),
-                new SubCategory("wood",           Component.translatable("ami.subcategory.blocks.wood")),
-                new SubCategory("soil",           Component.translatable("ami.subcategory.blocks.soil")),
-                new SubCategory("glass",          Component.translatable("ami.subcategory.blocks.glass")),
-                new SubCategory("other_building", Component.translatable("ami.subcategory.blocks.other_building"))
+                new SubCategory("stone",          "ami.subcategory.blocks.stone"),
+                new SubCategory("wood",           "ami.subcategory.blocks.wood"),
+                new SubCategory("soil",           "ami.subcategory.blocks.soil"),
+                new SubCategory("glass",          "ami.subcategory.blocks.glass"),
+                new SubCategory("other_building", "ami.subcategory.blocks.other_building")
             ),
             List.of("banner") // banner patterns etc catch-all
         );

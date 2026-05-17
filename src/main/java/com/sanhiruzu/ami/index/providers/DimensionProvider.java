@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.index.providers;
 
 import com.sanhiruzu.ami.index.*;
-import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.core.registries.Registries;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,7 +17,7 @@ import java.util.Map;
 public class DimensionProvider implements IAmiDataProvider {
 
     @Override
-    public void populate(GlobalIndex index, @Nullable ClientLevel level) {
+    public void populate(GlobalIndex index, @Nullable Level level) {
         if (level == null) return;
 
         List<SearchNode> nodes = new ArrayList<>();

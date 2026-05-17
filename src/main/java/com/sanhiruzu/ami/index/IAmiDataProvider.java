@@ -1,17 +1,16 @@
 package com.sanhiruzu.ami.index;
 
-import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Interface for data providers that populate GlobalIndex.
+ * Common interface for all AMI data indexers.
  */
-@FunctionalInterface
 public interface IAmiDataProvider {
     /**
-     * Populate the given GlobalIndex with nodes.
-     * @param index  the index to write into
-     * @param level  the current ClientLevel; may be null if registry access is unavailable
+     * Populate the provided index with nodes of this provider's type.
+     * @param index The GlobalIndex to add nodes to.
+     * @param level The current level context (client-side or server-side).
      */
-    void populate(GlobalIndex index, @Nullable ClientLevel level);
+    void populate(GlobalIndex index, @Nullable Level level);
 }

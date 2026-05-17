@@ -1,14 +1,7 @@
 package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.index.query.QueryParser;
-import com.sanhiruzu.ami.index.resolvers.CategoryResolver;
-import com.sanhiruzu.ami.index.resolvers.EnvironmentResolver;
-import com.sanhiruzu.ami.index.resolvers.LiteralResolver;
-import com.sanhiruzu.ami.index.resolvers.ModResolver;
-import com.sanhiruzu.ami.index.resolvers.NumericMetadataResolver;
-import com.sanhiruzu.ami.index.resolvers.PlayerResolver;
-import com.sanhiruzu.ami.index.resolvers.PropertyResolver;
-import com.sanhiruzu.ami.index.resolvers.TagResolver;
+import com.sanhiruzu.ami.index.resolvers.*;
 
 import java.util.*;
 

@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.index.providers;
 import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.IAmiDataProvider;
-import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.EntityType;
 import org.jetbrains.annotations.Nullable;
@@ -18,7 +18,7 @@ import java.util.Map;
 public class SpawnProvider implements IAmiDataProvider {
 
     @Override
-    public void populate(GlobalIndex index, @Nullable ClientLevel level) {
+    public void populate(GlobalIndex index, @Nullable Level level) {
         if (level == null) return;
 
         AMI.LOGGER.info("SpawnProvider: scanning biome spawns...");
