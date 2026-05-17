@@ -2,12 +2,15 @@ package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.index.AmiOntology;
+import com.sanhiruzu.ami.util.AmiClipboardHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.client.gui.screens.Screen;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -132,6 +135,16 @@ public class FacetBar implements SearchState.Listener {
                 return true;
             }
             px += PILL_W + PILL_GAP;
+        }
+        return false;
+    }
+
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == GLFW.GLFW_KEY_C && Screen.hasControlDown()) {
+            if (hoveredTooltip != null) {
+                AmiClipboardHelper.copyToClipboard(hoveredTooltip.getString());
+                return true;
+            }
         }
         return false;
     }

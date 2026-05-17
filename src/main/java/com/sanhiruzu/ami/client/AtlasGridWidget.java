@@ -5,6 +5,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.providers.RegistryUtils;
+import com.sanhiruzu.ami.util.AmiClipboardHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -14,6 +15,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.*;
 
@@ -734,6 +736,19 @@ public class AtlasGridWidget {
     // -------------------------------------------------------------------------
 
     /** Returns true if the scrollbar was clicked and a drag has started. */
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == GLFW.GLFW_KEY_C && Screen.hasControlDown()) {
+            if (pendingItemTooltip != null && !pendingItemTooltip.isEmpty()) {
+                AmiClipboardHelper.copyItemTooltipToClipboard(pendingItemTooltip);
+                return true;
+            } else if (pendingTooltipLines != null && !pendingTooltipLines.isEmpty()) {
+                AmiClipboardHelper.copyComponentsToClipboard(pendingTooltipLines);
+                return true;
+            }
+        }
+        return false;
+    }
+
     public boolean mouseClickedScrollbar(double mouseX, double mouseY, int button) {
         if (button != 0 || !isScrollbarHovered((int) mouseX, (int) mouseY)) return false;
         scrollbarDragging = true;
