@@ -59,6 +59,9 @@ public class InventoryOverlayHandler {
         if (amiEnabled) {
             event.addListener(manager.getSearchBar());
             event.addListener(manager.getResultsPanel());
+            if (manager.getFavoritesPanel() != null) {
+                event.addListener(manager.getFavoritesPanel());
+            }
         }
 
         manager.getSearchBar().setFocused(false);
@@ -94,6 +97,13 @@ public class InventoryOverlayHandler {
                 event.getMouseX(), event.getMouseY(),
                 event.getScrollDeltaX(), event.getScrollDeltaY())) {
             event.setCanceled(true);
+            return;
+        }
+        var favoritesPanel = manager.getFavoritesPanel();
+        if (favoritesPanel != null && favoritesPanel.mouseScrolled(
+                event.getMouseX(), event.getMouseY(),
+                event.getScrollDeltaX(), event.getScrollDeltaY())) {
+            event.setCanceled(true);
         }
     }
 
@@ -115,6 +125,13 @@ public class InventoryOverlayHandler {
         var resultsPanel = manager.getResultsPanel();
         if (resultsPanel.isMouseOver(event.getMouseX(), event.getMouseY())) {
             resultsPanel.mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton());
+            event.setCanceled(true);
+            return;
+        }
+
+        var favoritesPanel = manager.getFavoritesPanel();
+        if (favoritesPanel != null && favoritesPanel.isMouseOver(event.getMouseX(), event.getMouseY())) {
+            favoritesPanel.mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton());
             event.setCanceled(true);
             return;
         }
@@ -143,6 +160,14 @@ public class InventoryOverlayHandler {
             return;
         }
 
+        var favoritesPanel = manager.getFavoritesPanel();
+        if (favoritesPanel != null && favoritesPanel.mouseDragged(
+                event.getMouseX(), event.getMouseY(),
+                event.getMouseButton(), event.getDragX(), event.getDragY())) {
+            event.setCanceled(true);
+            return;
+        }
+
         var searchBar = manager.getSearchBar();
         if (!searchBar.isFocused()) return;
 
@@ -159,6 +184,10 @@ public class InventoryOverlayHandler {
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
 
         manager.getResultsPanel().mouseReleased(event.getMouseX(), event.getMouseY(), event.getButton());
+        var favoritesPanel = manager.getFavoritesPanel();
+        if (favoritesPanel != null) {
+            favoritesPanel.mouseReleased(event.getMouseX(), event.getMouseY(), event.getButton());
+        }
 
         var searchBar = manager.getSearchBar();
         if (!searchBar.isFocused()) return;
@@ -186,10 +215,16 @@ public class InventoryOverlayHandler {
         if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
 
         var resultsPanel = manager.getResultsPanel();
-        if (amiEnabled && manager.isPanelVisible()
-                && resultsPanel.keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
-            event.setCanceled(true);
-            return;
+        if (amiEnabled && manager.isPanelVisible()) {
+            if (resultsPanel.keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
+                event.setCanceled(true);
+                return;
+            }
+            var favoritesPanel = manager.getFavoritesPanel();
+            if (favoritesPanel != null && favoritesPanel.keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
+                event.setCanceled(true);
+                return;
+            }
         }
 
         var searchBar = manager.getSearchBar();

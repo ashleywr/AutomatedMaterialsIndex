@@ -119,9 +119,11 @@ public class ResultsToolbar implements SearchState.Listener {
         g.drawString(font, dirLabel, buttonX + 2, y + 3, AMITheme.TEXT_HEADER, false);
         buttonX += BUTTON_W + 3;
 
-        // Reset button (↺)
+        // Reset button
         boolean resetHovered = Dropdown.contains(mouseX, mouseY, buttonX, y + 3, RESET_BUTTON_W, 14);
-        g.drawString(font, "↺", buttonX + 2, y + 3, resetHovered ? 0xFFFFFFFF : AMITheme.TEXT_SUBTLE, false);
+        int resetColor = resetHovered ? 0xFFFFFFFF : AMITheme.TEXT_SUBTLE;
+        com.sanhiruzu.ami.client.AmiGuiIcons.reset(g,
+                buttonX + RESET_BUTTON_W / 2, y + 3 + 7, resetColor);
 
         // Render all registered dropdowns
         for (Dropdown dropdown : dropdowns) {

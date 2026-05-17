@@ -79,6 +79,19 @@ Process in strict order; stop at the first hit:
 - [x] Search bar: show a recent-search dropdown when the field is focused and empty (disabled by default, configurable).
 - [ ] Search bar: decide whether the input filter should stay ASCII-only or allow broader Unicode / IME-friendly entry.
 - [x] Search bar: show placeholder guidance while focused and empty, not only when unfocused.
+## UI/UX Polish
+- Ensure the tree view scrolls smoothly and maintains high framerates even with large modpacks.
+- Check the layout constraints so that switching between Grid and List view is seamless.
+- ~~Search bar: verified `Home`, `End`, `Ctrl+Left`, `Ctrl+Right`, and `Shift` selection route through `EditBox` from `ScreenEvent.KeyPressed.Pre` for all `AbstractContainerScreen` instances.~~
+- ~~Search bar: replaced the double-click highlight toggle with token selection on the current query token.~~
+- [x] Search bar: right-click now clears the field, unfocuses, and triggers a search refresh (empty query).
+- [x] Search bar: add a right-click context menu for Cut, Copy, and Paste. (Disabled by default via config).
+- [x] Search bar: refined `Escape` so the first press only unfocuses the field and a second press can close the screen if needed.
+- [x] Search bar: add a clear button inside the field when text is present.
+- [x] Search bar: make cursor movement token-aware for AMI operators like `@mod`, `#tag`, and `-exclude`.
+- [x] Search bar: show a recent-search dropdown when the field is focused and empty (disabled by default, configurable).
+- [ ] Search bar: decide whether the input filter should stay ASCII-only or allow broader Unicode / IME-friendly entry.
+- [x] Search bar: show placeholder guidance while focused and empty, not only when unfocused.
 - [x] **Interactive Mod Filtering**: Refined to use the `SearchState` context object and a toggle mechanism in the search bar for better QoL.
 - [x] **Search Bar Toggle Logic**: Extracted to `QueryUtils` and verified with unit tests (`SearchBarToggleTest`).
 - ~~Removed the `tier` metadata feature which cluttered the UI with "TIER: MODDED".~~
@@ -103,7 +116,9 @@ Process in strict order; stop at the first hit:
 - [x] **Fix Results Scrollbar**: Widened hitbox to 10px and added high-contrast track for reliable vertical scrolling.
 - [x] **Fix Dropdown Overhaul**: Improved layout with dynamic widths, modern selection indicators (accent bars), and logic to prevent opening empty/single-option menus.
 - [x] **EMI-Style Click Logic**: Support right-click to find usages vs left-click to find recipes (mimicking EMI behavior) in the results panel. (Fixed click routing in `UniversalResultsPanel.java`).
-- ~~Removed the active-field count badge from the "Fields" button label to prevent overflow.~~
+- [x] **Drag-and-Drop Filters**: Support for dragging icons from AMI results into mod filter slots (e.g., Create, Sophisticated Backpacks).
+- [x] **Synchronized Favorites**: Favorite system (default key `A`) with an optional, configurable side panel, synchronized with EMI/JEI state.
+- [x] **Visual Polish**: Wiggle animations on hover/drag for improved interface feedback.
 - **TODO:** Mod filtering is genuinely useful — revisit as a dedicated filter surface (e.g. a searchable popover or sidebar chip list) when the panel layout has more room.
 
 ## Long-term Vision
