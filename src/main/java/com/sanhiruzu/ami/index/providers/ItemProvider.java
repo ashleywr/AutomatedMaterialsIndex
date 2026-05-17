@@ -40,9 +40,7 @@ public class ItemProvider implements IAmiDataProvider {
         boolean strictSurvival  = AmiConfig.strictSurvivalMode;
 
         Set<Item> creativeItems = ItemFilter.buildCreativeItemSet(level);
-        Set<Item> recipeOutputs = strictSurvival
-            ? ItemFilter.buildRecipeOutputSet(level)
-            : Collections.emptySet();
+        Set<Item> recipeOutputs = ItemFilter.buildRecipeOutputSet(level);
 
         boolean hasCreativeData = !creativeItems.isEmpty();
         boolean hasRecipeData   = !recipeOutputs.isEmpty();
@@ -57,8 +55,14 @@ public class ItemProvider implements IAmiDataProvider {
             boolean inCreative = !hasCreativeData || creativeItems.contains(item);
             String accessLevel = ItemFilter.classifyAccessLevel(id, inCreative);
 
-            // Layer 3: recipe availability (only evaluated when strictSurvival is on)
+            // Layer 3: recipe availability - items with recipes should be shown as SURVIVAL even if not in creative tabs
             boolean hasRecipe = !hasRecipeData || recipeOutputs.contains(item);
+            if (hasRecipe && ItemFilter.ACCESS_DEV.equals(accessLevel) && !AmiConfig.hideNonCreativeItems) {
+                // Items with recipes that aren't shown in creative tabs should still appear in SURVIVAL mode
+                accessLevel = ItemFilter.ACCESS_SURVIVAL;
+            }
+            // For strict survival mode, only include items with recipes
+            if (strictSurvival && !hasRecipe) continue;
 
             // Generated subtypes should not be suppressed just because the dummy base item is dev-only.
             List<SubtypeExpander.SubtypeEntry> subtypes =
@@ -79,7 +83,6 @@ public class ItemProvider implements IAmiDataProvider {
             }
 
             if (!ItemFilter.shouldShowAccessLevel(accessLevel)) continue;
-            if (!hasRecipe && strictSurvival) continue;
 
             String modId        = id.getNamespace();
             String displayName  = item.getName(new ItemStack(item)).getString();
