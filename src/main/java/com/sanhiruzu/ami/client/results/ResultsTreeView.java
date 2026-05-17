@@ -828,6 +828,38 @@ public class ResultsTreeView {
         return hoveredNode;
     }
 
+    public TreeNode getHoveredTreeNode() {
+        Minecraft mc = Minecraft.getInstance();
+        var window = mc.getWindow();
+        double mx = mc.mouseHandler.xpos() * window.getGuiScaledWidth() / (double) window.getScreenWidth();
+        double my = mc.mouseHandler.ypos() * window.getGuiScaledHeight() / (double) window.getScreenHeight();
+
+        if (!isMouseOver(mx, my)) return null;
+
+        int topOffset = height - (lastContentH > 0 ? lastContentH : height);
+        int targetRow = (int) (my - y - topOffset + pixelScrollOffset) / AMITheme.ROW_HEIGHT;
+        if (targetRow < 0) return null;
+
+        int[] counter = {0};
+        for (TreeNode node : rootNodes) {
+            TreeNode found = findNodeAtRow(node, targetRow, counter);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    private TreeNode findNodeAtRow(TreeNode node, int targetRow, int[] counter) {
+        if (counter[0] == targetRow) return node;
+        counter[0]++;
+        if (!node.isLeaf() && node.isExpanded()) {
+            for (TreeNode child : node.getChildren()) {
+                TreeNode found = findNodeAtRow(child, targetRow, counter);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
     public int getDropIndex(double mouseX, double mouseY) {
         if (!isMouseOver(mouseX, mouseY)) return -1;
         int contentH = lastContentH > 0 ? lastContentH : height;
