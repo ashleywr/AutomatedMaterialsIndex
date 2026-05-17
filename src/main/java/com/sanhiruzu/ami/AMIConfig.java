@@ -71,6 +71,11 @@ public class AMIConfig {
                      "When disabled, right-clicking the search bar immediately clears it.")
             .define("enableSearchBarContextMenu", false);
 
+    public static final ModConfigSpec.BooleanValue ENABLE_RECENT_SEARCH_DROPDOWN = BUILDER
+            .comment("Show a dropdown of recent searches when the search bar is focused and empty.",
+                     "Up and Down arrow keys can also be used to navigate history even when this is disabled.")
+            .define("enableRecentSearchDropdown", false);
+
     static {
         BUILDER.pop();
     }

@@ -20,6 +20,7 @@ import java.util.function.Consumer;
 /**
  * Horizontal strip of quick-filter pills, one per ontology category.
  * Each pill renders the category's representative item icon (16×16).
+ * When pills overflow the strip width, the bar is scrollable with the mouse wheel.
  * Active pills receive a white 1-px border; hovering shows the category name
  * as a deferred tooltip (call {@link #renderTooltip} after the panel draws).
  */
@@ -33,10 +34,16 @@ public class FacetBar implements SearchState.Listener {
     private static final int PILL_GAP  = 3;
     private static final int PAD_Y     = (HEIGHT - PILL_H) / 2;
 
+    // How many pixels to scroll per wheel notch
+    private static final int SCROLL_STEP = PILL_W + PILL_GAP;
+
     private static final Map<String, ItemStack> ICON_CACHE = new HashMap<>();
 
     private int x, y, width;
     private SearchState state;
+
+    // Horizontal scroll position (pixels). 0 = leftmost pill visible.
+    private int scrollOffsetX = 0;
 
     /**
      * Called on right-click with the $categoryId token to inject into the search bar.
@@ -64,61 +71,77 @@ public class FacetBar implements SearchState.Listener {
         this.x = x;
         this.y = y;
         this.width = width;
+        clampScroll(); // re-clamp in case visible width changed
+    }
+
+    public boolean isMouseOver(double mouseX, double mouseY) {
+        return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + HEIGHT;
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
         hoveredTooltip = null;
 
-        // Clip pills to our strip so they don't spill right
         g.enableScissor(x, y, x + width, y + HEIGHT);
 
-        int px = x + AMITheme.GLOBAL_PADDING;
+        int px = x + AMITheme.GLOBAL_PADDING - scrollOffsetX;
         int py = y + PAD_Y;
 
         Set<String> activeFacets = state.getActiveFacets();
         String currentQuery = state.getQuery().toLowerCase(java.util.Locale.ROOT);
         for (AmiOntology.Category cat : AmiOntology.CATEGORIES) {
-            boolean isActive = activeFacets.contains(cat.id)
-                    || currentQuery.contains("$" + cat.id);
-            boolean hovered  = mouseX >= px && mouseX < px + PILL_W
-                    && mouseY >= py && mouseY < py + PILL_H;
+            // Skip pills entirely outside the visible region (both left and right)
+            if (px + PILL_W > x && px < x + width) {
+                boolean isActive = activeFacets.contains(cat.id)
+                        || currentQuery.contains("$" + cat.id);
+                // Hover only counts when the pill is actually visible and mouse is over it
+                boolean pillVisible = px >= x && px + PILL_W <= x + width;
+                boolean hovered = pillVisible
+                        && mouseX >= px && mouseX < px + PILL_W
+                        && mouseY >= py && mouseY < py + PILL_H;
 
-            // Background fill — semi-transparent category color
-            int alpha  = isActive ? 0xAA : (hovered ? 0x66 : 0x33);
-            int bgRgb  = cat.color & 0x00FFFFFF;
-            g.fill(px, py, px + PILL_W, py + PILL_H, (alpha << 24) | bgRgb);
+                int alpha = isActive ? 0xAA : (hovered ? 0x66 : 0x33);
+                int bgRgb = cat.color & 0x00FFFFFF;
+                g.fill(px, py, px + PILL_W, py + PILL_H, (alpha << 24) | bgRgb);
 
-            // White 1-px outline for active pills
-            if (isActive) {
-                int bx = px - 1, by = py - 1, bx2 = px + PILL_W + 1, by2 = py + PILL_H + 1;
-                g.fill(bx,  by,      bx2,      by  + 1, 0xFFFFFFFF); // top
-                g.fill(bx,  by2,     bx2,      by2 + 1, 0xFFFFFFFF); // bottom
-                g.fill(bx,  by,      bx  + 1,  by2 + 1, 0xFFFFFFFF); // left
-                g.fill(bx2, by,      bx2 + 1,  by2 + 1, 0xFFFFFFFF); // right
-            } else if (hovered) {
-                // Colored 1-px outline for hovered pills
-                int bx = px - 1, by = py - 1, bx2 = px + PILL_W + 1, by2 = py + PILL_H + 1;
-                int outline = 0xFF000000 | bgRgb;
-                g.fill(bx,      by,  bx2,      by  + 1, outline); // top
-                g.fill(bx,      by2, bx2,      by2 + 1, outline); // bottom
-                g.fill(bx,      by,  bx  + 1,  by2 + 1, outline); // left
-                g.fill(bx2,     by,  bx2 + 1,  by2 + 1, outline); // right
-            }
+                if (isActive) {
+                    int bx = px - 1, by = py - 1, bx2 = px + PILL_W + 1, by2 = py + PILL_H + 1;
+                    g.fill(bx,  by,  bx2,      by  + 1, 0xFFFFFFFF);
+                    g.fill(bx,  by2, bx2,      by2 + 1, 0xFFFFFFFF);
+                    g.fill(bx,  by,  bx  + 1,  by2 + 1, 0xFFFFFFFF);
+                    g.fill(bx2, by,  bx2 + 1,  by2 + 1, 0xFFFFFFFF);
+                } else if (hovered) {
+                    int bx = px - 1, by = py - 1, bx2 = px + PILL_W + 1, by2 = py + PILL_H + 1;
+                    int outline = 0xFF000000 | bgRgb;
+                    g.fill(bx,  by,  bx2,      by  + 1, outline);
+                    g.fill(bx,  by2, bx2,      by2 + 1, outline);
+                    g.fill(bx,  by,  bx  + 1,  by2 + 1, outline);
+                    g.fill(bx2, by,  bx2 + 1,  by2 + 1, outline);
+                }
 
-            // Item icon (16×16 at px+1, py+1)
-            ItemStack stack = getIconStack(cat.iconItemId);
-            if (!stack.isEmpty()) {
-                g.renderItem(stack, px + 1, py + 1);
-            }
+                ItemStack stack = getIconStack(cat.iconItemId);
+                if (!stack.isEmpty()) {
+                    g.renderItem(stack, px + 1, py + 1);
+                }
 
-            if (hovered) {
-                hoveredTooltip  = Component.literal(cat.displayName.getString()
-                        + " §7[Right-click: search as $" + cat.id + "]");
-                hoveredTooltipX = mouseX;
-                hoveredTooltipY = mouseY;
+                if (hovered) {
+                    hoveredTooltip  = Component.literal(cat.displayName.getString()
+                            + " §7[Right-click: inject $" + cat.id + " into search]");
+                    hoveredTooltipX = mouseX;
+                    hoveredTooltipY = mouseY;
+                }
             }
 
             px += PILL_W + PILL_GAP;
+        }
+
+        // Fade edges to hint at hidden content
+        if (scrollOffsetX > 0) {
+            // Left fade: content is hidden to the left
+            g.fillGradient(x, y, x + 8, y + HEIGHT, 0xCC000000, 0x00000000);
+        }
+        if (scrollOffsetX < maxScroll()) {
+            // Right fade: content is hidden to the right
+            g.fillGradient(x + width - 8, y, x + width, y + HEIGHT, 0x00000000, 0xCC000000);
         }
 
         g.disableScissor();
@@ -137,23 +160,23 @@ public class FacetBar implements SearchState.Listener {
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0 && button != 1) return false;
-        if (mouseY < y || mouseY >= y + HEIGHT) return false;
+        if (!isMouseOver(mouseX, mouseY)) return false;
 
-        int px = x + AMITheme.GLOBAL_PADDING;
+        int px = x + AMITheme.GLOBAL_PADDING - scrollOffsetX;
         int py = y + PAD_Y;
 
         for (AmiOntology.Category cat : AmiOntology.CATEGORIES) {
-            if (mouseX >= px && mouseX < px + PILL_W
+            // Only register clicks on fully-visible pills
+            boolean pillVisible = px >= x && px + PILL_W <= x + width;
+            if (pillVisible
+                    && mouseX >= px && mouseX < px + PILL_W
                     && mouseY >= py && mouseY < py + PILL_H) {
 
                 if (button == 1) {
-                    // Right-click: inject $categoryId into the search bar to teach the syntax
                     if (onTokenInject != null) onTokenInject.accept("$" + cat.id);
                 } else if (Screen.hasShiftDown()) {
-                    // Shift+left-click: append/remove from multi-selection
                     state.toggleFacet(cat.id);
                 } else {
-                    // Left-click: replace selection with only this category
                     state.selectOnlyFacet(cat.id);
                 }
                 return true;
@@ -161,6 +184,14 @@ public class FacetBar implements SearchState.Listener {
             px += PILL_W + PILL_GAP;
         }
         return false;
+    }
+
+    /** Scrolls the pill strip horizontally. Wheel-up (positive delta) scrolls toward the start. */
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollDelta) {
+        if (!isMouseOver(mouseX, mouseY)) return false;
+        scrollOffsetX -= (int) Math.round(scrollDelta * SCROLL_STEP);
+        clampScroll();
+        return true;
     }
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
@@ -174,17 +205,30 @@ public class FacetBar implements SearchState.Listener {
     }
 
     @Override
-    public void onSearchStateChanged(SearchState state) {
-        // We don't need to do much here since we pull from state during render,
-        // but it ensures we have a hook if we ever cache anything.
-    }
+    public void onSearchStateChanged(SearchState state) {}
 
     /** Returns the currently active category IDs (e.g. "food", "weapons"). */
     public Set<String> getActiveFacets() {
         return state.getActiveFacets();
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── Scroll helpers ────────────────────────────────────────────────────────
+
+    private int contentWidth() {
+        int n = AmiOntology.CATEGORIES.size();
+        return n > 0 ? n * PILL_W + (n - 1) * PILL_GAP : 0;
+    }
+
+    private int maxScroll() {
+        int visible = width - AMITheme.GLOBAL_PADDING;
+        return Math.max(0, contentWidth() - visible);
+    }
+
+    private void clampScroll() {
+        scrollOffsetX = Math.max(0, Math.min(scrollOffsetX, maxScroll()));
+    }
+
+    // ── Icon cache ────────────────────────────────────────────────────────────
 
     private static ItemStack getIconStack(String itemId) {
         return ICON_CACHE.computeIfAbsent(itemId, id -> {
