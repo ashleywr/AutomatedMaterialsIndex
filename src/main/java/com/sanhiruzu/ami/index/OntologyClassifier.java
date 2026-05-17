@@ -204,18 +204,22 @@ public final class OntologyClassifier {
         if (path.equals("red_mushroom") || path.equals("brown_mushroom")) return nature("fungi");
         if (path.equals("bamboo") || path.equals("stick")) return nature("wood");
 
-        // ── Social (navigational items) ───────────────────────────────────────
+        // ── Navigation ───────────────────────────────────────────────────────
         if (path.equals("compass") || path.equals("recovery_compass")
                 || path.equals("filled_map") || path.equals("clock") || path.equals("spyglass")) {
-            return social("waypoints");
+            return navigation("instruments");
         }
+
+        // ── Social ───────────────────────────────────────────────────────────
         if (path.equals("player_head")) return social("players");
         if (path.equals("lodestone"))   return social("claims");
 
-        // ── Entities (spawn eggs, vehicles) ───────────────────────────────────
+        // ── Entities (spawn eggs only) ────────────────────────────────────────
         if (path.endsWith("_spawn_egg")) return entities(classifySpawnEgg(path));
+
+        // ── Environment (transport items) ──────────────────────────────────────
         if (path.contains("minecart") || path.endsWith("_boat") || path.endsWith("_chest_boat")) {
-            return entities("vehicles");
+            return environment("transport");
         }
 
         return null; // leave remaining items to AmiOntology runtime heuristics → BLOCKS
@@ -279,14 +283,16 @@ public final class OntologyClassifier {
 
     // ── Category return helpers ───────────────────────────────────────────────
 
-    private static String[] armor(String sub)    { return new String[]{"armor",    sub}; }
-    private static String[] weapons(String sub)  { return new String[]{"weapons",  sub}; }
-    private static String[] magic(String sub)    { return new String[]{"magic",    sub}; }
-    private static String[] food(String sub)     { return new String[]{"food",     sub}; }
-    private static String[] tech(String sub)     { return new String[]{"tech",     sub}; }
-    private static String[] nature(String sub)   { return new String[]{"nature",   sub}; }
-    private static String[] social(String sub)   { return new String[]{"social",   sub}; }
-    private static String[] entities(String sub) { return new String[]{"entities", sub}; }
+    private static String[] armor(String sub)      { return new String[]{"armor",       sub}; }
+    private static String[] weapons(String sub)    { return new String[]{"weapons",     sub}; }
+    private static String[] magic(String sub)      { return new String[]{"magic",       sub}; }
+    private static String[] food(String sub)       { return new String[]{"food",        sub}; }
+    private static String[] tech(String sub)       { return new String[]{"tech",        sub}; }
+    private static String[] nature(String sub)     { return new String[]{"nature",      sub}; }
+    private static String[] social(String sub)     { return new String[]{"social",      sub}; }
+    private static String[] navigation(String sub) { return new String[]{"navigation",  sub}; }
+    private static String[] entities(String sub)   { return new String[]{"entities",    sub}; }
+    private static String[] environment(String sub) { return new String[]{"environment", sub}; }
     /** Two-element return for non-building block subcategories (functional/redstone/decorative). */
     private static String[] blocks(String sub)   { return new String[]{"blocks",   sub}; }
     /** Three-element return for building blocks: [category, shapeSubcategory, materialSubcategory]. */
