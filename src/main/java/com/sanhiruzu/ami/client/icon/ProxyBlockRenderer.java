@@ -143,6 +143,13 @@ public class ProxyBlockRenderer implements IIconRenderer {
         g.fill(x, y,          x + size, y + size / 2, bgLight);
         g.fill(x, y + size / 2, x + size, y + size,   bg);
 
+        // Subtle 1px border to show it's a "badge" rather than a real item
+        int borderColor = lighten(bg, 40);
+        g.fill(x, y, x + size, y + 1, borderColor); // Top
+        g.fill(x, y + size - 1, x + size, y + size, borderColor); // Bottom
+        g.fill(x, y + 1, x + 1, y + size - 1, borderColor); // Left
+        g.fill(x + size - 1, y + 1, x + size, y + size - 1, borderColor); // Right
+
         ItemStack proxy = resolveProxy(node);
         if (proxy.isEmpty()) return;
 
@@ -183,21 +190,22 @@ public class ProxyBlockRenderer implements IIconRenderer {
     }
 
     private static int dimensionColor(SearchNode node) {
-        if (node.type() == NodeType.STRUCTURE) return 0xFF252512;
+        if (node.type() == NodeType.STRUCTURE) return 0x99252512; // ~60% opacity
         String dim = node.meta(SearchNodeKeys.DIMENSION, "overworld");
         return switch (dim) {
-            case "nether"  -> 0xFF2B1408;
+            case "nether"  -> 0x992B1408;
             case "the_end",
-                 "end"     -> 0xFF16101E;
-            default        -> 0xFF122010;
+                 "end"     -> 0x9916101E;
+            default        -> 0x99122010;
         };
     }
 
     private static int lighten(int argb, int amount) {
+        int a = (argb >> 24) & 0xFF;
         int r = Math.min(255, ((argb >> 16) & 0xFF) + amount);
         int gv = Math.min(255, ((argb >> 8) & 0xFF) + amount);
         int b = Math.min(255, (argb & 0xFF) + amount);
-        return 0xFF000000 | (r << 16) | (gv << 8) | b;
+        return (a << 24) | (r << 16) | (gv << 8) | b;
     }
 
     @Override
