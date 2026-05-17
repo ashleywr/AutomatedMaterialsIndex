@@ -15,6 +15,7 @@ import org.lwjgl.glfw.GLFW;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * Horizontal strip of quick-filter pills, one per ontology category.
@@ -37,6 +38,12 @@ public class FacetBar implements SearchState.Listener {
     private int x, y, width;
     private SearchState state;
 
+    /**
+     * Called on right-click with the $categoryId token to inject into the search bar.
+     * Wired by OverlayWidgetManager via UniversalResultsPanel.
+     */
+    private Consumer<String> onTokenInject;
+
     /** Set during render(); consumed by renderTooltip(). */
     private Component hoveredTooltip = null;
     private int hoveredTooltipX, hoveredTooltipY;
@@ -47,6 +54,10 @@ public class FacetBar implements SearchState.Listener {
         this.width = width;
         this.state = state;
         state.addListener(this);
+    }
+
+    public void setOnTokenInject(Consumer<String> callback) {
+        this.onTokenInject = callback;
     }
 
     public void updateLayout(int x, int y, int width) {
@@ -65,8 +76,10 @@ public class FacetBar implements SearchState.Listener {
         int py = y + PAD_Y;
 
         Set<String> activeFacets = state.getActiveFacets();
+        String currentQuery = state.getQuery().toLowerCase(java.util.Locale.ROOT);
         for (AmiOntology.Category cat : AmiOntology.CATEGORIES) {
-            boolean isActive = activeFacets.contains(cat.id);
+            boolean isActive = activeFacets.contains(cat.id)
+                    || currentQuery.contains("$" + cat.id);
             boolean hovered  = mouseX >= px && mouseX < px + PILL_W
                     && mouseY >= py && mouseY < py + PILL_H;
 
@@ -99,7 +112,8 @@ public class FacetBar implements SearchState.Listener {
             }
 
             if (hovered) {
-                hoveredTooltip  = cat.displayName;
+                hoveredTooltip  = Component.literal(cat.displayName.getString()
+                        + " §7[Right-click: search as $" + cat.id + "]");
                 hoveredTooltipX = mouseX;
                 hoveredTooltipY = mouseY;
             }
@@ -122,7 +136,7 @@ public class FacetBar implements SearchState.Listener {
     }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button != 0) return false;
+        if (button != 0 && button != 1) return false;
         if (mouseY < y || mouseY >= y + HEIGHT) return false;
 
         int px = x + AMITheme.GLOBAL_PADDING;
@@ -131,7 +145,17 @@ public class FacetBar implements SearchState.Listener {
         for (AmiOntology.Category cat : AmiOntology.CATEGORIES) {
             if (mouseX >= px && mouseX < px + PILL_W
                     && mouseY >= py && mouseY < py + PILL_H) {
-                state.toggleFacet(cat.id);
+
+                if (button == 1) {
+                    // Right-click: inject $categoryId into the search bar to teach the syntax
+                    if (onTokenInject != null) onTokenInject.accept("$" + cat.id);
+                } else if (Screen.hasShiftDown()) {
+                    // Shift+left-click: append/remove from multi-selection
+                    state.toggleFacet(cat.id);
+                } else {
+                    // Left-click: replace selection with only this category
+                    state.selectOnlyFacet(cat.id);
+                }
                 return true;
             }
             px += PILL_W + PILL_GAP;

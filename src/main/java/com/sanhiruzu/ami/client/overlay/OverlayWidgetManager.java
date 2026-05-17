@@ -14,16 +14,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class OverlayWidgetManager {
-    private static final int BOTTOM_BAR_H = 32;
-    private static final int SEARCH_H = 24;
-    private static final int MIN_PANEL_WIDTH = 120;
-    private static final int MAX_PANEL_WIDTH = 280;
-    private static final int PANEL_MARGIN = 6;
-    private static final int PANEL_MARGIN_V = 6;
+    private static final int BOTTOM_BAR_H    = 32;
+    private static final int SEARCH_H        = 24;
+    private static final int MIN_PANEL_WIDTH  = 120;
+    private static final int MAX_PANEL_WIDTH  = 280;
+    // 5 columns × 18px cell + 2×6px padding + 5px scrollbar = 113px; round up for comfort
+    private static final int COMPACT_PANEL_W  = 116;
+    private static final int PANEL_MARGIN     = 6;
+    private static final int PANEL_MARGIN_V   = 6;
 
-    private ResultsPanelWidget resultsPanel;
-    private SearchBarWidget searchBar;
-    private AmiButtonWidget amiButton;
+    private ResultsPanelWidget   resultsPanel;
+    private SearchBarWidget      searchBar;
+    private AmiButtonWidget      amiButton;
+    private CompactToggleWidget  compactToggle;
     private boolean widgetsReady = false;
 
     private SearchService searchService = null;
@@ -45,9 +48,10 @@ public class OverlayWidgetManager {
 
     private void ensureWidgets() {
         if (widgetsReady) return;
-        this.resultsPanel = new ResultsPanelWidget();
-        this.searchBar = new SearchBarWidget(this::triggerSearch);
-        this.amiButton = new AmiButtonWidget(InventoryOverlayHandler::toggleAmi, () -> panelVisible);
+        this.resultsPanel  = new ResultsPanelWidget();
+        this.searchBar     = new SearchBarWidget(this::triggerSearch);
+        this.amiButton     = new AmiButtonWidget(InventoryOverlayHandler::toggleAmi, () -> panelVisible);
+        this.compactToggle = new CompactToggleWidget();
 
         // Connect mod-badge clicking to search bar filtering
         this.resultsPanel.setOnModClick(token -> {
@@ -57,6 +61,9 @@ public class OverlayWidgetManager {
             if (inner != null) inner.getState().toggleMod(modId);
         });
         this.resultsPanel.setOnReset(searchBar::clear);
+        this.resultsPanel.setOnFacetInject(token -> {
+            searchBar.toggleToken(token);
+        });
 
         widgetsReady = true;
     }
@@ -67,9 +74,10 @@ public class OverlayWidgetManager {
         lastScreenH = screenH;
         this.onLeft = false;
 
-        // Button is always positioned regardless of panel state.
+        // Buttons are always positioned regardless of panel state.
         int btnY = screenH - BOTTOM_BAR_H + 2;
         amiButton.updateBounds(new WidgetBounds(2, btnY - 22, 22, 20));
+        compactToggle.updateBounds(new WidgetBounds(26, btnY - 22, 22, 20));
 
         // Task 1: right edge of the container GUI in screen-pixel space.
         int containerRightEdge = containerScreen.getGuiLeft() + containerScreen.getXSize();
@@ -85,10 +93,10 @@ public class OverlayWidgetManager {
             return;
         }
 
-        // Task 3: preferred width is 35% of screen, then clamped so it neither exceeds the
-        // safe region nor falls below the minimum readable size.
-        int preferredWidth = (int)(screenW * 0.35f);
-        int actualWidth = Math.clamp(preferredWidth, MIN_PANEL_WIDTH, Math.min(safeWidth, MAX_PANEL_WIDTH));
+        // Task 3: compact mode uses a fixed narrow width; full mode uses 35% clamped.
+        int actualWidth = AMIConfig.COMPACT_MODE.get()
+                ? Math.min(COMPACT_PANEL_W, safeWidth)
+                : Math.clamp((int)(screenW * 0.35f), MIN_PANEL_WIDTH, Math.min(safeWidth, MAX_PANEL_WIDTH));
 
         // Screen height minus 40px headroom, hard-capped at 600 scaled pixels.
         int panelH = Math.min(screenH - 40, 600);
@@ -116,30 +124,38 @@ public class OverlayWidgetManager {
             if (level != null) {
                 indexingInProgress = true;
                 GlobalIndexCache.loadOrIndexAsync(level, () -> {
-                    searchService = SearchService.buildFrom(GlobalIndex.getInstance());
-                    ProviderRegistry.indexStructuresDeferred(level);
-                    searchService = SearchService.buildFrom(GlobalIndex.getInstance());
-                    var panel = resultsPanel.getInnerPanel();
-                    if (panel != null) panel.setSearchService(searchService);
-                    indexingInProgress = false;
-                    indexingDispatched = true;
-                    if (AMIConfig.DEV_MODE.get()) ItemIconRenderer.auditMissingIcons();
-                    refreshEntries();
+                    // Start deferred indexing in background immediately after cache load
+                    java.util.concurrent.CompletableFuture.runAsync(() -> {
+                        ProviderRegistry.indexStructuresDeferred(level);
+                    }, net.minecraft.Util.backgroundExecutor()).thenRunAsync(() -> {
+                        searchService = SearchService.buildFrom(GlobalIndex.getInstance());
+                        var panel = resultsPanel.getInnerPanel();
+                        if (panel != null) panel.setSearchService(searchService);
+                        indexingInProgress = false;
+                        indexingDispatched = true;
+                        if (AMIConfig.DEV_MODE.get()) ItemIconRenderer.auditMissingIcons();
+                        refreshEntries();
+                    }, Minecraft.getInstance()::execute);
                 });
             }
-        } else if (indexingDispatched && retryCount < MAX_RETRIES) {
+        } else if (indexingDispatched && !indexingInProgress && retryCount < MAX_RETRIES) {
             var index = GlobalIndex.getInstance();
             int structures = index.getNodes(NodeType.STRUCTURE).size();
             int dimensions = index.getNodes(NodeType.DIMENSION).size();
             if (structures == 0 || dimensions == 0) {
                 var level = Minecraft.getInstance().level;
                 if (level != null) {
-                    ProviderRegistry.indexStructuresDeferred(level);
-                    searchService = SearchService.buildFrom(GlobalIndex.getInstance());
-                    var panel = resultsPanel.getInnerPanel();
-                    if (panel != null) panel.setSearchService(searchService);
+                    indexingInProgress = true;
+                    java.util.concurrent.CompletableFuture.runAsync(() -> {
+                        ProviderRegistry.indexStructuresDeferred(level);
+                    }, net.minecraft.Util.backgroundExecutor()).thenRunAsync(() -> {
+                        searchService = SearchService.buildFrom(GlobalIndex.getInstance());
+                        var panel = resultsPanel.getInnerPanel();
+                        if (panel != null) panel.setSearchService(searchService);
+                        indexingInProgress = false;
+                        retryCount++;
+                    }, Minecraft.getInstance()::execute);
                 }
-                retryCount++;
             }
         }
 
@@ -171,6 +187,7 @@ public class OverlayWidgetManager {
             g.pose().translate(0, 0, 0);
 
             amiButton.render(g, mx, my, pt);
+            compactToggle.render(g, mx, my, pt);
 
             if (panelVisible) {
                 searchBar.render(g, mx, my, pt);
@@ -269,6 +286,10 @@ public class OverlayWidgetManager {
 
     public AmiButtonWidget getAmiButton() {
         return amiButton;
+    }
+
+    public CompactToggleWidget getCompactToggle() {
+        return compactToggle;
     }
 
     public SearchBarWidget getSearchBar() {

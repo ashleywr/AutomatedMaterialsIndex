@@ -5,23 +5,33 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.function.BooleanSupplier;
 
 public class AmiButtonWidget extends AbstractWidget {
+
+    private static final ResourceLocation SPRITE_NORMAL      = ResourceLocation.withDefaultNamespace("widget/button");
+    private static final ResourceLocation SPRITE_HIGHLIGHTED  = ResourceLocation.withDefaultNamespace("widget/button_highlighted");
+
+    private static final int COLOR_ACTIVE  = 0xFFFFDD44; // amber — panel is open
+    private static final int COLOR_NORMAL  = 0xFFFFFFFF; // white
+    private static final int COLOR_HOVER   = 0xFFFFFFA0; // vanilla button hover tint
+
     private final Runnable onClickCallback;
     private final BooleanSupplier isPanelVisible;
+    private boolean isDown = false;
 
     public AmiButtonWidget(Runnable onClick, BooleanSupplier isPanelVisible) {
-        super(2, 0, 22, 14, Component.empty());
+        super(2, 0, 22, 20, Component.empty());
         this.onClickCallback = onClick;
-        this.isPanelVisible = isPanelVisible;
+        this.isPanelVisible  = isPanelVisible;
     }
 
     public void updateBounds(WidgetBounds bounds) {
         setX(bounds.x());
         setY(bounds.y());
-        this.width = bounds.width();
+        this.width  = bounds.width();
         this.height = bounds.height();
     }
 
@@ -31,30 +41,25 @@ public class AmiButtonWidget extends AbstractWidget {
 
     @Override
     protected void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        boolean panelOpen = isPanelVisible.getAsBoolean();
+        boolean hovered   = isMouseOver(mouseX, mouseY);
+
+        // Active (open) or hovered → highlighted sprite; otherwise normal
+        ResourceLocation sprite = (panelOpen || hovered) ? SPRITE_HIGHLIGHTED : SPRITE_NORMAL;
+        g.blitSprite(sprite, getX(), getY(), width, height);
+
+        // Label: amber when panel is open, hover-yellow when hovered, white otherwise
+        int textColor = panelOpen ? COLOR_ACTIVE : (hovered ? COLOR_HOVER : COLOR_NORMAL);
         var font = Minecraft.getInstance().font;
-
-        boolean panelVisible = isPanelVisible.getAsBoolean();
-        boolean hovered = isMouseOver(mouseX, mouseY);
-
-        int bg     = panelVisible ? 0xFF0A0A0A : 0xFF181818;
-        int border = hovered ? (panelVisible ? 0xFFFFAA00 : 0xFF888888) : (panelVisible ? 0xFF555555 : 0xFF333333);
-        int text   = hovered ? (panelVisible ? 0xFFFFDD44 : 0xFFAAAAAA) : (panelVisible ? 0xFFFFAA00 : 0xFF666666);
-
-        int x = getX(), y = getY(), w = width, h = height;
-
-        g.fill(x, y, x + w, y + h, bg);
-        g.fill(x, y, x + w, y + 1, border);
-        g.fill(x, y + h - 1, x + w, y + h, border);
-        g.fill(x, y, x + 1, y + h, border);
-        g.fill(x + w - 1, y, x + w, y + h, border);
-
-        int labelW = font.width("AMI");
-        g.drawString(font, "AMI", x + (w - labelW) / 2, y + (h - font.lineHeight) / 2 + 1, text, false);
+        // 1 px down-shift when button is held for tactile feel
+        int textY = getY() + (height - font.lineHeight) / 2 + (isDown ? 2 : 1);
+        g.drawCenteredString(font, "AMI", getX() + width / 2, textY, textColor);
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0 && isMouseOver(mouseX, mouseY)) {
+            isDown = true;
             if (onClickCallback != null) onClickCallback.run();
             return true;
         }
@@ -62,6 +67,13 @@ public class AmiButtonWidget extends AbstractWidget {
     }
 
     @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        isDown = false;
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
     protected void updateWidgetNarration(NarrationElementOutput output) {
+        defaultButtonNarrationText(output);
     }
 }

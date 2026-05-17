@@ -43,6 +43,11 @@ public class AMIConfig {
             .comment("Enable developer mode features: extended tooltips, visual exclusion zones, etc.")
             .define("devMode", false);
 
+    public static final ModConfigSpec.BooleanValue COMPACT_MODE = BUILDER
+            .comment("Show AMI as a compact icon grid (like EMI/JEI) instead of the full panel.",
+                     "The search bar and filtering still work normally in this mode.")
+            .define("compactMode", false);
+
     public static final ModConfigSpec.BooleanValue SHOW_SPAWN_EGGS = BUILDER
             .comment("Show spawn eggs in the item index.",
                      "Spawn eggs are hidden by default because entities are indexed separately.",

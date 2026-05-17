@@ -36,6 +36,9 @@ public class GroupingEngine {
             "white", "gray", "blue", "brown", "green", "red", "black"
     ));
 
+    private static final String[] STATE_PREFIXES = {"cooked_", "raw_", "roasted_"};
+    private static final String[] FAMILY_PREFIXES = {"stripped_", "waxed_", "exposed_", "weathered_", "oxidized_", "chiseled_", "cut_", "smooth_", "cracked_", "polished_"};
+
     // Dynamic discovery state
     private static final Map<Item, Item> STONECUTTER_MAP = new HashMap<>();
     private static final Set<String> DYNAMIC_SHAPE_KEYWORDS = new HashSet<>();
@@ -75,11 +78,9 @@ public class GroupingEngine {
         });
 
         // 2. Dynamic Shape Discovery: Build a "Vocabulary" of shapes from common tags
-        // This allows us to strip "_hammer" or "_scythe" even if we didn't hardcode them.
         try {
             BuiltInRegistries.ITEM.getTags().forEach(tag -> {
                 String path = tag.getFirst().location().getPath();
-                // Pick up common shape-defining patterns in tags
                 if (path.contains("/") && !path.startsWith("dyes/")) {
                     String shape = path.substring(path.lastIndexOf('/') + 1);
                     if (shape.length() > 3) DYNAMIC_SHAPE_KEYWORDS.add(shape);
@@ -87,12 +88,11 @@ public class GroupingEngine {
             });
         } catch (Exception ignored) {}
         
-        // Add vanilla/fallback keywords to ensure basic coverage
         DYNAMIC_SHAPE_KEYWORDS.addAll(Arrays.asList(
             "stairs", "slab", "wall", "fence", "gate", "door", "trapdoor", "button", "plate",
             "sign", "bed", "boat", "minecart", "pickaxe", "axe", "shovel", "hoe", "sword",
             "helmet", "chestplate", "leggings", "boots", "sapling", "leaves", "log", "wood", "planks",
-            "chest", "hanging", "pressure"
+            "chest_boat", "hanging_sign", "pressure_plate", "bucket", "spawn_egg", "bricks", "block", "ball"
         ));
 
         if (level == null) return;
@@ -116,10 +116,6 @@ public class GroupingEngine {
         }
     }
 
-    // =========================================================
-    // Shape Classification
-    // =========================================================
-
     public static Map<String, List<ItemStack>> groupByShape(List<ItemStack> items) {
         Map<String, List<ItemStack>> groups = new LinkedHashMap<>();
         for (ItemStack stack : items) {
@@ -130,8 +126,6 @@ public class GroupingEngine {
 
     public static String classifyShape(ItemStack stack) {
         Item item = stack.getItem();
-
-        // 1. Check logical types
         if (item instanceof SwordItem) return "weapons";
         if (item instanceof TieredItem) return "tools";
         if (item instanceof ArmorItem) return "armor";
@@ -139,7 +133,6 @@ public class GroupingEngine {
         if (item instanceof MinecartItem) return "minecarts";
         if (stack.has(DataComponents.FOOD)) return "food";
 
-        // 2. Check block shapes
         Optional<BlockState> state = defaultBlockState(item);
         if (state.isPresent()) {
             BlockState s = state.get();
@@ -154,27 +147,20 @@ public class GroupingEngine {
             if (s.is(BlockTags.PRESSURE_PLATES)) return "pressure_plates";
             if (s.is(BlockTags.SIGNS) || s.is(BlockTags.ALL_HANGING_SIGNS)) return "signs";
             if (s.is(BlockTags.BEDS)) return "beds";
-            
-            // Cubes vs non-cubes
+            if (s.is(BlockTags.RAILS)) return "rails";
             try {
                 if (s.isCollisionShapeFullBlock(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, net.minecraft.core.BlockPos.ZERO)) {
                     return "cube";
                 }
             } catch (Exception ignored) {}
-            
             return "block";
         }
-
         return "item";
     }
 
     public static String classifyShape(Item item) {
         return classifyShape(new ItemStack(item));
     }
-
-    // =========================================================
-    // Color Classification
-    // =========================================================
 
     public static Map<String, List<ItemStack>> groupByColor(List<ItemStack> items) {
         Map<String, List<ItemStack>> groups = new LinkedHashMap<>();
@@ -204,10 +190,6 @@ public class GroupingEngine {
         return "";
     }
 
-    // =========================================================
-    // Material Classification (The Heuristic Waterfall)
-    // =========================================================
-
     public static Map<String, List<ItemStack>> groupByMaterial(List<ItemStack> items) {
         Map<String, List<ItemStack>> groups = new LinkedHashMap<>();
         for (ItemStack stack : items) {
@@ -218,44 +200,78 @@ public class GroupingEngine {
 
     public static String classifyMaterialRoot(ItemStack stack) {
         Item item = stack.getItem();
-
-        // 1. Direct Evidence: Stonecutter (X was carved from Y)
         Item root = STONECUTTER_MAP.get(item);
         if (root != null) {
             ResourceLocation rootId = BuiltInRegistries.ITEM.getKey(root);
             if (rootId != null) return rootId.toString();
         }
 
-        // 2. Tag Evidence: "Is item in #c:ingots/iron?"
         String matFromTags = identifyMaterialFromTags(stack);
         if (matFromTags != null) return matFromTags;
 
-        // 3. The Heuristic: Tag-Lexical Intersection
-        // If an item is in #c:stairs, and its ID is "copper_stairs", root = "copper".
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
         if (id == null) return "";
         
         String path = id.getPath();
         String stripped = stripDynamicShapes(path);
-        
-        // Final fallback: Strip color if present
-        return id.getNamespace() + ":" + stripColorPrefix(stripped);
+        String noState = stripStatePrefix(stripped);
+        return id.getNamespace() + ":" + stripColorPrefix(noState);
+    }
+
+    public static String classifyFamilyRoot(ItemStack stack) {
+        String materialRoot = classifyMaterialRoot(stack);
+        int colonIdx = materialRoot.indexOf(':');
+        if (colonIdx == -1) return materialRoot;
+
+        String namespace = materialRoot.substring(0, colonIdx);
+        String path = materialRoot.substring(colonIdx + 1);
+
+        String stripped = stripFamilyPrefix(path);
+        return namespace + ":" + stripped;
+    }
+
+    private static String stripFamilyPrefix(String path) {
+        String result = path;
+        boolean changed;
+        do {
+            changed = false;
+            for (String prefix : FAMILY_PREFIXES) {
+                if (result.startsWith(prefix)) {
+                    result = result.substring(prefix.length());
+                    changed = true;
+                }
+            }
+        } while (changed);
+        return result;
+    }
+
+    private static String stripStatePrefix(String path) {
+        for (String prefix : STATE_PREFIXES) {
+            if (path.startsWith(prefix)) {
+                return path.substring(prefix.length());
+            }
+        }
+        return path;
     }
 
     private static String stripDynamicShapes(String path) {
-        // Greedy strip: find the longest shape keyword that matches a token in the path
         String result = path;
         List<String> sortedKeywords = new ArrayList<>(DYNAMIC_SHAPE_KEYWORDS);
+        // CRITICAL: Sort by length descending so "chest_boat" matches before "boat"
         sortedKeywords.sort((a, b) -> Integer.compare(b.length(), a.length()));
 
         for (String keyword : sortedKeywords) {
             if (hasToken(result, keyword)) {
-                // Strip the keyword and surrounding underscores
                 result = result.replace("_" + keyword + "_", "_")
                                .replace(keyword + "_", "")
                                .replace("_" + keyword, "");
             }
         }
+        // Clean up any double underscores from stripping middle keywords
+        while (result.contains("__")) result = result.replace("__", "_");
+        if (result.startsWith("_")) result = result.substring(1);
+        if (result.endsWith("_")) result = result.substring(0, result.length() - 1);
+        
         return result;
     }
 
@@ -270,10 +286,6 @@ public class GroupingEngine {
                 .orElse(null);
     }
 
-    // =========================================================
-    // Sorting & Utilities
-    // =========================================================
-
     public static int representativeWeight(ItemStack stack) {
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
         if (id == null) return 100;
@@ -284,9 +296,6 @@ public class GroupingEngine {
         return 10;
     }
 
-    /**
-     * Sorts groups according to 'order' and pushes common 'fallbacks' to the bottom.
-     */
     public static Map<String, List<SearchNode>> sortGroups(Map<String, List<SearchNode>> groups, List<String> order) {
         List<Map.Entry<String, List<SearchNode>>> entries = new ArrayList<>(groups.entrySet());
         entries.sort((a, b) -> {
@@ -295,9 +304,8 @@ public class GroupingEngine {
             if (i1 != -1 && i2 != -1) return Integer.compare(i1, i2);
             if (i1 != -1) return -1;
             if (i2 != -1) return 1;
-            // Unknowns/Fallbacks to the bottom
-            boolean u1 = k1.isEmpty() || k1.equals("item") || k1.equals("minecraft:item") || k1.equals("block") || k1.contains("unknown");
-            boolean u2 = k2.isEmpty() || k2.equals("item") || k2.equals("minecraft:item") || k2.equals("block") || k2.contains("unknown");
+            boolean u1 = k1.isEmpty() || k1.equals("item") || k1.equals("minecraft:item") || k1.equals("block") || k1.toLowerCase().contains("unknown");
+            boolean u2 = k2.isEmpty() || k2.equals("item") || k2.equals("minecraft:item") || k2.equals("block") || k2.toLowerCase().contains("unknown");
             if (u1 && !u2) return 1;
             if (!u1 && u2) return -1;
             return k1.compareTo(k2);
@@ -315,7 +323,6 @@ public class GroupingEngine {
             if (i1 != -1 && i2 != -1) return Integer.compare(i1, i2);
             if (i1 != -1) return -1;
             if (i2 != -1) return 1;
-            // Unknowns/Fallbacks to the bottom
             boolean u1 = k1.isEmpty() || k1.equals("item") || k1.equals("minecraft:item") || k1.equals("block");
             boolean u2 = k2.isEmpty() || k2.equals("item") || k2.equals("minecraft:item") || k2.equals("block");
             if (u1 && !u2) return 1;
