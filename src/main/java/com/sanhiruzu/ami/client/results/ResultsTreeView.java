@@ -298,6 +298,17 @@ public class ResultsTreeView {
                     g.pose().pushPose();
                     g.pose().translate(0, 0, 150);
                     g.renderItem(toolStack, iconX, iconY);
+                    
+                    // Harvest level indicator
+                    if (toolItem instanceof net.minecraft.world.item.TieredItem tiered) {
+                        int level = getHarvestLevel(tiered);
+                        if (level >= 0) {
+                            String levelStr = String.valueOf(level);
+                            g.pose().translate(0, 0, 100);
+                            g.drawString(font, levelStr, iconX + 16 - font.width(levelStr), iconY + 9, 0xFFFFFFFF, true);
+                        }
+                    }
+                    
                     g.pose().popPose();
                 }
             }
@@ -395,7 +406,8 @@ public class ResultsTreeView {
         }
 
         // Count Badge
-        String badge = "[" + node.getChildren().size() + " " + node.getLabel().getString() + "]";
+        String labelStr = node.getLabel().getString();
+        String badge = "[" + node.getChildren().size() + " " + labelStr + "]";
         int badgeW = font.width(badge);
         int badgeX = x + width - SCROLLBAR_W - badgeW - 5;
 
@@ -415,7 +427,6 @@ public class ResultsTreeView {
         // Label (truncated to avoid overlap with swatches and badge)
         int labelRightBound = badgeX - (swatchBlockW > 0 ? swatchBlockW + 8 : 0);
         int labelMaxW = labelRightBound - (rowX + 32) - 4;
-        String labelStr = node.getLabel().getString();
         String label = truncate(font, labelStr, Math.max(0, (int)(labelMaxW / currentLabelScale)));
 
         int screenLabelY = drawY + (int)((AMITheme.ROW_HEIGHT - font.lineHeight * currentLabelScale) / 2);
@@ -639,6 +650,16 @@ public class ResultsTreeView {
         return font.plainSubstrByWidth(text, maxW - ellipsisW) + ellipsis;
     }
 
+    private int getHarvestLevel(net.minecraft.world.item.TieredItem item) {
+        var tier = item.getTier();
+        if (tier == net.minecraft.world.item.Tiers.WOOD) return 0;
+        if (tier == net.minecraft.world.item.Tiers.STONE) return 1;
+        if (tier == net.minecraft.world.item.Tiers.IRON) return 2;
+        if (tier == net.minecraft.world.item.Tiers.DIAMOND) return 3;
+        if (tier == net.minecraft.world.item.Tiers.NETHERITE) return 4;
+        return -1;
+    }
+
     // ── Input handlers ────────────────────────────────────────────────────────
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
@@ -795,7 +816,7 @@ public class ResultsTreeView {
             }
         }
 
-        lines.add(Component.literal("§8Hold Ctrl for AMI debug info"));
+        lines.add(Component.translatable("ami.gui.debug_hint").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
         return lines;
     }
 }

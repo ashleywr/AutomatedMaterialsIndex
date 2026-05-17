@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.client;
 
+import com.sanhiruzu.ami.AMIConfig;
 import com.sanhiruzu.ami.client.results.*;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.index.NodeType;
@@ -20,7 +21,14 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private static final ResourceLocation PANEL_SPRITE =
             ResourceLocation.withDefaultNamespace("recipe_book/overlay_recipe");
 
+    // Compact toggle button dimensions
+    private static final int TOGGLE_W = 18;
+    private static final int TOGGLE_H = 18;
+
     private int x, y, width, height;
+
+    // Toggle button position — recomputed on every layout update
+    private int toggleX, toggleY;
 
     private FacetBar       facetBar;
     private ResultsToolbar toolbar;
@@ -51,7 +59,13 @@ public class UniversalResultsPanel implements SearchState.Listener {
         int innerX = x + AMITheme.GLOBAL_PADDING;
         int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
 
-        this.facetBar = new FacetBar(innerX, y + AMITheme.GLOBAL_PADDING, innerW, state);
+        // Toggle button always sits at top-right of the panel
+        this.toggleX = x + width - AMITheme.GLOBAL_PADDING - TOGGLE_W;
+        this.toggleY = y + AMITheme.GLOBAL_PADDING;
+
+        // Facet bar leaves room for the toggle button on its right
+        int facetBarW = innerW - TOGGLE_W - AMITheme.ELEMENT_GAP;
+        this.facetBar = new FacetBar(innerX, y + AMITheme.GLOBAL_PADDING, facetBarW, state);
 
         int toolbarY = y + AMITheme.GLOBAL_PADDING + FacetBar.HEIGHT + AMITheme.ELEMENT_GAP;
         this.toolbar = new ResultsToolbar(innerX, toolbarY, innerW, state);
@@ -114,12 +128,18 @@ public class UniversalResultsPanel implements SearchState.Listener {
         int innerX = x + AMITheme.GLOBAL_PADDING;
         int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
 
-        if (com.sanhiruzu.ami.AMIConfig.COMPACT_MODE.get()) {
-            // Compact: grid fills the entire panel, no facets or toolbar.
-            int contentH = height - AMITheme.GLOBAL_PADDING * 2;
-            gridView.updateLayout(innerX, y + AMITheme.GLOBAL_PADDING, innerW, contentH);
+        // Toggle button always top-right
+        this.toggleX = x + width - AMITheme.GLOBAL_PADDING - TOGGLE_W;
+        this.toggleY = y + AMITheme.GLOBAL_PADDING;
+
+        if (AMIConfig.COMPACT_MODE.get()) {
+            // Compact: thin header row for toggle button only, grid fills rest
+            int contentY = y + AMITheme.GLOBAL_PADDING + TOGGLE_H + AMITheme.ELEMENT_GAP;
+            int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
+            gridView.updateLayout(innerX, contentY, innerW, contentH);
         } else {
-            facetBar.updateLayout(innerX, y + AMITheme.GLOBAL_PADDING, innerW);
+            int facetBarW = innerW - TOGGLE_W - AMITheme.ELEMENT_GAP;
+            facetBar.updateLayout(innerX, y + AMITheme.GLOBAL_PADDING, facetBarW);
 
             int toolbarY = y + AMITheme.GLOBAL_PADDING + FacetBar.HEIGHT + AMITheme.ELEMENT_GAP;
             toolbar.updateLayout(innerX, toolbarY, innerW);
@@ -137,19 +157,23 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         g.blitSprite(PANEL_SPRITE, x, y, width, height);
 
-        boolean compact = com.sanhiruzu.ami.AMIConfig.COMPACT_MODE.get();
+        boolean compact = AMIConfig.COMPACT_MODE.get();
 
         if (compact) {
+            renderToggleBtn(g, mouseX, mouseY);
             if (!com.sanhiruzu.ami.index.GlobalIndex.getInstance().isIndexReady()) {
+                int loadY = toggleY + TOGGLE_H + AMITheme.ELEMENT_GAP;
                 g.drawString(Minecraft.getInstance().font, "...",
-                        x + AMITheme.GLOBAL_PADDING, y + AMITheme.GLOBAL_PADDING, 0xFFAAAAAA, false);
+                        x + AMITheme.GLOBAL_PADDING, loadY, 0xFFAAAAAA, false);
             } else {
                 gridView.render(g, mouseX, mouseY);
             }
             return;
         }
 
+        // Full mode
         facetBar.render(g, mouseX, mouseY);
+        renderToggleBtn(g, mouseX, mouseY); // drawn after facetBar so it appears on top
 
         int sep1Y = y + AMITheme.GLOBAL_PADDING + FacetBar.HEIGHT;
         g.fill(x + 3, sep1Y, x + width - 3, sep1Y + 1, AMITheme.SECTION_SEP);
@@ -161,14 +185,14 @@ public class UniversalResultsPanel implements SearchState.Listener {
         g.fill(x + 3, sep2Y, x + width - 3, sep2Y + 1, AMITheme.SECTION_SEP);
 
         if (!com.sanhiruzu.ami.index.GlobalIndex.getInstance().isIndexReady()) {
-            net.minecraft.network.chat.Component msg = net.minecraft.network.chat.Component.literal("§6Indexing in background...");
+            net.minecraft.network.chat.Component msg = net.minecraft.network.chat.Component.translatable("ami.gui.background_indexing")
+                    .withStyle(net.minecraft.ChatFormatting.GOLD);
             int msgW = Minecraft.getInstance().font.width(msg);
             int contentY = toolbarY + toolbar.getHeight() + AMITheme.ELEMENT_GAP;
             int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
             g.drawString(Minecraft.getInstance().font, msg, x + (width - msgW) / 2, contentY + (contentH / 2) - 4, 0xFFFFFF, false);
         } else {
-            boolean gridMode = state.getViewMode() == ResultsToolbar.ViewMode.GRID;
-            if (gridMode) {
+            if (isGridActive()) {
                 gridView.render(g, mouseX, mouseY);
             } else {
                 treeView.render(g, mouseX, mouseY, toolbar.isAnyDropdownOpen(), null, state);
@@ -179,10 +203,33 @@ public class UniversalResultsPanel implements SearchState.Listener {
         facetBar.renderTooltip(g, mouseX, mouseY);
     }
 
+    private void renderToggleBtn(GuiGraphics g, int mouseX, int mouseY) {
+        boolean compact = AMIConfig.COMPACT_MODE.get();
+        boolean hovered = mouseX >= toggleX && mouseX < toggleX + TOGGLE_W
+                && mouseY >= toggleY && mouseY < toggleY + TOGGLE_H;
+
+        int bgColor = compact ? 0x55AADDFF : (hovered ? 0x33FFFFFF : 0x11FFFFFF);
+        g.fill(toggleX, toggleY, toggleX + TOGGLE_W, toggleY + TOGGLE_H, bgColor);
+
+        if (hovered || compact) {
+            int border = compact ? 0xFFAADDFF : 0x88FFFFFF;
+            g.fill(toggleX,              toggleY,              toggleX + TOGGLE_W, toggleY + 1,              border); // top
+            g.fill(toggleX,              toggleY + TOGGLE_H - 1, toggleX + TOGGLE_W, toggleY + TOGGLE_H,     border); // bottom
+            g.fill(toggleX,              toggleY,              toggleX + 1,         toggleY + TOGGLE_H,      border); // left
+            g.fill(toggleX + TOGGLE_W - 1, toggleY,           toggleX + TOGGLE_W, toggleY + TOGGLE_H,       border); // right
+        }
+
+        var font = Minecraft.getInstance().font;
+        String label = compact ? "≡" : "⊡"; // ≡ / ⊡
+        int textColor = compact ? 0xFFAADDFF : (hovered ? 0xFFFFFFA0 : 0xFFAAAAAA);
+        g.drawCenteredString(font, label, toggleX + TOGGLE_W / 2,
+                toggleY + (TOGGLE_H - font.lineHeight) / 2, textColor);
+    }
+
     private void checkPlayerStateChanged() {
         var mc = Minecraft.getInstance();
         var gameMode = mc.gameMode != null ? mc.gameMode.getPlayerMode() : null;
-        boolean devMode = com.sanhiruzu.ami.AMIConfig.DEV_MODE.get();
+        boolean devMode = AMIConfig.DEV_MODE.get();
 
         if (gameMode != lastPlayerMode || devMode != lastDevMode) {
             lastPlayerMode = gameMode;
@@ -216,10 +263,20 @@ public class UniversalResultsPanel implements SearchState.Listener {
     // ── Item click (grid + list) ──────────────────────────────────────────────
 
     private void onItemClicked(SearchNode node, int button) {
-        // Use ItemIconRenderer.resolveStack so synthetic items (potions, enchanted books, etc.)
-        // resolve correctly via persistentStacks rather than a plain registry lookup.
         ItemStack stack = com.sanhiruzu.ami.client.icon.ItemIconRenderer.resolveStack(node.id());
         if (!stack.isEmpty()) RecipeViewerBridge.handleItemClick(stack, button);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /** True when the grid view should be active — either explicit grid mode or compact mode. */
+    private boolean isGridActive() {
+        return AMIConfig.COMPACT_MODE.get() || state.getViewMode() == ResultsToolbar.ViewMode.GRID;
+    }
+
+    private boolean isOverToggle(double mouseX, double mouseY) {
+        return mouseX >= toggleX && mouseX < toggleX + TOGGLE_W
+                && mouseY >= toggleY && mouseY < toggleY + TOGGLE_H;
     }
 
     // ── Input handlers ────────────────────────────────────────────────────────
@@ -227,7 +284,20 @@ public class UniversalResultsPanel implements SearchState.Listener {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0 && button != 1) return false;
 
-        // Facet bar intercepts left-clicks on its badges
+        // Compact toggle — always first, regardless of mode
+        if (button == 0 && isOverToggle(mouseX, mouseY)) {
+            AMIConfig.COMPACT_MODE.set(!AMIConfig.COMPACT_MODE.get());
+            AMIConfig.SPEC.save();
+            updateLayout(x, y, width, height);
+            return true;
+        }
+
+        boolean compact = AMIConfig.COMPACT_MODE.get();
+        if (compact) {
+            return gridView.mouseClicked(mouseX, mouseY, button);
+        }
+
+        // Full mode
         if (button == 0 && facetBar.mouseClicked(mouseX, mouseY, button)) {
             return true;
         }
@@ -244,8 +314,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             return true;
         }
 
-        boolean gridMode = state.getViewMode() == ResultsToolbar.ViewMode.GRID;
-        if (gridMode) {
+        if (isGridActive()) {
             return gridView.mouseClicked(mouseX, mouseY, button);
         }
         if (button != 0) return false;
@@ -255,8 +324,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollDelta) {
         if (!isMouseOver(mouseX, mouseY)) return false;
 
-        boolean gridMode = state.getViewMode() == ResultsToolbar.ViewMode.GRID;
-        if (gridMode) {
+        if (isGridActive()) {
             gridView.mouseScrolled(mouseX, mouseY, scrollDelta);
             return true;
         }
@@ -275,22 +343,19 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         if (!isMouseOver(mx, my)) return false;
 
-        if (facetBar.keyPressed(keyCode, scanCode, modifiers)) return true;
+        if (!AMIConfig.COMPACT_MODE.get() && facetBar.keyPressed(keyCode, scanCode, modifiers)) return true;
 
-        boolean gridMode = state.getViewMode() == ResultsToolbar.ViewMode.GRID;
-        if (gridMode) return gridView.keyPressed(keyCode, scanCode, modifiers);
+        if (isGridActive()) return gridView.keyPressed(keyCode, scanCode, modifiers);
         return treeView.keyPressed(keyCode, scanCode, modifiers);
     }
 
     public boolean mouseClickedScrollbar(double mouseX, double mouseY, int button) {
-        boolean gridMode = state.getViewMode() == ResultsToolbar.ViewMode.GRID;
-        if (gridMode) return gridView.mouseClickedScrollbar(mouseX, mouseY, button);
+        if (isGridActive()) return gridView.mouseClickedScrollbar(mouseX, mouseY, button);
         return treeView.mouseClickedScrollbar(mouseX, mouseY, button);
     }
 
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        boolean gridMode = state.getViewMode() == ResultsToolbar.ViewMode.GRID;
-        if (gridMode) return gridView.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        if (isGridActive()) return gridView.mouseDragged(mouseX, mouseY, button, dragX, dragY);
         return treeView.mouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
 
