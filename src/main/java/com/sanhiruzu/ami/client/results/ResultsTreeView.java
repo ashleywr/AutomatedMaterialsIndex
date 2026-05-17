@@ -37,7 +37,7 @@ public class ResultsTreeView {
     // ── Layout constants ──────────────────────────────────────────────────────
     private static final int INDENT       = 12;
     private static final int SCROLLBAR_W  = 5;
-    private static final int HEADER_LABEL_H = 13; // height reserved for the optional pinned header
+    private static final int HEADER_LABEL_H = 16; // height reserved for the optional pinned header (column row)
 
     // Swatch dots for variant collapsing
     private static final int SWATCH_SIZE = 5;
@@ -427,10 +427,10 @@ public class ResultsTreeView {
         int indent = depth * INDENT;
         int rowX = x + AMITheme.GLOBAL_PADDING + indent;
 
-        // Expansion Toggle
+        // Expansion Toggle — brighter than text to show importance
         String arrow = node.isExpanded() ? "▼" : "▶";
         int caretY = drawY + (AMITheme.ROW_HEIGHT - font.lineHeight) / 2;
-        g.drawString(font, arrow, rowX, caretY, AMITheme.TEXT_HEADER, false);
+        g.drawString(font, arrow, rowX, caretY, AMITheme.TEXT_PRIMARY, false);
 
         // Group icon
         ItemStack icon = resolveGroupIcon(node);
@@ -482,14 +482,14 @@ public class ResultsTreeView {
                 labelColor, false);
         g.pose().popPose();
 
-        // Render badge at the same scale as the group label
+        // Render badge at the same scale as the group label — higher contrast for visibility
         int badgeY = drawY + (int)((AMITheme.ROW_HEIGHT - font.lineHeight * currentLabelScale) / 2);
         g.pose().pushPose();
         g.pose().scale(currentLabelScale, currentLabelScale, 1f);
         g.drawString(font, badge,
                 Math.round(badgeX / currentLabelScale),
                 Math.round(badgeY / currentLabelScale),
-                AMITheme.TEXT_SUBTLE, false);
+                AMITheme.TEXT_PRIMARY, false);
         g.pose().popPose();
     }
 
