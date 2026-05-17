@@ -62,8 +62,7 @@ public class ResultsProcessor {
     public List<TreeNode> process(List<SearchNode> results) {
         // Handle background indexing state
         if (!com.sanhiruzu.ami.index.GlobalIndex.getInstance().isIndexReady()) {
-            return List.of(new TreeNode("indexing", Component.translatable("ami.gui.background_indexing")
-                    .withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.CHEAT_INDICATOR))));
+            return List.of(createIndexingNode());
         }
 
         // Filter
@@ -83,6 +82,11 @@ public class ResultsProcessor {
         List<TreeNode> tree = buildTree(filtered);
         
         return applyHighCardinalityGrouping(tree);
+    }
+
+    private TreeNode createIndexingNode() {
+        return new TreeNode("indexing", Component.translatable("ami.gui.background_indexing")
+                .withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.CHEAT_INDICATOR)));
     }
 
     private int compareNodes(SearchNode a, SearchNode b) {
@@ -125,7 +129,7 @@ public class ResultsProcessor {
 
     private Map<String, List<SearchNode>> sortGroupsLocally(Map<String, List<SearchNode>> groups, List<String> order) {
         if (sortField != SortField.COUNT) {
-            return GroupingEngine.sortGroups(groups, order);
+            return GroupingEngine.sortGroups(groups, order, ascending);
         }
 
         List<Map.Entry<String, List<SearchNode>>> entries = new ArrayList<>(groups.entrySet());
@@ -238,7 +242,16 @@ public class ResultsProcessor {
         // Fallback for missing setting in AmiConfig or using UI themes
         boolean blocksMaterial = false; // TODO: Map ui settings to AmiConfig
 
-        for (AmiOntology.Category cat : AmiOntology.CATEGORIES) {
+        // Sort categories alphabetically if in ALPHABETICAL sort mode, otherwise use ontology order
+        List<AmiOntology.Category> categoriesToDisplay = new ArrayList<>(AmiOntology.CATEGORIES);
+        if (sortField == SortField.ALPHABETICAL) {
+            categoriesToDisplay.sort((a, b) -> a.id.compareTo(b.id));
+        }
+        if (!ascending) {
+            Collections.reverse(categoriesToDisplay);
+        }
+
+        for (AmiOntology.Category cat : categoriesToDisplay) {
             List<SearchNode> catEntries = catMap.get(cat.id);
             if (catEntries == null || catEntries.isEmpty()) continue;
 
