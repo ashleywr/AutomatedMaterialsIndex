@@ -69,7 +69,7 @@ public class RowFieldPickerDropdown {
             boolean isSelected = active.contains(field);
             if (isSelected) {
                 // Small accent bar on the left
-                g.fill(x + 2, iy + 2, x + 4, iy + ITEM_H - 2, 0xFF4488FF);
+                g.fill(x + 2, iy + 2, x + 4, iy + ITEM_H - 2, com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE);
             }
             
             g.drawString(font, field.displayName, x + 8, iy + 1, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);

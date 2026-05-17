@@ -76,7 +76,7 @@ public class MultiSelectDropdown<T> implements Dropdown {
             boolean isSelected = selected.contains(option);
             if (isSelected) {
                 // Small accent bar on the left
-                g.fill(x + 2, itemY + 2, x + 4, itemY + ITEM_HEIGHT - 2, 0xFF4488FF);
+                g.fill(x + 2, itemY + 2, x + 4, itemY + ITEM_HEIGHT - 2, com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE);
             }
             
             g.drawString(font, displayName.apply(option), x + 8, itemY + 1, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);

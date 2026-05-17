@@ -887,7 +887,7 @@ public class ResultsTreeView {
                 lines.add(Component.literal(entry.displayName()));
             }
             // Items don't include the registry ID in vanilla tooltip, add it here
-            lines.add(Component.literal(entry.id().toString()).withStyle(s -> s.withColor(0x666666)));
+            lines.add(Component.literal(entry.id().toString()).withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE)));
         } else {
             // Renderer provides the complete tooltip (name + id + metadata) — don't re-add them
             var renderer = RendererRegistry.get(entry.type());
@@ -905,7 +905,7 @@ public class ResultsTreeView {
                 if (toolItem != null && toolItem != net.minecraft.world.item.Items.AIR) {
                     lines.add(Component.empty());
                     lines.add(Component.translatable("ami.tooltip.required_tool", toolItem.getDescription())
-                            .withStyle(s -> s.withColor(0x888888)));
+                            .withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE)));
                 }
             }
         }

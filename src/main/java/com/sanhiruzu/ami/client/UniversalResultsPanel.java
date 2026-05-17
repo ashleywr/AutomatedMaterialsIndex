@@ -202,7 +202,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
             AMITheme.fillRounded(g, x, y, width, height, AmiConfig.panelBg);
             // Add a subtle border
-            int border = 0x33FFFFFF;
+            int border = com.sanhiruzu.ami.client.AMITheme.BORDER_LIGHT;
             g.fill(x, y, x + width, y + 1, border);
             g.fill(x, y + height - 1, x + width, y + height, border);
             g.fill(x, y, x + 1, y + height, border);
@@ -234,7 +234,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (compact) {
             if (!com.sanhiruzu.ami.index.GlobalIndex.getInstance().isIndexReady()) {
                 g.drawString(Minecraft.getInstance().font, "...",
-                        x + AMITheme.GLOBAL_PADDING, y + AMITheme.GLOBAL_PADDING, 0xFFAAAAAA, false);
+                        x + AMITheme.GLOBAL_PADDING, y + AMITheme.GLOBAL_PADDING, com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE, false);
             } else {
                 gridView.render(g, mouseX, mouseY, false);
             }
@@ -261,8 +261,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
             int msgW = Minecraft.getInstance().font.width(msg);
             int contentY = toolbarY + toolbar.getHeight() + AMITheme.ELEMENT_GAP;
             int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
-            g.drawString(Minecraft.getInstance().font, msg, x + (width - msgW) / 2, contentY + (contentH / 2) - 4, 0xFFFFFF, false);
+            g.drawString(Minecraft.getInstance().font, msg, x + (width - msgW) / 2, contentY + (contentH / 2) - 4, com.sanhiruzu.ami.client.AMITheme.WHITE, false);
         } else {
+
             boolean dropdownOpen = toolbar.isAnyDropdownOpen();
             if (isGridActive()) {
                 gridView.render(g, mouseX, mouseY, dropdownOpen);
@@ -293,18 +294,20 @@ public class UniversalResultsPanel implements SearchState.Listener {
         boolean hovered = mouseX >= toggleX && mouseX < toggleX + TOGGLE_W
                 && mouseY >= toggleY && mouseY < toggleY + TOGGLE_H;
 
-        int bgColor = compact ? 0x55AADDFF : (hovered ? 0x33FFFFFF : 0x11FFFFFF);
+        int accent = AmiConfig.accentColor;
+        int alphaAccent = (0x55 << 24) | (accent & 0xFFFFFF);
+        int bgColor = compact ? alphaAccent : (hovered ? 0x33FFFFFF : 0x11FFFFFF);
         g.fill(toggleX, toggleY, toggleX + TOGGLE_W, toggleY + TOGGLE_H, bgColor);
 
         if (hovered || compact) {
-            int border = compact ? 0xFFAADDFF : 0x88FFFFFF;
+            int border = compact ? (0xFF000000 | accent) : 0x88FFFFFF;
             g.fill(toggleX,              toggleY,              toggleX + TOGGLE_W, toggleY + 1,              border); // top
             g.fill(toggleX,              toggleY + TOGGLE_H - 1, toggleX + TOGGLE_W, toggleY + TOGGLE_H,     border); // bottom
             g.fill(toggleX,              toggleY,              toggleX + 1,         toggleY + TOGGLE_H,      border); // left
             g.fill(toggleX + TOGGLE_W - 1, toggleY,           toggleX + TOGGLE_W, toggleY + TOGGLE_H,       border); // right
         }
 
-        int iconColor = compact ? 0xFFAADDFF : (hovered ? 0xFFFFFFA0 : AMITheme.TEXT_SUBTLE);
+        int iconColor = compact ? (0xFF000000 | accent) : (hovered ? 0xFFFFFFA0 : AMITheme.TEXT_SUBTLE);
         int cx = toggleX + TOGGLE_W / 2;
         int cy = toggleY + TOGGLE_H / 2;
         if (compact) {
