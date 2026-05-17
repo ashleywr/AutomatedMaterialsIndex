@@ -104,8 +104,14 @@ public class UniversalResultsPanel implements SearchState.Listener {
         });
 
         toolbar.setCollapseExpandCallbacks(
-            () -> treeView.collapseAll(),
-            () -> treeView.expandAll()
+            () -> {
+                treeView.collapseAll();
+                gridView.collapseAll();
+            },
+            () -> {
+                treeView.expandAll();
+                gridView.expandAll();
+            }
         );
     }
 
@@ -359,6 +365,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     private void showDashboard() {
         List<TreeNode> dashboard = new ArrayList<>();
+        java.util.Set<String> addedIds = new java.util.HashSet<>();
         
         // 1. Recent History (Most relevant first)
         var history = com.sanhiruzu.ami.client.favorites.AmiHistoryHandler.getInstance().getLookupHistory();
@@ -376,15 +383,23 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
 
         // 2. Browse by Category (Ontology) - Flattened to top-level
-        for (com.sanhiruzu.ami.index.AmiOntology.Category cat : com.sanhiruzu.ami.index.AmiOntology.CATEGORIES) {
-            TreeNode catNode = new TreeNode(cat.id, cat.displayName());
-            catNode.setExpanded(false); // Lazy load
+        List<com.sanhiruzu.ami.index.AmiOntology.Category> categories = new ArrayList<>(com.sanhiruzu.ami.index.AmiOntology.CATEGORIES);
+        if (!state.isAscending()) {
+            java.util.Collections.reverse(categories);
+        }
+
+        for (com.sanhiruzu.ami.index.AmiOntology.Category cat : categories) {
+            if (addedIds.contains(cat.id)) continue;
             
             // Set item count override from index for immediate visibility
             int count = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodesByCategory(cat.id).size();
-            catNode.setItemCountOverride(count);
-            
-            dashboard.add(catNode);
+            if (count > 0) {
+                TreeNode catNode = new TreeNode(cat.id, cat.displayName());
+                catNode.setExpanded(false); // Lazy load
+                catNode.setItemCountOverride(count);
+                dashboard.add(catNode);
+                addedIds.add(cat.id);
+            }
         }
 
         treeView.setRootNodes(dashboard);
@@ -498,9 +513,13 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     private void populateLazyNode(TreeNode node) {
         if (node == null || !node.getChildren().isEmpty()) return;
-        
+
+        // Check if this node is a category by trying to find it in CATEGORIES
+        boolean isOntologyCategory = com.sanhiruzu.ami.index.AmiOntology.CATEGORIES.stream()
+                .anyMatch(c -> c.id.equals(node.getKey()));
+
         List<SearchNode> nodes = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodesByCategory(node.getKey());
-        
+
         // Fallback for NodeType keys
         if (nodes.isEmpty()) {
             try {
@@ -508,19 +527,29 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 nodes = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodes(type);
             } catch (Exception ignored) {}
         }
-        
+
         if (nodes.isEmpty()) return;
 
         // Use ResultsProcessor for smart grouping (e.g., potions into folders)
-        ResultsProcessor processor = state.createProcessor();
-        
+        // BUT: avoid re-grouping by category if we're already viewing a category (prevents "Mobs > Mobs")
+        SearchState tempState = new SearchState();
+        tempState.setViewMode(state.getViewMode());
+        tempState.setSortField(state.getSortField());
+        tempState.setAscending(state.isAscending());
+        // If viewing a category, don't re-group by category
+        tempState.setGroupBy(isOntologyCategory && state.getGroupBy() == ResultsProcessor.GroupBy.CATEGORY
+                ? ResultsProcessor.GroupBy.MOD
+                : state.getGroupBy());
+
+        ResultsProcessor processor = tempState.createProcessor();
+
         if (nodes.size() > 500) {
             // For huge categories, group them by mod to keep the grid usable
             Map<String, List<SearchNode>> byMod = new java.util.TreeMap<>();
             for (SearchNode n : nodes) {
                 byMod.computeIfAbsent(n.id().getNamespace(), k -> new ArrayList<>()).add(n);
             }
-            
+
             for (var entry : byMod.entrySet()) {
                 String modId = entry.getKey();
                 String modName = modId; // Fallback
@@ -528,14 +557,14 @@ public class UniversalResultsPanel implements SearchState.Listener {
                     modName = net.neoforged.fml.ModList.get().getModContainerById(modId)
                         .map(m -> m.getModInfo().getDisplayName()).orElse(modId);
                 } catch (Exception ignored) {}
-                
+
                 TreeNode modNode = new TreeNode(modId, Component.literal(modName));
-                
+
                 // Process each mod's items through ResultsProcessor for high cardinality (folders)
                 List<TreeNode> leafNodes = entry.getValue().stream()
                         .map(sn -> new TreeNode(Component.literal(sn.displayName()), sn))
                         .collect(java.util.stream.Collectors.toList());
-                
+
                 // We need a helper or a way to trigger HC grouping on leaf nodes
                 modNode.getChildren().addAll(applySmartGrouping(entry.getValue(), processor));
                 node.addChild(modNode);
