@@ -1,24 +1,16 @@
 package com.sanhiruzu.ami.index;
 
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagKey;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ArmorItem;
-import net.minecraft.world.item.TieredItem;
-import net.minecraft.world.item.SwordItem;
-import net.minecraft.world.item.BoatItem;
-import net.minecraft.world.item.MinecartItem;
+import net.minecraft.world.item.*;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.block.state.BlockState;
+
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Shared item grouping classifiers used by indexers and result processors.

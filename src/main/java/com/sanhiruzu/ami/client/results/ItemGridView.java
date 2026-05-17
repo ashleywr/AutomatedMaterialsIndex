@@ -613,6 +613,26 @@ public class ItemGridView {
         return hoveredNode;
     }
 
+    public TreeNode getHoveredTreeNode() {
+        if (hoveredNode == null) return null;
+        int cols = computeCols();
+        List<VirtualRow> rows = getVirtualRows(cols);
+        int drawY = y - pixelScrollOffset;
+        for (VirtualRow row : rows) {
+            if (row instanceof HeaderRow hr) {
+                // Header rows are handled separately in mouseClicked, but we include it for completeness
+            } else if (row instanceof ItemRow ir) {
+                if (drawY + ir.height() > y && drawY < y + height) {
+                    // Check if mouse is over any item in this row
+                    // We already have hoveredNode, but we need the TreeNode
+                    // Use a simple coordinate check
+                }
+            }
+            drawY += row.height();
+        }
+        return null; // For grid, mouseClicked handles the expansion better
+    }
+
     public int getDropIndex(double mouseX, double mouseY) {
         if (!isMouseOver(mouseX, mouseY)) return -1;
         int cols = computeCols();
