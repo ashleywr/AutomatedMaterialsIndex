@@ -201,7 +201,7 @@ public class ItemGridView {
                             .withStyle(net.minecraft.ChatFormatting.GRAY));
                     pendingTextTooltip = lines;
                     pendingTooltipImage = Optional.empty();
-                } else if (Screen.hasAltDown() && GLFW.glfwGetKey(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_A) == GLFW.GLFW_PRESS) {
+                } else if (com.sanhiruzu.ami.client.AMIKeyMappings.DEBUG_TOOLTIPS.isDown()) {
                     pendingTextTooltip = com.sanhiruzu.ami.client.results.DebugTooltip.build(entry);
                     pendingTooltipImage = Optional.empty();
                 } else if (entry.type() == com.sanhiruzu.ami.index.NodeType.ITEM) {
@@ -211,7 +211,9 @@ public class ItemGridView {
                     List<Component> rendererLines = renderer.getTooltip(entry);
                     if (rendererLines != null) {
                         rendererLines = new ArrayList<>(rendererLines);
-                        rendererLines.add(Component.translatable("ami.gui.debug_hint").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
+                        String keybindName = com.sanhiruzu.ami.client.AMIKeyMappings.DEBUG_TOOLTIPS.getTranslatedKeyMessage().getString();
+                        Component hint = Component.translatable("ami.gui.debug_hint", keybindName).withStyle(net.minecraft.ChatFormatting.DARK_GRAY);
+                        rendererLines.add(hint);
                     }
                     pendingTextTooltip = rendererLines;
                     pendingTooltipImage = renderer.getTooltipImage(entry);
@@ -244,7 +246,7 @@ public class ItemGridView {
                     g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, bgCol);
                     
                     if (topEdge) g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + 1, color);
-                    if (bottomEdge) g.fill(cellX, cellY, cellX + CELL_SIZE - 1, cellX + CELL_SIZE, cellY + CELL_SIZE, color);
+                    if (bottomEdge) g.fill(cellX, cellY + CELL_SIZE - 1, cellX + CELL_SIZE, cellY + CELL_SIZE, color);
                     if (leftEdge) g.fill(cellX, cellY, cellX + 1, cellY + CELL_SIZE, color);
                     if (rightEdge) g.fill(cellX + CELL_SIZE - 1, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, color);
 

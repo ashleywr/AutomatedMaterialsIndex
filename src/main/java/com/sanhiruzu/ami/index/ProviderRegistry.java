@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.index.providers.*;
-import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -33,7 +33,7 @@ public final class ProviderRegistry {
     /**
      * Index all data types except STRUCTURE and DIMENSION (which are deferred).
      */
-    public static void indexAll(ClientLevel level) {
+    public static void indexAll(Level level) {
         AMI.LOGGER.info("Starting GlobalIndex population...");
         long start = System.currentTimeMillis();
         GlobalIndex index = GlobalIndex.getInstance();
@@ -62,7 +62,7 @@ public final class ProviderRegistry {
      * empty — causing synthetic node IDs (potions, enchanted books, etc.) to resolve to
      * ItemStack.EMPTY and render as fallback icons.
      */
-    public static void rehydrateSubtypeStacks(@Nullable ClientLevel level) {
+    public static void rehydrateSubtypeStacks(@Nullable Level level) {
         ItemIconRenderer.clearPersistent();
         RegistryAccess registryAccess = level != null ? level.registryAccess() : null;
         for (Item item : BuiltInRegistries.ITEM) {
@@ -79,7 +79,7 @@ public final class ProviderRegistry {
      * Deferred retry for STRUCTURE and DIMENSION data.
      * Matches WorldAtlasIndexer.indexStructuresFromConnection() contract.
      */
-    public static void indexStructuresDeferred(ClientLevel level) {
+    public static void indexStructuresDeferred(Level level) {
         try {
             new StructureProvider().populate(GlobalIndex.getInstance(), level);
         } catch (Exception e) {

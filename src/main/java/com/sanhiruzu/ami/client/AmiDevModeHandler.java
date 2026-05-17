@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client;
 
 import com.sanhiruzu.ami.AMI;
-import com.sanhiruzu.ami.AMIConfig;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -17,7 +17,7 @@ public class AmiDevModeHandler {
 
     @SubscribeEvent
     public static void onItemTooltip(ItemTooltipEvent event) {
-        if (!AMIConfig.DEV_MODE.get()) return;
+        if (!AmiConfig.devMode) return;
 
         ItemStack stack = event.getItemStack();
         if (stack.isEmpty()) return;

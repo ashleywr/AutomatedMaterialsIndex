@@ -32,7 +32,7 @@ public final class DebugTooltip {
 
         lines.add(Component.literal(""));
         lines.add(Component.literal("§6Ontology"));
-        lines.add(Component.literal("  §7classified  §f" + classified.displayName.getString() + " §8(" + classified.id + ")"));
+        lines.add(Component.literal("  §7classified  §f" + classified.displayName().getString() + " §8(" + classified.id + ")"));
         if (!precat.isEmpty()) {
             String both = precat + (presub.isEmpty() ? "" : " / " + presub);
             lines.add(Component.literal("  §7precomputed §a" + both));

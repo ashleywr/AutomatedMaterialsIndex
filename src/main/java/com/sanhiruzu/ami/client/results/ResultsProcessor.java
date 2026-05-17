@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.client.results;
 
-import com.sanhiruzu.ami.AMIConfig;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.AmiIndexerService;
@@ -235,13 +235,14 @@ public class ResultsProcessor {
         }
 
         List<TreeNode> result = new ArrayList<>();
-        boolean blocksMaterial = AMIConfig.BLOCK_SUBGROUP.get() == AMIConfig.BlockSubgroup.MATERIAL;
+        // Fallback for missing setting in AmiConfig or using UI themes
+        boolean blocksMaterial = false; // TODO: Map ui settings to AmiConfig
 
         for (AmiOntology.Category cat : AmiOntology.CATEGORIES) {
             List<SearchNode> catEntries = catMap.get(cat.id);
             if (catEntries == null || catEntries.isEmpty()) continue;
 
-            TreeNode catNode = new TreeNode(cat.id, cat.displayName);
+            TreeNode catNode = new TreeNode(cat.id, cat.displayName());
             catNode.setExpanded(true);
 
             Map<String, List<SearchNode>> subMap = new LinkedHashMap<>();
@@ -360,7 +361,7 @@ public class ResultsProcessor {
 
     private boolean matchesAccessLevel(SearchNode node) {
         String level = node.meta(SearchNodeKeys.ACCESS_LEVEL, "");
-        if ("dev".equals(level)) return AMIConfig.DEV_MODE.get();
+        if ("dev".equals(level)) return AmiConfig.devMode;
         
         // Hide creative-only items in survival mode
         if ("creative".equals(level)) {
@@ -416,8 +417,8 @@ public class ResultsProcessor {
 
             ResourceLocation loc = ResourceLocation.tryParse(baseId);
             if (loc != null && BuiltInRegistries.ITEM.containsKey(loc)) {
-                net.minecraft.world.item.Item baseItem = BuiltInRegistries.ITEM.get(loc);
-                label = new ItemStack(baseItem).getHoverName().getString();
+                // Derive label from registry path to avoid "Uncraftable Potion" from plain ItemStack
+                label = formatGroupLabel(formatGroupKey(loc.getPath(), false));
                 if (!label.endsWith("s")) label += "s";
             } else {
                 label = buffer.get(0).getLabel().getString();

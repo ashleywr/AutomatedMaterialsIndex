@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client.overlay;
 
 import com.sanhiruzu.ami.AMI;
-import com.sanhiruzu.ami.AMIConfig;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
@@ -27,11 +27,7 @@ public class OverlayWidgetManager {
     private AmiButtonWidget    amiButton;
     private boolean widgetsReady = false;
 
-    private SearchService searchService = null;
-    private volatile boolean indexingInProgress = false;
-    private boolean indexingDispatched = false;
-    private int retryCount = 0;
-    private static final int MAX_RETRIES = 5;
+    private boolean indexingStarted = false;
     private boolean panelVisible = false;
     private String lastSyncedQuery = "";
 
@@ -82,8 +78,8 @@ public class OverlayWidgetManager {
         int containerRightEdge = containerScreen.getGuiLeft() + containerScreen.getXSize();
         
         // Favorites Panel (Left)
-        if (AMIConfig.SHOW_FAVORITES.get()) {
-            int favW = Math.min(AMIConfig.FAVORITES_PANEL_WIDTH.get(), containerLeftEdge - (PANEL_MARGIN * 2));
+        if (AmiConfig.leftPanelContent == AmiConfig.PanelContent.FAVORITES) {
+            int favW = Math.min(AmiConfig.leftPanelWidth, containerLeftEdge - (PANEL_MARGIN * 2));
             if (favW >= 40) {
                 // Constrain height to not overlap with the AMI button at the bottom
                 int maxH = screenH - BOTTOM_BAR_H - 30; // Leave space for button
@@ -114,15 +110,14 @@ public class OverlayWidgetManager {
             resultsPanel.updateBounds(new WidgetBounds(0, 0, 0, 0));
         }
 
-        // Search bar: centered, but clamped so its right edge never overlaps the panel's left edge.
+        // Search bar
         int maxBarRight = (safeWidth >= MIN_PANEL_WIDTH) ? (panelStartX - PANEL_MARGIN) : (screenW - 4);
-        int rawBarW = Math.min(AMIConfig.SEARCH_BAR_WIDTH.get(), screenW - 8);
-        int barX   = Math.max(4, (screenW - rawBarW) / 2);
-        int barW   = rawBarW;
+        int barW   = Math.min(AmiConfig.searchBarWidth, screenW - 8);
+        int barX   = Math.max(4, (screenW - barW) / 2);
         if (barX + barW > maxBarRight) {
             barX = Math.max(4, maxBarRight - barW);
             barW = Math.min(barW, maxBarRight - barX);
-            barW = Math.max(60, barW); // always keep a usable minimum
+            barW = Math.max(60, barW); 
         }
         int searchBarY = screenH - BOTTOM_BAR_H + 2;
         searchBar.updateBounds(new WidgetBounds(barX, searchBarY, barW, SEARCH_H));
@@ -130,57 +125,31 @@ public class OverlayWidgetManager {
 
     /** Drives indexing, search sync, and stale-refresh — only when the panel is visible. */
     public void tick(ScreenEvent.Render.Post event) {
-        if (!AMIConfig.ENABLE_AUTO_INDEXING.get()) return;
+        if (!AmiConfig.enableAutoIndexing) return;
         if (!panelVisible) return;
 
-        if (!indexingDispatched && !indexingInProgress) {
-            var level = Minecraft.getInstance().level;
-            if (level != null) {
-                indexingInProgress = true;
-                GlobalIndexCache.loadOrIndexAsync(level, () -> {
-                    java.util.concurrent.CompletableFuture.runAsync(() -> {
-                        ProviderRegistry.indexStructuresDeferred(level);
-                    }, net.minecraft.Util.backgroundExecutor()).thenRunAsync(() -> {
-                        searchService = SearchService.buildFrom(GlobalIndex.getInstance());
-                        var panel = resultsPanel.getInnerPanel();
-                        if (panel != null) panel.setSearchService(searchService);
-                        indexingInProgress = false;
-                        indexingDispatched = true;
-                        if (AMIConfig.DEV_MODE.get()) ItemIconRenderer.auditMissingIcons();
-                        refreshEntries();
-                    }, Minecraft.getInstance()::execute);
-                });
-            }
-        } else if (indexingDispatched && !indexingInProgress && retryCount < MAX_RETRIES) {
-            var index = GlobalIndex.getInstance();
-            int structures = index.getNodes(NodeType.STRUCTURE).size();
-            int dimensions = index.getNodes(NodeType.DIMENSION).size();
-            if (structures == 0 || dimensions == 0) {
-                var level = Minecraft.getInstance().level;
-                if (level != null) {
-                    indexingInProgress = true;
-                    java.util.concurrent.CompletableFuture.runAsync(() -> {
-                        ProviderRegistry.indexStructuresDeferred(level);
-                    }, net.minecraft.Util.backgroundExecutor()).thenRunAsync(() -> {
-                        searchService = SearchService.buildFrom(GlobalIndex.getInstance());
-                        var panel = resultsPanel.getInnerPanel();
-                        if (panel != null) panel.setSearchService(searchService);
-                        indexingInProgress = false;
-                        retryCount++;
-                    }, Minecraft.getInstance()::execute);
-                }
+        var indexer = AmiIndexerService.getInstance();
+        if (!indexingStarted) {
+            indexingStarted = true;
+            indexer.rebuild();
+        }
+
+        if (indexer.isReady()) {
+            var panel = resultsPanel.getInnerPanel();
+            if (panel != null && panel.getEntryCount() == 0 && indexer.indexedItemCount() > 0) {
+                panel.setSearchService(indexer.getOrBuildSearchService());
+                refreshEntries();
             }
         }
 
         syncFromRecipeViewer();
-        checkAndRefreshIfStale();
     }
 
     /** Renders all AMI widgets. Button always; search bar and panel only when the panel is visible. */
     public void renderAll(ScreenEvent.Render.Post event) {
         if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
 
-        if (AMIConfig.DEV_MODE.get()) {
+        if (AmiConfig.devMode) {
             for (var plugin : com.sanhiruzu.ami.api.AmiPluginRegistry.getPlugins()) {
                 for (var zone : plugin.getExclusionZones(event.getScreen())) {
                     event.getGuiGraphics().fill(zone.getX(), zone.getY(), zone.getX() + zone.getWidth(), zone.getY() + zone.getHeight(), 0x55FF0000);
@@ -222,17 +191,6 @@ public class OverlayWidgetManager {
         }
     }
 
-    private void checkAndRefreshIfStale() {
-        var panel = resultsPanel.getInnerPanel();
-        if (panel == null) return;
-
-        int totalCount = 0;
-        for (NodeType t : NodeType.atlasValues()) totalCount += GlobalIndex.getInstance().getNodes(t).size();
-        if (panel.getEntryCount() == 0 && totalCount > 0 && panel.getCurrentQuery().isEmpty()) {
-            refreshEntries();
-        }
-    }
-
     private void refreshEntries() {
         var panel = resultsPanel.getInnerPanel();
         if (panel == null) return;
@@ -250,7 +208,7 @@ public class OverlayWidgetManager {
 
     private void triggerSearch(String query) {
         var panel = resultsPanel.getInnerPanel();
-        if (searchService == null || panel == null) return;
+        if (panel == null) return;
 
         panel.getState().setQuery(query);
 
@@ -267,7 +225,7 @@ public class OverlayWidgetManager {
             lastSyncedQuery = rvQuery;
             searchBar.setQuery(rvQuery);
             var panel = resultsPanel.getInnerPanel();
-            if (panel == null || searchService == null) return;
+            if (panel == null) return;
             panel.getState().setQuery(rvQuery);
         }
     }
@@ -277,8 +235,7 @@ public class OverlayWidgetManager {
         panelVisible = !panelVisible;
 
         if (wasVisible && !panelVisible) {
-            indexingDispatched = false;
-            retryCount = 0;
+            indexingStarted = false;
             searchBar.clear();
             lastSyncedQuery = "";
             pendingEmiReinit = true;

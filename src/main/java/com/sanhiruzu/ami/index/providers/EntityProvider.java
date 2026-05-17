@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.index.providers;
 
 import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.index.sniffers.EntityDataSniffer;
-import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.MobCategory;
 import org.jetbrains.annotations.Nullable;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 public class EntityProvider implements IAmiDataProvider {
 
     @Override
-    public void populate(GlobalIndex index, @Nullable ClientLevel level) {
+    public void populate(GlobalIndex index, @Nullable Level level) {
         List<SearchNode> nodes = new ArrayList<>();
         EntityDataSniffer entityDataSniffer = new EntityDataSniffer();
 

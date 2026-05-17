@@ -37,7 +37,7 @@ public final class AmiBenchmarkGameTests {
     @GameTest(templateNamespace = AMI.MODID, template = "ami_benchmark_empty", setupTicks = 1L, timeoutTicks = 200)
     public static void benchmarkSearchRegistry(GameTestHelper helper) {
         try {
-            runBenchmark();
+            runBenchmark(helper);
             helper.succeed();
         } catch (Throwable t) {
             AMI.LOGGER.error("AMI benchmark GameTest failed", t);
@@ -51,8 +51,12 @@ public final class AmiBenchmarkGameTests {
         }
     }
 
-    private static void runBenchmark() throws IOException {
+    private static void runBenchmark(GameTestHelper helper) throws IOException {
         AmiIndexerService indexer = AmiIndexerService.getInstance();
+        indexer.rebuild(helper.getLevel());
+        while (!indexer.isReady()) {
+            try { Thread.sleep(10); } catch (InterruptedException ignored) {}
+        }
         SearchService searchService = indexer.getOrBuildSearchService();
         AmiBenchmarkLogger.BenchmarkRun run = AmiBenchmarkLogger.createRun(SUITE_NAME, indexer.indexedItemCount());
 
