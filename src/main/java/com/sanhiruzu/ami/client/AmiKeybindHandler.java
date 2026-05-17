@@ -17,6 +17,9 @@ public class AmiKeybindHandler {
      * Called from InventoryOverlayHandler.onKeyPressed.
      */
     public static boolean onKeyPressed(int keyCode, int scanCode, int modifiers) {
+        // Only handle on actual key press (action == 1), not repeat (2) or release (0)
+        if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_UNKNOWN) return false;
+
         if (AMIKeyMappings.FAVORITE.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
             return handleFavoriteKey();
         }
