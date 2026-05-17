@@ -158,11 +158,11 @@ public class ItemGridView {
         boolean hovered = mouseX >= x && mouseX < x + width - SCROLLBAR_W
                 && mouseY >= drawY && mouseY < drawY + HEADER_H;
         if (hovered) {
-            g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + HEADER_H, 0xFF282820);
+            g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + HEADER_H, com.sanhiruzu.ami.client.AMITheme.ENTRY_HOVER);
         }
         String arrow = hr.node().isExpanded() ? "▼ " : "▶ ";
         String label = arrow + hr.node().getLabel().getString() + " (" + hr.itemCount() + ")";
-        g.drawString(Minecraft.getInstance().font, label, x + 4, drawY + 2, 0xFFAAAA88, false);
+        g.drawString(Minecraft.getInstance().font, label, x + 4, drawY + 2, com.sanhiruzu.ami.client.AMITheme.TEXT_HEADER, false);
     }
 
     private void renderItemRow(GuiGraphics g, ItemRow ir, int drawY, int mouseX, int mouseY) {
@@ -463,10 +463,10 @@ public class ItemGridView {
         int maxScroll = totalH - height;
         int thumbY = y + (pixelScrollOffset * (height - thumbH)) / maxScroll;
 
-        // Higher contrast track background
-        g.fill(x + width - SCROLLBAR_W, y, x + width, y + height, 0x44000000);
+        // Use themed colors
+        g.fill(x + width - SCROLLBAR_W, y, x + width, y + height, com.sanhiruzu.ami.client.AMITheme.SCROLL_TRACK);
         g.fill(barX, thumbY, barX + barW, thumbY + thumbH,
-                active ? 0xFFAAAA88 : 0xFF666666);
+                active ? com.sanhiruzu.ami.client.AMITheme.SCROLL_THUMB_ACTIVE : com.sanhiruzu.ami.client.AMITheme.SCROLL_THUMB);
     }
 
     private boolean isScrollbarHovered(int mouseX, int mouseY) {
