@@ -375,17 +375,17 @@ public class UniversalResultsPanel implements SearchState.Listener {
             dashboard.add(historyGroup);
         }
 
-        // 2. Browse by Category (Atlas) - Items first
-        TreeNode browse = new TreeNode("atlas", Component.translatable("ami.gui.registry_tree"));
-        browse.setExpanded(true);
-        
-        NodeType[] order = {NodeType.ITEM, NodeType.ENTITY, NodeType.STRUCTURE, NodeType.BIOME, NodeType.PLAYER, NodeType.DIMENSION};
-        for (NodeType type : order) {
-            TreeNode typeNode = new TreeNode(type.name(), type.displayName());
-            typeNode.setExpanded(false); // Lazy load children when expanded
-            browse.addChild(typeNode);
+        // 2. Browse by Category (Ontology) - Flattened to top-level
+        for (com.sanhiruzu.ami.index.AmiOntology.Category cat : com.sanhiruzu.ami.index.AmiOntology.CATEGORIES) {
+            TreeNode catNode = new TreeNode(cat.id, cat.displayName());
+            catNode.setExpanded(false); // Lazy load
+            
+            // Set item count override from index for immediate visibility
+            int count = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodesByCategory(cat.id).size();
+            catNode.setItemCountOverride(count);
+            
+            dashboard.add(catNode);
         }
-        dashboard.add(browse);
 
         treeView.setRootNodes(dashboard);
         gridView.setRootNodes(dashboard);
@@ -483,14 +483,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
             if (handled) {
                 // Check if we just expanded an atlas category
                 TreeNode expanded = getHoveredTreeNode();
-                if (expanded != null && expanded.getChildren().isEmpty()) {
-                    try {
-                        NodeType type = NodeType.valueOf(expanded.getKey());
-                        List<SearchNode> nodes = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodes(type);
-                        for (SearchNode n : nodes) {
-                            expanded.addChild(new TreeNode(Component.literal(n.displayName()), n));
-                        }
-                    } catch (Exception ignored) {}
+                if (expanded != null && expanded.isExpanded()) {
+                    populateLazyNode(expanded);
                 }
                 return true;
             }
@@ -500,6 +494,67 @@ public class UniversalResultsPanel implements SearchState.Listener {
             return gridView.mouseClicked(mouseX, mouseY, button);
         }
         return treeView.mouseClicked(mouseX, mouseY, button);
+    }
+
+    private void populateLazyNode(TreeNode node) {
+        if (node == null || !node.getChildren().isEmpty()) return;
+        
+        List<SearchNode> nodes = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodesByCategory(node.getKey());
+        
+        // Fallback for NodeType keys
+        if (nodes.isEmpty()) {
+            try {
+                NodeType type = NodeType.valueOf(node.getKey());
+                nodes = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodes(type);
+            } catch (Exception ignored) {}
+        }
+        
+        if (nodes.isEmpty()) return;
+
+        // Use ResultsProcessor for smart grouping (e.g., potions into folders)
+        ResultsProcessor processor = state.createProcessor();
+        
+        if (nodes.size() > 500) {
+            // For huge categories, group them by mod to keep the grid usable
+            Map<String, List<SearchNode>> byMod = new java.util.TreeMap<>();
+            for (SearchNode n : nodes) {
+                byMod.computeIfAbsent(n.id().getNamespace(), k -> new ArrayList<>()).add(n);
+            }
+            
+            for (var entry : byMod.entrySet()) {
+                String modId = entry.getKey();
+                String modName = modId; // Fallback
+                try {
+                    modName = net.neoforged.fml.ModList.get().getModContainerById(modId)
+                        .map(m -> m.getModInfo().getDisplayName()).orElse(modId);
+                } catch (Exception ignored) {}
+                
+                TreeNode modNode = new TreeNode(modId, Component.literal(modName));
+                
+                // Process each mod's items through ResultsProcessor for high cardinality (folders)
+                List<TreeNode> leafNodes = entry.getValue().stream()
+                        .map(sn -> new TreeNode(Component.literal(sn.displayName()), sn))
+                        .collect(java.util.stream.Collectors.toList());
+                
+                // We need a helper or a way to trigger HC grouping on leaf nodes
+                modNode.getChildren().addAll(applySmartGrouping(entry.getValue(), processor));
+                node.addChild(modNode);
+            }
+        } else {
+            node.getChildren().addAll(applySmartGrouping(nodes, processor));
+        }
+    }
+
+    private List<TreeNode> applySmartGrouping(List<SearchNode> nodes, ResultsProcessor processor) {
+        // ResultsProcessor.process() handles both filtering/sorting and high-cardinality grouping
+        // We bypass filtering here because we are in an explicit category browsing mode
+        List<TreeNode> leaves = nodes.stream()
+                .map(sn -> new TreeNode(Component.literal(sn.displayName()), sn))
+                .collect(java.util.stream.Collectors.toList());
+        
+        // Invoke the private applyHighCardinalityGrouping logic by reusing the processor's process method
+        // with the specific subset of nodes.
+        return processor.process(nodes);
     }
 
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollDelta) {

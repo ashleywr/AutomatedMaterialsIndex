@@ -50,6 +50,7 @@ public class ItemGridView {
     private List<Component> pendingTextTooltip = null;
     private Optional<TooltipComponent> pendingTooltipImage = Optional.empty();
     private SearchNode hoveredNode = null;
+    private TreeNode hoveredTreeNode = null;
 
     // Virtual row cache — rebuilt whenever rootNodes changes or a group is toggled
     private List<VirtualRow> cachedRows = null;
@@ -112,6 +113,7 @@ public class ItemGridView {
         pendingTextTooltip = null;
         pendingTooltipImage = Optional.empty();
         hoveredNode = null;
+        hoveredTreeNode = null;
 
         if (rootNodes.isEmpty()) {
             g.drawString(Minecraft.getInstance().font,
@@ -159,6 +161,7 @@ public class ItemGridView {
                 && mouseY >= drawY && mouseY < drawY + HEADER_H;
         if (hovered) {
             g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + HEADER_H, com.sanhiruzu.ami.client.AMITheme.ENTRY_HOVER);
+            hoveredTreeNode = hr.node();
         }
         String arrow = hr.node().isExpanded() ? "▼ " : "▶ ";
         String label = arrow + hr.node().getLabel().getString() + " (" + hr.itemCount() + ")";
@@ -202,6 +205,7 @@ public class ItemGridView {
             if (hovered) {
                 g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, com.sanhiruzu.ami.client.AMITheme.SLOT_HOVER);
                 hoveredNode = entry;
+                hoveredTreeNode = node;
                 
                 if (node.isHighCardinality()) {
                     List<Component> lines = new ArrayList<>();
@@ -369,65 +373,59 @@ public class ItemGridView {
         List<VirtualRow> rows = new ArrayList<>();
         expandedGroupCache.clear();
 
-        // rootNodes now contains special HighCardinality groups
         List<TreeNode> linearItems = new ArrayList<>();
-        
         for (TreeNode root : rootNodes) {
-            if (root.isLeaf()) {
-                linearItems.add(root);
-            } else if (root.isHighCardinality()) {
-                linearItems.add(root); // Add group header itself as a clickable grid item
-                if (root.isExpanded()) {
-                    linearItems.addAll(root.getChildren());
-                    expandedGroupCache.put(root, root);
-                    for (TreeNode child : root.getChildren()) {
-                        expandedGroupCache.put(child, root);
-                    }
-                }
-            } else {
-                // Section header (mod, category, etc.)
-                packIntoRows(linearItems, cols, rows);
-                linearItems.clear();
-                addGroupRows(root, cols, rows);
-            }
+            processNode(root, cols, rows, linearItems);
         }
         packIntoRows(linearItems, cols, rows);
 
         return rows;
     }
 
-    private void addGroupRows(TreeNode group, int cols, List<VirtualRow> out) {
-        // This is for standard groups (section headers)
-        List<TreeNode> items = new ArrayList<>();
-        collectItemLeaves(group, items);
-        if (items.isEmpty()) return;
+    private void processNode(TreeNode node, int cols, List<VirtualRow> out, List<TreeNode> linearItems) {
+        if (node.isLeaf()) {
+            linearItems.add(node);
+        } else if (node.isHighCardinality()) {
+            packIntoRows(linearItems, cols, out);
+            linearItems.clear();
+            
+            linearItems.add(node); // Group header icon
+            if (node.isExpanded()) {
+                linearItems.addAll(node.getChildren());
+                expandedGroupCache.put(node, node);
+                for (TreeNode child : node.getChildren()) expandedGroupCache.put(child, node);
+            }
+        } else {
+            // Standard group header (mod, category, Registry Tree, etc.)
+            packIntoRows(linearItems, cols, out);
+            linearItems.clear();
+            
+            // Calculate total item count in this group recursively for the header label
+            int totalItems = countItemsRecursive(node);
+            out.add(new HeaderRow(node, totalItems));
+            
+            if (node.isExpanded()) {
+                for (TreeNode child : node.getChildren()) {
+                    processNode(child, cols, out, linearItems);
+                }
+            }
+        }
+    }
 
-        out.add(new HeaderRow(group, items.size()));
-        if (!group.isExpanded()) return;
-
-        packIntoRows(items, cols, out);
+    private int countItemsRecursive(TreeNode node) {
+        if (node.getItemCountOverride() != -1) return node.getItemCountOverride();
+        if (node.isLeaf()) return 1;
+        if (node.isHighCardinality()) return node.getChildren().size();
+        int sum = 0;
+        for (TreeNode child : node.getChildren()) {
+            sum += countItemsRecursive(child);
+        }
+        return sum;
     }
 
     private void packIntoRows(List<TreeNode> items, int cols, List<VirtualRow> out) {
         for (int i = 0; i < items.size(); i += cols) {
             out.add(new ItemRow(new ArrayList<>(items.subList(i, Math.min(i + cols, items.size())))));
-        }
-    }
-
-    private void collectItemLeaves(TreeNode node, List<TreeNode> out) {
-        if (node.isLeaf()) {
-            out.add(node);
-        } else if (node.isHighCardinality()) {
-            out.add(node);
-            if (node.isExpanded()) {
-                out.addAll(node.getChildren());
-                expandedGroupCache.put(node, node);
-                for (TreeNode child : node.getChildren()) expandedGroupCache.put(child, node);
-            }
-        } else {
-            for (TreeNode child : node.getChildren()) {
-                collectItemLeaves(child, out);
-            }
         }
     }
 
@@ -440,10 +438,6 @@ public class ItemGridView {
     private int computeCols() {
         return Math.max(1, (width - SCROLLBAR_W - 2) / CELL_SIZE);
     }
-
-    // =========================================================
-    // ItemStack resolution
-    // =========================================================
 
     private static ItemStack resolveStack(SearchNode node) {
         if (node == null) return ItemStack.EMPTY;
@@ -614,23 +608,7 @@ public class ItemGridView {
     }
 
     public TreeNode getHoveredTreeNode() {
-        if (hoveredNode == null) return null;
-        int cols = computeCols();
-        List<VirtualRow> rows = getVirtualRows(cols);
-        int drawY = y - pixelScrollOffset;
-        for (VirtualRow row : rows) {
-            if (row instanceof HeaderRow hr) {
-                // Header rows are handled separately in mouseClicked, but we include it for completeness
-            } else if (row instanceof ItemRow ir) {
-                if (drawY + ir.height() > y && drawY < y + height) {
-                    // Check if mouse is over any item in this row
-                    // We already have hoveredNode, but we need the TreeNode
-                    // Use a simple coordinate check
-                }
-            }
-            drawY += row.height();
-        }
-        return null; // For grid, mouseClicked handles the expansion better
+        return hoveredTreeNode;
     }
 
     public int getDropIndex(double mouseX, double mouseY) {

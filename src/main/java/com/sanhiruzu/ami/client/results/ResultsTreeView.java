@@ -445,7 +445,8 @@ public class ResultsTreeView {
 
         // Count Badge — just the number, no repeated label
         String labelStr = node.getLabel().getString();
-        String badge = "[" + node.getChildren().size() + "]";
+        int count = node.getItemCountOverride() != -1 ? node.getItemCountOverride() : node.getChildren().size();
+        String badge = "[" + count + "]";
         int badgeW = (int)(font.width(badge) * currentLabelScale);
         int badgeX = x + width - SCROLLBAR_W - badgeW - 5;
 
