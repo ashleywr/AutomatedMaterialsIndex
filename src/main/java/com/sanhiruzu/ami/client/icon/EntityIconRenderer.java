@@ -50,9 +50,6 @@ public class EntityIconRenderer implements IIconRenderer {
             return;
         }
 
-        // Clip to cell so large mobs don't bleed into neighbours
-        g.enableScissor(x, y, x + size, y + size);
-
         int cx    = x + size / 2;
         int cy    = y + size - 1;
         float bbH = entity.getBbHeight();
@@ -62,8 +59,6 @@ public class EntityIconRenderer implements IIconRenderer {
         Quaternionf cameraOrient = new Quaternionf().rotateZ((float) Math.PI);
         InventoryScreen.renderEntityInInventory(g, cx, cy, scale,
                 new Vector3f(0f, 0f, 0f), cameraOrient, null, entity);
-
-        g.disableScissor();
     }
 
     private static LivingEntity resolveEntity(ResourceLocation id) {

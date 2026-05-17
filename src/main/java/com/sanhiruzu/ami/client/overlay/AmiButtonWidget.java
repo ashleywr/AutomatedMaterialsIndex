@@ -19,12 +19,14 @@ public class AmiButtonWidget extends AbstractWidget {
     private static final int COLOR_HOVER   = 0xFFFFFFA0; // vanilla button hover tint
 
     private final Runnable onClickCallback;
+    private final Runnable onAltClickCallback;
     private final BooleanSupplier isPanelVisible;
     private boolean isDown = false;
 
-    public AmiButtonWidget(Runnable onClick, BooleanSupplier isPanelVisible) {
+    public AmiButtonWidget(Runnable onClick, Runnable onAltClick, BooleanSupplier isPanelVisible) {
         super(2, 0, 22, 20, Component.empty());
         this.onClickCallback = onClick;
+        this.onAltClickCallback = onAltClick;
         this.isPanelVisible  = isPanelVisible;
     }
 
@@ -60,7 +62,13 @@ public class AmiButtonWidget extends AbstractWidget {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0 && isMouseOver(mouseX, mouseY)) {
             isDown = true;
-            if (onClickCallback != null) onClickCallback.run();
+            boolean altDown = net.minecraft.client.gui.screens.Screen.hasAltDown();
+            com.sanhiruzu.ami.AMI.LOGGER.info("AMI Button Clicked! Alt down: {}", altDown);
+            if (altDown) {
+                if (onAltClickCallback != null) onAltClickCallback.run();
+            } else {
+                if (onClickCallback != null) onClickCallback.run();
+            }
             return true;
         }
         return false;

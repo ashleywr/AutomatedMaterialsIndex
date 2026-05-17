@@ -75,8 +75,14 @@ public class UniversalResultsPanel implements SearchState.Listener {
         int toolbarY = y + AMITheme.GLOBAL_PADDING + FacetBar.HEIGHT + AMITheme.ELEMENT_GAP;
         this.toolbar = new ResultsToolbar(innerX, toolbarY, innerW, state);
 
-        int contentY = toolbarY + toolbar.getHeight() + AMITheme.ELEMENT_GAP;
-        int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
+        int contentY, contentH;
+        if (AMIConfig.COMPACT_MODE.get()) {
+            contentY = y + AMITheme.GLOBAL_PADDING;
+            contentH = height - AMITheme.GLOBAL_PADDING * 2;
+        } else {
+            contentY = toolbarY + toolbar.getHeight() + AMITheme.ELEMENT_GAP;
+            contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
+        }
 
         this.treeView = new ResultsTreeView(innerX, contentY, innerW, contentH);
         this.gridView = new ItemGridView(innerX, contentY, innerW, contentH);
@@ -138,9 +144,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
         this.toggleY = y + AMITheme.GLOBAL_PADDING;
 
         if (AMIConfig.COMPACT_MODE.get()) {
-            // Compact: thin header row for toggle button only, grid fills rest
-            int contentY = y + AMITheme.GLOBAL_PADDING + TOGGLE_H + AMITheme.ELEMENT_GAP;
-            int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
+            // Compact: grid fills the full panel area; toggle button is overlaid in top-right corner
+            int contentY = y + AMITheme.GLOBAL_PADDING;
+            int contentH = height - AMITheme.GLOBAL_PADDING * 2;
             gridView.updateLayout(innerX, contentY, innerW, contentH);
         } else {
             int facetBarW = innerW - TOGGLE_W - AMITheme.ELEMENT_GAP;
@@ -165,14 +171,13 @@ public class UniversalResultsPanel implements SearchState.Listener {
         boolean compact = AMIConfig.COMPACT_MODE.get();
 
         if (compact) {
-            renderToggleBtn(g, mouseX, mouseY);
             if (!com.sanhiruzu.ami.index.GlobalIndex.getInstance().isIndexReady()) {
-                int loadY = toggleY + TOGGLE_H + AMITheme.ELEMENT_GAP;
                 g.drawString(Minecraft.getInstance().font, "...",
-                        x + AMITheme.GLOBAL_PADDING, loadY, 0xFFAAAAAA, false);
+                        x + AMITheme.GLOBAL_PADDING, y + AMITheme.GLOBAL_PADDING, 0xFFAAAAAA, false);
             } else {
                 gridView.render(g, mouseX, mouseY);
             }
+            renderToggleBtn(g, mouseX, mouseY); // overlaid on top of grid
             return;
         }
 

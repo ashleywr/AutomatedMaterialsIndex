@@ -192,7 +192,8 @@ public final class AmiOntology {
             List.of(
                 new SubCategory("biomes",     Component.translatable("ami.subcategory.environment.biomes")),
                 new SubCategory("dimensions", Component.translatable("ami.subcategory.environment.dimensions")),
-                new SubCategory("structures", Component.translatable("ami.subcategory.environment.structures"))
+                new SubCategory("structures", Component.translatable("ami.subcategory.environment.structures")),
+                new SubCategory("transport",  Component.translatable("ami.subcategory.environment.transport"))
             ),
             List.of() // handled by NodeType in classifyNode()
         );
