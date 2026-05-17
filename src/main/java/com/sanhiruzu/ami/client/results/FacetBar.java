@@ -81,6 +81,10 @@ public class FacetBar implements SearchState.Listener {
     public void render(GuiGraphics g, int mouseX, int mouseY) {
         hoveredTooltip = null;
 
+        // Dynamic background
+        int bgColor = com.sanhiruzu.ami.client.AMITheme.SLOT_BG;
+        g.fill(x, y, x + width, y + HEIGHT, bgColor);
+
         g.enableScissor(x, y, x + width, y + HEIGHT);
 
         int px = x + AMITheme.GLOBAL_PADDING - scrollOffsetX;
@@ -105,11 +109,12 @@ public class FacetBar implements SearchState.Listener {
 
                 if (isActive) {
                     int bx = px - 1, by = py - 1, bx2 = px + PILL_W + 1, by2 = py + PILL_H + 1;
-                    g.fill(bx,  by,  bx2,      by  + 1, 0xFFFFFFFF);
-                    g.fill(bx,  by2, bx2,      by2 + 1, 0xFFFFFFFF);
-                    g.fill(bx,  by,  bx  + 1,  by2 + 1, 0xFFFFFFFF);
-                    g.fill(bx2, by,  bx2 + 1,  by2 + 1, 0xFFFFFFFF);
-                } else if (hovered) {
+                    g.fill(bx,  by,  bx2,      by  + 1, com.sanhiruzu.ami.client.AMITheme.WHITE);
+                    g.fill(bx,  by2, bx2,      by2 + 1, com.sanhiruzu.ami.client.AMITheme.WHITE);
+                    g.fill(bx,  by,  bx  + 1,  by2 + 1, com.sanhiruzu.ami.client.AMITheme.WHITE);
+                    g.fill(bx2, by,  bx2 + 1,  by2 + 1, com.sanhiruzu.ami.client.AMITheme.WHITE);
+                }
+ else if (hovered) {
                     int bx = px - 1, by = py - 1, bx2 = px + PILL_W + 1, by2 = py + PILL_H + 1;
                     int outline = 0xFF000000 | bgRgb;
                     g.fill(bx,  by,  bx2,      by  + 1, outline);
@@ -137,11 +142,11 @@ public class FacetBar implements SearchState.Listener {
         // Fade edges to hint at hidden content
         if (scrollOffsetX > 0) {
             // Left fade: content is hidden to the left
-            g.fillGradient(x, y, x + 8, y + HEIGHT, 0xCC000000, 0x00000000);
+            g.fillGradient(x, y, x + 8, y + HEIGHT, com.sanhiruzu.ami.client.AMITheme.GRADIENT_SHADOW, com.sanhiruzu.ami.client.AMITheme.TRANSPARENT);
         }
         if (scrollOffsetX < maxScroll()) {
             // Right fade: content is hidden to the right
-            g.fillGradient(x + width - 8, y, x + width, y + HEIGHT, 0x00000000, 0xCC000000);
+            g.fillGradient(x + width - 8, y, x + width, y + HEIGHT, com.sanhiruzu.ami.client.AMITheme.TRANSPARENT, com.sanhiruzu.ami.client.AMITheme.GRADIENT_SHADOW);
         }
 
         g.disableScissor();
