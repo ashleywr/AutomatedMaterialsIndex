@@ -11,17 +11,21 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 
 public class SearchBarWidget extends EditBox {
     private final Listener listener;
     private final List<String> history = new ArrayList<>();
+    private final Deque<String> undoStack = new ArrayDeque<>();
     private int historyIndex = -1;
     private String liveQuery = "";
+    private String lastValue = "";
     private long lastClickTime = 0;
-    private boolean highlight = false;
     private boolean silentUpdate = false;
+    private boolean undoing = false;
     private int cursorPos = 0;
     private int highlightPos = 0;
 
@@ -171,9 +175,14 @@ public class SearchBarWidget extends EditBox {
             navigateHistory(-1);
             return true;
         }
+        if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_Z) {
+            undoLastEdit();
+            return true;
+        }
 
         // Delegate to EditBox for Backspace, Delete, Ctrl+A, Ctrl+V, Ctrl+X, Ctrl+C,
-        // Ctrl+Backspace, arrows, Home, End. Always return true when focused so the screen
+        // Ctrl+Backspace, arrows, Home, End. Ctrl+Z is handled above because EditBox
+        // does not provide undo. Always return true when focused so the screen
         // doesn't also act on the key (e.g. 'E' closing inventory).
         super.keyPressed(keyCode, scanCode, modifiers);
         return true;
@@ -193,6 +202,7 @@ public class SearchBarWidget extends EditBox {
         silentUpdate = true;
         setValue(q == null ? "" : q);
         silentUpdate = false;
+        lastValue = getValue();
     }
 
     public void clear() {
@@ -202,7 +212,7 @@ public class SearchBarWidget extends EditBox {
         super.setFocused(false);
         historyIndex = -1;
         liveQuery = "";
-        highlight = false;
+        lastValue = "";
     }
 
     public void appendQuery(String text) {
@@ -227,7 +237,24 @@ public class SearchBarWidget extends EditBox {
     private void onTextChanged(String newValue) {
         historyIndex = -1;
         updateColorSpans();
+        if (!silentUpdate && !undoing && !newValue.equals(lastValue)) {
+            undoStack.push(lastValue);
+            if (undoStack.size() > 50) {
+                undoStack.removeLast();
+            }
+        }
+        lastValue = newValue;
         if (!silentUpdate && listener != null) listener.onQueryChanged(newValue);
+    }
+
+    private void undoLastEdit() {
+        if (undoStack.isEmpty()) return;
+        undoing = true;
+        setValue(undoStack.pop());
+        setCursorPosition(getValue().length());
+        setHighlightPos(getCursorPosition());
+        undoing = false;
+        lastValue = getValue();
     }
 
     private void navigateHistory(int direction) {
