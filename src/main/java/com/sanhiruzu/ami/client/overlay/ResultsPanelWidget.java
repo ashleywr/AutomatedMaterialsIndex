@@ -10,6 +10,7 @@ public class ResultsPanelWidget extends AbstractWidget {
     private UniversalResultsPanel panel;
     private java.util.function.Consumer<String> modClickCallback;
     private Runnable resetCallback;
+    private java.util.function.Consumer<String> tokenInjectCallback;
 
     public ResultsPanelWidget() {
         super(0, 0, 0, 0, Component.empty());
@@ -29,6 +30,11 @@ public class ResultsPanelWidget extends AbstractWidget {
         if (panel != null) panel.setOnFacetInject(callback);
     }
 
+    public void setOnTokenInject(java.util.function.Consumer<String> callback) {
+        this.tokenInjectCallback = callback;
+        if (panel != null) panel.setOnTokenInject(callback);
+    }
+
     public void updateBounds(WidgetBounds bounds) {
         setX(bounds.x());
         setY(bounds.y());
@@ -39,6 +45,7 @@ public class ResultsPanelWidget extends AbstractWidget {
             panel = new UniversalResultsPanel(bounds.x(), bounds.y(), bounds.width(), bounds.height());
             if (modClickCallback != null) panel.setOnModClick(modClickCallback);
             if (resetCallback != null) panel.setOnReset(resetCallback);
+            if (tokenInjectCallback != null) panel.setOnTokenInject(tokenInjectCallback);
         } else {
             panel.updateLayout(bounds.x(), bounds.y(), bounds.width(), bounds.height());
         }

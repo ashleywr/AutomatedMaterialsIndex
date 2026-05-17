@@ -77,6 +77,7 @@ public class ResultsTreeView {
 
     private java.util.function.Consumer<String> onModClick = null;
     private java.util.function.BiConsumer<SearchNode, Integer> onItemClick = null;
+    private java.util.function.Consumer<String> onTokenInject = null;
 
     // ── Construction ──────────────────────────────────────────────────────────
 
@@ -93,6 +94,10 @@ public class ResultsTreeView {
 
     public void setItemClickCallback(java.util.function.BiConsumer<SearchNode, Integer> callback) {
         this.onItemClick = callback;
+    }
+
+    public void setOnTokenInject(java.util.function.Consumer<String> callback) {
+        this.onTokenInject = callback;
     }
 
     public void setRootNodes(List<TreeNode> nodes) {
@@ -715,14 +720,21 @@ public class ResultsTreeView {
                 int bWidth = badgeWidth(Minecraft.getInstance().font, entry);
                 int badgeStartX = rightEdge - bWidth;
 
-                if (onModClick != null && button == 0 && mouseX >= badgeStartX && mouseX <= rightEdge) {
+                if (button == 1 && onTokenInject != null) {
+                    // Right-click: inject mod name as token
+                    onTokenInject.accept("@" + entry.id().getNamespace());
+                } else if (onModClick != null && button == 0 && mouseX >= badgeStartX && mouseX <= rightEdge) {
                     onModClick.accept("@" + entry.id().getNamespace());
                 } else if (onItemClick != null && entry.type() == NodeType.ITEM) {
                     onItemClick.accept(entry, button);
                 }
             } else {
-                // Group header: only expand/collapse on left-click
-                if (button == 0) node.setExpanded(!node.isExpanded());
+                // Group header: left-click to expand/collapse, right-click to inject category token
+                if (button == 0) {
+                    node.setExpanded(!node.isExpanded());
+                } else if (button == 1 && onTokenInject != null) {
+                    onTokenInject.accept("$" + node.getKey());
+                }
             }
             return true;
         }

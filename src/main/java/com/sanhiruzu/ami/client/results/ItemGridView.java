@@ -43,6 +43,7 @@ public class ItemGridView {
 
     /** Set by UniversalResultsPanel to route clicks to the recipe bridge. */
     private BiConsumer<SearchNode, Integer> onItemClick;
+    private java.util.function.Consumer<String> onTokenInject;
 
     // Deferred tooltips — built during render, drawn after scissor is popped
     private ItemStack pendingTooltip = null;
@@ -92,6 +93,10 @@ public class ItemGridView {
 
     public void setItemClickCallback(BiConsumer<SearchNode, Integer> callback) {
         this.onItemClick = callback;
+    }
+
+    public void setOnTokenInject(java.util.function.Consumer<String> callback) {
+        this.onTokenInject = callback;
     }
 
     public static void clearStackCache() {
@@ -489,22 +494,34 @@ public class ItemGridView {
         for (VirtualRow row : rows) {
             if (mouseY >= drawY && mouseY < drawY + row.height()) {
                 if (row instanceof HeaderRow hr) {
-                    hr.node().setExpanded(!hr.node().isExpanded());
-                    cachedRows = null; // rebuild
+                    if (button == 0) {
+                        hr.node().setExpanded(!hr.node().isExpanded());
+                        cachedRows = null; // rebuild
+                    } else if (button == 1 && onTokenInject != null) {
+                        // Right-click on group header: inject category token
+                        onTokenInject.accept("$" + hr.node().getKey());
+                    }
                     return true;
                 } else if (row instanceof ItemRow ir) {
                     int col = ((int) mouseX - x - 1) / CELL_SIZE;
                     if (col >= 0 && col < ir.items().size()) {
                         TreeNode node = ir.items().get(col);
                         if (node.isHighCardinality()) {
-                            node.setExpanded(!node.isExpanded());
-                            cachedRows = null;
+                            if (button == 0) {
+                                node.setExpanded(!node.isExpanded());
+                                cachedRows = null;
+                            }
                             return true;
                         }
-                        
+
                         SearchNode entry = node.getEntry();
-                        if (entry != null && onItemClick != null) {
-                            onItemClick.accept(entry, button);
+                        if (entry != null) {
+                            if (button == 1 && onTokenInject != null) {
+                                // Right-click on item: inject mod name
+                                onTokenInject.accept("@" + entry.id().getNamespace());
+                            } else if (onItemClick != null) {
+                                onItemClick.accept(entry, button);
+                            }
                             return true;
                         }
                     }
