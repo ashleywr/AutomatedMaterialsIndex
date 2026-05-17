@@ -193,8 +193,9 @@ public class ItemGridView {
                 
                 if (node.isHighCardinality()) {
                     List<Component> lines = new ArrayList<>();
-                    lines.add(node.getLabel().copy().append(" (" + node.getChildren().size() + " items)"));
-                    lines.add(Component.literal(node.isExpanded() ? "§7Click to collapse group" : "§7Click to expand group"));
+                    lines.add(node.getLabel().copy().append(" ").append(Component.translatable("ami.gui.items_count", node.getChildren().size())));
+                    lines.add(Component.translatable(node.isExpanded() ? "ami.gui.collapse_hint" : "ami.gui.expand_hint")
+                            .withStyle(net.minecraft.ChatFormatting.GRAY));
                     pendingTextTooltip = lines;
                     pendingTooltipImage = Optional.empty();
                 } else if (net.minecraft.client.gui.screens.Screen.hasControlDown()) {

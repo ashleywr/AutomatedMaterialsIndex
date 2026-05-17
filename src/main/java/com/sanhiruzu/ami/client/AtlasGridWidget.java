@@ -155,7 +155,7 @@ public class AtlasGridWidget {
         }
 
         mode = Mode.SEARCH;
-        modeLabel = Component.literal("Search Results");
+        modeLabel = Component.translatable("ami.gui.search_results");
         currentAtlasType = null;
         scrollOffset = 0;
         searchQuery = query;
@@ -366,11 +366,11 @@ public class AtlasGridWidget {
         if (groups.isEmpty()) {
             Component message;
             if (indexingInProgress) {
-                message = Component.literal("Indexing...");
+                message = Component.translatable("ami.gui.indexing");
             } else {
                 var index = GlobalIndex.getInstance();
                 message = currentAtlasType != null && index.isLoading(currentAtlasType)
-                        ? Component.literal("Loading...")
+                        ? Component.translatable("ami.gui.loading")
                         : Component.translatable("ami.gui.empty_list");
             }
             g.drawString(font, message,
@@ -504,7 +504,7 @@ public class AtlasGridWidget {
             Component clickHint = switch (entry.type()) {
                 case BIOME, STRUCTURE -> Component.translatable("ami.tooltip.cheat_locate");
                 case ENTITY           -> Component.translatable("ami.tooltip.cheat_entity");
-                case DIMENSION        -> Component.literal("(dimension info)");
+                case DIMENSION        -> Component.translatable("ami.tooltip.dimension_info");
                 case ITEM, PLAYER     -> Component.empty(); // unreachable in atlas mode
             };
             lines.add(clickHint.copy().withStyle(s -> s.withColor(AMITheme.CHEAT_INDICATOR)));
@@ -522,8 +522,8 @@ public class AtlasGridWidget {
             reg.getHolder(biomeKey).ifPresent(holder -> {
                 var biome = holder.value();
                 float temp = biome.getBaseTemperature();
-                String precip = !biome.hasPrecipitation() ? "None"
-                              : temp < 0.15f ? "Snow" : "Rain";
+                Component precip = !biome.hasPrecipitation() ? Component.translatable("ami.precipitation.none")
+                              : temp < 0.15f ? Component.translatable("ami.precipitation.snow") : Component.translatable("ami.precipitation.rain");
                 var effects = biome.getSpecialEffects();
 
                 lines.add(Component.translatable("ami.tooltip.temperature")
@@ -531,7 +531,7 @@ public class AtlasGridWidget {
                                 .withStyle(s -> s.withColor(tempColor(temp)))));
 
                 lines.add(Component.translatable("ami.tooltip.precipitation")
-                        .append(Component.literal(": " + precip)
+                        .append(Component.literal(": ").append(precip)
                                 .withStyle(s -> s.withColor(0xAAAAFF))));
 
                 lines.add(Component.translatable("ami.tooltip.water_color")
@@ -565,18 +565,18 @@ public class AtlasGridWidget {
 
     private void appendEntityDetails(List<Component> lines, SearchNode entry) {
         BuiltInRegistries.ENTITY_TYPE.getOptional(entry.id()).ifPresent(entityType -> {
-            String category = switch (entityType.getCategory()) {
-                case MONSTER                        -> "Hostile";
-                case CREATURE                       -> "Passive";
-                case AMBIENT                        -> "Ambient";
+            Component category = switch (entityType.getCategory()) {
+                case MONSTER                        -> Component.translatable("ami.entity_category.hostile");
+                case CREATURE                       -> Component.translatable("ami.entity_category.passive");
+                case AMBIENT                        -> Component.translatable("ami.entity_category.ambient");
                 case WATER_CREATURE, WATER_AMBIENT,
-                     UNDERGROUND_WATER_CREATURE     -> "Aquatic";
-                default                             -> "Misc";
+                     UNDERGROUND_WATER_CREATURE     -> Component.translatable("ami.entity_category.aquatic");
+                default                             -> Component.translatable("ami.entity_category.misc");
             };
 
             var dims = entityType.getDimensions();
             lines.add(Component.translatable("ami.tooltip.category")
-                    .append(Component.literal(": " + category)
+                    .append(Component.literal(": ").append(category)
                             .withStyle(s -> s.withColor(0xAAAAFF))));
             lines.add(Component.translatable("ami.tooltip.size")
                     .append(Component.literal(String.format(": %.1f x %.1f (WxH)", dims.width(), dims.height()))

@@ -62,7 +62,8 @@ public class ResultsProcessor {
     public List<TreeNode> process(List<SearchNode> results) {
         // Handle background indexing state
         if (!com.sanhiruzu.ami.index.GlobalIndex.getInstance().isIndexReady()) {
-            return List.of(new TreeNode("indexing", Component.literal("§6Indexing in background...")));
+            return List.of(new TreeNode("indexing", Component.translatable("ami.gui.background_indexing")
+                    .withStyle(s -> s.withColor(0xFFAA00))));
         }
 
         // Filter
@@ -179,7 +180,8 @@ public class ResultsProcessor {
             }
             
             for (var modEntry : modGroups.entrySet()) {
-                TreeNode modNode = new TreeNode(modEntry.getKey(), Component.literal(modEntry.getKey()));
+                String namespace = modEntry.getKey();
+                TreeNode modNode = new TreeNode(namespace, Component.literal(com.sanhiruzu.ami.index.providers.RegistryUtils.modDisplayName(namespace)));
                 modNode.setModGroup(true);
                 modNode.setExpanded(true);
                 for (SearchNode node : modEntry.getValue()) {
@@ -203,17 +205,18 @@ public class ResultsProcessor {
 
         for (var entry : sortedGroups.entrySet()) {
             String namespace = entry.getKey();
-            TreeNode modNode = new TreeNode(namespace, Component.literal(namespace));
+            TreeNode modNode = new TreeNode(namespace, Component.literal(com.sanhiruzu.ami.index.providers.RegistryUtils.modDisplayName(namespace)));
             modNode.setExpanded(true);
             modNode.setModGroup(true);
             
-            Map<String, List<SearchNode>> typeGroups = new LinkedHashMap<>();
+            Map<com.sanhiruzu.ami.index.NodeType, List<SearchNode>> typeGroups = new LinkedHashMap<>();
             for (SearchNode node : entry.getValue()) {
-                typeGroups.computeIfAbsent(node.type().displayName().getString(), k -> new ArrayList<>()).add(node);
+                typeGroups.computeIfAbsent(node.type(), k -> new ArrayList<>()).add(node);
             }
             
             for (var typeEntry : typeGroups.entrySet()) {
-                TreeNode typeNode = new TreeNode(typeEntry.getKey(), Component.literal(typeEntry.getKey()));
+                com.sanhiruzu.ami.index.NodeType type = typeEntry.getKey();
+                TreeNode typeNode = new TreeNode(type.name(), type.displayName());
                 typeNode.setExpanded(true);
                 for (SearchNode node : typeEntry.getValue()) {
                     typeNode.addChild(new TreeNode(Component.literal(node.displayName()), node));

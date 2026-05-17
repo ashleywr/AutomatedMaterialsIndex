@@ -44,22 +44,35 @@ public class RowFieldPickerDropdown {
 
         RowField[] fields = RowField.values();
         List<RowField> active = RowFieldConfig.getSubtitleFields();
+        var font = Minecraft.getInstance().font;
+
+        // Calculate required width
+        int listWidth = width;
+        for (RowField field : fields) {
+            listWidth = Math.max(listWidth, font.width(field.displayName) + 20);
+        }
 
         int dropH = fields.length * ITEM_H + 4;
         int dy    = y + BTN_H + 2;
 
         // Background + top rule
-        g.fill(x, dy, x + width, dy + dropH, AMITheme.DROPDOWN_LIST_BG);
-        g.fill(x, dy, x + width, dy + 1,     AMITheme.SECTION_SEP);
+        g.fill(x, dy, x + listWidth, dy + dropH, AMITheme.DROPDOWN_LIST_BG);
+        g.fill(x, dy, x + listWidth, dy + 1,     AMITheme.SECTION_SEP);
 
-        var font = Minecraft.getInstance().font;
         int iy = dy + 2;
         for (RowField field : fields) {
-            if (Dropdown.contains(mouseX, mouseY, x, iy, width, ITEM_H)) {
-                g.fill(x, iy, x + width, iy + ITEM_H, AMITheme.DROPDOWN_BG);
+            boolean hovered = Dropdown.contains(mouseX, mouseY, x, iy, listWidth, ITEM_H);
+            if (hovered) {
+                g.fill(x, iy, x + listWidth, iy + ITEM_H, AMITheme.DROPDOWN_BG);
             }
-            String check = active.contains(field) ? "✓ " : "  ";
-            g.drawString(font, check + field.displayName, x + 3, iy + 1, AMITheme.TEXT_SUBTLE, false);
+            
+            boolean isSelected = active.contains(field);
+            if (isSelected) {
+                // Small accent bar on the left
+                g.fill(x + 2, iy + 2, x + 4, iy + ITEM_H - 2, 0xFF4488FF);
+            }
+            
+            g.drawString(font, field.displayName, x + 8, iy + 1, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
             iy += ITEM_H;
         }
     }
@@ -78,13 +91,19 @@ public class RowFieldPickerDropdown {
         if (!open) return false;
 
         RowField[] fields = RowField.values();
+        var font = Minecraft.getInstance().font;
+        int listWidth = width;
+        for (RowField field : fields) {
+            listWidth = Math.max(listWidth, font.width(field.displayName) + 20);
+        }
+
         int dropH = fields.length * ITEM_H + 4;
         int dy    = y + BTN_H + 2;
 
-        if (Dropdown.contains((int) mouseX, (int) mouseY, x, dy, width, dropH)) {
+        if (Dropdown.contains((int) mouseX, (int) mouseY, x, dy, listWidth, dropH)) {
             int iy = dy + 2;
             for (RowField field : fields) {
-                if (Dropdown.contains((int) mouseX, (int) mouseY, x, iy, width, ITEM_H)) {
+                if (Dropdown.contains((int) mouseX, (int) mouseY, x, iy, listWidth, ITEM_H)) {
                     List<RowField> current = new ArrayList<>(RowFieldConfig.getSubtitleFields());
                     if (current.contains(field)) current.remove(field);
                     else current.add(field);

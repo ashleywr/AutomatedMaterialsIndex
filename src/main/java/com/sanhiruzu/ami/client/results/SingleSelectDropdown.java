@@ -36,36 +36,58 @@ public class SingleSelectDropdown<T> implements Dropdown {
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
-        int bgColor = open ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
+        boolean canOpen = options != null && options.size() > 1;
+        boolean hovered = canOpen && Dropdown.contains(mouseX, mouseY, x, y, width, HEIGHT);
+        int bgColor = (open || hovered) ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
+        
         g.fill(x, y, x + width, y + HEIGHT, bgColor);
         Component textComp = displayName.apply(selected);
         String text = textComp.getString();
         var font = Minecraft.getInstance().font;
-        if (font.width(text) > width - 6) {
-            text = font.plainSubstrByWidth(text, width - 6);
+        
+        // Add a small arrow if it can be opened
+        if (canOpen) {
+            String arrow = open ? "▲" : "▼";
+            g.drawString(font, arrow, x + width - 9, y + 2, AMITheme.TEXT_SUBTLE, false);
         }
-        g.drawString(font, text, x + 3, y + 2, AMITheme.TEXT_HEADER, false);
+        
+        int maxTextW = width - (canOpen ? 12 : 6);
+        if (font.width(text) > maxTextW) {
+            text = font.plainSubstrByWidth(text, maxTextW);
+        }
+        g.drawString(font, text, x + 3, y + 2, canOpen ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
     }
 
     public void renderList(GuiGraphics g, int mouseX, int mouseY) {
-        if (open) renderDropdown(g, mouseX, mouseY);
+        if (open && options != null && options.size() > 1) renderDropdown(g, mouseX, mouseY);
     }
 
     private void renderDropdown(GuiGraphics g, int mouseX, int mouseY) {
         var font = Minecraft.getInstance().font;
+        
+        // Calculate required width to fit all options
+        int listWidth = width;
+        for (T option : options) {
+            listWidth = Math.max(listWidth, font.width(displayName.apply(option).getString()) + 20);
+        }
+        
         int dropH = options.size() * ITEM_HEIGHT + 2;
-        g.fill(x, y + HEIGHT + 2, x + width, y + HEIGHT + 2 + dropH, AMITheme.DROPDOWN_LIST_BG);
-        g.fill(x, y + HEIGHT + 2, x + width, y + HEIGHT + 3, AMITheme.SECTION_SEP);
+        g.fill(x, y + HEIGHT + 2, x + listWidth, y + HEIGHT + 2 + dropH, AMITheme.DROPDOWN_LIST_BG);
+        g.fill(x, y + HEIGHT + 2, x + listWidth, y + HEIGHT + 3, AMITheme.SECTION_SEP);
 
         int itemY = y + HEIGHT + 3;
         for (T option : options) {
-            boolean hovered = Dropdown.contains(mouseX, mouseY, x, itemY, width, ITEM_HEIGHT);
-            if (hovered) g.fill(x, itemY, x + width, itemY + ITEM_HEIGHT, AMITheme.DROPDOWN_BG);
+            boolean hovered = Dropdown.contains(mouseX, mouseY, x, itemY, listWidth, ITEM_HEIGHT);
+            if (hovered) g.fill(x, itemY, x + listWidth, itemY + ITEM_HEIGHT, AMITheme.DROPDOWN_BG);
 
             boolean isSelected = option.equals(selected);
+            if (isSelected) {
+                // Draw selection indicator (a small accent bar on the left)
+                g.fill(x + 2, itemY + 2, x + 4, itemY + ITEM_HEIGHT - 2, 0xFF4488FF);
+            }
+            
             Component labelComp = displayName.apply(option);
-            String text = (isSelected ? "✓ " : "") + labelComp.getString();
-            g.drawString(font, text, x + 2, itemY + 1, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
+            g.drawString(font, labelComp, x + 8, itemY + 1, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
             itemY += ITEM_HEIGHT;
         }
     }
@@ -75,15 +97,23 @@ public class SingleSelectDropdown<T> implements Dropdown {
 
         // Toggle on button click
         if (Dropdown.contains((int) mouseX, (int) mouseY, x, y, width, HEIGHT)) {
-            open = !open;
+            if (options != null && options.size() > 1) {
+                open = !open;
+            }
             return true;
         }
 
         // Handle dropdown item clicks
         if (open) {
+            var font = Minecraft.getInstance().font;
+            int listWidth = width;
+            for (T option : options) {
+                listWidth = Math.max(listWidth, font.width(displayName.apply(option).getString()) + 20);
+            }
+
             int itemY = y + HEIGHT + 3;
             for (T option : options) {
-                if (Dropdown.contains((int) mouseX, (int) mouseY, x, itemY, width, ITEM_HEIGHT)) {
+                if (Dropdown.contains((int) mouseX, (int) mouseY, x, itemY, listWidth, ITEM_HEIGHT)) {
                     selected = option;
                     onSelect.accept(option);
                     open = false;
