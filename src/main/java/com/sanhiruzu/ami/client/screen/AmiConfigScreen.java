@@ -152,6 +152,27 @@ public class AmiConfigScreen extends Screen {
                 }
             }
         }
+
+        // Add keybinds section
+        Component bindsHeader = Component.translatable("ami.config.group.binds");
+        if (query.isEmpty() || bindsHeader.getString().toLowerCase().contains(query)) {
+            list.addEntry(list.new HeaderEntry(bindsHeader));
+        }
+
+        try {
+            for (Field field : com.sanhiruzu.ami.client.AMIKeyMappings.class.getFields()) {
+                if (java.lang.reflect.Modifier.isStatic(field.getModifiers()) && net.minecraft.client.KeyMapping.class.isAssignableFrom(field.getType())) {
+                    net.minecraft.client.KeyMapping keyMapping = (net.minecraft.client.KeyMapping) field.get(null);
+                    String keybindName = keyMapping.getName(); // e.g., "key.ami.favorite"
+                    Component keyLabel = Component.translatable(keybindName);
+                    if (query.isEmpty() || keyLabel.getString().toLowerCase().contains(query)) {
+                        list.addEntry(list.new KeybindEntry(keyLabel, keyMapping));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            com.sanhiruzu.ami.AMI.LOGGER.error("Failed to load keybinds in config screen", e);
+        }
     }
 
     @Override
@@ -270,6 +291,53 @@ public class AmiConfigScreen extends Screen {
             public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
                 if (widget != null && widget.keyPressed(keyCode, scanCode, modifiers)) return true;
                 return super.keyPressed(keyCode, scanCode, modifiers);
+            }
+
+            @Override
+            public Component getNarration() { return label; }
+        }
+
+        class KeybindEntry extends ConfigEntry {
+            private final Component label;
+            private final net.minecraft.client.KeyMapping keyMapping;
+            private final Tooltip tooltip;
+            private final Button button;
+
+            KeybindEntry(Component label, net.minecraft.client.KeyMapping keyMapping) {
+                this.label = label;
+                this.keyMapping = keyMapping;
+                String tooltipKey = "ami.config.tooltip." + keyMapping.getName().replace("key.ami.", "");
+                this.tooltip = Tooltip.create(Component.translatable(tooltipKey));
+                this.button = Button.builder(keyMapping.getTranslatedKeyMessage(), b -> {
+                    // Open keybind editor
+                    AmiConfigScreen.this.minecraft.setScreen(new net.minecraft.client.gui.screens.options.controls.KeyBindsScreen(AmiConfigScreen.this, AmiConfigScreen.this.minecraft.options));
+                }).build();
+            }
+
+            @Override
+            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
+                g.drawString(AmiConfigScreen.this.font, label, x + 5, y + 5, 0xFFFFFFFF);
+
+                button.setX(x + width - 65);
+                button.setY(y + 2);
+                button.setWidth(60);
+                button.setHeight(16);
+                button.setMessage(keyMapping.getTranslatedKeyMessage());
+                button.render(g, mouseX, mouseY, 0);
+
+                if (mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height) {
+                    if (button.isMouseOver(mouseX, mouseY)) {
+                        button.setTooltip(this.tooltip);
+                    } else {
+                        AmiConfigScreen.this.setTooltipForNextRenderPass(this.tooltip, net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner.INSTANCE, true);
+                    }
+                }
+            }
+
+            @Override
+            public boolean mouseClicked(double mouseX, double mouseY, int button) {
+                if (this.button.mouseClicked(mouseX, mouseY, button)) return true;
+                return super.mouseClicked(mouseX, mouseY, button);
             }
 
             @Override
