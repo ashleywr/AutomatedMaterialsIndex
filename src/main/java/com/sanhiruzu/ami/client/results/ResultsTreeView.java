@@ -101,6 +101,32 @@ public class ResultsTreeView {
         this.representativeCache.clear();
     }
 
+    public void collapseAll() {
+        for (TreeNode node : rootNodes) {
+            collapseNode(node);
+        }
+    }
+
+    public void expandAll() {
+        for (TreeNode node : rootNodes) {
+            expandNode(node);
+        }
+    }
+
+    private void collapseNode(TreeNode node) {
+        node.setExpanded(false);
+        for (TreeNode child : node.getChildren()) {
+            collapseNode(child);
+        }
+    }
+
+    private void expandNode(TreeNode node) {
+        node.setExpanded(true);
+        for (TreeNode child : node.getChildren()) {
+            expandNode(child);
+        }
+    }
+
     public void updateLayout(int x, int y, int width, int height) {
         this.x = x;
         this.y = y;
