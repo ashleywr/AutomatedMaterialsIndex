@@ -99,8 +99,8 @@ public class ResultsProcessor {
             case DIMENSION -> groupByDimension(sorted);
             case MOD -> groupByMod(sorted);
             case CATEGORY -> groupByCategory(sorted);
-            case MATERIAL -> groupByMetadata(sorted, SearchNodeKeys.MATERIAL_GROUP, "Unknown Material", true);
-            case SHAPE -> groupByMetadata(sorted, SearchNodeKeys.VARIANT_GROUP, "Unknown Shape", false);
+            case MATERIAL -> groupByMetadata(sorted, SearchNodeKeys.MATERIAL_GROUP, Component.translatable("ami.group.unknown_material"), true);
+            case SHAPE -> groupByMetadata(sorted, SearchNodeKeys.VARIANT_GROUP, Component.translatable("ami.group.unknown_shape"), false);
         };
     }
 
@@ -181,15 +181,15 @@ public class ResultsProcessor {
             }
 
             if (!subId.isEmpty()) {
-                String subName = cat.subCategories.stream()
+                Component subLabel = cat.subCategories.stream()
                         .filter(s -> s.id().equals(subId))
-                        .map(s -> s.displayName().getString())
+                        .map(AmiOntology.SubCategory::displayName)
                         .findFirst()
-                        .orElse(subId);
-                TreeNode subNode = findOrCreateChild(catNode, subId, Component.literal(subName));
+                        .orElse(Component.literal(subId));
+                TreeNode subNode = findOrCreateChild(catNode, subId, subLabel);
                 subNode.addChild(new TreeNode(Component.literal(entry.displayName()), entry));
             } else {
-                TreeNode miscNode = findOrCreateChild(catNode, "misc", Component.literal("Misc"));
+                TreeNode miscNode = findOrCreateChild(catNode, "misc", Component.translatable("ami.group.misc"));
                 miscNode.addChild(new TreeNode(Component.literal(entry.displayName()), entry));
             }
         }
@@ -200,14 +200,15 @@ public class ResultsProcessor {
                 .collect(Collectors.toList());
     }
 
-    private List<TreeNode> groupByMetadata(List<SearchNode> entries, String metadataKey, String fallback, boolean compactResourceIds) {
+    private List<TreeNode> groupByMetadata(List<SearchNode> entries, String metadataKey, Component fallback, boolean compactResourceIds) {
         Map<String, TreeNode> groups = new LinkedHashMap<>();
 
         for (SearchNode entry : entries) {
             String groupValue = entry.meta(metadataKey, "");
-            String labelStr = formatGroupLabel(groupValue, fallback, compactResourceIds);
-            TreeNode groupNode = groups.computeIfAbsent(labelStr, k -> {
-                TreeNode n = new TreeNode(k, Component.literal(k));
+            String key = groupValue.isBlank() ? "" : formatGroupKey(groupValue, compactResourceIds);
+            Component label = key.isEmpty() ? fallback : Component.literal(formatGroupLabel(key));
+            TreeNode groupNode = groups.computeIfAbsent(key.isEmpty() ? "__fallback__" : key, k -> {
+                TreeNode n = new TreeNode(k, label);
                 n.setExpanded(true);
                 return n;
             });
@@ -217,22 +218,18 @@ public class ResultsProcessor {
         return new ArrayList<>(groups.values());
     }
 
-    private String formatGroupLabel(String value, String fallback, boolean compactResourceIds) {
-        if (value == null || value.isBlank()) return fallback;
-
-        String label = value;
+    private String formatGroupKey(String value, boolean compactResourceIds) {
+        String key = value;
         if (compactResourceIds) {
-            int namespaceSep = label.indexOf(':');
-            if (namespaceSep >= 0 && namespaceSep + 1 < label.length()) {
-                label = label.substring(namespaceSep + 1);
-            }
+            int sep = key.indexOf(':');
+            if (sep >= 0 && sep + 1 < key.length()) key = key.substring(sep + 1);
         }
+        return key.replace('_', ' ').trim();
+    }
 
-        label = label.replace('_', ' ').trim();
-        if (label.isEmpty()) return fallback;
-
-        String[] words = label.split("\\s+");
-        StringBuilder out = new StringBuilder(label.length());
+    private String formatGroupLabel(String key) {
+        String[] words = key.split("\\s+");
+        StringBuilder out = new StringBuilder(key.length());
         for (String word : words) {
             if (word.isEmpty()) continue;
             if (out.length() > 0) out.append(' ');

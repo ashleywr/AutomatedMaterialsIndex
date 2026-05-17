@@ -35,7 +35,7 @@ public class FacetBar implements SearchState.Listener {
     private SearchState state;
 
     /** Set during render(); consumed by renderTooltip(). */
-    private String hoveredTooltip = null;
+    private Component hoveredTooltip = null;
     private int hoveredTooltipX, hoveredTooltipY;
 
     public FacetBar(int x, int y, int width, SearchState state) {
@@ -96,7 +96,7 @@ public class FacetBar implements SearchState.Listener {
             }
 
             if (hovered) {
-                hoveredTooltip  = cat.displayName.getString();
+                hoveredTooltip  = cat.displayName;
                 hoveredTooltipX = mouseX;
                 hoveredTooltipY = mouseY;
             }
@@ -114,7 +114,7 @@ public class FacetBar implements SearchState.Listener {
     public void renderTooltip(GuiGraphics g, int mouseX, int mouseY) {
         if (hoveredTooltip != null) {
             g.renderTooltip(Minecraft.getInstance().font,
-                    Component.literal(hoveredTooltip), hoveredTooltipX, hoveredTooltipY);
+                    hoveredTooltip, hoveredTooltipX, hoveredTooltipY);
         }
     }
 

@@ -112,6 +112,13 @@ public class InventoryOverlayHandler {
         if (!amiEnabled || !manager.isPanelVisible()) return;
 
         var searchBar = manager.getSearchBar();
+        var resultsPanel = manager.getResultsPanel();
+        if (resultsPanel.isMouseOver(event.getMouseX(), event.getMouseY())) {
+            resultsPanel.mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton());
+            event.setCanceled(true);
+            return;
+        }
+
         if (searchBar.isMouseOver(event.getMouseX(), event.getMouseY())) {
             searchBar.setFocused(true);
             containerScreen.setFocused(searchBar);
@@ -128,6 +135,14 @@ public class InventoryOverlayHandler {
         if (!amiEnabled || !manager.isPanelVisible()) return;
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
 
+        var resultsPanel = manager.getResultsPanel();
+        if (resultsPanel.mouseDragged(
+                event.getMouseX(), event.getMouseY(),
+                event.getMouseButton(), event.getDragX(), event.getDragY())) {
+            event.setCanceled(true);
+            return;
+        }
+
         var searchBar = manager.getSearchBar();
         if (!searchBar.isFocused()) return;
 
@@ -142,6 +157,8 @@ public class InventoryOverlayHandler {
     static void onMouseButtonReleased(ScreenEvent.MouseButtonReleased.Pre event) {
         if (!amiEnabled || !manager.isPanelVisible()) return;
         if (!(event.getScreen() instanceof AbstractContainerScreen<?>)) return;
+
+        manager.getResultsPanel().mouseReleased(event.getMouseX(), event.getMouseY(), event.getButton());
 
         var searchBar = manager.getSearchBar();
         if (!searchBar.isFocused()) return;
@@ -167,6 +184,14 @@ public class InventoryOverlayHandler {
     static void onKeyPressed(ScreenEvent.KeyPressed.Pre event) {
         if (!isAmiAvailable()) return;
         if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
+
+        var resultsPanel = manager.getResultsPanel();
+        if (amiEnabled && manager.isPanelVisible() && resultsPanel.isMouseOver(event.getMouseX(), event.getMouseY())) {
+            if (resultsPanel.keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
+                event.setCanceled(true);
+                return;
+            }
+        }
 
         var searchBar = manager.getSearchBar();
         if (!amiEnabled || !manager.isPanelVisible() || !searchBar.isFocused()) return;

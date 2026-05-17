@@ -367,6 +367,7 @@ public class ItemGridView {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0 && button != 1) return false;
         if (!isMouseOver(mouseX, mouseY)) return false;
+        if (mouseX >= x + width - SCROLLBAR_W) return false;
 
         int cols = computeCols();
         List<VirtualRow> rows = getVirtualRows(cols);
@@ -410,6 +411,20 @@ public class ItemGridView {
         pixelScrollOffset = Math.max(0, Math.min(maxScroll,
                 (int) (pixelScrollOffset - delta * CELL_SIZE)));
         return true;
+    }
+
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == 266) { // Page Up
+            pixelScrollOffset = Math.max(0, pixelScrollOffset - height);
+            return true;
+        } else if (keyCode == 267) { // Page Down
+            int cols = computeCols();
+            int totalH = calcTotalHeight(getVirtualRows(cols));
+            int maxScroll = Math.max(0, totalH - height);
+            pixelScrollOffset = Math.min(maxScroll, pixelScrollOffset + height);
+            return true;
+        }
+        return false;
     }
 
     public boolean mouseClickedScrollbar(double mouseX, double mouseY, int button) {
