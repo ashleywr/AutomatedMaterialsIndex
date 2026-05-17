@@ -41,6 +41,7 @@ public final class AmiOntology {
 
     // ── Singleton category constants ──────────────────────────────────────────
 
+    public static final Category NAVIGATION;
     public static final Category SOCIAL;
     public static final Category ENTITIES;
     public static final Category MAGIC;
@@ -56,17 +57,25 @@ public final class AmiOntology {
     public static final List<Category> CATEGORIES;
 
     static {
-        SOCIAL = new Category(
-            "social", Component.translatable("ami.category.social"), "Social",
+        NAVIGATION = new Category(
+            "navigation", Component.translatable("ami.category.navigation"), "Nav",
             "minecraft:compass", 0xFF4499EE,
             List.of(
+                new SubCategory("instruments", Component.translatable("ami.subcategory.navigation.instruments")),
+                new SubCategory("waypoints",   Component.translatable("ami.subcategory.navigation.waypoints"))
+            ),
+            List.of("compass", "recovery_compass", "spyglass", "clock", ":map")
+        );
+
+        SOCIAL = new Category(
+            "social", Component.translatable("ami.category.social"), "Social",
+            "minecraft:player_head", 0xFF66CCFF,
+            List.of(
                 new SubCategory("players",   Component.translatable("ami.subcategory.social.players")),
-                new SubCategory("waypoints", Component.translatable("ami.subcategory.social.waypoints")),
                 new SubCategory("teams",     Component.translatable("ami.subcategory.social.teams")),
                 new SubCategory("claims",    Component.translatable("ami.subcategory.social.claims"))
             ),
-            List.of("compass", "player_head", "banner", "lodestone",
-                    "recovery_compass", "spyglass", "clock", ":map")
+            List.of("player_head")
         );
 
         ENTITIES = new Category(
@@ -157,7 +166,7 @@ public final class AmiOntology {
                     "nuggets", "nugget", ":ores", ":ore",
                     "raw_iron", "raw_gold", "raw_copper",
                     "netherite", "redstone", "amethyst", "quartz",
-                    "diamond", "emerald", "piston", "comparator")
+                    "diamond", "emerald", "piston", "comparator", "lodestone")
         );
 
         NATURE = new Category(
@@ -210,12 +219,12 @@ public final class AmiOntology {
                 new SubCategory("glass",          Component.translatable("ami.subcategory.blocks.glass")),
                 new SubCategory("other_building", Component.translatable("ami.subcategory.blocks.other_building"))
             ),
-            List.of() // catch-all
+            List.of("banner") // banner patterns etc catch-all
         );
 
         // Priority order: most-specific first, BLOCKS last as default.
         CATEGORIES = List.of(
-            SOCIAL, ENTITIES, MAGIC, ARMOR, WEAPONS, FOOD, TECH, NATURE, ENVIRONMENT, BLOCKS
+            NAVIGATION, ENTITIES, MAGIC, ARMOR, WEAPONS, FOOD, TECH, NATURE, ENVIRONMENT, SOCIAL, BLOCKS
         );
     }
 
