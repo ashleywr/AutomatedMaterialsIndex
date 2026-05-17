@@ -216,7 +216,8 @@ public class ResultsTreeView {
             boolean hovered = isRowHovered(mouseX, mouseY, drawY);
 
             if (rowIdx % 2 == 0) {
-                g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + AMITheme.ROW_HEIGHT, 0x15000000);
+                int tint = com.sanhiruzu.ami.config.AmiConfig.useTransparentTheme ? 0x08FFFFFF : 0x15000000;
+                g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + AMITheme.ROW_HEIGHT, tint);
             }
 
             if (!node.isLeaf()) {

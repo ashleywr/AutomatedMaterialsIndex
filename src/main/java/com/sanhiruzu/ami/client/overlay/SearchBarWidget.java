@@ -74,8 +74,19 @@ public class SearchBarWidget extends EditBox {
         int x = getX(), y = getY(), w = width, h = height;
         boolean focused = isFocused();
 
-        g.fill(x, y, x + w, y + h, focused ? 0xFF2E2E2E : 0xFF1A1A1A);
-        int border = focused ? 0xFFFFFFFF : 0xFF555555;
+        // Use themed colors
+        int bgColor = AmiConfig.searchBarBg;
+        int border = AmiConfig.searchBarBorder;
+        
+        if (!focused) {
+            // Desaturate border slightly when not focused
+            int alpha = (border >> 24) & 0xFF;
+            border = (alpha / 2 << 24) | (border & 0x00FFFFFF);
+        }
+
+        g.fill(x, y, x + w, y + h, bgColor);
+        
+        // Draw 1px border
         g.fill(x, y, x + w, y + 1, border);
         g.fill(x, y + h - 1, x + w, y + h, border);
         g.fill(x, y + 1, x + 1, y + h - 1, border);

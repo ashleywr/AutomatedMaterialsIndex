@@ -93,9 +93,12 @@ public final class AMITheme {
             g.fill(x, y, x + w, y + h, color);
             return;
         }
-        g.fill(x + 2, y,     x + w - 2, y + h,     color); // centre strip — cuts top/bottom corners
-        g.fill(x + 1, y + 1, x + w - 1, y + h - 1, color); // wider middle band
-        g.fill(x,     y + 2, x + w,     y + h - 2, color); // full width — cuts side corners
+        // Non-overlapping cross shape for transparent fills
+        g.fill(x + 1, y + 1, x + w - 1, y + h - 1, color); // Core
+        g.fill(x + 2, y,     x + w - 2, y + 1,     color); // Top edge
+        g.fill(x + 2, y + h - 1, x + w - 2, y + h, color); // Bottom edge
+        g.fill(x,     y + 2, x + 1,     y + h - 2, color); // Left edge
+        g.fill(x + w - 1, y + 2, x + w,     y + h - 2, color); // Right edge
     }
 
     /**
