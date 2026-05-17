@@ -531,40 +531,26 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (nodes.isEmpty()) return;
 
         // Use ResultsProcessor for smart grouping (e.g., potions into folders)
-        // BUT: avoid re-grouping by category if we're already viewing a category (prevents "Mobs > Mobs")
+        // When viewing an ontology category, don't re-group by the same category to avoid nesting.
+        // If grouping by CATEGORY, just show items without grouping (respects user's grouping choice).
         SearchState tempState = new SearchState();
         tempState.setViewMode(state.getViewMode());
         tempState.setSortField(state.getSortField());
         tempState.setAscending(state.isAscending());
-        // If viewing a category, don't re-group by category
-        tempState.setGroupBy(isOntologyCategory && state.getGroupBy() == ResultsProcessor.GroupBy.CATEGORY
-                ? ResultsProcessor.GroupBy.MOD
-                : state.getGroupBy());
+
+        // If viewing an ontology category in CATEGORY mode, show just the items (no grouping)
+        if (isOntologyCategory && state.getGroupBy() == ResultsProcessor.GroupBy.CATEGORY) {
+            tempState.setGroupBy(ResultsProcessor.GroupBy.MOD); // Dummy value, will just create leaf nodes
+        } else {
+            tempState.setGroupBy(state.getGroupBy());
+        }
 
         ResultsProcessor processor = tempState.createProcessor();
 
-        if (nodes.size() > 500) {
-            // For huge categories, group them by mod to keep the grid usable
-            Map<String, List<SearchNode>> byMod = new java.util.TreeMap<>();
-            for (SearchNode n : nodes) {
-                byMod.computeIfAbsent(n.id().getNamespace(), k -> new ArrayList<>()).add(n);
-            }
-
-            for (var entry : byMod.entrySet()) {
-                String modId = entry.getKey();
-                String modName = modId; // Fallback
-                try {
-                    modName = net.neoforged.fml.ModList.get().getModContainerById(modId)
-                        .map(m -> m.getModInfo().getDisplayName()).orElse(modId);
-                } catch (Exception ignored) {}
-
-                TreeNode modNode = new TreeNode(modId, Component.literal(modName));
-
-                // Create leaf nodes directly (don't re-apply grouping since we already grouped by MOD)
-                for (SearchNode sn : entry.getValue()) {
-                    modNode.addChild(new TreeNode(Component.literal(sn.displayName()), sn));
-                }
-                node.addChild(modNode);
+        // Create leaf nodes directly for large categories to avoid nested grouping
+        if (nodes.size() > 500 && isOntologyCategory && state.getGroupBy() == ResultsProcessor.GroupBy.CATEGORY) {
+            for (SearchNode sn : nodes) {
+                node.addChild(new TreeNode(Component.literal(sn.displayName()), sn));
             }
         } else {
             node.getChildren().addAll(applySmartGrouping(nodes, processor));
