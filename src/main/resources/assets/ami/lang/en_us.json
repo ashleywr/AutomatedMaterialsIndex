@@ -81,7 +81,7 @@
   "ami.gui.background_indexing": "Indexing in background...",
   "ami.gui.items_count": "(%s items)",
   "ami.gui.search_results": "Search Results",
-  "ami.gui.debug_hint": "Hold Ctrl for AMI debug info",
+  "ami.gui.debug_hint": "Alt+A for AMI debug info",
   "ami.gui.collapse_hint": "Click to collapse group",
   "ami.gui.expand_hint": "Click to expand group",
 

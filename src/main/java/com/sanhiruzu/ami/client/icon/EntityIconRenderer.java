@@ -109,7 +109,6 @@ public class EntityIconRenderer implements IIconRenderer {
             lines.add(Component.literal(formatTraits(traits)).withStyle(s -> s.withColor(0x55FFFF)));
         }
 
-        lines.add(Component.translatable("ami.gui.debug_hint").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
         return lines;
     }
 

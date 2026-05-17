@@ -48,6 +48,7 @@ public class ItemGridView {
     private ItemStack pendingTooltip = null;
     private List<Component> pendingTextTooltip = null;
     private Optional<TooltipComponent> pendingTooltipImage = Optional.empty();
+    private SearchNode hoveredNode = null;
 
     // Virtual row cache — rebuilt whenever rootNodes changes or a group is toggled
     private List<VirtualRow> cachedRows = null;
@@ -105,6 +106,7 @@ public class ItemGridView {
         pendingTooltip = null;
         pendingTextTooltip = null;
         pendingTooltipImage = Optional.empty();
+        hoveredNode = null;
 
         if (rootNodes.isEmpty()) {
             g.drawString(Minecraft.getInstance().font,
@@ -190,6 +192,7 @@ public class ItemGridView {
                     && mouseY >= cellY && mouseY < cellY + CELL_SIZE;
             if (hovered) {
                 g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, 0xFF3A3A3A);
+                hoveredNode = entry;
                 
                 if (node.isHighCardinality()) {
                     List<Component> lines = new ArrayList<>();
@@ -198,14 +201,19 @@ public class ItemGridView {
                             .withStyle(net.minecraft.ChatFormatting.GRAY));
                     pendingTextTooltip = lines;
                     pendingTooltipImage = Optional.empty();
-                } else if (net.minecraft.client.gui.screens.Screen.hasControlDown()) {
+                } else if (Screen.hasAltDown() && GLFW.glfwGetKey(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_A) == GLFW.GLFW_PRESS) {
                     pendingTextTooltip = com.sanhiruzu.ami.client.results.DebugTooltip.build(entry);
                     pendingTooltipImage = Optional.empty();
                 } else if (entry.type() == com.sanhiruzu.ami.index.NodeType.ITEM) {
                     pendingTooltip = resolveStack(entry);
                 } else {
                     var renderer = com.sanhiruzu.ami.client.icon.RendererRegistry.get(entry.type());
-                    pendingTextTooltip = renderer.getTooltip(entry);
+                    List<Component> rendererLines = renderer.getTooltip(entry);
+                    if (rendererLines != null) {
+                        rendererLines = new ArrayList<>(rendererLines);
+                        rendererLines.add(Component.translatable("ami.gui.debug_hint").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
+                    }
+                    pendingTextTooltip = rendererLines;
                     pendingTooltipImage = renderer.getTooltipImage(entry);
                 }
             }
@@ -249,14 +257,48 @@ public class ItemGridView {
             }
 
             if (overrideStack != null) {
-                g.renderItem(overrideStack, cellX + 1, cellY + 1);
+                renderIconWithWiggle(g, overrideStack, cellX + 1, cellY + 1, hovered);
             } else if (entry.type() == com.sanhiruzu.ami.index.NodeType.ITEM) {
                 ItemStack stack = resolveStack(entry);
-                if (!stack.isEmpty()) g.renderItem(stack, cellX + 1, cellY + 1);
+                if (!stack.isEmpty()) renderIconWithWiggle(g, stack, cellX + 1, cellY + 1, hovered);
             } else {
-                com.sanhiruzu.ami.client.icon.RendererRegistry.get(entry.type()).render(g, entry, cellX + 1, cellY + 1, 16);
+                renderRendererWithWiggle(g, entry, cellX + 1, cellY + 1, hovered);
             }
         }
+    }
+
+    private void renderIconWithWiggle(GuiGraphics g, ItemStack stack, int x, int y, boolean hovered) {
+        boolean dragging = com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging();
+        g.pose().pushPose();
+        g.pose().translate(x + 8, y + 8, 150);
+        if (dragging || hovered) {
+            float time = (System.currentTimeMillis() % 1000) / 1000f;
+            float wiggle = (float) Math.sin(time * Math.PI * 2) * 0.05f;
+            g.pose().scale(1.1f + wiggle, 1.1f + wiggle, 1.1f);
+            if (dragging) {
+                g.pose().mulPose(com.mojang.math.Axis.ZP.rotationDegrees((float) Math.sin(time * Math.PI * 4) * 2f));
+            }
+        }
+        g.renderItem(stack, -8, -8);
+        g.pose().popPose();
+    }
+
+    private void renderRendererWithWiggle(GuiGraphics g, SearchNode entry, int x, int y, boolean hovered) {
+        boolean dragging = com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging();
+        g.pose().pushPose();
+        g.pose().translate(x, y, 150);
+        if (dragging || hovered) {
+            float time = (System.currentTimeMillis() % 1000) / 1000f;
+            float wiggle = (float) Math.sin(time * Math.PI * 2) * 0.05f;
+            g.pose().translate(8, 8, 0);
+            g.pose().scale(1.1f + wiggle, 1.1f + wiggle, 1.1f);
+            if (dragging) {
+                g.pose().mulPose(com.mojang.math.Axis.ZP.rotationDegrees((float) Math.sin(time * Math.PI * 4) * 2f));
+            }
+            g.pose().translate(-8, -8, 0);
+        }
+        com.sanhiruzu.ami.client.icon.RendererRegistry.get(entry.type()).render(g, entry, 0, 0, 16);
+        g.pose().popPose();
     }
 
     private void primeIconCache(GuiGraphics g, List<VirtualRow> rows) {
@@ -479,6 +521,12 @@ public class ItemGridView {
     }
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == GLFW.GLFW_KEY_A) {
+            if (hoveredNode != null) {
+                com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().toggleFavorite(hoveredNode);
+                return true;
+            }
+        }
         if (keyCode == GLFW.GLFW_KEY_C && Screen.hasControlDown()) {
             if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
                 AmiClipboardHelper.copyItemTooltipToClipboard(pendingTooltip);
@@ -530,5 +578,29 @@ public class ItemGridView {
 
     public boolean isMouseOver(double mouseX, double mouseY) {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
+    }
+
+    public SearchNode getHoveredNode() {
+        return hoveredNode;
+    }
+
+    public int getDropIndex(double mouseX, double mouseY) {
+        if (!isMouseOver(mouseX, mouseY)) return -1;
+        int cols = computeCols();
+        List<VirtualRow> rows = getVirtualRows(cols);
+        int itemCounter = 0;
+        int drawY = y - pixelScrollOffset;
+        for (VirtualRow row : rows) {
+            if (mouseY >= drawY && mouseY < drawY + row.height()) {
+                if (row instanceof HeaderRow) return itemCounter;
+                if (row instanceof ItemRow ir) {
+                    int col = ((int) mouseX - x - 1) / CELL_SIZE;
+                    return itemCounter + Math.clamp(col, 0, ir.items().size());
+                }
+            }
+            if (row instanceof ItemRow ir) itemCounter += ir.items().size();
+            drawY += row.height();
+        }
+        return itemCounter;
     }
 }
