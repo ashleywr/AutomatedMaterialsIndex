@@ -161,11 +161,11 @@ public class AmiConfig {
 
     @ConfigColor
     @ConfigValue("palette.panel-bg")
-    public static int panelBg = 0xAA000000;
+    public static int panelBg = 0x66000000;
 
     @ConfigColor
     @ConfigValue("palette.search-bar-bg")
-    public static int searchBarBg = 0x44000000;
+    public static int searchBarBg = 0x33000000;
 
     @ConfigColor
     @ConfigValue("palette.search-bar-border")
@@ -253,8 +253,8 @@ public class AmiConfig {
         itemClickAction = ItemClickAction.RECIPES;
         
         overlayBg = 0x66000000;
-        panelBg = 0xAA000000;
-        searchBarBg = 0x44000000;
+        panelBg = 0x66000000;
+        searchBarBg = 0x33000000;
         searchBarBorder = 0x884488FF;
         searchText = 0xFFFFFFFF;
         searchPlaceholder = 0xFFAAAAAA;

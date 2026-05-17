@@ -198,7 +198,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
         checkPlayerStateChanged();
 
         if (AmiConfig.useTransparentTheme) {
-            AMITheme.fillRounded(g, x, y, width, height, AmiConfig.overlayBg);
+            com.mojang.blaze3d.systems.RenderSystem.enableBlend();
+            com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
+            AMITheme.fillRounded(g, x, y, width, height, AmiConfig.panelBg);
             // Add a subtle border
             int border = 0x33FFFFFF;
             g.fill(x, y, x + width, y + 1, border);
