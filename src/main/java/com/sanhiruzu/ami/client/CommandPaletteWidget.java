@@ -4,11 +4,15 @@ import com.sanhiruzu.ami.AMIConfig;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.providers.RegistryUtils;
+import com.sanhiruzu.ami.util.AmiClipboardHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
+
+import net.minecraft.client.gui.screens.Screen;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -427,5 +431,17 @@ public class CommandPaletteWidget {
         scrollOffset -= (int) scrollDelta;
         scrollOffset = Math.max(0, Math.min(scrollOffset, totalRows - visibleCards));
         return true;
+    }
+
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (!focused || alpha <= 0.01f) return false;
+
+        if (keyCode == GLFW.GLFW_KEY_C && Screen.hasControlDown()) {
+            if (pendingTooltipLines != null && !pendingTooltipLines.isEmpty()) {
+                AmiClipboardHelper.copyComponentsToClipboard(pendingTooltipLines);
+                return true;
+            }
+        }
+        return false;
     }
 }
