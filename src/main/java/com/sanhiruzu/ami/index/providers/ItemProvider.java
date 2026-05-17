@@ -68,6 +68,7 @@ public class ItemProvider implements IAmiDataProvider {
                 for (SubtypeExpander.SubtypeEntry entry : subtypes) {
                     ItemIconRenderer.registerStack(entry.id(), entry.stack());
                     Map<String, String> meta = buildSubtypeMeta(id, extractColorBucket(entry.id()));
+                    if (!entry.extraMeta().isEmpty()) meta.putAll(entry.extraMeta());
                     if (!tags.isEmpty()) meta.put(SearchNodeKeys.TAGS, tags);
                     energyCapacitySniffer.sniff(entry.stack()).ifPresent(capacity -> addEnergyCapacity(meta, capacity));
                     index.addNode(new SearchNode(entry.id(), NodeType.ITEM,

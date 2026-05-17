@@ -40,9 +40,15 @@ public final class SubtypeExpander {
 
     /**
      * Returned from each expansion: a synthetic ResourceLocation (safe to use as a
-     * SearchNode id), the pre-built ItemStack to render, and the display name.
+     * SearchNode id), the pre-built ItemStack to render, the display name, and any
+     * additional metadata to merge into the SearchNode.
      */
-    public record SubtypeEntry(ResourceLocation id, ItemStack stack, String displayName) {}
+    public record SubtypeEntry(ResourceLocation id, ItemStack stack, String displayName,
+                               java.util.Map<String, String> extraMeta) {
+        public SubtypeEntry(ResourceLocation id, ItemStack stack, String displayName) {
+            this(id, stack, displayName, java.util.Map.of());
+        }
+    }
 
     /**
      * Expand {@code item} into its visual subtypes.
@@ -78,14 +84,19 @@ public final class SubtypeExpander {
                 break;
             }
             ResourceLocation potionId = potionRef.key().location();
-            if (potionId.getPath().equals("empty")) continue;
+            String effectPath = potionId.getPath();
+
+            // Skip the empty placeholder and duration/strength variants — only index base effects.
+            if (effectPath.equals("empty")) continue;
+            if (effectPath.startsWith("long_") || effectPath.startsWith("strong_")) continue;
 
             ItemStack stack = new ItemStack(potionItem);
             stack.set(DataComponents.POTION_CONTENTS, new PotionContents(potionRef));
 
-            ResourceLocation syntheticId = syntheticId(itemPath,
-                    potionId.getNamespace(), potionId.getPath());
-            result.add(new SubtypeEntry(syntheticId, stack, stack.getHoverName().getString()));
+            ResourceLocation syntheticId = syntheticId(itemPath, potionId.getNamespace(), effectPath);
+            java.util.Map<String, String> extra = java.util.Map.of(
+                    com.sanhiruzu.ami.index.SearchNodeKeys.POTION_EFFECT, potionId.toString());
+            result.add(new SubtypeEntry(syntheticId, stack, stack.getHoverName().getString(), extra));
         }
         return result;
     }

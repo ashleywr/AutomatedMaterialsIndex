@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.client.results;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
+import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.util.AmiColors;
 import com.sanhiruzu.ami.index.SearchNode;
@@ -108,11 +109,14 @@ public class ResultsTreeView {
      *                     (e.g. "Pinned & Discover"). Pass null to omit.
      */
     public void render(GuiGraphics g, int mouseX, int mouseY, boolean toolbarDropdownOpen,
-                       Component sectionLabel, String currentQuery) {
+                       Component sectionLabel, SearchState state) {
         pendingTooltipLines = null;
         pendingTooltipImage = Optional.empty();
         pendingItemStack = null;
         currentLabelScale = computeLabelScale();
+
+        String currentQuery = state.getQuery();
+        Set<String> selectedMods = state.getSelectedMods();
 
         int topOffset = 0;
         if (sectionLabel != null) {
@@ -138,7 +142,7 @@ public class ResultsTreeView {
         int effectiveMouseX = toolbarDropdownOpen ? -1 : mouseX;
         for (TreeNode node : rootNodes) {
             rowCounter[0] = renderNode(g, node, 0, rowCounter[0],
-                    effectiveMouseX, mouseY, y + topOffset, contentH, currentQuery);
+                    effectiveMouseX, mouseY, y + topOffset, contentH, currentQuery, selectedMods);
         }
 
         g.disableScissor();
@@ -156,8 +160,8 @@ public class ResultsTreeView {
     }
 
     /** Backwards-compatible overload used when no section label is needed. */
-    public void render(GuiGraphics g, int mouseX, int mouseY, boolean toolbarDropdownOpen, String currentQuery) {
-        render(g, mouseX, mouseY, toolbarDropdownOpen, (Component) null, currentQuery);
+    public void render(GuiGraphics g, int mouseX, int mouseY, boolean toolbarDropdownOpen, SearchState state) {
+        render(g, mouseX, mouseY, toolbarDropdownOpen, (Component) null, state);
     }
 
     /**
@@ -166,7 +170,7 @@ public class ResultsTreeView {
      * @param contentH height of the scrollable content region
      */
     private int renderNode(GuiGraphics g, TreeNode node, int depth, int rowIdx,
-                           int mouseX, int mouseY, int originY, int contentH, String currentQuery) {
+                           int mouseX, int mouseY, int originY, int contentH, String currentQuery, Set<String> selectedMods) {
         int drawY = originY - pixelScrollOffset + rowIdx * AMITheme.ROW_HEIGHT;
 
         // Only draw if even partially visible
@@ -186,7 +190,7 @@ public class ResultsTreeView {
             }
 
             if (node.isLeaf()) {
-                renderLeaf(g, node, depth, drawY, hovered, currentQuery);
+                renderLeaf(g, node, depth, drawY, hovered, currentQuery, selectedMods);
             } else {
                 renderGroup(g, node, depth, drawY, hovered);
             }
@@ -201,7 +205,7 @@ public class ResultsTreeView {
 
         if (!node.isLeaf() && node.isExpanded()) {
             for (TreeNode child : node.getChildren()) {
-                rowIdx = renderNode(g, child, depth + 1, rowIdx, mouseX, mouseY, originY, contentH, currentQuery);
+                rowIdx = renderNode(g, child, depth + 1, rowIdx, mouseX, mouseY, originY, contentH, currentQuery, selectedMods);
             }
         }
 
@@ -210,7 +214,7 @@ public class ResultsTreeView {
 
     // ── Leaf (rich card) ──────────────────────────────────────────────────────
 
-    private void renderLeaf(GuiGraphics g, TreeNode node, int depth, int drawY, boolean hovered, String currentQuery) {
+    private void renderLeaf(GuiGraphics g, TreeNode node, int depth, int drawY, boolean hovered, String currentQuery, Set<String> selectedMods) {
         var font = Minecraft.getInstance().font;
         SearchNode entry = node.getEntry();
 
@@ -244,10 +248,10 @@ public class ResultsTreeView {
         g.pose().popPose();
 
         // Mod name (on the second line, right aligned)
-        // Check for @modid match
-        boolean matched = false;
-        if (currentQuery != null && !currentQuery.isEmpty()) {
-            String modId = entry.id().getNamespace();
+        // Check for @modid match in query or in selectedMods context object
+        String modId = entry.id().getNamespace();
+        boolean matched = selectedMods.contains(modId);
+        if (!matched && currentQuery != null && !currentQuery.isEmpty()) {
             if (currentQuery.toLowerCase().contains("@" + modId.toLowerCase())) {
                 matched = true;
             }
@@ -374,22 +378,15 @@ public class ResultsTreeView {
         int caretY = drawY + (AMITheme.ROW_HEIGHT - font.lineHeight) / 2;
         g.drawString(font, arrow, rowX, caretY, AMITheme.TEXT_HEADER, false);
 
-        // Stacked Icon Effect (Representative Item)
-        SearchNode representative = getRepresentative(node);
-        if (representative != null) {
-            ItemStack icon = ItemIconRenderer.resolveStack(representative.id());
+        // Group icon
+        ItemStack icon = resolveGroupIcon(node);
+        if (!icon.isEmpty()) {
             int iconX = rowX + 12;
             int iconY = drawY + 1;
-
-            if (!icon.isEmpty()) {
-                g.renderItem(icon, iconX, iconY);
-
-                g.pose().pushPose();
-                g.pose().translate(2, -2, 100);
-                g.fill(iconX, iconY, iconX + 16, iconY + 16, 0x44000000);
-                g.renderItem(icon, iconX, iconY);
-                g.pose().popPose();
-            }
+            g.pose().pushPose();
+            g.pose().translate(0, 0, 150);
+            g.renderItem(icon, iconX, iconY);
+            g.pose().popPose();
         }
 
         // Count Badge
@@ -435,6 +432,25 @@ public class ResultsTreeView {
     }
 
     // ── Representative icon helpers ───────────────────────────────────────────
+
+    private ItemStack resolveGroupIcon(TreeNode node) {
+        // Category-level nodes use the ontology's designated icon item.
+        for (AmiOntology.Category cat : AmiOntology.CATEGORIES) {
+            if (cat.id.equals(node.getKey())) {
+                ResourceLocation iconId = ResourceLocation.tryParse(cat.iconItemId);
+                if (iconId != null) {
+                    Item item = BuiltInRegistries.ITEM.get(iconId);
+                    if (item != null && item != net.minecraft.world.item.Items.AIR) {
+                        return new ItemStack(item);
+                    }
+                }
+                return ItemStack.EMPTY;
+            }
+        }
+        // All other groups: use the alphabetically-first resolvable item in the subtree.
+        SearchNode rep = getRepresentative(node);
+        return rep != null ? ItemIconRenderer.resolveStack(rep.id()) : ItemStack.EMPTY;
+    }
 
     private SearchNode getRepresentative(TreeNode node) {
         if (!representativeCache.containsKey(node)) {

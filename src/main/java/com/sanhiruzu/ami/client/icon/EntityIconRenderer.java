@@ -3,6 +3,8 @@ package com.sanhiruzu.ami.client.icon;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.StatIconRowTooltipComponent;
+import com.sanhiruzu.ami.index.GlobalIndex;
+import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.client.Minecraft;
@@ -174,5 +176,42 @@ public class EntityIconRenderer implements IIconRenderer {
     @Override
     public void invalidate() {
         entityCache.clear();
+    }
+
+    /**
+     * Scans all ENTITY nodes and returns those that can't be rendered as a LivingEntity.
+     * Each entry is "id  (displayName)  [reason]". Requires an active level to instantiate types.
+     */
+    static List<String> collectMissingEntities() {
+        Minecraft mc = Minecraft.getInstance();
+        List<String> missing = new ArrayList<>();
+
+        for (SearchNode node : GlobalIndex.getInstance().getNodes(NodeType.ENTITY)) {
+            String base = node.id() + "  (" + node.displayName() + ")";
+
+            if (mc.level == null) {
+                missing.add(base + "  [no level]");
+                continue;
+            }
+
+            EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(node.id()).orElse(null);
+            if (type == null) {
+                missing.add(base + "  [type not in registry]");
+                continue;
+            }
+
+            try {
+                Entity e = type.create(mc.level);
+                if (!(e instanceof LivingEntity)) {
+                    String cls = e != null ? e.getClass().getSimpleName() : "null";
+                    missing.add(base + "  [not LivingEntity: " + cls + "]");
+                }
+            } catch (Exception ex) {
+                missing.add(base + "  [exception: " + ex.getMessage() + "]");
+            }
+        }
+
+        missing.sort(String::compareTo);
+        return missing;
     }
 }
