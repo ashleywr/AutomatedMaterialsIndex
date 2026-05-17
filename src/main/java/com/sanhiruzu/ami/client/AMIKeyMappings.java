@@ -11,7 +11,6 @@ import net.neoforged.neoforge.client.settings.KeyConflictContext;
 import net.neoforged.neoforge.client.settings.KeyModifier;
 import org.lwjgl.glfw.GLFW;
 
-@EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)
 public class AMIKeyMappings {
     public static final String CATEGORY = "key.categories.ami";
 

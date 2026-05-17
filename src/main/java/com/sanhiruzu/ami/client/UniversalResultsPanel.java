@@ -1,8 +1,8 @@
 package com.sanhiruzu.ami.client;
 
-import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.client.results.*;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchService;
@@ -253,7 +253,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         int sep2Y = toolbarY + toolbar.getHeight();
         g.fill(x + 3, sep2Y, x + width - 3, sep2Y + 1, AMITheme.SECTION_SEP);
 
-        if (!com.sanhiruzu.ami.index.GlobalIndex.getInstance().isIndexReady()) {
+        if (!com.sanhiruzu.ami.index.AmiIndexerService.getInstance().isReady() && currentResults.isEmpty() && currentQuery.isEmpty()) {
             net.minecraft.network.chat.Component msg = net.minecraft.network.chat.Component.translatable("ami.gui.background_indexing")
                     .withStyle(net.minecraft.ChatFormatting.GOLD);
             int msgW = Minecraft.getInstance().font.width(msg);
@@ -327,8 +327,18 @@ public class UniversalResultsPanel implements SearchState.Listener {
     // ── Tree refresh ──────────────────────────────────────────────────────────
 
     private void refreshTree() {
+        // Skip expensive tree rebuilds if we are hidden
+        var manager = com.sanhiruzu.ami.client.InventoryOverlayHandler.getManager();
+        if (manager != null && !manager.isPanelVisible() && !isFavoritesPanel) return;
+
         List<SearchNode> source = resolveSource();
         String query = state.getQuery();
+
+        // High-performance dashboard view for empty queries
+        if (query.isEmpty() && !isFavoritesPanel) {
+            showDashboard();
+            return;
+        }
 
         if (!query.isEmpty() && searchService != null) {
             Map<NodeType, List<SearchNode>> results = searchService.query(query);
@@ -340,6 +350,40 @@ public class UniversalResultsPanel implements SearchState.Listener {
         List<TreeNode> processed = processor.process(source);
         treeView.setRootNodes(processed);
         gridView.setRootNodes(processed);
+    }
+
+    private void showDashboard() {
+        List<TreeNode> dashboard = new ArrayList<>();
+        
+        // 1. Recent History (Most relevant first)
+        var history = com.sanhiruzu.ami.client.favorites.AmiHistoryHandler.getInstance().getLookupHistory();
+        if (!history.isEmpty()) {
+            TreeNode historyGroup = new TreeNode("history", Component.translatable("ami.gui.sidebar.lookup_history"));
+            historyGroup.setExpanded(true);
+            for (int i = 0; i < Math.min(history.size(), 12); i++) {
+                ItemStack stack = history.get(i);
+                var id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNode(id).ifPresent(node -> {
+                    historyGroup.addChild(new TreeNode(Component.literal(node.displayName()), node));
+                });
+            }
+            dashboard.add(historyGroup);
+        }
+
+        // 2. Browse by Category (Atlas) - Items first
+        TreeNode browse = new TreeNode("atlas", Component.translatable("ami.gui.registry_tree"));
+        browse.setExpanded(true);
+        
+        NodeType[] order = {NodeType.ITEM, NodeType.ENTITY, NodeType.STRUCTURE, NodeType.BIOME, NodeType.PLAYER, NodeType.DIMENSION};
+        for (NodeType type : order) {
+            TreeNode typeNode = new TreeNode(type.name(), type.displayName());
+            typeNode.setExpanded(false); // Lazy load children when expanded
+            browse.addChild(typeNode);
+        }
+        dashboard.add(browse);
+
+        treeView.setRootNodes(dashboard);
+        gridView.setRootNodes(dashboard);
     }
 
     private List<SearchNode> resolveSource() {
@@ -426,6 +470,25 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         if (button == 0 && toolbar.mouseClicked(mouseX, mouseY, button)) {
             return true;
+        }
+
+        // Handle Dashboard Atlas lazy loading
+        if (currentQuery.isEmpty() && !isFavoritesPanel) {
+            boolean handled = isGridActive() ? gridView.mouseClicked(mouseX, mouseY, button) : treeView.mouseClicked(mouseX, mouseY, button);
+            if (handled) {
+                // Check if we just expanded an atlas category
+                TreeNode expanded = getHoveredTreeNode();
+                if (expanded != null && expanded.getChildren().isEmpty()) {
+                    try {
+                        NodeType type = NodeType.valueOf(expanded.getKey());
+                        List<SearchNode> nodes = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodes(type);
+                        for (SearchNode n : nodes) {
+                            expanded.addChild(new TreeNode(Component.literal(n.displayName()), n));
+                        }
+                    } catch (Exception ignored) {}
+                }
+                return true;
+            }
         }
 
         if (isGridActive()) {
@@ -563,5 +626,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
     public SearchNode getHoveredNode() {
         if (isGridActive()) return gridView.getHoveredNode();
         return treeView.getHoveredNode();
+    }
+
+    public TreeNode getHoveredTreeNode() {
+        if (isGridActive()) return gridView.getHoveredTreeNode();
+        return treeView.getHoveredTreeNode();
     }
 }

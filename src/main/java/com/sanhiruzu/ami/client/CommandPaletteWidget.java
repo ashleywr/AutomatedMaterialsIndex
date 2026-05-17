@@ -7,11 +7,10 @@ import com.sanhiruzu.ami.index.providers.RegistryUtils;
 import com.sanhiruzu.ami.util.AmiClipboardHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
-
-import net.minecraft.client.gui.screens.Screen;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;

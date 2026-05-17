@@ -23,8 +23,9 @@ import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
 public class AMIClient {
 
-    public AMIClient(ModContainer container) {
+    public AMIClient(ModContainer container, net.neoforged.bus.api.IEventBus modEventBus) {
         container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
+        modEventBus.addListener(com.sanhiruzu.ami.client.AMIKeyMappings::registerKeyMappings);
     }
 
     @SubscribeEvent

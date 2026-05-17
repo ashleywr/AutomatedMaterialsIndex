@@ -6,11 +6,11 @@ import com.sanhiruzu.ami.index.GlobalIndex;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
-import net.minecraft.world.item.ItemStack;
 
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
 public class AmiDevModeHandler {
