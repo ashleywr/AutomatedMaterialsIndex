@@ -52,10 +52,11 @@ public class SingleSelectDropdown<T> implements Dropdown {
         }
         
         int maxTextW = width - (canOpen ? 12 : 6);
+        String displayText = text;
         if (font.width(text) > maxTextW) {
-            text = font.plainSubstrByWidth(text, maxTextW);
+            displayText = font.plainSubstrByWidth(text, maxTextW - 6) + "...";
         }
-        g.drawString(font, text, x + 3, y + 2, canOpen ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
+        g.drawString(font, displayText, x + 3, y + 2, canOpen ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
     }
 
     public void renderList(GuiGraphics g, int mouseX, int mouseY) {
