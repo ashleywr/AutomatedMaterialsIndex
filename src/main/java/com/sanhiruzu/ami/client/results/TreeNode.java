@@ -14,6 +14,7 @@ public class TreeNode {
     private boolean expanded = false;
     private boolean modGroup = false; // true when this group represents a mod namespace
     private boolean highCardinality = false; // true for "collapsed" groups like enchanted books
+    private int itemCountOverride = -1;
 
     /** Group node constructor. key is a stable ID used for deduplication. */
     public TreeNode(String key, Component label) {
@@ -45,4 +46,6 @@ public class TreeNode {
     public void setModGroup(boolean modGroup) { this.modGroup = modGroup; }
     public boolean isHighCardinality() { return highCardinality; }
     public void setHighCardinality(boolean highCardinality) { this.highCardinality = highCardinality; }
+    public int getItemCountOverride() { return itemCountOverride; }
+    public void setItemCountOverride(int itemCountOverride) { this.itemCountOverride = itemCountOverride; }
 }

@@ -21,6 +21,9 @@ public class GlobalIndex {
 
     // Fast lookup by ResourceLocation
     private final ConcurrentMap<ResourceLocation, SearchNode> idIndex = new ConcurrentHashMap<>();
+    
+    // Category index for fast dashboard lookups
+    private final Map<String, List<SearchNode>> categoryIndex = new ConcurrentHashMap<>();
 
     private GlobalIndex() {
         for (NodeType t : NodeType.values()) {
@@ -35,6 +38,13 @@ public class GlobalIndex {
     public void addNode(SearchNode node) {
         nodes.get(node.type()).add(node);
         idIndex.put(node.id(), node);
+        
+        // Index by ontology category
+        String category = node.meta(SearchNodeKeys.ONTOLOGY_CATEGORY, "");
+        if (category.isEmpty()) {
+            category = AmiOntology.classifyNode(node).id;
+        }
+        categoryIndex.computeIfAbsent(category, k -> Collections.synchronizedList(new ArrayList<>())).add(node);
     }
 
     public Optional<SearchNode> getNode(ResourceLocation id) {
@@ -45,21 +55,41 @@ public class GlobalIndex {
         return Collections.unmodifiableList(nodes.get(type));
     }
 
+    public List<SearchNode> getNodesByCategory(String categoryId) {
+        return Collections.unmodifiableList(categoryIndex.getOrDefault(categoryId, List.of()));
+    }
+
     /**
      * Replace all nodes of a given type. Used for deferred/retry population.
      */
     public void replaceNodes(NodeType type, List<SearchNode> newNodes) {
         List<SearchNode> list = nodes.get(type);
-        // Remove old entries from id index
-        for (SearchNode n : list) idIndex.remove(n.id());
+        // Remove old entries from id index and category index
+        for (SearchNode n : list) {
+            idIndex.remove(n.id());
+            String cat = n.meta(SearchNodeKeys.ONTOLOGY_CATEGORY, "");
+            if (cat.isEmpty()) cat = AmiOntology.classifyNode(n).id;
+            List<SearchNode> catList = categoryIndex.get(cat);
+            if (catList != null) catList.remove(n);
+        }
         list.clear();
         list.addAll(newNodes);
-        for (SearchNode n : newNodes) idIndex.put(n.id(), n);
+        for (SearchNode n : newNodes) addNodeToIndices(n);
+    }
+
+    private void addNodeToIndices(SearchNode n) {
+        idIndex.put(n.id(), n);
+        String category = n.meta(SearchNodeKeys.ONTOLOGY_CATEGORY, "");
+        if (category.isEmpty()) {
+            category = AmiOntology.classifyNode(n).id;
+        }
+        categoryIndex.computeIfAbsent(category, k -> Collections.synchronizedList(new ArrayList<>())).add(n);
     }
 
     public void clear() {
         nodes.values().forEach(List::clear);
         idIndex.clear();
+        categoryIndex.clear();
         loadingTypes.clear();
         indexReady = false;
         indexBuildTimeMs = 0;
