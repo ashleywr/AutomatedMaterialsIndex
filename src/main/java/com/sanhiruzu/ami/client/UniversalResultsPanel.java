@@ -33,6 +33,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private SearchService searchService;
     private Runnable externalResetCallback;
 
+    // State tracking to trigger auto-refreshes when player context changes
+    private net.minecraft.world.level.GameType lastPlayerMode = null;
+    private boolean lastDevMode = false;
+
     public UniversalResultsPanel(int x, int y, int width, int height) {
         this.x = x;
         this.y = y;
@@ -57,7 +61,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         this.treeView = new ResultsTreeView(innerX, contentY, innerW, contentH);
         this.gridView = new ItemGridView(innerX, contentY, innerW, contentH);
-        this.gridView.setItemClickCallback(this::onGridItemClicked);
+        this.gridView.setItemClickCallback(this::onItemClicked);
+        this.treeView.setItemClickCallback(this::onItemClicked);
     }
 
     public void setEntries(List<SearchNode> entries) {
@@ -67,6 +72,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     public void setOnModClick(java.util.function.Consumer<String> callback) {
         this.treeView.setOnModClick(callback);
+    }
+
+    public void setOnFacetInject(java.util.function.Consumer<String> callback) {
+        this.facetBar.setOnTokenInject(callback);
     }
 
     public void setSearchResults(Map<NodeType, List<SearchNode>> results, String query) {
@@ -105,47 +114,81 @@ public class UniversalResultsPanel implements SearchState.Listener {
         int innerX = x + AMITheme.GLOBAL_PADDING;
         int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
 
-        facetBar.updateLayout(innerX, y + AMITheme.GLOBAL_PADDING, innerW);
+        if (com.sanhiruzu.ami.AMIConfig.COMPACT_MODE.get()) {
+            // Compact: grid fills the entire panel, no facets or toolbar.
+            int contentH = height - AMITheme.GLOBAL_PADDING * 2;
+            gridView.updateLayout(innerX, y + AMITheme.GLOBAL_PADDING, innerW, contentH);
+        } else {
+            facetBar.updateLayout(innerX, y + AMITheme.GLOBAL_PADDING, innerW);
 
-        int toolbarY = y + AMITheme.GLOBAL_PADDING + FacetBar.HEIGHT + AMITheme.ELEMENT_GAP;
-        toolbar.updateLayout(innerX, toolbarY, innerW);
+            int toolbarY = y + AMITheme.GLOBAL_PADDING + FacetBar.HEIGHT + AMITheme.ELEMENT_GAP;
+            toolbar.updateLayout(innerX, toolbarY, innerW);
 
-        int contentY = toolbarY + toolbar.getHeight() + AMITheme.ELEMENT_GAP;
-        int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
-        treeView.updateLayout(innerX, contentY, innerW, contentH);
-        gridView.updateLayout(innerX, contentY, innerW, contentH);
+            int contentY = toolbarY + toolbar.getHeight() + AMITheme.ELEMENT_GAP;
+            int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
+            treeView.updateLayout(innerX, contentY, innerW, contentH);
+            gridView.updateLayout(innerX, contentY, innerW, contentH);
+        }
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        AMITheme.sync(); // CSS-like hot-reloading of config values
+        AMITheme.sync();
+        checkPlayerStateChanged();
 
-        // Vanilla 9-slice panel background
         g.blitSprite(PANEL_SPRITE, x, y, width, height);
+
+        boolean compact = com.sanhiruzu.ami.AMIConfig.COMPACT_MODE.get();
+
+        if (compact) {
+            if (!com.sanhiruzu.ami.index.GlobalIndex.getInstance().isIndexReady()) {
+                g.drawString(Minecraft.getInstance().font, "...",
+                        x + AMITheme.GLOBAL_PADDING, y + AMITheme.GLOBAL_PADDING, 0xFFAAAAAA, false);
+            } else {
+                gridView.render(g, mouseX, mouseY);
+            }
+            return;
+        }
 
         facetBar.render(g, mouseX, mouseY);
 
-        // Section separator: FacetBar → Toolbar
         int sep1Y = y + AMITheme.GLOBAL_PADDING + FacetBar.HEIGHT;
         g.fill(x + 3, sep1Y, x + width - 3, sep1Y + 1, AMITheme.SECTION_SEP);
 
         toolbar.render(g, mouseX, mouseY);
 
-        // Section separator: Toolbar → Results
         int toolbarY = y + AMITheme.GLOBAL_PADDING + FacetBar.HEIGHT + AMITheme.ELEMENT_GAP;
         int sep2Y = toolbarY + toolbar.getHeight();
         g.fill(x + 3, sep2Y, x + width - 3, sep2Y + 1, AMITheme.SECTION_SEP);
 
-        boolean gridMode = state.getViewMode() == ResultsToolbar.ViewMode.GRID;
-        if (gridMode) {
-            gridView.render(g, mouseX, mouseY);
+        if (!com.sanhiruzu.ami.index.GlobalIndex.getInstance().isIndexReady()) {
+            net.minecraft.network.chat.Component msg = net.minecraft.network.chat.Component.literal("§6Indexing in background...");
+            int msgW = Minecraft.getInstance().font.width(msg);
+            int contentY = toolbarY + toolbar.getHeight() + AMITheme.ELEMENT_GAP;
+            int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
+            g.drawString(Minecraft.getInstance().font, msg, x + (width - msgW) / 2, contentY + (contentH / 2) - 4, 0xFFFFFF, false);
         } else {
-            treeView.render(g, mouseX, mouseY, toolbar.isAnyDropdownOpen(), null, state);
+            boolean gridMode = state.getViewMode() == ResultsToolbar.ViewMode.GRID;
+            if (gridMode) {
+                gridView.render(g, mouseX, mouseY);
+            } else {
+                treeView.render(g, mouseX, mouseY, toolbar.isAnyDropdownOpen(), null, state);
+            }
         }
 
         toolbar.renderOpenDropdownLists(g, mouseX, mouseY);
-
-        // FacetBar tooltip drawn last so it layers above everything else
         facetBar.renderTooltip(g, mouseX, mouseY);
+    }
+
+    private void checkPlayerStateChanged() {
+        var mc = Minecraft.getInstance();
+        var gameMode = mc.gameMode != null ? mc.gameMode.getPlayerMode() : null;
+        boolean devMode = com.sanhiruzu.ami.AMIConfig.DEV_MODE.get();
+
+        if (gameMode != lastPlayerMode || devMode != lastDevMode) {
+            lastPlayerMode = gameMode;
+            lastDevMode = devMode;
+            refreshTree();
+        }
     }
 
     // ── Tree refresh ──────────────────────────────────────────────────────────
@@ -170,13 +213,13 @@ public class UniversalResultsPanel implements SearchState.Listener {
         return currentResults;
     }
 
-    // ── Item click (grid) ─────────────────────────────────────────────────────
+    // ── Item click (grid + list) ──────────────────────────────────────────────
 
-    private void onGridItemClicked(SearchNode node, int button) {
-        ItemStack stack = BuiltInRegistries.ITEM.getOptional(node.id())
-                .map(ItemStack::new)
-                .orElse(ItemStack.EMPTY);
-        RecipeViewerBridge.handleItemClick(stack, button);
+    private void onItemClicked(SearchNode node, int button) {
+        // Use ItemIconRenderer.resolveStack so synthetic items (potions, enchanted books, etc.)
+        // resolve correctly via persistentStacks rather than a plain registry lookup.
+        ItemStack stack = com.sanhiruzu.ami.client.icon.ItemIconRenderer.resolveStack(node.id());
+        if (!stack.isEmpty()) RecipeViewerBridge.handleItemClick(stack, button);
     }
 
     // ── Input handlers ────────────────────────────────────────────────────────

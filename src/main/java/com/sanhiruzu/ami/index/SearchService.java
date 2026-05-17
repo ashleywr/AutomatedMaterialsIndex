@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.index.query.QueryParser;
+import com.sanhiruzu.ami.index.resolvers.CategoryResolver;
 import com.sanhiruzu.ami.index.resolvers.EnvironmentResolver;
 import com.sanhiruzu.ami.index.resolvers.LiteralResolver;
 import com.sanhiruzu.ami.index.resolvers.ModResolver;
@@ -22,16 +23,18 @@ public final class SearchService {
     private final EnvironmentResolver envResolver;
     private final NumericMetadataResolver numericResolver;
     private final PropertyResolver propertyResolver;
+    private final CategoryResolver categoryResolver;
 
     private SearchService(List<IQueryResolver> resolvers, TagResolver tagResolver, ModResolver modResolver,
                           EnvironmentResolver envResolver, NumericMetadataResolver numericResolver,
-                          PropertyResolver propertyResolver) {
+                          PropertyResolver propertyResolver, CategoryResolver categoryResolver) {
         this.resolvers = List.copyOf(resolvers);
         this.tagResolver = tagResolver;
         this.modResolver = modResolver;
         this.envResolver = envResolver;
         this.numericResolver = numericResolver;
         this.propertyResolver = propertyResolver;
+        this.categoryResolver = categoryResolver;
     }
 
     /**
@@ -50,6 +53,7 @@ public final class SearchService {
         EnvironmentResolver envResolver = new EnvironmentResolver();
         NumericMetadataResolver numericResolver = new NumericMetadataResolver();
         PropertyResolver propertyResolver = new PropertyResolver();
+        CategoryResolver categoryResolver = new CategoryResolver();
 
         // Pre-load all resolvers with indexed nodes
         for (NodeType type : NodeType.values()) {
@@ -60,6 +64,7 @@ public final class SearchService {
                 envResolver.addNode(node);
                 numericResolver.addNode(node);
                 propertyResolver.addNode(node);
+                categoryResolver.addNode(node);
             }
         }
 
@@ -69,7 +74,7 @@ public final class SearchService {
             resolvers.add(new PlayerResolver());
         }
 
-        return new SearchService(resolvers, tagResolver, modResolver, envResolver, numericResolver, propertyResolver);
+        return new SearchService(resolvers, tagResolver, modResolver, envResolver, numericResolver, propertyResolver, categoryResolver);
     }
 
     /**
@@ -99,6 +104,7 @@ public final class SearchService {
         List<String> envParts = new ArrayList<>();
         List<String> propertyParts = new ArrayList<>();
         List<String> numericParts = new ArrayList<>();
+        List<String> categoryParts = new ArrayList<>();
 
         for (QueryParser.QueryToken token : parsed.tokens()) {
             String value = token.value();
@@ -111,6 +117,7 @@ public final class SearchService {
                 case PROP -> propertyParts.add(value);
                 case EXCLUDE -> excludeParts.add(value);
                 case ESM -> numericParts.add(value);
+                case CATEGORY -> categoryParts.add(value);
                 default -> {} // ESSENTIAL is reserved for curated result sets.
             }
         }
@@ -140,6 +147,9 @@ public final class SearchService {
         for (String numericPart : numericParts) {
             hasActiveResultSet = applyPositiveFilter(results, numericResolver.resolve(numericPart), hasActiveResultSet);
         }
+        for (String categoryPart : categoryParts) {
+            hasActiveResultSet = applyPositiveFilter(results, categoryResolver.resolve(categoryPart), hasActiveResultSet);
+        }
 
         for (String excludePart : excludeParts) {
             Map<NodeType, List<SearchNode>> partial = resolveExclude(excludePart);
@@ -161,6 +171,9 @@ public final class SearchService {
     }
 
     private Map<NodeType, List<SearchNode>> resolveExclude(String excludePart) {
+        if (excludePart.startsWith("$")) {
+            return categoryResolver.resolve(excludePart.substring(1));
+        }
         if (excludePart.startsWith("#")) {
             return tagResolver.resolve(excludePart.substring(1));
         }

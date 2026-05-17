@@ -95,9 +95,14 @@ public final class GlobalIndexCache {
     public static CompletableFuture<Void> loadOrIndexAsync(ClientLevel level, Runnable onComplete) {
         return CompletableFuture
             .runAsync(() -> {
+                GroupingEngine.initialize(level);
                 if (!tryLoad()) {
                     ProviderRegistry.indexAll(level);
                     save();
+                } else {
+                    // Index data restored from cache, but per-session ItemStacks for synthetic
+                    // nodes (potions, enchanted books, etc.) are not serialized. Rebuild them.
+                    ProviderRegistry.rehydrateSubtypeStacks(level);
                 }
                 GlobalIndex.getInstance().markIndexReady();
             }, Util.backgroundExecutor())
@@ -115,7 +120,7 @@ public final class GlobalIndexCache {
             String input = ModList.get().getMods().stream()
                     .sorted(Comparator.comparing(info -> info.getModId()))
                     .map(info -> info.getModId() + ":" + info.getVersion())
-                    .reduce("", (a, b) -> a + "|" + b);
+                    .reduce("", (a, b) -> a + "|" + b) + "_v4";
 
             MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
             byte[] digest = sha256.digest(input.getBytes(StandardCharsets.UTF_8));

@@ -1,11 +1,16 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.AMIConfig;
+import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.index.AmiOntology;
+import com.sanhiruzu.ami.index.AmiIndexerService;
+import com.sanhiruzu.ami.index.GroupingEngine;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -19,7 +24,8 @@ public class ResultsProcessor {
         COLOR("ami.sort.color"),
         MOD("ami.sort.mod"),
         STORAGE_CAPACITY("ami.sort.storage"),
-        DPS("ami.sort.dps");
+        DPS("ami.sort.dps"),
+        COUNT("ami.sort.count");
 
         public final Component displayName;
         SortField(String key) { this.displayName = Component.translatable(key); }
@@ -30,6 +36,7 @@ public class ResultsProcessor {
         MOD("ami.group.mod"),
         CATEGORY("ami.group.category"),
         MATERIAL("ami.group.material"),
+        FAMILY("ami.group.family"),
         SHAPE("ami.group.shape");
 
         public final Component displayName;
@@ -40,8 +47,8 @@ public class ResultsProcessor {
     private final SortField sortField;
     private final boolean ascending;
     private final GroupBy groupBy;
-    private final Set<String> selectedMods; // empty = all mods
-    private final Set<String> activeFacets; // empty = no facet filter
+    private final Set<String> selectedMods;
+    private final Set<String> activeFacets;
 
     public ResultsProcessor(SortField sortField, boolean ascending, GroupBy groupBy,
                             Set<String> selectedMods, Set<String> activeFacets) {
@@ -53,7 +60,12 @@ public class ResultsProcessor {
     }
 
     public List<TreeNode> process(List<SearchNode> results) {
-        // Filter by selected mods, then by active facets
+        // Handle background indexing state
+        if (!com.sanhiruzu.ami.index.GlobalIndex.getInstance().isIndexReady()) {
+            return List.of(new TreeNode("indexing", Component.literal("§6Indexing in background...")));
+        }
+
+        // Filter
         List<SearchNode> filtered = results.stream()
                 .filter(n -> selectedMods.isEmpty() || selectedMods.contains(n.id().getNamespace()))
                 .filter(this::matchesFacets)
@@ -61,7 +73,7 @@ public class ResultsProcessor {
                 .collect(Collectors.toList());
 
         // Sort
-        filtered.sort((a, b) -> compareNodes(a, b));
+        filtered.sort(this::compareNodes);
         if (!ascending) {
             Collections.reverse(filtered);
         }
@@ -69,13 +81,12 @@ public class ResultsProcessor {
         // Group
         List<TreeNode> tree = buildTree(filtered);
         
-        // Final pass: Collapse high-cardinality leaf clusters (e.g. enchanted books)
         return applyHighCardinalityGrouping(tree);
     }
 
     private int compareNodes(SearchNode a, SearchNode b) {
         return switch (sortField) {
-            case ALPHABETICAL -> a.displayName().compareTo(b.displayName());
+            case ALPHABETICAL, COUNT -> a.displayName().compareTo(b.displayName());
             case COLOR -> Integer.compare(a.color(), b.color());
             case MOD -> a.id().getNamespace().compareTo(b.id().getNamespace());
             case STORAGE_CAPACITY -> compareNumericMeta(a, b, SearchNodeKeys.ESM_CAPACITY);
@@ -102,132 +113,210 @@ public class ResultsProcessor {
             case DIMENSION -> groupByDimension(sorted);
             case MOD -> groupByMod(sorted);
             case CATEGORY -> groupByCategory(sorted);
-            case MATERIAL -> groupByMetadata(sorted, SearchNodeKeys.MATERIAL_GROUP, Component.translatable("ami.group.unknown_material"), true);
-            case SHAPE -> groupByMetadata(sorted, SearchNodeKeys.VARIANT_GROUP, Component.translatable("ami.group.unknown_shape"), false);
+            case MATERIAL -> groupByClassifier(sorted, n -> n.meta(SearchNodeKeys.MATERIAL_GROUP, ""), Component.translatable("ami.group.unknown_material"), true, List.of());
+            case FAMILY -> groupByClassifier(sorted, n -> {
+                ItemStack stack = ItemIconRenderer.resolveStack(n.id());
+                return GroupingEngine.classifyFamilyRoot(stack);
+            }, Component.translatable("ami.group.unknown_family"), true, List.of());
+            case SHAPE -> groupByClassifier(sorted, n -> n.meta(SearchNodeKeys.VARIANT_GROUP, ""), Component.translatable("ami.group.unknown_shape"), false, GroupingEngine.SHAPE_ORDER);
         };
     }
 
-    private List<TreeNode> groupByDimension(List<SearchNode> entries) {
-        Map<String, TreeNode> dimGroups = new LinkedHashMap<>();
+    private Map<String, List<SearchNode>> sortGroupsLocally(Map<String, List<SearchNode>> groups, List<String> order) {
+        if (sortField != SortField.COUNT) {
+            return GroupingEngine.sortGroups(groups, order);
+        }
 
+        List<Map.Entry<String, List<SearchNode>>> entries = new ArrayList<>(groups.entrySet());
+        entries.sort((a, b) -> {
+            String k1 = a.getKey(); String k2 = b.getKey();
+            
+            // Unknowns/Fallbacks always to the bottom
+            boolean u1 = k1.isBlank() || k1.equals("item") || k1.equals("minecraft:item") || k1.equals("block") || k1.toLowerCase().contains("unknown") || k1.equals(FALLBACK_GROUP_KEY);
+            boolean u2 = k2.isBlank() || k2.equals("item") || k2.equals("minecraft:item") || k2.equals("block") || k2.toLowerCase().contains("unknown") || k2.equals(FALLBACK_GROUP_KEY);
+            if (u1 && !u2) return 1;
+            if (!u1 && u2) return -1;
+
+            // Sort by count
+            int cmp = Integer.compare(a.getValue().size(), b.getValue().size());
+            if (!ascending) {
+                cmp = -cmp; // Reverse size comparison if descending is selected
+            }
+            if (cmp == 0) {
+                return k1.compareTo(k2); // Fallback to alphabetical if counts are identical
+            }
+            return cmp;
+        });
+
+        Map<String, List<SearchNode>> result = new LinkedHashMap<>();
+        for (var entry : entries) result.put(entry.getKey(), entry.getValue());
+        return result;
+    }
+
+    private List<TreeNode> groupByDimension(List<SearchNode> entries) {
+        Map<String, List<SearchNode>> dimGroups = new LinkedHashMap<>();
         for (SearchNode entry : entries) {
             String dim = entry.meta(SearchNodeKeys.DIMENSION, "overworld");
-            String dimKey = switch (dim) {
-                case "nether" -> "nether";
-                case "end" -> "end";
-                default -> "overworld";
-            };
+            dimGroups.computeIfAbsent(dim, k -> new ArrayList<>()).add(entry);
+        }
+
+        Map<String, List<SearchNode>> sortedGroups = sortGroupsLocally(dimGroups, List.of("overworld", "nether", "end"));
+        List<TreeNode> result = new ArrayList<>();
+
+        for (var entry : sortedGroups.entrySet()) {
+            String dimKey = entry.getKey();
             Component dimLabel = switch (dimKey) {
                 case "nether" -> Component.translatable("ami.dimension.nether");
                 case "end" -> Component.translatable("ami.dimension.end");
                 default -> Component.translatable("ami.dimension.overworld");
             };
-
-            TreeNode dimNode = dimGroups.computeIfAbsent(dimKey, k -> {
-                TreeNode n = new TreeNode(k, dimLabel);
-                n.setExpanded(true);
-                return n;
-            });
-            String ns = entry.id().getNamespace();
-            TreeNode modNode = findOrCreateChild(dimNode, ns, Component.literal(ns));
-            modNode.setModGroup(true);
-            modNode.addChild(new TreeNode(Component.literal(entry.displayName()), entry));
+            TreeNode dimNode = new TreeNode(dimKey, dimLabel);
+            dimNode.setExpanded(true);
+            
+            Map<String, List<SearchNode>> modGroups = new LinkedHashMap<>();
+            for (SearchNode node : entry.getValue()) {
+                modGroups.computeIfAbsent(node.id().getNamespace(), k -> new ArrayList<>()).add(node);
+            }
+            
+            for (var modEntry : modGroups.entrySet()) {
+                TreeNode modNode = new TreeNode(modEntry.getKey(), Component.literal(modEntry.getKey()));
+                modNode.setModGroup(true);
+                modNode.setExpanded(true);
+                for (SearchNode node : modEntry.getValue()) {
+                    modNode.addChild(new TreeNode(Component.literal(node.displayName()), node));
+                }
+                dimNode.addChild(modNode);
+            }
+            result.add(dimNode);
         }
-
-        return new ArrayList<>(dimGroups.values());
+        return result;
     }
 
     private List<TreeNode> groupByMod(List<SearchNode> entries) {
-        Map<String, TreeNode> modGroups = new LinkedHashMap<>();
-
+        Map<String, List<SearchNode>> modGroups = new LinkedHashMap<>();
         for (SearchNode entry : entries) {
-            String namespace = entry.id().getNamespace();
-            TreeNode modNode = modGroups.computeIfAbsent(namespace, k -> {
-                TreeNode n = new TreeNode(k, Component.literal(k));
-                n.setExpanded(true);
-                n.setModGroup(true);
-                return n;
-            });
-            TreeNode typeNode = findOrCreateChild(modNode, entry.type().displayName().getString(), entry.type().displayName());
-            typeNode.addChild(new TreeNode(Component.literal(entry.displayName()), entry));
+            modGroups.computeIfAbsent(entry.id().getNamespace(), k -> new ArrayList<>()).add(entry);
         }
 
-        return new ArrayList<>(modGroups.values());
+        Map<String, List<SearchNode>> sortedGroups = sortGroupsLocally(modGroups, List.of());
+        List<TreeNode> result = new ArrayList<>();
+
+        for (var entry : sortedGroups.entrySet()) {
+            String namespace = entry.getKey();
+            TreeNode modNode = new TreeNode(namespace, Component.literal(namespace));
+            modNode.setExpanded(true);
+            modNode.setModGroup(true);
+            
+            Map<String, List<SearchNode>> typeGroups = new LinkedHashMap<>();
+            for (SearchNode node : entry.getValue()) {
+                typeGroups.computeIfAbsent(node.type().displayName().getString(), k -> new ArrayList<>()).add(node);
+            }
+            
+            for (var typeEntry : typeGroups.entrySet()) {
+                TreeNode typeNode = new TreeNode(typeEntry.getKey(), Component.literal(typeEntry.getKey()));
+                typeNode.setExpanded(true);
+                for (SearchNode node : typeEntry.getValue()) {
+                    typeNode.addChild(new TreeNode(Component.literal(node.displayName()), node));
+                }
+                modNode.addChild(typeNode);
+            }
+            result.add(modNode);
+        }
+        return result;
     }
 
     private List<TreeNode> groupByCategory(List<SearchNode> entries) {
-        Map<String, TreeNode> catGroups = new LinkedHashMap<>();
-
-        // Pre-insert all category nodes to preserve CATEGORIES order
-        for (AmiOntology.Category cat : AmiOntology.CATEGORIES) {
-            TreeNode n = new TreeNode(cat.id, cat.displayName);
-            n.setExpanded(true);
-            catGroups.put(cat.id, n);
+        Map<String, List<SearchNode>> catMap = new LinkedHashMap<>();
+        for (SearchNode entry : entries) {
+            catMap.computeIfAbsent(AmiOntology.classifyNode(entry).id, k -> new ArrayList<>()).add(entry);
         }
 
+        List<TreeNode> result = new ArrayList<>();
         boolean blocksMaterial = AMIConfig.BLOCK_SUBGROUP.get() == AMIConfig.BlockSubgroup.MATERIAL;
 
-        for (SearchNode entry : entries) {
-            AmiOntology.Category cat = AmiOntology.classifyNode(entry);
-            TreeNode catNode = catGroups.get(cat.id);
+        for (AmiOntology.Category cat : AmiOntology.CATEGORIES) {
+            List<SearchNode> catEntries = catMap.get(cat.id);
+            if (catEntries == null || catEntries.isEmpty()) continue;
 
-            String rawSubId = entry.meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "");
+            TreeNode catNode = new TreeNode(cat.id, cat.displayName);
+            catNode.setExpanded(true);
 
-            // For building-type block shapes, swap to material grouping when config says so.
-            // Structural subcategories (functional/redstone/decorative) are never swapped.
-            final String subId;
-            if (cat == AmiOntology.BLOCKS && blocksMaterial && isBuildingShape(rawSubId)) {
-                String matId = entry.meta(SearchNodeKeys.BLOCKS_MATERIAL, "");
-                subId = matId.isEmpty() ? rawSubId : matId;
-            } else {
-                subId = rawSubId;
+            Map<String, List<SearchNode>> subMap = new LinkedHashMap<>();
+            for (SearchNode entry : catEntries) {
+                String rawSubId = entry.meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "");
+                final String subId;
+                if (cat == AmiOntology.BLOCKS && blocksMaterial && isBuildingShape(rawSubId)) {
+                    String matId = entry.meta(SearchNodeKeys.BLOCKS_MATERIAL, "");
+                    subId = matId.isEmpty() ? rawSubId : matId;
+                } else {
+                    subId = rawSubId;
+                }
+                subMap.computeIfAbsent(subId, k -> new ArrayList<>()).add(entry);
             }
 
-            if (!subId.isEmpty()) {
+            Map<String, List<SearchNode>> sortedSubs = sortGroupsLocally(subMap, List.of());
+            for (var subEntry : sortedSubs.entrySet()) {
+                String subId = subEntry.getKey();
+                if (subId.isEmpty()) {
+                    TreeNode miscNode = new TreeNode("misc", Component.translatable("ami.group.misc"));
+                    for (SearchNode node : subEntry.getValue()) miscNode.addChild(new TreeNode(Component.literal(node.displayName()), node));
+                    catNode.addChild(miscNode);
+                    continue;
+                }
+
                 Component subLabel = cat.subCategories.stream()
                         .filter(s -> s.id().equals(subId))
                         .map(AmiOntology.SubCategory::displayName)
                         .findFirst()
-                        .orElse(Component.literal(subId));
-                TreeNode subNode = findOrCreateChild(catNode, subId, subLabel);
+                        .orElse(Component.literal(formatGroupLabel(formatGroupKey(subId, true))));
+                
+                TreeNode subNode = new TreeNode(subId, subLabel);
+                subNode.setExpanded(true);
 
-                // Potions are grouped by effect within their subcategory node.
-                String potionEffect = entry.meta(SearchNodeKeys.POTION_EFFECT, "");
-                if (!potionEffect.isEmpty()) {
-                    TreeNode effectNode = findOrCreateChild(subNode, potionEffect, potionEffectLabel(potionEffect));
-                    effectNode.addChild(new TreeNode(Component.literal(entry.displayName()), entry));
-                } else {
-                    subNode.addChild(new TreeNode(Component.literal(entry.displayName()), entry));
+                Map<String, List<SearchNode>> pMap = new LinkedHashMap<>();
+                for (SearchNode node : subEntry.getValue()) {
+                    pMap.computeIfAbsent(node.meta(SearchNodeKeys.POTION_EFFECT, ""), k -> new ArrayList<>()).add(node);
                 }
-            } else {
-                TreeNode miscNode = findOrCreateChild(catNode, "misc", Component.translatable("ami.group.misc"));
-                miscNode.addChild(new TreeNode(Component.literal(entry.displayName()), entry));
+                
+                for (var pEntry : pMap.entrySet()) {
+                    if (pEntry.getKey().isEmpty()) {
+                        for (SearchNode node : pEntry.getValue()) subNode.addChild(new TreeNode(Component.literal(node.displayName()), node));
+                    } else {
+                        TreeNode pNode = new TreeNode(pEntry.getKey(), potionEffectLabel(pEntry.getKey()));
+                        for (SearchNode node : pEntry.getValue()) pNode.addChild(new TreeNode(Component.literal(node.displayName()), node));
+                        subNode.addChild(pNode);
+                    }
+                }
+                catNode.addChild(subNode);
             }
+            result.add(catNode);
         }
-
-        // Only include categories that actually have children
-        return catGroups.values().stream()
-                .filter(n -> !n.getChildren().isEmpty())
-                .collect(Collectors.toList());
+        return result;
     }
 
-    private List<TreeNode> groupByMetadata(List<SearchNode> entries, String metadataKey, Component fallback, boolean compactResourceIds) {
-        Map<String, TreeNode> groups = new LinkedHashMap<>();
-
+    private List<TreeNode> groupByClassifier(List<SearchNode> entries, java.util.function.Function<SearchNode, String> classifier, 
+                                            Component fallback, boolean compactResourceIds, List<String> order) {
+        Map<String, List<SearchNode>> rawGroups = new LinkedHashMap<>();
         for (SearchNode entry : entries) {
-            String groupValue = entry.meta(metadataKey, "");
-            boolean isFallback = groupValue.isBlank();
-            String mapKey = isFallback ? FALLBACK_GROUP_KEY : formatGroupKey(groupValue, compactResourceIds);
-            TreeNode groupNode = groups.computeIfAbsent(mapKey, k -> {
-                Component label = isFallback ? fallback : Component.literal(formatGroupLabel(k));
-                TreeNode n = new TreeNode(k, label);
-                n.setExpanded(true);
-                return n;
-            });
-            groupNode.addChild(new TreeNode(Component.literal(entry.displayName()), entry));
+            rawGroups.computeIfAbsent(classifier.apply(entry), k -> new ArrayList<>()).add(entry);
         }
 
-        return new ArrayList<>(groups.values());
+        Map<String, List<SearchNode>> sortedGroups = sortGroupsLocally(rawGroups, order);
+        List<TreeNode> result = new ArrayList<>();
+
+        for (var entry : sortedGroups.entrySet()) {
+            String val = entry.getKey();
+            boolean isFallback = val.isBlank() || val.equals("item") || val.equals("block") || val.toLowerCase().contains("unknown");
+            String mapKey = isFallback ? FALLBACK_GROUP_KEY : formatGroupKey(val, compactResourceIds);
+            
+            TreeNode groupNode = new TreeNode(mapKey, isFallback ? fallback : Component.literal(formatGroupLabel(mapKey)));
+            groupNode.setExpanded(true);
+            for (SearchNode node : entry.getValue()) {
+                groupNode.addChild(new TreeNode(Component.literal(node.displayName()), node));
+            }
+            result.add(groupNode);
+        }
+        return result;
     }
 
     private String formatGroupKey(String value, boolean compactResourceIds) {
@@ -253,36 +342,14 @@ public class ResultsProcessor {
 
     private Component potionEffectLabel(String effectId) {
         ResourceLocation loc = ResourceLocation.tryParse(effectId);
-        if (loc != null) {
-            return Component.translatable("effect." + loc.getNamespace() + "." + loc.getPath());
-        }
+        if (loc != null) return Component.translatable("effect." + loc.getNamespace() + "." + loc.getPath());
         return Component.literal(formatGroupLabel(effectId.replace(':', '_').replace('/', '_')));
     }
 
-    private TreeNode findOrCreateChild(TreeNode parent, String key, Component label) {
-        for (TreeNode child : parent.getChildren()) {
-            if (!child.isLeaf() && child.getKey().equals(key)) {
-                return child;
-            }
-        }
-        TreeNode newChild = new TreeNode(key, label);
-        newChild.setExpanded(true);
-        parent.addChild(newChild);
-        return newChild;
-    }
-
-    private static final Set<String> BUILDING_SHAPES =
-            Set.of("full_block", "stairs", "slab", "wall", "fence", "pane", "building");
-
-    /** True for subcategory IDs that represent a building block shape (not functional/redstone/decorative). */
     private static boolean isBuildingShape(String subId) {
-        return BUILDING_SHAPES.contains(subId);
+        return Set.of("full_block", "stairs", "slab", "wall", "fence", "pane", "building").contains(subId);
     }
 
-    /**
-     * Returns true when the node's ontology category is among the active facets,
-     * or when no facets are active (show everything).
-     */
     private boolean matchesFacets(SearchNode node) {
         if (activeFacets.isEmpty()) return true;
         return activeFacets.contains(AmiOntology.classifyNode(node).id);
@@ -291,25 +358,27 @@ public class ResultsProcessor {
     private boolean matchesAccessLevel(SearchNode node) {
         String level = node.meta(SearchNodeKeys.ACCESS_LEVEL, "");
         if ("dev".equals(level)) return AMIConfig.DEV_MODE.get();
+        
+        // Hide creative-only items in survival mode
+        if ("creative".equals(level)) {
+            net.minecraft.client.multiplayer.MultiPlayerGameMode gameMode = net.minecraft.client.Minecraft.getInstance().gameMode;
+            if (gameMode != null && gameMode.getPlayerMode() == net.minecraft.world.level.GameType.SURVIVAL) {
+                return false;
+            }
+        }
+        
         return true;
     }
 
-    /**
-     * Identifies adjacent leaf nodes that share the same base item (e.g. enchanted books)
-     * and collapses them into a special high-cardinality group if they exceed the threshold.
-     */
     private List<TreeNode> applyHighCardinalityGrouping(List<TreeNode> nodes) {
         List<TreeNode> result = new ArrayList<>();
-        
         List<TreeNode> buffer = new ArrayList<>();
         String bufferBaseId = null;
 
         for (TreeNode node : nodes) {
             if (!node.isLeaf()) {
-                // Recursively apply to children of existing groups
                 flushCardinalityBuffer(buffer, result);
                 bufferBaseId = null;
-                
                 TreeNode processedGroup = new TreeNode(node.getKey(), node.getLabel());
                 processedGroup.setExpanded(node.isExpanded());
                 processedGroup.setModGroup(node.isModGroup());
@@ -318,63 +387,56 @@ public class ResultsProcessor {
                 continue;
             }
 
-            // Check if this leaf belongs to the current buffer group
             String baseId = node.getEntry().meta(SearchNodeKeys.SUBTYPE_OF, "");
             if (baseId.isEmpty()) {
-                // Not a subtype node, treat as unique
                 flushCardinalityBuffer(buffer, result);
                 result.add(node);
                 bufferBaseId = null;
             } else if (baseId.equals(bufferBaseId)) {
-                // Same base item, add to buffer
                 buffer.add(node);
             } else {
-                // New subtype group
                 flushCardinalityBuffer(buffer, result);
                 buffer.add(node);
                 bufferBaseId = baseId;
             }
         }
         flushCardinalityBuffer(buffer, result);
-        
         return result;
     }
 
     private void flushCardinalityBuffer(List<TreeNode> buffer, List<TreeNode> result) {
         if (buffer.isEmpty()) return;
-
         if (buffer.size() >= CARDINALITY_THRESHOLD) {
-            // Collapse into a high-cardinality group
             SearchNode representative = buffer.get(0).getEntry();
             String baseId = representative.meta(SearchNodeKeys.SUBTYPE_OF);
-            
-            // Try to find a nice name: "Enchanted Books" instead of "minecraft:enchanted_book"
-            String label = buffer.get(0).getLabel().getString();
-            if (label.contains("(")) {
-                label = label.substring(0, label.indexOf('(')).trim();
-            } else if (label.contains(" - ")) {
-                label = label.substring(0, label.indexOf(" - ")).trim();
+            String label = "";
+
+            ResourceLocation loc = ResourceLocation.tryParse(baseId);
+            if (loc != null && BuiltInRegistries.ITEM.containsKey(loc)) {
+                net.minecraft.world.item.Item baseItem = BuiltInRegistries.ITEM.get(loc);
+                label = new ItemStack(baseItem).getHoverName().getString();
+                if (!label.endsWith("s")) label += "s";
+            } else {
+                label = buffer.get(0).getLabel().getString();
+                if (label.contains("(")) label = label.substring(0, label.indexOf('(')).trim();
+                else if (label.contains(" - ")) label = label.substring(0, label.indexOf(" - ")).trim();
             }
 
             TreeNode group = new TreeNode("cardinality:" + baseId, Component.literal(label));
             group.setHighCardinality(true);
-            group.setExpanded(false); // Closed by default as requested
+            group.setExpanded(false);
             group.getChildren().addAll(buffer);
             result.add(group);
         } else {
-            // Just add them as normal leaves
             result.addAll(buffer);
         }
         buffer.clear();
     }
 
     public Set<String> getAllMods(List<SearchNode> results) {
-        return results.stream()
-                .map(n -> n.id().getNamespace())
-                .collect(Collectors.toSet());
+        return results.stream().map(n -> n.id().getNamespace()).collect(Collectors.toSet());
     }
 
-    // Getters for toolbar state
     public SortField getSortField() { return sortField; }
     public boolean isAscending() { return ascending; }
     public GroupBy getGroupBy() { return groupBy; }

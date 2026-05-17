@@ -17,6 +17,7 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -51,6 +52,7 @@ public class ItemGridView {
     // Virtual row cache — rebuilt whenever rootNodes changes or a group is toggled
     private List<VirtualRow> cachedRows = null;
     private int cachedCols = -1;
+    private final Map<TreeNode, TreeNode> expandedGroupCache = new HashMap<>();
 
     // =========================================================
     // Virtual row types
@@ -153,18 +155,31 @@ public class ItemGridView {
     }
 
     private void renderItemRow(GuiGraphics g, ItemRow ir, int drawY, int mouseX, int mouseY) {
+        int cols = computeCols();
         for (int i = 0; i < ir.items().size(); i++) {
             int cellX = x + 1 + i * CELL_SIZE;
             int cellY = drawY;
 
             TreeNode node = ir.items().get(i);
             
-            // High-cardinality group header in grid? Use representative child
-            SearchNode entry;
+            SearchNode entry = null;
+            ItemStack overrideStack = null;
+
             if (node.isLeaf()) {
                 entry = node.getEntry();
-            } else if (node.isHighCardinality() && !node.isExpanded()) {
-                entry = node.getChildren().get(0).getEntry();
+            } else if (node.isHighCardinality()) {
+                entry = node.getChildren().get(0).getEntry(); // For tooltips
+                String key = node.getKey();
+                if (key.startsWith("cardinality:")) {
+                    String baseIdStr = key.substring(12);
+                    ResourceLocation baseLoc = ResourceLocation.tryParse(baseIdStr);
+                    if (baseLoc != null) {
+                        net.minecraft.world.item.Item baseItem = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(baseLoc);
+                        if (baseItem != null && baseItem != net.minecraft.world.item.Items.AIR) {
+                            overrideStack = new ItemStack(baseItem);
+                        }
+                    }
+                }
             } else {
                 continue; // Normal group headers are handled by renderHeader
             }
@@ -176,19 +191,19 @@ public class ItemGridView {
             if (hovered) {
                 g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, 0xFF3A3A3A);
                 
-                if (node.isHighCardinality() && !node.isExpanded()) {
+                if (node.isHighCardinality()) {
                     List<Component> lines = new ArrayList<>();
-                    lines.add(node.getLabel().copy().append(" (" + node.getChildCount() + " items)"));
-                    lines.add(Component.literal("§7Click to expand group"));
+                    lines.add(node.getLabel().copy().append(" (" + node.getChildren().size() + " items)"));
+                    lines.add(Component.literal(node.isExpanded() ? "§7Click to collapse group" : "§7Click to expand group"));
                     pendingTextTooltip = lines;
                     pendingTooltipImage = Optional.empty();
-                } else if (Screen.hasControlDown()) {
-                    pendingTextTooltip = DebugTooltip.build(entry);
+                } else if (net.minecraft.client.gui.screens.Screen.hasControlDown()) {
+                    pendingTextTooltip = com.sanhiruzu.ami.client.results.DebugTooltip.build(entry);
                     pendingTooltipImage = Optional.empty();
-                } else if (entry.type() == NodeType.ITEM) {
+                } else if (entry.type() == com.sanhiruzu.ami.index.NodeType.ITEM) {
                     pendingTooltip = resolveStack(entry);
                 } else {
-                    var renderer = RendererRegistry.get(entry.type());
+                    var renderer = com.sanhiruzu.ami.client.icon.RendererRegistry.get(entry.type());
                     pendingTextTooltip = renderer.getTooltip(entry);
                     pendingTooltipImage = renderer.getTooltipImage(entry);
                 }
@@ -201,28 +216,46 @@ public class ItemGridView {
                 g.fill(cellX, cellY + CELL_SIZE - 1, cellX + CELL_SIZE, cellY + CELL_SIZE, 0xFFAAAA00);
                 g.fill(cellX, cellY, cellX + 1, cellY + CELL_SIZE, 0xFFAAAA00);
                 g.fill(cellX + CELL_SIZE - 1, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, 0xFFAAAA00);
-            } else if (isChildOfHighCardinality(node)) {
-                // Dimmer border for items inside an expanded group
-                g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + 1, 0x44AAAA00);
-                g.fill(cellX, cellY + CELL_SIZE - 1, cellX + CELL_SIZE, cellY + CELL_SIZE, 0x44AAAA00);
-                g.fill(cellX, cellY, cellX + 1, cellY + CELL_SIZE, 0x44AAAA00);
-                g.fill(cellX + CELL_SIZE - 1, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, 0x44AAAA00);
+            } else {
+                TreeNode expandedGroup = expandedGroupCache.get(node);
+                if (expandedGroup != null) {
+                    // Union shape border for expanded groups
+                    int idx = (node == expandedGroup) ? 0 : 1 + expandedGroup.getChildren().indexOf(node);
+                    int totalSize = 1 + expandedGroup.getChildren().size();
+                    int col = i;
+                    
+                    boolean topEdge = idx < cols;
+                    boolean bottomEdge = idx + cols >= totalSize;
+                    boolean leftEdge = col == 0 || idx == 0;
+                    boolean rightEdge = col == cols - 1 || idx == totalSize - 1;
+                    
+                    int color = 0xFFAAAA00; // Opaque gold border
+                    int bgCol = 0x44AAAA00; // Visible gold tint background
+                    
+                    g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, bgCol);
+                    
+                    if (topEdge) g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + 1, color);
+                    if (bottomEdge) g.fill(cellX, cellY, cellX + CELL_SIZE - 1, cellX + CELL_SIZE, cellY + CELL_SIZE, color);
+                    if (leftEdge) g.fill(cellX, cellY, cellX + 1, cellY + CELL_SIZE, color);
+                    if (rightEdge) g.fill(cellX + CELL_SIZE - 1, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, color);
+
+                    // If this is the header node of the expanded group, make it look like a "close" button
+                    if (node == expandedGroup) {
+                        g.fill(cellX + 1, cellY + 1, cellX + CELL_SIZE - 1, cellY + CELL_SIZE - 1, 0x66000000); // Darken the header icon
+                        g.fill(cellX + 2, cellY + 2, cellX + 4, cellY + 4, 0xFFFFFFFF); // Small visual indicator
+                    }
+                }
             }
 
-            if (entry.type() == NodeType.ITEM) {
+            if (overrideStack != null) {
+                g.renderItem(overrideStack, cellX + 1, cellY + 1);
+            } else if (entry.type() == com.sanhiruzu.ami.index.NodeType.ITEM) {
                 ItemStack stack = resolveStack(entry);
                 if (!stack.isEmpty()) g.renderItem(stack, cellX + 1, cellY + 1);
             } else {
-                RendererRegistry.get(entry.type()).render(g, entry, cellX + 1, cellY + 1, 16);
+                com.sanhiruzu.ami.client.icon.RendererRegistry.get(entry.type()).render(g, entry, cellX + 1, cellY + 1, 16);
             }
         }
-    }
-    
-    private boolean isChildOfHighCardinality(TreeNode node) {
-        // Find if this node exists as a child of any high-cardinality group that is expanded
-        return rootNodes.stream()
-                .filter(n -> !n.isLeaf() && n.isHighCardinality() && n.isExpanded())
-                .anyMatch(group -> group.getChildren().contains(node));
     }
 
     private void primeIconCache(GuiGraphics g, List<VirtualRow> rows) {
@@ -231,12 +264,31 @@ public class ItemGridView {
         for (VirtualRow row : rows) {
             if (drawY + row.height() > y && drawY < y + height && row instanceof ItemRow ir) {
                 for (TreeNode node : ir.items()) {
+                    ResourceLocation overrideId = null;
+                    ItemStack overrideStack = null;
                     SearchNode entry = null;
-                    if (node.isLeaf()) entry = node.getEntry();
-                    else if (node.isHighCardinality() && !node.isExpanded()) entry = node.getChildren().get(0).getEntry();
 
-                    if (entry != null && entry.type() == NodeType.ITEM
-                            && !ItemIconCache.isCached(entry.id())) {
+                    if (node.isLeaf()) {
+                        entry = node.getEntry();
+                    } else if (node.isHighCardinality()) {
+                        entry = node.getChildren().get(0).getEntry();
+                        String key = node.getKey();
+                        if (key.startsWith("cardinality:")) {
+                            String baseIdStr = key.substring(12);
+                            ResourceLocation baseLoc = ResourceLocation.tryParse(baseIdStr);
+                            if (baseLoc != null) {
+                                net.minecraft.world.item.Item baseItem = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(baseLoc);
+                                if (baseItem != null && baseItem != net.minecraft.world.item.Items.AIR) {
+                                    overrideStack = new ItemStack(baseItem);
+                                    overrideId = baseLoc;
+                                }
+                            }
+                        }
+                    }
+
+                    if (overrideStack != null && overrideId != null && !com.sanhiruzu.ami.client.ItemIconCache.isCached(overrideId)) {
+                        uncached.add(Map.entry(overrideId, overrideStack));
+                    } else if (entry != null && entry.type() == com.sanhiruzu.ami.index.NodeType.ITEM && !com.sanhiruzu.ami.client.ItemIconCache.isCached(entry.id())) {
                         ItemStack stack = resolveStack(entry);
                         if (!stack.isEmpty()) uncached.add(Map.entry(entry.id(), stack));
                     }
@@ -244,7 +296,7 @@ public class ItemGridView {
             }
             drawY += row.height();
         }
-        if (!uncached.isEmpty()) ItemIconCache.primeVisible(g, uncached);
+        if (!uncached.isEmpty()) com.sanhiruzu.ami.client.ItemIconCache.primeVisible(g, uncached);
     }
 
     // =========================================================
@@ -261,6 +313,7 @@ public class ItemGridView {
 
     private List<VirtualRow> buildVirtualRows(int cols) {
         List<VirtualRow> rows = new ArrayList<>();
+        expandedGroupCache.clear();
 
         // rootNodes now contains special HighCardinality groups
         List<TreeNode> linearItems = new ArrayList<>();
@@ -269,10 +322,13 @@ public class ItemGridView {
             if (root.isLeaf()) {
                 linearItems.add(root);
             } else if (root.isHighCardinality()) {
+                linearItems.add(root); // Add group header itself as a clickable grid item
                 if (root.isExpanded()) {
                     linearItems.addAll(root.getChildren());
-                } else {
-                    linearItems.add(root); // Add group header itself as a clickable grid item
+                    expandedGroupCache.put(root, root);
+                    for (TreeNode child : root.getChildren()) {
+                        expandedGroupCache.put(child, root);
+                    }
                 }
             } else {
                 // Section header (mod, category, etc.)
@@ -308,8 +364,12 @@ public class ItemGridView {
         if (node.isLeaf()) {
             out.add(node);
         } else if (node.isHighCardinality()) {
-            if (node.isExpanded()) out.addAll(node.getChildren());
-            else out.add(node);
+            out.add(node);
+            if (node.isExpanded()) {
+                out.addAll(node.getChildren());
+                expandedGroupCache.put(node, node);
+                for (TreeNode child : node.getChildren()) expandedGroupCache.put(child, node);
+            }
         } else {
             for (TreeNode child : node.getChildren()) {
                 collectItemLeaves(child, out);
@@ -413,7 +473,7 @@ public class ItemGridView {
         int totalH = calcTotalHeight(getVirtualRows(cols));
         int maxScroll = Math.max(0, totalH - height);
         pixelScrollOffset = Math.max(0, Math.min(maxScroll,
-                (int) (pixelScrollOffset - delta * CELL_SIZE)));
+                (int) (pixelScrollOffset - delta * CELL_SIZE * 3)));
         return true;
     }
 

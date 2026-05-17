@@ -78,8 +78,11 @@ public class ResultsToolbar implements SearchState.Listener {
     }
 
     private void updateDropdownPositions() {
-        int startX = x + 2 + MODE_BUTTON_W + 3 + BUTTON_W + 3 + RESET_BUTTON_W + 3; // view-mode + sort-dir + reset buttons
-        int availableW = width - (startX - x) - FIELDS_BTN_W - 5; // reserve right edge for Fields picker
+        boolean gridMode = state.getViewMode() == ViewMode.GRID;
+        int startX = x + 2 + MODE_BUTTON_W + 3 + BUTTON_W + 3 + RESET_BUTTON_W + 3;
+        // In grid mode the Fields picker is hidden, so give its space to Sort/Group dropdowns.
+        int rightReserved = gridMode ? 0 : (FIELDS_BTN_W + 5);
+        int availableW = width - (startX - x) - rightReserved;
 
         int n = dropdowns.size();
         if (n == 0) return;
@@ -87,19 +90,19 @@ public class ResultsToolbar implements SearchState.Listener {
         int gap = 3;
         int totalGaps = (n - 1) * gap;
         int widthPerDropdown = (availableW - totalGaps) / n;
+        int rightBound = x + width - rightReserved - 4;
 
         int currentX = startX;
         for (int i = 0; i < n; i++) {
             Dropdown dropdown = dropdowns.get(i);
-            int w = (i == n - 1)
-                    ? (x + width - FIELDS_BTN_W - 4 - currentX)
-                    : widthPerDropdown;
+            int w = (i == n - 1) ? (rightBound - currentX) : widthPerDropdown;
             dropdown.updatePosition(currentX, y + 3, Math.max(10, w));
             currentX += w + gap;
         }
 
-        // Fields picker: fixed width, right-aligned
-        fieldsPicker.updatePosition(x + width - FIELDS_BTN_W - 2, y + 3, FIELDS_BTN_W);
+        if (!gridMode) {
+            fieldsPicker.updatePosition(x + width - FIELDS_BTN_W - 2, y + 3, FIELDS_BTN_W);
+        }
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
@@ -124,7 +127,9 @@ public class ResultsToolbar implements SearchState.Listener {
         for (Dropdown dropdown : dropdowns) {
             dropdown.render(g, mouseX, mouseY);
         }
-        fieldsPicker.render(g, mouseX, mouseY);
+        if (state.getViewMode() != ViewMode.GRID) {
+            fieldsPicker.render(g, mouseX, mouseY);
+        }
     }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
@@ -136,6 +141,7 @@ public class ResultsToolbar implements SearchState.Listener {
         if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, y + 3, MODE_BUTTON_W, 14)) {
             state.setViewMode(state.getViewMode() == ViewMode.GRID ? ViewMode.LIST : ViewMode.GRID);
             closeAllDropdowns();
+            updateDropdownPositions(); // reclaim / restore Fields space
             return true;
         }
         buttonX += MODE_BUTTON_W + 3;
@@ -156,8 +162,8 @@ public class ResultsToolbar implements SearchState.Listener {
             return true;
         }
 
-        // Fields picker
-        if (fieldsPicker.mouseClicked(mouseX, mouseY, button)) {
+        // Fields picker — only in list mode
+        if (state.getViewMode() != ViewMode.GRID && fieldsPicker.mouseClicked(mouseX, mouseY, button)) {
             for (Dropdown d : dropdowns) d.close();
             return true;
         }
@@ -183,7 +189,9 @@ public class ResultsToolbar implements SearchState.Listener {
         for (Dropdown dropdown : dropdowns) {
             dropdown.renderList(g, mouseX, mouseY);
         }
-        fieldsPicker.renderList(g, mouseX, mouseY);
+        if (state.getViewMode() != ViewMode.GRID) {
+            fieldsPicker.renderList(g, mouseX, mouseY);
+        }
         g.pose().popPose();
     }
 

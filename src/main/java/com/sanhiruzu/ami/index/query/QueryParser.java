@@ -14,7 +14,8 @@ public final class QueryParser {
         ENV,         // &env
         PROP,        // ?property
         ESSENTIAL,   // !curated
-        ESM          // >capacity:value
+        ESM,         // >capacity:value
+        CATEGORY     // $categoryId  (AMI ontology category)
     }
 
     public record QueryToken(TokenType type, String value) {}
@@ -77,7 +78,10 @@ public final class QueryParser {
         TokenType type;
         String value;
 
-        if (part.startsWith("#")) {
+        if (part.startsWith("$")) {
+            type = TokenType.CATEGORY;
+            value = part.substring(1);
+        } else if (part.startsWith("#")) {
             type = TokenType.TAG;
             value = part.substring(1);
         } else if (part.startsWith("@")) {
@@ -104,6 +108,7 @@ public final class QueryParser {
 
         if (isExclude) {
             value = switch (type) {
+                case CATEGORY -> "$" + value;
                 case TAG -> "#" + value;
                 case MOD -> "@" + value;
                 case ENV -> "&" + value;
