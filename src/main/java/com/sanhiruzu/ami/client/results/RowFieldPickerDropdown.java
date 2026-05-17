@@ -104,10 +104,13 @@ public class RowFieldPickerDropdown {
             int iy = dy + 2;
             for (RowField field : fields) {
                 if (Dropdown.contains((int) mouseX, (int) mouseY, x, iy, listWidth, ITEM_H)) {
-                    List<RowField> current = new ArrayList<>(RowFieldConfig.getSubtitleFields());
-                    if (current.contains(field)) current.remove(field);
-                    else current.add(field);
-                    RowFieldConfig.setSubtitleFields(current);
+                    List<RowField> current = RowFieldConfig.getSubtitleFields();
+                    if (current.size() == 1 && current.contains(field)) {
+                        RowFieldConfig.setSubtitleFields(List.of());
+                    } else {
+                        RowFieldConfig.setSubtitleFields(List.of(field));
+                    }
+                    open = false;
                     return true;
                 }
                 iy += ITEM_H;

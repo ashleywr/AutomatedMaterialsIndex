@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.index.EdgeType;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.IAmiDataProvider;
-import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -23,7 +23,7 @@ import java.util.concurrent.CompletableFuture;
 public class LootTableProvider implements IAmiDataProvider {
 
     @Override
-    public void populate(GlobalIndex index, @Nullable ClientLevel level) {
+    public void populate(GlobalIndex index, @Nullable Level level) {
         if (level == null) return;
 
         AMI.LOGGER.info("LootTableProvider: scheduling async scan of loot tables...");

@@ -299,7 +299,7 @@ public class ResultsTreeView {
         int currentX = rightEdge;
         int textY = drawY + (AMITheme.ROW_HEIGHT - font.lineHeight) / 2;
 
-        // Tool Requirement Badge — full 16×16, vertically centred
+        // Tool Requirement Badge — 12×12, vertically centred
         String reqToolStr = entry.meta(SearchNodeKeys.REQUIRED_TOOL, "");
         if (!reqToolStr.isEmpty()) {
             ResourceLocation toolId = ResourceLocation.tryParse(reqToolStr);
@@ -307,29 +307,21 @@ public class ResultsTreeView {
                 Item toolItem = BuiltInRegistries.ITEM.get(toolId);
                 if (toolItem != null && toolItem != net.minecraft.world.item.Items.AIR) {
                     ItemStack toolStack = new ItemStack(toolItem);
-                    int iconX = currentX - 16;
-                    int iconY = drawY + (AMITheme.ROW_HEIGHT - 16) / 2;
+                    int TOOL_ICON_SIZE = 12;
+                    int iconX = currentX - TOOL_ICON_SIZE;
+                    int iconY = drawY + (AMITheme.ROW_HEIGHT - TOOL_ICON_SIZE) / 2;
                     g.pose().pushPose();
-                    g.pose().translate(0, 0, 150);
-                    g.renderItem(toolStack, iconX, iconY);
-                    
-                    // Harvest level indicator
-                    if (toolItem instanceof net.minecraft.world.item.TieredItem tiered) {
-                        int level = getHarvestLevel(tiered);
-                        if (level >= 0) {
-                            String levelStr = String.valueOf(level);
-                            g.pose().translate(0, 0, 100);
-                            g.drawString(font, levelStr, iconX + 16 - font.width(levelStr), iconY + 9, 0xFFFFFFFF, true);
-                        }
-                    }
-                    
+                    g.pose().translate(iconX + TOOL_ICON_SIZE / 2.0, iconY + TOOL_ICON_SIZE / 2.0, 150);
+                    float toolScale = TOOL_ICON_SIZE / 16.0f;
+                    g.pose().scale(toolScale, toolScale, 1.0f);
+                    g.renderItem(toolStack, -8, -8);
                     g.pose().popPose();
                 }
             }
         }
-        
-        // Always skip the tool icon slot (16px + 4px gap) to keep mod names aligned
-        currentX -= (16 + 4);
+
+        // Always skip the tool icon slot (12px + 4px gap) to keep mod names aligned
+        currentX -= (12 + 4);
 
         // Subtitle fields (Mod, Storage, DPS, etc.) from RowFieldConfig
         List<RowField> active = RowFieldConfig.getSubtitleFields();
@@ -671,15 +663,6 @@ public class ResultsTreeView {
         return font.plainSubstrByWidth(text, maxW - ellipsisW) + ellipsis;
     }
 
-    private int getHarvestLevel(net.minecraft.world.item.TieredItem item) {
-        var tier = item.getTier();
-        if (tier == net.minecraft.world.item.Tiers.WOOD) return 0;
-        if (tier == net.minecraft.world.item.Tiers.STONE) return 1;
-        if (tier == net.minecraft.world.item.Tiers.IRON) return 2;
-        if (tier == net.minecraft.world.item.Tiers.DIAMOND) return 3;
-        if (tier == net.minecraft.world.item.Tiers.NETHERITE) return 4;
-        return -1;
-    }
 
     // ── Input handlers ────────────────────────────────────────────────────────
 
@@ -737,7 +720,7 @@ public class ResultsTreeView {
     }
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == GLFW.GLFW_KEY_A) {
+        if (com.sanhiruzu.ami.client.AMIKeyMappings.FAVORITE.isActiveAndMatches(com.mojang.blaze3d.platform.InputConstants.getKey(keyCode, scanCode))) {
             if (hoveredNode != null) {
                 com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().toggleFavorite(hoveredNode);
                 return true;
@@ -819,7 +802,7 @@ public class ResultsTreeView {
     // ── Tooltip ───────────────────────────────────────────────────────────────
 
     private List<Component> buildTooltip(SearchNode entry) {
-        if (Screen.hasAltDown() && GLFW.glfwGetKey(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_A) == GLFW.GLFW_PRESS) {
+        if (com.sanhiruzu.ami.client.AMIKeyMappings.DEBUG_TOOLTIPS.isDown()) {
             return DebugTooltip.build(entry);
         }
 
@@ -832,15 +815,15 @@ public class ResultsTreeView {
             } else {
                 lines.add(Component.literal(entry.displayName()));
             }
+            // Items don't include the registry ID in vanilla tooltip, add it here
+            lines.add(Component.literal(entry.id().toString()).withStyle(s -> s.withColor(0x666666)));
         } else {
-            lines.add(Component.literal(entry.displayName()));
+            // Renderer provides the complete tooltip (name + id + metadata) — don't re-add them
             var renderer = RendererRegistry.get(entry.type());
             List<Component> extra = renderer.getTooltip(entry);
             if (extra != null) lines.addAll(extra);
+            else lines.add(Component.literal(entry.displayName()));
         }
-
-        // Add ID
-        lines.add(Component.literal(entry.id().toString()).withStyle(s -> s.withColor(0x666666)));
 
         // Unified Info: Required Tool
         String reqToolStr = entry.meta(SearchNodeKeys.REQUIRED_TOOL, "");
@@ -856,7 +839,9 @@ public class ResultsTreeView {
             }
         }
 
-        lines.add(Component.translatable("ami.gui.debug_hint").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
+        String keybindName = com.sanhiruzu.ami.client.AMIKeyMappings.DEBUG_TOOLTIPS.getTranslatedKeyMessage().getString();
+        Component hint = Component.translatable("ami.gui.debug_hint", keybindName).withStyle(net.minecraft.ChatFormatting.DARK_GRAY);
+        lines.add(hint);
         return lines;
     }
 }

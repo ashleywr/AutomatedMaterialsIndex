@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.mixin;
 
-import com.sanhiruzu.ami.AMIConfig;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+import com.sanhiruzu.ami.config.AmiConfig;
 import dev.emi.emi.runtime.EmiDrawContext;
 import dev.emi.emi.screen.EmiScreenManager;
 import net.minecraft.client.gui.screens.Screen;
@@ -72,6 +72,6 @@ public class EmiScreenManagerMixin {
 
     private static boolean shouldHideEmi() {
         return InventoryOverlayHandler.isAmiEnabled()
-                && AMIConfig.SUPPRESS_RECIPE_VIEWERS.get();
+                && AmiConfig.suppressRecipeViewers;
     }
 }

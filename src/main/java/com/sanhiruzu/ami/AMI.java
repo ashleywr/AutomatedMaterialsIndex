@@ -23,7 +23,7 @@ public class AMI {
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerGameTests);
         NeoForge.EVENT_BUS.register(this);
-        modContainer.registerConfig(ModConfig.Type.CLIENT, AMIConfig.SPEC);
+        // modContainer.registerConfig(ModConfig.Type.CLIENT, AMIConfig.SPEC);
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {

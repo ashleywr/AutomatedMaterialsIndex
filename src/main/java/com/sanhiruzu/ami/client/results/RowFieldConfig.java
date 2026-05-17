@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.client.results;
 
-import com.sanhiruzu.ami.AMIConfig;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.neoforged.fml.ModList;
 
@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 /**
  * Manages which fields are shown on the subtitle line of list-view rows.
  *
- * Persists to AMIConfig as a comma-separated list of RowField names.
+ * Persists to AmiConfig as a comma-separated list of RowField names.
  * Resets to the default (MOD_NAME) whenever the installed mod list changes,
  * detected via a stored hashCode of the sorted mod-ID list.
  */
@@ -26,12 +26,12 @@ public final class RowFieldConfig {
         initialized = true;
 
         int current = computeChecksum();
-        String savedFields = AMIConfig.SUBTITLE_FIELDS.get();
-        boolean modlistChanged = current != AMIConfig.SUBTITLE_FIELDS_CHECKSUM.get();
+        String savedFields = AmiConfig.subtitleFields;
+        boolean modlistChanged = current != AmiConfig.subtitleFieldsChecksum;
 
         if (savedFields == null || savedFields.isBlank() || modlistChanged) {
-            AMIConfig.SUBTITLE_FIELDS.set(RowField.MOD_NAME.name());
-            AMIConfig.SUBTITLE_FIELDS_CHECKSUM.set(current);
+            AmiConfig.subtitleFields = RowField.MOD_NAME.name();
+            AmiConfig.subtitleFieldsChecksum = current;
         }
     }
 
@@ -52,7 +52,7 @@ public final class RowFieldConfig {
      */
     public static List<RowField> getSubtitleFields() {
         ensureInitialized();
-        String raw = AMIConfig.SUBTITLE_FIELDS.get();
+        String raw = AmiConfig.subtitleFields;
         if (raw == null || raw.isBlank()) return List.of();
 
         EnumSet<RowField> result = EnumSet.noneOf(RowField.class);
@@ -71,8 +71,8 @@ public final class RowFieldConfig {
         EnumSet<RowField> ordered = fields.isEmpty()
                 ? EnumSet.noneOf(RowField.class)
                 : EnumSet.copyOf(fields);
-        AMIConfig.SUBTITLE_FIELDS.set(
-                ordered.stream().map(Enum::name).collect(Collectors.joining(",")));
+        AmiConfig.subtitleFields = 
+                ordered.stream().map(Enum::name).collect(Collectors.joining(","));
     }
 
     // ── Rendering helper ──────────────────────────────────────────────────────

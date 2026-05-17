@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.compat;
 
-import com.sanhiruzu.ami.AMIConfig;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.overlay.WidgetBounds;
 import dev.emi.emi.api.EmiEntrypoint;
@@ -14,7 +14,7 @@ public class AmiEmiPlugin implements EmiPlugin {
 
     @Override
     public void register(EmiRegistry registry) {
-        if (AMIConfig.SUPPRESS_RECIPE_VIEWERS.get()) {
+        if (AmiConfig.suppressRecipeViewers) {
             registry.addGenericExclusionArea((screen, consumer) -> {
                 if (!(screen instanceof AbstractContainerScreen<?>)) {
                     return;

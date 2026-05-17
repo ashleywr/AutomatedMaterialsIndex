@@ -55,7 +55,7 @@ public class GroupingEngine {
     /**
      * Build heuristics from the live world state (recipes, families, tags).
      */
-    public static void initialize(ClientLevel level) {
+    public static void initialize(net.minecraft.world.level.Level level) {
         STONECUTTER_MAP.clear();
         DYNAMIC_SHAPE_KEYWORDS.clear();
 

@@ -1,19 +1,19 @@
 package com.sanhiruzu.ami.index.providers;
 
-import com.sanhiruzu.ami.AMIConfig;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.api.AmiPluginRegistry;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.index.metrics.DpsMetricSniffer;
 import com.sanhiruzu.ami.index.metrics.StorageMetricSniffer;
 import com.sanhiruzu.ami.index.sniffers.EnergyCapacitySniffer;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.tags.BlockTags;
 import org.jetbrains.annotations.Nullable;
@@ -30,15 +30,14 @@ import java.util.stream.Collectors;
 
 /**
  * Populates the GlobalIndex with all items from BuiltInRegistries.ITEM.
- * Port of Indexer.java logic.
  */
 public class ItemProvider implements IAmiDataProvider {
     private final EnergyCapacitySniffer energyCapacitySniffer = new EnergyCapacitySniffer();
 
     @Override
-    public void populate(GlobalIndex index, @Nullable ClientLevel level) {
+    public void populate(GlobalIndex index, @Nullable Level level) {
         GroupingEngine.initialize(level);
-        boolean strictSurvival  = AMIConfig.STRICT_SURVIVAL_MODE.get();
+        boolean strictSurvival  = AmiConfig.strictSurvivalMode;
 
         Set<Item> creativeItems = ItemFilter.buildCreativeItemSet(level);
         Set<Item> recipeOutputs = strictSurvival

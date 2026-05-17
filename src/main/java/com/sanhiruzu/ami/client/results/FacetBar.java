@@ -124,7 +124,7 @@ public class FacetBar implements SearchState.Listener {
                 }
 
                 if (hovered) {
-                    hoveredTooltip  = Component.literal(cat.displayName.getString()
+                    hoveredTooltip  = Component.literal(cat.displayName().getString()
                             + " §7[Right-click: inject $" + cat.id + " into search]");
                     hoveredTooltipX = mouseX;
                     hoveredTooltipY = mouseY;

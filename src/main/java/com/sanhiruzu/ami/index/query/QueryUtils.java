@@ -1,7 +1,5 @@
 package com.sanhiruzu.ami.index.query;
 
-import java.util.regex.Pattern;
-
 public final class QueryUtils {
     private QueryUtils() {}
 

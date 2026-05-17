@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client;
 
 import com.sanhiruzu.ami.AMI;
-import com.sanhiruzu.ami.AMIConfig;
+import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 
@@ -13,7 +13,7 @@ public final class AMICheatMode {
      * Always true in singleplayer / as LAN host. On a dedicated server requires OP (level 2).
      */
     public static boolean isEnabled() {
-        return AMIConfig.CHEAT_MODE.get() && isAllowed();
+        return AmiConfig.cheatMode && isAllowed();
     }
 
     /**

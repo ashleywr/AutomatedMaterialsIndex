@@ -37,6 +37,11 @@ public class EntityIconRenderer implements IIconRenderer {
 
     private static final Map<ResourceLocation, LivingEntity> entityCache = new HashMap<>();
 
+    /** Proxy item icons for non-LivingEntity entities that can't be rendered as 3D mobs. */
+    private static final Map<ResourceLocation, ResourceLocation> PROXY_ITEMS = Map.of(
+        ResourceLocation.withDefaultNamespace("experience_orb"), ResourceLocation.withDefaultNamespace("experience_bottle")
+    );
+
     @Override
     public void render(GuiGraphics g, SearchNode node, int x, int y, int size) {
         if (size < 12) {
@@ -46,6 +51,19 @@ public class EntityIconRenderer implements IIconRenderer {
 
         LivingEntity entity = resolveEntity(node.id());
         if (entity == null) {
+            ResourceLocation proxyId = PROXY_ITEMS.get(node.id());
+            if (proxyId != null) {
+                ItemStack proxy = BuiltInRegistries.ITEM.getOptional(proxyId).map(ItemStack::new).orElse(ItemStack.EMPTY);
+                if (!proxy.isEmpty()) {
+                    g.pose().pushPose();
+                    g.pose().translate(x + size / 2.0, y + size / 2.0, 150);
+                    float s = size / 16.0f;
+                    g.pose().scale(s, s, 1f);
+                    g.renderItem(proxy, -8, -8);
+                    g.pose().popPose();
+                    return;
+                }
+            }
             FallbackTextRenderer.renderFallback(g, node, x, y, size);
             return;
         }

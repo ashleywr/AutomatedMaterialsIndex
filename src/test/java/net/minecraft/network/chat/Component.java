@@ -1,14 +1,35 @@
 package net.minecraft.network.chat;
 
-public class Component {
-    protected final String key;
+public interface Component {
+    static MutableComponent translatable(String key) {
+        return new DummyComponent(key);
+    }
 
-    protected Component(String key) { this.key = key; }
+    static MutableComponent literal(String s) {
+        return new DummyComponent(s);
+    }
 
-    public static Component translatable(String key) { return new Component(key); }
+    static MutableComponent translatable(String key, Object... args) {
+        return new DummyComponent(String.format(key, args));
+    }
 
-    public static MutableComponent literal(String s) { return new MutableComponent(s); }
+    static MutableComponent empty() {
+        return new DummyComponent("");
+    }
 
-    @Override
-    public String toString() { return key; }
+    String getString();
+
+    default Style getStyle() {
+        return Style.EMPTY;
+    }
+
+    class DummyComponent implements MutableComponent {
+        private final String text;
+        public DummyComponent(String text) { this.text = text; }
+        @Override public String getString() { return text; }
+        @Override public String toString() { return text; }
+        @Override public MutableComponent copy() { return new DummyComponent(text); }
+        @Override public Style getStyle() { return Style.EMPTY; }
+        @Override public MutableComponent withStyle(java.util.function.UnaryOperator<Style> style) { return this; }
+    }
 }
