@@ -650,10 +650,10 @@ public class ResultsTreeView {
         int maxScroll = totalH - contentH;
         int thumbY = originY + (pixelScrollOffset * (contentH - thumbH)) / maxScroll;
 
-        // Higher contrast track background
-        g.fill(x + width - SCROLLBAR_W, originY, x + width, originY + contentH, 0x44000000);
+        // Use themed colors
+        g.fill(x + width - SCROLLBAR_W, originY, x + width, originY + contentH, com.sanhiruzu.ami.client.AMITheme.SCROLL_TRACK);
         g.fill(barX, thumbY, barX + barW, thumbY + thumbH,
-                active ? AMITheme.SCROLL_THUMB_ACTIVE : AMITheme.SCROLL_THUMB);
+                active ? com.sanhiruzu.ami.client.AMITheme.SCROLL_THUMB_ACTIVE : com.sanhiruzu.ami.client.AMITheme.SCROLL_THUMB);
     }
 
     private boolean isScrollbarHovered(int mouseX, int mouseY, int totalH, int contentH, int originY) {
