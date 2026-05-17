@@ -87,6 +87,12 @@ public class ResultsPanelWidget extends AbstractWidget {
     }
 
     @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (panel == null) return false;
+        return panel.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
     protected void updateWidgetNarration(NarrationElementOutput output) {
     }
 

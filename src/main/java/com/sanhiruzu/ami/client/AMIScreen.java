@@ -53,6 +53,39 @@ public class AMIScreen extends Screen {
     }
 
     @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (resultsPanel != null && resultsPanel.isMouseOver(mouseX, mouseY)) {
+            resultsPanel.mouseClickedScrollbar(mouseX, mouseY, button);
+            return resultsPanel.mouseClicked(mouseX, mouseY, button);
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (resultsPanel != null && resultsPanel.mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (resultsPanel != null) {
+            resultsPanel.stopScrollbarDrag();
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (resultsPanel != null && resultsPanel.keyPressed(keyCode, scanCode, modifiers)) {
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
     public void onClose() {
         this.minecraft.setScreen(null);
     }

@@ -225,6 +225,17 @@ public class UniversalResultsPanel implements SearchState.Listener {
         return true;
     }
 
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        double mx = Minecraft.getInstance().mouseHandler.x() * (double)Minecraft.getInstance().getWindow().getGuiScaledWidth() / (double)Minecraft.getInstance().getWindow().getScreenWidth();
+        double my = Minecraft.getInstance().mouseHandler.y() * (double)Minecraft.getInstance().getWindow().getGuiScaledHeight() / (double)Minecraft.getInstance().getWindow().getScreenHeight();
+
+        if (!isMouseOver(mx, my)) return false;
+
+        boolean gridMode = state.getViewMode() == ResultsToolbar.ViewMode.GRID;
+        if (gridMode) return gridView.keyPressed(keyCode, scanCode, modifiers);
+        return treeView.keyPressed(keyCode, scanCode, modifiers);
+    }
+
     public boolean mouseClickedScrollbar(double mouseX, double mouseY, int button) {
         boolean gridMode = state.getViewMode() == ResultsToolbar.ViewMode.GRID;
         if (gridMode) return gridView.mouseClickedScrollbar(mouseX, mouseY, button);

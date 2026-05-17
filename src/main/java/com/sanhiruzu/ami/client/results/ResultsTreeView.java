@@ -602,6 +602,7 @@ public class ResultsTreeView {
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0) return false;
+        if (mouseX < x || mouseX >= x + width - SCROLLBAR_W) return false;
 
         // Which row is under the cursor?
         int targetRow = (int) (mouseY - y + pixelScrollOffset) / AMITheme.ROW_HEIGHT;
@@ -652,11 +653,26 @@ public class ResultsTreeView {
         return true;
     }
 
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == 266) { // Page Up
+            pixelScrollOffset = Math.max(0, pixelScrollOffset - (lastContentH > 0 ? lastContentH : height));
+            return true;
+        } else if (keyCode == 267) { // Page Down
+            int contentH = lastContentH > 0 ? lastContentH : height;
+            int totalH = countAllNodes() * AMITheme.ROW_HEIGHT;
+            int maxScroll = Math.max(0, totalH - contentH);
+            pixelScrollOffset = Math.min(maxScroll, pixelScrollOffset + contentH);
+            return true;
+        }
+        return false;
+    }
+
     public boolean mouseClickedScrollbar(double mouseX, double mouseY, int button) {
         if (button != 0) return false;
         int contentH = lastContentH > 0 ? lastContentH : height;
+        int topOffset = height - contentH;
         int totalH = countAllNodes() * AMITheme.ROW_HEIGHT;
-        if (!isScrollbarHovered((int) mouseX, (int) mouseY, totalH, contentH, y)) return false;
+        if (!isScrollbarHovered((int) mouseX, (int) mouseY, totalH, contentH, y + topOffset)) return false;
         scrollbarDragging = true;
         scrollbarDragStartY = (int) mouseY;
         scrollbarDragStartOffset = pixelScrollOffset;
