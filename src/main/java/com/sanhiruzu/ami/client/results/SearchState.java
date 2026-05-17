@@ -89,6 +89,11 @@ public class SearchState {
         this.selectedMods.addAll(mods);
         notifyListeners();
     }
+    public void toggleMod(String modId) {
+        if (selectedMods.contains(modId)) selectedMods.remove(modId);
+        else selectedMods.add(modId);
+        notifyListeners();
+    }
 
     public ResultsToolbar.ViewMode getViewMode() { return viewMode; }
     public void setViewMode(ResultsToolbar.ViewMode viewMode) {

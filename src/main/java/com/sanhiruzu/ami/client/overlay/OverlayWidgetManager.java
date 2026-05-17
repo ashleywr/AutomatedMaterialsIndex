@@ -4,6 +4,7 @@ import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.AMIConfig;
 import com.sanhiruzu.ami.AMILayoutConfig;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.index.*;
 import net.minecraft.client.Minecraft;
@@ -50,7 +51,12 @@ public class OverlayWidgetManager {
         this.amiButton = new AmiButtonWidget(InventoryOverlayHandler::toggleAmi, () -> panelVisible);
 
         // Connect mod-badge clicking to search bar filtering
-        this.resultsPanel.setOnModClick(searchBar::appendQuery);
+        this.resultsPanel.setOnModClick(token -> {
+            searchBar.toggleToken(token);
+            String modId = token.startsWith("@") ? token.substring(1) : token;
+            var inner = resultsPanel.getInnerPanel();
+            if (inner != null) inner.getState().toggleMod(modId);
+        });
         this.resultsPanel.setOnReset(searchBar::clear);
 
         widgetsReady = true;
@@ -118,6 +124,7 @@ public class OverlayWidgetManager {
                     if (panel != null) panel.setSearchService(searchService);
                     indexingInProgress = false;
                     indexingDispatched = true;
+                    if (AMIConfig.DEV_MODE.get()) ItemIconRenderer.auditMissingIcons();
                     refreshEntries();
                 });
             }

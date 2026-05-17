@@ -186,11 +186,10 @@ public class InventoryOverlayHandler {
         if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
 
         var resultsPanel = manager.getResultsPanel();
-        if (amiEnabled && manager.isPanelVisible() && resultsPanel.isMouseOver(event.getMouseX(), event.getMouseY())) {
-            if (resultsPanel.keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
-                event.setCanceled(true);
-                return;
-            }
+        if (amiEnabled && manager.isPanelVisible()
+                && resultsPanel.keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
+            event.setCanceled(true);
+            return;
         }
 
         var searchBar = manager.getSearchBar();
