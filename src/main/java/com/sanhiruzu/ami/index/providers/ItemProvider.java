@@ -37,6 +37,7 @@ public class ItemProvider implements IAmiDataProvider {
 
     @Override
     public void populate(GlobalIndex index, @Nullable ClientLevel level) {
+        GroupingEngine.initialize(level);
         boolean strictSurvival  = AMIConfig.STRICT_SURVIVAL_MODE.get();
 
         Set<Item> creativeItems = ItemFilter.buildCreativeItemSet(level);
@@ -122,6 +123,9 @@ public class ItemProvider implements IAmiDataProvider {
                 meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, ontology[0]);
                 if (ontology.length > 1) {
                     meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, ontology[1]);
+                }
+                if (ontology.length > 2) {
+                    meta.put(SearchNodeKeys.BLOCKS_MATERIAL, ontology[2]);
                 }
             }
 
@@ -220,31 +224,8 @@ public class ItemProvider implements IAmiDataProvider {
                 existing.contains(token) ? existing : existing + " " + token);
     }
 
-    // Color keywords in longest-first order so "light_blue" wins over "blue".
-    private static final String[] COLOR_KEYWORDS = {
-        "light_blue", "light_gray",
-        "magenta", "orange", "yellow", "purple",
-        "white", "black", "brown", "cyan", "green",
-        "lime", "pink", "blue", "gray", "red"
-    };
-
     private static String extractColorBucket(ResourceLocation id) {
-        String path = id.getPath();
-        for (String color : COLOR_KEYWORDS) {
-            if (pathHasColorToken(path, color)) return color;
-        }
-        return "";
-    }
-
-    private static boolean pathHasColorToken(String path, String color) {
-        int idx = path.indexOf(color);
-        while (idx >= 0) {
-            boolean beforeOk = idx == 0 || path.charAt(idx - 1) == '_';
-            boolean afterOk  = idx + color.length() == path.length() || path.charAt(idx + color.length()) == '_';
-            if (beforeOk && afterOk) return true;
-            idx = path.indexOf(color, idx + 1);
-        }
-        return false;
+        return GroupingEngine.classifyColorFromPath(id.getPath());
     }
 
     private static Map<String, String> buildSubtypeMeta(ResourceLocation baseId, String colorBucket) {

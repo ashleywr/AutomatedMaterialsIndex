@@ -15,6 +15,18 @@ public enum RowField {
         }
     },
 
+    ID("ID") {
+        @Override public String extract(SearchNode node) {
+            return node.id().toString();
+        }
+    },
+
+    TYPE("Type") {
+        @Override public String extract(SearchNode node) {
+            return node.type().displayName().getString();
+        }
+    },
+
     STORAGE_CAPACITY("Storage") {
         @Override public String extract(SearchNode node) {
             String cap = node.meta(SearchNodeKeys.ESM_CAPACITY, "");

@@ -24,8 +24,12 @@ public final class RowFieldConfig {
     private static synchronized void ensureInitialized() {
         if (initialized) return;
         initialized = true;
+
         int current = computeChecksum();
-        if (current != AMIConfig.SUBTITLE_FIELDS_CHECKSUM.get()) {
+        String savedFields = AMIConfig.SUBTITLE_FIELDS.get();
+        boolean modlistChanged = current != AMIConfig.SUBTITLE_FIELDS_CHECKSUM.get();
+
+        if (savedFields == null || savedFields.isBlank() || modlistChanged) {
             AMIConfig.SUBTITLE_FIELDS.set(RowField.MOD_NAME.name());
             AMIConfig.SUBTITLE_FIELDS_CHECKSUM.set(current);
         }

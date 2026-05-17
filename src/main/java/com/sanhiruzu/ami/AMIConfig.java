@@ -171,6 +171,13 @@ static {
 
     public enum BlockSubgroup { SHAPE, MATERIAL }
 
+    public enum PanelSide { AUTO, LEFT, RIGHT }
+
+    public enum Anchor {
+        CONTAINER_LEFT, CONTAINER_RIGHT,
+        SCREEN_BOTTOM_LEFT, SCREEN_BOTTOM_CENTER, SCREEN_BOTTOM_RIGHT
+    }
+
     public static final ModConfigSpec.EnumValue<BlockSubgroup> BLOCK_SUBGROUP = BUILDER
             .comment("How to subdivide the Blocks category in the AMI results panel.",
                      "SHAPE    = group by block shape: Stairs, Slabs, Walls, Fences, Panes, Full Blocks",
@@ -200,7 +207,7 @@ static {
 
     public static final ModConfigSpec.ConfigValue<String> SUBTITLE_FIELDS = BUILDER
             .comment("Comma-separated subtitle fields shown on list-row line 2.",
-                     "Valid values: MOD_NAME, STORAGE_CAPACITY, DPS",
+                     "Valid values: MOD_NAME, ID, TYPE, STORAGE_CAPACITY, DPS",
                      "Empty string hides the subtitle line entirely.")
             .define("subtitleFields", "MOD_NAME");
 
@@ -208,6 +215,40 @@ static {
             .comment("Checksum of the mod list when subtitle fields were last configured.",
                      "Changes automatically on mod-list change to reset fields to defaults.")
             .defineInRange("subtitleFieldsChecksum", 0, Integer.MIN_VALUE, Integer.MAX_VALUE);
+
+    static {
+        BUILDER.pop();
+    }
+
+    // -------------------------------------------------------------------------
+    // Layout & positioning
+    // -------------------------------------------------------------------------
+
+    static {
+        BUILDER.push("layout");
+    }
+
+    public static final ModConfigSpec.EnumValue<PanelSide> PANEL_SIDE = BUILDER
+            .comment("Which side of the inventory to render the AMI panel on.",
+                     "AUTO = left when EMI/JEI present, right otherwise.")
+            .defineEnum("panel_side", PanelSide.AUTO);
+
+    public static final ModConfigSpec.IntValue PANEL_WIDTH_OVERRIDE = BUILDER
+            .comment("Override the AMI panel width in GUI pixels. 0 = auto-calculate from available space.")
+            .defineInRange("panel_width", 0, 0, 400);
+
+    public static final ModConfigSpec.IntValue SEARCH_BAR_WIDTH = BUILDER
+            .comment("Width of the search bar in GUI pixels.")
+            .defineInRange("search_bar_width", 240, 60, 400);
+
+    public static final ModConfigSpec.EnumValue<Anchor> SEARCH_BAR_ANCHOR = BUILDER
+            .comment("Anchor point for the search bar.",
+                     "Valid: SCREEN_BOTTOM_CENTER, SCREEN_BOTTOM_LEFT, SCREEN_BOTTOM_RIGHT")
+            .defineEnum("search_bar_anchor", Anchor.SCREEN_BOTTOM_CENTER);
+
+    public static final ModConfigSpec.EnumValue<Anchor> AMI_BUTTON_ANCHOR = BUILDER
+            .comment("Anchor point for the AMI open button.")
+            .defineEnum("ami_button_anchor", Anchor.SCREEN_BOTTOM_LEFT);
 
     static {
         BUILDER.pop();
