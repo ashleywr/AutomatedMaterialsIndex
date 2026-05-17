@@ -95,7 +95,7 @@ public final class AmiOntology {
                 new SubCategory("neutral",  "ami.subcategory.entities.neutral"),
                 new SubCategory("vehicles", "ami.subcategory.entities.vehicles")
             ),
-            List.of("spawn_egg", "minecart", "chest_boat", "_boat")
+            List.of("spawn_egg")
         );
 
         MAGIC = new Category(
@@ -203,7 +203,7 @@ public final class AmiOntology {
                 new SubCategory("structures", "ami.subcategory.environment.structures"),
                 new SubCategory("transport",  "ami.subcategory.environment.transport")
             ),
-            List.of() // handled by NodeType in classifyNode()
+            List.of("minecart", "_boat", "chest_boat")
         );
 
         BLOCKS = new Category(
