@@ -55,7 +55,7 @@ public class AMIScreen extends Screen {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (resultsPanel != null && resultsPanel.isMouseOver(mouseX, mouseY)) {
-            resultsPanel.mouseClickedScrollbar(mouseX, mouseY, button);
+            if (resultsPanel.mouseClickedScrollbar(mouseX, mouseY, button)) return true;
             return resultsPanel.mouseClicked(mouseX, mouseY, button);
         }
         return super.mouseClicked(mouseX, mouseY, button);

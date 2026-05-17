@@ -139,7 +139,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (gridMode) {
             gridView.render(g, mouseX, mouseY);
         } else {
-            treeView.render(g, mouseX, mouseY, toolbar.isAnyDropdownOpen(), null, currentQuery);
+            treeView.render(g, mouseX, mouseY, toolbar.isAnyDropdownOpen(), null, state);
         }
 
         toolbar.renderOpenDropdownLists(g, mouseX, mouseY);

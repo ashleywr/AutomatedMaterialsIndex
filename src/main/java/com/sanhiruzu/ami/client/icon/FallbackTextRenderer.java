@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.client.icon;
 
+import com.sanhiruzu.ami.AMIConfig;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -16,7 +17,7 @@ public class FallbackTextRenderer implements IIconRenderer {
 
     /** Static helper so other renderers can delegate without holding an instance. */
     public static void renderFallback(GuiGraphics g, SearchNode node, int x, int y, int size) {
-        int bg = bgFor(node);
+        int bg = AMIConfig.DEV_MODE.get() ? 0xFFAA1100 : bgFor(node);
         g.fill(x, y, x + size, y + size, bg);
 
         String letter = node.displayName().isEmpty() ? "?"

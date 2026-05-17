@@ -5,12 +5,14 @@ import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class ResultsProcessor {
     private static final int CARDINALITY_THRESHOLD = 10;
+    private static final String FALLBACK_GROUP_KEY = "__fallback__";
 
     public enum SortField {
         ALPHABETICAL("ami.sort.alphabetical"),
@@ -55,6 +57,7 @@ public class ResultsProcessor {
         List<SearchNode> filtered = results.stream()
                 .filter(n -> selectedMods.isEmpty() || selectedMods.contains(n.id().getNamespace()))
                 .filter(this::matchesFacets)
+                .filter(this::matchesAccessLevel)
                 .collect(Collectors.toList());
 
         // Sort
@@ -187,7 +190,15 @@ public class ResultsProcessor {
                         .findFirst()
                         .orElse(Component.literal(subId));
                 TreeNode subNode = findOrCreateChild(catNode, subId, subLabel);
-                subNode.addChild(new TreeNode(Component.literal(entry.displayName()), entry));
+
+                // Potions are grouped by effect within their subcategory node.
+                String potionEffect = entry.meta(SearchNodeKeys.POTION_EFFECT, "");
+                if (!potionEffect.isEmpty()) {
+                    TreeNode effectNode = findOrCreateChild(subNode, potionEffect, potionEffectLabel(potionEffect));
+                    effectNode.addChild(new TreeNode(Component.literal(entry.displayName()), entry));
+                } else {
+                    subNode.addChild(new TreeNode(Component.literal(entry.displayName()), entry));
+                }
             } else {
                 TreeNode miscNode = findOrCreateChild(catNode, "misc", Component.translatable("ami.group.misc"));
                 miscNode.addChild(new TreeNode(Component.literal(entry.displayName()), entry));
@@ -205,9 +216,10 @@ public class ResultsProcessor {
 
         for (SearchNode entry : entries) {
             String groupValue = entry.meta(metadataKey, "");
-            String key = groupValue.isBlank() ? "" : formatGroupKey(groupValue, compactResourceIds);
-            Component label = key.isEmpty() ? fallback : Component.literal(formatGroupLabel(key));
-            TreeNode groupNode = groups.computeIfAbsent(key.isEmpty() ? "__fallback__" : key, k -> {
+            boolean isFallback = groupValue.isBlank();
+            String mapKey = isFallback ? FALLBACK_GROUP_KEY : formatGroupKey(groupValue, compactResourceIds);
+            TreeNode groupNode = groups.computeIfAbsent(mapKey, k -> {
+                Component label = isFallback ? fallback : Component.literal(formatGroupLabel(k));
                 TreeNode n = new TreeNode(k, label);
                 n.setExpanded(true);
                 return n;
@@ -239,6 +251,14 @@ public class ResultsProcessor {
         return out.toString();
     }
 
+    private Component potionEffectLabel(String effectId) {
+        ResourceLocation loc = ResourceLocation.tryParse(effectId);
+        if (loc != null) {
+            return Component.translatable("effect." + loc.getNamespace() + "." + loc.getPath());
+        }
+        return Component.literal(formatGroupLabel(effectId.replace(':', '_').replace('/', '_')));
+    }
+
     private TreeNode findOrCreateChild(TreeNode parent, String key, Component label) {
         for (TreeNode child : parent.getChildren()) {
             if (!child.isLeaf() && child.getKey().equals(key)) {
@@ -266,6 +286,12 @@ public class ResultsProcessor {
     private boolean matchesFacets(SearchNode node) {
         if (activeFacets.isEmpty()) return true;
         return activeFacets.contains(AmiOntology.classifyNode(node).id);
+    }
+
+    private boolean matchesAccessLevel(SearchNode node) {
+        String level = node.meta(SearchNodeKeys.ACCESS_LEVEL, "");
+        if ("dev".equals(level)) return AMIConfig.DEV_MODE.get();
+        return true;
     }
 
     /**
@@ -328,8 +354,6 @@ public class ResultsProcessor {
                 label = label.substring(0, label.indexOf('(')).trim();
             } else if (label.contains(" - ")) {
                 label = label.substring(0, label.indexOf(" - ")).trim();
-            } else if (label.contains(":")) {
-                // Fallback to registry-like name if it's too technical
             }
 
             TreeNode group = new TreeNode("cardinality:" + baseId, Component.literal(label));

@@ -124,7 +124,6 @@ public class SearchBarWidget extends EditBox {
             lastClickTime = now;
         } else if (button == 1) {
             clear();
-            setFocused(true);
             return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -206,23 +205,12 @@ public class SearchBarWidget extends EditBox {
     }
 
     public void clear() {
-        silentUpdate = true;
         setValue("");
-        silentUpdate = false;
-        super.setFocused(false);
-        historyIndex = -1;
-        liveQuery = "";
-        lastValue = "";
+        setFocused(false);
     }
 
-    public void appendQuery(String text) {
-        String current = getValue();
-        if (current.contains(text)) return;
-
-        if (!current.isEmpty() && !current.endsWith(" ")) {
-            current += " ";
-        }
-        setValue(current + text);
+    public void toggleToken(String token) {
+        setValue(com.sanhiruzu.ami.index.query.QueryUtils.toggleToken(getValue(), token));
         setFocused(true);
     }
 

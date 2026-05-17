@@ -4,11 +4,13 @@ import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.index.sniffers.EntityDataSniffer;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.entity.MobCategory;
 import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -45,6 +47,18 @@ public class EntityProvider implements IAmiDataProvider {
                 meta.put(SearchNodeKeys.TAGS, entityTags(entityType, searchTags));
             }
 
+            // MISC covers projectiles, vehicles, dropped items, etc. — hide by default.
+            // experience_orb is the only MISC entity worth surfacing; it goes under Magic.
+            if (category == MobCategory.MISC) {
+                if (id.getPath().equals("experience_orb")) {
+                    meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, "magic");
+                } else {
+                    meta.put(SearchNodeKeys.ACCESS_LEVEL, "dev");
+                }
+            } else {
+                meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, classifyMobSubcategory(id.getPath(), category));
+            }
+
             nodes.add(new SearchNode(
                 id, NodeType.ENTITY,
                 RegistryUtils.formatPath(id.getPath()),
@@ -53,6 +67,18 @@ public class EntityProvider implements IAmiDataProvider {
 
         nodes.sort(RegistryUtils.ENTRY_ORDER);
         nodes.forEach(index::addNode);
+    }
+
+    private static final Set<String> NEUTRAL_MOBS = Set.of(
+        "wolf", "bee", "polar_bear", "dolphin", "panda",
+        "llama", "trader_llama", "goat", "iron_golem",
+        "piglin", "zombified_piglin", "enderman",
+        "spider", "cave_spider"
+    );
+
+    private static String classifyMobSubcategory(String path, MobCategory category) {
+        if (NEUTRAL_MOBS.contains(path)) return "neutral";
+        return category == MobCategory.MONSTER ? "hostile" : "passive";
     }
 
     private static String entityTags(net.minecraft.world.entity.EntityType<?> entityType, List<String> searchTags) {
