@@ -53,9 +53,8 @@ public class InventoryOverlayHandler {
         // Compute widget positions from current screen geometry.
         manager.computeLayouts(containerScreen, containerScreen.width, containerScreen.height);
 
-        // AMI button and compact toggle are always screen children (clicks work even when panel is closed).
+        // AMI button is always a screen child so clicks work even when the panel is closed.
         event.addListener(manager.getAmiButton());
-        event.addListener(manager.getCompactToggle());
 
         if (amiEnabled) {
             event.addListener(manager.getSearchBar());

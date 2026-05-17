@@ -297,8 +297,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
             return gridView.mouseClicked(mouseX, mouseY, button);
         }
 
-        // Full mode
-        if (button == 0 && facetBar.mouseClicked(mouseX, mouseY, button)) {
+        // Full mode — facet bar handles both left-click (filter) and right-click (inject token)
+        if (facetBar.mouseClicked(mouseX, mouseY, button)) {
             return true;
         }
 
@@ -317,12 +317,16 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (isGridActive()) {
             return gridView.mouseClicked(mouseX, mouseY, button);
         }
-        if (button != 0) return false;
         return treeView.mouseClicked(mouseX, mouseY, button);
     }
 
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollDelta) {
         if (!isMouseOver(mouseX, mouseY)) return false;
+
+        // In full mode, the facet bar scrolls horizontally when the mouse is over it
+        if (!AMIConfig.COMPACT_MODE.get() && facetBar.isMouseOver(mouseX, mouseY)) {
+            return facetBar.mouseScrolled(mouseX, mouseY, scrollDelta);
+        }
 
         if (isGridActive()) {
             gridView.mouseScrolled(mouseX, mouseY, scrollDelta);
