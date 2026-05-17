@@ -203,7 +203,13 @@ public class ItemGridView {
             boolean hovered = mouseX >= cellX && mouseX < cellX + CELL_SIZE
                     && mouseY >= cellY && mouseY < cellY + CELL_SIZE;
             if (hovered) {
-                g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, com.sanhiruzu.ami.client.AMITheme.SLOT_HOVER);
+                // Background tint
+                g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, com.sanhiruzu.ami.client.AMITheme.ENTRY_HOVER);
+                // Bright border for clarity
+                g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + 1, com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE);
+                g.fill(cellX, cellY + CELL_SIZE - 1, cellX + CELL_SIZE, cellY + CELL_SIZE, com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE);
+                g.fill(cellX, cellY + 1, cellX + 1, cellY + CELL_SIZE - 1, com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE);
+                g.fill(cellX + CELL_SIZE - 1, cellY + 1, cellX + CELL_SIZE, cellY + CELL_SIZE - 1, com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE);
                 hoveredNode = entry;
                 hoveredTreeNode = node;
                 
