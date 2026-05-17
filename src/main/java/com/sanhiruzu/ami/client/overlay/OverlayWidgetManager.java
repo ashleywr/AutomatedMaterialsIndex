@@ -49,7 +49,10 @@ public class OverlayWidgetManager {
         this.resultsPanel   = new ResultsPanelWidget();
         this.favoritesPanel = new FavoritesPanelWidget(0, 0, 0, 0);
         this.searchBar      = new SearchBarWidget(this::triggerSearch);
-        this.amiButton      = new AmiButtonWidget(InventoryOverlayHandler::toggleAmi, () -> panelVisible);
+        this.amiButton      = new AmiButtonWidget(() -> {
+            var mc = Minecraft.getInstance();
+            mc.setScreen(new com.sanhiruzu.ami.client.screen.AmiConfigScreen(mc.screen));
+        }, InventoryOverlayHandler::toggleAmi, () -> panelVisible);
 
         this.resultsPanel.setOnModClick(token -> {
             searchBar.toggleToken(token);
@@ -82,8 +85,10 @@ public class OverlayWidgetManager {
         if (AMIConfig.SHOW_FAVORITES.get()) {
             int favW = Math.min(AMIConfig.FAVORITES_PANEL_WIDTH.get(), containerLeftEdge - (PANEL_MARGIN * 2));
             if (favW >= 40) {
-                int panelH = Math.min(screenH - 40, 600);
-                int panelY = (screenH - panelH) / 2;
+                // Constrain height to not overlap with the AMI button at the bottom
+                int maxH = screenH - BOTTOM_BAR_H - 30; // Leave space for button
+                int panelH = Math.min(maxH, 600);
+                int panelY = PANEL_MARGIN_V; // Start from top margin
                 favoritesPanel.updateLayout(PANEL_MARGIN, panelY, favW, panelH);
                 favoritesPanel.visible = true;
             } else {

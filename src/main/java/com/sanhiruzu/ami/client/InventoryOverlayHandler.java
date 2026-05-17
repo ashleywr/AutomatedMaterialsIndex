@@ -114,7 +114,7 @@ public class InventoryOverlayHandler {
         // Handle the AMI button directly — some container screens override mouseClicked without
         // calling super, so we can't rely on the screen routing clicks to our registered child.
         if (event.getButton() == 0 && manager.getAmiButton().isMouseOver(event.getMouseX(), event.getMouseY())) {
-            toggleAmi();
+            manager.getAmiButton().mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton());
             event.setCanceled(true);
             return;
         }

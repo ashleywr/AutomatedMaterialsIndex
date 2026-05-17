@@ -64,6 +64,9 @@ Process in strict order; stop at the first hit:
 ---
 
 ## Bugs
+- ~~Compact mode left a dead 22px header strip above the grid (toggle button row, empty on the left). Fixed: grid now spans the full panel height and the toggle button is overlaid in the top-right corner.~~
+- ~~Entity icons invisible / grid draws bleeding outside panel. Root cause: `EntityIconRenderer.render()` called `g.enableScissor(0, 0, 16, 16)` using local pose coordinates instead of screen coordinates. The empty intersection with the grid scissor disabled GL scissor entirely, so `endBatch()` inside `renderEntityInInventory` flushed all pending grid draws without clipping. Fixed: removed the inner scissor calls; the grid's outer scissor provides sufficient containment.~~
+- ~~Boats and minecarts appeared under "Mobs". Fixed: vehicle entity types (boats, minecarts, rafts) are now classified as Environment → Vehicles instead of Entities, with no dev-only restriction. `ONTOLOGY.md` updated to match.~~
 - ~~Search box did not respond to typing — fixed by subscribing `ScreenEvent.CharacterTyped.Pre` and `ScreenEvent.MouseButtonPressed.Pre` in `InventoryOverlayHandler` to bypass the screen focus system (which EMI can clear). We now track focus with `searchBarInputActive` and forward events directly.~~
 
 ## UI/UX Polish
