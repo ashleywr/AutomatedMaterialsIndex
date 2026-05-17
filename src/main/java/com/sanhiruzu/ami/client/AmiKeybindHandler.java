@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.item.ItemStack;
 import com.mojang.blaze3d.platform.InputConstants;
+import org.lwjgl.glfw.GLFW;
 
 /**
  * Handles the logic for AMI-specific keybinds.
@@ -16,9 +17,9 @@ public class AmiKeybindHandler {
      * Checks if any AMI keybinds were pressed and performs the associated actions.
      * Called from InventoryOverlayHandler.onKeyPressed.
      */
-    public static boolean onKeyPressed(int keyCode, int scanCode, int modifiers) {
+    public static boolean onKeyPressed(int keyCode, int scanCode, int modifiers, int action) {
         // Only handle on actual key press (action == 1), not repeat (2) or release (0)
-        if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_UNKNOWN) return false;
+        if (action != GLFW.GLFW_PRESS) return false;
 
         if (AMIKeyMappings.FAVORITE.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
             return handleFavoriteKey();

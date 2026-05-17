@@ -51,6 +51,22 @@ public final class AMITheme {
     public static int DIM_NETHER     = 0xFFCC4444;
     public static int DIM_END        = 0xFF9944CC;
 
+    // Accents & Status
+    public static int ACCENT_GOLD    = 0xFFAAAA00;
+    public static int ACCENT_BLUE    = 0xFF4488FF;
+    public static int POSITIVE       = 0xFF55FF55;
+    public static int NEGATIVE       = 0xFFFF5555;
+    
+    // Borders & Outlines
+    public static int BORDER_LIGHT   = 0x33FFFFFF;
+    public static int BORDER_DARK    = 0x33000000;
+    public static int WHITE          = 0xFFFFFFFF;
+    public static int BLACK          = 0xFF000000;
+
+    // Gradients & Shadows
+    public static int GRADIENT_SHADOW = 0xCC000000;
+    public static int TRANSPARENT     = 0x00000000;
+
     // Typography (light-panel palette — do not use ChatFormatting enums for these)
     public static int TEXT_HEADER    = 0xFF404040; // static UI labels, no drop shadow
     public static int TEXT_PRIMARY   = 0xFFFFFFFF; // primary item names, with drop shadow
@@ -123,17 +139,20 @@ public final class AMITheme {
         GROUP_HEADER_BG = AmiConfig.cardBg;
 
         if (AmiConfig.useTransparentTheme) {
-            SECTION_SEP   = 0x33FFFFFF; // Subtle white line
-            ROW_SEPARATOR = 0x11FFFFFF; // Very faint line
-            TEXT_HEADER   = 0xFFEEEEEE; // Bright off-white
+            SECTION_SEP   = 0x33FFFFFF;
+            ROW_SEPARATOR = 0x11FFFFFF;
+            TEXT_HEADER   = 0xFFEEEEEE;
             
-            DROPDOWN_BG        = 0x44FFFFFF; // Transparent white
+            DROPDOWN_BG        = 0x44FFFFFF;
             DROPDOWN_BG_ACTIVE = 0x66FFFFFF; 
-            DROPDOWN_LIST_BG   = 0xCC000000; // Solid-ish dark for readability
+            DROPDOWN_LIST_BG   = 0xCC000000;
 
             SCROLL_TRACK        = 0x11FFFFFF;
             SCROLL_THUMB        = 0x44FFFFFF;
             SCROLL_THUMB_ACTIVE = 0x88FFFFFF;
+            
+            BORDER_LIGHT = 0x22FFFFFF;
+            GRADIENT_SHADOW = 0x88000000;
         } else {
             SECTION_SEP   = 0xFF888888;
             ROW_SEPARATOR = 0xFF999999;
@@ -146,6 +165,9 @@ public final class AMITheme {
             SCROLL_TRACK        = 0xFFAAAAAA;
             SCROLL_THUMB        = 0xFF777777;
             SCROLL_THUMB_ACTIVE = 0xFF555555;
+            
+            BORDER_LIGHT = 0x33FFFFFF;
+            GRADIENT_SHADOW = 0xCC000000;
         }
     }
 

@@ -54,11 +54,11 @@ public class AMIConfig {
                      "They are always shown when devMode or cheatMode is enabled.")
             .define("showSpawnEggs", false);
 
-    public static final ModConfigSpec.BooleanValue HIDE_NON_CREATIVE_ITEMS = BUILDER
-            .comment("Filter items that do not appear in any creative-mode tab.",
-                     "Removes mod placeholders, internal system items, and developer leftovers.",
-                     "Disable only if you need to see every registered item regardless of tab status.")
-            .define("hideNonCreativeItems", true);
+    public static final ModConfigSpec.BooleanValue SHOW_HIDDEN_MOD_ITEMS = BUILDER
+            .comment("Show items from mods that hide their content from creative-mode tabs.",
+                     "Examples: MrCrayfish Furniture, Better Beginnings, etc.",
+                     "Disable if you only want to see items in standard creative tabs.")
+            .define("showHiddenModItems", true);
 
     public static final ModConfigSpec.BooleanValue STRICT_SURVIVAL_MODE = BUILDER
             .comment("Hide items that have no crafting, smelting, or other recipe output.",
