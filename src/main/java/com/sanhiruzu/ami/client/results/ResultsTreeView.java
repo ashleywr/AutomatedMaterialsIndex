@@ -450,18 +450,8 @@ public class ResultsTreeView {
         int badgeW = (int)(font.width(badge) * currentLabelScale);
         int badgeX = x + width - SCROLLBAR_W - badgeW - 5;
 
-        // Colour swatches — right-aligned, between label and badge
-        List<Integer> swatchColors = collectSwatchColors(node, MAX_SWATCHES);
-        int swatchBlockW = swatchColors.isEmpty() ? 0
-                : swatchColors.size() * (SWATCH_SIZE + SWATCH_GAP);
-        if (!swatchColors.isEmpty()) {
-            int sx = badgeX - 4 - swatchBlockW;
-            int sy = drawY + (AMITheme.ROW_HEIGHT - SWATCH_SIZE) / 2;
-            for (int argb : swatchColors) {
-                g.fill(sx, sy, sx + SWATCH_SIZE, sy + SWATCH_SIZE, argb);
-                sx += SWATCH_SIZE + SWATCH_GAP;
-            }
-        }
+        // Color swatches hidden for now — unclear to players, feature not ready
+        int swatchBlockW = 0;
 
         // Label (truncated to avoid overlap with swatches and badge)
         int labelRightBound = badgeX - (swatchBlockW > 0 ? swatchBlockW + 8 : 0);
