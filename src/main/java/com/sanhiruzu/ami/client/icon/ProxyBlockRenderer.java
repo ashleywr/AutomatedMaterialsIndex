@@ -190,13 +190,13 @@ public class ProxyBlockRenderer implements IIconRenderer {
     }
 
     private static int dimensionColor(SearchNode node) {
-        if (node.type() == NodeType.STRUCTURE) return 0x99252512; // ~60% opacity
+        if (node.type() == NodeType.STRUCTURE) return 0xFF252512;
         String dim = node.meta(SearchNodeKeys.DIMENSION, "overworld");
         return switch (dim) {
-            case "nether"  -> 0x992B1408;
+            case "nether"  -> 0xFF2B1408;
             case "the_end",
-                 "end"     -> 0x9916101E;
-            default        -> 0x99122010;
+                 "end"     -> 0xFF16101E;
+            default        -> 0xFF122010;
         };
     }
 
