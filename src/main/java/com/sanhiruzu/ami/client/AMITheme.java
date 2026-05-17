@@ -52,14 +52,14 @@ public final class AMITheme {
     public static int DIM_END        = 0xFF9944CC;
 
     // Typography (light-panel palette — do not use ChatFormatting enums for these)
-    public static final int TEXT_HEADER    = 0xFF404040; // static UI labels, no drop shadow
-    public static final int TEXT_PRIMARY   = 0xFFFFFFFF; // primary item names, with drop shadow
-    public static final int TEXT_SUBTLE    = 0xFF555555; // metadata, counts, badges, no drop shadow
-    public static final int TEXT_HIGHLIGHT = 0xFF55FFFF; // active query match (e.g. @modid), with drop shadow
+    public static int TEXT_HEADER    = 0xFF404040; // static UI labels, no drop shadow
+    public static int TEXT_PRIMARY   = 0xFFFFFFFF; // primary item names, with drop shadow
+    public static int TEXT_SUBTLE    = 0xFF555555; // metadata, counts, badges, no drop shadow
+    public static int TEXT_HIGHLIGHT = 0xFF55FFFF; // active query match (e.g. @modid), with drop shadow
 
     // Row and section separators (not configurable — aesthetic constants)
-    public static final int ROW_SEPARATOR = 0xFF999999; // 1px line between list rows
-    public static final int SECTION_SEP   = 0xFF888888; // 1px line between FacetBar/Toolbar/Results
+    public static int ROW_SEPARATOR = 0xFF999999; // 1px line between list rows
+    public static int SECTION_SEP   = 0xFF888888; // 1px line between FacetBar/Toolbar/Results
 
     // Item grid
     public static int SLOT_BG        = 0xFF555555;
@@ -107,6 +107,17 @@ public final class AMITheme {
         ROW_HEIGHT     = AmiConfig.rowHeight;
         ICON_SIZE      = AmiConfig.iconSize;
         ELEMENT_GAP    = AmiConfig.elementGap;
+
+        PANEL_BG       = AmiConfig.panelBg;
+        PANEL_INNER    = AmiConfig.searchBarBg;
+        ENTRY_HOVER    = AmiConfig.cardBgHover;
+        ENTRY_TEXT     = AmiConfig.cardTextName;
+        ENTRY_SUBTITLE = AmiConfig.cardTextSubtitle;
+        TEXT_PRIMARY   = AmiConfig.cardTextName;
+        TEXT_SUBTLE    = AmiConfig.cardTextSubtitle;
+        SLOT_BG        = AmiConfig.cardBg;
+        SLOT_HOVER     = AmiConfig.cardBgHover;
+        GROUP_HEADER_BG = AmiConfig.cardBg;
     }
 
     public static void load() {

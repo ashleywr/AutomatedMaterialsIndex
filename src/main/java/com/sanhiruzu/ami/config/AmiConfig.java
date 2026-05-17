@@ -134,6 +134,9 @@ public class AmiConfig {
     @ConfigValue("ui.theme")
     public static Theme theme = Theme.MODERN;
 
+    @ConfigValue("ui.use-transparent-theme")
+    public static boolean useTransparentTheme = true;
+
     @ConfigColor
     @ConfigValue("ui.accent-color")
     public static int accentColor = 0xFF5555;
@@ -154,39 +157,43 @@ public class AmiConfig {
     @ConfigGroup("palette")
     @ConfigColor
     @ConfigValue("palette.overlay-bg")
-    public static int overlayBg = 0x99000000;
+    public static int overlayBg = 0x66000000;
+
+    @ConfigColor
+    @ConfigValue("palette.panel-bg")
+    public static int panelBg = 0xAA000000;
 
     @ConfigColor
     @ConfigValue("palette.search-bar-bg")
-    public static int searchBarBg = 0xFFD0D0D0;
+    public static int searchBarBg = 0x44000000;
 
     @ConfigColor
     @ConfigValue("palette.search-bar-border")
-    public static int searchBarBorder = 0xFF4488FF;
+    public static int searchBarBorder = 0x884488FF;
 
     @ConfigColor
     @ConfigValue("palette.search-text")
-    public static int searchText = 0xFFEEEEEE;
+    public static int searchText = 0xFFFFFFFF;
 
     @ConfigColor
     @ConfigValue("palette.search-placeholder")
-    public static int searchPlaceholder = 0xFF888888;
+    public static int searchPlaceholder = 0xFFAAAAAA;
 
     @ConfigColor
     @ConfigValue("palette.card-bg")
-    public static int cardBg = 0xFF2A2A2A;
+    public static int cardBg = 0x22FFFFFF;
 
     @ConfigColor
     @ConfigValue("palette.card-bg-hover")
-    public static int cardBgHover = 0x3300AAFF;
+    public static int cardBgHover = 0x44FFFFFF;
 
     @ConfigColor
     @ConfigValue("palette.card-text-name")
-    public static int cardTextName = 0xFF111111;
+    public static int cardTextName = 0xFFFFFFFF;
 
     @ConfigColor
     @ConfigValue("palette.card-text-subtitle")
-    public static int cardTextSubtitle = 0xFF555555;
+    public static int cardTextSubtitle = 0xFFAAAAAA;
 
     @ConfigGroupEnd
     public static final Object paletteGroupEnd = null;
@@ -239,20 +246,22 @@ public class AmiConfig {
         elementGap = 4;
         
         theme = Theme.MODERN;
+        useTransparentTheme = true;
         accentColor = 0xFF5555;
         showHeader = true;
         blockSubgroup = BlockSubgroup.SHAPE;
         itemClickAction = ItemClickAction.RECIPES;
         
-        overlayBg = 0x99000000;
-        searchBarBg = 0xFFD0D0D0;
-        searchBarBorder = 0xFF4488FF;
-        searchText = 0xFFEEEEEE;
-        searchPlaceholder = 0xFF888888;
-        cardBg = 0xFF2A2A2A;
-        cardBgHover = 0x3300AAFF;
-        cardTextName = 0xFF111111;
-        cardTextSubtitle = 0xFF555555;
+        overlayBg = 0x66000000;
+        panelBg = 0xAA000000;
+        searchBarBg = 0x44000000;
+        searchBarBorder = 0x884488FF;
+        searchText = 0xFFFFFFFF;
+        searchPlaceholder = 0xFFAAAAAA;
+        cardBg = 0x22FFFFFF;
+        cardBgHover = 0x44FFFFFF;
+        cardTextName = 0xFFFFFFFF;
+        cardTextSubtitle = 0xFFAAAAAA;
         
         subtitleFields = "MOD_NAME";
         subtitleFieldsChecksum = 0;
