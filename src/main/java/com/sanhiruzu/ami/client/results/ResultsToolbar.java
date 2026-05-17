@@ -107,6 +107,8 @@ public class ResultsToolbar implements SearchState.Listener {
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
         var font = Minecraft.getInstance().font;
+        boolean dropdownOpen = isAnyDropdownOpen();
+        int effectiveMouseX = dropdownOpen ? -1 : mouseX;
         int buttonX = x + 2;
 
         // View mode toggle button
@@ -120,17 +122,17 @@ public class ResultsToolbar implements SearchState.Listener {
         buttonX += BUTTON_W + 3;
 
         // Reset button
-        boolean resetHovered = Dropdown.contains(mouseX, mouseY, buttonX, y + 3, RESET_BUTTON_W, 14);
+        boolean resetHovered = Dropdown.contains(effectiveMouseX, mouseY, buttonX, y + 3, RESET_BUTTON_W, 14);
         int resetColor = resetHovered ? 0xFFFFFFFF : AMITheme.TEXT_SUBTLE;
         com.sanhiruzu.ami.client.AmiGuiIcons.reset(g,
                 buttonX + RESET_BUTTON_W / 2, y + 3 + 7, resetColor);
 
         // Render all registered dropdowns
         for (Dropdown dropdown : dropdowns) {
-            dropdown.render(g, mouseX, mouseY);
+            dropdown.render(g, effectiveMouseX, mouseY);
         }
         if (state.getViewMode() != ViewMode.GRID) {
-            fieldsPicker.render(g, mouseX, mouseY);
+            fieldsPicker.render(g, effectiveMouseX, mouseY);
         }
     }
 
