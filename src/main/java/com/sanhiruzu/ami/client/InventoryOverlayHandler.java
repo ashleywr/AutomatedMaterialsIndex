@@ -216,7 +216,7 @@ public class InventoryOverlayHandler {
         if (!isContainerScreen(event.getScreen())) return;
         var containerScreen = event.getScreen();
 
-        if (AmiKeybindHandler.onKeyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
+        if (AmiKeybindHandler.onKeyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers(), org.lwjgl.glfw.GLFW.GLFW_PRESS)) {
             event.setCanceled(true);
             return;
         }

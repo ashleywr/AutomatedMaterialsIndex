@@ -41,7 +41,7 @@ public class ItemProvider implements IAmiDataProvider {
 
         Set<Item> creativeItems = ItemFilter.buildCreativeItemSet(level);
         // Build recipe set if we'll use it (strict survival or allowing hidden items with recipes)
-        Set<Item> recipeOutputs = (strictSurvival || !AmiConfig.hideNonCreativeItems)
+        Set<Item> recipeOutputs = (strictSurvival || AmiConfig.showHiddenModItems)
             ? ItemFilter.buildRecipeOutputSet(level)
             : Collections.emptySet();
 
@@ -60,7 +60,7 @@ public class ItemProvider implements IAmiDataProvider {
 
             // Layer 3: recipe availability - items with recipes should be shown as SURVIVAL even if not in creative tabs
             boolean hasRecipe = !hasRecipeData || recipeOutputs.contains(item);
-            if (hasRecipe && ItemFilter.ACCESS_DEV.equals(accessLevel) && !AmiConfig.hideNonCreativeItems) {
+            if (hasRecipe && ItemFilter.ACCESS_DEV.equals(accessLevel) && AmiConfig.showHiddenModItems) {
                 // Items with recipes that aren't shown in creative tabs should still appear in SURVIVAL mode
                 accessLevel = ItemFilter.ACCESS_SURVIVAL;
             }

@@ -77,7 +77,7 @@ public final class ItemFilter {
                     || AmiConfig.devMode
                     || AmiConfig.cheatMode;
             case ACCESS_CHEAT -> AmiConfig.cheatMode || AmiConfig.devMode;
-            case ACCESS_DEV -> AmiConfig.devMode || !AmiConfig.hideNonCreativeItems;
+            case ACCESS_DEV -> AmiConfig.devMode || AmiConfig.showHiddenModItems;
             default -> false;
         };
     }

@@ -96,8 +96,8 @@ public class AmiConfig {
     @ConfigValue("features.show-spawn-eggs")
     public static boolean showSpawnEggs = false;
 
-    @ConfigValue("features.hide-non-creative-items")
-    public static boolean hideNonCreativeItems = true;
+    @ConfigValue("features.show-hidden-mod-items")
+    public static boolean showHiddenModItems = true;
 
     @ConfigValue("features.strict-survival-mode")
     public static boolean strictSurvivalMode = false;
@@ -235,7 +235,7 @@ public class AmiConfig {
         enableGhostCrafting = true;
         enableProgressionGraph = true;
         showSpawnEggs = false;
-        hideNonCreativeItems = true;
+        showHiddenModItems = true;
         strictSurvivalMode = false;
         suppressRecipeViewers = true;
         
