@@ -11,14 +11,16 @@ public class ResultsToolbar implements SearchState.Listener {
     public enum ViewMode { GRID, LIST }
 
     private static final int TOOLBAR_HEIGHT  = 20;
-    private static final int MODE_BUTTON_W  = 26; // wide enough for "Grid"/"List"
-    private static final int BUTTON_W       = 14;
-    private static final int COLLAPSE_BTN_W = 28; // "−" with padding
-    private static final int EXPAND_BTN_W   = 28; // "+" with padding
-    private static final int DROPDOWN_W     = 80;
-    private static final int MOD_FILTER_W   = 60;
-    private static final int FIELDS_BTN_W   = 44; // wide enough for "Fields (3)"
-    private static final int RESET_BUTTON_W = 32;
+    private static final int BUTTON_H        = 14;  // all buttons are this height
+    private static final int MODE_BUTTON_W   = 28;  // "Grid"/"List"
+    private static final int SORT_BUTTON_W   = 14;  // "▲"/"▼"
+    private static final int RESET_BUTTON_W  = 18;  // reset icon
+    private static final int COLLAPSE_BTN_W  = 18;  // "−"
+    private static final int EXPAND_BTN_W    = 18;  // "+"
+    private static final int DROPDOWN_W      = 80;
+    private static final int MOD_FILTER_W    = 60;
+    private static final int FIELDS_BTN_W    = 44;  // "Fields (3)"
+    private static final int BUTTON_GAP      = 2;   // gap between buttons
 
     private int x, y, width;
     private final SearchState state;
@@ -85,10 +87,10 @@ public class ResultsToolbar implements SearchState.Listener {
 
     private void updateDropdownPositions() {
         boolean gridMode = state.getViewMode() == ViewMode.GRID;
-        int startX = x + 2 + MODE_BUTTON_W + 3 + BUTTON_W + 3 + RESET_BUTTON_W + 3;
+        int startX = x + 2 + MODE_BUTTON_W + BUTTON_GAP + SORT_BUTTON_W + BUTTON_GAP + RESET_BUTTON_W + BUTTON_GAP;
         // Account for collapse/expand buttons in list view
         if (!gridMode && onCollapseAll != null) {
-            startX += COLLAPSE_BTN_W + 1 + EXPAND_BTN_W + 3;
+            startX += COLLAPSE_BTN_W + BUTTON_GAP + EXPAND_BTN_W + BUTTON_GAP;
         }
         // In grid mode the Fields picker is hidden, so give its space to Sort/Group dropdowns.
         int rightReserved = gridMode ? 0 : (FIELDS_BTN_W + 5);
@@ -120,37 +122,43 @@ public class ResultsToolbar implements SearchState.Listener {
         boolean dropdownOpen = isAnyDropdownOpen();
         int effectiveMouseX = dropdownOpen ? -1 : mouseX;
         int buttonX = x + 2;
+        int buttonY = y + 3;
 
         // View mode toggle button
         String modeLabel = state.getViewMode() == ViewMode.GRID ? "Grid" : "List";
-        g.drawString(font, modeLabel, buttonX + 2, y + 3, AMITheme.TEXT_HEADER, false);
-        buttonX += MODE_BUTTON_W + 3;
+        boolean modeHovered = Dropdown.contains(effectiveMouseX, mouseY, buttonX, buttonY, MODE_BUTTON_W, BUTTON_H);
+        drawButton(g, buttonX, buttonY, MODE_BUTTON_W, BUTTON_H, modeHovered);
+        g.drawCenteredString(font, modeLabel, buttonX + MODE_BUTTON_W / 2, buttonY + 3, AMITheme.TEXT_HEADER);
+        buttonX += MODE_BUTTON_W + BUTTON_GAP;
 
         // Sort direction button (▲/▼)
         String dirLabel = state.isAscending() ? "▲" : "▼";
-        g.drawString(font, dirLabel, buttonX + 2, y + 3, AMITheme.TEXT_HEADER, false);
-        buttonX += BUTTON_W + 3;
+        boolean sortHovered = Dropdown.contains(effectiveMouseX, mouseY, buttonX, buttonY, SORT_BUTTON_W, BUTTON_H);
+        drawButton(g, buttonX, buttonY, SORT_BUTTON_W, BUTTON_H, sortHovered);
+        g.drawCenteredString(font, dirLabel, buttonX + SORT_BUTTON_W / 2, buttonY + 3, AMITheme.TEXT_HEADER);
+        buttonX += SORT_BUTTON_W + BUTTON_GAP;
 
         // Reset button
-        boolean resetHovered = Dropdown.contains(effectiveMouseX, mouseY, buttonX, y + 3, RESET_BUTTON_W, 14);
-        int resetColor = resetHovered ? com.sanhiruzu.ami.client.AMITheme.WHITE : AMITheme.TEXT_SUBTLE;
+        boolean resetHovered = Dropdown.contains(effectiveMouseX, mouseY, buttonX, buttonY, RESET_BUTTON_W, BUTTON_H);
+        drawButton(g, buttonX, buttonY, RESET_BUTTON_W, BUTTON_H, resetHovered);
+        int resetColor = resetHovered ? AMITheme.WHITE : AMITheme.TEXT_SUBTLE;
         com.sanhiruzu.ami.client.AmiGuiIcons.reset(g,
-                buttonX + RESET_BUTTON_W / 2, y + 3 + 7, resetColor);
-        buttonX += RESET_BUTTON_W + 3;
+                buttonX + RESET_BUTTON_W / 2, buttonY + BUTTON_H / 2 + 1, resetColor);
+        buttonX += RESET_BUTTON_W + BUTTON_GAP;
 
         // Collapse/Expand all buttons (only in list view)
         if (state.getViewMode() != ViewMode.GRID && onCollapseAll != null) {
             // Collapse button (−)
-            boolean collapseHovered = Dropdown.contains(effectiveMouseX, mouseY, buttonX, y + 3, COLLAPSE_BTN_W, 14);
-            int collapseColor = collapseHovered ? com.sanhiruzu.ami.client.AMITheme.WHITE : AMITheme.TEXT_HEADER;
-            g.drawString(font, "−", buttonX + 9, y + 3, collapseColor, false);
-            buttonX += COLLAPSE_BTN_W + 1;
+            boolean collapseHovered = Dropdown.contains(effectiveMouseX, mouseY, buttonX, buttonY, COLLAPSE_BTN_W, BUTTON_H);
+            drawButton(g, buttonX, buttonY, COLLAPSE_BTN_W, BUTTON_H, collapseHovered);
+            g.drawCenteredString(font, "−", buttonX + COLLAPSE_BTN_W / 2, buttonY + 3, AMITheme.TEXT_HEADER);
+            buttonX += COLLAPSE_BTN_W + BUTTON_GAP;
 
             // Expand button (+)
-            boolean expandHovered = Dropdown.contains(effectiveMouseX, mouseY, buttonX, y + 3, EXPAND_BTN_W, 14);
-            int expandColor = expandHovered ? com.sanhiruzu.ami.client.AMITheme.WHITE : AMITheme.TEXT_HEADER;
-            g.drawString(font, "+", buttonX + 11, y + 3, expandColor, false);
-            buttonX += EXPAND_BTN_W + 3;
+            boolean expandHovered = Dropdown.contains(effectiveMouseX, mouseY, buttonX, buttonY, EXPAND_BTN_W, BUTTON_H);
+            drawButton(g, buttonX, buttonY, EXPAND_BTN_W, BUTTON_H, expandHovered);
+            g.drawCenteredString(font, "+", buttonX + EXPAND_BTN_W / 2, buttonY + 3, AMITheme.TEXT_HEADER);
+            buttonX += EXPAND_BTN_W + BUTTON_GAP;
         }
 
         // Render all registered dropdowns
@@ -162,48 +170,61 @@ public class ResultsToolbar implements SearchState.Listener {
         }
     }
 
+    /** Draw a styled button background with border. */
+    private void drawButton(GuiGraphics g, int bx, int by, int bw, int bh, boolean hovered) {
+        int bgColor = hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
+        // Background
+        g.fill(bx, by, bx + bw, by + bh, bgColor);
+        // Border
+        g.fill(bx, by, bx + bw, by + 1, AMITheme.BORDER_DARK);           // top
+        g.fill(bx, by + bh - 1, bx + bw, by + bh, AMITheme.BORDER_DARK); // bottom
+        g.fill(bx, by, bx + 1, by + bh, AMITheme.BORDER_DARK);           // left
+        g.fill(bx + bw - 1, by, bx + bw, by + bh, AMITheme.BORDER_DARK); // right
+    }
+
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0) return false;
 
         int buttonX = x + 2;
+        int buttonY = y + 3;
 
         // View mode toggle
-        if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, y + 3, MODE_BUTTON_W, 14)) {
+        if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, buttonY, MODE_BUTTON_W, BUTTON_H)) {
             state.setViewMode(state.getViewMode() == ViewMode.GRID ? ViewMode.LIST : ViewMode.GRID);
             closeAllDropdowns();
             updateDropdownPositions(); // reclaim / restore Fields space
             return true;
         }
-        buttonX += MODE_BUTTON_W + 3;
+        buttonX += MODE_BUTTON_W + BUTTON_GAP;
 
         // Sort direction button
-        if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, y + 3, BUTTON_W, 14)) {
+        if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, buttonY, SORT_BUTTON_W, BUTTON_H)) {
             state.setAscending(!state.isAscending());
             closeAllDropdowns();
             return true;
         }
-        buttonX += BUTTON_W + 3;
+        buttonX += SORT_BUTTON_W + BUTTON_GAP;
 
         // Reset button
-        if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, y + 3, RESET_BUTTON_W, 14)) {
+        if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, buttonY, RESET_BUTTON_W, BUTTON_H)) {
             state.reset();
             RowFieldConfig.setSubtitleFields(List.of(RowField.MOD_NAME));
             closeAllDropdowns();
             return true;
         }
-        buttonX += RESET_BUTTON_W + 3;
+        buttonX += RESET_BUTTON_W + BUTTON_GAP;
 
         // Collapse/Expand all buttons (only in list view)
         if (state.getViewMode() != ViewMode.GRID && onCollapseAll != null) {
             // Collapse button
-            if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, y + 3, COLLAPSE_BTN_W, 14)) {
+            if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, buttonY, COLLAPSE_BTN_W, BUTTON_H)) {
                 onCollapseAll.run();
                 return true;
             }
-            buttonX += COLLAPSE_BTN_W + 1;
+            buttonX += COLLAPSE_BTN_W + BUTTON_GAP;
 
             // Expand button
-            if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, y + 3, EXPAND_BTN_W, 14)) {
+            if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, buttonY, EXPAND_BTN_W, BUTTON_H)) {
                 onExpandAll.run();
                 return true;
             }
