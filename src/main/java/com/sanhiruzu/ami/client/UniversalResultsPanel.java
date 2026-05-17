@@ -43,7 +43,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private String currentQuery = "";
     private SearchService searchService;
     private Runnable externalResetCallback;
+    private java.util.function.Consumer<String> onTokenInject;
     private boolean isFavoritesPanel = false;
+    private Component panelTitle = null;
 
     private SearchNode pressedNode = null;
     private double pressedX, pressedY;
@@ -94,6 +96,12 @@ public class UniversalResultsPanel implements SearchState.Listener {
         this.gridView = new ItemGridView(innerX, contentY, innerW, contentH);
         this.gridView.setItemClickCallback(this::onItemClicked);
         this.treeView.setItemClickCallback(this::onItemClicked);
+        this.gridView.setOnTokenInject(token -> {
+            if (onTokenInject != null) onTokenInject.accept(token);
+        });
+        this.treeView.setOnTokenInject(token -> {
+            if (onTokenInject != null) onTokenInject.accept(token);
+        });
 
         toolbar.setCollapseExpandCallbacks(
             () -> treeView.collapseAll(),
@@ -110,8 +118,16 @@ public class UniversalResultsPanel implements SearchState.Listener {
         this.treeView.setOnModClick(callback);
     }
 
+    public void setOnTreeTokenInject(java.util.function.Consumer<String> callback) {
+        this.treeView.setOnTokenInject(callback);
+    }
+
     public void setOnFacetInject(java.util.function.Consumer<String> callback) {
         this.facetBar.setOnTokenInject(callback);
+    }
+
+    public void setOnTokenInject(java.util.function.Consumer<String> callback) {
+        this.onTokenInject = callback;
     }
 
     public void setSearchResults(Map<NodeType, List<SearchNode>> results, String query) {
@@ -197,10 +213,19 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         if (isFavoritesPanel) {
             var font = Minecraft.getInstance().font;
-            Component title = Component.translatable("ami.gui.favorites");
-            g.drawString(font, "♥ " + title.getString(), x + AMITheme.GLOBAL_PADDING, y + (FAV_HEADER_H - font.lineHeight) / 2, AMITheme.TEXT_HEADER, false);
+            Component title = panelTitle != null ? panelTitle : Component.translatable("ami.gui.favorites");
+            g.drawString(font, title.getString(), x + AMITheme.GLOBAL_PADDING, y + (FAV_HEADER_H - font.lineHeight) / 2, AMITheme.TEXT_HEADER, false);
+            
+            // Draw small Grid/List toggle in the header
+            renderSidebarToggle(g, mouseX, mouseY);
+
             g.fill(x + 3, y + FAV_HEADER_H - 1, x + width - 3, y + FAV_HEADER_H, AMITheme.SECTION_SEP);
-            gridView.render(g, mouseX, mouseY, false);
+            
+            if (isGridActive()) {
+                gridView.render(g, mouseX, mouseY, false);
+            } else {
+                treeView.render(g, mouseX, mouseY, false, null, state);
+            }
             return;
         }
 
@@ -246,6 +271,19 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         toolbar.renderOpenDropdownLists(g, mouseX, mouseY);
         facetBar.renderTooltip(g, mouseX, mouseY);
+    }
+
+    private void renderSidebarToggle(GuiGraphics g, int mouseX, int mouseY) {
+        int tx = x + width - AMITheme.GLOBAL_PADDING - 12;
+        int ty = y + (FAV_HEADER_H - 12) / 2;
+        boolean hovered = mouseX >= tx && mouseX < tx + 12 && mouseY >= ty && mouseY < ty + 12;
+        
+        int color = hovered ? 0xFFFFFFFF : 0xFFAAAAAA;
+        if (state.getViewMode() == ResultsToolbar.ViewMode.LIST) {
+            AmiGuiIcons.compact(g, tx + 6, ty + 6, color); // Show grid icon to switch to grid
+        } else {
+            AmiGuiIcons.expand(g, tx + 6, ty + 6, color); // Show list icon to switch to list
+        }
     }
 
     private void renderToggleBtn(GuiGraphics g, int mouseX, int mouseY) {
@@ -317,9 +355,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /** True when the grid view should be active — favorites panel, compact mode, or explicit grid mode. */
+    /** True when the grid view should be active — favorites panel (if in grid mode), compact mode, or explicit grid mode. */
     private boolean isGridActive() {
-        return isFavoritesPanel || AmiConfig.compactMode || state.getViewMode() == ResultsToolbar.ViewMode.GRID;
+        if (isFavoritesPanel) return state.getViewMode() == ResultsToolbar.ViewMode.GRID;
+        return AmiConfig.compactMode || state.getViewMode() == ResultsToolbar.ViewMode.GRID;
     }
 
     private boolean isOverToggle(double mouseX, double mouseY) {
@@ -345,9 +384,19 @@ public class UniversalResultsPanel implements SearchState.Listener {
             }
         }
 
-        // Favorites panel — only grid clicks, no toggle/toolbar/facetbar
+        // Favorites panel — grid/list clicks + toggle
         if (isFavoritesPanel) {
-            return gridView.mouseClicked(mouseX, mouseY, button);
+            // Check sidebar toggle
+            int tx = x + width - AMITheme.GLOBAL_PADDING - 12;
+            int ty = y + (FAV_HEADER_H - 12) / 2;
+            if (button == 0 && mouseX >= tx && mouseX < tx + 12 && mouseY >= ty && mouseY < ty + 12) {
+                state.setViewMode(state.getViewMode() == ResultsToolbar.ViewMode.GRID ? ResultsToolbar.ViewMode.LIST : ResultsToolbar.ViewMode.GRID);
+                updateLayout(x, y, width, height);
+                return true;
+            }
+            
+            if (isGridActive()) return gridView.mouseClicked(mouseX, mouseY, button);
+            return treeView.mouseClicked(mouseX, mouseY, button);
         }
 
         // Compact toggle — always first, regardless of mode
@@ -444,7 +493,14 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     public void setFavoritesPanel(boolean favoritesPanel) {
         isFavoritesPanel = favoritesPanel;
+        if (isFavoritesPanel) {
+            state.setViewMode(ResultsToolbar.ViewMode.GRID); // Default sidebars to grid
+        }
         initChildren(); // re-layout now that mode is known
+    }
+
+    public void setPanelTitle(Component title) {
+        this.panelTitle = title;
     }
 
     public void mouseReleased(double mouseX, double mouseY, int button) {

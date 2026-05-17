@@ -23,6 +23,7 @@ public class SidebarPanelWidget extends AbstractWidget {
         this.contentType = contentType;
         this.panel = new UniversalResultsPanel(x, y, width, height);
         this.panel.setFavoritesPanel(true); // This tells it to use the smaller icons/sidebar style
+        this.panel.setPanelTitle(this.getMessage());
         
         if (contentType == AmiConfig.PanelContent.LOOKUP_HISTORY) {
             com.sanhiruzu.ami.client.favorites.AmiHistoryHandler.getInstance().setOnChange(this::refresh);
