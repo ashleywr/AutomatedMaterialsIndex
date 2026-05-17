@@ -66,9 +66,9 @@ public final class AMITheme {
     public static int SLOT_HOVER     = 0xFFAAAAAA;
 
     // Dropdown buttons and panels
-    public static final int DROPDOWN_BG        = 0xFFAAAAAA; // button idle + list item hover
-    public static final int DROPDOWN_BG_ACTIVE = 0xFF989898; // button when open or hovered
-    public static final int DROPDOWN_LIST_BG   = 0xFFBBBBBB; // open list panel background
+    public static int DROPDOWN_BG        = 0xFFAAAAAA; // button idle + list item hover
+    public static int DROPDOWN_BG_ACTIVE = 0xFF989898; // button when open or hovered
+    public static int DROPDOWN_LIST_BG   = 0xFFBBBBBB; // open list panel background
 
     // Current location indicators
     public static int CURRENT_BIOME_BG       = 0xFF1A2E1A; // subtle green tint
@@ -121,6 +121,32 @@ public final class AMITheme {
         SLOT_BG        = AmiConfig.cardBg;
         SLOT_HOVER     = AmiConfig.cardBgHover;
         GROUP_HEADER_BG = AmiConfig.cardBg;
+
+        if (AmiConfig.useTransparentTheme) {
+            SECTION_SEP   = 0x33FFFFFF; // Subtle white line
+            ROW_SEPARATOR = 0x11FFFFFF; // Very faint line
+            TEXT_HEADER   = 0xFFEEEEEE; // Bright off-white
+            
+            DROPDOWN_BG        = 0x44FFFFFF; // Transparent white
+            DROPDOWN_BG_ACTIVE = 0x66FFFFFF; 
+            DROPDOWN_LIST_BG   = 0xCC000000; // Solid-ish dark for readability
+
+            SCROLL_TRACK        = 0x11FFFFFF;
+            SCROLL_THUMB        = 0x44FFFFFF;
+            SCROLL_THUMB_ACTIVE = 0x88FFFFFF;
+        } else {
+            SECTION_SEP   = 0xFF888888;
+            ROW_SEPARATOR = 0xFF999999;
+            TEXT_HEADER   = 0xFF404040;
+            
+            DROPDOWN_BG        = 0xFFAAAAAA;
+            DROPDOWN_BG_ACTIVE = 0xFF989898;
+            DROPDOWN_LIST_BG   = 0xFFBBBBBB;
+
+            SCROLL_TRACK        = 0xFFAAAAAA;
+            SCROLL_THUMB        = 0xFF777777;
+            SCROLL_THUMB_ACTIVE = 0xFF555555;
+        }
     }
 
     public static void load() {

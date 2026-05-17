@@ -280,7 +280,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         int ty = y + (FAV_HEADER_H - 12) / 2;
         boolean hovered = mouseX >= tx && mouseX < tx + 12 && mouseY >= ty && mouseY < ty + 12;
         
-        int color = hovered ? 0xFFFFFFFF : 0xFFAAAAAA;
+        int color = hovered ? 0xFFFFFFFF : AMITheme.TEXT_SUBTLE;
         if (state.getViewMode() == ResultsToolbar.ViewMode.LIST) {
             AmiGuiIcons.compact(g, tx + 6, ty + 6, color); // Show grid icon to switch to grid
         } else {
@@ -304,7 +304,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             g.fill(toggleX + TOGGLE_W - 1, toggleY,           toggleX + TOGGLE_W, toggleY + TOGGLE_H,       border); // right
         }
 
-        int iconColor = compact ? 0xFFAADDFF : (hovered ? 0xFFFFFFA0 : 0xFFAAAAAA);
+        int iconColor = compact ? 0xFFAADDFF : (hovered ? 0xFFFFFFA0 : AMITheme.TEXT_SUBTLE);
         int cx = toggleX + TOGGLE_W / 2;
         int cy = toggleY + TOGGLE_H / 2;
         if (compact) {
