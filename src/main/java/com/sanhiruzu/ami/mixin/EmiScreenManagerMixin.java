@@ -20,6 +20,13 @@ public class EmiScreenManagerMixin {
         }
     }
 
+    @Inject(method = "drawForeground", at = @At("HEAD"), cancellable = true, remap = false)
+    private static void hideEmiForegroundWhenAmiActive(EmiDrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+        if (shouldHideEmi()) {
+            ci.cancel();
+        }
+    }
+
     // EMI calls EmiPort.focus(search, false) inside addWidgets, auto-focusing its search bar
     // every time the screen is reinit'd. That focused widget then steals all key events through
     // Minecraft's normal widget routing before our ScreenEvent.KeyPressed.Pre handlers fire.
