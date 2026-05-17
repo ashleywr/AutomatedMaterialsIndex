@@ -185,7 +185,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             Component title = Component.translatable("ami.gui.favorites");
             g.drawString(font, "♥ " + title.getString(), x + AMITheme.GLOBAL_PADDING, y + (FAV_HEADER_H - font.lineHeight) / 2, AMITheme.TEXT_HEADER, false);
             g.fill(x + 3, y + FAV_HEADER_H - 1, x + width - 3, y + FAV_HEADER_H, AMITheme.SECTION_SEP);
-            gridView.render(g, mouseX, mouseY);
+            gridView.render(g, mouseX, mouseY, false);
             return;
         }
 
@@ -194,7 +194,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 g.drawString(Minecraft.getInstance().font, "...",
                         x + AMITheme.GLOBAL_PADDING, y + AMITheme.GLOBAL_PADDING, 0xFFAAAAAA, false);
             } else {
-                gridView.render(g, mouseX, mouseY);
+                gridView.render(g, mouseX, mouseY, false);
             }
             renderToggleBtn(g, mouseX, mouseY); // overlaid on top of grid
             return;
@@ -221,10 +221,11 @@ public class UniversalResultsPanel implements SearchState.Listener {
             int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
             g.drawString(Minecraft.getInstance().font, msg, x + (width - msgW) / 2, contentY + (contentH / 2) - 4, 0xFFFFFF, false);
         } else {
+            boolean dropdownOpen = toolbar.isAnyDropdownOpen();
             if (isGridActive()) {
-                gridView.render(g, mouseX, mouseY);
+                gridView.render(g, mouseX, mouseY, dropdownOpen);
             } else {
-                treeView.render(g, mouseX, mouseY, toolbar.isAnyDropdownOpen(), null, state);
+                treeView.render(g, mouseX, mouseY, dropdownOpen, null, state);
             }
         }
 
@@ -371,6 +372,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollDelta) {
         if (!isMouseOver(mouseX, mouseY)) return false;
+
+        if (toolbar.isAnyDropdownOpen()) return true;
 
         // In full mode, the facet bar scrolls horizontally when the mouse is over it
         if (!AmiConfig.compactMode && facetBar.isMouseOver(mouseX, mouseY)) {

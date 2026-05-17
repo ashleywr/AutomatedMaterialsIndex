@@ -102,7 +102,7 @@ public class ItemGridView {
     // Rendering
     // =========================================================
 
-    public void render(GuiGraphics g, int mouseX, int mouseY) {
+    public void render(GuiGraphics g, int mouseX, int mouseY, boolean toolbarDropdownOpen) {
         pendingTooltip = null;
         pendingTextTooltip = null;
         pendingTooltipImage = Optional.empty();
@@ -113,6 +113,8 @@ public class ItemGridView {
                     "No results", x + 4, y + 4, 0xFFCCCCCC, false);
             return;
         }
+
+        int effectiveMouseX = toolbarDropdownOpen ? -1 : mouseX;
 
         int cols = computeCols();
         List<VirtualRow> rows = getVirtualRows(cols);
@@ -125,9 +127,9 @@ public class ItemGridView {
             int rowBottom = drawY + row.height();
             if (rowBottom > y && drawY < y + height) {
                 if (row instanceof HeaderRow hr) {
-                    renderHeader(g, hr, drawY, mouseX, mouseY);
+                    renderHeader(g, hr, drawY, effectiveMouseX, mouseY);
                 } else if (row instanceof ItemRow ir) {
-                    renderItemRow(g, ir, drawY, mouseX, mouseY);
+                    renderItemRow(g, ir, drawY, effectiveMouseX, mouseY);
                 }
             }
             drawY += row.height();
@@ -137,11 +139,13 @@ public class ItemGridView {
 
         renderScrollbar(g, totalH, mouseX, mouseY);
 
-        var font = Minecraft.getInstance().font;
-        if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
-            g.renderTooltip(font, pendingTooltip, mouseX, mouseY);
-        } else if (pendingTextTooltip != null) {
-            g.renderTooltip(font, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY);
+        if (!toolbarDropdownOpen) {
+            var font = Minecraft.getInstance().font;
+            if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
+                g.renderTooltip(font, pendingTooltip, mouseX, mouseY);
+            } else if (pendingTextTooltip != null) {
+                g.renderTooltip(font, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY);
+            }
         }
     }
 
