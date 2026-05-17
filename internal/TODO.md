@@ -76,9 +76,9 @@ Process in strict order; stop at the first hit:
 - [x] Search bar: refined `Escape` so the first press only unfocuses the field and a second press can close the screen if needed.
 - [x] Search bar: add a clear button inside the field when text is present.
 - [x] Search bar: make cursor movement token-aware for AMI operators like `@mod`, `#tag`, and `-exclude`.
-- Search bar: show a recent-search dropdown when the field is focused and empty.
-- Search bar: decide whether the input filter should stay ASCII-only or allow broader Unicode / IME-friendly entry.
-- Search bar: show placeholder guidance while focused and empty, not only when unfocused.
+- [x] Search bar: show a recent-search dropdown when the field is focused and empty (disabled by default, configurable).
+- [ ] Search bar: decide whether the input filter should stay ASCII-only or allow broader Unicode / IME-friendly entry.
+- [x] Search bar: show placeholder guidance while focused and empty, not only when unfocused.
 - [x] **Interactive Mod Filtering**: Refined to use the `SearchState` context object and a toggle mechanism in the search bar for better QoL.
 - [x] **Search Bar Toggle Logic**: Extracted to `QueryUtils` and verified with unit tests (`SearchBarToggleTest`).
 - ~~Removed the `tier` metadata feature which cluttered the UI with "TIER: MODDED".~~
@@ -101,8 +101,8 @@ Process in strict order; stop at the first hit:
 - [x] **Clipboard Copy**: Implemented `Ctrl+C` support to copy formatted, plain-text tooltips to the clipboard across all UI widgets. Uses `AmiClipboardHelper` to strip formatting codes for clean output.
 - [x] **Fix Fields Picker**: Selecting multiple fields (e.g. Mod + DPS) now correctly persists and displays in the subtitle. Added ID and Type fields for better visibility.
 - [x] **Fix Results Scrollbar**: Widened hitbox to 10px and added high-contrast track for reliable vertical scrolling.
-- [x] **Dropdown Overhaul**: Improved layout with dynamic widths, modern selection indicators (accent bars), and logic to prevent opening empty/single-option menus.
-- [ ] **EMI-Style Click Logic**: Support right-click to find usages vs left-click to find recipes (mimicking EMI behavior) in the results panel.
+- [x] **Fix Dropdown Overhaul**: Improved layout with dynamic widths, modern selection indicators (accent bars), and logic to prevent opening empty/single-option menus.
+- [x] **EMI-Style Click Logic**: Support right-click to find usages vs left-click to find recipes (mimicking EMI behavior) in the results panel. (Fixed click routing in `UniversalResultsPanel.java`).
 - ~~Removed the active-field count badge from the "Fields" button label to prevent overflow.~~
 - **TODO:** Mod filtering is genuinely useful — revisit as a dedicated filter surface (e.g. a searchable popover or sidebar chip list) when the panel layout has more room.
 

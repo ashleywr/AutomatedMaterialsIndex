@@ -30,11 +30,13 @@ public class SearchBarWidget extends EditBox {
     private int highlightPos = 0;
     private boolean contextMenuOpen = false;
     private int menuX, menuY;
+    private boolean historyDropdownOpen = false;
 
     private static final List<String> MENU_OPTIONS = List.of("Cut", "Copy", "Paste", "Clear");
     private static final int MENU_ITEM_H = 12;
 
     private static final Component PLACEHOLDER_HINT = Component.translatable("ami.gui.search.placeholder_hint");
+    private static final Component TYPING_HINT = Component.translatable("ami.gui.search.typing");
 
     private List<TokenColorizer.ColorSpan> colorSpans = List.of();
 
@@ -73,6 +75,9 @@ public class SearchBarWidget extends EditBox {
             historyIndex = -1;
             liveQuery = "";
             lastClickTime = 0;
+            historyDropdownOpen = false;
+        } else if (getValue().isEmpty() && !history.isEmpty() && com.sanhiruzu.ami.AMIConfig.ENABLE_RECENT_SEARCH_DROPDOWN.get()) {
+            historyDropdownOpen = true;
         }
     }
 
@@ -93,36 +98,39 @@ public class SearchBarWidget extends EditBox {
 
         int textX = x + 5;
         int textY = y + (h - font.lineHeight) / 2 + 1;
-        int maxTextWidth = w - 10 - (getValue().isEmpty() ? 0 : 12); // Reserve space for 'x'
-
         String value = getValue();
-        if (value.isEmpty() && !focused) {
+        int maxTextWidth = w - 10 - (value.isEmpty() ? 0 : 12); // Reserve space for 'x'
+
+        int displayStart = computeDisplayStart(font, maxTextWidth);
+
+        if (value.isEmpty()) {
+            Component hint = focused ? TYPING_HINT : PLACEHOLDER_HINT;
             g.enableScissor(textX, textY - 1, textX + maxTextWidth, textY + font.lineHeight + 1);
-            g.drawString(font, PLACEHOLDER_HINT, textX, textY, 0xFF666666, false);
+            g.drawString(font, hint, textX, textY, 0xFF666666, false);
             g.disableScissor();
         } else {
-            int displayStart = computeDisplayStart(font, maxTextWidth);
             String visibleText = value.substring(displayStart);
             renderSelection(g, font, textX, textY, visibleText, displayStart, maxTextWidth);
             drawColorizedText(g, font, textX, textY, visibleText, displayStart, maxTextWidth);
 
-            if (focused && (System.currentTimeMillis() % 1000) < 500) {
-                int cursorInVisible = Math.max(0, Math.min(getCursorPosition() - displayStart, visibleText.length()));
-                int cursorX = textX + font.width(visibleText.substring(0, cursorInVisible)) + 1;
-                g.fill(cursorX, textY - 1, cursorX + 1, textY + font.lineHeight, 0xFFCCCCCC);
-            }
-
             // Draw 'x' clear button
-            if (!value.isEmpty()) {
-                int clearX = x + w - 14;
-                int clearY = y + (h - 10) / 2;
-                boolean hovered = mouseX >= clearX && mouseX < clearX + 12 && mouseY >= clearY && mouseY < clearY + 10;
-                g.drawString(font, "x", clearX + 3, clearY, hovered ? 0xFFFFFFFF : 0xFFAAAAAA, false);
-            }
+            int clearX = x + w - 14;
+            int clearY = y + (h - 10) / 2;
+            boolean hoveredX = mouseX >= clearX && mouseX < clearX + 12 && mouseY >= clearY && mouseY < clearY + 10;
+            g.drawString(font, "x", clearX + 3, clearY, hoveredX ? 0xFFFFFFFF : 0xFFAAAAAA, false);
+        }
+
+        if (focused && (System.currentTimeMillis() % 1000) < 500) {
+            int cursorInVisible = Math.max(0, Math.min(getCursorPosition() - displayStart, value.length() - displayStart));
+            int cursorX = textX + font.width(value.substring(displayStart, displayStart + cursorInVisible)) + 1;
+            g.fill(cursorX, textY - 1, cursorX + 1, textY + font.lineHeight, 0xFFCCCCCC);
         }
 
         if (contextMenuOpen) {
             renderContextMenu(g, mouseX, mouseY);
+        }
+        if (historyDropdownOpen && com.sanhiruzu.ami.AMIConfig.ENABLE_RECENT_SEARCH_DROPDOWN.get()) {
+            renderHistoryDropdown(g, mouseX, mouseY);
         }
     }
 
@@ -150,8 +158,63 @@ public class SearchBarWidget extends EditBox {
         g.pose().popPose();
     }
 
+    private void renderHistoryDropdown(GuiGraphics g, int mouseX, int mouseY) {
+        if (history.isEmpty()) return;
+
+        Font font = Minecraft.getInstance().font;
+        int maxItems = 8;
+        int listSize = Math.min(history.size(), maxItems);
+        int menuW = width;
+        int menuH = listSize * MENU_ITEM_H + 2;
+        int mX = getX();
+        int mY = getY() + height;
+
+        g.pose().pushPose();
+        g.pose().translate(0, 0, 500); // Topmost
+
+        g.fill(mX, mY, mX + menuW, mY + menuH, 0xFF1A1A1A);
+        g.fill(mX, mY, mX + menuW, mY + 1, 0xFF555555);
+        g.fill(mX, mY + menuH - 1, mX + menuW, mY + menuH, 0xFF555555);
+        g.fill(mX, mY, mX + 1, mY + menuH, 0xFF555555);
+        g.fill(mX + menuW - 1, mY, mX + menuW, mY + menuH, 0xFF555555);
+
+        for (int i = 0; i < listSize; i++) {
+            int itemY = mY + 1 + i * MENU_ITEM_H;
+            boolean hovered = mouseX >= mX && mouseX < mX + menuW && mouseY >= itemY && mouseY < itemY + MENU_ITEM_H;
+            if (hovered) g.fill(mX + 1, itemY, mX + menuW - 1, itemY + MENU_ITEM_H, 0xFF333333);
+
+            String text = history.get(i);
+            int tw = font.width(text);
+            if (tw > menuW - 10) {
+                text = font.plainSubstrByWidth(text, menuW - 15) + "...";
+            }
+            g.drawString(font, text, mX + 5, itemY + 2, 0xFFCCCCCC, false);
+        }
+
+        g.pose().popPose();
+    }
+
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (historyDropdownOpen) {
+            int maxItems = 8;
+            int listSize = Math.min(history.size(), maxItems);
+            int menuW = width;
+            int menuH = listSize * MENU_ITEM_H + 2;
+            int mX = getX();
+            int mY = getY() + height;
+            if (mouseX >= mX && mouseX < mX + menuW && mouseY >= mY && mouseY < mY + menuH) {
+                int idx = (int) (mouseY - mY - 1) / MENU_ITEM_H;
+                if (idx >= 0 && idx < listSize) {
+                    setValue(history.get(idx));
+                    setFocused(true);
+                }
+                historyDropdownOpen = false;
+                return true;
+            }
+            historyDropdownOpen = false;
+        }
+
         if (contextMenuOpen) {
             int menuW = 50;
             int menuH = MENU_OPTIONS.size() * MENU_ITEM_H + 2;
@@ -201,6 +264,26 @@ public class SearchBarWidget extends EditBox {
             return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean isMouseOver(double mouseX, double mouseY) {
+        if (super.isMouseOver(mouseX, mouseY)) return true;
+        if (historyDropdownOpen && com.sanhiruzu.ami.AMIConfig.ENABLE_RECENT_SEARCH_DROPDOWN.get()) {
+            int maxItems = 8;
+            int listSize = Math.min(history.size(), maxItems);
+            int menuW = width;
+            int menuH = listSize * MENU_ITEM_H + 2;
+            int mX = getX();
+            int mY = getY() + height;
+            return mouseX >= mX && mouseX < mX + menuW && mouseY >= mY && mouseY < mY + menuH;
+        }
+        if (contextMenuOpen) {
+            int menuW = 50;
+            int menuH = MENU_OPTIONS.size() * MENU_ITEM_H + 2;
+            return mouseX >= menuX && mouseX < menuX + menuW && mouseY >= menuY && mouseY < menuY + menuH;
+        }
+        return false;
     }
 
     private void handleMenuSelection(String option) {
@@ -358,6 +441,13 @@ public class SearchBarWidget extends EditBox {
             }
         }
         lastValue = newValue;
+
+        if (isFocused() && newValue.isEmpty() && !history.isEmpty() && com.sanhiruzu.ami.AMIConfig.ENABLE_RECENT_SEARCH_DROPDOWN.get()) {
+            historyDropdownOpen = true;
+        } else {
+            historyDropdownOpen = false;
+        }
+
         if (!silentUpdate && listener != null) listener.onQueryChanged(newValue);
     }
 
