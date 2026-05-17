@@ -297,7 +297,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     private void onItemClicked(SearchNode node, int button) {
         ItemStack stack = com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node);
-        if (!stack.isEmpty()) RecipeViewerBridge.handleItemClick(stack, button);
+        if (!stack.isEmpty()) RecipeViewerBridge.handleItemClick(stack, button, net.minecraft.client.gui.screens.Screen.hasShiftDown());
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -439,7 +439,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
                 // Check if dropped into a favorites panel using inner grid bounds
                 var manager = com.sanhiruzu.ami.client.InventoryOverlayHandler.getManager();
-                var favPanel = manager.getFavoritesPanel();
+                var favPanel = manager.getLeftPanel();
                 if (favPanel != null && favPanel.visible) {
                     var innerPanel = favPanel.getInnerPanel();
                     if (innerPanel.isMouseOver(mouseX, mouseY)) {

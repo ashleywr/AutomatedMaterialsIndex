@@ -3,10 +3,10 @@ package com.sanhiruzu.ami.client.overlay;
 import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
-import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.index.*;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 
@@ -22,7 +22,10 @@ public class OverlayWidgetManager {
     private static final int PANEL_MARGIN_V  = 6;
 
     private ResultsPanelWidget resultsPanel;
-    private FavoritesPanelWidget favoritesPanel;
+    private SidebarPanelWidget leftPanel;
+    private SidebarPanelWidget leftPanelSecondary;
+    private SidebarPanelWidget rightPanelPrimary;
+    private SidebarPanelWidget rightPanelSecondary;
     private SearchBarWidget    searchBar;
     private AmiButtonWidget    amiButton;
     private boolean widgetsReady = false;
@@ -42,10 +45,13 @@ public class OverlayWidgetManager {
 
     private void ensureWidgets() {
         if (widgetsReady) return;
-        this.resultsPanel   = new ResultsPanelWidget();
-        this.favoritesPanel = new FavoritesPanelWidget(0, 0, 0, 0);
-        this.searchBar      = new SearchBarWidget(this::triggerSearch);
-        this.amiButton      = new AmiButtonWidget(() -> {
+        this.resultsPanel      = new ResultsPanelWidget();
+        this.leftPanel         = new SidebarPanelWidget(0, 0, 0, 0, AmiConfig.leftPanelContent);
+        this.leftPanelSecondary = new SidebarPanelWidget(0, 0, 0, 0, AmiConfig.leftPanelSecondaryContent);
+        this.rightPanelPrimary  = new SidebarPanelWidget(0, 0, 0, 0, AmiConfig.rightPanelContent);
+        this.rightPanelSecondary = new SidebarPanelWidget(0, 0, 0, 0, AmiConfig.rightPanelSecondaryContent);
+        this.searchBar         = new SearchBarWidget(this::triggerSearch);
+        this.amiButton         = new AmiButtonWidget(() -> {
             var mc = Minecraft.getInstance();
             mc.setScreen(new com.sanhiruzu.ami.client.screen.AmiConfigScreen(mc.screen));
         }, InventoryOverlayHandler::toggleAmi, () -> panelVisible);
@@ -59,17 +65,20 @@ public class OverlayWidgetManager {
         this.resultsPanel.setOnReset(searchBar::clear);
         this.resultsPanel.setOnFacetInject(token -> searchBar.toggleToken(token));
 
-        this.favoritesPanel.getInnerPanel().setOnReset(this::refreshFavorites);
-        com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().setOnChange(this::refreshFavorites);
+        Runnable refreshSidebars = this::refreshSidebars;
+        this.leftPanel.getInnerPanel().setOnReset(refreshSidebars);
+        this.leftPanelSecondary.getInnerPanel().setOnReset(refreshSidebars);
+        this.rightPanelPrimary.getInnerPanel().setOnReset(refreshSidebars);
+        this.rightPanelSecondary.getInnerPanel().setOnReset(refreshSidebars);
+        
+        com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().setOnChange(refreshSidebars);
 
         widgetsReady = true;
     }
 
-    /** Updates widget bounds for the current screen geometry. Called from both onScreenInit and renderAll. */
     public void computeLayouts(AbstractContainerScreen<?> containerScreen, int screenW, int screenH) {
         ensureWidgets();
         lastScreenH = screenH;
-        this.onLeft = false;
 
         int btnY = screenH - BOTTOM_BAR_H + 2;
         amiButton.updateBounds(new WidgetBounds(2, btnY - 22, 22, 20));
@@ -77,37 +86,102 @@ public class OverlayWidgetManager {
         int containerLeftEdge = containerScreen.getGuiLeft();
         int containerRightEdge = containerScreen.getGuiLeft() + containerScreen.getXSize();
         
-        // Favorites Panel (Left)
-        if (AmiConfig.leftPanelContent == AmiConfig.PanelContent.FAVORITES) {
-            int favW = Math.min(AmiConfig.leftPanelWidth, containerLeftEdge - (PANEL_MARGIN * 2));
-            if (favW >= 40) {
-                // Constrain height to not overlap with the AMI button at the bottom
-                int maxH = screenH - BOTTOM_BAR_H - 30; // Leave space for button
+        // Left Side
+        boolean hasLeft = isSidebarContent(AmiConfig.leftPanelContent);
+        boolean hasLeftSec = isSidebarContent(AmiConfig.leftPanelSecondaryContent);
+        
+        if (hasLeft || hasLeftSec) {
+            int leftW = Math.min(AmiConfig.leftPanelWidth, containerLeftEdge - (PANEL_MARGIN * 2));
+            if (leftW >= 40) {
+                int maxH = screenH - BOTTOM_BAR_H - 30;
                 int panelH = Math.min(maxH, 600);
-                int panelY = PANEL_MARGIN_V; // Start from top margin
-                favoritesPanel.updateLayout(PANEL_MARGIN, panelY, favW, panelH);
-                favoritesPanel.visible = true;
+                int panelY = PANEL_MARGIN_V;
+                
+                if (hasLeft && hasLeftSec) {
+                    int h1 = panelH / 2 - PANEL_MARGIN;
+                    leftPanel.setContentType(AmiConfig.leftPanelContent);
+                    leftPanel.updateLayout(PANEL_MARGIN, panelY, leftW, h1);
+                    leftPanel.visible = true;
+                    
+                    leftPanelSecondary.setContentType(AmiConfig.leftPanelSecondaryContent);
+                    leftPanelSecondary.updateLayout(PANEL_MARGIN, panelY + h1 + PANEL_MARGIN, leftW, panelH - h1 - PANEL_MARGIN);
+                    leftPanelSecondary.visible = true;
+                } else if (hasLeft) {
+                    leftPanel.setContentType(AmiConfig.leftPanelContent);
+                    leftPanel.updateLayout(PANEL_MARGIN, panelY, leftW, panelH);
+                    leftPanel.visible = true;
+                    leftPanelSecondary.visible = false;
+                } else {
+                    leftPanelSecondary.setContentType(AmiConfig.leftPanelSecondaryContent);
+                    leftPanelSecondary.updateLayout(PANEL_MARGIN, panelY, leftW, panelH);
+                    leftPanelSecondary.visible = true;
+                    leftPanel.visible = false;
+                }
             } else {
-                favoritesPanel.visible = false;
+                leftPanel.visible = leftPanelSecondary.visible = false;
             }
         } else {
-            favoritesPanel.visible = false;
+            leftPanel.visible = leftPanelSecondary.visible = false;
         }
 
-        // Results Panel (Right)
+        // Right Side
         int safeWidth = screenW - containerRightEdge - (PANEL_MARGIN * 2);
         int panelH = Math.min(screenH - 40, 600);
         int panelY = (screenH - panelH) / 2;
-        int panelStartX = screenW; // sentinel: panel off-screen when hidden
+        int panelStartX = screenW;
 
         if (safeWidth >= MIN_PANEL_WIDTH) {
-            // Same width in compact and full modes — only the panel content changes.
             int actualWidth = Math.clamp((int)(screenW * 0.35f), MIN_PANEL_WIDTH, Math.min(safeWidth, MAX_PANEL_WIDTH));
             panelStartX = screenW - actualWidth - PANEL_MARGIN;
-            resultsPanel.updateBounds(new WidgetBounds(panelStartX, panelY, actualWidth, panelH));
-            lastResultsBounds = resultsPanel.getBounds();
+            
+            boolean hasRightPrimary = isSidebarContent(AmiConfig.rightPanelContent);
+            boolean isSearch = isSearchContent(AmiConfig.rightPanelContent);
+            boolean hasRightSec = isSidebarContent(AmiConfig.rightPanelSecondaryContent);
+            
+            if (isSearch) {
+                if (hasRightSec) {
+                    int h1 = panelH / 2 - PANEL_MARGIN;
+                    resultsPanel.updateBounds(new WidgetBounds(panelStartX, panelY, actualWidth, h1));
+                    resultsPanel.visible = true;
+                    rightPanelPrimary.visible = false;
+                    
+                    rightPanelSecondary.setContentType(AmiConfig.rightPanelSecondaryContent);
+                    rightPanelSecondary.updateLayout(panelStartX, panelY + h1 + PANEL_MARGIN, actualWidth, panelH - h1 - PANEL_MARGIN);
+                    rightPanelSecondary.visible = true;
+                } else {
+                    resultsPanel.updateBounds(new WidgetBounds(panelStartX, panelY, actualWidth, panelH));
+                    resultsPanel.visible = true;
+                    rightPanelPrimary.visible = false;
+                    rightPanelSecondary.visible = false;
+                }
+            } else if (hasRightPrimary || hasRightSec) {
+                resultsPanel.visible = false;
+                if (hasRightPrimary && hasRightSec) {
+                    int h1 = panelH / 2 - PANEL_MARGIN;
+                    rightPanelPrimary.setContentType(AmiConfig.rightPanelContent);
+                    rightPanelPrimary.updateLayout(panelStartX, panelY, actualWidth, h1);
+                    rightPanelPrimary.visible = true;
+                    
+                    rightPanelSecondary.setContentType(AmiConfig.rightPanelSecondaryContent);
+                    rightPanelSecondary.updateLayout(panelStartX, panelY + h1 + PANEL_MARGIN, actualWidth, panelH - h1 - PANEL_MARGIN);
+                    rightPanelSecondary.visible = true;
+                } else if (hasRightPrimary) {
+                    rightPanelPrimary.setContentType(AmiConfig.rightPanelContent);
+                    rightPanelPrimary.updateLayout(panelStartX, panelY, actualWidth, panelH);
+                    rightPanelPrimary.visible = true;
+                    rightPanelSecondary.visible = false;
+                } else {
+                    rightPanelSecondary.setContentType(AmiConfig.rightPanelSecondaryContent);
+                    rightPanelSecondary.updateLayout(panelStartX, panelY, actualWidth, panelH);
+                    rightPanelSecondary.visible = true;
+                    rightPanelPrimary.visible = false;
+                }
+            } else {
+                resultsPanel.visible = rightPanelPrimary.visible = rightPanelSecondary.visible = false;
+            }
+            lastResultsBounds = new WidgetBounds(panelStartX, panelY, actualWidth, panelH);
         } else {
-            resultsPanel.updateBounds(new WidgetBounds(0, 0, 0, 0));
+            resultsPanel.visible = rightPanelPrimary.visible = rightPanelSecondary.visible = false;
         }
 
         // Search bar
@@ -123,7 +197,54 @@ public class OverlayWidgetManager {
         searchBar.updateBounds(new WidgetBounds(barX, searchBarY, barW, SEARCH_H));
     }
 
-    /** Drives indexing, search sync, and stale-refresh — only when the panel is visible. */
+    /** Overload for any Screen type (including non-AbstractContainerScreen mod containers) */
+    public void computeLayouts(Screen screen, int screenW, int screenH) {
+        if (screen instanceof AbstractContainerScreen<?> containerScreen) {
+            computeLayouts(containerScreen, screenW, screenH);
+        } else {
+            // For non-AbstractContainerScreen containers, assume full screen layout
+            // and use default container bounds
+            computeLayoutsForCustomScreen(screenW, screenH);
+        }
+    }
+
+    private void computeLayoutsForCustomScreen(int screenW, int screenH) {
+        // For non-vanilla container screens, use a centered results panel layout
+        int leftEdge = screenW / 6;
+        int rightEdge = screenW - screenW / 6;
+
+        // Create a temporary simple layout - reuse the core logic with default positions
+        ensureWidgets();
+        lastScreenH = screenH;
+
+        int btnY = screenH - BOTTOM_BAR_H + 2;
+        amiButton.updateBounds(new WidgetBounds(2, btnY - 22, 22, 20));
+
+        // Simple centered layout for custom screens
+        leftPanel.visible = false;
+        leftPanelSecondary.visible = false;
+        rightPanelPrimary.visible = false;
+        rightPanelSecondary.visible = false;
+        resultsPanel.visible = true;
+
+        int panelW = rightEdge - leftEdge;
+        int panelH = screenH - BOTTOM_BAR_H - 40;
+        resultsPanel.updateBounds(new WidgetBounds(leftEdge, 20, panelW, panelH));
+
+        int barW = Math.min(AmiConfig.searchBarWidth, screenW - 8);
+        int barX = (screenW - barW) / 2;
+        searchBar.updateBounds(new WidgetBounds(barX, screenH - BOTTOM_BAR_H + 2, barW, SEARCH_H));
+    }
+
+    private boolean isSearchContent(AmiConfig.PanelContent content) {
+        return content == AmiConfig.PanelContent.GRID || content == AmiConfig.PanelContent.LIST || content == AmiConfig.PanelContent.COMPACT;
+    }
+
+    private boolean isSidebarContent(AmiConfig.PanelContent content) {
+        return content == AmiConfig.PanelContent.FAVORITES || content == AmiConfig.PanelContent.LOOKUP_HISTORY || 
+               content == AmiConfig.PanelContent.CRAFTING_HISTORY || content == AmiConfig.PanelContent.CRAFTABLE;
+    }
+
     public void tick(ScreenEvent.Render.Post event) {
         if (!AmiConfig.enableAutoIndexing) return;
         if (!panelVisible) return;
@@ -143,22 +264,17 @@ public class OverlayWidgetManager {
         }
 
         syncFromRecipeViewer();
+        
+        if (Minecraft.getInstance().level != null && Minecraft.getInstance().level.getGameTime() % 20 == 0) {
+            refreshSidebars();
+        }
     }
 
-    /** Renders all AMI widgets. Button always; search bar and panel only when the panel is visible. */
     public void renderAll(ScreenEvent.Render.Post event) {
-        if (!(event.getScreen() instanceof AbstractContainerScreen<?> containerScreen)) return;
-
-        if (AmiConfig.devMode) {
-            for (var plugin : com.sanhiruzu.ami.api.AmiPluginRegistry.getPlugins()) {
-                for (var zone : plugin.getExclusionZones(event.getScreen())) {
-                    event.getGuiGraphics().fill(zone.getX(), zone.getY(), zone.getX() + zone.getWidth(), zone.getY() + zone.getHeight(), 0x55FF0000);
-                }
-            }
-        }
+        if (event.getScreen() == null) return;
 
         try {
-            computeLayouts(containerScreen, event.getScreen().width, event.getScreen().height);
+            computeLayouts(event.getScreen(), event.getScreen().width, event.getScreen().height);
 
             var g = event.getGuiGraphics();
             int mx = event.getMouseX(), my = event.getMouseY();
@@ -171,11 +287,14 @@ public class OverlayWidgetManager {
 
             if (panelVisible) {
                 searchBar.render(g, mx, my, pt);
-                resultsPanel.render(g, mx, my, pt);
-                resultsPanel.renderOverlay(g, mx, my);
-                if (favoritesPanel.visible) {
-                    favoritesPanel.render(g, mx, my, pt);
+                if (resultsPanel.visible) {
+                    resultsPanel.render(g, mx, my, pt);
+                    resultsPanel.renderOverlay(g, mx, my);
                 }
+                if (leftPanel.visible) leftPanel.render(g, mx, my, pt);
+                if (leftPanelSecondary.visible) leftPanelSecondary.render(g, mx, my, pt);
+                if (rightPanelPrimary.visible) rightPanelPrimary.render(g, mx, my, pt);
+                if (rightPanelSecondary.visible) rightPanelSecondary.render(g, mx, my, pt);
             }
 
             g.pose().popPose();
@@ -198,20 +317,20 @@ public class OverlayWidgetManager {
         List<SearchNode> all = new ArrayList<>();
         for (NodeType t : NodeType.atlasValues()) all.addAll(GlobalIndex.getInstance().getNodes(t));
         panel.setEntries(all);
-        AMI.LOGGER.debug("AMI overlay refreshed: {} total entries across all types", all.size());
-        refreshFavorites();
+        refreshSidebars();
     }
 
-    public void refreshFavorites() {
-        if (favoritesPanel != null) favoritesPanel.refresh();
+    public void refreshSidebars() {
+        if (leftPanel != null) leftPanel.refresh();
+        if (leftPanelSecondary != null) leftPanelSecondary.refresh();
+        if (rightPanelPrimary != null) rightPanelPrimary.refresh();
+        if (rightPanelSecondary != null) rightPanelSecondary.refresh();
     }
 
     private void triggerSearch(String query) {
         var panel = resultsPanel.getInnerPanel();
         if (panel == null) return;
-
         panel.getState().setQuery(query);
-
         if (!query.equals(lastSyncedQuery)) {
             lastSyncedQuery = query;
             RecipeViewerBridge.setSearchText(query);
@@ -231,34 +350,23 @@ public class OverlayWidgetManager {
     }
 
     private void togglePanelVisible() {
-        boolean wasVisible = panelVisible;
         panelVisible = !panelVisible;
-
-        if (wasVisible && !panelVisible) {
+        if (!panelVisible) {
             indexingStarted = false;
             searchBar.clear();
             lastSyncedQuery = "";
-            pendingEmiReinit = true;
-        } else if (!wasVisible && panelVisible) {
-            pendingEmiReinit = true;
         }
+        pendingEmiReinit = true;
     }
 
     public boolean isPanelVisible() { return panelVisible; }
-
-    public void setPanelVisible(boolean visible) {
-        if (visible != panelVisible) togglePanelVisible();
-    }
-
-    public boolean isOnLeft() { return onLeft; }
-
+    public void setPanelVisible(boolean visible) { if (visible != panelVisible) togglePanelVisible(); }
     public WidgetBounds getResultsBounds() { return lastResultsBounds; }
-
     public AmiButtonWidget getAmiButton() { return amiButton; }
-
     public SearchBarWidget getSearchBar() { return searchBar; }
-
     public ResultsPanelWidget getResultsPanel() { return resultsPanel; }
-
-    public FavoritesPanelWidget getFavoritesPanel() { return favoritesPanel; }
+    public SidebarPanelWidget getLeftPanel() { return leftPanel; }
+    public SidebarPanelWidget getLeftPanelSecondary() { return leftPanelSecondary; }
+    public SidebarPanelWidget getRightPanelPrimary() { return rightPanelPrimary; }
+    public SidebarPanelWidget getRightPanelSecondary() { return rightPanelSecondary; }
 }
