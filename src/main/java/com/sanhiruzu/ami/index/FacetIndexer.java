@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.index;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.AxeItem;
@@ -89,7 +90,7 @@ public final class FacetIndexer {
         }
         if (path.equals("fishing_rod") || path.equals("flint_and_steel")
                 || path.equals("brush") || path.equals("shears")
-                || path.endsWith("_on_a_stick")) {
+                || path.equals("carrot_on_a_stick") || path.equals("warped_fungus_on_a_stick")) {
             facets.add(ItemFacet.UTILITY_TOOL);
         }
         if (path.equals("mace")) {
@@ -249,7 +250,7 @@ public final class FacetIndexer {
     }
 
     private static boolean containsPathToken(String path, String... tokens) {
-        String[] pathTokens = path.split("_");
+        String[] pathTokens = path.split("[_/]");
         for (String pathToken : pathTokens) {
             for (String token : tokens) {
                 if (pathToken.equals(token)) {
@@ -273,17 +274,29 @@ public final class FacetIndexer {
         if (blockItem.getBlock() instanceof EntityBlock) {
             facets.add(ItemFacet.HAS_BLOCK_ENTITY);
         }
+        if (blockItem.getBlock() instanceof MenuProvider) {
+            facets.add(ItemFacet.INTERACTIVE_BLOCK);
+        }
         if (state.is(BlockTags.BEDS)) {
             facets.add(ItemFacet.DECORATIVE_BLOCK);
         }
         if (isDecorativeNaturePlaceable(path)) {
             facets.add(ItemFacet.NATURE_MISC);
         }
+        if (isPlaceableFoodPath(path)) {
+            facets.add(ItemFacet.PLACEABLE_FOOD);
+        }
         if (isDecorativePlaceable(path)) {
             facets.add(ItemFacet.DECORATIVE_BLOCK);
         }
         if (state.getLightEmission() > 0) {
             facets.add(ItemFacet.LIGHT_SOURCE);
+        }
+        if (state.isSignalSource()) {
+            facets.add(ItemFacet.REDSTONE_LOGIC);
+        }
+        if (state.hasAnalogOutputSignal()) {
+            facets.add(ItemFacet.REDSTONE_SIGNAL);
         }
         if (state.is(BlockTags.RAILS)) {
             facets.add(ItemFacet.RAIL);
@@ -347,6 +360,10 @@ public final class FacetIndexer {
         }
         if (path.contains("redstone") || path.contains("comparator") || path.contains("repeater")
                 || path.contains("lever") || path.contains("button") || path.contains("pressure_plate")) {
+            facets.add(ItemFacet.REDSTONE_LOGIC);
+            facets.add(ItemFacet.REDSTONE_SIGNAL);
+        }
+        if (containsPathToken(path, "relay", "transmitter", "receiver", "detector", "trigger")) {
             facets.add(ItemFacet.REDSTONE_LOGIC);
             facets.add(ItemFacet.REDSTONE_SIGNAL);
         }
@@ -416,6 +433,20 @@ public final class FacetIndexer {
         return null;
     }
 
+    private static boolean isPlaceableFoodPath(String path) {
+        return containsPathToken(path,
+                "cake",
+                "pie",
+                "tart",
+                "pizza",
+                "quiche",
+                "cheesecake",
+                "flan",
+                "cobbler",
+                "casserole",
+                "lasagna");
+    }
+
     private static String itemId(Item item) {
         ResourceLocation id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item);
         return id != null ? id.toString() : null;
@@ -452,14 +483,8 @@ public final class FacetIndexer {
         return path.contains("carpet")
                 || path.equals("flower_pot")
                 || path.contains("candle")
-                || path.endsWith("_banner")
-                || path.endsWith("_wall_banner")
-                || path.endsWith("_sign")
-                || path.endsWith("_wall_sign")
-                || path.endsWith("_hanging_sign")
-                || path.endsWith("_wall_hanging_sign")
-                || path.endsWith("_head")
-                || path.endsWith("_skull");
+                || containsPathToken(path, "jar")
+                || containsPathToken(path, "banner", "sign", "head", "skull");
     }
 
     private static boolean isDecorativeNaturePlaceable(String path) {

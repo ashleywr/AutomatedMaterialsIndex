@@ -13,7 +13,15 @@ import java.util.*;
  */
 public final class LiteralResolver implements IQueryResolver {
 
-    private final SearchIndex index = new SearchIndex();
+    private final SearchIndex index;
+
+    public LiteralResolver() {
+        this(true);
+    }
+
+    public LiteralResolver(boolean includeMetadata) {
+        this.index = new SearchIndex(includeMetadata);
+    }
 
     /** Called during SearchService.buildFrom() to pre-load the trie. */
     public void addNode(SearchNode node) {

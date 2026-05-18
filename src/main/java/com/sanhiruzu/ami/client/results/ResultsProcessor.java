@@ -66,28 +66,40 @@ public class ResultsProcessor {
             return List.of(createIndexingNode());
         }
 
-        // Filter
-        List<SearchNode> filtered = results.stream()
-                .filter(n -> selectedMods.isEmpty() || selectedMods.contains(n.id().getNamespace()))
-                .filter(this::matchesFacets)
-                .filter(this::matchesAccessLevel)
-                .collect(Collectors.toList());
-
-        // Sort
-        filtered.sort(this::compareNodes);
-        if (!ascending) {
-            Collections.reverse(filtered);
-        }
-
+        List<SearchNode> filtered = filterAndSort(results);
         // Group
         List<TreeNode> tree = buildTree(filtered);
         
         return applyExplicitFamilyGrouping(applyHighCardinalityGrouping(tree));
     }
 
+    public List<TreeNode> processFlat(List<SearchNode> results) {
+        if (!com.sanhiruzu.ami.index.GlobalIndex.getInstance().isIndexReady()) {
+            return List.of(createIndexingNode());
+        }
+
+        return filterAndSort(results).stream()
+                .map(node -> new TreeNode(Component.literal(node.displayName()), node))
+                .collect(Collectors.toList());
+    }
+
     private TreeNode createIndexingNode() {
         return new TreeNode("indexing", Component.translatable("ami.gui.background_indexing")
                 .withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.CHEAT_INDICATOR)));
+    }
+
+    private List<SearchNode> filterAndSort(List<SearchNode> results) {
+        List<SearchNode> filtered = results.stream()
+                .filter(n -> selectedMods.isEmpty() || selectedMods.contains(n.id().getNamespace()))
+                .filter(this::matchesFacets)
+                .filter(this::matchesAccessLevel)
+                .collect(Collectors.toList());
+
+        filtered.sort(this::compareNodes);
+        if (!ascending) {
+            Collections.reverse(filtered);
+        }
+        return filtered;
     }
 
     private int compareNodes(SearchNode a, SearchNode b) {
