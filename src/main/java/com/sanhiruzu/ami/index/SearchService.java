@@ -11,6 +11,7 @@ import java.util.*;
  */
 public final class SearchService {
     private final List<IQueryResolver> resolvers;
+    private final List<IQueryResolver> broadResolvers;
     private final TagResolver tagResolver;
     private final ModResolver modResolver;
     private final EnvironmentResolver envResolver;
@@ -18,10 +19,12 @@ public final class SearchService {
     private final PropertyResolver propertyResolver;
     private final CategoryResolver categoryResolver;
 
-    private SearchService(List<IQueryResolver> resolvers, TagResolver tagResolver, ModResolver modResolver,
+    private SearchService(List<IQueryResolver> resolvers, List<IQueryResolver> broadResolvers,
+                          TagResolver tagResolver, ModResolver modResolver,
                           EnvironmentResolver envResolver, NumericMetadataResolver numericResolver,
                           PropertyResolver propertyResolver, CategoryResolver categoryResolver) {
         this.resolvers = List.copyOf(resolvers);
+        this.broadResolvers = List.copyOf(broadResolvers);
         this.tagResolver = tagResolver;
         this.modResolver = modResolver;
         this.envResolver = envResolver;
@@ -40,7 +43,8 @@ public final class SearchService {
     }
 
     public static SearchService buildFrom(GlobalIndex index, boolean includePlayers) {
-        LiteralResolver literal = new LiteralResolver();
+        LiteralResolver literal = new LiteralResolver(false);
+        LiteralResolver broadLiteral = new LiteralResolver(true);
         TagResolver tagResolver = new TagResolver();
         ModResolver modResolver = new ModResolver();
         EnvironmentResolver envResolver = new EnvironmentResolver();
@@ -52,6 +56,7 @@ public final class SearchService {
         for (NodeType type : NodeType.values()) {
             for (SearchNode node : index.getNodes(type)) {
                 literal.addNode(node);
+                broadLiteral.addNode(node);
                 tagResolver.addNode(node);
                 modResolver.addNode(node);
                 envResolver.addNode(node);
@@ -63,11 +68,14 @@ public final class SearchService {
 
         List<IQueryResolver> resolvers = new ArrayList<>();
         resolvers.add(literal);
+        List<IQueryResolver> broadResolvers = new ArrayList<>();
+        broadResolvers.add(broadLiteral);
         if (includePlayers) {
             resolvers.add(new PlayerResolver());
+            broadResolvers.add(new PlayerResolver());
         }
 
-        return new SearchService(resolvers, tagResolver, modResolver, envResolver, numericResolver, propertyResolver, categoryResolver);
+        return new SearchService(resolvers, broadResolvers, tagResolver, modResolver, envResolver, numericResolver, propertyResolver, categoryResolver);
     }
 
     /**
@@ -91,6 +99,7 @@ public final class SearchService {
         }
 
         List<String> includeParts = new ArrayList<>();
+        List<String> metaParts = new ArrayList<>();
         List<String> excludeParts = new ArrayList<>();
         List<String> tagParts = new ArrayList<>();
         List<String> modParts = new ArrayList<>();
@@ -104,6 +113,7 @@ public final class SearchService {
 
             switch (token.type()) {
                 case INCLUDE -> includeParts.add(value);
+                case META -> metaParts.add(value);
                 case TAG -> tagParts.add(value);
                 case MOD -> modParts.add(value);
                 case ENV -> envParts.add(value);
@@ -115,7 +125,7 @@ public final class SearchService {
             }
         }
 
-        // If we have INCLUDE parts, query literal resolver for them
+        // Plain INCLUDE parts search only display/name/id surfaces.
         if (!includeParts.isEmpty()) {
             String combinedInclude = String.join(" ", includeParts);
             for (IQueryResolver resolver : resolvers) {
@@ -123,6 +133,17 @@ public final class SearchService {
                 mergeResults(results, partial);
             }
             hasActiveResultSet = true;
+        }
+
+        // META parts opt into the broader metadata-inclusive surface.
+        if (!metaParts.isEmpty()) {
+            Map<NodeType, List<SearchNode>> metaResults = new LinkedHashMap<>();
+            String combinedMeta = String.join(" ", metaParts);
+            for (IQueryResolver resolver : broadResolvers) {
+                Map<NodeType, List<SearchNode>> partial = resolver.resolve(combinedMeta);
+                mergeResults(metaResults, partial);
+            }
+            hasActiveResultSet = applyPositiveFilter(results, metaResults, hasActiveResultSet);
         }
 
         for (String tagPart : tagParts) {
@@ -167,6 +188,9 @@ public final class SearchService {
         if (excludePart.startsWith("$")) {
             return categoryResolver.resolve(excludePart.substring(1));
         }
+        if (excludePart.startsWith("~")) {
+            return resolveBroadLiteral(excludePart.substring(1));
+        }
         if (excludePart.startsWith("#")) {
             return tagResolver.resolve(excludePart.substring(1));
         }
@@ -183,6 +207,15 @@ public final class SearchService {
         Map<NodeType, List<SearchNode>> results = new LinkedHashMap<>();
         for (IQueryResolver resolver : resolvers) {
             Map<NodeType, List<SearchNode>> partial = resolver.resolve(excludePart);
+            mergeResults(results, partial);
+        }
+        return results;
+    }
+
+    private Map<NodeType, List<SearchNode>> resolveBroadLiteral(String query) {
+        Map<NodeType, List<SearchNode>> results = new LinkedHashMap<>();
+        for (IQueryResolver resolver : broadResolvers) {
+            Map<NodeType, List<SearchNode>> partial = resolver.resolve(query);
             mergeResults(results, partial);
         }
         return results;

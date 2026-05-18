@@ -17,11 +17,12 @@ public final class TokenColorizer {
     static final int COLOR_PROP      = 0xFFBBBB44;  // Yellow
     static final int COLOR_ESSENTIAL = 0xFFBB44BB;  // Magenta
     static final int COLOR_ESM       = 0xFFBB8844;  // Orange
+    static final int COLOR_META      = 0xFF44CCCC;  // Cyan
     static final int COLOR_PLAIN     = 0xFFCCCCCC;  // Light grey
 
     /**
      * Colorize a query string, returning color spans for each token.
-     * Handles prefixes (#, &, ?, !, >, <, =) and negation (-).
+     * Handles prefixes (~, #, &, ?, !, >, <, =) and negation (-).
      */
     public static List<ColorSpan> colorize(String queryText) {
         if (queryText == null || queryText.isEmpty()) {
@@ -73,6 +74,7 @@ public final class TokenColorizer {
 
         char prefix = stripped.charAt(0);
         int color = switch (prefix) {
+            case '~' -> COLOR_META;
             case '#' -> COLOR_TAG;
             case '@' -> COLOR_MOD;
             case '&' -> COLOR_ENV;
@@ -83,7 +85,7 @@ public final class TokenColorizer {
         };
 
         // Bare negation (no recognised prefix) → exclude color
-        if (isExclude && prefix != '#' && prefix != '@' && prefix != '&'
+        if (isExclude && prefix != '~' && prefix != '#' && prefix != '@' && prefix != '&'
                 && prefix != '?' && prefix != '!' && prefix != '>' && prefix != '<' && prefix != '=') {
             color = COLOR_EXCLUDE;
         }

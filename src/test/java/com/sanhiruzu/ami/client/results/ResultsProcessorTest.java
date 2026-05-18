@@ -174,6 +174,37 @@ public class ResultsProcessorTest {
         assertTrue(miscGroup.getChildren().stream().allMatch(TreeNode::isLeaf));
     }
 
+    @Test
+    void processFlatReturnsUngroupedSortedLeaves() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.ALPHABETICAL,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        SearchNode disc13 = item("music_disc_13", "Music Disc 13", Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "utility",
+                SearchNodeKeys.COLLAPSE_FAMILY, "music_discs",
+                SearchNodeKeys.COLLAPSE_LABEL, "Music Discs"
+        ));
+        SearchNode stone = item("stone", "Stone", Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry"
+        ));
+        SearchNode zincPlate = item("zinc_plate", "Zinc Plate", Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "ingredients"
+        ));
+
+        List<TreeNode> flat = processor.processFlat(List.of(stone, disc13, zincPlate));
+
+        assertEquals(3, flat.size());
+        assertTrue(flat.stream().allMatch(TreeNode::isLeaf));
+        assertEquals("Music Disc 13", flat.get(0).getLabel().getString());
+        assertEquals("Stone", flat.get(1).getLabel().getString());
+        assertEquals("Zinc Plate", flat.get(2).getLabel().getString());
+    }
+
     private static SearchNode item(String path, String displayName, Map<String, String> metadata) {
         return new SearchNode(
                 ResourceLocation.parse("minecraft:" + path),
