@@ -20,7 +20,7 @@ public class AmiOntologyTest {
         );
 
         AmiOntology.Category cat = AmiOntology.classifyNode(sword);
-        assertEquals(AmiOntology.WEAPONS, cat);
+        assertEquals(AmiOntology.TOOLS, cat);
     }
 
     @Test
@@ -35,22 +35,39 @@ public class AmiOntologyTest {
         );
 
         AmiOntology.Category cat = AmiOntology.classifyNode(apple);
-        assertEquals(AmiOntology.FOOD, cat);
+        assertEquals(AmiOntology.NATURE, cat);
+    }
+
+    @Test
+    void testClassifyEggAsIngredient() {
+        // Mock an egg
+        SearchNode egg = new SearchNode(
+            ResourceLocation.parse("minecraft:egg"),
+            NodeType.ITEM,
+            "Egg",
+            0, 0,
+            Map.of(SearchNodeKeys.TAGS, "c:eggs")
+        );
+
+        AmiOntology.Category cat = AmiOntology.classifyNode(egg);
+        assertEquals(AmiOntology.INGREDIENTS, cat, "Eggs should be classified as Ingredients, but was: " + cat.id);
     }
 
     @Test
     void testClassifyBlockDefault() {
-        // Mock a random block
+        // MASONRY items are always pre-computed at index time by OntologyClassifier,
+        // so the runtime classifier needs pre-computed metadata to route here.
         SearchNode bricks = new SearchNode(
             ResourceLocation.parse("minecraft:bricks"),
             NodeType.ITEM,
             "Bricks",
             0, 0,
-            Map.of()
+            Map.of(SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                   SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "full_block")
         );
 
         AmiOntology.Category cat = AmiOntology.classifyNode(bricks);
-        assertEquals(AmiOntology.BLOCKS, cat);
+        assertEquals(AmiOntology.MASONRY, cat);
     }
 
     @Test

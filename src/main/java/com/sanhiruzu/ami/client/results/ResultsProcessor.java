@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 
 public class ResultsProcessor {
     private static final int CARDINALITY_THRESHOLD = 10;
+    private static final int EXPLICIT_FAMILY_THRESHOLD = 4;
     private static final String FALLBACK_GROUP_KEY = "__fallback__";
 
     public enum SortField {
@@ -81,7 +82,7 @@ public class ResultsProcessor {
         // Group
         List<TreeNode> tree = buildTree(filtered);
         
-        return applyHighCardinalityGrouping(tree);
+        return applyExplicitFamilyGrouping(applyHighCardinalityGrouping(tree));
     }
 
     private TreeNode createIndexingNode() {
@@ -129,7 +130,34 @@ public class ResultsProcessor {
 
     private Map<String, List<SearchNode>> sortGroupsLocally(Map<String, List<SearchNode>> groups, List<String> order) {
         if (sortField != SortField.COUNT) {
-            return GroupingEngine.sortGroups(groups, order, ascending);
+            Map<String, Integer> orderMap = new HashMap<>();
+            for (int i = 0; i < order.size(); i++) {
+                orderMap.put(order.get(i), i);
+            }
+
+            List<Map.Entry<String, List<SearchNode>>> entries = new ArrayList<>(groups.entrySet());
+            entries.sort((a, b) -> {
+                String k1 = a.getKey();
+                String k2 = b.getKey();
+                Integer i1 = orderMap.get(k1);
+                Integer i2 = orderMap.get(k2);
+                int cmp;
+                if (i1 != null && i2 != null) cmp = Integer.compare(i1, i2);
+                else if (i1 != null) cmp = -1;
+                else if (i2 != null) cmp = 1;
+                else {
+                    boolean u1 = isUnknownGroup(k1);
+                    boolean u2 = isUnknownGroup(k2);
+                    if (u1 && !u2) cmp = 1;
+                    else if (!u1 && u2) cmp = -1;
+                    else cmp = k1.compareTo(k2);
+                }
+                return ascending ? cmp : -cmp;
+            });
+
+            Map<String, List<SearchNode>> result = new LinkedHashMap<>();
+            for (var entry : entries) result.put(entry.getKey(), entry.getValue());
+            return result;
         }
 
         List<Map.Entry<String, List<SearchNode>>> entries = new ArrayList<>(groups.entrySet());
@@ -242,10 +270,10 @@ public class ResultsProcessor {
         // Fallback for missing setting in AmiConfig or using UI themes
         boolean blocksMaterial = false; // TODO: Map ui settings to AmiConfig
 
-        // Sort categories alphabetically if in ALPHABETICAL sort mode, otherwise use ontology order
+        // Sort categories alphabetically by display name if in ALPHABETICAL sort mode, otherwise use ontology order
         List<AmiOntology.Category> categoriesToDisplay = new ArrayList<>(AmiOntology.CATEGORIES);
         if (sortField == SortField.ALPHABETICAL) {
-            categoriesToDisplay.sort((a, b) -> a.id.compareTo(b.id));
+            categoriesToDisplay.sort((a, b) -> a.displayName().getString().compareToIgnoreCase(b.displayName().getString()));
         }
         if (!ascending) {
             Collections.reverse(categoriesToDisplay);
@@ -262,7 +290,7 @@ public class ResultsProcessor {
             for (SearchNode entry : catEntries) {
                 String rawSubId = entry.meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "");
                 final String subId;
-                if (cat == AmiOntology.BLOCKS && blocksMaterial && isBuildingShape(rawSubId)) {
+                if (cat == AmiOntology.MASONRY && blocksMaterial && isBuildingShape(rawSubId)) {
                     String matId = entry.meta(SearchNodeKeys.BLOCKS_MATERIAL, "");
                     subId = matId.isEmpty() ? rawSubId : matId;
                 } else {
@@ -418,6 +446,75 @@ public class ResultsProcessor {
             }
         }
         flushCardinalityBuffer(buffer, result);
+        return result;
+    }
+
+    private static boolean isUnknownGroup(String key) {
+        return key.isBlank()
+                || key.equals("item")
+                || key.equals("minecraft:item")
+                || key.equals("block")
+                || key.equals(FALLBACK_GROUP_KEY)
+                || key.toLowerCase(Locale.ROOT).contains("unknown");
+    }
+
+    private List<TreeNode> applyExplicitFamilyGrouping(List<TreeNode> nodes) {
+        List<TreeNode> recursive = new ArrayList<>();
+        for (TreeNode node : nodes) {
+            if (node.isLeaf()) {
+                recursive.add(node);
+                continue;
+            }
+
+            TreeNode processedGroup = new TreeNode(node.getKey(), node.getLabel());
+            processedGroup.setExpanded(node.isExpanded());
+            processedGroup.setModGroup(node.isModGroup());
+            processedGroup.setHighCardinality(node.isHighCardinality());
+            processedGroup.setItemCountOverride(node.getItemCountOverride());
+            processedGroup.getChildren().addAll(applyExplicitFamilyGrouping(node.getChildren()));
+            recursive.add(processedGroup);
+        }
+
+        Map<String, List<TreeNode>> familyMembers = new LinkedHashMap<>();
+        Map<String, String> familyLabels = new HashMap<>();
+        for (TreeNode node : recursive) {
+            if (!node.isLeaf()) continue;
+            String familyKey = node.getEntry().meta(SearchNodeKeys.COLLAPSE_FAMILY, "");
+            if (familyKey.isEmpty()) continue;
+            familyMembers.computeIfAbsent(familyKey, ignored -> new ArrayList<>()).add(node);
+            familyLabels.putIfAbsent(familyKey, node.getEntry().meta(SearchNodeKeys.COLLAPSE_LABEL, ""));
+        }
+
+        Map<TreeNode, TreeNode> replacementGroups = new IdentityHashMap<>();
+        for (var entry : familyMembers.entrySet()) {
+            if (entry.getValue().size() < EXPLICIT_FAMILY_THRESHOLD) continue;
+            String familyKey = entry.getKey();
+            String label = familyLabels.getOrDefault(familyKey, formatGroupLabel(formatGroupKey(familyKey, false)));
+            TreeNode group = new TreeNode("cardinality:family:" + familyKey, Component.literal(label));
+            group.setHighCardinality(true);
+            group.setExpanded(false);
+            group.getChildren().addAll(entry.getValue());
+            for (TreeNode member : entry.getValue()) {
+                replacementGroups.put(member, group);
+            }
+        }
+
+        if (replacementGroups.isEmpty()) {
+            return recursive;
+        }
+
+        List<TreeNode> result = new ArrayList<>();
+        Set<TreeNode> emittedGroups = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (TreeNode node : recursive) {
+            TreeNode replacement = replacementGroups.get(node);
+            if (replacement == null) {
+                result.add(node);
+                continue;
+            }
+            if (emittedGroups.add(replacement)) {
+                result.add(replacement);
+            }
+        }
         return result;
     }
 

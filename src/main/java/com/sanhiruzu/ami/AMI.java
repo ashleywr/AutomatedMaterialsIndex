@@ -34,6 +34,7 @@ public class AMI {
 
     private void registerGameTests(RegisterGameTestsEvent event) {
         event.register(com.sanhiruzu.ami.benchmark.AmiBenchmarkGameTests.class);
+        event.register(com.sanhiruzu.ami.benchmark.AmiOntologyDumpGameTest.class);
     }
 
     @SubscribeEvent

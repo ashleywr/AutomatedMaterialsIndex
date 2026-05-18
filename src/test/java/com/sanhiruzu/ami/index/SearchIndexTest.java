@@ -49,6 +49,7 @@ public class SearchIndexTest {
                 0,
                 0,
                 Map.of(
+                        SearchNodeKeys.FACETS, "placeable,stairs,wood_block",
                         SearchNodeKeys.MATERIAL_GROUP, "minecraft:oak",
                         SearchNodeKeys.VARIANT_GROUP, "stairs",
                         SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "building_blocks"
@@ -61,5 +62,6 @@ public class SearchIndexTest {
         assertTrue(idx.substringSearch("building blocks").contains(oakStairs));
         assertTrue(idx.substringSearch("building_blocks").contains(oakStairs));
         assertTrue(idx.substringSearch("minecraft:oak").contains(oakStairs));
+        assertTrue(idx.substringSearch("wood block").contains(oakStairs));
     }
 }

@@ -18,6 +18,7 @@ public final class SearchIndex {
             SearchNodeKeys.VARIANT_GROUP,
             SearchNodeKeys.COLOR_BUCKET,
             SearchNodeKeys.MATERIAL_GROUP,
+            SearchNodeKeys.FACETS,
             SearchNodeKeys.ESM_CAPACITY,
             SearchNodeKeys.ENERGY_CAPACITY,
             SearchNodeKeys.DPS,

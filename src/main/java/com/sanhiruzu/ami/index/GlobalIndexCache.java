@@ -28,7 +28,7 @@ import java.util.zip.GZIPOutputStream;
  * STRUCTURE and DIMENSION are always live-loaded (world/datapack-specific).
  */
 public final class GlobalIndexCache {
-    private static final int CACHE_VERSION = 2; // Bump this when index data format changes
+    private static final int CACHE_VERSION = 3; // Bump this when index data format changes
 
     private static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
@@ -120,7 +120,7 @@ public final class GlobalIndexCache {
             String input = ModList.get().getMods().stream()
                     .sorted(Comparator.comparing(info -> info.getModId()))
                     .map(info -> info.getModId() + ":" + info.getVersion())
-                    .reduce("", (a, b) -> a + "|" + b) + "_v4";
+                    .reduce("", (a, b) -> a + "|" + b) + "_v" + CACHE_VERSION;
 
             MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
             byte[] digest = sha256.digest(input.getBytes(StandardCharsets.UTF_8));

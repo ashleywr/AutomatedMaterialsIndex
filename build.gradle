@@ -85,6 +85,22 @@ neoForge {
             jvmArguments.addAll '-Xms512m', '-Xmx2G', '-XX:+UseG1GC'
         }
 
+        amiOntologyDump {
+            type = "gameTestServer"
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            systemProperty 'ami.ontology_dump_mode', 'true'
+            systemProperty 'forge.logging.markers', ''
+            jvmArguments.addAll '-Xms512m', '-Xmx2G', '-XX:+UseG1GC'
+        }
+
+        amiFallbackDump {
+            type = "gameTestServer"
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            systemProperty 'ami.fallback_dump_mode', 'true'
+            systemProperty 'forge.logging.markers', ''
+            jvmArguments.addAll '-Xms512m', '-Xmx2G', '-XX:+UseG1GC'
+        }
+
         data {
             data()
 
@@ -254,4 +270,35 @@ tasks.register('copyToModsFolder', Copy) {
 
 tasks.named('build').configure {
     finalizedBy copyToModsFolder
+}
+
+tasks.register('analyzeOntology', Exec) {
+    group = 'verification'
+    description = 'Headlessly dumps the AMI ontology and runs the local LLM analyzer on the output.'
+    dependsOn 'runAmiOntologyDump'
+
+    def isVanillaIncluded = project.hasProperty('includeVanilla') && project.property('includeVanilla') == 'true'
+    def baseArgs = ['python', 'internal/local_llm_analyzer.py']
+    if (isVanillaIncluded) {
+        baseArgs.add('--include-vanilla')
+    }
+    // The gameTestServer run config usually uses 'run-gameTestServer' or 'run' as its working directory.
+    // NeoForge 20+ run folders are inside the root directory. We'll pass both potential paths to the script.
+    baseArgs.addAll(['run/ami_dumps/ontology_dump.csv', 'run-gameTestServer/ami_dumps/ontology_dump.csv'])
+
+    commandLine baseArgs
+    
+    doLast {
+        println "Ontology analysis complete. Summary printed above."
+    }
+}
+
+tasks.register('sampleFacetFallback') {
+    group = 'verification'
+    description = 'Headlessly exports the remaining facet fallback population to CSV.'
+    dependsOn 'runAmiFallbackDump'
+
+    doLast {
+        println "Facet fallback sample exported to run/ami_dumps/facet_fallback_sample.csv (or run-gameTestServer equivalent)."
+    }
 }

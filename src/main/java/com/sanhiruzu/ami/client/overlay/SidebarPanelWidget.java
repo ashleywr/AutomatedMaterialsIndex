@@ -46,6 +46,10 @@ public class SidebarPanelWidget extends AbstractWidget {
         panel.setEntries(nodes);
     }
 
+    public void updateLayout(Rect rect) {
+        updateLayout(rect.x(), rect.y(), rect.w(), rect.h());
+    }
+
     public void updateLayout(int x, int y, int width, int height) {
         this.setX(x);
         this.setY(y);

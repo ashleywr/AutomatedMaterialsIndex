@@ -21,6 +21,16 @@ public class OverlayWidgetManager {
     private static final int PANEL_MARGIN    = 6;
     private static final int PANEL_MARGIN_V  = 6;
 
+    // AMI button sits at (AMI_BTN_X, screenH - AMI_BTN_H - AMI_BTN_MARGIN), matching the row
+    // EMI uses for its own button (emi.x=2, emi.y=screenH-22).  When EMI is active alongside
+    // AMI, EmiScreenManagerMixin shifts EMI's button to AMI_BTN_NEXT_X so they sit side-by-side.
+    public  static final int AMI_BTN_X       = 2;
+    public  static final int AMI_BTN_W       = 22;
+    private static final int AMI_BTN_H       = 20;
+    private static final int AMI_BTN_MARGIN  = 2;  // 2 px gap used both below and beside the button
+    /** X where EMI's button should start when AMI is present. */
+    public  static final int AMI_BTN_NEXT_X  = AMI_BTN_X + AMI_BTN_W + AMI_BTN_MARGIN;
+
     private ResultsPanelWidget resultsPanel;
     private SidebarPanelWidget leftPanel;
     private SidebarPanelWidget leftPanelSecondary;
@@ -63,7 +73,6 @@ public class OverlayWidgetManager {
             if (inner != null) inner.getState().toggleMod(modId);
         });
         this.resultsPanel.setOnReset(searchBar::clear);
-        this.resultsPanel.setOnFacetInject(token -> searchBar.toggleToken(token));
         this.resultsPanel.setOnTokenInject(token -> searchBar.toggleToken(token));
 
         Runnable refreshSidebars = this::refreshSidebars;
@@ -77,47 +86,64 @@ public class OverlayWidgetManager {
         widgetsReady = true;
     }
 
+    /**
+     * Computes pixel-accurate bounds for every overlay widget.
+     *
+     * <p>Screen layout (typical inventory, not to scale):
+     * <pre>
+     *  0                                          screenW
+     *  ┌──────────────────────────────────────────────┐  0
+     *  │  left    │ inventory UI │       right         │
+     *  │  panels  │             │  (results / sidebar) │  panelY
+     *  │  (same   │             │   (same panelY,      │
+     *  │  panelY, │             │    same panelH)      │
+     *  │  panelH) │             │                      │  panelY + panelH
+     *  ├──────────┴─────────────┴──────────────────────┤  screenH - BOTTOM_BAR_H
+     *  │ [B]   [search bar──────────────────────]      │
+     *  └──────────────────────────────────────────────┘  screenH
+     * </pre>
+     *
+     * <p>Key invariants:
+     * <ul>
+     *   <li>Left and right panel slots share the same {@code panelY} and {@code panelH},
+     *       so they are always vertically symmetric regardless of screen size.
+     *   <li>Both slots are centred within the usable height above the bottom bar,
+     *       capped at 600 px so they never become unwieldy on large monitors.
+     *   <li>When two panels are configured on one side they split the slot into
+     *       equal halves with a {@code PANEL_MARGIN} gap between them.
+     * </ul>
+     */
     public void computeLayouts(AbstractContainerScreen<?> containerScreen, int screenW, int screenH) {
         ensureWidgets();
         lastScreenH = screenH;
 
-        int btnY = screenH - BOTTOM_BAR_H + 2;
-        amiButton.updateBounds(new WidgetBounds(2, btnY - 22, 22, 20));
+        // ── AMI button ────────────────────────────────────────────────────────
+        // Pinned to top-left of the bottom-bar area (bottom edge = screenH - BOTTOM_BAR_H).
+        amiButton.updateBounds(new WidgetBounds(AMI_BTN_X, screenH - AMI_BTN_H - AMI_BTN_MARGIN, AMI_BTN_W, AMI_BTN_H));
 
-        int containerLeftEdge = containerScreen.getGuiLeft();
+        // ── Shared panel slot geometry ────────────────────────────────────────
+        // Both left and right sides derive their Y and height from this so they
+        // are always visually symmetric. Panels are centred in the usable height
+        // above the bottom bar, then capped at 600 px.
+        int usableH = screenH - BOTTOM_BAR_H - PANEL_MARGIN_V * 2;
+        int panelH  = Math.min(usableH, 600);
+        int panelY  = PANEL_MARGIN_V + (usableH - panelH) / 2;
+
+        // ── Left panels ───────────────────────────────────────────────────────
+        int containerLeftEdge  = containerScreen.getGuiLeft();
         int containerRightEdge = containerScreen.getGuiLeft() + containerScreen.getXSize();
-        
-        // Left Side
-        boolean hasLeft = isSidebarContent(AmiConfig.leftPanelContent);
+
+        boolean hasLeft    = isSidebarContent(AmiConfig.leftPanelContent);
         boolean hasLeftSec = isSidebarContent(AmiConfig.leftPanelSecondaryContent);
-        
+
         if (hasLeft || hasLeftSec) {
-            int leftW = Math.min(AmiConfig.leftPanelWidth, containerLeftEdge - (PANEL_MARGIN * 2));
+            // Width is user-configured, but capped so we don't overlap the inventory.
+            int leftW = Math.min(AmiConfig.leftPanelWidth, containerLeftEdge - PANEL_MARGIN * 2);
             if (leftW >= 40) {
-                int maxH = screenH - BOTTOM_BAR_H - 30;
-                int panelH = Math.min(maxH, 600);
-                int panelY = PANEL_MARGIN_V;
-                
-                if (hasLeft && hasLeftSec) {
-                    int h1 = panelH / 2 - PANEL_MARGIN;
-                    leftPanel.setContentType(AmiConfig.leftPanelContent);
-                    leftPanel.updateLayout(PANEL_MARGIN, panelY, leftW, h1);
-                    leftPanel.visible = true;
-                    
-                    leftPanelSecondary.setContentType(AmiConfig.leftPanelSecondaryContent);
-                    leftPanelSecondary.updateLayout(PANEL_MARGIN, panelY + h1 + PANEL_MARGIN, leftW, panelH - h1 - PANEL_MARGIN);
-                    leftPanelSecondary.visible = true;
-                } else if (hasLeft) {
-                    leftPanel.setContentType(AmiConfig.leftPanelContent);
-                    leftPanel.updateLayout(PANEL_MARGIN, panelY, leftW, panelH);
-                    leftPanel.visible = true;
-                    leftPanelSecondary.visible = false;
-                } else {
-                    leftPanelSecondary.setContentType(AmiConfig.leftPanelSecondaryContent);
-                    leftPanelSecondary.updateLayout(PANEL_MARGIN, panelY, leftW, panelH);
-                    leftPanelSecondary.visible = true;
-                    leftPanel.visible = false;
-                }
+                Rect leftSlot = Rect.of(PANEL_MARGIN, panelY, leftW, panelH);
+                placeSidePanels(leftSlot, hasLeft, hasLeftSec,
+                        leftPanel,          AmiConfig.leftPanelContent,
+                        leftPanelSecondary, AmiConfig.leftPanelSecondaryContent);
             } else {
                 leftPanel.visible = leftPanelSecondary.visible = false;
             }
@@ -125,77 +151,95 @@ public class OverlayWidgetManager {
             leftPanel.visible = leftPanelSecondary.visible = false;
         }
 
-        // Right Side
-        int safeWidth = screenW - containerRightEdge - (PANEL_MARGIN * 2);
-        int panelH = Math.min(screenH - 40, 600);
-        int panelY = (screenH - panelH) / 2;
-        int panelStartX = screenW;
+        // ── Right panels ──────────────────────────────────────────────────────
+        // safeWidth = pixels between the right edge of the inventory and the screen edge.
+        int safeWidth   = screenW - containerRightEdge - PANEL_MARGIN * 2;
+        int panelStartX = screenW; // default: off-screen (used for search-bar clamping below)
 
         if (safeWidth >= MIN_PANEL_WIDTH) {
-            int actualWidth = Math.clamp((int)(screenW * 0.35f), MIN_PANEL_WIDTH, Math.min(safeWidth, MAX_PANEL_WIDTH));
-            panelStartX = screenW - actualWidth - PANEL_MARGIN;
-            
+            // Width: 35 % of screen, clamped to [MIN_PANEL_WIDTH, min(safeWidth, MAX_PANEL_WIDTH)].
+            int rw = Math.clamp((int)(screenW * 0.35f), MIN_PANEL_WIDTH, Math.min(safeWidth, MAX_PANEL_WIDTH));
+            panelStartX = screenW - rw - PANEL_MARGIN;
+            Rect rightSlot = Rect.of(panelStartX, panelY, rw, panelH);
+
+            boolean isSearch        = isSearchContent(AmiConfig.rightPanelContent);
             boolean hasRightPrimary = isSidebarContent(AmiConfig.rightPanelContent);
-            boolean isSearch = isSearchContent(AmiConfig.rightPanelContent);
-            boolean hasRightSec = isSidebarContent(AmiConfig.rightPanelSecondaryContent);
-            
+            boolean hasRightSec     = isSidebarContent(AmiConfig.rightPanelSecondaryContent);
+
             if (isSearch) {
+                // Search/results panel fills the right slot (or the top half when a
+                // secondary sidebar is also configured on the right).
                 if (hasRightSec) {
-                    int h1 = panelH / 2 - PANEL_MARGIN;
-                    resultsPanel.updateBounds(new WidgetBounds(panelStartX, panelY, actualWidth, h1));
+                    Rect[] halves = rightSlot.halves(PANEL_MARGIN);
+                    resultsPanel.updateBounds(halves[0].toWidgetBounds());
                     resultsPanel.visible = true;
                     rightPanelPrimary.visible = false;
-                    
                     rightPanelSecondary.setContentType(AmiConfig.rightPanelSecondaryContent);
-                    rightPanelSecondary.updateLayout(panelStartX, panelY + h1 + PANEL_MARGIN, actualWidth, panelH - h1 - PANEL_MARGIN);
+                    rightPanelSecondary.updateLayout(halves[1]);
                     rightPanelSecondary.visible = true;
                 } else {
-                    resultsPanel.updateBounds(new WidgetBounds(panelStartX, panelY, actualWidth, panelH));
+                    resultsPanel.updateBounds(rightSlot.toWidgetBounds());
                     resultsPanel.visible = true;
                     rightPanelPrimary.visible = false;
                     rightPanelSecondary.visible = false;
                 }
             } else if (hasRightPrimary || hasRightSec) {
                 resultsPanel.visible = false;
-                if (hasRightPrimary && hasRightSec) {
-                    int h1 = panelH / 2 - PANEL_MARGIN;
-                    rightPanelPrimary.setContentType(AmiConfig.rightPanelContent);
-                    rightPanelPrimary.updateLayout(panelStartX, panelY, actualWidth, h1);
-                    rightPanelPrimary.visible = true;
-                    
-                    rightPanelSecondary.setContentType(AmiConfig.rightPanelSecondaryContent);
-                    rightPanelSecondary.updateLayout(panelStartX, panelY + h1 + PANEL_MARGIN, actualWidth, panelH - h1 - PANEL_MARGIN);
-                    rightPanelSecondary.visible = true;
-                } else if (hasRightPrimary) {
-                    rightPanelPrimary.setContentType(AmiConfig.rightPanelContent);
-                    rightPanelPrimary.updateLayout(panelStartX, panelY, actualWidth, panelH);
-                    rightPanelPrimary.visible = true;
-                    rightPanelSecondary.visible = false;
-                } else {
-                    rightPanelSecondary.setContentType(AmiConfig.rightPanelSecondaryContent);
-                    rightPanelSecondary.updateLayout(panelStartX, panelY, actualWidth, panelH);
-                    rightPanelSecondary.visible = true;
-                    rightPanelPrimary.visible = false;
-                }
+                placeSidePanels(rightSlot, hasRightPrimary, hasRightSec,
+                        rightPanelPrimary, AmiConfig.rightPanelContent,
+                        rightPanelSecondary, AmiConfig.rightPanelSecondaryContent);
             } else {
                 resultsPanel.visible = rightPanelPrimary.visible = rightPanelSecondary.visible = false;
             }
-            lastResultsBounds = new WidgetBounds(panelStartX, panelY, actualWidth, panelH);
+
+            lastResultsBounds = rightSlot.toWidgetBounds();
         } else {
             resultsPanel.visible = rightPanelPrimary.visible = rightPanelSecondary.visible = false;
         }
 
-        // Search bar
+        // ── Search bar ────────────────────────────────────────────────────────
+        // Centred horizontally, then nudged left if it would overlap the right panel.
         int maxBarRight = (safeWidth >= MIN_PANEL_WIDTH) ? (panelStartX - PANEL_MARGIN) : (screenW - 4);
-        int barW   = Math.min(AmiConfig.searchBarWidth, screenW - 8);
-        int barX   = Math.max(4, (screenW - barW) / 2);
+        int barW = Math.min(AmiConfig.searchBarWidth, screenW - 8);
+        int barX = Math.max(4, (screenW - barW) / 2);
         if (barX + barW > maxBarRight) {
             barX = Math.max(4, maxBarRight - barW);
-            barW = Math.min(barW, maxBarRight - barX);
-            barW = Math.max(60, barW); 
+            barW = Math.max(60, Math.min(barW, maxBarRight - barX));
         }
-        int searchBarY = screenH - BOTTOM_BAR_H + 2;
-        searchBar.updateBounds(new WidgetBounds(barX, searchBarY, barW, SEARCH_H));
+        searchBar.updateBounds(new WidgetBounds(barX, screenH - BOTTOM_BAR_H + 2, barW, SEARCH_H));
+    }
+
+    /**
+     * Places one or two sidebar panels within {@code slot}.
+     *
+     * <p>When both panels are active the slot is split into equal halves
+     * ({@link Rect#halves}). This logic is identical on both sides of the screen
+     * so it lives here rather than being duplicated in the left/right branches.
+     */
+    private void placeSidePanels(
+            Rect slot,
+            boolean hasPrimary,   boolean hasSecondary,
+            SidebarPanelWidget primary,   AmiConfig.PanelContent primaryContent,
+            SidebarPanelWidget secondary, AmiConfig.PanelContent secondaryContent) {
+        if (hasPrimary && hasSecondary) {
+            Rect[] halves = slot.halves(PANEL_MARGIN);
+            primary.setContentType(primaryContent);
+            primary.updateLayout(halves[0]);
+            primary.visible = true;
+            secondary.setContentType(secondaryContent);
+            secondary.updateLayout(halves[1]);
+            secondary.visible = true;
+        } else if (hasPrimary) {
+            primary.setContentType(primaryContent);
+            primary.updateLayout(slot);
+            primary.visible = true;
+            secondary.visible = false;
+        } else {
+            secondary.setContentType(secondaryContent);
+            secondary.updateLayout(slot);
+            secondary.visible = true;
+            primary.visible = false;
+        }
     }
 
     /** Overload for any Screen type (including non-AbstractContainerScreen mod containers) */
@@ -209,28 +253,23 @@ public class OverlayWidgetManager {
         }
     }
 
+    /**
+     * Fallback layout for non-{@link AbstractContainerScreen} screens.
+     * Results panel is centred horizontally in the middle third of the screen.
+     */
     private void computeLayoutsForCustomScreen(int screenW, int screenH) {
-        // For non-vanilla container screens, use a centered results panel layout
-        int leftEdge = screenW / 6;
-        int rightEdge = screenW - screenW / 6;
-
-        // Create a temporary simple layout - reuse the core logic with default positions
         ensureWidgets();
         lastScreenH = screenH;
 
-        int btnY = screenH - BOTTOM_BAR_H + 2;
-        amiButton.updateBounds(new WidgetBounds(2, btnY - 22, 22, 20));
+        amiButton.updateBounds(new WidgetBounds(AMI_BTN_X, screenH - AMI_BTN_H - AMI_BTN_MARGIN, AMI_BTN_W, AMI_BTN_H));
 
-        // Simple centered layout for custom screens
-        leftPanel.visible = false;
-        leftPanelSecondary.visible = false;
-        rightPanelPrimary.visible = false;
-        rightPanelSecondary.visible = false;
+        leftPanel.visible = leftPanelSecondary.visible = false;
+        rightPanelPrimary.visible = rightPanelSecondary.visible = false;
+
+        // Centred panel: middle third of the screen width, full usable height.
+        Rect panel = Rect.of(screenW / 6, 20, screenW * 2 / 3, screenH - BOTTOM_BAR_H - 40);
+        resultsPanel.updateBounds(panel.toWidgetBounds());
         resultsPanel.visible = true;
-
-        int panelW = rightEdge - leftEdge;
-        int panelH = screenH - BOTTOM_BAR_H - 40;
-        resultsPanel.updateBounds(new WidgetBounds(leftEdge, 20, panelW, panelH));
 
         int barW = Math.min(AmiConfig.searchBarWidth, screenW - 8);
         int barX = (screenW - barW) / 2;

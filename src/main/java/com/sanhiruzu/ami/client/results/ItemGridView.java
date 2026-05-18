@@ -241,7 +241,7 @@ public class ItemGridView {
                             .withStyle(net.minecraft.ChatFormatting.GRAY));
                     pendingTextTooltip = lines;
                     pendingTooltipImage = Optional.empty();
-                } else if (com.sanhiruzu.ami.client.AMIKeyMappings.DEBUG_TOOLTIPS.isDown()) {
+                } else if (com.sanhiruzu.ami.client.AmiKeybindHandler.isDebugTooltipsActive()) {
                     pendingTextTooltip = com.sanhiruzu.ami.client.results.DebugTooltip.build(entry);
                     pendingTooltipImage = Optional.empty();
                 } else if (entry.type() == com.sanhiruzu.ami.index.NodeType.ITEM) {
@@ -252,8 +252,9 @@ public class ItemGridView {
                     if (rendererLines != null) {
                         rendererLines = new ArrayList<>(rendererLines);
                         String keybindName = com.sanhiruzu.ami.client.AMIKeyMappings.DEBUG_TOOLTIPS.getTranslatedKeyMessage().getString();
-                        Component hint = Component.translatable("ami.gui.debug_hint", keybindName).withStyle(net.minecraft.ChatFormatting.DARK_GRAY);
-                        rendererLines.add(hint);
+                        String hintKey = com.sanhiruzu.ami.client.AmiKeybindHandler.isDebugTooltipsActive()
+                                ? "ami.gui.debug_hint_active" : "ami.gui.debug_hint";
+                        rendererLines.add(Component.translatable(hintKey, keybindName).withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
                     }
                     pendingTextTooltip = rendererLines;
                     pendingTooltipImage = renderer.getTooltipImage(entry);
@@ -413,9 +414,6 @@ public class ItemGridView {
         if (node.isLeaf()) {
             linearItems.add(node);
         } else if (node.isHighCardinality()) {
-            packIntoRows(linearItems, cols, out);
-            linearItems.clear();
-            
             linearItems.add(node); // Group header icon
             if (node.isExpanded()) {
                 linearItems.addAll(node.getChildren());

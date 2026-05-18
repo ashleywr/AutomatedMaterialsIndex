@@ -1,7 +1,9 @@
 package net.minecraft.world.item;
 
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.tags.TagKey;
+
+import java.util.stream.Stream;
 
 public class ItemStack {
     public static final ItemStack EMPTY = new ItemStack(null);
@@ -11,6 +13,9 @@ public class ItemStack {
     public boolean isEmpty() { return this == EMPTY || item == null; }
     public Item getItem() { return item; }
     public ItemStack copy() { return new ItemStack(item); }
+    public boolean has(DataComponentType<?> component) { return item != null && item.components().has(component); }
+    public boolean is(TagKey<Item> tag) { return item != null && item.builtInRegistryHolder().is(tag); }
+    public Stream<TagKey<Item>> getTags() { return item == null ? Stream.empty() : item.builtInRegistryHolder().tags(); }
 
     public static boolean isSameItemSameComponents(ItemStack a, ItemStack b) {
         if (a == b) return true;

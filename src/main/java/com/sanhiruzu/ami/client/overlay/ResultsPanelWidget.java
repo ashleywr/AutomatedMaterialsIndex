@@ -26,10 +26,6 @@ public class ResultsPanelWidget extends AbstractWidget {
         if (panel != null) panel.setOnReset(callback);
     }
 
-    public void setOnFacetInject(java.util.function.Consumer<String> callback) {
-        if (panel != null) panel.setOnFacetInject(callback);
-    }
-
     public void setOnTokenInject(java.util.function.Consumer<String> callback) {
         this.tokenInjectCallback = callback;
         if (panel != null) panel.setOnTokenInject(callback);

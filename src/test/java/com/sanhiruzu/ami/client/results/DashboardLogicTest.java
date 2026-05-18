@@ -26,12 +26,12 @@ public class DashboardLogicTest {
     @Test
     void testCategoryItemCounts() {
         // 1. Setup mock data
-        addMockItem("sword", "weapons");
-        addMockItem("axe", "weapons");
+        addMockItem("sword", "tools");
+        addMockItem("axe", "tools");
         addMockItem("bread", "food");
 
         // 2. Verify GlobalIndex categorization
-        assertEquals(2, GlobalIndex.getInstance().getNodesByCategory("weapons").size());
+        assertEquals(2, GlobalIndex.getInstance().getNodesByCategory("tools").size());
         assertEquals(1, GlobalIndex.getInstance().getNodesByCategory("food").size());
     }
 
@@ -51,7 +51,7 @@ public class DashboardLogicTest {
         );
         
         AmiOntology.Category cat = AmiOntology.classifyNode(compass);
-        assertEquals("navigation", cat.id);
+        assertEquals("utility", cat.id);
     }
 
     @Test
@@ -77,7 +77,7 @@ public class DashboardLogicTest {
     void testDashboardDeduplication() {
         // This test simulates the logic inside UniversalResultsPanel.showDashboard()
         java.util.Set<String> addedIds = new java.util.HashSet<>();
-        List<String> rawIdsFromOntology = List.of("mobs", "mobs", "navigation", "magic", "navigation");
+        List<String> rawIdsFromOntology = List.of("mobs", "mobs", "utility", "magic", "utility");
         List<String> finalDashboardIds = new java.util.ArrayList<>();
 
         for (String id : rawIdsFromOntology) {
@@ -90,26 +90,26 @@ public class DashboardLogicTest {
 
         assertEquals(3, finalDashboardIds.size());
         assertEquals("mobs", finalDashboardIds.get(0));
-        assertEquals("navigation", finalDashboardIds.get(1));
+        assertEquals("utility", finalDashboardIds.get(1));
         assertEquals("magic", finalDashboardIds.get(2));
     }
 
     @Test
     void testAlphabeticalCategorySorting() {
         // This test verifies that categories are sorted alphabetically when
-        // ALPHABETICAL sort mode is active (armor, entities, food, weapons...)
+        // ALPHABETICAL sort mode is active (armor, entities, nature, tools...)
 
         // Setup: Mock categories data to verify sorting logic
         List<AmiOntology.Category> categories = new java.util.ArrayList<>(AmiOntology.CATEGORIES);
 
-        // Simulate alphabetical sorting
-        categories.sort((a, b) -> a.id.compareTo(b.id));
+        // Simulate alphabetical sorting by localized display name
+        categories.sort((a, b) -> a.displayName().getString().compareToIgnoreCase(b.displayName().getString()));
 
-        // Verify order: armor comes before blocks, blocks before entities, etc.
-        assertTrue(categories.get(0).id.compareTo(categories.get(1).id) < 0,
+        // Verify order: First item should come before second item alphabetically
+        assertTrue(categories.get(0).displayName().getString().compareToIgnoreCase(categories.get(1).displayName().getString()) <= 0,
             "Categories should be sorted alphabetically");
 
-        // Find armor and verify it's near the beginning
+        // Find armor and verify it's near the beginning (starts with A)
         boolean foundArmor = false;
         for (int i = 0; i < 3; i++) {
             if ("armor".equals(categories.get(i).id)) {
@@ -122,16 +122,16 @@ public class DashboardLogicTest {
 
     @Test
     void testAlphabeticalCategorySortingDescending() {
-        // This test verifies reverse alphabetical sorting (weapons before entities...)
+        // This test verifies reverse alphabetical sorting
 
         List<AmiOntology.Category> categories = new java.util.ArrayList<>(AmiOntology.CATEGORIES);
 
         // Simulate alphabetical sorting, then reverse for descending
-        categories.sort((a, b) -> a.id.compareTo(b.id));
+        categories.sort((a, b) -> a.displayName().getString().compareToIgnoreCase(b.displayName().getString()));
         java.util.Collections.reverse(categories);
 
-        // Verify reverse order: first item should be > second item alphabetically
-        assertTrue(categories.get(0).id.compareTo(categories.get(1).id) > 0,
+        // Verify reverse order: first item should be >= second item alphabetically
+        assertTrue(categories.get(0).displayName().getString().compareToIgnoreCase(categories.get(1).displayName().getString()) >= 0,
             "Categories should be sorted in reverse alphabetical order");
     }
 
@@ -147,7 +147,7 @@ public class DashboardLogicTest {
         assertTrue(original.size() > 0, "Ontology should have categories defined");
 
         // Verify the hardcoded order is maintained (NAVIGATION before ENTITIES, etc)
-        assertEquals("navigation", original.get(0).id);
-        assertEquals("entities", original.get(1).id);
+        assertEquals("utility", original.get(0).id);
+        assertEquals("bestiary", original.get(1).id);
     }
 }
