@@ -1,57 +1,116 @@
 package com.sanhiruzu.ami.index;
 
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.level.block.BaseEntityBlock;
-import net.minecraft.world.level.block.Block;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.*;
+import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.ComposterBlock;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Locale;
-import java.util.stream.Collectors;
 
 /**
  * Classifies Item instances into AmiOntology categories at index time.
  *
  * Returns a two-element array {categoryId, subcategoryId}, or null when the item
- * should be left for the runtime heuristics in AmiOntology.classifyItem().
+ * should be left for the runtime heuristics in AmiOntology.classifyNode().
  *
- * BlockItem decision order (first match wins):
+ * Non-block items are classified by Java type, DataComponents, and c: tags first.
+ * Path string matching is used only where it genuinely describes a name-based family
+ * (pottery sherds, copper bulb oxidation variants, coral fan/plant variants).
+ *
+ * BlockItem decision order (waterfall: first match wins):
  *   1. Redstone  – checked before nature so sculk sensors win
  *   2. Nature    – logs, leaves, saplings, flowers, crops, fungi, etc. → null (runtime → "nature")
- *   3. Ores      – all ore block types → null (runtime → "tech")
- *   4. Tech storage – compressed-material blocks → null (runtime → "tech")
- *   5. Functional – beds, doors, block entities, crafting stations, etc.
- *   6. Decorative – carpets, candles, banners, signs, torches, etc.
+ *   3. Furniture – beds, skulls, heads (decoration)
+ *   4. Tech machines – block entities, crafting stations, cauldrons, anvils
+ *   5. Decorative – carpets, candles, banners, signs, torches, etc.
+ *   6. Functional – doors, trapdoors, campfires, beehives, etc.
  *   7. Building   – everything else that is a BlockItem
- *
- * Non-BlockItem decision order uses item tags + path heuristics:
- *   Armor → Weapons/Tools → Magic → Food → Tech → Nature → Social → Entities
  */
 public final class OntologyClassifier {
+
+    // ── Common (c:) item tag keys ─────────────────────────────────────────────
+
+    private static final TagKey<Item> TAG_INGOTS             = cTag("ingots");
+    private static final TagKey<Item> TAG_GEMS               = cTag("gems");
+    private static final TagKey<Item> TAG_NUGGETS            = cTag("nuggets");
+    private static final TagKey<Item> TAG_RAW_MATERIALS      = cTag("raw_materials");
+    private static final TagKey<Item> TAG_DUSTS              = cTag("dusts");
+    private static final TagKey<Item> TAG_SEEDS              = cTag("seeds");
+    private static final TagKey<Item> TAG_CROPS              = cTag("crops");
+    private static final TagKey<Item> TAG_EGGS               = cTag("eggs");
+    private static final TagKey<Item> TAG_FEATHERS           = cTag("feathers");
+    private static final TagKey<Item> TAG_STRING             = cTag("string");
+    private static final TagKey<Item> TAG_LEATHERS           = cTag("leathers");
+    private static final TagKey<Item> TAG_BONES              = cTag("bones");
+    private static final TagKey<Item> TAG_SPAWN_CREATURES    = cTag("spawn_creatures");
+    private static final TagKey<Item> TAG_DUSTS_REDSTONE     = cTag("dusts/redstone");
+    private static final TagKey<Item> TAG_FOODS_COOKED_MEAT  = cTag("foods/cooked_meat");
+    private static final TagKey<Item> TAG_FOODS_COOKED_FISH  = cTag("foods/cooked_fish");
+    private static final TagKey<Item> TAG_FOODS_MEAT         = cTag("foods/meat");
+    private static final TagKey<Item> TAG_FOODS_FISH         = cTag("foods/fish");
+    private static final TagKey<Item> TAG_FOODS_VEGETABLE    = cTag("foods/vegetable");
+    private static final TagKey<Item> TAG_FOODS_FRUIT        = cTag("foods/fruit");
+    private static final TagKey<Item> TAG_FOODS_DRINK        = cTag("foods/drink");
+    private static final TagKey<Item> TAG_FOODS_PLACED       = cTag("foods/edible_when_placed");
+    private static final TagKey<Item> TAG_DRINKS_MAGIC       = cTag("drinks/magic");
+
+    private static TagKey<Item> cTag(String path) {
+        return TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath("c", path));
+    }
+
+    private static boolean is(Item item, TagKey<Item> tag) {
+        return item.builtInRegistryHolder().is(tag);
+    }
+
+    // Check if a block state has a specific property (semantic, mod-agnostic)
+    private static boolean hasProperty(BlockState state, String propertyName) {
+        return state.getProperties().stream()
+            .anyMatch(prop -> prop.getName().equals(propertyName));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
 
     /**
      * @return {categoryId, subcategoryId} or null to use runtime classification.
      */
     @Nullable
     public static String[] classifyItem(Item item, ResourceLocation id) {
+        String path = id.getPath();
+
+        // ── Pass 1: Semantic identity — wins regardless of game object type ───
+        // Magical drinks before food classification
+        if (is(item, TAG_DRINKS_MAGIC)) return magic("potions");
+        // Catches food blocks (e.g. cake, modded block foods) before the BlockItem gate.
+        if (item.components().has(DataComponents.FOOD)) return classifyFood(item);
+        if (is(item, TAG_FOODS_PLACED)) return nature("snacks");  // placed/block foods (cake, etc.)
+        if (is(item, TAG_SEEDS)) return nature("seeds");
+        if (is(item, TAG_CROPS)) return nature("crops");
+        if (isCompostable(item)) return nature("flora");
+
+        // ── Pass 2: Non-block items by Java type and tags ─────────────────────
         if (!(item instanceof BlockItem bi)) {
             return classifyNonBlockItem(item, id);
         }
 
+        // ── Pass 3: Block classification ──────────────────────────────────────
         Block block = bi.getBlock();
         BlockState state = block.defaultBlockState();
-        String path = id.getPath();
 
         // ── 1. Redstone ───────────────────────────────────────────────────────
+        // Catch all redstone-logic blocks via "powered" property (semantic, mod-agnostic)
+        if (hasProperty(state, "powered")) {
+            return masonry("redstone");
+        }
         if (state.is(BlockTags.BUTTONS)
                 || state.is(BlockTags.PRESSURE_PLATES)
                 || state.is(BlockTags.RAILS)) {
-            return blocks("redstone");
+            return masonry("redstone");
         }
-        if (isRedstoneBlock(path)) return blocks("redstone");
+        if (isRedstoneBlock(item, path)) return masonry("redstone");
 
         // ── 2. Nature → delegate to runtime ("nature") ───────────────────────
         if (state.is(BlockTags.LOGS)
@@ -68,50 +127,91 @@ public final class OntologyClassifier {
         }
         if (isNaturePath(path)) return null;
 
-        // ── 3. Ores → delegate to runtime ("tech") ───────────────────────────
-        if (state.is(BlockTags.GOLD_ORES)
-                || state.is(BlockTags.IRON_ORES)
-                || state.is(BlockTags.DIAMOND_ORES)
-                || state.is(BlockTags.REDSTONE_ORES)
-                || state.is(BlockTags.LAPIS_ORES)
-                || state.is(BlockTags.COAL_ORES)
-                || state.is(BlockTags.EMERALD_ORES)
-                || state.is(BlockTags.COPPER_ORES)
-                || path.contains("_ore")   // catches nether_quartz_ore + any mod ore
-                || path.equals("ancient_debris")) {
-            return null;
+        // ── 3. Furniture (most specific) ──────────────────────────────────────
+        // Beds: any block that implements bed behavior
+        if (block instanceof BedBlock) {
+            return decoration("furniture");
+        }
+        // Skulls/heads: decorative furniture
+        if (block instanceof SkullBlock) {
+            if (item == Items.PLAYER_HEAD) return social("players");
+            return decoration("furniture");
         }
 
-        // ── 4. Tech storage blocks → delegate to runtime ("tech") ────────────
-        if (isMaterialStorageBlock(path)) return null;
-
-        // ── 5. Functional ─────────────────────────────────────────────────────
-        if (state.is(BlockTags.BEDS)
-                || state.is(BlockTags.DOORS)
-                || state.is(BlockTags.TRAPDOORS)
-                || state.is(BlockTags.FENCE_GATES)
-                || state.is(BlockTags.SHULKER_BOXES)
-                || state.is(BlockTags.CAMPFIRES)
-                || state.is(BlockTags.CAULDRONS)
-                || state.is(BlockTags.ANVIL)
-                || state.is(BlockTags.BEEHIVES)) {
-            return blocks("functional");
+        // ── 4. Tech Machines & Crafting ───────────────────────────────────────
+        if (state.is(BlockTags.CAULDRONS) || state.is(BlockTags.ANVIL)) {
+            return tech("machines");
         }
-        if (block instanceof BaseEntityBlock) return blocks("functional");
-        if (isFunctionalBlock(path)) return blocks("functional");
-
-        // ── 6. Decorative ─────────────────────────────────────────────────────
-        if (state.is(BlockTags.WOOL_CARPETS)
-                || state.is(BlockTags.CANDLES)
-                || state.is(BlockTags.BANNERS)
-                || state.is(BlockTags.ALL_SIGNS)
-                || state.is(BlockTags.FLOWER_POTS)) {
-            return blocks("decorative");
+        if (block instanceof BaseEntityBlock) {
+            // Other block entities (chests, furnaces, brewing stands, etc.)
+            if (block instanceof SignBlock || block instanceof BannerBlock || block instanceof ShulkerBoxBlock) {
+                return masonry("functional");
+            }
+            return tech("machines");
         }
-        if (isDecorativeBlock(path)) return blocks("decorative");
+        if (isMachineBlock(item)) return tech("machines");
 
-        // ── 7. Building — split by shape (subcategory) and material (3rd element) ──
-        return blocks(classifyBlockShape(path), classifyBlockMaterial(state, path));
+        // ── 5. Decorative ─────────────────────────────────────────────────────
+        // Carpets: tagged or have "height" property < 2 (very thin, 1/16 block)
+        if (state.is(BlockTags.WOOL_CARPETS) || hasProperty(state, "height")) {
+            return decoration("decorative");
+        }
+        // Candles, banners, signs, flower pots — use tags
+        if (state.is(BlockTags.CANDLES)) {
+            return decoration("decorative");
+        }
+        if (state.is(BlockTags.BANNERS)) {
+            return decoration("decorative");
+        }
+        if (state.is(BlockTags.ALL_SIGNS)) {
+            return decoration("decorative");
+        }
+        if (state.is(BlockTags.FLOWER_POTS)) {
+            return decoration("decorative");
+        }
+        // Light-emitting decorative blocks: torches, lanterns, etc.
+        // Catches any block with light emission > 6 that isn't redstone (checked earlier)
+        if (block instanceof TorchBlock || block instanceof WallTorchBlock
+                || block instanceof LanternBlock || block instanceof CandleBlock
+                || block instanceof AmethystClusterBlock
+                || state.getLightEmission() > 6) {
+            return decoration("decorative");
+        }
+        // Coral (decorative forms: corals and coral_plants, not coral_blocks which go to masonry)
+        if (state.is(BlockTags.CORALS) || state.is(BlockTags.CORAL_PLANTS)) {
+            return decoration("decorative");
+        }
+
+        // ── 6. Functional Blocks ──────────────────────────────────────────────
+        // Doors, trapdoors, fence gates — all have "open" property (semantic)
+        if (state.is(BlockTags.DOORS) || state.is(BlockTags.TRAPDOORS) || state.is(BlockTags.FENCE_GATES)
+                || hasProperty(state, "open")) {
+            return masonry("functional");
+        }
+        // Campfires — have "lit" property (can be lit/unlit)
+        if (state.is(BlockTags.CAMPFIRES) || hasProperty(state, "lit")) {
+            return masonry("functional");
+        }
+        // Beehives — specific block entity type or tag
+        if (state.is(BlockTags.BEEHIVES)) {
+            return masonry("functional");
+        }
+        if (isFunctionalBlock(item)) return masonry("functional");
+
+        // ── 6b. Terrain & Soil Blocks ────────────────────────────────────────
+        // Dirt blocks (grass, dirt, mud, etc.) — semantic tag-based
+        if (state.is(BlockTags.DIRT)) {
+            return geology("terrain");
+        }
+
+        // ── 7. Terrain & Geology vs Architecture & Masonry ───────────────────
+        String shape    = classifyBlockShape(path);
+        String material = classifyBlockMaterial(state, path);
+        if (shape.equals("full_block") && material.equals("other_building")) return misc("unknown");
+        if (shape.equals("full_block") && isNaturalMaterial(material, path)) {
+            return geology(material.equals("soil") ? "terrain" : "stone");
+        }
+        return masonry(shape, material);
     }
 
     // ── Non-BlockItem classification ──────────────────────────────────────────
@@ -119,187 +219,198 @@ public final class OntologyClassifier {
     @Nullable
     private static String[] classifyNonBlockItem(Item item, ResourceLocation id) {
         String path = id.getPath();
-        String tags = item.builtInRegistryHolder().tags()
-                .map(tag -> tag.location().toString().toLowerCase(Locale.ROOT))
-                .collect(Collectors.joining(","));
-        // Single combined string so each pattern is checked against both at once.
-        String combined = tags + "," + path;
 
-        // ── Armor (check slot-specific tags first for precision) ──────────────
-        if (combined.contains("head_armor") || path.endsWith("_helmet") || path.equals("turtle_helmet")) {
-            return armor("head");
+        // ── Fluid Buckets ─────────────────────────────────────────────────────
+        // Buckets containing mobs → Bestiary (same as the mob)
+        if (item instanceof MobBucketItem) {
+            return bestiary("creatures");
         }
-        if (combined.contains("chest_armor") || path.endsWith("_chestplate")) {
-            return armor("chest");
+        // Consumable fluids (have FOOD component like honey) → Nature
+        if (item instanceof BucketItem && item.components().has(DataComponents.FOOD)) {
+            return nature("drinks");
         }
-        if (combined.contains("leg_armor") || path.endsWith("_leggings")) {
-            return armor("legs");
+        // Utility buckets (water, lava, powder snow, milk) → Utility
+        if (item instanceof BucketItem) {
+            return utility("fluids");
         }
-        if (combined.contains("foot_armor") || path.endsWith("_boots")) {
-            return armor("feet");
+
+        // ── Armor ─────────────────────────────────────────────────────────────
+        if (item instanceof ArmorItem ai) {
+            return switch (ai.getEquipmentSlot()) {
+                case HEAD  -> armor("head");
+                case CHEST -> armor("chest");
+                case LEGS  -> armor("legs");
+                case FEET  -> armor("feet");
+                default    -> armor("chest");
+            };
         }
-        if (path.equals("elytra")) return armor("curios");
-        if (combined.contains(":armor")) return armor("chest"); // generic armor fallback
+        if (item instanceof AnimalArmorItem) return null; // goes on animals, not Curios slots — defer to runtime
+        if (item == Items.ELYTRA)           return armor("curios");
 
         // ── Weapons & Tools ───────────────────────────────────────────────────
-        if (combined.contains(":swords") || path.endsWith("_sword")
-                || path.equals("trident") || path.equals("mace")) {
-            return weapons("melee");
+        // Sword-like weapons (melee)
+        if (item instanceof SwordItem || item instanceof TridentItem || item instanceof MaceItem) {
+            return tools("melee");
         }
-        if (combined.contains(":bows") || path.equals("bow") || path.equals("crossbow")) {
-            return weapons("ranged");
+        // Ranged weapons & projectiles
+        if (item instanceof BowItem || item instanceof CrossbowItem || item instanceof ArrowItem) {
+            return tools("ranged");
         }
-        if (combined.contains(":arrows") || path.endsWith("_arrow") || path.equals("arrow")) {
-            return weapons("ranged");
+        // Harvest tools (pickaxe, shovel, axe, hoe)
+        if (item instanceof DiggerItem) {
+            return tools("harvest");
         }
-        if (combined.contains(":pickaxes") || path.endsWith("_pickaxe")) return weapons("harvest");
-        if (combined.contains(":shovels")  || path.endsWith("_shovel"))  return weapons("harvest");
-        if (combined.contains(":hoes")     || path.endsWith("_hoe"))     return weapons("harvest");
-        if (combined.contains(":axes")     || path.endsWith("_axe"))     return weapons("harvest");
-        if (path.equals("fishing_rod") || path.equals("shears")
-                || path.equals("flint_and_steel") || path.equals("brush")) {
-            return weapons("utility");
+        // Utility tools (fishing rod, shears, flint & steel, brush)
+        if (item instanceof FishingRodItem || item instanceof ShearsItem
+                || item instanceof FlintAndSteelItem || item instanceof BrushItem) {
+            return tools("utility");
         }
-        if (combined.contains(":tools")) return weapons("utility"); // generic tool fallback
 
         // ── Magic ─────────────────────────────────────────────────────────────
-        if (path.contains("potion")) return magic("potions");
-        if (path.equals("enchanted_book")) return magic("books");
-        if (path.equals("totem_of_undying") || path.equals("nether_star")) return magic("artifacts");
-        if (isMagicReagent(path)) return magic("reagents");
+        // Potions & potion-like items (have potion content component)
+        if (item.components().has(DataComponents.POTION_CONTENTS)) {
+            return magic("potions");
+        }
+        // Enchanted books (have enchantments component)
+        if (item.components().has(DataComponents.ENCHANTMENTS)) {
+            return magic("books");
+        }
+        // Specific magic artifacts & reagents by semantic identity
+        if (isMagicArtifact(item))             return magic("artifacts");
+        if (isMagicReagent(item))              return magic("reagents");
 
-        // ── Food ──────────────────────────────────────────────────────────────
-        if (path.startsWith("cooked_")) return food("meals");
-        if (isRawProtein(path)) return food("proteins");
-        if (path.equals("cod") || path.equals("salmon")
-                || path.equals("tropical_fish") || path.equals("pufferfish")) {
-            return food("proteins");
-        }
-        if (path.equals("mushroom_stew") || path.equals("beetroot_soup") || path.equals("rabbit_stew")
-                || path.equals("suspicious_stew") || path.equals("honey_bottle")
-                || path.equals("milk_bucket")) {
-            return food("drinks");
-        }
-        if (combined.contains(":foods") || combined.contains(":food")) return food("snacks");
-
-        // ── Tech (non-block materials) ────────────────────────────────────────
-        if (combined.contains(":ingots") || path.endsWith("_ingot")) return tech("ingots");
-        if (combined.contains(":gems")
-                || path.equals("diamond") || path.equals("emerald") || path.equals("amethyst_shard")
-                || path.equals("quartz") || path.equals("lapis_lazuli")
-                || path.equals("prismarine_crystals")) {
-            return tech("ingots");
-        }
-        if (combined.contains(":nuggets") || path.endsWith("_nugget")) return tech("ingots");
-        if (isRawOre(path)) return tech("ingots");
-        if (combined.contains(":dusts") || path.equals("redstone") || path.equals("glowstone_dust")
-                || path.equals("blaze_rod") || path.equals("coal") || path.equals("charcoal")
-                || path.equals("nether_brick") || path.equals("bone_meal")) {
+        // ── Tech materials (c: tags cover modded ingots/gems/dusts automatically) ──
+        if (is(item, TAG_INGOTS) || is(item, TAG_GEMS) || is(item, TAG_NUGGETS)) return tech("ingots");
+        if (is(item, TAG_RAW_MATERIALS))                                          return tech("ingots");
+        // Redstone dust specifically (logic material, not a generic dust)
+        if (is(item, TAG_DUSTS_REDSTONE)) return tech("redstone");
+        if (is(item, TAG_DUSTS))                                                  return tech("dusts");
+        // Vanilla fuel/material items that typically lack c: dust tags
+        if (item == Items.COAL || item == Items.CHARCOAL
+                || item == Items.BLAZE_ROD || item == Items.NETHER_BRICK) {
             return tech("dusts");
         }
 
         // ── Nature (non-block) ────────────────────────────────────────────────
-        if (combined.contains(":seeds") || path.endsWith("_seeds")) return nature("seeds");
-        if (isHarvestCrop(path)) return nature("crops");
-        if (path.equals("red_mushroom") || path.equals("brown_mushroom")) return nature("fungi");
-        if (path.equals("bamboo") || path.equals("stick")) return nature("wood");
+        if (is(item, TAG_SEEDS))                                        return nature("seeds");
+        if (is(item, TAG_CROPS))                                        return nature("crops");
+        if (item == Items.BAMBOO || item == Items.STICK)                return nature("wood");
+        if (item == Items.BONE_MEAL)                                    return nature("flora");
+        if (item == Items.RED_MUSHROOM || item == Items.BROWN_MUSHROOM) return nature("fungi");
 
-        // ── Navigation ───────────────────────────────────────────────────────
-        if (path.equals("compass") || path.equals("recovery_compass")
-                || path.equals("filled_map") || path.equals("clock") || path.equals("spyglass")) {
-            return navigation("instruments");
+        // ── Crafting ingredients ───────────────────────────────────────────────
+        if (isIngredient(item, path)) return ingredients("organic");
+
+        // ── Utility ───────────────────────────────────────────────────────────
+        if (item == Items.COMPASS || item == Items.RECOVERY_COMPASS
+                || item == Items.FILLED_MAP || item == Items.CLOCK
+                || item == Items.SPYGLASS) {
+            return utility("navigation");
         }
 
-        // ── Social ───────────────────────────────────────────────────────────
-        if (path.equals("player_head")) return social("players");
-        if (path.equals("lodestone"))   return social("claims");
+        // ── Social ────────────────────────────────────────────────────────────
+        if (item == Items.LODESTONE) return social("claims");
 
-        // ── Entities (spawn eggs only) ────────────────────────────────────────
-        if (path.endsWith("_spawn_egg")) return entities(classifySpawnEgg(path));
+        // ── Entities (spawn eggs & creatures) ─────────────────────────────────
+        if (item instanceof SpawnEggItem) return bestiary(classifySpawnEgg(path));
+        if (is(item, TAG_SPAWN_CREATURES)) return bestiary("creatures");
 
-        // ── Environment (transport items) ──────────────────────────────────────
-        if (path.contains("minecart") || path.endsWith("_boat") || path.endsWith("_chest_boat")) {
-            return environment("transport");
+        // ── Transport ─────────────────────────────────────────────────────────
+        if (item instanceof BoatItem || item instanceof MinecartItem) return tech("transport");
+
+        return null;
+    }
+
+    // ── Food sub-classification ───────────────────────────────────────────────
+
+    private static String[] classifyFood(Item item) {
+        // Stews/soups first — they use a bowl-return consume pattern, not typical snacks
+        if (item == Items.MUSHROOM_STEW || item == Items.BEETROOT_SOUP
+                || item == Items.RABBIT_STEW || item == Items.SUSPICIOUS_STEW
+                || item == Items.HONEY_BOTTLE || is(item, TAG_FOODS_DRINK)) {
+            return nature("drinks");
         }
-
-        return null; // leave remaining items to AmiOntology runtime heuristics → BLOCKS
+        if (is(item, TAG_FOODS_COOKED_MEAT) || is(item, TAG_FOODS_COOKED_FISH)) return nature("meals");
+        if (is(item, TAG_FOODS_MEAT)         || is(item, TAG_FOODS_FISH))        return nature("proteins");
+        if (is(item, TAG_FOODS_VEGETABLE)    || is(item, TAG_FOODS_FRUIT))       return nature("crops");
+        return nature("snacks");
     }
 
-    // ── Non-BlockItem helpers ─────────────────────────────────────────────────
+    // ── Magic helpers ─────────────────────────────────────────────────────────
 
-    private static boolean isMagicReagent(String path) {
-        return switch (path) {
-            case "blaze_powder", "ender_pearl", "ender_eye", "fermented_spider_eye",
-                 "ghast_tear", "phantom_membrane", "rabbit_foot", "spider_eye",
-                 "glistering_melon_slice", "dragon_breath", "experience_bottle",
-                 "magma_cream", "nether_wart", "slime_ball" -> true;
-            default -> false;
-        };
+    private static boolean isMagicArtifact(Item item) {
+        return item == Items.TOTEM_OF_UNDYING || item == Items.NETHER_STAR;
     }
 
-    private static boolean isRawProtein(String path) {
-        return switch (path) {
-            case "raw_beef", "raw_chicken", "raw_porkchop",
-                 "raw_cod", "raw_salmon", "raw_rabbit", "raw_mutton" -> true;
-            default -> false;
-        };
+    private static boolean isMagicReagent(Item item) {
+        return item == Items.BLAZE_POWDER           || item == Items.ENDER_PEARL
+            || item == Items.ENDER_EYE              || item == Items.FERMENTED_SPIDER_EYE
+            || item == Items.GHAST_TEAR             || item == Items.PHANTOM_MEMBRANE
+            || item == Items.RABBIT_FOOT            || item == Items.SPIDER_EYE
+            || item == Items.GLISTERING_MELON_SLICE || item == Items.DRAGON_BREATH
+            || item == Items.EXPERIENCE_BOTTLE      || item == Items.MAGMA_CREAM
+            || item == Items.NETHER_WART            || item == Items.SLIME_BALL;
     }
 
-    private static boolean isRawOre(String path) {
-        return switch (path) {
-            case "raw_iron", "raw_gold", "raw_copper" -> true;
-            default -> false;
-        };
+    // ── Ingredient helper ─────────────────────────────────────────────────────
+
+    private static boolean isIngredient(Item item, String path) {
+        // Common c: tags cover vanilla + modded equivalents automatically
+        if (is(item, TAG_EGGS) || is(item, TAG_FEATHERS) || is(item, TAG_STRING)
+                || is(item, TAG_LEATHERS) || is(item, TAG_BONES)) {
+            return true;
+        }
+        // Vanilla items that lack dedicated c: ingredient tags
+        return item == Items.EGG            // throwable egg; c:eggs may not cover it in all envs
+            || item == Items.FLINT          || item == Items.CLAY_BALL
+            || item == Items.TURTLE_SCUTE   || item == Items.HONEYCOMB
+            || item == Items.PRISMARINE_SHARD
+            || item == Items.INK_SAC        || item == Items.GLOW_INK_SAC
+            || item == Items.RABBIT_HIDE    || item == Items.SHULKER_SHELL
+            || item == Items.NAUTILUS_SHELL || item == Items.HEART_OF_THE_SEA
+            || item == Items.BREEZE_ROD
+            || path.contains("pottery_sherd"); // 20 sherd variants share no single Items constant
     }
 
-    private static boolean isHarvestCrop(String path) {
-        return switch (path) {
-            case "wheat", "carrot", "potato", "beetroot",
-                 "melon_slice", "pumpkin", "chorus_fruit",
-                 "cocoa_beans", "sweet_berries", "glow_berries" -> true;
-            default -> false;
-        };
-    }
+    // ── Spawn egg classifier ──────────────────────────────────────────────────
 
     private static String classifySpawnEgg(String path) {
-        // Strip the "_spawn_egg" suffix to get the mob name prefix.
         String mob = path.substring(0, path.length() - "_spawn_egg".length());
         return switch (mob) {
-            // Passive
             case "pig", "chicken", "cow", "sheep", "horse", "donkey", "mule",
                  "rabbit", "squid", "glow_squid", "bat", "ocelot", "cat",
                  "axolotl", "frog", "tadpole", "parrot", "mooshroom",
                  "strider", "cod", "salmon", "tropical_fish", "pufferfish",
                  "turtle", "sniffer", "allay" -> "passive";
-            // Neutral
             case "wolf", "bee", "polar_bear", "dolphin", "panda",
                  "llama", "trader_llama", "goat", "iron_golem",
                  "piglin", "zombified_piglin", "enderman",
                  "spider", "cave_spider" -> "neutral";
-            // Default: hostile (covers zombies, skeletons, creepers, most modded mobs)
             default -> "hostile";
         };
     }
 
     // ── Category return helpers ───────────────────────────────────────────────
 
-    private static String[] armor(String sub)      { return new String[]{"armor",       sub}; }
-    private static String[] weapons(String sub)    { return new String[]{"weapons",     sub}; }
-    private static String[] magic(String sub)      { return new String[]{"magic",       sub}; }
-    private static String[] food(String sub)       { return new String[]{"food",        sub}; }
-    private static String[] tech(String sub)       { return new String[]{"tech",        sub}; }
-    private static String[] nature(String sub)     { return new String[]{"nature",      sub}; }
-    private static String[] social(String sub)     { return new String[]{"social",      sub}; }
-    private static String[] navigation(String sub) { return new String[]{"navigation",  sub}; }
-    private static String[] entities(String sub)   { return new String[]{"entities",    sub}; }
-    private static String[] environment(String sub) { return new String[]{"environment", sub}; }
-    /** Two-element return for non-building block subcategories (functional/redstone/decorative). */
-    private static String[] blocks(String sub)   { return new String[]{"blocks",   sub}; }
-    /** Three-element return for building blocks: [category, shapeSubcategory, materialSubcategory]. */
-    private static String[] blocks(String shape, String material) { return new String[]{"blocks", shape, material}; }
+    private static String[] armor(String sub)       { return new String[]{"armor",       sub}; }
+    private static String[] tools(String sub)       { return new String[]{"tools",       sub}; }
+    private static String[] magic(String sub)       { return new String[]{"magic",       sub}; }
+    private static String[] tech(String sub)        { return new String[]{"tech",        sub}; }
+    private static String[] nature(String sub)      { return new String[]{"nature",      sub}; }
+    private static String[] social(String sub)      { return new String[]{"social",      sub}; }
+    private static String[] utility(String sub)     { return new String[]{"utility",     sub}; }
+    private static String[] bestiary(String sub)    { return new String[]{"bestiary",    sub}; }
+    private static String[] decoration(String sub)  { return new String[]{"decoration",  sub}; }
+    private static String[] ingredients(String sub) { return new String[]{"ingredients", sub}; }
+    private static String[] misc(String sub)        { return new String[]{"misc",        sub}; }
+    private static String[] geology(String sub)     { return new String[]{"geology",     sub}; }
+    private static String[] masonry(String sub)     { return new String[]{"masonry",     sub}; }
+    private static String[] masonry(String shape, String material) { return new String[]{"masonry", shape, material}; }
 
     // ── Building block shape & material classifiers ───────────────────────────
 
+    // Block shape is inherent to the item name/identity, not a semantic classification,
+    // so path matching here is acceptable (stairs, slabs, walls, fences are structural variants).
     private static String classifyBlockShape(String path) {
         if (path.endsWith("_stairs"))     return "stairs";
         if (path.endsWith("_slab"))       return "slab";
@@ -311,10 +422,8 @@ public final class OntologyClassifier {
     }
 
     private static String classifyBlockMaterial(BlockState state, String path) {
-        // Glass — check first, "glass" is unambiguous
         if (path.contains("glass")) return "glass";
 
-        // Wood — use tags for precision across all wood types (vanilla + mods)
         if (state.is(BlockTags.PLANKS)
                 || state.is(BlockTags.WOODEN_SLABS)
                 || state.is(BlockTags.WOODEN_STAIRS)
@@ -325,7 +434,6 @@ public final class OntologyClassifier {
             return "wood";
         }
 
-        // Soil & Terrain — check concrete_powder before concrete to avoid mismatch
         if (path.contains("concrete_powder")
                 || containsAny(path, "dirt", "gravel", "clay", "mud", "podzol", "mycelium",
                                "snow", "ice", "terracotta", "soul_sand", "soul_soil")
@@ -333,17 +441,30 @@ public final class OntologyClassifier {
             return "soil";
         }
 
-        // Stone & Masonry — broad catch for stone-like and mineral building materials
         if (state.is(BlockTags.STONE_BRICKS)
                 || containsAny(path, "stone", "cobble", "brick", "sandstone",
                                "andesite", "diorite", "granite", "deepslate", "tuff",
                                "basalt", "calcite", "dripstone", "blackstone",
                                "netherrack", "end_stone", "obsidian",
-                               "prismarine", "purpur", "magma", "concrete")) {
+                               "prismarine", "purpur", "magma", "concrete", "ore", "debris")) {
             return "stone";
         }
 
         return "other_building";
+    }
+
+    private static boolean isNaturalMaterial(String material, String path) {
+        if (material.equals("glass") || material.equals("wood")) return false;
+        if (material.equals("soil")) {
+            return !path.contains("concrete") && !path.contains("terracotta");
+        }
+        if (material.equals("stone")) {
+            return !path.contains("brick") && !path.contains("polished")
+                && !path.contains("smooth_") && !path.contains("chiseled")
+                && !path.contains("cut_") && !path.contains("tiles")
+                && !path.contains("purpur") && !path.contains("concrete");
+        }
+        return false;
     }
 
     private static boolean containsAny(String path, String... tokens) {
@@ -355,81 +476,66 @@ public final class OntologyClassifier {
 
     // ── BlockItem helper predicates ───────────────────────────────────────────
 
-    private static boolean isRedstoneBlock(String path) {
-        return switch (path) {
-            case "redstone", "redstone_torch", "redstone_lamp",
-                 "repeater", "comparator", "observer",
-                 "piston", "sticky_piston",
-                 "lever", "daylight_detector", "target", "tnt",
-                 "tripwire_hook", "slime_block", "honey_block",
-                 "sculk_sensor", "calibrated_sculk_sensor" -> true;
-            default -> path.contains("copper_bulb"); // all oxidized / waxed copper bulb variants
-        };
+    private static boolean isRedstoneBlock(Item item, String path) {
+        return item == Items.REDSTONE_TORCH        || item == Items.REDSTONE_LAMP
+            || item == Items.REPEATER              || item == Items.COMPARATOR
+            || item == Items.OBSERVER              || item == Items.PISTON
+            || item == Items.STICKY_PISTON         || item == Items.LEVER
+            || item == Items.DAYLIGHT_DETECTOR     || item == Items.TARGET
+            || item == Items.TNT                   || item == Items.TRIPWIRE_HOOK
+            || item == Items.SLIME_BLOCK           || item == Items.HONEY_BLOCK
+            || item == Items.SCULK_SENSOR          || item == Items.CALIBRATED_SCULK_SENSOR;
     }
 
     private static boolean isNaturePath(String path) {
-        return path.contains("mushroom")           // red/brown mushroom + mushroom_block types
-               || path.equals("bamboo")            // the item, not bamboo_block (covered by tag)
+        return path.contains("mushroom")
+               || path.contains("fungus")
+               || path.equals("bamboo")
                || path.contains("kelp")
                || path.contains("seagrass")
                || path.contains("sugar_cane")
                || path.equals("cactus")
-               || path.contains("vine")            // vine, twisting_vines, weeping_vines
+               || path.contains("vine")
                || path.equals("lily_pad")
-               || path.contains("nylium")          // covered by NYLIUM tag too; belt-and-suspenders
-               || path.contains("wart_block")      // nether_wart_block, warped_wart_block
+               || path.contains("nylium")
+               || path.contains("wart_block")
                || path.equals("shroomlight")
-               || path.contains("sculk")           // sculk, sculk_vein, sculk_catalyst, sculk_shrieker
-                                                   // (sensors caught by isRedstoneBlock earlier)
+               || path.contains("sculk")
                || path.contains("chorus_plant") || path.contains("chorus_flower")
-               || path.contains("azalea")          // azalea, flowering_azalea + leaf variants
+               || path.contains("azalea")
                || path.contains("dripleaf")
                || path.contains("hanging_roots")
                || path.contains("rooted_dirt")
                || path.contains("pink_petals")
-               || path.contains("pitcher")         // pitcher_plant, pitcher_crop
+               || path.contains("pitcher")
                || path.contains("torchflower")
                || path.equals("spore_blossom")
-               || (path.contains("grass")          // short_grass, tall_grass — but NOT grass_block
-                   && !path.equals("grass_block") && !path.contains("path"));
+               || (path.contains("grass") && !path.equals("grass_block") && !path.contains("path"));
     }
 
-    private static boolean isMaterialStorageBlock(String path) {
-        return switch (path) {
-            case "iron_block", "gold_block", "diamond_block", "emerald_block",
-                 "coal_block", "copper_block", "netherite_block", "lapis_block",
-                 "redstone_block", "amethyst_block",
-                 "raw_iron_block", "raw_gold_block", "raw_copper_block",
-                 "quartz_block", "smooth_quartz", "quartz_bricks",
-                 "quartz_pillar", "chiseled_quartz_block",
-                 "honeycomb_block" -> true;
-            default -> false;
-        };
+    private static boolean isMachineBlock(Item item) {
+        return item == Items.CRAFTING_TABLE    || item == Items.STONECUTTER
+            || item == Items.GRINDSTONE        || item == Items.LOOM
+            || item == Items.CARTOGRAPHY_TABLE || item == Items.FLETCHING_TABLE
+            || item == Items.SMITHING_TABLE    || item == Items.COMPOSTER;
     }
 
-    /**
-     * Functional blocks not caught by BlockTags or BaseEntityBlock.
-     * Covers crafting stations and interactive blocks without block entities.
-     */
-    private static boolean isFunctionalBlock(String path) {
-        return switch (path) {
-            case "crafting_table", "stonecutter", "grindstone",
-                 "loom", "cartography_table", "fletching_table", "smithing_table",
-                 "composter", "ladder", "scaffolding",
-                 "bookshelf", "note_block", "lightning_rod" -> true;
-            default -> false;
-        };
+    private static boolean isFunctionalBlock(Item item) {
+        return item == Items.LADDER    || item == Items.SCAFFOLDING
+            || item == Items.BOOKSHELF || item == Items.NOTE_BLOCK
+            || item == Items.LIGHTNING_ROD;
     }
 
-    private static boolean isDecorativeBlock(String path) {
-        return switch (path) {
-            case "lantern", "soul_lantern", "chain", "glow_lichen",
-                 "moss_carpet", "pale_moss_carpet",
-                 "amethyst_cluster", "small_amethyst_bud", "medium_amethyst_bud",
-                 "large_amethyst_bud", "budding_amethyst" -> true;
-            default -> path.contains("torch")  // torch, soul_torch (redstone_torch already returned above)
-                       || (path.contains("coral") && !path.contains("coral_block")); // coral fans / plants
-        };
+    private static boolean isDecorativeBlock(Item item, String path) {
+        // Specific items known to be decorative (no generic tags or properties for these)
+        return item == Items.CHAIN       || item == Items.GLOW_LICHEN
+            || item == Items.MOSS_CARPET || item == Items.AMETHYST_CLUSTER
+            || item == Items.SMALL_AMETHYST_BUD  || item == Items.MEDIUM_AMETHYST_BUD
+            || item == Items.LARGE_AMETHYST_BUD || item == Items.BUDDING_AMETHYST;
+    }
+
+    private static boolean isCompostable(Item item) {
+        return ComposterBlock.COMPOSTABLES.containsKey(item);
     }
 
     private OntologyClassifier() {}

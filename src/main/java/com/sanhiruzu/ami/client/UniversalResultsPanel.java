@@ -22,9 +22,11 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private static final ResourceLocation PANEL_SPRITE =
             ResourceLocation.withDefaultNamespace("recipe_book/overlay_recipe");
 
-    // Compact toggle button dimensions
+    // Fixed height of the top header area — identical in both full and compact mode
+    private static final int HEADER_H = ResultsToolbar.TOOLBAR_HEIGHT;
+    // Compact toggle button dimensions — height matches toolbar buttons for visual consistency
     private static final int TOGGLE_W = 18;
-    private static final int TOGGLE_H = 18;
+    private static final int TOGGLE_H = ResultsToolbar.BUTTON_H;
     // Favorites panel heart header height
     private static final int FAV_HEADER_H = 16;
 
@@ -33,7 +35,6 @@ public class UniversalResultsPanel implements SearchState.Listener {
     // Toggle button position — recomputed on every layout update
     private int toggleX, toggleY;
 
-    private FacetBar       facetBar;
     private ResultsToolbar toolbar;
     private ResultsTreeView treeView;
     private ItemGridView    gridView;
@@ -46,6 +47,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private java.util.function.Consumer<String> onTokenInject;
     private boolean isFavoritesPanel = false;
     private Component panelTitle = null;
+
+    // Displayed item count shown in the compact header (updated in refreshTree)
+    private int displayedItemCount = 0;
 
     private SearchNode pressedNode = null;
     private double pressedX, pressedY;
@@ -69,26 +73,20 @@ public class UniversalResultsPanel implements SearchState.Listener {
         int innerX = x + AMITheme.GLOBAL_PADDING;
         int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
 
-        // Toggle button always sits at top-right of the panel
+        // Toggle button: top-right of the header strip, vertically centered like toolbar buttons
         this.toggleX = x + width - AMITheme.GLOBAL_PADDING - TOGGLE_W;
-        this.toggleY = y + AMITheme.GLOBAL_PADDING;
+        this.toggleY = y + AMITheme.GLOBAL_PADDING + (HEADER_H - TOGGLE_H) / 2;
 
-        // Facet bar leaves room for the toggle button on its right
-        int facetBarW = innerW - TOGGLE_W - AMITheme.ELEMENT_GAP;
-        this.facetBar = new FacetBar(innerX, y + AMITheme.GLOBAL_PADDING, facetBarW, state);
-
-        int toolbarY = y + AMITheme.GLOBAL_PADDING + FacetBar.HEIGHT + AMITheme.ELEMENT_GAP;
-        this.toolbar = new ResultsToolbar(innerX, toolbarY, innerW, state);
+        int toolbarW = innerW - TOGGLE_W - AMITheme.ELEMENT_GAP;
+        int toolbarY = y + AMITheme.GLOBAL_PADDING;
+        this.toolbar = new ResultsToolbar(innerX, toolbarY, toolbarW, state);
 
         int contentY, contentH;
         if (isFavoritesPanel) {
             contentY = y + FAV_HEADER_H;
             contentH = height - FAV_HEADER_H - AMITheme.GLOBAL_PADDING;
-        } else if (AmiConfig.compactMode) {
-            contentY = y + AMITheme.GLOBAL_PADDING;
-            contentH = height - AMITheme.GLOBAL_PADDING * 2;
         } else {
-            contentY = toolbarY + toolbar.getHeight() + AMITheme.ELEMENT_GAP;
+            contentY = y + AMITheme.GLOBAL_PADDING + HEADER_H + AMITheme.ELEMENT_GAP;
             contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
         }
 
@@ -126,10 +124,6 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     public void setOnTreeTokenInject(java.util.function.Consumer<String> callback) {
         this.treeView.setOnTokenInject(callback);
-    }
-
-    public void setOnFacetInject(java.util.function.Consumer<String> callback) {
-        this.facetBar.setOnTokenInject(callback);
     }
 
     public void setOnTokenInject(java.util.function.Consumer<String> callback) {
@@ -180,22 +174,17 @@ public class UniversalResultsPanel implements SearchState.Listener {
             int contentY = y + FAV_HEADER_H;
             int contentH = height - FAV_HEADER_H - AMITheme.GLOBAL_PADDING;
             gridView.updateLayout(innerX, contentY, innerW, contentH);
-        } else if (AmiConfig.compactMode) {
-            // Compact: grid fills the full panel area; toggle button is overlaid in top-right corner
-            int contentY = y + AMITheme.GLOBAL_PADDING;
-            int contentH = height - AMITheme.GLOBAL_PADDING * 2;
-            gridView.updateLayout(innerX, contentY, innerW, contentH);
         } else {
-            int facetBarW = innerW - TOGGLE_W - AMITheme.ELEMENT_GAP;
-            facetBar.updateLayout(innerX, y + AMITheme.GLOBAL_PADDING, facetBarW);
-
-            int toolbarY = y + AMITheme.GLOBAL_PADDING + FacetBar.HEIGHT + AMITheme.ELEMENT_GAP;
-            toolbar.updateLayout(innerX, toolbarY, innerW);
-
-            int contentY = toolbarY + toolbar.getHeight() + AMITheme.ELEMENT_GAP;
+            int contentY = y + AMITheme.GLOBAL_PADDING + HEADER_H + AMITheme.ELEMENT_GAP;
             int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
-            treeView.updateLayout(innerX, contentY, innerW, contentH);
-            gridView.updateLayout(innerX, contentY, innerW, contentH);
+            if (AmiConfig.compactMode) {
+                gridView.updateLayout(innerX, contentY, innerW, contentH);
+            } else {
+                int toolbarW = innerW - TOGGLE_W - AMITheme.ELEMENT_GAP;
+                toolbar.updateLayout(innerX, y + AMITheme.GLOBAL_PADDING, toolbarW);
+                treeView.updateLayout(innerX, contentY, innerW, contentH);
+                gridView.updateLayout(innerX, contentY, innerW, contentH);
+            }
         }
     }
 
@@ -237,39 +226,46 @@ public class UniversalResultsPanel implements SearchState.Listener {
             return;
         }
 
+        // Shared header geometry — identical in both modes so the separator never shifts
+        int headerY = y + AMITheme.GLOBAL_PADDING;
+        int sepY = headerY + HEADER_H;
+        int contentY = sepY + AMITheme.ELEMENT_GAP;
+
         if (compact) {
+            var font = Minecraft.getInstance().font;
+
+            // Item count centered vertically in the header strip
+            String countStr = displayedItemCount + " items";
+            int textY = headerY + (HEADER_H - font.lineHeight) / 2;
+            g.drawString(font, countStr, x + AMITheme.GLOBAL_PADDING, textY, AMITheme.TEXT_SUBTLE, false);
+
+            // Toggle button on the right of the header strip
+            renderToggleBtn(g, mouseX, mouseY);
+
+            g.fill(x + 3, sepY, x + width - 3, sepY + 1, AMITheme.SECTION_SEP);
+
             if (!com.sanhiruzu.ami.index.GlobalIndex.getInstance().isIndexReady()) {
-                g.drawString(Minecraft.getInstance().font, "...",
-                        x + AMITheme.GLOBAL_PADDING, y + AMITheme.GLOBAL_PADDING, com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE, false);
+                g.drawString(font, "...", x + AMITheme.GLOBAL_PADDING, contentY, AMITheme.TEXT_SUBTLE, false);
             } else {
                 gridView.render(g, mouseX, mouseY, false);
             }
-            renderToggleBtn(g, mouseX, mouseY); // overlaid on top of grid
             return;
         }
 
         // Full mode
-        facetBar.render(g, mouseX, mouseY);
-        renderToggleBtn(g, mouseX, mouseY); // drawn after facetBar so it appears on top
-
-        int sep1Y = y + AMITheme.GLOBAL_PADDING + FacetBar.HEIGHT;
-        g.fill(x + 3, sep1Y, x + width - 3, sep1Y + 1, AMITheme.SECTION_SEP);
-
+        var font = Minecraft.getInstance().font;
         toolbar.render(g, mouseX, mouseY);
+        renderToggleBtn(g, mouseX, mouseY);
 
-        int toolbarY = y + AMITheme.GLOBAL_PADDING + FacetBar.HEIGHT + AMITheme.ELEMENT_GAP;
-        int sep2Y = toolbarY + toolbar.getHeight();
-        g.fill(x + 3, sep2Y, x + width - 3, sep2Y + 1, AMITheme.SECTION_SEP);
+        g.fill(x + 3, sepY, x + width - 3, sepY + 1, AMITheme.SECTION_SEP);
 
         if (!com.sanhiruzu.ami.index.AmiIndexerService.getInstance().isReady() && currentResults.isEmpty() && currentQuery.isEmpty()) {
             net.minecraft.network.chat.Component msg = net.minecraft.network.chat.Component.translatable("ami.gui.background_indexing")
                     .withStyle(net.minecraft.ChatFormatting.GOLD);
-            int msgW = Minecraft.getInstance().font.width(msg);
-            int contentY = toolbarY + toolbar.getHeight() + AMITheme.ELEMENT_GAP;
+            int msgW = font.width(msg);
             int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
-            g.drawString(Minecraft.getInstance().font, msg, x + (width - msgW) / 2, contentY + (contentH / 2) - 4, com.sanhiruzu.ami.client.AMITheme.WHITE, false);
+            g.drawString(font, msg, x + (width - msgW) / 2, contentY + (contentH / 2) - 4, com.sanhiruzu.ami.client.AMITheme.WHITE, false);
         } else {
-
             boolean dropdownOpen = toolbar.isAnyDropdownOpen();
             if (isGridActive()) {
                 gridView.render(g, mouseX, mouseY, dropdownOpen);
@@ -279,7 +275,6 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
 
         toolbar.renderOpenDropdownLists(g, mouseX, mouseY);
-        facetBar.renderTooltip(g, mouseX, mouseY);
     }
 
     private void renderSidebarToggle(GuiGraphics g, int mouseX, int mouseY) {
@@ -347,6 +342,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         // High-performance dashboard view for empty queries
         if (query.isEmpty() && !isFavoritesPanel) {
+            displayedItemCount = currentResults.size();
             showDashboard();
             return;
         }
@@ -357,6 +353,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             for (List<SearchNode> list : results.values()) source.addAll(list);
         }
 
+        displayedItemCount = source.size();
         ResultsProcessor processor = state.createProcessor();
         List<TreeNode> processed = processor.process(source);
         treeView.setRootNodes(processed);
@@ -472,14 +469,14 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         boolean compact = AmiConfig.compactMode;
         if (compact) {
-            return gridView.mouseClicked(mouseX, mouseY, button);
+            boolean handled = gridView.mouseClicked(mouseX, mouseY, button);
+            if (handled && currentQuery.isEmpty()) {
+                tryLazyLoad(gridView.getHoveredTreeNode());
+            }
+            return handled;
         }
 
-        // Full mode — facet bar handles both left-click (filter) and right-click (inject token)
-        if (facetBar.mouseClicked(mouseX, mouseY, button)) {
-            return true;
-        }
-
+        // Full mode
         if (toolbar.isAnyDropdownOpen()) {
             boolean handled = toolbar.mouseClicked(mouseX, mouseY, button);
             if (!handled) {
@@ -496,11 +493,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (currentQuery.isEmpty() && !isFavoritesPanel) {
             boolean handled = isGridActive() ? gridView.mouseClicked(mouseX, mouseY, button) : treeView.mouseClicked(mouseX, mouseY, button);
             if (handled) {
-                // Check if we just expanded an atlas category
-                TreeNode expanded = getHoveredTreeNode();
-                if (expanded != null && expanded.isExpanded()) {
-                    populateLazyNode(expanded);
-                }
+                tryLazyLoad(getHoveredTreeNode());
                 return true;
             }
         }
@@ -509,6 +502,12 @@ public class UniversalResultsPanel implements SearchState.Listener {
             return gridView.mouseClicked(mouseX, mouseY, button);
         }
         return treeView.mouseClicked(mouseX, mouseY, button);
+    }
+
+    private void tryLazyLoad(TreeNode candidate) {
+        if (candidate != null && candidate.isExpanded()) {
+            populateLazyNode(candidate);
+        }
     }
 
     private void populateLazyNode(TreeNode node) {
@@ -531,15 +530,15 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (nodes.isEmpty()) return;
 
         // When viewing an ontology category in CATEGORY mode, avoid re-grouping by category.
-        // Still apply high-cardinality grouping for potions, books, etc.
+        // Still apply collapse passes for potions, books, semantic families, etc.
         SearchState tempState = new SearchState();
         tempState.setViewMode(state.getViewMode());
         tempState.setSortField(state.getSortField());
         tempState.setAscending(state.isAscending());
 
         if (isOntologyCategory && state.getGroupBy() == ResultsProcessor.GroupBy.CATEGORY) {
-            // Just create leaf nodes with high-cardinality grouping (no main grouping)
-            node.getChildren().addAll(createLeafNodesWithHighCardinalityGrouping(nodes, tempState));
+            // Just create leaf nodes with collapse grouping (no main grouping)
+            node.getChildren().addAll(createLeafNodesWithCollapseGrouping(nodes, tempState));
         } else {
             // Apply normal grouping through processor
             tempState.setGroupBy(state.getGroupBy());
@@ -548,22 +547,26 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
     }
 
-    private List<TreeNode> createLeafNodesWithHighCardinalityGrouping(List<SearchNode> nodes, SearchState tempState) {
+    private List<TreeNode> createLeafNodesWithCollapseGrouping(List<SearchNode> nodes, SearchState tempState) {
         // Create leaf nodes from search nodes (no main grouping)
         List<TreeNode> leaves = nodes.stream()
                 .map(sn -> new TreeNode(Component.literal(sn.displayName()), sn))
                 .collect(java.util.stream.Collectors.toList());
 
-        // Apply high-cardinality grouping (for potions, books, etc.) via a processor
+        // Apply collapse grouping (for potions, books, semantic families, etc.) via a processor
         // We use MOD grouping as a dummy value since we're only calling applyHighCardinalityGrouping
         tempState.setGroupBy(ResultsProcessor.GroupBy.MOD);
         ResultsProcessor processor = tempState.createProcessor();
 
         try {
-            var method = ResultsProcessor.class.getDeclaredMethod("applyHighCardinalityGrouping", List.class);
-            method.setAccessible(true);
+            var highCardinalityMethod = ResultsProcessor.class.getDeclaredMethod("applyHighCardinalityGrouping", List.class);
+            highCardinalityMethod.setAccessible(true);
+            var explicitFamilyMethod = ResultsProcessor.class.getDeclaredMethod("applyExplicitFamilyGrouping", List.class);
+            explicitFamilyMethod.setAccessible(true);
             @SuppressWarnings("unchecked")
-            List<TreeNode> result = (List<TreeNode>) method.invoke(processor, leaves);
+            List<TreeNode> highCardinality = (List<TreeNode>) highCardinalityMethod.invoke(processor, leaves);
+            @SuppressWarnings("unchecked")
+            List<TreeNode> result = (List<TreeNode>) explicitFamilyMethod.invoke(processor, highCardinality);
             return result;
         } catch (Exception e) {
             // Fallback: return leaves as-is if reflection fails
@@ -581,11 +584,6 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (!isMouseOver(mouseX, mouseY)) return false;
 
         if (toolbar.isAnyDropdownOpen()) return true;
-
-        // In full mode, the facet bar scrolls horizontally when the mouse is over it
-        if (!AmiConfig.compactMode && facetBar.isMouseOver(mouseX, mouseY)) {
-            return facetBar.mouseScrolled(mouseX, mouseY, scrollDelta);
-        }
 
         if (isGridActive()) {
             gridView.mouseScrolled(mouseX, mouseY, scrollDelta);
@@ -605,8 +603,6 @@ public class UniversalResultsPanel implements SearchState.Listener {
         double my = mc.mouseHandler.ypos() * window.getGuiScaledHeight() / (double) window.getScreenHeight();
 
         if (!isMouseOver(mx, my)) return false;
-
-        if (!AmiConfig.compactMode && facetBar.keyPressed(keyCode, scanCode, modifiers)) return true;
 
         if (isGridActive()) return gridView.keyPressed(keyCode, scanCode, modifiers);
         return treeView.keyPressed(keyCode, scanCode, modifiers);

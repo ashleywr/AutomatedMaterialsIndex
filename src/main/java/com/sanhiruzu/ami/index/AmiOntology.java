@@ -49,30 +49,36 @@ public final class AmiOntology {
 
     // ── Singleton category constants ──────────────────────────────────────────
 
-    public static final Category NAVIGATION;
+    public static final Category UTILITY;
     public static final Category SOCIAL;
-    public static final Category ENTITIES;
+    public static final Category BESTIARY;
     public static final Category MAGIC;
     public static final Category ARMOR;
-    public static final Category WEAPONS;
-    public static final Category FOOD;
+    public static final Category TOOLS;
     public static final Category TECH;
     public static final Category NATURE;
+    public static final Category INGREDIENTS;
+    public static final Category DECORATION;
     public static final Category ENVIRONMENT;
-    public static final Category BLOCKS;
+    public static final Category GEOLOGY;
+    public static final Category MASONRY;
+    /** Terminal catch-all — items that fell through every other classifier. */
+    public static final Category MISC;
 
     /** All categories in classification-priority order. */
     public static final List<Category> CATEGORIES;
 
     static {
-        NAVIGATION = new Category(
-            "navigation", "ami.category.navigation", "Nav",
+        UTILITY = new Category(
+            "utility", "ami.category.utility", "Utility",
             "minecraft:compass", 0xFF4499EE,
             List.of(
-                new SubCategory("instruments", "ami.subcategory.navigation.instruments"),
-                new SubCategory("waypoints",   "ami.subcategory.navigation.waypoints")
+                new SubCategory("navigation", "ami.subcategory.utility.navigation"),
+                new SubCategory("tools",      "ami.subcategory.utility.tools"),
+                new SubCategory("misc",       "ami.subcategory.utility.misc")
             ),
-            List.of("compass", "recovery_compass", "spyglass", "clock", ":map")
+            List.of("compass", "recovery_compass", "spyglass", "clock", ":map",
+                    "saddle", "bucket", "name_tag", "lead", "debug_stick", "firework", "music_disc", "disc_fragment", "echo_shard")
         );
 
         SOCIAL = new Category(
@@ -86,14 +92,14 @@ public final class AmiOntology {
             List.of("player_head")
         );
 
-        ENTITIES = new Category(
-            "entities", "ami.category.entities", "Mobs",
+        BESTIARY = new Category(
+            "bestiary", "ami.category.bestiary", "Bestiary",
             "minecraft:zombie_head", 0xFFAA3322,
             List.of(
-                new SubCategory("passive",  "ami.subcategory.entities.passive"),
-                new SubCategory("hostile",  "ami.subcategory.entities.hostile"),
-                new SubCategory("neutral",  "ami.subcategory.entities.neutral"),
-                new SubCategory("vehicles", "ami.subcategory.entities.vehicles")
+                new SubCategory("passive",  "ami.subcategory.bestiary.passive"),
+                new SubCategory("hostile",  "ami.subcategory.bestiary.hostile"),
+                new SubCategory("neutral",  "ami.subcategory.bestiary.neutral"),
+                new SubCategory("vehicles", "ami.subcategory.bestiary.vehicles")
             ),
             List.of("spawn_egg")
         );
@@ -125,62 +131,53 @@ public final class AmiOntology {
             ),
             List.of("head_armor", "chest_armor", "leg_armor", "foot_armor",
                     "helmet", "chestplate", "leggings", "boots", "elytra",
-                    "turtle_helmet", ":armor")
+                    "turtle_helmet", ":armor", "horse_armor")
         );
 
-        WEAPONS = new Category(
-            "weapons", "ami.category.weapons", "Weapons",
+        TOOLS = new Category(
+            "tools", "ami.category.tools", "Tools",
             "minecraft:iron_sword", 0xFFCC4444,
             List.of(
-                new SubCategory("melee",   "ami.subcategory.weapons.melee"),
-                new SubCategory("ranged",  "ami.subcategory.weapons.ranged"),
-                new SubCategory("harvest", "ami.subcategory.weapons.harvest"),
-                new SubCategory("utility", "ami.subcategory.weapons.utility")
+                new SubCategory("melee",   "ami.subcategory.tools.melee"),
+                new SubCategory("ranged",  "ami.subcategory.tools.ranged"),
+                new SubCategory("harvest", "ami.subcategory.tools.harvest"),
+                new SubCategory("utility", "ami.subcategory.tools.utility")
             ),
             List.of("swords", "sword", "bows", "bow", "crossbow", "trident",
                     "arrows", ":arrow",
                     "pickaxes", "pickaxe", "shovels", "shovel",
                     ":hoes", ":hoe", ":axes", ":axe",
                     "fishing_rod", "shears", "flint_and_steel",
-                    ":tools", "weapons")
-        );
-
-        FOOD = new Category(
-            "food", "ami.category.food", "Food",
-            "minecraft:apple", 0xFF44AA44,
-            List.of(
-                new SubCategory("meals",    "ami.subcategory.food.meals"),
-                new SubCategory("snacks",   "ami.subcategory.food.snacks"),
-                new SubCategory("drinks",   "ami.subcategory.food.drinks"),
-                new SubCategory("proteins", "ami.subcategory.food.proteins")
-            ),
-            List.of("foods", "food", "cooked_", "stew", "soup", "apple",
-                    "sweet_berries", "glow_berries", "cake", "cookie", "bread",
-                    "honey_bottle", "dried_kelp", "chorus_fruit",
-                    "raw_beef", "raw_chicken", "raw_porkchop", "raw_cod",
-                    "raw_salmon", "raw_rabbit", "raw_mutton")
+                    ":tools", "tools", "weapons")
         );
 
         TECH = new Category(
             "tech", "ami.category.tech", "Tech",
-            "minecraft:iron_ingot", 0xFFCC8833,
+            "minecraft:redstone", 0xFFCC8833,
             List.of(
-                new SubCategory("ingots",   "ami.subcategory.tech.ingots"),
-                new SubCategory("dusts",    "ami.subcategory.tech.dusts"),
-                new SubCategory("parts",    "ami.subcategory.tech.parts"),
-                new SubCategory("circuits", "ami.subcategory.tech.circuits")
+                new SubCategory("machines",  "ami.subcategory.tech.machines"),
+                new SubCategory("redstone",  "ami.subcategory.tech.redstone"),
+                new SubCategory("transport", "ami.subcategory.tech.transport"),
+                new SubCategory("ingots",    "ami.subcategory.tech.ingots"),
+                new SubCategory("dusts",     "ami.subcategory.tech.dusts"),
+                new SubCategory("parts",     "ami.subcategory.tech.parts"),
+                new SubCategory("circuits",  "ami.subcategory.tech.circuits")
             ),
-            List.of("ingots", "ingot", "gems", ":gem", "dusts", "dust",
-                    "nuggets", "nugget", ":ores", ":ore",
-                    "raw_iron", "raw_gold", "raw_copper",
-                    "netherite", "redstone", "amethyst", "quartz",
-                    "diamond", "emerald", "piston", "comparator", "lodestone")
+            List.of(":ingot", ":gem", ":dust", ":nugget", ":raw_materials",
+                    "raw_iron", "raw_gold", "raw_copper", "netherite_ingot", "netherite_scrap",
+                    "redstone", "piston", "rail", "minecart", "observer", "sensor", "target",
+                    "repeater", "comparator", "dispenser", "dropper", "hopper", "_boat", "chest_boat",
+                    "daylight_detector", "note_block", "lightning_rod", "jigsaw", "structure_block")
         );
 
         NATURE = new Category(
             "nature", "ami.category.nature", "Nature",
-            "minecraft:wheat", 0xFF66CC44,
+            "minecraft:apple", 0xFF66CC44,
             List.of(
+                new SubCategory("meals",    "ami.subcategory.food.meals"),
+                new SubCategory("snacks",   "ami.subcategory.food.snacks"),
+                new SubCategory("drinks",   "ami.subcategory.food.drinks"),
+                new SubCategory("proteins", "ami.subcategory.food.proteins"),
                 new SubCategory("seeds", "ami.subcategory.nature.seeds"),
                 new SubCategory("crops", "ami.subcategory.nature.crops"),
                 new SubCategory("flora", "ami.subcategory.nature.flora"),
@@ -191,7 +188,40 @@ public final class AmiOntology {
                     "flowers", ":flower", "mushroom", "leaves", ":log", "logs",
                     "kelp", "seagrass", "bamboo", "vine",
                     "wheat", "carrot", "potato", "beetroot",
-                    "pumpkin", "melon", "cocoa", "cactus", "sugar_cane")
+                    "pumpkin", "melon", "cocoa", "cactus", "sugar_cane",
+                    ":foods", ":food", "cooked_", "stew", "soup", "apple",
+                    "sweet_berries", "glow_berries", "cake", "cookie", "bread",
+                    "honey_bottle", "dried_kelp", "chorus_fruit",
+                    "raw_beef", "raw_chicken", "raw_porkchop", "raw_cod",
+                    "raw_salmon", "raw_rabbit", "raw_mutton",
+                    "coral", "fungus", "fern", "dead_bush", "moss", "honey", "slime",
+                    "short_grass", "tall_grass", "dripleaf", "lily_pad", "chorus_plant", "mycelium")
+        );
+
+        INGREDIENTS = new Category(
+            "ingredients", "ami.category.ingredients", "Parts",
+            "minecraft:string", 0xFFDDDDDD,
+            List.of(
+                new SubCategory("organic", "ami.subcategory.ingredients.organic"),
+                new SubCategory("mineral", "ami.subcategory.ingredients.mineral"),
+                new SubCategory("dyes",    "ami.subcategory.ingredients.dyes")
+            ),
+            List.of("string", "feather", "flint", "dye", "leather", "clay_ball", "scute", "honeycomb",
+                    "prismarine_shard", "prismarine_crystals", "bone", "paper", "ink_sac", "glow_ink_sac",
+                    "rabbit_hide", "shulker_shell", "nautilus_shell", "heart_of_the_sea", "pottery_sherd", "breeze_rod", "egg")
+        );
+
+        DECORATION = new Category(
+            "decoration", "ami.category.decoration", "Decor",
+            "minecraft:painting", 0xFFEEAA44,
+            List.of(
+                new SubCategory("furniture", "ami.subcategory.decoration.furniture"),
+                new SubCategory("lighting",  "ami.subcategory.decoration.lighting"),
+                new SubCategory("textiles",  "ami.subcategory.decoration.textiles")
+            ),
+            List.of("carpet", "bed", "torch", "lantern", "candle", "froglight", "banner", "item_frame",
+                    "painting", "head", "skull", "glass_pane", "iron_bars", "chain", "flower_pot",
+                    "glowstone", "sea_lantern", "shroomlight")
         );
 
         ENVIRONMENT = new Category(
@@ -200,40 +230,57 @@ public final class AmiOntology {
             List.of(
                 new SubCategory("biomes",     "ami.subcategory.environment.biomes"),
                 new SubCategory("dimensions", "ami.subcategory.environment.dimensions"),
-                new SubCategory("structures", "ami.subcategory.environment.structures"),
-                new SubCategory("transport",  "ami.subcategory.environment.transport")
+                new SubCategory("structures", "ami.subcategory.environment.structures")
             ),
-            List.of("minecart", "_boat", "chest_boat")
+            List.of()
         );
 
-        BLOCKS = new Category(
-            "blocks", "ami.category.blocks", "Blocks",
+        GEOLOGY = new Category(
+            "geology", "ami.category.geology", "Geology",
+            "minecraft:stone", 0xFF887755,
+            List.of(
+                new SubCategory("terrain", "ami.subcategory.geology.terrain"),
+                new SubCategory("stone",   "ami.subcategory.geology.stone")
+            ),
+            List.of()
+        );
+
+        MASONRY = new Category(
+            "masonry", "ami.category.masonry", "Masonry",
             "minecraft:bricks", 0xFF888888,
             List.of(
-                // Always-visible structural subcategories
-                new SubCategory("functional",     "ami.subcategory.blocks.functional"),
-                new SubCategory("redstone",       "ami.subcategory.blocks.redstone"),
-                new SubCategory("decorative",     "ami.subcategory.blocks.decorative"),
+                new SubCategory("functional",     "ami.subcategory.masonry.functional"),
+                new SubCategory("redstone",       "ami.subcategory.masonry.redstone"),
+                new SubCategory("decorative",     "ami.subcategory.masonry.decorative"),
                 // Shape subcategories (shown when blockSubgroup = SHAPE)
-                new SubCategory("full_block",     "ami.subcategory.blocks.full_block"),
-                new SubCategory("stairs",         "ami.subcategory.blocks.stairs"),
-                new SubCategory("slab",           "ami.subcategory.blocks.slab"),
-                new SubCategory("wall",           "ami.subcategory.blocks.wall"),
-                new SubCategory("fence",          "ami.subcategory.blocks.fence"),
-                new SubCategory("pane",           "ami.subcategory.blocks.pane"),
+                new SubCategory("full_block",     "ami.subcategory.masonry.full_block"),
+                new SubCategory("stairs",         "ami.subcategory.masonry.stairs"),
+                new SubCategory("slab",           "ami.subcategory.masonry.slab"),
+                new SubCategory("wall",           "ami.subcategory.masonry.wall"),
+                new SubCategory("fence",          "ami.subcategory.masonry.fence"),
+                new SubCategory("pane",           "ami.subcategory.masonry.pane"),
                 // Material subcategories (shown when blockSubgroup = MATERIAL)
-                new SubCategory("stone",          "ami.subcategory.blocks.stone"),
-                new SubCategory("wood",           "ami.subcategory.blocks.wood"),
-                new SubCategory("soil",           "ami.subcategory.blocks.soil"),
-                new SubCategory("glass",          "ami.subcategory.blocks.glass"),
-                new SubCategory("other_building", "ami.subcategory.blocks.other_building")
+                new SubCategory("stone",          "ami.subcategory.masonry.stone"),
+                new SubCategory("wood",           "ami.subcategory.masonry.wood"),
+                new SubCategory("soil",           "ami.subcategory.masonry.soil"),
+                new SubCategory("glass",          "ami.subcategory.masonry.glass"),
+                new SubCategory("other_building", "ami.subcategory.masonry.other_building")
             ),
-            List.of("banner") // banner patterns etc catch-all
+            List.of()
         );
 
-        // Priority order: most-specific first, BLOCKS last as default.
+        MISC = new Category(
+            "misc", "ami.category.misc", "Misc",
+            "minecraft:paper", 0xFF888888,
+            List.of(
+                new SubCategory("unknown", "ami.subcategory.misc.unknown")
+            ),
+            List.of()
+        );
+
+        // Priority order: most-specific first, GEOLOGY/MASONRY second-to-last, MISC as terminal fallback.
         CATEGORIES = List.of(
-            NAVIGATION, ENTITIES, MAGIC, ARMOR, WEAPONS, FOOD, TECH, NATURE, ENVIRONMENT, SOCIAL, BLOCKS
+            UTILITY, BESTIARY, MAGIC, ARMOR, TOOLS, TECH, NATURE, INGREDIENTS, DECORATION, ENVIRONMENT, SOCIAL, GEOLOGY, MASONRY, MISC
         );
     }
 
@@ -249,6 +296,9 @@ public final class AmiOntology {
      */
     public static Category classifyNode(SearchNode node) {
         String precomputed = node.meta(SearchNodeKeys.ONTOLOGY_CATEGORY, "");
+        if ("weapons".equals(precomputed)) {
+            precomputed = "tools";
+        }
         if (!precomputed.isEmpty()) {
             for (Category cat : CATEGORIES) {
                 if (cat.id.equals(precomputed)) return cat;
@@ -257,7 +307,7 @@ public final class AmiOntology {
 
         return switch (node.type()) {
             case BIOME, STRUCTURE, DIMENSION -> ENVIRONMENT;
-            case ENTITY                      -> ENTITIES;
+            case ENTITY                      -> BESTIARY;
             case PLAYER                      -> SOCIAL;
             case ITEM                        -> classifyItem(node);
         };
@@ -270,14 +320,13 @@ public final class AmiOntology {
         String combined = tags + "," + path;
 
         for (Category cat : CATEGORIES) {
-            if (cat == ENVIRONMENT || cat == BLOCKS) continue; // handled specially below
+            if (cat == ENVIRONMENT || cat == GEOLOGY || cat == MASONRY || cat == MISC) continue;
             for (String pattern : cat.matchPatterns) {
                 if (combined.contains(pattern)) return cat;
             }
         }
 
-        // Anything that's a block-like item and wasn't caught above defaults to Blocks.
-        return BLOCKS;
+        return MISC;
     }
 
     private AmiOntology() {}
