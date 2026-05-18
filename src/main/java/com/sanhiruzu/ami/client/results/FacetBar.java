@@ -212,7 +212,7 @@ public class FacetBar implements SearchState.Listener {
     @Override
     public void onSearchStateChanged(SearchState state) {}
 
-    /** Returns the currently active category IDs (e.g. "food", "weapons"). */
+    /** Returns the currently active category IDs (e.g. "food", "tools"). */
     public Set<String> getActiveFacets() {
         return state.getActiveFacets();
     }

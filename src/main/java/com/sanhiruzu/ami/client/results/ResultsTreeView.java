@@ -864,7 +864,7 @@ public class ResultsTreeView {
     // ── Tooltip ───────────────────────────────────────────────────────────────
 
     private List<Component> buildTooltip(SearchNode entry) {
-        if (com.sanhiruzu.ami.client.AMIKeyMappings.DEBUG_TOOLTIPS.isDown()) {
+        if (com.sanhiruzu.ami.client.AmiKeybindHandler.isDebugTooltipsActive()) {
             return DebugTooltip.build(entry);
         }
 
@@ -902,8 +902,9 @@ public class ResultsTreeView {
         }
 
         String keybindName = com.sanhiruzu.ami.client.AMIKeyMappings.DEBUG_TOOLTIPS.getTranslatedKeyMessage().getString();
-        Component hint = Component.translatable("ami.gui.debug_hint", keybindName).withStyle(net.minecraft.ChatFormatting.DARK_GRAY);
-        lines.add(hint);
+        String hintKey = com.sanhiruzu.ami.client.AmiKeybindHandler.isDebugTooltipsActive()
+                ? "ami.gui.debug_hint_active" : "ami.gui.debug_hint";
+        lines.add(Component.translatable(hintKey, keybindName).withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
         return lines;
     }
 }

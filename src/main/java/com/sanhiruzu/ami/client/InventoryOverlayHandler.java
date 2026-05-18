@@ -40,6 +40,7 @@ public class InventoryOverlayHandler {
             manager.setPanelVisible(true);
         } else if (!amiEnabled && manager.isPanelVisible()) {
             manager.setPanelVisible(false);
+            AmiKeybindHandler.resetDebugTooltips();
         }
 
         pendingScreenReinit = true;

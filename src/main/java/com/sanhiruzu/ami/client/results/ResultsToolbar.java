@@ -10,8 +10,8 @@ import java.util.*;
 public class ResultsToolbar implements SearchState.Listener {
     public enum ViewMode { GRID, LIST }
 
-    private static final int TOOLBAR_HEIGHT  = 20;
-    private static final int BUTTON_H        = 14;  // all buttons are this height
+    public  static final int TOOLBAR_HEIGHT  = 20;
+    public  static final int BUTTON_H        = 14;  // all buttons are this height
     private static final int MODE_BUTTON_W   = 28;  // "Grid"/"List"
     private static final int SORT_BUTTON_W   = 14;  // "▲"/"▼"
     private static final int RESET_BUTTON_W  = 18;  // reset icon

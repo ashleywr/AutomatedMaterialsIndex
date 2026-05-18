@@ -19,6 +19,7 @@ import java.util.*;
  * hardcoded lists where possible, allowing it to scale to modded items.
  */
 public class GroupingEngine {
+    public record CollapsedFamily(String key, String label) {}
 
     public enum GroupType { SHAPE, COLOR, MATERIAL }
 
@@ -41,7 +42,7 @@ public class GroupingEngine {
     public static final List<String> SHAPE_ORDER = List.of(
             "cube", "block", "stairs", "slabs", "walls", "fences", "fence_gates",
             "doors", "trapdoors", "signs", "beds", "buttons", "pressure_plates",
-            "torches", "plants", "tools", "armor", "weapons", "food", "boats", "minecarts"
+            "torches", "plants", "tools", "armor", "food", "boats", "minecarts"
     );
 
     /**
@@ -118,7 +119,7 @@ public class GroupingEngine {
 
     public static String classifyShape(ItemStack stack) {
         Item item = stack.getItem();
-        if (item instanceof SwordItem) return "weapons";
+        if (item instanceof SwordItem) return "tools";
         if (item instanceof TieredItem) return "tools";
         if (item instanceof ArmorItem) return "armor";
         if (item instanceof BoatItem) return "boats";
@@ -220,6 +221,23 @@ public class GroupingEngine {
 
         String stripped = stripFamilyPrefix(path);
         return namespace + ":" + stripped;
+    }
+
+    public static Optional<CollapsedFamily> classifyCollapsedFamily(ResourceLocation id) {
+        String path = id.getPath();
+        if (path.startsWith("music_disc_")) {
+            return Optional.of(new CollapsedFamily("music_discs", "Music Discs"));
+        }
+        if (path.endsWith("_smithing_template")) {
+            return Optional.of(new CollapsedFamily("smithing_templates", "Smithing Templates"));
+        }
+        if (path.endsWith("_banner") && !path.contains("banner_pattern")) {
+            return Optional.of(new CollapsedFamily("banners", "Banners"));
+        }
+        if (path.equals("goat_horn")) {
+            return Optional.of(new CollapsedFamily("goat_horns", "Goat Horns"));
+        }
+        return Optional.empty();
     }
 
     private static String stripFamilyPrefix(String path) {

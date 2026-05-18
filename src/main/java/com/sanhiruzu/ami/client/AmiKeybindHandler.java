@@ -13,6 +13,18 @@ import org.lwjgl.glfw.GLFW;
  */
 public class AmiKeybindHandler {
 
+    /** Toggled by DEBUG_TOOLTIPS keybind. Persists until toggled off or the panel closes. */
+    private static boolean debugTooltipsActive = false;
+
+    public static boolean isDebugTooltipsActive() {
+        return debugTooltipsActive;
+    }
+
+    /** Call when the AMI panel is hidden so debug mode doesn't linger across sessions. */
+    public static void resetDebugTooltips() {
+        debugTooltipsActive = false;
+    }
+
     /**
      * Checks if any AMI keybinds were pressed and performs the associated actions.
      * Called from InventoryOverlayHandler.onKeyPressed.
@@ -26,7 +38,7 @@ public class AmiKeybindHandler {
         }
 
         if (AMIKeyMappings.DEBUG_TOOLTIPS.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
-            // Toggle debug tooltips display (handled by DebugTooltip component)
+            debugTooltipsActive = !debugTooltipsActive;
             return true;
         }
 

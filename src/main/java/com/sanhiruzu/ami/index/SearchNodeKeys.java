@@ -16,6 +16,7 @@ public final class SearchNodeKeys {
     public static final String COLOR_BUCKET    = "colorBucket";
     public static final String MATERIAL_GROUP  = "materialGroup";
     public static final String TAGS            = "tags";  // Comma-separated tag paths
+    public static final String FACETS          = "facets"; // Comma-separated stable facet ids
     public static final String ESM_CAPACITY    = "emsCapacity";  // Equivalent Stack Metric
     public static final String ENERGY_CAPACITY = "energy_capacity"; // Maximum FE/RF capacity
     public static final String REQUIRED_TOOL   = "requiredTool";
@@ -26,6 +27,8 @@ public final class SearchNodeKeys {
     public static final String OBTAINABILITY   = "obtainability"; // "no_recipe" = no recipe output
     public static final String SUBTYPE_OF      = "subtypeOf";     // base item id for subtype nodes
     public static final String POTION_EFFECT   = "potionEffect";  // full ResourceLocation of the potion effect (e.g. "minecraft:fire_resistance")
+    public static final String COLLAPSE_FAMILY = "collapseFamily"; // stable UI grouping key for explicit family collapse
+    public static final String COLLAPSE_LABEL  = "collapseLabel";  // user-facing label for explicit family collapse
     public static final String BLOCKS_MATERIAL = "blocksMaterial"; // material family for block subcategory (shape/material toggle)
 
     // Atlas-specific

@@ -99,6 +99,22 @@ public class ItemProvider implements IAmiDataProvider {
             OptionalDouble dps = DpsMetricSniffer.estimate(defaultStack);
             OptionalLong esmCapacity = StorageMetricSniffer.estimate(defaultStack, id);
             Optional<Integer> energyCapacity = energyCapacitySniffer.sniff(defaultStack);
+            Optional<GroupingEngine.CollapsedFamily> collapsedFamily = GroupingEngine.classifyCollapsedFamily(id);
+            FacetProfile facetProfile = FacetIndexer.index(item, id, defaultStack);
+            java.util.EnumSet<ItemFacet> resolvedFacets = facetProfile.facets().isEmpty()
+                    ? java.util.EnumSet.noneOf(ItemFacet.class)
+                    : java.util.EnumSet.copyOf(facetProfile.facets());
+            Map<String, String> facetAttributes = new HashMap<>(facetProfile.attributes());
+            if (esmCapacity.isPresent()) {
+                resolvedFacets.add(ItemFacet.STORAGE);
+            }
+            if (energyCapacity.isPresent()) {
+                resolvedFacets.add(ItemFacet.HAS_ENERGY);
+            }
+            if (!hasRecipe) {
+                facetAttributes.put(SearchNodeKeys.OBTAINABILITY, "no_recipe");
+            }
+            facetProfile = new FacetProfile(resolvedFacets, facetAttributes);
 
             Map<String, String> meta = new HashMap<>();
             meta.put(SearchNodeKeys.MOD_ID, modId);
@@ -106,12 +122,20 @@ public class ItemProvider implements IAmiDataProvider {
             meta.put(SearchNodeKeys.COLOR_BUCKET, colorBucket);
             meta.put(SearchNodeKeys.MATERIAL_GROUP, materialGroup);
             meta.put(SearchNodeKeys.ACCESS_LEVEL, accessLevel);
+            String encodedFacets = FacetCodec.encode(facetProfile.facets());
+            if (!encodedFacets.isEmpty()) {
+                meta.put(SearchNodeKeys.FACETS, encodedFacets);
+            }
             if (!tags.isEmpty()) {
                 meta.put(SearchNodeKeys.TAGS, tags);
             }
             if (requiredTool != null) {
                 meta.put(SearchNodeKeys.REQUIRED_TOOL, requiredTool);
             }
+            collapsedFamily.ifPresent(family -> {
+                meta.put(SearchNodeKeys.COLLAPSE_FAMILY, family.key());
+                meta.put(SearchNodeKeys.COLLAPSE_LABEL, family.label());
+            });
             dps.ifPresent(value -> meta.put(SearchNodeKeys.DPS, formatDps(value)));
             esmCapacity.ifPresent(value -> meta.put(SearchNodeKeys.ESM_CAPACITY, Long.toString(value)));
             energyCapacity.ifPresent(capacity -> addEnergyCapacity(meta, capacity));
@@ -122,15 +146,25 @@ public class ItemProvider implements IAmiDataProvider {
                 meta.put(SearchNodeKeys.OBTAINABILITY, "no_recipe");
             }
 
-            // Pre-compute ontology category during indexing for accuracy and performance.
-            String[] ontology = OntologyClassifier.classifyItem(item, id);
-            if (ontology != null) {
-                meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, ontology[0]);
-                if (ontology.length > 1) {
-                    meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, ontology[1]);
-                }
-                if (ontology.length > 2) {
-                    meta.put(SearchNodeKeys.BLOCKS_MATERIAL, ontology[2]);
+            CategoryAssignment assignment = PrimaryCategoryResolver.resolve(id, facetProfile);
+            if (!assignment.attributes().isEmpty()) {
+                meta.putAll(assignment.attributes());
+            }
+            if (!"misc".equals(assignment.categoryId())) {
+                meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, assignment.categoryId());
+                meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, assignment.subcategoryId());
+            } else if (shouldUseLegacyOntologyFallback(facetProfile)) {
+                // Keep the old classifier as a migration fallback until the facet model
+                // fully covers the remaining facetless edge cases.
+                String[] ontology = OntologyClassifier.classifyItem(item, id);
+                if (ontology != null) {
+                    meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, ontology[0]);
+                    if (ontology.length > 1) {
+                        meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, ontology[1]);
+                    }
+                    if (ontology.length > 2) {
+                        meta.put(SearchNodeKeys.BLOCKS_MATERIAL, ontology[2]);
+                    }
                 }
             }
 
@@ -178,6 +212,10 @@ public class ItemProvider implements IAmiDataProvider {
                 count++;
             }
         }
+    }
+
+    private static boolean shouldUseLegacyOntologyFallback(FacetProfile facetProfile) {
+        return facetProfile.facets().isEmpty();
     }
 
     @Nullable
@@ -240,6 +278,10 @@ public class ItemProvider implements IAmiDataProvider {
         meta.put(SearchNodeKeys.COLOR_BUCKET, colorBucket);
         meta.put(SearchNodeKeys.MATERIAL_GROUP, baseId.toString());
         meta.put(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL);
+        GroupingEngine.classifyCollapsedFamily(baseId).ifPresent(family -> {
+            meta.put(SearchNodeKeys.COLLAPSE_FAMILY, family.key());
+            meta.put(SearchNodeKeys.COLLAPSE_LABEL, family.label());
+        });
         return meta;
     }
 }

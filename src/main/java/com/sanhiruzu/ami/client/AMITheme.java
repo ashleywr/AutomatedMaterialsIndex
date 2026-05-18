@@ -75,7 +75,7 @@ public final class AMITheme {
 
     // Row and section separators (not configurable — aesthetic constants)
     public static int ROW_SEPARATOR = 0xFF999999; // 1px line between list rows
-    public static int SECTION_SEP   = 0xFF888888; // 1px line between FacetBar/Toolbar/Results
+    public static int SECTION_SEP   = 0xFF888888; // 1px line between Toolbar/Results
 
     // Item grid
     public static int SLOT_BG        = 0xFF555555;

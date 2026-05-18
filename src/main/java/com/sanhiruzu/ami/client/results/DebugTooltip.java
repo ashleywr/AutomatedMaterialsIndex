@@ -1,9 +1,14 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.index.AmiOntology;
+import com.sanhiruzu.ami.index.FacetCodec;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,6 +61,16 @@ public final class DebugTooltip {
             }
         }
 
+        String encodedFacets = entry.meta(SearchNodeKeys.FACETS, "");
+        var facets = FacetCodec.decode(encodedFacets);
+        if (!facets.isEmpty()) {
+            lines.add(Component.literal(""));
+            lines.add(Component.literal("§6Facets §8(" + facets.size() + ")"));
+            for (var facet : facets) {
+                lines.add(Component.literal("  §7" + facet.id()));
+            }
+        }
+
         // Tags
         String tags = entry.meta(SearchNodeKeys.TAGS, "");
         if (!tags.isEmpty()) {
@@ -74,7 +89,36 @@ public final class DebugTooltip {
             lines.add(Component.literal("§8(no tags)"));
         }
 
+        // Block tags (for BlockItem entries, separate from item tags shown above)
+        List<String> blockTags = collectBlockTags(entry);
+        if (!blockTags.isEmpty()) {
+            lines.add(Component.literal(""));
+            lines.add(Component.literal("§6Block Tags §8(" + blockTags.size() + ")"));
+            int shown = Math.min(blockTags.size(), MAX_TAGS_SHOWN);
+            for (int i = 0; i < shown; i++) {
+                lines.add(Component.literal("  §7" + blockTags.get(i)));
+            }
+            if (blockTags.size() > MAX_TAGS_SHOWN) {
+                lines.add(Component.literal("  §8… +" + (blockTags.size() - MAX_TAGS_SHOWN) + " more"));
+            }
+        }
+
         return lines;
+    }
+
+    private static List<String> collectBlockTags(SearchNode entry) {
+        Item item = BuiltInRegistries.ITEM.get(entry.id());
+        if (!(item instanceof BlockItem blockItem)) {
+            return List.of();
+        }
+
+        return blockItem.getBlock().builtInRegistryHolder().tags()
+                .map(tagKey -> {
+                    ResourceLocation loc = tagKey.location();
+                    return "#" + loc.getNamespace() + ":" + loc.getPath();
+                })
+                .sorted()
+                .toList();
     }
 
     private DebugTooltip() {}
