@@ -41,6 +41,15 @@ public final class SearchIndex {
     private final TrieNode root = new TrieNode();
     private final Set<SearchNode> allNodes = ConcurrentHashMap.newKeySet();
     private final Map<SearchNode, String> searchableText = new ConcurrentHashMap<>();
+    private final boolean includeMetadata;
+
+    public SearchIndex() {
+        this(true);
+    }
+
+    public SearchIndex(boolean includeMetadata) {
+        this.includeMetadata = includeMetadata;
+    }
 
     /**
      * Add a node into the trie. Mutations are synchronized to keep the trie safe
@@ -117,21 +126,27 @@ public final class SearchIndex {
         cur.hits.add(node);
     }
 
-    private static List<String> searchableKeys(SearchNode node) {
+    private List<String> searchableKeys(SearchNode node) {
+        return searchableKeys(node, includeMetadata);
+    }
+
+    private static List<String> searchableKeys(SearchNode node, boolean includeMetadata) {
         LinkedHashSet<String> keys = new LinkedHashSet<>();
         keys.add(node.displayName());
         keys.add(node.id().toString());
         keys.add(node.id().getNamespace());
         keys.add(node.id().getPath());
 
-        for (var entry : node.metadata().entrySet()) {
-            if (!SEARCHABLE_METADATA_KEYS.contains(entry.getKey())) continue;
-            addMetadataAliases(keys, entry.getValue());
+        if (includeMetadata) {
+            for (var entry : node.metadata().entrySet()) {
+                if (!SEARCHABLE_METADATA_KEYS.contains(entry.getKey())) continue;
+                addMetadataAliases(keys, entry.getValue());
+            }
         }
         return new ArrayList<>(keys);
     }
 
-    private static String searchableHaystack(SearchNode node) {
+    private String searchableHaystack(SearchNode node) {
         return normalizeSearchText(String.join(" ", searchableKeys(node)));
     }
 

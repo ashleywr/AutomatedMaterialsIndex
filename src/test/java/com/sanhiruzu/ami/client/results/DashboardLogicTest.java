@@ -35,6 +35,68 @@ public class DashboardLogicTest {
         assertEquals(1, GlobalIndex.getInstance().getNodesByCategory("food").size());
     }
 
+    @Test
+    void dashboardBuildsSubcategoryPlaceholders() {
+        SearchNode compass = new SearchNode(
+                ResourceLocation.parse("minecraft:compass"),
+                NodeType.ITEM, "Compass", 0, 0,
+                Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "utility",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "navigation"
+                )
+        );
+        SearchNode map = new SearchNode(
+                ResourceLocation.parse("minecraft:map"),
+                NodeType.ITEM, "Map", 0, 0,
+                Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "utility",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "navigation"
+                )
+        );
+        SearchNode spyglass = new SearchNode(
+                ResourceLocation.parse("minecraft:spyglass"),
+                NodeType.ITEM, "Spyglass", 0, 0,
+                Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "utility",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "tools"
+                )
+        );
+
+        List<TreeNode> dashboard = DashboardBrowse.buildCategoryNodes(
+                List.of(AmiOntology.UTILITY),
+                categoryId -> List.of(compass, map, spyglass)
+        );
+
+        assertEquals(1, dashboard.size());
+        TreeNode utility = dashboard.get(0);
+        assertEquals("utility", utility.getKey());
+        assertEquals(3, utility.getItemCountOverride());
+        assertEquals(2, utility.getChildren().size());
+        assertEquals("utility/navigation", utility.getChildren().get(0).getKey());
+        assertEquals(2, utility.getChildren().get(0).getItemCountOverride());
+        assertEquals("utility/tools", utility.getChildren().get(1).getKey());
+        assertEquals(1, utility.getChildren().get(1).getItemCountOverride());
+    }
+
+    @Test
+    void dashboardSubcategoryFilterSelectsOnlyMatchingNodes() {
+        SearchNode compass = new SearchNode(
+                ResourceLocation.parse("minecraft:compass"),
+                NodeType.ITEM, "Compass", 0, 0,
+                Map.of(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "navigation")
+        );
+        SearchNode spyglass = new SearchNode(
+                ResourceLocation.parse("minecraft:spyglass"),
+                NodeType.ITEM, "Spyglass", 0, 0,
+                Map.of(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "tools")
+        );
+
+        List<SearchNode> filtered = DashboardBrowse.filterSubcategoryNodes(List.of(compass, spyglass), "navigation");
+
+        assertEquals(1, filtered.size());
+        assertEquals("Compass", filtered.get(0).displayName());
+    }
+
     private void addMockItem(String path, String category) {
         GlobalIndex.getInstance().addNode(new SearchNode(
             ResourceLocation.parse("minecraft:" + path),

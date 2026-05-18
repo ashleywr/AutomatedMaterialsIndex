@@ -7,12 +7,14 @@ import java.util.stream.Collectors;
 
 public enum ItemFacet {
     EDIBLE("edible"),
+    PLACEABLE_FOOD("placeable_food"),
     COMPOSTABLE("compostable"),
     FOOD_MEAL("food_meal"),
     FOOD_DRINK("food_drink"),
     FOOD_PROTEIN("food_protein"),
     PLACEABLE("placeable"),
     HAS_BLOCK_ENTITY("has_block_entity"),
+    INTERACTIVE_BLOCK("interactive_block"),
     HAS_ENERGY("has_energy"),
     STORAGE("storage"),
     MELEE_WEAPON("melee_weapon"),

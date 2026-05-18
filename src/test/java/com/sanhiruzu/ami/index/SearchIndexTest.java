@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SearchIndexTest {
@@ -63,5 +64,24 @@ public class SearchIndexTest {
         assertTrue(idx.substringSearch("building_blocks").contains(oakStairs));
         assertTrue(idx.substringSearch("minecraft:oak").contains(oakStairs));
         assertTrue(idx.substringSearch("wood block").contains(oakStairs));
+    }
+
+    @Test
+    public void narrowIndexDoesNotSearchMetadataAliases() {
+        SearchIndex idx = new SearchIndex(false);
+
+        var pressurePlate = new SearchNode(
+                ResourceLocation.parse("copycats:copycat_light_weighted_pressure_plate"),
+                NodeType.ITEM,
+                "Copycat Light Weighted Pressure Plate",
+                0,
+                0,
+                Map.of(SearchNodeKeys.MATERIAL_GROUP, "create:zinc_ingot")
+        );
+
+        idx.addNode(pressurePlate);
+
+        assertFalse(idx.substringSearch("ingot").contains(pressurePlate));
+        assertTrue(idx.substringSearch("pressure plate").contains(pressurePlate));
     }
 }

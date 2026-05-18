@@ -302,3 +302,203 @@ tasks.register('sampleFacetFallback') {
         println "Facet fallback sample exported to run/ami_dumps/facet_fallback_sample.csv (or run-gameTestServer equivalent)."
     }
 }
+
+def ashleyModpackGameDir = findProperty('ashley_modpack_game_dir')
+        ?: 'C:/Users/ashle/AppData/Roaming/PrismLauncher/instances/Ashley Modpack/minecraft'
+def ashleyRuntimeDir = layout.buildDirectory.dir('ashley-dev-run').get().asFile
+def ashleyClientOnlyModPatterns = [
+        'mods/ami-*.jar',
+        'mods/AutomatedMaterialsIndex*.jar',
+        'mods/*emi*.jar',
+        'mods/*jei*.jar',
+        'mods/*toomanyrecipeviewers*.jar',
+        'mods/*jade*.jar',
+        'mods/*wthit*.jar',
+        'mods/*appleskin*.jar',
+        'mods/*BetterAdvancements*.jar',
+        'mods/*BetterF3*.jar',
+        'mods/*catalogue*.jar',
+        'mods/*configured*.jar',
+        'mods/*drippyloadingscreen*.jar',
+        'mods/*fancymenu*.jar',
+        'mods/*ItemBorders*.jar',
+        'mods/*LegendaryTooltips*.jar',
+        'mods/*MouseTweaks*.jar',
+        'mods/*SimplyTooltips*.jar',
+        'mods/*tooltipoverhaul*.jar',
+        'mods/*xaerominimap*.jar',
+        'mods/*xaeroworldmap*.jar',
+        'mods/*entity_texture_features*.jar',
+        'mods/*entity_model_features*.jar',
+        'mods/*notenoughcrashes*.jar',
+        'mods/*sodium*.jar',
+        'mods/*embeddium*.jar',
+        'mods/*oculus*.jar',
+        'mods/*iris*.jar',
+        'mods/*immediatelyfast*.jar',
+        'mods/*entityculling*.jar',
+        'mods/*vanillabackport*.jar',
+        'mods/*immersiveoverlays*.jar'
+]
+def ashleyClientOnlyModTokens = [
+        'emi',
+        'jei',
+        'toomanyrecipeviewers',
+        'jade',
+        'wthit',
+        'appleskin',
+        'betteradvancements',
+        'betterf3',
+        'catalogue',
+        'configured',
+        'drippyloadingscreen',
+        'fancymenu',
+        'itemborders',
+        'legendarytooltips',
+        'mousetweaks',
+        'simplytooltips',
+        'tooltipoverhaul',
+        'xaerominimap',
+        'xaeroworldmap',
+        'entity_texture_features',
+        'entity_model_features',
+        'notenoughcrashes',
+        'sodium',
+        'embeddium',
+        'oculus',
+        'iris',
+        'immediatelyfast',
+        'entityculling',
+        'vanillabackport',
+        'immersiveoverlays'
+]
+
+tasks.register('prepareAshleyModpackRuntime', Sync) {
+    group = 'verification'
+    description = 'Stages a safe AMI dev runtime from the Ashley Modpack contents without loading the installed AMI jar twice or client-only mods on the server dump path.'
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+
+    def sourceDir = file(ashleyModpackGameDir)
+    into ashleyRuntimeDir
+
+    doFirst {
+        if (!sourceDir.exists()) {
+            throw new GradleException("Ashley Modpack game dir does not exist: ${ashleyModpackGameDir}")
+        }
+    }
+
+    from('run') {
+        exclude 'logs/**'
+        exclude 'crash-reports/**'
+        exclude 'world/**'
+        exclude 'saves/**'
+        exclude 'downloads/**'
+        exclude '.mixin.out/**'
+        exclude 'ami_dumps/**'
+        exclude 'mods/**'
+    }
+
+    from(sourceDir) {
+        include 'mods/**'
+        include 'config/**'
+        include 'defaultconfigs/**'
+        include 'kubejs/**'
+        include 'datapacks/**'
+        include 'patchouli_books/**'
+        include 'resourcepacks/**'
+        include 'emi.json'
+        include 'options.txt'
+        ashleyClientOnlyModPatterns.each { pattern ->
+            exclude pattern
+        }
+    }
+
+    doLast {
+        File modsDir = new File(ashleyRuntimeDir, 'mods')
+        if (!modsDir.exists()) {
+            return
+        }
+
+        modsDir.eachFileRecurse { modJar ->
+            if (!modJar.isFile() || !modJar.name.endsWith('.jar')) {
+                return
+            }
+            String lowerName = modJar.name.toLowerCase(Locale.ROOT)
+            if (ashleyClientOnlyModTokens.any { token -> lowerName.contains(token) } && !modJar.delete()) {
+                throw new GradleException("Failed to remove client-only mod from staged runtime: ${modJar}")
+            }
+        }
+    }
+}
+
+tasks.register('runAshleyModpackOntologyDump', Exec) {
+    group = 'verification'
+    description = 'Runs the AMI ontology dump against the Ashley Modpack Prism instance.'
+    dependsOn 'prepareAmiOntologyDumpRun', 'prepareAshleyModpackRuntime'
+
+    def runDir = project.layout.buildDirectory.dir('moddev').get().asFile
+    def baseProgramArgs = new File(runDir, 'amiOntologyDumpRunProgramArgs.txt')
+    def ashleyProgramArgs = new File(runDir, 'amiOntologyDumpAshleyRunProgramArgs.txt')
+    def baseClasspathArgs = new File(runDir, 'amiOntologyDumpRunClasspath.txt')
+    def ashleyClasspathArgs = new File(runDir, 'amiOntologyDumpAshleyRunClasspath.txt')
+    def vmArgs = new File(runDir, 'amiOntologyDumpRunVmArgs.txt')
+    def javaExe = javaToolchains.launcherFor(java.toolchain).get().executablePath.asFile
+    def mainClassesDir = layout.buildDirectory.dir('classes/java/main').get().asFile
+    def mainResourcesDir = layout.buildDirectory.dir('resources/main').get().asFile
+    def modFolders = "-Dfml.modFolders=ami%%${mainClassesDir.absolutePath};ami%%${mainResourcesDir.absolutePath}"
+
+    inputs.file(baseProgramArgs)
+    inputs.file(baseClasspathArgs)
+    inputs.file(vmArgs)
+    outputs.file(new File(ashleyRuntimeDir, 'ami_dumps/ontology_dump.csv'))
+
+    doFirst {
+        List<String> lines = baseProgramArgs.readLines('UTF-8')
+        for (int i = 0; i < lines.size() - 1; i++) {
+            if (lines[i] == '--gameDir') {
+                lines[i + 1] = ashleyRuntimeDir.absolutePath
+                break
+            }
+        }
+        ashleyProgramArgs.text = lines.join(System.lineSeparator()) + System.lineSeparator()
+        List<String> classpathLines = baseClasspathArgs.readLines('UTF-8')
+        String classpathValue = classpathLines.size() > 1 ? classpathLines[1] : ''
+        String filteredClasspathValue = classpathValue
+                .split(';')
+                .findAll { entry ->
+                    !entry.contains('mezz.jei') && !entry.contains('maven.modrinth\\emi')
+                }
+                .join(';')
+        ashleyClasspathArgs.text = ['-classpath', filteredClasspathValue].join(System.lineSeparator()) + System.lineSeparator()
+        new File(ashleyRuntimeDir, 'ami_dumps').mkdirs()
+        println "Running ontology dump against staged Ashley Modpack runtime ${ashleyRuntimeDir}"
+    }
+
+    workingDir = file('run')
+    executable javaExe.absolutePath
+    args "@${ashleyClasspathArgs.absolutePath}",
+            "@${vmArgs.absolutePath}",
+            modFolders,
+            'net.neoforged.devlaunch.Main',
+            "@${ashleyProgramArgs.absolutePath}"
+}
+
+tasks.register('analyzeAshleyModpackOntology', Exec) {
+    group = 'verification'
+    description = 'Runs the ontology dump and then analyzes the Ashley Modpack results with the local LLM.'
+    dependsOn 'runAshleyModpackOntologyDump'
+
+    def csvPath = "${ashleyRuntimeDir}/ami_dumps/ontology_dump.csv"
+    commandLine 'python', 'internal/local_llm_analyzer.py', csvPath
+
+    doFirst {
+        if (!file(csvPath).exists()) {
+            throw new GradleException("Ontology dump not found: ${csvPath}")
+        }
+        println "Analyzing ${csvPath}"
+    }
+
+    doLast {
+        println "Ashley Modpack ontology analysis complete."
+    }
+}

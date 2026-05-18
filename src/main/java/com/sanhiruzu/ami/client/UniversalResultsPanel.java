@@ -339,30 +339,28 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         List<SearchNode> source = resolveSource();
         String query = state.getQuery();
+        boolean compactMainPanel = AmiConfig.compactMode && !isFavoritesPanel;
 
         // High-performance dashboard view for empty queries
-        if (query.isEmpty() && !isFavoritesPanel) {
+        if (query.isEmpty() && !isFavoritesPanel && !compactMainPanel) {
             displayedItemCount = currentResults.size();
             showDashboard();
             return;
         }
 
         if (!query.isEmpty() && searchService != null) {
-            Map<NodeType, List<SearchNode>> results = searchService.query(query);
-            source = new ArrayList<>();
-            for (List<SearchNode> list : results.values()) source.addAll(list);
+            source = com.sanhiruzu.ami.client.results.SearchScope.resolveQueriedSource(searchService, source, query, isFavoritesPanel);
         }
 
         displayedItemCount = source.size();
         ResultsProcessor processor = state.createProcessor();
-        List<TreeNode> processed = processor.process(source);
+        List<TreeNode> processed = compactMainPanel ? processor.processFlat(source) : processor.process(source);
         treeView.setRootNodes(processed);
         gridView.setRootNodes(processed);
     }
 
     private void showDashboard() {
         List<TreeNode> dashboard = new ArrayList<>();
-        java.util.Set<String> addedIds = new java.util.HashSet<>();
         
         // 1. Recent History (Most relevant first)
         var history = com.sanhiruzu.ami.client.favorites.AmiHistoryHandler.getInstance().getLookupHistory();
@@ -379,25 +377,15 @@ public class UniversalResultsPanel implements SearchState.Listener {
             dashboard.add(historyGroup);
         }
 
-        // 2. Browse by Category (Ontology) - Flattened to top-level
+        // 2. Browse by Category (Ontology) - category with subcategory placeholders
         List<com.sanhiruzu.ami.index.AmiOntology.Category> categories = new ArrayList<>(com.sanhiruzu.ami.index.AmiOntology.CATEGORIES);
         if (!state.isAscending()) {
             java.util.Collections.reverse(categories);
         }
-
-        for (com.sanhiruzu.ami.index.AmiOntology.Category cat : categories) {
-            if (addedIds.contains(cat.id)) continue;
-            
-            // Set item count override from index for immediate visibility
-            int count = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodesByCategory(cat.id).size();
-            if (count > 0) {
-                TreeNode catNode = new TreeNode(cat.id, cat.displayName());
-                catNode.setExpanded(false); // Lazy load
-                catNode.setItemCountOverride(count);
-                dashboard.add(catNode);
-                addedIds.add(cat.id);
-            }
-        }
+        dashboard.addAll(com.sanhiruzu.ami.client.results.DashboardBrowse.buildCategoryNodes(
+                categories,
+                categoryId -> com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodesByCategory(categoryId)
+        ));
 
         treeView.setRootNodes(dashboard);
         gridView.setRootNodes(dashboard);
@@ -516,8 +504,18 @@ public class UniversalResultsPanel implements SearchState.Listener {
         // Check if this node is a category by trying to find it in CATEGORIES
         boolean isOntologyCategory = com.sanhiruzu.ami.index.AmiOntology.CATEGORIES.stream()
                 .anyMatch(c -> c.id.equals(node.getKey()));
+        String[] subcategoryKey = com.sanhiruzu.ami.client.results.DashboardBrowse.splitSubcategoryKey(node.getKey());
+        boolean isOntologySubcategory = subcategoryKey != null
+                && com.sanhiruzu.ami.index.AmiOntology.CATEGORIES.stream().anyMatch(c -> c.id.equals(subcategoryKey[0]));
 
-        List<SearchNode> nodes = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodesByCategory(node.getKey());
+        List<SearchNode> nodes;
+        if (isOntologySubcategory) {
+            List<SearchNode> categoryNodes = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodesByCategory(subcategoryKey[0]);
+            String subId = "misc".equals(subcategoryKey[1]) ? "" : subcategoryKey[1];
+            nodes = com.sanhiruzu.ami.client.results.DashboardBrowse.filterSubcategoryNodes(categoryNodes, subId);
+        } else {
+            nodes = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodesByCategory(node.getKey());
+        }
 
         // Fallback for NodeType keys
         if (nodes.isEmpty()) {
@@ -536,7 +534,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         tempState.setSortField(state.getSortField());
         tempState.setAscending(state.isAscending());
 
-        if (isOntologyCategory && state.getGroupBy() == ResultsProcessor.GroupBy.CATEGORY) {
+        if ((isOntologyCategory || isOntologySubcategory) && state.getGroupBy() == ResultsProcessor.GroupBy.CATEGORY) {
             // Just create leaf nodes with collapse grouping (no main grouping)
             node.getChildren().addAll(createLeafNodesWithCollapseGrouping(nodes, tempState));
         } else {

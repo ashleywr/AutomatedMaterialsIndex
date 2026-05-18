@@ -74,7 +74,7 @@ public class ItemProvider implements IAmiDataProvider {
                 String tags = collectTags(item);
                 for (SubtypeExpander.SubtypeEntry entry : subtypes) {
                     ItemIconRenderer.registerStack(entry.id(), entry.stack());
-                    Map<String, String> meta = buildSubtypeMeta(id, extractColorBucket(entry.id()));
+                    Map<String, String> meta = buildSubtypeMeta(id, entry.stack(), extractColorBucket(entry.id()));
                     if (!entry.extraMeta().isEmpty()) meta.putAll(entry.extraMeta());
                     if (!tags.isEmpty()) meta.put(SearchNodeKeys.TAGS, tags);
                     energyCapacitySniffer.sniff(entry.stack()).ifPresent(capacity -> addEnergyCapacity(meta, capacity));
@@ -205,7 +205,7 @@ public class ItemProvider implements IAmiDataProvider {
                         "hero/" + pluginKey + "/" + count);
                 ItemIconRenderer.registerStack(syntheticId, stack);
 
-                Map<String, String> meta = buildSubtypeMeta(baseId, extractColorBucket(baseId));
+                Map<String, String> meta = buildSubtypeMeta(baseId, stack, extractColorBucket(baseId));
                 energyCapacitySniffer.sniff(stack).ifPresent(capacity -> addEnergyCapacity(meta, capacity));
                 index.addNode(new SearchNode(syntheticId, NodeType.ITEM,
                         stack.getHoverName().getString(), 0xFFFFFF, 0, meta));
@@ -271,7 +271,7 @@ public class ItemProvider implements IAmiDataProvider {
         return GroupingEngine.classifyColorFromPath(id.getPath());
     }
 
-    private static Map<String, String> buildSubtypeMeta(ResourceLocation baseId, String colorBucket) {
+    private static Map<String, String> buildSubtypeMeta(ResourceLocation baseId, ItemStack stack, String colorBucket) {
         Map<String, String> meta = new HashMap<>();
         meta.put(SearchNodeKeys.MOD_ID, baseId.getNamespace());
         meta.put(SearchNodeKeys.SUBTYPE_OF, baseId.toString());
@@ -282,6 +282,36 @@ public class ItemProvider implements IAmiDataProvider {
             meta.put(SearchNodeKeys.COLLAPSE_FAMILY, family.key());
             meta.put(SearchNodeKeys.COLLAPSE_LABEL, family.label());
         });
+
+        Item item = stack.getItem();
+        FacetProfile facetProfile = FacetIndexer.index(item, baseId, stack);
+        String encodedFacets = FacetCodec.encode(facetProfile.facets());
+        if (!encodedFacets.isEmpty()) {
+            meta.put(SearchNodeKeys.FACETS, encodedFacets);
+        }
+        if (!facetProfile.attributes().isEmpty()) {
+            meta.putAll(facetProfile.attributes());
+        }
+
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(baseId, facetProfile);
+        if (!assignment.attributes().isEmpty()) {
+            meta.putAll(assignment.attributes());
+        }
+        if (!"misc".equals(assignment.categoryId())) {
+            meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, assignment.categoryId());
+            meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, assignment.subcategoryId());
+        } else if (shouldUseLegacyOntologyFallback(facetProfile)) {
+            String[] ontology = OntologyClassifier.classifyItem(item, baseId);
+            if (ontology != null) {
+                meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, ontology[0]);
+                if (ontology.length > 1) {
+                    meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, ontology[1]);
+                }
+                if (ontology.length > 2) {
+                    meta.put(SearchNodeKeys.BLOCKS_MATERIAL, ontology[2]);
+                }
+            }
+        }
         return meta;
     }
 }

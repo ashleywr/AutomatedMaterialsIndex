@@ -8,6 +8,7 @@ public final class QueryParser {
 
     public enum TokenType {
         INCLUDE,     // Plain text or -less
+        META,        // ~text broad metadata search
         EXCLUDE,     // Negation: -word
         TAG,         // #tag
         MOD,         // @modid
@@ -30,7 +31,8 @@ public final class QueryParser {
      * Parse a raw query string into typed tokens.
      * Supports:
      * - Plain text: "creeper" → INCLUDE
-     * - Negation: "-creeper", "-#ore" → EXCLUDE with type inherited from suffix
+     * - Broad metadata: "~ingot" → META
+     * - Negation: "-creeper", "-#ore", "-~ingot" → EXCLUDE with type inherited from suffix
      * - Tags: "#storage" → TAG
      * - Environment: "&nether" → ENV
      * - Properties: "?precipitation:rain" → PROP
@@ -81,6 +83,9 @@ public final class QueryParser {
         if (part.startsWith("$")) {
             type = TokenType.CATEGORY;
             value = part.substring(1);
+        } else if (part.startsWith("~")) {
+            type = TokenType.META;
+            value = part.substring(1);
         } else if (part.startsWith("#")) {
             type = TokenType.TAG;
             value = part.substring(1);
@@ -109,6 +114,7 @@ public final class QueryParser {
         if (isExclude) {
             value = switch (type) {
                 case CATEGORY -> "$" + value;
+                case META -> "~" + value;
                 case TAG -> "#" + value;
                 case MOD -> "@" + value;
                 case ENV -> "&" + value;
