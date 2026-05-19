@@ -33,6 +33,80 @@ public final class PrimaryCategoryResolver {
             "wolf", "zombified_piglin"
     );
 
+    private static final Set<String> DECOR_TOKENS = Set.of(
+            "chair", "stool", "bench", "sofa", "couch", "banister", "railing",
+            "shelf", "curtain", "curtains", "blinds", "shutter", "shutters",
+            "dresser", "nightstand", "wardrobe", "bookcase", "bookshelf",
+            "lamp", "lantern", "chandelier", "sconce", "brazier", "seat",
+            "pillow", "cushion", "hammock", "rack", "sign"
+    );
+
+    private static final Set<String> LIGHTING_TOKENS = Set.of(
+            "lamp", "lantern", "chandelier", "sconce", "brazier", "candelabra"
+    );
+
+    private static final Set<String> TEXTILE_TOKENS = Set.of(
+            "curtain", "curtains", "blinds", "shutter", "shutters", "pillow",
+            "cushion", "rug", "carpet", "blanket", "sheet"
+    );
+
+    private static final Set<String> DISPLAY_TOKENS = Set.of(
+            "bookcase", "bookshelf", "shelf", "rack", "sign", "plaque"
+    );
+
+    private static final Set<String> WORKSTATION_TOKENS = Set.of(
+            "station", "terminal", "controller", "assembler", "fabricator",
+            "charger", "press", "mixer", "crusher", "grinder", "smelter",
+            "refinery", "processor", "forge", "loom", "workbench"
+    );
+
+    private static final Set<String> CREATE_HANDHELD_TOOL_TOKENS = Set.of(
+            "wrench", "grip", "worldshaper", "cannon"
+    );
+
+    private static final Set<String> CREATE_HANDHELD_UTILITY_TOKENS = Set.of(
+            "goggle", "filter", "schedule", "shopping", "list", "schematic",
+            "quill", "glue", "controller"
+    );
+
+    private static final Set<String> CREATE_PART_TOKENS = Set.of(
+            "belt", "gearbox", "bracket", "pipe", "valve", "handle", "shaft",
+            "cogwheel", "chute", "depot", "ejector", "speedometer", "stressometer"
+    );
+
+    private static final Set<String> CREATE_MACHINE_TOKENS = Set.of(
+            "press", "burner", "wheel", "millstone", "mixer", "fan", "pump",
+            "tank", "backtank", "engine"
+    );
+
+    private static final Set<String> RAILWAYS_TRANSPORT_TOKENS = Set.of(
+            "track", "coupler", "conductor", "switch", "semaphore", "handcar"
+    );
+
+    private static final Set<String> RAILWAYS_PART_TOKENS = Set.of(
+            "smokestack", "boiler", "buffer", "cowcatcher", "headstock", "link", "connector"
+    );
+
+    private static final Set<String> CREATE_ADDON_MACHINE_TOKENS = Set.of(
+            "alternator", "motor", "generator", "charger", "accumulator", "battery"
+    );
+
+    private static final Set<String> CREATE_ADDON_PART_TOKENS = Set.of(
+            "connector", "cable", "coil", "wire", "electrode"
+    );
+
+    private static final Set<String> CREATE_WINERY_MACHINE_TOKENS = Set.of(
+            "barrel", "vat", "press", "ferment"
+    );
+
+    private static final Set<String> CREATE_ORE_MACHINE_TOKENS = Set.of(
+            "drill", "pump", "extract", "boring", "survey"
+    );
+
+    private static final Set<String> CREATE_ORE_PART_TOKENS = Set.of(
+            "pipe", "vein", "sample", "core"
+    );
+
     private PrimaryCategoryResolver() {}
 
     public static CategoryAssignment resolve(ResourceLocation id, FacetProfile profile) {
@@ -100,6 +174,12 @@ public final class PrimaryCategoryResolver {
         if (hasAny(facets, ItemFacet.SOCIAL_PLAYERS, ItemFacet.SOCIAL_CLAIMS)) {
             return assignment("social", classifySocialSubcategory(facets), attributes);
         }
+        if (shouldBiasLexicalDecoration(facets, path)) {
+            return assignment("decoration", classifyLexicalDecorationSubcategory(path, facets), attributes);
+        }
+        if (shouldBiasLexicalWorkstationToTech(facets, path)) {
+            return assignment("tech", classifyLexicalTechSubcategory(path, facets), attributes);
+        }
         if (shouldBiasFoodFamilyToIngredients(modFamily, facets, path)) {
             return assignment("ingredients", classifyFoodFamilyIngredientSubcategory(path, facets), attributes);
         }
@@ -127,7 +207,16 @@ public final class PrimaryCategoryResolver {
         if (shouldBiasFoodFamilyToNature(modFamily, facets, path, attributes)) {
             return assignment("nature", classifyNatureSubcategory(facets), attributes);
         }
-        if (shouldBeGeology(facets, path)) {
+        if (shouldBiasOrganicSurfaceBlockToNature(facets, path, attributes)) {
+            return assignment("nature", classifyOrganicSurfaceBlockSubcategory(path, facets), attributes);
+        }
+        if (shouldBiasGeologyFamilyToDecoration(facets, path, attributes)) {
+            return assignment("decoration", classifyDecorationSubcategory(facets), attributes);
+        }
+        if (shouldBiasGeologyFamilyToMasonry(facets, path, attributes)) {
+            return assignment("masonry", classifyMasonrySubcategory(facets, attributes), attributes);
+        }
+        if (shouldBeGeology(facets, path, attributes)) {
             return assignment("geology", facets.contains(ItemFacet.SOIL_BLOCK) ? "terrain" : "stone", attributes);
         }
         if (shouldBiasUncraftableFullBlockToTerrain(facets, attributes)) {
@@ -332,10 +421,33 @@ public final class PrimaryCategoryResolver {
         return "furniture";
     }
 
+    private static String classifyLexicalDecorationSubcategory(String path, Set<ItemFacet> facets) {
+        if (facets.contains(ItemFacet.LIGHT_SOURCE) || containsPathToken(path, LIGHTING_TOKENS)) {
+            return "lighting";
+        }
+        if (containsPathToken(path, TEXTILE_TOKENS)) {
+            return "textiles";
+        }
+        if (containsPathToken(path, DISPLAY_TOKENS)) {
+            return "furniture";
+        }
+        return classifyDecorationSubcategory(facets);
+    }
+
     private static String classifySocialSubcategory(Set<ItemFacet> facets) {
         if (facets.contains(ItemFacet.SOCIAL_PLAYERS)) return "players";
         if (facets.contains(ItemFacet.SOCIAL_CLAIMS)) return "claims";
         return "teams";
+    }
+
+    private static String classifyLexicalTechSubcategory(String path, Set<ItemFacet> facets) {
+        if (facets.contains(ItemFacet.REDSTONE_LOGIC) || facets.contains(ItemFacet.REDSTONE_SIGNAL)) {
+            return "redstone";
+        }
+        if (containsPathToken(path, Set.of("terminal", "controller", "processor"))) {
+            return "parts";
+        }
+        return classifyTechSubcategory(facets);
     }
 
     private static boolean shouldBiasCreateFamilyToDecoration(ModFamily modFamily, Set<ItemFacet> facets) {
@@ -349,6 +461,49 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.REDSTONE_LOGIC,
                 ItemFacet.REDSTONE_SIGNAL,
                 ItemFacet.TRANSPORT);
+    }
+
+    private static boolean shouldBiasLexicalDecoration(Set<ItemFacet> facets, String path) {
+        return facets.contains(ItemFacet.PLACEABLE)
+                && !hasAny(facets,
+                ItemFacet.INTERACTIVE_BLOCK,
+                ItemFacet.MACHINE,
+                ItemFacet.STORAGE,
+                ItemFacet.HAS_ENERGY,
+                ItemFacet.REDSTONE_LOGIC,
+                ItemFacet.REDSTONE_SIGNAL,
+                ItemFacet.TRANSPORT,
+                ItemFacet.FUNGI,
+                ItemFacet.NATURE_MISC,
+                ItemFacet.CROP,
+                ItemFacet.SEED,
+                ItemFacet.LOG,
+                ItemFacet.LEAVES,
+                ItemFacet.FLOWER)
+                && containsPathToken(path, DECOR_TOKENS);
+    }
+
+    private static boolean shouldBiasLexicalWorkstationToTech(Set<ItemFacet> facets, String path) {
+        return containsPathToken(path, WORKSTATION_TOKENS)
+                && facets.contains(ItemFacet.PLACEABLE)
+                && hasAny(facets,
+                ItemFacet.INTERACTIVE_BLOCK,
+                ItemFacet.HAS_BLOCK_ENTITY,
+                ItemFacet.MACHINE,
+                ItemFacet.STORAGE,
+                ItemFacet.HAS_ENERGY,
+                ItemFacet.REDSTONE_LOGIC,
+                ItemFacet.REDSTONE_SIGNAL,
+                ItemFacet.TRANSPORT)
+                && !hasAny(facets,
+                ItemFacet.FUNGI,
+                ItemFacet.NATURE_MISC,
+                ItemFacet.CROP,
+                ItemFacet.SEED,
+                ItemFacet.LOG,
+                ItemFacet.LEAVES,
+                ItemFacet.FLOWER,
+                ItemFacet.LIGHT_SOURCE);
     }
 
     private static boolean shouldBiasCreateFamilyToTech(ModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
@@ -380,29 +535,20 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.PANE,
                 ItemFacet.DOOR,
                 ItemFacet.TRAPDOOR)
-                && !shouldBeGeology(facets, path);
+                && !shouldBeGeology(facets, path, attributes);
     }
 
     private static boolean shouldBiasCreateFamilyHandheldToTools(ModFamily modFamily, String path) {
         return modFamily == ModFamily.CREATE
-                && (path.contains("wrench")
-                || path.contains("grip")
-                || path.contains("worldshaper")
-                || path.contains("wand_of_symmetry")
-                || path.contains("cannon")
-                || path.endsWith("_gun"));
+                && (containsPathToken(path, CREATE_HANDHELD_TOOL_TOKENS)
+                || path.equals("wand_of_symmetry")
+                || endsWithPathToken(path, "gun"));
     }
 
     private static boolean shouldBiasCreateFamilyHandheldToUtility(ModFamily modFamily, String path) {
         return modFamily == ModFamily.CREATE
-                && (path.contains("goggle")
-                || path.contains("filter")
-                || path.contains("schedule")
-                || path.contains("shopping_list")
-                || path.contains("schematic")
-                || path.contains("quill")
-                || path.contains("glue")
-                || path.contains("controller"));
+                && (containsPathToken(path, CREATE_HANDHELD_UTILITY_TOKENS)
+                || path.equals("shopping_list"));
     }
 
     private static boolean shouldBiasCreateEnchantingFamilyToMagic(String modId, String path) {
@@ -428,7 +574,7 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.FLOWER,
                 ItemFacet.LOG,
                 ItemFacet.LEAVES)
-                && !shouldBeGeology(facets, path)
+                && !shouldBeGeology(facets, path, attributes)
                 && !shouldBiasUncraftableFullBlockToTerrain(facets, attributes);
     }
 
@@ -483,7 +629,7 @@ public final class PrimaryCategoryResolver {
                         || path.contains("card")
                         || path.contains("module")
         )
-                && !shouldBeGeology(facets, path)
+                && !shouldBeGeology(facets, path, attributes)
                 && !shouldBiasUncraftableFullBlockToTerrain(facets, attributes);
     }
 
@@ -510,7 +656,7 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.PANE,
                 ItemFacet.DOOR,
                 ItemFacet.TRAPDOOR)
-                && !shouldBeGeology(facets, path)
+                && !shouldBeGeology(facets, path, attributes)
                 && !shouldBiasUncraftableFullBlockToTerrain(facets, attributes);
     }
 
@@ -609,7 +755,7 @@ public final class PrimaryCategoryResolver {
                         || path.contains("compressor")
                         || path.contains("chamber")
         )
-                && !shouldBeGeology(facets, path)
+                && !shouldBeGeology(facets, path, attributes)
                 && !shouldBiasUncraftableFullBlockToTerrain(facets, attributes);
     }
 
@@ -652,66 +798,36 @@ public final class PrimaryCategoryResolver {
 
     private static String classifyCreateFamilyTechSubcategory(String modId, String path, Set<ItemFacet> facets) {
         if (modId.equals("railways")) {
-            if (path.contains("track")
-                    || path.contains("coupler")
-                    || path.contains("conductor")
-                    || path.contains("switch")
-                    || path.contains("semaphore")
-                    || path.contains("handcar")) {
+            if (containsPathToken(path, RAILWAYS_TRANSPORT_TOKENS)) {
                 return "transport";
             }
-            if (path.contains("smokestack")
-                    || path.contains("boiler")
-                    || path.contains("buffer")
-                    || path.contains("cowcatcher")
-                    || path.contains("headstock")
-                    || path.contains("link")
-                    || path.contains("connector")) {
+            if (containsPathToken(path, RAILWAYS_PART_TOKENS)) {
                 return "parts";
             }
         }
         if (modId.equals("createaddition")
                 || modId.equals("create_new_age")
                 || modId.equals("new_age")) {
-            if (path.contains("alternator")
-                    || path.contains("motor")
-                    || path.contains("generator")
-                    || path.contains("charger")
-                    || path.contains("accumulator")
-                    || path.contains("battery")) {
+            if (containsPathToken(path, CREATE_ADDON_MACHINE_TOKENS)) {
                 return "machines";
             }
-            if (path.contains("connector")
-                    || path.contains("cable")
-                    || path.contains("coil")
-                    || path.contains("wire")
-                    || path.contains("electrode")) {
+            if (containsPathToken(path, CREATE_ADDON_PART_TOKENS)) {
                 return "parts";
             }
         }
         if (modId.equals("create_winery")) {
-            if (path.contains("bottle")) {
+            if (containsPathToken(path, Set.of("bottle"))) {
                 return "transport";
             }
-            if (path.contains("barrel")
-                    || path.contains("vat")
-                    || path.contains("press")
-                    || path.contains("ferment")) {
+            if (containsPathToken(path, CREATE_WINERY_MACHINE_TOKENS)) {
                 return "machines";
             }
         }
         if (modId.equals("createoreexcavation")) {
-            if (path.contains("drill")
-                    || path.contains("pump")
-                    || path.contains("extract")
-                    || path.contains("boring")
-                    || path.contains("survey")) {
+            if (containsPathToken(path, CREATE_ORE_MACHINE_TOKENS)) {
                 return "machines";
             }
-            if (path.contains("pipe")
-                    || path.contains("vein")
-                    || path.contains("sample")
-                    || path.contains("core")) {
+            if (containsPathToken(path, CREATE_ORE_PART_TOKENS)) {
                 return "parts";
             }
         }
@@ -721,31 +837,10 @@ public final class PrimaryCategoryResolver {
         if (facets.contains(ItemFacet.REDSTONE_LOGIC) || facets.contains(ItemFacet.REDSTONE_SIGNAL)) {
             return "redstone";
         }
-        if (path.contains("belt")
-                || path.contains("gearbox")
-                || path.contains("bracket")
-                || path.contains("pipe")
-                || path.contains("valve")
-                || path.contains("handle")
-                || path.contains("shaft")
-                || path.contains("cog")
-                || path.contains("chute")
-                || path.contains("depot")
-                || path.contains("ejector")
-                || path.contains("speedometer")
-                || path.contains("stressometer")) {
+        if (containsPathToken(path, CREATE_PART_TOKENS)) {
             return "parts";
         }
-        if (path.contains("press")
-                || path.contains("burner")
-                || path.contains("wheel")
-                || path.contains("millstone")
-                || path.contains("mixer")
-                || path.contains("fan")
-                || path.contains("pump")
-                || path.contains("tank")
-                || path.contains("backtank")
-                || path.contains("engine")) {
+        if (containsPathToken(path, CREATE_MACHINE_TOKENS)) {
             return "machines";
         }
         return classifyTechSubcategory(facets);
@@ -809,7 +904,136 @@ public final class PrimaryCategoryResolver {
         return "parts";
     }
 
-    private static boolean shouldBeGeology(Set<ItemFacet> facets, String path) {
+    private static boolean shouldBiasOrganicSurfaceBlockToNature(Set<ItemFacet> facets, String path, Map<String, String> attributes) {
+        if (!facets.contains(ItemFacet.PLACEABLE)) {
+            return false;
+        }
+        if (hasAny(facets,
+                ItemFacet.STAIRS,
+                ItemFacet.SLAB,
+                ItemFacet.WALL,
+                ItemFacet.FENCE,
+                ItemFacet.FENCE_GATE,
+                ItemFacet.PANE,
+                ItemFacet.DOOR,
+                ItemFacet.TRAPDOOR)) {
+            return false;
+        }
+        String blocksMaterial = attributes.getOrDefault(SearchNodeKeys.BLOCKS_MATERIAL, "");
+        return facets.contains(ItemFacet.FUNGI)
+                || path.contains("nylium")
+                || path.contains("mycelium")
+                || path.contains("moss")
+                || path.contains("lichen")
+                || path.contains("fungi")
+                || path.contains("fungus")
+                || (blocksMaterial.equals("soil") && path.contains("grass"));
+    }
+
+    private static String classifyOrganicSurfaceBlockSubcategory(String path, Set<ItemFacet> facets) {
+        if (facets.contains(ItemFacet.FUNGI)
+                || path.contains("nylium")
+                || path.contains("mycelium")
+                || path.contains("fungi")
+                || path.contains("fungus")) {
+            return "fungi";
+        }
+        return "flora";
+    }
+
+    private static boolean shouldBiasGeologyFamilyToDecoration(Set<ItemFacet> facets, String path, Map<String, String> attributes) {
+        if (!facets.contains(ItemFacet.PLACEABLE)) {
+            return false;
+        }
+        if (hasAny(facets,
+                ItemFacet.INTERACTIVE_BLOCK,
+                ItemFacet.HAS_BLOCK_ENTITY,
+                ItemFacet.MACHINE,
+                ItemFacet.STORAGE,
+                ItemFacet.HAS_ENERGY,
+                ItemFacet.REDSTONE_LOGIC,
+                ItemFacet.REDSTONE_SIGNAL,
+                ItemFacet.TRANSPORT,
+                ItemFacet.FUNGI,
+                ItemFacet.NATURE_MISC,
+                ItemFacet.FLOWER,
+                ItemFacet.LOG,
+                ItemFacet.LEAVES)) {
+            return false;
+        }
+        String blocksMaterial = attributes.getOrDefault(SearchNodeKeys.BLOCKS_MATERIAL, "");
+        return path.contains("window")
+                || containsPathToken(path, DECOR_TOKENS)
+                || path.contains("desk")
+                || (facets.contains(ItemFacet.PANE) && (blocksMaterial.equals("glass") || path.contains("glass")));
+    }
+
+    private static boolean shouldBiasGeologyFamilyToMasonry(Set<ItemFacet> facets, String path, Map<String, String> attributes) {
+        if (!facets.contains(ItemFacet.PLACEABLE)) {
+            return false;
+        }
+        if (hasAny(facets,
+                ItemFacet.RAIL,
+                ItemFacet.INTERACTIVE_BLOCK,
+                ItemFacet.HAS_BLOCK_ENTITY,
+                ItemFacet.MACHINE,
+                ItemFacet.STORAGE,
+                ItemFacet.HAS_ENERGY,
+                ItemFacet.REDSTONE_LOGIC,
+                ItemFacet.REDSTONE_SIGNAL,
+                ItemFacet.TRANSPORT)) {
+            return false;
+        }
+        String blockShape = attributes.getOrDefault("blockShape", "");
+        return hasAny(facets,
+                ItemFacet.STAIRS,
+                ItemFacet.SLAB,
+                ItemFacet.WALL,
+                ItemFacet.FENCE,
+                ItemFacet.FENCE_GATE,
+                ItemFacet.PANE,
+                ItemFacet.DOOR,
+                ItemFacet.TRAPDOOR)
+                || blockShape.equals("stairs")
+                || blockShape.equals("slab")
+                || blockShape.equals("wall")
+                || blockShape.equals("fence")
+                || blockShape.equals("fence_gate")
+                || blockShape.equals("pane")
+                || blockShape.equals("door")
+                || blockShape.equals("trapdoor")
+                || path.contains("brick")
+                || path.contains("bricks")
+                || path.contains("tile")
+                || path.contains("paver")
+                || path.contains("paving")
+                || path.contains("plank")
+                || path.contains("board")
+                || path.contains("pillar")
+                || path.contains("column")
+                || path.contains("polished")
+                || path.contains("chiseled")
+                || path.contains("carved")
+                || path.contains("cut_")
+                || path.endsWith("_cut");
+    }
+
+    private static boolean containsPathToken(String path, Set<String> expectedTokens) {
+        String[] pathTokens = path.split("[_/]");
+        for (String pathToken : pathTokens) {
+            if (expectedTokens.contains(pathToken)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean endsWithPathToken(String path, String token) {
+        String[] pathTokens = path.split("[_/]");
+        return pathTokens.length > 0 && pathTokens[pathTokens.length - 1].equals(token);
+    }
+
+    private static boolean shouldBeGeology(Set<ItemFacet> facets, String path, Map<String, String> attributes) {
         if (facets.contains(ItemFacet.STONE_BLOCK)) {
             return !hasAny(facets,
                     ItemFacet.STAIRS,
@@ -823,10 +1047,25 @@ public final class PrimaryCategoryResolver {
                     && !path.contains("brick")
                     && !path.contains("polished")
                     && !path.contains("tile")
-                    && !path.contains("glass");
+                    && !path.contains("glass")
+                    && !path.contains("window")
+                    && !path.contains("plank")
+                    && !path.contains("board")
+                    && !path.contains("pillar")
+                    && !path.contains("column")
+                    && !path.contains("paver")
+                    && !path.contains("paving")
+                    && !path.contains("chiseled")
+                    && !path.contains("carved");
         }
         if (facets.contains(ItemFacet.SOIL_BLOCK)) {
-            return !path.contains("terracotta") && !path.contains("concrete");
+            return !path.contains("terracotta")
+                    && !path.contains("concrete")
+                    && !path.contains("nylium")
+                    && !path.contains("mycelium")
+                    && !path.contains("moss")
+                    && !path.contains("fungi")
+                    && !path.contains("fungus");
         }
         return false;
     }
