@@ -25,7 +25,7 @@ public final class AmiOntologyDiagnostics {
     public static void exportOntologyCsv(Path csvFile) throws IOException {
         Files.createDirectories(csvFile.getParent());
         try (BufferedWriter writer = Files.newBufferedWriter(csvFile)) {
-            writer.write("ItemID,ModID,DisplayName,AMI_Category,Tags\n");
+            writer.write("ItemID,ModID,DisplayName,AMI_Category,AMI_Subcategory,Facets,Tags,BlocksMaterial,VariantGroup,RequiredTool,CreativeTabLabel,Visibility,AccessLevel,Obtainability,SubtypeOf\n");
 
             List<SearchNode> items = GlobalIndex.getInstance().getNodes(NodeType.ITEM);
             for (SearchNode node : items) {
@@ -36,10 +36,34 @@ public final class AmiOntologyDiagnostics {
                 if (category.isEmpty()) {
                     category = AmiOntology.classifyNode(node).id;
                 }
+                String subcategory = escapeCsv(node.meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, ""));
+                String facets = escapeCsv(node.meta(SearchNodeKeys.FACETS, ""));
                 String tags = escapeCsv(node.meta(SearchNodeKeys.TAGS, ""));
+                String blocksMaterial = escapeCsv(node.meta(SearchNodeKeys.BLOCKS_MATERIAL, ""));
+                String variantGroup = escapeCsv(node.meta(SearchNodeKeys.VARIANT_GROUP, ""));
+                String requiredTool = escapeCsv(node.meta(SearchNodeKeys.REQUIRED_TOOL, ""));
+                String creativeTabLabel = escapeCsv(node.meta(SearchNodeKeys.CREATIVE_TAB_LABEL, ""));
+                String visibility = escapeCsv(node.meta(SearchNodeKeys.VISIBILITY, ""));
+                String accessLevel = escapeCsv(node.meta(SearchNodeKeys.ACCESS_LEVEL, ""));
+                String obtainability = escapeCsv(node.meta(SearchNodeKeys.OBTAINABILITY, ""));
+                String subtypeOf = escapeCsv(node.meta(SearchNodeKeys.SUBTYPE_OF, ""));
 
-                writer.write(String.format("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n",
-                        itemId, modId, displayName, category, tags));
+                writer.write(String.format("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n",
+                        itemId,
+                        modId,
+                        displayName,
+                        category,
+                        subcategory,
+                        facets,
+                        tags,
+                        blocksMaterial,
+                        variantGroup,
+                        requiredTool,
+                        creativeTabLabel,
+                        visibility,
+                        accessLevel,
+                        obtainability,
+                        subtypeOf));
             }
         }
     }

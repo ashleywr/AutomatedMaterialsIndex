@@ -131,6 +131,15 @@ Process in strict order; stop at the first hit:
 - **Provider Expansion:** Add or refine metadata for `BiomeProvider`, `StructureProvider`, and other node types so the rich list view can display more relevant badges/icons.
 - **Recipe Integration:** Seamlessly bridge item clicks from the AMI tree view into EMI/JEI (via `RecipeViewerBridge`).
 
+## Ontology Follow-up
+- Re-run ATM10 ontology dump after resolver changes and compare against the same validation slices:
+  - focused suspicious `geology` sample
+  - mod-balanced player-visible sample
+- Watch the weak lexical vocab for noisy tokens before expanding it further.
+  - likely first trims if noise returns: `rack`, `sign`, `seat`, `wheel`
+- Consider a future facet split between true menu/workstation blocks and generic stateful or decorative block-entity blocks if repeated drift remains after the latest resolver pass.
+- Keep lexical matching as a late bias only; do not let name tokens override stronger facet or block-behavior evidence.
+
 ## Metric Compat Plugins
 
 Storage metric support should expand through isolated `StorageMetricAdapter` implementations instead of adding mod-specific logic to the generic sniffer.
