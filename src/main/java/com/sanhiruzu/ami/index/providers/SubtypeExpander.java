@@ -29,9 +29,10 @@ import java.util.Set;
  * Generates representative ItemStack variants for items whose single registry entry
  * covers many visual/functional subtypes (potions, enchanted books, etc.).
  *
- * Each item gets at most HARD_CAP variants. If generation would exceed this, we stop
- * early and log a warning — this prevents poorly-coded mods from producing thousands
- * of entries that crash the indexer.
+ * Each item gets at most HARD_CAP variants. If generation would exceed this, we keep
+ * the first HARD_CAP entries and log a warning — this prevents poorly-coded mods
+ * from producing thousands of entries that crash the indexer without hiding the
+ * family entirely.
  */
 public final class SubtypeExpander {
 
@@ -90,8 +91,8 @@ public final class SubtypeExpander {
         List<SubtypeEntry> result = new ArrayList<>();
         for (Holder.Reference<Potion> potionRef : BuiltInRegistries.POTION.holders().toList()) {
             if (result.size() >= HARD_CAP) {
-                AMI.LOGGER.warn("SubtypeExpander: hit HARD_CAP for {}; aborting expansion.", itemPath);
-                return List.of();
+                AMI.LOGGER.warn("SubtypeExpander: hit HARD_CAP for {}; truncating expansion to {} entries.", itemPath, HARD_CAP);
+                return result;
             }
             ResourceLocation potionId = potionRef.key().location();
             String effectPath = potionId.getPath();
@@ -126,8 +127,8 @@ public final class SubtypeExpander {
 
             for (int level = 1; level <= maxLevel; level++) {
                 if (result.size() >= HARD_CAP) {
-                    AMI.LOGGER.warn("SubtypeExpander: hit HARD_CAP for enchanted_book; aborting expansion.");
-                    return List.of();
+                    AMI.LOGGER.warn("SubtypeExpander: hit HARD_CAP for enchanted_book; truncating expansion to {} entries.", HARD_CAP);
+                    return result;
                 }
 
                 ItemStack stack = new ItemStack(Items.ENCHANTED_BOOK);
@@ -166,8 +167,8 @@ public final class SubtypeExpander {
             if (effectId == null || !seenEffectIds.add(effectId)) continue;
 
             if (result.size() >= HARD_CAP) {
-                AMI.LOGGER.warn("SubtypeExpander: hit HARD_CAP for suspicious_stew; aborting expansion.");
-                return List.of();
+                AMI.LOGGER.warn("SubtypeExpander: hit HARD_CAP for suspicious_stew; truncating expansion to {} entries.", HARD_CAP);
+                return result;
             }
 
             ItemStack stack = new ItemStack(Items.SUSPICIOUS_STEW);
@@ -228,8 +229,8 @@ public final class SubtypeExpander {
         List<SubtypeEntry> result = new ArrayList<>();
         for (Holder.Reference<Instrument> instrRef : instrumentRegistry.holders().toList()) {
             if (result.size() >= HARD_CAP) {
-                AMI.LOGGER.warn("SubtypeExpander: hit HARD_CAP for goat_horn; aborting expansion.");
-                return List.of();
+                AMI.LOGGER.warn("SubtypeExpander: hit HARD_CAP for goat_horn; truncating expansion to {} entries.", HARD_CAP);
+                return result;
             }
 
             ItemStack stack = new ItemStack(Items.GOAT_HORN);
@@ -250,8 +251,8 @@ public final class SubtypeExpander {
         for (Item item : BuiltInRegistries.ITEM) {
             if (item instanceof SpawnEggItem egg) {
                 if (result.size() >= HARD_CAP) {
-                    AMI.LOGGER.warn("SubtypeExpander: hit HARD_CAP for spawn_egg; aborting expansion.");
-                    return List.of();
+                    AMI.LOGGER.warn("SubtypeExpander: hit HARD_CAP for spawn_egg; truncating expansion to {} entries.", HARD_CAP);
+                    return result;
                 }
 
                 ItemStack stack = new ItemStack(egg);

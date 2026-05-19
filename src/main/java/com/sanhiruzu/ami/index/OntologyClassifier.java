@@ -271,8 +271,8 @@ public final class OntologyClassifier {
         if (item.components().has(DataComponents.POTION_CONTENTS)) {
             return magic("potions");
         }
-        // Enchanted books (have enchantments component)
-        if (item.components().has(DataComponents.ENCHANTMENTS)) {
+        // Enchanted books store enchantments on the stack rather than the item type.
+        if (item == Items.ENCHANTED_BOOK || item.components().has(DataComponents.STORED_ENCHANTMENTS)) {
             return magic("books");
         }
         // Specific magic artifacts & reagents by semantic identity
@@ -306,6 +306,9 @@ public final class OntologyClassifier {
                 || item == Items.FILLED_MAP || item == Items.CLOCK
                 || item == Items.SPYGLASS) {
             return utility("navigation");
+        }
+        if (item == Items.GOAT_HORN) {
+            return utility("misc");
         }
 
         // ── Social ────────────────────────────────────────────────────────────

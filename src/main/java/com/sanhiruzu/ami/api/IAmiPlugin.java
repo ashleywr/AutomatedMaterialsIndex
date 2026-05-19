@@ -28,6 +28,7 @@ public interface IAmiPlugin {
      * Called once during index build. Use this for mods with procedurally generated
      * item variants where exhaustive enumeration is impractical or undesirable.
      * AMI will add each returned stack as a subtype node alongside regular items.
+     * This is also the supported path for curated pre-enchanted non-book items.
      *
      * @return representative ItemStacks, or an empty list if not applicable
      */

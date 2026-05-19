@@ -36,6 +36,7 @@ public class ResultsProcessor {
         DIMENSION("ami.group.dimension"),
         MOD("ami.group.mod"),
         CATEGORY("ami.group.category"),
+        CREATIVE("ami.group.creative"),
         MATERIAL("ami.group.material"),
         FAMILY("ami.group.family"),
         SHAPE("ami.group.shape");
@@ -131,6 +132,7 @@ public class ResultsProcessor {
             case DIMENSION -> groupByDimension(sorted);
             case MOD -> groupByMod(sorted);
             case CATEGORY -> groupByCategory(sorted);
+            case CREATIVE -> groupByCreative(sorted);
             case MATERIAL -> groupByClassifier(sorted, n -> n.meta(SearchNodeKeys.MATERIAL_GROUP, ""), Component.translatable("ami.group.unknown_material"), true, List.of());
             case FAMILY -> groupByClassifier(sorted, n -> {
                 ItemStack stack = ItemIconRenderer.resolveStack(n.id());
@@ -347,6 +349,36 @@ public class ResultsProcessor {
                 catNode.addChild(subNode);
             }
             result.add(catNode);
+        }
+        return result;
+    }
+
+    private List<TreeNode> groupByCreative(List<SearchNode> entries) {
+        Map<String, List<SearchNode>> creativeGroups = new LinkedHashMap<>();
+        Map<String, String> labelsByGroup = new HashMap<>();
+        for (SearchNode entry : entries) {
+            String groupId = entry.meta(SearchNodeKeys.CREATIVE_TAB_ID, "");
+            if (groupId.isBlank()) {
+                groupId = FALLBACK_GROUP_KEY;
+            } else {
+                labelsByGroup.putIfAbsent(groupId, entry.meta(SearchNodeKeys.CREATIVE_TAB_LABEL, groupId));
+            }
+            creativeGroups.computeIfAbsent(groupId, k -> new ArrayList<>()).add(entry);
+        }
+
+        Map<String, List<SearchNode>> sortedGroups = sortGroupsLocally(creativeGroups, List.of());
+        List<TreeNode> result = new ArrayList<>();
+        for (var entry : sortedGroups.entrySet()) {
+            String groupId = entry.getKey();
+            Component label = FALLBACK_GROUP_KEY.equals(groupId)
+                    ? Component.translatable("ami.group.unregistered")
+                    : Component.literal(labelsByGroup.getOrDefault(groupId, formatGroupLabel(formatGroupKey(groupId, true))));
+            TreeNode groupNode = new TreeNode(groupId, label);
+            groupNode.setExpanded(true);
+            for (SearchNode node : entry.getValue()) {
+                groupNode.addChild(new TreeNode(Component.literal(node.displayName()), node));
+            }
+            result.add(groupNode);
         }
         return result;
     }
