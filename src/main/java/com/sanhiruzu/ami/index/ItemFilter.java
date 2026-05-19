@@ -11,6 +11,8 @@ import net.neoforged.fml.loading.FMLLoader;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -18,6 +20,8 @@ import java.util.Set;
  * Side-safe: logic that depends on ClientLevel is deferred to a nested class.
  */
 public final class ItemFilter {
+    public record CreativeTabInfo(String id, String label) {}
+
     public static final String ACCESS_SURVIVAL = "survival";
     public static final String ACCESS_CREATIVE = "creative";
     public static final String ACCESS_CHEAT = "cheat";
@@ -28,10 +32,18 @@ public final class ItemFilter {
      * On a dedicated server, this always returns an empty set.
      */
     public static Set<Item> buildCreativeItemSet(net.minecraft.world.level.Level level) {
+        return buildCreativeTabMap(level).keySet();
+    }
+
+    /**
+     * Returns the first standard creative tab each item is registered under.
+     * On a dedicated server, this always returns an empty map.
+     */
+    public static Map<Item, CreativeTabInfo> buildCreativeTabMap(net.minecraft.world.level.Level level) {
         if (FMLLoader.getDist().isClient()) {
-            return ClientItemFilter.buildCreativeItemSet(level);
+            return ClientItemFilter.buildCreativeTabMap(level);
         }
-        return Collections.emptySet();
+        return Collections.emptyMap();
     }
 
     /**
@@ -87,11 +99,11 @@ public final class ItemFilter {
 
     /** Internal class to prevent ClientLevel class loading on Dedicated Server. */
     private static class ClientItemFilter {
-        private static Set<Item> buildCreativeItemSet(net.minecraft.world.level.Level level) {
+        private static Map<Item, CreativeTabInfo> buildCreativeTabMap(net.minecraft.world.level.Level level) {
             if (!(level instanceof net.minecraft.client.multiplayer.ClientLevel clientLevel)) {
-                return Collections.emptySet();
+                return Collections.emptyMap();
             }
-            Set<Item> items = new HashSet<>();
+            Map<Item, CreativeTabInfo> items = new LinkedHashMap<>();
             try {
                 var params = new CreativeModeTab.ItemDisplayParameters(
                     clientLevel.enabledFeatures(), false, clientLevel.registryAccess()
@@ -103,12 +115,17 @@ public final class ItemFilter {
                             || type == CreativeModeTab.Type.INVENTORY) continue;
 
                     tab.buildContents(params);
+                    ResourceLocation tabId = BuiltInRegistries.CREATIVE_MODE_TAB.getKey(tab);
+                    String tabKey = tabId != null ? tabId.toString() : tab.getDisplayName().getString();
+                    String tabLabel = tab.getDisplayName().getString();
                     for (ItemStack stack : tab.getDisplayItems()) {
-                        if (!stack.isEmpty()) items.add(stack.getItem());
+                        if (!stack.isEmpty()) {
+                            items.putIfAbsent(stack.getItem(), new CreativeTabInfo(tabKey, tabLabel));
+                        }
                     }
                 }
             } catch (Exception e) {
-                AMI.LOGGER.warn("AMI: Failed to build creative item set: {}", e.getMessage());
+                AMI.LOGGER.warn("AMI: Failed to build creative tab map: {}", e.getMessage());
             }
             return items;
         }

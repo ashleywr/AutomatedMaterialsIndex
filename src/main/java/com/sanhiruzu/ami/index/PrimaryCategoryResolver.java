@@ -55,14 +55,14 @@ public final class PrimaryCategoryResolver {
         if (shouldBiasCreateEnchantingFamilyToMagic(modId, path)) {
             return assignment("magic", "reagents", attributes);
         }
-        if (hasAny(facets, ItemFacet.UTILITY_NAVIGATION, ItemFacet.UTILITY_MISC)) {
-            return assignment("utility", classifyUtilitySubcategory(facets), attributes);
-        }
         if (hasAny(facets, ItemFacet.SPAWN_EGG, ItemFacet.MOB_BUCKET)) {
             return assignment("bestiary", classifyBestiarySubcategory(path), attributes);
         }
         if (hasAny(facets, ItemFacet.POTION, ItemFacet.ENCHANTED_BOOK, ItemFacet.MAGIC_ARTIFACT, ItemFacet.MAGIC_REAGENT)) {
             return assignment("magic", classifyMagicSubcategory(facets), attributes);
+        }
+        if (hasAny(facets, ItemFacet.UTILITY_NAVIGATION, ItemFacet.UTILITY_MISC)) {
+            return assignment("utility", classifyUtilitySubcategory(facets), attributes);
         }
         if (hasAny(facets, ItemFacet.ARMOR_HEAD, ItemFacet.ARMOR_CHEST, ItemFacet.ARMOR_LEGS, ItemFacet.ARMOR_FEET)) {
             return assignment("armor", classifyArmorSubcategory(facets), attributes);

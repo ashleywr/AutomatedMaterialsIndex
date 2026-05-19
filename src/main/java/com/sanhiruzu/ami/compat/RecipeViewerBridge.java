@@ -11,17 +11,23 @@ public class RecipeViewerBridge {
         return ModList.get().isLoaded("emi") || ModList.get().isLoaded("jei");
     }
 
+    public static boolean supportsSearchSync() {
+        if (ModList.get().isLoaded("emi")) return EmiSearchSyncBridge.isAvailable();
+        if (ModList.get().isLoaded("jei")) return JeiSearchSyncBridge.isAvailable();
+        return false;
+    }
+
     /** Returns the current search text from the active recipe viewer, or "" if none loaded. */
     public static String getSearchText() {
-        if (ModList.get().isLoaded("emi")) return EmiSearchSyncBridge.getSearchText();
-        if (ModList.get().isLoaded("jei")) return JeiSearchSyncBridge.getSearchText();
+        if (ModList.get().isLoaded("emi") && EmiSearchSyncBridge.isAvailable()) return EmiSearchSyncBridge.getSearchText();
+        if (ModList.get().isLoaded("jei") && JeiSearchSyncBridge.isAvailable()) return JeiSearchSyncBridge.getSearchText();
         return "";
     }
 
     /** Pushes a search string into the active recipe viewer's search bar. */
     public static void setSearchText(String text) {
-        if (ModList.get().isLoaded("emi")) EmiSearchSyncBridge.setSearchText(text);
-        if (ModList.get().isLoaded("jei")) JeiSearchSyncBridge.setSearchText(text);
+        if (ModList.get().isLoaded("emi") && EmiSearchSyncBridge.isAvailable()) EmiSearchSyncBridge.setSearchText(text);
+        if (ModList.get().isLoaded("jei") && JeiSearchSyncBridge.isAvailable()) JeiSearchSyncBridge.setSearchText(text);
     }
 
     /** Open the recipe viewer for the item's crafting recipes (what produces it). */

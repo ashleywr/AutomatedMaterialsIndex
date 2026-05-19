@@ -134,7 +134,7 @@ public class SearchBarWidget extends EditBox {
                 int clearX = getX() + width - 14;
                 int clearY = getY() + (height - 10) / 2;
                 if (mouseX >= clearX && mouseX < clearX + 12 && mouseY >= clearY && mouseY < clearY + 10) {
-                    clear();
+                    clearAndFocus();
                     return true;
                 }
             }
@@ -148,7 +148,7 @@ public class SearchBarWidget extends EditBox {
             }
             lastClickTime = now;
         } else if (button == 1) {
-            clear();
+            clearAndFocus();
             return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -252,6 +252,12 @@ public class SearchBarWidget extends EditBox {
     public void clear() {
         setValue("");
         setFocused(false);
+    }
+
+    public void clearAndFocus() {
+        setValue("");
+        setFocused(true);
+        moveCursorToEnd(false);
     }
 
     public void toggleToken(String token) {

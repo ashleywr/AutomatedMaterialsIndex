@@ -32,6 +32,7 @@ public class ItemGridView {
     private static final int CELL_SIZE  = 18;
     private static final int HEADER_H   = 12;
     private static final int SCROLLBAR_W = 5;
+    private static final int HEADER_INDENT = 12;
 
     private int x, y, width, height;
     private List<TreeNode> rootNodes = new ArrayList<>();
@@ -65,7 +66,7 @@ public class ItemGridView {
         int height();
     }
 
-    private record HeaderRow(TreeNode node, int itemCount) implements VirtualRow {
+    private record HeaderRow(TreeNode node, int depth, int itemCount) implements VirtualRow {
         public int height() { return HEADER_H; }
     }
 
@@ -184,9 +185,10 @@ public class ItemGridView {
             g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + HEADER_H, com.sanhiruzu.ami.client.AMITheme.ENTRY_HOVER);
             hoveredTreeNode = hr.node();
         }
+        int indent = hr.depth() * HEADER_INDENT;
         String arrow = hr.node().isExpanded() ? "▼ " : "▶ ";
         String label = arrow + hr.node().getLabel().getString() + " (" + hr.itemCount() + ")";
-        g.drawString(Minecraft.getInstance().font, label, x + 4, drawY + 2, com.sanhiruzu.ami.client.AMITheme.TEXT_HEADER, false);
+        g.drawString(Minecraft.getInstance().font, label, x + 4 + indent, drawY + 2, com.sanhiruzu.ami.client.AMITheme.TEXT_HEADER, false);
     }
 
     private void renderItemRow(GuiGraphics g, ItemRow ir, int drawY, int mouseX, int mouseY) {
@@ -239,13 +241,16 @@ public class ItemGridView {
                     lines.add(node.getLabel().copy().append(" ").append(Component.translatable("ami.gui.items_count", node.getChildren().size())));
                     lines.add(Component.translatable(node.isExpanded() ? "ami.gui.collapse_hint" : "ami.gui.expand_hint")
                             .withStyle(net.minecraft.ChatFormatting.GRAY));
+                    lines.add(Component.translatable("ami.gui.group_filter_hint").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
                     pendingTextTooltip = lines;
                     pendingTooltipImage = Optional.empty();
                 } else if (com.sanhiruzu.ami.client.AmiKeybindHandler.isDebugTooltipsActive()) {
                     pendingTextTooltip = com.sanhiruzu.ami.client.results.DebugTooltip.build(entry);
                     pendingTooltipImage = Optional.empty();
                 } else if (entry.type() == com.sanhiruzu.ami.index.NodeType.ITEM) {
-                    pendingTooltip = resolveStack(entry);
+                    pendingTooltip = null;
+                    pendingTextTooltip = buildItemTooltip(entry);
+                    pendingTooltipImage = Optional.empty();
                 } else {
                     var renderer = com.sanhiruzu.ami.client.icon.RendererRegistry.get(entry.type());
                     List<Component> rendererLines = renderer.getTooltip(entry);
@@ -403,14 +408,14 @@ public class ItemGridView {
 
         List<TreeNode> linearItems = new ArrayList<>();
         for (TreeNode root : rootNodes) {
-            processNode(root, cols, rows, linearItems);
+            processNode(root, 0, cols, rows, linearItems);
         }
         packIntoRows(linearItems, cols, rows);
 
         return rows;
     }
 
-    private void processNode(TreeNode node, int cols, List<VirtualRow> out, List<TreeNode> linearItems) {
+    private void processNode(TreeNode node, int depth, int cols, List<VirtualRow> out, List<TreeNode> linearItems) {
         if (node.isLeaf()) {
             linearItems.add(node);
         } else if (node.isHighCardinality()) {
@@ -427,11 +432,11 @@ public class ItemGridView {
             
             // Calculate total item count in this group recursively for the header label
             int totalItems = countItemsRecursive(node);
-            out.add(new HeaderRow(node, totalItems));
+            out.add(new HeaderRow(node, depth, totalItems));
             
             if (node.isExpanded()) {
                 for (TreeNode child : node.getChildren()) {
-                    processNode(child, cols, out, linearItems);
+                    processNode(child, depth + 1, cols, out, linearItems);
                 }
             }
         }
@@ -516,8 +521,8 @@ public class ItemGridView {
                     if (button == 0) {
                         hr.node().setExpanded(!hr.node().isExpanded());
                         cachedRows = null; // rebuild
-                    } else if (button == 1 && onTokenInject != null) {
-                        // Right-click on group header: inject category token
+                    } else if (isTokenInjectClick(button) && onTokenInject != null) {
+                        // Ctrl+right-click on group header: inject category token
                         onTokenInject.accept("$" + hr.node().getKey());
                     }
                     return true;
@@ -535,8 +540,8 @@ public class ItemGridView {
 
                         SearchNode entry = node.getEntry();
                         if (entry != null) {
-                            if (button == 1 && onTokenInject != null) {
-                                // Right-click on item: inject mod name
+                            if (isTokenInjectClick(button) && onTokenInject != null) {
+                                // Ctrl+right-click on item: inject mod name
                                 onTokenInject.accept("@" + entry.id().getNamespace());
                             } else if (onItemClick != null) {
                                 onItemClick.accept(entry, button);
@@ -550,6 +555,30 @@ public class ItemGridView {
             drawY += row.height();
         }
         return false;
+    }
+
+    private List<Component> buildItemTooltip(SearchNode entry) {
+        List<Component> lines = new ArrayList<>();
+        ItemStack stack = resolveStack(entry);
+        if (!stack.isEmpty()) {
+            lines.addAll(Screen.getTooltipFromItem(Minecraft.getInstance(), stack));
+        } else {
+            lines.add(Component.literal(entry.displayName()));
+        }
+        lines.add(Component.literal(entry.id().toString()).withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE)));
+        lines.add(Component.empty());
+        lines.add(Component.translatable("ami.gui.recipes_hint").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
+        lines.add(Component.translatable("ami.gui.uses_hint").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
+        lines.add(Component.translatable("ami.gui.mod_filter_hint").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
+        String keybindName = com.sanhiruzu.ami.client.AMIKeyMappings.DEBUG_TOOLTIPS.getTranslatedKeyMessage().getString();
+        String hintKey = com.sanhiruzu.ami.client.AmiKeybindHandler.isDebugTooltipsActive()
+                ? "ami.gui.debug_hint_active" : "ami.gui.debug_hint";
+        lines.add(Component.translatable(hintKey, keybindName).withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
+        return lines;
+    }
+
+    private static boolean isTokenInjectClick(int button) {
+        return button == 1 && Screen.hasControlDown();
     }
 
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
