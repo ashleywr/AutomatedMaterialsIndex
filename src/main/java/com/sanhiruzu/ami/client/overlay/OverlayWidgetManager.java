@@ -371,14 +371,14 @@ public class OverlayWidgetManager {
         var panel = resultsPanel.getInnerPanel();
         if (panel == null) return;
         panel.getState().setQuery(query);
-        if (!query.equals(lastSyncedQuery)) {
+        if (RecipeViewerBridge.supportsSearchSync() && !query.equals(lastSyncedQuery)) {
             lastSyncedQuery = query;
             RecipeViewerBridge.setSearchText(query);
         }
     }
 
     private void syncFromRecipeViewer() {
-        if (!RecipeViewerBridge.isAvailable()) return;
+        if (!RecipeViewerBridge.supportsSearchSync() || searchBar.isFocused()) return;
         String rvQuery = RecipeViewerBridge.getSearchText();
         if (!rvQuery.equals(lastSyncedQuery)) {
             lastSyncedQuery = rvQuery;

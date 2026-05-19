@@ -25,6 +25,8 @@ public final class SearchNodeKeys {
     public static final String ACCESS_LEVEL    = "accessLevel";  // "survival", "creative", "cheat", or "dev"
     public static final String VISIBILITY      = "visibility";    // "hidden" = not in any creative tab
     public static final String OBTAINABILITY   = "obtainability"; // "no_recipe" = no recipe output
+    public static final String CREATIVE_TAB_ID = "creativeTabId";
+    public static final String CREATIVE_TAB_LABEL = "creativeTabLabel";
     public static final String SUBTYPE_OF      = "subtypeOf";     // base item id for subtype nodes
     public static final String POTION_EFFECT   = "potionEffect";  // full ResourceLocation of the potion effect (e.g. "minecraft:fire_resistance")
     public static final String COLLAPSE_FAMILY = "collapseFamily"; // stable UI grouping key for explicit family collapse

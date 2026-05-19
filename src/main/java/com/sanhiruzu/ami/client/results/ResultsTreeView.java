@@ -703,6 +703,10 @@ public class ResultsTreeView {
         return false;
     }
 
+    private static boolean isTokenInjectClick(int button) {
+        return button == 1 && Screen.hasControlDown();
+    }
+
     /** DFS click handler. Returns true when the target row was found and handled. */
     private boolean handleNodeClick(TreeNode node, int targetRow, int[] counter, double mouseX, int button) {
         if (counter[0] == targetRow) {
@@ -712,8 +716,8 @@ public class ResultsTreeView {
                 int bWidth = badgeWidth(Minecraft.getInstance().font, entry);
                 int badgeStartX = rightEdge - bWidth;
 
-                if (button == 1 && onTokenInject != null) {
-                    // Right-click: inject mod name as token
+                if (isTokenInjectClick(button) && onTokenInject != null) {
+                    // Ctrl+right-click: inject mod name as token
                     onTokenInject.accept("@" + entry.id().getNamespace());
                 } else if (onModClick != null && button == 0 && mouseX >= badgeStartX && mouseX <= rightEdge) {
                     onModClick.accept("@" + entry.id().getNamespace());
@@ -721,10 +725,10 @@ public class ResultsTreeView {
                     onItemClick.accept(entry, button);
                 }
             } else {
-                // Group header: left-click to expand/collapse, right-click to inject category token
+                // Group header: left-click to expand/collapse, Ctrl+right-click to inject category token
                 if (button == 0) {
                     node.setExpanded(!node.isExpanded());
-                } else if (button == 1 && onTokenInject != null) {
+                } else if (isTokenInjectClick(button) && onTokenInject != null) {
                     onTokenInject.accept("$" + node.getKey());
                 }
             }
@@ -899,6 +903,13 @@ public class ResultsTreeView {
                             .withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE)));
                 }
             }
+        }
+
+        if (entry.type() == NodeType.ITEM) {
+            lines.add(Component.empty());
+            lines.add(Component.translatable("ami.gui.recipes_hint").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
+            lines.add(Component.translatable("ami.gui.uses_hint").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
+            lines.add(Component.translatable("ami.gui.mod_filter_hint").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
         }
 
         String keybindName = com.sanhiruzu.ami.client.AMIKeyMappings.DEBUG_TOOLTIPS.getTranslatedKeyMessage().getString();

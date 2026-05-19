@@ -262,9 +262,16 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (!com.sanhiruzu.ami.index.AmiIndexerService.getInstance().isReady() && currentResults.isEmpty() && currentQuery.isEmpty()) {
             net.minecraft.network.chat.Component msg = net.minecraft.network.chat.Component.translatable("ami.gui.background_indexing")
                     .withStyle(net.minecraft.ChatFormatting.GOLD);
-            int msgW = font.width(msg);
             int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
-            g.drawString(font, msg, x + (width - msgW) / 2, contentY + (contentH / 2) - 4, com.sanhiruzu.ami.client.AMITheme.WHITE, false);
+            int textMaxWidth = Math.max(32, width - (AMITheme.GLOBAL_PADDING * 4));
+            List<net.minecraft.util.FormattedCharSequence> lines = font.split(msg, textMaxWidth);
+            int blockH = lines.size() * font.lineHeight;
+            int drawY = contentY + Math.max(0, (contentH - blockH) / 2);
+            for (net.minecraft.util.FormattedCharSequence line : lines) {
+                int lineW = font.width(line);
+                g.drawString(font, line, x + (width - lineW) / 2, drawY, com.sanhiruzu.ami.client.AMITheme.WHITE, false);
+                drawY += font.lineHeight;
+            }
         } else {
             boolean dropdownOpen = toolbar.isAnyDropdownOpen();
             if (isGridActive()) {

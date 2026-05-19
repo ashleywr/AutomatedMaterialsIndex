@@ -1,13 +1,10 @@
 package com.sanhiruzu.ami.client.favorites;
 
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
+import com.sanhiruzu.ami.compat.EmiFavoritesBridge;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
-import dev.emi.emi.api.stack.EmiIngredient;
-import dev.emi.emi.api.stack.EmiStack;
-import dev.emi.emi.runtime.EmiFavorite;
-import dev.emi.emi.runtime.EmiFavorites;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -61,14 +58,7 @@ public class AmiFavoritesHandler {
     }
 
     private boolean isEmiFavorite(SearchNode node) {
-        ResourceLocation id = node.id();
-        for (EmiFavorite fav : EmiFavorites.favorites) {
-            EmiIngredient stack = fav.getStack();
-            if (stack instanceof EmiStack es) {
-                if (es.getId().equals(id)) return true;
-            }
-        }
-        return false;
+        return EmiFavoritesBridge.isFavorite(node.id());
     }
 
     public static ItemStack resolveStack(SearchNode node) {
@@ -96,7 +86,7 @@ public class AmiFavoritesHandler {
         localFavorites.add(id);
 
         if (ModList.get().isLoaded("emi")) {
-            EmiFavorites.addFavorite(EmiStack.of(stack));
+            EmiFavoritesBridge.addFavorite(stack);
         }
         notifyChange();
     }
@@ -108,12 +98,7 @@ public class AmiFavoritesHandler {
         localFavorites.add(id);
 
         if (ModList.get().isLoaded("emi")) {
-            EmiFavorites.removeFavorite(EmiStack.of(stack));
-            if (index < 0 || index > EmiFavorites.favorites.size()) {
-                EmiFavorites.addFavorite(EmiStack.of(stack));
-            } else {
-                EmiFavorites.addFavoriteAt(EmiStack.of(stack), index);
-            }
+            EmiFavoritesBridge.addFavoriteAt(stack, index);
         }
         notifyChange();
     }
@@ -134,7 +119,7 @@ public class AmiFavoritesHandler {
         localFavorites.remove(id);
 
         if (ModList.get().isLoaded("emi")) {
-            EmiFavorites.removeFavorite(EmiStack.of(stack));
+            EmiFavoritesBridge.removeFavorite(stack);
         }
         notifyChange();
     }
@@ -145,15 +130,11 @@ public class AmiFavoritesHandler {
 
         // 1. Add EMI favorites first to maintain their order
         if (ModList.get().isLoaded("emi")) {
-            for (EmiFavorite fav : EmiFavorites.favorites) {
-                EmiIngredient stack = fav.getStack();
-                if (stack instanceof EmiStack es) {
-                    ResourceLocation id = es.getId();
-                    GlobalIndex.getInstance().getNode(id).ifPresent(node -> {
-                        result.add(node);
-                        seen.add(id);
-                    });
-                }
+            for (ResourceLocation id : EmiFavoritesBridge.getFavoriteIds()) {
+                GlobalIndex.getInstance().getNode(id).ifPresent(node -> {
+                    result.add(node);
+                    seen.add(id);
+                });
             }
         }
 

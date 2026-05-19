@@ -1,13 +1,15 @@
 package com.sanhiruzu.ami.compat;
 
 class JeiSearchSyncBridge {
-    // JEI 19.27 does not expose search text sync through the public API
-    // This can be enhanced if JEI adds support in future versions
+    static boolean isAvailable() {
+        return JeiRuntimeAccessor.withRuntime(runtime -> runtime.getIngredientFilter() != null, false);
+    }
+
     static String getSearchText() {
-        return "";
+        return JeiRuntimeAccessor.withRuntime(runtime -> runtime.getIngredientFilter().getFilterText(), "");
     }
 
     static void setSearchText(String text) {
-        // Not supported in JEI 19.27 public API
+        JeiRuntimeAccessor.withRuntime(runtime -> runtime.getIngredientFilter().setFilterText(text));
     }
 }
