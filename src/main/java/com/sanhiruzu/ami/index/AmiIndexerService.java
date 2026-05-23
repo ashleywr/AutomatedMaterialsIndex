@@ -60,7 +60,10 @@ public final class AmiIndexerService {
         // 1. Core indexing of all standard types
         ProviderRegistry.indexAll(level);
 
-        // 2. Post-indexing tasks
+        // 2. Populate world/datapack-backed atlas types before we snapshot the search service.
+        ProviderRegistry.indexStructuresDeferred(level);
+
+        // 3. Post-indexing tasks
         if (AmiConfig.devMode) {
             ItemIconRenderer.auditMissingIcons();
         }

@@ -5,6 +5,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.providers.RegistryUtils;
 import com.sanhiruzu.ami.util.AmiClipboardHelper;
+import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -312,10 +313,13 @@ public class CommandPaletteWidget {
     }
 
     private List<Component> buildTooltip(SearchNode entry) {
-        List<Component> lines = new ArrayList<>();
-        lines.add(Component.literal(entry.displayName()).withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.WHITE)));
-        lines.add(Component.literal(entry.id().toString()).withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE)));
-        return lines;
+        if (entry.type() == NodeType.ITEM) {
+            List<Component> lines = new ArrayList<>();
+            lines.add(Component.literal(entry.displayName()).withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.WHITE)));
+            lines.add(Component.literal(entry.id().toString()).withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE)));
+            return lines;
+        }
+        return RendererRegistry.get(entry.type()).getTooltip(entry);
     }
 
     private boolean isCardHovered(int mouseX, int mouseY, int x, int y, int w) {

@@ -7,6 +7,7 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.*;
@@ -204,19 +205,14 @@ public final class SubtypeExpander {
             stack.set(DataComponents.FIREWORKS, fireworks);
 
             ResourceLocation syntheticId = syntheticId("firework_rocket", "minecraft", shape.name().toLowerCase());
-            result.add(new SubtypeEntry(syntheticId, stack, "Firework Rocket (" + friendlyShape(shape) + ")"));
+            result.add(new SubtypeEntry(syntheticId, stack, Component.translatable("ami.subtype.firework_rocket", friendlyShape(shape)).getString()));
         }
         return result;
     }
 
     private static String friendlyShape(FireworkExplosion.Shape shape) {
-        return switch (shape) {
-            case SMALL_BALL  -> "Small Ball";
-            case LARGE_BALL  -> "Large Ball";
-            case STAR        -> "Star";
-            case CREEPER     -> "Creeper";
-            case BURST       -> "Burst";
-        };
+        String key = "ami.subtype.shape." + shape.name().toLowerCase();
+        return Component.translatable(key).getString();
     }
 
     // ── Goat horns ───────────────────────────────────────────────────────────

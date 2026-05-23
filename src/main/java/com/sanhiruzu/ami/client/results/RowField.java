@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import net.minecraft.network.chat.Component;
 
 /**
  * Fields that can appear on the subtitle line of a list-view row.
@@ -9,41 +10,41 @@ import com.sanhiruzu.ami.index.SearchNodeKeys;
  */
 public enum RowField {
 
-    MOD_NAME("Mod") {
+    MOD_NAME(Component.translatable("ami.row_field.mod")) {
         @Override public String extract(SearchNode node) {
             return node.id().getNamespace();
         }
     },
 
-    ID("ID") {
+    ID(Component.translatable("ami.row_field.id")) {
         @Override public String extract(SearchNode node) {
             return node.id().toString();
         }
     },
 
-    TYPE("Type") {
+    TYPE(Component.translatable("ami.row_field.type")) {
         @Override public String extract(SearchNode node) {
             return node.type().displayName().getString();
         }
     },
 
-    STORAGE_CAPACITY("Storage") {
+    STORAGE_CAPACITY(Component.translatable("ami.row_field.storage")) {
         @Override public String extract(SearchNode node) {
             String cap = node.meta(SearchNodeKeys.ESM_CAPACITY, "");
-            return cap.isEmpty() ? "" : "[STR x" + cap + "]";
+            return cap.isEmpty() ? "" : Component.translatable("ami.row_field.storage_capacity", cap).getString();
         }
     },
 
-    DPS("DPS") {
+    DPS(Component.translatable("ami.row_field.dps")) {
         @Override public String extract(SearchNode node) {
             String dps = node.meta(SearchNodeKeys.DPS, "");
-            return dps.isEmpty() ? "" : dps + " DPS";
+            return dps.isEmpty() ? "" : Component.translatable("ami.row_field.dps_value", dps).getString();
         }
     };
 
-    public final String displayName;
+    public final Component displayName;
 
-    RowField(String displayName) {
+    RowField(Component displayName) {
         this.displayName = displayName;
     }
 

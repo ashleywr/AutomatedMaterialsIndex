@@ -1,9 +1,10 @@
 package com.sanhiruzu.ami.index.providers;
 
 import com.sanhiruzu.ami.index.*;
-import net.minecraft.world.level.Level;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.tags.BiomeTags;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,11 +36,13 @@ public class BiomeProvider implements IAmiDataProvider {
                 Map<String, String> meta = new HashMap<>();
                 meta.put(SearchNodeKeys.MOD_ID, id.getNamespace());
                 meta.put(SearchNodeKeys.DIMENSION, dimension);
+                meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, AmiOntology.ENVIRONMENT.id);
+                meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "biomes");
                 meta.put(SearchNodeKeys.TEMPERATURE, String.format("%.3f", temperature));
 
                 nodes.add(new SearchNode(
                     id, NodeType.BIOME,
-                    RegistryUtils.formatPath(id.getPath()),
+                    Component.translatable("ami.gui.biome_suffix", RegistryUtils.formatPath(id.getPath())).getString(),
                     0xFF000000 | waterColor, 0, meta));
             })
         );

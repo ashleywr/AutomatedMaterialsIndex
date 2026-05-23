@@ -1,11 +1,22 @@
 package com.sanhiruzu.ami.compat;
 
-import com.sanhiruzu.ami.AMIConfig;
 import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
 
 public class RecipeViewerBridge {
+
+    private static boolean recipeViewActive = false;
+
+    /** True when EMI/JEI is currently displaying a recipe view triggered by AMI. */
+    public static boolean isRecipeViewActive() { return recipeViewActive; }
+
+    /** Called to notify that the recipe view has been dismissed. */
+    public static void clearRecipeView() { recipeViewActive = false; }
+
+    private static void markRecipeViewActive() {
+        recipeViewActive = true;
+    }
 
     public static boolean isAvailable() {
         return ModList.get().isLoaded("emi") || ModList.get().isLoaded("jei");
@@ -106,12 +117,13 @@ public class RecipeViewerBridge {
 
         if (button == 1) {
             // Right-click always opens uses regardless of config
+            markRecipeViewActive();
             openUses(stack);
             return;
         }
         switch (AmiConfig.itemClickAction) {
-            case RECIPES -> openRecipes(stack);
-            case USES    -> openUses(stack);
+            case RECIPES -> { markRecipeViewActive(); openRecipes(stack); }
+            case USES    -> { markRecipeViewActive(); openUses(stack); }
             case NONE    -> {}
         }
     }
@@ -131,8 +143,7 @@ public class RecipeViewerBridge {
     }
 
     public static java.util.List<ItemStack> getCraftables() {
-        if (ModList.get().isLoaded("emi")) return EmiRecipeBridge.getCraftables();
-        return java.util.List.of();
+        return VanillaCraftablesService.getCraftables();
     }
 
     public static java.util.List<ItemStack> getLookupHistory() {

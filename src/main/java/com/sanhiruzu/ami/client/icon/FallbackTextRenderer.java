@@ -1,7 +1,9 @@
 package com.sanhiruzu.ami.client.icon;
 
+import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.util.AmiWorldTooltipComposer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -17,15 +19,16 @@ public class FallbackTextRenderer implements IIconRenderer {
 
     /** Static helper so other renderers can delegate without holding an instance. */
     public static void renderFallback(GuiGraphics g, SearchNode node, int x, int y, int size) {
-        int bg = AmiConfig.devMode ? 0xFFAA1100 : bgFor(node);
+        int bg = AmiConfig.devMode ? AMITheme.FALLBACK_BG_DEV : bgFor(node);
         g.fill(x, y, x + size, y + size, bg);
 
-        String letter = node.displayName().isEmpty() ? "?"
+        String letter = node.displayName().isEmpty()
+                ? Component.translatable("ami.tooltip.fallback_unknown").getString()
                 : node.displayName().substring(0, 1).toUpperCase();
         var font = Minecraft.getInstance().font;
         int textX = x + (size - font.width(letter)) / 2;
         int textY = y + (size - font.lineHeight) / 2;
-        g.drawString(font, letter, textX, textY, 0xFFFFFFFF, false);
+        g.drawString(font, letter, textX, textY, AMITheme.WHITE, false);
     }
 
     private static int bgFor(SearchNode node) {
@@ -36,23 +39,20 @@ public class FallbackTextRenderer implements IIconRenderer {
             int r = Math.max(0, ((c >> 16) & 0xFF) - 60);
             int gv = Math.max(0, ((c >> 8) & 0xFF) - 60);
             int b = Math.max(0, (c & 0xFF) - 60);
-            return 0xFF000000 | (r << 16) | (gv << 8) | b;
+            return AMITheme.BLACK | (r << 16) | (gv << 8) | b;
         }
         return switch (node.type()) {
-            case ENTITY    -> 0xFF1A2020;
-            case PLAYER    -> 0xFF1A1A30;
-            case BIOME     -> 0xFF1A2A1A;
-            case STRUCTURE -> 0xFF2A2A14;
-            case DIMENSION -> 0xFF201020;
-            default        -> 0xFF1E1E1E;
+            case ENTITY    -> AMITheme.FALLBACK_BG_ENTITY;
+            case PLAYER    -> AMITheme.FALLBACK_BG_PLAYER;
+            case BIOME     -> AMITheme.FALLBACK_BG_BIOME;
+            case STRUCTURE -> AMITheme.FALLBACK_BG_STRUCTURE;
+            case DIMENSION -> AMITheme.FALLBACK_BG_DIMENSION;
+            default        -> AMITheme.FALLBACK_BG_DEFAULT;
         };
     }
 
     @Override
     public List<Component> getTooltip(SearchNode node) {
-        return List.of(
-                Component.literal(node.displayName()),
-                Component.literal(node.id().toString()).withStyle(s -> s.withColor(0x666666))
-        );
+        return AmiWorldTooltipComposer.build(node);
     }
 }

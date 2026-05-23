@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.client.icon;
 
+import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.client.Minecraft;
@@ -28,7 +29,7 @@ public class PlayerFaceRenderer implements IIconRenderer {
         }
 
         // 1px border
-        g.fill(x - 1, y - 1, x + size + 1, y + size + 1, 0xFF888888);
+        g.fill(x - 1, y - 1, x + size + 1, y + size + 1, AMITheme.ENTITY_CATEGORY_COLOR);
 
         // Skin face region: 8×8 at UV (8, 8) in a 64×64 texture.
         // Scale using the pose matrix so every pixel maps cleanly.
@@ -66,7 +67,7 @@ public class PlayerFaceRenderer implements IIconRenderer {
     public List<Component> getTooltip(SearchNode node) {
         return List.of(
                 Component.literal(node.displayName()),
-                Component.literal("Player").withStyle(s -> s.withColor(0x5555FF))
+                Component.translatable("ami.tooltip.player_subtitle").withStyle(s -> s.withColor(AMITheme.ENTITY_PLAYER_TEXT))
         );
     }
 }

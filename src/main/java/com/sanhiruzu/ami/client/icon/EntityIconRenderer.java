@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.client.icon;
 
+import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.StatIconRowTooltipComponent;
@@ -33,11 +34,6 @@ public class EntityIconRenderer implements IIconRenderer {
 
     private static final Map<ResourceLocation, LivingEntity> entityCache = new HashMap<>();
 
-    /** Proxy item icons for non-LivingEntity entities that can't be rendered as 3D mobs. */
-    private static final Map<ResourceLocation, ResourceLocation> PROXY_ITEMS = Map.of(
-        ResourceLocation.withDefaultNamespace("experience_orb"), ResourceLocation.withDefaultNamespace("experience_bottle")
-    );
-
     @Override
     public void render(GuiGraphics g, SearchNode node, int x, int y, int size) {
         if (size < 12) {
@@ -47,7 +43,7 @@ public class EntityIconRenderer implements IIconRenderer {
 
         LivingEntity entity = resolveEntity(node.id());
         if (entity == null) {
-            ResourceLocation proxyId = PROXY_ITEMS.get(node.id());
+            ResourceLocation proxyId = resolveProxyItemId(node.id());
             if (proxyId != null) {
                 ItemStack proxy = BuiltInRegistries.ITEM.getOptional(proxyId).map(ItemStack::new).orElse(ItemStack.EMPTY);
                 if (!proxy.isEmpty()) {
@@ -73,6 +69,27 @@ public class EntityIconRenderer implements IIconRenderer {
         Quaternionf cameraOrient = new Quaternionf().rotateZ((float) Math.PI);
         InventoryScreen.renderEntityInInventory(g, cx, cy, scale,
                 new Vector3f(0f, 0f, 0f), cameraOrient, null, entity);
+    }
+
+    private static ResourceLocation resolveProxyItemId(ResourceLocation entityId) {
+        String path = entityId.getPath();
+
+        return switch (path) {
+            case "experience_orb" -> ResourceLocation.withDefaultNamespace("experience_bottle");
+            case "minecart" -> ResourceLocation.withDefaultNamespace("minecart");
+            case "chest_minecart" -> ResourceLocation.withDefaultNamespace("chest_minecart");
+            case "furnace_minecart" -> ResourceLocation.withDefaultNamespace("furnace_minecart");
+            case "tnt_minecart" -> ResourceLocation.withDefaultNamespace("tnt_minecart");
+            case "hopper_minecart" -> ResourceLocation.withDefaultNamespace("hopper_minecart");
+            case "command_block_minecart" -> ResourceLocation.withDefaultNamespace("command_block_minecart");
+            case "spawner_minecart" -> ResourceLocation.withDefaultNamespace("spawner_minecart");
+            case "oak_boat", "spruce_boat", "birch_boat", "jungle_boat", "acacia_boat",
+                 "cherry_boat", "dark_oak_boat", "mangrove_boat", "bamboo_raft",
+                 "oak_chest_boat", "spruce_chest_boat", "birch_chest_boat",
+                 "jungle_chest_boat", "acacia_chest_boat", "cherry_chest_boat",
+                 "dark_oak_chest_boat", "mangrove_chest_boat", "bamboo_chest_raft" -> ResourceLocation.withDefaultNamespace(path);
+            default -> null;
+        };
     }
 
     private static LivingEntity resolveEntity(ResourceLocation id) {
@@ -104,18 +121,18 @@ public class EntityIconRenderer implements IIconRenderer {
     public List<Component> getTooltip(SearchNode node) {
         List<Component> lines = new ArrayList<>();
         lines.add(Component.literal(node.displayName()));
-        lines.add(Component.literal(node.id().toString()).withStyle(s -> s.withColor(0x666666)));
+        lines.add(Component.literal(node.id().toString()).withStyle(s -> s.withColor(AMITheme.ENTITY_ID_COLOR)));
 
         String category = node.meta(SearchNodeKeys.ENTITY_CATEGORY, "");
         if (!category.isEmpty()) {
             lines.add(Component.translatable("ami.tooltip.category")
                     .append(": ").append(formatCategoryComponent(category))
-                    .withStyle(s -> s.withColor(0x888888)));
+                    .withStyle(s -> s.withColor(AMITheme.ENTITY_CATEGORY_COLOR)));
         }
 
         String traits = node.meta(SearchNodeKeys.ENTITY_TRAITS, "");
         if (!traits.isEmpty()) {
-            lines.add(Component.literal(formatTraits(traits)).withStyle(s -> s.withColor(0x55FFFF)));
+            lines.add(Component.literal(formatTraits(traits)).withStyle(s -> s.withColor(AMITheme.ENTITY_TRAITS_COLOR)));
         }
 
         return lines;
@@ -154,7 +171,7 @@ public class EntityIconRenderer implements IIconRenderer {
             ItemStack sword = new ItemStack(BuiltInRegistries.ITEM
                     .getOptional(ResourceLocation.withDefaultNamespace("iron_sword"))
                     .orElse(Items.AIR));
-            return new StatIconRowTooltipComponent(sword, dmg + " dmg", 0xFFFF5555);
+            return new StatIconRowTooltipComponent(sword, Component.translatable("ami.tooltip.entity.damage", dmg).getString(), AMITheme.ENTITY_DAMAGE_COLOR);
         } catch (NumberFormatException e) {
             return null;
         }
@@ -197,6 +214,10 @@ public class EntityIconRenderer implements IIconRenderer {
 
         for (SearchNode node : GlobalIndex.getInstance().getNodes(NodeType.ENTITY)) {
             String base = node.id() + "  (" + node.displayName() + ")";
+
+            if (resolveProxyItemId(node.id()) != null) {
+                continue;
+            }
 
             if (mc.level == null) {
                 missing.add(base + "  [no level]");

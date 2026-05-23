@@ -107,6 +107,7 @@ public class SearchState {
 
     public ResultsToolbar.ViewMode getViewMode() { return viewMode; }
     public void setViewMode(ResultsToolbar.ViewMode viewMode) {
+        if (this.viewMode == viewMode) return;
         this.viewMode = viewMode;
         notifyListeners();
     }

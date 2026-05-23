@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.index;
 
+import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -31,10 +32,22 @@ public class GroupingEngine {
 
     private static final String[] STATE_PREFIXES = {"cooked_", "raw_", "roasted_"};
     private static final String[] FAMILY_PREFIXES = {"stripped_", "waxed_", "exposed_", "weathered_", "oxidized_", "chiseled_", "cut_", "smooth_", "cracked_", "polished_"};
-
+    private static final Set<String> DYNAMIC_SHAPE_STOPWORDS = Set.of(
+            "item", "items", "block", "blocks", "ore", "ingot", "dust", "nugget", "plate", "gem",
+            "chunk", "shard", "piece", "material", "essence", "seed", "seeds", "part", "parts",
+            "blue", "red", "green", "gray", "grey", "light", "dark", "white", "black", "brown",
+            "yellow", "purple", "orange", "pink", "cyan", "magenta", "lime"
+    );
+    private static final Set<String> KNOWN_SHAPE_TERMS = Set.of(
+            "stairs", "stair", "slab", "slabs", "wall", "walls", "fence", "fences", "gate", "gates",
+            "door", "doors", "trapdoor", "trapdoors", "sign", "signs", "button", "buttons",
+            "bucket", "buckets", "boat", "boats", "torch", "torches", "pane", "panes",
+            "sapling", "saplings", "carpet", "carpets"
+    );
     // Dynamic discovery state
     private static final Map<Item, Item> STONECUTTER_MAP = new HashMap<>();
     private static final Set<String> DYNAMIC_SHAPE_KEYWORDS = new HashSet<>();
+    private static final Set<String> APPROVED_DYNAMIC_SHAPES = new HashSet<>();
 
     /**
      * Order for shape grouping: blocks and logical items first, "unknown" item last.
@@ -51,6 +64,7 @@ public class GroupingEngine {
     public static void initialize(net.minecraft.world.level.Level level) {
         STONECUTTER_MAP.clear();
         DYNAMIC_SHAPE_KEYWORDS.clear();
+        APPROVED_DYNAMIC_SHAPES.clear();
 
         // 1. Dynamic Color Discovery: scan for modded color tags (c:dyes/*)
         Set<String> discoveredColors = new HashSet<>(COLOR_BUCKETS);
@@ -109,6 +123,43 @@ public class GroupingEngine {
         }
     }
 
+    public static void rebuildDynamicShapeCandidates(Iterable<Item> items) {
+        List<ResourceLocation> ids = new ArrayList<>();
+        for (Item item : items) {
+            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+            if (id != null) ids.add(id);
+        }
+        rebuildDynamicShapeCandidatesFromIds(ids);
+    }
+
+    public static void rebuildDynamicShapeCandidatesFromIds(Iterable<ResourceLocation> ids) {
+        Map<String, Integer> tokenCount = new HashMap<>();
+        Map<String, Set<String>> tokenMods = new HashMap<>();
+
+        for (ResourceLocation id : ids) {
+            if (id == null || "minecraft".equals(id.getNamespace())) continue;
+            String token = extractTrailingToken(id.getPath());
+            if (token == null) continue;
+            if (DYNAMIC_SHAPE_STOPWORDS.contains(token)) continue;
+            if (KNOWN_SHAPE_TERMS.contains(token)) continue;
+
+            tokenCount.merge(token, 1, Integer::sum);
+            tokenMods.computeIfAbsent(token, ignored -> new HashSet<>()).add(id.getNamespace());
+        }
+
+        APPROVED_DYNAMIC_SHAPES.clear();
+        for (Map.Entry<String, Integer> entry : tokenCount.entrySet()) {
+            String token = entry.getKey();
+            int count = entry.getValue();
+            int spread = tokenMods.getOrDefault(token, Set.of()).size();
+            int minCount = Math.max(1, AmiConfig.dynamicShapeMinCount);
+            int minSpread = Math.max(1, AmiConfig.dynamicShapeMinModSpread);
+            if (count >= minCount && spread >= minSpread) {
+                APPROVED_DYNAMIC_SHAPES.add(token);
+            }
+        }
+    }
+
     public static Map<String, List<ItemStack>> groupByShape(List<ItemStack> items) {
         Map<String, List<ItemStack>> groups = new LinkedHashMap<>();
         for (ItemStack stack : items) {
@@ -141,6 +192,10 @@ public class GroupingEngine {
             if (s.is(BlockTags.SIGNS) || s.is(BlockTags.ALL_HANGING_SIGNS)) return "signs";
             if (s.is(BlockTags.BEDS)) return "beds";
             if (s.is(BlockTags.RAILS)) return "rails";
+
+            String dynamic = classifyDynamicModShape(stack);
+            if (dynamic != null) return dynamic;
+
             try {
                 if (s.isCollisionShapeFullBlock(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, net.minecraft.core.BlockPos.ZERO)) {
                     return "cube";
@@ -148,6 +203,8 @@ public class GroupingEngine {
             } catch (Exception ignored) {}
             return "block";
         }
+        String dynamic = classifyDynamicModShape(stack);
+        if (dynamic != null) return dynamic;
         return "item";
     }
 
@@ -390,6 +447,40 @@ public class GroupingEngine {
             idx = path.indexOf(token, idx + 1);
         }
         return false;
+    }
+
+    private static String classifyDynamicModShape(ItemStack stack) {
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (id == null || "minecraft".equals(id.getNamespace())) return null;
+
+        Optional<String> fromTag = stack.getTags()
+                .map(TagKey::location)
+                .filter(loc -> "c".equals(loc.getNamespace()))
+                .map(ResourceLocation::getPath)
+                .filter(path -> path.startsWith("shapes/"))
+                .map(path -> path.substring("shapes/".length()))
+                .filter(shape -> !shape.isBlank())
+                .findFirst();
+        if (fromTag.isPresent()) return fromTag.get();
+
+        return classifyDynamicShapeFromPath(id.getPath());
+    }
+
+    private static String classifyDynamicShapeFromPath(String path) {
+        String trailing = extractTrailingToken(path);
+        if (trailing == null) return null;
+        return APPROVED_DYNAMIC_SHAPES.contains(trailing) ? trailing : null;
+    }
+
+    private static String extractTrailingToken(String path) {
+        String normalized = path == null ? "" : path.trim().toLowerCase(Locale.ROOT);
+        if (normalized.isEmpty()) return null;
+        String[] tokens = normalized.split("_");
+        if (tokens.length < 2) return null;
+        String trailing = tokens[tokens.length - 1];
+        if (trailing.length() < 2) return null;
+        if (COLOR_BUCKETS.contains(trailing)) return null;
+        return trailing;
     }
 
     private static TagKey<Item> itemTag(String namespace, String path) {

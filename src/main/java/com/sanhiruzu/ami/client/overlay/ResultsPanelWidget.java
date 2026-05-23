@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client.overlay;
 
 import com.sanhiruzu.ami.client.UniversalResultsPanel;
+import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
@@ -11,6 +12,9 @@ public class ResultsPanelWidget extends AbstractWidget {
     private java.util.function.Consumer<String> modClickCallback;
     private Runnable resetCallback;
     private java.util.function.Consumer<String> tokenInjectCallback;
+    private Runnable modeToggleCallback;
+    private java.util.function.BooleanSupplier modeToggleActive;
+    private AmiConfig.PanelContent contentType = AmiConfig.PanelContent.GRID;
 
     public ResultsPanelWidget() {
         super(0, 0, 0, 0, Component.empty());
@@ -31,6 +35,17 @@ public class ResultsPanelWidget extends AbstractWidget {
         if (panel != null) panel.setOnTokenInject(callback);
     }
 
+    public void setOnModeToggle(Runnable callback, java.util.function.BooleanSupplier activeSupplier) {
+        this.modeToggleCallback = callback;
+        this.modeToggleActive = activeSupplier;
+        if (panel != null) panel.setOnModeToggle(callback, activeSupplier);
+    }
+
+    public void setContentType(AmiConfig.PanelContent contentType) {
+        this.contentType = contentType;
+        if (panel != null) panel.configureView(contentType);
+    }
+
     public void updateBounds(WidgetBounds bounds) {
         setX(bounds.x());
         setY(bounds.y());
@@ -42,8 +57,11 @@ public class ResultsPanelWidget extends AbstractWidget {
             if (modClickCallback != null) panel.setOnModClick(modClickCallback);
             if (resetCallback != null) panel.setOnReset(resetCallback);
             if (tokenInjectCallback != null) panel.setOnTokenInject(tokenInjectCallback);
+            if (modeToggleCallback != null) panel.setOnModeToggle(modeToggleCallback, modeToggleActive);
+            panel.configureView(contentType);
         } else {
             panel.updateLayout(bounds.x(), bounds.y(), bounds.width(), bounds.height());
+            panel.configureView(contentType);
         }
     }
 
@@ -65,7 +83,7 @@ public class ResultsPanelWidget extends AbstractWidget {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (panel == null) return false;
+        if (panel == null || !this.visible) return false;
         if (!isMouseOver(mouseX, mouseY)) return false;
         panel.mouseClickedScrollbar(mouseX, mouseY, button);
         panel.mouseClicked(mouseX, mouseY, button);

@@ -7,14 +7,14 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 @OnlyIn(Dist.CLIENT)
-class JeiRuntimeAccessor {
+public class JeiRuntimeAccessor {
     private static IJeiRuntime runtime;
 
-    static void setRuntime(IJeiRuntime jeiRuntime) {
+    public static void setRuntime(IJeiRuntime jeiRuntime) {
         runtime = jeiRuntime;
     }
 
-    static <T> T withRuntime(Function<IJeiRuntime, T> action, T defaultValue) {
+    public static <T> T withRuntime(Function<IJeiRuntime, T> action, T defaultValue) {
         if (runtime != null) {
             try {
                 return action.apply(runtime);
@@ -25,12 +25,11 @@ class JeiRuntimeAccessor {
         return defaultValue;
     }
 
-    static void withRuntime(Consumer<IJeiRuntime> action) {
+    public static void withRuntime(Consumer<IJeiRuntime> action) {
         if (runtime != null) {
             try {
                 action.accept(runtime);
             } catch (Exception e) {
-                // Silently continue
             }
         }
     }

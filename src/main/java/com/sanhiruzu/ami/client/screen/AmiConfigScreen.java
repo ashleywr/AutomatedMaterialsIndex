@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.client.screen;
 
+import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.config.ConfigValue;
 import com.sanhiruzu.ami.config.ConfigGroup;
@@ -12,8 +13,12 @@ import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Tooltip;
+import net.neoforged.fml.ModList;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -54,6 +59,16 @@ public class AmiConfigScreen extends Screen {
         searchBox = new EditBox(this.font, width / 2 - 50, 10, 150, 20, Component.translatable("ami.config.search_placeholder"));
         searchBox.setResponder(this::onSearchChanged);
         this.addRenderableWidget(searchBox);
+
+        // EMI config shortcut — use reflection to avoid a hard class reference when EMI is absent
+        if (ModList.get().isLoaded("emi")) {
+            this.addRenderableWidget(Button.builder(Component.translatable("ami.config.emi_config"), b -> {
+                try {
+                    Class<?> cls = Class.forName("dev.emi.emi.screen.ConfigScreen");
+                    this.minecraft.setScreen((Screen) cls.getConstructor(Screen.class).newInstance(this));
+                } catch (Exception ignored) {}
+            }).bounds(width - 110, 10, 100, 20).build());
+        }
 
         // Scrolling List - 66% width
         list = new ConfigList(this.minecraft, width, height - 70, 40, 25);
@@ -141,10 +156,15 @@ public class AmiConfigScreen extends Screen {
                 if (query.isEmpty() || groupText.getString().toLowerCase().contains(query)) {
                     list.addEntry(list.new HeaderEntry(groupText));
                 }
+                if ("sidepanels".equals(group.value())) {
+                    if (query.isEmpty() || sidePanelEditorMatches(query)) {
+                        addSidePanelEditorEntries();
+                    }
+                }
             }
 
             ConfigValue value = field.getAnnotation(ConfigValue.class);
-            if (value != null) {
+            if (value != null && !isSidePanelField(field)) {
                 String valueKey = "ami.config.value." + value.value();
                 Component valueText = Component.translatable(valueKey);
                 if (query.isEmpty() || valueText.getString().toLowerCase().contains(query)) {
@@ -175,11 +195,117 @@ public class AmiConfigScreen extends Screen {
         }
     }
 
+    private void addSidePanelEditorEntries() {
+        list.addEntry(list.new PanelTitleEntry(Component.translatable("ami.config.panel.left")));
+        list.addEntry(list.new SidePanelWidthEntry(Component.translatable("ami.config.panel.width"), field("leftPanelWidth")));
+        list.addEntry(list.new PanelSubheaderEntry(Component.translatable("ami.config.panel.normal_view")));
+        addSlotListEntries(field("leftPanelSlots"));
+        list.addEntry(list.new PanelSubheaderEntry(Component.translatable("ami.config.panel.toggled_view")));
+        addSlotListEntries(field("leftPanelAlternateSlots"));
+
+        list.addEntry(list.new PanelTitleEntry(Component.translatable("ami.config.panel.right")));
+        list.addEntry(list.new SidePanelWidthEntry(Component.translatable("ami.config.panel.width"), field("rightPanelWidth")));
+        list.addEntry(list.new PanelSubheaderEntry(Component.translatable("ami.config.panel.normal_view")));
+        addSlotListEntries(field("rightPanelSlots"));
+        list.addEntry(list.new PanelSubheaderEntry(Component.translatable("ami.config.panel.toggled_view")));
+        addSlotListEntries(field("rightPanelAlternateSlots"));
+    }
+
+    private void addSlotListEntries(Field slotsField) {
+        List<AmiConfig.PanelContent> slots = readSlots(slotsField);
+        if (slots.isEmpty()) {
+            list.addEntry(list.new PanelEmptySlotsEntry(Component.translatable("ami.config.panel.no_slots")));
+        }
+        for (int i = 0; i < slots.size(); i++) {
+            list.addEntry(list.new PanelSlotEntry(Component.translatable("ami.config.panel.slot", i + 1), slotsField, i));
+        }
+        list.addEntry(list.new PanelAddSlotEntry(Component.translatable("ami.config.panel.add_slot"), slotsField));
+    }
+
+    private static List<AmiConfig.PanelContent> readSlots(Field field) {
+        try {
+            return new ArrayList<>(AmiConfig.parsePanelSlots((String) field.get(null)));
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
+    private static void writeSlots(Field field, List<AmiConfig.PanelContent> slots) {
+        try {
+            field.set(null, AmiConfig.encodePanelSlots(slots));
+        } catch (Exception ignored) {
+        }
+    }
+
+    private Field field(String name) {
+        try {
+            return AmiConfig.class.getField(name);
+        } catch (NoSuchFieldException e) {
+            throw new IllegalStateException("Missing AmiConfig field " + name, e);
+        }
+    }
+
+    private boolean isSidePanelField(Field field) {
+        ConfigValue value = field.getAnnotation(ConfigValue.class);
+        return value != null && value.value().startsWith("sidepanels.");
+    }
+
+    private boolean sidePanelEditorMatches(String query) {
+        if ("side panels left right normal toggled toggle slot favorites craftables results grid list compact empty quests history width".contains(query)) {
+            return true;
+        }
+        for (AmiConfig.PanelContent content : AmiConfig.PanelContent.values()) {
+            if (panelContentLabel(content).toLowerCase(Locale.ROOT).contains(query)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String panelContentLabel(AmiConfig.PanelContent content) {
+        String key = switch (content) {
+            case GRID -> "ami.config.panel.results_grid";
+            case LIST -> "ami.config.panel.results_list";
+            case COMPACT -> "ami.config.panel.results_compact";
+            case FAVORITES -> "ami.gui.favorites";
+            case LOOKUP_HISTORY -> "ami.gui.sidebar.lookup_history";
+            case CRAFTING_HISTORY -> "ami.gui.sidebar.crafting_history";
+            case CRAFTABLE -> "ami.gui.sidebar.craftable";
+            case QUESTS -> "ami.gui.sidebar.quests";
+            case EMPTY -> "ami.gui.sidebar.empty";
+            default -> null;
+        };
+        if (key != null) return Component.translatable(key).getString();
+        String raw = content.name().toLowerCase(Locale.ROOT).replace('_', ' ');
+        StringBuilder out = new StringBuilder(raw.length());
+        boolean cap = true;
+        for (int i = 0; i < raw.length(); i++) {
+            char c = raw.charAt(i);
+            out.append(cap ? Character.toUpperCase(c) : c);
+            cap = c == ' ';
+        }
+        return out.toString();
+    }
+
+    private static AmiConfig.PanelContent[] selectablePanelContents() {
+        return new AmiConfig.PanelContent[]{
+                AmiConfig.PanelContent.EMPTY,
+                AmiConfig.PanelContent.FAVORITES,
+                AmiConfig.PanelContent.GRID,
+                AmiConfig.PanelContent.LIST,
+                AmiConfig.PanelContent.COMPACT,
+                AmiConfig.PanelContent.LOOKUP_HISTORY,
+                AmiConfig.PanelContent.CRAFTING_HISTORY,
+                AmiConfig.PanelContent.CRAFTABLE,
+                AmiConfig.PanelContent.QUESTS
+        };
+    }
+
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         super.render(g, mouseX, mouseY, partialTick);
-        g.drawString(this.font, "AUTOMATED", 10, 8, 0xFFFFAA00);
-        g.drawString(this.font, "MATERIALS INDEX", 10, 18, 0xFFFFFFFF);
+        g.drawString(this.font, Component.translatable("ami.config.brand_top"), 10, 8, AMITheme.CONFIG_BRAND_GOLD);
+        g.drawString(this.font, Component.translatable("ami.config.brand_bottom"), 10, 18, AMITheme.CONFIG_TEXT_PRIMARY);
     }
 
     @Override
@@ -221,11 +347,218 @@ public class AmiConfigScreen extends Screen {
 
             @Override
             public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
-                g.drawCenteredString(AmiConfigScreen.this.font, text, x + width / 2, y + 5, 0xFFFFAA00);
+                g.drawCenteredString(AmiConfigScreen.this.font, text, x + width / 2, y + 5, AMITheme.CONFIG_HEADER_GOLD);
             }
 
             @Override
             public Component getNarration() { return text; }
+        }
+
+        class PanelTitleEntry extends ConfigEntry {
+            private final Component text;
+
+            PanelTitleEntry(Component text) {
+                this.text = text;
+            }
+
+            @Override
+            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
+                g.drawString(AmiConfigScreen.this.font, text, x + 5, y + 6, AMITheme.CONFIG_PANEL_TITLE, false);
+            }
+
+            @Override
+            public Component getNarration() { return text; }
+        }
+
+        class PanelSubheaderEntry extends ConfigEntry {
+            private final Component text;
+
+            PanelSubheaderEntry(Component text) {
+                this.text = text;
+            }
+
+            @Override
+            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
+                g.drawString(AmiConfigScreen.this.font, text, x + 14, y + 6, AMITheme.CONFIG_TEXT_SECONDARY, false);
+            }
+
+            @Override
+            public Component getNarration() { return text; }
+        }
+
+        class PanelEmptySlotsEntry extends ConfigEntry {
+            private final Component label;
+
+            PanelEmptySlotsEntry(Component label) {
+                this.label = label;
+            }
+
+            @Override
+            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
+                g.drawString(AmiConfigScreen.this.font, label, x + 28, y + 6, AMITheme.CONFIG_TEXT_MUTED, false);
+            }
+
+            @Override
+            public Component getNarration() { return label; }
+        }
+
+        class PanelSlotEntry extends ConfigEntry {
+            private final Component label;
+            private final Field field;
+            private final int slotIndex;
+            private final Button button;
+            private final Button removeButton;
+
+            PanelSlotEntry(Component label, Field field, int slotIndex) {
+                this.label = label;
+                this.field = field;
+                this.slotIndex = slotIndex;
+                this.button = Button.builder(currentMessage(), b -> cycle()).bounds(0, 0, 130, 18).build();
+                this.removeButton = Button.builder(Component.translatable("ami.config.panel.remove_slot"), b -> remove()).bounds(0, 0, 20, 18).build();
+            }
+
+            private Component currentMessage() {
+                List<AmiConfig.PanelContent> slots = readSlots(field);
+                if (slotIndex < 0 || slotIndex >= slots.size()) return Component.literal("?");
+                return Component.literal(panelContentLabel(slots.get(slotIndex)));
+            }
+
+            private void cycle() {
+                List<AmiConfig.PanelContent> slots = readSlots(field);
+                if (slotIndex < 0 || slotIndex >= slots.size()) return;
+                AmiConfig.PanelContent current = slots.get(slotIndex);
+                AmiConfig.PanelContent[] values = selectablePanelContents();
+                int next = 0;
+                for (int i = 0; i < values.length; i++) {
+                    if (values[i] == current) {
+                        next = (i + 1) % values.length;
+                        break;
+                    }
+                }
+                slots.set(slotIndex, values[next]);
+                writeSlots(field, slots);
+                button.setMessage(currentMessage());
+                AmiConfigScreen.this.buildConfigUI();
+                AmiConfigScreen.this.updateButtonStates();
+            }
+
+            private void remove() {
+                List<AmiConfig.PanelContent> slots = readSlots(field);
+                if (slotIndex >= 0 && slotIndex < slots.size()) {
+                    slots.remove(slotIndex);
+                    writeSlots(field, slots);
+                    AmiConfigScreen.this.buildConfigUI();
+                    AmiConfigScreen.this.updateButtonStates();
+                }
+            }
+
+            @Override
+            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
+                g.drawString(AmiConfigScreen.this.font, label, x + 28, y + 6, AMITheme.CONFIG_TEXT_PRIMARY, false);
+                removeButton.setX(x + width - 22);
+                removeButton.setY(y + 3);
+                removeButton.setWidth(20);
+                removeButton.setHeight(18);
+                removeButton.render(g, mouseX, mouseY, partialTick);
+
+                button.setX(x + width - 157);
+                button.setY(y + 3);
+                button.setWidth(130);
+                button.setHeight(18);
+                button.setMessage(currentMessage());
+                button.render(g, mouseX, mouseY, partialTick);
+            }
+
+            @Override
+            public boolean mouseClicked(double mouseX, double mouseY, int button) {
+                if (this.removeButton.mouseClicked(mouseX, mouseY, button)) return true;
+                if (this.button.mouseClicked(mouseX, mouseY, button)) return true;
+                return super.mouseClicked(mouseX, mouseY, button);
+            }
+
+            @Override
+            public Component getNarration() { return label.copy().append(": ").append(currentMessage()); }
+        }
+
+        class PanelAddSlotEntry extends ConfigEntry {
+            private final Component label;
+            private final Field field;
+            private final Button button;
+
+            PanelAddSlotEntry(Component label, Field field) {
+                this.label = label;
+                this.field = field;
+                this.button = Button.builder(label, b -> addSlot()).bounds(0, 0, 130, 18).build();
+            }
+
+            private void addSlot() {
+                List<AmiConfig.PanelContent> slots = readSlots(field);
+                slots.add(AmiConfig.PanelContent.EMPTY);
+                writeSlots(field, slots);
+                AmiConfigScreen.this.buildConfigUI();
+                AmiConfigScreen.this.updateButtonStates();
+            }
+
+            @Override
+            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
+                button.setX(x + 28);
+                button.setY(y + 3);
+                button.setWidth(130);
+                button.setHeight(18);
+                button.render(g, mouseX, mouseY, partialTick);
+            }
+
+            @Override
+            public boolean mouseClicked(double mouseX, double mouseY, int button) {
+                if (this.button.mouseClicked(mouseX, mouseY, button)) return true;
+                return super.mouseClicked(mouseX, mouseY, button);
+            }
+
+            @Override
+            public Component getNarration() { return label; }
+        }
+
+        class SidePanelWidthEntry extends ConfigEntry {
+            private final Component label;
+            private final Field field;
+            private final AbstractWidget widget;
+
+            SidePanelWidthEntry(Component label, Field field) {
+                this.label = label;
+                this.field = field;
+                this.widget = AmiWidgetFactory.createWidget(field, o -> AmiConfigScreen.this.updateButtonStates());
+            }
+
+            @Override
+            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
+                g.drawString(AmiConfigScreen.this.font, label, x + 14, y + 6, AMITheme.CONFIG_TEXT_PRIMARY, false);
+                if (widget != null) {
+                    widget.setX(x + width - 77);
+                    widget.setY(y + 3);
+                    widget.render(g, mouseX, mouseY, partialTick);
+                }
+            }
+
+            @Override
+            public boolean mouseClicked(double mouseX, double mouseY, int button) {
+                if (widget != null && widget.mouseClicked(mouseX, mouseY, button)) return true;
+                return super.mouseClicked(mouseX, mouseY, button);
+            }
+
+            @Override
+            public boolean charTyped(char codePoint, int modifiers) {
+                if (widget != null && widget.charTyped(codePoint, modifiers)) return true;
+                return super.charTyped(codePoint, modifiers);
+            }
+
+            @Override
+            public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+                if (widget != null && widget.keyPressed(keyCode, scanCode, modifiers)) return true;
+                return super.keyPressed(keyCode, scanCode, modifiers);
+            }
+
+            @Override
+            public Component getNarration() { return label; }
         }
 
         class SettingEntry extends ConfigEntry {
@@ -244,15 +577,15 @@ public class AmiConfigScreen extends Screen {
 
             @Override
             public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
-                g.drawString(AmiConfigScreen.this.font, label, x + 5, y + 5, 0xFFFFFFFF);
+                g.drawString(AmiConfigScreen.this.font, label, x + 5, y + 5, AMITheme.CONFIG_TEXT_PRIMARY);
                 if (widget != null) {
-                    widget.setX(x + width - (field.isAnnotationPresent(com.sanhiruzu.ami.config.ConfigColor.class) ? 90 : 65));
+                    widget.setX(x + width - (field.isAnnotationPresent(com.sanhiruzu.ami.config.ConfigColor.class) ? 102 : 77));
                     widget.setY(y + 2);
                     
                     if (field.getType() == boolean.class && widget instanceof Button) {
                         try {
                             boolean val = field.getBoolean(null);
-                            g.fill(widget.getX() - 2, widget.getY() - 1, widget.getX() + widget.getWidth() + 2, widget.getY() + widget.getHeight() + 1, val ? 0x8800FF00 : 0x88FF0000);
+                            g.fill(widget.getX() - 2, widget.getY() - 1, widget.getX() + widget.getWidth() + 2, widget.getY() + widget.getHeight() + 1, val ? AMITheme.CONFIG_BOOL_TRUE : AMITheme.CONFIG_BOOL_FALSE);
                         } catch (Exception ignored) {}
                     }
 
@@ -262,7 +595,12 @@ public class AmiConfigScreen extends Screen {
                         try {
                             int color = field.getInt(null);
                             g.fill(x + width - 25, y + 2, x + width - 5, y + 18, 0xFF000000 | color);
-                            g.renderOutline(x + width - 26, y + 1, 22, 18, 0xFFFFFFFF);
+                            g.renderOutline(x + width - 26, y + 1, 22, 18, AMITheme.CONFIG_SWATCH_BORDER);
+
+                            String hintKey = "ami.config.hint." + field.getAnnotation(ConfigValue.class).value();
+                            Component hint = Component.translatable(hintKey);
+                            int hintW = font.width(hint);
+                            g.drawString(font, hint, x + width - 28 - hintW, y + 5, AMITheme.CONFIG_TEXT_MUTED, false);
                         } catch (Exception ignored) {}
                     }
                 }
@@ -316,12 +654,12 @@ public class AmiConfigScreen extends Screen {
 
             @Override
             public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
-                g.drawString(AmiConfigScreen.this.font, label, x + 5, y + 5, 0xFFFFFFFF);
+                g.drawString(AmiConfigScreen.this.font, label, x + 5, y + 5, AMITheme.CONFIG_TEXT_PRIMARY);
 
-                button.setX(x + width - 65);
+                button.setX(x + width - 77);
                 button.setY(y + 2);
-                button.setWidth(60);
-                button.setHeight(16);
+                button.setWidth(72);
+                button.setHeight(18);
                 button.setMessage(keyMapping.getTranslatedKeyMessage());
                 button.render(g, mouseX, mouseY, 0);
 

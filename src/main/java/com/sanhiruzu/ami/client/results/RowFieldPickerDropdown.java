@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.client.results;
 import com.sanhiruzu.ami.client.AMITheme;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +35,7 @@ public class RowFieldPickerDropdown {
         g.fill(x, y, x + width, y + BTN_H, open || hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG);
 
         var font = Minecraft.getInstance().font;
-        String label = "Fields";
+        String label = Component.translatable("ami.gui.fields_button").getString();
         int textX = x + Math.max(2, (width - font.width(label)) / 2);
         g.drawString(font, label, textX, y + 2, AMITheme.TEXT_HEADER, false);
     }
@@ -49,7 +50,7 @@ public class RowFieldPickerDropdown {
         // Calculate required width
         int listWidth = width;
         for (RowField field : fields) {
-            listWidth = Math.max(listWidth, font.width(field.displayName) + 20);
+            listWidth = Math.max(listWidth, font.width(field.displayName.getString()) + 20);
         }
 
         int dropH = fields.length * ITEM_H + 4;
@@ -65,13 +66,13 @@ public class RowFieldPickerDropdown {
             if (hovered) {
                 g.fill(x, iy, x + listWidth, iy + ITEM_H, AMITheme.DROPDOWN_BG);
             }
-            
+
             boolean isSelected = active.contains(field);
             if (isSelected) {
                 // Small accent bar on the left
                 g.fill(x + 2, iy + 2, x + 4, iy + ITEM_H - 2, com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE);
             }
-            
+
             g.drawString(font, field.displayName, x + 8, iy + 1, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
             iy += ITEM_H;
         }
@@ -94,7 +95,7 @@ public class RowFieldPickerDropdown {
         var font = Minecraft.getInstance().font;
         int listWidth = width;
         for (RowField field : fields) {
-            listWidth = Math.max(listWidth, font.width(field.displayName) + 20);
+            listWidth = Math.max(listWidth, font.width(field.displayName.getString()) + 20);
         }
 
         int dropH = fields.length * ITEM_H + 4;

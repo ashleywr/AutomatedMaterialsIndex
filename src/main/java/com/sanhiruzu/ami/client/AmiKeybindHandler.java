@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client;
 
 import com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler;
+import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -47,18 +48,35 @@ public class AmiKeybindHandler {
             return true;
         }
 
+        if (AMIKeyMappings.CHEAT_GIVE_STACK.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+            return handleGive(true);
+        }
+
+        if (AMIKeyMappings.CHEAT_GIVE_ONE.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+            return handleGive(false);
+        }
+
         return false;
+    }
+
+    private static boolean handleGive(boolean stack) {
+        if (!AMICheatMode.isEnabled()) return false;
+        SearchNode hovered = InventoryOverlayHandler.getManager().getHoveredNode();
+        if (hovered == null || hovered.type() != NodeType.ITEM) return false;
+        if (stack) {
+            AMICheatMode.giveStack(hovered.id());
+        } else {
+            AMICheatMode.giveItem(hovered.id());
+        }
+        return true;
     }
 
     private static boolean handleFavoriteKey() {
         Minecraft mc = Minecraft.getInstance();
         if (!(mc.screen instanceof AbstractContainerScreen<?> containerScreen)) return false;
 
-        // 1. Try hovering over an item in the AMI panels
-        SearchNode hoveredNode = InventoryOverlayHandler.getManager().getResultsPanel().getInnerPanel().getHoveredNode();
-        if (hoveredNode == null && InventoryOverlayHandler.getManager().getLeftPanel() != null) {
-            hoveredNode = InventoryOverlayHandler.getManager().getLeftPanel().getInnerPanel().getHoveredNode();
-        }
+        // 1. Try hovering over an item in any AMI panel.
+        SearchNode hoveredNode = InventoryOverlayHandler.getManager().getHoveredNode();
 
         if (hoveredNode != null) {
             AmiFavoritesHandler.getInstance().toggleFavorite(hoveredNode);

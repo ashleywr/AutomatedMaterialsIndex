@@ -38,6 +38,7 @@ public class ItemProvider implements IAmiDataProvider {
     @Override
     public void populate(GlobalIndex index, @Nullable Level level) {
         GroupingEngine.initialize(level);
+        GroupingEngine.rebuildDynamicShapeCandidates(BuiltInRegistries.ITEM);
         boolean strictSurvival  = AmiConfig.strictSurvivalMode;
 
         Map<Item, ItemFilter.CreativeTabInfo> creativeTabs = ItemFilter.buildCreativeTabMap(level);
