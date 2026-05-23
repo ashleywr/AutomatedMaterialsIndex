@@ -209,6 +209,7 @@ dependencies {
     testImplementation "org.spongepowered:mixin:0.8.5"
     testImplementation "org.ow2.asm:asm-tree:9.7.1"
     testImplementation "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
+    testImplementation "com.google.code.gson:gson:2.10.1"
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.9.3"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.9.3"
 
