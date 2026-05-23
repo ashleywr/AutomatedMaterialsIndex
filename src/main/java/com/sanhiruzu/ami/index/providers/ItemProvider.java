@@ -29,6 +29,9 @@ import java.util.OptionalDouble;
 import java.util.OptionalLong;
 import java.util.stream.Collectors;
 
+import static com.sanhiruzu.ami.index.providers.RecipeProvider.computeObtainability;
+import static com.sanhiruzu.ami.index.providers.RecipeProvider.computeRecipeCategories;
+
 /**
  * Populates the GlobalIndex with all items from BuiltInRegistries.ITEM.
  */
@@ -43,9 +46,9 @@ public class ItemProvider implements IAmiDataProvider {
 
         Map<Item, ItemFilter.CreativeTabInfo> creativeTabs = ItemFilter.buildCreativeTabMap(level);
         Set<Item> creativeItems = creativeTabs.keySet();
-        // Build recipe set if we'll use it (strict survival or allowing hidden items with recipes)
+        AmiRecipeIndex recipeIndex = AmiRecipeIndex.getInstance();
         Set<Item> recipeOutputs = (strictSurvival || AmiConfig.showHiddenModItems)
-            ? ItemFilter.buildRecipeOutputSet(level)
+            ? recipeIndex.getAllOutputItems()
             : Collections.emptySet();
 
         boolean hasCreativeData = !creativeItems.isEmpty();
@@ -114,9 +117,6 @@ public class ItemProvider implements IAmiDataProvider {
             if (energyCapacity.isPresent()) {
                 resolvedFacets.add(ItemFacet.HAS_ENERGY);
             }
-            if (!hasRecipe) {
-                facetAttributes.put(SearchNodeKeys.OBTAINABILITY, "no_recipe");
-            }
             facetProfile = new FacetProfile(resolvedFacets, facetAttributes);
 
             Map<String, String> meta = new HashMap<>();
@@ -146,8 +146,11 @@ public class ItemProvider implements IAmiDataProvider {
             if (!inCreative) {
                 meta.put(SearchNodeKeys.VISIBILITY, "hidden");
             }
-            if (!hasRecipe) {
-                meta.put(SearchNodeKeys.OBTAINABILITY, "no_recipe");
+            String obtainability = computeObtainability(item, recipeIndex);
+            meta.put(SearchNodeKeys.OBTAINABILITY, obtainability);
+            String recipeCategories = computeRecipeCategories(item, recipeIndex);
+            if (!recipeCategories.isEmpty()) {
+                meta.put(SearchNodeKeys.RECIPE_CATEGORIES, recipeCategories);
             }
 
             CategoryAssignment assignment = PrimaryCategoryResolver.resolve(id, facetProfile);

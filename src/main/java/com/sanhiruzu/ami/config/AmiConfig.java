@@ -51,6 +51,15 @@ public class AmiConfig {
         ItemClickAction(String key) { this.displayName = Component.translatable(key); }
     }
 
+    public enum RecipeViewerMode {
+        AUTO("ami.config.value.recipe_viewer.auto"),
+        NATIVE("ami.config.value.recipe_viewer.native"),
+        EMI_JEI("ami.config.value.recipe_viewer.emi_jei");
+
+        public final Component displayName;
+        RecipeViewerMode(String key) { this.displayName = Component.translatable(key); }
+    }
+
     public enum CheatGiveMode {
         CURSOR("ami.config.value.cheat.give-mode.cursor"),
         INVENTORY("ami.config.value.cheat.give-mode.inventory");
@@ -156,6 +165,9 @@ public class AmiConfig {
 
     @ConfigValue("features.dynamic-shape-min-mod-spread")
     public static int dynamicShapeMinModSpread = 3;
+
+    @ConfigValue("features.recipe-viewer-mode")
+    public static RecipeViewerMode recipeViewerMode = RecipeViewerMode.AUTO;
 
     @ConfigGroupEnd
     public static final Object featuresGroupEnd = null;
@@ -314,6 +326,7 @@ public class AmiConfig {
         strictSurvivalMode = false;
         dynamicShapeMinCount = 40;
         dynamicShapeMinModSpread = 3;
+        recipeViewerMode = RecipeViewerMode.AUTO;
 
         cheatGiveMode = CheatGiveMode.CURSOR;
         cheatDropToDelete = true;

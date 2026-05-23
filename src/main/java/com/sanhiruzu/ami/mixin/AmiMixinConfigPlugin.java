@@ -20,7 +20,23 @@ public class AmiMixinConfigPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
+        if (mixinClassName.contains("Emi")) {
+            return isModLoaded("emi");
+        }
+        if (mixinClassName.contains("Jei")) {
+            return isModLoaded("jei");
+        }
         return true;
+    }
+
+    private boolean isModLoaded(String modId) {
+        try {
+            net.neoforged.fml.loading.LoadingModList list = net.neoforged.fml.loading.LoadingModList.get();
+            if (list == null) return true; // Fallback for unit tests
+            return list.getModFileById(modId) != null;
+        } catch (Throwable t) {
+            return true; // Fallback for unit tests where FMLLoader is not active
+        }
     }
 
     @Override
