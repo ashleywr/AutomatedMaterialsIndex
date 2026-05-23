@@ -34,10 +34,18 @@ bin/
 
 ### Minecraft Modding ###
 run/
+run-*/
 !**/src/**/run/
 **/src/generated/**/.cache/
 repo/
 !**/src/**/repo/
+.mixin.out/
+.pg-native/
+logs/
+crash-reports/
+config/
+defaultconfigs/
+anomaly_report.md
 
 ### Third-party sources (for reference only) ###
 vendor-sources/

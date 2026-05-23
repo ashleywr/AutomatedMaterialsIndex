@@ -27,6 +27,8 @@ sourceSets.main.resources {
 }
 
 repositories {
+    // EMI local snapshot (published to local Maven cache)
+    mavenLocal()
     // JEI
     maven { url = "https://maven.blamejared.com" }
     // EMI (via Modrinth Maven — more reliable than maven.emi.dev for classifier builds)
@@ -157,15 +159,31 @@ neoForge {
 // Values: none | emi | jei | both (default: both)
 def devRecipeViewer = findProperty('dev_recipe_viewer') ?: 'both'
 
+configurations {
+    devRuntimeRecipeViewerMods {
+        canBeConsumed = false
+        canBeResolved = true
+    }
+    devRuntimeJeiViewerMods {
+        canBeConsumed = false
+        canBeResolved = true
+    }
+    devRuntimeEmiViewerMods {
+        canBeConsumed = false
+        canBeResolved = true
+    }
+}
+
 dependencies {
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
-    compileOnly "maven.modrinth:emi:${emi_version}+${minecraft_version}+neoforge"
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+    compileOnly "dev.emi:emi-neoforge:${emi_version}+${minecraft_version}"
 
     if (devRecipeViewer == 'jei' || devRecipeViewer == 'both') {
-        clientAdditionalRuntimeClasspath "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+        devRuntimeRecipeViewerMods "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
     }
     if (devRecipeViewer == 'emi' || devRecipeViewer == 'both') {
-        clientAdditionalRuntimeClasspath "maven.modrinth:emi:${emi_version}+${minecraft_version}+neoforge"
+        devRuntimeRecipeViewerMods "dev.emi:emi-neoforge:${emi_version}+${minecraft_version}"
     }
 
     // Use fastutil for a high-performance primitive-friendly trie (compileOnly)
@@ -174,6 +192,9 @@ dependencies {
     // Test dependencies (runtime for unit tests)
     testImplementation "org.junit.jupiter:junit-jupiter:5.9.3"
     testImplementation "it.unimi.dsi:fastutil:8.5.9"
+    testImplementation "org.spongepowered:mixin:0.8.5"
+    testImplementation "org.ow2.asm:asm-tree:9.7.1"
+    testImplementation "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.9.3"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.9.3"
 
@@ -194,8 +215,68 @@ dependencies {
 }
 
 dependencies {
-    clientJeiAdditionalRuntimeClasspath "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
-    clientEmiAdditionalRuntimeClasspath "maven.modrinth:emi:${emi_version}+${minecraft_version}+neoforge"
+    devRuntimeJeiViewerMods "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+    devRuntimeEmiViewerMods "dev.emi:emi-neoforge:${emi_version}+${minecraft_version}"
+}
+
+def recipeViewerModPatterns = ['*jei*.jar', '*emi*.jar']
+
+def registerRecipeViewerModSync = { String taskName, List<String> configurationNames, String runDirName ->
+    def viewerConfigurations = configurationNames.collect { configName ->
+        configurations.named(configName).get()
+    }
+
+    tasks.register(taskName, Copy) {
+        def modsDir = project.file("${runDirName}/mods")
+        viewerConfigurations.each { configuration ->
+            inputs.files(configuration)
+        }
+        outputs.dir(modsDir)
+        into(modsDir)
+        from(viewerConfigurations)
+
+        doFirst {
+            modsDir.mkdirs()
+
+            def staleViewerJars = modsDir.listFiles()?.findAll { file ->
+                file.isFile() && recipeViewerModPatterns.any { pattern ->
+                    def regex = pattern.replace('.', '\\.').replace('*', '.*')
+                    file.name ==~ regex
+                }
+            } ?: []
+            staleViewerJars.each { staleJar ->
+                staleJar.delete()
+            }
+        }
+    }
+}
+
+def syncClientRecipeViewerMods = registerRecipeViewerModSync(
+        'syncClientRecipeViewerMods',
+        ['devRuntimeRecipeViewerMods'],
+        'run'
+)
+def syncClientJeiRecipeViewerMods = registerRecipeViewerModSync(
+        'syncClientJeiRecipeViewerMods',
+        ['devRuntimeJeiViewerMods'],
+        'run-jei'
+)
+def syncClientEmiRecipeViewerMods = registerRecipeViewerModSync(
+        'syncClientEmiRecipeViewerMods',
+        ['devRuntimeEmiViewerMods'],
+        'run-emi'
+)
+
+tasks.named('prepareClientRun').configure {
+    dependsOn syncClientRecipeViewerMods
+}
+
+tasks.named('prepareClientJeiRun').configure {
+    dependsOn syncClientJeiRecipeViewerMods
+}
+
+tasks.named('prepareClientEmiRun').configure {
+    dependsOn syncClientEmiRecipeViewerMods
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
@@ -477,7 +558,7 @@ tasks.register('runAshleyModpackOntologyDump', Exec) {
         String filteredClasspathValue = classpathValue
                 .split(';')
                 .findAll { entry ->
-                    !entry.contains('mezz.jei') && !entry.contains('maven.modrinth\\emi')
+                    !entry.contains('mezz.jei') && !entry.contains('emi-neoforge')
                 }
                 .join(';')
         ashleyClasspathArgs.text = ['-classpath', filteredClasspathValue].join(System.lineSeparator()) + System.lineSeparator()

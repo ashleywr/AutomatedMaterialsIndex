@@ -1,12 +1,12 @@
 package com.sanhiruzu.ami;
 
 import com.sanhiruzu.ami.client.ItemIconCache;
+import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.client.results.ItemGridView;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.StatIconRowTooltipComponent;
-import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
@@ -47,9 +47,6 @@ public class AMIClient {
             AMI.LOGGER.info("✓ No recipe UI detected - AMI shell UI will be used");
         }
 
-        if (Minecraft.getInstance().getUser() != null) {
-            AMI.LOGGER.debug("Player: {}", Minecraft.getInstance().getUser().getName());
-        }
     }
 
     @SubscribeEvent
@@ -64,21 +61,7 @@ public class AMIClient {
         ItemIconCache.invalidate();
         ItemGridView.clearStackCache();
         RendererRegistry.invalidateAll();
+        InventoryOverlayHandler.resetSessionState();
+        com.sanhiruzu.ami.network.AmiNetworkState.onServer = false;
     }
-
-    // Disabled: Indexing now happens lazily on first inventory open
-    // This gives the server more time to sync registries before we try to access them
-    // @SubscribeEvent
-    // static void onPlayerLoggingIn(ClientPlayerNetworkEvent.LoggingIn event) {
-    //     ...
-    // }
-
-    // Disabled - focus on World Atlas overlay instead of full-screen Items GUI
-    // @SubscribeEvent
-    // static void onKeyInput(InputEvent.Key event) {
-    //     if (AMIKeyMappings.OPEN_AMI.consumeClick()) {
-    //         AMI.LOGGER.debug("Opening AMI screen");
-    //         Minecraft.getInstance().setScreen(new AMIScreen());
-    //     }
-    // }
 }

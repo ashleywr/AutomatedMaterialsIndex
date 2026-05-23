@@ -1,6 +1,8 @@
 package net.minecraft.world.level.block.state;
 
 import net.minecraft.tags.TagKey;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Block;
 
 import java.util.LinkedHashSet;
@@ -46,5 +48,9 @@ public class BlockState {
 
     public boolean hasAnalogOutputSignal() {
         return analogOutputSignal;
+    }
+
+    public boolean isCollisionShapeFullBlock(BlockGetter level, BlockPos pos) {
+        return false;
     }
 }

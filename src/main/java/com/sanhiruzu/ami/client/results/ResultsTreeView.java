@@ -9,6 +9,7 @@ import com.sanhiruzu.ami.util.AmiColors;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.util.AmiClipboardHelper;
+import com.sanhiruzu.ami.util.AmiTooltipComposer;
 import net.minecraft.client.Minecraft;
 import org.lwjgl.glfw.GLFW;
 import net.minecraft.client.gui.GuiGraphics;
@@ -44,8 +45,6 @@ public class ResultsTreeView {
     private static final int SWATCH_GAP  = 2;
     private static final int MAX_SWATCHES = 3;
     
-    private static final int TEXT_HIGHLIGHT = 0xFF55FFFF; // Aqua
-
     // Recomputed each frame — 0.75× when guiScale ≥ 3, otherwise 1.0×.
     private float currentLabelScale = 1.0f;
 
@@ -189,9 +188,7 @@ public class ResultsTreeView {
 
         if (!toolbarDropdownOpen) {
             var font = Minecraft.getInstance().font;
-            if (pendingItemStack != null && !pendingItemStack.isEmpty()) {
-                g.renderTooltip(font, pendingItemStack, mouseX, mouseY);
-            } else if (pendingTooltipLines != null) {
+            if (pendingTooltipLines != null) {
                 g.renderTooltip(font, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY);
             }
         }
@@ -216,7 +213,7 @@ public class ResultsTreeView {
             boolean hovered = isRowHovered(mouseX, mouseY, drawY);
 
             if (rowIdx % 2 == 0) {
-                int tint = com.sanhiruzu.ami.config.AmiConfig.useTransparentTheme ? 0x08FFFFFF : 0x15000000;
+                int tint = com.sanhiruzu.ami.config.AmiConfig.useTransparentTheme ? AMITheme.GRID_ROW_TINT_EVEN : AMITheme.GRID_ROW_TINT_ODD;
                 g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + AMITheme.ROW_HEIGHT, tint);
             }
 
@@ -307,20 +304,22 @@ public class ResultsTreeView {
             }
         }
         
-        int modNameColor = matched ? TEXT_HIGHLIGHT : AmiColors.MOD_COLOR;
+        int modNameColor = matched ? AMITheme.TEXT_HIGHLIGHT : AmiColors.MOD_COLOR;
         
         renderBadges(g, font, entry, drawY, rightEdge, modNameColor, matched);
 
         if (hovered) {
             hoveredNode = entry;
-            pendingTooltipLines = buildTooltip(entry);
-            if (entry.type() != NodeType.ITEM) {
+            if (entry.type() == NodeType.ITEM) {
+                pendingItemStack = ItemIconRenderer.resolveStack(entry.id());
+                pendingTooltipLines = AmiTooltipComposer.buildItemTooltip(entry, pendingItemStack);
+                pendingTooltipImage = AmiTooltipComposer.getItemTooltipImage(pendingItemStack);
+            } else {
+                pendingTooltipLines = buildTooltip(entry);
                 var renderer = RendererRegistry.get(entry.type());
                 pendingTooltipImage = renderer.getTooltipImage(entry);
-            } else {
-                pendingTooltipImage = Optional.empty();
+                pendingItemStack = null;
             }
-            pendingItemStack = null;
         }
     }
 
@@ -446,7 +445,7 @@ public class ResultsTreeView {
         // Count Badge — just the number, no repeated label
         String labelStr = node.getLabel().getString();
         int count = node.getItemCountOverride() != -1 ? node.getItemCountOverride() : node.getChildren().size();
-        String badge = "[" + count + "]";
+        String badge = Component.translatable("ami.gui.badge_count", count).getString();
         int badgeW = (int)(font.width(badge) * currentLabelScale);
         int badgeX = x + width - SCROLLBAR_W - badgeW - 5;
 
@@ -464,7 +463,7 @@ public class ResultsTreeView {
 
         int labelColor = node.isModGroup() ? AmiColors.MOD_COLOR : AMITheme.TEXT_HEADER;
         if (node.isHighCardinality()) {
-            labelColor = 0xFFAAAA00; // Gold for high-cardinality groups
+            labelColor = AMITheme.GRID_GOLD_BORDER; // Gold for high-cardinality groups
         }
 
         g.drawString(font, label,
@@ -576,7 +575,7 @@ public class ResultsTreeView {
 
         List<Integer> result = new ArrayList<>();
         for (String bucket : seen) {
-            result.add(bucketToArgb(bucket));
+            result.add(AMITheme.getSwatchColor(bucket));
         }
         return result;
     }
@@ -592,33 +591,6 @@ public class ResultsTreeView {
                 if (out.size() >= max) return;
             }
         }
-    }
-
-    /**
-     * Maps a named colour bucket to a display ARGB int.
-     * Fallback is mid-gray for unknown buckets.
-     */
-    private static int bucketToArgb(String bucket) {
-        return switch (bucket.toLowerCase(Locale.ROOT)) {
-            case "red"    -> 0xFFCC3333;
-            case "orange" -> 0xFFDD7722;
-            case "yellow" -> 0xFFDDCC22;
-            case "lime",
-                 "green"  -> 0xFF44AA44;
-            case "cyan"   -> 0xFF22AACC;
-            case "blue",
-                 "light_blue" -> 0xFF3355DD;
-            case "purple",
-                 "magenta" -> 0xFF9933CC;
-            case "pink"   -> 0xFFFFB7C5;
-            case "white"  -> 0xFFEEEEEE;
-            case "light_gray",
-                 "silver" -> 0xFFAAAAAA;
-            case "gray"   -> 0xFF666666;
-            case "black"  -> 0xFF222222;
-            case "brown"  -> 0xFF885533;
-            default       -> 0xFF888888;
-        };
     }
 
     // ── Hit-testing ───────────────────────────────────────────────────────────
@@ -691,6 +663,7 @@ public class ResultsTreeView {
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0 && button != 1) return false;
+
         if (mouseX < x || mouseX >= x + width - SCROLLBAR_W) return false;
 
         int targetRow = (int) (mouseY - y + pixelScrollOffset) / AMITheme.ROW_HEIGHT;

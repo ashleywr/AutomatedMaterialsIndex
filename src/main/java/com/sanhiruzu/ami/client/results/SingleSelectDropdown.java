@@ -54,7 +54,7 @@ public class SingleSelectDropdown<T> implements Dropdown {
         int maxTextW = width - (canOpen ? 12 : 6);
         String displayText = text;
         if (font.width(text) > maxTextW) {
-            displayText = font.plainSubstrByWidth(text, maxTextW - 6) + "...";
+            displayText = font.plainSubstrByWidth(text, maxTextW - 6) + Component.translatable("ami.gui.dropdown_ellipsis").getString();
         }
         g.drawString(font, displayText, x + 3, y + 2, canOpen ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
     }

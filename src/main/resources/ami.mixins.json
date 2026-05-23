@@ -1,12 +1,13 @@
 {
-  "spec": "0.2",
+  "required": true,
   "package": "com.sanhiruzu.ami.mixin",
   "plugin": "com.sanhiruzu.ami.mixin.AmiMixinConfigPlugin",
-  "compatLevel": "JAVA_17",
+  "compatibilityLevel": "JAVA_21",
   "minVersion": "0.8.4",
-  "mixins": [
+  "mixins": [],
+  "client": [
     "EmiScreenManagerMixin",
-    "JeiIngredientListOverlayMixin",
-    "JeiBookmarkOverlayMixin"
+    "JeiGuiEventHandlerMixin",
+    "JeiClientInputHandlerMixin"
   ]
 }

@@ -59,7 +59,6 @@ public final class ItemFilter {
                     if (!stack.isEmpty()) items.add(stack.getItem());
                 } catch (Exception ignored) {}
             }
-            AMI.LOGGER.debug("AMI: Indexing {} items have at least one recipe.", items.size());
         } catch (Exception e) {
             AMI.LOGGER.warn("AMI: Could not build recipe output set — recipe filter disabled. ({})", e.getMessage());
         }

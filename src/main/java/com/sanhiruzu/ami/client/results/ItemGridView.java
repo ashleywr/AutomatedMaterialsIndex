@@ -1,9 +1,10 @@
 package com.sanhiruzu.ami.client.results;
 
-import com.sanhiruzu.ami.client.ItemIconCache;
+import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.util.AmiClipboardHelper;
+import com.sanhiruzu.ami.util.AmiTooltipComposer;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.Minecraft;
@@ -57,6 +58,11 @@ public class ItemGridView {
     private List<VirtualRow> cachedRows = null;
     private int cachedCols = -1;
     private final Map<TreeNode, TreeNode> expandedGroupCache = new HashMap<>();
+
+    // Cached animation state per frame
+    private float cachedWiggle = 0f;
+    private float cachedRotation = 0f;
+    private boolean cachedDragging = false;
 
     // =========================================================
     // Virtual row types
@@ -137,9 +143,20 @@ public class ItemGridView {
         hoveredNode = null;
         hoveredTreeNode = null;
 
+        // Cache animation state once per frame
+        cachedDragging = com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging();
+        if (cachedDragging || mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height) {
+            float time = (System.currentTimeMillis() % 1000) / 1000f;
+            cachedWiggle = (float) Math.sin(time * Math.PI * 2) * 0.05f;
+            cachedRotation = (float) Math.sin(time * Math.PI * 4) * 2f;
+        } else {
+            cachedWiggle = 0f;
+            cachedRotation = 0f;
+        }
+
         if (rootNodes.isEmpty()) {
             g.drawString(Minecraft.getInstance().font,
-                    "No results", x + 4, y + 4, 0xFFCCCCCC, false);
+                    Component.translatable("ami.gui.no_results"), x + 4, y + 4, AMITheme.GRID_NO_RESULTS_TEXT, false);
             return;
         }
 
@@ -170,10 +187,10 @@ public class ItemGridView {
 
         if (!toolbarDropdownOpen) {
             var font = Minecraft.getInstance().font;
-            if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
-                g.renderTooltip(font, pendingTooltip, mouseX, mouseY);
-            } else if (pendingTextTooltip != null) {
+            if (pendingTextTooltip != null) {
                 g.renderTooltip(font, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY);
+            } else if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
+                g.renderTooltip(font, pendingTooltip, mouseX, mouseY);
             }
         }
     }
@@ -248,9 +265,9 @@ public class ItemGridView {
                     pendingTextTooltip = com.sanhiruzu.ami.client.results.DebugTooltip.build(entry);
                     pendingTooltipImage = Optional.empty();
                 } else if (entry.type() == com.sanhiruzu.ami.index.NodeType.ITEM) {
-                    pendingTooltip = null;
-                    pendingTextTooltip = buildItemTooltip(entry);
-                    pendingTooltipImage = Optional.empty();
+                    pendingTooltip = resolveStack(entry);
+                    pendingTextTooltip = AmiTooltipComposer.buildItemTooltip(entry, pendingTooltip);
+                    pendingTooltipImage = AmiTooltipComposer.getItemTooltipImage(pendingTooltip);
                 } else {
                     var renderer = com.sanhiruzu.ami.client.icon.RendererRegistry.get(entry.type());
                     List<Component> rendererLines = renderer.getTooltip(entry);
@@ -269,10 +286,10 @@ public class ItemGridView {
             // Group styling
             if (node.isHighCardinality() && !node.isExpanded()) {
                 // Gold border for collapsed groups
-                g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + 1, 0xFFAAAA00);
-                g.fill(cellX, cellY + CELL_SIZE - 1, cellX + CELL_SIZE, cellY + CELL_SIZE, 0xFFAAAA00);
-                g.fill(cellX, cellY, cellX + 1, cellY + CELL_SIZE, 0xFFAAAA00);
-                g.fill(cellX + CELL_SIZE - 1, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, 0xFFAAAA00);
+                g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + 1, AMITheme.GRID_GOLD_BORDER);
+                g.fill(cellX, cellY + CELL_SIZE - 1, cellX + CELL_SIZE, cellY + CELL_SIZE, AMITheme.GRID_GOLD_BORDER);
+                g.fill(cellX, cellY, cellX + 1, cellY + CELL_SIZE, AMITheme.GRID_GOLD_BORDER);
+                g.fill(cellX + CELL_SIZE - 1, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, AMITheme.GRID_GOLD_BORDER);
             } else {
                 TreeNode expandedGroup = expandedGroupCache.get(node);
                 if (expandedGroup != null) {
@@ -286,8 +303,8 @@ public class ItemGridView {
                     boolean leftEdge = col == 0 || idx == 0;
                     boolean rightEdge = col == cols - 1 || idx == totalSize - 1;
                     
-                    int color = 0xFFAAAA00; // Opaque gold border
-                    int bgCol = 0x44AAAA00; // Visible gold tint background
+                    int color = AMITheme.GRID_GOLD_BORDER; // Opaque gold border
+                    int bgCol = AMITheme.GRID_GOLD_TINT; // Visible gold tint background
                     
                     g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, bgCol);
                     
@@ -298,8 +315,8 @@ public class ItemGridView {
 
                     // If this is the header node of the expanded group, make it look like a "close" button
                     if (node == expandedGroup) {
-                        g.fill(cellX + 1, cellY + 1, cellX + CELL_SIZE - 1, cellY + CELL_SIZE - 1, 0x66000000); // Darken the header icon
-                        g.fill(cellX + 2, cellY + 2, cellX + 4, cellY + 4, 0xFFFFFFFF); // Small visual indicator
+                        g.fill(cellX + 1, cellY + 1, cellX + CELL_SIZE - 1, cellY + CELL_SIZE - 1, AMITheme.GRID_HEADER_DARKEN); // Darken the header icon
+                        g.fill(cellX + 2, cellY + 2, cellX + 4, cellY + 4, AMITheme.GRID_HEADER_WHITE_DOT); // Small visual indicator
                     }
                 }
             }
@@ -308,7 +325,7 @@ public class ItemGridView {
                 renderIconWithWiggle(g, overrideStack, cellX + 1, cellY + 1, hovered);
             } else if (entry.type() == com.sanhiruzu.ami.index.NodeType.ITEM) {
                 ItemStack stack = resolveStack(entry);
-                if (!stack.isEmpty()) renderIconWithWiggle(g, stack, cellX + 1, cellY + 1, hovered);
+                if (!stack.isEmpty()) renderIconWithWiggle(g, entry.id(), stack, cellX + 1, cellY + 1, hovered);
             } else {
                 renderRendererWithWiggle(g, entry, cellX + 1, cellY + 1, hovered);
             }
@@ -316,15 +333,16 @@ public class ItemGridView {
     }
 
     private void renderIconWithWiggle(GuiGraphics g, ItemStack stack, int x, int y, boolean hovered) {
-        boolean dragging = com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging();
+        renderIconWithWiggle(g, null, stack, x, y, hovered);
+    }
+
+    private void renderIconWithWiggle(GuiGraphics g, ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
         g.pose().pushPose();
         g.pose().translate(x + 8, y + 8, 150);
-        if (dragging || hovered) {
-            float time = (System.currentTimeMillis() % 1000) / 1000f;
-            float wiggle = (float) Math.sin(time * Math.PI * 2) * 0.05f;
-            g.pose().scale(1.1f + wiggle, 1.1f + wiggle, 1.1f);
-            if (dragging) {
-                g.pose().mulPose(com.mojang.math.Axis.ZP.rotationDegrees((float) Math.sin(time * Math.PI * 4) * 2f));
+        if (cachedDragging || hovered) {
+            g.pose().scale(1.1f + cachedWiggle, 1.1f + cachedWiggle, 1.1f);
+            if (cachedDragging) {
+                g.pose().mulPose(com.mojang.math.Axis.ZP.rotationDegrees(cachedRotation));
             }
         }
         g.renderItem(stack, -8, -8);
@@ -332,16 +350,13 @@ public class ItemGridView {
     }
 
     private void renderRendererWithWiggle(GuiGraphics g, SearchNode entry, int x, int y, boolean hovered) {
-        boolean dragging = com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging();
         g.pose().pushPose();
         g.pose().translate(x, y, 150);
-        if (dragging || hovered) {
-            float time = (System.currentTimeMillis() % 1000) / 1000f;
-            float wiggle = (float) Math.sin(time * Math.PI * 2) * 0.05f;
+        if (cachedDragging || hovered) {
             g.pose().translate(8, 8, 0);
-            g.pose().scale(1.1f + wiggle, 1.1f + wiggle, 1.1f);
-            if (dragging) {
-                g.pose().mulPose(com.mojang.math.Axis.ZP.rotationDegrees((float) Math.sin(time * Math.PI * 4) * 2f));
+            g.pose().scale(1.1f + cachedWiggle, 1.1f + cachedWiggle, 1.1f);
+            if (cachedDragging) {
+                g.pose().mulPose(com.mojang.math.Axis.ZP.rotationDegrees(cachedRotation));
             }
             g.pose().translate(-8, -8, 0);
         }
@@ -508,6 +523,7 @@ public class ItemGridView {
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0 && button != 1) return false;
+
         if (!isMouseOver(mouseX, mouseY)) return false;
         if (mouseX >= x + width - SCROLLBAR_W) return false;
 
@@ -557,26 +573,6 @@ public class ItemGridView {
         return false;
     }
 
-    private List<Component> buildItemTooltip(SearchNode entry) {
-        List<Component> lines = new ArrayList<>();
-        ItemStack stack = resolveStack(entry);
-        if (!stack.isEmpty()) {
-            lines.addAll(Screen.getTooltipFromItem(Minecraft.getInstance(), stack));
-        } else {
-            lines.add(Component.literal(entry.displayName()));
-        }
-        lines.add(Component.literal(entry.id().toString()).withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE)));
-        lines.add(Component.empty());
-        lines.add(Component.translatable("ami.gui.recipes_hint").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
-        lines.add(Component.translatable("ami.gui.uses_hint").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
-        lines.add(Component.translatable("ami.gui.mod_filter_hint").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
-        String keybindName = com.sanhiruzu.ami.client.AMIKeyMappings.DEBUG_TOOLTIPS.getTranslatedKeyMessage().getString();
-        String hintKey = com.sanhiruzu.ami.client.AmiKeybindHandler.isDebugTooltipsActive()
-                ? "ami.gui.debug_hint_active" : "ami.gui.debug_hint";
-        lines.add(Component.translatable(hintKey, keybindName).withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
-        return lines;
-    }
-
     private static boolean isTokenInjectClick(int button) {
         return button == 1 && Screen.hasControlDown();
     }
@@ -605,11 +601,11 @@ public class ItemGridView {
             }
         }
         if (keyCode == GLFW.GLFW_KEY_C && Screen.hasControlDown()) {
-            if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
-                AmiClipboardHelper.copyItemTooltipToClipboard(pendingTooltip);
-                return true;
-            } else if (pendingTextTooltip != null && !pendingTextTooltip.isEmpty()) {
+            if (pendingTextTooltip != null && !pendingTextTooltip.isEmpty()) {
                 AmiClipboardHelper.copyComponentsToClipboard(pendingTextTooltip);
+                return true;
+            } else if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
+                AmiClipboardHelper.copyItemTooltipToClipboard(pendingTooltip);
                 return true;
             }
         }

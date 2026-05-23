@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.client;
 
+import com.sanhiruzu.ami.client.AMITheme;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -10,7 +11,7 @@ public class RecipeViewerScreen extends Screen {
     private final Screen parentScreen;
 
     public RecipeViewerScreen(ItemStack item, Screen parentScreen) {
-        super(Component.literal("Recipe: " + item.getHoverName().getString()));
+        super(Component.translatable("ami.recipe_viewer.title", item.getHoverName().getString()));
         this.item = item;
         this.parentScreen = parentScreen;
     }
@@ -18,13 +19,14 @@ public class RecipeViewerScreen extends Screen {
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(guiGraphics, 0, 0, partialTick);
-        guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 20, 0xFFFFFF);
+        guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 20, AMITheme.CONFIG_TEXT_PRIMARY);
 
-        guiGraphics.drawString(this.font, "Item: " + item.getHoverName().getString(), 20, 50, 0xFFFFFF);
+        guiGraphics.drawString(this.font, Component.translatable("ami.recipe_viewer.item_label", item.getHoverName().getString()), 20, 50, AMITheme.CONFIG_TEXT_PRIMARY);
+
         guiGraphics.renderItem(item, 20, 70);
 
-        guiGraphics.drawString(this.font, "[Recipes for this item would appear here]", 20, 100, 0xAAAAAA);
-        guiGraphics.drawString(this.font, "Press ESC to go back", 20, this.height - 30, 0xAAAAAA);
+        guiGraphics.drawString(this.font, Component.translatable("ami.recipe_viewer.placeholder"), 20, 100, AMITheme.CONFIG_TEXT_SECONDARY);
+        guiGraphics.drawString(this.font, Component.translatable("ami.recipe_viewer.go_back"), 20, this.height - 30, AMITheme.CONFIG_TEXT_SECONDARY);
 
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }

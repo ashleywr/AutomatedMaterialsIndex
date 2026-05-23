@@ -36,8 +36,10 @@ public class StructureProvider implements IAmiDataProvider {
                 var id = holder.key().location();
                 Map<String, String> meta = new HashMap<>();
                 meta.put(SearchNodeKeys.MOD_ID, id.getNamespace());
+                meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, AmiOntology.ENVIRONMENT.id);
+                meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "structures");
                 nodes.add(new SearchNode(id, NodeType.STRUCTURE,
-                    RegistryUtils.formatPath(id.getPath()),
+                    RegistryUtils.formatPathWithSuffix(id.getPath(), "Structure"),
                     0xFF888888, 0, meta));
             });
             found = !nodes.isEmpty();
@@ -55,8 +57,10 @@ public class StructureProvider implements IAmiDataProvider {
                         var id = holder.key().location();
                         Map<String, String> meta = new HashMap<>();
                         meta.put(SearchNodeKeys.MOD_ID, id.getNamespace());
+                        meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, AmiOntology.ENVIRONMENT.id);
+                        meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "structures");
                         nodes.add(new SearchNode(id, NodeType.STRUCTURE,
-                            RegistryUtils.formatPath(id.getPath()),
+                            RegistryUtils.formatPathWithSuffix(id.getPath(), "Structure"),
                             0xFF888888, 0, meta));
                     });
                     found = !nodes.isEmpty();

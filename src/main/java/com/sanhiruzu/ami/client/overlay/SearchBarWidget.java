@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.client.overlay;
 
+import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.query.TokenColorizer;
 import net.minecraft.client.Minecraft;
@@ -102,7 +103,7 @@ public class SearchBarWidget extends EditBox {
         if (value.isEmpty()) {
             Component hint = focused ? TYPING_HINT : PLACEHOLDER_HINT;
             g.enableScissor(textX, textY - 1, textX + maxTextWidth, textY + font.lineHeight + 1);
-            g.drawString(font, hint, textX, textY, 0xFF666666, false);
+            g.drawString(font, hint, textX, textY, AMITheme.SEARCH_PLACEHOLDER, false);
             g.disableScissor();
         } else {
             String visibleText = value.substring(displayStart);
@@ -113,13 +114,13 @@ public class SearchBarWidget extends EditBox {
             int clearX = x + w - 14;
             int clearY = y + (h - 10) / 2;
             boolean hoveredX = mouseX >= clearX && mouseX < clearX + 12 && mouseY >= clearY && mouseY < clearY + 10;
-            g.drawString(font, "x", clearX + 3, clearY, hoveredX ? 0xFFFFFFFF : 0xFFAAAAAA, false);
+            g.drawString(font, Component.translatable("ami.gui.search.clear"), clearX + 3, clearY, hoveredX ? AMITheme.SEARCH_CLEAR_TEXT_HOVER : AMITheme.SEARCH_CLEAR_TEXT, false);
         }
 
         if (focused && (System.currentTimeMillis() % 1000) < 500) {
             int cursorInVisible = Math.max(0, Math.min(getCursorPosition() - displayStart, value.length() - displayStart));
             int cursorX = textX + font.width(value.substring(displayStart, displayStart + cursorInVisible)) + 1;
-            g.fill(cursorX, textY - 1, cursorX + 1, textY + font.lineHeight, 0xFFCCCCCC);
+            g.fill(cursorX, textY - 1, cursorX + 1, textY + font.lineHeight, AMITheme.SEARCH_CURSOR);
         }
     }
 
@@ -185,7 +186,7 @@ public class SearchBarWidget extends EditBox {
             return true;   // consume so the screen doesn't close
         }
         if (keyCode == GLFW.GLFW_KEY_TAB) {
-            return false;   // propagate for atlas-cycling keybind
+            return false;   // propagate to screen-level keybinds
         }
         if (keyCode == GLFW.GLFW_KEY_ENTER) {
             setFocused(false);
@@ -368,7 +369,7 @@ public class SearchBarWidget extends EditBox {
 
         int startX = textX + font.width(visibleText.substring(0, clippedStart - displayStart));
         int endX = textX + font.width(visibleText.substring(0, clippedEnd - displayStart));
-        g.fill(RenderType.guiTextHighlight(), startX, textY - 1, endX, textY + font.lineHeight, 0xFF0000FF);
+        g.fill(RenderType.guiTextHighlight(), startX, textY - 1, endX, textY + font.lineHeight, AMITheme.SEARCH_SELECTION);
     }
 
     private void drawColorizedText(GuiGraphics g, Font font, int startX, int startY, String visibleText, int scrollStart, int maxTextWidth) {
@@ -377,7 +378,7 @@ public class SearchBarWidget extends EditBox {
         g.enableScissor(startX, startY - 1, startX + maxTextWidth, startY + font.lineHeight + 1);
         try {
             if (colorSpans.isEmpty()) {
-                g.drawString(font, visibleText, startX, startY, 0xFFCCCCCC, false);
+                g.drawString(font, visibleText, startX, startY, AMITheme.SEARCH_DEFAULT_TEXT, false);
             } else {
                 int currentX = startX;
                 int coveredUntil = 0;
@@ -387,7 +388,7 @@ public class SearchBarWidget extends EditBox {
                     if (sEnd <= sStart || sStart >= visibleText.length()) continue;
                     if (sStart > coveredUntil) {
                         String gap = visibleText.substring(coveredUntil, sStart);
-                        g.drawString(font, gap, currentX, startY, 0xFFCCCCCC, false);
+                        g.drawString(font, gap, currentX, startY, AMITheme.SEARCH_DEFAULT_TEXT, false);
                         currentX += font.width(gap);
                     }
                     String spanText = visibleText.substring(sStart, sEnd);
@@ -398,7 +399,7 @@ public class SearchBarWidget extends EditBox {
                     coveredUntil = sEnd;
                 }
                 if (coveredUntil < visibleText.length()) {
-                    g.drawString(font, visibleText.substring(coveredUntil), currentX, startY, 0xFFCCCCCC, false);
+                    g.drawString(font, visibleText.substring(coveredUntil), currentX, startY, AMITheme.SEARCH_DEFAULT_TEXT, false);
                 }
             }
         } finally {

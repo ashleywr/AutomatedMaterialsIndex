@@ -4,6 +4,7 @@ import com.sanhiruzu.ami.index.IQueryResolver;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.util.AmiColors;
 import com.sanhiruzu.ami.util.DistUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.loading.FMLLoader;
@@ -48,7 +49,7 @@ public final class PlayerResolver implements IQueryResolver {
                         id,
                         NodeType.PLAYER,
                         name,
-                        0xFF4488FF,   // blue tint for players
+                        AmiColors.PLAYER_NAME_COLOR,   // blue tint for players
                         100,          // high searchWeight so players surface first
                         Map.of(SearchNodeKeys.MOD_ID, "ami", SearchNodeKeys.PLAYER_UUID, uuidStr)
                     ));

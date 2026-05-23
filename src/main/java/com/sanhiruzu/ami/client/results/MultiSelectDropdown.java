@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.client.results;
 import com.sanhiruzu.ami.client.AMITheme;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 
 import java.util.HashSet;
 import java.util.List;
@@ -43,7 +44,7 @@ public class MultiSelectDropdown<T> implements Dropdown {
             g.drawString(font, arrow, x + width - 9, y + 2, AMITheme.TEXT_SUBTLE, false);
         }
         
-        String countLabel = selected.size() + "/" + options.size();
+        String countLabel = Component.translatable("ami.gui.dropdown_count", selected.size(), options.size()).getString();
         g.drawString(font, countLabel, x + 3, y + 2, canOpen ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
     }
 

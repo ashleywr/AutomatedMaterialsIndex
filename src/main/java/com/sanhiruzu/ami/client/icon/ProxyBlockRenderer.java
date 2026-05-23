@@ -1,8 +1,10 @@
 package com.sanhiruzu.ami.client.icon;
 
+import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.util.AmiWorldTooltipComposer;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -190,13 +192,13 @@ public class ProxyBlockRenderer implements IIconRenderer {
     }
 
     private static int dimensionColor(SearchNode node) {
-        if (node.type() == NodeType.STRUCTURE) return 0xFF252512;
+        if (node.type() == NodeType.STRUCTURE) return AMITheme.DIM_ICON_BG_STRUCTURE;
         String dim = node.meta(SearchNodeKeys.DIMENSION, "overworld");
         return switch (dim) {
-            case "nether"  -> 0xFF2B1408;
+            case "nether"  -> AMITheme.DIM_ICON_BG_NETHER;
             case "the_end",
-                 "end"     -> 0xFF16101E;
-            default        -> 0xFF122010;
+                 "end"     -> AMITheme.DIM_ICON_BG_END;
+            default        -> AMITheme.DIM_ICON_BG_OVERWORLD;
         };
     }
 
@@ -210,10 +212,7 @@ public class ProxyBlockRenderer implements IIconRenderer {
 
     @Override
     public List<Component> getTooltip(SearchNode node) {
-        return List.of(
-                Component.literal(node.displayName()),
-                Component.literal(node.id().toString()).withStyle(s -> s.withColor(0x666666))
-        );
+        return AmiWorldTooltipComposer.build(node);
     }
 
     @Override

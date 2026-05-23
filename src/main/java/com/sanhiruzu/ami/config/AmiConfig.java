@@ -2,6 +2,10 @@ package com.sanhiruzu.ami.config;
 
 import net.minecraft.network.chat.Component;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
 /**
  * Central configuration storage for AMI, using the custom annotation system.
  * Values here are synced with the custom GUI and localized tooltips.
@@ -9,15 +13,25 @@ import net.minecraft.network.chat.Component;
 public class AmiConfig {
 
     public enum AmiMode {
-        FULL, COMPACT, AMI_EMI_BRIDGE
+        FULL("ami.config.value.general.mode.full"),
+        COMPACT("ami.config.value.general.mode.compact"),
+        AMI_EMI_BRIDGE("ami.config.value.general.mode.ami_emi_bridge");
+
+        public final Component displayName;
+        AmiMode(String key) { this.displayName = Component.translatable(key); }
     }
 
     public enum PanelContent {
-        NONE, EMPTY, FAVORITES, GRID, LIST, COMPACT, LOOKUP_HISTORY, CRAFTING_HISTORY, CRAFTABLE
+        NONE, EMPTY, FAVORITES, GRID, LIST, COMPACT, LOOKUP_HISTORY, CRAFTING_HISTORY, CRAFTABLE, QUESTS
     }
 
     public enum Theme {
-        TRANSPARENT, VANILLA, MODERN
+        TRANSPARENT("ami.config.value.ui.theme.transparent"),
+        VANILLA("ami.config.value.ui.theme.vanilla"),
+        MODERN("ami.config.value.ui.theme.modern");
+
+        public final Component displayName;
+        Theme(String key) { this.displayName = Component.translatable(key); }
     }
 
     public enum BlockSubgroup {
@@ -37,6 +51,14 @@ public class AmiConfig {
         ItemClickAction(String key) { this.displayName = Component.translatable(key); }
     }
 
+    public enum CheatGiveMode {
+        CURSOR("ami.config.value.cheat.give-mode.cursor"),
+        INVENTORY("ami.config.value.cheat.give-mode.inventory");
+
+        public final Component displayName;
+        CheatGiveMode(String key) { this.displayName = Component.translatable(key); }
+    }
+
     // --- General Group ---
     @ConfigGroup("general")
     @ConfigValue("general.mode")
@@ -51,6 +73,9 @@ public class AmiConfig {
     @ConfigValue("general.dev-mode")
     public static boolean devMode = false;
 
+    @ConfigValue("general.highlight-exclusion-areas")
+    public static boolean highlightExclusionAreas = false;
+
     @ConfigValue("general.compact-mode")
     public static boolean compactMode = false;
 
@@ -59,15 +84,39 @@ public class AmiConfig {
 
     // --- Side Panels Group ---
     @ConfigGroup("sidepanels")
+
+    @ConfigValue("sidepanels.left.slots")
+    public static String leftPanelSlots = "FAVORITES";
+
+    @ConfigValue("sidepanels.left.alternate-slots")
+    public static String leftPanelAlternateSlots = "NONE";
+
+    @ConfigValue("sidepanels.right.slots")
+    public static String rightPanelSlots = "GRID";
+
+    @ConfigValue("sidepanels.right.alternate-slots")
+    public static String rightPanelAlternateSlots = "COMPACT";
     
     @ConfigValue("sidepanels.left.content")
     public static PanelContent leftPanelContent = PanelContent.FAVORITES;
+
+    @ConfigValue("sidepanels.left.alternate-content")
+    public static PanelContent leftPanelAlternateContent = PanelContent.NONE;
+
+    @ConfigValue("sidepanels.left.alternate-secondary-content")
+    public static PanelContent leftPanelAlternateSecondaryContent = PanelContent.NONE;
 
     @ConfigValue("sidepanels.left.secondary-content")
     public static PanelContent leftPanelSecondaryContent = PanelContent.NONE;
 
     @ConfigValue("sidepanels.right.content")
     public static PanelContent rightPanelContent = PanelContent.GRID;
+
+    @ConfigValue("sidepanels.right.alternate-content")
+    public static PanelContent rightPanelAlternateContent = PanelContent.COMPACT;
+
+    @ConfigValue("sidepanels.right.alternate-secondary-content")
+    public static PanelContent rightPanelAlternateSecondaryContent = PanelContent.NONE;
 
     @ConfigValue("sidepanels.right.secondary-content")
     public static PanelContent rightPanelSecondaryContent = PanelContent.NONE;
@@ -102,11 +151,26 @@ public class AmiConfig {
     @ConfigValue("features.strict-survival-mode")
     public static boolean strictSurvivalMode = false;
 
-    @ConfigValue("features.suppress-recipe-viewers")
-    public static boolean suppressRecipeViewers = true;
+    @ConfigValue("features.dynamic-shape-min-count")
+    public static int dynamicShapeMinCount = 40;
+
+    @ConfigValue("features.dynamic-shape-min-mod-spread")
+    public static int dynamicShapeMinModSpread = 3;
 
     @ConfigGroupEnd
     public static final Object featuresGroupEnd = null;
+
+    // --- Cheat Mode Group ---
+    @ConfigGroup("cheat")
+
+    @ConfigValue("cheat.give-mode")
+    public static CheatGiveMode cheatGiveMode = CheatGiveMode.CURSOR;
+
+    @ConfigValue("cheat.drop-to-delete")
+    public static boolean cheatDropToDelete = true;
+
+    @ConfigGroupEnd
+    public static final Object cheatGroupEnd = null;
 
     // --- Layout Group ---
     @ConfigGroup("layout")
@@ -224,10 +288,21 @@ public class AmiConfig {
         enableAutoIndexing = true;
         cheatMode = false;
         devMode = false;
+        highlightExclusionAreas = false;
         compactMode = false;
         
+        leftPanelSlots = "FAVORITES";
+        leftPanelAlternateSlots = "NONE";
+        rightPanelSlots = "GRID";
+        rightPanelAlternateSlots = "COMPACT";
         leftPanelContent = PanelContent.FAVORITES;
+        leftPanelAlternateContent = PanelContent.NONE;
+        leftPanelAlternateSecondaryContent = PanelContent.NONE;
+        leftPanelSecondaryContent = PanelContent.NONE;
         rightPanelContent = PanelContent.GRID;
+        rightPanelAlternateContent = PanelContent.COMPACT;
+        rightPanelAlternateSecondaryContent = PanelContent.NONE;
+        rightPanelSecondaryContent = PanelContent.NONE;
         leftPanelWidth = 140;
         rightPanelWidth = 0;
         
@@ -237,7 +312,11 @@ public class AmiConfig {
         showSpawnEggs = false;
         showHiddenModItems = true;
         strictSurvivalMode = false;
-        suppressRecipeViewers = true;
+        dynamicShapeMinCount = 40;
+        dynamicShapeMinModSpread = 3;
+
+        cheatGiveMode = CheatGiveMode.CURSOR;
+        cheatDropToDelete = true;
         
         searchBarWidth = 240;
         globalPadding = 6;
@@ -269,5 +348,38 @@ public class AmiConfig {
         favoriteKey = "A";
         toggleAmiKey = "ALT+A";
         cheatOneKey = "ctrl-click";
+    }
+
+    public static List<PanelContent> parsePanelSlots(String raw) {
+        List<PanelContent> contents = new ArrayList<>();
+        if (raw == null || raw.isBlank()) {
+            return contents;
+        }
+
+        for (String token : raw.split(",")) {
+            String normalized = token.trim().toUpperCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+            if (normalized.isEmpty()) continue;
+            try {
+                PanelContent content = PanelContent.valueOf(normalized);
+                if (content != PanelContent.NONE) {
+                    contents.add(content);
+                }
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        return contents;
+    }
+
+    public static String encodePanelSlots(List<PanelContent> contents) {
+        if (contents == null || contents.isEmpty()) {
+            return PanelContent.NONE.name();
+        }
+        StringBuilder out = new StringBuilder();
+        for (PanelContent content : contents) {
+            if (content == null || content == PanelContent.NONE) continue;
+            if (!out.isEmpty()) out.append(',');
+            out.append(content.name());
+        }
+        return out.isEmpty() ? PanelContent.NONE.name() : out.toString();
     }
 }

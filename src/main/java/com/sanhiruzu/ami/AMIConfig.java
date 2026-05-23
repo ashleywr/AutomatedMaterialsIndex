@@ -179,11 +179,6 @@ static {
             .comment("Scrollbar thumb color when hovered (RGB hex).")
             .define("scrollbarThumbHover", "0xFF555555");
 
-    // Search behavior
-    public static final ModConfigSpec.BooleanValue SUPPRESS_RECIPE_VIEWERS = BUILDER
-            .comment("Suppress EMI/JEI rendering when AMI search is focused")
-            .define("suppressRecipeViewers", true);
-
     public enum BlockSubgroup { SHAPE, MATERIAL }
 
     public enum PanelSide { AUTO, LEFT, RIGHT }

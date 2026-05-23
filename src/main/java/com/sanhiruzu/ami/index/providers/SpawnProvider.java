@@ -5,7 +5,6 @@ import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.IAmiDataProvider;
 import net.minecraft.world.level.Level;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.world.entity.EntityType;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -36,13 +35,7 @@ public class SpawnProvider implements IAmiDataProvider {
                             for (var entry : spawners.entrySet()) {
                                 List<?> list = (List<?>) entry.getValue();
                                 for (Object sp : list) {
-                                    // Try to extract the entity type from SpawnerData via reflection
-                                    try {
-                                        EntityType<?> et = (EntityType<?>) sp.getClass().getMethod("type").invoke(sp);
-                                                                                AMI.LOGGER.debug("Entity type {} spawns in biome {}", et, biomeId);
-                                    } catch (Exception inner) {
-                                        // ignore
-                                    }
+                                    // Entity type extraction via reflection omitted (unused)
                                 }
                             }
                         }

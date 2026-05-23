@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.client.overlay;
 
+import com.sanhiruzu.ami.client.AMITheme;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -14,9 +15,8 @@ public class AmiButtonWidget extends AbstractWidget {
     private static final ResourceLocation SPRITE_NORMAL      = ResourceLocation.withDefaultNamespace("widget/button");
     private static final ResourceLocation SPRITE_HIGHLIGHTED  = ResourceLocation.withDefaultNamespace("widget/button_highlighted");
 
-    private static final int COLOR_ACTIVE  = 0xFFFFDD44; // amber — panel is open
-    private static final int COLOR_NORMAL  = 0xFFFFFFFF; // white
-    private static final int COLOR_HOVER   = 0xFFFFFFA0; // vanilla button hover tint
+    private static final int COLOR_ACTIVE  = AMITheme.BUTTON_ACTIVE; // amber — panel is open
+    private static final int COLOR_HOVER   = AMITheme.BUTTON_HOVER;  // vanilla button hover tint
 
     private final Runnable onClickCallback;
     private final Runnable onAltClickCallback;
@@ -51,11 +51,11 @@ public class AmiButtonWidget extends AbstractWidget {
         g.blitSprite(sprite, getX(), getY(), width, height);
 
         // Label: amber when panel is open, hover-yellow when hovered, white otherwise
-        int textColor = panelOpen ? COLOR_ACTIVE : (hovered ? COLOR_HOVER : COLOR_NORMAL);
+        int textColor = panelOpen ? COLOR_ACTIVE : (hovered ? COLOR_HOVER : AMITheme.WHITE);
         var font = Minecraft.getInstance().font;
         // 1 px down-shift when button is held for tactile feel
         int textY = getY() + (height - font.lineHeight) / 2 + (isDown ? 2 : 1);
-        g.drawCenteredString(font, "AMI", getX() + width / 2, textY, textColor);
+        g.drawCenteredString(font, Component.translatable("ami.gui.ami_button"), getX() + width / 2, textY, textColor);
     }
 
     @Override

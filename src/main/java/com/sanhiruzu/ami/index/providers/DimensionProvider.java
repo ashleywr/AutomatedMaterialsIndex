@@ -18,7 +18,10 @@ public class DimensionProvider implements IAmiDataProvider {
 
     @Override
     public void populate(GlobalIndex index, @Nullable Level level) {
-        if (level == null) return;
+        if (level == null) {
+            index.setLoading(NodeType.DIMENSION, false);
+            return;
+        }
 
         List<SearchNode> nodes = new ArrayList<>();
         level.registryAccess().registry(Registries.DIMENSION).ifPresent(reg ->
@@ -28,15 +31,18 @@ public class DimensionProvider implements IAmiDataProvider {
 
                 Map<String, String> meta = new HashMap<>();
                 meta.put(SearchNodeKeys.MOD_ID, id.getNamespace());
+                meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, AmiOntology.ENVIRONMENT.id);
+                meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "dimensions");
 
                 nodes.add(new SearchNode(
                     id, NodeType.DIMENSION,
-                    RegistryUtils.formatPath(id.getPath()),
+                    RegistryUtils.formatPathWithSuffix(id.getPath(), "Dimension"),
                     color, 0, meta));
             })
         );
 
         nodes.sort(RegistryUtils.ENTRY_ORDER);
         index.replaceNodes(NodeType.DIMENSION, nodes);
+        index.setLoading(NodeType.DIMENSION, false);
     }
 }

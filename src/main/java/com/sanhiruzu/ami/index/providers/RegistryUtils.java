@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.index.providers;
 
 import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.util.AmiColors;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.MobCategory;
 import net.neoforged.fml.ModList;
@@ -34,6 +35,13 @@ public final class RegistryUtils {
     }
 
     /**
+     * "dark_forest" + "Biome" -> "Dark Forest Biome"
+     */
+    public static String formatPathWithSuffix(String path, String suffix) {
+        return formatPath(path) + " " + suffix;
+    }
+
+    /**
      * Namespace → human-readable mod name, falling back to formatPath(namespace).
      */
     public static String modDisplayName(String namespace) {
@@ -52,19 +60,19 @@ public final class RegistryUtils {
 
     public static int categoryColor(MobCategory category) {
         return switch (category) {
-            case MONSTER -> 0xFFCC4444;
-            case CREATURE -> 0xFF44AA44;
-            case AMBIENT -> 0xFFAAAA44;
-            case WATER_CREATURE, WATER_AMBIENT, UNDERGROUND_WATER_CREATURE -> 0xFF4488CC;
-            default -> 0xFF888888;
+            case MONSTER -> AmiColors.CATEGORY_MONSTER;
+            case CREATURE -> AmiColors.CATEGORY_CREATURE;
+            case AMBIENT -> AmiColors.CATEGORY_AMBIENT;
+            case WATER_CREATURE, WATER_AMBIENT, UNDERGROUND_WATER_CREATURE -> AmiColors.CATEGORY_AQUATIC;
+            default -> AmiColors.CATEGORY_DEFAULT;
         };
     }
 
     public static int dimensionColor(ResourceLocation id) {
         return switch (id.toString()) {
-            case "minecraft:overworld" -> 0xFF66BB6A;
-            case "minecraft:the_nether" -> 0xFFCC4444;
-            case "minecraft:the_end" -> 0xFF7A51A6;
+            case "minecraft:overworld" -> AmiColors.DIM_OVERWORLD;
+            case "minecraft:the_nether" -> AmiColors.DIM_NETHER;
+            case "minecraft:the_end" -> AmiColors.DIM_END;
             default -> namespaceColor(id.getNamespace());
         };
     }
