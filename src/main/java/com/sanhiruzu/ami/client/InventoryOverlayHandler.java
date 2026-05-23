@@ -1,8 +1,11 @@
 package com.sanhiruzu.ami.client;
 
 import com.sanhiruzu.ami.AMI;
+import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.client.overlay.OverlayWidgetManager;
+import com.sanhiruzu.ami.api.AmiApi;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.neoforged.api.distmarker.Dist;
@@ -10,6 +13,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ScreenEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
 public class InventoryOverlayHandler {
@@ -20,6 +24,7 @@ public class InventoryOverlayHandler {
     private static boolean amiEnabled = false;
     private static boolean pendingScreenReinit = false;
     private static boolean sessionInitialized = false;
+    private static boolean indexingRequested = false;
 
     private static boolean isAmiAvailable() {
         return AmiConfig.enableAutoIndexing;
@@ -30,11 +35,25 @@ public class InventoryOverlayHandler {
         return screen instanceof AbstractContainerScreen<?>;
     }
 
+    private static boolean isRecipeScreen(net.minecraft.client.gui.screens.Screen screen) {
+        String name = screen.getClass().getName();
+        return name.equals("dev.emi.emi.screen.RecipeScreen")
+            || name.equals("mezz.jei.gui.recipes.RecipesGui");
+    }
+
+    /** Screens where AMI renders and handles input. */
+    private static boolean isAmiScreen(net.minecraft.client.gui.screens.Screen screen) {
+        return isContainerScreen(screen) || isRecipeScreen(screen);
+    }
+
     public static void toggleAmi() {
         Minecraft mc = Minecraft.getInstance();
-        if (!isContainerScreen(mc.screen)) return;
+        if (!isAmiScreen(mc.screen)) return;
 
         amiEnabled = !amiEnabled;
+
+        // Toggling AMI dismisses any active recipe view
+        com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
 
         if (amiEnabled && !manager.isPanelVisible()) {
             manager.setPanelVisible(true);
@@ -48,8 +67,10 @@ public class InventoryOverlayHandler {
 
     @SubscribeEvent
     static void onScreenInit(ScreenEvent.Init.Post event) {
-        if (!isContainerScreen(event.getScreen())) return;
-        var containerScreen = event.getScreen();
+        if (!isAmiScreen(event.getScreen())) return;
+
+        // Screen reinit dismisses any active recipe view
+        com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
 
         if (!sessionInitialized) {
             sessionInitialized = true;
@@ -57,33 +78,40 @@ public class InventoryOverlayHandler {
             manager.setPanelVisible(true);
         }
 
-        // Compute widget positions from current screen geometry.
-        manager.computeLayouts(containerScreen, containerScreen.width, containerScreen.height);
+        ensureIndexingStarted();
 
-        // AMI button is always a screen child so clicks work even when the panel is closed.
-        event.addListener(manager.getAmiButton());
-
-        if (amiEnabled) {
-            event.addListener(manager.getSearchBar());
-            event.addListener(manager.getResultsPanel());
-            if (manager.getLeftPanel() != null) event.addListener(manager.getLeftPanel());
-            if (manager.getLeftPanelSecondary() != null) event.addListener(manager.getLeftPanelSecondary());
-            if (manager.getRightPanelPrimary() != null) event.addListener(manager.getRightPanelPrimary());
-            if (manager.getRightPanelSecondary() != null) event.addListener(manager.getRightPanelSecondary());
+        if (event.getScreen() instanceof AbstractContainerScreen<?> containerScreen) {
+            manager.computeLayouts(containerScreen, containerScreen.width, containerScreen.height);
+            event.addListener(manager.getAmiButton());
+            if (amiEnabled) {
+                event.addListener(manager.getSearchBar());
+            }
+            manager.getSearchBar().setFocused(false);
         }
-
-        manager.getSearchBar().setFocused(false);
+        // For RecipeScreen, layout is computed by renderAll each frame.
+        // Don't add children — RecipeScreen manages its own widget lifecycle.
     }
 
     @SubscribeEvent
+    static void onPlayerLoggingIn(ClientPlayerNetworkEvent.LoggingIn event) {
+        if (!AmiConfig.enableAutoIndexing) return;
+        Minecraft.getInstance().execute(InventoryOverlayHandler::ensureIndexingStarted);
+    }
+
+    @SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.LOWEST)
     static void onRenderPost(ScreenEvent.Render.Post event) {
-        if (!isContainerScreen(event.getScreen())) return;
+        if (!isAmiScreen(event.getScreen())) return;
 
         // Process deferred screen reinit before any rendering this frame.
         if (pendingScreenReinit) {
             pendingScreenReinit = false;
             Minecraft mc = Minecraft.getInstance();
             if (mc.screen != null) mc.screen.init(mc, mc.screen.width, mc.screen.height);
+            return;
+        }
+
+        // Check if any registered suppressors want to hide AMI
+        if (AmiApi.shouldSuppressAmi(event.getScreen())) {
             return;
         }
 
@@ -96,31 +124,26 @@ public class InventoryOverlayHandler {
 
     @SubscribeEvent
     static void onMouseScroll(ScreenEvent.MouseScrolled.Pre event) {
+        if (!isAmiScreen(event.getScreen())) return;
+        if (AmiApi.shouldSuppressAmi(event.getScreen())) return;
         if (!amiEnabled) return;
         if (!AmiConfig.enableAutoIndexing) return;
-        if (!isContainerScreen(event.getScreen())) return;
-        
-        if (manager.getResultsPanel().visible && manager.getResultsPanel().mouseScrolled(event.getMouseX(), event.getMouseY(), event.getScrollDeltaX(), event.getScrollDeltaY())) {
-            event.setCanceled(true); return;
-        }
-        if (manager.getLeftPanel().visible && manager.getLeftPanel().mouseScrolled(event.getMouseX(), event.getMouseY(), event.getScrollDeltaX(), event.getScrollDeltaY())) {
-            event.setCanceled(true); return;
-        }
-        if (manager.getLeftPanelSecondary().visible && manager.getLeftPanelSecondary().mouseScrolled(event.getMouseX(), event.getMouseY(), event.getScrollDeltaX(), event.getScrollDeltaY())) {
-            event.setCanceled(true); return;
-        }
-        if (manager.getRightPanelPrimary().visible && manager.getRightPanelPrimary().mouseScrolled(event.getMouseX(), event.getMouseY(), event.getScrollDeltaX(), event.getScrollDeltaY())) {
-            event.setCanceled(true); return;
-        }
-        if (manager.getRightPanelSecondary().visible && manager.getRightPanelSecondary().mouseScrolled(event.getMouseX(), event.getMouseY(), event.getScrollDeltaX(), event.getScrollDeltaY())) {
+
+        if (manager.mouseScrolled(event.getMouseX(), event.getMouseY(), event.getScrollDeltaX(), event.getScrollDeltaY())) {
             event.setCanceled(true);
         }
     }
 
     @SubscribeEvent
     static void onMouseButtonPressed(ScreenEvent.MouseButtonPressed.Pre event) {
-        if (!isContainerScreen(event.getScreen())) return;
-        var containerScreen = event.getScreen();
+        if (!isAmiScreen(event.getScreen())) return;
+
+        // Check if any registered suppressors want to hide AMI
+        if (AmiApi.shouldSuppressAmi(event.getScreen())) {
+            return;
+        }
+
+        var screen = event.getScreen();
 
         if (event.getButton() == 0 && manager.getAmiButton().isMouseOver(event.getMouseX(), event.getMouseY())) {
             manager.getAmiButton().mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton());
@@ -130,26 +153,15 @@ public class InventoryOverlayHandler {
 
         if (!amiEnabled || !manager.isPanelVisible()) return;
 
-        if (manager.getResultsPanel().visible && manager.getResultsPanel().isMouseOver(event.getMouseX(), event.getMouseY())) {
-            if (manager.getResultsPanel().mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton())) { event.setCanceled(true); return; }
-        }
-        if (manager.getLeftPanel().visible && manager.getLeftPanel().isMouseOver(event.getMouseX(), event.getMouseY())) {
-            if (manager.getLeftPanel().mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton())) { event.setCanceled(true); return; }
-        }
-        if (manager.getLeftPanelSecondary().visible && manager.getLeftPanelSecondary().isMouseOver(event.getMouseX(), event.getMouseY())) {
-            if (manager.getLeftPanelSecondary().mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton())) { event.setCanceled(true); return; }
-        }
-        if (manager.getRightPanelPrimary().visible && manager.getRightPanelPrimary().isMouseOver(event.getMouseX(), event.getMouseY())) {
-            if (manager.getRightPanelPrimary().mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton())) { event.setCanceled(true); return; }
-        }
-        if (manager.getRightPanelSecondary().visible && manager.getRightPanelSecondary().isMouseOver(event.getMouseX(), event.getMouseY())) {
-            if (manager.getRightPanelSecondary().mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton())) { event.setCanceled(true); return; }
+        if (manager.mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton())) {
+            event.setCanceled(true);
+            return;
         }
 
         var searchBar = manager.getSearchBar();
         if (searchBar.isMouseOver(event.getMouseX(), event.getMouseY())) {
             searchBar.setFocused(true);
-            containerScreen.setFocused(searchBar);
+            screen.setFocused(searchBar);
             searchBar.mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton());
             event.setCanceled(true);
         } else if (searchBar.isFocused()) {
@@ -160,21 +172,9 @@ public class InventoryOverlayHandler {
     @SubscribeEvent
     static void onMouseDragged(ScreenEvent.MouseDragged.Pre event) {
         if (!amiEnabled || !manager.isPanelVisible()) return;
-        if (!isContainerScreen(event.getScreen())) return;
+        if (!isAmiScreen(event.getScreen())) return;
 
-        if (manager.getResultsPanel().visible && manager.getResultsPanel().mouseDragged(event.getMouseX(), event.getMouseY(), event.getMouseButton(), event.getDragX(), event.getDragY())) {
-            event.setCanceled(true); return;
-        }
-        if (manager.getLeftPanel().visible && manager.getLeftPanel().mouseDragged(event.getMouseX(), event.getMouseY(), event.getMouseButton(), event.getDragX(), event.getDragY())) {
-            event.setCanceled(true); return;
-        }
-        if (manager.getLeftPanelSecondary().visible && manager.getLeftPanelSecondary().mouseDragged(event.getMouseX(), event.getMouseY(), event.getMouseButton(), event.getDragX(), event.getDragY())) {
-            event.setCanceled(true); return;
-        }
-        if (manager.getRightPanelPrimary().visible && manager.getRightPanelPrimary().mouseDragged(event.getMouseX(), event.getMouseY(), event.getMouseButton(), event.getDragX(), event.getDragY())) {
-            event.setCanceled(true); return;
-        }
-        if (manager.getRightPanelSecondary().visible && manager.getRightPanelSecondary().mouseDragged(event.getMouseX(), event.getMouseY(), event.getMouseButton(), event.getDragX(), event.getDragY())) {
+        if (manager.mouseDragged(event.getMouseX(), event.getMouseY(), event.getMouseButton(), event.getDragX(), event.getDragY())) {
             event.setCanceled(true); return;
         }
 
@@ -187,13 +187,9 @@ public class InventoryOverlayHandler {
     @SubscribeEvent
     static void onMouseButtonReleased(ScreenEvent.MouseButtonReleased.Pre event) {
         if (!amiEnabled || !manager.isPanelVisible()) return;
-        if (!isContainerScreen(event.getScreen())) return;
+        if (!isAmiScreen(event.getScreen())) return;
 
-        manager.getResultsPanel().mouseReleased(event.getMouseX(), event.getMouseY(), event.getButton());
-        manager.getLeftPanel().mouseReleased(event.getMouseX(), event.getMouseY(), event.getButton());
-        manager.getLeftPanelSecondary().mouseReleased(event.getMouseX(), event.getMouseY(), event.getButton());
-        manager.getRightPanelPrimary().mouseReleased(event.getMouseX(), event.getMouseY(), event.getButton());
-        manager.getRightPanelSecondary().mouseReleased(event.getMouseX(), event.getMouseY(), event.getButton());
+        manager.mouseReleased(event.getMouseX(), event.getMouseY(), event.getButton());
 
         var searchBar = manager.getSearchBar();
         if (searchBar.isFocused() && searchBar.mouseReleased(event.getMouseX(), event.getMouseY(), event.getButton())) {
@@ -214,8 +210,15 @@ public class InventoryOverlayHandler {
     @SubscribeEvent
     static void onKeyPressed(ScreenEvent.KeyPressed.Pre event) {
         if (!isAmiAvailable()) return;
-        if (!isContainerScreen(event.getScreen())) return;
-        var containerScreen = event.getScreen();
+        if (!isAmiScreen(event.getScreen())) return;
+
+        // ESC dismisses an active recipe view before any other handling
+        if (event.getKeyCode() == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE
+                && com.sanhiruzu.ami.compat.RecipeViewerBridge.isRecipeViewActive()) {
+            com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
+            // Don't cancel — let EMI also see the ESC to dismiss its recipe focus
+            return;
+        }
 
         if (AmiKeybindHandler.onKeyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers(), org.lwjgl.glfw.GLFW.GLFW_PRESS)) {
             event.setCanceled(true);
@@ -223,19 +226,7 @@ public class InventoryOverlayHandler {
         }
 
         if (amiEnabled && manager.isPanelVisible()) {
-            if (manager.getResultsPanel().visible && manager.getResultsPanel().keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
-                event.setCanceled(true); return;
-            }
-            if (manager.getLeftPanel().visible && manager.getLeftPanel().keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
-                event.setCanceled(true); return;
-            }
-            if (manager.getLeftPanelSecondary().visible && manager.getLeftPanelSecondary().keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
-                event.setCanceled(true); return;
-            }
-            if (manager.getRightPanelPrimary().visible && manager.getRightPanelPrimary().keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
-                event.setCanceled(true); return;
-            }
-            if (manager.getRightPanelSecondary().visible && manager.getRightPanelSecondary().keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
+            if (manager.keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
                 event.setCanceled(true); return;
             }
         }
@@ -254,5 +245,37 @@ public class InventoryOverlayHandler {
 
     public static boolean isAmiEnabled() {
         return amiEnabled;
+    }
+
+    public static boolean isMouseOverAmiOverlay(double mouseX, double mouseY) {
+        if (!amiEnabled || !manager.isPanelVisible()) return false;
+
+        var searchBar = manager.getSearchBar();
+        if (searchBar != null && searchBar.visible && searchBar.isMouseOver(mouseX, mouseY)) {
+            return true;
+        }
+
+        if (manager.isMouseOverPanel(mouseX, mouseY)) return true;
+
+        return manager.getAmiButton() != null && manager.getAmiButton().isMouseOver(mouseX, mouseY);
+    }
+
+    public static void resetSessionState() {
+        amiEnabled = false;
+        pendingScreenReinit = false;
+        sessionInitialized = false;
+        indexingRequested = false;
+    }
+
+    private static void ensureIndexingStarted() {
+        if (!AmiConfig.enableAutoIndexing) return;
+        if (indexingRequested) return;
+
+        var level = Minecraft.getInstance().level;
+        if (level == null) return;
+
+        indexingRequested = true;
+        AMI.LOGGER.info("AMI: starting background index rebuild");
+        AmiIndexerService.getInstance().rebuild(level);
     }
 }

@@ -12,7 +12,6 @@ public class ResultsToolbar implements SearchState.Listener {
 
     public  static final int TOOLBAR_HEIGHT  = 20;
     public  static final int BUTTON_H        = 14;  // all buttons are this height
-    private static final int MODE_BUTTON_W   = 28;  // "Grid"/"List"
     private static final int SORT_BUTTON_W   = 14;  // "▲"/"▼"
     private static final int RESET_BUTTON_W  = 18;  // reset icon
     private static final int COLLAPSE_BTN_W  = 18;  // "−"
@@ -21,9 +20,13 @@ public class ResultsToolbar implements SearchState.Listener {
     private static final int MOD_FILTER_W    = 60;
     private static final int FIELDS_BTN_W    = 44;  // "Fields (3)"
     private static final int BUTTON_GAP      = 2;   // gap between buttons
+    private static final int MIN_DROPDOWN_W  = 72;
+    private static final int SCROLL_STEP     = 18;
 
     private int x, y, width;
     private final SearchState state;
+    private int contentWidth;
+    private int scrollOffset;
 
     // Registered dropdowns - add or remove here to customize the toolbar
     private final List<Dropdown> dropdowns = new ArrayList<>();
@@ -87,22 +90,26 @@ public class ResultsToolbar implements SearchState.Listener {
 
     private void updateDropdownPositions() {
         boolean gridMode = state.getViewMode() == ViewMode.GRID;
-        int startX = x + 2 + MODE_BUTTON_W + BUTTON_GAP + SORT_BUTTON_W + BUTTON_GAP + RESET_BUTTON_W + BUTTON_GAP;
+        int startX = x + 2 + SORT_BUTTON_W + BUTTON_GAP + RESET_BUTTON_W + BUTTON_GAP;
         // Account for collapse/expand buttons in list view
         if (!gridMode && onCollapseAll != null) {
             startX += COLLAPSE_BTN_W + BUTTON_GAP + EXPAND_BTN_W + BUTTON_GAP;
         }
-        // In grid mode the Fields picker is hidden, so give its space to Sort/Group dropdowns.
+        int headerControlsW = startX - x;
         int rightReserved = gridMode ? 0 : (FIELDS_BTN_W + 5);
-        int availableW = width - (startX - x) - rightReserved;
 
         int n = dropdowns.size();
         if (n == 0) return;
 
         int gap = 3;
         int totalGaps = (n - 1) * gap;
+        int minContentWidth = headerControlsW + rightReserved + (n * MIN_DROPDOWN_W) + totalGaps + 4;
+        this.contentWidth = Math.max(width, minContentWidth);
+        clampScrollOffset();
+
+        int availableW = contentWidth - headerControlsW - rightReserved;
         int widthPerDropdown = (availableW - totalGaps) / n;
-        int rightBound = x + width - rightReserved - 4;
+        int rightBound = x + contentWidth - rightReserved - 4;
 
         int currentX = startX;
         for (int i = 0; i < n; i++) {
@@ -113,7 +120,9 @@ public class ResultsToolbar implements SearchState.Listener {
         }
 
         if (!gridMode) {
-            fieldsPicker.updatePosition(x + width - FIELDS_BTN_W - 2, y + 3, FIELDS_BTN_W);
+            // Position at the far right of virtual content space so it scrolls with the toolbar.
+            // rightBound already reserves (FIELDS_BTN_W + 5) space, so align there.
+            fieldsPicker.updatePosition(x + contentWidth - FIELDS_BTN_W - 2, y + 3, FIELDS_BTN_W);
         }
     }
 
@@ -124,12 +133,9 @@ public class ResultsToolbar implements SearchState.Listener {
         int buttonX = x + 2;
         int buttonY = y + 3;
 
-        // View mode toggle button
-        String modeLabel = state.getViewMode() == ViewMode.GRID ? "Grid" : "List";
-        boolean modeHovered = Dropdown.contains(effectiveMouseX, mouseY, buttonX, buttonY, MODE_BUTTON_W, BUTTON_H);
-        drawButton(g, buttonX, buttonY, MODE_BUTTON_W, BUTTON_H, modeHovered);
-        g.drawCenteredString(font, modeLabel, buttonX + MODE_BUTTON_W / 2, buttonY + 3, AMITheme.TEXT_HEADER);
-        buttonX += MODE_BUTTON_W + BUTTON_GAP;
+        g.enableScissor(x, y, x + width, y + TOOLBAR_HEIGHT);
+        g.pose().pushPose();
+        g.pose().translate(-scrollOffset, 0, 0);
 
         // Sort direction button (▲/▼)
         String dirLabel = state.isAscending() ? "▲" : "▼";
@@ -161,13 +167,17 @@ public class ResultsToolbar implements SearchState.Listener {
             buttonX += EXPAND_BTN_W + BUTTON_GAP;
         }
 
-        // Render all registered dropdowns
+        // Render all registered dropdowns and fields picker (inside scroll transform)
         for (Dropdown dropdown : dropdowns) {
             dropdown.render(g, effectiveMouseX, mouseY);
         }
         if (state.getViewMode() != ViewMode.GRID) {
             fieldsPicker.render(g, effectiveMouseX, mouseY);
         }
+
+        g.pose().popPose();
+        g.disableScissor();
+        renderScrollIndicators(g);
     }
 
     /** Draw a styled button background with border. */
@@ -184,21 +194,14 @@ public class ResultsToolbar implements SearchState.Listener {
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0) return false;
+        int translatedMouseX = (int) mouseX + scrollOffset;
+        int translatedMouseY = (int) mouseY;
 
         int buttonX = x + 2;
         int buttonY = y + 3;
 
-        // View mode toggle
-        if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, buttonY, MODE_BUTTON_W, BUTTON_H)) {
-            state.setViewMode(state.getViewMode() == ViewMode.GRID ? ViewMode.LIST : ViewMode.GRID);
-            closeAllDropdowns();
-            updateDropdownPositions(); // reclaim / restore Fields space
-            return true;
-        }
-        buttonX += MODE_BUTTON_W + BUTTON_GAP;
-
         // Sort direction button
-        if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, buttonY, SORT_BUTTON_W, BUTTON_H)) {
+        if (Dropdown.contains(translatedMouseX, translatedMouseY, buttonX, buttonY, SORT_BUTTON_W, BUTTON_H)) {
             state.setAscending(!state.isAscending());
             closeAllDropdowns();
             return true;
@@ -206,7 +209,7 @@ public class ResultsToolbar implements SearchState.Listener {
         buttonX += SORT_BUTTON_W + BUTTON_GAP;
 
         // Reset button
-        if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, buttonY, RESET_BUTTON_W, BUTTON_H)) {
+        if (Dropdown.contains(translatedMouseX, translatedMouseY, buttonX, buttonY, RESET_BUTTON_W, BUTTON_H)) {
             state.reset();
             RowFieldConfig.setSubtitleFields(List.of(RowField.MOD_NAME));
             closeAllDropdowns();
@@ -217,28 +220,28 @@ public class ResultsToolbar implements SearchState.Listener {
         // Collapse/Expand all buttons (only in list view)
         if (state.getViewMode() != ViewMode.GRID && onCollapseAll != null) {
             // Collapse button
-            if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, buttonY, COLLAPSE_BTN_W, BUTTON_H)) {
+            if (Dropdown.contains(translatedMouseX, translatedMouseY, buttonX, buttonY, COLLAPSE_BTN_W, BUTTON_H)) {
                 onCollapseAll.run();
                 return true;
             }
             buttonX += COLLAPSE_BTN_W + BUTTON_GAP;
 
             // Expand button
-            if (Dropdown.contains((int) mouseX, (int) mouseY, buttonX, buttonY, EXPAND_BTN_W, BUTTON_H)) {
+            if (Dropdown.contains(translatedMouseX, translatedMouseY, buttonX, buttonY, EXPAND_BTN_W, BUTTON_H)) {
                 onExpandAll.run();
                 return true;
             }
         }
 
         // Fields picker — only in list mode
-        if (state.getViewMode() != ViewMode.GRID && fieldsPicker.mouseClicked(mouseX, mouseY, button)) {
+        if (state.getViewMode() != ViewMode.GRID && fieldsPicker.mouseClicked(mouseX + scrollOffset, mouseY, button)) {
             for (Dropdown d : dropdowns) d.close();
             return true;
         }
 
         // Handle dropdown clicks - close others when one is clicked
         for (Dropdown dropdown : dropdowns) {
-            if (dropdown.mouseClicked(mouseX, mouseY, button)) {
+            if (dropdown.mouseClicked(mouseX + scrollOffset, mouseY, button)) {
                 for (Dropdown other : dropdowns) {
                     if (other != dropdown) other.close();
                 }
@@ -254,6 +257,7 @@ public class ResultsToolbar implements SearchState.Listener {
     public void renderOpenDropdownLists(GuiGraphics g, int mouseX, int mouseY) {
         g.pose().pushPose();
         g.pose().translate(0, 0, 400); // Lift above icons (Z=150) and other UI elements
+        g.pose().translate(-scrollOffset, 0, 0);
         for (Dropdown dropdown : dropdowns) {
             dropdown.renderList(g, mouseX, mouseY);
         }
@@ -291,5 +295,51 @@ public class ResultsToolbar implements SearchState.Listener {
     public void setCollapseExpandCallbacks(Runnable onCollapseAll, Runnable onExpandAll) {
         this.onCollapseAll = onCollapseAll;
         this.onExpandAll = onExpandAll;
+    }
+
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollDelta) {
+        if (!hasHorizontalOverflow() || !isMouseOver(mouseX, mouseY)) {
+            return false;
+        }
+        scrollOffset -= (int) Math.signum(scrollDelta) * SCROLL_STEP;
+        clampScrollOffset();
+        return true;
+    }
+
+    public boolean isMouseOver(double mouseX, double mouseY) {
+        return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + TOOLBAR_HEIGHT;
+    }
+
+    private boolean hasHorizontalOverflow() {
+        return contentWidth > width;
+    }
+
+    private void clampScrollOffset() {
+        int maxOffset = Math.max(0, contentWidth - width);
+        if (scrollOffset < 0) {
+            scrollOffset = 0;
+        } else if (scrollOffset > maxOffset) {
+            scrollOffset = maxOffset;
+        }
+    }
+
+    private void renderScrollIndicators(GuiGraphics g) {
+        if (!hasHorizontalOverflow()) {
+            return;
+        }
+
+        var font = Minecraft.getInstance().font;
+        int indicatorW = 10;
+        int top = y + 3;
+        int bottom = top + BUTTON_H;
+
+        if (scrollOffset > 0) {
+            g.fill(x, top, x + indicatorW, bottom, AMITheme.SCROLL_INDICATOR_BG);
+            g.drawCenteredString(font, "<", x + indicatorW / 2, top + 3, AMITheme.TEXT_SUBTLE);
+        }
+        if (scrollOffset < contentWidth - width) {
+            g.fill(x + width - indicatorW, top, x + width, bottom, AMITheme.SCROLL_INDICATOR_BG);
+            g.drawCenteredString(font, ">", x + width - indicatorW / 2, top + 3, AMITheme.TEXT_SUBTLE);
+        }
     }
 }

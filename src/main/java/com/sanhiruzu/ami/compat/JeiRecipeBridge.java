@@ -1,6 +1,9 @@
 package com.sanhiruzu.ami.compat;
 
-import net.minecraft.client.Minecraft;
+import mezz.jei.api.ingredients.IIngredientType;
+import mezz.jei.api.recipe.IFocus;
+import mezz.jei.api.recipe.IFocusFactory;
+import mezz.jei.api.recipe.RecipeIngredientRole;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.item.ItemStack;
 
@@ -12,13 +15,23 @@ class JeiRecipeBridge {
     private static ItemStack draggedStack = ItemStack.EMPTY;
 
     static void openRecipes(ItemStack stack) {
-        // JEI recipe opening requires complex type inference in the public API
-        // Users can use JEI's own keyboard shortcuts or search instead
+        JeiRuntimeAccessor.withRuntime(runtime -> {
+            IIngredientType<ItemStack> itemType = runtime.getIngredientManager().getIngredientType(stack);
+            if (itemType == null) return;
+            IFocusFactory focusFactory = runtime.getJeiHelpers().getFocusFactory();
+            IFocus<ItemStack> focus = focusFactory.createFocus(RecipeIngredientRole.OUTPUT, itemType, stack);
+            runtime.getRecipesGui().show(focus);
+        });
     }
 
     static void openUses(ItemStack stack) {
-        // JEI uses opening requires complex type inference in the public API
-        // Users can use JEI's own keyboard shortcuts or search instead
+        JeiRuntimeAccessor.withRuntime(runtime -> {
+            IIngredientType<ItemStack> itemType = runtime.getIngredientManager().getIngredientType(stack);
+            if (itemType == null) return;
+            IFocusFactory focusFactory = runtime.getJeiHelpers().getFocusFactory();
+            IFocus<ItemStack> focus = focusFactory.createFocus(RecipeIngredientRole.INPUT, itemType, stack);
+            runtime.getRecipesGui().show(focus);
+        });
     }
 
     static void startDrag(ItemStack stack) {
@@ -46,7 +59,6 @@ class JeiRecipeBridge {
     }
 
     static void handleShiftClick(ItemStack stack) {
-        // JEI 19.27 recipe opening requires complex type inference
-        // Users can use JEI's native shift+click or keyboard shortcuts instead
+        openRecipes(stack);
     }
 }

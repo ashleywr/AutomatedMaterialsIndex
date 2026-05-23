@@ -98,7 +98,7 @@ public class ItemIconCache {
         rt.bindWrite(true);
         GlStateManager._viewport(0, 0, ICON_SIZE, ICON_SIZE);
         RenderSystem.setProjectionMatrix(
-                new Matrix4f().setOrtho(0, ICON_SIZE, ICON_SIZE, 0, 1000, 3000),
+                new Matrix4f().setOrtho(0, ICON_SIZE, ICON_SIZE, 0, -100, 3000),
                 VertexSorting.ORTHOGRAPHIC_Z);
 
         // Render item into the cache framebuffer.

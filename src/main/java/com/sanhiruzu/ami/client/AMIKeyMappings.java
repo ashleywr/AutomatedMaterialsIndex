@@ -40,10 +40,29 @@ public class AMIKeyMappings {
             CATEGORY
     );
 
+    public static final KeyMapping CHEAT_GIVE_ONE = new KeyMapping(
+            "key.ami.cheat_give_one",
+            KeyConflictContext.GUI,
+            InputConstants.Type.MOUSE,
+            GLFW.GLFW_MOUSE_BUTTON_MIDDLE,
+            CATEGORY
+    );
+
+    public static final KeyMapping CHEAT_GIVE_STACK = new KeyMapping(
+            "key.ami.cheat_give_stack",
+            KeyConflictContext.GUI,
+            KeyModifier.SHIFT,
+            InputConstants.Type.MOUSE,
+            GLFW.GLFW_MOUSE_BUTTON_MIDDLE,
+            CATEGORY
+    );
+
     @SubscribeEvent
     public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
         event.register(FAVORITE);
         event.register(DEBUG_TOOLTIPS);
         event.register(TOGGLE_VIEWER);
+        event.register(CHEAT_GIVE_ONE);
+        event.register(CHEAT_GIVE_STACK);
     }
 }

@@ -72,7 +72,6 @@ public final class ProviderRegistry {
                 ItemIconRenderer.registerStack(entry.id(), entry.stack());
             }
         }
-        AMI.LOGGER.debug("AMI: rehydrated subtype icon stacks from cache");
     }
 
     /**

@@ -98,6 +98,125 @@ public final class AMITheme {
     public static int CHEAT_INDICATOR   = 0xFFFFAA00; // gold indicator text
     public static int CHEAT_ENTRY_HOVER = 0xFF5A4A00; // amber entry highlight
 
+    // Temperature (biome tooltips)
+    public static int TEMP_COOL   = 0xFF44AACC;
+    public static int TEMP_WARM   = 0xFFCCCC44;
+    public static int TEMP_HOT    = 0xFFCC8844;
+
+    // Fallback icon backgrounds per node type
+    public static int FALLBACK_BG_ENTITY    = 0xFF1A2020;
+    public static int FALLBACK_BG_PLAYER    = 0xFF1A1A30;
+    public static int FALLBACK_BG_BIOME     = 0xFF1A2A1A;
+    public static int FALLBACK_BG_STRUCTURE = 0xFF2A2A14;
+    public static int FALLBACK_BG_DIMENSION = 0xFF201020;
+    public static int FALLBACK_BG_DEFAULT   = 0xFF1E1E1E;
+    public static int FALLBACK_BG_DEV       = 0xFFAA1100;
+
+    // Dimension icon backgrounds (proxy block renderer)
+    public static int DIM_ICON_BG_OVERWORLD = 0xFF122010;
+    public static int DIM_ICON_BG_NETHER    = 0xFF2B1408;
+    public static int DIM_ICON_BG_END       = 0xFF16101E;
+    public static int DIM_ICON_BG_STRUCTURE = 0xFF252512;
+
+    // Entity tooltip text colors
+    public static int ENTITY_ID_COLOR       = 0xFF666666;
+    public static int ENTITY_CATEGORY_COLOR = 0xFF888888;
+    public static int ENTITY_TRAITS_COLOR   = 0xFF55FFFF;
+    public static int ENTITY_DAMAGE_COLOR   = 0xFFFF5555;
+    public static int ENTITY_PLAYER_TEXT    = 0xFF5555FF;
+
+    // Item grid group highlights
+    public static int GRID_NO_RESULTS_TEXT     = 0xFFCCCCCC;
+    public static int GRID_GOLD_BORDER         = 0xFFAAAA00;
+    public static int GRID_GOLD_TINT           = 0x44AAAA00;
+    public static int GRID_HEADER_DARKEN       = 0x66000000;
+    public static int GRID_HEADER_WHITE_DOT    = 0xFFFFFFFF;
+    public static int GRID_ROW_TINT_EVEN       = 0x08FFFFFF;
+    public static int GRID_ROW_TINT_ODD        = 0x15000000;
+
+    // Search bar element colors
+    public static int SEARCH_PLACEHOLDER       = 0xFF666666;
+    public static int SEARCH_CLEAR_TEXT        = 0xFFAAAAAA;
+    public static int SEARCH_CLEAR_TEXT_HOVER  = 0xFFFFFFFF;
+    public static int SEARCH_CURSOR            = 0xFFCCCCCC;
+    public static int SEARCH_SELECTION         = 0xFF0000FF;
+    public static int SEARCH_DEFAULT_TEXT      = 0xFFCCCCCC;
+
+    // Heart bar tooltip
+    public static int HEART_OVERFLOW_COLOR = 0xFFCC3333;
+    public static int HEART_LABEL_COLOR    = 0xFFAAAAAA;
+
+    // Scroll indicator
+    public static int SCROLL_INDICATOR_BG = 0xAA111111;
+
+    // Config screen
+    public static int CONFIG_BRAND_GOLD     = 0xFFFFAA00;
+    public static int CONFIG_HEADER_GOLD    = 0xFFFFAA00;
+    public static int CONFIG_TEXT_PRIMARY   = 0xFFFFFFFF;
+    public static int CONFIG_TEXT_SECONDARY = 0xFFAAAAAA;
+    public static int CONFIG_TEXT_MUTED     = 0xFF777777;
+    public static int CONFIG_BOOL_TRUE      = 0x8800FF00;
+    public static int CONFIG_BOOL_FALSE     = 0x88FF0000;
+    public static int CONFIG_SWATCH_BORDER  = 0xFFFFFFFF;
+    public static int CONFIG_PANEL_TITLE    = 0xFFFFAA00;
+
+    // Registry utility colors
+    public static int REGISTRY_CATEGORY_MONSTER  = 0xFFCC4444;
+    public static int REGISTRY_CATEGORY_CREATURE = 0xFF44AA44;
+    public static int REGISTRY_CATEGORY_AMBIENT  = 0xFFAAAA44;
+    public static int REGISTRY_CATEGORY_AQUATIC  = 0xFF4488CC;
+    public static int REGISTRY_CATEGORY_DEFAULT  = 0xFF888888;
+    public static int REGISTRY_DIM_OVERWORLD     = 0xFF66BB6A;
+    public static int REGISTRY_DIM_NETHER        = 0xFFCC4444;
+    public static int REGISTRY_DIM_END           = 0xFF7A51A6;
+
+    // Token colorizer
+    public static int TOKEN_ENV   = 0xFF44BB44;
+    public static int TOKEN_PROP  = 0xFFBBBB44;
+    public static int TOKEN_ESSENTIAL = 0xFFBB44BB;
+    public static int TOKEN_ESM   = 0xFFBB8844;
+    public static int TOKEN_META  = 0xFF44CCCC;
+    public static int TOKEN_PLAIN = 0xFFCCCCCC;
+
+    // Sidebar toggle
+    public static int SIDEBAR_TOGGLE_HOVER_HALO = 0x33FFFFFF;
+    public static int SIDEBAR_TOGGLE_IDLE_HALO  = 0x11FFFFFF;
+    public static int SIDEBAR_TOGGLE_BORDER     = 0x88FFFFFF;
+
+    // AMI button state colors
+    public static int BUTTON_ACTIVE = 0xFFFFDD44;
+    public static int BUTTON_HOVER  = 0xFFFFFFA0;
+
+    // Player name color
+    public static int PLAYER_NAME_COLOR = 0xFF4488FF;
+
+    // Color swatch map for item variants
+    private static final java.util.Map<String, Integer> SWATCH_COLORS = new java.util.HashMap<>();
+    static {
+        SWATCH_COLORS.put("red",        0xFFCC3333);
+        SWATCH_COLORS.put("orange",     0xFFDD7722);
+        SWATCH_COLORS.put("yellow",     0xFFDDCC22);
+        SWATCH_COLORS.put("lime",       0xFF44AA44);
+        SWATCH_COLORS.put("green",      0xFF44AA44);
+        SWATCH_COLORS.put("cyan",       0xFF22AACC);
+        SWATCH_COLORS.put("blue",       0xFF3355DD);
+        SWATCH_COLORS.put("light_blue", 0xFF3355DD);
+        SWATCH_COLORS.put("purple",     0xFF9933CC);
+        SWATCH_COLORS.put("magenta",    0xFF9933CC);
+        SWATCH_COLORS.put("pink",       0xFFFFB7C5);
+        SWATCH_COLORS.put("white",      0xFFEEEEEE);
+        SWATCH_COLORS.put("light_gray", 0xFFAAAAAA);
+        SWATCH_COLORS.put("silver",     0xFFAAAAAA);
+        SWATCH_COLORS.put("gray",       0xFF666666);
+        SWATCH_COLORS.put("black",      0xFF222222);
+        SWATCH_COLORS.put("brown",      0xFF885533);
+    }
+    private static final int SWATCH_DEFAULT = 0xFF888888;
+
+    public static int getSwatchColor(String colorName) {
+        return SWATCH_COLORS.getOrDefault(colorName.toLowerCase(java.util.Locale.ROOT), SWATCH_DEFAULT);
+    }
+
     // ── Rendering helpers ─────────────────────────────────────────────────────
 
     /**

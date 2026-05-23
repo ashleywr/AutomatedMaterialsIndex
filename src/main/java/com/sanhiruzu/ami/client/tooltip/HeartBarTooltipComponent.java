@@ -1,8 +1,10 @@
 package com.sanhiruzu.ami.client.tooltip;
 
+import com.sanhiruzu.ami.client.AMITheme;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 
@@ -69,11 +71,11 @@ public final class HeartBarTooltipComponent implements TooltipComponent, ClientT
         // Overflow label when health exceeds MAX_HEARTS * 2 HP
         if (maxHealth > MAX_HEARTS * 2) {
             int labelX = x + MAX_HEARTS * (HEART_SIZE + HEART_GAP) + 2;
-            g.drawString(font, overflowLabel(), labelX, y + 1, 0xFFCC3333, false);
+            g.drawString(font, overflowLabel(), labelX, y + 1, AMITheme.HEART_OVERFLOW_COLOR, false);
         }
 
         // HP value label below hearts
-        g.drawString(font, healthLabel(), x, y + HEART_SIZE + 1, 0xFFAAAAAA, false);
+        g.drawString(font, healthLabel(), x, y + HEART_SIZE + 1, AMITheme.HEART_LABEL_COLOR, false);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -83,15 +85,15 @@ public final class HeartBarTooltipComponent implements TooltipComponent, ClientT
     }
 
     private String overflowLabel() {
-        return "+" + (maxHealth / 2 - MAX_HEARTS) + " ♥";
+        return Component.translatable("ami.tooltip.heart.overflow", maxHealth / 2 - MAX_HEARTS).getString();
     }
 
     private String healthLabel() {
         // Display as whole hearts if even, half-heart if odd
         if (maxHealth % 2 == 0) {
-            return maxHealth / 2 + " ♥";
+            return Component.translatable("ami.tooltip.heart.even", maxHealth / 2).getString();
         } else {
-            return (maxHealth / 2) + "½ ♥";
+            return Component.translatable("ami.tooltip.heart.odd", maxHealth / 2).getString();
         }
     }
 }

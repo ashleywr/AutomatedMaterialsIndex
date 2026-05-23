@@ -51,10 +51,10 @@ public class AmiClientCommands {
             Files.createDirectories(configDir);
             Path csvFile = configDir.resolve("ontology_dump.csv");
             AmiOntologyDiagnostics.exportOntologyCsv(csvFile);
-            source.sendSystemMessage(Component.literal("AMI ontology exported to " + csvFile.toAbsolutePath()).withStyle(ChatFormatting.GREEN));
+            source.sendSystemMessage(Component.translatable("ami.command.ontology_exported", csvFile.toAbsolutePath()).withStyle(ChatFormatting.GREEN));
         } catch (Exception e) {
             AMI.LOGGER.error("Failed to export ontology", e);
-            source.sendSystemMessage(Component.literal("Failed to export ontology: " + e.getMessage()).withStyle(ChatFormatting.RED));
+            source.sendSystemMessage(Component.translatable("ami.command.ontology_export_failed", e.getMessage()).withStyle(ChatFormatting.RED));
         }
     }
 
@@ -64,14 +64,14 @@ public class AmiClientCommands {
             Files.createDirectories(configDir);
             Path csvFile = configDir.resolve("facet_fallback_sample.csv");
             AmiOntologyDiagnostics.FallbackSampleSummary summary = AmiOntologyDiagnostics.exportFacetFallbackCsv(csvFile);
-            source.sendSystemMessage(Component.literal(
-                    "AMI fallback sample exported to " + csvFile.toAbsolutePath()
-                            + " | visible facetless " + summary.playerVisibleFacetlessItems() + "/" + summary.playerVisibleItems()
-                            + " | visible unresolved facetful " + summary.playerVisibleUnresolvedFacetfulItems()
-            ).withStyle(ChatFormatting.GREEN));
+            source.sendSystemMessage(Component.translatable("ami.command.fallback_exported", csvFile.toAbsolutePath())
+                    .append(Component.translatable("ami.command.fallback_summary",
+                            summary.playerVisibleFacetlessItems(), summary.playerVisibleItems(),
+                            summary.playerVisibleUnresolvedFacetfulItems()))
+                    .withStyle(ChatFormatting.GREEN));
         } catch (Exception e) {
             AMI.LOGGER.error("Failed to export fallback sample", e);
-            source.sendSystemMessage(Component.literal("Failed to export fallback sample: " + e.getMessage()).withStyle(ChatFormatting.RED));
+            source.sendSystemMessage(Component.translatable("ami.command.fallback_export_failed", e.getMessage()).withStyle(ChatFormatting.RED));
         }
     }
 }

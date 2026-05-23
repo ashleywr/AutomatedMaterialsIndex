@@ -10,15 +10,15 @@ public final class TokenColorizer {
 
     public record ColorSpan(int startIndex, int endIndex, int argbColor) {}
 
-    static final int COLOR_TAG       = AmiColors.TAG_COLOR;   // Gold  — #tag
-    static final int COLOR_MOD       = AmiColors.MOD_COLOR;   // Blue  — @mod
-    static final int COLOR_EXCLUDE   = AmiColors.EXCLUDE_COLOR; // Red — bare negation
-    static final int COLOR_ENV       = 0xFF44BB44;  // Green
-    static final int COLOR_PROP      = 0xFFBBBB44;  // Yellow
-    static final int COLOR_ESSENTIAL = 0xFFBB44BB;  // Magenta
-    static final int COLOR_ESM       = 0xFFBB8844;  // Orange
-    static final int COLOR_META      = 0xFF44CCCC;  // Cyan
-    static final int COLOR_PLAIN     = 0xFFCCCCCC;  // Light grey
+    static final int COLOR_TAG       = AmiColors.TAG_COLOR;
+    static final int COLOR_MOD       = AmiColors.MOD_COLOR;
+    static final int COLOR_EXCLUDE   = AmiColors.EXCLUDE_COLOR;
+    static final int COLOR_ENV       = AmiColors.TOKEN_ENV;
+    static final int COLOR_PROP      = AmiColors.TOKEN_PROP;
+    static final int COLOR_ESSENTIAL = AmiColors.TOKEN_ESSENTIAL;
+    static final int COLOR_ESM       = AmiColors.TOKEN_ESM;
+    static final int COLOR_META      = AmiColors.TOKEN_META;
+    static final int COLOR_PLAIN     = AmiColors.TOKEN_PLAIN;
 
     /**
      * Colorize a query string, returning color spans for each token.

@@ -1,6 +1,5 @@
 package com.sanhiruzu.ami.client;
 
-import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
@@ -15,12 +14,10 @@ public class AMIScreen extends Screen {
 
     public AMIScreen() {
         super(Component.translatable("ami.gui.registry_tree"));
-        AMI.LOGGER.debug("AMI screen created");
     }
 
     @Override
     protected void init() {
-        AMI.LOGGER.debug("AMI screen initialized - size: {}x{}", this.width, this.height);
         this.resultsPanel = new UniversalResultsPanel(10, 40, this.width - 20, this.height - 80);
         this.resultsPanel.setSearchService(com.sanhiruzu.ami.index.SearchService.buildFrom(com.sanhiruzu.ami.index.GlobalIndex.getInstance()));
 

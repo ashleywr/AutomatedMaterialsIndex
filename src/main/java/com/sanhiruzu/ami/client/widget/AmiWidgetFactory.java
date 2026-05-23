@@ -24,7 +24,7 @@ public class AmiWidgetFactory {
         try {
             if (field.isAnnotationPresent(ConfigColor.class)) {
                 int color = field.getInt(null) & 0xFFFFFF;
-                EditBox eb = new EditBox(mc.font, 0, 0, 60, 16, Component.empty());
+                EditBox eb = new EditBox(mc.font, 0, 0, 72, 18, Component.empty());
                 eb.setValue(String.format("#%06X", color));
                 eb.setResponder(s -> {
                     if (s.matches("^#[0-9A-Fa-f]{6}$")) {
@@ -37,16 +37,17 @@ public class AmiWidgetFactory {
                 });
                 return eb;
             } else if (type == boolean.class) {
-                return Button.builder(Component.literal(String.valueOf(field.getBoolean(null))), b -> {
+                boolean initial = field.getBoolean(null);
+                return Button.builder(boolLabel(initial), b -> {
                     try {
                         boolean val = !field.getBoolean(null);
                         field.setBoolean(null, val);
-                        b.setMessage(Component.literal(String.valueOf(val)));
+                        b.setMessage(boolLabel(val));
                         onChange.accept(val);
                     } catch (Exception ignored) {}
-                }).bounds(0, 0, 60, 16).build();
+                }).bounds(0, 0, 72, 18).build();
             } else if (type == int.class) {
-                EditBox eb = new EditBox(mc.font, 0, 0, 60, 16, Component.empty());
+                EditBox eb = new EditBox(mc.font, 0, 0, 72, 18, Component.empty());
                 eb.setValue(String.valueOf(field.getInt(null)));
                 eb.setResponder(s -> {
                     try {
@@ -57,7 +58,7 @@ public class AmiWidgetFactory {
                 });
                 return eb;
             } else if (type.isEnum()) {
-                return Button.builder(Component.literal(field.get(null).toString()), b -> {
+                return Button.builder(enumLabel(field), b -> {
                     try {
                         Object[] constants = type.getEnumConstants();
                         int idx = 0;
@@ -69,12 +70,12 @@ public class AmiWidgetFactory {
                         }
                         Object next = constants[idx];
                         field.set(null, next);
-                        b.setMessage(Component.literal(next.toString()));
+                        b.setMessage(enumConstantLabel(next));
                         onChange.accept(next);
                     } catch (Exception ignored) {}
-                }).bounds(0, 0, 60, 16).build();
+                }).bounds(0, 0, 72, 18).build();
             } else {
-                EditBox eb = new EditBox(mc.font, 0, 0, 60, 16, Component.empty());
+                EditBox eb = new EditBox(mc.font, 0, 0, 72, 18, Component.empty());
                 Object val = field.get(null);
                 eb.setValue(val != null ? val.toString() : "");
                 eb.setResponder(s -> {
@@ -88,5 +89,42 @@ public class AmiWidgetFactory {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private static Component boolLabel(boolean val) {
+        return Component.translatable(val ? "ami.config.value.boolean.true" : "ami.config.value.boolean.false");
+    }
+
+    private static Component enumLabel(Field field) {
+        try {
+            return enumConstantLabel(field.get(null));
+        } catch (Exception e) {
+            return Component.literal("?");
+        }
+    }
+
+    private static Component enumConstantLabel(Object constant) {
+        try {
+            Field dn = constant.getClass().getField("displayName");
+            return (Component) dn.get(constant);
+        } catch (Exception e) {
+            return Component.literal(formatEnumName(constant.toString()));
+        }
+    }
+
+    private static String formatEnumName(String name) {
+        StringBuilder out = new StringBuilder(name.length());
+        boolean cap = true;
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (c == '_') {
+                out.append(' ');
+                cap = true;
+            } else {
+                out.append(cap ? c : Character.toLowerCase(c));
+                cap = false;
+            }
+        }
+        return out.toString();
     }
 }
