@@ -23,21 +23,26 @@ public class RecipeViewerBridge {
     }
 
     public static boolean supportsSearchSync() {
-        if (ModList.get().isLoaded("emi")) return EmiSearchSyncBridge.isAvailable();
+        if (ModList.get().isLoaded("emi")) return callEmiMethod("isAvailable", boolean.class);
         if (ModList.get().isLoaded("jei")) return JeiSearchSyncBridge.isAvailable();
         return false;
     }
 
     /** Returns the current search text from the active recipe viewer, or "" if none loaded. */
     public static String getSearchText() {
-        if (ModList.get().isLoaded("emi") && EmiSearchSyncBridge.isAvailable()) return EmiSearchSyncBridge.getSearchText();
+        if (ModList.get().isLoaded("emi") && supportsSearchSync()) {
+            String text = callEmiMethod("getSearchText", String.class);
+            if (text != null) return text;
+        }
         if (ModList.get().isLoaded("jei") && JeiSearchSyncBridge.isAvailable()) return JeiSearchSyncBridge.getSearchText();
         return "";
     }
 
     /** Pushes a search string into the active recipe viewer's search bar. */
     public static void setSearchText(String text) {
-        if (ModList.get().isLoaded("emi") && EmiSearchSyncBridge.isAvailable()) EmiSearchSyncBridge.setSearchText(text);
+        if (ModList.get().isLoaded("emi") && supportsSearchSync()) {
+            callEmiMethod("setSearchText", void.class, text);
+        }
         if (ModList.get().isLoaded("jei") && JeiSearchSyncBridge.isAvailable()) JeiSearchSyncBridge.setSearchText(text);
     }
 
@@ -45,7 +50,7 @@ public class RecipeViewerBridge {
     public static void openRecipes(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return;
         if (ModList.get().isLoaded("emi")) {
-            EmiRecipeBridge.openRecipes(stack);
+            callEmiRecipeMethod("openRecipes", stack);
         } else if (ModList.get().isLoaded("jei")) {
             JeiRecipeBridge.openRecipes(stack);
         }
@@ -55,7 +60,7 @@ public class RecipeViewerBridge {
     public static void openUses(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return;
         if (ModList.get().isLoaded("emi")) {
-            EmiRecipeBridge.openUses(stack);
+            callEmiRecipeMethod("openUses", stack);
         } else if (ModList.get().isLoaded("jei")) {
             JeiRecipeBridge.openUses(stack);
         }
@@ -63,27 +68,33 @@ public class RecipeViewerBridge {
 
     public static void startDrag(ItemStack stack) {
         if (ModList.get().isLoaded("emi")) {
-            EmiRecipeBridge.startDrag(stack);
+            callEmiRecipeMethod("startDrag", stack);
         } else if (ModList.get().isLoaded("jei")) {
             JeiRecipeBridge.startDrag(stack);
         }
     }
 
     public static ItemStack getDraggedStack() {
-        if (ModList.get().isLoaded("emi")) return EmiRecipeBridge.getDraggedStack();
+        if (ModList.get().isLoaded("emi")) {
+            Object result = callEmiRecipeMethod("getDraggedStack");
+            return result instanceof ItemStack ? (ItemStack) result : ItemStack.EMPTY;
+        }
         if (ModList.get().isLoaded("jei")) return JeiRecipeBridge.getDraggedStack();
         return ItemStack.EMPTY;
     }
 
     public static boolean isDragging() {
-        if (ModList.get().isLoaded("emi")) return EmiRecipeBridge.isDragging();
+        if (ModList.get().isLoaded("emi")) {
+            Object result = callEmiRecipeMethod("isDragging");
+            return result instanceof Boolean ? (Boolean) result : false;
+        }
         if (ModList.get().isLoaded("jei")) return JeiRecipeBridge.isDragging();
         return false;
     }
 
     public static void stopDrag() {
         if (ModList.get().isLoaded("emi")) {
-            EmiRecipeBridge.stopDrag();
+            callEmiRecipeMethod("stopDrag");
         } else if (ModList.get().isLoaded("jei")) {
             JeiRecipeBridge.stopDrag();
         }
@@ -91,7 +102,8 @@ public class RecipeViewerBridge {
 
     public static boolean handleDrop(double mouseX, double mouseY) {
         if (ModList.get().isLoaded("emi")) {
-            return EmiRecipeBridge.handleDrop(net.minecraft.client.Minecraft.getInstance().screen, mouseX, mouseY);
+            Object result = callEmiRecipeMethod("handleDrop", net.minecraft.client.Minecraft.getInstance().screen, mouseX, mouseY);
+            return result instanceof Boolean ? (Boolean) result : false;
         }
         if (ModList.get().isLoaded("jei")) {
             return JeiRecipeBridge.handleDrop(net.minecraft.client.Minecraft.getInstance().screen, mouseX, mouseY);
@@ -131,7 +143,7 @@ public class RecipeViewerBridge {
     /** Shift+click: propagate to EMI/JEI for crafting grid insertion or their native shift+click behavior. */
     private static void handleShiftClick(ItemStack stack) {
         if (ModList.get().isLoaded("emi")) {
-            EmiRecipeBridge.handleShiftClick(stack);
+            callEmiRecipeMethod("handleShiftClick", stack);
         } else if (ModList.get().isLoaded("jei")) {
             JeiRecipeBridge.handleShiftClick(stack);
         }
@@ -148,14 +160,55 @@ public class RecipeViewerBridge {
 
     public static java.util.List<ItemStack> getLookupHistory() {
         if (ModList.get().isLoaded("emi")) {
-            var emiHistory = EmiRecipeBridge.getLookupHistory();
-            if (!emiHistory.isEmpty()) return emiHistory;
+            Object result = callEmiRecipeMethod("getLookupHistory");
+            if (result instanceof java.util.List<?>) {
+                var emiHistory = (java.util.List<ItemStack>) result;
+                if (!emiHistory.isEmpty()) return emiHistory;
+            }
         }
         return com.sanhiruzu.ami.client.favorites.AmiHistoryHandler.getInstance().getLookupHistory();
     }
 
     public static java.util.List<ItemStack> getCraftHistory() {
-        if (ModList.get().isLoaded("emi")) return EmiRecipeBridge.getCraftHistory();
+        if (ModList.get().isLoaded("emi")) {
+            Object result = callEmiRecipeMethod("getCraftHistory");
+            if (result instanceof java.util.List<?>) return (java.util.List<ItemStack>) result;
+        }
         return java.util.List.of();
+    }
+
+    private static <T> T callEmiMethod(String methodName, Class<T> returnType, Object... args) {
+        try {
+            Class<?> bridgeClass = Class.forName("com.sanhiruzu.ami.compat.EmiSearchSyncBridge");
+            java.lang.reflect.Method method = findMethod(bridgeClass, methodName, args);
+            if (method != null) {
+                return (T) method.invoke(null, args);
+            }
+        } catch (Exception e) {
+            // EMI integration silently fails if the bridge class isn't available
+        }
+        return null;
+    }
+
+    private static Object callEmiRecipeMethod(String methodName, Object... args) {
+        try {
+            Class<?> bridgeClass = Class.forName("com.sanhiruzu.ami.compat.EmiRecipeBridge");
+            java.lang.reflect.Method method = findMethod(bridgeClass, methodName, args);
+            if (method != null) {
+                return method.invoke(null, args);
+            }
+        } catch (Exception e) {
+            // EMI integration silently fails if the bridge class isn't available
+        }
+        return null;
+    }
+
+    private static java.lang.reflect.Method findMethod(Class<?> clazz, String name, Object... args) {
+        for (java.lang.reflect.Method method : clazz.getDeclaredMethods()) {
+            if (method.getName().equals(name) && method.getParameterCount() == args.length) {
+                return method;
+            }
+        }
+        return null;
     }
 }
