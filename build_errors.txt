@@ -1,0 +1,190 @@
+Starting a Gradle Daemon, 3 busy and 3 stopped Daemons could not be reused, use --status for details
+
+
+[2A[1B[1m> Starting Daemon[m[17D[1B[1A> IDLE[0K[6D[1B[2A[1m<[0;1m-------------> 0% INITIALIZING [71ms][m[38D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [165ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [274ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [369ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [477ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [570ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [679ms][m[39D[2B[2AReusing configuration cache.[0K
+[1B[0K
+C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\AMIClient.java:4: error: cannot find symbol
+import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+                               ^
+  symbol:   class InventoryOverlayHandler
+  location: package com.sanhiruzu.ami.client
+C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\AMIClient.java:6: error: package com.sanhiruzu.ami.client.results does not exist
+import com.sanhiruzu.ami.client.results.ItemGridView;
+                                       ^
+C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\AMIScreen.java:13: error: cannot find symbol
+    private UniversalResultsPanel resultsPanel;
+            ^
+  symbol:   class UniversalResultsPanel
+  location: class AMIScreen
+C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\AmiViewPreferences.java:6: error: package com.sanhiruzu.ami.client.results does not exist
+import com.sanhiruzu.ami.client.results.ResultsToolbar;
+                                       ^
+C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\AmiViewPreferences.java:51: error: package ResultsToolbar does not exist
+    public static synchronized void saveMainPanelPreference(boolean compactMode, ResultsToolbar.ViewMode viewMode) {
+                                                                                               ^
+C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\favorites\AmiFavoritesHandler.java:9: error: cannot find symbol
+import com.sanhiruzu.ami.compat.EmiFavoritesBridge;
+                               ^
+  symbol:   class EmiFavoritesBridge
+  location: package com.sanhiruzu.ami.compat
+C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\AMIClient.java:62: error: cannot find symbol
+        ItemGridView.clearStackCache();
+        ^
+  symbol:   variable ItemGridView
+  location: class AMIClient
+C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\AMIClient.java:64: error: cannot find symbol
+        InventoryOverlayHandler.resetSessionState();
+        ^
+  symbol:   variable InventoryOverlayHandler
+  location: class AMIClient
+C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\AmiKeybindHandler.java:47: error: cannot find symbol
+            InventoryOverlayHandler.toggleAmi();
+            ^
+  symbol:   variable InventoryOverlayHandler
+  location: class AmiKeybindHandler
+C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\AmiKeybindHandler.java:64: error: cannot find symbol
+        SearchNode hovered = InventoryOverlayHandler.getManager().getHoveredNode();
+                             ^
+  symbol:   variable InventoryOverlayHandler
+  location: class AmiKeybindHandler
+C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\AmiKeybindHandler.java:79: error: cannot find symbol
+        SearchNode hoveredNode = InventoryOverlayHandler.getManager().getHoveredNode();
+                                 ^
+  symbol:   variable InventoryOverlayHandler
+  location: class AmiKeybindHandler
+C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\AMIScreen.java:21: error: cannot find symbol
+        this.resultsPanel = new UniversalResultsPanel(10, 40, this.width - 20, this.height - 80);
+                                ^
+  symbol:   class UniversalResultsPanel
+  location: class AMIScreen
+C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\favorites\AmiFavoritesHandler.java:122: error: cannot find symbol
+        return EmiFavoritesBridge.isFavorite(node.id());
+               ^
+  symbol:   variable EmiFavoritesBridge
+  location: class AmiFavoritesHandler
+C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\favorites\AmiFavoritesHandler.java:151: error: cannot find symbol
+            EmiFavoritesBridge.addFavorite(stack);
+            ^
+  symbol:   variable EmiFavoritesBridge
+  location: class AmiFavoritesHandler
+C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\favorites\AmiFavoritesHandler.java:164: error: cannot find symbol
+            EmiFavoritesBridge.addFavoriteAt(stack, index);
+            ^
+  symbol:   variable EmiFavoritesBridge
+  location: class AmiFavoritesHandler
+C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\favorites\AmiFavoritesHandler.java:187: error: cannot find symbol
+            EmiFavoritesBridge.removeFavorite(stack);
+            ^
+  symbol:   variable EmiFavoritesBridge
+  location: class AmiFavoritesHandler
+C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\favorites\AmiFavoritesHandler.java:199: error: cannot find symbol
+            for (ResourceLocation id : EmiFavoritesBridge.getFavoriteIds()) {
+                                       ^
+  symbol:   variable EmiFavoritesBridge
+  location: class AmiFavoritesHandler
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+17 errors
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Compilation failed; see the compiler output below.
+  Note: Recompile with -Xlint:deprecation for details.
+  C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\AMIClient.java:4: error: cannot find symbol
+  import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+                                 ^
+    symbol:   class InventoryOverlayHandler
+    location: package com.sanhiruzu.ami.client
+  C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\AMIScreen.java:13: error: cannot find symbol
+      private UniversalResultsPanel resultsPanel;
+              ^
+    symbol:   class UniversalResultsPanel
+    location: class AMIScreen
+  C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\favorites\AmiFavoritesHandler.java:9: error: cannot find symbol
+  import com.sanhiruzu.ami.compat.EmiFavoritesBridge;
+                                 ^
+    symbol:   class EmiFavoritesBridge
+    location: package com.sanhiruzu.ami.compat
+  C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\AMIClient.java:62: error: cannot find symbol
+          ItemGridView.clearStackCache();
+          ^
+    symbol:   variable ItemGridView
+    location: class AMIClient
+  C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\AMIClient.java:64: error: cannot find symbol
+          InventoryOverlayHandler.resetSessionState();
+          ^
+    symbol:   variable InventoryOverlayHandler
+    location: class AMIClient
+  C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\AmiKeybindHandler.java:47: error: cannot find symbol
+              InventoryOverlayHandler.toggleAmi();
+              ^
+    symbol:   variable InventoryOverlayHandler
+    location: class AmiKeybindHandler
+  C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\AmiKeybindHandler.java:64: error: cannot find symbol
+          SearchNode hovered = InventoryOverlayHandler.getManager().getHoveredNode();
+                               ^
+    symbol:   variable InventoryOverlayHandler
+    location: class AmiKeybindHandler
+  C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\AmiKeybindHandler.java:79: error: cannot find symbol
+          SearchNode hoveredNode = InventoryOverlayHandler.getManager().getHoveredNode();
+                                   ^
+    symbol:   variable InventoryOverlayHandler
+    location: class AmiKeybindHandler
+  C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\AMIScreen.java:21: error: cannot find symbol
+          this.resultsPanel = new UniversalResultsPanel(10, 40, this.width - 20, this.height - 80);
+                                  ^
+    symbol:   class UniversalResultsPanel
+    location: class AMIScreen
+  C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\favorites\AmiFavoritesHandler.java:122: error: cannot find symbol
+          return EmiFavoritesBridge.isFavorite(node.id());
+                 ^
+    symbol:   variable EmiFavoritesBridge
+    location: class AmiFavoritesHandler
+  C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\favorites\AmiFavoritesHandler.java:151: error: cannot find symbol
+              EmiFavoritesBridge.addFavorite(stack);
+              ^
+    symbol:   variable EmiFavoritesBridge
+    location: class AmiFavoritesHandler
+  C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\favorites\AmiFavoritesHandler.java:164: error: cannot find symbol
+              EmiFavoritesBridge.addFavoriteAt(stack, index);
+              ^
+    symbol:   variable EmiFavoritesBridge
+    location: class AmiFavoritesHandler
+  C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\favorites\AmiFavoritesHandler.java:187: error: cannot find symbol
+              EmiFavoritesBridge.removeFavorite(stack);
+              ^
+    symbol:   variable EmiFavoritesBridge
+    location: class AmiFavoritesHandler
+  C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\favorites\AmiFavoritesHandler.java:199: error: cannot find symbol
+              for (ResourceLocation id : EmiFavoritesBridge.getFavoriteIds()) {
+                                         ^
+    symbol:   variable EmiFavoritesBridge
+    location: class AmiFavoritesHandler
+  Note: Some input files use or override a deprecated API.
+  C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\AMIClient.java:6: error: package com.sanhiruzu.ami.client.results does not exist
+  import com.sanhiruzu.ami.client.results.ItemGridView;
+                                         ^
+  C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\AmiViewPreferences.java:6: error: package com.sanhiruzu.ami.client.results does not exist
+  import com.sanhiruzu.ami.client.results.ResultsToolbar;
+                                         ^
+  C:\WorkDir\AutomatedMaterialsIndex\src\main\java\com\sanhiruzu\ami\client\AmiViewPreferences.java:51: error: package ResultsToolbar does not exist
+      public static synchronized void saveMainPanelPreference(boolean compactMode, ResultsToolbar.ViewMode viewMode) {
+                                                                                                 ^
+  17 errors
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+[2A[1m<[0;1m-------------> 0% INITIALIZING [773ms][m[39D[1B> IDLE[6D[1B[2A[1m<[0;1m-------------> 0% INITIALIZING [866ms][m[39D[1B[1m> Loading configuration cache state[m[35D[1B[2A[1m<[0;1m-------------> 0% INITIALIZING [975ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [1s][m[0K[36D[2B[1A[1m> Loading configuration cache state > :[m[39D[1B[2A[1m<[0;1m-------------> 0% EXECUTING [1s][m[0K[33D[1B> IDLE[0K[6D[1B[2A[1m<[0;32;1m======[0;39;1m-------> 50% EXECUTING [1s][m[34D[1B[1m> :compileJava[m[14D[1B[2A[1m<[0;32;1m======[0;39;1m-------> 50% EXECUTING [2s][m[34D[2B[2A[1m<[0;32;1m======[0;39;1m-------> 50% EXECUTING [3s][m[34D[2B[2A[0K
+[31;1m> Task :compileJava[0;39m[31m FAILED[39m[0K
+
+[Incubating] Problems report is available at: file:///C:/WorkDir/AutomatedMaterialsIndex/build/reports/problems/problems-report.html
+2 actionable tasks: 1 executed, 1 up-to-date
+Configuration cache entry reused.
+[0K
+[0K
+> Run with --scan to generate a Build Scan (powered by Develocity).
+
+BUILD FAILED in 5s
+[2A[1m<[0;1m-------------> 0% WAITING[m[26D[1B> IDLE[6D[1B[2A[2K[1B[2K[1B[2K[2A

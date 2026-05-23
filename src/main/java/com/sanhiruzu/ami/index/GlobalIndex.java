@@ -77,6 +77,26 @@ public class GlobalIndex {
         for (SearchNode n : newNodes) addNodeToIndices(n);
     }
 
+    /**
+     * Replace a single node by id. If no existing node matches, adds the new one.
+     */
+    public void replaceNode(ResourceLocation id, SearchNode updated) {
+        SearchNode old = idIndex.get(id);
+        if (old != null) {
+            NodeType type = old.type();
+            List<SearchNode> typeList = nodes.get(type);
+            typeList.remove(old);
+            idIndex.remove(id);
+            String cat = old.meta(SearchNodeKeys.ONTOLOGY_CATEGORY, "");
+            if (cat.isEmpty()) cat = AmiOntology.classifyNode(old).id;
+            List<SearchNode> catList = categoryIndex.get(cat);
+            if (catList != null) catList.remove(old);
+        }
+        List<SearchNode> typeList = nodes.get(updated.type());
+        typeList.add(updated);
+        addNodeToIndices(updated);
+    }
+
     private void addNodeToIndices(SearchNode n) {
         idIndex.put(n.id(), n);
         String category = n.meta(SearchNodeKeys.ONTOLOGY_CATEGORY, "");
