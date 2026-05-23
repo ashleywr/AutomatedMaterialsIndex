@@ -23,7 +23,10 @@ public class RecipeViewerBridge {
     }
 
     public static boolean supportsSearchSync() {
-        if (ModList.get().isLoaded("emi")) return callEmiMethod("isAvailable", boolean.class);
+        if (ModList.get().isLoaded("emi")) {
+            Boolean result = callEmiMethod("isAvailable", Boolean.class);
+            if (result != null) return result;
+        }
         if (ModList.get().isLoaded("jei")) return JeiSearchSyncBridge.isAvailable();
         return false;
     }
