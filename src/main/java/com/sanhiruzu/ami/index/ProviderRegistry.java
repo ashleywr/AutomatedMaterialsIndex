@@ -22,6 +22,7 @@ public final class ProviderRegistry {
      * All providers run on first inventory open, except StructureProvider (deferred).
      */
     private static final List<IAmiDataProvider> PROVIDERS = List.of(
+            new RecipeProvider(),
             new ItemProvider(),
             new BiomeProvider(),
             new EntityProvider(),

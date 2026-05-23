@@ -240,9 +240,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
             com.mojang.blaze3d.systems.RenderSystem.enableBlend();
             com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
             AMITheme.fillRounded(g, x, y, width, height, AmiConfig.panelBg);
-            // Add a subtle border
+            // Add subtle borders, with a gorgeous blue accent line at the top
             int border = com.sanhiruzu.ami.client.AMITheme.BORDER_LIGHT;
-            g.fill(x, y, x + width, y + 1, border);
+            g.fill(x, y, x + width, y + 2, com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE);
             g.fill(x, y + height - 1, x + width, y + height, border);
             g.fill(x, y, x + 1, y + height, border);
             g.fill(x + width - 1, y, x + width, y + height, border);

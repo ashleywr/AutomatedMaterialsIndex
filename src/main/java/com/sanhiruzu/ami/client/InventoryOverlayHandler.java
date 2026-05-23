@@ -36,6 +36,7 @@ public class InventoryOverlayHandler {
     }
 
     private static boolean isRecipeScreen(net.minecraft.client.gui.screens.Screen screen) {
+        if (screen instanceof com.sanhiruzu.ami.client.RecipeViewerScreen) return true;
         String name = screen.getClass().getName();
         return name.equals("dev.emi.emi.screen.RecipeScreen")
             || name.equals("mezz.jei.gui.recipes.RecipesGui");
@@ -212,30 +213,37 @@ public class InventoryOverlayHandler {
         if (!isAmiAvailable()) return;
         if (!isAmiScreen(event.getScreen())) return;
 
-        // ESC dismisses an active recipe view before any other handling
-        if (event.getKeyCode() == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE
+        int key = event.getKeyCode();
+        var searchBar = manager.getSearchBar();
+
+        // If the search bar is focused, let it handle the keystroke first.
+        // SearchBarWidget consumes ESC (to unfocus) and Backspace (as text deletion),
+        // so those keys never reach the handlers below while the bar is active.
+        if (amiEnabled && manager.isPanelVisible() && searchBar.isFocused()) {
+            if (searchBar.keyPressed(key, event.getScanCode(), event.getModifiers())) {
+                event.setCanceled(true);
+                return;
+            }
+        }
+
+        // For EMI/JEI recipe views, ESC should clear the recipe-view focus so the
+        // external viewer can dismiss itself.  Do not cancel — let the event
+        // propagate so EMI/JEI also sees the ESC.
+        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE
                 && com.sanhiruzu.ami.compat.RecipeViewerBridge.isRecipeViewActive()) {
             com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
-            // Don't cancel — let EMI also see the ESC to dismiss its recipe focus
             return;
         }
 
-        if (AmiKeybindHandler.onKeyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers(), org.lwjgl.glfw.GLFW.GLFW_PRESS)) {
+        if (AmiKeybindHandler.onKeyPressed(key, event.getScanCode(), event.getModifiers(), org.lwjgl.glfw.GLFW.GLFW_PRESS)) {
             event.setCanceled(true);
             return;
         }
 
         if (amiEnabled && manager.isPanelVisible()) {
-            if (manager.keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
-                event.setCanceled(true); return;
+            if (manager.keyPressed(key, event.getScanCode(), event.getModifiers())) {
+                event.setCanceled(true);
             }
-        }
-
-        var searchBar = manager.getSearchBar();
-        if (!amiEnabled || !manager.isPanelVisible() || !searchBar.isFocused()) return;
-
-        if (searchBar.keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
-            event.setCanceled(true);
         }
     }
 

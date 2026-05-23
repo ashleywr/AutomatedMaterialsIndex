@@ -175,15 +175,11 @@ public class CommandPaletteWidget {
         int w = SEARCH_BAR_WIDTH;
         int h = SEARCH_BAR_HEIGHT;
 
-        // Background
-        g.fill(x, y, x + w, y + h, AmiConfig.searchBarBg);
+        // Draw elegant blue accent line right above the search bar
+        g.fill(x, y - 4, x + w, y - 2, com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE);
 
-        // Border
-        int borderColor = AmiConfig.searchBarBorder;
-        g.fill(x, y, x + w, y + 1, borderColor);
-        g.fill(x, y + h - 1, x + w, y + h, borderColor);
-        g.fill(x, y + 1, x + 1, y + h - 1, borderColor);
-        g.fill(x + w - 1, y + 1, x + w, y + h - 1, borderColor);
+        // Rounded search bar background and border
+        com.sanhiruzu.ami.client.AMITheme.drawRoundedBorder(g, x, y, w, h, AmiConfig.searchBarBg, AmiConfig.searchBarBorder);
 
         var font = Minecraft.getInstance().font;
         Component displayText = searchQuery.isEmpty() 
@@ -192,17 +188,17 @@ public class CommandPaletteWidget {
             
         int textColor = searchQuery.isEmpty() ? AmiConfig.searchPlaceholder : AmiConfig.searchText;
 
-        g.drawString(font, displayText, x + 4, y + 5, textColor, false);
+        g.drawString(font, displayText, x + 6, y + 5, textColor, false);
 
         // Blinking cursor
         if (!searchQuery.isEmpty() && (System.currentTimeMillis() % 1000) < 500) {
-            int cursorX = x + 4 + font.width(displayText);
+            int cursorX = x + 6 + font.width(displayText);
             g.fill(cursorX, y + 4, cursorX + 1, y + 16, AmiConfig.searchText);
         }
 
         // Clear button [x]
         if (!searchQuery.isEmpty()) {
-            int xX = x + w - 10;
+            int xX = x + w - 12;
             int xY = y + 6;
             g.drawString(font, Component.translatable("ami.gui.search.clear"), xX, xY, AmiConfig.searchText, false);
         }
@@ -228,7 +224,7 @@ public class CommandPaletteWidget {
                 int drawY = y + (row - scrollOffset) * CARD_HEIGHT;
                 boolean hovered = isCardHovered(mouseX, mouseY, x, drawY, cardW);
                 if (hovered) {
-                    g.fill(x, drawY, x + cardW, drawY + CARD_HEIGHT, AmiConfig.cardBgHover);
+                    com.sanhiruzu.ami.client.AMITheme.fillRounded(g, x + 2, drawY + 2, cardW - 4, CARD_HEIGHT - 4, AmiConfig.cardBgHover);
                 }
                 String arrow = group.expanded ? "▼ " : "▶ ";
                 // Assuming palette had group header color, using a default or adding to AmiConfig if needed
@@ -261,10 +257,10 @@ public class CommandPaletteWidget {
         boolean hovered = isCardHovered(mouseX, mouseY, x, y, w);
 
         if (hovered) {
-            g.fill(x, y, x + w, y + CARD_HEIGHT, AmiConfig.cardBgHover);
+            com.sanhiruzu.ami.client.AMITheme.fillRounded(g, x + 2, y + 2, w - 4, CARD_HEIGHT - 4, AmiConfig.cardBgHover);
             pendingTooltipLines = buildTooltip(entry);
         } else {
-            g.fill(x, y, x + w, y + CARD_HEIGHT, AmiConfig.cardBg);
+            com.sanhiruzu.ami.client.AMITheme.fillRounded(g, x + 2, y + 2, w - 4, CARD_HEIGHT - 4, AmiConfig.cardBg);
         }
 
         // Icon

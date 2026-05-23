@@ -190,6 +190,30 @@ public final class AMITheme {
     // Player name color
     public static int PLAYER_NAME_COLOR = 0xFF4488FF;
 
+    // Recipe Viewer dynamic theme variables
+    public static int RECIPE_BG_OVERLAY  = 0xFF101010;
+    public static int RECIPE_PANEL       = 0xFF1A1A1F;
+    public static int RECIPE_PANEL_INNER = 0xFF22222A;
+    public static int RECIPE_BORDER      = 0xFF3A3A4A;
+    public static int RECIPE_HEADER_LINE = 0xFF2E2E3A;
+    public static int RECIPE_TAB_ACTIVE  = 0xFF4488FF;
+    public static int RECIPE_TAB_HOVER   = 0xFF2E2E44;
+    public static int RECIPE_TAB_IDLE    = 0xFF1E1E28;
+    public static int RECIPE_TAB_TEXT_A  = 0xFFFFFFFF;
+    public static int RECIPE_TAB_TEXT_I  = 0xFF8888AA;
+    public static int RECIPE_SLOT_BORDER = 0xFF555566;
+    public static int RECIPE_SLOT_BG     = 0xFF2A2A36;
+    public static int RECIPE_ARROW       = 0xFF6688CC;
+    public static int RECIPE_ARROW_ANIM  = 0xFF4466AA;
+    public static int RECIPE_TEXT_TITLE  = 0xFFFFFFFF;
+    public static int RECIPE_TEXT_ITEM   = 0xFFBBBBCC;
+    public static int RECIPE_TEXT_CAT    = 0xFF8888AA;
+    public static int RECIPE_TEXT_NAV    = 0xFF8888AA;
+    public static int RECIPE_TEXT_FOOTER = 0xFF555566;
+    public static int RECIPE_BTN_IDLE    = 0xFF226622;
+    public static int RECIPE_BTN_HOVER   = 0xFF44AA44;
+    public static int RECIPE_SHAPELESS   = 0xFF5555AA;
+
     // Color swatch map for item variants
     private static final java.util.Map<String, Integer> SWATCH_COLORS = new java.util.HashMap<>();
     static {
@@ -218,6 +242,14 @@ public final class AMITheme {
     }
 
     // ── Rendering helpers ─────────────────────────────────────────────────────
+
+    /**
+     * Draws a 1px border around a 2px-radius rounded rectangle.
+     */
+    public static void drawRoundedBorder(GuiGraphics g, int x, int y, int w, int h, int backgroundColor, int borderColor) {
+        fillRounded(g, x, y, w, h, borderColor);
+        fillRounded(g, x + 1, y + 1, w - 2, h - 2, backgroundColor);
+    }
 
     /**
      * Fills a rectangle with 2px-radius rounded corners (3 fill calls, corner pixels omitted).
@@ -272,6 +304,30 @@ public final class AMITheme {
             
             BORDER_LIGHT = 0x22FFFFFF;
             GRADIENT_SHADOW = 0x88000000;
+
+            // Translucent glass recipe screen
+            RECIPE_BG_OVERLAY  = 0x66000000;
+            RECIPE_PANEL       = 0xD8121216; // 85% opacity dark glass
+            RECIPE_PANEL_INNER = 0x88202028;
+            RECIPE_BORDER      = 0x33FFFFFF;
+            RECIPE_HEADER_LINE = 0x22FFFFFF;
+            RECIPE_TAB_ACTIVE  = 0xFF4488FF;
+            RECIPE_TAB_HOVER   = 0x44FFFFFF;
+            RECIPE_TAB_IDLE    = 0x15FFFFFF;
+            RECIPE_TAB_TEXT_A  = 0xFFFFFFFF;
+            RECIPE_TAB_TEXT_I  = 0xFFAAAAAA;
+            RECIPE_SLOT_BORDER = 0x44FFFFFF;
+            RECIPE_SLOT_BG     = 0x1AFFFFFF;
+            RECIPE_ARROW       = 0xFF4488FF;
+            RECIPE_ARROW_ANIM  = 0x884488FF;
+            RECIPE_TEXT_TITLE  = 0xFFFFFFFF;
+            RECIPE_TEXT_ITEM   = 0xFFCCCCCC;
+            RECIPE_TEXT_CAT    = 0xFFAAAAAA;
+            RECIPE_TEXT_NAV    = 0xFFAAAAAA;
+            RECIPE_TEXT_FOOTER = 0xFF777777;
+            RECIPE_BTN_IDLE    = 0x4444AA44;
+            RECIPE_BTN_HOVER   = 0x8844AA44;
+            RECIPE_SHAPELESS   = 0xFF6666CC;
         } else {
             SECTION_SEP   = 0xFF888888;
             ROW_SEPARATOR = 0xFF999999;
@@ -287,6 +343,30 @@ public final class AMITheme {
             
             BORDER_LIGHT = 0x33FFFFFF;
             GRADIENT_SHADOW = 0xCC000000;
+
+            // Opaque solid premium dark recipe screen
+            RECIPE_BG_OVERLAY  = 0xFF101010;
+            RECIPE_PANEL       = 0xFF1A1A1F;
+            RECIPE_PANEL_INNER = 0xFF22222A;
+            RECIPE_BORDER      = 0xFF3A3A4A;
+            RECIPE_HEADER_LINE = 0xFF2E2E3A;
+            RECIPE_TAB_ACTIVE  = 0xFF4488FF;
+            RECIPE_TAB_HOVER   = 0xFF2E2E44;
+            RECIPE_TAB_IDLE    = 0xFF1E1E28;
+            RECIPE_TAB_TEXT_A  = 0xFFFFFFFF;
+            RECIPE_TAB_TEXT_I  = 0xFF8888AA;
+            RECIPE_SLOT_BORDER = 0xFF555566;
+            RECIPE_SLOT_BG     = 0xFF2A2A36;
+            RECIPE_ARROW       = 0xFF6688CC;
+            RECIPE_ARROW_ANIM  = 0xFF4466AA;
+            RECIPE_TEXT_TITLE  = 0xFFFFFFFF;
+            RECIPE_TEXT_ITEM   = 0xFFBBBBCC;
+            RECIPE_TEXT_CAT    = 0xFF8888AA;
+            RECIPE_TEXT_NAV    = 0xFF8888AA;
+            RECIPE_TEXT_FOOTER = 0xFF555566;
+            RECIPE_BTN_IDLE    = 0xFF226622;
+            RECIPE_BTN_HOVER   = 0xFF44AA44;
+            RECIPE_SHAPELESS   = 0xFF5555AA;
         }
     }
 

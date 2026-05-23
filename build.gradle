@@ -19,14 +19,10 @@ group = mod_group_id
 
 sourceSets.main {
     java {
-        // Exclude EMI emulation bridge system and direct EMI imports to avoid Java 21 module conflicts
-        // EMI integration still works via EmiIntegrationLoader (reflection-based) and normal EMI plugin loading
+        // Exclude only the EMI emulation bridge system (not the real EMI integration)
+        // The /emi directory contains stubs designed to make other mods think AMI is EMI,
+        // which we don't need since normal EMI integration works via EmiRecipeBridge etc.
         exclude('com/sanhiruzu/ami/emi/**')
-        exclude('com/sanhiruzu/ami/compat/AmiEmiPlugin.java')
-        exclude('com/sanhiruzu/ami/compat/EmiRecipeBridge.java')
-        exclude('com/sanhiruzu/ami/compat/EmiFavoritesBridge.java')
-        exclude('com/sanhiruzu/ami/compat/EmiSearchSyncBridge.java')
-        exclude('com/sanhiruzu/ami/mixin/EmiScreenManagerMixin.java')
         exclude('dev/**')
     }
 }

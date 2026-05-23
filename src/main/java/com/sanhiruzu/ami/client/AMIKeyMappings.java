@@ -57,6 +57,14 @@ public class AMIKeyMappings {
             CATEGORY
     );
 
+    public static final KeyMapping RECIPE_BACK = new KeyMapping(
+            "key.ami.recipe_back",
+            KeyConflictContext.GUI,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_BACKSPACE,
+            CATEGORY
+    );
+
     @SubscribeEvent
     public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
         event.register(FAVORITE);
@@ -64,5 +72,6 @@ public class AMIKeyMappings {
         event.register(TOGGLE_VIEWER);
         event.register(CHEAT_GIVE_ONE);
         event.register(CHEAT_GIVE_STACK);
+        event.register(RECIPE_BACK);
     }
 }
