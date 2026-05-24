@@ -50,3 +50,7 @@ anomaly_report.md
 ### Third-party sources (for reference only) ###
 vendor-sources/
 internal/
+
+### Claude Code / AI Agent Files ###
+.claude/
+.geminiignore
