@@ -57,3 +57,7 @@ internal/
 
 ### Local Development ###
 dev/
+
+### Dot directories (keep only .gitignore) ###
+.*
+!.gitignore
