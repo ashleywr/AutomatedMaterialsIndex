@@ -54,3 +54,6 @@ internal/
 ### Claude Code / AI Agent Files ###
 .claude/
 .geminiignore
+
+### Local Development ###
+dev/
