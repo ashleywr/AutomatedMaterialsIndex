@@ -1,7 +1,8 @@
 package com.sanhiruzu.ami.index.query;
 
 public final class QueryUtils {
-    private QueryUtils() {}
+    private QueryUtils() {
+    }
 
     /**
      * Toggles a token in a space-separated query string.

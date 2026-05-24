@@ -60,8 +60,8 @@ public class EntityIconRenderer implements IIconRenderer {
             return;
         }
 
-        int cx    = x + size / 2;
-        int cy    = y + size - 1;
+        int cx = x + size / 2;
+        int cy = y + size - 1;
         float bbH = entity.getBbHeight();
         int scale = (int) Math.min(size - 4, Math.max(2, (size - 2) / bbH));
 
@@ -87,7 +87,8 @@ public class EntityIconRenderer implements IIconRenderer {
                  "cherry_boat", "dark_oak_boat", "mangrove_boat", "bamboo_raft",
                  "oak_chest_boat", "spruce_chest_boat", "birch_chest_boat",
                  "jungle_chest_boat", "acacia_chest_boat", "cherry_chest_boat",
-                 "dark_oak_chest_boat", "mangrove_chest_boat", "bamboo_chest_raft" -> ResourceLocation.withDefaultNamespace(path);
+                 "dark_oak_chest_boat", "mangrove_chest_boat", "bamboo_chest_raft" ->
+                    ResourceLocation.withDefaultNamespace(path);
             default -> null;
         };
     }
@@ -179,12 +180,12 @@ public class EntityIconRenderer implements IIconRenderer {
 
     private static Component formatCategoryComponent(String raw) {
         return switch (raw.toUpperCase()) {
-            case "MONSTER"   -> Component.translatable("ami.entity_category.hostile");
-            case "CREATURE"  -> Component.translatable("ami.entity_category.passive");
-            case "AMBIENT"   -> Component.translatable("ami.entity_category.ambient");
+            case "MONSTER" -> Component.translatable("ami.entity_category.hostile");
+            case "CREATURE" -> Component.translatable("ami.entity_category.passive");
+            case "AMBIENT" -> Component.translatable("ami.entity_category.ambient");
             case "WATER_CREATURE", "WATER_AMBIENT" -> Component.translatable("ami.entity_category.aquatic");
-            case "MISC"      -> Component.translatable("ami.entity_category.misc");
-            default          -> Component.literal(raw);
+            case "MISC" -> Component.translatable("ami.entity_category.misc");
+            default -> Component.literal(raw);
         };
     }
 

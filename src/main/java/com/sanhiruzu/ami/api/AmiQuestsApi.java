@@ -1,6 +1,5 @@
 package com.sanhiruzu.ami.api;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -28,7 +27,8 @@ public class AmiQuestsApi {
     private static final List<AmiQuestGroup> questGroups = new CopyOnWriteArrayList<>();
     private static Runnable onChange;
 
-    private AmiQuestsApi() {}
+    private AmiQuestsApi() {
+    }
 
     /**
      * Register a quest group. If a group with the same ID already exists, it is replaced.

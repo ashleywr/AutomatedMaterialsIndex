@@ -18,7 +18,7 @@ public class AMIConfig {
 
     public static final ModConfigSpec.BooleanValue RENDER_OVERLAY = BUILDER
             .comment("Show AMI overlay on inventory screens.",
-                     "When disabled, AMI is completely hidden until activated.")
+                    "When disabled, AMI is completely hidden until activated.")
             .define("renderOverlay", true);
 
     public static final ModConfigSpec.BooleanValue ENABLE_MATERIAL_ROOT_UI = BUILDER
@@ -35,8 +35,8 @@ public class AMIConfig {
 
     public static final ModConfigSpec.BooleanValue CHEAT_MODE = BUILDER
             .comment("Enable cheat-mode features: give items, locate biomes and structures.",
-                     "In singleplayer (and as LAN host) this works immediately.",
-                     "On a dedicated server the player must have permission level 2 (OP).")
+                    "In singleplayer (and as LAN host) this works immediately.",
+                    "On a dedicated server the player must have permission level 2 (OP).")
             .define("cheatMode", false);
 
     public static final ModConfigSpec.BooleanValue DEV_MODE = BUILDER
@@ -45,35 +45,35 @@ public class AMIConfig {
 
     public static final ModConfigSpec.BooleanValue COMPACT_MODE = BUILDER
             .comment("Show AMI as a compact icon grid (like EMI/JEI) instead of the full panel.",
-                     "The search bar and filtering still work normally in this mode.")
+                    "The search bar and filtering still work normally in this mode.")
             .define("compactMode", false);
 
     public static final ModConfigSpec.BooleanValue SHOW_SPAWN_EGGS = BUILDER
             .comment("Show spawn eggs in the item index.",
-                     "Spawn eggs are hidden by default because entities are indexed separately.",
-                     "They are always shown when devMode or cheatMode is enabled.")
+                    "Spawn eggs are hidden by default because entities are indexed separately.",
+                    "They are always shown when devMode or cheatMode is enabled.")
             .define("showSpawnEggs", false);
 
     public static final ModConfigSpec.BooleanValue SHOW_HIDDEN_MOD_ITEMS = BUILDER
             .comment("Show items from mods that hide their content from creative-mode tabs.",
-                     "Examples: MrCrayfish Furniture, Better Beginnings, etc.",
-                     "Disable if you only want to see items in standard creative tabs.")
+                    "Examples: MrCrayfish Furniture, Better Beginnings, etc.",
+                    "Disable if you only want to see items in standard creative tabs.")
             .define("showHiddenModItems", true);
 
     public static final ModConfigSpec.BooleanValue STRICT_SURVIVAL_MODE = BUILDER
             .comment("Hide items that have no crafting, smelting, or other recipe output.",
-                     "WARNING: naturally spawning items without recipes (ores, mob drops) are also affected.",
-                     "Intended for progression-focused servers. Disabled by default.")
+                    "WARNING: naturally spawning items without recipes (ores, mob drops) are also affected.",
+                    "Intended for progression-focused servers. Disabled by default.")
             .define("strictSurvivalMode", false);
 
     public static final ModConfigSpec.BooleanValue ENABLE_SEARCH_BAR_CONTEXT_MENU = BUILDER
             .comment("Enable the right-click context menu in the search bar (Cut, Copy, Paste, Clear).",
-                     "When disabled, right-clicking the search bar immediately clears it.")
+                    "When disabled, right-clicking the search bar immediately clears it.")
             .define("enableSearchBarContextMenu", false);
 
     public static final ModConfigSpec.BooleanValue ENABLE_RECENT_SEARCH_DROPDOWN = BUILDER
             .comment("Show a dropdown of recent searches when the search bar is focused and empty.",
-                     "Up and Down arrow keys can also be used to navigate history even when this is disabled.")
+                    "Up and Down arrow keys can also be used to navigate history even when this is disabled.")
             .define("enableRecentSearchDropdown", false);
 
     static {
@@ -91,7 +91,7 @@ public class AMIConfig {
     // Overlay & background
     public static final ModConfigSpec.ConfigValue<String> PALETTE_OVERLAY_BG = BUILDER
             .comment("Overlay background color (ARGB hex). Alpha in high byte.",
-                     "Example: #99000000 = 60% transparent black.")
+                    "Example: #99000000 = 60% transparent black.")
             .define("overlayBg", "0x99000000");
 
     // Search bar
@@ -110,49 +110,49 @@ public class AMIConfig {
     public static final ModConfigSpec.ConfigValue<String> PALETTE_SEARCH_PLACEHOLDER = BUILDER
             .comment("Search bar placeholder text color (RGB hex).")
             .define("searchPlaceholder", "0xFF888888");
-// Result cards
-public static final ModConfigSpec.ConfigValue<String> PALETTE_CARD_BG = BUILDER
-        .comment("Result card background color (RGB hex).")
-        .define("cardBg", "0xFF2A2A2A");
+    // Result cards
+    public static final ModConfigSpec.ConfigValue<String> PALETTE_CARD_BG = BUILDER
+            .comment("Result card background color (RGB hex).")
+            .define("cardBg", "0xFF2A2A2A");
 
-public static final ModConfigSpec.ConfigValue<String> PALETTE_CARD_BG_HOVER = BUILDER
-        .comment("Result card background color when hovered (RGB hex).")
-        .define("cardBgHover", "0x3300AAFF");
+    public static final ModConfigSpec.ConfigValue<String> PALETTE_CARD_BG_HOVER = BUILDER
+            .comment("Result card background color when hovered (RGB hex).")
+            .define("cardBgHover", "0x3300AAFF");
 
-public static final ModConfigSpec.ConfigValue<String> PALETTE_CARD_TEXT_NAME = BUILDER
-        .comment("Result card item name text color (RGB hex).")
-        .define("cardTextName", "0xFF111111");
+    public static final ModConfigSpec.ConfigValue<String> PALETTE_CARD_TEXT_NAME = BUILDER
+            .comment("Result card item name text color (RGB hex).")
+            .define("cardTextName", "0xFF111111");
 
-public static final ModConfigSpec.ConfigValue<String> PALETTE_CARD_TEXT_SUBTITLE = BUILDER
-        .comment("Result card subtitle text color (RGB hex).")
-        .define("cardTextSubtitle", "0xFF555555");
+    public static final ModConfigSpec.ConfigValue<String> PALETTE_CARD_TEXT_SUBTITLE = BUILDER
+            .comment("Result card subtitle text color (RGB hex).")
+            .define("cardTextSubtitle", "0xFF555555");
 
-// Layout (CSS-like)
-static {
-    BUILDER.push("layout");
-}
+    // Layout (CSS-like)
+    static {
+        BUILDER.push("layout");
+    }
 
-public static final ModConfigSpec.IntValue GLOBAL_PADDING = BUILDER
-        .comment("Global internal padding for the results panel (px).")
-        .defineInRange("padding", 6, 0, 20);
+    public static final ModConfigSpec.IntValue GLOBAL_PADDING = BUILDER
+            .comment("Global internal padding for the results panel (px).")
+            .defineInRange("padding", 6, 0, 20);
 
-public static final ModConfigSpec.IntValue ROW_HEIGHT = BUILDER
-        .comment("Height of each item row in the list view (px).")
-        .defineInRange("rowHeight", 18, 14, 48);
+    public static final ModConfigSpec.IntValue ROW_HEIGHT = BUILDER
+            .comment("Height of each item row in the list view (px).")
+            .defineInRange("rowHeight", 18, 14, 48);
 
-public static final ModConfigSpec.IntValue ICON_SIZE = BUILDER
-        .comment("Size of the item icon (px).")
-        .defineInRange("iconSize", 16, 8, 32);
+    public static final ModConfigSpec.IntValue ICON_SIZE = BUILDER
+            .comment("Size of the item icon (px).")
+            .defineInRange("iconSize", 16, 8, 32);
 
-public static final ModConfigSpec.IntValue ELEMENT_GAP = BUILDER
-        .comment("Vertical gap between UI elements (px).")
-        .defineInRange("elementGap", 4, 0, 10);
+    public static final ModConfigSpec.IntValue ELEMENT_GAP = BUILDER
+            .comment("Vertical gap between UI elements (px).")
+            .defineInRange("elementGap", 4, 0, 10);
 
-static {
-    BUILDER.pop();
-}
+    static {
+        BUILDER.pop();
+    }
 
-// Search behavior
+    // Search behavior
     public static final ModConfigSpec.ConfigValue<String> PALETTE_CARD_ACTION_HINT = BUILDER
             .comment("Result card action hint color (RGB hex).")
             .define("cardActionHint", "0xFF555555");
@@ -179,9 +179,9 @@ static {
             .comment("Scrollbar thumb color when hovered (RGB hex).")
             .define("scrollbarThumbHover", "0xFF555555");
 
-    public enum BlockSubgroup { SHAPE, MATERIAL }
+    public enum BlockSubgroup {SHAPE, MATERIAL}
 
-    public enum PanelSide { AUTO, LEFT, RIGHT }
+    public enum PanelSide {AUTO, LEFT, RIGHT}
 
     public enum Anchor {
         CONTAINER_LEFT, CONTAINER_RIGHT,
@@ -190,17 +190,17 @@ static {
 
     public static final ModConfigSpec.EnumValue<BlockSubgroup> BLOCK_SUBGROUP = BUILDER
             .comment("How to subdivide the Blocks category in the AMI results panel.",
-                     "SHAPE    = group by block shape: Stairs, Slabs, Walls, Fences, Panes, Full Blocks",
-                     "MATERIAL = group by material family: Stone & Masonry, Wood & Planks, Soil & Terrain, Glass & Light")
+                    "SHAPE    = group by block shape: Stairs, Slabs, Walls, Fences, Panes, Full Blocks",
+                    "MATERIAL = group by material family: Stone & Masonry, Wood & Planks, Soil & Terrain, Glass & Light")
             .defineEnum("blockSubgroup", BlockSubgroup.SHAPE);
 
-    public enum ItemClickAction { RECIPES, USES, NONE }
+    public enum ItemClickAction {RECIPES, USES, NONE}
 
     public static final ModConfigSpec.EnumValue<ItemClickAction> ITEM_CLICK_ACTION = BUILDER
             .comment("What left-clicking an item in the AMI grid does.",
-                     "RECIPES = open recipe viewer for crafting recipes (default),",
-                     "USES = open recipe viewer for item uses,",
-                     "NONE = do nothing. Right-click always opens uses.")
+                    "RECIPES = open recipe viewer for crafting recipes (default),",
+                    "USES = open recipe viewer for item uses,",
+                    "NONE = do nothing. Right-click always opens uses.")
             .defineEnum("itemClickAction", ItemClickAction.RECIPES);
 
     static {
@@ -217,13 +217,13 @@ static {
 
     public static final ModConfigSpec.ConfigValue<String> SUBTITLE_FIELDS = BUILDER
             .comment("Comma-separated subtitle fields shown on list-row line 2.",
-                     "Valid values: MOD_NAME, ID, TYPE, STORAGE_CAPACITY, DPS",
-                     "Empty string hides the subtitle line entirely.")
+                    "Valid values: MOD_NAME, ID, TYPE, STORAGE_CAPACITY, DPS",
+                    "Empty string hides the subtitle line entirely.")
             .define("subtitleFields", "MOD_NAME");
 
     public static final ModConfigSpec.IntValue SUBTITLE_FIELDS_CHECKSUM = BUILDER
             .comment("Checksum of the mod list when subtitle fields were last configured.",
-                     "Changes automatically on mod-list change to reset fields to defaults.")
+                    "Changes automatically on mod-list change to reset fields to defaults.")
             .defineInRange("subtitleFieldsChecksum", 0, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     static {
@@ -240,7 +240,7 @@ static {
 
     public static final ModConfigSpec.EnumValue<PanelSide> PANEL_SIDE = BUILDER
             .comment("Which side of the inventory to render the AMI panel on.",
-                     "AUTO = left when EMI/JEI present, right otherwise.")
+                    "AUTO = left when EMI/JEI present, right otherwise.")
             .defineEnum("panel_side", PanelSide.AUTO);
 
     public static final ModConfigSpec.IntValue PANEL_WIDTH_OVERRIDE = BUILDER
@@ -253,7 +253,7 @@ static {
 
     public static final ModConfigSpec.EnumValue<Anchor> SEARCH_BAR_ANCHOR = BUILDER
             .comment("Anchor point for the search bar.",
-                     "Valid: SCREEN_BOTTOM_CENTER, SCREEN_BOTTOM_LEFT, SCREEN_BOTTOM_RIGHT")
+                    "Valid: SCREEN_BOTTOM_CENTER, SCREEN_BOTTOM_LEFT, SCREEN_BOTTOM_RIGHT")
             .defineEnum("search_bar_anchor", Anchor.SCREEN_BOTTOM_CENTER);
 
     public static final ModConfigSpec.EnumValue<Anchor> AMI_BUTTON_ANCHOR = BUILDER

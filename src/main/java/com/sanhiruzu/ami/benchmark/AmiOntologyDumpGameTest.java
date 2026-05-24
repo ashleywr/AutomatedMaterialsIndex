@@ -1,11 +1,11 @@
 package com.sanhiruzu.ami.benchmark;
 
 import com.sanhiruzu.ami.AMI;
-import com.sanhiruzu.ami.index.*;
+import com.sanhiruzu.ami.index.AmiIndexerService;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import net.neoforged.fml.loading.FMLPaths;
+import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.nio.file.Path;
 
@@ -26,7 +26,10 @@ public class AmiOntologyDumpGameTest {
             AmiIndexerService indexer = AmiIndexerService.getInstance();
             indexer.rebuild(helper.getLevel());
             while (!indexer.isReady()) {
-                try { Thread.sleep(10); } catch (InterruptedException ignored) {}
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException ignored) {
+                }
             }
 
             Path configDir = FMLPaths.GAMEDIR.get().resolve("ami_dumps");

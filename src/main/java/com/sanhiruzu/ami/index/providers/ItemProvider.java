@@ -1,8 +1,8 @@
 package com.sanhiruzu.ami.index.providers;
 
-import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.api.AmiPluginRegistry;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.index.metrics.DpsMetricSniffer;
 import com.sanhiruzu.ami.index.metrics.StorageMetricSniffer;
@@ -11,22 +11,15 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.tags.BlockTags;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.OptionalDouble;
-import java.util.OptionalLong;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.sanhiruzu.ami.index.providers.RecipeProvider.computeObtainability;
@@ -42,17 +35,17 @@ public class ItemProvider implements IAmiDataProvider {
     public void populate(GlobalIndex index, @Nullable Level level) {
         GroupingEngine.initialize(level);
         GroupingEngine.rebuildDynamicShapeCandidates(BuiltInRegistries.ITEM);
-        boolean strictSurvival  = AmiConfig.strictSurvivalMode;
+        boolean strictSurvival = AmiConfig.strictSurvivalMode;
 
         Map<Item, ItemFilter.CreativeTabInfo> creativeTabs = ItemFilter.buildCreativeTabMap(level);
         Set<Item> creativeItems = creativeTabs.keySet();
         AmiRecipeIndex recipeIndex = AmiRecipeIndex.getInstance();
         Set<Item> recipeOutputs = (strictSurvival || AmiConfig.showHiddenModItems)
-            ? recipeIndex.getAllOutputItems()
-            : Collections.emptySet();
+                ? recipeIndex.getAllOutputItems()
+                : Collections.emptySet();
 
         boolean hasCreativeData = !creativeItems.isEmpty();
-        boolean hasRecipeData   = !recipeOutputs.isEmpty();
+        boolean hasRecipeData = !recipeOutputs.isEmpty();
 
         RegistryAccess registryAccess = level != null ? level.registryAccess() : null;
 
@@ -93,14 +86,14 @@ public class ItemProvider implements IAmiDataProvider {
 
             if (!ItemFilter.shouldShowAccessLevel(accessLevel)) continue;
 
-            String modId        = id.getNamespace();
-            String displayName  = item.getName(new ItemStack(item)).getString();
+            String modId = id.getNamespace();
+            String displayName = item.getName(new ItemStack(item)).getString();
             ItemStack defaultStack = new ItemStack(item);
             String variantGroup = GroupingEngine.classifyShape(item);
-            String colorBucket  = GroupingEngine.classifyColor(defaultStack);
+            String colorBucket = GroupingEngine.classifyColor(defaultStack);
             String materialGroup = GroupingEngine.classifyMaterialRoot(defaultStack);
-            int color           = 0xFFFFFF;
-            String tags         = collectTags(item);
+            int color = 0xFFFFFF;
+            String tags = collectTags(item);
             String requiredTool = determineRequiredTool(item);
             OptionalDouble dps = DpsMetricSniffer.estimate(defaultStack);
             OptionalLong esmCapacity = StorageMetricSniffer.estimate(defaultStack, id);
@@ -261,8 +254,8 @@ public class ItemProvider implements IAmiDataProvider {
 
     private String collectTags(Item item) {
         return item.builtInRegistryHolder().tags()
-            .map(tag -> tag.location().toString().toLowerCase())
-            .collect(Collectors.joining(","));
+                .map(tag -> tag.location().toString().toLowerCase())
+                .collect(Collectors.joining(","));
     }
 
     private static String formatDps(double value) {

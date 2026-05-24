@@ -48,37 +48,55 @@ public class SearchState {
 
     // ── Getters & Setters ─────────────────────────────────────────────────────
 
-    public String getQuery() { return query; }
+    public String getQuery() {
+        return query;
+    }
+
     public void setQuery(String query) {
         this.query = query;
         notifyListeners();
     }
 
-    public ResultsProcessor.SortField getSortField() { return sortField; }
+    public ResultsProcessor.SortField getSortField() {
+        return sortField;
+    }
+
     public void setSortField(ResultsProcessor.SortField sortField) {
         this.sortField = sortField;
         notifyListeners();
     }
 
-    public boolean isAscending() { return ascending; }
+    public boolean isAscending() {
+        return ascending;
+    }
+
     public void setAscending(boolean ascending) {
         this.ascending = ascending;
         notifyListeners();
     }
 
-    public ResultsProcessor.GroupBy getGroupBy() { return groupBy; }
+    public ResultsProcessor.GroupBy getGroupBy() {
+        return groupBy;
+    }
+
     public void setGroupBy(ResultsProcessor.GroupBy groupBy) {
         this.groupBy = groupBy;
         notifyListeners();
     }
 
-    public Set<String> getActiveFacets() { return new HashSet<>(activeFacets); }
+    public Set<String> getActiveFacets() {
+        return new HashSet<>(activeFacets);
+    }
+
     public void toggleFacet(String facetId) {
         if (activeFacets.contains(facetId)) activeFacets.remove(facetId);
         else activeFacets.add(facetId);
         notifyListeners();
     }
-    /** Selects only this facet, deselecting all others. If already the sole active facet, clears it. */
+
+    /**
+     * Selects only this facet, deselecting all others. If already the sole active facet, clears it.
+     */
     public void selectOnlyFacet(String facetId) {
         if (activeFacets.size() == 1 && activeFacets.contains(facetId)) {
             activeFacets.clear();
@@ -88,31 +106,41 @@ public class SearchState {
         }
         notifyListeners();
     }
+
     public void clearFacets() {
         activeFacets.clear();
         notifyListeners();
     }
 
-    public Set<String> getSelectedMods() { return new HashSet<>(selectedMods); }
+    public Set<String> getSelectedMods() {
+        return new HashSet<>(selectedMods);
+    }
+
     public void setSelectedMods(Set<String> mods) {
         this.selectedMods.clear();
         this.selectedMods.addAll(mods);
         notifyListeners();
     }
+
     public void toggleMod(String modId) {
         if (selectedMods.contains(modId)) selectedMods.remove(modId);
         else selectedMods.add(modId);
         notifyListeners();
     }
 
-    public ResultsToolbar.ViewMode getViewMode() { return viewMode; }
+    public ResultsToolbar.ViewMode getViewMode() {
+        return viewMode;
+    }
+
     public void setViewMode(ResultsToolbar.ViewMode viewMode) {
         if (this.viewMode == viewMode) return;
         this.viewMode = viewMode;
         notifyListeners();
     }
 
-    /** Helper to create a processor with current state. */
+    /**
+     * Helper to create a processor with current state.
+     */
     public ResultsProcessor createProcessor() {
         return new ResultsProcessor(sortField, ascending, groupBy, selectedMods, activeFacets);
     }

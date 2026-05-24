@@ -7,5 +7,6 @@ import net.minecraft.world.item.Item;
 public final class ComposterBlock {
     public static final Object2FloatMap<Item> COMPOSTABLES = new Object2FloatOpenHashMap<>();
 
-    private ComposterBlock() {}
+    private ComposterBlock() {
+    }
 }

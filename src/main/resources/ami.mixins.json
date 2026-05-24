@@ -7,7 +7,7 @@
   "mixins": [],
   "client": [
     "EmiScreenManagerMixin",
-    "JeiGuiEventHandlerMixin",
-    "JeiClientInputHandlerMixin"
+    "JeiClientInputHandlerMixin",
+    "JeiGuiEventHandlerMixin"
   ]
 }

@@ -18,7 +18,10 @@ public class AmiConfig {
         AMI_EMI_BRIDGE("ami.config.value.general.mode.ami_emi_bridge");
 
         public final Component displayName;
-        AmiMode(String key) { this.displayName = Component.translatable(key); }
+
+        AmiMode(String key) {
+            this.displayName = Component.translatable(key);
+        }
     }
 
     public enum PanelContent {
@@ -31,7 +34,10 @@ public class AmiConfig {
         MODERN("ami.config.value.ui.theme.modern");
 
         public final Component displayName;
-        Theme(String key) { this.displayName = Component.translatable(key); }
+
+        Theme(String key) {
+            this.displayName = Component.translatable(key);
+        }
     }
 
     public enum BlockSubgroup {
@@ -39,7 +45,10 @@ public class AmiConfig {
         MATERIAL("ami.configuration.ui.block_subgroup.material");
 
         public final Component displayName;
-        BlockSubgroup(String key) { this.displayName = Component.translatable(key); }
+
+        BlockSubgroup(String key) {
+            this.displayName = Component.translatable(key);
+        }
     }
 
     public enum ItemClickAction {
@@ -48,7 +57,10 @@ public class AmiConfig {
         NONE("ami.configuration.ui.item_click_action.none");
 
         public final Component displayName;
-        ItemClickAction(String key) { this.displayName = Component.translatable(key); }
+
+        ItemClickAction(String key) {
+            this.displayName = Component.translatable(key);
+        }
     }
 
     public enum RecipeViewerMode {
@@ -57,7 +69,10 @@ public class AmiConfig {
         EMI_JEI("ami.config.value.recipe_viewer.emi_jei");
 
         public final Component displayName;
-        RecipeViewerMode(String key) { this.displayName = Component.translatable(key); }
+
+        RecipeViewerMode(String key) {
+            this.displayName = Component.translatable(key);
+        }
     }
 
     public enum CheatGiveMode {
@@ -65,7 +80,10 @@ public class AmiConfig {
         INVENTORY("ami.config.value.cheat.give-mode.inventory");
 
         public final Component displayName;
-        CheatGiveMode(String key) { this.displayName = Component.translatable(key); }
+
+        CheatGiveMode(String key) {
+            this.displayName = Component.translatable(key);
+        }
     }
 
     // --- General Group ---
@@ -105,7 +123,7 @@ public class AmiConfig {
 
     @ConfigValue("sidepanels.right.alternate-slots")
     public static String rightPanelAlternateSlots = "COMPACT";
-    
+
     @ConfigValue("sidepanels.left.content")
     public static PanelContent leftPanelContent = PanelContent.FAVORITES;
 
@@ -206,7 +224,7 @@ public class AmiConfig {
 
     // --- UI & Palette ---
     @ConfigGroup("ui")
-    
+
     @ConfigValue("ui.theme")
     public static Theme theme = Theme.MODERN;
 
@@ -302,7 +320,7 @@ public class AmiConfig {
         devMode = false;
         highlightExclusionAreas = false;
         compactMode = false;
-        
+
         leftPanelSlots = "FAVORITES";
         leftPanelAlternateSlots = "NONE";
         rightPanelSlots = "GRID";
@@ -317,7 +335,7 @@ public class AmiConfig {
         rightPanelSecondaryContent = PanelContent.NONE;
         leftPanelWidth = 140;
         rightPanelWidth = 0;
-        
+
         enableMaterialRootUI = true;
         enableGhostCrafting = true;
         enableProgressionGraph = true;
@@ -330,20 +348,20 @@ public class AmiConfig {
 
         cheatGiveMode = CheatGiveMode.CURSOR;
         cheatDropToDelete = true;
-        
+
         searchBarWidth = 240;
         globalPadding = 6;
         rowHeight = 18;
         iconSize = 16;
         elementGap = 4;
-        
+
         theme = Theme.MODERN;
         useTransparentTheme = true;
         accentColor = 0xFF5555;
         showHeader = true;
         blockSubgroup = BlockSubgroup.SHAPE;
         itemClickAction = ItemClickAction.RECIPES;
-        
+
         overlayBg = 0x66000000;
         panelBg = 0x66000000;
         searchBarBg = 0x33000000;
@@ -354,10 +372,10 @@ public class AmiConfig {
         cardBgHover = 0x44FFFFFF;
         cardTextName = 0xFFFFFFFF;
         cardTextSubtitle = 0xFFAAAAAA;
-        
+
         subtitleFields = "MOD_NAME";
         subtitleFieldsChecksum = 0;
-        
+
         favoriteKey = "A";
         toggleAmiKey = "ALT+A";
         cheatOneKey = "ctrl-click";

@@ -23,7 +23,9 @@ public final class LiteralResolver implements IQueryResolver {
         this.index = new SearchIndex(includeMetadata);
     }
 
-    /** Called during SearchService.buildFrom() to pre-load the trie. */
+    /**
+     * Called during SearchService.buildFrom() to pre-load the trie.
+     */
     public void addNode(SearchNode node) {
         index.addNode(node);
     }

@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client.favorites;
 
 import net.minecraft.world.item.ItemStack;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,7 +16,8 @@ public class AmiHistoryHandler {
     private final List<ItemStack> lookupHistory = new ArrayList<>();
     private Runnable onChange;
 
-    private AmiHistoryHandler() {}
+    private AmiHistoryHandler() {
+    }
 
     public static AmiHistoryHandler getInstance() {
         return INSTANCE;
@@ -27,12 +29,12 @@ public class AmiHistoryHandler {
 
     public void recordLookup(ItemStack stack) {
         if (stack.isEmpty()) return;
-        
+
         // Remove existing to move to top
         lookupHistory.removeIf(s -> ItemStack.isSameItemSameComponents(s, stack));
-        
+
         lookupHistory.add(0, stack.copy());
-        
+
         if (lookupHistory.size() > MAX_HISTORY) {
             lookupHistory.remove(lookupHistory.size() - 1);
         }

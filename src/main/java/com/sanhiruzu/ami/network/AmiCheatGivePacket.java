@@ -23,7 +23,9 @@ public record AmiCheatGivePacket(ItemStack stack) implements CustomPacketPayload
             ItemStack.OPTIONAL_STREAM_CODEC.map(AmiCheatGivePacket::new, AmiCheatGivePacket::stack);
 
     @Override
-    public Type<AmiCheatGivePacket> type() { return TYPE; }
+    public Type<AmiCheatGivePacket> type() {
+        return TYPE;
+    }
 
     public static void handle(AmiCheatGivePacket packet, IPayloadContext context) {
         context.enqueueWork(() -> {

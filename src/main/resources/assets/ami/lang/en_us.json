@@ -19,17 +19,13 @@
   "ami.gui.search.placeholder": "Filter...",
   "ami.gui.search.placeholder_hint": "Search...",
   "ami.gui.search.empty": "No results",
-
   "ami.dimension.overworld": "Overworld",
   "ami.dimension.nether": "Nether",
   "ami.dimension.end": "The End",
-
   "ami.gui.empty_list": "(nothing indexed yet)",
-
   "ami.tooltip.shift_for_details": "[Shift] for details",
   "ami.tooltip.cheat_locate": "[!] Click to locate",
   "ami.tooltip.cheat_entity": "[!] Entity actions coming soon",
-
   "ami.tooltip.temperature": "Temperature",
   "ami.tooltip.precipitation": "Precipitation",
   "ami.tooltip.water_color": "Water",
@@ -43,17 +39,14 @@
   "ami.tooltip.size": "Size",
   "ami.tooltip.fire_immune": "Fire Immune",
   "ami.tooltip.dimension_info": "(dimension info)",
-
   "ami.precipitation.none": "None",
   "ami.precipitation.snow": "Snow",
   "ami.precipitation.rain": "Rain",
-
   "ami.entity_category.hostile": "Hostile",
   "ami.entity_category.passive": "Passive",
   "ami.entity_category.ambient": "Ambient",
   "ami.entity_category.aquatic": "Aquatic",
   "ami.entity_category.misc": "Misc",
-
   "ami.tooltip.required_tool": "Requires: %s",
   "ami.tooltip.ami_section": "AMI",
   "ami.tooltip.storage": "Storage: %s",
@@ -64,7 +57,6 @@
   "ami.tooltip.creative_tab": "Creative Tab: %s",
   "ami.tooltip.obtainability": "Obtainability: %s",
   "ami.tooltip.access": "Access: %s",
-
   "ami.gui.open_full_screen": "Open AMI Full Screen",
   "ami.gui.reset": "Reset",
   "ami.gui.indexing": "Indexing...",
@@ -80,7 +72,6 @@
   "ami.gui.uses_hint": "Right-click: uses",
   "ami.gui.mod_filter_hint": "Ctrl+Right-click: filter by mod",
   "ami.gui.group_filter_hint": "Ctrl+Right-click: filter by group",
-
   "ami.gui.view_mode.grid": "Grid view",
   "ami.gui.view_mode.list": "List view",
   "ami.gui.view_mode.grid_short": "Grid",
@@ -88,14 +79,12 @@
   "ami.gui.sort": "Sort",
   "ami.gui.group": "Group",
   "ami.gui.fields": "Fields",
-
   "ami.sort.alphabetical": "Name",
   "ami.sort.color": "Color",
   "ami.sort.mod": "Mod",
   "ami.sort.storage": "Storage",
   "ami.sort.dps": "DPS",
   "ami.sort.count": "Count",
-
   "ami.group.dimension": "Dimension",
   "ami.group.mod": "Mod",
   "ami.group.category": "Category",
@@ -108,7 +97,6 @@
   "ami.group.unknown_material": "Unknown Material",
   "ami.group.unknown_family": "Unknown Family",
   "ami.group.unknown_shape": "Unknown Shape",
-
   "ami.category.utility": "Utility",
   "ami.category.ingredients": "Ingredients",
   "ami.category.decoration": "Decoration",
@@ -123,49 +111,39 @@
   "ami.category.environment": "World",
   "ami.category.geology": "Terrain",
   "ami.category.masonry": "Building",
-
   "ami.subcategory.utility.navigation": "Navigation",
   "ami.subcategory.utility.tools": "Utility Tools",
   "ami.subcategory.utility.misc": "Miscellaneous",
-
   "ami.subcategory.ingredients.organic": "Organic Parts",
   "ami.subcategory.ingredients.mineral": "Mineral Parts",
   "ami.subcategory.ingredients.dyes": "Dyes & Pigments",
-
   "ami.subcategory.decoration.furniture": "Furniture",
   "ami.subcategory.decoration.lighting": "Lighting",
   "ami.subcategory.decoration.textiles": "Textiles & Banners",
-
   "ami.subcategory.social.players": "Online Players",
   "ami.subcategory.social.teams": "Team Members",
   "ami.subcategory.social.claims": "Public Server Claims",
-
   "ami.subcategory.bestiary.passive": "Passive Mobs",
   "ami.subcategory.bestiary.hostile": "Hostile Mobs",
   "ami.subcategory.bestiary.neutral": "Neutral Mobs",
   "ami.subcategory.bestiary.vehicles": "Vehicles & Utility",
-
   "ami.subcategory.magic.potions": "Potions & Flasks",
   "ami.subcategory.magic.books": "Enchanted Books",
   "ami.subcategory.magic.artifacts": "Magical Artifacts",
   "ami.subcategory.magic.reagents": "Alchemy Reagents",
-
   "ami.subcategory.armor.head": "Headwear",
   "ami.subcategory.armor.chest": "Chestwear",
   "ami.subcategory.armor.legs": "Legwear",
   "ami.subcategory.armor.feet": "Footwear",
   "ami.subcategory.armor.curios": "Curios & Accessories",
-
   "ami.subcategory.tools.melee": "Melee Weapons",
   "ami.subcategory.tools.ranged": "Ranged Weapons",
   "ami.subcategory.tools.harvest": "Harvesting Tools",
   "ami.subcategory.tools.utility": "Utility Tools",
-
   "ami.subcategory.food.meals": "Meals",
   "ami.subcategory.food.snacks": "Snacks",
   "ami.subcategory.food.drinks": "Beverages & Soups",
   "ami.subcategory.food.proteins": "Raw Proteins",
-
   "ami.subcategory.tech.machines": "Machines & Stations",
   "ami.subcategory.tech.redstone": "Redstone & Logic",
   "ami.subcategory.tech.transport": "Transport",
@@ -173,20 +151,16 @@
   "ami.subcategory.tech.dusts": "Dusts & Powders",
   "ami.subcategory.tech.parts": "Machine Parts",
   "ami.subcategory.tech.circuits": "Circuits & Wires",
-
   "ami.subcategory.nature.seeds": "Seeds & Saplings",
   "ami.subcategory.nature.crops": "Raw Crops",
   "ami.subcategory.nature.flora": "Flora & Foliage",
   "ami.subcategory.nature.fungi": "Fungi & Forage",
   "ami.subcategory.nature.wood": "Wood & Logs",
-
   "ami.subcategory.environment.biomes": "Biomes",
   "ami.subcategory.environment.dimensions": "Dimensions",
   "ami.subcategory.environment.structures": "Structures",
-
   "ami.subcategory.geology.terrain": "Terrain & Soil",
   "ami.subcategory.geology.stone": "Rock & Stone",
-
   "ami.subcategory.masonry.functional": "Functional & Interactive",
   "ami.subcategory.masonry.redstone": "Redstone & Logic",
   "ami.subcategory.masonry.decorative": "Decorative",
@@ -201,10 +175,8 @@
   "ami.subcategory.masonry.soil": "Crafted Terrain",
   "ami.subcategory.masonry.glass": "Glass & Light",
   "ami.subcategory.masonry.other_building": "Other Building",
-
   "ami.category.misc": "Misc",
   "ami.subcategory.misc.unknown": "Uncategorized",
-
   "ami.gui.pinned_discover": "Pinned & Discover",
   "ami.gui.badge.storage": "[STR x%s]",
   "ami.gui.badge.tier": "[%s Tier]",
@@ -214,11 +186,9 @@
   "ami.dev.group": "AMI Group: %s",
   "ami.dev.group.none": "None",
   "ami.dev.group.default": "Default",
-
   "ami.gui.search.typing": "Start typing...",
   "ami.gui.search.clear": "x",
   "ami.gui.search.recipe": "▶ Recipe",
-
   "ami.config.title": "AMI Configuration",
   "ami.config.search_placeholder": "Search...",
   "ami.config.defaults": "Defaults",
@@ -226,7 +196,6 @@
   "ami.config.revert_count": "Revert (%s)",
   "ami.config.done": "Done",
   "ami.config.emi_config": "EMI Config...",
-
   "ami.config.group.general": "General",
   "ami.config.group.features": "Features",
   "ami.config.group.layout": "Layout",
@@ -244,7 +213,6 @@
   "ami.config.panel.slot2": "Slot 2",
   "ami.config.panel.add_slot": "+ Add Slot",
   "ami.config.panel.no_slots": "No slots",
-
   "ami.config.value.general.mode": "AMI Mode",
   "ami.config.tooltip.general.mode": "Switch between Full AMI, Compact Mode, or an EMI bridge.",
   "ami.config.value.general.enable-auto-indexing": "Auto Indexing",
@@ -257,7 +225,6 @@
   "ami.config.tooltip.general.highlight-exclusion-areas": "Draw colored rectangles over exclusion zones for debugging.",
   "ami.config.value.general.compact-mode": "Compact UI",
   "ami.config.tooltip.general.compact-mode": "Forces the UI into a minimal grid view.",
-
   "ami.config.value.sidepanels.left.content": "Left Sidebar Content",
   "ami.config.tooltip.sidepanels.left.content": "Feature to display in the left panel.",
   "ami.config.value.sidepanels.left.slots": "Left Panel Slots",
@@ -286,7 +253,6 @@
   "ami.config.tooltip.sidepanels.left.width": "Width of the left panel in pixels.",
   "ami.config.value.sidepanels.right.width": "Right Sidebar Width",
   "ami.config.tooltip.sidepanels.right.width": "Width of the right panel in pixels (0=Auto).",
-
   "ami.config.value.features.enable-material-root-ui": "Material Grouping",
   "ami.config.tooltip.features.enable-material-root-ui": "Collapse variants (e.g. wool colors) into one entry.",
   "ami.config.value.features.enable-ghost-crafting": "Ghost Crafting",
@@ -303,7 +269,6 @@
   "ami.config.tooltip.features.suppress-recipe-viewers": "Hide other recipe viewers when AMI is focused.",
   "ami.config.value.features.recipe-viewer-mode": "Recipe Viewer",
   "ami.config.tooltip.features.recipe-viewer-mode": "AUTO: use EMI/JEI if installed, fall back to native. NATIVE: always use AMI's built-in viewer. EMI_JEI: always delegate.",
-
   "ami.config.value.layout.search-bar-width": "Search Bar Width",
   "ami.config.tooltip.layout.search-bar-width": "Width of the search bar in GUI pixels.",
   "ami.config.value.layout.global-padding": "Global Padding",
@@ -314,7 +279,6 @@
   "ami.config.tooltip.layout.icon-size": "Pixel size of item/block icons.",
   "ami.config.value.layout.element-gap": "Vertical Gap",
   "ami.config.tooltip.layout.element-gap": "Spacing between vertical UI elements.",
-
   "ami.config.value.ui.theme": "UI Theme",
   "ami.config.tooltip.ui.theme": "Overall visual style of the AMI overlay.",
   "ami.config.value.ui.use-transparent-theme": "Transparent Backgrounds",
@@ -327,7 +291,6 @@
   "ami.config.tooltip.ui.block-subgroup": "Subdivide blocks by Shape or Material.",
   "ami.config.value.ui.item-click-action": "Click Action",
   "ami.config.tooltip.ui.item-click-action": "Primary action when left-clicking an item.",
-
   "ami.config.value.palette.overlay-bg": "Overlay BG Color",
   "ami.config.tooltip.palette.overlay-bg": "The dimmed background layer behind the entire AMI overlay when transparent mode is off.",
   "ami.config.value.palette.panel-bg": "Panel BG Color",
@@ -348,14 +311,12 @@
   "ami.config.tooltip.palette.card-text-name": "Color of primary item name text on list-view cards.",
   "ami.config.value.palette.card-text-subtitle": "Card Subtitle Color",
   "ami.config.tooltip.palette.card-text-subtitle": "Color of secondary subtitle text (mod name, storage, DPS) on cards.",
-
   "key.ami.favorite": "Add Favorite",
   "key.ami.debug_tooltips": "Toggle AMI Debug Tooltips",
   "key.ami.toggle_viewer": "Toggle AMI Overlay",
   "key.ami.cheat_give_one": "Cheat: Give One Item",
   "key.ami.cheat_give_stack": "Cheat: Give Full Stack",
   "ami.cheat.drop_to_delete": "Drop here to delete",
-
   "ami.config.value.binds.favorite": "Favorite Key",
   "ami.config.tooltip.binds.favorite": "Press this key while hovering an item to add/remove from favorites.",
   "ami.config.value.binds.debug-tooltips": "Toggle Debug Tooltips",
@@ -364,7 +325,6 @@
   "ami.config.tooltip.binds.toggle-viewer": "Global shortcut to show or hide the AMI panels.",
   "ami.config.value.binds.cheat-one": "Cheat Item Bind",
   "ami.config.tooltip.binds.cheat-one": "Modifier + Click to give yourself one item.",
-
   "ami.row_field.mod": "Mod",
   "ami.row_field.id": "ID",
   "ami.row_field.type": "Type",
@@ -372,21 +332,17 @@
   "ami.row_field.storage_capacity": "[STR x%s]",
   "ami.row_field.dps": "DPS",
   "ami.row_field.dps_value": "%s DPS",
-
   "ami.command.ontology_exported": "AMI ontology exported to %s",
   "ami.command.ontology_export_failed": "Failed to export ontology: %s",
   "ami.command.fallback_exported": "AMI fallback sample exported to %s",
   "ami.command.fallback_export_failed": "Failed to export fallback sample: %s",
   "ami.command.fallback_summary": " | visible facetless %s/%s | visible unresolved facetful %s",
-
   "ami.tooltip.obtainability.no_recipe": "No known recipe",
   "ami.tooltip.access.survival": "Survival",
   "ami.tooltip.access.creative": "Creative",
   "ami.tooltip.access.cheat": "Cheat",
   "ami.tooltip.access.dev": "Dev",
-
   "ami.tooltip.tag_prefix": "  #%s",
-
   "ami.debug.header": "[AMI Debug]",
   "ami.debug.ontology": "Ontology",
   "ami.debug.metadata": "Metadata",
@@ -399,23 +355,19 @@
   "ami.debug.more": "+%s more",
   "ami.debug.no_tags": "(no tags)",
   "ami.debug.type": "type:",
-
   "ami.recipe_viewer.recipes_title": "Recipes: %s",
   "ami.recipe_viewer.uses_title": "Uses: %s",
   "ami.recipe_viewer.no_recipes": "No recipes found",
   "ami.recipe_viewer.tab": "%s/%s",
   "ami.recipe_viewer.transfer": "Click to fill crafting grid",
-
   "ami.recipe_viewer.mode.recipes": "Recipes",
   "ami.recipe_viewer.mode.uses": "Used By",
-
   "ami.recipe_viewer.shapeless": "Shapeless",
   "ami.recipe_viewer.transfer_icon": "+",
   "ami.recipe_viewer.go_back": "ESC / Backspace to go back",
   "ami.recipe_viewer.page": "%s / %s",
   "ami.recipe_viewer.prev": "❮",
   "ami.recipe_viewer.next": "❯",
-
   "ami.recipe_viewer.tab.crafting": "Crafting Table",
   "ami.recipe_viewer.tab.smelting": "Smelting",
   "ami.recipe_viewer.tab.blasting": "Blasting",
@@ -428,7 +380,6 @@
   "ami.recipe_viewer.tab.anvil_repairing": "Anvil",
   "ami.recipe_viewer.tab.composting": "Composter",
   "ami.recipe_viewer.tab.fuel": "Furnace Fuel",
-
   "ami.recipe_viewer.tab.short.crafting": "Craft",
   "ami.recipe_viewer.tab.short.smelting": "Smelt",
   "ami.recipe_viewer.tab.short.blasting": "Blast",
@@ -441,28 +392,22 @@
   "ami.recipe_viewer.tab.short.anvil_repairing": "Anvil",
   "ami.recipe_viewer.tab.short.composting": "Compost",
   "ami.recipe_viewer.tab.short.fuel": "Fuel",
-
   "ami.config.value.recipe_viewer.auto": "Auto",
   "ami.config.value.recipe_viewer.native": "Native",
   "ami.config.value.recipe_viewer.emi_jei": "EMI/JEI",
   "ami.benchmark.iterations": "Benchmark Iterations",
   "ami.ontology_dump_mode": "Ontology Dump Mode",
   "ami.fallback_dump_mode": "Fallback Dump Mode",
-
   "ami.tooltip.heart.overflow": "+%s ♥",
   "ami.tooltip.heart.even": "%s ♥",
   "ami.tooltip.heart.odd": "%s½ ♥",
-
   "ami.tooltip.entity.damage": "%s dmg",
-
   "ami.tooltip.player_subtitle": "Player",
-
   "ami.config.brand_top": "AUTOMATED",
   "ami.config.brand_bottom": "MATERIALS INDEX",
   "ami.config.panel.results_grid": "Results Grid",
   "ami.config.panel.results_list": "Results List",
   "ami.config.panel.results_compact": "Results Compact",
-
   "ami.gui.no_results": "No results",
   "ami.gui.items_label": "%s items",
   "ami.gui.loading_dots": "...",
@@ -471,19 +416,15 @@
   "ami.gui.dropdown_ellipsis": "...",
   "ami.gui.dropdown_count": "%s/%s",
   "ami.gui.badge_count": "[%s]",
-
   "ami.subtype.firework_rocket": "Firework Rocket (%s)",
   "ami.subtype.shape.small_ball": "Small Ball",
   "ami.subtype.shape.large_ball": "Large Ball",
   "ami.subtype.shape.star": "Star",
   "ami.subtype.shape.creeper": "Creeper",
   "ami.subtype.shape.burst": "Burst",
-
   "ami.gui.biome_suffix": "%s Biome",
-
   "ami.tooltip.quest_item_count": "%s x%s",
   "ami.tooltip.fallback_unknown": "?",
-
   "ami.config.value.palette.card-action-hint": "Card Action Hint",
   "ami.config.tooltip.palette.card-action-hint": "Color of the action hint text on item cards (e.g. right-click for recipes).",
   "ami.config.value.palette.group-header-bg": "Group Header BG",
@@ -513,7 +454,6 @@
   "ami.config.hint.scrollbar-thumb": "Thumb",
   "ami.config.hint.scrollbar-thumb-hover": "Thumb Hover",
   "ami.config.hint.accent-color": "Accent",
-
   "ami.config.group.cheat": "Cheat Mode",
   "ami.config.value.cheat.give-mode": "Give Mode",
   "ami.config.tooltip.cheat.give-mode": "Where items appear when cheating them in: on the cursor or directly into inventory.",
@@ -521,24 +461,18 @@
   "ami.config.tooltip.cheat.drop-to-delete": "Left-click an empty area of the results panel while holding an item to delete it.",
   "ami.config.value.cheat.give-mode.cursor": "Cursor",
   "ami.config.value.cheat.give-mode.inventory": "Inventory",
-
   "ami.config.value.boolean.true": "On",
   "ami.config.value.boolean.false": "Off",
-
   "ami.configuration.ui.block_subgroup.shape": "Shape",
   "ami.configuration.ui.block_subgroup.material": "Material",
-
   "ami.configuration.ui.item_click_action.recipes": "Recipes",
   "ami.configuration.ui.item_click_action.uses": "Uses",
   "ami.configuration.ui.item_click_action.none": "None",
-
   "ami.config.value.general.mode.full": "Full",
   "ami.config.value.general.mode.compact": "Compact",
   "ami.config.value.general.mode.ami_emi_bridge": "EMI Bridge",
-
   "ami.config.value.ui.theme.transparent": "Transparent",
   "ami.config.value.ui.theme.vanilla": "Vanilla",
   "ami.config.value.ui.theme.modern": "Modern",
-
   "ami.config.panel.remove_slot": "-"
 }

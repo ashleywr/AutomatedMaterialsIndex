@@ -5,14 +5,11 @@ import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchService;
 import net.minecraft.resources.ResourceLocation;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public final class SearchScope {
-    private SearchScope() {}
+    private SearchScope() {
+    }
 
     public static List<SearchNode> resolveQueriedSource(SearchService searchService, List<SearchNode> source,
                                                         String query, boolean favoritesScoped) {

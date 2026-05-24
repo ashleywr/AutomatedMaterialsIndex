@@ -9,21 +9,22 @@ import com.sanhiruzu.ami.index.NodeType;
  */
 public final class RendererRegistry {
 
-    public static final ItemIconRenderer   ITEM     = new ItemIconRenderer();
-    public static final EntityIconRenderer ENTITY   = new EntityIconRenderer();
-    public static final PlayerFaceRenderer PLAYER   = new PlayerFaceRenderer();
-    public static final ProxyBlockRenderer PROXY    = new ProxyBlockRenderer();
+    public static final ItemIconRenderer ITEM = new ItemIconRenderer();
+    public static final EntityIconRenderer ENTITY = new EntityIconRenderer();
+    public static final PlayerFaceRenderer PLAYER = new PlayerFaceRenderer();
+    public static final ProxyBlockRenderer PROXY = new ProxyBlockRenderer();
     public static final FallbackTextRenderer FALLBACK = new FallbackTextRenderer();
 
-    private RendererRegistry() {}
+    private RendererRegistry() {
+    }
 
     public static IIconRenderer get(NodeType type) {
         return switch (type) {
-            case ITEM                    -> ITEM;
-            case ENTITY                  -> ENTITY;
-            case PLAYER                  -> PLAYER;
-            case BIOME, STRUCTURE        -> PROXY;
-            default                      -> FALLBACK;
+            case ITEM -> ITEM;
+            case ENTITY -> ENTITY;
+            case PLAYER -> PLAYER;
+            case BIOME, STRUCTURE -> PROXY;
+            default -> FALLBACK;
         };
     }
 

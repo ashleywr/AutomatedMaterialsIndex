@@ -4,7 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class QueryParser {
-    private QueryParser() {}
+    private QueryParser() {
+    }
 
     public enum TokenType {
         INCLUDE,     // Plain text or -less
@@ -19,7 +20,8 @@ public final class QueryParser {
         CATEGORY     // $categoryId  (AMI ontology category)
     }
 
-    public record QueryToken(TokenType type, String value) {}
+    public record QueryToken(TokenType type, String value) {
+    }
 
     public record ParsedQuery(List<QueryToken> tokens) {
         public ParsedQuery(List<QueryToken> tokens) {
@@ -38,7 +40,7 @@ public final class QueryParser {
      * - Properties: "?precipitation:rain" → PROP
      * - Essential: "!storage" → ESSENTIAL
      * - Numeric metrics: ">storage:100", ">dps:8", "<storage:4096" → ESM
-     *
+     * <p>
      * Tokens are space-separated. Quoted strings ("iron chest") treated as single token.
      * Leading "-" on any prefix inverts it to EXCLUDE.
      */

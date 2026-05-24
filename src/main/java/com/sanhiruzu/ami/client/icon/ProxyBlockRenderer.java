@@ -28,106 +28,106 @@ public class ProxyBlockRenderer implements IIconRenderer {
 
     static {
         // ── Overworld biomes ──────────────────────────────────────────────────
-        p("minecraft:plains",                  "minecraft:grass_block");
-        p("minecraft:sunflower_plains",        "minecraft:sunflower");
-        p("minecraft:forest",                  "minecraft:oak_log");
-        p("minecraft:flower_forest",           "minecraft:poppy");
-        p("minecraft:birch_forest",            "minecraft:birch_log");
+        p("minecraft:plains", "minecraft:grass_block");
+        p("minecraft:sunflower_plains", "minecraft:sunflower");
+        p("minecraft:forest", "minecraft:oak_log");
+        p("minecraft:flower_forest", "minecraft:poppy");
+        p("minecraft:birch_forest", "minecraft:birch_log");
         p("minecraft:old_growth_birch_forest", "minecraft:birch_log");
-        p("minecraft:dark_forest",             "minecraft:dark_oak_log");
-        p("minecraft:jungle",                  "minecraft:jungle_log");
-        p("minecraft:sparse_jungle",           "minecraft:jungle_sapling");
-        p("minecraft:bamboo_jungle",           "minecraft:bamboo");
-        p("minecraft:savanna",                 "minecraft:acacia_log");
-        p("minecraft:savanna_plateau",         "minecraft:acacia_log");
-        p("minecraft:windswept_savanna",       "minecraft:acacia_log");
-        p("minecraft:desert",                  "minecraft:sand");
-        p("minecraft:beach",                   "minecraft:sand");
-        p("minecraft:snowy_beach",             "minecraft:snow_block");
-        p("minecraft:swamp",                   "minecraft:lily_pad");
-        p("minecraft:mangrove_swamp",          "minecraft:mangrove_log");
-        p("minecraft:flower_forest",           "minecraft:poppy");
-        p("minecraft:cherry_grove",            "minecraft:cherry_sapling");
-        p("minecraft:meadow",                  "minecraft:dandelion");
-        p("minecraft:snowy_plains",            "minecraft:snow_block");
-        p("minecraft:ice_spikes",              "minecraft:packed_ice");
-        p("minecraft:taiga",                   "minecraft:spruce_log");
-        p("minecraft:snowy_taiga",             "minecraft:spruce_log");
-        p("minecraft:old_growth_pine_taiga",   "minecraft:spruce_log");
+        p("minecraft:dark_forest", "minecraft:dark_oak_log");
+        p("minecraft:jungle", "minecraft:jungle_log");
+        p("minecraft:sparse_jungle", "minecraft:jungle_sapling");
+        p("minecraft:bamboo_jungle", "minecraft:bamboo");
+        p("minecraft:savanna", "minecraft:acacia_log");
+        p("minecraft:savanna_plateau", "minecraft:acacia_log");
+        p("minecraft:windswept_savanna", "minecraft:acacia_log");
+        p("minecraft:desert", "minecraft:sand");
+        p("minecraft:beach", "minecraft:sand");
+        p("minecraft:snowy_beach", "minecraft:snow_block");
+        p("minecraft:swamp", "minecraft:lily_pad");
+        p("minecraft:mangrove_swamp", "minecraft:mangrove_log");
+        p("minecraft:flower_forest", "minecraft:poppy");
+        p("minecraft:cherry_grove", "minecraft:cherry_sapling");
+        p("minecraft:meadow", "minecraft:dandelion");
+        p("minecraft:snowy_plains", "minecraft:snow_block");
+        p("minecraft:ice_spikes", "minecraft:packed_ice");
+        p("minecraft:taiga", "minecraft:spruce_log");
+        p("minecraft:snowy_taiga", "minecraft:spruce_log");
+        p("minecraft:old_growth_pine_taiga", "minecraft:spruce_log");
         p("minecraft:old_growth_spruce_taiga", "minecraft:spruce_log");
-        p("minecraft:grove",                   "minecraft:spruce_sapling");
-        p("minecraft:snowy_slopes",            "minecraft:powder_snow_bucket");
-        p("minecraft:frozen_peaks",            "minecraft:packed_ice");
-        p("minecraft:jagged_peaks",            "minecraft:stone");
-        p("minecraft:stony_peaks",             "minecraft:calcite");
-        p("minecraft:stony_shore",             "minecraft:cobblestone");
-        p("minecraft:windswept_hills",         "minecraft:cobblestone");
-        p("minecraft:windswept_forest",        "minecraft:oak_log");
-        p("minecraft:windswept_gravelly_hills","minecraft:gravel");
-        p("minecraft:badlands",                "minecraft:red_sand");
-        p("minecraft:wooded_badlands",         "minecraft:terracotta");
-        p("minecraft:eroded_badlands",         "minecraft:red_sandstone");
-        p("minecraft:mushroom_fields",         "minecraft:red_mushroom_block");
-        p("minecraft:ocean",                   "minecraft:water_bucket");
-        p("minecraft:deep_ocean",              "minecraft:prismarine");
-        p("minecraft:frozen_ocean",            "minecraft:packed_ice");
-        p("minecraft:deep_frozen_ocean",       "minecraft:blue_ice");
-        p("minecraft:cold_ocean",              "minecraft:kelp");
-        p("minecraft:deep_cold_ocean",         "minecraft:prismarine");
-        p("minecraft:lukewarm_ocean",          "minecraft:sea_pickle");
-        p("minecraft:deep_lukewarm_ocean",     "minecraft:tube_coral_block");
-        p("minecraft:warm_ocean",              "minecraft:brain_coral_block");
-        p("minecraft:river",                   "minecraft:gravel");
-        p("minecraft:frozen_river",            "minecraft:ice");
-        p("minecraft:deep_dark",               "minecraft:sculk");
-        p("minecraft:dripstone_caves",         "minecraft:pointed_dripstone");
-        p("minecraft:lush_caves",              "minecraft:azalea_leaves");
+        p("minecraft:grove", "minecraft:spruce_sapling");
+        p("minecraft:snowy_slopes", "minecraft:powder_snow_bucket");
+        p("minecraft:frozen_peaks", "minecraft:packed_ice");
+        p("minecraft:jagged_peaks", "minecraft:stone");
+        p("minecraft:stony_peaks", "minecraft:calcite");
+        p("minecraft:stony_shore", "minecraft:cobblestone");
+        p("minecraft:windswept_hills", "minecraft:cobblestone");
+        p("minecraft:windswept_forest", "minecraft:oak_log");
+        p("minecraft:windswept_gravelly_hills", "minecraft:gravel");
+        p("minecraft:badlands", "minecraft:red_sand");
+        p("minecraft:wooded_badlands", "minecraft:terracotta");
+        p("minecraft:eroded_badlands", "minecraft:red_sandstone");
+        p("minecraft:mushroom_fields", "minecraft:red_mushroom_block");
+        p("minecraft:ocean", "minecraft:water_bucket");
+        p("minecraft:deep_ocean", "minecraft:prismarine");
+        p("minecraft:frozen_ocean", "minecraft:packed_ice");
+        p("minecraft:deep_frozen_ocean", "minecraft:blue_ice");
+        p("minecraft:cold_ocean", "minecraft:kelp");
+        p("minecraft:deep_cold_ocean", "minecraft:prismarine");
+        p("minecraft:lukewarm_ocean", "minecraft:sea_pickle");
+        p("minecraft:deep_lukewarm_ocean", "minecraft:tube_coral_block");
+        p("minecraft:warm_ocean", "minecraft:brain_coral_block");
+        p("minecraft:river", "minecraft:gravel");
+        p("minecraft:frozen_river", "minecraft:ice");
+        p("minecraft:deep_dark", "minecraft:sculk");
+        p("minecraft:dripstone_caves", "minecraft:pointed_dripstone");
+        p("minecraft:lush_caves", "minecraft:azalea_leaves");
         // ── Nether biomes ─────────────────────────────────────────────────────
-        p("minecraft:nether_wastes",           "minecraft:netherrack");
-        p("minecraft:soul_sand_valley",        "minecraft:soul_sand");
-        p("minecraft:crimson_forest",          "minecraft:crimson_stem");
-        p("minecraft:warped_forest",           "minecraft:warped_stem");
-        p("minecraft:basalt_deltas",           "minecraft:basalt");
+        p("minecraft:nether_wastes", "minecraft:netherrack");
+        p("minecraft:soul_sand_valley", "minecraft:soul_sand");
+        p("minecraft:crimson_forest", "minecraft:crimson_stem");
+        p("minecraft:warped_forest", "minecraft:warped_stem");
+        p("minecraft:basalt_deltas", "minecraft:basalt");
         // ── End biomes ────────────────────────────────────────────────────────
-        p("minecraft:the_end",                 "minecraft:end_stone");
-        p("minecraft:end_highlands",           "minecraft:end_stone_bricks");
-        p("minecraft:end_midlands",            "minecraft:end_stone");
-        p("minecraft:small_end_islands",       "minecraft:end_stone");
-        p("minecraft:end_barrens",             "minecraft:end_stone");
+        p("minecraft:the_end", "minecraft:end_stone");
+        p("minecraft:end_highlands", "minecraft:end_stone_bricks");
+        p("minecraft:end_midlands", "minecraft:end_stone");
+        p("minecraft:small_end_islands", "minecraft:end_stone");
+        p("minecraft:end_barrens", "minecraft:end_stone");
         // ── Structures ────────────────────────────────────────────────────────
-        p("minecraft:village_plains",          "minecraft:oak_planks");
-        p("minecraft:village_desert",          "minecraft:sandstone");
-        p("minecraft:village_savanna",         "minecraft:acacia_planks");
-        p("minecraft:village_snowy",           "minecraft:spruce_planks");
-        p("minecraft:village_taiga",           "minecraft:spruce_planks");
-        p("minecraft:stronghold",              "minecraft:stone_bricks");
-        p("minecraft:mineshaft",               "minecraft:rail");
-        p("minecraft:mineshaft_mesa",          "minecraft:golden_rail");
-        p("minecraft:desert_pyramid",          "minecraft:sandstone");
-        p("minecraft:jungle_pyramid",          "minecraft:mossy_cobblestone");
-        p("minecraft:igloo",                   "minecraft:snow_block");
-        p("minecraft:swamp_hut",               "minecraft:mushroom_stem");
-        p("minecraft:ocean_monument",          "minecraft:prismarine");
-        p("minecraft:ocean_ruin_cold",         "minecraft:mossy_stone_bricks");
-        p("minecraft:ocean_ruin_warm",         "minecraft:sandstone");
-        p("minecraft:pillager_outpost",        "minecraft:dark_oak_planks");
-        p("minecraft:woodland_mansion",        "minecraft:dark_oak_planks");
-        p("minecraft:buried_treasure",         "minecraft:chest");
-        p("minecraft:shipwreck",               "minecraft:oak_planks");
-        p("minecraft:shipwreck_beached",       "minecraft:oak_planks");
-        p("minecraft:bastion_remnant",         "minecraft:gilded_blackstone");
-        p("minecraft:fortress",                "minecraft:nether_bricks");
-        p("minecraft:nether_fossil",           "minecraft:bone_block");
-        p("minecraft:ruined_portal",           "minecraft:obsidian");
-        p("minecraft:ruined_portal_desert",    "minecraft:obsidian");
-        p("minecraft:ruined_portal_jungle",    "minecraft:obsidian");
-        p("minecraft:ruined_portal_mountain",  "minecraft:obsidian");
-        p("minecraft:ruined_portal_nether",    "minecraft:obsidian");
-        p("minecraft:ruined_portal_ocean",     "minecraft:obsidian");
-        p("minecraft:ruined_portal_swamp",     "minecraft:obsidian");
-        p("minecraft:end_city",                "minecraft:purpur_block");
-        p("minecraft:ancient_city",            "minecraft:sculk");
-        p("minecraft:trail_ruins",             "minecraft:suspicious_gravel");
+        p("minecraft:village_plains", "minecraft:oak_planks");
+        p("minecraft:village_desert", "minecraft:sandstone");
+        p("minecraft:village_savanna", "minecraft:acacia_planks");
+        p("minecraft:village_snowy", "minecraft:spruce_planks");
+        p("minecraft:village_taiga", "minecraft:spruce_planks");
+        p("minecraft:stronghold", "minecraft:stone_bricks");
+        p("minecraft:mineshaft", "minecraft:rail");
+        p("minecraft:mineshaft_mesa", "minecraft:golden_rail");
+        p("minecraft:desert_pyramid", "minecraft:sandstone");
+        p("minecraft:jungle_pyramid", "minecraft:mossy_cobblestone");
+        p("minecraft:igloo", "minecraft:snow_block");
+        p("minecraft:swamp_hut", "minecraft:mushroom_stem");
+        p("minecraft:ocean_monument", "minecraft:prismarine");
+        p("minecraft:ocean_ruin_cold", "minecraft:mossy_stone_bricks");
+        p("minecraft:ocean_ruin_warm", "minecraft:sandstone");
+        p("minecraft:pillager_outpost", "minecraft:dark_oak_planks");
+        p("minecraft:woodland_mansion", "minecraft:dark_oak_planks");
+        p("minecraft:buried_treasure", "minecraft:chest");
+        p("minecraft:shipwreck", "minecraft:oak_planks");
+        p("minecraft:shipwreck_beached", "minecraft:oak_planks");
+        p("minecraft:bastion_remnant", "minecraft:gilded_blackstone");
+        p("minecraft:fortress", "minecraft:nether_bricks");
+        p("minecraft:nether_fossil", "minecraft:bone_block");
+        p("minecraft:ruined_portal", "minecraft:obsidian");
+        p("minecraft:ruined_portal_desert", "minecraft:obsidian");
+        p("minecraft:ruined_portal_jungle", "minecraft:obsidian");
+        p("minecraft:ruined_portal_mountain", "minecraft:obsidian");
+        p("minecraft:ruined_portal_nether", "minecraft:obsidian");
+        p("minecraft:ruined_portal_ocean", "minecraft:obsidian");
+        p("minecraft:ruined_portal_swamp", "minecraft:obsidian");
+        p("minecraft:end_city", "minecraft:purpur_block");
+        p("minecraft:ancient_city", "minecraft:sculk");
+        p("minecraft:trail_ruins", "minecraft:suspicious_gravel");
     }
 
     private static void p(String key, String value) {
@@ -142,8 +142,8 @@ public class ProxyBlockRenderer implements IIconRenderer {
 
         // Two-tone gradient: top half slightly lighter
         int bgLight = lighten(bg, 20);
-        g.fill(x, y,          x + size, y + size / 2, bgLight);
-        g.fill(x, y + size / 2, x + size, y + size,   bg);
+        g.fill(x, y, x + size, y + size / 2, bgLight);
+        g.fill(x, y + size / 2, x + size, y + size, bg);
 
         // Subtle 1px border to show it's a "badge" rather than a real item
         int borderColor = lighten(bg, 40);
@@ -184,10 +184,10 @@ public class ProxyBlockRenderer implements IIconRenderer {
             return ResourceLocation.parse("minecraft:stone_bricks");
         }
         return switch (dim) {
-            case "nether"  -> ResourceLocation.parse("minecraft:netherrack");
+            case "nether" -> ResourceLocation.parse("minecraft:netherrack");
             case "the_end",
-                 "end"     -> ResourceLocation.parse("minecraft:end_stone");
-            default        -> ResourceLocation.parse("minecraft:grass_block");
+                 "end" -> ResourceLocation.parse("minecraft:end_stone");
+            default -> ResourceLocation.parse("minecraft:grass_block");
         };
     }
 
@@ -195,10 +195,10 @@ public class ProxyBlockRenderer implements IIconRenderer {
         if (node.type() == NodeType.STRUCTURE) return AMITheme.DIM_ICON_BG_STRUCTURE;
         String dim = node.meta(SearchNodeKeys.DIMENSION, "overworld");
         return switch (dim) {
-            case "nether"  -> AMITheme.DIM_ICON_BG_NETHER;
+            case "nether" -> AMITheme.DIM_ICON_BG_NETHER;
             case "the_end",
-                 "end"     -> AMITheme.DIM_ICON_BG_END;
-            default        -> AMITheme.DIM_ICON_BG_OVERWORLD;
+                 "end" -> AMITheme.DIM_ICON_BG_END;
+            default -> AMITheme.DIM_ICON_BG_OVERWORLD;
         };
     }
 

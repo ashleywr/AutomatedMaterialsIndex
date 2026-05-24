@@ -44,18 +44,13 @@ public final class PropertyResolver implements IQueryResolver {
                     containsToken(node, SearchNodeKeys.ENTITY_TRAITS, key)
                             || containsToken(node, SearchNodeKeys.SEARCH_TOKENS, key)
                             || containsToken(node, SearchNodeKeys.TAGS, "ami:" + key);
-            case "category", "entitycategory" ->
-                    containsValue(node, SearchNodeKeys.ENTITY_CATEGORY, value);
-            case "mod", "modid" ->
-                    containsValue(node, SearchNodeKeys.MOD_ID, value);
-            case "health", "hp" ->
-                    containsValue(node, SearchNodeKeys.ENTITY_HEALTH, value);
-            case "attack", "attackdamage", "damage" ->
-                    containsValue(node, SearchNodeKeys.ENTITY_ATTACK_DAMAGE, value);
-            case "fireimmune" ->
-                    value.isEmpty()
-                            ? "true".equalsIgnoreCase(node.meta(SearchNodeKeys.FIRE_IMMUNE, ""))
-                            : containsValue(node, SearchNodeKeys.FIRE_IMMUNE, value);
+            case "category", "entitycategory" -> containsValue(node, SearchNodeKeys.ENTITY_CATEGORY, value);
+            case "mod", "modid" -> containsValue(node, SearchNodeKeys.MOD_ID, value);
+            case "health", "hp" -> containsValue(node, SearchNodeKeys.ENTITY_HEALTH, value);
+            case "attack", "attackdamage", "damage" -> containsValue(node, SearchNodeKeys.ENTITY_ATTACK_DAMAGE, value);
+            case "fireimmune" -> value.isEmpty()
+                    ? "true".equalsIgnoreCase(node.meta(SearchNodeKeys.FIRE_IMMUNE, ""))
+                    : containsValue(node, SearchNodeKeys.FIRE_IMMUNE, value);
             default -> containsAnyMetadata(node, key, value);
         };
     }

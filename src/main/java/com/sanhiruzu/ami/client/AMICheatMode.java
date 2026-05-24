@@ -14,7 +14,8 @@ import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class AMICheatMode {
-    private AMICheatMode() {}
+    private AMICheatMode() {
+    }
 
     /**
      * Config toggle is on AND the player is allowed to perform elevated actions.
@@ -35,7 +36,9 @@ public final class AMICheatMode {
         return mc.player.hasPermissions(2);                    // OP on dedicated server
     }
 
-    /** True if the player currently has an item held on their cursor. */
+    /**
+     * True if the player currently has an item held on their cursor.
+     */
     public static boolean hasCarriedItem() {
         var mc = Minecraft.getInstance();
         return mc.player != null && !mc.player.containerMenu.getCarried().isEmpty();
@@ -114,12 +117,16 @@ public final class AMICheatMode {
         }
     }
 
-    /** Locate the nearest biome via /locate biome. */
+    /**
+     * Locate the nearest biome via /locate biome.
+     */
     public static void locateBiome(ResourceLocation biomeId) {
         sendCommand("locate biome " + biomeId);
     }
 
-    /** Locate the nearest structure via /locate structure. */
+    /**
+     * Locate the nearest structure via /locate structure.
+     */
     public static void locateStructure(ResourceLocation structureId) {
         sendCommand("locate structure " + structureId);
     }

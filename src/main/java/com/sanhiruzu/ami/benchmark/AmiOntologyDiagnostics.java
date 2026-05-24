@@ -1,12 +1,6 @@
 package com.sanhiruzu.ami.benchmark;
 
-import com.sanhiruzu.ami.index.AmiOntology;
-import com.sanhiruzu.ami.index.FacetCodec;
-import com.sanhiruzu.ami.index.GlobalIndex;
-import com.sanhiruzu.ami.index.NodeType;
-import com.sanhiruzu.ami.index.OntologyClassifier;
-import com.sanhiruzu.ami.index.SearchNode;
-import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.index.*;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.Item;
 

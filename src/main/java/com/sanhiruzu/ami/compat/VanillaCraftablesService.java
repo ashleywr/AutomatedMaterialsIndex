@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.ClientRecipeBook;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.recipebook.RecipeCollection;
 import net.minecraft.world.entity.player.StackedContents;
 import net.minecraft.world.item.ItemStack;
@@ -21,7 +21,8 @@ public class VanillaCraftablesService {
     private static List<ItemStack> cached = List.of();
     private static int lastInventoryVersion = -1;
 
-    private VanillaCraftablesService() {}
+    private VanillaCraftablesService() {
+    }
 
     public static List<ItemStack> getCraftables() {
         Minecraft mc = Minecraft.getInstance();

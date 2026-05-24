@@ -5,23 +5,25 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class ResultsToolbar implements SearchState.Listener {
-    public enum ViewMode { GRID, LIST }
+    public enum ViewMode {GRID, LIST}
 
-    public  static final int TOOLBAR_HEIGHT  = 20;
-    public  static final int BUTTON_H        = 14;  // all buttons are this height
-    private static final int SORT_BUTTON_W   = 14;  // "▲"/"▼"
-    private static final int RESET_BUTTON_W  = 18;  // reset icon
-    private static final int COLLAPSE_BTN_W  = 18;  // "−"
-    private static final int EXPAND_BTN_W    = 18;  // "+"
-    private static final int DROPDOWN_W      = 80;
-    private static final int MOD_FILTER_W    = 60;
-    private static final int FIELDS_BTN_W    = 44;  // "Fields (3)"
-    private static final int BUTTON_GAP      = 2;   // gap between buttons
-    private static final int MIN_DROPDOWN_W  = 72;
-    private static final int SCROLL_STEP     = 18;
+    public static final int TOOLBAR_HEIGHT = 20;
+    public static final int BUTTON_H = 14;  // all buttons are this height
+    private static final int SORT_BUTTON_W = 14;  // "▲"/"▼"
+    private static final int RESET_BUTTON_W = 18;  // reset icon
+    private static final int COLLAPSE_BTN_W = 18;  // "−"
+    private static final int EXPAND_BTN_W = 18;  // "+"
+    private static final int DROPDOWN_W = 80;
+    private static final int MOD_FILTER_W = 60;
+    private static final int FIELDS_BTN_W = 44;  // "Fields (3)"
+    private static final int BUTTON_GAP = 2;   // gap between buttons
+    private static final int MIN_DROPDOWN_W = 72;
+    private static final int SCROLL_STEP = 18;
 
     private int x, y, width;
     private final SearchState state;
@@ -180,7 +182,9 @@ public class ResultsToolbar implements SearchState.Listener {
         renderScrollIndicators(g);
     }
 
-    /** Draw a styled button background with border. */
+    /**
+     * Draw a styled button background with border.
+     */
     private void drawButton(GuiGraphics g, int bx, int by, int bw, int bh, boolean hovered) {
         int bgColor = hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
         // Background
@@ -253,7 +257,9 @@ public class ResultsToolbar implements SearchState.Listener {
         return false;
     }
 
-    /** Renders only the open dropdown lists — call AFTER the tree view so they appear on top. */
+    /**
+     * Renders only the open dropdown lists — call AFTER the tree view so they appear on top.
+     */
     public void renderOpenDropdownLists(GuiGraphics g, int mouseX, int mouseY) {
         g.pose().pushPose();
         g.pose().translate(0, 0, 400); // Lift above icons (Z=150) and other UI elements
@@ -273,7 +279,9 @@ public class ResultsToolbar implements SearchState.Listener {
     }
 
 
-    public int getHeight() { return TOOLBAR_HEIGHT; }
+    public int getHeight() {
+        return TOOLBAR_HEIGHT;
+    }
 
     public boolean isAnyDropdownOpen() {
         if (fieldsPicker.isOpen()) return true;

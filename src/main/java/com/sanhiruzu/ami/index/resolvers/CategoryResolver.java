@@ -27,7 +27,7 @@ public class CategoryResolver implements IQueryResolver {
     @Override
     public Map<NodeType, List<SearchNode>> resolve(String query) {
         String id = query.toLowerCase(java.util.Locale.ROOT);
-        
+
         // Exact match check
         if (byCategory.containsKey(id)) {
             return byCategory.get(id);

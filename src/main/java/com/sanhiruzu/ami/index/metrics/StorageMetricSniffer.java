@@ -7,7 +7,7 @@ import java.util.OptionalLong;
 
 /**
  * Estimates storage capacity as Equivalent Stack Metric: total item units.
- *
+ * <p>
  * The generic rules stay conservative. Mod-specific storage systems should be
  * added as explicit adapters when their APIs or stable item ids are available.
  */

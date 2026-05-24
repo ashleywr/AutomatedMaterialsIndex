@@ -28,7 +28,7 @@ public class AmiJeiPluginTest {
         ClassNode node = readClassNode();
         boolean found = node.invisibleAnnotations != null
                 && node.invisibleAnnotations.stream().anyMatch(
-                        a -> a.desc.equals("Lmezz/jei/api/JeiPlugin;"));
+                a -> a.desc.equals("Lmezz/jei/api/JeiPlugin;"));
         assertTrue(found, "AmiJeiPlugin must have @JeiPlugin annotation");
     }
 

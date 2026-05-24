@@ -50,7 +50,10 @@ public final class AmiBenchmarkGameTests {
         AmiIndexerService indexer = AmiIndexerService.getInstance();
         indexer.rebuild(helper.getLevel());
         while (!indexer.isReady()) {
-            try { Thread.sleep(10); } catch (InterruptedException ignored) {}
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException ignored) {
+            }
         }
         SearchService searchService = indexer.getOrBuildSearchService();
         AmiBenchmarkLogger.BenchmarkRun run = AmiBenchmarkLogger.createRun(SUITE_NAME, indexer.indexedItemCount());

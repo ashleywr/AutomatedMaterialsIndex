@@ -1,8 +1,8 @@
 package com.sanhiruzu.ami.client.overlay;
 
-import com.sanhiruzu.ami.config.AmiConfig;
-import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler;
+import com.sanhiruzu.ami.compat.RecipeViewerBridge;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -10,10 +10,9 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class AmiSidebarSyncHandler {
-    
+
     public static List<SearchNode> getNodesForContent(AmiConfig.PanelContent content) {
         return switch (content) {
             case FAVORITES -> AmiFavoritesHandler.getInstance().getFavorites();

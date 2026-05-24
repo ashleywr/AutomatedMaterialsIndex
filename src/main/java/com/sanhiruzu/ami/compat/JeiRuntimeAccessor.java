@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.compat;
 import mezz.jei.api.runtime.IJeiRuntime;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+
 import java.util.function.Consumer;
 import java.util.function.Function;
 

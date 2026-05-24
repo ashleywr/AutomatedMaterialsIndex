@@ -56,5 +56,6 @@ public final class Items {
         return TagKey.create(null, ResourceLocation.fromNamespaceAndPath(namespace, path));
     }
 
-    private Items() {}
+    private Items() {
+    }
 }

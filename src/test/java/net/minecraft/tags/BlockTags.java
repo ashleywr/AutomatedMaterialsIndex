@@ -37,5 +37,6 @@ public final class BlockTags {
         return TagKey.create(null, ResourceLocation.fromNamespaceAndPath("minecraft", path));
     }
 
-    private BlockTags() {}
+    private BlockTags() {
+    }
 }

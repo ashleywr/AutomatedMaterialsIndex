@@ -1,11 +1,11 @@
 package com.sanhiruzu.ami.client;
 
+import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.providers.RegistryUtils;
 import com.sanhiruzu.ami.util.AmiClipboardHelper;
-import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -182,10 +182,10 @@ public class CommandPaletteWidget {
         com.sanhiruzu.ami.client.AMITheme.drawRoundedBorder(g, x, y, w, h, AmiConfig.searchBarBg, AmiConfig.searchBarBorder);
 
         var font = Minecraft.getInstance().font;
-        Component displayText = searchQuery.isEmpty() 
-            ? Component.translatable("ami.gui.search.placeholder") 
-            : Component.literal(searchQuery);
-            
+        Component displayText = searchQuery.isEmpty()
+                ? Component.translatable("ami.gui.search.placeholder")
+                : Component.literal(searchQuery);
+
         int textColor = searchQuery.isEmpty() ? AmiConfig.searchPlaceholder : AmiConfig.searchText;
 
         g.drawString(font, displayText, x + 6, y + 5, textColor, false);
@@ -207,9 +207,9 @@ public class CommandPaletteWidget {
     private void drawResults(GuiGraphics g, int mouseX, int mouseY, int x, int y, int h) {
         if (resultGroups.isEmpty()) {
             var font = Minecraft.getInstance().font;
-            Component msg = searchQuery.isEmpty() 
-                ? Component.translatable("ami.gui.search.typing") 
-                : Component.translatable("ami.gui.search.empty");
+            Component msg = searchQuery.isEmpty()
+                    ? Component.translatable("ami.gui.search.typing")
+                    : Component.translatable("ami.gui.search.empty");
             g.drawString(font, msg, x + PADDING, y + PADDING, com.sanhiruzu.ami.client.AMITheme.ACCENT_GOLD, false);
             return;
         }
@@ -358,7 +358,7 @@ public class CommandPaletteWidget {
 
         // Check search bar click
         if (mouseX >= searchBarX && mouseX < searchBarX + SEARCH_BAR_WIDTH &&
-            mouseY >= searchBarY && mouseY < searchBarY + SEARCH_BAR_HEIGHT) {
+                mouseY >= searchBarY && mouseY < searchBarY + SEARCH_BAR_HEIGHT) {
             // Click on search bar itself (already focused)
             // Check for [x] clear button
             if (mouseX >= searchBarX + SEARCH_BAR_WIDTH - 15 && !searchQuery.isEmpty()) {

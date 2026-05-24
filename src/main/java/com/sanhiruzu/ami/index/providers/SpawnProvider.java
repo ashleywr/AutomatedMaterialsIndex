@@ -3,8 +3,8 @@ package com.sanhiruzu.ami.index.providers;
 import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.IAmiDataProvider;
-import net.minecraft.world.level.Level;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -24,27 +24,27 @@ public class SpawnProvider implements IAmiDataProvider {
 
         try {
             level.registryAccess().registry(Registries.BIOME).ifPresent(reg ->
-                reg.holders().forEach(holder -> {
-                    var biomeId = holder.key().location();
-                    try {
-                        // Attempt to access MobSpawnSettings via known getter
-                        var mobSettings = holder.value().getMobSettings();
-                        // Many mappings expose spawners() returning Map<MobCategory, List<SpawnerData>>
-                        Map<?, ?> spawners = (Map<?, ?>) mobSettings.getClass().getMethod("spawners").invoke(mobSettings);
-                        if (spawners != null) {
-                            for (var entry : spawners.entrySet()) {
-                                List<?> list = (List<?>) entry.getValue();
-                                for (Object sp : list) {
-                                    // Entity type extraction via reflection omitted (unused)
+                    reg.holders().forEach(holder -> {
+                        var biomeId = holder.key().location();
+                        try {
+                            // Attempt to access MobSpawnSettings via known getter
+                            var mobSettings = holder.value().getMobSettings();
+                            // Many mappings expose spawners() returning Map<MobCategory, List<SpawnerData>>
+                            Map<?, ?> spawners = (Map<?, ?>) mobSettings.getClass().getMethod("spawners").invoke(mobSettings);
+                            if (spawners != null) {
+                                for (var entry : spawners.entrySet()) {
+                                    List<?> list = (List<?>) entry.getValue();
+                                    for (Object sp : list) {
+                                        // Entity type extraction via reflection omitted (unused)
+                                    }
                                 }
                             }
+                        } catch (NoSuchMethodException nsme) {
+                            // Mapping differs; skip for now
+                        } catch (Throwable t) {
+                            // Catch reflection exceptions to avoid crash
                         }
-                    } catch (NoSuchMethodException nsme) {
-                        // Mapping differs; skip for now
-                    } catch (Throwable t) {
-                        // Catch reflection exceptions to avoid crash
-                    }
-                })
+                    })
             );
         } catch (Exception e) {
             AMI.LOGGER.warn("SpawnProvider skipped due to: {}", e.toString());

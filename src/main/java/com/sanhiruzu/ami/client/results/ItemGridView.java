@@ -2,26 +2,19 @@ package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
-import com.sanhiruzu.ami.client.icon.RendererRegistry;
+import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.util.AmiClipboardHelper;
 import com.sanhiruzu.ami.util.AmiTooltipComposer;
-import com.sanhiruzu.ami.index.NodeType;
-import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
-
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.BiConsumer;
 
 /**
@@ -30,8 +23,8 @@ import java.util.function.BiConsumer;
  * Non-ITEM leaf nodes are silently skipped.
  */
 public class ItemGridView {
-    private static final int CELL_SIZE  = 18;
-    private static final int HEADER_H   = 12;
+    private static final int CELL_SIZE = 18;
+    private static final int HEADER_H = 12;
     private static final int SCROLLBAR_W = 5;
     private static final int HEADER_INDENT = 12;
 
@@ -43,7 +36,9 @@ public class ItemGridView {
     private int scrollbarDragStartY;
     private int scrollbarDragStartOffset;
 
-    /** Set by UniversalResultsPanel to route clicks to the recipe bridge. */
+    /**
+     * Set by UniversalResultsPanel to route clicks to the recipe bridge.
+     */
     private BiConsumer<SearchNode, Integer> onItemClick;
     private java.util.function.Consumer<String> onTokenInject;
 
@@ -73,11 +68,15 @@ public class ItemGridView {
     }
 
     private record HeaderRow(TreeNode node, int depth, int itemCount) implements VirtualRow {
-        public int height() { return HEADER_H; }
+        public int height() {
+            return HEADER_H;
+        }
     }
 
     private record ItemRow(List<TreeNode> items) implements VirtualRow {
-        public int height() { return CELL_SIZE; }
+        public int height() {
+            return CELL_SIZE;
+        }
     }
 
     // =========================================================
@@ -85,7 +84,10 @@ public class ItemGridView {
     // =========================================================
 
     public ItemGridView(int x, int y, int width, int height) {
-        this.x = x; this.y = y; this.width = width; this.height = height;
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
     }
 
     public void setRootNodes(List<TreeNode> nodes) {
@@ -116,7 +118,10 @@ public class ItemGridView {
     }
 
     public void updateLayout(int x, int y, int width, int height) {
-        this.x = x; this.y = y; this.width = width; this.height = height;
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
         this.cachedRows = null; // cols may have changed
     }
 
@@ -215,7 +220,7 @@ public class ItemGridView {
             int cellY = drawY;
 
             TreeNode node = ir.items().get(i);
-            
+
             SearchNode entry = null;
             ItemStack overrideStack = null;
 
@@ -237,7 +242,7 @@ public class ItemGridView {
             } else {
                 continue; // Normal group headers are handled by renderHeader
             }
-            
+
             if (entry == null) continue;
 
             boolean hovered = mouseX >= cellX && mouseX < cellX + CELL_SIZE
@@ -252,7 +257,7 @@ public class ItemGridView {
                 g.fill(cellX + CELL_SIZE - 1, cellY + 1, cellX + CELL_SIZE, cellY + CELL_SIZE - 1, com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE);
                 hoveredNode = entry;
                 hoveredTreeNode = node;
-                
+
                 if (node.isHighCardinality()) {
                     List<Component> lines = new ArrayList<>();
                     lines.add(node.getLabel().copy().append(" ").append(Component.translatable("ami.gui.items_count", node.getChildren().size())));
@@ -297,17 +302,17 @@ public class ItemGridView {
                     int idx = (node == expandedGroup) ? 0 : 1 + expandedGroup.getChildren().indexOf(node);
                     int totalSize = 1 + expandedGroup.getChildren().size();
                     int col = i;
-                    
+
                     boolean topEdge = idx < cols;
                     boolean bottomEdge = idx + cols >= totalSize;
                     boolean leftEdge = col == 0 || idx == 0;
                     boolean rightEdge = col == cols - 1 || idx == totalSize - 1;
-                    
+
                     int color = AMITheme.GRID_GOLD_BORDER; // Opaque gold border
                     int bgCol = AMITheme.GRID_GOLD_TINT; // Visible gold tint background
-                    
+
                     g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, bgCol);
-                    
+
                     if (topEdge) g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + 1, color);
                     if (bottomEdge) g.fill(cellX, cellY + CELL_SIZE - 1, cellX + CELL_SIZE, cellY + CELL_SIZE, color);
                     if (leftEdge) g.fill(cellX, cellY, cellX + 1, cellY + CELL_SIZE, color);
@@ -444,11 +449,11 @@ public class ItemGridView {
             // Standard group header (mod, category, Registry Tree, etc.)
             packIntoRows(linearItems, cols, out);
             linearItems.clear();
-            
+
             // Calculate total item count in this group recursively for the header label
             int totalItems = countItemsRecursive(node);
             out.add(new HeaderRow(node, depth, totalItems));
-            
+
             if (node.isExpanded()) {
                 for (TreeNode child : node.getChildren()) {
                     processNode(child, depth + 1, cols, out, linearItems);

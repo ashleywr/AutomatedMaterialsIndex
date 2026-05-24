@@ -14,7 +14,6 @@ import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
@@ -78,7 +77,7 @@ public class SearchBarWidget extends EditBox {
         // Use themed colors
         int bgColor = AmiConfig.searchBarBg;
         int border = AmiConfig.searchBarBorder;
-        
+
         if (!focused) {
             // Desaturate border slightly when not focused
             int alpha = (border >> 24) & 0xFF;
@@ -86,7 +85,7 @@ public class SearchBarWidget extends EditBox {
         }
 
         g.fill(x, y, x + w, y + h, bgColor);
-        
+
         // Draw 1px border
         g.fill(x, y, x + w, y + 1, border);
         g.fill(x, y + h - 1, x + w, y + h, border);
@@ -215,7 +214,7 @@ public class SearchBarWidget extends EditBox {
     private void moveCursorTokenWise(int direction, boolean select) {
         String value = getValue();
         int pos = getCursorPosition();
-        
+
         if (direction < 0) { // Left
             if (pos <= 0) return;
             // Skip trailing spaces
@@ -229,7 +228,7 @@ public class SearchBarWidget extends EditBox {
             // Find end of token
             while (pos < value.length() && value.charAt(pos) != ' ') pos++;
         }
-        
+
         moveCursorTo(pos, select);
     }
 
@@ -242,7 +241,9 @@ public class SearchBarWidget extends EditBox {
         return getValue();
     }
 
-    /** Sets the displayed query without firing the listener. Used for external sync (e.g. EMI). */
+    /**
+     * Sets the displayed query without firing the listener. Used for external sync (e.g. EMI).
+     */
     public void setQuery(String q) {
         silentUpdate = true;
         setValue(q == null ? "" : q);

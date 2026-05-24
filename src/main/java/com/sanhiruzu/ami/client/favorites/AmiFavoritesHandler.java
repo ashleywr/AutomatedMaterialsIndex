@@ -22,7 +22,7 @@ import java.util.Set;
  */
 public class AmiFavoritesHandler {
     private static final AmiFavoritesHandler INSTANCE = new AmiFavoritesHandler();
-    
+
     private final Set<ResourceLocation> localFavorites = new HashSet<>();
     private Runnable onChange;
 
@@ -50,7 +50,7 @@ public class AmiFavoritesHandler {
 
     public boolean isFavorite(SearchNode node) {
         if (localFavorites.contains(node.id())) return true;
-        
+
         if (ModList.get().isLoaded("emi")) {
             return isEmiFavorite(node);
         }
@@ -72,7 +72,7 @@ public class AmiFavoritesHandler {
 
     public void addFavorite(SearchNode node) {
         localFavorites.add(node.id());
-        
+
         if (ModList.get().isLoaded("emi") && node.type() == NodeType.ITEM) {
             addFavorite(resolveStack(node));
         }
@@ -81,7 +81,7 @@ public class AmiFavoritesHandler {
 
     public void addFavorite(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return;
-        
+
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
         localFavorites.add(id);
 
@@ -105,7 +105,7 @@ public class AmiFavoritesHandler {
 
     public void removeFavorite(SearchNode node) {
         localFavorites.remove(node.id());
-        
+
         if (ModList.get().isLoaded("emi")) {
             removeFavorite(resolveStack(node));
         }
@@ -114,7 +114,7 @@ public class AmiFavoritesHandler {
 
     public void removeFavorite(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return;
-        
+
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
         localFavorites.remove(id);
 

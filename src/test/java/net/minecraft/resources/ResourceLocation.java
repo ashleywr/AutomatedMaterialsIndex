@@ -20,18 +20,29 @@ public final class ResourceLocation implements Comparable<ResourceLocation> {
     }
 
     public static ResourceLocation tryParse(String s) {
-        try { return parse(s); } catch (Exception e) { return null; }
+        try {
+            return parse(s);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public static ResourceLocation withDefaultNamespace(String path) {
         return new ResourceLocation("minecraft", path);
     }
 
-    public String getNamespace() { return namespace; }
-    public String getPath() { return path; }
+    public String getNamespace() {
+        return namespace;
+    }
+
+    public String getPath() {
+        return path;
+    }
 
     @Override
-    public String toString() { return namespace + ":" + path; }
+    public String toString() {
+        return namespace + ":" + path;
+    }
 
     @Override
     public int compareTo(ResourceLocation o) {

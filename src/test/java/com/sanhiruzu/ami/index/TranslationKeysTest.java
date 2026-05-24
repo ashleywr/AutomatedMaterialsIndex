@@ -1,11 +1,16 @@
 package com.sanhiruzu.ami.index;
 
 import org.junit.jupiter.api.Test;
+
 import java.io.File;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TranslationKeysTest {
@@ -95,18 +100,18 @@ public class TranslationKeysTest {
 
         // 2. Exact list of all supported recipe types that can be displayed as tabs in AMI
         List<String> recipeTypes = List.of(
-            "crafting",
-            "smelting",
-            "blasting",
-            "smoking",
-            "campfire_cooking",
-            "stonecutting",
-            "smithing",
-            "brewing",
-            "grinding",
-            "anvil_repairing",
-            "composting",
-            "fuel"
+                "crafting",
+                "smelting",
+                "blasting",
+                "smoking",
+                "campfire_cooking",
+                "stonecutting",
+                "smithing",
+                "brewing",
+                "grinding",
+                "anvil_repairing",
+                "composting",
+                "fuel"
         );
 
         List<String> failures = new ArrayList<>();

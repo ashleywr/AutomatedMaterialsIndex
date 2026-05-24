@@ -3,12 +3,13 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.index.providers.*;
-import net.minecraft.world.level.Level;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
+
 import java.util.List;
 
 /**
@@ -16,7 +17,8 @@ import java.util.List;
  * Orchestrates the population of GlobalIndex.
  */
 public final class ProviderRegistry {
-    private ProviderRegistry() {}
+    private ProviderRegistry() {
+    }
 
     /**
      * All providers run on first inventory open, except StructureProvider (deferred).

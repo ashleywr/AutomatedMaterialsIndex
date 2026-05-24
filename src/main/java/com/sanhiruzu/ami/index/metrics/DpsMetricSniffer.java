@@ -12,7 +12,7 @@ import java.util.OptionalDouble;
 
 /**
  * Best-effort baseline DPS estimator for item cards.
- *
+ * <p>
  * This intentionally evaluates only main-hand attack damage/speed attributes.
  * Conditional mod logic, procs, enchantments, and target-specific effects are
  * outside the indexer's scope.

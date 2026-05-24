@@ -19,7 +19,9 @@ public record AmiServerPingPacket() implements CustomPacketPayload {
             StreamCodec.unit(new AmiServerPingPacket());
 
     @Override
-    public Type<AmiServerPingPacket> type() { return TYPE; }
+    public Type<AmiServerPingPacket> type() {
+        return TYPE;
+    }
 
     public static void handle(AmiServerPingPacket packet, IPayloadContext context) {
         // Only invoked client-side (play-to-client packet).
