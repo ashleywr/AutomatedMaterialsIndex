@@ -19,10 +19,10 @@ public final class HeartBarTooltipComponent implements TooltipComponent, ClientT
     private static final ResourceLocation HEART_HALF = ResourceLocation.withDefaultNamespace("hud/heart/half");
     private static final ResourceLocation HEART_CONTAINER = ResourceLocation.withDefaultNamespace("hud/heart/container");
 
-    private static final int MAX_HEARTS   = 10;
-    private static final int HEART_SIZE   = 9;
-    private static final int HEART_GAP    = 1;
-    private static final int ROW_HEIGHT   = HEART_SIZE + 4;
+    private static final int MAX_HEARTS = 10;
+    private static final int HEART_SIZE = 9;
+    private static final int HEART_GAP = 1;
+    private static final int ROW_HEIGHT = HEART_SIZE + 4;
 
     private final int maxHealth; // raw HP value (e.g. 20 = 10 hearts)
 
@@ -48,7 +48,7 @@ public final class HeartBarTooltipComponent implements TooltipComponent, ClientT
     @Override
     public void renderImage(Font font, int x, int y, GuiGraphics g) {
         int halves = halfHearts();
-        int shown  = Math.min(MAX_HEARTS * 2, halves);
+        int shown = Math.min(MAX_HEARTS * 2, halves);
         int heartCount = (int) Math.ceil(shown / 2.0);
 
         // Draw empty background hearts first

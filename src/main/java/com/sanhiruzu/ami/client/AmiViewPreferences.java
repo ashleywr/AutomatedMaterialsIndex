@@ -4,7 +4,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.client.results.ResultsToolbar;
-import com.sanhiruzu.ami.config.AmiConfig;
 import net.neoforged.fml.loading.FMLPaths;
 
 import java.nio.charset.StandardCharsets;
@@ -22,7 +21,8 @@ public final class AmiViewPreferences {
         COMPACT
     }
 
-    private AmiViewPreferences() {}
+    private AmiViewPreferences() {
+    }
 
     public static synchronized StoredView loadMainPanelPreference() {
         if (loaded) {

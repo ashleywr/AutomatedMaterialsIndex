@@ -37,13 +37,13 @@ public class MultiSelectDropdown<T> implements Dropdown {
         boolean canOpen = options != null && !options.isEmpty();
         boolean hovered = canOpen && Dropdown.contains(mouseX, mouseY, x, y, width, HEIGHT);
         g.fill(x, y, x + width, y + HEIGHT, (open || hovered) ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG);
-        
+
         var font = Minecraft.getInstance().font;
         if (canOpen) {
             String arrow = open ? "▲" : "▼";
             g.drawString(font, arrow, x + width - 9, y + 2, AMITheme.TEXT_SUBTLE, false);
         }
-        
+
         String countLabel = Component.translatable("ami.gui.dropdown_count", selected.size(), options.size()).getString();
         g.drawString(font, countLabel, x + 3, y + 2, canOpen ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
     }
@@ -54,13 +54,13 @@ public class MultiSelectDropdown<T> implements Dropdown {
 
     private void renderDropdown(GuiGraphics g, int mouseX, int mouseY) {
         var font = Minecraft.getInstance().font;
-        
+
         // Calculate required width
         int listWidth = width;
         for (T option : options) {
             listWidth = Math.max(listWidth, font.width(displayName.apply(option)) + 20);
         }
-        
+
         int dropH = Math.min(MAX_DROPDOWN_HEIGHT, options.size() * ITEM_HEIGHT + 2);
         g.fill(x, y + HEIGHT + 2, x + listWidth, y + HEIGHT + 2 + dropH, AMITheme.DROPDOWN_LIST_BG);
         g.fill(x, y + HEIGHT + 2, x + listWidth, y + HEIGHT + 3, AMITheme.SECTION_SEP);
@@ -79,7 +79,7 @@ public class MultiSelectDropdown<T> implements Dropdown {
                 // Small accent bar on the left
                 g.fill(x + 2, itemY + 2, x + 4, itemY + ITEM_HEIGHT - 2, com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE);
             }
-            
+
             g.drawString(font, displayName.apply(option), x + 8, itemY + 1, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
             itemY += ITEM_HEIGHT;
         }

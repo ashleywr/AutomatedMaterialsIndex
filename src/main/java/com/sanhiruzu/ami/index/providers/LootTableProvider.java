@@ -4,11 +4,11 @@ import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.index.EdgeType;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.IAmiDataProvider;
-import net.minecraft.world.level.Level;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
@@ -31,89 +31,89 @@ public class LootTableProvider implements IAmiDataProvider {
         CompletableFuture.runAsync(() -> {
             try {
                 level.registryAccess().registry(Registries.LOOT_TABLE).ifPresent(reg ->
-                    reg.holders().forEach(holder -> {
-                        ResourceLocation ltId = holder.key().location();
-                        try {
-                            String path = ltId.getPath();
-                            // Entity loot tables are under 'entities/<entity>' in vanilla
-                            if (!path.startsWith("entities/")) return;
+                        reg.holders().forEach(holder -> {
+                            ResourceLocation ltId = holder.key().location();
+                            try {
+                                String path = ltId.getPath();
+                                // Entity loot tables are under 'entities/<entity>' in vanilla
+                                if (!path.startsWith("entities/")) return;
 
-                            String entityPath = path.substring("entities/".length());
-                            ResourceLocation entityId = ResourceLocation.fromNamespaceAndPath(ltId.getNamespace(), entityPath);
+                                String entityPath = path.substring("entities/".length());
+                                ResourceLocation entityId = ResourceLocation.fromNamespaceAndPath(ltId.getNamespace(), entityPath);
 
-                            index.getNode(entityId).ifPresent(entityNode -> {
-                                Object lootTable = holder.value();
+                                index.getNode(entityId).ifPresent(entityNode -> {
+                                    Object lootTable = holder.value();
 
-                                // Try method getPools(), else try field 'pools'
-                                List<?> pools = null;
-                                try {
-                                    Method m = lootTable.getClass().getMethod("getPools");
-                                    pools = (List<?>) m.invoke(lootTable);
-                                } catch (NoSuchMethodException ignored) {
+                                    // Try method getPools(), else try field 'pools'
+                                    List<?> pools = null;
                                     try {
-                                        Field f = lootTable.getClass().getDeclaredField("pools");
-                                        f.setAccessible(true);
-                                        pools = (List<?>) f.get(lootTable);
-                                    } catch (NoSuchFieldException | IllegalAccessException ignored2) {
-                                    }
-                                } catch (Throwable t) {
-                                    // ignore
-                                }
-
-                                if (pools == null) return;
-
-                                for (Object pool : pools) {
-                                    List<?> entries = null;
-                                    try {
-                                        Method gm = pool.getClass().getMethod("getEntries");
-                                        entries = (List<?>) gm.invoke(pool);
+                                        Method m = lootTable.getClass().getMethod("getPools");
+                                        pools = (List<?>) m.invoke(lootTable);
                                     } catch (NoSuchMethodException ignored) {
                                         try {
-                                            Field cf = pool.getClass().getDeclaredField("children");
-                                            cf.setAccessible(true);
-                                            entries = (List<?>) cf.get(pool);
+                                            Field f = lootTable.getClass().getDeclaredField("pools");
+                                            f.setAccessible(true);
+                                            pools = (List<?>) f.get(lootTable);
                                         } catch (NoSuchFieldException | IllegalAccessException ignored2) {
                                         }
                                     } catch (Throwable t) {
                                         // ignore
                                     }
 
-                                    if (entries == null) continue;
+                                    if (pools == null) return;
 
-                                    for (Object entry : entries) {
+                                    for (Object pool : pools) {
+                                        List<?> entries = null;
                                         try {
-                                            Object maybeItem = null;
+                                            Method gm = pool.getClass().getMethod("getEntries");
+                                            entries = (List<?>) gm.invoke(pool);
+                                        } catch (NoSuchMethodException ignored) {
                                             try {
-                                                Method gim = entry.getClass().getMethod("getItem");
-                                                maybeItem = gim.invoke(entry);
-                                            } catch (NoSuchMethodException e) {
-                                                try {
-                                                    Field ifld = entry.getClass().getDeclaredField("item");
-                                                    ifld.setAccessible(true);
-                                                    maybeItem = ifld.get(entry);
-                                                } catch (NoSuchFieldException | IllegalAccessException ignored3) {
-                                                }
-                                            }
-
-                                            if (maybeItem instanceof Item) {
-                                                Item it = (Item) maybeItem;
-                                                ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(it);
-                                                if (itemId != null) {
-                                                    entityNode.addUnresolvedEdge(EdgeType.DROPS, itemId);
-                                                }
-                                            } else if (maybeItem instanceof ResourceLocation) {
-                                                entityNode.addUnresolvedEdge(EdgeType.DROPS, (ResourceLocation) maybeItem);
+                                                Field cf = pool.getClass().getDeclaredField("children");
+                                                cf.setAccessible(true);
+                                                entries = (List<?>) cf.get(pool);
+                                            } catch (NoSuchFieldException | IllegalAccessException ignored2) {
                                             }
                                         } catch (Throwable t) {
-                                            // ignore individual entry failures
+                                            // ignore
+                                        }
+
+                                        if (entries == null) continue;
+
+                                        for (Object entry : entries) {
+                                            try {
+                                                Object maybeItem = null;
+                                                try {
+                                                    Method gim = entry.getClass().getMethod("getItem");
+                                                    maybeItem = gim.invoke(entry);
+                                                } catch (NoSuchMethodException e) {
+                                                    try {
+                                                        Field ifld = entry.getClass().getDeclaredField("item");
+                                                        ifld.setAccessible(true);
+                                                        maybeItem = ifld.get(entry);
+                                                    } catch (NoSuchFieldException | IllegalAccessException ignored3) {
+                                                    }
+                                                }
+
+                                                if (maybeItem instanceof Item) {
+                                                    Item it = (Item) maybeItem;
+                                                    ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(it);
+                                                    if (itemId != null) {
+                                                        entityNode.addUnresolvedEdge(EdgeType.DROPS, itemId);
+                                                    }
+                                                } else if (maybeItem instanceof ResourceLocation) {
+                                                    entityNode.addUnresolvedEdge(EdgeType.DROPS, (ResourceLocation) maybeItem);
+                                                }
+                                            } catch (Throwable t) {
+                                                // ignore individual entry failures
+                                            }
                                         }
                                     }
-                                }
-                            });
-                        } catch (Throwable t) {
-                            // Protect the scan from throwing
-                        }
-                    })
+                                });
+                            } catch (Throwable t) {
+                                // Protect the scan from throwing
+                            }
+                        })
                 );
             } catch (Throwable t) {
                 AMI.LOGGER.warn("LootTableProvider async scan failed: {}", t.toString());

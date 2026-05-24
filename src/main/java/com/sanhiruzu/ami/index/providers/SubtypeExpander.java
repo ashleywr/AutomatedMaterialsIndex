@@ -29,7 +29,7 @@ import java.util.Set;
 /**
  * Generates representative ItemStack variants for items whose single registry entry
  * covers many visual/functional subtypes (potions, enchanted books, etc.).
- *
+ * <p>
  * Each item gets at most HARD_CAP variants. If generation would exceed this, we keep
  * the first HARD_CAP entries and log a warning — this prevents poorly-coded mods
  * from producing thousands of entries that crash the indexer without hiding the
@@ -39,7 +39,8 @@ public final class SubtypeExpander {
 
     public static final int HARD_CAP = 150;
 
-    private SubtypeExpander() {}
+    private SubtypeExpander() {
+    }
 
     /**
      * Returned from each expansion: a synthetic ResourceLocation (safe to use as a
@@ -56,7 +57,7 @@ public final class SubtypeExpander {
     /**
      * Expand {@code item} into its visual subtypes.
      *
-     * @param baseId        its registry key (e.g. {@code minecraft:potion})
+     * @param baseId         its registry key (e.g. {@code minecraft:potion})
      * @param registryAccess live registry access for data-driven registries (enchantments, instruments)
      * @return an ordered list of subtypes, or an empty list if no expansion is defined
      */
@@ -65,15 +66,15 @@ public final class SubtypeExpander {
         if (!baseId.getNamespace().equals("minecraft")) return List.of();
 
         List<SubtypeEntry> result = switch (baseId.getPath()) {
-            case "potion"          -> expandPotions(Items.POTION,          "potion");
-            case "splash_potion"   -> expandPotions(Items.SPLASH_POTION,   "splash_potion");
+            case "potion" -> expandPotions(Items.POTION, "potion");
+            case "splash_potion" -> expandPotions(Items.SPLASH_POTION, "splash_potion");
             case "lingering_potion" -> expandPotions(Items.LINGERING_POTION, "lingering_potion");
-            case "tipped_arrow"    -> expandPotions(Items.TIPPED_ARROW,    "tipped_arrow");
-            case "enchanted_book"  -> expandEnchantedBooks(registryAccess);
+            case "tipped_arrow" -> expandPotions(Items.TIPPED_ARROW, "tipped_arrow");
+            case "enchanted_book" -> expandEnchantedBooks(registryAccess);
             case "suspicious_stew" -> expandSuspiciousStew();
             case "firework_rocket" -> expandFireworkRockets();
-            case "goat_horn"       -> expandGoatHorns(registryAccess);
-            case "spawn_egg"       -> expandSpawnEggs();
+            case "goat_horn" -> expandGoatHorns(registryAccess);
+            case "spawn_egg" -> expandSpawnEggs();
             default -> List.of();
         };
 
@@ -190,7 +191,7 @@ public final class SubtypeExpander {
         // which is under the cap but clutters the UI for minimal gain.
         List<SubtypeEntry> result = new ArrayList<>();
 
-        int[] repColors = { 0xFF0000, 0x00AA00, 0x5555FF, 0xFFFF55, 0xFFFFFF };
+        int[] repColors = {0xFF0000, 0x00AA00, 0x5555FF, 0xFFFF55, 0xFFFFFF};
         FireworkExplosion.Shape[] shapes = FireworkExplosion.Shape.values();
 
         for (int i = 0; i < Math.min(shapes.length, repColors.length); i++) {

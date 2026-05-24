@@ -21,7 +21,7 @@ public class SingleSelectDropdown<T> implements Dropdown {
     private boolean open = false;
 
     public SingleSelectDropdown(Component label, List<T> options, java.util.function.Function<T, Component> displayName,
-                                 T selected, java.util.function.Consumer<T> onSelect) {
+                                T selected, java.util.function.Consumer<T> onSelect) {
         this.label = label;
         this.options = options;
         this.displayName = displayName;
@@ -39,18 +39,18 @@ public class SingleSelectDropdown<T> implements Dropdown {
         boolean canOpen = options != null && options.size() > 1;
         boolean hovered = canOpen && Dropdown.contains(mouseX, mouseY, x, y, width, HEIGHT);
         int bgColor = (open || hovered) ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
-        
+
         g.fill(x, y, x + width, y + HEIGHT, bgColor);
         Component textComp = displayName.apply(selected);
         String text = textComp.getString();
         var font = Minecraft.getInstance().font;
-        
+
         // Add a small arrow if it can be opened
         if (canOpen) {
             String arrow = open ? "▲" : "▼";
             g.drawString(font, arrow, x + width - 9, y + 2, AMITheme.TEXT_SUBTLE, false);
         }
-        
+
         int maxTextW = width - (canOpen ? 12 : 6);
         String displayText = text;
         if (font.width(text) > maxTextW) {
@@ -65,13 +65,13 @@ public class SingleSelectDropdown<T> implements Dropdown {
 
     private void renderDropdown(GuiGraphics g, int mouseX, int mouseY) {
         var font = Minecraft.getInstance().font;
-        
+
         // Calculate required width to fit all options
         int listWidth = width;
         for (T option : options) {
             listWidth = Math.max(listWidth, font.width(displayName.apply(option).getString()) + 20);
         }
-        
+
         int dropH = options.size() * ITEM_HEIGHT + 2;
         g.fill(x, y + HEIGHT + 2, x + listWidth, y + HEIGHT + 2 + dropH, AMITheme.DROPDOWN_LIST_BG);
         g.fill(x, y + HEIGHT + 2, x + listWidth, y + HEIGHT + 3, AMITheme.SECTION_SEP);
@@ -86,7 +86,7 @@ public class SingleSelectDropdown<T> implements Dropdown {
                 // Draw selection indicator (a small accent bar on the left)
                 g.fill(x + 2, itemY + 2, x + 4, itemY + ITEM_HEIGHT - 2, com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE);
             }
-            
+
             Component labelComp = displayName.apply(option);
             g.drawString(font, labelComp, x + 8, itemY + 1, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
             itemY += ITEM_HEIGHT;

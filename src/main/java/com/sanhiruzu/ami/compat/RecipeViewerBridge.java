@@ -8,11 +8,19 @@ public class RecipeViewerBridge {
 
     private static boolean recipeViewActive = false;
 
-    /** True when EMI/JEI is currently displaying a recipe view triggered by AMI. */
-    public static boolean isRecipeViewActive() { return recipeViewActive; }
+    /**
+     * True when EMI/JEI is currently displaying a recipe view triggered by AMI.
+     */
+    public static boolean isRecipeViewActive() {
+        return recipeViewActive;
+    }
 
-    /** Called to notify that the recipe view has been dismissed. */
-    public static void clearRecipeView() { recipeViewActive = false; }
+    /**
+     * Called to notify that the recipe view has been dismissed.
+     */
+    public static void clearRecipeView() {
+        recipeViewActive = false;
+    }
 
     private static void markRecipeViewActive() {
         recipeViewActive = true;
@@ -28,20 +36,28 @@ public class RecipeViewerBridge {
         return false;
     }
 
-    /** Returns the current search text from the active recipe viewer, or "" if none loaded. */
+    /**
+     * Returns the current search text from the active recipe viewer, or "" if none loaded.
+     */
     public static String getSearchText() {
-        if (ModList.get().isLoaded("emi") && EmiSearchSyncBridge.isAvailable()) return EmiSearchSyncBridge.getSearchText();
-        if (ModList.get().isLoaded("jei") && JeiSearchSyncBridge.isAvailable()) return JeiSearchSyncBridge.getSearchText();
+        if (ModList.get().isLoaded("emi") && EmiSearchSyncBridge.isAvailable())
+            return EmiSearchSyncBridge.getSearchText();
+        if (ModList.get().isLoaded("jei") && JeiSearchSyncBridge.isAvailable())
+            return JeiSearchSyncBridge.getSearchText();
         return "";
     }
 
-    /** Pushes a search string into the active recipe viewer's search bar. */
+    /**
+     * Pushes a search string into the active recipe viewer's search bar.
+     */
     public static void setSearchText(String text) {
         if (ModList.get().isLoaded("emi") && EmiSearchSyncBridge.isAvailable()) EmiSearchSyncBridge.setSearchText(text);
         if (ModList.get().isLoaded("jei") && JeiSearchSyncBridge.isAvailable()) JeiSearchSyncBridge.setSearchText(text);
     }
 
-    /** Open the recipe viewer for the item's crafting recipes (what produces it). */
+    /**
+     * Open the recipe viewer for the item's crafting recipes (what produces it).
+     */
     public static void openRecipes(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return;
         if (ModList.get().isLoaded("emi")) {
@@ -51,7 +67,9 @@ public class RecipeViewerBridge {
         }
     }
 
-    /** Open the recipe viewer for uses of the item (what consumes it). */
+    /**
+     * Open the recipe viewer for uses of the item (what consumes it).
+     */
     public static void openUses(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return;
         if (ModList.get().isLoaded("emi")) {
@@ -122,13 +140,22 @@ public class RecipeViewerBridge {
             return;
         }
         switch (AmiConfig.itemClickAction) {
-            case RECIPES -> { markRecipeViewActive(); openRecipes(stack); }
-            case USES    -> { markRecipeViewActive(); openUses(stack); }
-            case NONE    -> {}
+            case RECIPES -> {
+                markRecipeViewActive();
+                openRecipes(stack);
+            }
+            case USES -> {
+                markRecipeViewActive();
+                openUses(stack);
+            }
+            case NONE -> {
+            }
         }
     }
 
-    /** Shift+click: propagate to EMI/JEI for crafting grid insertion or their native shift+click behavior. */
+    /**
+     * Shift+click: propagate to EMI/JEI for crafting grid insertion or their native shift+click behavior.
+     */
     private static void handleShiftClick(ItemStack stack) {
         if (ModList.get().isLoaded("emi")) {
             EmiRecipeBridge.handleShiftClick(stack);
@@ -137,7 +164,9 @@ public class RecipeViewerBridge {
         }
     }
 
-    /** Overload for backward compatibility with code not passing shift state. */
+    /**
+     * Overload for backward compatibility with code not passing shift state.
+     */
     public static void handleItemClick(ItemStack stack, int button) {
         handleItemClick(stack, button, false);
     }

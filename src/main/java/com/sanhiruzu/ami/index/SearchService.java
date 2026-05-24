@@ -121,7 +121,8 @@ public final class SearchService {
                 case EXCLUDE -> excludeParts.add(value);
                 case ESM -> numericParts.add(value);
                 case CATEGORY -> categoryParts.add(value);
-                default -> {} // ESSENTIAL is reserved for curated result sets.
+                default -> {
+                } // ESSENTIAL is reserved for curated result sets.
             }
         }
 

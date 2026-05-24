@@ -5,37 +5,16 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.item.ArmorItem;
-import net.minecraft.world.item.AxeItem;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.BowItem;
-import net.minecraft.world.item.CrossbowItem;
-import net.minecraft.world.item.DiggerItem;
-import net.minecraft.world.item.EnchantedBookItem;
-import net.minecraft.world.item.HoeItem;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.MobBucketItem;
-import net.minecraft.world.item.PickaxeItem;
-import net.minecraft.world.item.PotionItem;
-import net.minecraft.world.item.ProjectileItem;
-import net.minecraft.world.item.ShovelItem;
-import net.minecraft.world.item.SpawnEggItem;
-import net.minecraft.world.item.SwordItem;
+import net.minecraft.world.item.*;
 import net.minecraft.world.level.block.ComposterBlock;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 public final class FacetIndexer {
-    private FacetIndexer() {}
+    private FacetIndexer() {
+    }
 
     public static FacetProfile index(Item item, ResourceLocation id, ItemStack stack) {
         EnumSet<ItemFacet> facets = EnumSet.noneOf(ItemFacet.class);

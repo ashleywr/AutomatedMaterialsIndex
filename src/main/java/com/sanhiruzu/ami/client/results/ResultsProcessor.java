@@ -1,9 +1,8 @@
 package com.sanhiruzu.ami.client.results;
 
-import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.AmiOntology;
-import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.index.GroupingEngine;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
@@ -29,7 +28,10 @@ public class ResultsProcessor {
         COUNT("ami.sort.count");
 
         public final Component displayName;
-        SortField(String key) { this.displayName = Component.translatable(key); }
+
+        SortField(String key) {
+            this.displayName = Component.translatable(key);
+        }
     }
 
     public enum GroupBy {
@@ -42,7 +44,10 @@ public class ResultsProcessor {
         SHAPE("ami.group.shape");
 
         public final Component displayName;
-        GroupBy(String key) { this.displayName = Component.translatable(key); }
+
+        GroupBy(String key) {
+            this.displayName = Component.translatable(key);
+        }
     }
 
 
@@ -54,10 +59,10 @@ public class ResultsProcessor {
 
     public ResultsProcessor(SortField sortField, boolean ascending, GroupBy groupBy,
                             Set<String> selectedMods, Set<String> activeFacets) {
-        this.sortField    = sortField;
-        this.ascending    = ascending;
-        this.groupBy      = groupBy;
-        this.selectedMods = selectedMods  != null ? selectedMods  : new HashSet<>();
+        this.sortField = sortField;
+        this.ascending = ascending;
+        this.groupBy = groupBy;
+        this.selectedMods = selectedMods != null ? selectedMods : new HashSet<>();
         this.activeFacets = activeFacets != null ? activeFacets : new HashSet<>();
     }
 
@@ -70,7 +75,7 @@ public class ResultsProcessor {
         List<SearchNode> filtered = filterAndSort(results);
         // Group
         List<TreeNode> tree = buildTree(filtered);
-        
+
         return applyExplicitFamilyGrouping(applyHighCardinalityGrouping(tree));
     }
 
@@ -133,12 +138,14 @@ public class ResultsProcessor {
             case MOD -> groupByMod(sorted);
             case CATEGORY -> groupByCategory(sorted);
             case CREATIVE -> groupByCreative(sorted);
-            case MATERIAL -> groupByClassifier(sorted, n -> n.meta(SearchNodeKeys.MATERIAL_GROUP, ""), Component.translatable("ami.group.unknown_material"), true, List.of());
+            case MATERIAL ->
+                    groupByClassifier(sorted, n -> n.meta(SearchNodeKeys.MATERIAL_GROUP, ""), Component.translatable("ami.group.unknown_material"), true, List.of());
             case FAMILY -> groupByClassifier(sorted, n -> {
                 ItemStack stack = ItemIconRenderer.resolveStack(n.id());
                 return GroupingEngine.classifyFamilyRoot(stack);
             }, Component.translatable("ami.group.unknown_family"), true, List.of());
-            case SHAPE -> groupByClassifier(sorted, n -> n.meta(SearchNodeKeys.VARIANT_GROUP, ""), Component.translatable("ami.group.unknown_shape"), false, GroupingEngine.SHAPE_ORDER);
+            case SHAPE ->
+                    groupByClassifier(sorted, n -> n.meta(SearchNodeKeys.VARIANT_GROUP, ""), Component.translatable("ami.group.unknown_shape"), false, GroupingEngine.SHAPE_ORDER);
         };
     }
 
@@ -176,8 +183,9 @@ public class ResultsProcessor {
 
         List<Map.Entry<String, List<SearchNode>>> entries = new ArrayList<>(groups.entrySet());
         entries.sort((a, b) -> {
-            String k1 = a.getKey(); String k2 = b.getKey();
-            
+            String k1 = a.getKey();
+            String k2 = b.getKey();
+
             // Unknowns/Fallbacks always to the bottom
             boolean u1 = k1.isBlank() || k1.equals("item") || k1.equals("minecraft:item") || k1.equals("block") || k1.toLowerCase().contains("unknown") || k1.equals(FALLBACK_GROUP_KEY);
             boolean u2 = k2.isBlank() || k2.equals("item") || k2.equals("minecraft:item") || k2.equals("block") || k2.toLowerCase().contains("unknown") || k2.equals(FALLBACK_GROUP_KEY);
@@ -219,12 +227,12 @@ public class ResultsProcessor {
             };
             TreeNode dimNode = new TreeNode(dimKey, dimLabel);
             dimNode.setExpanded(true);
-            
+
             Map<String, List<SearchNode>> modGroups = new LinkedHashMap<>();
             for (SearchNode node : entry.getValue()) {
                 modGroups.computeIfAbsent(node.id().getNamespace(), k -> new ArrayList<>()).add(node);
             }
-            
+
             for (var modEntry : modGroups.entrySet()) {
                 String namespace = modEntry.getKey();
                 TreeNode modNode = new TreeNode(namespace, Component.literal(com.sanhiruzu.ami.index.providers.RegistryUtils.modDisplayName(namespace)));
@@ -254,12 +262,12 @@ public class ResultsProcessor {
             TreeNode modNode = new TreeNode(namespace, Component.literal(com.sanhiruzu.ami.index.providers.RegistryUtils.modDisplayName(namespace)));
             modNode.setExpanded(true);
             modNode.setModGroup(true);
-            
+
             Map<com.sanhiruzu.ami.index.NodeType, List<SearchNode>> typeGroups = new LinkedHashMap<>();
             for (SearchNode node : entry.getValue()) {
                 typeGroups.computeIfAbsent(node.type(), k -> new ArrayList<>()).add(node);
             }
-            
+
             for (var typeEntry : typeGroups.entrySet()) {
                 com.sanhiruzu.ami.index.NodeType type = typeEntry.getKey();
                 TreeNode typeNode = new TreeNode(type.name(), type.displayName());
@@ -318,7 +326,8 @@ public class ResultsProcessor {
                 String subId = subEntry.getKey();
                 if (subId.isEmpty()) {
                     TreeNode miscNode = new TreeNode("misc", Component.translatable("ami.group.misc"));
-                    for (SearchNode node : subEntry.getValue()) miscNode.addChild(new TreeNode(Component.literal(node.displayName()), node));
+                    for (SearchNode node : subEntry.getValue())
+                        miscNode.addChild(new TreeNode(Component.literal(node.displayName()), node));
                     catNode.addChild(miscNode);
                     continue;
                 }
@@ -328,7 +337,7 @@ public class ResultsProcessor {
                         .map(AmiOntology.SubCategory::displayName)
                         .findFirst()
                         .orElse(Component.literal(formatGroupLabel(formatGroupKey(subId, true))));
-                
+
                 TreeNode subNode = new TreeNode(subId, subLabel);
                 subNode.setExpanded(true);
 
@@ -336,13 +345,15 @@ public class ResultsProcessor {
                 for (SearchNode node : subEntry.getValue()) {
                     pMap.computeIfAbsent(node.meta(SearchNodeKeys.POTION_EFFECT, ""), k -> new ArrayList<>()).add(node);
                 }
-                
+
                 for (var pEntry : pMap.entrySet()) {
                     if (pEntry.getKey().isEmpty()) {
-                        for (SearchNode node : pEntry.getValue()) subNode.addChild(new TreeNode(Component.literal(node.displayName()), node));
+                        for (SearchNode node : pEntry.getValue())
+                            subNode.addChild(new TreeNode(Component.literal(node.displayName()), node));
                     } else {
                         TreeNode pNode = new TreeNode(pEntry.getKey(), potionEffectLabel(pEntry.getKey()));
-                        for (SearchNode node : pEntry.getValue()) pNode.addChild(new TreeNode(Component.literal(node.displayName()), node));
+                        for (SearchNode node : pEntry.getValue())
+                            pNode.addChild(new TreeNode(Component.literal(node.displayName()), node));
                         subNode.addChild(pNode);
                     }
                 }
@@ -383,8 +394,8 @@ public class ResultsProcessor {
         return result;
     }
 
-    private List<TreeNode> groupByClassifier(List<SearchNode> entries, java.util.function.Function<SearchNode, String> classifier, 
-                                            Component fallback, boolean compactResourceIds, List<String> order) {
+    private List<TreeNode> groupByClassifier(List<SearchNode> entries, java.util.function.Function<SearchNode, String> classifier,
+                                             Component fallback, boolean compactResourceIds, List<String> order) {
         Map<String, List<SearchNode>> rawGroups = new LinkedHashMap<>();
         for (SearchNode entry : entries) {
             rawGroups.computeIfAbsent(classifier.apply(entry), k -> new ArrayList<>()).add(entry);
@@ -397,7 +408,7 @@ public class ResultsProcessor {
             String val = entry.getKey();
             boolean isFallback = val.isBlank() || val.equals("item") || val.equals("block") || val.toLowerCase().contains("unknown");
             String mapKey = isFallback ? FALLBACK_GROUP_KEY : formatGroupKey(val, compactResourceIds);
-            
+
             TreeNode groupNode = new TreeNode(mapKey, isFallback ? fallback : Component.literal(formatGroupLabel(mapKey)));
             groupNode.setExpanded(true);
             for (SearchNode node : entry.getValue()) {
@@ -447,7 +458,7 @@ public class ResultsProcessor {
     private boolean matchesAccessLevel(SearchNode node) {
         String level = node.meta(SearchNodeKeys.ACCESS_LEVEL, "");
         if ("dev".equals(level)) return AmiConfig.devMode;
-        
+
         // Hide creative-only items in survival mode
         if ("creative".equals(level)) {
             net.minecraft.client.multiplayer.MultiPlayerGameMode gameMode = net.minecraft.client.Minecraft.getInstance().gameMode;
@@ -455,7 +466,7 @@ public class ResultsProcessor {
                 return false;
             }
         }
-        
+
         return true;
     }
 
@@ -595,9 +606,23 @@ public class ResultsProcessor {
         return results.stream().map(n -> n.id().getNamespace()).collect(Collectors.toSet());
     }
 
-    public SortField getSortField() { return sortField; }
-    public boolean isAscending() { return ascending; }
-    public GroupBy getGroupBy() { return groupBy; }
-    public Set<String> getSelectedMods() { return selectedMods; }
-    public Set<String> getActiveFacets() { return activeFacets; }
+    public SortField getSortField() {
+        return sortField;
+    }
+
+    public boolean isAscending() {
+        return ascending;
+    }
+
+    public GroupBy getGroupBy() {
+        return groupBy;
+    }
+
+    public Set<String> getSelectedMods() {
+        return selectedMods;
+    }
+
+    public Set<String> getActiveFacets() {
+        return activeFacets;
+    }
 }

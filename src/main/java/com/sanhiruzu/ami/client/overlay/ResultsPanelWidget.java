@@ -75,7 +75,9 @@ public class ResultsPanelWidget extends AbstractWidget {
         panel.render(g, mouseX, mouseY, partialTick);
     }
 
-    /** Renders dropdowns and tooltips that must draw above everything else. */
+    /**
+     * Renders dropdowns and tooltips that must draw above everything else.
+     */
     public void renderOverlay(GuiGraphics g, int mouseX, int mouseY) {
         if (panel == null) return;
         panel.getToolbar().renderOpenDropdownLists(g, mouseX, mouseY);

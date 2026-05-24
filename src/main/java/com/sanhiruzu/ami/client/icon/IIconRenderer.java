@@ -15,7 +15,9 @@ import java.util.Optional;
  */
 public interface IIconRenderer {
 
-    /** Draw the icon at (x, y) with the given pixel size on each side. */
+    /**
+     * Draw the icon at (x, y) with the given pixel size on each side.
+     */
     void render(GuiGraphics g, SearchNode node, int x, int y, int size);
 
     /**
@@ -34,6 +36,9 @@ public interface IIconRenderer {
         return Optional.empty();
     }
 
-    /** Release any GL or object caches. Called on world unload. */
-    default void invalidate() {}
+    /**
+     * Release any GL or object caches. Called on world unload.
+     */
+    default void invalidate() {
+    }
 }

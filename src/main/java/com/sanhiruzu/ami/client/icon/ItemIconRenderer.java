@@ -23,13 +23,15 @@ import java.util.Map;
 
 public class ItemIconRenderer implements IIconRenderer {
 
-    /** 
+    /**
      * Stacks for synthetic nodes (potions, enchanted books) registered during indexing.
      * These are NOT cleared on invalidate because they cannot be recovered from the registry.
      */
     private static final Map<ResourceLocation, ItemStack> persistentStacks = new HashMap<>();
-    
-    /** Lazy cache for regular items; cleared on resource reload. */
+
+    /**
+     * Lazy cache for regular items; cleared on resource reload.
+     */
     private static final Map<ResourceLocation, ItemStack> lazyCache = new HashMap<>();
 
     @Override
@@ -57,7 +59,9 @@ public class ItemIconRenderer implements IIconRenderer {
         poses.popPose();
     }
 
-    /** Pre-register a custom ItemStack for a synthetic node id (e.g. subtype nodes). */
+    /**
+     * Pre-register a custom ItemStack for a synthetic node id (e.g. subtype nodes).
+     */
     public static void registerStack(ResourceLocation id, ItemStack stack) {
         persistentStacks.put(id, stack.copy());
     }
@@ -81,7 +85,9 @@ public class ItemIconRenderer implements IIconRenderer {
         lazyCache.clear();
     }
 
-    /** Clear synthetic stacks; called when the entire index is being rebuilt. */
+    /**
+     * Clear synthetic stacks; called when the entire index is being rebuilt.
+     */
     public static void clearPersistent() {
         persistentStacks.clear();
     }

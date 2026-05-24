@@ -21,7 +21,7 @@ public class GlobalIndex {
 
     // Fast lookup by ResourceLocation
     private final ConcurrentMap<ResourceLocation, SearchNode> idIndex = new ConcurrentHashMap<>();
-    
+
     // Category index for fast dashboard lookups
     private final Map<String, List<SearchNode>> categoryIndex = new ConcurrentHashMap<>();
 
@@ -38,7 +38,7 @@ public class GlobalIndex {
     public void addNode(SearchNode node) {
         nodes.get(node.type()).add(node);
         idIndex.put(node.id(), node);
-        
+
         // Index by ontology category
         String category = node.meta(SearchNodeKeys.ONTOLOGY_CATEGORY, "");
         if (category.isEmpty()) {

@@ -12,13 +12,14 @@ import java.util.stream.Collectors;
 
 /**
  * Manages which fields are shown on the subtitle line of list-view rows.
- *
+ * <p>
  * Persists to AmiConfig as a comma-separated list of RowField names.
  * Resets to the default (MOD_NAME) whenever the installed mod list changes,
  * detected via a stored hashCode of the sorted mod-ID list.
  */
 public final class RowFieldConfig {
-    private RowFieldConfig() {}
+    private RowFieldConfig() {
+    }
 
     private static volatile boolean initialized = false;
 
@@ -38,7 +39,9 @@ public final class RowFieldConfig {
         }
     }
 
-    /** Java hashCode of the sorted mod-ID list — cheap and sufficient for invalidation. */
+    /**
+     * Java hashCode of the sorted mod-ID list — cheap and sufficient for invalidation.
+     */
     private static int computeChecksum() {
         return ModList.get().getMods().stream()
                 .map(info -> info.getModId())
@@ -64,17 +67,20 @@ public final class RowFieldConfig {
             if (trimmed.isEmpty()) continue;
             try {
                 result.add(RowField.valueOf(trimmed));
-            } catch (IllegalArgumentException ignored) {}
+            } catch (IllegalArgumentException ignored) {
+            }
         }
         return new ArrayList<>(result); // EnumSet iterates in declaration order
     }
 
-    /** Persists a new set of subtitle fields. */
+    /**
+     * Persists a new set of subtitle fields.
+     */
     public static void setSubtitleFields(Collection<RowField> fields) {
         EnumSet<RowField> ordered = fields.isEmpty()
                 ? EnumSet.noneOf(RowField.class)
                 : EnumSet.copyOf(fields);
-        AmiConfig.subtitleFields = 
+        AmiConfig.subtitleFields =
                 ordered.stream().map(Enum::name).collect(Collectors.joining(","));
     }
 

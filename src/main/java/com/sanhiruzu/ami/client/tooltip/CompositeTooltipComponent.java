@@ -11,7 +11,7 @@ import java.util.List;
  * Stacks multiple ClientTooltipComponents vertically inside a single tooltip image slot.
  * Implements both TooltipComponent (marker, for the Optional argument in renderTooltip)
  * and ClientTooltipComponent (renderer). Register with an identity factory:
- *   event.register(CompositeTooltipComponent.class, c -> c)
+ * event.register(CompositeTooltipComponent.class, c -> c)
  */
 public final class CompositeTooltipComponent implements TooltipComponent, ClientTooltipComponent {
 

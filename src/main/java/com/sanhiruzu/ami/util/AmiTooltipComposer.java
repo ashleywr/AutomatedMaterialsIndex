@@ -1,8 +1,8 @@
 package com.sanhiruzu.ami.util;
 
 import com.sanhiruzu.ami.client.AMIKeyMappings;
-import com.sanhiruzu.ami.client.AmiKeybindHandler;
 import com.sanhiruzu.ami.client.AMITheme;
+import com.sanhiruzu.ami.client.AmiKeybindHandler;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.ChatFormatting;
@@ -21,7 +21,8 @@ import java.util.Locale;
 import java.util.Optional;
 
 public final class AmiTooltipComposer {
-    private AmiTooltipComposer() {}
+    private AmiTooltipComposer() {
+    }
 
     public static List<Component> buildItemTooltip(SearchNode entry, ItemStack stack) {
         List<Component> lines = new ArrayList<>();

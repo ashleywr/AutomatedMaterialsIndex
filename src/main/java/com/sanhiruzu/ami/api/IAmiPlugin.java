@@ -3,11 +3,12 @@ package com.sanhiruzu.ami.api;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.world.item.ItemStack;
+
 import java.util.List;
 
 /**
  * Interface for mods to provide AMI with layout-specific data.
- *
+ * <p>
  * Mods that generate infinite modular item variants (Silent Gear, Apotheosis, etc.)
  * should NOT be enumerated by AMI — instead implement {@link #getHeroItems()} to
  * hand back a curated list of representative stacks (e.g. all-diamond pick, all-wood
@@ -24,7 +25,7 @@ public interface IAmiPlugin {
 
     /**
      * Return a curated set of "Hero Items" to be indexed in place of full enumeration.
-     *
+     * <p>
      * Called once during index build. Use this for mods with procedurally generated
      * item variants where exhaustive enumeration is impractical or undesirable.
      * AMI will add each returned stack as a subtype node alongside regular items.

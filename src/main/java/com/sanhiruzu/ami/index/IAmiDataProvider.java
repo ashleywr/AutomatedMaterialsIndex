@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 public interface IAmiDataProvider {
     /**
      * Populate the provided index with nodes of this provider's type.
+     *
      * @param index The GlobalIndex to add nodes to.
      * @param level The current level context (client-side or server-side).
      */

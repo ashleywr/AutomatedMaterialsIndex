@@ -23,7 +23,9 @@ package com.sanhiruzu.ami.client.overlay;
  */
 public record Rect(int x, int y, int w, int h) {
 
-    /** Factory with non-negative clamping. */
+    /**
+     * Factory with non-negative clamping.
+     */
     public static Rect of(int x, int y, int w, int h) {
         return new Rect(x, y, Math.max(0, w), Math.max(0, h));
     }
@@ -32,65 +34,72 @@ public record Rect(int x, int y, int w, int h) {
 
     /**
      * Carves a strip of height {@code stripH} from the top.
+     *
      * @return [0] top strip, [1] remainder ({@code h - stripH - gap} tall)
      */
     public Rect[] splitTop(int stripH, int gap) {
         return new Rect[]{
-            Rect.of(x, y,               w, stripH),
-            Rect.of(x, y + stripH + gap, w, h - stripH - gap)
+                Rect.of(x, y, w, stripH),
+                Rect.of(x, y + stripH + gap, w, h - stripH - gap)
         };
     }
 
     /**
      * Carves a strip of height {@code stripH} from the bottom.
+     *
      * @return [0] remainder, [1] bottom strip
      */
     public Rect[] splitBottom(int stripH, int gap) {
         return new Rect[]{
-            Rect.of(x, y,                   w, h - stripH - gap),
-            Rect.of(x, y + h - stripH,      w, stripH)
+                Rect.of(x, y, w, h - stripH - gap),
+                Rect.of(x, y + h - stripH, w, stripH)
         };
     }
 
     /**
      * Carves a strip of width {@code stripW} from the right.
+     *
      * @return [0] left remainder, [1] right strip
      */
     public Rect[] splitRight(int stripW, int gap) {
         return new Rect[]{
-            Rect.of(x,                 y, w - stripW - gap, h),
-            Rect.of(x + w - stripW,    y, stripW,           h)
+                Rect.of(x, y, w - stripW - gap, h),
+                Rect.of(x + w - stripW, y, stripW, h)
         };
     }
 
     /**
      * Carves a strip of width {@code stripW} from the left.
+     *
      * @return [0] left strip, [1] right remainder
      */
     public Rect[] splitLeft(int stripW, int gap) {
         return new Rect[]{
-            Rect.of(x,              y, stripW,           h),
-            Rect.of(x + stripW + gap, y, w - stripW - gap, h)
+                Rect.of(x, y, stripW, h),
+                Rect.of(x + stripW + gap, y, w - stripW - gap, h)
         };
     }
 
     /**
      * Splits into two equal halves vertically (top / bottom) separated by {@code gap}.
      * The top half absorbs any odd pixel.
+     *
      * @return [0] top half, [1] bottom half
      */
     public Rect[] halves(int gap) {
         int h1 = (h - gap) / 2;
         int h2 = h - h1 - gap;
         return new Rect[]{
-            Rect.of(x, y,               w, h1),
-            Rect.of(x, y + h1 + gap,    w, h2)
+                Rect.of(x, y, w, h1),
+                Rect.of(x, y + h1 + gap, w, h2)
         };
     }
 
     // ── Padding / repositioning ───────────────────────────────────────────────
 
-    /** Shrinks all four sides by {@code px}. */
+    /**
+     * Shrinks all four sides by {@code px}.
+     */
     public Rect pad(int px) {
         return Rect.of(x + px, y + px, w - 2 * px, h - 2 * px);
     }
@@ -106,7 +115,9 @@ public record Rect(int x, int y, int w, int h) {
 
     // ── Conversion ────────────────────────────────────────────────────────────
 
-    /** Converts to a {@link WidgetBounds} for use with overlay widgets. */
+    /**
+     * Converts to a {@link WidgetBounds} for use with overlay widgets.
+     */
     public WidgetBounds toWidgetBounds() {
         return new WidgetBounds(x, y, w, h);
     }

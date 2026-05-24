@@ -1,12 +1,12 @@
 package com.sanhiruzu.ami.client;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.item.ItemStack;
-import com.mojang.blaze3d.platform.InputConstants;
 import org.lwjgl.glfw.GLFW;
 
 /**
@@ -14,14 +14,18 @@ import org.lwjgl.glfw.GLFW;
  */
 public class AmiKeybindHandler {
 
-    /** Toggled by DEBUG_TOOLTIPS keybind. Persists until toggled off or the panel closes. */
+    /**
+     * Toggled by DEBUG_TOOLTIPS keybind. Persists until toggled off or the panel closes.
+     */
     private static boolean debugTooltipsActive = false;
 
     public static boolean isDebugTooltipsActive() {
         return debugTooltipsActive;
     }
 
-    /** Call when the AMI panel is hidden so debug mode doesn't linger across sessions. */
+    /**
+     * Call when the AMI panel is hidden so debug mode doesn't linger across sessions.
+     */
     public static void resetDebugTooltips() {
         debugTooltipsActive = false;
     }

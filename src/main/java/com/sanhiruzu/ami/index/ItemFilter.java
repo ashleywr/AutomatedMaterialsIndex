@@ -9,18 +9,15 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.loading.FMLLoader;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Utility for filtering items based on creative-tab membership and mod configuration.
  * Side-safe: logic that depends on ClientLevel is deferred to a nested class.
  */
 public final class ItemFilter {
-    public record CreativeTabInfo(String id, String label) {}
+    public record CreativeTabInfo(String id, String label) {
+    }
 
     public static final String ACCESS_SURVIVAL = "survival";
     public static final String ACCESS_CREATIVE = "creative";
@@ -57,7 +54,8 @@ public final class ItemFilter {
                 try {
                     ItemStack stack = holder.value().getResultItem(level.registryAccess());
                     if (!stack.isEmpty()) items.add(stack.getItem());
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
         } catch (Exception e) {
             AMI.LOGGER.warn("AMI: Could not build recipe output set — recipe filter disabled. ({})", e.getMessage());
@@ -70,11 +68,12 @@ public final class ItemFilter {
 
         // Explicitly hidden/technical items are always dev-only
         if (path.contains("debug") || path.contains("test_") || path.contains("fireball")
-            || path.contains("effect") || path.contains("particle")) return ACCESS_DEV;
+                || path.contains("effect") || path.contains("particle")) return ACCESS_DEV;
 
         // Special restricted items
         if (path.endsWith("_egg") || path.contains("spawner")) return ACCESS_CREATIVE;
-        if (path.contains("command_block") || path.equals("structure_block") || path.equals("barrier")) return ACCESS_CHEAT;
+        if (path.contains("command_block") || path.equals("structure_block") || path.equals("barrier"))
+            return ACCESS_CHEAT;
 
         // Items not in creative tabs get ACCESS_DEV by default, but this can be overridden
         if (!inCreative) return ACCESS_DEV;
@@ -94,9 +93,12 @@ public final class ItemFilter {
         };
     }
 
-    private ItemFilter() {}
+    private ItemFilter() {
+    }
 
-    /** Internal class to prevent ClientLevel class loading on Dedicated Server. */
+    /**
+     * Internal class to prevent ClientLevel class loading on Dedicated Server.
+     */
     private static class ClientItemFilter {
         private static Map<Item, CreativeTabInfo> buildCreativeTabMap(net.minecraft.world.level.Level level) {
             if (!(level instanceof net.minecraft.client.multiplayer.ClientLevel clientLevel)) {
@@ -105,7 +107,7 @@ public final class ItemFilter {
             Map<Item, CreativeTabInfo> items = new LinkedHashMap<>();
             try {
                 var params = new CreativeModeTab.ItemDisplayParameters(
-                    clientLevel.enabledFeatures(), false, clientLevel.registryAccess()
+                        clientLevel.enabledFeatures(), false, clientLevel.registryAccess()
                 );
                 for (CreativeModeTab tab : BuiltInRegistries.CREATIVE_MODE_TAB) {
                     CreativeModeTab.Type type = tab.getType();

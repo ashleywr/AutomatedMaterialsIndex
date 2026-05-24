@@ -11,9 +11,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class RecipeDisplayHelper {
-    private RecipeDisplayHelper() {}
+    private RecipeDisplayHelper() {
+    }
 
-    public record SlotPosition(int x, int y, List<ItemStack> alternatives) {}
+    public record SlotPosition(int x, int y, List<ItemStack> alternatives) {
+    }
 
     public record RecipeLayout(
             ResourceLocation recipeId,
@@ -36,7 +38,8 @@ public final class RecipeDisplayHelper {
             int bgRenderX,
             int bgRenderY,
             boolean drawSlotBackground
-    ) {}
+    ) {
+    }
 
     public static RecipeLayout getLayout(RecipeHolder<?> entry, net.minecraft.core.RegistryAccess registryAccess) {
         Recipe<?> recipe = entry.value();
@@ -59,8 +62,12 @@ public final class RecipeDisplayHelper {
         if (type == RecipeType.CRAFTING) {
             shapeless = !(recipe instanceof ShapedRecipe);
             backgroundTexture = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/crafting_table.png");
-            bgX = 29; bgY = 16; bgW = 116; bgH = 54;
-            bgRenderX = 20; bgRenderY = 4;
+            bgX = 29;
+            bgY = 16;
+            bgW = 116;
+            bgH = 54;
+            bgRenderX = 20;
+            bgRenderY = 4;
             drawSlotBackground = false;
 
             List<Ingredient> ingredients = recipe.getIngredients();
@@ -95,7 +102,8 @@ public final class RecipeDisplayHelper {
                 inputs.add(new SlotPosition(bgRenderX + col * 18 + 1, bgRenderY + row * 18 + 1, alternatives));
             }
 
-            gridW = 3; gridH = 3;
+            gridW = 3;
+            gridH = 3;
             arrowX = bgRenderX + 61;
             arrowY = bgRenderY + 19;
             outputX = bgRenderX + 95;
@@ -103,8 +111,12 @@ public final class RecipeDisplayHelper {
 
         } else if (isFurnaceType(type)) {
             backgroundTexture = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/furnace.png");
-            bgX = 55; bgY = 16; bgW = 82; bgH = 54;
-            bgRenderX = 36; bgRenderY = 4;
+            bgX = 55;
+            bgY = 16;
+            bgW = 82;
+            bgH = 54;
+            bgRenderX = 36;
+            bgRenderY = 4;
             drawSlotBackground = false;
 
             List<Ingredient> ingredients = recipe.getIngredients();
@@ -115,7 +127,8 @@ public final class RecipeDisplayHelper {
             }
             inputs.add(new SlotPosition(bgRenderX + 1, bgRenderY + 37, List.of()));
 
-            gridW = 1; gridH = 2;
+            gridW = 1;
+            gridH = 2;
             arrowX = bgRenderX + 24;
             arrowY = bgRenderY + 18;
             outputX = bgRenderX + 61;
@@ -123,8 +136,12 @@ public final class RecipeDisplayHelper {
 
         } else if (type == RecipeType.SMITHING) {
             backgroundTexture = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/smithing.png");
-            bgX = 7; bgY = 47; bgW = 116; bgH = 26;
-            bgRenderX = 20; bgRenderY = 18;
+            bgX = 7;
+            bgY = 47;
+            bgW = 116;
+            bgH = 26;
+            bgRenderX = 20;
+            bgRenderY = 18;
             drawSlotBackground = false;
 
             List<Ingredient> ingredients = recipe.getIngredients();
@@ -133,7 +150,8 @@ public final class RecipeDisplayHelper {
                 inputs.add(new SlotPosition(bgRenderX + i * 18 + 1, bgRenderY + 1, ing.isEmpty() ? List.of() : List.of(ing.getItems())));
             }
 
-            gridW = 3; gridH = 1;
+            gridW = 3;
+            gridH = 1;
             arrowX = bgRenderX + 61;
             arrowY = bgRenderY;
             outputX = bgRenderX + 91;
@@ -141,8 +159,12 @@ public final class RecipeDisplayHelper {
 
         } else if (type == RecipeType.STONECUTTING) {
             backgroundTexture = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/stonecutter.png");
-            bgX = 19; bgY = 32; bgW = 142; bgH = 20;
-            bgRenderX = 10; bgRenderY = 18;
+            bgX = 19;
+            bgY = 32;
+            bgW = 142;
+            bgH = 20;
+            bgRenderX = 10;
+            bgRenderY = 18;
             drawSlotBackground = false;
 
             List<Ingredient> ingredients = recipe.getIngredients();
@@ -150,7 +172,8 @@ public final class RecipeDisplayHelper {
                 inputs.add(new SlotPosition(bgRenderX + 1, bgRenderY + 1, List.of(ingredients.get(0).getItems())));
             }
 
-            gridW = 1; gridH = 1;
+            gridW = 1;
+            gridH = 1;
             arrowX = bgRenderX + 68;
             arrowY = bgRenderY + 1;
             outputX = bgRenderX + 124;
@@ -158,8 +181,12 @@ public final class RecipeDisplayHelper {
 
         } else if (type.toString().equals("ami:brewing")) {
             backgroundTexture = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/brewing_stand.png");
-            bgX = 16; bgY = 14; bgW = 103; bgH = 61;
-            bgRenderX = 28; bgRenderY = 4;
+            bgX = 16;
+            bgY = 14;
+            bgW = 103;
+            bgH = 61;
+            bgRenderX = 28;
+            bgRenderY = 4;
             drawSlotBackground = false;
 
             if (recipe instanceof com.sanhiruzu.ami.index.special.PotionBrewingRecipe pbr) {
@@ -168,7 +195,8 @@ public final class RecipeDisplayHelper {
             }
             inputs.add(new SlotPosition(bgRenderX, bgRenderY + 2, List.of()));
 
-            gridW = 1; gridH = 1;
+            gridW = 1;
+            gridH = 1;
             arrowX = bgRenderX + 44;
             arrowY = bgRenderY + 30;
             outputX = bgRenderX + 85;
@@ -176,8 +204,12 @@ public final class RecipeDisplayHelper {
 
         } else if (type.toString().equals("ami:grinding")) {
             backgroundTexture = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/grindstone.png");
-            bgX = 30; bgY = 15; bgW = 116; bgH = 56;
-            bgRenderX = 20; bgRenderY = 4;
+            bgX = 30;
+            bgY = 15;
+            bgW = 116;
+            bgH = 56;
+            bgRenderX = 20;
+            bgRenderY = 4;
             drawSlotBackground = false;
 
             if (recipe instanceof com.sanhiruzu.ami.index.special.GrindstoneRepairRecipe grr) {
@@ -185,7 +217,8 @@ public final class RecipeDisplayHelper {
                 inputs.add(new SlotPosition(bgRenderX + 18, bgRenderY + 24, List.of(grr.getTool2())));
             }
 
-            gridW = 1; gridH = 2;
+            gridW = 1;
+            gridH = 2;
             arrowX = bgRenderX + 50;
             arrowY = bgRenderY + 18;
             outputX = bgRenderX + 98;
@@ -193,8 +226,12 @@ public final class RecipeDisplayHelper {
 
         } else if (type.toString().equals("ami:anvil_repairing")) {
             backgroundTexture = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/anvil.png");
-            bgX = 26; bgY = 46; bgW = 126; bgH = 20;
-            bgRenderX = 16; bgRenderY = 18;
+            bgX = 26;
+            bgY = 46;
+            bgW = 126;
+            bgH = 20;
+            bgRenderX = 16;
+            bgRenderY = 18;
             drawSlotBackground = false;
 
             if (recipe instanceof com.sanhiruzu.ami.index.special.AnvilRepairRecipe arr) {
@@ -202,7 +239,8 @@ public final class RecipeDisplayHelper {
                 inputs.add(new SlotPosition(bgRenderX + 50, bgRenderY + 1, List.of(arr.getMaterial().getItems())));
             }
 
-            gridW = 2; gridH = 1;
+            gridW = 2;
+            gridH = 1;
             arrowX = bgRenderX + 76;
             arrowY = bgRenderY;
             outputX = bgRenderX + 108;
@@ -214,7 +252,8 @@ public final class RecipeDisplayHelper {
                 inputs.add(new SlotPosition(20, 18, List.of(cr.getStack())));
             }
 
-            gridW = 1; gridH = 1;
+            gridW = 1;
+            gridH = 1;
             arrowX = 56;
             arrowY = 18;
             outputX = 92;
@@ -226,7 +265,8 @@ public final class RecipeDisplayHelper {
                 inputs.add(new SlotPosition(36, 18, List.of(fr.getStack())));
             }
 
-            gridW = 1; gridH = 1;
+            gridW = 1;
+            gridH = 1;
             arrowX = 36; // Keep the same to avoid offsets
             arrowY = 18;
             outputX = 36;
@@ -234,15 +274,20 @@ public final class RecipeDisplayHelper {
 
         } else if (type.toString().equals("ami:disenchanting")) {
             backgroundTexture = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/grindstone.png");
-            bgX = 30; bgY = 15; bgW = 116; bgH = 56;
-            bgRenderX = 20; bgRenderY = 4;
+            bgX = 30;
+            bgY = 15;
+            bgW = 116;
+            bgH = 56;
+            bgRenderX = 20;
+            bgRenderY = 4;
             drawSlotBackground = false;
 
             if (recipe instanceof com.sanhiruzu.ami.index.special.GrindstoneDisenchantingRecipe gdr) {
                 inputs.add(new SlotPosition(bgRenderX + 18, bgRenderY + 3, List.of(gdr.getEnchanted())));
             }
 
-            gridW = 1; gridH = 1;
+            gridW = 1;
+            gridH = 1;
             arrowX = bgRenderX + 50;
             arrowY = bgRenderY + 18;
             outputX = bgRenderX + 98;
@@ -250,8 +295,12 @@ public final class RecipeDisplayHelper {
 
         } else if (type.toString().equals("ami:enchanting")) {
             backgroundTexture = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/anvil.png");
-            bgX = 26; bgY = 46; bgW = 126; bgH = 20;
-            bgRenderX = 16; bgRenderY = 18;
+            bgX = 26;
+            bgY = 46;
+            bgW = 126;
+            bgH = 20;
+            bgRenderX = 16;
+            bgRenderY = 18;
             drawSlotBackground = false;
 
             if (recipe instanceof com.sanhiruzu.ami.index.special.AnvilEnchantingRecipe aer) {
@@ -259,7 +308,8 @@ public final class RecipeDisplayHelper {
                 inputs.add(new SlotPosition(bgRenderX + 50, bgRenderY + 1, List.of(aer.getBook())));
             }
 
-            gridW = 2; gridH = 1;
+            gridW = 2;
+            gridH = 1;
             arrowX = bgRenderX + 76;
             arrowY = bgRenderY;
             outputX = bgRenderX + 108;
@@ -370,7 +420,8 @@ public final class RecipeDisplayHelper {
         try {
             ItemStack icon = recipe.getToastSymbol();
             if (icon != null && !icon.isEmpty()) return icon;
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return ItemStack.EMPTY;
     }
 
@@ -418,8 +469,10 @@ public final class RecipeDisplayHelper {
 
         String tStr = type.toString();
         if (tStr.equals("ami:brewing")) return new ItemStack(net.minecraft.world.item.Items.BREWING_STAND);
-        if (tStr.equals("ami:grinding") || tStr.equals("ami:disenchanting")) return new ItemStack(net.minecraft.world.item.Items.GRINDSTONE);
-        if (tStr.equals("ami:anvil_repairing") || tStr.equals("ami:enchanting")) return new ItemStack(net.minecraft.world.item.Items.ANVIL);
+        if (tStr.equals("ami:grinding") || tStr.equals("ami:disenchanting"))
+            return new ItemStack(net.minecraft.world.item.Items.GRINDSTONE);
+        if (tStr.equals("ami:anvil_repairing") || tStr.equals("ami:enchanting"))
+            return new ItemStack(net.minecraft.world.item.Items.ANVIL);
         if (tStr.equals("ami:composting")) return new ItemStack(net.minecraft.world.item.Items.COMPOSTER);
         if (tStr.equals("ami:fuel")) return new ItemStack(net.minecraft.world.item.Items.COAL);
 
@@ -440,7 +493,8 @@ public final class RecipeDisplayHelper {
 
         String tStr = type.toString();
         if (tStr.equals("ami:brewing")) return List.of(new ItemStack(net.minecraft.world.item.Items.BREWING_STAND));
-        if (tStr.equals("ami:grinding") || tStr.equals("ami:disenchanting")) return List.of(new ItemStack(net.minecraft.world.item.Items.GRINDSTONE));
+        if (tStr.equals("ami:grinding") || tStr.equals("ami:disenchanting"))
+            return List.of(new ItemStack(net.minecraft.world.item.Items.GRINDSTONE));
         if (tStr.equals("ami:anvil_repairing") || tStr.equals("ami:enchanting")) return List.of(
                 new ItemStack(net.minecraft.world.item.Items.ANVIL),
                 new ItemStack(net.minecraft.world.item.Items.CHIPPED_ANVIL),

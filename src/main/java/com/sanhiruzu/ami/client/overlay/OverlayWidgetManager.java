@@ -4,13 +4,17 @@ import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.config.AmiConfig;
-import com.sanhiruzu.ami.index.*;
+import com.sanhiruzu.ami.index.AmiIndexerService;
+import com.sanhiruzu.ami.index.GlobalIndex;
+import com.sanhiruzu.ami.index.NodeType;
+import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.neoforged.neoforge.client.event.ScreenEvent;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -559,9 +563,17 @@ public class OverlayWidgetManager {
         pendingEmiReinit = true;
     }
 
-    public boolean isPanelVisible() { return panelVisible; }
-    public void setPanelVisible(boolean visible) { if (visible != panelVisible) togglePanelVisible(); }
-    public WidgetBounds getResultsBounds() { return lastResultsBounds; }
+    public boolean isPanelVisible() {
+        return panelVisible;
+    }
+
+    public void setPanelVisible(boolean visible) {
+        if (visible != panelVisible) togglePanelVisible();
+    }
+
+    public WidgetBounds getResultsBounds() {
+        return lastResultsBounds;
+    }
 
     /**
      * Returns bounds of all visible AMI panels and widgets so recipe viewers can avoid overlapping them.
@@ -581,17 +593,59 @@ public class OverlayWidgetManager {
         return bounds;
     }
 
-    public AmiButtonWidget getAmiButton() { ensureWidgets(); return amiButton; }
-    public SearchBarWidget getSearchBar() { ensureWidgets(); return searchBar; }
-    public ResultsPanelWidget getResultsPanel() { ensureWidgets(); return getSlot(rightSlotPool, 0, false).results; }
-    public ResultsPanelWidget getLeftResultsPanel() { ensureWidgets(); return getSlot(leftSlotPool, 0, true).results; }
-    public ResultsPanelWidget getLeftResultsPanelSecondary() { ensureWidgets(); return getSlot(leftSlotPool, 1, true).results; }
-    public ResultsPanelWidget getRightResultsPanelSecondary() { ensureWidgets(); return getSlot(rightSlotPool, 1, false).results; }
-    public ResultsPanelWidget getRightResultsPanel() { return getResultsPanel(); }
-    public SidebarPanelWidget getLeftPanel() { ensureWidgets(); return getSlot(leftSlotPool, 0, true).sidebar; }
-    public SidebarPanelWidget getLeftPanelSecondary() { ensureWidgets(); return getSlot(leftSlotPool, 1, true).sidebar; }
-    public SidebarPanelWidget getRightPanelPrimary() { ensureWidgets(); return getSlot(rightSlotPool, 0, false).sidebar; }
-    public SidebarPanelWidget getRightPanelSecondary() { ensureWidgets(); return getSlot(rightSlotPool, 1, false).sidebar; }
+    public AmiButtonWidget getAmiButton() {
+        ensureWidgets();
+        return amiButton;
+    }
+
+    public SearchBarWidget getSearchBar() {
+        ensureWidgets();
+        return searchBar;
+    }
+
+    public ResultsPanelWidget getResultsPanel() {
+        ensureWidgets();
+        return getSlot(rightSlotPool, 0, false).results;
+    }
+
+    public ResultsPanelWidget getLeftResultsPanel() {
+        ensureWidgets();
+        return getSlot(leftSlotPool, 0, true).results;
+    }
+
+    public ResultsPanelWidget getLeftResultsPanelSecondary() {
+        ensureWidgets();
+        return getSlot(leftSlotPool, 1, true).results;
+    }
+
+    public ResultsPanelWidget getRightResultsPanelSecondary() {
+        ensureWidgets();
+        return getSlot(rightSlotPool, 1, false).results;
+    }
+
+    public ResultsPanelWidget getRightResultsPanel() {
+        return getResultsPanel();
+    }
+
+    public SidebarPanelWidget getLeftPanel() {
+        ensureWidgets();
+        return getSlot(leftSlotPool, 0, true).sidebar;
+    }
+
+    public SidebarPanelWidget getLeftPanelSecondary() {
+        ensureWidgets();
+        return getSlot(leftSlotPool, 1, true).sidebar;
+    }
+
+    public SidebarPanelWidget getRightPanelPrimary() {
+        ensureWidgets();
+        return getSlot(rightSlotPool, 0, false).sidebar;
+    }
+
+    public SidebarPanelWidget getRightPanelSecondary() {
+        ensureWidgets();
+        return getSlot(rightSlotPool, 1, false).sidebar;
+    }
 
     private static final class PanelSlot {
         final ResultsPanelWidget results = new ResultsPanelWidget();

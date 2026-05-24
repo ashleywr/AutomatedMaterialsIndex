@@ -17,7 +17,9 @@ public class FallbackTextRenderer implements IIconRenderer {
         renderFallback(g, node, x, y, size);
     }
 
-    /** Static helper so other renderers can delegate without holding an instance. */
+    /**
+     * Static helper so other renderers can delegate without holding an instance.
+     */
     public static void renderFallback(GuiGraphics g, SearchNode node, int x, int y, int size) {
         int bg = AmiConfig.devMode ? AMITheme.FALLBACK_BG_DEV : bgFor(node);
         g.fill(x, y, x + size, y + size, bg);
@@ -42,12 +44,12 @@ public class FallbackTextRenderer implements IIconRenderer {
             return AMITheme.BLACK | (r << 16) | (gv << 8) | b;
         }
         return switch (node.type()) {
-            case ENTITY    -> AMITheme.FALLBACK_BG_ENTITY;
-            case PLAYER    -> AMITheme.FALLBACK_BG_PLAYER;
-            case BIOME     -> AMITheme.FALLBACK_BG_BIOME;
+            case ENTITY -> AMITheme.FALLBACK_BG_ENTITY;
+            case PLAYER -> AMITheme.FALLBACK_BG_PLAYER;
+            case BIOME -> AMITheme.FALLBACK_BG_BIOME;
             case STRUCTURE -> AMITheme.FALLBACK_BG_STRUCTURE;
             case DIMENSION -> AMITheme.FALLBACK_BG_DIMENSION;
-            default        -> AMITheme.FALLBACK_BG_DEFAULT;
+            default -> AMITheme.FALLBACK_BG_DEFAULT;
         };
     }
 

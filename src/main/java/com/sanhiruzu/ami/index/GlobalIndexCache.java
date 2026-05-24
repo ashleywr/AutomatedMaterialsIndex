@@ -35,7 +35,8 @@ public final class GlobalIndexCache {
             .create();
     private static final String CACHE_DIR = "config/ami/cache";
 
-    private GlobalIndexCache() {}
+    private GlobalIndexCache() {
+    }
 
     /**
      * Try to load cache. Returns true if successful, false if cache miss or error.
@@ -74,6 +75,7 @@ public final class GlobalIndexCache {
     /**
      * Try cache load first; if miss, run full indexing and save to cache.
      * Deferred structure/dimension indexing still runs regardless of cache hit.
+     *
      * @deprecated Use loadOrIndexAsync for non-blocking load.
      */
     @Deprecated
@@ -88,25 +90,25 @@ public final class GlobalIndexCache {
      * Async entry point. Captures level reference on calling (render) thread,
      * then dispatches background work.
      *
-     * @param level         captured on render thread before returning
-     * @param onComplete    scheduled back on render thread when indexing is done
+     * @param level      captured on render thread before returning
+     * @param onComplete scheduled back on render thread when indexing is done
      * @return future that completes when indexing is done
      */
     public static CompletableFuture<Void> loadOrIndexAsync(ClientLevel level, Runnable onComplete) {
         return CompletableFuture
-            .runAsync(() -> {
-                GroupingEngine.initialize(level);
-                if (!tryLoad()) {
-                    ProviderRegistry.indexAll(level);
-                    save();
-                } else {
-                    // Index data restored from cache, but per-session ItemStacks for synthetic
-                    // nodes (potions, enchanted books, etc.) are not serialized. Rebuild them.
-                    ProviderRegistry.rehydrateSubtypeStacks(level);
-                }
-                GlobalIndex.getInstance().markIndexReady();
-            }, Util.backgroundExecutor())
-            .thenRunAsync(onComplete, cmd -> Minecraft.getInstance().execute(cmd));
+                .runAsync(() -> {
+                    GroupingEngine.initialize(level);
+                    if (!tryLoad()) {
+                        ProviderRegistry.indexAll(level);
+                        save();
+                    } else {
+                        // Index data restored from cache, but per-session ItemStacks for synthetic
+                        // nodes (potions, enchanted books, etc.) are not serialized. Rebuild them.
+                        ProviderRegistry.rehydrateSubtypeStacks(level);
+                    }
+                    GlobalIndex.getInstance().markIndexReady();
+                }, Util.backgroundExecutor())
+                .thenRunAsync(onComplete, cmd -> Minecraft.getInstance().execute(cmd));
     }
 
     private static Path resolveCacheFile() {

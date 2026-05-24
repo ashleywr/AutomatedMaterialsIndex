@@ -7,5 +7,6 @@ import net.minecraft.client.gui.GuiGraphics;
  */
 public abstract class AmiConfigEntry {
     public abstract void render(GuiGraphics graphics, int x, int y, int width);
+
     public abstract int getHeight();
 }

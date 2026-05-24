@@ -3,9 +3,10 @@ package com.sanhiruzu.ami.index.providers;
 import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.index.*;
 import net.minecraft.client.Minecraft;
-import net.minecraft.world.level.Level;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,8 +40,8 @@ public class StructureProvider implements IAmiDataProvider {
                 meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, AmiOntology.ENVIRONMENT.id);
                 meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "structures");
                 nodes.add(new SearchNode(id, NodeType.STRUCTURE,
-                    RegistryUtils.formatPathWithSuffix(id.getPath(), "Structure"),
-                    0xFF888888, 0, meta));
+                        RegistryUtils.formatPathWithSuffix(id.getPath(), "Structure"),
+                        0xFF888888, 0, meta));
             });
             found = !nodes.isEmpty();
         }
@@ -60,8 +61,8 @@ public class StructureProvider implements IAmiDataProvider {
                         meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, AmiOntology.ENVIRONMENT.id);
                         meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "structures");
                         nodes.add(new SearchNode(id, NodeType.STRUCTURE,
-                            RegistryUtils.formatPathWithSuffix(id.getPath(), "Structure"),
-                            0xFF888888, 0, meta));
+                                RegistryUtils.formatPathWithSuffix(id.getPath(), "Structure"),
+                                0xFF888888, 0, meta));
                     });
                     found = !nodes.isEmpty();
                     AMI.LOGGER.info("Structure registry found on server with {} entries", nodes.size());

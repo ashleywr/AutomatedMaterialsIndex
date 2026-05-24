@@ -6,7 +6,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeType;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
 /**
@@ -51,7 +53,8 @@ public class EmiIntegrationLoader {
                     try {
                         Object name = cat.getClass().getMethod("getName").invoke(cat);
                         catName = (String) name.getClass().getMethod("getString").invoke(name);
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
                 }
 
                 RecipeType<?> type = getEmiCategoryType.apply(catId, catName);
@@ -64,7 +67,8 @@ public class EmiIntegrationLoader {
                             ItemStack iconStack = (ItemStack) icon.getClass().getMethod("getItemStack").invoke(icon);
                             setEmiCategoryIcon.accept(type, iconStack);
                         }
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
                 }
 
                 // Index recipes
@@ -73,31 +77,31 @@ public class EmiIntegrationLoader {
                         // Create CapturedRecipe wrapper
                         Class<?> capturedClass = Class.forName(CAPTURED_RECIPE_CLASS);
                         Object wrapper = capturedClass.getConstructor(Object.class, RecipeType.class)
-                            .newInstance(capturedObj, type);
+                                .newInstance(capturedObj, type);
 
                         // Get recipe ID
                         ResourceLocation recipeId = (ResourceLocation) capturedObj.getClass()
-                            .getMethod("recipeId").invoke(capturedObj);
+                                .getMethod("recipeId").invoke(capturedObj);
 
                         // Create recipe holder
                         @SuppressWarnings("unchecked")
                         RecipeHolder<?> holder = (RecipeHolder<?>) RecipeHolder.class
-                            .getConstructor(ResourceLocation.class, Object.class)
-                            .newInstance(recipeId, wrapper);
+                                .getConstructor(ResourceLocation.class, Object.class)
+                                .newInstance(recipeId, wrapper);
 
                         // Get slots
                         @SuppressWarnings("unchecked")
                         List<?> slots = (List<?>) capturedObj.getClass()
-                            .getMethod("slots").invoke(capturedObj);
+                                .getMethod("slots").invoke(capturedObj);
 
                         // Process each slot
                         for (Object slotObj : slots) {
                             boolean isOutput = (boolean) slotObj.getClass()
-                                .getMethod("isOutput").invoke(slotObj);
+                                    .getMethod("isOutput").invoke(slotObj);
 
                             @SuppressWarnings("unchecked")
                             List<ItemStack> alternatives = (List<ItemStack>) slotObj.getClass()
-                                .getMethod("alternatives").invoke(slotObj);
+                                    .getMethod("alternatives").invoke(slotObj);
 
                             for (ItemStack stack : alternatives) {
                                 if (!stack.isEmpty()) {
@@ -118,7 +122,7 @@ public class EmiIntegrationLoader {
             }
 
             com.sanhiruzu.ami.AMI.LOGGER.info("AMI/EMI bridge: indexed {} captured recipes across {} categories",
-                idCounter, recipesByCat.size());
+                    idCounter, recipesByCat.size());
 
         } catch (ClassNotFoundException ignored) {
             // EMI integration not available

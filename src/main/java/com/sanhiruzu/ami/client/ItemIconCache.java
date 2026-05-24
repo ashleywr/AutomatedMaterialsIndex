@@ -19,13 +19,13 @@ import java.util.Map;
  * Renders each unique item into a 16×16 framebuffer once, then blits the cached texture on
  * subsequent frames — replacing the full 3D model pipeline (per item, per frame) with a
  * single cheap texture blit.
- *
+ * <p>
  * Usage pattern in a render method:
- *   1. Call primeVisible() once before the render loop, passing the GuiGraphics and a list of
- *      all item IDs that will be visible. This flushes pending batches once and populates all
- *      uncached entries in one shot.
- *   2. Call blit() per item inside the loop. Falls back to direct renderItem() on cache miss
- *      (should only occur on the very first frame a given item becomes visible).
+ * 1. Call primeVisible() once before the render loop, passing the GuiGraphics and a list of
+ * all item IDs that will be visible. This flushes pending batches once and populates all
+ * uncached entries in one shot.
+ * 2. Call blit() per item inside the loop. Falls back to direct renderItem() on cache miss
+ * (should only occur on the very first frame a given item becomes visible).
  */
 public class ItemIconCache {
 
@@ -36,7 +36,8 @@ public class ItemIconCache {
     // itemId → RenderTarget (kept alive so the GL texture remains valid)
     private static final Map<ResourceLocation, RenderTarget> renderTargets = new HashMap<>();
 
-    private ItemIconCache() {}
+    private ItemIconCache() {
+    }
 
     public static boolean isCached(ResourceLocation id) {
         return textureKeys.containsKey(id);
@@ -49,7 +50,10 @@ public class ItemIconCache {
     public static void primeVisible(GuiGraphics g, Iterable<Map.Entry<ResourceLocation, ItemStack>> visible) {
         boolean anyUncached = false;
         for (var e : visible) {
-            if (!textureKeys.containsKey(e.getKey())) { anyUncached = true; break; }
+            if (!textureKeys.containsKey(e.getKey())) {
+                anyUncached = true;
+                break;
+            }
         }
         if (!anyUncached) return;
 
@@ -73,7 +77,9 @@ public class ItemIconCache {
         g.blit(texKey, x, y, 0.0f, 0.0f, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
     }
 
-    /** Release all GL resources. Call on world unload and resource-pack reload. */
+    /**
+     * Release all GL resources. Call on world unload and resource-pack reload.
+     */
     public static void invalidate() {
         Minecraft mc = Minecraft.getInstance();
         textureKeys.values().forEach(mc.getTextureManager()::release);
@@ -91,7 +97,8 @@ public class ItemIconCache {
         Matrix4f savedProj = new Matrix4f(RenderSystem.getProjectionMatrix());
 
         // Off-screen framebuffer for this icon.
-        RenderTarget rt = new RenderTarget(true) {};
+        RenderTarget rt = new RenderTarget(true) {
+        };
         rt.resize(ICON_SIZE, ICON_SIZE, Minecraft.ON_OSX);
         rt.setClearColor(0f, 0f, 0f, 0f);
         rt.clear(Minecraft.ON_OSX);
@@ -130,7 +137,8 @@ public class ItemIconCache {
         }
 
         @Override
-        public void load(ResourceManager rm) {}
+        public void load(ResourceManager rm) {
+        }
 
         @Override
         public void close() {

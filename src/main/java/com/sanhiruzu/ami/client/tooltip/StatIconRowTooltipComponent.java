@@ -13,17 +13,17 @@ import net.minecraft.world.item.ItemStack;
  */
 public final class StatIconRowTooltipComponent implements TooltipComponent, ClientTooltipComponent {
 
-    private static final int ICON_SIZE  = 16;
-    private static final int ICON_GAP   = 4;
-    private static final int TOP_PAD    = 3; // gap above row, visually separates from heart bar
+    private static final int ICON_SIZE = 16;
+    private static final int ICON_GAP = 4;
+    private static final int TOP_PAD = 3; // gap above row, visually separates from heart bar
 
     private final ItemStack icon;
     private final String label;
     private final int labelColor;
 
     public StatIconRowTooltipComponent(ItemStack icon, String label, int labelColor) {
-        this.icon       = icon;
-        this.label      = label;
+        this.icon = icon;
+        this.label = label;
         this.labelColor = labelColor;
     }
 

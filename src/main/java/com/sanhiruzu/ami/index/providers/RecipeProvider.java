@@ -1,7 +1,9 @@
 package com.sanhiruzu.ami.index.providers;
 
 import com.sanhiruzu.ami.AMI;
-import com.sanhiruzu.ami.index.*;
+import com.sanhiruzu.ami.index.AmiRecipeIndex;
+import com.sanhiruzu.ami.index.GlobalIndex;
+import com.sanhiruzu.ami.index.IAmiDataProvider;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;

@@ -38,8 +38,14 @@ public class Item {
     }
 
     @Override
-    public String toString() { return name; }
-    public net.minecraft.core.Holder.Reference<Item> builtInRegistryHolder() { return holder; }
+    public String toString() {
+        return name;
+    }
+
+    public net.minecraft.core.Holder.Reference<Item> builtInRegistryHolder() {
+        return holder;
+    }
+
     public net.minecraft.network.chat.Component getName(ItemStack stack) {
         return Component.literal(name);
     }

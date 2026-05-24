@@ -9,7 +9,7 @@ import java.util.OptionalLong;
 
 /**
  * Ordered registry for storage metric adapters.
- *
+ * <p>
  * Generic vanilla/capability rules should stay last. Mod-specific adapters can
  * be registered before them so they win when a storage system needs a custom
  * conversion model.

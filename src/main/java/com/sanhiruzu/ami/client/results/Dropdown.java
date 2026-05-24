@@ -8,12 +8,21 @@ import net.minecraft.client.gui.GuiGraphics;
  */
 public interface Dropdown {
     void updatePosition(int x, int y, int width);
-    /** Renders the button row only (no dropdown list). */
+
+    /**
+     * Renders the button row only (no dropdown list).
+     */
     void render(GuiGraphics g, int mouseX, int mouseY);
-    /** Renders the open dropdown list overlay — call after other content so it appears on top. */
+
+    /**
+     * Renders the open dropdown list overlay — call after other content so it appears on top.
+     */
     void renderList(GuiGraphics g, int mouseX, int mouseY);
+
     boolean mouseClicked(double mouseX, double mouseY, int button);
+
     void close();
+
     boolean isOpen();
 
     static boolean contains(int mx, int my, int rx, int ry, int rw, int rh) {

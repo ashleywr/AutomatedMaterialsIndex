@@ -1,13 +1,11 @@
 package com.sanhiruzu.ami.client.widget;
 
-import com.sanhiruzu.ami.config.AmiConfig;
-import com.sanhiruzu.ami.config.ConfigValue;
 import com.sanhiruzu.ami.config.ConfigColor;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
-import net.minecraft.client.Minecraft;
 
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
@@ -32,7 +30,8 @@ public class AmiWidgetFactory {
                             int newColor = 0xFF000000 | Integer.parseInt(s.substring(1), 16);
                             field.set(null, newColor);
                             onChange.accept(newColor);
-                        } catch (Exception ignored) {}
+                        } catch (Exception ignored) {
+                        }
                     }
                 });
                 return eb;
@@ -44,7 +43,8 @@ public class AmiWidgetFactory {
                         field.setBoolean(null, val);
                         b.setMessage(boolLabel(val));
                         onChange.accept(val);
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
                 }).bounds(0, 0, 72, 18).build();
             } else if (type == int.class) {
                 EditBox eb = new EditBox(mc.font, 0, 0, 72, 18, Component.empty());
@@ -54,7 +54,8 @@ public class AmiWidgetFactory {
                         int val = Integer.parseInt(s);
                         field.setInt(null, val);
                         onChange.accept(val);
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
                 });
                 return eb;
             } else if (type.isEnum()) {
@@ -72,7 +73,8 @@ public class AmiWidgetFactory {
                         field.set(null, next);
                         b.setMessage(enumConstantLabel(next));
                         onChange.accept(next);
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
                 }).bounds(0, 0, 72, 18).build();
             } else {
                 EditBox eb = new EditBox(mc.font, 0, 0, 72, 18, Component.empty());
@@ -82,7 +84,8 @@ public class AmiWidgetFactory {
                     try {
                         field.set(null, s);
                         onChange.accept(s);
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
                 });
                 return eb;
             }
