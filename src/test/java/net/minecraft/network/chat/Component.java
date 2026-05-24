@@ -25,11 +25,34 @@ public interface Component {
 
     class DummyComponent implements MutableComponent {
         private final String text;
-        public DummyComponent(String text) { this.text = text; }
-        @Override public String getString() { return text; }
-        @Override public String toString() { return text; }
-        @Override public MutableComponent copy() { return new DummyComponent(text); }
-        @Override public Style getStyle() { return Style.EMPTY; }
-        @Override public MutableComponent withStyle(java.util.function.UnaryOperator<Style> style) { return this; }
+
+        public DummyComponent(String text) {
+            this.text = text;
+        }
+
+        @Override
+        public String getString() {
+            return text;
+        }
+
+        @Override
+        public String toString() {
+            return text;
+        }
+
+        @Override
+        public MutableComponent copy() {
+            return new DummyComponent(text);
+        }
+
+        @Override
+        public Style getStyle() {
+            return Style.EMPTY;
+        }
+
+        @Override
+        public MutableComponent withStyle(java.util.function.UnaryOperator<Style> style) {
+            return this;
+        }
     }
 }

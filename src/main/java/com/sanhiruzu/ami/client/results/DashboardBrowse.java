@@ -11,7 +11,8 @@ import java.util.List;
 import java.util.Map;
 
 public final class DashboardBrowse {
-    private DashboardBrowse() {}
+    private DashboardBrowse() {
+    }
 
     public static List<TreeNode> buildCategoryNodes(List<AmiOntology.Category> categories,
                                                     java.util.function.Function<String, List<SearchNode>> categoryLookup) {

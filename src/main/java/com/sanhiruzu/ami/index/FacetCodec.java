@@ -4,7 +4,8 @@ import java.util.EnumSet;
 import java.util.StringJoiner;
 
 public final class FacetCodec {
-    private FacetCodec() {}
+    private FacetCodec() {
+    }
 
     public static String encode(EnumSet<ItemFacet> facets) {
         if (facets == null || facets.isEmpty()) return "";

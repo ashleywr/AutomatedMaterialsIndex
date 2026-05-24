@@ -10,7 +10,8 @@ import net.minecraft.client.gui.GuiGraphics;
  */
 public final class AmiGuiIcons {
 
-    private AmiGuiIcons() {}
+    private AmiGuiIcons() {
+    }
 
     // ── Icons ─────────────────────────────────────────────────────────────────
 
@@ -24,7 +25,7 @@ public final class AmiGuiIcons {
         for (int row = 0; row < 3; row++)
             for (int col = 0; col < 3; col++)
                 g.fill(sx + col * 3, sy + row * 3,
-                       sx + col * 3 + 2, sy + row * 3 + 2, color);
+                        sx + col * 3 + 2, sy + row * 3 + 2, color);
     }
 
     /**
@@ -35,14 +36,14 @@ public final class AmiGuiIcons {
      */
     public static void expand(GuiGraphics g, int cx, int cy, int color) {
         // Faint bar colour: same hue, ~40% opacity
-        int a = (int)(((color >>> 24) & 0xFF) * 0.40f);
+        int a = (int) (((color >>> 24) & 0xFF) * 0.40f);
         int barColor = (a << 24) | (color & 0x00FFFFFF);
 
         int sx = cx - 4, sy = cy - 4;
         for (int row = 0; row < 3; row++) {
             int ry = sy + row * 3;
-            g.fill(sx,     ry,     sx + 2, ry + 2, color);    // icon dot  (2×2)
-            g.fill(sx + 3, ry,     sx + 8, ry + 1, barColor); // title bar (5×1, faint)
+            g.fill(sx, ry, sx + 2, ry + 2, color);    // icon dot  (2×2)
+            g.fill(sx + 3, ry, sx + 8, ry + 1, barColor); // title bar (5×1, faint)
         }
     }
 
@@ -54,10 +55,10 @@ public final class AmiGuiIcons {
         int sx = cx - 5, sy = cy - 5;
 
         // Outer ring (8×8 stroked circle, 1px wide)
-        g.fill(sx + 2, sy,     sx + 8, sy + 1, color); // top
+        g.fill(sx + 2, sy, sx + 8, sy + 1, color); // top
         g.fill(sx + 8, sy + 1, sx + 9, sy + 8, color); // right
         g.fill(sx + 1, sy + 8, sx + 8, sy + 9, color); // bottom
-        g.fill(sx,     sy + 2, sx + 1, sy + 8, color); // left
+        g.fill(sx, sy + 2, sx + 1, sy + 8, color); // left
         // Corner rounding
         g.fill(sx + 1, sy + 1, sx + 2, sy + 2, color); // TL
         g.fill(sx + 7, sy + 1, sx + 8, sy + 2, color); // TR
@@ -68,6 +69,6 @@ public final class AmiGuiIcons {
         // Horizontal shaft extending left from the ring opening
         g.fill(sx - 1, sy + 1, sx + 2, sy + 2, color);
         // Tip: a short vertical stroke above the shaft
-        g.fill(sx,     sy,     sx + 1, sy + 2, color);
+        g.fill(sx, sy, sx + 1, sy + 2, color);
     }
 }

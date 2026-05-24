@@ -107,7 +107,8 @@ public final class PrimaryCategoryResolver {
             "pipe", "vein", "sample", "core"
     );
 
-    private PrimaryCategoryResolver() {}
+    private PrimaryCategoryResolver() {
+    }
 
     public static CategoryAssignment resolve(ResourceLocation id, FacetProfile profile) {
         if (id == null) {
@@ -1108,7 +1109,8 @@ public final class PrimaryCategoryResolver {
         String blockShape = attributes.getOrDefault("blockShape", "");
         if (!blockShape.isBlank()) {
             return switch (blockShape) {
-                case "stairs", "slab", "wall", "fence", "pane", "door", "trapdoor", "fence_gate" -> blockShape.equals("fence_gate") ? "fence" : blockShape;
+                case "stairs", "slab", "wall", "fence", "pane", "door", "trapdoor", "fence_gate" ->
+                        blockShape.equals("fence_gate") ? "fence" : blockShape;
                 default -> "full_block";
             };
         }

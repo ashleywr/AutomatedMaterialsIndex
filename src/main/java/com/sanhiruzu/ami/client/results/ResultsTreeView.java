@@ -5,64 +5,70 @@ import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.NodeType;
-import com.sanhiruzu.ami.util.AmiColors;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.util.AmiClipboardHelper;
+import com.sanhiruzu.ami.util.AmiColors;
 import com.sanhiruzu.ami.util.AmiTooltipComposer;
 import net.minecraft.client.Minecraft;
-import org.lwjgl.glfw.GLFW;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.*;
 
 /**
  * "Suginami" rich-card list view.
- *
+ * <p>
  * Each leaf row is 18 px tall:
- *   [X_PAD][16×16 icon][4px][Item Name  (line 1, y+1)   |  badge right-aligned]
- *                            [mod.name   (line 2, y+10)                        ]
- *
+ * [X_PAD][16×16 icon][4px][Item Name  (line 1, y+1)   |  badge right-aligned]
+ * [mod.name   (line 2, y+10)                        ]
+ * <p>
  * Group rows sit at the same 24 px row height and may show up to 3 colour-swatch
  * dots on the right when their children belong to a shared variant group.
  */
 public class ResultsTreeView {
 
     // ── Layout constants ──────────────────────────────────────────────────────
-    private static final int INDENT       = 12;
-    private static final int SCROLLBAR_W  = 5;
+    private static final int INDENT = 12;
+    private static final int SCROLLBAR_W = 5;
     private static final int HEADER_LABEL_H = 16; // height reserved for the optional pinned header (column row)
 
     // Swatch dots for variant collapsing
     private static final int SWATCH_SIZE = 5;
-    private static final int SWATCH_GAP  = 2;
+    private static final int SWATCH_GAP = 2;
     private static final int MAX_SWATCHES = 3;
-    
+
     // Recomputed each frame — 0.75× when guiScale ≥ 3, otherwise 1.0×.
     private float currentLabelScale = 1.0f;
 
     private static float computeLabelScale() {
         return Minecraft.getInstance().getWindow().getGuiScale() >= 3.0 ? 0.75f : 1.0f;
     }
-    
+
     // ── State ─────────────────────────────────────────────────────────────────
     private int x, y, width, height;
     private List<TreeNode> rootNodes = new ArrayList<>();
 
-    /** Cached representative SearchNode per group TreeNode; cleared whenever rootNodes changes. */
+    /**
+     * Cached representative SearchNode per group TreeNode; cleared whenever rootNodes changes.
+     */
     private final Map<TreeNode, SearchNode> representativeCache = new HashMap<>();
 
-    /** Pixel scroll offset — increases as user scrolls down. */
+    /**
+     * Pixel scroll offset — increases as user scrolls down.
+     */
     private int pixelScrollOffset = 0;
 
-    /** Height of the scrollable content area (height minus any sticky header). Updated each render. */
+    /**
+     * Height of the scrollable content area (height minus any sticky header). Updated each render.
+     */
     private int lastContentH = 0;
 
     private boolean scrollbarDragging = false;
@@ -170,7 +176,7 @@ public class ResultsTreeView {
 
         int contentH = height - topOffset;
         lastContentH = contentH;
-        int totalH   = countAllNodes() * AMITheme.ROW_HEIGHT;
+        int totalH = countAllNodes() * AMITheme.ROW_HEIGHT;
         clampScroll(totalH, contentH);
 
         g.enableScissor(x + 2, y + topOffset, x + width - 2, y + height - 2);
@@ -194,13 +200,16 @@ public class ResultsTreeView {
         }
     }
 
-    /** Backwards-compatible overload used when no section label is needed. */
+    /**
+     * Backwards-compatible overload used when no section label is needed.
+     */
     public void render(GuiGraphics g, int mouseX, int mouseY, boolean toolbarDropdownOpen, SearchState state) {
         render(g, mouseX, mouseY, toolbarDropdownOpen, (Component) null, state);
     }
 
     /**
      * Renders one node and its children. Returns the next row index to use.
+     *
      * @param originY  top of the scrollable content region (y + topOffset)
      * @param contentH height of the scrollable content region
      */
@@ -233,8 +242,8 @@ public class ResultsTreeView {
 
             // 1px separator at the bottom of every row
             g.fill(x + 3, drawY + AMITheme.ROW_HEIGHT - 1,
-                   x + width - SCROLLBAR_W - 3, drawY + AMITheme.ROW_HEIGHT,
-                   AMITheme.ROW_SEPARATOR);
+                    x + width - SCROLLBAR_W - 3, drawY + AMITheme.ROW_HEIGHT,
+                    AMITheme.ROW_SEPARATOR);
         }
 
         rowIdx++;
@@ -260,7 +269,7 @@ public class ResultsTreeView {
         // Z-lift prevents dark-background clipping on 3D item models
         g.pose().pushPose();
         g.pose().translate(iconX + 8, iconY + 8, 150);
-        
+
         boolean dragging = com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging();
         if (dragging || hovered) {
             float time = (System.currentTimeMillis() % 1000) / 1000f;
@@ -270,7 +279,7 @@ public class ResultsTreeView {
                 g.pose().mulPose(com.mojang.math.Axis.ZP.rotationDegrees((float) Math.sin(time * Math.PI * 4) * 2f));
             }
         }
-        
+
         RendererRegistry.get(entry.type()).render(g, entry, -8, -8, AMITheme.ICON_SIZE);
         g.pose().popPose();
 
@@ -284,9 +293,9 @@ public class ResultsTreeView {
         // Item name — truncated in font-pixel space (divide screen px by scale),
         // then drawn at reduced scale so long names fit.
         int availScreenPx = maxTextW - badgeW;
-        String name = truncate(font, node.getLabel().getString(), (int)(availScreenPx / currentLabelScale));
+        String name = truncate(font, node.getLabel().getString(), (int) (availScreenPx / currentLabelScale));
 
-        int screenTextY = drawY + (int)((AMITheme.ROW_HEIGHT - font.lineHeight * currentLabelScale) / 2);
+        int screenTextY = drawY + (int) ((AMITheme.ROW_HEIGHT - font.lineHeight * currentLabelScale) / 2);
         g.pose().pushPose();
         g.pose().scale(currentLabelScale, currentLabelScale, 1f);
         g.drawString(font, name,
@@ -303,9 +312,9 @@ public class ResultsTreeView {
                 matched = true;
             }
         }
-        
+
         int modNameColor = matched ? AMITheme.TEXT_HIGHLIGHT : AmiColors.MOD_COLOR;
-        
+
         renderBadges(g, font, entry, drawY, rightEdge, modNameColor, matched);
 
         if (hovered) {
@@ -359,7 +368,8 @@ public class ResultsTreeView {
         if (active.isEmpty()) return;
 
         // Build list of parts that actually have data
-        record BadgePart(RowField field, String text) {}
+        record BadgePart(RowField field, String text) {
+        }
         List<BadgePart> parts = new ArrayList<>();
         for (RowField f : active) {
             String val = f.extract(entry);
@@ -369,7 +379,7 @@ public class ResultsTreeView {
         if (parts.isEmpty()) return;
 
         // Calculate total width and handle truncation if needed
-        int maxGroupW = (int)(width * 0.45);
+        int maxGroupW = (int) (width * 0.45);
         String fullJoined = RowFieldConfig.buildSubtitle(entry);
         if (font.width(fullJoined) > maxGroupW) {
             // If the whole thing is too long, we'll render a single truncated string in subtle color
@@ -385,7 +395,7 @@ public class ResultsTreeView {
             BadgePart part = parts.get(i);
             int color = (part.field == RowField.MOD_NAME) ? modNameColor : AMITheme.TEXT_SUBTLE;
             boolean shadow = (part.field == RowField.MOD_NAME) ? dropShadow : false;
-            
+
             int tw = font.width(part.text);
             g.drawString(font, part.text, currentX - tw, textY, color, shadow);
             currentX -= tw;
@@ -412,10 +422,10 @@ public class ResultsTreeView {
 
         if (!parts.isEmpty()) {
             String joined = String.join(" · ", parts);
-            int maxGroupW = (int)(width * 0.45);
+            int maxGroupW = (int) (width * 0.45);
             w += font.width(truncate(font, joined, maxGroupW)) + 4;
         }
-        
+
         return w;
     }
 
@@ -446,7 +456,7 @@ public class ResultsTreeView {
         String labelStr = node.getLabel().getString();
         int count = node.getItemCountOverride() != -1 ? node.getItemCountOverride() : node.getChildren().size();
         String badge = Component.translatable("ami.gui.badge_count", count).getString();
-        int badgeW = (int)(font.width(badge) * currentLabelScale);
+        int badgeW = (int) (font.width(badge) * currentLabelScale);
         int badgeX = x + width - SCROLLBAR_W - badgeW - 5;
 
         // Color swatches hidden for now — unclear to players, feature not ready
@@ -455,9 +465,9 @@ public class ResultsTreeView {
         // Label (truncated to avoid overlap with swatches and badge)
         int labelRightBound = badgeX - (swatchBlockW > 0 ? swatchBlockW + 8 : 0);
         int labelMaxW = labelRightBound - (rowX + 32) - 4;
-        String label = truncate(font, labelStr, Math.max(0, (int)(labelMaxW / currentLabelScale)));
+        String label = truncate(font, labelStr, Math.max(0, (int) (labelMaxW / currentLabelScale)));
 
-        int screenLabelY = drawY + (int)((AMITheme.ROW_HEIGHT - font.lineHeight * currentLabelScale) / 2);
+        int screenLabelY = drawY + (int) ((AMITheme.ROW_HEIGHT - font.lineHeight * currentLabelScale) / 2);
         g.pose().pushPose();
         g.pose().scale(currentLabelScale, currentLabelScale, 1f);
 
@@ -472,7 +482,7 @@ public class ResultsTreeView {
         g.pose().popPose();
 
         // Render badge at the same scale as the group label — higher contrast for visibility
-        int badgeY = drawY + (int)((AMITheme.ROW_HEIGHT - font.lineHeight * currentLabelScale) / 2);
+        int badgeY = drawY + (int) ((AMITheme.ROW_HEIGHT - font.lineHeight * currentLabelScale) / 2);
         g.pose().pushPose();
         g.pose().scale(currentLabelScale, currentLabelScale, 1f);
         g.drawString(font, badge,
@@ -680,7 +690,9 @@ public class ResultsTreeView {
         return button == 1 && Screen.hasControlDown();
     }
 
-    /** DFS click handler. Returns true when the target row was found and handled. */
+    /**
+     * DFS click handler. Returns true when the target row was found and handled.
+     */
     private boolean handleNodeClick(TreeNode node, int targetRow, int[] counter, double mouseX, int button) {
         if (counter[0] == targetRow) {
             if (node.isLeaf()) {

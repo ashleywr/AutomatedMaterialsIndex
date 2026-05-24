@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami;
 
-import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.client.results.ItemGridView;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;

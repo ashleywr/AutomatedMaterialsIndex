@@ -1,19 +1,18 @@
 package com.sanhiruzu.ami.client;
 
 import com.sanhiruzu.ami.AMI;
-import com.sanhiruzu.ami.index.AmiIndexerService;
-import com.sanhiruzu.ami.config.AmiConfig;
-import com.sanhiruzu.ami.client.overlay.OverlayWidgetManager;
 import com.sanhiruzu.ami.api.AmiApi;
-
+import com.sanhiruzu.ami.client.overlay.OverlayWidgetManager;
+import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.index.AmiIndexerService;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
 
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
 public class InventoryOverlayHandler {
@@ -30,7 +29,9 @@ public class InventoryOverlayHandler {
         return AmiConfig.enableAutoIndexing;
     }
 
-    /** Check if screen is a container screen. Matches EMI's check (HandledScreen equivalent). */
+    /**
+     * Check if screen is a container screen. Matches EMI's check (HandledScreen equivalent).
+     */
     private static boolean isContainerScreen(net.minecraft.client.gui.screens.Screen screen) {
         return screen instanceof AbstractContainerScreen<?>;
     }
@@ -39,10 +40,12 @@ public class InventoryOverlayHandler {
         if (screen instanceof com.sanhiruzu.ami.client.RecipeViewerScreen) return true;
         String name = screen.getClass().getName();
         return name.equals("dev.emi.emi.screen.RecipeScreen")
-            || name.equals("mezz.jei.gui.recipes.RecipesGui");
+                || name.equals("mezz.jei.gui.recipes.RecipesGui");
     }
 
-    /** Screens where AMI renders and handles input. */
+    /**
+     * Screens where AMI renders and handles input.
+     */
     private static boolean isAmiScreen(net.minecraft.client.gui.screens.Screen screen) {
         return isContainerScreen(screen) || isRecipeScreen(screen);
     }
@@ -176,7 +179,8 @@ public class InventoryOverlayHandler {
         if (!isAmiScreen(event.getScreen())) return;
 
         if (manager.mouseDragged(event.getMouseX(), event.getMouseY(), event.getMouseButton(), event.getDragX(), event.getDragY())) {
-            event.setCanceled(true); return;
+            event.setCanceled(true);
+            return;
         }
 
         var searchBar = manager.getSearchBar();

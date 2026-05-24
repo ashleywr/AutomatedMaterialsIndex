@@ -5,7 +5,6 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.util.AmiColors;
-import com.sanhiruzu.ami.util.DistUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.loading.FMLLoader;
 
@@ -22,7 +21,7 @@ public final class PlayerResolver implements IQueryResolver {
     @Override
     public Map<NodeType, List<SearchNode>> resolve(String query) {
         if (!FMLLoader.getDist().isClient()) return Map.of();
-        
+
         return ClientPlayerResolver.resolve(query);
     }
 
@@ -46,12 +45,12 @@ public final class PlayerResolver implements IQueryResolver {
                     ResourceLocation id = ResourceLocation.fromNamespaceAndPath("ami", "player/" + uuidStr);
 
                     matches.add(new SearchNode(
-                        id,
-                        NodeType.PLAYER,
-                        name,
-                        AmiColors.PLAYER_NAME_COLOR,   // blue tint for players
-                        100,          // high searchWeight so players surface first
-                        Map.of(SearchNodeKeys.MOD_ID, "ami", SearchNodeKeys.PLAYER_UUID, uuidStr)
+                            id,
+                            NodeType.PLAYER,
+                            name,
+                            AmiColors.PLAYER_NAME_COLOR,   // blue tint for players
+                            100,          // high searchWeight so players surface first
+                            Map.of(SearchNodeKeys.MOD_ID, "ami", SearchNodeKeys.PLAYER_UUID, uuidStr)
                     ));
                 }
             }

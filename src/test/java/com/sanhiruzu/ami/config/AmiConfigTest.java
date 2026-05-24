@@ -2,9 +2,10 @@ package com.sanhiruzu.ami.config;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
 
 import java.lang.reflect.Field;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class AmiConfigTest {
 

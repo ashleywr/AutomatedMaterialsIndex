@@ -1,8 +1,8 @@
 package com.sanhiruzu.ami.client.overlay;
 
-import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.client.UniversalResultsPanel;
 import com.sanhiruzu.ami.client.results.TreeNode;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.gui.GuiGraphics;
@@ -28,14 +28,14 @@ public class SidebarPanelWidget extends AbstractWidget {
         this.panel.setFavoritesPanel(true); // This tells it to use the smaller icons/sidebar style
         this.panel.setPanelTitle(titleFor(contentType));
         this.panel.setChromeOnly(contentType == AmiConfig.PanelContent.EMPTY);
-        
+
         if (contentType == AmiConfig.PanelContent.LOOKUP_HISTORY) {
             com.sanhiruzu.ami.client.favorites.AmiHistoryHandler.getInstance().setOnChange(this::refresh);
         }
         if (contentType == AmiConfig.PanelContent.QUESTS) {
             com.sanhiruzu.ami.api.AmiQuestsApi.setOnChange(this::refresh);
         }
-        
+
         refresh();
     }
 

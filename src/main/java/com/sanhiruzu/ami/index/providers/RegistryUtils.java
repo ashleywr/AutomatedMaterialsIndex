@@ -14,7 +14,8 @@ import java.util.stream.Collectors;
  * Shared utilities for all data providers.
  */
 public final class RegistryUtils {
-    private RegistryUtils() {}
+    private RegistryUtils() {
+    }
 
     /**
      * Vanilla-first comparator matching the former WorldAtlasIndexer.ENTRY_ORDER.
@@ -22,8 +23,8 @@ public final class RegistryUtils {
      */
     public static final Comparator<SearchNode> ENTRY_ORDER =
             Comparator.comparing((SearchNode n) -> n.id().getNamespace().equals("minecraft") ? 0 : 1)
-                      .thenComparing(n -> n.id().getNamespace())
-                      .thenComparing(SearchNode::displayName);
+                    .thenComparing(n -> n.id().getNamespace())
+                    .thenComparing(SearchNode::displayName);
 
     /**
      * "dark_forest" → "Dark Forest"
@@ -53,8 +54,8 @@ public final class RegistryUtils {
     public static int namespaceColor(String namespace) {
         int hash = namespace.hashCode();
         int r = 128 + ((hash >> 16) & 0x7F);
-        int g = 128 + ((hash >> 8)  & 0x7F);
-        int b = 128 + (hash         & 0x7F);
+        int g = 128 + ((hash >> 8) & 0x7F);
+        int b = 128 + (hash & 0x7F);
         return 0xFF000000 | (r << 16) | (g << 8) | b;
     }
 

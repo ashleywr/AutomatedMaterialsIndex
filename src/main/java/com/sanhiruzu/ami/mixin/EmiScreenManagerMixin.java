@@ -17,13 +17,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * suppression lifts for input when a recipe view is triggered through AMI, allowing the
  * player to interact with the recipe, then re-engages when the recipe is
  * dismissed.
- *
+ * <p>
  * Two-tier suppression:
  * - Chrome (render, widgets, backgrounds): always suppressed when AMI is enabled,
- *   even during recipe view. RecipeScreen renders its own content before calling
- *   EmiScreenManager.render, so recipe content is unaffected.
+ * even during recipe view. RecipeScreen renders its own content before calling
+ * EmiScreenManager.render, so recipe content is unaffected.
  * - Input (mouse, keyboard): suppressed only when no recipe view is active,
- *   so the player can interact with recipe tabs, widgets, and pages.
+ * so the player can interact with recipe tabs, widgets, and pages.
  */
 @Mixin(EmiScreenManager.class)
 public class EmiScreenManagerMixin {
@@ -99,12 +99,16 @@ public class EmiScreenManagerMixin {
 
     // ── Gates ─────────────────────────────────────────────────────────────────
 
-    /** Always suppress EMI chrome rendering when AMI is active, even during recipe view. */
+    /**
+     * Always suppress EMI chrome rendering when AMI is active, even during recipe view.
+     */
     private static boolean shouldSuppressEmiChrome() {
         return InventoryOverlayHandler.isAmiEnabled();
     }
 
-    /** Suppress EMI input only when no recipe view is active — lifted so the player can interact with recipe tabs and widgets. */
+    /**
+     * Suppress EMI input only when no recipe view is active — lifted so the player can interact with recipe tabs and widgets.
+     */
     private static boolean shouldSuppressEmiInput() {
         return InventoryOverlayHandler.isAmiEnabled() && !RecipeViewerBridge.isRecipeViewActive();
     }

@@ -15,14 +15,15 @@ import java.util.*;
 
 /**
  * Shared item grouping classifiers used by indexers and result processors.
- * 
+ * <p>
  * Uses a Tag-Lexical Heuristic to identify shapes and materials without
  * hardcoded lists where possible, allowing it to scale to modded items.
  */
 public class GroupingEngine {
-    public record CollapsedFamily(String key, String label) {}
+    public record CollapsedFamily(String key, String label) {
+    }
 
-    public enum GroupType { SHAPE, COLOR, MATERIAL }
+    public enum GroupType {SHAPE, COLOR, MATERIAL}
 
     private static final List<String> COLOR_BUCKETS = new ArrayList<>(Arrays.asList(
             "light_blue", "light_gray",
@@ -75,8 +76,9 @@ public class GroupingEngine {
                     discoveredColors.add(loc.getPath().substring(5));
                 }
             });
-        } catch (Exception ignored) {}
-        
+        } catch (Exception ignored) {
+        }
+
         COLOR_BUCKETS.clear();
         COLOR_BUCKETS.addAll(discoveredColors);
         COLOR_BUCKETS.sort((a, b) -> {
@@ -93,13 +95,14 @@ public class GroupingEngine {
                     if (shape.length() > 3) DYNAMIC_SHAPE_KEYWORDS.add(shape);
                 }
             });
-        } catch (Exception ignored) {}
-        
+        } catch (Exception ignored) {
+        }
+
         DYNAMIC_SHAPE_KEYWORDS.addAll(Arrays.asList(
-            "stairs", "slab", "wall", "fence", "gate", "door", "trapdoor", "button", "plate",
-            "sign", "bed", "boat", "minecart", "pickaxe", "axe", "shovel", "hoe", "sword",
-            "helmet", "chestplate", "leggings", "boots", "sapling", "leaves", "log", "wood", "planks",
-            "chest_boat", "hanging_sign", "pressure_plate", "bucket", "spawn_egg", "bricks", "block", "ball"
+                "stairs", "slab", "wall", "fence", "gate", "door", "trapdoor", "button", "plate",
+                "sign", "bed", "boat", "minecart", "pickaxe", "axe", "shovel", "hoe", "sword",
+                "helmet", "chestplate", "leggings", "boots", "sapling", "leaves", "log", "wood", "planks",
+                "chest_boat", "hanging_sign", "pressure_plate", "bucket", "spawn_egg", "bricks", "block", "ball"
         ));
 
         if (level == null) return;
@@ -200,7 +203,8 @@ public class GroupingEngine {
                 if (s.isCollisionShapeFullBlock(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, net.minecraft.core.BlockPos.ZERO)) {
                     return "cube";
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
             return "block";
         }
         String dynamic = classifyDynamicModShape(stack);
@@ -261,7 +265,7 @@ public class GroupingEngine {
 
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
         if (id == null) return "";
-        
+
         String path = id.getPath();
         String stripped = stripDynamicShapes(path);
         String noState = stripStatePrefix(stripped);
@@ -330,15 +334,15 @@ public class GroupingEngine {
         for (String keyword : sortedKeywords) {
             if (hasToken(result, keyword)) {
                 result = result.replace("_" + keyword + "_", "_")
-                               .replace(keyword + "_", "")
-                               .replace("_" + keyword, "");
+                        .replace(keyword + "_", "")
+                        .replace("_" + keyword, "");
             }
         }
         // Clean up any double underscores from stripping middle keywords
         while (result.contains("__")) result = result.replace("__", "_");
         if (result.startsWith("_")) result = result.substring(1);
         if (result.endsWith("_")) result = result.substring(0, result.length() - 1);
-        
+
         return result;
     }
 
@@ -364,7 +368,7 @@ public class GroupingEngine {
     }
 
     private static final java.util.Set<String> UNKNOWN_GROUP_MARKERS = java.util.Set.of(
-        "", "item", "minecraft:item", "block"
+            "", "item", "minecraft:item", "block"
     );
 
     private static boolean isUnknownGroup(String key) {
@@ -379,8 +383,10 @@ public class GroupingEngine {
 
         List<Map.Entry<String, List<SearchNode>>> entries = new ArrayList<>(groups.entrySet());
         entries.sort((a, b) -> {
-            String k1 = a.getKey(); String k2 = b.getKey();
-            Integer i1 = orderMap.get(k1); Integer i2 = orderMap.get(k2);
+            String k1 = a.getKey();
+            String k2 = b.getKey();
+            Integer i1 = orderMap.get(k1);
+            Integer i2 = orderMap.get(k2);
             int cmp;
             if (i1 != null && i2 != null) cmp = Integer.compare(i1, i2);
             else if (i1 != null) cmp = -1;
@@ -407,8 +413,10 @@ public class GroupingEngine {
 
         List<Map.Entry<String, List<ItemStack>>> entries = new ArrayList<>(groups.entrySet());
         entries.sort((a, b) -> {
-            String k1 = a.getKey(); String k2 = b.getKey();
-            Integer i1 = orderMap.get(k1); Integer i2 = orderMap.get(k2);
+            String k1 = a.getKey();
+            String k2 = b.getKey();
+            Integer i1 = orderMap.get(k1);
+            Integer i2 = orderMap.get(k2);
             if (i1 != null && i2 != null) return Integer.compare(i1, i2);
             if (i1 != null) return -1;
             if (i2 != null) return 1;

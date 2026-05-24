@@ -12,11 +12,11 @@ import java.util.function.BooleanSupplier;
 
 public class AmiButtonWidget extends AbstractWidget {
 
-    private static final ResourceLocation SPRITE_NORMAL      = ResourceLocation.withDefaultNamespace("widget/button");
-    private static final ResourceLocation SPRITE_HIGHLIGHTED  = ResourceLocation.withDefaultNamespace("widget/button_highlighted");
+    private static final ResourceLocation SPRITE_NORMAL = ResourceLocation.withDefaultNamespace("widget/button");
+    private static final ResourceLocation SPRITE_HIGHLIGHTED = ResourceLocation.withDefaultNamespace("widget/button_highlighted");
 
-    private static final int COLOR_ACTIVE  = AMITheme.BUTTON_ACTIVE; // amber — panel is open
-    private static final int COLOR_HOVER   = AMITheme.BUTTON_HOVER;  // vanilla button hover tint
+    private static final int COLOR_ACTIVE = AMITheme.BUTTON_ACTIVE; // amber — panel is open
+    private static final int COLOR_HOVER = AMITheme.BUTTON_HOVER;  // vanilla button hover tint
 
     private final Runnable onClickCallback;
     private final Runnable onAltClickCallback;
@@ -27,13 +27,13 @@ public class AmiButtonWidget extends AbstractWidget {
         super(2, 0, 22, 20, Component.empty());
         this.onClickCallback = onClick;
         this.onAltClickCallback = onAltClick;
-        this.isPanelVisible  = isPanelVisible;
+        this.isPanelVisible = isPanelVisible;
     }
 
     public void updateBounds(WidgetBounds bounds) {
         setX(bounds.x());
         setY(bounds.y());
-        this.width  = bounds.width();
+        this.width = bounds.width();
         this.height = bounds.height();
     }
 
@@ -44,7 +44,7 @@ public class AmiButtonWidget extends AbstractWidget {
     @Override
     protected void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         boolean panelOpen = isPanelVisible.getAsBoolean();
-        boolean hovered   = isMouseOver(mouseX, mouseY);
+        boolean hovered = isMouseOver(mouseX, mouseY);
 
         // Active (open) or hovered → highlighted sprite; otherwise normal
         ResourceLocation sprite = (panelOpen || hovered) ? SPRITE_HIGHLIGHTED : SPRITE_NORMAL;

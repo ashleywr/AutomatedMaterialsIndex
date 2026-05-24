@@ -10,14 +10,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class MixinConfigTest {
     /**
      * Validates that critical EMI integration mixins are registered.
      * EmiScreenManagerMixin is essential for suppressing EMI's UI (search bar, buttons)
      * when AMI is active. If it's missing, EMI UI will appear unchecked.
-     *
+     * <p>
      * This test prevents regression of the issue where EmiScreenManagerMixin was
      * accidentally removed from ami.mixins.json.
      */
@@ -41,8 +41,8 @@ public class MixinConfigTest {
         }
 
         assertTrue(hasEmiScreenManagerMixin,
-            "EmiScreenManagerMixin must be registered in ami.mixins.json. " +
-            "This mixin suppresses EMI's UI when AMI is active. Without it, EMI buttons and " +
-            "search bar will appear unchecked. Current client mixins: " + clientMixins);
+                "EmiScreenManagerMixin must be registered in ami.mixins.json. " +
+                        "This mixin suppresses EMI's UI when AMI is active. Without it, EMI buttons and " +
+                        "search bar will appear unchecked. Current client mixins: " + clientMixins);
     }
 }

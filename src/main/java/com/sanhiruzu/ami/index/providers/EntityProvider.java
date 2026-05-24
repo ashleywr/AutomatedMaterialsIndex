@@ -2,15 +2,12 @@ package com.sanhiruzu.ami.index.providers;
 
 import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.index.sniffers.EntityDataSniffer;
-import net.minecraft.world.level.Level;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -63,9 +60,9 @@ public class EntityProvider implements IAmiDataProvider {
             }
 
             nodes.add(new SearchNode(
-                id, NodeType.ENTITY,
-                RegistryUtils.formatPath(id.getPath()),
-                RegistryUtils.categoryColor(category), 0, meta));
+                    id, NodeType.ENTITY,
+                    RegistryUtils.formatPath(id.getPath()),
+                    RegistryUtils.categoryColor(category), 0, meta));
         });
 
         nodes.sort(RegistryUtils.ENTRY_ORDER);
@@ -77,10 +74,10 @@ public class EntityProvider implements IAmiDataProvider {
     }
 
     private static final Set<String> NEUTRAL_MOBS = Set.of(
-        "wolf", "bee", "polar_bear", "dolphin", "panda",
-        "llama", "trader_llama", "goat", "iron_golem",
-        "piglin", "zombified_piglin", "enderman",
-        "spider", "cave_spider"
+            "wolf", "bee", "polar_bear", "dolphin", "panda",
+            "llama", "trader_llama", "goat", "iron_golem",
+            "piglin", "zombified_piglin", "enderman",
+            "spider", "cave_spider"
     );
 
     private static String classifyMobSubcategory(String path, MobCategory category) {

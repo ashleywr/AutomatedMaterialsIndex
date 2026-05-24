@@ -33,12 +33,29 @@ public class SearchNode {
         this.metadata = metadata == null ? new HashMap<>() : new HashMap<>(metadata);
     }
 
-    public ResourceLocation id() { return id; }
-    public NodeType type() { return type; }
-    public String displayName() { return displayName; }
-    public int color() { return color; }
-    public int searchWeight() { return searchWeight; }
-    public Map<String, String> metadata() { return Collections.unmodifiableMap(metadata); }
+    public ResourceLocation id() {
+        return id;
+    }
+
+    public NodeType type() {
+        return type;
+    }
+
+    public String displayName() {
+        return displayName;
+    }
+
+    public int color() {
+        return color;
+    }
+
+    public int searchWeight() {
+        return searchWeight;
+    }
+
+    public Map<String, String> metadata() {
+        return Collections.unmodifiableMap(metadata);
+    }
 
     /**
      * Convenience: read a metadata key with a default.

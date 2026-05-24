@@ -1,12 +1,12 @@
 package com.sanhiruzu.ami.client;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.sanhiruzu.ami.client.results.*;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchService;
-import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -38,7 +38,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     private ResultsToolbar toolbar;
     private ResultsTreeView treeView;
-    private ItemGridView    gridView;
+    private ItemGridView gridView;
 
     private final SearchState state = new SearchState();
     private List<SearchNode> currentResults = new ArrayList<>();
@@ -112,14 +112,14 @@ public class UniversalResultsPanel implements SearchState.Listener {
         });
 
         toolbar.setCollapseExpandCallbacks(
-            () -> {
-                treeView.collapseAll();
-                gridView.collapseAll();
-            },
-            () -> {
-                treeView.expandAll();
-                gridView.expandAll();
-            }
+                () -> {
+                    treeView.collapseAll();
+                    gridView.collapseAll();
+                },
+                () -> {
+                    treeView.expandAll();
+                    gridView.expandAll();
+                }
         );
     }
 
@@ -259,12 +259,12 @@ public class UniversalResultsPanel implements SearchState.Listener {
             var font = Minecraft.getInstance().font;
             Component title = panelTitle != null ? panelTitle : Component.translatable("ami.gui.favorites");
             g.drawString(font, title.getString(), x + AMITheme.GLOBAL_PADDING, y + (FAV_HEADER_H - font.lineHeight) / 2, AMITheme.TEXT_HEADER, false);
-            
+
             // Draw small Grid/List toggle in the header
             renderSidebarToggle(g, mouseX, mouseY);
 
             g.fill(x + 3, y + FAV_HEADER_H - 1, x + width - 3, y + FAV_HEADER_H, AMITheme.SECTION_SEP);
-            
+
             if (isGridActive()) {
                 gridView.render(g, mouseX, mouseY, false);
             } else {
@@ -335,7 +335,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         int tx = x + width - AMITheme.GLOBAL_PADDING - 12;
         int ty = y + (FAV_HEADER_H - 12) / 2;
         boolean hovered = mouseX >= tx && mouseX < tx + 12 && mouseY >= ty && mouseY < ty + 12;
-        
+
         int color = hovered ? AMITheme.WHITE : AMITheme.TEXT_SUBTLE;
         boolean alternateActive = externalModeToggleActive != null && externalModeToggleActive.getAsBoolean();
         if (alternateActive || state.getViewMode() == ResultsToolbar.ViewMode.LIST) {
@@ -358,10 +358,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         if (hovered || compact || alternateActive) {
             int border = (compact || alternateActive) ? (0xFF000000 | accent) : AMITheme.SIDEBAR_TOGGLE_BORDER;
-            g.fill(toggleX,              toggleY,              toggleX + TOGGLE_W, toggleY + 1,              border); // top
-            g.fill(toggleX,              toggleY + TOGGLE_H - 1, toggleX + TOGGLE_W, toggleY + TOGGLE_H,     border); // bottom
-            g.fill(toggleX,              toggleY,              toggleX + 1,         toggleY + TOGGLE_H,      border); // left
-            g.fill(toggleX + TOGGLE_W - 1, toggleY,           toggleX + TOGGLE_W, toggleY + TOGGLE_H,       border); // right
+            g.fill(toggleX, toggleY, toggleX + TOGGLE_W, toggleY + 1, border); // top
+            g.fill(toggleX, toggleY + TOGGLE_H - 1, toggleX + TOGGLE_W, toggleY + TOGGLE_H, border); // bottom
+            g.fill(toggleX, toggleY, toggleX + 1, toggleY + TOGGLE_H, border); // left
+            g.fill(toggleX + TOGGLE_W - 1, toggleY, toggleX + TOGGLE_W, toggleY + TOGGLE_H, border); // right
         }
 
         int iconColor = (compact || alternateActive) ? (0xFF000000 | accent) : (hovered ? AMITheme.BUTTON_HOVER : AMITheme.TEXT_SUBTLE);
@@ -426,7 +426,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     private void showDashboard() {
         List<TreeNode> dashboard = new ArrayList<>();
-        
+
         // 1. Recent History (Most relevant first)
         var history = com.sanhiruzu.ami.client.favorites.AmiHistoryHandler.getInstance().getLookupHistory();
         if (!history.isEmpty()) {
@@ -464,12 +464,15 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     private void onItemClicked(SearchNode node, int button) {
         ItemStack stack = com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node);
-        if (!stack.isEmpty()) RecipeViewerBridge.handleItemClick(stack, button, net.minecraft.client.gui.screens.Screen.hasShiftDown());
+        if (!stack.isEmpty())
+            RecipeViewerBridge.handleItemClick(stack, button, net.minecraft.client.gui.screens.Screen.hasShiftDown());
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /** True when the grid view should be active — favorites panel (if in grid mode), compact mode, or explicit grid mode. */
+    /**
+     * True when the grid view should be active — favorites panel (if in grid mode), compact mode, or explicit grid mode.
+     */
     private boolean isGridActive() {
         if (isFavoritesPanel) return state.getViewMode() == ResultsToolbar.ViewMode.GRID;
         return compactMode || state.getViewMode() == ResultsToolbar.ViewMode.GRID;
@@ -619,7 +622,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
             try {
                 NodeType type = NodeType.valueOf(node.getKey());
                 nodes = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodes(type);
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
 
         if (nodes.isEmpty()) return;
@@ -782,19 +786,42 @@ public class UniversalResultsPanel implements SearchState.Listener {
     // ── Accessors ─────────────────────────────────────────────────────────────
 
     public void setIndexingInProgress(boolean inProgress) { /* reserved */ }
-    public int getEntryCount() { return currentResults.size(); }
-    public String getCurrentQuery() { return currentQuery; }
+
+    public int getEntryCount() {
+        return currentResults.size();
+    }
+
+    public String getCurrentQuery() {
+        return currentQuery;
+    }
 
     public boolean isMouseOver(double mouseX, double mouseY) {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
     }
 
-    public int getX()       { return x; }
-    public int getY()       { return y; }
-    public int getWidth()   { return width; }
-    public int getHeight()  { return height; }
-    public ResultsToolbar getToolbar() { return toolbar; }
-    public SearchState getState() { return state; }
+    public int getX() {
+        return x;
+    }
+
+    public int getY() {
+        return y;
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    public ResultsToolbar getToolbar() {
+        return toolbar;
+    }
+
+    public SearchState getState() {
+        return state;
+    }
 
     private void saveMainPanelViewPreference() {
         if (isFavoritesPanel) {

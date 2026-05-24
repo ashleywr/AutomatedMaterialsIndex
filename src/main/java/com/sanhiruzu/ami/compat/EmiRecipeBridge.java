@@ -40,7 +40,7 @@ class EmiRecipeBridge {
     static boolean handleDrop(net.minecraft.client.gui.screens.Screen screen, double mouseX, double mouseY) {
         dev.emi.emi.api.stack.EmiIngredient stack = dev.emi.emi.screen.EmiScreenManager.draggedStack;
         if (stack.isEmpty()) return false;
-        boolean handled = dev.emi.emi.registry.EmiDragDropHandlers.dropStack(screen, stack, (int)mouseX, (int)mouseY);
+        boolean handled = dev.emi.emi.registry.EmiDragDropHandlers.dropStack(screen, stack, (int) mouseX, (int) mouseY);
         dev.emi.emi.screen.EmiScreenManager.draggedStack = EmiStack.EMPTY;
         return handled;
     }

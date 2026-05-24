@@ -4,6 +4,7 @@ import com.sanhiruzu.ami.AMI;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.world.level.Level;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -18,7 +19,8 @@ public final class AmiIndexerService {
     private volatile int indexedItemCount;
     private final AtomicBoolean isRebuilding = new AtomicBoolean(false);
 
-    private AmiIndexerService() {}
+    private AmiIndexerService() {
+    }
 
     public static AmiIndexerService getInstance() {
         return INSTANCE;
@@ -56,7 +58,7 @@ public final class AmiIndexerService {
     private void performRebuild(Level level) {
         long started = System.currentTimeMillis();
         GlobalIndex index = GlobalIndex.getInstance();
-        
+
         // 1. Core indexing of all standard types
         ProviderRegistry.indexAll(level);
 
@@ -71,11 +73,11 @@ public final class AmiIndexerService {
         index.markIndexReady();
         index.setIndexBuildTime(System.currentTimeMillis() - started);
         indexedItemCount = index.getNodes(NodeType.ITEM).size();
-        
+
         // Build search service from the new index
         searchService = SearchService.buildFrom(index, true);
-        
-        AMI.LOGGER.info("AMI: Index rebuild complete in {}ms. Indexed {} items.", 
+
+        AMI.LOGGER.info("AMI: Index rebuild complete in {}ms. Indexed {} items.",
                 index.getIndexBuildTimeMs(), indexedItemCount);
     }
 

@@ -1,10 +1,6 @@
 package com.sanhiruzu.ami.client.results;
 
-import com.sanhiruzu.ami.index.AmiOntology;
-import com.sanhiruzu.ami.index.GlobalIndex;
-import com.sanhiruzu.ami.index.NodeType;
-import com.sanhiruzu.ami.index.SearchNode;
-import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.index.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.BeforeEach;
@@ -99,19 +95,19 @@ public class DashboardLogicTest {
 
     private void addMockItem(String path, String category) {
         GlobalIndex.getInstance().addNode(new SearchNode(
-            ResourceLocation.parse("minecraft:" + path),
-            NodeType.ITEM, path, 0, 0,
-            Map.of(SearchNodeKeys.ONTOLOGY_CATEGORY, category)
+                ResourceLocation.parse("minecraft:" + path),
+                NodeType.ITEM, path, 0, 0,
+                Map.of(SearchNodeKeys.ONTOLOGY_CATEGORY, category)
         ));
     }
 
     @Test
     void testOntologyHeuristics() {
         SearchNode compass = new SearchNode(
-            ResourceLocation.parse("minecraft:compass"),
-            NodeType.ITEM, "Compass", 0, 0, Map.of()
+                ResourceLocation.parse("minecraft:compass"),
+                NodeType.ITEM, "Compass", 0, 0, Map.of()
         );
-        
+
         AmiOntology.Category cat = AmiOntology.classifyNode(compass);
         assertEquals("utility", cat.id);
     }
@@ -121,14 +117,14 @@ public class DashboardLogicTest {
         TreeNode root = new TreeNode("root", Component.literal("Root"));
         SearchNode item = new SearchNode(ResourceLocation.parse("minecraft:apple"), NodeType.ITEM, "Apple", 0, 0, Map.of());
         TreeNode leaf = new TreeNode(Component.literal("Apple"), item);
-        
+
         root.addChild(leaf);
-        
+
         assertEquals("root", root.getKey());
         assertEquals("Root", root.getLabel().getString());
         assertFalse(root.isLeaf());
         assertEquals(1, root.getChildren().size());
-        
+
         TreeNode foundLeaf = root.getChildren().get(0);
         assertTrue(foundLeaf.isLeaf());
         assertEquals("Apple", foundLeaf.getLabel().getString());
@@ -169,7 +165,7 @@ public class DashboardLogicTest {
 
         // Verify order: First item should come before second item alphabetically
         assertTrue(categories.get(0).displayName().getString().compareToIgnoreCase(categories.get(1).displayName().getString()) <= 0,
-            "Categories should be sorted alphabetically");
+                "Categories should be sorted alphabetically");
 
         // Find armor and verify it's near the beginning (starts with A)
         boolean foundArmor = false;
@@ -194,7 +190,7 @@ public class DashboardLogicTest {
 
         // Verify reverse order: first item should be >= second item alphabetically
         assertTrue(categories.get(0).displayName().getString().compareToIgnoreCase(categories.get(1).displayName().getString()) >= 0,
-            "Categories should be sorted in reverse alphabetical order");
+                "Categories should be sorted in reverse alphabetical order");
     }
 
     @Test

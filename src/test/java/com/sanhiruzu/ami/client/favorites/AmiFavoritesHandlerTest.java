@@ -4,23 +4,25 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AmiFavoritesHandlerTest {
 
     @Test
     void testLocalFavoritesPersistence() {
         AmiFavoritesHandler handler = AmiFavoritesHandler.getInstance();
-        
+
         // Mock a biome node (not supported by EMI)
         SearchNode biome = new SearchNode(
-            ResourceLocation.parse("minecraft:plains"),
-            NodeType.BIOME,
-            "Plains",
-            0, 0, Map.of()
+                ResourceLocation.parse("minecraft:plains"),
+                NodeType.BIOME,
+                "Plains",
+                0, 0, Map.of()
         );
         com.sanhiruzu.ami.index.GlobalIndex.getInstance().addNode(biome);
 

@@ -6,6 +6,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,28 +24,28 @@ public class BiomeProvider implements IAmiDataProvider {
 
         List<SearchNode> nodes = new ArrayList<>();
         level.registryAccess().registry(Registries.BIOME).ifPresent(reg ->
-            reg.holders().forEach(holder -> {
-                var id = holder.key().location();
-                int waterColor = holder.value().getSpecialEffects().getWaterColor();
+                reg.holders().forEach(holder -> {
+                    var id = holder.key().location();
+                    int waterColor = holder.value().getSpecialEffects().getWaterColor();
 
-                String dimension = "overworld";
-                if (holder.is(BiomeTags.IS_NETHER)) dimension = "nether";
-                else if (holder.is(BiomeTags.IS_END)) dimension = "end";
+                    String dimension = "overworld";
+                    if (holder.is(BiomeTags.IS_NETHER)) dimension = "nether";
+                    else if (holder.is(BiomeTags.IS_END)) dimension = "end";
 
-                float temperature = holder.value().getBaseTemperature();
+                    float temperature = holder.value().getBaseTemperature();
 
-                Map<String, String> meta = new HashMap<>();
-                meta.put(SearchNodeKeys.MOD_ID, id.getNamespace());
-                meta.put(SearchNodeKeys.DIMENSION, dimension);
-                meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, AmiOntology.ENVIRONMENT.id);
-                meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "biomes");
-                meta.put(SearchNodeKeys.TEMPERATURE, String.format("%.3f", temperature));
+                    Map<String, String> meta = new HashMap<>();
+                    meta.put(SearchNodeKeys.MOD_ID, id.getNamespace());
+                    meta.put(SearchNodeKeys.DIMENSION, dimension);
+                    meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, AmiOntology.ENVIRONMENT.id);
+                    meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "biomes");
+                    meta.put(SearchNodeKeys.TEMPERATURE, String.format("%.3f", temperature));
 
-                nodes.add(new SearchNode(
-                    id, NodeType.BIOME,
-                    Component.translatable("ami.gui.biome_suffix", RegistryUtils.formatPath(id.getPath())).getString(),
-                    0xFF000000 | waterColor, 0, meta));
-            })
+                    nodes.add(new SearchNode(
+                            id, NodeType.BIOME,
+                            Component.translatable("ami.gui.biome_suffix", RegistryUtils.formatPath(id.getPath())).getString(),
+                            0xFF000000 | waterColor, 0, meta));
+                })
         );
 
         nodes.sort(RegistryUtils.ENTRY_ORDER);

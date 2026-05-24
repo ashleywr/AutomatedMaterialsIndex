@@ -103,7 +103,9 @@ public class JeiClientInputHandlerMixin {
         return true;
     }
 
-    /** JEI's RecipesGui uses the overlay's FocusInputHandler for ingredient click navigation. */
+    /**
+     * JEI's RecipesGui uses the overlay's FocusInputHandler for ingredient click navigation.
+     */
     private static boolean isJeiRecipeScreenActive() {
         Screen screen = Minecraft.getInstance().screen;
         return screen != null && screen.getClass().getName().equals("mezz.jei.gui.recipes.RecipesGui");

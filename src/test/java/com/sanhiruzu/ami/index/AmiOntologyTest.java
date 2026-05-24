@@ -2,9 +2,10 @@ package com.sanhiruzu.ami.index;
 
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class AmiOntologyTest {
 
@@ -12,11 +13,11 @@ public class AmiOntologyTest {
     void testClassifyItemByTag() {
         // Mock a node with "sword" tag
         SearchNode sword = new SearchNode(
-            ResourceLocation.parse("minecraft:iron_sword"),
-            NodeType.ITEM,
-            "Iron Sword",
-            0, 0,
-            Map.of(SearchNodeKeys.TAGS, "minecraft:swords,minecraft:tools")
+                ResourceLocation.parse("minecraft:iron_sword"),
+                NodeType.ITEM,
+                "Iron Sword",
+                0, 0,
+                Map.of(SearchNodeKeys.TAGS, "minecraft:swords,minecraft:tools")
         );
 
         AmiOntology.Category cat = AmiOntology.classifyNode(sword);
@@ -27,11 +28,11 @@ public class AmiOntologyTest {
     void testClassifyItemByPath() {
         // Mock a node with "apple" in path
         SearchNode apple = new SearchNode(
-            ResourceLocation.parse("minecraft:apple"),
-            NodeType.ITEM,
-            "Apple",
-            0, 0,
-            Map.of()
+                ResourceLocation.parse("minecraft:apple"),
+                NodeType.ITEM,
+                "Apple",
+                0, 0,
+                Map.of()
         );
 
         AmiOntology.Category cat = AmiOntology.classifyNode(apple);
@@ -42,11 +43,11 @@ public class AmiOntologyTest {
     void testClassifyEggAsIngredient() {
         // Mock an egg
         SearchNode egg = new SearchNode(
-            ResourceLocation.parse("minecraft:egg"),
-            NodeType.ITEM,
-            "Egg",
-            0, 0,
-            Map.of(SearchNodeKeys.TAGS, "c:eggs")
+                ResourceLocation.parse("minecraft:egg"),
+                NodeType.ITEM,
+                "Egg",
+                0, 0,
+                Map.of(SearchNodeKeys.TAGS, "c:eggs")
         );
 
         AmiOntology.Category cat = AmiOntology.classifyNode(egg);
@@ -58,12 +59,12 @@ public class AmiOntologyTest {
         // MASONRY items are always pre-computed at index time by OntologyClassifier,
         // so the runtime classifier needs pre-computed metadata to route here.
         SearchNode bricks = new SearchNode(
-            ResourceLocation.parse("minecraft:bricks"),
-            NodeType.ITEM,
-            "Bricks",
-            0, 0,
-            Map.of(SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
-                   SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "full_block")
+                ResourceLocation.parse("minecraft:bricks"),
+                NodeType.ITEM,
+                "Bricks",
+                0, 0,
+                Map.of(SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "full_block")
         );
 
         AmiOntology.Category cat = AmiOntology.classifyNode(bricks);
@@ -73,18 +74,18 @@ public class AmiOntologyTest {
     @Test
     void testClassifyEnvironmentTypes() {
         SearchNode biome = new SearchNode(
-            ResourceLocation.parse("minecraft:plains"),
-            NodeType.BIOME,
-            "Plains",
-            0, 0, Map.of()
+                ResourceLocation.parse("minecraft:plains"),
+                NodeType.BIOME,
+                "Plains",
+                0, 0, Map.of()
         );
         assertEquals(AmiOntology.ENVIRONMENT, AmiOntology.classifyNode(biome));
 
         SearchNode structure = new SearchNode(
-            ResourceLocation.parse("minecraft:village"),
-            NodeType.STRUCTURE,
-            "Village",
-            0, 0, Map.of()
+                ResourceLocation.parse("minecraft:village"),
+                NodeType.STRUCTURE,
+                "Village",
+                0, 0, Map.of()
         );
         assertEquals(AmiOntology.ENVIRONMENT, AmiOntology.classifyNode(structure));
     }

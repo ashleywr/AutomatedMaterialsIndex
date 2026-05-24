@@ -6,19 +6,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class TokenColorizer {
-    private TokenColorizer() {}
+    private TokenColorizer() {
+    }
 
-    public record ColorSpan(int startIndex, int endIndex, int argbColor) {}
+    public record ColorSpan(int startIndex, int endIndex, int argbColor) {
+    }
 
-    static final int COLOR_TAG       = AmiColors.TAG_COLOR;
-    static final int COLOR_MOD       = AmiColors.MOD_COLOR;
-    static final int COLOR_EXCLUDE   = AmiColors.EXCLUDE_COLOR;
-    static final int COLOR_ENV       = AmiColors.TOKEN_ENV;
-    static final int COLOR_PROP      = AmiColors.TOKEN_PROP;
+    static final int COLOR_TAG = AmiColors.TAG_COLOR;
+    static final int COLOR_MOD = AmiColors.MOD_COLOR;
+    static final int COLOR_EXCLUDE = AmiColors.EXCLUDE_COLOR;
+    static final int COLOR_ENV = AmiColors.TOKEN_ENV;
+    static final int COLOR_PROP = AmiColors.TOKEN_PROP;
     static final int COLOR_ESSENTIAL = AmiColors.TOKEN_ESSENTIAL;
-    static final int COLOR_ESM       = AmiColors.TOKEN_ESM;
-    static final int COLOR_META      = AmiColors.TOKEN_META;
-    static final int COLOR_PLAIN     = AmiColors.TOKEN_PLAIN;
+    static final int COLOR_ESM = AmiColors.TOKEN_ESM;
+    static final int COLOR_META = AmiColors.TOKEN_META;
+    static final int COLOR_PLAIN = AmiColors.TOKEN_PLAIN;
 
     /**
      * Colorize a query string, returning color spans for each token.

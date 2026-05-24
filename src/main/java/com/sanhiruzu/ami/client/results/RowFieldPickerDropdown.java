@@ -5,26 +5,25 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
  * A compact dropdown pinned to the right end of the toolbar that lets players
  * choose which fields appear on the subtitle line of each list row.
- *
+ * <p>
  * Not part of the auto-sized dropdown list — positioned explicitly by ResultsToolbar.
  */
 public class RowFieldPickerDropdown {
 
-    private static final int BTN_H  = 14;
+    private static final int BTN_H = 14;
     private static final int ITEM_H = 12;
 
     private int x, y, width;
     private boolean open = false;
 
     public void updatePosition(int x, int y, int width) {
-        this.x     = x;
-        this.y     = y;
+        this.x = x;
+        this.y = y;
         this.width = width;
     }
 
@@ -54,11 +53,11 @@ public class RowFieldPickerDropdown {
         }
 
         int dropH = fields.length * ITEM_H + 4;
-        int dy    = y + BTN_H + 2;
+        int dy = y + BTN_H + 2;
 
         // Background + top rule
         g.fill(x, dy, x + listWidth, dy + dropH, AMITheme.DROPDOWN_LIST_BG);
-        g.fill(x, dy, x + listWidth, dy + 1,     AMITheme.SECTION_SEP);
+        g.fill(x, dy, x + listWidth, dy + 1, AMITheme.SECTION_SEP);
 
         int iy = dy + 2;
         for (RowField field : fields) {
@@ -99,7 +98,7 @@ public class RowFieldPickerDropdown {
         }
 
         int dropH = fields.length * ITEM_H + 4;
-        int dy    = y + BTN_H + 2;
+        int dy = y + BTN_H + 2;
 
         if (Dropdown.contains((int) mouseX, (int) mouseY, x, dy, listWidth, dropH)) {
             int iy = dy + 2;
@@ -124,7 +123,12 @@ public class RowFieldPickerDropdown {
         return false;
     }
 
-    public void close()       { open = false; }
-    public boolean isOpen()   { return open; }
+    public void close() {
+        open = false;
+    }
+
+    public boolean isOpen() {
+        return open;
+    }
 
 }

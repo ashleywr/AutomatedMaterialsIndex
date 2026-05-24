@@ -24,7 +24,9 @@ public enum NodeType {
         return Component.translatable(translationKey);
     }
 
-    /** Cycles: ITEM → BIOME → STRUCTURE → ENTITY → DIMENSION → ITEM. */
+    /**
+     * Cycles: ITEM → BIOME → STRUCTURE → ENTITY → DIMENSION → ITEM.
+     */
     public NodeType next() {
         NodeType[] atlas = atlasValues();
         int idx = atlasOrdinal();

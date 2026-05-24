@@ -1,27 +1,18 @@
 package com.sanhiruzu.ami.client.screen;
 
 import com.sanhiruzu.ami.client.AMITheme;
-import com.sanhiruzu.ami.config.AmiConfig;
-import com.sanhiruzu.ami.config.ConfigValue;
-import com.sanhiruzu.ami.config.ConfigGroup;
 import com.sanhiruzu.ami.client.widget.AmiWidgetFactory;
+import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.config.ConfigGroup;
+import com.sanhiruzu.ami.config.ConfigValue;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.ObjectSelectionList;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.Tooltip;
 import net.neoforged.fml.ModList;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Custom configuration screen for AMI with EMI-inspired layout and dynamic feedback.
@@ -31,7 +22,7 @@ public class AmiConfigScreen extends Screen {
     private EditBox searchBox;
     private ConfigList list;
     private final Map<Field, Object> originalValues = new HashMap<>();
-    
+
     private Button revertBtn;
     private Button defaultsBtn;
 
@@ -47,14 +38,15 @@ public class AmiConfigScreen extends Screen {
                 if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
                     originalValues.put(field, field.get(null));
                 }
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
         }
     }
 
     @Override
     protected void init() {
         super.init();
-        
+
         // Search Box at the top
         searchBox = new EditBox(this.font, width / 2 - 50, 10, 150, 20, Component.translatable("ami.config.search_placeholder"));
         searchBox.setResponder(this::onSearchChanged);
@@ -66,7 +58,8 @@ public class AmiConfigScreen extends Screen {
                 try {
                     Class<?> cls = Class.forName("dev.emi.emi.screen.ConfigScreen");
                     this.minecraft.setScreen((Screen) cls.getConstructor(Screen.class).newInstance(this));
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }).bounds(width - 110, 10, 100, 20).build());
         }
 
@@ -85,13 +78,13 @@ public class AmiConfigScreen extends Screen {
 
         defaultsBtn = this.addRenderableWidget(Button.builder(Component.translatable("ami.config.defaults"), b -> resetToDefaults())
                 .bounds(startX, btnY, btnW, 20).build());
-        
+
         revertBtn = this.addRenderableWidget(Button.builder(getRevertLabel(), b -> revertChanges())
                 .bounds(startX + btnW + spacing, btnY, btnW, 20).build());
 
         this.addRenderableWidget(Button.builder(Component.translatable("ami.config.done"), b -> this.onClose())
                 .bounds(startX + (btnW + spacing) * 2, btnY, btnW, 20).build());
-        
+
         updateButtonStates();
     }
 
@@ -107,7 +100,8 @@ public class AmiConfigScreen extends Screen {
                 if (!Objects.equals(entry.getKey().get(null), entry.getValue())) {
                     count++;
                 }
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
         }
         return count;
     }
@@ -138,7 +132,8 @@ public class AmiConfigScreen extends Screen {
         for (var entry : originalValues.entrySet()) {
             try {
                 entry.getKey().set(null, entry.getValue());
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
         }
         buildConfigUI();
         updateButtonStates();
@@ -320,7 +315,7 @@ public class AmiConfigScreen extends Screen {
 
         @Override
         public int getRowWidth() {
-            return (int)(this.width * 0.66);
+            return (int) (this.width * 0.66);
         }
 
         @Override
@@ -336,7 +331,8 @@ public class AmiConfigScreen extends Screen {
             return super.addEntry(entry);
         }
 
-        abstract class ConfigEntry extends ObjectSelectionList.Entry<ConfigEntry> {}
+        abstract class ConfigEntry extends ObjectSelectionList.Entry<ConfigEntry> {
+        }
 
         class HeaderEntry extends ConfigEntry {
             private final Component text;
@@ -351,7 +347,9 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public Component getNarration() { return text; }
+            public Component getNarration() {
+                return text;
+            }
         }
 
         class PanelTitleEntry extends ConfigEntry {
@@ -367,7 +365,9 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public Component getNarration() { return text; }
+            public Component getNarration() {
+                return text;
+            }
         }
 
         class PanelSubheaderEntry extends ConfigEntry {
@@ -383,7 +383,9 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public Component getNarration() { return text; }
+            public Component getNarration() {
+                return text;
+            }
         }
 
         class PanelEmptySlotsEntry extends ConfigEntry {
@@ -399,7 +401,9 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public Component getNarration() { return label; }
+            public Component getNarration() {
+                return label;
+            }
         }
 
         class PanelSlotEntry extends ConfigEntry {
@@ -477,7 +481,9 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public Component getNarration() { return label.copy().append(": ").append(currentMessage()); }
+            public Component getNarration() {
+                return label.copy().append(": ").append(currentMessage());
+            }
         }
 
         class PanelAddSlotEntry extends ConfigEntry {
@@ -515,7 +521,9 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public Component getNarration() { return label; }
+            public Component getNarration() {
+                return label;
+            }
         }
 
         class SidePanelWidthEntry extends ConfigEntry {
@@ -558,7 +566,9 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public Component getNarration() { return label; }
+            public Component getNarration() {
+                return label;
+            }
         }
 
         class SettingEntry extends ConfigEntry {
@@ -581,12 +591,13 @@ public class AmiConfigScreen extends Screen {
                 if (widget != null) {
                     widget.setX(x + width - (field.isAnnotationPresent(com.sanhiruzu.ami.config.ConfigColor.class) ? 102 : 77));
                     widget.setY(y + 2);
-                    
+
                     if (field.getType() == boolean.class && widget instanceof Button) {
                         try {
                             boolean val = field.getBoolean(null);
                             g.fill(widget.getX() - 2, widget.getY() - 1, widget.getX() + widget.getWidth() + 2, widget.getY() + widget.getHeight() + 1, val ? AMITheme.CONFIG_BOOL_TRUE : AMITheme.CONFIG_BOOL_FALSE);
-                        } catch (Exception ignored) {}
+                        } catch (Exception ignored) {
+                        }
                     }
 
                     widget.render(g, mouseX, mouseY, partialTick);
@@ -601,7 +612,8 @@ public class AmiConfigScreen extends Screen {
                             Component hint = Component.translatable(hintKey);
                             int hintW = font.width(hint);
                             g.drawString(font, hint, x + width - 28 - hintW, y + 5, AMITheme.CONFIG_TEXT_MUTED, false);
-                        } catch (Exception ignored) {}
+                        } catch (Exception ignored) {
+                        }
                     }
                 }
                 if (mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height) {
@@ -632,7 +644,9 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public Component getNarration() { return label; }
+            public Component getNarration() {
+                return label;
+            }
         }
 
         class KeybindEntry extends ConfigEntry {
@@ -679,7 +693,9 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public Component getNarration() { return label; }
+            public Component getNarration() {
+                return label;
+            }
         }
     }
 }

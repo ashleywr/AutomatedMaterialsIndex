@@ -68,8 +68,8 @@ public final class DebugTooltip {
         // Other metadata (sorted, excludes ontology + tags shown separately)
         List<Map.Entry<String, String>> otherMeta = entry.metadata().entrySet().stream()
                 .filter(e -> !e.getKey().equals(SearchNodeKeys.TAGS)
-                          && !e.getKey().equals(SearchNodeKeys.ONTOLOGY_CATEGORY)
-                          && !e.getKey().equals(SearchNodeKeys.ONTOLOGY_SUBCATEGORY))
+                        && !e.getKey().equals(SearchNodeKeys.ONTOLOGY_CATEGORY)
+                        && !e.getKey().equals(SearchNodeKeys.ONTOLOGY_SUBCATEGORY))
                 .sorted(Map.Entry.comparingByKey())
                 .toList();
 
@@ -158,5 +158,6 @@ public final class DebugTooltip {
                 .toList();
     }
 
-    private DebugTooltip() {}
+    private DebugTooltip() {
+    }
 }
