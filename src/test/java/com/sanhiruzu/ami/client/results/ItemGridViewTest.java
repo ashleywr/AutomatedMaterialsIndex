@@ -46,7 +46,7 @@ public class ItemGridViewTest {
 
     private static TreeNode leaf(String path, String displayName) {
         SearchNode node = new SearchNode(
-                ResourceLocation.parse("minecraft:" + path),
+                new ResourceLocation("minecraft:" + path),
                 NodeType.ITEM,
                 displayName,
                 0,

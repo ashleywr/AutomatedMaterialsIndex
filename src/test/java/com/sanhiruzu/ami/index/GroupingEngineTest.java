@@ -18,7 +18,7 @@ class GroupingEngineTest {
     @Test
     void keepsVanillaFoodHandlingUnchanged() {
         Item apple = new Item("apple").withComponent(DataComponents.FOOD);
-        BuiltInRegistries.itemRegistry().register(ResourceLocation.parse("minecraft:apple"), apple);
+        BuiltInRegistries.itemRegistry().register(new ResourceLocation("minecraft:apple"), apple);
 
         assertEquals("food", GroupingEngine.classifyShape(new ItemStack(apple)));
     }
@@ -26,7 +26,7 @@ class GroupingEngineTest {
     @Test
     void keepsVanillaUnknownItemsAsItem() {
         Item musicDisc = new Item("music_disc_cat");
-        BuiltInRegistries.itemRegistry().register(ResourceLocation.parse("minecraft:music_disc_cat"), musicDisc);
+        BuiltInRegistries.itemRegistry().register(new ResourceLocation("minecraft:music_disc_cat"), musicDisc);
 
         assertEquals("item", GroupingEngine.classifyShape(new ItemStack(musicDisc)));
     }
@@ -34,8 +34,8 @@ class GroupingEngineTest {
     @Test
     void supportsDynamicModShapeFromCommonTag() {
         Item copperWire = new Item("copper_wire")
-                .withTag(TagKey.create(null, ResourceLocation.parse("c:shapes/wire")));
-        BuiltInRegistries.itemRegistry().register(ResourceLocation.parse("techreborn:copper_wire"), copperWire);
+                .withTag(TagKey.create(null, new ResourceLocation("c:shapes/wire")));
+        BuiltInRegistries.itemRegistry().register(new ResourceLocation("techreborn:copper_wire"), copperWire);
 
         assertEquals("wire", GroupingEngine.classifyShape(new ItemStack(copperWire)));
     }
@@ -49,14 +49,14 @@ class GroupingEngineTest {
                 case 1 -> "ae2";
                 default -> "mekanism";
             };
-            ResourceLocation id = ResourceLocation.parse(mod + ":insulated_" + i + "_cable");
+            ResourceLocation id = new ResourceLocation(mod + ":insulated_" + i + "_cable");
             BuiltInRegistries.itemRegistry().register(id, new Item("insulated_" + i + "_cable"));
             ids.add(id);
         }
         GroupingEngine.rebuildDynamicShapeCandidatesFromIds(ids);
 
         Item insulatedCable = new Item("insulated_cable");
-        BuiltInRegistries.itemRegistry().register(ResourceLocation.parse("powah:insulated_cable"), insulatedCable);
+        BuiltInRegistries.itemRegistry().register(new ResourceLocation("powah:insulated_cable"), insulatedCable);
         assertEquals("cable", GroupingEngine.classifyShape(new ItemStack(insulatedCable)));
     }
 
@@ -69,14 +69,14 @@ class GroupingEngineTest {
                 case 1 -> "smallships";
                 default -> "valkyrienskies";
             };
-            ResourceLocation id = ResourceLocation.parse(mod + ":material_" + i + "_sail");
+            ResourceLocation id = new ResourceLocation(mod + ":material_" + i + "_sail");
             BuiltInRegistries.itemRegistry().register(id, new Item("material_" + i + "_sail"));
             ids.add(id);
         }
         GroupingEngine.rebuildDynamicShapeCandidatesFromIds(ids);
 
         Item oakSail = new Item("oak_sail");
-        BuiltInRegistries.itemRegistry().register(ResourceLocation.parse("ships:oak_sail"), oakSail);
+        BuiltInRegistries.itemRegistry().register(new ResourceLocation("ships:oak_sail"), oakSail);
         assertEquals("sail", GroupingEngine.classifyShape(new ItemStack(oakSail)));
     }
 
@@ -84,14 +84,43 @@ class GroupingEngineTest {
     void doesNotPromoteSingleModNoiseToken() {
         List<ResourceLocation> ids = new ArrayList<>();
         for (int i = 0; i < 100; i++) {
-            ResourceLocation id = ResourceLocation.parse("bibliocraft:oak_" + i + "_back");
+            ResourceLocation id = new ResourceLocation("bibliocraft:oak_" + i + "_back");
             BuiltInRegistries.itemRegistry().register(id, new Item("oak_" + i + "_back"));
             ids.add(id);
         }
         GroupingEngine.rebuildDynamicShapeCandidatesFromIds(ids);
 
         Item chairBack = new Item("oak_back");
-        BuiltInRegistries.itemRegistry().register(ResourceLocation.parse("bibliocraft:oak_back"), chairBack);
+        BuiltInRegistries.itemRegistry().register(new ResourceLocation("bibliocraft:oak_back"), chairBack);
         assertEquals("item", GroupingEngine.classifyShape(new ItemStack(chairBack)));
+    }
+
+    @Test
+    void classifyMaterialRootUsesCommonTags() {
+        Item ironNugget = new Item("iron_nugget")
+                .withTag(TagKey.create(null, new ResourceLocation("c:nuggets/iron")));
+        BuiltInRegistries.itemRegistry().register(new ResourceLocation("ami_test:iron_nugget"), ironNugget);
+
+        Item goldDust = new Item("gold_dust")
+                .withTag(TagKey.create(null, new ResourceLocation("c:dusts/gold")));
+        BuiltInRegistries.itemRegistry().register(new ResourceLocation("ami_test:gold_dust"), goldDust);
+
+        Item copperOre = new Item("copper_ore")
+                .withTag(TagKey.create(null, new ResourceLocation("c:ores/copper")));
+        BuiltInRegistries.itemRegistry().register(new ResourceLocation("ami_test:copper_ore"), copperOre);
+
+        Item rawTin = new Item("raw_tin")
+                .withTag(TagKey.create(null, new ResourceLocation("c:raw_materials/tin")));
+        BuiltInRegistries.itemRegistry().register(new ResourceLocation("ami_test:raw_tin"), rawTin);
+
+        Item silverBlock = new Item("silver_block")
+                .withTag(TagKey.create(null, new ResourceLocation("c:storage_blocks/silver")));
+        BuiltInRegistries.itemRegistry().register(new ResourceLocation("ami_test:silver_block"), silverBlock);
+
+        assertEquals("minecraft:iron", GroupingEngine.classifyMaterialRoot(new ItemStack(ironNugget)));
+        assertEquals("minecraft:gold", GroupingEngine.classifyMaterialRoot(new ItemStack(goldDust)));
+        assertEquals("minecraft:copper", GroupingEngine.classifyMaterialRoot(new ItemStack(copperOre)));
+        assertEquals("minecraft:tin", GroupingEngine.classifyMaterialRoot(new ItemStack(rawTin)));
+        assertEquals("minecraft:silver", GroupingEngine.classifyMaterialRoot(new ItemStack(silverBlock)));
     }
 }

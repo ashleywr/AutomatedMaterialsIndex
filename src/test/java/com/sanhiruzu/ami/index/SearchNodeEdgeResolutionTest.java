@@ -21,8 +21,8 @@ public class SearchNodeEdgeResolutionTest {
     public void unresolvedEdgesResolveSyncWhenNodePresent() {
         GlobalIndex gi = GlobalIndex.getInstance();
 
-        var itemId = ResourceLocation.parse("minecraft:gunpowder");
-        var entityId = ResourceLocation.parse("minecraft:creeper");
+        var itemId = new ResourceLocation("minecraft:gunpowder");
+        var entityId = new ResourceLocation("minecraft:creeper");
 
         var itemNode = new SearchNode(itemId, NodeType.ITEM, "Gunpowder", 0, 0, new HashMap<>());
         var entityNode = new SearchNode(entityId, NodeType.ENTITY, "Creeper", 0, 0, new HashMap<>());

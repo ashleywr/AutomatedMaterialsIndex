@@ -208,7 +208,7 @@ public class ResultsProcessorTest {
 
     private static SearchNode item(String path, String displayName, Map<String, String> metadata) {
         return new SearchNode(
-                ResourceLocation.parse("minecraft:" + path),
+                new ResourceLocation("minecraft:" + path),
                 NodeType.ITEM,
                 displayName,
                 0,

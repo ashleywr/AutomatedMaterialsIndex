@@ -22,7 +22,7 @@ public class EntityQuerySemanticsTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode wolf = new SearchNode(
-                ResourceLocation.parse("minecraft:wolf"),
+                new ResourceLocation("minecraft:wolf"),
                 NodeType.ENTITY,
                 "Wolf",
                 0,
@@ -30,7 +30,7 @@ public class EntityQuerySemanticsTest {
                 Map.of(SearchNodeKeys.ENTITY_HEALTH, "8", SearchNodeKeys.ENTITY_ATTACK_DAMAGE, "4")
         );
         SearchNode warden = new SearchNode(
-                ResourceLocation.parse("minecraft:warden"),
+                new ResourceLocation("minecraft:warden"),
                 NodeType.ENTITY,
                 "Warden",
                 0,
@@ -56,7 +56,7 @@ public class EntityQuerySemanticsTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode wolf = new SearchNode(
-                ResourceLocation.parse("minecraft:wolf"),
+                new ResourceLocation("minecraft:wolf"),
                 NodeType.ENTITY,
                 "Wolf",
                 0,
@@ -68,7 +68,7 @@ public class EntityQuerySemanticsTest {
                 )
         );
         SearchNode cat = new SearchNode(
-                ResourceLocation.parse("minecraft:cat"),
+                new ResourceLocation("minecraft:cat"),
                 NodeType.ENTITY,
                 "Cat",
                 0,
@@ -80,7 +80,7 @@ public class EntityQuerySemanticsTest {
                 )
         );
         SearchNode wolfArmor = new SearchNode(
-                ResourceLocation.parse("example:wolf_armor"),
+                new ResourceLocation("example:wolf_armor"),
                 NodeType.ITEM,
                 "Wolf Armor",
                 0,
@@ -109,7 +109,7 @@ public class EntityQuerySemanticsTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode wolf = new SearchNode(
-                ResourceLocation.parse("minecraft:wolf"),
+                new ResourceLocation("minecraft:wolf"),
                 NodeType.ENTITY,
                 "Wolf",
                 0,
@@ -117,7 +117,7 @@ public class EntityQuerySemanticsTest {
                 Map.of(SearchNodeKeys.TAGS, "ami:tamable", SearchNodeKeys.SEARCH_TOKENS, "tamable")
         );
         SearchNode creeper = new SearchNode(
-                ResourceLocation.parse("minecraft:creeper"),
+                new ResourceLocation("minecraft:creeper"),
                 NodeType.ENTITY,
                 "Creeper",
                 0,

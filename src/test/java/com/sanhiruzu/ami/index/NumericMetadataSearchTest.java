@@ -22,7 +22,7 @@ public class NumericMetadataSearchTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode sword = new SearchNode(
-                ResourceLocation.parse("minecraft:diamond_sword"),
+                new ResourceLocation("minecraft:diamond_sword"),
                 NodeType.ITEM,
                 "Diamond Sword",
                 0,
@@ -30,7 +30,7 @@ public class NumericMetadataSearchTest {
                 Map.of(SearchNodeKeys.DPS, "11.2")
         );
         SearchNode chest = new SearchNode(
-                ResourceLocation.parse("minecraft:chest"),
+                new ResourceLocation("minecraft:chest"),
                 NodeType.ITEM,
                 "Chest",
                 0,
@@ -38,7 +38,7 @@ public class NumericMetadataSearchTest {
                 Map.of(SearchNodeKeys.ESM_CAPACITY, "1728")
         );
         SearchNode barrel = new SearchNode(
-                ResourceLocation.parse("minecraft:barrel"),
+                new ResourceLocation("minecraft:barrel"),
                 NodeType.ITEM,
                 "Barrel",
                 0,
@@ -46,7 +46,7 @@ public class NumericMetadataSearchTest {
                 Map.of(SearchNodeKeys.ESM_CAPACITY, "1728")
         );
         SearchNode energyCell = new SearchNode(
-                ResourceLocation.parse("example:energy_cell"),
+                new ResourceLocation("example:energy_cell"),
                 NodeType.ITEM,
                 "Energy Cell",
                 0,

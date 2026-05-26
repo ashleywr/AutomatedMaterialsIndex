@@ -19,7 +19,7 @@ public class AmiFavoritesHandlerTest {
 
         // Mock a biome node (not supported by EMI)
         SearchNode biome = new SearchNode(
-                ResourceLocation.parse("minecraft:plains"),
+                new ResourceLocation("minecraft:plains"),
                 NodeType.BIOME,
                 "Plains",
                 0, 0, Map.of()
