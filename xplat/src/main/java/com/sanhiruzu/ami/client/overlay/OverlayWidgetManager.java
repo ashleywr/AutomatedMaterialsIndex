@@ -461,7 +461,10 @@ public class OverlayWidgetManager {
     }
 
     private void syncFromRecipeViewer() {
-        if (searchBar == null || !RecipeViewerBridge.supportsSearchSync() || searchBar.isFocused()) return;
+        if (searchBar == null) return;
+        if (!RecipeViewerBridge.supportsSearchSync()) return;
+        if (searchBar.isFocused()) return;
+
         String rvQuery = RecipeViewerBridge.getSearchText();
         if (!rvQuery.equals(lastSyncedQuery)) {
             lastSyncedQuery = rvQuery;
