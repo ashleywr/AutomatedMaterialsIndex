@@ -92,25 +92,9 @@ public class EntityIconRenderer implements IIconRenderer {
     }
 
     private static ResourceLocation resolveProxyItemId(ResourceLocation entityId) {
-        String path = entityId.getPath();
-
-        return switch (path) {
-            case "experience_orb" -> new ResourceLocation("experience_bottle");
-            case "minecart" -> new ResourceLocation("minecart");
-            case "chest_minecart" -> new ResourceLocation("chest_minecart");
-            case "furnace_minecart" -> new ResourceLocation("furnace_minecart");
-            case "tnt_minecart" -> new ResourceLocation("tnt_minecart");
-            case "hopper_minecart" -> new ResourceLocation("hopper_minecart");
-            case "command_block_minecart" -> new ResourceLocation("command_block_minecart");
-            case "spawner_minecart" -> new ResourceLocation("spawner_minecart");
-            case "oak_boat", "spruce_boat", "birch_boat", "jungle_boat", "acacia_boat",
-                 "cherry_boat", "dark_oak_boat", "mangrove_boat", "bamboo_raft",
-                 "oak_chest_boat", "spruce_chest_boat", "birch_chest_boat",
-                 "jungle_chest_boat", "acacia_chest_boat", "cherry_chest_boat",
-                 "dark_oak_chest_boat", "mangrove_chest_boat", "bamboo_chest_raft" ->
-                    new ResourceLocation(path);
-            default -> null;
-        };
+        // experience_orb has no item form; proxy to experience_bottle for the icon.
+        if ("experience_orb".equals(entityId.getPath())) return new ResourceLocation("experience_bottle");
+        return null;
     }
 
     private static LivingEntity resolveEntity(ResourceLocation id) {

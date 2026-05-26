@@ -65,32 +65,34 @@ public class EntityIconRenderer implements IIconRenderer {
         float bbH = entity.getBbHeight();
         int scale = (int) Math.min(size - 4, Math.max(2, (size - 2) / bbH));
 
-        // rotateZ(PI) flips the entity so it faces the viewer (same as vanilla inventory)
+        float spin = hovered ? (System.currentTimeMillis() % 3000) / 3000f * 360f : 0f;
+        float savedBodyRot = entity.yBodyRot;
+        float savedYRot = entity.getYRot();
+        float savedXRot = entity.getXRot();
+        float savedHeadRotO = entity.yHeadRotO;
+        float savedHeadRot = entity.yHeadRot;
+
+        entity.yBodyRot = 180f + spin;
+        entity.setYRot(180f + spin);
+        entity.setXRot(0f);
+        entity.yHeadRot = entity.getYRot();
+        entity.yHeadRotO = entity.getYRot();
+
         Quaternionf cameraOrient = new Quaternionf().rotateZ((float) Math.PI);
         InventoryScreen.renderEntityInInventory(g, cx, cy, scale,
                 new Vector3f(0f, 0f, 0f), cameraOrient, null, entity);
+
+        entity.yBodyRot = savedBodyRot;
+        entity.setYRot(savedYRot);
+        entity.setXRot(savedXRot);
+        entity.yHeadRotO = savedHeadRotO;
+        entity.yHeadRot = savedHeadRot;
     }
 
     private static ResourceLocation resolveProxyItemId(ResourceLocation entityId) {
-        String path = entityId.getPath();
-
-        return switch (path) {
-            case "experience_orb" -> ResourceLocation.withDefaultNamespace("experience_bottle");
-            case "minecart" -> ResourceLocation.withDefaultNamespace("minecart");
-            case "chest_minecart" -> ResourceLocation.withDefaultNamespace("chest_minecart");
-            case "furnace_minecart" -> ResourceLocation.withDefaultNamespace("furnace_minecart");
-            case "tnt_minecart" -> ResourceLocation.withDefaultNamespace("tnt_minecart");
-            case "hopper_minecart" -> ResourceLocation.withDefaultNamespace("hopper_minecart");
-            case "command_block_minecart" -> ResourceLocation.withDefaultNamespace("command_block_minecart");
-            case "spawner_minecart" -> ResourceLocation.withDefaultNamespace("spawner_minecart");
-            case "oak_boat", "spruce_boat", "birch_boat", "jungle_boat", "acacia_boat",
-                 "cherry_boat", "dark_oak_boat", "mangrove_boat", "bamboo_raft",
-                 "oak_chest_boat", "spruce_chest_boat", "birch_chest_boat",
-                 "jungle_chest_boat", "acacia_chest_boat", "cherry_chest_boat",
-                 "dark_oak_chest_boat", "mangrove_chest_boat", "bamboo_chest_raft" ->
-                    ResourceLocation.withDefaultNamespace(path);
-            default -> null;
-        };
+        // experience_orb has no item form; proxy to experience_bottle for the icon.
+        if ("experience_orb".equals(entityId.getPath())) return ResourceLocation.withDefaultNamespace("experience_bottle");
+        return null;
     }
 
     private static LivingEntity resolveEntity(ResourceLocation id) {
