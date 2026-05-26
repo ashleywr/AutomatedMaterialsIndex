@@ -23,6 +23,8 @@ public class EntityProvider implements IAmiDataProvider {
 
         BuiltInRegistries.ENTITY_TYPE.entrySet().forEach(e -> {
             var id = e.getKey().location();
+            // Skip entities that have a direct item equivalent — they're already indexed as items.
+            if (BuiltInRegistries.ITEM.containsKey(id)) return;
             var entityType = e.getValue();
             var category = entityType.getCategory();
             List<String> searchTags = entityDataSniffer.extractSearchTags(entityType);
@@ -52,9 +54,6 @@ public class EntityProvider implements IAmiDataProvider {
                 if (id.getPath().equals("experience_orb")) {
                     meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, "magic");
                     meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "reagents");
-                } else if (isVehicleEntity(id.getPath())) {
-                    meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, "environment");
-                    meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "transport");
                 } else if (numericMetadata.containsKey("health")) {
                     // It has health, so it's a living entity even if categorized as MISC by the mod
                     meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "passive");
@@ -75,10 +74,6 @@ public class EntityProvider implements IAmiDataProvider {
 
         nodes.sort(RegistryUtils.ENTRY_ORDER);
         nodes.forEach(index::addNode);
-    }
-
-    private static boolean isVehicleEntity(String path) {
-        return path.contains("boat") || path.contains("minecart") || path.contains("raft");
     }
 
     private static final Set<String> NEUTRAL_MOBS = Set.of(
