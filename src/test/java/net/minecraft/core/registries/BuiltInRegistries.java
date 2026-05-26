@@ -27,7 +27,7 @@ public class BuiltInRegistries {
 
         @Override
         public ResourceLocation getKey(Item item) {
-            return ids.getOrDefault(item, ResourceLocation.parse("minecraft:item"));
+            return ids.getOrDefault(item, new ResourceLocation("minecraft:item"));
         }
 
         @Override

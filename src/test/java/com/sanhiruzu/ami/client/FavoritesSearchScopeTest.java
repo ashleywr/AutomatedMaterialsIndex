@@ -27,7 +27,7 @@ public class FavoritesSearchScopeTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode ironIngot = new SearchNode(
-                ResourceLocation.parse("minecraft:iron_ingot"),
+                new ResourceLocation("minecraft:iron_ingot"),
                 NodeType.ITEM,
                 "Iron Ingot",
                 0,
@@ -35,7 +35,7 @@ public class FavoritesSearchScopeTest {
                 Map.of()
         );
         SearchNode goldIngot = new SearchNode(
-                ResourceLocation.parse("minecraft:gold_ingot"),
+                new ResourceLocation("minecraft:gold_ingot"),
                 NodeType.ITEM,
                 "Gold Ingot",
                 0,
@@ -60,7 +60,7 @@ public class FavoritesSearchScopeTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode ironIngot = new SearchNode(
-                ResourceLocation.parse("minecraft:iron_ingot"),
+                new ResourceLocation("minecraft:iron_ingot"),
                 NodeType.ITEM,
                 "Iron Ingot",
                 0,
@@ -68,7 +68,7 @@ public class FavoritesSearchScopeTest {
                 Map.of()
         );
         SearchNode goldIngot = new SearchNode(
-                ResourceLocation.parse("minecraft:gold_ingot"),
+                new ResourceLocation("minecraft:gold_ingot"),
                 NodeType.ITEM,
                 "Gold Ingot",
                 0,

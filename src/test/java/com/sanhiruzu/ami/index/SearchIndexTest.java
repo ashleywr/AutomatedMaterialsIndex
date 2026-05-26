@@ -22,9 +22,9 @@ public class SearchIndexTest {
     public void prefixAndSubstringSearchWork() {
         SearchIndex idx = new SearchIndex();
 
-        var nodeA = new SearchNode(ResourceLocation.parse("ami:pack"), NodeType.ITEM, "Pack", 0, 0, new HashMap<>());
-        var nodeB = new SearchNode(ResourceLocation.parse("ami:packable_box"), NodeType.ITEM, "Packable Box", 0, 0, new HashMap<>());
-        var nodeC = new SearchNode(ResourceLocation.parse("ami:soph_backpack"), NodeType.ITEM, "Sophisticated Backpack", 0, 0, new HashMap<>());
+        var nodeA = new SearchNode(new ResourceLocation("ami:pack"), NodeType.ITEM, "Pack", 0, 0, new HashMap<>());
+        var nodeB = new SearchNode(new ResourceLocation("ami:packable_box"), NodeType.ITEM, "Packable Box", 0, 0, new HashMap<>());
+        var nodeC = new SearchNode(new ResourceLocation("ami:soph_backpack"), NodeType.ITEM, "Sophisticated Backpack", 0, 0, new HashMap<>());
 
         idx.addNode(nodeA);
         idx.addNode(nodeB);
@@ -44,7 +44,7 @@ public class SearchIndexTest {
         SearchIndex idx = new SearchIndex();
 
         var oakStairs = new SearchNode(
-                ResourceLocation.parse("minecraft:oak_stairs"),
+                new ResourceLocation("minecraft:oak_stairs"),
                 NodeType.ITEM,
                 "Oak Stairs",
                 0,
@@ -67,21 +67,22 @@ public class SearchIndexTest {
     }
 
     @Test
-    public void narrowIndexDoesNotSearchMetadataAliases() {
-        SearchIndex idx = new SearchIndex(false);
+    public void colonDelimitedSearchWorks() {
+        SearchIndex idx = new SearchIndex();
 
-        var pressurePlate = new SearchNode(
-                ResourceLocation.parse("copycats:copycat_light_weighted_pressure_plate"),
-                NodeType.ITEM,
-                "Copycat Light Weighted Pressure Plate",
+        var cricket = new SearchNode(
+                new ResourceLocation("zen_amphibia:cricket"),
+                NodeType.ENTITY,
+                "Cricket",
                 0,
                 0,
-                Map.of(SearchNodeKeys.MATERIAL_GROUP, "create:zinc_ingot")
+                new HashMap<>()
         );
 
-        idx.addNode(pressurePlate);
+        idx.addNode(cricket);
 
-        assertFalse(idx.substringSearch("ingot").contains(pressurePlate));
-        assertTrue(idx.substringSearch("pressure plate").contains(pressurePlate));
+        assertTrue(idx.prefixSearch("zen_amphibia:cricket").contains(cricket));
+        assertTrue(idx.prefixSearch("cricket").contains(cricket));
+        assertTrue(idx.substringSearch("amphibia").contains(cricket));
     }
 }

@@ -22,7 +22,7 @@ public class QuerySearchModeTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode ingot = new SearchNode(
-                ResourceLocation.parse("minecraft:iron_ingot"),
+                new ResourceLocation("minecraft:iron_ingot"),
                 NodeType.ITEM,
                 "Iron Ingot",
                 0,
@@ -30,7 +30,7 @@ public class QuerySearchModeTest {
                 Map.of()
         );
         SearchNode copycat = new SearchNode(
-                ResourceLocation.parse("copycats:copycat_light_weighted_pressure_plate"),
+                new ResourceLocation("copycats:copycat_light_weighted_pressure_plate"),
                 NodeType.ITEM,
                 "Copycat Light Weighted Pressure Plate",
                 0,
@@ -38,7 +38,7 @@ public class QuerySearchModeTest {
                 Map.of(SearchNodeKeys.MATERIAL_GROUP, "create:zinc_ingot")
         );
         SearchNode template = new SearchNode(
-                ResourceLocation.parse("minecraft:netherite_upgrade_smithing_template"),
+                new ResourceLocation("minecraft:netherite_upgrade_smithing_template"),
                 NodeType.ITEM,
                 "Netherite Upgrade Smithing Template",
                 0,
@@ -63,7 +63,7 @@ public class QuerySearchModeTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode copycat = new SearchNode(
-                ResourceLocation.parse("copycats:copycat_light_weighted_pressure_plate"),
+                new ResourceLocation("copycats:copycat_light_weighted_pressure_plate"),
                 NodeType.ITEM,
                 "Copycat Light Weighted Pressure Plate",
                 0,
@@ -84,7 +84,7 @@ public class QuerySearchModeTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode ironIngot = new SearchNode(
-                ResourceLocation.parse("minecraft:iron_ingot"),
+                new ResourceLocation("minecraft:iron_ingot"),
                 NodeType.ITEM,
                 "Iron Ingot",
                 0,
@@ -92,7 +92,7 @@ public class QuerySearchModeTest {
                 Map.of(SearchNodeKeys.MOD_ID, "minecraft")
         );
         SearchNode zincIngot = new SearchNode(
-                ResourceLocation.parse("create:zinc_ingot"),
+                new ResourceLocation("create:zinc_ingot"),
                 NodeType.ITEM,
                 "Zinc Ingot",
                 0,

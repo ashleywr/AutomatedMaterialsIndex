@@ -4,6 +4,17 @@ public final class ResourceLocation implements Comparable<ResourceLocation> {
     private final String namespace;
     private final String path;
 
+    public ResourceLocation(String location) {
+        int i = location.indexOf(':');
+        if (i < 0) {
+            this.namespace = "minecraft";
+            this.path = location;
+        } else {
+            this.namespace = location.substring(0, i);
+            this.path = location.substring(i + 1);
+        }
+    }
+
     public ResourceLocation(String namespace, String path) {
         this.namespace = namespace;
         this.path = path;

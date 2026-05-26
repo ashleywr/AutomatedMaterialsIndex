@@ -17,14 +17,14 @@ public class ItemFilterTest {
     @Test
     void testClassifyAccessLevel() {
         // Survival items
-        assertEquals(ItemFilter.ACCESS_SURVIVAL, ItemFilter.classifyAccessLevel(ResourceLocation.parse("minecraft:iron_ingot"), true));
+        assertEquals(ItemFilter.ACCESS_SURVIVAL, ItemFilter.classifyAccessLevel(new ResourceLocation("minecraft:iron_ingot"), true));
 
         // Creative/Cheat items
-        assertEquals(ItemFilter.ACCESS_CREATIVE, ItemFilter.classifyAccessLevel(ResourceLocation.parse("minecraft:zombie_spawn_egg"), true));
-        assertEquals(ItemFilter.ACCESS_CHEAT, ItemFilter.classifyAccessLevel(ResourceLocation.parse("minecraft:command_block"), true));
+        assertEquals(ItemFilter.ACCESS_CREATIVE, ItemFilter.classifyAccessLevel(new ResourceLocation("minecraft:zombie_spawn_egg"), true));
+        assertEquals(ItemFilter.ACCESS_CHEAT, ItemFilter.classifyAccessLevel(new ResourceLocation("minecraft:command_block"), true));
 
         // Hidden items (not in creative)
-        assertEquals(ItemFilter.ACCESS_DEV, ItemFilter.classifyAccessLevel(ResourceLocation.parse("minecraft:iron_ingot"), false));
+        assertEquals(ItemFilter.ACCESS_DEV, ItemFilter.classifyAccessLevel(new ResourceLocation("minecraft:iron_ingot"), false));
     }
 
     @Test
