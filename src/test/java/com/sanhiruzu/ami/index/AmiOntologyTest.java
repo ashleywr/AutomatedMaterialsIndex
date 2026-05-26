@@ -13,7 +13,7 @@ public class AmiOntologyTest {
     void testClassifyItemByTag() {
         // Mock a node with "sword" tag
         SearchNode sword = new SearchNode(
-                ResourceLocation.parse("minecraft:iron_sword"),
+                new ResourceLocation("minecraft:iron_sword"),
                 NodeType.ITEM,
                 "Iron Sword",
                 0, 0,
@@ -28,7 +28,7 @@ public class AmiOntologyTest {
     void testClassifyItemByPath() {
         // Mock a node with "apple" in path
         SearchNode apple = new SearchNode(
-                ResourceLocation.parse("minecraft:apple"),
+                new ResourceLocation("minecraft:apple"),
                 NodeType.ITEM,
                 "Apple",
                 0, 0,
@@ -43,7 +43,7 @@ public class AmiOntologyTest {
     void testClassifyEggAsIngredient() {
         // Mock an egg
         SearchNode egg = new SearchNode(
-                ResourceLocation.parse("minecraft:egg"),
+                new ResourceLocation("minecraft:egg"),
                 NodeType.ITEM,
                 "Egg",
                 0, 0,
@@ -59,7 +59,7 @@ public class AmiOntologyTest {
         // MASONRY items are always pre-computed at index time by OntologyClassifier,
         // so the runtime classifier needs pre-computed metadata to route here.
         SearchNode bricks = new SearchNode(
-                ResourceLocation.parse("minecraft:bricks"),
+                new ResourceLocation("minecraft:bricks"),
                 NodeType.ITEM,
                 "Bricks",
                 0, 0,
@@ -74,7 +74,7 @@ public class AmiOntologyTest {
     @Test
     void testClassifyEnvironmentTypes() {
         SearchNode biome = new SearchNode(
-                ResourceLocation.parse("minecraft:plains"),
+                new ResourceLocation("minecraft:plains"),
                 NodeType.BIOME,
                 "Plains",
                 0, 0, Map.of()
@@ -82,7 +82,7 @@ public class AmiOntologyTest {
         assertEquals(AmiOntology.ENVIRONMENT, AmiOntology.classifyNode(biome));
 
         SearchNode structure = new SearchNode(
-                ResourceLocation.parse("minecraft:village"),
+                new ResourceLocation("minecraft:village"),
                 NodeType.STRUCTURE,
                 "Village",
                 0, 0, Map.of()

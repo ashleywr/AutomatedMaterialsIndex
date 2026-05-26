@@ -23,7 +23,7 @@ public class AmiSidebarSyncHandlerTest {
     @Test
     void testGetNodesForFavorites() {
         SearchNode node = new SearchNode(
-                ResourceLocation.parse("minecraft:apple"),
+                new ResourceLocation("minecraft:apple"),
                 NodeType.ITEM,
                 "Apple",
                 0, 0, Map.of()

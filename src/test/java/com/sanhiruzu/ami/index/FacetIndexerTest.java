@@ -76,7 +76,7 @@ class FacetIndexerTest {
     @Test
     void taggedBoneGetsOrganicIngredientFacet() {
         Item boneMeal = register("test_bone", new Item("Test Bone")
-                .withTag(TagKey.create(null, ResourceLocation.fromNamespaceAndPath("c", "bones"))));
+                .withTag(TagKey.create(null, new ResourceLocation("c", "bones"))));
 
         FacetProfile profile = index(boneMeal);
 
@@ -282,6 +282,29 @@ class FacetIndexerTest {
         assertTrue(sculkProfile.facets().contains(ItemFacet.NATURE_MISC));
     }
 
+    @Test
+    void storageBlocksGetMaterialFacetsButNotStorageFacet() {
+        Item ironBlock = register("iron_block", new Item("Iron Block")
+                .withTag(TagKey.create(null, new ResourceLocation("c", "storage_blocks/iron"))));
+        Item rawIronBlock = register("raw_iron_block", new Item("Raw Iron Block")
+                .withTag(TagKey.create(null, new ResourceLocation("c", "storage_blocks/raw_iron"))));
+        Item diamondBlock = register("diamond_block", new Item("Diamond Block")
+                .withTag(TagKey.create(null, new ResourceLocation("c", "storage_blocks/diamond"))));
+
+        FacetProfile ironProfile = index(ironBlock);
+        FacetProfile rawIronProfile = index(rawIronBlock);
+        FacetProfile diamondProfile = index(diamondBlock);
+
+        assertTrue(ironProfile.facets().contains(ItemFacet.INGOT));
+        assertFalse(ironProfile.facets().contains(ItemFacet.STORAGE));
+
+        assertTrue(rawIronProfile.facets().contains(ItemFacet.RAW_MATERIAL));
+        assertFalse(rawIronProfile.facets().contains(ItemFacet.STORAGE));
+
+        assertTrue(diamondProfile.facets().contains(ItemFacet.GEM));
+        assertFalse(diamondProfile.facets().contains(ItemFacet.STORAGE));
+    }
+
     private static FacetProfile index(Item item) {
         return FacetIndexer.index(
                 item,
@@ -291,7 +314,7 @@ class FacetIndexerTest {
     }
 
     private static Item register(String path, Item item) {
-        BuiltInRegistries.itemRegistry().register(ResourceLocation.fromNamespaceAndPath("ami_test", path), item);
+        BuiltInRegistries.itemRegistry().register(new ResourceLocation("ami_test", path), item);
         return item;
     }
 

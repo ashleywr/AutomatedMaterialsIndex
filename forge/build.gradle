@@ -1,0 +1,186 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'net.neoforged.moddev.legacyforge' version "${moddevgradle_version}"
+}
+
+base {
+    archivesName = "${mod_id}-forge-${forge_minecraft_version}"
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+legacyForge {
+    version = "${forge_minecraft_version}-${forge_version}"
+
+    parchment {
+        minecraftVersion = forge_parchment_minecraft_version
+        mappingsVersion = forge_parchment_mappings_version
+    }
+
+    runs {
+        client {
+            client()
+            gameDirectory = project.file('../run-forge')
+            systemProperty 'forge.enabledGameTestNamespaces', mod_id
+        }
+
+        clientJei {
+            client()
+            gameDirectory = project.file('../run-forge-jei')
+            systemProperty 'forge.enabledGameTestNamespaces', mod_id
+            ideName = 'Forge Client JEI'
+        }
+
+        clientEmi {
+            client()
+            gameDirectory = project.file('../run-forge-emi')
+            systemProperty 'forge.enabledGameTestNamespaces', mod_id
+            ideName = 'Forge Client EMI'
+        }
+
+        server {
+            server()
+            gameDirectory = project.file('../run-forge-server')
+            programArgument '--nogui'
+            systemProperty 'forge.enabledGameTestNamespaces', mod_id
+        }
+
+        data {
+            data()
+            gameDirectory = project.file('../run-forge-data')
+            programArguments.addAll '--mod', mod_id, '--all',
+                    '--output', file('src/generated/resources/').absolutePath,
+                    '--existing', file('src/main/resources/').absolutePath
+        }
+
+        configureEach {
+            systemProperty 'forge.logging.markers', 'SCAN,REGISTRIES,LOADING'
+            logLevel = org.slf4j.event.Level.DEBUG
+            jvmArguments.addAll '-ea', '-Dmixin.debug.export=true'
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java.srcDir project(':xplat').file('src/main/java')
+        resources {
+            srcDir 'src/generated/resources'
+            srcDir project(':xplat').file('src/main/resources')
+        }
+    }
+}
+
+def devRecipeViewer = findProperty('dev_recipe_viewer') ?: 'both'
+
+configurations {
+    devRuntimeRecipeViewerMods {
+        canBeConsumed = false
+        canBeResolved = true
+    }
+    devRuntimeJeiViewerMods {
+        canBeConsumed = false
+        canBeResolved = true
+    }
+    devRuntimeEmiViewerMods {
+        canBeConsumed = false
+        canBeResolved = true
+    }
+}
+
+dependencies {
+    modCompileOnly "mezz.jei:jei-${forge_minecraft_version}-forge-api:${forge_jei_version}"
+    modCompileOnly "mezz.jei:jei-${forge_minecraft_version}-forge:${forge_jei_version}"
+    modCompileOnly "dev.emi:emi-forge:${forge_emi_version}+${forge_minecraft_version}"
+
+    if (devRecipeViewer == 'jei' || devRecipeViewer == 'both') {
+        devRuntimeRecipeViewerMods "mezz.jei:jei-${forge_minecraft_version}-forge:${forge_jei_version}"
+        clientAdditionalRuntimeClasspath "mezz.jei:jei-${forge_minecraft_version}-forge:${forge_jei_version}"
+    }
+    if (devRecipeViewer == 'emi' || devRecipeViewer == 'both') {
+        devRuntimeRecipeViewerMods "dev.emi:emi-forge:${forge_emi_version}+${forge_minecraft_version}"
+        clientAdditionalRuntimeClasspath "dev.emi:emi-forge:${forge_emi_version}+${forge_minecraft_version}"
+    }
+
+    devRuntimeJeiViewerMods "mezz.jei:jei-${forge_minecraft_version}-forge:${forge_jei_version}"
+    devRuntimeEmiViewerMods "dev.emi:emi-forge:${forge_emi_version}+${forge_minecraft_version}"
+    clientJeiAdditionalRuntimeClasspath "mezz.jei:jei-${forge_minecraft_version}-forge:${forge_jei_version}"
+    clientEmiAdditionalRuntimeClasspath "dev.emi:emi-forge:${forge_emi_version}+${forge_minecraft_version}"
+
+    implementation "it.unimi.dsi:fastutil:8.5.12"
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+}
+
+def registerRecipeViewerModCleanup = { String taskName, String runDirName ->
+    tasks.register(taskName, Delete) {
+        def modsDir = project.file("../${runDirName}/mods")
+        delete fileTree(modsDir) {
+            include 'emi-*.jar'
+            include 'jei-*.jar'
+        }
+    }
+}
+
+def cleanClientRecipeViewerMods = registerRecipeViewerModCleanup(
+        'cleanClientRecipeViewerMods',
+        'run-forge'
+)
+def cleanClientJeiRecipeViewerMods = registerRecipeViewerModCleanup(
+        'cleanClientJeiRecipeViewerMods',
+        'run-forge-jei'
+)
+def cleanClientEmiRecipeViewerMods = registerRecipeViewerModCleanup(
+        'cleanClientEmiRecipeViewerMods',
+        'run-forge-emi'
+)
+
+tasks.matching { it.name == 'prepareClientRun' }.configureEach {
+    dependsOn cleanClientRecipeViewerMods
+}
+tasks.matching { it.name == 'prepareClientJeiRun' }.configureEach {
+    dependsOn cleanClientJeiRecipeViewerMods
+}
+tasks.matching { it.name == 'prepareClientEmiRun' }.configureEach {
+    dependsOn cleanClientEmiRecipeViewerMods
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            minecraft_version      : forge_minecraft_version,
+            minecraft_version_range: forge_minecraft_version_range,
+            forge_version          : forge_version,
+            forge_version_range    : forge_version_range,
+            loader_version_range   : forge_loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_group_id           : mod_group_id
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    manifest.attributes([
+            'MixinConfigs': "${mod_id}.mixins.json"
+    ])
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            from components.java
+        }
+    }
+}

@@ -1,0 +1,30 @@
+# This is an example forge.mods.toml file. It contains the data relating to the loading mods.
+modLoader = "javafml" #mandatory
+loaderVersion = "${loader_version_range}" #mandatory
+license = "${mod_license}"
+
+[[mods]] #mandatory
+modId = "${mod_id}" #mandatory
+version = "${mod_version}" #mandatory
+displayName = "${mod_name}" #mandatory
+credits = "Ashley" #optional
+authors = "Ashley"
+description = '''
+The next-generation recipe and progression UI for modded Minecraft.
+
+AMI eliminates UI bloat with smart, faceted recipe organization, Ghost Crafting for seamless item selection, automated material indexing, and a directed progression graph for guiding players through modpack content.
+'''
+
+[[dependencies.${ mod_id }]] #optional
+modId = "forge" #mandatory
+mandatory = true #mandatory
+versionRange = "${forge_version_range}" #mandatory
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.${ mod_id }]]
+modId = "minecraft"
+mandatory = true
+versionRange = "${minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"

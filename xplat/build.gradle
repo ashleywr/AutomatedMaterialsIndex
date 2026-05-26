@@ -1,0 +1,13 @@
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+dependencies {
+    compileOnly "it.unimi.dsi:fastutil:8.5.12"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    enabled = false
+}
+
+tasks.withType(Test).configureEach {
+    enabled = false
+}

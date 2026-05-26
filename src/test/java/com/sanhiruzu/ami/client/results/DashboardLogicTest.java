@@ -34,7 +34,7 @@ public class DashboardLogicTest {
     @Test
     void dashboardBuildsSubcategoryPlaceholders() {
         SearchNode compass = new SearchNode(
-                ResourceLocation.parse("minecraft:compass"),
+                new ResourceLocation("minecraft:compass"),
                 NodeType.ITEM, "Compass", 0, 0,
                 Map.of(
                         SearchNodeKeys.ONTOLOGY_CATEGORY, "utility",
@@ -42,7 +42,7 @@ public class DashboardLogicTest {
                 )
         );
         SearchNode map = new SearchNode(
-                ResourceLocation.parse("minecraft:map"),
+                new ResourceLocation("minecraft:map"),
                 NodeType.ITEM, "Map", 0, 0,
                 Map.of(
                         SearchNodeKeys.ONTOLOGY_CATEGORY, "utility",
@@ -50,7 +50,7 @@ public class DashboardLogicTest {
                 )
         );
         SearchNode spyglass = new SearchNode(
-                ResourceLocation.parse("minecraft:spyglass"),
+                new ResourceLocation("minecraft:spyglass"),
                 NodeType.ITEM, "Spyglass", 0, 0,
                 Map.of(
                         SearchNodeKeys.ONTOLOGY_CATEGORY, "utility",
@@ -77,12 +77,12 @@ public class DashboardLogicTest {
     @Test
     void dashboardSubcategoryFilterSelectsOnlyMatchingNodes() {
         SearchNode compass = new SearchNode(
-                ResourceLocation.parse("minecraft:compass"),
+                new ResourceLocation("minecraft:compass"),
                 NodeType.ITEM, "Compass", 0, 0,
                 Map.of(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "navigation")
         );
         SearchNode spyglass = new SearchNode(
-                ResourceLocation.parse("minecraft:spyglass"),
+                new ResourceLocation("minecraft:spyglass"),
                 NodeType.ITEM, "Spyglass", 0, 0,
                 Map.of(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "tools")
         );
@@ -95,7 +95,7 @@ public class DashboardLogicTest {
 
     private void addMockItem(String path, String category) {
         GlobalIndex.getInstance().addNode(new SearchNode(
-                ResourceLocation.parse("minecraft:" + path),
+                new ResourceLocation("minecraft:" + path),
                 NodeType.ITEM, path, 0, 0,
                 Map.of(SearchNodeKeys.ONTOLOGY_CATEGORY, category)
         ));
@@ -104,7 +104,7 @@ public class DashboardLogicTest {
     @Test
     void testOntologyHeuristics() {
         SearchNode compass = new SearchNode(
-                ResourceLocation.parse("minecraft:compass"),
+                new ResourceLocation("minecraft:compass"),
                 NodeType.ITEM, "Compass", 0, 0, Map.of()
         );
 
@@ -115,7 +115,7 @@ public class DashboardLogicTest {
     @Test
     void testTreeNodeStructure() {
         TreeNode root = new TreeNode("root", Component.literal("Root"));
-        SearchNode item = new SearchNode(ResourceLocation.parse("minecraft:apple"), NodeType.ITEM, "Apple", 0, 0, Map.of());
+        SearchNode item = new SearchNode(new ResourceLocation("minecraft:apple"), NodeType.ITEM, "Apple", 0, 0, Map.of());
         TreeNode leaf = new TreeNode(Component.literal("Apple"), item);
 
         root.addChild(leaf);

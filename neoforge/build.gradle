@@ -1,0 +1,213 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version "${moddevgradle_version}"
+}
+
+base {
+    archivesName = "${mod_id}-neoforge-${neoforge_minecraft_version}"
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    version = neoforge_version
+
+    parchment {
+        minecraftVersion = neoforge_parchment_minecraft_version
+        mappingsVersion = neoforge_parchment_mappings_version
+    }
+
+    runs {
+        client {
+            client()
+            gameDirectory = project.file('../run-neoforge')
+            systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
+        }
+
+        clientJei {
+            client()
+            gameDirectory = project.file('../run-neoforge-jei')
+            systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
+            ideName = 'NeoForge Client JEI'
+        }
+
+        clientEmi {
+            client()
+            gameDirectory = project.file('../run-neoforge-emi')
+            systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
+            ideName = 'NeoForge Client EMI'
+        }
+
+        server {
+            server()
+            gameDirectory = project.file('../run-neoforge-server')
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
+        }
+
+        gameTestServer {
+            type = 'gameTestServer'
+            gameDirectory = project.file('../run-neoforge-gametest')
+            systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
+        }
+
+        data {
+            data()
+            gameDirectory = project.file('../run-neoforge-data')
+            programArguments.addAll '--mod', mod_id, '--all',
+                    '--output', file('src/generated/resources/').absolutePath,
+                    '--existing', file('src/xplat/src/main/resources/').absolutePath
+        }
+
+        configureEach {
+            systemProperty 'forge.logging.markers', 'SCAN,REGISTRIES,LOADING'
+            logLevel = org.slf4j.event.Level.DEBUG
+            jvmArguments.addAll '-ea', '-Dmixin.debug.export=true'
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java.setSrcDirs(['src/main/java', 'src/xplat/src/main/java'])
+        resources.setSrcDirs(['src/generated/resources', 'src/main/resources', 'src/xplat/src/main/resources'])
+    }
+    test {
+        java.srcDir '../src/test/java'
+        resources.srcDir '../src/test/resources'
+    }
+}
+
+def devRecipeViewer = findProperty('dev_recipe_viewer') ?: 'both'
+
+configurations {
+    devRuntimeRecipeViewerMods {
+        canBeConsumed = false
+        canBeResolved = true
+    }
+    devRuntimeJeiViewerMods {
+        canBeConsumed = false
+        canBeResolved = true
+    }
+    devRuntimeEmiViewerMods {
+        canBeConsumed = false
+        canBeResolved = true
+    }
+}
+
+dependencies {
+    compileOnly "mezz.jei:jei-${neoforge_minecraft_version}-neoforge-api:${neoforge_jei_version}"
+    compileOnly "mezz.jei:jei-${neoforge_minecraft_version}-neoforge:${neoforge_jei_version}"
+    compileOnly "dev.emi:emi-neoforge:${neoforge_emi_version}+${neoforge_minecraft_version}"
+
+    if (devRecipeViewer == 'jei' || devRecipeViewer == 'both') {
+        devRuntimeRecipeViewerMods "mezz.jei:jei-${neoforge_minecraft_version}-neoforge:${neoforge_jei_version}"
+    }
+    if (devRecipeViewer == 'emi' || devRecipeViewer == 'both') {
+        devRuntimeRecipeViewerMods "dev.emi:emi-neoforge:${neoforge_emi_version}+${neoforge_minecraft_version}"
+    }
+
+    devRuntimeJeiViewerMods "mezz.jei:jei-${neoforge_minecraft_version}-neoforge:${neoforge_jei_version}"
+    devRuntimeEmiViewerMods "dev.emi:emi-neoforge:${neoforge_emi_version}+${neoforge_minecraft_version}"
+
+    compileOnly "it.unimi.dsi:fastutil:8.5.9"
+
+    testImplementation "org.junit.jupiter:junit-jupiter:5.9.3"
+    testImplementation "it.unimi.dsi:fastutil:8.5.9"
+    testImplementation "org.spongepowered:mixin:0.8.5"
+    testImplementation "org.ow2.asm:asm-tree:9.7.1"
+    testImplementation "mezz.jei:jei-${neoforge_minecraft_version}-neoforge-api:${neoforge_jei_version}"
+    testImplementation "com.google.code.gson:gson:2.10.1"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.9.3"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.9.3"
+}
+
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
+    workingDir = file('src/xplat')
+}
+
+def registerRecipeViewerModSync = { String taskName, List<String> configurationNames, String runDirName ->
+    def viewerConfigurations = configurationNames.collect { configName ->
+        configurations.named(configName).get()
+    }
+
+    tasks.register(taskName, Copy) {
+        def modsDir = project.file("../${runDirName}/mods")
+        viewerConfigurations.each { configuration ->
+            inputs.files(configuration)
+        }
+        outputs.dir(modsDir)
+        into(modsDir)
+        from(viewerConfigurations)
+    }
+}
+
+def syncClientRecipeViewerMods = registerRecipeViewerModSync(
+        'syncClientRecipeViewerMods',
+        ['devRuntimeRecipeViewerMods'],
+        'run-neoforge'
+)
+def syncClientJeiRecipeViewerMods = registerRecipeViewerModSync(
+        'syncClientJeiRecipeViewerMods',
+        ['devRuntimeJeiViewerMods'],
+        'run-neoforge-jei'
+)
+def syncClientEmiRecipeViewerMods = registerRecipeViewerModSync(
+        'syncClientEmiRecipeViewerMods',
+        ['devRuntimeEmiViewerMods'],
+        'run-neoforge-emi'
+)
+
+tasks.matching { it.name == 'prepareClientRun' }.configureEach {
+    dependsOn syncClientRecipeViewerMods
+}
+tasks.matching { it.name == 'prepareClientJeiRun' }.configureEach {
+    dependsOn syncClientJeiRecipeViewerMods
+}
+tasks.matching { it.name == 'prepareClientEmiRun' }.configureEach {
+    dependsOn syncClientEmiRecipeViewerMods
+}
+
+var generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
+    var replaceProperties = [
+            minecraft_version      : neoforge_minecraft_version,
+            minecraft_version_range: neoforge_minecraft_version_range,
+            neo_version            : neoforge_version,
+            loader_version_range   : neoforge_loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from 'src/xplat/src/main/templates'
+    into layout.buildDirectory.dir('generated/sources/modMetadata')
+}
+
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+
+// Compatibility shim for stale IntelliJ Gradle task activations from the old
+// 1.21.1 workspace import. ModDevGradle's current task is neoForgeIdeSync.
+tasks.register('regutilsIdeSync') {
+    group = 'ide'
+    description = 'Compatibility alias for old IntelliJ sync task activation.'
+    dependsOn tasks.named('neoForgeIdeSync')
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            from components.java
+        }
+    }
+}
