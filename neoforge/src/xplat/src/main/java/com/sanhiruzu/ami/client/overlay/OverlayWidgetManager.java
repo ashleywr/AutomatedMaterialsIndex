@@ -555,7 +555,7 @@ public class OverlayWidgetManager {
     private void togglePanelVisible() {
         panelVisible = !panelVisible;
         if (!panelVisible) {
-            searchBar.clear();
+            if (searchBar != null) searchBar.clear();
             lastSyncedQuery = "";
             leftAlternateActive = false;
             rightAlternateActive = false;
