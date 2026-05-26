@@ -66,6 +66,8 @@ public class JeiGuiEventHandlerMixin {
     }
 
     private static boolean shouldSuppressJeiChrome() {
-        return InventoryOverlayHandler.isAmiEnabled();
+        if (!InventoryOverlayHandler.isAmiEnabled()) return false;
+        var manager = InventoryOverlayHandler.getManager();
+        return manager != null && manager.isPanelVisible();
     }
 }
