@@ -8,6 +8,8 @@
   "client": [
     "EmiScreenManagerMixin",
     "JeiClientInputHandlerMixin",
-    "JeiGuiEventHandlerMixin"
+    "JeiGuiEventHandlerMixin",
+    "JeiIngredientListOverlayMixin",
+    "JeiBookmarkOverlayMixin"
   ]
 }
