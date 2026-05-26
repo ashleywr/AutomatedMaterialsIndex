@@ -326,6 +326,7 @@ public class OverlayWidgetManager {
         if (!AmiConfig.enableAutoIndexing) return;
         if (!panelVisible) return;
 
+        ensureWidgets();
         var indexer = AmiIndexerService.getInstance();
         if (indexer.isReady()) {
             var service = indexer.getOrBuildSearchService();
