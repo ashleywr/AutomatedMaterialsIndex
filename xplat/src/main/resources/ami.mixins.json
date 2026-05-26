@@ -10,6 +10,7 @@
     "JeiClientInputHandlerMixin",
     "JeiGuiEventHandlerMixin",
     "JeiIngredientListOverlayMixin",
-    "JeiBookmarkOverlayMixin"
+    "JeiBookmarkOverlayMixin",
+    "ForgeGuiPluginMixin"
   ]
 }
