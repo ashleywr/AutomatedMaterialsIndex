@@ -119,11 +119,12 @@ public class InventoryOverlayHandler {
             return;
         }
 
+        // renderAll must be called before tick to ensure widgets are initialized
+        manager.renderAll(event);
+
         if (amiEnabled) {
             manager.tick(event);
         }
-
-        manager.renderAll(event);
     }
 
     @SubscribeEvent
