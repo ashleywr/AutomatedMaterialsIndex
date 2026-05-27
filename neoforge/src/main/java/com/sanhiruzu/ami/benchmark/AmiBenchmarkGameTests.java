@@ -29,32 +29,34 @@ public final class AmiBenchmarkGameTests {
     private AmiBenchmarkGameTests() {
     }
 
-    @GameTest(templateNamespace = AMI.MODID, template = "ami_benchmark_empty", setupTicks = 1L, timeoutTicks = 200)
+    @GameTest(templateNamespace = AMI.MODID, template = "ami_benchmark_empty", setupTicks = 1L, timeoutTicks = 6000)
     public static void benchmarkSearchRegistry(GameTestHelper helper) {
-        try {
-            runBenchmark(helper);
-            helper.succeed();
-        } catch (Throwable t) {
-            AMI.LOGGER.error("AMI benchmark GameTest failed", t);
-            if (t instanceof RuntimeException runtimeException) {
-                throw runtimeException;
+        AmiIndexerService indexer = AmiIndexerService.getInstance();
+        indexer.rebuild(helper.getLevel());
+        helper.succeedWhen(() -> {
+            failIfRebuildFailed(helper, indexer);
+            helper.assertTrue(indexer.isReady(), "AMI index rebuild is still running");
+            try {
+                runBenchmark(indexer);
+            } catch (Throwable t) {
+                AMI.LOGGER.error("AMI benchmark GameTest failed", t);
+                if (t instanceof Error error) {
+                    throw error;
+                }
+                helper.fail("AMI benchmark failed: " + t.getMessage());
             }
-            if (t instanceof Error error) {
-                throw error;
-            }
-            throw new RuntimeException(t);
+        });
+    }
+
+    private static void failIfRebuildFailed(GameTestHelper helper, AmiIndexerService indexer) {
+        Throwable failure = indexer.getLastRebuildFailure();
+        if (failure != null) {
+            AMI.LOGGER.error("AMI benchmark GameTest failed during index rebuild", failure);
+            helper.fail("AMI index rebuild failed: " + failure.getMessage());
         }
     }
 
-    private static void runBenchmark(GameTestHelper helper) throws IOException {
-        AmiIndexerService indexer = AmiIndexerService.getInstance();
-        indexer.rebuild(helper.getLevel());
-        while (!indexer.isReady()) {
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException ignored) {
-            }
-        }
+    private static void runBenchmark(AmiIndexerService indexer) throws IOException {
         SearchService searchService = indexer.getOrBuildSearchService();
         AmiBenchmarkLogger.BenchmarkRun run = AmiBenchmarkLogger.createRun(SUITE_NAME, indexer.indexedItemCount());
 

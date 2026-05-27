@@ -17,6 +17,7 @@ public final class AmiIndexerService {
 
     private volatile SearchService searchService;
     private volatile int indexedItemCount;
+    private volatile Throwable lastRebuildFailure;
     private final AtomicBoolean isRebuilding = new AtomicBoolean(false);
 
     private AmiIndexerService() {
@@ -39,16 +40,24 @@ public final class AmiIndexerService {
         return searchService != null && !isRebuilding.get();
     }
 
+    public Throwable getLastRebuildFailure() {
+        return lastRebuildFailure;
+    }
+
     public void rebuild() {
         rebuild(com.sanhiruzu.ami.util.DistUtils.getClientLevel());
     }
 
     public void rebuild(Level level) {
         if (!isRebuilding.compareAndSet(false, true)) return;
+        lastRebuildFailure = null;
 
         CompletableFuture.runAsync(() -> {
             try {
                 performRebuild(level);
+            } catch (Throwable t) {
+                lastRebuildFailure = t;
+                AmiCore.LOGGER.error("AMI: Index rebuild failed", t);
             } finally {
                 isRebuilding.set(false);
             }

@@ -60,6 +60,100 @@ dependencies {
     testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.9.3"
 }
 
+configurations {
+    neoforgeJeiApiSources {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
+    neoforgeJeiSources {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
+    neoforgeEmiSources {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
+    forgeJeiApiSources {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
+    forgeJeiSources {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
+    forgeEmiSources {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
+}
+
+dependencies {
+    neoforgeJeiApiSources("mezz.jei:jei-${neoforge_minecraft_version}-neoforge-api:${neoforge_jei_version}:sources")
+    neoforgeJeiSources("mezz.jei:jei-${neoforge_minecraft_version}-neoforge:${neoforge_jei_version}:sources")
+    neoforgeEmiSources("dev.emi:emi-neoforge:${neoforge_emi_version}+${neoforge_minecraft_version}:sources")
+    forgeJeiApiSources("mezz.jei:jei-${forge_minecraft_version}-forge-api:${forge_jei_version}:sources")
+    forgeJeiSources("mezz.jei:jei-${forge_minecraft_version}-forge:${forge_jei_version}:sources")
+    forgeEmiSources("dev.emi:emi-forge:${forge_emi_version}+${forge_minecraft_version}:sources")
+}
+
+def registerVendorSourceSync = { String taskName, String configurationName, String outputPath ->
+    tasks.register(taskName, Sync) {
+        group = 'documentation'
+        description = "Resolves and extracts ${configurationName} into vendor-sources."
+        def sourceConfiguration = configurations.named(configurationName)
+        from({ zipTree(sourceConfiguration.get().singleFile) })
+        into(layout.projectDirectory.dir(outputPath))
+    }
+}
+
+def syncNeoForgeJeiApiSources = registerVendorSourceSync(
+        'syncNeoForgeJeiApiSources',
+        'neoforgeJeiApiSources',
+        "vendor-sources/resolved/jei/neoforge-${neoforge_minecraft_version}/api"
+)
+def syncNeoForgeJeiSources = registerVendorSourceSync(
+        'syncNeoForgeJeiSources',
+        'neoforgeJeiSources',
+        "vendor-sources/resolved/jei/neoforge-${neoforge_minecraft_version}/runtime"
+)
+def syncNeoForgeEmiSources = registerVendorSourceSync(
+        'syncNeoForgeEmiSources',
+        'neoforgeEmiSources',
+        "vendor-sources/resolved/emi/neoforge-${neoforge_minecraft_version}"
+)
+def syncForgeJeiApiSources = registerVendorSourceSync(
+        'syncForgeJeiApiSources',
+        'forgeJeiApiSources',
+        "vendor-sources/resolved/jei/forge-${forge_minecraft_version}/api"
+)
+def syncForgeJeiSources = registerVendorSourceSync(
+        'syncForgeJeiSources',
+        'forgeJeiSources',
+        "vendor-sources/resolved/jei/forge-${forge_minecraft_version}/runtime"
+)
+def syncForgeEmiSources = registerVendorSourceSync(
+        'syncForgeEmiSources',
+        'forgeEmiSources',
+        "vendor-sources/resolved/emi/forge-${forge_minecraft_version}"
+)
+
+tasks.register('syncRecipeViewerSources') {
+    group = 'documentation'
+    description = 'Resolves and extracts EMI/JEI source jars for the configured NeoForge and Forge dependencies.'
+    dependsOn syncNeoForgeJeiApiSources
+    dependsOn syncNeoForgeJeiSources
+    dependsOn syncNeoForgeEmiSources
+    dependsOn syncForgeJeiApiSources
+    dependsOn syncForgeJeiSources
+    dependsOn syncForgeEmiSources
+}
+
 tasks.named('compileJava', JavaCompile).configure {
     source = files()
 }
