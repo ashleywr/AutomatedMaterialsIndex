@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.client;
 
 import net.minecraft.client.gui.GuiGraphics;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 /**
  * Pixel-art icon helpers for AMI GUI buttons.
  * All methods draw into a fixed-size area centred on (cx, cy).

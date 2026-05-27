@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 /**
  * Builds an AMI-internal debug tooltip shown when Left Control is held while hovering an entry.
  * Reveals: registry ID, ontology classification (precomputed vs runtime), metadata keys, and tags.

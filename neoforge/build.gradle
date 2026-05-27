@@ -10,6 +10,8 @@ base {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
+def xplatProject = project(':xplat')
+
 neoForge {
     version = neoforge_version
 
@@ -57,7 +59,7 @@ neoForge {
             gameDirectory = project.file('../run-neoforge-data')
             programArguments.addAll '--mod', mod_id, '--all',
                     '--output', file('src/generated/resources/').absolutePath,
-                    '--existing', file('src/xplat/src/main/resources/').absolutePath
+                    '--existing', xplatProject.file('src/main/resources/').absolutePath
         }
 
         configureEach {
@@ -76,8 +78,11 @@ neoForge {
 
 sourceSets {
     main {
-        java.setSrcDirs(['src/main/java', 'src/xplat/src/main/java'])
-        resources.setSrcDirs(['src/generated/resources', 'src/main/resources', 'src/xplat/src/main/resources'])
+        java.srcDir xplatProject.file('src/main/java')
+        resources {
+            srcDir 'src/generated/resources'
+            srcDir xplatProject.file('src/main/resources')
+        }
     }
     test {
         java.srcDir '../src/test/java'
@@ -131,7 +136,7 @@ dependencies {
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
-    workingDir = file('src/xplat')
+    workingDir = xplatProject.projectDir
 }
 
 def registerRecipeViewerModSync = { String taskName, List<String> configurationNames, String runDirName ->
@@ -189,7 +194,7 @@ var generateModMetadata = tasks.register('generateModMetadata', ProcessResources
     ]
     inputs.properties replaceProperties
     expand replaceProperties
-    from 'src/xplat/src/main/templates'
+    from xplatProject.file('src/main/templates')
     into layout.buildDirectory.dir('generated/sources/modMetadata')
 }
 

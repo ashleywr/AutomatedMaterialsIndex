@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.api;
 
 import net.minecraft.world.level.block.state.BlockState;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 /**
  * Optional AMI-facing static energy metadata contract for block classes.
  *

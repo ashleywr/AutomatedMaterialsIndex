@@ -5,7 +5,7 @@ import net.minecraft.client.gui.screens.Screen;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 /**
  * Public API for interacting with AMI from other mods.
  * Currently provides screen suppression for mods that want to hide AMI's overlay.

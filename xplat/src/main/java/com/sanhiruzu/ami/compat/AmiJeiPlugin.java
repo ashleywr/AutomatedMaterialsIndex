@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
+import com.sanhiruzu.ami.platform.Services;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import net.minecraft.resources.ResourceLocation;
@@ -14,7 +15,7 @@ import net.minecraft.resources.ResourceLocation;
  */
 @JeiPlugin
 public class AmiJeiPlugin implements IModPlugin {
-    private static final ResourceLocation UID = new ResourceLocation(AMI.MODID, "plugin");
+    private static final ResourceLocation UID = Services.PLATFORM.rl(AmiCore.MODID, "plugin");
 
     @Override
     public ResourceLocation getPluginUid() {

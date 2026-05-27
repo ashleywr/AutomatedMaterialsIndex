@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index.providers;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.index.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.Registries;
@@ -65,13 +65,13 @@ public class StructureProvider implements IAmiDataProvider {
                                 0xFF888888, 0, meta));
                     });
                     found = !nodes.isEmpty();
-                    AMI.LOGGER.info("Structure registry found on server with {} entries", nodes.size());
+                    AmiCore.LOGGER.info("Structure registry found on server with {} entries", nodes.size());
                 }
             }
         }
 
         if (!found) {
-            AMI.LOGGER.warn("Structure registry not found - known NeoForge 1.21.1 issue");
+            AmiCore.LOGGER.warn("Structure registry not found - known NeoForge 1.21.1 issue");
         }
 
         nodes.sort(RegistryUtils.ENTRY_ORDER);

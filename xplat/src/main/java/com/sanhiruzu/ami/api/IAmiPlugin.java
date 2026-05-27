@@ -6,7 +6,7 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 /**
  * Interface for mods to provide AMI with layout-specific data.
  * <p>

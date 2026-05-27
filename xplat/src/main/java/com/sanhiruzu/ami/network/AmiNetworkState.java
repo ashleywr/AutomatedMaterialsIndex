@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.network;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 public final class AmiNetworkState {
     private AmiNetworkState() {
     }

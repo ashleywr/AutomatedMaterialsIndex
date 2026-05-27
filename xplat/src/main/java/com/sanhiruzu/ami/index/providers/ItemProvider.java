@@ -1,9 +1,11 @@
 package com.sanhiruzu.ami.index.providers;
 
+import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.api.AmiPluginRegistry;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.*;
+import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.index.metrics.DpsMetricSniffer;
 import com.sanhiruzu.ami.index.metrics.StorageMetricSniffer;
 import com.sanhiruzu.ami.index.sniffers.EnergyCapacitySniffer;
@@ -181,7 +183,7 @@ public class ItemProvider implements IAmiDataProvider {
             try {
                 heroItems = plugin.getHeroItems();
             } catch (Exception e) {
-                com.sanhiruzu.ami.forge.AMI.LOGGER.warn(
+                AmiCore.LOGGER.warn(
                         "IAmiPlugin.getHeroItems() threw from {}", plugin.getClass().getName(), e);
                 continue;
             }
@@ -193,7 +195,7 @@ public class ItemProvider implements IAmiDataProvider {
             for (ItemStack stack : heroItems) {
                 if (stack == null || stack.isEmpty()) continue;
                 if (count >= SubtypeExpander.HARD_CAP) {
-                    com.sanhiruzu.ami.forge.AMI.LOGGER.warn(
+                    AmiCore.LOGGER.warn(
                             "IAmiPlugin.getHeroItems() from {} exceeded HARD_CAP; truncating",
                             plugin.getClass().getName());
                     break;
@@ -201,8 +203,7 @@ public class ItemProvider implements IAmiDataProvider {
                 ResourceLocation baseId = BuiltInRegistries.ITEM.getKey(stack.getItem());
                 if (baseId == null) continue;
 
-                ResourceLocation syntheticId = new ResourceLocation("ami",
-                        "hero/" + pluginKey + "/" + count);
+                ResourceLocation syntheticId = Services.PLATFORM.rl("ami", "hero/" + pluginKey + "/" + count);
                 ItemIconRenderer.registerStack(syntheticId, stack);
 
                 Map<String, String> meta = buildSubtypeMeta(baseId, stack, extractColorBucket(baseId), creativeTabs.get(stack.getItem()));

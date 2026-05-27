@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index.providers;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.IAmiDataProvider;
 import net.minecraft.core.registries.Registries;
@@ -20,7 +20,7 @@ public class SpawnProvider implements IAmiDataProvider {
     public void populate(GlobalIndex index, @Nullable Level level) {
         if (level == null) return;
 
-        AMI.LOGGER.info("SpawnProvider: scanning biome spawns...");
+        AmiCore.LOGGER.info("SpawnProvider: scanning biome spawns...");
 
         try {
             level.registryAccess().registry(Registries.BIOME).ifPresent(reg ->
@@ -47,7 +47,7 @@ public class SpawnProvider implements IAmiDataProvider {
                     })
             );
         } catch (Exception e) {
-            AMI.LOGGER.warn("SpawnProvider skipped due to: {}", e.toString());
+            AmiCore.LOGGER.warn("SpawnProvider skipped due to: {}", e.toString());
         }
     }
 }

@@ -5,7 +5,7 @@ import net.minecraft.network.chat.Component;
 import java.util.List;
 import java.util.Locale;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 /**
  * Static 2-level ontology for AMI.
  * Categories are ordered by classification priority — first match wins when

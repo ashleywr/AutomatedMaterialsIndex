@@ -23,7 +23,7 @@ public class MixinConfigTest {
      */
     @Test
     void testEmiScreenManagerMixinIsRegistered() throws Exception {
-        Path mixinConfigPath = Paths.get("src/main/resources/ami.mixins.json");
+        Path mixinConfigPath = Paths.get("../neoforge/src/main/resources/ami.mixins.json");
         assertTrue(Files.exists(mixinConfigPath), "Mixin config file not found at " + mixinConfigPath);
 
         String jsonContent = Files.readString(mixinConfigPath, StandardCharsets.UTF_8);

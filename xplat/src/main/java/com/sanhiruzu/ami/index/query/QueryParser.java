@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.index.query;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 public final class QueryParser {
     private QueryParser() {
     }
