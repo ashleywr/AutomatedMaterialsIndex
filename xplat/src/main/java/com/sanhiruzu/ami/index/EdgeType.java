@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 /**
  * Relationship types between nodes in the AMI discovery graph.
  */

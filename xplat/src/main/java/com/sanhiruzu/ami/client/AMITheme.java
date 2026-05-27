@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.client;
 import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.client.gui.GuiGraphics;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 /**
  * Central palette for all AMI UI colours.
  * All rendering code reads from here so the entire look can be changed in one place.

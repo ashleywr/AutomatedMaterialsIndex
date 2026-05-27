@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.index.sniffers;
 
+import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
@@ -24,9 +25,9 @@ import java.util.stream.Collectors;
  * after load, so a bounded concurrent map is simpler and safer than tooltip-time recomputation.</p>
  */
 public final class EntityDataSniffer {
-    public static final ResourceLocation AMI_TAMABLE_TAG = new ResourceLocation("ami", "tamable");
-    public static final ResourceLocation AMI_MOUNTABLE_TAG = new ResourceLocation("ami", "mountable");
-    public static final ResourceLocation AMI_TRUSTS_PLAYER_TAG = new ResourceLocation("ami", "trusts_player");
+    public static final ResourceLocation AMI_TAMABLE_TAG = Services.PLATFORM.rl("ami", "tamable");
+    public static final ResourceLocation AMI_MOUNTABLE_TAG = Services.PLATFORM.rl("ami", "mountable");
+    public static final ResourceLocation AMI_TRUSTS_PLAYER_TAG = Services.PLATFORM.rl("ami", "trusts_player");
 
     private static final Set<ResourceLocation> VANILLA_MOUNTABLE = Set.of(
             mc("camel"),
@@ -193,6 +194,6 @@ public final class EntityDataSniffer {
     }
 
     private static ResourceLocation mc(String path) {
-        return new ResourceLocation(path);
+        return Services.PLATFORM.rl("minecraft", path);
     }
 }

@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.index;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 /**
  * Common interface for all AMI data indexers.
  */

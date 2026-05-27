@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import com.sanhiruzu.ami.AmiCore;
 /**
  * Blocks EMI's chrome (item list, search bar, config/recipe-tree buttons) when AMI
  * is active, so EMI cannot draw or interact inside the inventory screen. The
@@ -90,10 +91,31 @@ public class EmiScreenManagerMixin {
         }
     }
 
+    @Inject(method = "mouseMoved", at = @At("HEAD"), remap = false, cancellable = true)
+    private static void suppressMouseMovedWhenAmiActive(double mouseX, double mouseY, CallbackInfo ci) {
+        if (shouldSuppressEmiInput()) {
+            ci.cancel();
+        }
+    }
+
     @Inject(method = "keyPressed", at = @At("HEAD"), remap = false, cancellable = true)
     private static void suppressKeyPressedWhenAmiActive(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
         if (shouldSuppressEmiInput()) {
             cir.setReturnValue(false);
+        }
+    }
+
+    @Inject(method = "charTyped", at = @At("HEAD"), remap = false, cancellable = true)
+    private static void suppressCharTypedWhenAmiActive(char codePoint, int modifiers, CallbackInfoReturnable<Boolean> cir) {
+        if (shouldSuppressEmiInput()) {
+            cir.setReturnValue(false);
+        }
+    }
+
+    @Inject(method = "tick", at = @At("HEAD"), remap = false, cancellable = true)
+    private static void suppressTickWhenAmiActive(Screen screen, CallbackInfo ci) {
+        if (shouldSuppressEmiChrome()) {
+            ci.cancel();
         }
     }
 

@@ -10,7 +10,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 
 import java.util.List;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 @EmiEntrypoint
 public class AmiEmiPlugin implements EmiPlugin {
 

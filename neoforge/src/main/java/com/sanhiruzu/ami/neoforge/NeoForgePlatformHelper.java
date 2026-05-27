@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.neoforge;
 
 import com.sanhiruzu.ami.platform.IPlatformHelper;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLLoader;
 
@@ -19,5 +20,10 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
                     .map(mc -> mc.getModInfo().getDisplayName());
         }
         return Optional.empty();
+    }
+
+    @Override
+    public ResourceLocation rl(String namespace, String path) {
+        return ResourceLocation.fromNamespaceAndPath(namespace, path);
     }
 }

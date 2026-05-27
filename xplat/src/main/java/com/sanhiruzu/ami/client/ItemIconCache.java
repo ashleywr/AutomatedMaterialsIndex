@@ -4,6 +4,7 @@ import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexSorting;
+import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.texture.AbstractTexture;
@@ -119,8 +120,7 @@ public class ItemIconCache {
         RenderSystem.setProjectionMatrix(savedProj, VertexSorting.ORTHOGRAPHIC_Z);
 
         // Register the framebuffer's colour texture with TextureManager so blit() can use it.
-        ResourceLocation texKey = new ResourceLocation("ami",
-                "icon/" + itemId.getNamespace() + "/" + itemId.getPath().replace('/', '_'));
+        ResourceLocation texKey = Services.PLATFORM.rl("ami", "icon/" + itemId.getNamespace() + "/" + itemId.getPath().replace('/', '_'));
         mc.getTextureManager().register(texKey, new FramebufferTexture(rt));
         renderTargets.put(itemId, rt);
         textureKeys.put(itemId, texKey);
