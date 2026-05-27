@@ -18,12 +18,15 @@ public interface IIconRenderer {
     /**
      * Draw the icon at (x, y) with the given pixel size on each side.
      */
+    default void render(GuiGraphics g, SearchNode node, int x, int y, int size) {
+        render(g, node, x, y, size, false);
+    }
+
     void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered);
 
     /**
-     * Text lines for the tooltip body (type-specific metadata).
-     * Common elements like Name, Mod Branding, and Registry ID are handled by the master composer.
-     * Return null for ITEM nodes to use native tooltips.
+     * Text lines for the tooltip header.
+     * Return null only for ITEM nodes — the caller will use the native MC ItemStack tooltip instead.
      */
     List<Component> getTooltip(SearchNode node);
 

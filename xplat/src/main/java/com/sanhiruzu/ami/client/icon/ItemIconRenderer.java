@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.client.icon;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
@@ -114,10 +114,10 @@ public class ItemIconRenderer implements IIconRenderer {
         List<String> missingEntities = EntityIconRenderer.collectMissingEntities();
         int entityTotal = GlobalIndex.getInstance().getNodes(NodeType.ENTITY).size();
 
-        AMI.LOGGER.warn("AMI IconAudit: items {}/{} missing, entities {}/{} missing — see icon_audit.txt",
+        AmiCore.LOGGER.warn("AMI IconAudit: items {}/{} missing, entities {}/{} missing — see icon_audit.txt",
                 missingItems.size(), items.size(), missingEntities.size(), entityTotal);
-        missingItems.forEach(s -> AMI.LOGGER.warn("  ITEM MISSING    {}", s));
-        missingEntities.forEach(s -> AMI.LOGGER.warn("  ENTITY MISSING  {}", s));
+        missingItems.forEach(s -> AmiCore.LOGGER.warn("  ITEM MISSING    {}", s));
+        missingEntities.forEach(s -> AmiCore.LOGGER.warn("  ENTITY MISSING  {}", s));
 
         writeAuditReport(missingItems, okItems, missingEntities, entityTotal);
     }
@@ -125,7 +125,7 @@ public class ItemIconRenderer implements IIconRenderer {
     private static void writeAuditReport(List<String> missingItems, List<String> okItems,
                                          List<String> missingEntities, int entityTotal) {
         Path out = Minecraft.getInstance().gameDirectory.toPath().resolve("icon_audit.txt").toAbsolutePath();
-        AMI.LOGGER.info("AMI IconAudit: writing report to {}", out);
+        AmiCore.LOGGER.info("AMI IconAudit: writing report to {}", out);
         try (PrintWriter w = new PrintWriter(Files.newBufferedWriter(out, StandardCharsets.UTF_8))) {
             w.printf("AMI Icon Audit%n");
             w.printf("  Items:    %d / %d missing%n", missingItems.size(), missingItems.size() + okItems.size());
@@ -144,7 +144,7 @@ public class ItemIconRenderer implements IIconRenderer {
             w.println("=== ITEMS — OK ===");
             okItems.forEach(s -> w.println("  " + s));
         } catch (IOException e) {
-            AMI.LOGGER.warn("AMI IconAudit: failed to write report to {}: {}", out, e.getMessage(), e);
+            AmiCore.LOGGER.warn("AMI IconAudit: failed to write report to {}: {}", out, e.getMessage(), e);
         }
     }
 }

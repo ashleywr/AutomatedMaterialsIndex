@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.world.level.Level;
@@ -71,14 +71,16 @@ public final class AmiIndexerService {
         }
 
         index.markIndexReady();
-        index.setIndexBuildTime(System.currentTimeMillis() - started);
         indexedItemCount = index.getNodes(NodeType.ITEM).size();
 
         // Build search service from the new index
+        long searchServiceStart = System.currentTimeMillis();
         searchService = SearchService.buildFrom(index, true);
+        long searchServiceMs = System.currentTimeMillis() - searchServiceStart;
 
-        AMI.LOGGER.info("AMI: Index rebuild complete in {}ms. Indexed {} items.",
-                index.getIndexBuildTimeMs(), indexedItemCount);
+        index.setIndexBuildTime(System.currentTimeMillis() - started);
+        AmiCore.LOGGER.info("AMI: Index rebuild complete in {}ms (search service: {}ms). Indexed {} items.",
+                index.getIndexBuildTimeMs(), searchServiceMs, indexedItemCount);
     }
 
     public int indexedItemCount() {

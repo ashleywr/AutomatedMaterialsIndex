@@ -3,8 +3,6 @@ package com.sanhiruzu.ami.index;
 import it.unimi.dsi.fastutil.chars.Char2ObjectOpenHashMap;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Tokenized Trie implementation using fastutil's primitive-char map to avoid boxing.
@@ -35,12 +33,12 @@ public final class SearchIndex {
 
     private static final class TrieNode {
         final Char2ObjectOpenHashMap<TrieNode> children = new Char2ObjectOpenHashMap<>();
-        final CopyOnWriteArrayList<SearchNode> hits = new CopyOnWriteArrayList<>();
+        final LinkedHashSet<SearchNode> hits = new LinkedHashSet<>();
     }
 
     private final TrieNode root = new TrieNode();
-    private final Set<SearchNode> allNodes = ConcurrentHashMap.newKeySet();
-    private final Map<SearchNode, String> searchableText = new ConcurrentHashMap<>();
+    private final Set<SearchNode> allNodes = new LinkedHashSet<>();
+    private final Map<SearchNode, String> searchableText = new LinkedHashMap<>();
     private final boolean includeMetadata;
 
     public SearchIndex() {
@@ -138,9 +136,7 @@ public final class SearchIndex {
             }
             cur = next;
         }
-        if (!cur.hits.contains(node)) {
-            cur.hits.add(node);
-        }
+        cur.hits.add(node);
     }
 
     private List<String> searchableKeys(SearchNode node) {

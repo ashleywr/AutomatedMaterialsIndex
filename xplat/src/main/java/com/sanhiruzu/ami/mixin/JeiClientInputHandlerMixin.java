@@ -13,9 +13,24 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+/**
+ * Suppresses JEI's overlay input handling (clicks, keys, scroll) when AMI is
+ * active. Uses two-tier suppression mirroring
+ * {@link com.sanhiruzu.ami.mixin.EmiScreenManagerMixin}:
+ * <ul>
+ *   <li>Chrome: {@code onInitGui} always suppressed when AMI is active.</li>
+ *   <li>Input: mouse/keyboard handling suppressed only when no recipe view is
+ *       active AND the JEI RecipesGui screen is not open. JEI's recipe screen
+ *       relies on the overlay's {@code FocusInputHandler} (via
+ *       {@code ClientInputHandler}) for ingredient click navigation, so
+ *       suppression must be fully lifted when RecipesGui is the active screen.</li>
+ * </ul>
+ */
 @Pseudo
 @Mixin(ClientInputHandler.class)
 public class JeiClientInputHandlerMixin {
+
+    // ── Chrome suppression ────────────────────────────────────────────
 
     @Inject(method = "onInitGui", at = @At("HEAD"), cancellable = true, remap = false)
     private void suppressOnInitGui(CallbackInfo ci) {
@@ -23,6 +38,8 @@ public class JeiClientInputHandlerMixin {
             ci.cancel();
         }
     }
+
+    // ── Input suppression (lifted during recipe view) ──────────────────
 
     @Inject(method = "onKeyboardKeyPressedPre", at = @At("HEAD"), cancellable = true, remap = false)
     private void suppressKeyPressedPre(Screen screen, UserInput input, CallbackInfoReturnable<Boolean> cir) {
@@ -67,11 +84,13 @@ public class JeiClientInputHandlerMixin {
     }
 
     @Inject(method = "onGuiMouseScroll", at = @At("HEAD"), cancellable = true, remap = false)
-    private void suppressMouseScroll(double mouseX, double mouseY, double scrollDelta, CallbackInfoReturnable<Boolean> cir) {
+    private void suppressMouseScroll(double mouseX, double mouseY, double scrollDeltaX, double scrollDeltaY, CallbackInfoReturnable<Boolean> cir) {
         if (shouldSuppressJeiInput()) {
             cir.setReturnValue(false);
         }
     }
+
+    // ── Gates ──────────────────────────────────────────────────────────
 
     private static boolean shouldSuppressJeiChrome() {
         return InventoryOverlayHandler.isAmiEnabled();
@@ -84,6 +103,9 @@ public class JeiClientInputHandlerMixin {
         return true;
     }
 
+    /**
+     * JEI's RecipesGui uses the overlay's FocusInputHandler for ingredient click navigation.
+     */
     private static boolean isJeiRecipeScreenActive() {
         Screen screen = Minecraft.getInstance().screen;
         return screen != null && screen.getClass().getName().equals("mezz.jei.gui.recipes.RecipesGui");

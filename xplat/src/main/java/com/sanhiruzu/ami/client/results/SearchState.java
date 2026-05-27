@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 /**
  * Encapsulates the complete search and filter state for the AMI results panel.
  * Widgets can subscribe to changes to update their internal display state.

@@ -12,6 +12,12 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+/**
+ * Suppresses JEI's overlay rendering (ingredient list, bookmarks, tooltips)
+ * when AMI is active. Chrome suppression — always on when AMI is active,
+ * even during recipe view. The JEI recipe screen is a standalone {@link Screen}
+ * and renders itself independently.
+ */
 @Pseudo
 @Mixin(GuiEventHandler.class)
 public class JeiGuiEventHandlerMixin {
@@ -25,13 +31,6 @@ public class JeiGuiEventHandlerMixin {
 
     @Inject(method = "onGuiOpen", at = @At("HEAD"), cancellable = true, remap = false)
     private void suppressOnGuiOpen(Screen screen, CallbackInfo ci) {
-        if (shouldSuppressJeiChrome()) {
-            ci.cancel();
-        }
-    }
-
-    @Inject(method = "onDrawBackgroundPost", at = @At("HEAD"), cancellable = true, remap = false)
-    private void suppressOnDrawBackgroundPost(Screen screen, GuiGraphics guiGraphics, CallbackInfo ci) {
         if (shouldSuppressJeiChrome()) {
             ci.cancel();
         }
@@ -51,13 +50,6 @@ public class JeiGuiEventHandlerMixin {
         }
     }
 
-    @Inject(method = "onClientTick", at = @At("HEAD"), cancellable = true, remap = false)
-    private void suppressOnClientTick(CallbackInfo ci) {
-        if (shouldSuppressJeiChrome()) {
-            ci.cancel();
-        }
-    }
-
     @Inject(method = "renderCompactPotionIndicators", at = @At("HEAD"), cancellable = true, remap = false)
     private void suppressCompactPotionIndicators(CallbackInfoReturnable<Boolean> cir) {
         if (shouldSuppressJeiChrome()) {
@@ -66,8 +58,6 @@ public class JeiGuiEventHandlerMixin {
     }
 
     private static boolean shouldSuppressJeiChrome() {
-        if (!InventoryOverlayHandler.isAmiEnabled()) return false;
-        var manager = InventoryOverlayHandler.getManager();
-        return manager != null && manager.isPanelVisible();
+        return InventoryOverlayHandler.isAmiEnabled();
     }
 }

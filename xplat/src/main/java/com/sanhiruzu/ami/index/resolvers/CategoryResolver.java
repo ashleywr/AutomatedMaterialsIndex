@@ -7,7 +7,7 @@ import com.sanhiruzu.ami.index.SearchNode;
 
 import java.util.*;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 /**
  * Resolves $categoryId tokens against the AMI ontology.
  * "$magic" returns all nodes classified as Magic & Alchemy, etc.

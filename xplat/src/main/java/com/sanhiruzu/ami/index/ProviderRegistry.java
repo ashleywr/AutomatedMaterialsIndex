@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.index.providers.*;
 import net.minecraft.core.RegistryAccess;
@@ -37,7 +37,7 @@ public final class ProviderRegistry {
      * Index all data types except STRUCTURE and DIMENSION (which are deferred).
      */
     public static void indexAll(Level level) {
-        AMI.LOGGER.info("Starting GlobalIndex population...");
+        AmiCore.LOGGER.info("Starting GlobalIndex population...");
         long start = System.currentTimeMillis();
         GlobalIndex index = GlobalIndex.getInstance();
         index.clear();
@@ -51,12 +51,12 @@ public final class ProviderRegistry {
             try {
                 provider.populate(index, level);
             } catch (Exception e) {
-                AMI.LOGGER.error("Provider {} failed", provider.getClass().getSimpleName(), e);
+                AmiCore.LOGGER.error("Provider {} failed", provider.getClass().getSimpleName(), e);
             }
         }
 
         index.setIndexBuildTime(System.currentTimeMillis() - start);
-        AMI.LOGGER.info("GlobalIndex populated in {}ms", index.getIndexBuildTimeMs());
+        AmiCore.LOGGER.info("GlobalIndex populated in {}ms", index.getIndexBuildTimeMs());
     }
 
     /**
@@ -85,12 +85,12 @@ public final class ProviderRegistry {
         try {
             new StructureProvider().populate(GlobalIndex.getInstance(), level);
         } catch (Exception e) {
-            AMI.LOGGER.error("Deferred StructureProvider failed", e);
+            AmiCore.LOGGER.error("Deferred StructureProvider failed", e);
         }
         try {
             new DimensionProvider().populate(GlobalIndex.getInstance(), level);
         } catch (Exception e) {
-            AMI.LOGGER.error("Deferred DimensionProvider failed", e);
+            AmiCore.LOGGER.error("Deferred DimensionProvider failed", e);
         }
     }
 }

@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
-import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.AmiCore;
 /**
  * Dynamically loads EMI integration using reflection to avoid module export conflicts.
  * This allows AMI to support EMI without declaring EMI packages as exports to NeoForge.
@@ -116,18 +116,18 @@ public class EmiIntegrationLoader {
                         }
                         idCounter++;
                     } catch (Exception e) {
-                        com.sanhiruzu.ami.forge.AMI.LOGGER.debug("Failed to index EMI recipe", e);
+                        AmiCore.LOGGER.debug("Failed to index EMI recipe", e);
                     }
                 }
             }
 
-            com.sanhiruzu.ami.forge.AMI.LOGGER.info("AMI/EMI bridge: indexed {} captured recipes across {} categories",
+            AmiCore.LOGGER.info("AMI/EMI bridge: indexed {} captured recipes across {} categories",
                     idCounter, recipesByCat.size());
 
         } catch (ClassNotFoundException ignored) {
             // EMI integration not available
         } catch (Exception e) {
-            com.sanhiruzu.ami.forge.AMI.LOGGER.debug("AMI/EMI bridge loading failed", e);
+            AmiCore.LOGGER.debug("AMI/EMI bridge loading failed", e);
         }
     }
 }

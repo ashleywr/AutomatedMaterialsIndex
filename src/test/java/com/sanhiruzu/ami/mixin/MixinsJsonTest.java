@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class MixinsJsonTest {
 
-    private static final Path JSON_PATH = Paths.get("src/main/resources/ami.mixins.json");
+    private static final Path JSON_PATH = Paths.get("../neoforge/src/main/resources/ami.mixins.json");
 
     @Test
     void mixinsJsonExists() {

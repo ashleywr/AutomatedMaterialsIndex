@@ -78,17 +78,18 @@ public class ResultsProcessor {
 
         List<SearchNode> filtered = filterAndSort(results);
 
+        List<TreeNode> tree;
         if (groupBy == GroupBy.NONE) {
-            List<TreeNode> leaves = filtered.stream()
+            tree = filtered.stream()
                     .map(node -> new TreeNode(Component.literal(node.displayName()), node))
                     .collect(Collectors.toList());
-            return applyExplicitFamilyGrouping(applyHighCardinalityGrouping(leaves));
+        } else {
+            tree = buildTree(filtered);
         }
 
-        // Group
-        List<TreeNode> tree = buildTree(filtered);
-
-        return applyExplicitFamilyGrouping(applyHighCardinalityGrouping(tree));
+        tree = applyExplicitFamilyGrouping(applyHighCardinalityGrouping(tree));
+        if (AmiConfig.enableMaterialRootUI) tree = applyColorGrouping(tree);
+        return tree;
     }
 
     public List<TreeNode> processFlat(List<SearchNode> results) {
@@ -555,6 +556,83 @@ public class ResultsProcessor {
         }
 
         return true;
+    }
+
+    private static final int COLOR_GROUP_MIN = 3;
+
+    /**
+     * Collapses leaves that share the same material root (color-stripped) and each carry a
+     * color bucket into a single collapsed group node.  Only fires when
+     * {@link AmiConfig#enableMaterialRootUI} is true.
+     */
+    private List<TreeNode> applyColorGrouping(List<TreeNode> nodes) {
+        // Recurse into existing group nodes so color-grouping works inside every GroupBy mode
+        List<TreeNode> processed = new ArrayList<>();
+        for (TreeNode node : nodes) {
+            if (!node.isLeaf()) {
+                TreeNode copy = new TreeNode(node.getKey(), node.getLabel());
+                copy.setExpanded(node.isExpanded());
+                copy.setModGroup(node.isModGroup());
+                copy.setHighCardinality(node.isHighCardinality());
+                copy.setItemCountOverride(node.getItemCountOverride());
+                copy.getChildren().addAll(applyColorGrouping(node.getChildren()));
+                processed.add(copy);
+            } else {
+                processed.add(node);
+            }
+        }
+
+        // Bucket colored leaves by material root
+        Map<String, List<TreeNode>> byMaterial = new LinkedHashMap<>();
+        for (TreeNode node : processed) {
+            if (!node.isLeaf()) continue;
+            String color = node.getEntry().meta(SearchNodeKeys.COLOR_BUCKET, "");
+            if (color.isEmpty()) continue;
+            String material = node.getEntry().meta(SearchNodeKeys.MATERIAL_GROUP, "");
+            if (material.isEmpty() || GroupingEngine.isUnknownGroup(material)) continue;
+            byMaterial.computeIfAbsent(material, k -> new ArrayList<>()).add(node);
+        }
+
+        // Build collapsed group nodes for buckets that meet the minimum size
+        Map<TreeNode, TreeNode> replacements = new IdentityHashMap<>();
+        for (var entry : byMaterial.entrySet()) {
+            List<TreeNode> members = entry.getValue();
+            if (members.size() < COLOR_GROUP_MIN) continue;
+            String material = entry.getKey();
+            String label = colorGroupLabel(material);
+            TreeNode group = new TreeNode("color_group:" + material, Component.literal(label));
+            group.setHighCardinality(true);
+            group.setExpanded(false);
+            group.getChildren().addAll(members);
+            for (TreeNode member : members) {
+                replacements.put(member, group);
+            }
+        }
+
+        if (replacements.isEmpty()) return processed;
+
+        List<TreeNode> result = new ArrayList<>();
+        Set<TreeNode> emitted = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (TreeNode node : processed) {
+            TreeNode replacement = replacements.get(node);
+            if (replacement == null) {
+                result.add(node);
+            } else if (emitted.add(replacement)) {
+                result.add(replacement);
+            }
+        }
+        return result;
+    }
+
+    private String colorGroupLabel(String materialGroup) {
+        int sep = materialGroup.indexOf(':');
+        if (sep < 0) return formatGroupLabel(materialGroup.replace('_', ' '));
+        String namespace = materialGroup.substring(0, sep);
+        String path = materialGroup.substring(sep + 1);
+        String base = formatGroupLabel(path.replace('_', ' '));
+        if ("minecraft".equals(namespace)) return base;
+        String modLabel = com.sanhiruzu.ami.index.providers.RegistryUtils.modDisplayName(namespace);
+        return base + " — " + modLabel;
     }
 
     private List<TreeNode> applyHighCardinalityGrouping(List<TreeNode> nodes) {

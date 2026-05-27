@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.client.icon;
 
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.index.NodeType;
+import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.util.AmiWorldTooltipComposer;
@@ -170,7 +171,7 @@ public class ProxyBlockRenderer implements IIconRenderer {
         String mapped = PROXY_MAP.get(node.id().toString());
         ResourceLocation blockId;
         if (mapped != null) {
-            blockId = new ResourceLocation(mapped);
+            blockId = Services.PLATFORM.rl(mapped);
         } else {
             blockId = dimensionDefaultBlock(node);
         }
@@ -181,13 +182,13 @@ public class ProxyBlockRenderer implements IIconRenderer {
     private static ResourceLocation dimensionDefaultBlock(SearchNode node) {
         String dim = node.meta(SearchNodeKeys.DIMENSION, "overworld");
         if (node.type() == NodeType.STRUCTURE) {
-            return new ResourceLocation("minecraft:stone_bricks");
+            return Services.PLATFORM.rl("minecraft:stone_bricks");
         }
         return switch (dim) {
-            case "nether" -> new ResourceLocation("minecraft:netherrack");
+            case "nether" -> Services.PLATFORM.rl("minecraft:netherrack");
             case "the_end",
-                 "end" -> new ResourceLocation("minecraft:end_stone");
-            default -> new ResourceLocation("minecraft:grass_block");
+                 "end" -> Services.PLATFORM.rl("minecraft:end_stone");
+            default -> Services.PLATFORM.rl("minecraft:grass_block");
         };
     }
 
