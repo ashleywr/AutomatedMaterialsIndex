@@ -55,6 +55,14 @@ public class AmiKeybindHandler {
             return true;
         }
 
+        if (AMIKeyMappings.SHOW_RECIPES.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+            return handleRecipeLookup(true);
+        }
+
+        if (AMIKeyMappings.SHOW_USES.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+            return handleRecipeLookup(false);
+        }
+
         if (AMIKeyMappings.CHEAT_GIVE_STACK.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
             return handleGive(true);
         }
@@ -64,6 +72,10 @@ public class AmiKeybindHandler {
         }
 
         return false;
+    }
+
+    private static boolean handleRecipeLookup(boolean showRecipes) {
+        return RecipeLookupKeyHandler.openHoveredLookup(showRecipes);
     }
 
     private static boolean handleGive(boolean stack) {

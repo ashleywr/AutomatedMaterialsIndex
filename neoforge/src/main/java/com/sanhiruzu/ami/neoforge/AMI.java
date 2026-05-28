@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.neoforge;
 
+import com.sanhiruzu.ami.command.AmiStructureCommand;
 import com.sanhiruzu.ami.network.AmiCheatGivePacket;
 import com.sanhiruzu.ami.network.AmiServerPingPacket;
 import net.minecraft.server.level.ServerPlayer;
@@ -9,6 +10,7 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
@@ -50,6 +52,11 @@ public class AMI {
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
         LOGGER.info("AMI server starting");
+    }
+
+    @SubscribeEvent
+    public void onRegisterCommands(RegisterCommandsEvent event) {
+        AmiStructureCommand.register(event.getDispatcher());
     }
 
     @SubscribeEvent

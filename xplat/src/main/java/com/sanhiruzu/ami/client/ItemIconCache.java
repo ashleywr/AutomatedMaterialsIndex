@@ -2,16 +2,18 @@ package com.sanhiruzu.ami.client;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.texture.AbstractTexture;
+import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.item.ItemStack;
 import org.joml.Matrix4f;
+import org.lwjgl.opengl.GL11;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,9 +36,6 @@ public class ItemIconCache {
 
     // itemId → registered ResourceLocation key in TextureManager
     private static final Map<ResourceLocation, ResourceLocation> textureKeys = new HashMap<>();
-    // itemId → RenderTarget (kept alive so the GL texture remains valid)
-    private static final Map<ResourceLocation, RenderTarget> renderTargets = new HashMap<>();
-
     private ItemIconCache() {
     }
 
@@ -75,7 +74,10 @@ public class ItemIconCache {
     public static void blit(GuiGraphics g, ResourceLocation itemId, int x, int y) {
         ResourceLocation texKey = textureKeys.get(itemId);
         if (texKey == null) return;
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
         g.blit(texKey, x, y, 0.0f, 0.0f, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
+        RenderSystem.disableBlend();
     }
 
     /**
@@ -84,8 +86,6 @@ public class ItemIconCache {
     public static void invalidate() {
         Minecraft mc = Minecraft.getInstance();
         textureKeys.values().forEach(mc.getTextureManager()::release);
-        // release() calls FramebufferTexture.close() which destroys the framebuffer.
-        renderTargets.clear();
         textureKeys.clear();
     }
 
@@ -96,54 +96,76 @@ public class ItemIconCache {
         var window = mc.getWindow();
 
         Matrix4f savedProj = new Matrix4f(RenderSystem.getProjectionMatrix());
+        boolean scissorEnabled = GL11.glIsEnabled(GL11.GL_SCISSOR_TEST);
+        int[] scissorBox = new int[4];
+        if (scissorEnabled) {
+            GL11.glGetIntegerv(GL11.GL_SCISSOR_BOX, scissorBox);
+        }
+        float[] shaderColor = RenderSystem.getShaderColor();
+        float savedRed = shaderColor[0];
+        float savedGreen = shaderColor[1];
+        float savedBlue = shaderColor[2];
+        float savedAlpha = shaderColor[3];
 
-        // Off-screen framebuffer for this icon.
         RenderTarget rt = new RenderTarget(true) {
         };
-        rt.resize(ICON_SIZE, ICON_SIZE, Minecraft.ON_OSX);
-        rt.setClearColor(0f, 0f, 0f, 0f);
-        rt.clear(Minecraft.ON_OSX);
-        rt.bindWrite(true);
-        GlStateManager._viewport(0, 0, ICON_SIZE, ICON_SIZE);
-        RenderSystem.setProjectionMatrix(
-                new Matrix4f().setOrtho(0, ICON_SIZE, ICON_SIZE, 0, -100, 3000),
-                VertexSorting.ORTHOGRAPHIC_Z);
+        NativeImage image;
+        try {
+            rt.resize(ICON_SIZE, ICON_SIZE, Minecraft.ON_OSX);
+            rt.setClearColor(0f, 0f, 0f, 0f);
+            rt.clear(Minecraft.ON_OSX);
+            rt.bindWrite(true);
+            RenderSystem.disableScissor();
+            RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+            GlStateManager._viewport(0, 0, ICON_SIZE, ICON_SIZE);
+            RenderSystem.setProjectionMatrix(
+                    new Matrix4f().setOrtho(0, ICON_SIZE, ICON_SIZE, 0, -100, 3000),
+                    VertexSorting.ORTHOGRAPHIC_Z);
 
-        // Render item into the cache framebuffer.
-        GuiGraphics cacheG = new GuiGraphics(mc, mc.renderBuffers().bufferSource());
-        cacheG.renderItem(stack, 0, 0);
-        cacheG.flush();
+            GuiGraphics cacheG = new GuiGraphics(mc, mc.renderBuffers().bufferSource());
+            cacheG.renderItem(stack, 0, 0);
+            cacheG.flush();
+            image = Screenshot.takeScreenshot(rt);
+        } finally {
+            mc.getMainRenderTarget().bindWrite(true);
+            GlStateManager._viewport(0, 0, window.getWidth(), window.getHeight());
+            RenderSystem.setProjectionMatrix(savedProj, VertexSorting.ORTHOGRAPHIC_Z);
+            RenderSystem.setShaderColor(savedRed, savedGreen, savedBlue, savedAlpha);
+            if (scissorEnabled) {
+                RenderSystem.enableScissor(scissorBox[0], scissorBox[1], scissorBox[2], scissorBox[3]);
+            } else {
+                RenderSystem.disableScissor();
+            }
+            rt.destroyBuffers();
+        }
 
-        // Restore main framebuffer, viewport, and projection.
-        mc.getMainRenderTarget().bindWrite(true);
-        GlStateManager._viewport(0, 0, window.getWidth(), window.getHeight());
-        RenderSystem.setProjectionMatrix(savedProj, VertexSorting.ORTHOGRAPHIC_Z);
+        if (isBlankOrBlack(image)) {
+            image.close();
+            return;
+        }
 
-        // Register the framebuffer's colour texture with TextureManager so blit() can use it.
         ResourceLocation texKey = Services.PLATFORM.rl("ami", "icon/" + itemId.getNamespace() + "/" + itemId.getPath().replace('/', '_'));
-        mc.getTextureManager().register(texKey, new FramebufferTexture(rt));
-        renderTargets.put(itemId, rt);
+        mc.getTextureManager().register(texKey, new DynamicTexture(image));
         textureKeys.put(itemId, texKey);
     }
 
-    // ---------------------------------------------------------------
-
-    private static final class FramebufferTexture extends AbstractTexture {
-        private final RenderTarget target;
-
-        FramebufferTexture(RenderTarget target) {
-            this.target = target;
-            this.id = target.getColorTextureId();
+    private static boolean isBlankOrBlack(NativeImage image) {
+        boolean sawVisible = false;
+        boolean sawNonBlack = false;
+        for (int y = 0; y < image.getHeight(); y++) {
+            for (int x = 0; x < image.getWidth(); x++) {
+                int pixel = image.getPixelRGBA(x, y);
+                int alpha = (pixel >>> 24) & 0xFF;
+                if (alpha == 0) continue;
+                sawVisible = true;
+                int red = pixel & 0xFF;
+                int green = (pixel >>> 8) & 0xFF;
+                int blue = (pixel >>> 16) & 0xFF;
+                if (red > 8 || green > 8 || blue > 8) {
+                    sawNonBlack = true;
+                }
+            }
         }
-
-        @Override
-        public void load(ResourceManager rm) {
-        }
-
-        @Override
-        public void close() {
-            target.destroyBuffers(); // frees the GL framebuffer and colour texture
-            this.id = -1;           // prevent AbstractTexture from double-freeing
-        }
+        return !sawVisible || !sawNonBlack;
     }
 }

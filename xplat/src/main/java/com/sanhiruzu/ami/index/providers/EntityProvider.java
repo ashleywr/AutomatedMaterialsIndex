@@ -25,6 +25,7 @@ public class EntityProvider implements IAmiDataProvider {
             var id = e.getKey().location();
             // Skip entities that have a direct item equivalent — they're already indexed as items.
             if (BuiltInRegistries.ITEM.containsKey(id)) return;
+            if (isInternalMarkerEntity(id)) return;
             var entityType = e.getValue();
             var category = entityType.getCategory();
             List<String> searchTags = entityDataSniffer.extractSearchTags(entityType);
@@ -86,6 +87,11 @@ public class EntityProvider implements IAmiDataProvider {
     private static String classifyMobSubcategory(String path, MobCategory category) {
         if (NEUTRAL_MOBS.contains(path)) return "neutral";
         return category == MobCategory.MONSTER ? "hostile" : "passive";
+    }
+
+    private static boolean isInternalMarkerEntity(net.minecraft.resources.ResourceLocation id) {
+        String path = id.getPath();
+        return path.equals("marker") || path.endsWith("_marker");
     }
 
     private static String entityTags(net.minecraft.world.entity.EntityType<?> entityType, List<String> searchTags) {

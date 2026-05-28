@@ -3,6 +3,8 @@ plugins {
     id 'idea'
 }
 
+ext.minecraftRunDirectory = { String name -> rootProject.file("run/${name}") }
+
 allprojects {
     group = mod_group_id
     version = mod_version
@@ -161,4 +163,24 @@ tasks.named('compileJava', JavaCompile).configure {
 tasks.named('test', Test).configure {
     useJUnitPlatform()
     dependsOn ':neoforge:test'
+}
+
+tasks.register('cleanLocalRuntime', Delete) {
+    group = 'build'
+    description = 'Deletes disposable local Minecraft runtime output from the repository root.'
+    delete rootProject.file('.mixin.out')
+    delete rootProject.file('.pg-native')
+    delete rootProject.file('config')
+    delete rootProject.file('crash-reports')
+    delete rootProject.file('defaultconfigs')
+    delete rootProject.file('logs')
+    delete {
+        rootDir.listFiles()?.findAll { it.directory && it.name.startsWith('run-') } ?: []
+    }
+}
+
+tasks.register('cleanRuns', Delete) {
+    group = 'build'
+    description = 'Deletes all disposable Minecraft run directories under run/.'
+    delete layout.projectDirectory.dir('run')
 }

@@ -372,18 +372,20 @@ public class ItemGridView {
     }
 
     private void renderRendererWithWiggle(GuiGraphics g, SearchNode entry, int x, int y, boolean hovered) {
-        g.pose().pushPose();
-        g.pose().translate(x, y, 150);
-        if (cachedDragging || hovered) {
-            g.pose().translate(8, 8, 0);
-            g.pose().scale(1.1f + cachedWiggle, 1.1f + cachedWiggle, 1.1f);
-            if (cachedDragging) {
-                g.pose().mulPose(com.mojang.math.Axis.ZP.rotationDegrees(cachedRotation));
-            }
-            g.pose().translate(-8, -8, 0);
+        GuiGraphics iconGraphics = new GuiGraphics(Minecraft.getInstance(), g.bufferSource());
+        if (!hovered) {
+            g.enableScissor(x, y, x + 16, y + 16);
         }
-        com.sanhiruzu.ami.client.icon.RendererRegistry.get(entry.type()).render(g, entry, 0, 0, 16, hovered);
-        g.pose().popPose();
+        iconGraphics.pose().pushPose();
+        iconGraphics.pose().translate(0, 0, 100);
+        try {
+            com.sanhiruzu.ami.client.icon.RendererRegistry.get(entry.type()).render(iconGraphics, entry, x, y, 16, hovered);
+        } finally {
+            iconGraphics.pose().popPose();
+            if (!hovered) {
+                g.disableScissor();
+            }
+        }
     }
 
     private void primeIconCache(GuiGraphics g, List<VirtualRow> rows) {
