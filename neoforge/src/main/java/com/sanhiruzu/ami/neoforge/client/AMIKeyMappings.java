@@ -62,6 +62,22 @@ public class AMIKeyMappings {
             CATEGORY
     );
 
+    public static final KeyMapping SHOW_RECIPES = new KeyMapping(
+            "key.ami.show_recipes",
+            KeyConflictContext.GUI,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_R,
+            CATEGORY
+    );
+
+    public static final KeyMapping SHOW_USES = new KeyMapping(
+            "key.ami.show_uses",
+            KeyConflictContext.GUI,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_U,
+            CATEGORY
+    );
+
     @SubscribeEvent
     public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
         event.register(FAVORITE);
@@ -70,5 +86,7 @@ public class AMIKeyMappings {
         event.register(CHEAT_GIVE_ONE);
         event.register(CHEAT_GIVE_STACK);
         event.register(RECIPE_BACK);
+        event.register(SHOW_RECIPES);
+        event.register(SHOW_USES);
     }
 }

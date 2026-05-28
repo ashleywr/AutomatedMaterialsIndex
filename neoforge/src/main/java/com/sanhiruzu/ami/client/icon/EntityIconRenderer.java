@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client.icon;
 
+import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.client.AMITheme;
-import com.sanhiruzu.ami.client.EntityIconCache;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.StatIconRowTooltipComponent;
@@ -9,6 +9,7 @@ import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -23,6 +24,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
+import org.lwjgl.opengl.GL11;
 
 import java.util.*;
 
@@ -34,6 +36,7 @@ import java.util.*;
 public class EntityIconRenderer implements IIconRenderer {
 
     private static final Map<ResourceLocation, LivingEntity> entityCache = new HashMap<>();
+    private static final Set<ResourceLocation> failedRenderers = new HashSet<>();
 
     @Override
     public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
@@ -61,27 +64,90 @@ public class EntityIconRenderer implements IIconRenderer {
             return;
         }
 
-        float bbH = entity.getBbHeight();
-        int scale = (int) Math.min(size - 4, Math.max(2, (size - 2) / bbH));
+        float maxBounds = Math.max(entity.getBbHeight(), entity.getBbWidth());
+        int scale = Math.max(1, (int) Math.min(size - 4, (size - 2) / maxBounds));
 
-        if (!hovered) {
-            // Cache render: 0-based coords inside the size×size framebuffer.
-            int cacheCx = size / 2;
-            int cacheCy = size - 1;
-            EntityIconCache.blitCached(g, node.id(), size, x, y, cacheG ->
-                    InventoryScreen.renderEntityInInventory(cacheG, cacheCx, cacheCy, scale,
-                            new Vector3f(0f, 0f, 0f), new Quaternionf().rotateZ((float) Math.PI), null, entity));
+        if (failedRenderers.contains(node.id())) {
+            FallbackTextRenderer.renderFallback(g, node, x, y, size);
             return;
         }
 
-        // Hovered: live render with spin — no scissor so the full entity shows.
-        // NeoForge: spin via quaternion; mutating yBodyRot inverts facing in NeoForge's render space.
-        int cx = x + size / 2;
-        int cy = y + size - 1;
-        float spinRad = (System.currentTimeMillis() % 3000) / 3000f * (float) (2 * Math.PI);
-        Quaternionf orient = new Quaternionf().rotateZ((float) Math.PI).rotateY(spinRad);
-        InventoryScreen.renderEntityInInventory(g, cx, cy, scale,
-                new Vector3f(0f, 0f, 0f), orient, null, entity);
+        try {
+            if (!hovered) {
+                renderStaticEntity(g, x, y, size, scale, entity);
+                return;
+            }
+
+            renderSpinningEntity(g, x, y, size, scale, entity);
+        } catch (RuntimeException e) {
+            if (failedRenderers.add(node.id())) {
+                AmiCore.LOGGER.warn("AMI: disabling entity icon renderer for {} after render failure", node.id(), e);
+            }
+            FallbackTextRenderer.renderFallback(g, node, x, y, size);
+        }
+    }
+
+    private static void renderStaticEntity(GuiGraphics g, int x, int y, int size, int scale, LivingEntity entity) {
+        renderEntityWithRotation(g, x, y, size, scale, entity, 180.0f);
+    }
+
+    private static void renderSpinningEntity(GuiGraphics g, int x, int y, int size, int scale, LivingEntity entity) {
+        float spinDeg = (System.currentTimeMillis() % 3000L) / 3000.0f * 360.0f;
+        renderEntityWithRotation(g, x, y, size, scale, entity, 180.0f + spinDeg);
+    }
+
+    private static void renderEntityWithRotation(GuiGraphics g, int x, int y, int size, int scale, LivingEntity entity, float yRot) {
+        float savedBodyRot = entity.yBodyRot;
+        float savedYRot = entity.getYRot();
+        float savedXRot = entity.getXRot();
+        float savedHeadRotO = entity.yHeadRotO;
+        float savedHeadRot = entity.yHeadRot;
+
+        entity.yBodyRot = yRot;
+        entity.setYRot(yRot);
+        entity.setXRot(0.0f);
+        entity.yHeadRot = entity.getYRot();
+        entity.yHeadRotO = entity.getYRot();
+
+        float entityScale = entity.getScale();
+        float renderScale = scale / entityScale;
+        float centerX = x + size / 2.0f;
+        float centerY = y + size / 2.0f;
+        Vector3f translate = new Vector3f(0.0f, entity.getBbHeight() / 2.0f, 0.0f);
+        Quaternionf pose = new Quaternionf().rotateZ((float) Math.PI);
+        float[] shaderColor = RenderSystem.getShaderColor();
+        float savedRed = shaderColor[0];
+        float savedGreen = shaderColor[1];
+        float savedBlue = shaderColor[2];
+        float savedAlpha = shaderColor[3];
+
+        g.pose().pushPose();
+        try {
+            try {
+                RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+                RenderSystem.enableDepthTest();
+                RenderSystem.depthMask(true);
+                RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
+                RenderSystem.enableBlend();
+                RenderSystem.defaultBlendFunc();
+                InventoryScreen.renderEntityInInventory(g, centerX, centerY, renderScale, translate, pose, new Quaternionf(), entity);
+            } catch (RuntimeException e) {
+                // renderEntityInInventory pushes before dispatching to entity renderers; if a modded renderer
+                // throws, vanilla never pops that frame. Pop the leaked vanilla frame before unwinding ours.
+                g.pose().popPose();
+                throw e;
+            }
+        } finally {
+            g.pose().popPose();
+            RenderSystem.setShaderColor(savedRed, savedGreen, savedBlue, savedAlpha);
+            RenderSystem.depthMask(true);
+            RenderSystem.enableDepthTest();
+            entity.yBodyRot = savedBodyRot;
+            entity.setYRot(savedYRot);
+            entity.setXRot(savedXRot);
+            entity.yHeadRotO = savedHeadRotO;
+            entity.yHeadRot = savedHeadRot;
+        }
     }
 
     private static ResourceLocation resolveProxyItemId(ResourceLocation entityId) {
@@ -200,6 +266,7 @@ public class EntityIconRenderer implements IIconRenderer {
     @Override
     public void invalidate() {
         entityCache.clear();
+        failedRenderers.clear();
     }
 
     /**

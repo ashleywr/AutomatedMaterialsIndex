@@ -11,6 +11,7 @@ base {
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 def xplatProject = project(':xplat')
+def runDirectory = rootProject.ext.minecraftRunDirectory
 
 neoForge {
     version = neoforge_version
@@ -23,40 +24,40 @@ neoForge {
     runs {
         client {
             client()
-            gameDirectory = project.file('../run-neoforge')
+            gameDirectory = runDirectory('neoforge')
             systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
         }
 
         clientJei {
             client()
-            gameDirectory = project.file('../run-neoforge-jei')
+            gameDirectory = runDirectory('neoforge-jei')
             systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
             ideName = 'NeoForge Client JEI'
         }
 
         clientEmi {
             client()
-            gameDirectory = project.file('../run-neoforge-emi')
+            gameDirectory = runDirectory('neoforge-emi')
             systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
             ideName = 'NeoForge Client EMI'
         }
 
         server {
             server()
-            gameDirectory = project.file('../run-neoforge-server')
+            gameDirectory = runDirectory('neoforge-server')
             programArgument '--nogui'
             systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
         }
 
         gameTestServer {
             type = 'gameTestServer'
-            gameDirectory = project.file('../run-neoforge-gametest')
+            gameDirectory = runDirectory('neoforge-gametest')
             systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
         }
 
         data {
             data()
-            gameDirectory = project.file('../run-neoforge-data')
+            gameDirectory = runDirectory('neoforge-data')
             programArguments.addAll '--mod', mod_id, '--all',
                     '--output', file('src/generated/resources/').absolutePath,
                     '--existing', xplatProject.file('src/main/resources/').absolutePath
@@ -64,6 +65,7 @@ neoForge {
 
         configureEach {
             systemProperty 'forge.logging.markers', 'SCAN,REGISTRIES,LOADING'
+            systemProperty 'java.io.tmpdir', rootProject.layout.buildDirectory.dir("tmp/minecraft-runs/neoforge/${name}").get().asFile.absolutePath
             logLevel = org.slf4j.event.Level.DEBUG
             jvmArguments.addAll '-ea', '-Dmixin.debug.export=true'
         }
@@ -83,10 +85,6 @@ sourceSets {
             srcDir 'src/generated/resources'
             srcDir xplatProject.file('src/main/resources')
         }
-    }
-    test {
-        java.srcDir '../src/test/java'
-        resources.srcDir '../src/test/resources'
     }
 }
 
@@ -145,7 +143,7 @@ def registerRecipeViewerModSync = { String taskName, List<String> configurationN
     }
 
     tasks.register(taskName, Copy) {
-        def modsDir = project.file("../${runDirName}/mods")
+        def modsDir = runDirectory(runDirName).toPath().resolve('mods').toFile()
         viewerConfigurations.each { configuration ->
             inputs.files(configuration)
         }
@@ -158,17 +156,17 @@ def registerRecipeViewerModSync = { String taskName, List<String> configurationN
 def syncClientRecipeViewerMods = registerRecipeViewerModSync(
         'syncClientRecipeViewerMods',
         ['devRuntimeRecipeViewerMods'],
-        'run-neoforge'
+        'neoforge'
 )
 def syncClientJeiRecipeViewerMods = registerRecipeViewerModSync(
         'syncClientJeiRecipeViewerMods',
         ['devRuntimeJeiViewerMods'],
-        'run-neoforge-jei'
+        'neoforge-jei'
 )
 def syncClientEmiRecipeViewerMods = registerRecipeViewerModSync(
         'syncClientEmiRecipeViewerMods',
         ['devRuntimeEmiViewerMods'],
-        'run-neoforge-emi'
+        'neoforge-emi'
 )
 
 tasks.matching { it.name == 'prepareClientRun' }.configureEach {
