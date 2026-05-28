@@ -61,11 +61,18 @@ public class RecipeViewerBridge {
      */
     public static void openRecipes(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return;
+        markRecipeViewActive();
+        if (RecipeViewerBridgeCommon.shouldUseNativeViewer(isAvailable())) {
+            RecipeViewerBridgeCommon.recordLookup(stack);
+            RecipeViewerBridgeCommon.openNative(stack, true);
+            return;
+        }
         if (ModList.get().isLoaded("emi")) {
             EmiRecipeBridge.openRecipes(stack);
         } else if (ModList.get().isLoaded("jei")) {
             JeiRecipeBridge.openRecipes(stack);
         }
+        RecipeViewerBridgeCommon.recordLookup(stack);
     }
 
     /**
@@ -73,11 +80,18 @@ public class RecipeViewerBridge {
      */
     public static void openUses(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return;
+        markRecipeViewActive();
+        if (RecipeViewerBridgeCommon.shouldUseNativeViewer(isAvailable())) {
+            RecipeViewerBridgeCommon.recordLookup(stack);
+            RecipeViewerBridgeCommon.openNative(stack, false);
+            return;
+        }
         if (ModList.get().isLoaded("emi")) {
             EmiRecipeBridge.openUses(stack);
         } else if (ModList.get().isLoaded("jei")) {
             JeiRecipeBridge.openUses(stack);
         }
+        RecipeViewerBridgeCommon.recordLookup(stack);
     }
 
     public static void startDrag(ItemStack stack) {
@@ -130,23 +144,16 @@ public class RecipeViewerBridge {
             return;
         }
 
-        if (button == 0 || button == 1) {
-            com.sanhiruzu.ami.client.favorites.AmiHistoryHandler.getInstance().recordLookup(stack);
-        }
-
         if (button == 1) {
             // Right-click always opens uses regardless of config
-            markRecipeViewActive();
             openUses(stack);
             return;
         }
         switch (AmiConfig.itemClickAction) {
             case RECIPES -> {
-                markRecipeViewActive();
                 openRecipes(stack);
             }
             case USES -> {
-                markRecipeViewActive();
                 openUses(stack);
             }
             case NONE -> {

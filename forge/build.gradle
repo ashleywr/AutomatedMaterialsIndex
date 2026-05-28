@@ -10,6 +10,8 @@ base {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
+def runDirectory = rootProject.ext.minecraftRunDirectory
+
 legacyForge {
     version = "${forge_minecraft_version}-${forge_version}"
 
@@ -21,34 +23,34 @@ legacyForge {
     runs {
         client {
             client()
-            gameDirectory = project.file('../run-forge')
+            gameDirectory = runDirectory('forge')
             systemProperty 'forge.enabledGameTestNamespaces', mod_id
         }
 
         clientJei {
             client()
-            gameDirectory = project.file('../run-forge-jei')
+            gameDirectory = runDirectory('forge-jei')
             systemProperty 'forge.enabledGameTestNamespaces', mod_id
             ideName = 'Forge Client JEI'
         }
 
         clientEmi {
             client()
-            gameDirectory = project.file('../run-forge-emi')
+            gameDirectory = runDirectory('forge-emi')
             systemProperty 'forge.enabledGameTestNamespaces', mod_id
             ideName = 'Forge Client EMI'
         }
 
         server {
             server()
-            gameDirectory = project.file('../run-forge-server')
+            gameDirectory = runDirectory('forge-server')
             programArgument '--nogui'
             systemProperty 'forge.enabledGameTestNamespaces', mod_id
         }
 
         data {
             data()
-            gameDirectory = project.file('../run-forge-data')
+            gameDirectory = runDirectory('forge-data')
             programArguments.addAll '--mod', mod_id, '--all',
                     '--output', file('src/generated/resources/').absolutePath,
                     '--existing', file('src/main/resources/').absolutePath
@@ -56,6 +58,7 @@ legacyForge {
 
         configureEach {
             systemProperty 'forge.logging.markers', 'SCAN,REGISTRIES,LOADING'
+            systemProperty 'java.io.tmpdir', rootProject.layout.buildDirectory.dir("tmp/minecraft-runs/forge/${name}").get().asFile.absolutePath
             logLevel = org.slf4j.event.Level.DEBUG
             jvmArguments.addAll '-ea', '-Dmixin.debug.export=true'
         }
@@ -120,7 +123,7 @@ dependencies {
 
 def registerRecipeViewerModCleanup = { String taskName, String runDirName ->
     tasks.register(taskName, Delete) {
-        def modsDir = project.file("../${runDirName}/mods")
+        def modsDir = runDirectory(runDirName).toPath().resolve('mods').toFile()
         delete fileTree(modsDir) {
             include 'emi-*.jar'
             include 'jei-*.jar'
@@ -130,15 +133,15 @@ def registerRecipeViewerModCleanup = { String taskName, String runDirName ->
 
 def cleanClientRecipeViewerMods = registerRecipeViewerModCleanup(
         'cleanClientRecipeViewerMods',
-        'run-forge'
+        'forge'
 )
 def cleanClientJeiRecipeViewerMods = registerRecipeViewerModCleanup(
         'cleanClientJeiRecipeViewerMods',
-        'run-forge-jei'
+        'forge-jei'
 )
 def cleanClientEmiRecipeViewerMods = registerRecipeViewerModCleanup(
         'cleanClientEmiRecipeViewerMods',
-        'run-forge-emi'
+        'forge-emi'
 )
 
 tasks.matching { it.name == 'prepareClientRun' }.configureEach {

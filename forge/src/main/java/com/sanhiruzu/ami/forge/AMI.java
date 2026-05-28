@@ -1,9 +1,11 @@
 package com.sanhiruzu.ami.forge;
 
 import com.sanhiruzu.ami.forge.network.AmiPacketHandler;
+import com.sanhiruzu.ami.command.AmiStructureCommand;
 import com.sanhiruzu.ami.network.AmiServerPingPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -43,6 +45,11 @@ public class AMI {
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
         LOGGER.info("AMI server starting");
+    }
+
+    @SubscribeEvent
+    public void onRegisterCommands(RegisterCommandsEvent event) {
+        AmiStructureCommand.register(event.getDispatcher());
     }
 
     @SubscribeEvent
