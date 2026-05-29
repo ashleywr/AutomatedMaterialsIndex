@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.index.AmiOntology;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.FacetCodec;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
@@ -25,6 +26,10 @@ public final class DebugTooltip {
     private static final int MAX_TAGS_SHOWN = 12;
 
     public static List<Component> build(SearchNode entry) {
+        if (!AmiConfig.devMode) {
+            return List.of(Component.literal(entry.displayName()));
+        }
+
         List<Component> lines = new ArrayList<>();
 
         // Header

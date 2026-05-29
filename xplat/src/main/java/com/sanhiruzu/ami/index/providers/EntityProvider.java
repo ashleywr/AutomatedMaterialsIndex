@@ -53,6 +53,7 @@ public class EntityProvider implements IAmiDataProvider {
 
             if (category == MobCategory.MISC) {
                 if (id.getPath().equals("experience_orb")) {
+                    meta.put(SearchNodeKeys.ACCESS_LEVEL, "dev");
                     meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, "magic");
                     meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "reagents");
                 } else if (numericMetadata.containsKey("health")) {

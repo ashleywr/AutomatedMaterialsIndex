@@ -1,13 +1,38 @@
 package com.sanhiruzu.ami.forge;
 
+import com.sanhiruzu.ami.forge.client.AMIKeyMappings;
+import com.sanhiruzu.ami.index.AmiRecipeIndex;
+import com.sanhiruzu.ami.platform.IAmiKeyMappings;
 import com.sanhiruzu.ami.platform.IPlatformHelper;
+import com.sanhiruzu.ami.util.AmiRecipeHolder;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.loading.FMLLoader;
 
+import java.util.List;
 import java.util.Optional;
 
 public class ForgePlatformHelper implements IPlatformHelper {
+    private static final IAmiKeyMappings KEY_MAPPINGS = new IAmiKeyMappings() {
+        @Override public KeyMapping favorite()       { return AMIKeyMappings.FAVORITE; }
+        @Override public KeyMapping toggleViewer()   { return AMIKeyMappings.TOGGLE_VIEWER; }
+        @Override public KeyMapping showRecipes()    { return AMIKeyMappings.SHOW_RECIPES; }
+        @Override public KeyMapping showUses()       { return AMIKeyMappings.SHOW_USES; }
+        @Override public KeyMapping cheatGiveStack() { return AMIKeyMappings.CHEAT_GIVE_STACK; }
+        @Override public KeyMapping cheatGiveOne()   { return AMIKeyMappings.CHEAT_GIVE_ONE; }
+        @Override public KeyMapping debugTooltips()  { return AMIKeyMappings.DEBUG_TOOLTIPS; }
+        @Override public KeyMapping recipeBack()     { return AMIKeyMappings.RECIPE_BACK; }
+        @Override public KeyMapping[] all()          { return new KeyMapping[]{
+            AMIKeyMappings.FAVORITE, AMIKeyMappings.TOGGLE_VIEWER, AMIKeyMappings.SHOW_RECIPES,
+            AMIKeyMappings.SHOW_USES, AMIKeyMappings.CHEAT_GIVE_STACK, AMIKeyMappings.CHEAT_GIVE_ONE,
+            AMIKeyMappings.DEBUG_TOOLTIPS, AMIKeyMappings.RECIPE_BACK
+        }; }
+    };
+
     @Override
     public boolean isClient() {
         return FMLLoader.getDist().isClient();
@@ -25,5 +50,31 @@ public class ForgePlatformHelper implements IPlatformHelper {
     @Override
     public ResourceLocation rl(String namespace, String path) {
         return new ResourceLocation(namespace, path);
+    }
+
+    @Override
+    public IAmiKeyMappings keyMappings() {
+        return KEY_MAPPINGS;
+    }
+
+    @Override
+    public boolean isRecipeIndexBuilt() {
+        return AmiRecipeIndex.getInstance().isBuilt();
+    }
+
+    @Override
+    public List<AmiRecipeHolder<?>> getRecipesFor(ItemStack target) {
+        return AmiRecipeIndex.getInstance().getRecipesFor(target);
+    }
+
+    @Override
+    public List<AmiRecipeHolder<?>> getUsesFor(ItemStack target) {
+        return AmiRecipeIndex.getInstance().getUsesFor(target);
+    }
+
+    @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public List<AmiRecipeHolder<?>> getAllRecipesOfType(RecipeType<?> type) {
+        return (List<AmiRecipeHolder<?>>) (List<?>) AmiRecipeIndex.getInstance().getAllRecipesOfType((RecipeType) type);
     }
 }

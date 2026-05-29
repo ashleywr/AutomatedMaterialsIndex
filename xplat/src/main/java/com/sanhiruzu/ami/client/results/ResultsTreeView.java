@@ -8,6 +8,7 @@ import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.util.AmiClipboardHelper;
 import com.sanhiruzu.ami.util.AmiColors;
 import com.sanhiruzu.ami.util.AmiTooltipComposer;
@@ -84,7 +85,6 @@ public class ResultsTreeView {
     private java.util.function.Consumer<String> onModClick = null;
     private java.util.function.BiConsumer<SearchNode, Integer> onItemClick = null;
     private java.util.function.Consumer<String> onTokenInject = null;
-    private boolean tooltipLeftOfCursor = false;
 
     // ── Construction ──────────────────────────────────────────────────────────
 
@@ -107,8 +107,7 @@ public class ResultsTreeView {
         this.onTokenInject = callback;
     }
 
-    public void setTooltipLeftOfCursor(boolean tooltipLeftOfCursor) {
-        this.tooltipLeftOfCursor = tooltipLeftOfCursor;
+    public void setTooltipLeftOfCursor(boolean ignored) {
     }
 
     public void setRootNodes(List<TreeNode> nodes) {
@@ -117,16 +116,22 @@ public class ResultsTreeView {
         this.representativeCache.clear();
     }
 
+    public List<TreeNode> getRootNodes() {
+        return List.copyOf(rootNodes);
+    }
+
     public void collapseAll() {
         for (TreeNode node : rootNodes) {
             collapseNode(node);
         }
+        this.pixelScrollOffset = 0;
     }
 
     public void expandAll() {
         for (TreeNode node : rootNodes) {
             expandNode(node);
         }
+        this.pixelScrollOffset = 0;
     }
 
     private void collapseNode(TreeNode node) {
@@ -202,11 +207,7 @@ public class ResultsTreeView {
             var font = Minecraft.getInstance().font;
             com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
             if (pendingTooltipLines != null) {
-                if (tooltipLeftOfCursor) {
-                    AmiTooltipRenderer.renderLeftOfCursor(g, font, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY);
-                } else {
-                    g.renderTooltip(font, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY);
-                }
+                AmiTooltipRenderer.renderLeftOfCursor(g, font, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY);
             }
         }
     }
@@ -748,7 +749,7 @@ public class ResultsTreeView {
     }
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (com.sanhiruzu.ami.neoforge.client.AMIKeyMappings.FAVORITE.isActiveAndMatches(com.mojang.blaze3d.platform.InputConstants.getKey(keyCode, scanCode))) {
+        if (Services.PLATFORM.keyMappings().favorite().isActiveAndMatches(com.mojang.blaze3d.platform.InputConstants.getKey(keyCode, scanCode))) {
             if (hoveredNode != null) {
                 com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().toggleFavorite(hoveredNode);
                 return true;

@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GroupingEngineTest {
 
@@ -29,6 +30,16 @@ class GroupingEngineTest {
         BuiltInRegistries.itemRegistry().register(new ResourceLocation("minecraft:music_disc_cat"), musicDisc);
 
         assertEquals("item", GroupingEngine.classifyShape(new ItemStack(musicDisc)));
+    }
+
+    @Test
+    void classifiesExplicitVanillaFamiliesThatNeedStableMetadata() {
+        assertEquals("Banners", GroupingEngine.classifyCollapsedFamily(new ResourceLocation("minecraft:white_banner")).orElseThrow().label());
+        assertEquals("Goat Horns", GroupingEngine.classifyCollapsedFamily(new ResourceLocation("minecraft:goat_horn")).orElseThrow().label());
+        assertTrue(GroupingEngine.classifyCollapsedFamily(new ResourceLocation("minecraft:music_disc_cat")).isEmpty());
+        assertTrue(GroupingEngine.classifyCollapsedFamily(new ResourceLocation("minecraft:sentry_armor_trim_smithing_template")).isEmpty());
+        assertTrue(GroupingEngine.classifyCollapsedFamily(new ResourceLocation("minecraft:creeper_banner_pattern")).isEmpty());
+        assertTrue(GroupingEngine.classifyCollapsedFamily(new ResourceLocation("minecraft:stone")).isEmpty());
     }
 
     @Test
@@ -122,5 +133,18 @@ class GroupingEngineTest {
         assertEquals("minecraft:copper", GroupingEngine.classifyMaterialRoot(new ItemStack(copperOre)));
         assertEquals("minecraft:tin", GroupingEngine.classifyMaterialRoot(new ItemStack(rawTin)));
         assertEquals("minecraft:silver", GroupingEngine.classifyMaterialRoot(new ItemStack(silverBlock)));
+    }
+
+    @Test
+    void connectingVariantsShareMaterialRootWithBaseVariant() {
+        Item acaciaPattern = new Item("acacia_planks_pattern");
+        Item acaciaPatternConnecting = new Item("acacia_planks_pattern_connecting");
+        BuiltInRegistries.itemRegistry().register(new ResourceLocation("rechiseled:acacia_planks_pattern"), acaciaPattern);
+        BuiltInRegistries.itemRegistry().register(new ResourceLocation("rechiseled:acacia_planks_pattern_connecting"), acaciaPatternConnecting);
+
+        assertEquals(
+                GroupingEngine.classifyMaterialRoot(new ItemStack(acaciaPattern)),
+                GroupingEngine.classifyMaterialRoot(new ItemStack(acaciaPatternConnecting))
+        );
     }
 }

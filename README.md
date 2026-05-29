@@ -1,6 +1,6 @@
 # Automated Materials Index (AMI)
 
-AMI is an optimized search mod for Neoforge 1.21.1 designed to manage the massive item registries of large-scale Minecraft modpacks. It operates entirely client-side to organize inventory clutter into a clean, mathematically searchable data structure without requiring server installation.
+AMI is an optimized search mod for NeoForge 1.21.1 (with Forge 1.20.1 support in this repository) designed to manage the massive item registries of large-scale Minecraft modpacks. It operates entirely client-side to organize inventory clutter into a clean, mathematically searchable data structure without requiring server installation.
 
 * **Material Grouping**: Collapses endless variants of building blocks, such as stairs, slabs, and walls, under a single material node to streamline the inventory interface.
 * **Universal Query Language**: Replaces basic text matching with relational database filtering, allowing players to execute mathematical queries like "energy>50000" or "damage>15" directly in the search bar.
@@ -27,14 +27,14 @@ The results are saved to `run/config/ami_benchmark_history.jsonl` as JSON Lines.
 If you need a larger sample size for more accurate numbers, you can increase the iteration count:
 
 ```bash
-./gradlew runAmiBenchmarks -Pami_benchmark_iterations=500
+./gradlew check -Pami_benchmark_iterations=500
 ```
 
 When putting together release notes, the latest entry in that JSONL file provides the stats for things like indexed item counts and search latency (average and P99).
 
 ## Development Setup
 
-This project uses NeoForge. Opening it in IntelliJ or Eclipse should handle most of the setup automatically.
+This project includes NeoForge and Forge modules. Opening it in IntelliJ or Eclipse should handle most of the setup automatically.
 
 If dependencies get weird or something isn't loading right, you can try:
 

@@ -91,4 +91,8 @@ public class AMIScreen extends Screen {
     public boolean isPauseScreen() {
         return false;
     }
+
+    public UniversalResultsPanel getResultsPanel() {
+        return resultsPanel;
+    }
 }

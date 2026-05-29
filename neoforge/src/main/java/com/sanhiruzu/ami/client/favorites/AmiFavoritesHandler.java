@@ -65,7 +65,7 @@ public class AmiFavoritesHandler {
     public static ItemStack resolveStack(SearchNode node) {
         ItemStack stack = ItemIconRenderer.resolveStack(node.id());
         if (stack.isEmpty() && node.type() == NodeType.ENTITY) {
-            ResourceLocation eggId = ResourceLocation.parse(node.id().getPath() + "_spawn_egg");
+            ResourceLocation eggId = ResourceLocation.fromNamespaceAndPath(node.id().getNamespace(), node.id().getPath() + "_spawn_egg");
             stack = BuiltInRegistries.ITEM.getOptional(eggId).map(ItemStack::new).orElse(ItemStack.EMPTY);
         }
         return stack;

@@ -1,10 +1,22 @@
 package com.sanhiruzu.ami.client;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.sanhiruzu.ami.client.results.ResultsTreeShapeDump;
+import com.sanhiruzu.ami.client.results.ResultsToolbar;
+import com.sanhiruzu.ami.client.results.ResultsViewProjector;
+import com.sanhiruzu.ami.client.results.SearchState;
+import com.sanhiruzu.ami.client.results.TreeNode;
 import com.sanhiruzu.ami.neoforge.AMI;
 import com.sanhiruzu.ami.benchmark.AmiOntologyDiagnostics;
+import com.sanhiruzu.ami.index.GlobalIndex;
+import com.sanhiruzu.ami.index.NodeType;
+import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.index.SearchNodeMirrorDump;
+import com.sanhiruzu.ami.index.SearchService;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -17,6 +29,8 @@ import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
 public class AmiClientCommands {
@@ -37,7 +51,25 @@ public class AmiClientCommands {
                             exportFallbackSampleToCsv(context.getSource());
                             return 1;
                         })
-                );
+                )
+                .then(Commands.literal("dump-results-tree")
+                        .executes(context -> {
+                            exportResultsTree(context.getSource(), "");
+                            return 1;
+                        })
+                        .then(Commands.argument("query", StringArgumentType.greedyString())
+                                .executes(context -> {
+                                    exportResultsTree(context.getSource(), StringArgumentType.getString(context, "query"));
+                                    return 1;
+                                }))
+                )
+                .then(Commands.literal("dump-search-nodes")
+                        .executes(context -> {
+                            exportSearchNodes(context.getSource());
+                            return 1;
+                        })
+                )
+                .then(AmiDebugStyleCommands.command());
 
         dispatcher.register(cmd);
     }
@@ -70,5 +102,100 @@ public class AmiClientCommands {
             AMI.LOGGER.error("Failed to export fallback sample", e);
             source.sendSystemMessage(Component.translatable("ami.command.fallback_export_failed", e.getMessage()).withStyle(ChatFormatting.RED));
         }
+    }
+
+    private static void exportResultsTree(CommandSourceStack source, String query) {
+        Path dumpDir = FMLPaths.GAMEDIR.get().resolve("ami_dumps");
+        try {
+            Files.createDirectories(dumpDir);
+            Path out = dumpDir.resolve("results_tree_dump.md");
+            Files.writeString(out, buildResultsTreeDump(query == null ? "" : query.trim()));
+            source.sendSystemMessage(Component.literal("AMI results tree dump written to " + out.toAbsolutePath())
+                    .withStyle(ChatFormatting.GREEN));
+        } catch (Exception e) {
+            AMI.LOGGER.error("Failed to export results tree dump", e);
+            source.sendSystemMessage(Component.literal("Failed to export AMI results tree dump: " + e.getMessage())
+                    .withStyle(ChatFormatting.RED));
+        }
+    }
+
+    private static void exportSearchNodes(CommandSourceStack source) {
+        Path dumpDir = FMLPaths.GAMEDIR.get().resolve("ami_dumps");
+        try {
+            Files.createDirectories(dumpDir);
+            Path out = dumpDir.resolve("search_nodes.jsonl");
+            int count = SearchNodeMirrorDump.writeJsonl(out, SearchNodeMirrorDump.runtimeAtlasNodes());
+            source.sendSystemMessage(Component.literal("AMI search node mirror written to " + out.toAbsolutePath() + " (" + count + " nodes)")
+                    .withStyle(ChatFormatting.GREEN));
+        } catch (Exception e) {
+            AMI.LOGGER.error("Failed to export search node mirror", e);
+            source.sendSystemMessage(Component.literal("Failed to export AMI search node mirror: " + e.getMessage())
+                    .withStyle(ChatFormatting.RED));
+        }
+    }
+
+    private static String buildResultsTreeDump(String query) {
+        StringBuilder report = new StringBuilder();
+        report.append("# AMI Runtime Results Tree Dump\n\n");
+        report.append("Index ready: ").append(GlobalIndex.getInstance().isIndexReady()).append("\n\n");
+
+        List<SearchNode> all = new ArrayList<>();
+        for (NodeType type : NodeType.atlasValues()) {
+            all.addAll(GlobalIndex.getInstance().getNodes(type));
+        }
+        SearchService searchService = SearchService.buildFrom(GlobalIndex.getInstance());
+
+        appendLivePanels(report);
+        appendProjection(report, "runtime-default-list", all, searchService, query, false, ResultsToolbar.ViewMode.LIST);
+        appendProjection(report, "runtime-default-grid", all, searchService, query, false, ResultsToolbar.ViewMode.GRID);
+        appendProjection(report, "runtime-compact-grid", all, searchService, query, true, ResultsToolbar.ViewMode.GRID);
+        return report.toString();
+    }
+
+    private static void appendLivePanels(StringBuilder report) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.screen instanceof AMIScreen amiScreen && amiScreen.getResultsPanel() != null) {
+            appendLivePanel(report, "current-ami-screen", amiScreen.getResultsPanel());
+        }
+
+        List<UniversalResultsPanel> panels = InventoryOverlayHandler.getManager().getDebugVisibleResultPanels();
+        if (panels.isEmpty()) {
+            report.append("## Live Visible Overlay Panels\n\nnone\n\n");
+            return;
+        }
+
+        int index = 1;
+        for (UniversalResultsPanel panel : panels) {
+            appendLivePanel(report, "visible-overlay-panel-" + index, panel);
+            index++;
+        }
+    }
+
+    private static void appendLivePanel(StringBuilder report, String label, UniversalResultsPanel panel) {
+        List<TreeNode> roots = panel.getDebugRootNodes();
+        report.append("## ").append(label).append("\n\n");
+        report.append(panel.getDebugSummary()).append("\n\n");
+        appendTreeAndGrid(report, roots);
+    }
+
+    private static void appendProjection(StringBuilder report, String label, List<SearchNode> nodes,
+                                         SearchService searchService, String query, boolean compact,
+                                         ResultsToolbar.ViewMode viewMode) {
+        SearchState state = new SearchState();
+        state.setQuery(query);
+        state.setViewMode(viewMode);
+        ResultsViewProjector.Projection projection = ResultsViewProjector.project(nodes, state, searchService, compact, false);
+        report.append("## ").append(label).append("\n\n");
+        report.append(projection.summary()).append("\n\n");
+        appendTreeAndGrid(report, projection.roots());
+    }
+
+    private static void appendTreeAndGrid(StringBuilder report, List<TreeNode> roots) {
+        report.append("Tree:\n\n```text\n")
+                .append(ResultsTreeShapeDump.dumpTree(roots))
+                .append("```\n\n");
+        report.append("Grid:\n\n```text\n")
+                .append(ResultsTreeShapeDump.dumpGrid(roots, 9))
+                .append("```\n\n");
     }
 }

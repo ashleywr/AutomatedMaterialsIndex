@@ -17,7 +17,7 @@ public class SearchState {
     }
 
     private String query = "";
-    private ResultsProcessor.SortField sortField = ResultsProcessor.SortField.ALPHABETICAL;
+    private ResultsProcessor.SortField sortField = ResultsProcessor.SortField.REGISTRY;
     private boolean ascending = true;
     private ResultsProcessor.GroupBy groupBy = ResultsProcessor.GroupBy.CATEGORY;
     private final Set<String> activeFacets = new HashSet<>();
@@ -28,7 +28,7 @@ public class SearchState {
 
     public void reset() {
         this.query = "";
-        this.sortField = ResultsProcessor.SortField.ALPHABETICAL;
+        this.sortField = ResultsProcessor.SortField.REGISTRY;
         this.ascending = true;
         this.groupBy = ResultsProcessor.GroupBy.CATEGORY;
         this.activeFacets.clear();

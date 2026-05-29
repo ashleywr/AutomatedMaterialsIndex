@@ -59,7 +59,6 @@ public class ItemGridView {
     private float cachedWiggle = 0f;
     private float cachedRotation = 0f;
     private boolean cachedDragging = false;
-    private boolean tooltipLeftOfCursor = false;
 
     // =========================================================
     // Virtual row types
@@ -75,7 +74,7 @@ public class ItemGridView {
         }
     }
 
-    private record ItemRow(List<TreeNode> items) implements VirtualRow {
+    private record ItemRow(List<TreeNode> items, int depth) implements VirtualRow {
         public int height() {
             return CELL_SIZE;
         }
@@ -98,10 +97,15 @@ public class ItemGridView {
         this.cachedRows = null;
     }
 
+    public List<TreeNode> getRootNodes() {
+        return List.copyOf(rootNodes);
+    }
+
     public void collapseAll() {
         for (TreeNode node : rootNodes) {
             setNodeExpanded(node, false);
         }
+        this.pixelScrollOffset = 0;
         this.cachedRows = null;
     }
 
@@ -109,6 +113,7 @@ public class ItemGridView {
         for (TreeNode node : rootNodes) {
             setNodeExpanded(node, true);
         }
+        this.pixelScrollOffset = 0;
         this.cachedRows = null;
     }
 
@@ -139,8 +144,7 @@ public class ItemGridView {
         this.onTokenInject = callback;
     }
 
-    public void setTooltipLeftOfCursor(boolean tooltipLeftOfCursor) {
-        this.tooltipLeftOfCursor = tooltipLeftOfCursor;
+    public void setTooltipLeftOfCursor(boolean ignored) {
     }
 
     public static void clearStackCache() {
@@ -204,17 +208,9 @@ public class ItemGridView {
             var font = Minecraft.getInstance().font;
             com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
             if (pendingTextTooltip != null) {
-                if (tooltipLeftOfCursor) {
-                    AmiTooltipRenderer.renderLeftOfCursor(g, font, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY);
-                } else {
-                    g.renderTooltip(font, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY);
-                }
+                AmiTooltipRenderer.renderLeftOfCursor(g, font, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY);
             } else if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
-                if (tooltipLeftOfCursor) {
-                    AmiTooltipRenderer.renderLeftOfCursor(g, font, pendingTooltip, mouseX, mouseY);
-                } else {
-                    g.renderTooltip(font, pendingTooltip, mouseX, mouseY);
-                }
+                AmiTooltipRenderer.renderLeftOfCursor(g, font, pendingTooltip, mouseX, mouseY);
             }
         }
     }
@@ -234,6 +230,7 @@ public class ItemGridView {
 
     private void renderItemRow(GuiGraphics g, ItemRow ir, int drawY, int mouseX, int mouseY) {
         int cols = computeCols();
+        renderGroupContext(g, ir.depth(), drawY);
         for (int i = 0; i < ir.items().size(); i++) {
             int cellX = x + 1 + i * CELL_SIZE;
             int cellY = drawY;
@@ -449,7 +446,7 @@ public class ItemGridView {
         for (TreeNode root : rootNodes) {
             processNode(root, 0, cols, rows, linearItems);
         }
-        packIntoRows(linearItems, cols, rows);
+        packIntoRows(linearItems, cols, rows, 0);
 
         return rows;
     }
@@ -457,16 +454,8 @@ public class ItemGridView {
     private void processNode(TreeNode node, int depth, int cols, List<VirtualRow> out, List<TreeNode> linearItems) {
         if (node.isLeaf()) {
             linearItems.add(node);
-        } else if (node.isHighCardinality()) {
-            linearItems.add(node); // Group header icon
-            if (node.isExpanded()) {
-                linearItems.addAll(node.getChildren());
-                expandedGroupCache.put(node, node);
-                for (TreeNode child : node.getChildren()) expandedGroupCache.put(child, node);
-            }
         } else {
-            // Standard group header (mod, category, Registry Tree, etc.)
-            packIntoRows(linearItems, cols, out);
+            packIntoRows(linearItems, cols, out, depth);
             linearItems.clear();
 
             // Calculate total item count in this group recursively for the header label
@@ -474,17 +463,30 @@ public class ItemGridView {
             out.add(new HeaderRow(node, depth, totalItems));
 
             if (node.isExpanded()) {
-                for (TreeNode child : node.getChildren()) {
+                for (TreeNode child : node.getChildren().stream().filter(child -> !child.isLeaf()).toList()) {
                     processNode(child, depth + 1, cols, out, linearItems);
                 }
+                for (TreeNode child : node.getChildren().stream().filter(TreeNode::isLeaf).toList()) {
+                    processNode(child, depth + 1, cols, out, linearItems);
+                }
+                packIntoRows(linearItems, cols, out, depth + 1);
+                linearItems.clear();
             }
         }
+    }
+
+    private void renderGroupContext(GuiGraphics g, int depth, int drawY) {
+        if (depth <= 0) {
+            return;
+        }
+        int contentX = x + Math.max(0, depth - 1) * HEADER_INDENT;
+        int contentRight = x + width - SCROLLBAR_W;
+        g.fill(contentX, drawY, contentRight, drawY + CELL_SIZE, AMITheme.GRID_GROUP_BAND);
     }
 
     private int countItemsRecursive(TreeNode node) {
         if (node.getItemCountOverride() != -1) return node.getItemCountOverride();
         if (node.isLeaf()) return 1;
-        if (node.isHighCardinality()) return node.getChildren().size();
         int sum = 0;
         for (TreeNode child : node.getChildren()) {
             sum += countItemsRecursive(child);
@@ -492,9 +494,9 @@ public class ItemGridView {
         return sum;
     }
 
-    private void packIntoRows(List<TreeNode> items, int cols, List<VirtualRow> out) {
+    private void packIntoRows(List<TreeNode> items, int cols, List<VirtualRow> out, int depth) {
         for (int i = 0; i < items.size(); i += cols) {
-            out.add(new ItemRow(new ArrayList<>(items.subList(i, Math.min(i + cols, items.size())))));
+            out.add(new ItemRow(new ArrayList<>(items.subList(i, Math.min(i + cols, items.size()))), depth));
         }
     }
 

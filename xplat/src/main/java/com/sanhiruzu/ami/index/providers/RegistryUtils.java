@@ -47,8 +47,12 @@ public final class RegistryUtils {
      * Namespace → human-readable mod name, falling back to formatPath(namespace).
      */
     public static String modDisplayName(String namespace) {
-        return com.sanhiruzu.ami.platform.Services.PLATFORM.getModName(namespace)
-                .orElse(formatPath(namespace));
+        try {
+            return com.sanhiruzu.ami.platform.Services.PLATFORM.getModName(namespace)
+                    .orElse(formatPath(namespace));
+        } catch (LinkageError | RuntimeException ignored) {
+            return formatPath(namespace);
+        }
     }
 
     public static int namespaceColor(String namespace) {

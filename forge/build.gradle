@@ -131,6 +131,23 @@ def registerRecipeViewerModCleanup = { String taskName, String runDirName ->
     }
 }
 
+def registerRecipeViewerModSync = { String taskName, List<String> configurationNames, String runDirName, TaskProvider<Delete> cleanupTask ->
+    def viewerConfigurations = configurationNames.collect { configName ->
+        configurations.named(configName).get()
+    }
+
+    tasks.register(taskName, Copy) {
+        def modsDir = runDirectory(runDirName).toPath().resolve('mods').toFile()
+        dependsOn cleanupTask
+        viewerConfigurations.each { configuration ->
+            inputs.files(configuration)
+        }
+        outputs.dir(modsDir)
+        into(modsDir)
+        from(viewerConfigurations)
+    }
+}
+
 def cleanClientRecipeViewerMods = registerRecipeViewerModCleanup(
         'cleanClientRecipeViewerMods',
         'forge'
@@ -144,14 +161,33 @@ def cleanClientEmiRecipeViewerMods = registerRecipeViewerModCleanup(
         'forge-emi'
 )
 
+def syncClientRecipeViewerMods = registerRecipeViewerModSync(
+        'syncClientRecipeViewerMods',
+        ['devRuntimeRecipeViewerMods'],
+        'forge',
+        cleanClientRecipeViewerMods
+)
+def syncClientJeiRecipeViewerMods = registerRecipeViewerModSync(
+        'syncClientJeiRecipeViewerMods',
+        ['devRuntimeJeiViewerMods'],
+        'forge-jei',
+        cleanClientJeiRecipeViewerMods
+)
+def syncClientEmiRecipeViewerMods = registerRecipeViewerModSync(
+        'syncClientEmiRecipeViewerMods',
+        ['devRuntimeEmiViewerMods'],
+        'forge-emi',
+        cleanClientEmiRecipeViewerMods
+)
+
 tasks.matching { it.name == 'prepareClientRun' }.configureEach {
-    dependsOn cleanClientRecipeViewerMods
+    dependsOn syncClientRecipeViewerMods
 }
 tasks.matching { it.name == 'prepareClientJeiRun' }.configureEach {
-    dependsOn cleanClientJeiRecipeViewerMods
+    dependsOn syncClientJeiRecipeViewerMods
 }
 tasks.matching { it.name == 'prepareClientEmiRun' }.configureEach {
-    dependsOn cleanClientEmiRecipeViewerMods
+    dependsOn syncClientEmiRecipeViewerMods
 }
 
 tasks.named('processResources', ProcessResources).configure {

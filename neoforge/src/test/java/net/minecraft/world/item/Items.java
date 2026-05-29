@@ -10,6 +10,7 @@ import net.minecraft.world.level.block.ComposterBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
 public final class Items {
+    public static final Item AIR = register("air", new Item("Air"));
     public static final Item APPLE = register("apple",
             new Item("Apple").withComponent(DataComponents.FOOD));
     public static final Item CAKE = register("cake",

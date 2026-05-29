@@ -119,6 +119,10 @@ public class ItemProvider implements IAmiDataProvider {
             meta.put(SearchNodeKeys.COLOR_BUCKET, colorBucket);
             meta.put(SearchNodeKeys.MATERIAL_GROUP, materialGroup);
             meta.put(SearchNodeKeys.ACCESS_LEVEL, accessLevel);
+
+            if (collapsedFamily.isEmpty() && !materialGroup.isEmpty() && !materialGroup.equals(id.toString())) {
+                meta.put(SearchNodeKeys.SUBTYPE_OF, materialGroup);
+            }
             applyCreativeTabMeta(meta, creativeTabs.get(item));
             String encodedFacets = FacetCodec.encode(facetProfile.facets());
             if (!encodedFacets.isEmpty()) {

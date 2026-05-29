@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -108,5 +109,38 @@ public class QuerySearchModeTest {
 
         assertFalse(hits.contains(ironIngot));
         assertTrue(hits.contains(zincIngot));
+    }
+
+    @Test
+    public void queryExplanationReportsResolverAndFilterCounts() {
+        GlobalIndex index = GlobalIndex.getInstance();
+
+        SearchNode ironIngot = new SearchNode(
+                new ResourceLocation("minecraft:iron_ingot"),
+                NodeType.ITEM,
+                "Iron Ingot",
+                0,
+                0,
+                Map.of(SearchNodeKeys.MOD_ID, "minecraft")
+        );
+        SearchNode zincIngot = new SearchNode(
+                new ResourceLocation("create:zinc_ingot"),
+                NodeType.ITEM,
+                "Zinc Ingot",
+                0,
+                0,
+                Map.of(SearchNodeKeys.MOD_ID, "create")
+        );
+
+        index.addNode(ironIngot);
+        index.addNode(zincIngot);
+
+        SearchService service = SearchService.buildFrom(index, false);
+        SearchService.QueryExplanation explanation = service.explain("ingot @create");
+
+        assertEquals(List.of("INCLUDE:ingot", "MOD:create"), explanation.tokens());
+        assertEquals(1, explanation.finalCounts().get(NodeType.ITEM));
+        assertTrue(explanation.steps().stream().anyMatch(step -> step.operation().equals("include:LiteralResolver")));
+        assertTrue(explanation.steps().stream().anyMatch(step -> step.operation().equals("after-mod")));
     }
 }
