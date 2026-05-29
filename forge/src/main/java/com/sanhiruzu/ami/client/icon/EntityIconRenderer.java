@@ -9,6 +9,7 @@ import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -21,6 +22,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.joml.Quaternionf;
+import org.lwjgl.opengl.GL11;
 
 import java.util.*;
 
@@ -59,41 +62,65 @@ public class EntityIconRenderer implements IIconRenderer {
             return;
         }
 
-        float bbH = entity.getBbHeight();
-        int scale = (int) Math.min(size - 4, Math.max(2, (size - 2) / bbH));
-
-        if (!hovered) {
-            // Cache render: 0-based coords inside the size×size framebuffer.
-            int cacheCx = size / 2;
-            int cacheCy = size - 1;
-            EntityIconCache.blitCached(g, node.id(), size, x, y, cacheG ->
-                    InventoryScreen.renderEntityInInventoryFollowsAngle(cacheG, cacheCx, cacheCy, scale, 0f, 0f, entity));
-            return;
-        }
+        float maxBounds = Math.max(entity.getBbHeight(), entity.getBbWidth());
+        int scale = Math.max(1, (int) Math.min(size - 4, (size - 2) / maxBounds));
 
         // Hovered: live render with spin — no scissor so the full entity shows.
         int cx = x + size / 2;
         int cy = y + size - 1;
-        float spin = (System.currentTimeMillis() % 3000) / 3000f * 360f;
+        float yRot = 180f;
+        if (hovered) {
+            yRot += (System.currentTimeMillis() % 3000) / 3000f * 360f;
+        }
         float savedBodyRot = entity.yBodyRot;
         float savedYRot = entity.getYRot();
         float savedXRot = entity.getXRot();
         float savedHeadRotO = entity.yHeadRotO;
         float savedHeadRot = entity.yHeadRot;
 
-        entity.yBodyRot = 180f + spin;
-        entity.setYRot(180f + spin);
+        entity.yBodyRot = yRot;
+        entity.setYRot(yRot);
         entity.setXRot(0f);
         entity.yHeadRot = entity.getYRot();
         entity.yHeadRotO = entity.getYRot();
 
-        InventoryScreen.renderEntityInInventoryFollowsAngle(g, cx, cy, scale, 0f, 0f, entity);
+        try {
+            renderEntity(g, cx, cy, scale, 0f, 0f, entity);
+        } finally {
+            entity.yBodyRot = savedBodyRot;
+            entity.setYRot(savedYRot);
+            entity.setXRot(savedXRot);
+            entity.yHeadRotO = savedHeadRotO;
+            entity.yHeadRot = savedHeadRot;
+        }
+    }
 
-        entity.yBodyRot = savedBodyRot;
-        entity.setYRot(savedYRot);
-        entity.setXRot(savedXRot);
-        entity.yHeadRotO = savedHeadRotO;
-        entity.yHeadRot = savedHeadRot;
+    private static void renderEntity(GuiGraphics g, int x, int y, int scale, float angleX, float angleY, LivingEntity entity) {
+        float[] shaderColor = RenderSystem.getShaderColor();
+        float savedRed = shaderColor[0];
+        float savedGreen = shaderColor[1];
+        float savedBlue = shaderColor[2];
+        float savedAlpha = shaderColor[3];
+
+        try {
+            RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+            RenderSystem.enableDepthTest();
+            RenderSystem.depthMask(true);
+            RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
+            InventoryScreen.renderEntityInInventory(
+                    g,
+                    x,
+                    y,
+                    scale,
+                    new Quaternionf().rotateZ((float) Math.PI),
+                    new Quaternionf(),
+                    entity
+            );
+        } finally {
+            RenderSystem.setShaderColor(savedRed, savedGreen, savedBlue, savedAlpha);
+            RenderSystem.depthMask(true);
+            RenderSystem.enableDepthTest();
+        }
     }
 
     private static ResourceLocation resolveProxyItemId(ResourceLocation entityId) {

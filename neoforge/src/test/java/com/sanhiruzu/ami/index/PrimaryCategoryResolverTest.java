@@ -57,7 +57,30 @@ class PrimaryCategoryResolverTest {
         assertEquals("nature", drinkAssignment.categoryId());
         assertEquals("drinks", drinkAssignment.subcategoryId());
         assertEquals("nature", mealAssignment.categoryId());
-        assertEquals("drinks", mealAssignment.subcategoryId());
+        assertEquals("meals", mealAssignment.subcategoryId());
+    }
+
+    @Test
+    void passiveComparatorFoodBlocksStayInFoodGroups() {
+        CategoryAssignment pieAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("farmersdelight:apple_pie"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.PLACEABLE_FOOD, ItemFacet.REDSTONE_SIGNAL), Map.of())
+        );
+        CategoryAssignment displayPlateAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("createfood:beef_meatball_sandwich_plate_block"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.FOOD_PROTEIN, ItemFacet.REDSTONE_SIGNAL), Map.of())
+        );
+        CategoryAssignment realRedstoneAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:target"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.REDSTONE_LOGIC, ItemFacet.REDSTONE_SIGNAL), Map.of())
+        );
+
+        assertEquals("nature", pieAssignment.categoryId());
+        assertEquals("meals", pieAssignment.subcategoryId());
+        assertEquals("nature", displayPlateAssignment.categoryId());
+        assertEquals("meals", displayPlateAssignment.subcategoryId());
+        assertEquals("tech", realRedstoneAssignment.categoryId());
+        assertEquals("redstone", realRedstoneAssignment.subcategoryId());
     }
 
     @Test
@@ -77,6 +100,10 @@ class PrimaryCategoryResolverTest {
                 new ResourceLocation("minecraft:elytra"),
                 new FacetProfile(EnumSet.of(ItemFacet.ARMOR_CHEST), Map.of())
         );
+        CategoryAssignment animalArmorAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:diamond_horse_armor"),
+                new FacetProfile(EnumSet.of(ItemFacet.ARMOR_ANIMAL), Map.of())
+        );
         CategoryAssignment weaponAssignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("minecraft:mace"),
                 new FacetProfile(EnumSet.of(ItemFacet.MELEE_WEAPON), Map.of())
@@ -84,6 +111,8 @@ class PrimaryCategoryResolverTest {
 
         assertEquals("armor", armorAssignment.categoryId());
         assertEquals("chest", armorAssignment.subcategoryId());
+        assertEquals("armor", animalArmorAssignment.categoryId());
+        assertEquals("animal", animalArmorAssignment.subcategoryId());
         assertEquals("tools", weaponAssignment.categoryId());
         assertEquals("melee", weaponAssignment.subcategoryId());
     }
@@ -136,6 +165,47 @@ class PrimaryCategoryResolverTest {
 
         assertEquals("geology", assignment.categoryId());
         assertEquals("stone", assignment.subcategoryId());
+    }
+
+    @Test
+    void mossyStoneDoesNotResolveAsFlora() {
+        CategoryAssignment mossBlockAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:moss_block"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.COMPOSTABLE, ItemFacet.SOIL_BLOCK),
+                        Map.of(SearchNodeKeys.BLOCKS_MATERIAL, "soil")
+                )
+        );
+        CategoryAssignment mossyCobblestoneAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:mossy_cobblestone"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE),
+                        Map.of(SearchNodeKeys.BLOCKS_MATERIAL, "stone")
+                )
+        );
+        CategoryAssignment mossyCobblestoneStairsAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("mcwstairs:mossy_cobblestone_terrace_stairs"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE),
+                        Map.of(SearchNodeKeys.BLOCKS_MATERIAL, "stone")
+                )
+        );
+        CategoryAssignment mossyCobblestoneTextureAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("rechiseled:mossy_cobblestone_stripes"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE),
+                        Map.of(SearchNodeKeys.BLOCKS_MATERIAL, "stone")
+                )
+        );
+
+        assertEquals("nature", mossBlockAssignment.categoryId());
+        assertEquals("flora", mossBlockAssignment.subcategoryId());
+        assertEquals("geology", mossyCobblestoneAssignment.categoryId());
+        assertEquals("stone", mossyCobblestoneAssignment.subcategoryId());
+        assertEquals("masonry", mossyCobblestoneStairsAssignment.categoryId());
+        assertEquals("stairs", mossyCobblestoneStairsAssignment.subcategoryId());
+        assertEquals("masonry", mossyCobblestoneTextureAssignment.categoryId());
+        assertEquals("full_block", mossyCobblestoneTextureAssignment.subcategoryId());
     }
 
     @Test

@@ -19,6 +19,18 @@ public final class RecipeTransferHandler {
     private RecipeTransferHandler() {
     }
 
+    public static boolean canTransfer(com.sanhiruzu.ami.util.AmiRecipeHolder<?> recipe, Screen parentScreen) {
+        if (!(parentScreen instanceof AbstractContainerScreen<?> cs)) return false;
+        List<Ingredient> ingredients = recipe.value().getIngredients();
+        if (ingredients.isEmpty()) return false;
+        return getInputSlots(cs.getMenu(), ingredients.size()) != null;
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static boolean transfer(com.sanhiruzu.ami.util.AmiRecipeHolder<?> recipe, Screen parentScreen, Minecraft mc) {
+        return transfer(new RecipeHolder(recipe.id(), recipe.value()), parentScreen, mc);
+    }
+
     public static boolean canTransfer(RecipeHolder<?> recipe, Screen parentScreen) {
         if (!(parentScreen instanceof AbstractContainerScreen<?> cs)) return false;
         List<Ingredient> ingredients = recipe.value().getIngredients();

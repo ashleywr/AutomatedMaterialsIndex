@@ -7,6 +7,7 @@ import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchService;
+import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -19,14 +20,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import com.sanhiruzu.ami.neoforge.client.AMIKeyMappings;
 public class UniversalResultsPanel implements SearchState.Listener {
 
     private static final ResourceLocation PANEL_SPRITE =
-            ResourceLocation.parse("recipe_book/overlay_recipe");
+            Services.PLATFORM.rl("recipe_book/overlay_recipe");
 
-    // Fixed height of the top header area — identical in both full and compact mode
+    // Fixed height of the top header area — full mode uses toolbar height, compact uses minimal space
     private static final int HEADER_H = ResultsToolbar.TOOLBAR_HEIGHT;
+    private static final int COMPACT_HEADER_H = 20; // Minimal height for item count + toggle button
     // Compact toggle button dimensions — height matches toolbar buttons for visual consistency
     private static final int TOGGLE_W = 18;
     private static final int TOGGLE_H = ResultsToolbar.BUTTON_H;
@@ -138,9 +139,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
      * Used by sidebar panels that need grouped display (e.g. quests).
      */
     public void setGroupedEntries(List<TreeNode> roots) {
-        treeView.setRootNodes(roots);
-        gridView.setRootNodes(roots);
-        this.displayedItemCount = countLeaves(roots);
+        List<TreeNode> normalized = ResultsTreeNormalizer.normalize(roots);
+        treeView.setRootNodes(normalized);
+        gridView.setRootNodes(normalized);
+        this.displayedItemCount = countLeaves(normalized);
     }
 
     private static int countLeaves(List<TreeNode> nodes) {
@@ -194,13 +196,15 @@ public class UniversalResultsPanel implements SearchState.Listener {
     public void configureView(AmiConfig.PanelContent content) {
         boolean oldCompact = compactMode;
         compactMode = content == AmiConfig.PanelContent.COMPACT;
-        
-        if (content == AmiConfig.PanelContent.GRID || content == AmiConfig.PanelContent.COMPACT) {
+
+        if (!oldCompact && compactMode) {
+            resetSearchStateForCompact();
+        } else if (content == AmiConfig.PanelContent.GRID || content == AmiConfig.PanelContent.COMPACT) {
             state.setViewMode(ResultsToolbar.ViewMode.GRID);
         } else if (content == AmiConfig.PanelContent.LIST) {
             state.setViewMode(ResultsToolbar.ViewMode.LIST);
         }
-        
+
         if (oldCompact != compactMode) {
             // Delaying updateLayout if width/height aren't initialized yet
             if (width > 0 && height > 0) {
@@ -240,7 +244,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
             treeView.updateLayout(innerX, contentY, innerW, contentH);
             gridView.updateLayout(innerX, contentY, innerW, contentH);
         } else {
-            int contentY = y + AMITheme.GLOBAL_PADDING + HEADER_H + AMITheme.ELEMENT_GAP;
+            int headerH = compactMode ? COMPACT_HEADER_H : HEADER_H;
+            int contentY = y + AMITheme.GLOBAL_PADDING + headerH + AMITheme.ELEMENT_GAP;
             int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
             if (compactMode) {
                 gridView.updateLayout(innerX, contentY, innerW, contentH);
@@ -263,7 +268,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             com.mojang.blaze3d.systems.RenderSystem.enableBlend();
             com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
             AMITheme.fillRounded(g, x, y, width, height, AMITheme.PANEL_BG);
-            
+
             // Add subtle borders and accent line, only if defined by the theme
             if (AMITheme.BORDER_LIGHT != 0) {
                 int border = AMITheme.BORDER_LIGHT;
@@ -298,9 +303,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
             return;
         }
 
-        // Shared header geometry — identical in both modes so the separator never shifts
+        // Shared header geometry — compact mode uses smaller header height
         int headerY = y + AMITheme.GLOBAL_PADDING;
-        int sepY = headerY + HEADER_H;
+        int headerH = compact ? COMPACT_HEADER_H : HEADER_H;
+        int sepY = headerY + headerH;
         int contentY = sepY + AMITheme.ELEMENT_GAP;
 
         if (compact) {
@@ -308,7 +314,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
             // Item count centered vertically in the header strip
             String countStr = Component.translatable("ami.gui.items_label", displayedItemCount).getString();
-            int textY = headerY + (HEADER_H - font.lineHeight) / 2;
+            int textY = headerY + (headerH - font.lineHeight) / 2;
             g.drawString(font, countStr, x + AMITheme.GLOBAL_PADDING, textY, AMITheme.TEXT_SUBTLE, false);
 
             // Toggle button on the right of the header strip
@@ -376,7 +382,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         boolean hovered = mouseX >= toggleX && mouseX < toggleX + TOGGLE_W
                 && mouseY >= toggleY && mouseY < toggleY + TOGGLE_H;
 
-        int bgColor = (compact || alternateActive) ? AMITheme.DROPDOWN_BG_ACTIVE : (hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG);
+        int bgColor = hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
         g.fill(toggleX, toggleY, toggleX + TOGGLE_W, toggleY + TOGGLE_H, bgColor);
 
         // Borders
@@ -415,38 +421,15 @@ public class UniversalResultsPanel implements SearchState.Listener {
         var manager = com.sanhiruzu.ami.client.InventoryOverlayHandler.getManager();
         if (manager != null && !manager.isPanelVisible() && !isFavoritesPanel) return;
 
-        List<SearchNode> source = resolveSource();
-        String query = state.getQuery();
-        boolean compactMainPanel = compactMode && !isFavoritesPanel;
-
-        // Browse view for empty queries (no search active)
-        if (query.isEmpty() && !isFavoritesPanel && !compactMainPanel) {
-            displayedItemCount = source.size();
-            ResultsProcessor processor = state.createProcessor();
-            List<TreeNode> processed = processor.process(source);
-            treeView.setRootNodes(processed);
-            gridView.setRootNodes(processed);
-            return;
-        }
-
-        if (!query.isEmpty() && searchService != null) {
-            source = com.sanhiruzu.ami.client.results.SearchScope.resolveQueriedSource(searchService, source, query, isFavoritesPanel);
-        }
-
-        displayedItemCount = source.size();
-        if (isFavoritesPanel) {
-            // Sidebars show items flat — no category grouping in a small panel
-            List<TreeNode> leaves = source.stream()
-                    .map(n -> new TreeNode(Component.literal(n.displayName()), n))
-                    .collect(java.util.stream.Collectors.toList());
-            treeView.setRootNodes(leaves);
-            gridView.setRootNodes(leaves);
-        } else {
-            ResultsProcessor processor = state.createProcessor();
-            List<TreeNode> processed = compactMainPanel ? processor.processFlat(source) : processor.process(source);
-            treeView.setRootNodes(processed);
-            gridView.setRootNodes(processed);
-        }
+        ResultsViewProjector.Projection projection = ResultsViewProjector.project(
+                resolveSource(),
+                state,
+                searchService,
+                compactMode && !isFavoritesPanel,
+                isFavoritesPanel
+        );
+        displayedItemCount = projection.displayedItemCount();
+        setViewRoots(projection.roots());
     }
 
     private void showDashboard() {
@@ -472,14 +455,12 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (!state.isAscending()) {
             java.util.Collections.reverse(categories);
         }
-        
+
         ResultsProcessor processor = state.createProcessor();
         List<TreeNode> categoryNodes = com.sanhiruzu.ami.client.results.DashboardBrowse.buildCategoryNodes(
                 categories,
                 categoryId -> {
                     List<SearchNode> raw = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodesByCategory(categoryId);
-                    // Apply filtering/sorting via a temporary processFlat call or direct filterAndSort access
-                    // Since filterAndSort is private, we use a trick: processFlat
                     return processor.processFlat(raw).stream()
                             .filter(TreeNode::isLeaf)
                             .map(TreeNode::getEntry)
@@ -490,11 +471,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
         // Populate expanded placeholders eagerly
         for (TreeNode catNode : categoryNodes) {
             if (catNode.isExpanded()) {
-                // Categories have subcategory placeholders, so we populate the subcategories
                 List<SearchNode> catRaw = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodesByCategory(catNode.getKey());
                 if (catRaw.isEmpty()) continue;
 
-                // Group them by subcategory locally to avoid repeated lookups
                 Map<String, List<SearchNode>> subMap = new java.util.HashMap<>();
                 for (SearchNode sn : catRaw) {
                     String subId = sn.meta(com.sanhiruzu.ami.index.SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "");
@@ -508,11 +487,11 @@ public class UniversalResultsPanel implements SearchState.Listener {
                             String subId = "none".equals(keys[1]) ? "" : keys[1];
                             List<SearchNode> members = subMap.getOrDefault(subId, java.util.Collections.emptyList());
                             if (!members.isEmpty()) {
-                                // Use a temp state to avoid modifying the main UI state during population
                                 SearchState tempState = new SearchState();
                                 tempState.setSortField(state.getSortField());
                                 tempState.setAscending(state.isAscending());
                                 subNode.getChildren().addAll(createLeafNodesWithCollapseGrouping(members, tempState));
+                                ResultsTreeNormalizer.normalizeChildren(subNode);
                             }
                         }
                     }
@@ -521,8 +500,13 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
         dashboard.addAll(categoryNodes);
 
-        treeView.setRootNodes(dashboard);
-        gridView.setRootNodes(dashboard);
+        setViewRoots(dashboard);
+    }
+
+    private void setViewRoots(List<TreeNode> roots) {
+        List<TreeNode> normalized = ResultsTreeNormalizer.normalize(roots);
+        treeView.setRootNodes(normalized);
+        gridView.setRootNodes(normalized);
     }
 
     private List<SearchNode> resolveSource() {
@@ -533,15 +517,28 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     private void onItemClicked(SearchNode node, int button) {
         ItemStack stack = com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node);
-        if (!stack.isEmpty())
+        if (!stack.isEmpty() && shouldOpenLookup(node, stack, button))
             RecipeViewerBridge.handleItemClick(stack, button, net.minecraft.client.gui.screens.Screen.hasShiftDown());
+    }
+
+    private boolean shouldOpenLookup(SearchNode node, ItemStack stack, int button) {
+        if (node == null || node.type() != NodeType.ENTITY || !Services.PLATFORM.isRecipeIndexBuilt()) {
+            return true;
+        }
+
+        if (button == 1) {
+            return !Services.PLATFORM.getUsesFor(stack).isEmpty();
+        }
+
+        return switch (AmiConfig.itemClickAction) {
+            case RECIPES -> !Services.PLATFORM.getRecipesFor(stack).isEmpty();
+            case USES -> !Services.PLATFORM.getUsesFor(stack).isEmpty();
+            case NONE -> false;
+        };
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /**
-     * True when the grid view should be active — favorites panel (if in grid mode), compact mode, or explicit grid mode.
-     */
     private boolean isGridActive() {
         if (isFavoritesPanel) return state.getViewMode() == ResultsToolbar.ViewMode.GRID;
         return compactMode || state.getViewMode() == ResultsToolbar.ViewMode.GRID;
@@ -566,20 +563,20 @@ public class UniversalResultsPanel implements SearchState.Listener {
             if (hovered != null) {
                 InputConstants.Key mouseKey = InputConstants.Type.MOUSE.getOrCreate(button);
                 if (hovered.type() == NodeType.ITEM) {
-                    if (AMIKeyMappings.CHEAT_GIVE_STACK.isActiveAndMatches(mouseKey)) {
+                    if (Services.PLATFORM.keyMappings().cheatGiveStack().isActiveAndMatches(mouseKey)) {
                         AMICheatMode.giveStack(hovered.id());
                         return true;
                     }
-                    if (AMIKeyMappings.CHEAT_GIVE_ONE.isActiveAndMatches(mouseKey)) {
+                    if (Services.PLATFORM.keyMappings().cheatGiveOne().isActiveAndMatches(mouseKey)) {
                         AMICheatMode.giveItem(hovered.id());
                         return true;
                     }
                 } else if (hovered.type() == NodeType.ENTITY) {
-                    if (AMIKeyMappings.CHEAT_GIVE_STACK.isActiveAndMatches(mouseKey)) {
+                    if (Services.PLATFORM.keyMappings().cheatGiveStack().isActiveAndMatches(mouseKey)) {
                         AMICheatMode.giveEntityStackAsSpawnEgg(hovered.id());
                         return true;
                     }
-                    if (AMIKeyMappings.CHEAT_GIVE_ONE.isActiveAndMatches(mouseKey)) {
+                    if (Services.PLATFORM.keyMappings().cheatGiveOne().isActiveAndMatches(mouseKey)) {
                         AMICheatMode.giveEntityAsSpawnEgg(hovered.id());
                         return true;
                     }
@@ -633,6 +630,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 externalModeToggleCallback.run();
             } else {
                 compactMode = !compactMode;
+                if (compactMode) {
+                    resetSearchStateForCompact();
+                }
                 saveMainPanelViewPreference();
                 updateLayout(x, y, width, height);
                 refreshTree();
@@ -688,12 +688,14 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     private void populateLazyNode(TreeNode node) {
-        if (node == null || !node.getChildren().isEmpty()) return;
+        if (node == null || !node.getChildren().isEmpty() || node.isLeaf()) return;
 
-        // Check if this node is a category by trying to find it in CATEGORIES
+        String key = node.getKey();
+        if (key == null) return;
+
         boolean isOntologyCategory = com.sanhiruzu.ami.index.AmiOntology.CATEGORIES.stream()
-                .anyMatch(c -> c.id.equals(node.getKey()));
-        String[] subcategoryKey = com.sanhiruzu.ami.client.results.DashboardBrowse.splitSubcategoryKey(node.getKey());
+                .anyMatch(c -> c.id.equals(key));
+        String[] subcategoryKey = com.sanhiruzu.ami.client.results.DashboardBrowse.splitSubcategoryKey(key);
         boolean isOntologySubcategory = subcategoryKey != null
                 && com.sanhiruzu.ami.index.AmiOntology.CATEGORIES.stream().anyMatch(c -> c.id.equals(subcategoryKey[0]));
 
@@ -703,13 +705,13 @@ public class UniversalResultsPanel implements SearchState.Listener {
             String subId = "none".equals(subcategoryKey[1]) ? "" : subcategoryKey[1];
             nodes = com.sanhiruzu.ami.client.results.DashboardBrowse.filterSubcategoryNodes(categoryNodes, subId);
         } else {
-            nodes = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodesByCategory(node.getKey());
+            nodes = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodesByCategory(key);
         }
 
         // Fallback for NodeType keys
         if (nodes.isEmpty()) {
             try {
-                NodeType type = NodeType.valueOf(node.getKey());
+                NodeType type = NodeType.valueOf(key);
                 nodes = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodes(type);
             } catch (Exception ignored) {
             }
@@ -717,54 +719,33 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         if (nodes.isEmpty()) return;
 
-        // When viewing an ontology category in CATEGORY mode, avoid re-grouping by category.
-        // Still apply collapse passes for potions, books, semantic families, etc.
         SearchState tempState = new SearchState();
         tempState.setViewMode(state.getViewMode());
         tempState.setSortField(state.getSortField());
         tempState.setAscending(state.isAscending());
 
         if ((isOntologyCategory || isOntologySubcategory) && state.getGroupBy() == ResultsProcessor.GroupBy.CATEGORY) {
-            // Just create leaf nodes with collapse grouping (no main grouping)
             node.getChildren().addAll(createLeafNodesWithCollapseGrouping(nodes, tempState));
         } else {
-            // Apply normal grouping through processor
             tempState.setGroupBy(state.getGroupBy());
             ResultsProcessor processor = tempState.createProcessor();
             node.getChildren().addAll(applySmartGrouping(nodes, processor));
         }
+        ResultsTreeNormalizer.normalizeChildren(node);
     }
 
     private List<TreeNode> createLeafNodesWithCollapseGrouping(List<SearchNode> nodes, SearchState tempState) {
-        // Create leaf nodes from search nodes (no main grouping)
-        List<TreeNode> leaves = nodes.stream()
-                .map(sn -> new TreeNode(Component.literal(sn.displayName()), sn))
-                .collect(java.util.stream.Collectors.toList());
-
-        // Apply collapse grouping (for potions, books, semantic families, etc.) via a processor
-        // We use MOD grouping as a dummy value since we're only calling applyHighCardinalityGrouping
         tempState.setGroupBy(ResultsProcessor.GroupBy.MOD);
         ResultsProcessor processor = tempState.createProcessor();
+        return processor.processFlatWithCardGrouping(nodes);
+    }
 
-        try {
-            var highCardinalityMethod = ResultsProcessor.class.getDeclaredMethod("applyHighCardinalityGrouping", List.class);
-            highCardinalityMethod.setAccessible(true);
-            var explicitFamilyMethod = ResultsProcessor.class.getDeclaredMethod("applyExplicitFamilyGrouping", List.class);
-            explicitFamilyMethod.setAccessible(true);
-            @SuppressWarnings("unchecked")
-            List<TreeNode> highCardinality = (List<TreeNode>) highCardinalityMethod.invoke(processor, leaves);
-            @SuppressWarnings("unchecked")
-            List<TreeNode> result = (List<TreeNode>) explicitFamilyMethod.invoke(processor, highCardinality);
-            return result;
-        } catch (Exception e) {
-            // Fallback: return leaves as-is if reflection fails
-            return leaves;
-        }
+    private void resetSearchStateForCompact() {
+        state.reset();
+        state.setViewMode(ResultsToolbar.ViewMode.GRID);
     }
 
     private List<TreeNode> applySmartGrouping(List<SearchNode> nodes, ResultsProcessor processor) {
-        // ResultsProcessor.process() handles both filtering/sorting and high-cardinality grouping
-        // We bypass filtering here because we are in an explicit category browsing mode
         return processor.process(nodes);
     }
 
@@ -896,34 +877,33 @@ public class UniversalResultsPanel implements SearchState.Listener {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
     }
 
-    public int getX() {
-        return x;
+    public int getX() { return x; }
+    public int getY() { return y; }
+    public int getWidth() { return width; }
+    public int getHeight() { return height; }
+
+    public ResultsToolbar getToolbar() { return toolbar; }
+    public SearchState getState() { return state; }
+
+    public List<TreeNode> getDebugRootNodes() {
+        return isGridActive() ? gridView.getRootNodes() : treeView.getRootNodes();
     }
 
-    public int getY() {
-        return y;
-    }
-
-    public int getWidth() {
-        return width;
-    }
-
-    public int getHeight() {
-        return height;
-    }
-
-    public ResultsToolbar getToolbar() {
-        return toolbar;
-    }
-
-    public SearchState getState() {
-        return state;
+    public String getDebugSummary() {
+        return "query=\"" + currentQuery + "\""
+                + " entries=" + currentResults.size()
+                + " displayed=" + displayedItemCount
+                + " view=" + state.getViewMode()
+                + " sort=" + state.getSortField()
+                + " ascending=" + state.isAscending()
+                + " group=" + state.getGroupBy()
+                + " gridActive=" + isGridActive()
+                + " compact=" + compactMode
+                + " favorites=" + isFavoritesPanel;
     }
 
     private void saveMainPanelViewPreference() {
-        if (isFavoritesPanel) {
-            return;
-        }
+        if (isFavoritesPanel) return;
         AmiViewPreferences.saveMainPanelPreference(compactMode, state.getViewMode());
     }
 

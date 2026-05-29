@@ -2,13 +2,18 @@ package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.AmiGuiIcons;
+import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
+import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class ResultsToolbar implements SearchState.Listener {
     public enum ViewMode {GRID, LIST}
@@ -16,7 +21,6 @@ public class ResultsToolbar implements SearchState.Listener {
     public static final int TOOLBAR_HEIGHT = 36;
     public static final int BUTTON_H = 14;
     private static final int SORT_DIR_W = 14;
-    private static final int VIEW_TOGGLE_W = 18;
     private static final int COLLAPSE_TOGGLE_W = 18;
     private static final int DROPDOWN_W = 75;
     private static final int FIELDS_BTN_W = 50;
@@ -25,6 +29,19 @@ public class ResultsToolbar implements SearchState.Listener {
     private static final int SCROLL_STEP = 18;
     private static final int ROW1_Y = 3;
     private static final int ROW2_Y = 20;
+    private static final List<ResultsProcessor.SortField> ITEM_SORT_FIELDS = List.of(
+            ResultsProcessor.SortField.REGISTRY,
+            ResultsProcessor.SortField.ALPHABETICAL,
+            ResultsProcessor.SortField.COLOR,
+            ResultsProcessor.SortField.MOD,
+            ResultsProcessor.SortField.STORAGE_CAPACITY,
+            ResultsProcessor.SortField.DPS
+    );
+    private static final EnumSet<ResultsProcessor.GroupBy> DEV_GROUPS = EnumSet.of(
+            ResultsProcessor.GroupBy.TOPOLOGY,
+            ResultsProcessor.GroupBy.SIMILARITY,
+            ResultsProcessor.GroupBy.PROPERTIES
+    );
 
     private int x, y, width;
     private final SearchState state;
@@ -50,7 +67,7 @@ public class ResultsToolbar implements SearchState.Listener {
 
         this.sortFieldDropdown = new SingleSelectDropdown<>(
                 Component.translatable("ami.gui.sort"),
-                Arrays.asList(ResultsProcessor.SortField.values()),
+                ITEM_SORT_FIELDS,
                 f -> f.displayName,
                 state.getSortField(),
                 state::setSortField
@@ -58,7 +75,7 @@ public class ResultsToolbar implements SearchState.Listener {
 
         this.groupByDropdown = new SingleSelectDropdown<>(
                 Component.translatable("ami.gui.group"),
-                Arrays.asList(ResultsProcessor.GroupBy.values()),
+                groupOptions(),
                 g -> g.displayName,
                 state.getGroupBy(),
                 state::setGroupBy
@@ -72,6 +89,7 @@ public class ResultsToolbar implements SearchState.Listener {
 
     @Override
     public void onSearchStateChanged(SearchState state) {
+        updateGroupOptions();
         this.sortFieldDropdown.setSelected(state.getSortField());
         this.groupByDropdown.setSelected(state.getGroupBy());
         updateDropdownPositions();
@@ -86,19 +104,16 @@ public class ResultsToolbar implements SearchState.Listener {
 
     private List<Dropdown> getActiveDropdowns() {
         List<Dropdown> active = new ArrayList<>();
-        if (state.getViewMode() == ViewMode.LIST) {
-            active.add(sortFieldDropdown);
-        }
         active.add(groupByDropdown);
+        active.add(sortFieldDropdown);
         return active;
     }
 
     private void updateDropdownPositions() {
         boolean gridMode = state.getViewMode() == ViewMode.GRID;
 
-        // Row 1 left-side buttons: ViewToggle, SortDir, CollapseToggle
-        int row1LeftW = VIEW_TOGGLE_W + BUTTON_GAP + SORT_DIR_W + BUTTON_GAP;
-        row1LeftW += COLLAPSE_TOGGLE_W + BUTTON_GAP;
+        // Row 1 left-side buttons: SortDir, CollapseToggle
+        int row1LeftW = SORT_DIR_W + BUTTON_GAP + COLLAPSE_TOGGLE_W + BUTTON_GAP;
 
         int rightReserved = gridMode ? 5 : (FIELDS_BTN_W + 5);
 
@@ -129,6 +144,7 @@ public class ResultsToolbar implements SearchState.Listener {
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
+        updateGroupOptions();
         var font = Minecraft.getInstance().font;
         boolean anyOpen = isAnyDropdownOpen();
         int effectiveMouseX = anyOpen ? -1 : mouseX;
@@ -141,34 +157,23 @@ public class ResultsToolbar implements SearchState.Listener {
         int curX = x + 2;
         int row1Y = y + ROW1_Y;
 
-        // 1. View Mode Toggle
-        boolean viewHov = Dropdown.contains(effectiveMouseX, mouseY, curX, row1Y, VIEW_TOGGLE_W, BUTTON_H);
-        drawButton(g, curX, row1Y, VIEW_TOGGLE_W, BUTTON_H, viewHov);
-        int viewIconColor = viewHov ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_HEADER;
-        if (state.getViewMode() == ViewMode.GRID) {
-            AmiGuiIcons.expand(g, curX + VIEW_TOGGLE_W / 2, row1Y + BUTTON_H / 2 + 1, viewIconColor);
-        } else {
-            AmiGuiIcons.compact(g, curX + VIEW_TOGGLE_W / 2, row1Y + BUTTON_H / 2 + 1, viewIconColor);
-        }
-        curX += VIEW_TOGGLE_W + BUTTON_GAP;
-
-        // 2. Sort Direction
+        // 1. Sort Direction
         boolean sortDirHov = Dropdown.contains(effectiveMouseX, mouseY, curX, row1Y, SORT_DIR_W, BUTTON_H);
         drawButton(g, curX, row1Y, SORT_DIR_W, BUTTON_H, sortDirHov);
         String dirChar = state.isAscending() ? "↑" : "↓";
         g.drawCenteredString(font, dirChar, curX + SORT_DIR_W / 2, row1Y + 3, sortDirHov ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_HEADER);
         curX += SORT_DIR_W + BUTTON_GAP;
 
-        // 3. Collapse/Expand Toggle
+        // 2. Collapse/Expand Toggle
         {
         boolean colHov = Dropdown.contains(effectiveMouseX, mouseY, curX, row1Y, COLLAPSE_TOGGLE_W, BUTTON_H);
         drawButton(g, curX, row1Y, COLLAPSE_TOGGLE_W, BUTTON_H, colHov);
-        String arrow = collapseAllNext ? "«" : "»";
+        String arrow = collapseAllNext ? "▼" : "▶";
         g.drawCenteredString(font, arrow, curX + COLLAPSE_TOGGLE_W / 2, row1Y + 2, colHov ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_HEADER);
         curX += COLLAPSE_TOGGLE_W + BUTTON_GAP;
         }
 
-        // 4. Dropdowns
+        // 3. Dropdowns
         for (Dropdown d : getActiveDropdowns()) {
             d.render(g, effectiveMouseX, mouseY);
         }
@@ -181,6 +186,35 @@ public class ResultsToolbar implements SearchState.Listener {
         g.pose().popPose();
         g.disableScissor();
         renderScrollIndicators(g);
+        renderHoveredTooltip(g, effectiveMouseX, mouseY);
+    }
+
+    private void renderHoveredTooltip(GuiGraphics g, int mouseX, int mouseY) {
+        if (mouseX < 0 || isAnyDropdownOpen()) return;
+
+        List<Component> tooltip = null;
+        int curX = x + 2 - scrollOffset;
+        int row1Y = y + ROW1_Y;
+        if (Dropdown.contains(mouseX, mouseY, curX, row1Y, SORT_DIR_W, BUTTON_H)) {
+            tooltip = List.of(
+                    Component.translatable(state.isAscending() ? "ami.gui.tooltip.sort_ascending" : "ami.gui.tooltip.sort_descending"),
+                    Component.translatable("ami.gui.tooltip.sort_scope")
+            );
+        } else if (sortFieldDropdown.isMouseOverButton(mouseX + scrollOffset, mouseY)) {
+            tooltip = List.of(
+                    Component.translatable("ami.gui.tooltip.sort"),
+                    Component.translatable("ami.gui.tooltip.sort_scope")
+            );
+        } else if (groupByDropdown.isMouseOverButton(mouseX + scrollOffset, mouseY)) {
+            tooltip = List.of(
+                    Component.translatable("ami.gui.tooltip.group"),
+                    Component.translatable("ami.gui.tooltip.group_scope")
+            );
+        }
+
+        if (tooltip != null) {
+            AmiTooltipRenderer.renderLeftOfCursor(g, Minecraft.getInstance().font, tooltip, Optional.empty(), mouseX, mouseY);
+        }
     }
 
     private void drawButton(GuiGraphics g, int bx, int by, int bw, int bh, boolean hovered) {
@@ -201,15 +235,6 @@ public class ResultsToolbar implements SearchState.Listener {
 
         int curX = x + 2;
         int row1Y = y + ROW1_Y;
-
-        // View Mode Toggle
-        if (Dropdown.contains(tx, ty, curX, row1Y, VIEW_TOGGLE_W, BUTTON_H)) {
-            ViewMode next = state.getViewMode() == ViewMode.GRID ? ViewMode.LIST : ViewMode.GRID;
-            state.setViewMode(next);
-            closeAllDropdowns();
-            return true;
-        }
-        curX += VIEW_TOGGLE_W + BUTTON_GAP;
 
         // Sort Dir
         if (Dropdown.contains(tx, ty, curX, row1Y, SORT_DIR_W, BUTTON_H)) {
@@ -289,6 +314,19 @@ public class ResultsToolbar implements SearchState.Listener {
 
     private void clampScrollOffset() {
         scrollOffset = Math.max(0, Math.min(scrollOffset, contentWidth - width));
+    }
+
+    private void updateGroupOptions() {
+        groupByDropdown.setOptions(groupOptions());
+        if (!AmiConfig.devMode && DEV_GROUPS.contains(state.getGroupBy())) {
+            state.setGroupBy(ResultsProcessor.GroupBy.CATEGORY);
+        }
+    }
+
+    private static List<ResultsProcessor.GroupBy> groupOptions() {
+        return Arrays.stream(ResultsProcessor.GroupBy.values())
+                .filter(group -> AmiConfig.devMode || !DEV_GROUPS.contains(group))
+                .collect(Collectors.toList());
     }
 
     private void renderScrollIndicators(GuiGraphics g) {

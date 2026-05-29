@@ -2,19 +2,15 @@ package com.sanhiruzu.ami.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
-import com.sanhiruzu.ami.neoforge.AMI;
-
-import com.sanhiruzu.ami.neoforge.client.AMIKeyMappings;
-/**
- * Handles the logic for AMI-specific keybinds.
- */
 public class AmiKeybindHandler {
 
     /**
@@ -23,7 +19,7 @@ public class AmiKeybindHandler {
     private static boolean debugTooltipsActive = false;
 
     public static boolean isDebugTooltipsActive() {
-        return debugTooltipsActive;
+        return AmiConfig.devMode && debugTooltipsActive;
     }
 
     /**
@@ -41,33 +37,35 @@ public class AmiKeybindHandler {
         // Only handle on actual key press (action == 1), not repeat (2) or release (0)
         if (action != GLFW.GLFW_PRESS) return false;
 
-        if (AMIKeyMappings.FAVORITE.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+        var keys = Services.PLATFORM.keyMappings();
+
+        if (keys.favorite().isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
             return handleFavoriteKey();
         }
 
-        if (AMIKeyMappings.DEBUG_TOOLTIPS.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+        if (AmiConfig.devMode && keys.debugTooltips().isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
             debugTooltipsActive = !debugTooltipsActive;
             return true;
         }
 
-        if (AMIKeyMappings.TOGGLE_VIEWER.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+        if (keys.toggleViewer().isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
             InventoryOverlayHandler.toggleAmi();
             return true;
         }
 
-        if (AMIKeyMappings.SHOW_RECIPES.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+        if (keys.showRecipes().isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
             return handleRecipeLookup(true);
         }
 
-        if (AMIKeyMappings.SHOW_USES.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+        if (keys.showUses().isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
             return handleRecipeLookup(false);
         }
 
-        if (AMIKeyMappings.CHEAT_GIVE_STACK.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+        if (keys.cheatGiveStack().isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
             return handleGive(true);
         }
 
-        if (AMIKeyMappings.CHEAT_GIVE_ONE.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+        if (keys.cheatGiveOne().isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
             return handleGive(false);
         }
 

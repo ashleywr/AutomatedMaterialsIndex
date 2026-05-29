@@ -33,6 +33,12 @@ public final class SearchService {
         this.categoryResolver = categoryResolver;
     }
 
+    public record QueryStep(String operation, String value, Map<NodeType, Integer> counts) {
+    }
+
+    public record QueryExplanation(String input, List<String> tokens, List<QueryStep> steps, Map<NodeType, Integer> finalCounts) {
+    }
+
     /**
      * Build a SearchService from the current GlobalIndex.
      * Constructs LiteralResolver, TagResolver, EnvironmentResolver pre-loaded with indexed nodes,
@@ -84,12 +90,28 @@ public final class SearchService {
      * Results are deduplicated and exclusions are applied.
      */
     public Map<NodeType, List<SearchNode>> query(String text) {
+        return queryInternal(text, null);
+    }
+
+    public QueryExplanation explain(String text) {
+        QueryTrace trace = new QueryTrace(text);
+        Map<NodeType, List<SearchNode>> results = queryInternal(text, trace);
+        return new QueryExplanation(text, List.copyOf(trace.tokens), List.copyOf(trace.steps), countsByType(results));
+    }
+
+    private Map<NodeType, List<SearchNode>> queryInternal(String text, QueryTrace trace) {
         if (text == null || text.isBlank()) {
             return new LinkedHashMap<>();
         }
 
         String trimmed = text.trim();
         QueryParser.ParsedQuery parsed = QueryParser.parse(trimmed);
+        if (trace != null) {
+            for (QueryParser.QueryToken token : parsed.tokens()) {
+                trace.tokens.add(token.type() + ":" + token.value());
+            }
+        }
+
         Map<NodeType, List<SearchNode>> results = new LinkedHashMap<>();
         Set<SearchNode> excluded = new HashSet<>();
         boolean hasActiveResultSet = false;
@@ -131,9 +153,11 @@ public final class SearchService {
             String combinedInclude = String.join(" ", includeParts);
             for (IQueryResolver resolver : resolvers) {
                 Map<NodeType, List<SearchNode>> partial = resolver.resolve(combinedInclude);
+                record(trace, "include:" + resolver.getClass().getSimpleName(), combinedInclude, partial);
                 mergeResults(results, partial);
             }
             hasActiveResultSet = true;
+            record(trace, "after-include", combinedInclude, results);
         }
 
         // META parts opt into the broader metadata-inclusive surface.
@@ -142,32 +166,53 @@ public final class SearchService {
             String combinedMeta = String.join(" ", metaParts);
             for (IQueryResolver resolver : broadResolvers) {
                 Map<NodeType, List<SearchNode>> partial = resolver.resolve(combinedMeta);
+                record(trace, "meta:" + resolver.getClass().getSimpleName(), combinedMeta, partial);
                 mergeResults(metaResults, partial);
             }
             hasActiveResultSet = applyPositiveFilter(results, metaResults, hasActiveResultSet);
+            record(trace, "after-meta", combinedMeta, results);
         }
 
         for (String tagPart : tagParts) {
-            hasActiveResultSet = applyPositiveFilter(results, tagResolver.resolve(tagPart), hasActiveResultSet);
+            Map<NodeType, List<SearchNode>> filter = tagResolver.resolve(tagPart);
+            record(trace, "tag", tagPart, filter);
+            hasActiveResultSet = applyPositiveFilter(results, filter, hasActiveResultSet);
+            record(trace, "after-tag", tagPart, results);
         }
         for (String modPart : modParts) {
-            hasActiveResultSet = applyPositiveFilter(results, modResolver.resolve(modPart), hasActiveResultSet);
+            Map<NodeType, List<SearchNode>> filter = modResolver.resolve(modPart);
+            record(trace, "mod", modPart, filter);
+            hasActiveResultSet = applyPositiveFilter(results, filter, hasActiveResultSet);
+            record(trace, "after-mod", modPart, results);
         }
         for (String envPart : envParts) {
-            hasActiveResultSet = applyPositiveFilter(results, envResolver.resolve(envPart), hasActiveResultSet);
+            Map<NodeType, List<SearchNode>> filter = envResolver.resolve(envPart);
+            record(trace, "env", envPart, filter);
+            hasActiveResultSet = applyPositiveFilter(results, filter, hasActiveResultSet);
+            record(trace, "after-env", envPart, results);
         }
         for (String propertyPart : propertyParts) {
-            hasActiveResultSet = applyPositiveFilter(results, propertyResolver.resolve(propertyPart), hasActiveResultSet);
+            Map<NodeType, List<SearchNode>> filter = propertyResolver.resolve(propertyPart);
+            record(trace, "property", propertyPart, filter);
+            hasActiveResultSet = applyPositiveFilter(results, filter, hasActiveResultSet);
+            record(trace, "after-property", propertyPart, results);
         }
         for (String numericPart : numericParts) {
-            hasActiveResultSet = applyPositiveFilter(results, numericResolver.resolve(numericPart), hasActiveResultSet);
+            Map<NodeType, List<SearchNode>> filter = numericResolver.resolve(numericPart);
+            record(trace, "numeric", numericPart, filter);
+            hasActiveResultSet = applyPositiveFilter(results, filter, hasActiveResultSet);
+            record(trace, "after-numeric", numericPart, results);
         }
         for (String categoryPart : categoryParts) {
-            hasActiveResultSet = applyPositiveFilter(results, categoryResolver.resolve(categoryPart), hasActiveResultSet);
+            Map<NodeType, List<SearchNode>> filter = categoryResolver.resolve(categoryPart);
+            record(trace, "category", categoryPart, filter);
+            hasActiveResultSet = applyPositiveFilter(results, filter, hasActiveResultSet);
+            record(trace, "after-category", categoryPart, results);
         }
 
         for (String excludePart : excludeParts) {
             Map<NodeType, List<SearchNode>> partial = resolveExclude(excludePart);
+            record(trace, "exclude", excludePart, partial);
             for (var entry : partial.entrySet()) {
                 excluded.addAll(entry.getValue());
             }
@@ -180,9 +225,33 @@ public final class SearchService {
             }
             // Remove empty type buckets
             results.entrySet().removeIf(e -> e.getValue().isEmpty());
+            record(trace, "after-exclude", String.join(" ", excludeParts), results);
         }
 
         return results;
+    }
+
+    private static void record(QueryTrace trace, String operation, String value, Map<NodeType, List<SearchNode>> results) {
+        if (trace == null) return;
+        trace.steps.add(new QueryStep(operation, value, countsByType(results)));
+    }
+
+    private static Map<NodeType, Integer> countsByType(Map<NodeType, List<SearchNode>> results) {
+        Map<NodeType, Integer> counts = new LinkedHashMap<>();
+        for (var entry : results.entrySet()) {
+            counts.put(entry.getKey(), entry.getValue().size());
+        }
+        return counts;
+    }
+
+    private static final class QueryTrace {
+        final String input;
+        final List<String> tokens = new ArrayList<>();
+        final List<QueryStep> steps = new ArrayList<>();
+
+        QueryTrace(String input) {
+            this.input = input;
+        }
     }
 
     private Map<NodeType, List<SearchNode>> resolveExclude(String excludePart) {

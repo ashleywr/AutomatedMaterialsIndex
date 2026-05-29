@@ -41,6 +41,11 @@ public final class RecipeDisplayHelper {
     ) {
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static RecipeLayout getLayout(com.sanhiruzu.ami.util.AmiRecipeHolder<?> entry, net.minecraft.core.RegistryAccess registryAccess) {
+        return getLayout(new RecipeHolder(entry.id(), entry.value()), registryAccess);
+    }
+
     public static RecipeLayout getLayout(RecipeHolder<?> entry, net.minecraft.core.RegistryAccess registryAccess) {
         Recipe<?> recipe = entry.value();
         RecipeType<?> type = recipe.getType();

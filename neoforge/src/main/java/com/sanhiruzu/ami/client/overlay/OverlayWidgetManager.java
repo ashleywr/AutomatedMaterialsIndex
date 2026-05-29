@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.client.overlay;
 
 import com.sanhiruzu.ami.neoforge.AMI;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+import com.sanhiruzu.ami.client.UniversalResultsPanel;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.AmiIndexerService;
@@ -107,6 +108,24 @@ public class OverlayWidgetManager {
         });
     }
 
+    /**
+     * Returns the maximum bottom-Y of any third-party widget (not belonging to AMI) whose
+     * horizontal extent overlaps the given screen strip [stripX1, stripX2). Used to push
+     * AMI panels below buttons that other mods (e.g. FTB, Quark) inject into the margins.
+     */
+    private int thirdPartyWidgetBottomInStrip(Screen screen, int stripX1, int stripX2) {
+        int maxBottom = 0;
+        for (var listener : screen.children()) {
+            if (!(listener instanceof AbstractWidget w)) continue;
+            if (w.getClass().getName().startsWith("com.sanhiruzu.ami")) continue;
+            int wx = w.getX(), wy = w.getY(), ww = w.getWidth(), wh = w.getHeight();
+            if (wx < stripX2 && wx + ww > stripX1) {
+                maxBottom = Math.max(maxBottom, wy + wh);
+            }
+        }
+        return maxBottom;
+    }
+
     public void computeLayouts(AbstractContainerScreen<?> containerScreen, int screenW, int screenH) {
         ensureWidgets();
         activeSlots.clear();
@@ -118,6 +137,7 @@ public class OverlayWidgetManager {
         int usableH = screenH - BOTTOM_BAR_H - PANEL_MARGIN_V * 2;
         int panelH = Math.min(usableH, 600);
         int panelY = PANEL_MARGIN_V + (usableH - panelH) / 2;
+        int panelBottom = panelY + panelH;
 
         int containerLeftEdge = containerScreen.getGuiLeft();
         int containerRightEdge = containerScreen.getGuiLeft() + containerScreen.getXSize();
@@ -126,10 +146,15 @@ public class OverlayWidgetManager {
         if (!leftContents.isEmpty()) {
             int leftW = Math.min(AmiConfig.leftPanelWidth, containerLeftEdge - PANEL_MARGIN * 2);
             if (leftW >= 40) {
-                Rect leftSlot = Rect.of(PANEL_MARGIN, panelY, leftW, panelH);
-                placeSideSlots(leftSlot, leftContents, leftSlotPool);
-                // Claim full left vertical strip to screen bottom so JEI can't use the corner
-                leftStripBounds = new WidgetBounds(0, 0, leftSlot.x() + leftSlot.w(), screenH - BOTTOM_BAR_H);
+                int thirdPartyBottom = thirdPartyWidgetBottomInStrip(containerScreen, 0, containerLeftEdge);
+                int leftY = thirdPartyBottom > panelY ? thirdPartyBottom + PANEL_MARGIN : panelY;
+                int leftH = panelBottom - leftY;
+                if (leftH > 0) {
+                    Rect leftSlot = Rect.of(PANEL_MARGIN, leftY, leftW, leftH);
+                    placeSideSlots(leftSlot, leftContents, leftSlotPool);
+                    // Claim full left vertical strip to screen bottom so JEI can't use the corner
+                    leftStripBounds = new WidgetBounds(0, 0, leftSlot.x() + leftSlot.w(), screenH - BOTTOM_BAR_H);
+                }
             }
         } else {
             leftStripBounds = null;
@@ -143,10 +168,12 @@ public class OverlayWidgetManager {
                     : Math.clamp((int) (screenW * 0.35f), MIN_PANEL_WIDTH, MAX_PANEL_WIDTH);
             int rw = Math.clamp(configuredRightWidth, MIN_PANEL_WIDTH, Math.min(safeWidth, MAX_PANEL_WIDTH));
             panelStartX = screenW - rw - PANEL_MARGIN;
+            int thirdPartyBottom = thirdPartyWidgetBottomInStrip(containerScreen, containerRightEdge, screenW);
+            int rightY = thirdPartyBottom > panelY ? thirdPartyBottom + PANEL_MARGIN : panelY;
             // Extend right panel to screen bottom so JEI's config button has no
             // empty space to draw in below the panel.
-            int rightH = screenH - BOTTOM_BAR_H - PANEL_MARGIN_V - panelY;
-            Rect rightSlot = Rect.of(panelStartX, panelY, rw, rightH);
+            int rightH = screenH - BOTTOM_BAR_H - PANEL_MARGIN_V - rightY;
+            Rect rightSlot = Rect.of(panelStartX, rightY, rw, rightH);
 
             List<AmiConfig.PanelContent> rightContents = rightContents();
             placeSideSlots(rightSlot, rightContents, rightSlotPool);
@@ -359,7 +386,7 @@ public class OverlayWidgetManager {
             float pt = event.getPartialTick();
 
             g.pose().pushPose();
-            g.pose().translate(0, 0, 0);
+            g.pose().translate(0, 0, 100);
 
             amiButton.render(g, mx, my, pt);
 
@@ -547,6 +574,19 @@ public class OverlayWidgetManager {
     private List<ResultsPanelWidget> getResultPanels() {
         List<ResultsPanelWidget> panels = new ArrayList<>();
         for (PanelSlot slot : allSlots()) panels.add(slot.results);
+        return panels;
+    }
+
+    public List<UniversalResultsPanel> getDebugVisibleResultPanels() {
+        List<UniversalResultsPanel> panels = new ArrayList<>();
+        for (PanelSlot slot : activeSlots) {
+            if (slot.results.visible && slot.results.getInnerPanel() != null) {
+                panels.add(slot.results.getInnerPanel());
+            }
+            if (slot.sidebar.visible && slot.sidebar.getInnerPanel() != null) {
+                panels.add(slot.sidebar.getInnerPanel());
+            }
+        }
         return panels;
     }
 

@@ -80,7 +80,7 @@ public final class FacetIndexer {
             facets.add(ItemFacet.ARMOR_CHEST);
         }
         if (path.equals("wolf_armor") || path.endsWith("_horse_armor")) {
-            facets.add(ItemFacet.ARMOR_CHEST);
+            facets.add(ItemFacet.ARMOR_ANIMAL);
         }
         if (path.equals("player_head")) {
             facets.add(ItemFacet.SOCIAL_PLAYERS);
