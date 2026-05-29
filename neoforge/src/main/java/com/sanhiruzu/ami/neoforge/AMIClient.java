@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.neoforge;
 
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.ItemIconCache;
+import com.sanhiruzu.ami.client.ThemeResourceLoader;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.client.results.ItemGridView;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
@@ -15,6 +16,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
@@ -26,6 +28,7 @@ public class AMIClient {
     public AMIClient(ModContainer container, net.neoforged.bus.api.IEventBus modEventBus) {
         container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
         modEventBus.addListener(com.sanhiruzu.ami.neoforge.client.AMIKeyMappings::registerKeyMappings);
+        modEventBus.addListener(AMIClient::onRegisterReloadListeners);
     }
 
     @SubscribeEvent
@@ -53,6 +56,10 @@ public class AMIClient {
         event.register(CompositeTooltipComponent.class, c -> c);
         event.register(HeartBarTooltipComponent.class, c -> c);
         event.register(StatIconRowTooltipComponent.class, c -> c);
+    }
+
+    static void onRegisterReloadListeners(RegisterClientReloadListenersEvent event) {
+        event.registerReloadListener(ThemeResourceLoader.INSTANCE);
     }
 
     @SubscribeEvent

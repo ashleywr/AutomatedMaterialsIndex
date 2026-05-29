@@ -1,0 +1,14 @@
+{
+  "layout": {
+    "global-padding": 6,
+    "row-height": 18,
+    "icon-size": 16,
+    "element-gap": 4
+  },
+  "grid": {
+    "group": {
+      "band": "#06FFFFFF",
+      "rail": "#44FFFFFF"
+    }
+  }
+}
