@@ -256,6 +256,7 @@ public final class AMITheme {
 
     public static void setDebugGridGroupBandOverride(Integer color) {
         debugGridGroupBandOverride = color;
+        ThemeResourceLoader.applyCurrentTheme();
         applyDebugOverrides();
     }
 
