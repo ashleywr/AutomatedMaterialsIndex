@@ -1,10 +1,13 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.AMITheme;
+import com.sanhiruzu.ami.client.AmiGuiIcons;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
+import java.util.EnumSet;
 import java.util.List;
 
 /**
@@ -17,6 +20,7 @@ public class RowFieldPickerDropdown {
 
     private static final int BTN_H = 14;
     private static final int ITEM_H = 12;
+    private static final int CHECK_SIZE = 6;
 
     private int x, y, width;
     private boolean open = false;
@@ -35,8 +39,10 @@ public class RowFieldPickerDropdown {
 
         var font = Minecraft.getInstance().font;
         String label = Component.translatable("ami.gui.fields_button").getString();
-        int textX = x + Math.max(2, (width - font.width(label)) / 2);
+        int labelW = font.width(label);
+        int textX = x + Math.max(2, (width - labelW - 12) / 2);
         g.drawString(font, label, textX, y + 2, AMITheme.TEXT_HEADER, false);
+        AmiGuiIcons.dropdownChevron(g, x + width - 7, y + BTN_H / 2, open || hovered ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_SUBTLE, open);
     }
 
     public void renderList(GuiGraphics g, int mouseX, int mouseY) {
@@ -46,11 +52,7 @@ public class RowFieldPickerDropdown {
         List<RowField> active = RowFieldConfig.getSubtitleFields();
         var font = Minecraft.getInstance().font;
 
-        // Calculate required width
-        int listWidth = width;
-        for (RowField field : fields) {
-            listWidth = Math.max(listWidth, font.width(field.displayName.getString()) + 20);
-        }
+        int listWidth = listWidth(font, fields);
 
         int dropH = fields.length * ITEM_H + 4;
         int dy = y + BTN_H + 2;
@@ -67,12 +69,17 @@ public class RowFieldPickerDropdown {
             }
 
             boolean isSelected = active.contains(field);
+            int checkX = x + 3;
+            int checkY = iy + 2;
+            g.fill(checkX, checkY, checkX + CHECK_SIZE, checkY + CHECK_SIZE, AMITheme.SECTION_SEP);
             if (isSelected) {
-                // Small accent bar on the left
-                g.fill(x + 2, iy + 2, x + 4, iy + ITEM_H - 2, com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE);
+                g.fill(checkX + 1, checkY + 1, checkX + CHECK_SIZE - 1, checkY + CHECK_SIZE - 1, AMITheme.ACCENT_BLUE);
+                g.drawString(font, "✓", checkX + 1, iy, AMITheme.WHITE, false);
+            } else {
+                g.fill(checkX + 1, checkY + 1, checkX + CHECK_SIZE - 1, checkY + CHECK_SIZE - 1, AMITheme.DROPDOWN_LIST_BG);
             }
 
-            g.drawString(font, field.displayName, x + 8, iy + 1, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
+            g.drawString(font, field.displayName, x + 12, iy + 2, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
             iy += ITEM_H;
         }
     }
@@ -92,10 +99,7 @@ public class RowFieldPickerDropdown {
 
         RowField[] fields = RowField.values();
         var font = Minecraft.getInstance().font;
-        int listWidth = width;
-        for (RowField field : fields) {
-            listWidth = Math.max(listWidth, font.width(field.displayName.getString()) + 20);
-        }
+        int listWidth = listWidth(font, fields);
 
         int dropH = fields.length * ITEM_H + 4;
         int dy = y + BTN_H + 2;
@@ -105,12 +109,15 @@ public class RowFieldPickerDropdown {
             for (RowField field : fields) {
                 if (Dropdown.contains((int) mouseX, (int) mouseY, x, iy, listWidth, ITEM_H)) {
                     List<RowField> current = RowFieldConfig.getSubtitleFields();
-                    if (current.size() == 1 && current.contains(field)) {
-                        RowFieldConfig.setSubtitleFields(List.of());
+                    EnumSet<RowField> next = current.isEmpty()
+                            ? EnumSet.noneOf(RowField.class)
+                            : EnumSet.copyOf(current);
+                    if (next.contains(field)) {
+                        next.remove(field);
                     } else {
-                        RowFieldConfig.setSubtitleFields(List.of(field));
+                        next.add(field);
                     }
-                    open = false;
+                    RowFieldConfig.setSubtitleFields(next);
                     return true;
                 }
                 iy += ITEM_H;
@@ -131,4 +138,11 @@ public class RowFieldPickerDropdown {
         return open;
     }
 
+    private int listWidth(Font font, RowField[] fields) {
+        int listWidth = width;
+        for (RowField field : fields) {
+            listWidth = Math.max(listWidth, font.width(field.displayName.getString()) + 20);
+        }
+        return listWidth;
+    }
 }

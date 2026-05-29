@@ -26,6 +26,7 @@ import java.util.function.BiConsumer;
 public class ItemGridView {
     private static final int CELL_SIZE = 18;
     private static final int HEADER_H = 12;
+    private static final int STICKY_CONTEXT_H = HEADER_H + 3;
     private static final int SCROLLBAR_W = 5;
     private static final int HEADER_INDENT = 12;
 
@@ -68,15 +69,26 @@ public class ItemGridView {
         int height();
     }
 
-    private record HeaderRow(TreeNode node, int depth, int itemCount) implements VirtualRow {
+    private record HeaderRow(TreeNode node, int depth, int itemCount, boolean toggleable, boolean alternateBand) implements VirtualRow {
         public int height() {
             return HEADER_H;
         }
     }
 
-    private record ItemRow(List<TreeNode> items, int depth) implements VirtualRow {
+    private record ItemRow(List<TreeNode> items, int depth, boolean alternateBand) implements VirtualRow {
         public int height() {
             return CELL_SIZE;
+        }
+    }
+
+    private record StickyContext(String label) {
+    }
+
+    private static final class BandSequence {
+        private int index;
+
+        boolean nextBand() {
+            return (index++ & 1) == 1;
         }
     }
 
@@ -184,13 +196,20 @@ public class ItemGridView {
         int cols = computeCols();
         List<VirtualRow> rows = getVirtualRows(cols);
         int totalH = calcTotalHeight(rows);
+        StickyContext stickyContext = stickyContext(rows);
+        int contentY = contentY(stickyContext);
+        int contentH = contentHeight(stickyContext);
 
-        g.enableScissor(x, y, x + width, y + height);
+        if (stickyContext != null) {
+            renderStickyContext(g, stickyContext);
+        }
 
-        int drawY = y - pixelScrollOffset;
+        g.enableScissor(x, contentY, x + width, y + height);
+
+        int drawY = contentY - pixelScrollOffset;
         for (VirtualRow row : rows) {
             int rowBottom = drawY + row.height();
-            if (rowBottom > y && drawY < y + height) {
+            if (rowBottom > contentY && drawY < y + height) {
                 if (row instanceof HeaderRow hr) {
                     renderHeader(g, hr, drawY, effectiveMouseX, mouseY);
                 } else if (row instanceof ItemRow ir) {
@@ -202,7 +221,7 @@ public class ItemGridView {
 
         g.disableScissor();
 
-        renderScrollbar(g, totalH, mouseX, mouseY);
+        renderScrollbar(g, totalH, contentY, contentH, mouseX, mouseY);
 
         if (!toolbarDropdownOpen) {
             var font = Minecraft.getInstance().font;
@@ -218,19 +237,23 @@ public class ItemGridView {
     private void renderHeader(GuiGraphics g, HeaderRow hr, int drawY, int mouseX, int mouseY) {
         boolean hovered = mouseX >= x && mouseX < x + width - SCROLLBAR_W
                 && mouseY >= drawY && mouseY < drawY + HEADER_H;
+        renderHeaderContext(g, hr.depth(), drawY, hr.alternateBand());
         if (hovered) {
             g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + HEADER_H, com.sanhiruzu.ami.client.AMITheme.ENTRY_HOVER);
             hoveredTreeNode = hr.node();
         }
         int indent = hr.depth() * HEADER_INDENT;
-        String arrow = hr.node().isExpanded() ? "▼ " : "▶ ";
-        String label = arrow + hr.node().getLabel().getString() + " (" + hr.itemCount() + ")";
+        String marker = "";
+        if (hr.toggleable()) {
+            marker = hr.node().isExpanded() ? "▼ " : "▶ ";
+        }
+        String label = marker + hr.node().getLabel().getString() + " (" + hr.itemCount() + ")";
         g.drawString(Minecraft.getInstance().font, label, x + 4 + indent, drawY + 2, com.sanhiruzu.ami.client.AMITheme.TEXT_HEADER, false);
     }
 
     private void renderItemRow(GuiGraphics g, ItemRow ir, int drawY, int mouseX, int mouseY) {
         int cols = computeCols();
-        renderGroupContext(g, ir.depth(), drawY);
+        renderGroupContext(g, ir.depth(), drawY, ir.alternateBand());
         for (int i = 0; i < ir.items().size(); i++) {
             int cellX = x + 1 + i * CELL_SIZE;
             int cellY = drawY;
@@ -443,45 +466,138 @@ public class ItemGridView {
         expandedGroupCache.clear();
 
         List<TreeNode> linearItems = new ArrayList<>();
+        BandSequence bands = new BandSequence();
         for (TreeNode root : rootNodes) {
-            processNode(root, 0, cols, rows, linearItems);
+            processNode(root, 0, cols, rows, linearItems, bands);
         }
-        packIntoRows(linearItems, cols, rows, 0);
+        packIntoRows(linearItems, cols, rows, 0, false);
 
         return rows;
     }
 
-    private void processNode(TreeNode node, int depth, int cols, List<VirtualRow> out, List<TreeNode> linearItems) {
+    private void processNode(TreeNode node, int depth, int cols, List<VirtualRow> out, List<TreeNode> linearItems, BandSequence bands) {
         if (node.isLeaf()) {
             linearItems.add(node);
         } else {
-            packIntoRows(linearItems, cols, out, depth);
+            packIntoRows(linearItems, cols, out, depth, false);
             linearItems.clear();
 
+            boolean nodeBand = bands.nextBand();
             // Calculate total item count in this group recursively for the header label
             int totalItems = countItemsRecursive(node);
-            out.add(new HeaderRow(node, depth, totalItems));
+            out.add(new HeaderRow(node, depth, totalItems, true, nodeBand));
 
             if (node.isExpanded()) {
-                for (TreeNode child : node.getChildren().stream().filter(child -> !child.isLeaf()).toList()) {
-                    processNode(child, depth + 1, cols, out, linearItems);
+                List<TreeNode> childGroups = node.getChildren().stream().filter(child -> !child.isLeaf()).toList();
+                List<TreeNode> directItems = node.getChildren().stream().filter(TreeNode::isLeaf).toList();
+
+                for (int i = 0; i < childGroups.size(); i++) {
+                    processNode(childGroups.get(i), depth + 1, cols, out, linearItems, bands);
                 }
-                for (TreeNode child : node.getChildren().stream().filter(TreeNode::isLeaf).toList()) {
-                    processNode(child, depth + 1, cols, out, linearItems);
+                boolean directItemsAlternateBand = nodeBand;
+                if (!directItems.isEmpty() && !childGroups.isEmpty()) {
+                    directItemsAlternateBand = bands.nextBand();
                 }
-                packIntoRows(linearItems, cols, out, depth + 1);
+                if (!childGroups.isEmpty() && !directItems.isEmpty()) {
+                    out.add(new HeaderRow(createLooseItemsNode(node), depth + 1, directItems.size(), false, directItemsAlternateBand));
+                }
+                for (TreeNode child : directItems) {
+                    processNode(child, depth + 1, cols, out, linearItems, bands);
+                }
+                packIntoRows(linearItems, cols, out, depth + 1, directItemsAlternateBand);
                 linearItems.clear();
             }
         }
     }
 
-    private void renderGroupContext(GuiGraphics g, int depth, int drawY) {
-        if (depth <= 0) {
-            return;
-        }
-        int contentX = x + Math.max(0, depth - 1) * HEADER_INDENT;
+    private static TreeNode createLooseItemsNode(TreeNode parent) {
+        String parentKey = parent.getKey() == null ? "anonymous" : parent.getKey();
+        return new TreeNode(parentKey + ":grid_other", Component.translatable("ami.group.other"));
+    }
+
+    private void renderHeaderContext(GuiGraphics g, int depth, int drawY, boolean alternateBand) {
+        int contentX = x;
         int contentRight = x + width - SCROLLBAR_W;
-        g.fill(contentX, drawY, contentRight, drawY + CELL_SIZE, AMITheme.GRID_GROUP_BAND);
+        g.fill(contentX, drawY, contentRight, drawY + HEADER_H, groupBandColor(alternateBand));
+    }
+
+    private void renderGroupContext(GuiGraphics g, int depth, int drawY, boolean alternateBand) {
+        int contentX = x;
+        int contentRight = x + width - SCROLLBAR_W;
+        g.fill(contentX, drawY, contentRight, drawY + CELL_SIZE, groupBandColor(alternateBand));
+    }
+
+    private static int groupBandColor(boolean alternateBand) {
+        return alternateBand ? AMITheme.GRID_GROUP_BAND_ALT : AMITheme.GRID_GROUP_BAND;
+    }
+
+    private void renderStickyContext(GuiGraphics g, StickyContext context) {
+        g.flush();
+        g.pose().pushPose();
+        g.pose().translate(0, 0, 300);
+        try {
+            int contentRight = x + width - SCROLLBAR_W;
+            int headerBottom = y + STICKY_CONTEXT_H;
+            g.fill(x, y, contentRight, headerBottom, AMITheme.GRID_HEADER_DARKEN);
+            g.fill(x, headerBottom - 1, contentRight, headerBottom, AMITheme.GRID_GROUP_BAND);
+
+            var font = Minecraft.getInstance().font;
+            String label = context.label();
+            int maxWidth = Math.max(0, contentRight - x - 8);
+            if (font.width(label) > maxWidth) {
+                label = font.plainSubstrByWidth(label, Math.max(0, maxWidth - font.width("..."))) + "...";
+            }
+            g.drawString(font, label, x + 4, y + 3, AMITheme.TEXT_HEADER, false);
+        } finally {
+            g.pose().popPose();
+            g.flush();
+        }
+    }
+
+    private int contentY(StickyContext context) {
+        return y + (context == null ? 0 : STICKY_CONTEXT_H);
+    }
+
+    private int contentHeight(StickyContext context) {
+        return Math.max(1, height - (context == null ? 0 : STICKY_CONTEXT_H));
+    }
+
+    private StickyContext stickyContext(List<VirtualRow> rows) {
+        if (pixelScrollOffset <= 0) {
+            return null;
+        }
+
+        List<HeaderRow> stack = new ArrayList<>();
+        int rowTop = 0;
+        for (VirtualRow row : rows) {
+            int rowBottom = rowTop + row.height();
+            if (rowTop >= pixelScrollOffset) {
+                break;
+            }
+            if (row instanceof HeaderRow header) {
+                while (stack.size() > header.depth()) {
+                    stack.remove(stack.size() - 1);
+                }
+                if (stack.size() == header.depth()) {
+                    stack.add(header);
+                } else if (stack.size() > header.depth()) {
+                    stack.set(header.depth(), header);
+                }
+            }
+            if (rowBottom > pixelScrollOffset) {
+                break;
+            }
+            rowTop = rowBottom;
+        }
+
+        if (stack.isEmpty()) {
+            return null;
+        }
+        return new StickyContext(stack.stream()
+                .map(header -> header.node().getLabel().getString())
+                .filter(label -> !label.isBlank())
+                .reduce((left, right) -> left + " / " + right)
+                .orElse(""));
     }
 
     private int countItemsRecursive(TreeNode node) {
@@ -494,9 +610,9 @@ public class ItemGridView {
         return sum;
     }
 
-    private void packIntoRows(List<TreeNode> items, int cols, List<VirtualRow> out, int depth) {
+    private void packIntoRows(List<TreeNode> items, int cols, List<VirtualRow> out, int depth, boolean alternateBand) {
         for (int i = 0; i < items.size(); i += cols) {
-            out.add(new ItemRow(new ArrayList<>(items.subList(i, Math.min(i + cols, items.size()))), depth));
+            out.add(new ItemRow(new ArrayList<>(items.subList(i, Math.min(i + cols, items.size()))), depth, alternateBand));
         }
     }
 
@@ -519,28 +635,32 @@ public class ItemGridView {
     // Scrollbar
     // =========================================================
 
-    private void renderScrollbar(GuiGraphics g, int totalH, int mouseX, int mouseY) {
-        if (totalH <= height) return;
+    private void renderScrollbar(GuiGraphics g, int totalH, int contentY, int contentH, int mouseX, int mouseY) {
+        if (totalH <= contentH) return;
         boolean active = scrollbarDragging || isScrollbarHovered(mouseX, mouseY);
         int barW = active ? 6 : 4;
         int barX = x + width - 1 - barW;
-        int thumbH = Math.max(12, (height * height) / totalH);
-        int maxScroll = totalH - height;
-        int thumbY = y + (pixelScrollOffset * (height - thumbH)) / maxScroll;
+        int thumbH = Math.max(12, (contentH * contentH) / totalH);
+        int maxScroll = totalH - contentH;
+        int thumbY = contentY + (pixelScrollOffset * (contentH - thumbH)) / maxScroll;
 
         // Use themed colors
-        g.fill(x + width - SCROLLBAR_W, y, x + width, y + height, com.sanhiruzu.ami.client.AMITheme.SCROLL_TRACK);
+        g.fill(x + width - SCROLLBAR_W, contentY, x + width, y + height, com.sanhiruzu.ami.client.AMITheme.SCROLL_TRACK);
         g.fill(barX, thumbY, barX + barW, thumbY + thumbH,
                 active ? com.sanhiruzu.ami.client.AMITheme.SCROLL_THUMB_ACTIVE : com.sanhiruzu.ami.client.AMITheme.SCROLL_THUMB);
     }
 
     private boolean isScrollbarHovered(int mouseX, int mouseY) {
         int cols = computeCols();
-        int totalH = calcTotalHeight(getVirtualRows(cols));
-        if (totalH <= height) return false;
+        List<VirtualRow> rows = getVirtualRows(cols);
+        StickyContext stickyContext = stickyContext(rows);
+        int totalH = calcTotalHeight(rows);
+        int contentY = contentY(stickyContext);
+        int contentH = contentHeight(stickyContext);
+        if (totalH <= contentH) return false;
         // Widen hitbox to 10px
         return mouseX >= x + width - 10 && mouseX < x + width
-                && mouseY >= y && mouseY < y + height;
+                && mouseY >= contentY && mouseY < y + height;
     }
 
     // =========================================================
@@ -555,17 +675,24 @@ public class ItemGridView {
 
         int cols = computeCols();
         List<VirtualRow> rows = getVirtualRows(cols);
+        StickyContext stickyContext = stickyContext(rows);
+        int contentY = contentY(stickyContext);
+        if (mouseY < contentY) {
+            return false;
+        }
 
-        int drawY = y - pixelScrollOffset;
+        int drawY = contentY - pixelScrollOffset;
         for (VirtualRow row : rows) {
             if (mouseY >= drawY && mouseY < drawY + row.height()) {
                 if (row instanceof HeaderRow hr) {
-                    if (button == 0) {
+                    if (button == 0 && hr.toggleable()) {
                         hr.node().setExpanded(!hr.node().isExpanded());
                         cachedRows = null; // rebuild
-                    } else if (isTokenInjectClick(button) && onTokenInject != null) {
+                    } else if (isTokenInjectClick(button) && hr.toggleable() && onTokenInject != null) {
                         // Ctrl+right-click on group header: inject category token
                         onTokenInject.accept("$" + hr.node().getKey());
+                    } else if (!hr.toggleable()) {
+                        return false;
                     }
                     return true;
                 } else if (row instanceof ItemRow ir) {
@@ -606,12 +733,15 @@ public class ItemGridView {
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         if (!isMouseOver(mouseX, mouseY)) return false;
         int cols = computeCols();
-        int totalH = calcTotalHeight(getVirtualRows(cols));
-        int maxScroll = Math.max(0, totalH - height);
+        List<VirtualRow> rows = getVirtualRows(cols);
+        StickyContext stickyContext = stickyContext(rows);
+        int totalH = calcTotalHeight(rows);
+        int contentH = contentHeight(stickyContext);
+        int maxScroll = Math.max(0, totalH - contentH);
 
         // Adaptive scroll speed: 1/2 of visible height per tick
         // With 400 mods, this provides snappy scrolling like EMI
-        int visibleRows = Math.max(1, height / CELL_SIZE);
+        int visibleRows = Math.max(1, contentH / CELL_SIZE);
         int scrollAmount = (visibleRows * CELL_SIZE) / 2;
 
         pixelScrollOffset = Math.max(0, Math.min(maxScroll,
@@ -637,13 +767,18 @@ public class ItemGridView {
         }
 
         if (keyCode == 266) { // Page Up
-            pixelScrollOffset = Math.max(0, pixelScrollOffset - height);
+            int cols = computeCols();
+            StickyContext stickyContext = stickyContext(getVirtualRows(cols));
+            pixelScrollOffset = Math.max(0, pixelScrollOffset - contentHeight(stickyContext));
             return true;
         } else if (keyCode == 267) { // Page Down
             int cols = computeCols();
-            int totalH = calcTotalHeight(getVirtualRows(cols));
-            int maxScroll = Math.max(0, totalH - height);
-            pixelScrollOffset = Math.min(maxScroll, pixelScrollOffset + height);
+            List<VirtualRow> rows = getVirtualRows(cols);
+            StickyContext stickyContext = stickyContext(rows);
+            int contentH = contentHeight(stickyContext);
+            int totalH = calcTotalHeight(rows);
+            int maxScroll = Math.max(0, totalH - contentH);
+            pixelScrollOffset = Math.min(maxScroll, pixelScrollOffset + contentH);
             return true;
         }
         return false;
@@ -660,14 +795,17 @@ public class ItemGridView {
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dx, double dy) {
         if (!scrollbarDragging || button != 0) return false;
         int cols = computeCols();
-        int totalH = calcTotalHeight(getVirtualRows(cols));
-        if (totalH <= height) return true;
-        int thumbH = Math.max(10, (height * height) / totalH);
-        int dragRange = height - thumbH;
+        List<VirtualRow> rows = getVirtualRows(cols);
+        StickyContext stickyContext = stickyContext(rows);
+        int contentH = contentHeight(stickyContext);
+        int totalH = calcTotalHeight(rows);
+        if (totalH <= contentH) return true;
+        int thumbH = Math.max(10, (contentH * contentH) / totalH);
+        int dragRange = contentH - thumbH;
         if (dragRange <= 0) return true;
         int dyPx = (int) mouseY - scrollbarDragStartY;
-        int offsetDelta = (int) Math.round((double) dyPx * (totalH - height) / dragRange);
-        pixelScrollOffset = Math.max(0, Math.min(totalH - height, scrollbarDragStartOffset + offsetDelta));
+        int offsetDelta = (int) Math.round((double) dyPx * (totalH - contentH) / dragRange);
+        pixelScrollOffset = Math.max(0, Math.min(totalH - contentH, scrollbarDragStartOffset + offsetDelta));
         return true;
     }
 
@@ -691,8 +829,13 @@ public class ItemGridView {
         if (!isMouseOver(mouseX, mouseY)) return -1;
         int cols = computeCols();
         List<VirtualRow> rows = getVirtualRows(cols);
+        StickyContext stickyContext = stickyContext(rows);
+        int contentY = contentY(stickyContext);
+        if (mouseY < contentY) {
+            return 0;
+        }
         int itemCounter = 0;
-        int drawY = y - pixelScrollOffset;
+        int drawY = contentY - pixelScrollOffset;
         for (VirtualRow row : rows) {
             if (mouseY >= drawY && mouseY < drawY + row.height()) {
                 if (row instanceof HeaderRow) return itemCounter;

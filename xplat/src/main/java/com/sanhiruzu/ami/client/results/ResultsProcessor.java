@@ -14,6 +14,17 @@ public class ResultsProcessor {
         COLOR("ami.sort.color"),
         MOD("ami.sort.mod"),
         STORAGE_CAPACITY("ami.sort.storage"),
+        ENERGY_CAPACITY("ami.sort.energy"),
+        ENERGY_GENERATION("ami.sort.energy_generation"),
+        FLUID_CAPACITY("ami.sort.fluid_capacity"),
+        TOOL_SPEED("ami.sort.tool_speed"),
+        TOOL_USES("ami.sort.tool_uses"),
+        ARMOR_DEFENSE("ami.sort.armor_defense"),
+        ARMOR_TOUGHNESS("ami.sort.armor_toughness"),
+        FOOD_NUTRITION("ami.sort.food_nutrition"),
+        FOOD_SATURATION("ami.sort.food_saturation"),
+        DAMAGE("ami.sort.damage"),
+        HEALTH("ami.sort.health"),
         DPS("ami.sort.dps"),
         COUNT("ami.sort.count");
 
@@ -68,7 +79,7 @@ public class ResultsProcessor {
 
         List<SearchNode> filtered = filterAndSort(results);
         List<TreeNode> tree = treeBuilder.build(filtered);
-        tree = ResultsGroupingPostProcessor.applyToTree(tree);
+        tree = ResultsGroupingPostProcessor.applyToTree(tree, options.groupBy());
         return ResultsTreeNormalizer.normalize(tree);
     }
 

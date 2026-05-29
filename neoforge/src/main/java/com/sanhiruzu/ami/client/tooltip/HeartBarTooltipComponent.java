@@ -22,7 +22,9 @@ public final class HeartBarTooltipComponent implements TooltipComponent, ClientT
     private static final int MAX_HEARTS = 10;
     private static final int HEART_SIZE = 9;
     private static final int HEART_GAP = 1;
-    private static final int ROW_HEIGHT = HEART_SIZE + 4;
+    private static final int TEXT_LINE_HEIGHT = 10;
+    private static final int LABEL_TOP_PAD = 1;
+    private static final int ROW_HEIGHT = HEART_SIZE + LABEL_TOP_PAD + TEXT_LINE_HEIGHT;
 
     private final int maxHealth; // raw HP value (e.g. 20 = 10 hearts)
 
@@ -71,7 +73,7 @@ public final class HeartBarTooltipComponent implements TooltipComponent, ClientT
         }
 
         // HP value label below hearts
-        g.drawString(font, healthLabel(), x, y + HEART_SIZE + 1, AMITheme.HEART_LABEL_COLOR, false);
+        g.drawString(font, healthLabel(), x, y + HEART_SIZE + LABEL_TOP_PAD, AMITheme.HEART_LABEL_COLOR, false);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

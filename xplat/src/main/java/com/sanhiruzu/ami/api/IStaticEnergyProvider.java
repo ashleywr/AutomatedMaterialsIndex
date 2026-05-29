@@ -19,4 +19,12 @@ public interface IStaticEnergyProvider {
      * @return maximum energy capacity in FE/RF; non-positive values are ignored
      */
     int getBaseCapacity(BlockState state);
+
+    default double getBaseGenerationFePerTick(BlockState state) {
+        return 0.0D;
+    }
+
+    default double getBaseConsumptionFePerTick(BlockState state) {
+        return 0.0D;
+    }
 }

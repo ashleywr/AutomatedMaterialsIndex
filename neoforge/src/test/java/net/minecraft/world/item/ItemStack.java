@@ -37,6 +37,10 @@ public class ItemStack {
         return item == null ? Stream.empty() : item.builtInRegistryHolder().tags();
     }
 
+    public UseAnim getUseAnimation() {
+        return item == null ? UseAnim.NONE : item.getUseAnimation(this);
+    }
+
     public static boolean isSameItemSameComponents(ItemStack a, ItemStack b) {
         if (a == b) return true;
         if (a == null || b == null) return false;

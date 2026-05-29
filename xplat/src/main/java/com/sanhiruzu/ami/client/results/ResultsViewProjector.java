@@ -31,6 +31,10 @@ public final class ResultsViewProjector {
             effectiveSource = SearchScope.resolveQueriedSource(searchService, source, query, favoritesPanel);
         }
 
+        if (state.getViewMode() == ResultsToolbar.ViewMode.LIST && !compactMainPanel && !favoritesPanel) {
+            effectiveSource = state.getListLens().filter(effectiveSource);
+        }
+
         List<TreeNode> roots;
         if (favoritesPanel) {
             roots = effectiveSource.stream()
@@ -38,9 +42,14 @@ public final class ResultsViewProjector {
                     .collect(Collectors.toList());
         } else {
             ResultsProcessor processor = state.createProcessor();
-            roots = compactMainPanel
-                    ? processor.processFlatWithCardGrouping(effectiveSource)
-                    : processor.process(effectiveSource);
+            if (compactMainPanel) {
+                roots = processor.processFlatWithCardGrouping(effectiveSource);
+            } else if (state.getViewMode() == ResultsToolbar.ViewMode.LIST
+                    && state.getGroupBy() == ResultsProcessor.GroupBy.NONE) {
+                roots = processor.processFlat(effectiveSource);
+            } else {
+                roots = processor.process(effectiveSource);
+            }
         }
 
         roots = ResultsTreeNormalizer.normalize(roots);
@@ -61,6 +70,7 @@ public final class ResultsViewProjector {
                 + " entries=" + sourceCount
                 + " displayed=" + displayedItemCount
                 + " view=" + state.getViewMode()
+                + " lens=" + state.getListLens()
                 + " sort=" + state.getSortField()
                 + " ascending=" + state.isAscending()
                 + " group=" + state.getGroupBy()

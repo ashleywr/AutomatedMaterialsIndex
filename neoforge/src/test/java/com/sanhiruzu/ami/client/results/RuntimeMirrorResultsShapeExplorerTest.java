@@ -11,6 +11,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -43,6 +46,7 @@ public class RuntimeMirrorResultsShapeExplorerTest {
         report.append("Nodes: ").append(fixture.size()).append("\n\n");
         report.append("Ontology replay: current resolver reapplied from dumped item facets.\n\n");
         report.append("Reclassified items: ").append(countReclassified(runtimeFixture, fixture)).append("\n\n");
+        report.append(categoryTransitionSummary(runtimeFixture, fixture));
 
         for (ResultsProcessor.GroupBy groupBy : List.of(
                 ResultsProcessor.GroupBy.CATEGORY,
@@ -95,6 +99,53 @@ public class RuntimeMirrorResultsShapeExplorerTest {
             }
         }
         return changed;
+    }
+
+    private static String categoryTransitionSummary(List<SearchNode> before, List<SearchNode> after) {
+        Map<String, List<String>> examplesByTransition = new LinkedHashMap<>();
+        Map<String, Integer> countsByTransition = new LinkedHashMap<>();
+        int size = Math.min(before.size(), after.size());
+        for (int i = 0; i < size; i++) {
+            SearchNode previous = before.get(i);
+            SearchNode current = after.get(i);
+            if (!previous.id().equals(current.id())) {
+                continue;
+            }
+
+            String previousKey = categoryKey(previous);
+            String currentKey = categoryKey(current);
+            if (previousKey.equals(currentKey)) {
+                continue;
+            }
+
+            String transition = previousKey + " -> " + currentKey;
+            countsByTransition.merge(transition, 1, Integer::sum);
+            examplesByTransition.computeIfAbsent(transition, ignored -> new ArrayList<>());
+            List<String> examples = examplesByTransition.get(transition);
+            if (examples.size() < 5) {
+                examples.add(current.displayName() + " (" + current.id() + ")");
+            }
+        }
+
+        StringBuilder out = new StringBuilder();
+        out.append("## Ontology Category Changes\n\n");
+        countsByTransition.entrySet().stream()
+                .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
+                .limit(25)
+                .forEach(entry -> {
+                    out.append("- ").append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");
+                    for (String example : examplesByTransition.getOrDefault(entry.getKey(), List.of())) {
+                        out.append("  - ").append(example).append("\n");
+                    }
+                });
+        out.append("\n");
+        return out.toString();
+    }
+
+    private static String categoryKey(SearchNode node) {
+        return node.meta(SearchNodeKeys.ONTOLOGY_CATEGORY, "")
+                + "/"
+                + node.meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "");
     }
 
     private static SearchState state(ResultsProcessor.SortField sortField,

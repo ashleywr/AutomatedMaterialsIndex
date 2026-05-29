@@ -368,6 +368,8 @@ public class OverlayWidgetManager {
             int mx = event.getMouseX(), my = event.getMouseY();
             float pt = event.getPartialTick();
 
+            g.flush();
+            com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
             g.pose().pushPose();
             g.pose().translate(0, 0, 0);
 
@@ -389,6 +391,7 @@ public class OverlayWidgetManager {
             }
 
             g.pose().popPose();
+            g.flush();
 
         } catch (Exception e) {
             AMI.LOGGER.error("AMI overlay render failed", e);

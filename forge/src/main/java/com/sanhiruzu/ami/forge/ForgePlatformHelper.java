@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.forge;
 
 import com.sanhiruzu.ami.forge.client.AMIKeyMappings;
 import com.sanhiruzu.ami.index.AmiRecipeIndex;
+import com.sanhiruzu.ami.index.GlobalIndexCache;
 import com.sanhiruzu.ami.platform.IAmiKeyMappings;
 import com.sanhiruzu.ami.platform.IPlatformHelper;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
@@ -76,5 +77,15 @@ public class ForgePlatformHelper implements IPlatformHelper {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public List<AmiRecipeHolder<?>> getAllRecipesOfType(RecipeType<?> type) {
         return (List<AmiRecipeHolder<?>>) (List<?>) AmiRecipeIndex.getInstance().getAllRecipesOfType((RecipeType) type);
+    }
+
+    @Override
+    public boolean tryLoadGlobalIndexCache() {
+        return GlobalIndexCache.tryLoad();
+    }
+
+    @Override
+    public void saveGlobalIndexCache() {
+        GlobalIndexCache.save();
     }
 }

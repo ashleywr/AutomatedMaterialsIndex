@@ -7,8 +7,9 @@
   },
   "grid": {
     "group": {
-      "band": "#06FFFFFF",
-      "rail": "#44FFFFFF"
+      "band": "#10FFFFFF",
+      "band-alt": "#20FFFFFF",
+      "rail": "#18FFFFFF"
     }
   }
 }

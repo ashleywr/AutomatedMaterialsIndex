@@ -61,6 +61,34 @@ class PrimaryCategoryResolverTest {
     }
 
     @Test
+    void foodSubfacetsResolveToNatureEvenWithoutEdibleComponent() {
+        CategoryAssignment drinkAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("legendarysurvivaloverhaul:apple_juice"),
+                new FacetProfile(EnumSet.of(ItemFacet.FOOD_DRINK), Map.of())
+        );
+        CategoryAssignment mealAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("apocalypsenow:canned_soup"),
+                new FacetProfile(EnumSet.of(ItemFacet.FOOD_MEAL, ItemFacet.FOOD_DRINK), Map.of())
+        );
+
+        assertEquals("nature", drinkAssignment.categoryId());
+        assertEquals("drinks", drinkAssignment.subcategoryId());
+        assertEquals("nature", mealAssignment.categoryId());
+        assertEquals("meals", mealAssignment.subcategoryId());
+    }
+
+    @Test
+    void techComponentFacetResolvesToTechParts() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("immersiveengineering:wire_copper"),
+                new FacetProfile(EnumSet.of(ItemFacet.TECH_COMPONENT), Map.of())
+        );
+
+        assertEquals("tech", assignment.categoryId());
+        assertEquals("parts", assignment.subcategoryId());
+    }
+
+    @Test
     void passiveComparatorFoodBlocksStayInFoodGroups() {
         CategoryAssignment pieAssignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("farmersdelight:apple_pie"),
@@ -92,6 +120,17 @@ class PrimaryCategoryResolverTest {
 
         assertEquals("armor", assignment.categoryId());
         assertEquals("head", assignment.subcategoryId());
+    }
+
+    @Test
+    void curioFacetResolvesToArmorCurios() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("nameless_trinkets:missing_page"),
+                new FacetProfile(EnumSet.of(ItemFacet.CURIO), Map.of())
+        );
+
+        assertEquals("armor", assignment.categoryId());
+        assertEquals("curios", assignment.subcategoryId());
     }
 
     @Test
@@ -151,6 +190,120 @@ class PrimaryCategoryResolverTest {
 
         assertEquals("tech", assignment.categoryId());
         assertEquals("redstone", assignment.subcategoryId());
+    }
+
+    @Test
+    void passiveSignalFurnitureResolvesToDecorationBeforeRedstone() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("refurbished_furniture:yellow_toilet"),
+                new FacetProfile(
+                        EnumSet.of(
+                                ItemFacet.PLACEABLE,
+                                ItemFacet.HAS_BLOCK_ENTITY,
+                                ItemFacet.REDSTONE_SIGNAL,
+                                ItemFacet.DECORATIVE_BLOCK
+                        ),
+                        Map.of(SearchNodeKeys.BLOCKS_MATERIAL, "other_building")
+                )
+        );
+        CategoryAssignment logicAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("refurbished_furniture:redstone_controller"),
+                new FacetProfile(
+                        EnumSet.of(
+                                ItemFacet.PLACEABLE,
+                                ItemFacet.HAS_BLOCK_ENTITY,
+                                ItemFacet.REDSTONE_LOGIC,
+                                ItemFacet.REDSTONE_SIGNAL,
+                                ItemFacet.DECORATIVE_BLOCK
+                        ),
+                        Map.of(SearchNodeKeys.BLOCKS_MATERIAL, "other_building")
+                )
+        );
+        CategoryAssignment cfmCabinetAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("cfm:oak_cabinet"),
+                new FacetProfile(
+                        EnumSet.of(
+                                ItemFacet.PLACEABLE,
+                                ItemFacet.HAS_BLOCK_ENTITY,
+                                ItemFacet.REDSTONE_SIGNAL
+                        ),
+                        Map.of(SearchNodeKeys.BLOCKS_MATERIAL, "other_building")
+                )
+        );
+
+        assertEquals("decoration", assignment.categoryId());
+        assertEquals("furniture", assignment.subcategoryId());
+        assertEquals("tech", logicAssignment.categoryId());
+        assertEquals("redstone", logicAssignment.subcategoryId());
+        assertEquals("decoration", cfmCabinetAssignment.categoryId());
+        assertEquals("furniture", cfmCabinetAssignment.subcategoryId());
+    }
+
+    @Test
+    void structuralVariantsResolveToBuildingBeforeDecoration() {
+        CategoryAssignment stairs = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:oak_stairs"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.STAIRS, ItemFacet.DECORATIVE_BLOCK),
+                        Map.of("blockShape", "stairs", SearchNodeKeys.BLOCKS_MATERIAL, "wood")
+                )
+        );
+        CategoryAssignment slab = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:oak_slab"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.SLAB, ItemFacet.DECORATIVE_BLOCK),
+                        Map.of("blockShape", "slab", SearchNodeKeys.BLOCKS_MATERIAL, "wood")
+                )
+        );
+        CategoryAssignment door = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:oak_door"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.DOOR, ItemFacet.DECORATIVE_BLOCK),
+                        Map.of("blockShape", "door", SearchNodeKeys.BLOCKS_MATERIAL, "wood")
+                )
+        );
+
+        assertEquals("masonry", stairs.categoryId());
+        assertEquals("stairs", stairs.subcategoryId());
+        assertEquals("masonry", slab.categoryId());
+        assertEquals("slab", slab.subcategoryId());
+        assertEquals("masonry", door.categoryId());
+        assertEquals("functional", door.subcategoryId());
+    }
+
+    @Test
+    void architecturalDecorModPlaceablesResolveToBuildingBeforeFurniture() {
+        CategoryAssignment compactStairs = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("mcwstairs:acacia_compact_stairs"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE), Map.of(SearchNodeKeys.BLOCKS_MATERIAL, "other_building"))
+        );
+        CategoryAssignment roof = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("mcwroofs:acacia_roof"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE), Map.of(SearchNodeKeys.BLOCKS_MATERIAL, "other_building"))
+        );
+        CategoryAssignment railing = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("mcwstairs:acacia_railing"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE), Map.of(SearchNodeKeys.BLOCKS_MATERIAL, "other_building"))
+        );
+        CategoryAssignment paving = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("mcwpaths:andesite_basket_weave_paving"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE), Map.of(SearchNodeKeys.BLOCKS_MATERIAL, "stone"))
+        );
+        CategoryAssignment chair = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("mcwfurnitures:acacia_chair"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE), Map.of(SearchNodeKeys.BLOCKS_MATERIAL, "other_building"))
+        );
+
+        assertEquals("masonry", compactStairs.categoryId());
+        assertEquals("stairs", compactStairs.subcategoryId());
+        assertEquals("masonry", roof.categoryId());
+        assertEquals("full_block", roof.subcategoryId());
+        assertEquals("masonry", railing.categoryId());
+        assertEquals("fence", railing.subcategoryId());
+        assertEquals("masonry", paving.categoryId());
+        assertEquals("full_block", paving.subcategoryId());
+        assertEquals("decoration", chair.categoryId());
+        assertEquals("furniture", chair.subcategoryId());
     }
 
     @Test
@@ -483,7 +636,39 @@ class PrimaryCategoryResolverTest {
         );
 
         assertEquals("nature", assignment.categoryId());
-        assertEquals("snacks", assignment.subcategoryId());
+        assertEquals("crops", assignment.subcategoryId());
+    }
+
+    @Test
+    void foodFamilyPriorsDoNotSweepUtilityPlaceablesIntoSnacks() {
+        CategoryAssignment stoveAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("farmersdelight:stove"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY),
+                        Map.of(SearchNodeKeys.BLOCKS_MATERIAL, "other_building")
+                )
+        );
+        CategoryAssignment skilletAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("farmersdelight:skillet"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.MELEE_WEAPON),
+                        Map.of(SearchNodeKeys.BLOCKS_MATERIAL, "other_building")
+                )
+        );
+        CategoryAssignment rugAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("farmersdelight:canvas_rug"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.DECORATIVE_BLOCK),
+                        Map.of(SearchNodeKeys.BLOCKS_MATERIAL, "other_building")
+                )
+        );
+
+        assertEquals("tech", stoveAssignment.categoryId());
+        assertEquals("machines", stoveAssignment.subcategoryId());
+        assertEquals("tools", skilletAssignment.categoryId());
+        assertEquals("melee", skilletAssignment.subcategoryId());
+        assertEquals("decoration", rugAssignment.categoryId());
+        assertEquals("furniture", rugAssignment.subcategoryId());
     }
 
     @Test
@@ -551,6 +736,18 @@ class PrimaryCategoryResolverTest {
                 new ResourceLocation("ae2:me_drive"),
                 new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
         );
+        CategoryAssignment refinedStorageUpgradeAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("refinedstorage:speed_upgrade"),
+                new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
+        );
+        CategoryAssignment storageDrawersKeyAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("storagedrawers:personal_key"),
+                new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
+        );
+        CategoryAssignment backpackUpgradeAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("sophisticatedbackpacks:stack_upgrade"),
+                new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
+        );
 
         assertEquals("tech", siliconAssignment.categoryId());
         assertEquals("circuits", siliconAssignment.subcategoryId());
@@ -560,6 +757,12 @@ class PrimaryCategoryResolverTest {
         assertEquals("circuits", processorAssignment.subcategoryId());
         assertEquals("tech", partsAssignment.categoryId());
         assertEquals("parts", partsAssignment.subcategoryId());
+        assertEquals("tech", refinedStorageUpgradeAssignment.categoryId());
+        assertEquals("upgrades", refinedStorageUpgradeAssignment.subcategoryId());
+        assertEquals("tech", storageDrawersKeyAssignment.categoryId());
+        assertEquals("machines", storageDrawersKeyAssignment.subcategoryId());
+        assertEquals("tech", backpackUpgradeAssignment.categoryId());
+        assertEquals("upgrades", backpackUpgradeAssignment.subcategoryId());
     }
 
     @Test
@@ -580,15 +783,21 @@ class PrimaryCategoryResolverTest {
                 new ResourceLocation("pneumaticcraft:charging_station"),
                 new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE), Map.of())
         );
+        CategoryAssignment securityModuleAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("securitycraft:blacklist_module"),
+                new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
+        );
 
         assertEquals("tech", rsProcessorAssignment.categoryId());
         assertEquals("circuits", rsProcessorAssignment.subcategoryId());
         assertEquals("tech", pneumaticCircuitAssignment.categoryId());
         assertEquals("circuits", pneumaticCircuitAssignment.subcategoryId());
         assertEquals("tech", pneumaticPartAssignment.categoryId());
-        assertEquals("parts", pneumaticPartAssignment.subcategoryId());
+        assertEquals("cables", pneumaticPartAssignment.subcategoryId());
         assertEquals("tech", pneumaticMachineAssignment.categoryId());
         assertEquals("machines", pneumaticMachineAssignment.subcategoryId());
+        assertEquals("tech", securityModuleAssignment.categoryId());
+        assertEquals("circuits", securityModuleAssignment.subcategoryId());
     }
 
     @Test
@@ -673,7 +882,48 @@ class PrimaryCategoryResolverTest {
         assertEquals("tech", generatorAssignment.categoryId());
         assertEquals("machines", generatorAssignment.subcategoryId());
         assertEquals("tech", wireAssignment.categoryId());
-        assertEquals("parts", wireAssignment.subcategoryId());
+        assertEquals("cables", wireAssignment.subcategoryId());
+    }
+
+    @Test
+    void repeatedModdedFamiliesResolveToSpecificSubcategories() {
+        CategoryAssignment cableAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("ami_test:copper_wire"),
+                new FacetProfile(EnumSet.of(ItemFacet.CABLE, ItemFacet.TECH_COMPONENT), Map.of())
+        );
+        CategoryAssignment upgradeAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("ami_test:speed_upgrade"),
+                new FacetProfile(EnumSet.of(ItemFacet.UPGRADE), Map.of())
+        );
+        CategoryAssignment templateAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("ami_test:mold_plate"),
+                new FacetProfile(EnumSet.of(ItemFacet.TEMPLATE), Map.of())
+        );
+        CategoryAssignment ammoAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("ami_test:rifle_round"),
+                new FacetProfile(EnumSet.of(ItemFacet.PROJECTILE), Map.of())
+        );
+        CategoryAssignment medicalAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("ami_test:bandage"),
+                new FacetProfile(EnumSet.of(ItemFacet.UTILITY_MEDICAL), Map.of())
+        );
+        CategoryAssignment currencyAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("ami_test:gold_coin"),
+                new FacetProfile(EnumSet.of(ItemFacet.UTILITY_CURRENCY), Map.of())
+        );
+
+        assertEquals("tech", cableAssignment.categoryId());
+        assertEquals("cables", cableAssignment.subcategoryId());
+        assertEquals("tech", upgradeAssignment.categoryId());
+        assertEquals("upgrades", upgradeAssignment.subcategoryId());
+        assertEquals("tech", templateAssignment.categoryId());
+        assertEquals("templates", templateAssignment.subcategoryId());
+        assertEquals("tools", ammoAssignment.categoryId());
+        assertEquals("ammo", ammoAssignment.subcategoryId());
+        assertEquals("utility", medicalAssignment.categoryId());
+        assertEquals("medical", medicalAssignment.subcategoryId());
+        assertEquals("utility", currencyAssignment.categoryId());
+        assertEquals("currency", currencyAssignment.subcategoryId());
     }
 
     @Test

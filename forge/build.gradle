@@ -60,6 +60,7 @@ legacyForge {
             systemProperty 'forge.logging.markers', 'SCAN,REGISTRIES,LOADING'
             systemProperty 'java.io.tmpdir', rootProject.layout.buildDirectory.dir("tmp/minecraft-runs/forge/${name}").get().asFile.absolutePath
             logLevel = org.slf4j.event.Level.DEBUG
+            programArguments.addAll '--mixin', "${mod_id}.mixins.json".toString()
             jvmArguments.addAll '-ea', '-Dmixin.debug.export=true'
         }
     }
@@ -87,14 +88,38 @@ configurations {
     devRuntimeRecipeViewerMods {
         canBeConsumed = false
         canBeResolved = true
+        attributes {
+            attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category, Category.LIBRARY))
+            attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage, Usage.JAVA_RUNTIME))
+            attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements, LibraryElements.JAR))
+            attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.EXTERNAL))
+            attribute(TargetJvmEnvironment.TARGET_JVM_ENVIRONMENT_ATTRIBUTE, objects.named(TargetJvmEnvironment, TargetJvmEnvironment.STANDARD_JVM))
+            attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 17)
+        }
     }
     devRuntimeJeiViewerMods {
         canBeConsumed = false
         canBeResolved = true
+        attributes {
+            attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category, Category.LIBRARY))
+            attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage, Usage.JAVA_RUNTIME))
+            attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements, LibraryElements.JAR))
+            attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.EXTERNAL))
+            attribute(TargetJvmEnvironment.TARGET_JVM_ENVIRONMENT_ATTRIBUTE, objects.named(TargetJvmEnvironment, TargetJvmEnvironment.STANDARD_JVM))
+            attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 17)
+        }
     }
     devRuntimeEmiViewerMods {
         canBeConsumed = false
         canBeResolved = true
+        attributes {
+            attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category, Category.LIBRARY))
+            attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage, Usage.JAVA_RUNTIME))
+            attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements, LibraryElements.JAR))
+            attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.EXTERNAL))
+            attribute(TargetJvmEnvironment.TARGET_JVM_ENVIRONMENT_ATTRIBUTE, objects.named(TargetJvmEnvironment, TargetJvmEnvironment.STANDARD_JVM))
+            attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 17)
+        }
     }
 }
 
@@ -105,17 +130,13 @@ dependencies {
 
     if (devRecipeViewer == 'jei' || devRecipeViewer == 'both') {
         devRuntimeRecipeViewerMods "mezz.jei:jei-${forge_minecraft_version}-forge:${forge_jei_version}"
-        clientAdditionalRuntimeClasspath "mezz.jei:jei-${forge_minecraft_version}-forge:${forge_jei_version}"
     }
     if (devRecipeViewer == 'emi' || devRecipeViewer == 'both') {
         devRuntimeRecipeViewerMods "dev.emi:emi-forge:${forge_emi_version}+${forge_minecraft_version}"
-        clientAdditionalRuntimeClasspath "dev.emi:emi-forge:${forge_emi_version}+${forge_minecraft_version}"
     }
 
     devRuntimeJeiViewerMods "mezz.jei:jei-${forge_minecraft_version}-forge:${forge_jei_version}"
     devRuntimeEmiViewerMods "dev.emi:emi-forge:${forge_emi_version}+${forge_minecraft_version}"
-    clientJeiAdditionalRuntimeClasspath "mezz.jei:jei-${forge_minecraft_version}-forge:${forge_jei_version}"
-    clientEmiAdditionalRuntimeClasspath "dev.emi:emi-forge:${forge_emi_version}+${forge_minecraft_version}"
 
     implementation "it.unimi.dsi:fastutil:8.5.12"
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
@@ -132,19 +153,24 @@ def registerRecipeViewerModCleanup = { String taskName, String runDirName ->
 }
 
 def registerRecipeViewerModSync = { String taskName, List<String> configurationNames, String runDirName, TaskProvider<Delete> cleanupTask ->
-    def viewerConfigurations = configurationNames.collect { configName ->
-        configurations.named(configName).get()
-    }
+    def jeiJarName = "jei-${forge_minecraft_version}-forge-${forge_jei_version}.jar"
+    def emiJarName = "emi-forge-${forge_emi_version}+${forge_minecraft_version}.jar"
 
     tasks.register(taskName, Copy) {
         def modsDir = runDirectory(runDirName).toPath().resolve('mods').toFile()
         dependsOn cleanupTask
-        viewerConfigurations.each { configuration ->
-            inputs.files(configuration)
+        def includeJei = configurationNames.contains('devRuntimeRecipeViewerMods') ||
+                configurationNames.contains('devRuntimeJeiViewerMods')
+        def includeEmi = configurationNames.contains('devRuntimeRecipeViewerMods') ||
+                configurationNames.contains('devRuntimeEmiViewerMods')
+        def viewerFiles = configurations.compileClasspath.filter { file ->
+            (includeJei && file.name == jeiJarName) ||
+                    (includeEmi && file.name == emiJarName)
         }
+        inputs.files(viewerFiles)
         outputs.dir(modsDir)
         into(modsDir)
-        from(viewerConfigurations)
+        from(viewerFiles)
     }
 }
 

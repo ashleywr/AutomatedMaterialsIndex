@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
 import com.sanhiruzu.ami.client.results.*;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.config.AmiConfig;
@@ -19,6 +20,7 @@ import org.lwjgl.glfw.GLFW;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class UniversalResultsPanel implements SearchState.Listener {
 
@@ -29,7 +31,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private static final int HEADER_H = ResultsToolbar.TOOLBAR_HEIGHT;
     private static final int COMPACT_HEADER_H = 20; // Minimal height for item count + toggle button
     // Compact toggle button dimensions — height matches toolbar buttons for visual consistency
-    private static final int TOGGLE_W = 18;
+    private static final int TOGGLE_W = 22;
     private static final int TOGGLE_H = ResultsToolbar.BUTTON_H;
     // Favorites panel heart header height
     private static final int FAV_HEADER_H = 16;
@@ -87,13 +89,13 @@ public class UniversalResultsPanel implements SearchState.Listener {
         int innerX = x + AMITheme.GLOBAL_PADDING;
         int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
 
-        // Toggle button: top-right of the header strip, vertically centered like toolbar buttons
-        this.toggleX = x + width - AMITheme.GLOBAL_PADDING - TOGGLE_W;
+        // View switch sits at the left edge of the header, before sort/group controls.
+        this.toggleX = innerX;
         this.toggleY = y + AMITheme.GLOBAL_PADDING + (HEADER_H - TOGGLE_H) / 2;
 
         int toolbarW = innerW - TOGGLE_W - AMITheme.ELEMENT_GAP;
         int toolbarY = y + AMITheme.GLOBAL_PADDING;
-        this.toolbar = new ResultsToolbar(innerX, toolbarY, toolbarW, state);
+        this.toolbar = new ResultsToolbar(innerX + TOGGLE_W + AMITheme.ELEMENT_GAP, toolbarY, toolbarW, state);
 
         int contentY, contentH;
         if (isFavoritesPanel) {
@@ -234,8 +236,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
         int innerX = x + AMITheme.GLOBAL_PADDING;
         int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
 
-        // Toggle button always top-right
-        this.toggleX = x + width - AMITheme.GLOBAL_PADDING - TOGGLE_W;
+        // View switch stays at the left edge of the header, before sort/group controls.
+        this.toggleX = innerX;
         this.toggleY = y + AMITheme.GLOBAL_PADDING;
 
         if (isFavoritesPanel) {
@@ -251,7 +253,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 gridView.updateLayout(innerX, contentY, innerW, contentH);
             } else {
                 int toolbarW = innerW - TOGGLE_W - AMITheme.ELEMENT_GAP;
-                toolbar.updateLayout(innerX, y + AMITheme.GLOBAL_PADDING, toolbarW);
+                toolbar.updateLayout(innerX + TOGGLE_W + AMITheme.ELEMENT_GAP, y + AMITheme.GLOBAL_PADDING, toolbarW);
                 treeView.updateLayout(innerX, contentY, innerW, contentH);
                 gridView.updateLayout(innerX, contentY, innerW, contentH);
             }
@@ -315,9 +317,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
             // Item count centered vertically in the header strip
             String countStr = Component.translatable("ami.gui.items_label", displayedItemCount).getString();
             int textY = headerY + (headerH - font.lineHeight) / 2;
-            g.drawString(font, countStr, x + AMITheme.GLOBAL_PADDING, textY, AMITheme.TEXT_SUBTLE, false);
+            g.drawString(font, countStr, toggleX + TOGGLE_W + AMITheme.ELEMENT_GAP, textY, AMITheme.TEXT_SUBTLE, false);
 
-            // Toggle button on the right of the header strip
             renderToggleBtn(g, mouseX, mouseY);
 
             g.fill(x + 3, sepY, x + width - 3, sepY + 1, AMITheme.SECTION_SEP);
@@ -327,6 +328,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             } else {
                 gridView.render(g, mouseX, mouseY, false);
             }
+            renderToggleTooltip(g, mouseX, mouseY);
             return;
         }
 
@@ -360,6 +362,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
 
         toolbar.renderOpenDropdownLists(g, mouseX, mouseY);
+        if (!toolbar.isAnyDropdownOpen()) {
+            renderToggleTooltip(g, mouseX, mouseY);
+        }
     }
 
     private void renderSidebarToggle(GuiGraphics g, int mouseX, int mouseY) {
@@ -392,14 +397,22 @@ public class UniversalResultsPanel implements SearchState.Listener {
         g.fill(toggleX, toggleY, toggleX + 1, toggleY + TOGGLE_H, border);
         g.fill(toggleX + TOGGLE_W - 1, toggleY, toggleX + TOGGLE_W, toggleY + TOGGLE_H, border);
 
-        int iconColor = (compact || alternateActive || hovered) ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_HEADER;
+        int contentColor = hovered ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_HEADER;
         int cx = toggleX + TOGGLE_W / 2;
         int cy = toggleY + TOGGLE_H / 2;
-        if (compact || alternateActive) {
-            AmiGuiIcons.expand(g, cx, cy, iconColor);
+        if (isGridActive()) {
+            AmiGuiIcons.expand(g, cx, cy, contentColor);
         } else {
-            AmiGuiIcons.compact(g, cx, cy, iconColor);
+            AmiGuiIcons.compact(g, cx, cy, contentColor);
         }
+    }
+
+    private void renderToggleTooltip(GuiGraphics g, int mouseX, int mouseY) {
+        if (!isOverToggle(mouseX, mouseY)) return;
+        AmiTooltipRenderer.renderLeftOfCursor(g, Minecraft.getInstance().font, List.of(
+                Component.translatable(isGridActive() ? "ami.gui.tooltip.view_switch_to_list" : "ami.gui.tooltip.view_switch_to_grid"),
+                Component.translatable("ami.gui.tooltip.view_switch_detail")
+        ), Optional.empty(), mouseX, mouseY);
     }
 
     private void checkPlayerStateChanged() {
@@ -421,6 +434,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         var manager = com.sanhiruzu.ami.client.InventoryOverlayHandler.getManager();
         if (manager != null && !manager.isPanelVisible() && !isFavoritesPanel) return;
 
+        state.setAvailableListLenses(ListLens.availableFor(resolveSource()));
         ResultsViewProjector.Projection projection = ResultsViewProjector.project(
                 resolveSource(),
                 state,

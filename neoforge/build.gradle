@@ -135,6 +135,7 @@ dependencies {
 tasks.named('test', Test).configure {
     useJUnitPlatform()
     workingDir = xplatProject.projectDir
+    dependsOn ':forge:compileJava'
 }
 
 def registerRecipeViewerModSync = { String taskName, List<String> configurationNames, String runDirName ->

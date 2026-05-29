@@ -20,13 +20,31 @@ public final class SearchNodeKeys {
     public static final String FACETS = "facets"; // Comma-separated stable facet ids
     public static final String ESM_CAPACITY = "emsCapacity";  // Equivalent Stack Metric
     public static final String ENERGY_CAPACITY = "energy_capacity"; // Maximum FE/RF capacity
+    public static final String ENERGY_GENERATION = "energy_generation"; // FE/RF generated per tick
+    public static final String ENERGY_CONSUMPTION = "energy_consumption"; // FE/RF consumed per tick
+    public static final String ENERGY_METRIC_SOURCE = "energy_metric_source"; // capability/static/tooltip
+    public static final String FLUID_CAPACITY = "fluid_capacity"; // Vanilla bucket equivalents
+    public static final String FLUID_METRIC_SOURCE = "fluid_metric_source"; // bucket/tooltip
+    public static final String TOOL_SPEED = "toolSpeed";
+    public static final String TOOL_USES = "toolUses";
+    public static final String TOOL_ATTACK_BONUS = "toolAttackBonus";
+    public static final String ARMOR_DEFENSE = "armorDefense";
+    public static final String ARMOR_TOUGHNESS = "armorToughness";
+    public static final String AMMO_TYPE = "ammoType";
     public static final String REQUIRED_TOOL = "requiredTool";
+    public static final String MAX_DURABILITY = "maxDurability";
+    public static final String FOOD_NUTRITION = "foodNutrition";
+    public static final String FOOD_SATURATION = "foodSaturation";
+    public static final String ATTACK_DAMAGE = "attackDamage";
     public static final String DPS = "dps";          // Damage per second (Assembly Lab)
     public static final String SEARCH_TOKENS = "searchTokens";  // Space-separated synthetic search tokens
     public static final String ACCESS_LEVEL = "accessLevel";  // "survival", "creative", "cheat", or "dev"
     public static final String VISIBILITY = "visibility";    // "hidden" = not in any creative tab
     public static final String OBTAINABILITY = "obtainability"; // "no_recipe" = no recipe output
     public static final String RECIPE_CATEGORIES = "recipeCategories"; // comma-separated recipe type IDs
+    public static final String RECIPE_USE_CATEGORIES = "recipeUseCategories"; // comma-separated recipe type IDs where this item is an input
+    public static final String RECIPE_OUTPUT_COUNT = "recipeOutputCount"; // count of indexed recipes producing this item
+    public static final String RECIPE_USE_COUNT = "recipeUseCount"; // count of indexed recipes using this item as input
     public static final String CREATIVE_TAB_ID = "creativeTabId";
     public static final String CREATIVE_TAB_LABEL = "creativeTabLabel";
     public static final String SUBTYPE_OF = "subtypeOf";     // base item id for subtype nodes
@@ -34,6 +52,9 @@ public final class SearchNodeKeys {
     public static final String COLLAPSE_FAMILY = "collapseFamily"; // stable UI grouping key for explicit family collapse
     public static final String COLLAPSE_LABEL = "collapseLabel";  // user-facing label for explicit family collapse
     public static final String BLOCKS_MATERIAL = "blocksMaterial"; // material family for block subcategory (shape/material toggle)
+    public static final String BLOCK_TAGS = "blockTags"; // comma-separated block tag ids
+    public static final String BLOCK_CLASS = "blockClass"; // concrete placed block class
+    public static final String BLOCK_STATE_PROPERTIES = "blockStateProperties"; // comma-separated state property names
 
     // Atlas-specific
     public static final String DIMENSION = "dimension";

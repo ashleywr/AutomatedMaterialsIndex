@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import com.sanhiruzu.ami.AmiCore;
 /**
  * Encapsulates the complete search and filter state for the AMI results panel.
  * Widgets can subscribe to changes to update their internal display state.
@@ -23,22 +21,31 @@ public class SearchState {
     private final Set<String> activeFacets = new HashSet<>();
     private final Set<String> selectedMods = new HashSet<>();
     private ResultsToolbar.ViewMode viewMode = ResultsToolbar.ViewMode.LIST;
+    private ListLens listLens = ListLens.ALL;
+    private List<ListLens> availableListLenses = List.of(ListLens.values());
 
     private final List<Listener> listeners = new ArrayList<>();
 
+    public SearchState() {
+        RowFieldConfig.setSubtitleFields(listLens.subtitleFields());
+    }
+
     public void reset() {
         this.query = "";
-        this.sortField = ResultsProcessor.SortField.REGISTRY;
-        this.ascending = true;
-        this.groupBy = ResultsProcessor.GroupBy.CATEGORY;
         this.activeFacets.clear();
         this.selectedMods.clear();
         this.viewMode = ResultsToolbar.ViewMode.LIST;
+        this.availableListLenses = List.of(ListLens.values());
+        resetPresentationDefaults();
         notifyListeners();
     }
 
     public void addListener(Listener listener) {
         listeners.add(listener);
+    }
+
+    public void refresh() {
+        notifyListeners();
     }
 
     private void notifyListeners() {
@@ -63,6 +70,9 @@ public class SearchState {
     }
 
     public void setSortField(ResultsProcessor.SortField sortField) {
+        if (viewMode == ResultsToolbar.ViewMode.LIST && !listLens.sortFields().contains(sortField)) {
+            return;
+        }
         this.sortField = sortField;
         notifyListeners();
     }
@@ -136,7 +146,49 @@ public class SearchState {
     public void setViewMode(ResultsToolbar.ViewMode viewMode) {
         if (this.viewMode == viewMode) return;
         this.viewMode = viewMode;
+        resetPresentationDefaults();
         notifyListeners();
+    }
+
+    public ListLens getListLens() {
+        return listLens;
+    }
+
+    public void setListLens(ListLens listLens) {
+        if (listLens == null) {
+            listLens = ListLens.ALL;
+        }
+        if (!availableListLenses.contains(listLens)) {
+            listLens = ListLens.ALL;
+        }
+        this.listLens = listLens;
+        this.sortField = listLens.sortField();
+        this.ascending = listLens.ascending();
+        this.groupBy = listLens.groupBy();
+        RowFieldConfig.setSubtitleFields(listLens.subtitleFields());
+        notifyListeners();
+    }
+
+    public List<ListLens> getAvailableListLenses() {
+        return availableListLenses;
+    }
+
+    public void setAvailableListLenses(List<ListLens> availableListLenses) {
+        if (availableListLenses == null || availableListLenses.isEmpty()) {
+            availableListLenses = List.of(ListLens.ALL);
+        }
+        this.availableListLenses = List.copyOf(availableListLenses);
+        if (!this.availableListLenses.contains(listLens)) {
+            resetPresentationDefaults();
+        }
+    }
+
+    private void resetPresentationDefaults() {
+        this.listLens = ListLens.ALL;
+        this.sortField = ListLens.ALL.sortField();
+        this.ascending = ListLens.ALL.ascending();
+        this.groupBy = ListLens.ALL.groupBy();
+        RowFieldConfig.setSubtitleFields(ListLens.ALL.subtitleFields());
     }
 
     /**
