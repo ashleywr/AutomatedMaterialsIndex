@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.index;
 
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.MenuProvider;
@@ -8,9 +9,11 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Property;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,10 +39,32 @@ class FacetIndexerTest {
     }
 
     @Test
+    void drinkAnimationAndBroadFoodTagsProduceFoodSubfacets() {
+        Item drink = register("plain_drink", new DrinkItem("Plain Drink")
+                .withComponent(DataComponents.FOOD));
+        Item cookedMeat = register("cooked_duck", new Item("Cooked Duck")
+                .withComponent(DataComponents.FOOD)
+                .withTag(TagKey.create(null, new ResourceLocation("c", "cooked_meat"))));
+        Item vegetable = register("canned_carrot", new Item("Canned Carrot")
+                .withComponent(DataComponents.FOOD)
+                .withTag(TagKey.create(null, new ResourceLocation("diet", "vegetables"))));
+        Item meal = register("fried_rice", new Item("Fried Rice")
+                .withComponent(DataComponents.FOOD)
+                .withTag(TagKey.create(null, new ResourceLocation("farmersdelight", "meals"))));
+
+        assertTrue(index(drink).facets().contains(ItemFacet.FOOD_DRINK));
+        assertTrue(index(cookedMeat).facets().contains(ItemFacet.FOOD_MEAL));
+        assertTrue(index(cookedMeat).facets().contains(ItemFacet.FOOD_PROTEIN));
+        assertTrue(index(vegetable).facets().contains(ItemFacet.CROP));
+        assertTrue(index(meal).facets().contains(ItemFacet.FOOD_MEAL));
+    }
+
+    @Test
     void redstoneDustHasRedstoneFacet() {
         FacetProfile profile = index(Items.REDSTONE);
 
         assertTrue(profile.facets().contains(ItemFacet.REDSTONE_LOGIC));
+        assertTrue(profile.facets().contains(ItemFacet.ACTIVE_REDSTONE_LOGIC));
         assertTrue(profile.facets().contains(ItemFacet.REDSTONE_SIGNAL));
     }
 
@@ -221,7 +246,9 @@ class FacetIndexerTest {
         FacetProfile lemonPieProfile = index(lemonPie);
 
         assertTrue(targetProfile.facets().contains(ItemFacet.REDSTONE_LOGIC));
+        assertTrue(targetProfile.facets().contains(ItemFacet.ACTIVE_REDSTONE_LOGIC));
         assertTrue(lecternProfile.facets().contains(ItemFacet.INTERACTIVE_BLOCK));
+        assertTrue(lecternProfile.facets().contains(ItemFacet.WORKSTATION));
         assertTrue(lecternProfile.facets().contains(ItemFacet.MACHINE));
         assertTrue(carpetProfile.facets().contains(ItemFacet.DECORATIVE_BLOCK));
         assertTrue(flowerPotProfile.facets().contains(ItemFacet.DECORATIVE_BLOCK));
@@ -240,8 +267,41 @@ class FacetIndexerTest {
         FacetProfile analogProfile = index(comparatorLike);
 
         assertTrue(relayProfile.facets().contains(ItemFacet.REDSTONE_LOGIC));
+        assertTrue(relayProfile.facets().contains(ItemFacet.ACTIVE_REDSTONE_LOGIC));
         assertTrue(relayProfile.facets().contains(ItemFacet.REDSTONE_SIGNAL));
         assertTrue(analogProfile.facets().contains(ItemFacet.REDSTONE_SIGNAL));
+        assertTrue(analogProfile.facets().contains(ItemFacet.PASSIVE_COMPARATOR_OUTPUT));
+        assertFalse(analogProfile.facets().contains(ItemFacet.ACTIVE_REDSTONE_LOGIC));
+    }
+
+    @Test
+    void furnitureTagsProduceDecorationFacetForPassiveSignalBlocks() {
+        Item toilet = register("yellow_toilet", new BlockItem("Yellow Toilet",
+                new TestEntityBlock(new BlockState().withAnalogOutputSignal(true)))
+                .withTag(TagKey.create(null, new ResourceLocation("refurbished_furniture", "bathroom"))));
+
+        FacetProfile profile = index(toilet);
+
+        assertTrue(profile.facets().contains(ItemFacet.HAS_BLOCK_ENTITY));
+        assertTrue(profile.facets().contains(ItemFacet.REDSTONE_SIGNAL));
+        assertTrue(profile.facets().contains(ItemFacet.PASSIVE_COMPARATOR_OUTPUT));
+        assertFalse(profile.facets().contains(ItemFacet.REDSTONE_LOGIC));
+        assertFalse(profile.facets().contains(ItemFacet.ACTIVE_REDSTONE_LOGIC));
+        assertTrue(profile.facets().contains(ItemFacet.DECORATIVE_BLOCK));
+    }
+
+    @Test
+    void placedBlockEvidenceIsRecordedAsMetadata() {
+        Item planks = register("metadata_planks", new BlockItem("Metadata Planks",
+                new Block(new BlockState()
+                        .withTag(net.minecraft.tags.BlockTags.PLANKS)
+                        .withProperty(new Property<>("Facing")))));
+
+        FacetProfile profile = index(planks);
+
+        assertEquals("net.minecraft.world.level.block.Block", profile.attributes().get(SearchNodeKeys.BLOCK_CLASS));
+        assertEquals("minecraft:planks", profile.attributes().get(SearchNodeKeys.BLOCK_TAGS));
+        assertEquals("facing", profile.attributes().get(SearchNodeKeys.BLOCK_STATE_PROPERTIES));
     }
 
     @Test
@@ -305,6 +365,80 @@ class FacetIndexerTest {
         assertFalse(diamondProfile.facets().contains(ItemFacet.STORAGE));
     }
 
+    @Test
+    void forgeMaterialTagsProduceTechMaterialFacets() {
+        Item inaniteIngot = register("inanite_ingot", new Item("Inanite Ingot")
+                .withTag(TagKey.create(null, new ResourceLocation("forge", "ingots/inanite"))));
+        Item cyaniteDust = register("cyanite_dust", new Item("Cyanite Dust")
+                .withTag(TagKey.create(null, new ResourceLocation("forge", "dusts/cyanite"))));
+        Item yelloriumBlock = register("yellorium_block", new Item("Yellorium Block")
+                .withTag(TagKey.create(null, new ResourceLocation("forge", "storage_blocks/yellorium"))));
+
+        assertTrue(index(inaniteIngot).facets().contains(ItemFacet.INGOT));
+        assertTrue(index(cyaniteDust).facets().contains(ItemFacet.DUST));
+        assertTrue(index(yelloriumBlock).facets().contains(ItemFacet.INGOT));
+    }
+
+    @Test
+    void broadDietTagsOnlyCreateFoodFacetsForEdibleItems() {
+        Item leaves = register("diet_leaves", new BlockItem("Diet Leaves", new Block(new BlockState()))
+                .withTag(TagKey.create(null, new ResourceLocation("diet", "vegetables"))));
+        Item slimeball = register("diet_slimeball", new Item("Diet Slimeball")
+                .withTag(TagKey.create(null, new ResourceLocation("diet", "proteins"))));
+        Item tomato = register("diet_tomato", new Item("Diet Tomato")
+                .withComponent(DataComponents.FOOD)
+                .withTag(TagKey.create(null, new ResourceLocation("diet", "vegetables"))));
+
+        assertFalse(index(leaves).facets().contains(ItemFacet.CROP));
+        assertFalse(index(slimeball).facets().contains(ItemFacet.FOOD_PROTEIN));
+        assertTrue(index(tomato).facets().contains(ItemFacet.CROP));
+    }
+
+    @Test
+    void materialLeadDoesNotBecomeUtilityLeash() {
+        Item leadIngot = register("ingot_lead", new Item("Lead Ingot")
+                .withTag(TagKey.create(null, new ResourceLocation("forge", "ingots/lead"))));
+        Item leash = register("lead", new Item("Lead"));
+
+        assertTrue(index(leadIngot).facets().contains(ItemFacet.INGOT));
+        assertFalse(index(leadIngot).facets().contains(ItemFacet.UTILITY_MISC));
+        assertTrue(index(leash).facets().contains(ItemFacet.UTILITY_MISC));
+    }
+
+    @Test
+    void curiosTagsProduceCurioFacet() {
+        Item trinket = register("trinket", new Item("Trinket")
+                .withTag(TagKey.create(null, new ResourceLocation("curios", "charm"))));
+
+        assertTrue(index(trinket).facets().contains(ItemFacet.CURIO));
+    }
+
+    @Test
+    void componentAndToolTagsProduceConcreteFacets() {
+        Item wire = register("wire_copper", new Item("Copper Wire")
+                .withTag(TagKey.create(null, new ResourceLocation("forge", "wires/copper"))));
+        Item hammer = register("hammer", new Item("Hammer")
+                .withTag(TagKey.create(null, new ResourceLocation("immersiveengineering", "tools/hammers"))));
+        Item disc = register("music_disc", new Item("Music Disc")
+                .withTag(TagKey.create(null, new ResourceLocation("minecraft", "music_discs"))));
+        Item round = register("autocannon_round", new Item("Autocannon Round")
+                .withTag(TagKey.create(null, new ResourceLocation("createbigcannons", "autocannon_rounds"))));
+        Item upgrade = register("speed_upgrade", new Item("Speed Upgrade"));
+        Item blueprint = register("blueprint", new Item("Blueprint"));
+        Item bandage = register("bandage", new Item("Bandage"));
+        Item coin = register("gold_coin", new Item("Gold Coin"));
+
+        assertTrue(index(wire).facets().contains(ItemFacet.TECH_COMPONENT));
+        assertTrue(index(wire).facets().contains(ItemFacet.CABLE));
+        assertTrue(index(hammer).facets().contains(ItemFacet.UTILITY_TOOL));
+        assertTrue(index(disc).facets().contains(ItemFacet.UTILITY_MISC));
+        assertTrue(index(round).facets().contains(ItemFacet.PROJECTILE));
+        assertTrue(index(upgrade).facets().contains(ItemFacet.UPGRADE));
+        assertTrue(index(blueprint).facets().contains(ItemFacet.TEMPLATE));
+        assertTrue(index(bandage).facets().contains(ItemFacet.UTILITY_MEDICAL));
+        assertTrue(index(coin).facets().contains(ItemFacet.UTILITY_CURRENCY));
+    }
+
     private static FacetProfile index(Item item) {
         return FacetIndexer.index(
                 item,
@@ -327,6 +461,17 @@ class FacetIndexerTest {
     private static final class InteractiveBlock extends Block implements MenuProvider {
         private InteractiveBlock(BlockState defaultState) {
             super(defaultState);
+        }
+    }
+
+    private static final class DrinkItem extends Item {
+        private DrinkItem(String name) {
+            super(name);
+        }
+
+        @Override
+        public UseAnim getUseAnimation(ItemStack stack) {
+            return UseAnim.DRINK;
         }
     }
 }

@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.world.level.Level;
 
 import java.util.concurrent.CompletableFuture;
@@ -69,7 +70,13 @@ public final class AmiIndexerService {
         GlobalIndex index = GlobalIndex.getInstance();
 
         // 1. Core indexing of all standard types
-        ProviderRegistry.indexAll(level);
+        GroupingEngine.initialize(level);
+        if (Services.PLATFORM.tryLoadGlobalIndexCache()) {
+            ProviderRegistry.rehydrateSubtypeStacks(level);
+        } else {
+            ProviderRegistry.indexAll(level);
+            Services.PLATFORM.saveGlobalIndexCache();
+        }
 
         // 2. Populate world/datapack-backed atlas types before we snapshot the search service.
         ProviderRegistry.indexStructuresDeferred(level);

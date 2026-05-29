@@ -23,11 +23,21 @@ public final class NumericMetadataResolver {
         NumericFilter filter = parsed.get();
         Map<NodeType, List<SearchNode>> result = new LinkedHashMap<>();
         for (SearchNode node : nodes) {
-            double value = parseDouble(node.meta(filter.metadataKey(), ""));
+            double value = numericValue(node, filter.metadataKey());
             if (Double.isNaN(value) || !filter.matches(value)) continue;
             result.computeIfAbsent(node.type(), ignored -> new ArrayList<>()).add(node);
         }
         return result;
+    }
+
+    private static double numericValue(SearchNode node, String metadataKey) {
+        if (SearchNodeKeys.ATTACK_DAMAGE.equals(metadataKey)) {
+            double itemDamage = parseDouble(node.meta(SearchNodeKeys.ATTACK_DAMAGE, ""));
+            return Double.isNaN(itemDamage)
+                    ? parseDouble(node.meta(SearchNodeKeys.ENTITY_ATTACK_DAMAGE, ""))
+                    : itemDamage;
+        }
+        return parseDouble(node.meta(metadataKey, ""));
     }
 
     private static double parseDouble(String value) {
@@ -73,11 +83,21 @@ public final class NumericMetadataResolver {
         private static String metadataKeyFor(String field) {
             String normalized = field.toLowerCase(Locale.ROOT).replace("_", "").replace("-", "");
             return switch (normalized) {
-                case "dps", "damage", "damagepersecond" -> SearchNodeKeys.DPS;
+                case "dps", "damagepersecond" -> SearchNodeKeys.DPS;
+                case "damage", "attack", "attackdamage", "entityattack", "entitydamage" -> SearchNodeKeys.ATTACK_DAMAGE;
                 case "storage", "capacity", "esm", "items" -> SearchNodeKeys.ESM_CAPACITY;
-                case "energy", "energycapacity", "fe", "rf", "power" -> SearchNodeKeys.ENERGY_CAPACITY;
+                case "energy", "energycapacity", "fecapacity", "rfcapacity", "capacityfe", "capacityrf", "fe", "rf" -> SearchNodeKeys.ENERGY_CAPACITY;
+                case "energygeneration", "generation", "gen", "generate", "generator", "fegeneration", "rfgeneration", "fet", "rft", "fepertick", "rfpertick", "power" -> SearchNodeKeys.ENERGY_GENERATION;
+                case "energyconsumption", "consumption", "consume", "feusage", "rfusage", "feuse", "rfuse" -> SearchNodeKeys.ENERGY_CONSUMPTION;
+                case "fluid", "fluids", "fluidcapacity", "tank", "buckets", "bucket" -> SearchNodeKeys.FLUID_CAPACITY;
+                case "toolspeed", "miningspeed", "speed", "mine" -> SearchNodeKeys.TOOL_SPEED;
+                case "tooluses" -> SearchNodeKeys.TOOL_USES;
+                case "uses", "durability", "maxdamage", "maxdurability" -> SearchNodeKeys.MAX_DURABILITY;
+                case "armor", "armordefense", "defense", "protection" -> SearchNodeKeys.ARMOR_DEFENSE;
+                case "toughness", "armortoughness" -> SearchNodeKeys.ARMOR_TOUGHNESS;
+                case "food", "hunger", "nutrition", "foodnutrition" -> SearchNodeKeys.FOOD_NUTRITION;
+                case "saturation", "sat", "foodsaturation" -> SearchNodeKeys.FOOD_SATURATION;
                 case "health", "hp", "entityhealth" -> SearchNodeKeys.ENTITY_HEALTH;
-                case "attack", "attackdamage", "entityattack", "entitydamage" -> SearchNodeKeys.ENTITY_ATTACK_DAMAGE;
                 default -> null;
             };
         }

@@ -30,16 +30,31 @@ final class ResultsGroupingPostProcessor {
     private ResultsGroupingPostProcessor() {
     }
 
-    static List<TreeNode> applyToTree(List<TreeNode> tree) {
-        List<TreeNode> processed = applyDuplicateLabelGrouping(applyExplicitFamilyGrouping(applyHighCardinalityGrouping(tree)));
+    static List<TreeNode> applyToTree(List<TreeNode> tree, ResultsProcessor.GroupBy groupBy) {
+        return switch (groupBy) {
+            case NONE -> tree;
+            case CATEGORY -> applyHighCardinalityGrouping(tree);
+            case MATERIAL -> applyMaterialGroupingPasses(tree);
+            case FAMILY -> applyFamilyGroupingPasses(tree);
+            case SHAPE -> applyHighCardinalityGrouping(tree);
+            case MOD, CREATIVE, DIMENSION, TOPOLOGY, SIMILARITY, PROPERTIES -> applyHighCardinalityGrouping(tree);
+        };
+    }
+
+    static List<TreeNode> applyToFlatCards(List<TreeNode> flat) {
+        return applyDuplicateLabelGrouping(applyExplicitFamilyGrouping(applyHighCardinalityGrouping(flat)));
+    }
+
+    private static List<TreeNode> applyMaterialGroupingPasses(List<TreeNode> tree) {
+        List<TreeNode> processed = applyHighCardinalityGrouping(tree);
         if (AmiConfig.enableMaterialRootUI) {
             processed = applyColorGrouping(processed);
         }
         return processed;
     }
 
-    static List<TreeNode> applyToFlatCards(List<TreeNode> flat) {
-        return applyDuplicateLabelGrouping(applyExplicitFamilyGrouping(applyHighCardinalityGrouping(flat)));
+    private static List<TreeNode> applyFamilyGroupingPasses(List<TreeNode> tree) {
+        return applyDuplicateLabelGrouping(applyExplicitFamilyGrouping(applyHighCardinalityGrouping(tree)));
     }
 
     /**

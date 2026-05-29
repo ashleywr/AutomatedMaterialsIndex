@@ -10,8 +10,26 @@ import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public final class FacetIndexer {
+    private static final Set<String> DRINK_PATH_TOKENS = Set.of(
+            "water", "juice", "juicebox", "soda", "beer", "vodka", "wodka",
+            "whisky", "whiskey", "wine", "coffee", "tea", "cider", "canteen",
+            "milk", "porpsi", "coke", "drink"
+    );
+    private static final Set<String> MEAL_PATH_TOKENS = Set.of(
+            "sandwich", "burger", "pizza", "pie", "salad", "noodle", "noodles",
+            "pasta", "rice", "roll", "rolls", "dumpling", "dumplings", "kebab",
+            "mre", "canned", "macandcheese", "bowl", "plate", "meal"
+    );
+    private static final Set<String> PROTEIN_PATH_TOKENS = Set.of(
+            "beef", "chicken", "porkchop", "pork", "cod", "salmon", "rabbit",
+            "mutton", "fish", "meat", "bacon", "ham", "sausage", "ribs",
+            "wing", "wings", "rat", "cockroach", "flesh", "duck", "venison",
+            "lizard", "catfish", "bass", "koi"
+    );
+
     private FacetIndexer() {
     }
 
@@ -23,6 +41,9 @@ public final class FacetIndexer {
 
         if (item.isEdible()) {
             facets.add(ItemFacet.EDIBLE);
+        }
+        if (stack.getUseAnimation() == UseAnim.DRINK) {
+            facets.add(ItemFacet.FOOD_DRINK);
         }
         @SuppressWarnings("deprecation")
         var compostables = ComposterBlock.COMPOSTABLES;
@@ -51,8 +72,25 @@ public final class FacetIndexer {
         if (path.contains("minecart") || path.contains("boat") || path.contains("raft")) {
             facets.add(ItemFacet.TRANSPORT);
         }
+        if (isCablePath(path)) {
+            facets.add(ItemFacet.CABLE);
+            facets.add(ItemFacet.TECH_COMPONENT);
+        }
+        if (path.contains("upgrade")) {
+            facets.add(ItemFacet.UPGRADE);
+        }
+        if (isTemplatePath(path)) {
+            facets.add(ItemFacet.TEMPLATE);
+        }
+        if (isMedicalPath(path)) {
+            facets.add(ItemFacet.UTILITY_MEDICAL);
+        }
+        if (isCurrencyPath(path)) {
+            facets.add(ItemFacet.UTILITY_CURRENCY);
+        }
         if (path.contains("redstone") || path.contains("comparator") || path.contains("repeater")
                 || path.contains("observer") || path.contains("piston") || path.contains("lever")) {
+            facets.add(ItemFacet.ACTIVE_REDSTONE_LOGIC);
             facets.add(ItemFacet.REDSTONE_LOGIC);
             facets.add(ItemFacet.REDSTONE_SIGNAL);
         }
@@ -60,12 +98,13 @@ public final class FacetIndexer {
             facets.add(ItemFacet.UTILITY_NAVIGATION);
         }
         if (path.contains("bucket") || path.contains("saddle") || path.contains("name_tag")
-                || path.contains("lead") || path.contains("debug_stick") || path.contains("firework") || path.contains("music_disc")
+                || path.contains("debug_stick") || path.contains("firework") || path.contains("music_disc")
                 || path.contains("disc_fragment") || path.contains("echo_shard")
                 || path.contains("book") || path.contains("banner_pattern")
                 || path.contains("smithing_template") || path.contains("trial_key")
                 || path.equals("bowl") || path.equals("glass_bottle")
-                || path.equals("bundle") || path.equals("shield")) {
+                || path.equals("bundle") || path.equals("shield")
+                || path.equals("lead")) {
             facets.add(ItemFacet.UTILITY_MISC);
         }
         if (path.equals("fishing_rod") || path.equals("flint_and_steel")
@@ -116,7 +155,13 @@ public final class FacetIndexer {
         if (path.contains("honey_bottle")) {
             facets.add(ItemFacet.FOOD_DRINK);
         }
-        if (containsPathToken(path, "beef", "chicken", "porkchop", "cod", "salmon", "rabbit", "mutton", "fish")) {
+        if (facets.contains(ItemFacet.EDIBLE) && containsPathToken(path, DRINK_PATH_TOKENS)) {
+            facets.add(ItemFacet.FOOD_DRINK);
+        }
+        if (facets.contains(ItemFacet.EDIBLE) && containsPathToken(path, MEAL_PATH_TOKENS)) {
+            facets.add(ItemFacet.FOOD_MEAL);
+        }
+        if (facets.contains(ItemFacet.EDIBLE) && containsPathToken(path, PROTEIN_PATH_TOKENS)) {
             facets.add(ItemFacet.FOOD_PROTEIN);
         }
         if (path.contains("dye") || path.contains("ink_sac")) {
@@ -168,7 +213,7 @@ public final class FacetIndexer {
         if (item instanceof BowItem || item instanceof CrossbowItem) {
             facets.add(ItemFacet.RANGED_WEAPON);
         }
-        if (path.contains("arrow") || path.contains("bolt") || path.contains("bullet")) {
+        if (isProjectilePath(path)) {
             facets.add(ItemFacet.PROJECTILE);
         }
         if (item instanceof DiggerItem || item instanceof HoeItem || item instanceof ShovelItem || item instanceof PickaxeItem) {
@@ -204,27 +249,104 @@ public final class FacetIndexer {
 
     private static void applyTagFacts(List<String> tags, EnumSet<ItemFacet> facets) {
         for (String tag : tags) {
-            if (tag.startsWith("c:ingots")) facets.add(ItemFacet.INGOT);
-            if (tag.startsWith("c:gems")) facets.add(ItemFacet.GEM);
-            if (tag.startsWith("c:nuggets")) facets.add(ItemFacet.NUGGET);
-            if (tag.startsWith("c:raw_materials")) facets.add(ItemFacet.RAW_MATERIAL);
-            if (tag.startsWith("c:dusts")) facets.add(ItemFacet.DUST);
-            if (tag.startsWith("c:dusts/redstone")) {
+            if (isCommonTagFamily(tag, "ingots")) facets.add(ItemFacet.INGOT);
+            if (isCommonTagFamily(tag, "gems")) facets.add(ItemFacet.GEM);
+            if (isCommonTagFamily(tag, "nuggets")) facets.add(ItemFacet.NUGGET);
+            if (isCommonTagFamily(tag, "raw_materials")) facets.add(ItemFacet.RAW_MATERIAL);
+            if (isCommonTagFamily(tag, "dusts")) facets.add(ItemFacet.DUST);
+            if (isCommonTagFamily(tag, "plates")
+                    || isCommonTagFamily(tag, "rods")
+                    || isCommonTagFamily(tag, "gears")
+                    || isCannonComponentTag(tag)
+                    || tag.contains(":circuits/")
+                    || tag.contains("/circuits/")
+                    || tag.endsWith(":circuits")
+                    || tag.endsWith("/circuits")) {
+                facets.add(ItemFacet.TECH_COMPONENT);
+            }
+            if (tag.startsWith("create:crushed_raw_materials")) {
+                facets.add(ItemFacet.DUST);
+            }
+            if (isCommonTagFamily(tag, "wires")
+                    || tag.endsWith(":toolbox/wiring")
+                    || tag.endsWith("/toolbox/wiring")
+                    || tag.endsWith(":spools")
+                    || tag.endsWith("/spools")) {
+                facets.add(ItemFacet.CABLE);
+                facets.add(ItemFacet.TECH_COMPONENT);
+            }
+            if (tag.endsWith(":upgrades")
+                    || tag.endsWith("/upgrades")
+                    || tag.contains(":upgrades/")
+                    || tag.contains("/upgrades/")) {
+                facets.add(ItemFacet.UPGRADE);
+            }
+            if (isAmmoTag(tag)) {
+                facets.add(ItemFacet.PROJECTILE);
+            }
+            if (isCommonTagFamily(tag, "dusts/redstone")) {
+                facets.add(ItemFacet.ACTIVE_REDSTONE_LOGIC);
                 facets.add(ItemFacet.REDSTONE_LOGIC);
                 facets.add(ItemFacet.REDSTONE_SIGNAL);
             }
             if (tag.startsWith("c:seeds")) facets.add(ItemFacet.SEED);
             if (tag.startsWith("c:crops")) facets.add(ItemFacet.CROP);
+            if (isProduceFoodTag(tag)
+                    || (tag.equals("diet:vegetables") && facets.contains(ItemFacet.EDIBLE))) {
+                facets.add(ItemFacet.CROP);
+            }
             if (tag.startsWith("c:eggs") || tag.startsWith("c:feathers") || tag.startsWith("c:string")
-                    || tag.startsWith("c:leathers") || tag.startsWith("c:bones")) {
+                    || tag.startsWith("c:leathers") || tag.startsWith("c:bones")
+                    || tag.equals("spore:body_parts")
+                    || tag.equals("spore:inf_parts")) {
                 facets.add(ItemFacet.INGREDIENT_ORGANIC);
             }
-            if (tag.startsWith("c:foods/drink")) facets.add(ItemFacet.FOOD_DRINK);
-            if (tag.startsWith("c:foods/cooked_meat") || tag.startsWith("c:foods/cooked_fish")) {
+            if (tag.startsWith("c:foods/drink") || tag.endsWith(":drinks") || tag.endsWith("/drinks")) {
+                facets.add(ItemFacet.FOOD_DRINK);
+            }
+            if (tag.startsWith("c:foods/cooked_meat") || tag.startsWith("c:foods/cooked_fish")
+                    || tag.contains(":cooked_meat") || tag.contains(":cooked_fish")
+                    || tag.contains("/cooked_meat") || tag.contains("/cooked_fish")
+                    || tag.endsWith(":meals") || tag.endsWith("/meals")
+                    || tag.equals("forge:mre/main_course")) {
                 facets.add(ItemFacet.FOOD_MEAL);
             }
-            if (tag.startsWith("c:foods/meat") || tag.startsWith("c:foods/fish")) {
+            if (tag.startsWith("c:foods/meat") || tag.startsWith("c:foods/fish")
+                    || tag.contains(":raw_meat") || tag.contains(":raw_fish")
+                    || tag.contains("/raw_meat") || tag.contains("/raw_fish")
+                    || tag.equals("minecraft:is_meat")
+                    || (tag.equals("diet:proteins") && facets.contains(ItemFacet.EDIBLE))) {
                 facets.add(ItemFacet.FOOD_PROTEIN);
+            }
+            if (isCurioTag(tag)) {
+                facets.add(ItemFacet.CURIO);
+            }
+            if (tag.endsWith(":melee_weapons") || tag.endsWith("/melee_weapons")) {
+                facets.add(ItemFacet.MELEE_WEAPON);
+            }
+            if (isMeleeToolTag(tag)) {
+                facets.add(ItemFacet.MELEE_WEAPON);
+            }
+            if (isUtilityToolTag(tag)) {
+                facets.add(ItemFacet.UTILITY_TOOL);
+            }
+            if (isHarvestToolTag(tag)) {
+                facets.add(ItemFacet.HARVEST_TOOL);
+            }
+            if (isRangedWeaponTag(tag)) {
+                facets.add(ItemFacet.RANGED_WEAPON);
+            }
+            if (tag.equals("minecraft:music_discs")
+                    || tag.equals("minecraft:bookshelf_books")
+                    || tag.equals("minecraft:lectern_books")
+                    || tag.endsWith(":film_rolls")
+                    || tag.endsWith(":developed_film_rolls")
+                    || tag.endsWith("/film_rolls")
+                    || tag.endsWith("/developed_film_rolls")) {
+                facets.add(ItemFacet.UTILITY_MISC);
+            }
+            if (isFurnitureTag(tag)) {
+                facets.add(ItemFacet.DECORATIVE_BLOCK);
             }
             if (tag.startsWith("c:tools/pickaxes") || tag.startsWith("c:tools/axes")
                     || tag.startsWith("c:tools/shovels") || tag.startsWith("c:tools/hoes")
@@ -242,7 +364,7 @@ public final class FacetIndexer {
             if (tag.startsWith("c:armors/chestplates")) facets.add(ItemFacet.ARMOR_CHEST);
             if (tag.startsWith("c:armors/leggings")) facets.add(ItemFacet.ARMOR_LEGS);
             if (tag.startsWith("c:armors/boots")) facets.add(ItemFacet.ARMOR_FEET);
-            if (tag.startsWith("c:storage_blocks")) {
+            if (isCommonTagFamily(tag, "storage_blocks")) {
                 if (tag.contains("/raw_")) {
                     facets.add(ItemFacet.RAW_MATERIAL);
                 } else if (tag.contains("gem") || tag.contains("diamond") || tag.contains("emerald") || tag.contains("lapis") || tag.contains("quartz") || tag.contains("amethyst")) {
@@ -271,6 +393,13 @@ public final class FacetIndexer {
         }
     }
 
+    private static boolean isCommonTagFamily(String tag, String familyPath) {
+        return tag.equals("c:" + familyPath)
+                || tag.startsWith("c:" + familyPath + "/")
+                || tag.equals("forge:" + familyPath)
+                || tag.startsWith("forge:" + familyPath + "/");
+    }
+
     private static boolean containsPathToken(String path, String... tokens) {
         String[] pathTokens = path.split("[_/]");
         for (String pathToken : pathTokens) {
@@ -283,6 +412,153 @@ public final class FacetIndexer {
         return false;
     }
 
+    private static boolean containsPathToken(String path, Set<String> tokens) {
+        String[] pathTokens = path.split("[_/]");
+        for (String pathToken : pathTokens) {
+            if (tokens.contains(pathToken)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isProduceFoodTag(String tag) {
+        return tag.startsWith("c:foods/vegetable")
+                || tag.startsWith("forge:foods/vegetable");
+    }
+
+    private static boolean isFurnitureTag(String tag) {
+        return tag.endsWith(":bathroom")
+                || tag.endsWith("/bathroom")
+                || tag.endsWith(":furniture")
+                || tag.endsWith("/furniture")
+                || tag.endsWith(":furnitures")
+                || tag.endsWith("/furnitures");
+    }
+
+    private static boolean isCurioTag(String tag) {
+        return tag.startsWith("curios:")
+                || tag.contains(":trinkets")
+                || tag.contains("/trinkets")
+                || tag.endsWith(":trinket")
+                || tag.endsWith("/trinket");
+    }
+
+    private static boolean isMeleeToolTag(String tag) {
+        return tag.endsWith(":tool/melee")
+                || tag.endsWith("/tool/melee")
+                || tag.endsWith(":tools/swords")
+                || tag.endsWith("/tools/swords")
+                || tag.endsWith(":weapons/swords")
+                || tag.endsWith("/weapons/swords");
+    }
+
+    private static boolean isUtilityToolTag(String tag) {
+        return tag.equals("c:tools")
+                || tag.equals("forge:tools")
+                || tag.equals("minecraft:tools")
+                || tag.endsWith(":tools/hammers")
+                || tag.endsWith("/tools/hammers")
+                || tag.endsWith(":tools/wirecutters")
+                || tag.endsWith("/tools/wirecutters")
+                || tag.endsWith(":toolbox/tools")
+                || tag.endsWith("/toolbox/tools")
+                || tag.equals("c:enchantables")
+                || tag.equals("forge:enchantables")
+                || tag.startsWith("minecraft:enchantable/");
+    }
+
+    private static boolean isHarvestToolTag(String tag) {
+        return tag.startsWith("c:tools/pickaxes")
+                || tag.startsWith("c:tools/axes")
+                || tag.startsWith("c:tools/shovels")
+                || tag.startsWith("c:tools/hoes")
+                || tag.startsWith("c:tools/shears")
+                || tag.startsWith("c:tools/fishing_rods")
+                || tag.equals("minecraft:pickaxes")
+                || tag.equals("minecraft:axes")
+                || tag.equals("minecraft:shovels")
+                || tag.equals("minecraft:hoes");
+    }
+
+    private static boolean isRangedWeaponTag(String tag) {
+        return tag.startsWith("c:tools/bows")
+                || tag.startsWith("c:tools/crossbows")
+                || tag.startsWith("c:weapons/bows")
+                || tag.startsWith("c:weapons/crossbows")
+                || tag.equals("minecraft:arrows");
+    }
+
+    private static boolean isCannonComponentTag(String tag) {
+        return tag.startsWith("createbigcannons:fuzes")
+                || tag.startsWith("createbigcannons:spent_autocannon_casings")
+                || tag.startsWith("createbigcannons:high_explosive_materials")
+                || tag.startsWith("createbigcannons:nitropowder")
+                || tag.startsWith("createbigcannons:guncotton");
+    }
+
+    private static boolean isAmmoTag(String tag) {
+        return tag.startsWith("createbigcannons:autocannon_rounds")
+                || tag.startsWith("createbigcannons:autocannon_cartridges");
+    }
+
+    private static boolean isProjectilePath(String path) {
+        if (path.contains("bulletproof")) {
+            return false;
+        }
+        if (path.contains("crab_shell")
+                || path.contains("shulker_shell")
+                || path.contains("nautilus_shell")) {
+            return false;
+        }
+        return path.contains("arrow")
+                || path.contains("bolt")
+                || path.contains("bullet")
+                || containsPathToken(path, "round", "ammo", "cartridge", "grenade")
+                || path.equals("shell")
+                || path.endsWith("_shell");
+    }
+
+    private static boolean isCablePath(String path) {
+        return (path.contains("cable")
+                || path.endsWith("wire")
+                || path.contains("_wire")
+                || path.contains("wire_")
+                || path.contains("wirecoil")
+                || containsPathToken(path, "pipe", "tube", "conduit", "duct"))
+                && !path.contains("wire_cut");
+    }
+
+    private static boolean isTemplatePath(String path) {
+        return path.contains("blueprint")
+                || path.contains("schematic")
+                || path.equals("mold")
+                || path.startsWith("mold_")
+                || path.contains("_mold")
+                || path.contains("pattern")
+                || path.contains("template");
+    }
+
+    private static boolean isMedicalPath(String path) {
+        return path.contains("syringe")
+                || path.contains("bandage")
+                || path.contains("medkit")
+                || path.contains("first_aid")
+                || path.contains("morphine")
+                || path.contains("adrenaline")
+                || path.contains("splint");
+    }
+
+    private static boolean isCurrencyPath(String path) {
+        return path.equals("coin")
+                || path.equals("coins")
+                || path.contains("coinstack")
+                || path.contains("_coin")
+                || path.contains("cash")
+                || path.contains("money")
+                || path.contains("credit_card");
+    }
+
     private static void applyBlockFacts(
             BlockItem blockItem,
             ItemStack stack,
@@ -292,6 +568,23 @@ public final class FacetIndexer {
     ) {
         BlockState state = blockItem.getBlock().defaultBlockState();
         facets.add(ItemFacet.PLACEABLE);
+        attributes.put(SearchNodeKeys.BLOCK_CLASS, blockItem.getBlock().getClass().getName());
+
+        String blockTags = state.getTags()
+                .map(tag -> tag.location().toString().toLowerCase(Locale.ROOT))
+                .sorted()
+                .collect(Collectors.joining(","));
+        if (!blockTags.isBlank()) {
+            attributes.put(SearchNodeKeys.BLOCK_TAGS, blockTags);
+        }
+
+        String blockProperties = state.getProperties().stream()
+                .map(property -> property.getName().toLowerCase(Locale.ROOT))
+                .sorted()
+                .collect(Collectors.joining(","));
+        if (!blockProperties.isBlank()) {
+            attributes.put(SearchNodeKeys.BLOCK_STATE_PROPERTIES, blockProperties);
+        }
 
         if (blockItem.getBlock() instanceof EntityBlock) {
             facets.add(ItemFacet.HAS_BLOCK_ENTITY);
@@ -317,14 +610,19 @@ public final class FacetIndexer {
             facets.add(ItemFacet.LIGHT_SOURCE);
         }
         if (state.isSignalSource()) {
+            facets.add(ItemFacet.ACTIVE_REDSTONE_LOGIC);
             facets.add(ItemFacet.REDSTONE_LOGIC);
         }
         if (state.hasAnalogOutputSignal()) {
             facets.add(ItemFacet.REDSTONE_SIGNAL);
+            if (!state.isSignalSource()) {
+                facets.add(ItemFacet.PASSIVE_COMPARATOR_OUTPUT);
+            }
         }
         if (state.is(BlockTags.RAILS)) {
             facets.add(ItemFacet.RAIL);
             facets.add(ItemFacet.TRANSPORT);
+            facets.add(ItemFacet.ACTIVE_REDSTONE_LOGIC);
             facets.add(ItemFacet.REDSTONE_LOGIC);
             attributes.put("blockShape", "rail");
         }
@@ -384,16 +682,19 @@ public final class FacetIndexer {
         }
         if (path.contains("redstone") || path.contains("comparator") || path.contains("repeater")
                 || path.contains("lever") || path.contains("button") || path.contains("pressure_plate")) {
+            facets.add(ItemFacet.ACTIVE_REDSTONE_LOGIC);
             facets.add(ItemFacet.REDSTONE_LOGIC);
             facets.add(ItemFacet.REDSTONE_SIGNAL);
         }
         if (containsPathToken(path, "relay", "transmitter", "receiver", "detector", "trigger")) {
+            facets.add(ItemFacet.ACTIVE_REDSTONE_LOGIC);
             facets.add(ItemFacet.REDSTONE_LOGIC);
             facets.add(ItemFacet.REDSTONE_SIGNAL);
         }
         if (path.equals("target") || path.equals("tripwire_hook")
                 || path.equals("daylight_detector") || path.equals("lightning_rod")
                 || path.equals("note_block") || path.equals("tnt")) {
+            facets.add(ItemFacet.ACTIVE_REDSTONE_LOGIC);
             facets.add(ItemFacet.REDSTONE_LOGIC);
             facets.add(ItemFacet.REDSTONE_SIGNAL);
         }
@@ -401,11 +702,15 @@ public final class FacetIndexer {
             facets.add(ItemFacet.MACHINE);
         }
         if (isWorkstationPath(path)) {
+            facets.add(ItemFacet.WORKSTATION);
             facets.add(ItemFacet.MACHINE);
         }
         if (path.equals("honey_block") || path.equals("lectern")
                 || path.equals("beehive") || path.equals("bee_nest")
                 || path.equals("respawn_anchor")) {
+            if (path.equals("lectern")) {
+                facets.add(ItemFacet.WORKSTATION);
+            }
             facets.add(ItemFacet.MACHINE);
         }
         if (isStoragePath(path)) {

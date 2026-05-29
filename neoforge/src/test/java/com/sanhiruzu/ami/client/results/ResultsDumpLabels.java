@@ -10,6 +10,7 @@ final class ResultsDumpLabels {
 
     static String label(String raw) {
         if (raw.startsWith("ami.category.")) {
+            if ("ami.category.masonry".equals(raw)) return "Building";
             return title(raw.substring("ami.category.".length()));
         }
         if (raw.startsWith("ami.subcategory.")) {

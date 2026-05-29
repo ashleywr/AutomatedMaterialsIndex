@@ -43,11 +43,15 @@ public final class RowFieldConfig {
      * Java hashCode of the sorted mod-ID list — cheap and sufficient for invalidation.
      */
     private static int computeChecksum() {
-        return ModList.get().getMods().stream()
-                .map(info -> info.getModId())
-                .sorted()
-                .collect(Collectors.joining(","))
-                .hashCode();
+        try {
+            return ModList.get().getMods().stream()
+                    .map(info -> info.getModId())
+                    .sorted()
+                    .collect(Collectors.joining(","))
+                    .hashCode();
+        } catch (Throwable ignored) {
+            return 0;
+        }
     }
 
     // ── Read / write ──────────────────────────────────────────────────────────
@@ -82,6 +86,27 @@ public final class RowFieldConfig {
                 : EnumSet.copyOf(fields);
         AmiConfig.subtitleFields =
                 ordered.stream().map(Enum::name).collect(Collectors.joining(","));
+    }
+
+    /**
+     * Returns true only when every selected row field has data for this node.
+     * Always-present fields (mod/id/type) naturally act as no-op filters.
+     */
+    public static boolean matchesSelectedFields(SearchNode node) {
+        for (RowField field : getSubtitleFields()) {
+            if (!field.hasValue(node)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static List<SearchNode> filterNodesWithSelectedFields(List<SearchNode> nodes) {
+        List<RowField> fields = getSubtitleFields();
+        if (fields.isEmpty()) return nodes;
+        return nodes.stream()
+                .filter(RowFieldConfig::matchesSelectedFields)
+                .collect(Collectors.toList());
     }
 
     // ── Rendering helper ──────────────────────────────────────────────────────

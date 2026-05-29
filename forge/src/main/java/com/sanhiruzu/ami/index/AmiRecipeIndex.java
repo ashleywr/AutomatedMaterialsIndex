@@ -9,13 +9,19 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.TieredItem;
+import net.minecraft.world.item.PotionItem;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.item.alchemy.PotionUtils;
 import net.minecraft.world.item.alchemy.PotionBrewing;
+import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.common.brewing.BrewingRecipe;
+import net.minecraftforge.common.brewing.BrewingRecipeRegistry;
+import net.minecraftforge.common.brewing.IBrewingRecipe;
+import net.minecraftforge.common.brewing.VanillaBrewingRecipe;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.Nullable;
 
@@ -125,41 +131,92 @@ public final class AmiRecipeIndex {
 
     private void indexBrewing(Level level) {
         try {
-            java.lang.reflect.Field potionMixesField = PotionBrewing.class.getDeclaredField("POTION_MIXES");
-            potionMixesField.setAccessible(true);
-            List<?> potionMixes = (List<?>) potionMixesField.get(null);
-
             int idCounter = 0;
-            for (Object mix : potionMixes) {
-                java.lang.reflect.Field fromField = mix.getClass().getDeclaredField("from");
-                java.lang.reflect.Field ingredientField = mix.getClass().getDeclaredField("ingredient");
-                java.lang.reflect.Field toField = mix.getClass().getDeclaredField("to");
-                fromField.setAccessible(true);
-                ingredientField.setAccessible(true);
-                toField.setAccessible(true);
 
-                net.minecraft.core.Holder.Reference<Potion> from = (net.minecraft.core.Holder.Reference<Potion>) fromField.get(mix);
-                Ingredient ingredient = (Ingredient) ingredientField.get(mix);
-                net.minecraft.core.Holder.Reference<Potion> to = (net.minecraft.core.Holder.Reference<Potion>) toField.get(mix);
+            for (IBrewingRecipe brewingRecipe : BrewingRecipeRegistry.getRecipes()) {
+                if (brewingRecipe instanceof BrewingRecipe recipe) {
+                    ItemStack outputStack = recipe.getOutput();
+                    if (outputStack.isEmpty()) continue;
 
-                for (Item container : List.of(Items.POTION, Items.SPLASH_POTION, Items.LINGERING_POTION)) {
-                    ItemStack inputStack = PotionUtils.setPotion(new ItemStack(container), from.value());
-                    ItemStack outputStack = PotionUtils.setPotion(new ItemStack(container), to.value());
-                    
-                    ResourceLocation id = new ResourceLocation("ami", "brewing/" + idCounter++);
-                    var recipe = new com.sanhiruzu.ami.index.special.PotionBrewingRecipe(id, inputStack, ingredient, outputStack, BREWING);
-                    AmiRecipeHolder<com.sanhiruzu.ami.index.special.PotionBrewingRecipe> holder = new AmiRecipeHolder<>(id, recipe);
-                    
-                    recipesByOutput.computeIfAbsent(outputStack.getItem(), k -> new ArrayList<>()).add(holder);
-                    recipesByInput.computeIfAbsent(inputStack.getItem(), k -> new ArrayList<>()).add(holder);
-                    for (ItemStack ingStack : ingredient.getItems()) {
-                        recipesByInput.computeIfAbsent(ingStack.getItem(), k -> new ArrayList<>()).add(holder);
+                    ItemStack[] inputStacks = recipe.getInput().getItems();
+                    if (inputStacks.length == 0) continue;
+
+                    for (ItemStack inputStack : inputStacks) {
+                        if (inputStack.isEmpty()) continue;
+                        idCounter = indexBrewingRecipe(idCounter, inputStack, recipe.getIngredient(), outputStack);
                     }
+                } else if (brewingRecipe instanceof VanillaBrewingRecipe) {
+                    idCounter = indexVanillaBrewingRecipes(idCounter);
                 }
             }
         } catch (Exception e) {
             AMI.LOGGER.warn("AmiRecipeIndex: Failed to index brewing recipes", e);
         }
+    }
+
+    private int indexVanillaBrewingRecipes(int idCounter) {
+        List<ItemStack> knownPotions = new ArrayList<>();
+        for (Item container : List.of(Items.POTION, Items.SPLASH_POTION, Items.LINGERING_POTION)) {
+            knownPotions.add(new ItemStack(container));
+            for (Potion potion : ForgeRegistries.POTIONS) {
+                if (potion == Potions.EMPTY) continue;
+                knownPotions.add(PotionUtils.setPotion(new ItemStack(container), potion));
+            }
+        }
+
+        Set<String> seen = new HashSet<>();
+        for (ItemStack inputStack : knownPotions) {
+            for (Item reagent : ForgeRegistries.ITEMS) {
+                ItemStack reagentStack = reagent.getDefaultInstance();
+                if (reagentStack.isEmpty() || !PotionBrewing.isIngredient(reagentStack)) continue;
+
+                ItemStack inputCandidate = inputStack.copy();
+                ItemStack outputStack = PotionBrewing.mix(reagentStack, inputCandidate);
+                if (outputStack == inputCandidate || outputStack.isEmpty()) continue;
+                if (inputStack.getItem() instanceof PotionItem
+                        && outputStack.getItem() instanceof PotionItem
+                        && PotionUtils.getPotion(outputStack) == Potions.WATER) {
+                    continue;
+                }
+
+                String key = brewingStackKey(inputStack) + "|" + ForgeRegistries.ITEMS.getKey(reagent) + "|" + brewingStackKey(outputStack);
+                if (!seen.add(key)) continue;
+
+                idCounter = indexBrewingRecipe(idCounter, inputStack, Ingredient.of(reagentStack), outputStack);
+            }
+        }
+
+        return idCounter;
+    }
+
+    private int indexBrewingRecipe(int idCounter, ItemStack inputStack, Ingredient ingredient, ItemStack outputStack) {
+        ResourceLocation id = new ResourceLocation("ami", "brewing/" + idCounter++);
+        var recipe = new com.sanhiruzu.ami.index.special.PotionBrewingRecipe(
+                id,
+                inputStack.copy(),
+                ingredient,
+                outputStack.copy(),
+                BREWING
+        );
+        AmiRecipeHolder<com.sanhiruzu.ami.index.special.PotionBrewingRecipe> holder = new AmiRecipeHolder<>(id, recipe);
+
+        recipesByOutput.computeIfAbsent(outputStack.getItem(), k -> new ArrayList<>()).add(holder);
+        recipesByInput.computeIfAbsent(inputStack.getItem(), k -> new ArrayList<>()).add(holder);
+        for (ItemStack ingStack : ingredient.getItems()) {
+            if (!ingStack.isEmpty()) {
+                recipesByInput.computeIfAbsent(ingStack.getItem(), k -> new ArrayList<>()).add(holder);
+            }
+        }
+        return idCounter;
+    }
+
+    private static String brewingStackKey(ItemStack stack) {
+        ResourceLocation itemId = ForgeRegistries.ITEMS.getKey(stack.getItem());
+        if (stack.getItem() instanceof PotionItem) {
+            ResourceLocation potionId = ForgeRegistries.POTIONS.getKey(PotionUtils.getPotion(stack));
+            return itemId + "@" + potionId;
+        }
+        return String.valueOf(itemId);
     }
 
     private void indexRepairs() {
@@ -170,7 +227,7 @@ public final class AmiRecipeIndex {
             ItemStack stack = item.getDefaultInstance();
             for (Item materialItem : ForgeRegistries.ITEMS) {
                 ItemStack materialStack = materialItem.getDefaultInstance();
-                if (item.isValidRepairItem(stack, materialStack)) {
+                if (isValidRepairItem(item, stack, materialStack)) {
                     ResourceLocation id = new ResourceLocation("ami", "repair/" + idCounter++);
                     Ingredient ingredient = Ingredient.of(materialStack);
                     ItemStack result = stack.copy();
@@ -184,6 +241,16 @@ public final class AmiRecipeIndex {
                     recipesByInput.computeIfAbsent(materialItem, k -> new ArrayList<>()).add(holder);
                 }
             }
+        }
+    }
+
+    private static boolean isValidRepairItem(Item item, ItemStack stack, ItemStack materialStack) {
+        if (materialStack.isEmpty()) return false;
+        try {
+            return item.isValidRepairItem(stack, materialStack);
+        } catch (RuntimeException | LinkageError ignored) {
+            // Some modded armor materials return a null repair ingredient; skip those invalid probes.
+            return false;
         }
     }
 

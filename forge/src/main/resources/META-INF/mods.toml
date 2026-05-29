@@ -15,6 +15,9 @@ The next-generation recipe and progression UI for modded Minecraft.
 AMI eliminates UI bloat with smart, faceted recipe organization, Ghost Crafting for seamless item selection, automated material indexing, and a directed progression graph for guiding players through modpack content.
 '''
 
+[[mixins]]
+config = "${mod_id}.mixins.json"
+
 [[dependencies.${ mod_id }]] #optional
 modId = "forge" #mandatory
 mandatory = true #mandatory

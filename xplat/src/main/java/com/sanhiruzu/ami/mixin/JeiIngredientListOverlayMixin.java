@@ -36,8 +36,6 @@ public class JeiIngredientListOverlayMixin {
     }
 
     private static boolean shouldSuppressJeiRendering() {
-        if (!InventoryOverlayHandler.isAmiEnabled()) return false;
-        var manager = InventoryOverlayHandler.getManager();
-        return manager != null && manager.isPanelVisible();
+        return InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
     }
 }

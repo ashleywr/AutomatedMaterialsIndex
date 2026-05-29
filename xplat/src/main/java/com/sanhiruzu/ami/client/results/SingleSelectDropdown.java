@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.AMITheme;
+import com.sanhiruzu.ami.client.AmiGuiIcons;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -56,10 +57,8 @@ public class SingleSelectDropdown<T> implements Dropdown {
         String text = textComp.getString();
         var font = Minecraft.getInstance().font;
 
-        // Add a small arrow if it can be opened
         if (canOpen) {
-            String arrow = open ? "▲" : "▼";
-            g.drawString(font, arrow, x + width - 9, y + 2, AMITheme.TEXT_SUBTLE, false);
+            AmiGuiIcons.dropdownChevron(g, x + width - 7, y + HEIGHT / 2, AMITheme.TEXT_SUBTLE, open);
         }
 
         int maxTextW = width - (canOpen ? 12 : 6);
