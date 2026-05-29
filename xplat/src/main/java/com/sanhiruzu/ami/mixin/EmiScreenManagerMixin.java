@@ -11,7 +11,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import com.sanhiruzu.ami.AmiCore;
 /**
  * Blocks EMI's chrome (item list, search bar, config/recipe-tree buttons) when AMI
  * is active, so EMI cannot draw or interact inside the inventory screen. The
@@ -29,7 +28,7 @@ import com.sanhiruzu.ami.AmiCore;
 @Mixin(EmiScreenManager.class)
 public class EmiScreenManagerMixin {
 
-    // ── Chrome suppression (always on when AMI active) ────────────────────────
+    // Chrome suppression (always on when AMI active)
 
     @Inject(method = "render", at = @At("HEAD"), cancellable = true, remap = false)
     private static void hideEmiWhenAmiActive(EmiDrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
@@ -61,7 +60,7 @@ public class EmiScreenManagerMixin {
         }
     }
 
-    // ── Input suppression (lifted during recipe view) ─────────────────────────
+    // Input suppression (lifted during recipe view)
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), remap = false, cancellable = true)
     private static void suppressMouseClickedWhenAmiActive(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
@@ -119,13 +118,13 @@ public class EmiScreenManagerMixin {
         }
     }
 
-    // ── Gates ─────────────────────────────────────────────────────────────────
+    // Gates
 
     /**
      * Always suppress EMI chrome rendering when AMI is active, even during recipe view.
      */
     private static boolean shouldSuppressEmiChrome() {
-        return InventoryOverlayHandler.isAmiEnabled();
+        return InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
     }
 
     /**

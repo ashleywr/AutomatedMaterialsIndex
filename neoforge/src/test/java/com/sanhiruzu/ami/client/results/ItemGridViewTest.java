@@ -113,8 +113,9 @@ public class ItemGridViewTest {
         assertEquals("Furniture", headerLabel(rows.get(0)));
         assertEquals("Oak", headerLabel(rows.get(1)));
         assertEquals("Spruce", headerLabel(rows.get(2)));
-        assertEquals(2, itemCount(rows.get(3)));
-        assertEquals(1, itemRowDepth(rows.get(3)));
+        assertEquals("ami.group.other", headerLabel(rows.get(3)));
+        assertEquals(2, itemCount(rows.get(4)));
+        assertEquals(1, itemRowDepth(rows.get(4)));
     }
 
     private static int itemCount(Object row) throws Exception {

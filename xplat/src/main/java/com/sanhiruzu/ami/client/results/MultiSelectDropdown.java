@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.AMITheme;
+import com.sanhiruzu.ami.client.AmiGuiIcons;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -40,8 +41,7 @@ public class MultiSelectDropdown<T> implements Dropdown {
 
         var font = Minecraft.getInstance().font;
         if (canOpen) {
-            String arrow = open ? "▲" : "▼";
-            g.drawString(font, arrow, x + width - 9, y + 2, AMITheme.TEXT_SUBTLE, false);
+            AmiGuiIcons.dropdownChevron(g, x + width - 7, y + HEIGHT / 2, AMITheme.TEXT_SUBTLE, open);
         }
 
         String countLabel = Component.translatable("ami.gui.dropdown_count", selected.size(), options.size()).getString();

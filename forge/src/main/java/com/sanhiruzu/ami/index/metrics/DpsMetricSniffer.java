@@ -7,6 +7,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.Optional;
 import java.util.OptionalDouble;
 
 /**
@@ -24,16 +25,27 @@ public final class DpsMetricSniffer {
     }
 
     public static OptionalDouble estimate(ItemStack stack) {
-        if (stack == null || stack.isEmpty()) return OptionalDouble.empty();
+        return estimateStats(stack).map(stats -> OptionalDouble.of(stats.dps())).orElseGet(OptionalDouble::empty);
+    }
+
+    public static OptionalDouble estimateDamage(ItemStack stack) {
+        return estimateStats(stack).map(stats -> OptionalDouble.of(stats.damage())).orElseGet(OptionalDouble::empty);
+    }
+
+    private static Optional<AttackStats> estimateStats(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return Optional.empty();
 
         var modifiers = stack.getAttributeModifiers(EquipmentSlot.MAINHAND);
         MutableAttribute damage = new MutableAttribute(PLAYER_BASE_DAMAGE);
         MutableAttribute speed = new MutableAttribute(PLAYER_BASE_ATTACK_SPEED);
+        boolean[] hasMainHandAttackModifier = {false};
 
         modifiers.forEach((attribute, modifier) -> {
             if (attribute == Attributes.ATTACK_DAMAGE) {
+                hasMainHandAttackModifier[0] = true;
                 damage.apply(modifier);
             } else if (attribute == Attributes.ATTACK_SPEED) {
+                hasMainHandAttackModifier[0] = true;
                 speed.apply(modifier);
             }
         });
@@ -42,11 +54,12 @@ public final class DpsMetricSniffer {
         double finalSpeed = Math.max(0.0D, speed.value());
         double dps = finalDamage * finalSpeed;
 
-        // Do not annotate harmless/default items as weapons.
-        if (dps <= PLAYER_BASE_DAMAGE * PLAYER_BASE_ATTACK_SPEED) {
-            return OptionalDouble.empty();
+        // Do not annotate harmless/default items as weapons, but keep slow weapons
+        // like the mace whose baseline DPS can be lower than an empty hand.
+        if (!hasMainHandAttackModifier[0] || dps <= 0.0D) {
+            return Optional.empty();
         }
-        return OptionalDouble.of(dps);
+        return Optional.of(new AttackStats(finalDamage, dps));
     }
 
     private static final class MutableAttribute {
@@ -71,5 +84,8 @@ public final class DpsMetricSniffer {
         private double value() {
             return value;
         }
+    }
+
+    private record AttackStats(double damage, double dps) {
     }
 }

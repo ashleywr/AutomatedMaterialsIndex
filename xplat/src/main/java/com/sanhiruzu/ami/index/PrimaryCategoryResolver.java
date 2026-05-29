@@ -54,10 +54,15 @@ public final class PrimaryCategoryResolver {
             "bookcase", "bookshelf", "shelf", "rack", "sign", "plaque"
     );
 
+    private static final Set<String> ARCHITECTURAL_BUILDING_TOKENS = Set.of(
+            "stair", "stairs", "roof", "balcony", "bridge", "railing", "banister",
+            "parapet", "platform", "path", "paving", "paver", "window", "pier"
+    );
+
     private static final Set<String> WORKSTATION_TOKENS = Set.of(
             "station", "terminal", "controller", "assembler", "fabricator",
             "charger", "press", "mixer", "crusher", "grinder", "smelter",
-            "refinery", "processor", "forge", "loom", "workbench"
+            "refinery", "processor", "forge", "loom", "workbench", "stove", "oven"
     );
 
     private static final Set<String> CREATE_HANDHELD_TOOL_TOKENS = Set.of(
@@ -107,6 +112,10 @@ public final class PrimaryCategoryResolver {
             "pipe", "vein", "sample", "core"
     );
 
+    private static final Set<String> FOOD_STORAGE_TOKENS = Set.of(
+            "crate", "bag", "bale", "sack"
+    );
+
     private PrimaryCategoryResolver() {
     }
 
@@ -136,10 +145,10 @@ public final class PrimaryCategoryResolver {
         if (hasAny(facets, ItemFacet.POTION, ItemFacet.ENCHANTED_BOOK, ItemFacet.MAGIC_ARTIFACT, ItemFacet.MAGIC_REAGENT)) {
             return assignment("magic", classifyMagicSubcategory(facets), attributes);
         }
-        if (hasAny(facets, ItemFacet.UTILITY_NAVIGATION, ItemFacet.UTILITY_MISC)) {
+        if (hasAny(facets, ItemFacet.UTILITY_NAVIGATION, ItemFacet.UTILITY_MEDICAL, ItemFacet.UTILITY_CURRENCY, ItemFacet.UTILITY_MISC)) {
             return assignment("utility", classifyUtilitySubcategory(facets), attributes);
         }
-        if (hasAny(facets, ItemFacet.ARMOR_HEAD, ItemFacet.ARMOR_CHEST, ItemFacet.ARMOR_LEGS, ItemFacet.ARMOR_FEET, ItemFacet.ARMOR_ANIMAL)) {
+        if (hasAny(facets, ItemFacet.ARMOR_HEAD, ItemFacet.ARMOR_CHEST, ItemFacet.ARMOR_LEGS, ItemFacet.ARMOR_FEET, ItemFacet.ARMOR_ANIMAL, ItemFacet.CURIO)) {
             return assignment("armor", classifyArmorSubcategory(facets), attributes);
         }
         if (isThrowableIngredient(facets)) {
@@ -151,14 +160,24 @@ public final class PrimaryCategoryResolver {
         if (shouldResolveFoodLikeBeforePassiveRedstone(modFamily, facets, path)) {
             return assignment("nature", classifyFoodFamilyPreparedSubcategory(path, facets), attributes);
         }
+        if (shouldResolveDecorLikeBeforePassiveRedstone(modFamily, facets, attributes)) {
+            return assignment("decoration", classifyDecorationSubcategory(facets), attributes);
+        }
         if (hasAny(facets,
                 ItemFacet.HAS_ENERGY,
                 ItemFacet.STORAGE,
                 ItemFacet.INTERACTIVE_BLOCK,
+                ItemFacet.ACTIVE_REDSTONE_LOGIC,
+                ItemFacet.PASSIVE_COMPARATOR_OUTPUT,
                 ItemFacet.REDSTONE_LOGIC,
                 ItemFacet.REDSTONE_SIGNAL,
                 ItemFacet.TRANSPORT,
                 ItemFacet.MACHINE,
+                ItemFacet.WORKSTATION,
+                ItemFacet.CABLE,
+                ItemFacet.UPGRADE,
+                ItemFacet.TEMPLATE,
+                ItemFacet.TECH_COMPONENT,
                 ItemFacet.INGOT,
                 ItemFacet.GEM,
                 ItemFacet.NUGGET,
@@ -166,17 +185,35 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.DUST)) {
             return assignment("tech", classifyTechSubcategory(facets), attributes);
         }
-        if (hasAny(facets, ItemFacet.EDIBLE, ItemFacet.PLACEABLE_FOOD, ItemFacet.COMPOSTABLE, ItemFacet.SEED, ItemFacet.CROP, ItemFacet.NATURE_MISC, ItemFacet.FUNGI, ItemFacet.LOG, ItemFacet.LEAVES, ItemFacet.FLOWER)) {
+        if (hasAny(facets, ItemFacet.EDIBLE, ItemFacet.PLACEABLE_FOOD, ItemFacet.FOOD_MEAL, ItemFacet.FOOD_DRINK, ItemFacet.FOOD_PROTEIN, ItemFacet.COMPOSTABLE, ItemFacet.SEED, ItemFacet.CROP, ItemFacet.NATURE_MISC, ItemFacet.FUNGI, ItemFacet.LOG, ItemFacet.LEAVES, ItemFacet.FLOWER)) {
             return assignment("nature", classifyNatureSubcategory(facets), attributes);
         }
         if (hasAny(facets, ItemFacet.INGREDIENT_ORGANIC, ItemFacet.INGREDIENT_MINERAL, ItemFacet.INGREDIENT_DYE)) {
             return assignment("ingredients", classifyIngredientSubcategory(facets), attributes);
+        }
+        // Structural building variants (stairs/slabs/etc.) are not "decoration" even if they are placeable and
+        // visually decorative. Keep them alongside their base blocks (e.g., planks -> full blocks,
+        // plank stairs/slabs -> building stairs/slabs) instead of Decoration > Furniture.
+        if (facets.contains(ItemFacet.PLACEABLE)
+                && hasAny(facets,
+                ItemFacet.STAIRS,
+                ItemFacet.SLAB,
+                ItemFacet.WALL,
+                ItemFacet.FENCE,
+                ItemFacet.FENCE_GATE,
+                ItemFacet.PANE,
+                ItemFacet.DOOR,
+                ItemFacet.TRAPDOOR)) {
+            return assignment("masonry", classifyMasonrySubcategory(facets, path, attributes), attributes);
         }
         if (hasAny(facets, ItemFacet.LIGHT_SOURCE, ItemFacet.DECORATIVE_BLOCK)) {
             return assignment("decoration", classifyDecorationSubcategory(facets), attributes);
         }
         if (hasAny(facets, ItemFacet.SOCIAL_PLAYERS, ItemFacet.SOCIAL_CLAIMS)) {
             return assignment("social", classifySocialSubcategory(facets), attributes);
+        }
+        if (shouldBiasArchitecturalPlaceableToBuilding(facets, path, attributes)) {
+            return assignment("masonry", classifyMasonrySubcategory(facets, path, attributes), attributes);
         }
         if (shouldBiasLexicalDecoration(facets, path)) {
             return assignment("decoration", classifyLexicalDecorationSubcategory(path, facets), attributes);
@@ -196,6 +233,9 @@ public final class PrimaryCategoryResolver {
         if (shouldBiasPortableStorageFamilyToArmor(modFamily, path)) {
             return assignment("armor", "curios", attributes);
         }
+        if (shouldBiasPortableStorageFamilyToTech(modFamily, path)) {
+            return assignment("tech", "upgrades", attributes);
+        }
         if (shouldBiasStorageFamilyToTech(modFamily, facets, path, attributes)) {
             return assignment("tech", classifyStorageSubcategory(path, facets), attributes);
         }
@@ -209,7 +249,7 @@ public final class PrimaryCategoryResolver {
             return assignment("tech", classifyCreateFamilyTechSubcategory(modId, path, facets), attributes);
         }
         if (shouldBiasFoodFamilyToNature(modFamily, facets, path, attributes)) {
-            return assignment("nature", classifyNatureSubcategory(facets), attributes);
+            return assignment("nature", classifyFoodFamilyNatureSubcategory(path, facets), attributes);
         }
         if (shouldBiasOrganicSurfaceBlockToNature(facets, path, attributes)) {
             return assignment("nature", classifyOrganicSurfaceBlockSubcategory(path, facets), attributes);
@@ -299,6 +339,11 @@ public final class PrimaryCategoryResolver {
 
     private static boolean isDecorFamilyMod(String modId) {
         if (modId.startsWith("mcw")
+                || modId.equals("cfm")
+                || modId.equals("cfm_wap")
+                || modId.equals("redeco")
+                || modId.equals("another_furniture")
+                || modId.equals("moa_decor_bath")
                 || modId.equals("refurbished_furniture")
                 || modId.equals("arts_and_crafts")) {
             return true;
@@ -309,6 +354,7 @@ public final class PrimaryCategoryResolver {
     private static boolean isAutomationFamilyMod(String modId) {
         return modId.equals("pneumaticcraft")
                 || modId.startsWith("pneumaticcraft")
+                || modId.equals("securitycraft")
                 || modId.contains("projectred")
                 || modId.equals("laserio")
                 || modId.equals("enderio");
@@ -344,6 +390,8 @@ public final class PrimaryCategoryResolver {
 
     private static String classifyUtilitySubcategory(Set<ItemFacet> facets) {
         if (facets.contains(ItemFacet.UTILITY_NAVIGATION)) return "navigation";
+        if (facets.contains(ItemFacet.UTILITY_MEDICAL)) return "medical";
+        if (facets.contains(ItemFacet.UTILITY_CURRENCY)) return "currency";
         return "misc";
     }
 
@@ -361,12 +409,14 @@ public final class PrimaryCategoryResolver {
         if (facets.contains(ItemFacet.ARMOR_LEGS)) return "legs";
         if (facets.contains(ItemFacet.ARMOR_FEET)) return "feet";
         if (facets.contains(ItemFacet.ARMOR_ANIMAL)) return "animal";
+        if (facets.contains(ItemFacet.CURIO)) return "curios";
         return "curios";
     }
 
     private static String classifyWeaponSubcategory(Set<ItemFacet> facets) {
         if (facets.contains(ItemFacet.MELEE_WEAPON)) return "melee";
-        if (facets.contains(ItemFacet.RANGED_WEAPON) || facets.contains(ItemFacet.PROJECTILE)) return "ranged";
+        if (facets.contains(ItemFacet.RANGED_WEAPON)) return "ranged";
+        if (facets.contains(ItemFacet.PROJECTILE)) return "ammo";
         if (facets.contains(ItemFacet.HARVEST_TOOL)) return "harvest";
         if (facets.contains(ItemFacet.UTILITY_TOOL)) return "utility";
         return "utility";
@@ -384,16 +434,25 @@ public final class PrimaryCategoryResolver {
     }
 
     private static String classifyTechSubcategory(Set<ItemFacet> facets) {
+        if (facets.contains(ItemFacet.ACTIVE_REDSTONE_LOGIC) || facets.contains(ItemFacet.REDSTONE_LOGIC)) {
+            return "redstone";
+        }
         if (facets.contains(ItemFacet.MACHINE)
+                || facets.contains(ItemFacet.WORKSTATION)
                 || facets.contains(ItemFacet.HAS_ENERGY)
                 || facets.contains(ItemFacet.STORAGE)
-                || facets.contains(ItemFacet.INTERACTIVE_BLOCK)) {
+                || facets.contains(ItemFacet.INTERACTIVE_BLOCK)
+                || facets.contains(ItemFacet.HAS_BLOCK_ENTITY)) {
             return "machines";
         }
-        if (facets.contains(ItemFacet.REDSTONE_LOGIC) || facets.contains(ItemFacet.REDSTONE_SIGNAL)) {
+        if (facets.contains(ItemFacet.REDSTONE_SIGNAL)) {
             return "redstone";
         }
         if (facets.contains(ItemFacet.TRANSPORT)) return "transport";
+        if (facets.contains(ItemFacet.TEMPLATE)) return "templates";
+        if (facets.contains(ItemFacet.UPGRADE)) return "upgrades";
+        if (facets.contains(ItemFacet.CABLE)) return "cables";
+        if (facets.contains(ItemFacet.TECH_COMPONENT)) return "parts";
         if (facets.contains(ItemFacet.DUST)) return "dusts";
         if (hasAny(facets, ItemFacet.INGOT, ItemFacet.GEM, ItemFacet.NUGGET, ItemFacet.RAW_MATERIAL)) return "ingots";
         return "parts";
@@ -404,9 +463,9 @@ public final class PrimaryCategoryResolver {
         if (facets.contains(ItemFacet.FOOD_DRINK)) return "drinks";
         if (facets.contains(ItemFacet.FOOD_PROTEIN)) return "proteins";
         if (facets.contains(ItemFacet.PLACEABLE_FOOD)) return "meals";
-        if (facets.contains(ItemFacet.EDIBLE)) return "snacks";
         if (facets.contains(ItemFacet.SEED)) return "seeds";
         if (facets.contains(ItemFacet.CROP)) return "crops";
+        if (facets.contains(ItemFacet.EDIBLE)) return "snacks";
         if (facets.contains(ItemFacet.NATURE_MISC)) return "flora";
         if (facets.contains(ItemFacet.FUNGI)) return "fungi";
         if (facets.contains(ItemFacet.FLOWER)) return "flora";
@@ -583,9 +642,32 @@ public final class PrimaryCategoryResolver {
                 && !shouldBiasUncraftableFullBlockToTerrain(facets, attributes);
     }
 
+    private static boolean shouldBiasArchitecturalPlaceableToBuilding(Set<ItemFacet> facets, String path, Map<String, String> attributes) {
+        return facets.contains(ItemFacet.PLACEABLE)
+                && !hasAny(facets,
+                ItemFacet.MACHINE,
+                ItemFacet.HAS_ENERGY,
+                ItemFacet.STORAGE,
+                ItemFacet.REDSTONE_LOGIC,
+                ItemFacet.REDSTONE_SIGNAL,
+                ItemFacet.TRANSPORT,
+                ItemFacet.NATURE_MISC,
+                ItemFacet.FUNGI,
+                ItemFacet.FLOWER,
+                ItemFacet.LOG,
+                ItemFacet.LEAVES,
+                ItemFacet.LIGHT_SOURCE)
+                && containsPathToken(path, ARCHITECTURAL_BUILDING_TOKENS);
+    }
+
     private static boolean shouldBiasPortableStorageFamilyToArmor(ModFamily modFamily, String path) {
         return modFamily == ModFamily.PORTABLE_STORAGE
                 && (path.contains("backpack") || path.contains("satchel") || path.contains("pouch"));
+    }
+
+    private static boolean shouldBiasPortableStorageFamilyToTech(ModFamily modFamily, String path) {
+        return modFamily == ModFamily.PORTABLE_STORAGE
+                && (path.contains("upgrade") || path.contains("stack") || path.contains("pump") || path.contains("filter"));
     }
 
     private static boolean shouldBiasStorageFamilyToTech(ModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
@@ -633,6 +715,15 @@ public final class PrimaryCategoryResolver {
                         || path.contains("chip")
                         || path.contains("card")
                         || path.contains("module")
+                        || path.contains("core")
+                        || path.contains("upgrade")
+                        || path.contains("pattern")
+                        || path.contains("filter")
+                        || path.contains("cover")
+                        || path.contains("remote")
+                        || path.contains("key")
+                        || path.contains("keyring")
+                        || path.contains("template")
         )
                 && !shouldBeGeology(facets, path, attributes)
                 && !shouldBiasUncraftableFullBlockToTerrain(facets, attributes);
@@ -641,10 +732,25 @@ public final class PrimaryCategoryResolver {
     private static boolean shouldBiasFoodFamilyToNature(ModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
         return modFamily == ModFamily.FOOD
                 && facets.contains(ItemFacet.PLACEABLE)
+                && (
+                hasAny(facets,
+                        ItemFacet.PLACEABLE_FOOD,
+                        ItemFacet.EDIBLE,
+                        ItemFacet.COMPOSTABLE,
+                        ItemFacet.SEED,
+                        ItemFacet.CROP,
+                        ItemFacet.NATURE_MISC,
+                        ItemFacet.FUNGI,
+                        ItemFacet.LOG,
+                        ItemFacet.LEAVES,
+                        ItemFacet.FLOWER)
+                        || isFoodStorageBlockPath(path)
+        )
                 && !hasAny(facets,
                 ItemFacet.DECORATIVE_BLOCK,
                 ItemFacet.LIGHT_SOURCE,
                 ItemFacet.MACHINE,
+                ItemFacet.HAS_BLOCK_ENTITY,
                 ItemFacet.HAS_ENERGY,
                 ItemFacet.STORAGE,
                 ItemFacet.REDSTONE_LOGIC,
@@ -663,6 +769,11 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.TRAPDOOR)
                 && !shouldBeGeology(facets, path, attributes)
                 && !shouldBiasUncraftableFullBlockToTerrain(facets, attributes);
+    }
+
+    private static String classifyFoodFamilyNatureSubcategory(String path, Set<ItemFacet> facets) {
+        if (isFoodStorageBlockPath(path)) return "crops";
+        return classifyNatureSubcategory(facets);
     }
 
     private static boolean shouldBiasFoodFamilyToIngredients(ModFamily modFamily, Set<ItemFacet> facets, String path) {
@@ -705,14 +816,14 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.MAGIC_ARTIFACT,
                 ItemFacet.MAGIC_REAGENT)
                 && (
-                facets.contains(ItemFacet.PLACEABLE)
+                facets.contains(ItemFacet.PLACEABLE_FOOD)
                         || facets.contains(ItemFacet.EDIBLE)
                         || hasPreparedFoodPath(path)
         );
     }
 
     private static boolean shouldResolveFoodLikeBeforePassiveRedstone(ModFamily modFamily, Set<ItemFacet> facets, String path) {
-        if (!facets.contains(ItemFacet.REDSTONE_SIGNAL) || facets.contains(ItemFacet.REDSTONE_LOGIC)) {
+        if (!isPassiveComparatorOnly(facets)) {
             return false;
         }
         if (hasAny(facets,
@@ -736,6 +847,49 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.FOOD_PROTEIN,
                 ItemFacet.COMPOSTABLE)
                 || (modFamily == ModFamily.FOOD && hasPreparedFoodPath(path));
+    }
+
+    private static boolean shouldResolveDecorLikeBeforePassiveRedstone(ModFamily modFamily, Set<ItemFacet> facets, Map<String, String> attributes) {
+        if (!isPassiveComparatorOnly(facets)) {
+            return false;
+        }
+        if (hasAny(facets,
+                ItemFacet.HAS_ENERGY,
+                ItemFacet.STORAGE,
+                ItemFacet.INTERACTIVE_BLOCK,
+                ItemFacet.TRANSPORT,
+                ItemFacet.MACHINE,
+                ItemFacet.INGOT,
+                ItemFacet.GEM,
+                ItemFacet.NUGGET,
+                ItemFacet.RAW_MATERIAL,
+                ItemFacet.DUST)) {
+            return false;
+        }
+        if (hasAny(facets,
+                ItemFacet.DOOR,
+                ItemFacet.TRAPDOOR,
+                ItemFacet.FENCE_GATE,
+                ItemFacet.RAIL,
+                ItemFacet.STAIRS,
+                ItemFacet.SLAB,
+                ItemFacet.WALL,
+                ItemFacet.FENCE,
+                ItemFacet.PANE)) {
+            return false;
+        }
+        return facets.contains(ItemFacet.DECORATIVE_BLOCK)
+                || (modFamily == ModFamily.DECOR
+                && facets.contains(ItemFacet.PLACEABLE)
+                && !shouldBeGeology(facets, "", attributes));
+    }
+
+    private static boolean isPassiveComparatorOnly(Set<ItemFacet> facets) {
+        if (facets.contains(ItemFacet.ACTIVE_REDSTONE_LOGIC) || facets.contains(ItemFacet.REDSTONE_LOGIC)) {
+            return false;
+        }
+        return facets.contains(ItemFacet.PASSIVE_COMPARATOR_OUTPUT)
+                || facets.contains(ItemFacet.REDSTONE_SIGNAL);
     }
 
     private static boolean shouldBiasAutomationFamilyToTech(ModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
@@ -773,12 +927,32 @@ public final class PrimaryCategoryResolver {
                         || path.contains("charger")
                         || path.contains("compressor")
                         || path.contains("chamber")
+                        || path.contains("keycard")
+                        || path.contains("codebreaker")
+                        || path.contains("monitor")
+                        || path.contains("modifier")
+                        || path.contains("reinforcer")
+                        || path.contains("remover")
+                        || path.contains("changer")
+                        || path.contains("module")
+                        || path.contains("sentry")
+                        || path.contains("taser")
+                        || path.contains("remote")
         )
                 && !shouldBeGeology(facets, path, attributes)
                 && !shouldBiasUncraftableFullBlockToTerrain(facets, attributes);
     }
 
     private static String classifyStorageSubcategory(String path, Set<ItemFacet> facets) {
+        if (facets.contains(ItemFacet.UPGRADE) || path.contains("upgrade")) {
+            return "upgrades";
+        }
+        if (facets.contains(ItemFacet.TEMPLATE) || path.contains("pattern") || path.contains("template")) {
+            return "templates";
+        }
+        if (facets.contains(ItemFacet.CABLE) || path.contains("cable") || path.contains("bus")) {
+            return "cables";
+        }
         if (path.contains("silicon")
                 || path.contains("processor")
                 || path.contains("printed_")
@@ -801,8 +975,6 @@ public final class PrimaryCategoryResolver {
             return "machines";
         }
         if (path.contains("terminal")
-                || path.contains("cable")
-                || path.contains("bus")
                 || path.contains("interface")
                 || path.contains("importer")
                 || path.contains("exporter")
@@ -830,6 +1002,9 @@ public final class PrimaryCategoryResolver {
             if (containsPathToken(path, CREATE_ADDON_MACHINE_TOKENS)) {
                 return "machines";
             }
+            if (isCablePath(path) || facets.contains(ItemFacet.CABLE)) {
+                return "cables";
+            }
             if (containsPathToken(path, CREATE_ADDON_PART_TOKENS)) {
                 return "parts";
             }
@@ -855,6 +1030,15 @@ public final class PrimaryCategoryResolver {
         }
         if (facets.contains(ItemFacet.REDSTONE_LOGIC) || facets.contains(ItemFacet.REDSTONE_SIGNAL)) {
             return "redstone";
+        }
+        if (facets.contains(ItemFacet.UPGRADE) || path.contains("upgrade")) {
+            return "upgrades";
+        }
+        if (facets.contains(ItemFacet.TEMPLATE) || isTemplatePath(path)) {
+            return "templates";
+        }
+        if (facets.contains(ItemFacet.CABLE) || isCablePath(path)) {
+            return "cables";
         }
         if (containsPathToken(path, CREATE_PART_TOKENS)) {
             return "parts";
@@ -905,11 +1089,25 @@ public final class PrimaryCategoryResolver {
                 || path.contains("pasta")
                 || path.contains("dessert")
                 || path.contains("patty")
+                || path.contains("pizza")
+                || path.contains("noodle")
+                || path.contains("rice")
+                || path.contains("kebab")
+                || path.contains("canned")
+                || path.contains("mre")
+                || path.contains("macandcheese")
                 || path.contains("soup")
                 || path.contains("stew");
     }
 
+    private static boolean isFoodStorageBlockPath(String path) {
+        return containsPathToken(path, FOOD_STORAGE_TOKENS);
+    }
+
     private static String classifyAutomationSubcategory(String path, Set<ItemFacet> facets) {
+        if (facets.contains(ItemFacet.CABLE) || path.contains("tube") || path.contains("cable")) {
+            return "cables";
+        }
         if (path.contains("circuit")
                 || path.contains("transistor")
                 || path.contains("capacitor")
@@ -917,11 +1115,14 @@ public final class PrimaryCategoryResolver {
                 || path.contains("etch")
                 || path.contains("photomask")
                 || path.contains("assembly")
+                || path.contains("keycard")
+                || path.contains("modifier")
+                || path.contains("reinforcer")
+                || path.contains("changer")
                 || path.contains("module")) {
             return "circuits";
         }
-        if (path.contains("tube")
-                || path.contains("valve")
+        if (path.contains("valve")
                 || path.contains("drone")) {
             return "parts";
         }
@@ -1086,6 +1287,26 @@ public final class PrimaryCategoryResolver {
         return false;
     }
 
+    private static boolean isCablePath(String path) {
+        return (path.contains("cable")
+                || path.endsWith("wire")
+                || path.contains("_wire")
+                || path.contains("wire_")
+                || path.contains("wirecoil")
+                || containsPathToken(path, Set.of("pipe", "tube", "conduit", "duct")))
+                && !path.contains("wire_cut");
+    }
+
+    private static boolean isTemplatePath(String path) {
+        return path.contains("blueprint")
+                || path.contains("schematic")
+                || path.equals("mold")
+                || path.startsWith("mold_")
+                || path.contains("_mold")
+                || path.contains("pattern")
+                || path.contains("template");
+    }
+
     private static boolean endsWithPathToken(String path, String token) {
         String[] pathTokens = path.split("[_/]");
         return pathTokens.length > 0 && pathTokens[pathTokens.length - 1].equals(token);
@@ -1163,11 +1384,11 @@ public final class PrimaryCategoryResolver {
         if (facets.contains(ItemFacet.WALL)) return "wall";
         if (facets.contains(ItemFacet.FENCE) || facets.contains(ItemFacet.FENCE_GATE)) return "fence";
         if (facets.contains(ItemFacet.PANE)) return "pane";
-        if (path.contains("stairs")) return "stairs";
+        if (path.contains("stairs") || path.endsWith("_stair")) return "stairs";
         if (path.contains("slab")) return "slab";
         if (path.contains("wall")) return "wall";
-        if (path.contains("fence")) return "fence";
-        if (path.contains("pane")) return "pane";
+        if (path.contains("fence") || containsPathToken(path, Set.of("railing", "banister"))) return "fence";
+        if (path.contains("pane") || containsPathToken(path, Set.of("window"))) return "pane";
         if (path.contains("door") || path.contains("trapdoor")) return "functional";
 
         String blockShape = attributes.getOrDefault("blockShape", "");

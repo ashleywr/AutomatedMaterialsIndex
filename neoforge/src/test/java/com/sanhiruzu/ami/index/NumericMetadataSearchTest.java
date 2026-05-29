@@ -53,11 +53,47 @@ public class NumericMetadataSearchTest {
                 0,
                 Map.of(SearchNodeKeys.ENERGY_CAPACITY, "100000")
         );
+        SearchNode generator = new SearchNode(
+                new ResourceLocation("example:generator"),
+                NodeType.ITEM,
+                "Generator",
+                0,
+                0,
+                Map.of(SearchNodeKeys.ENERGY_GENERATION, "80")
+        );
+        SearchNode fluidTank = new SearchNode(
+                new ResourceLocation("example:fluid_tank"),
+                NodeType.ITEM,
+                "Fluid Tank",
+                0,
+                0,
+                Map.of(SearchNodeKeys.FLUID_CAPACITY, "16")
+        );
+        SearchNode pickaxe = new SearchNode(
+                new ResourceLocation("example:pickaxe"),
+                NodeType.ITEM,
+                "Pickaxe",
+                0,
+                0,
+                Map.of(SearchNodeKeys.TOOL_SPEED, "8")
+        );
+        SearchNode cardboardSword = new SearchNode(
+                new ResourceLocation("create:cardboard_sword"),
+                NodeType.ITEM,
+                "Cardboard Sword",
+                0,
+                0,
+                Map.of(SearchNodeKeys.MAX_DURABILITY, "13")
+        );
 
         index.addNode(sword);
         index.addNode(chest);
         index.addNode(barrel);
         index.addNode(energyCell);
+        index.addNode(generator);
+        index.addNode(fluidTank);
+        index.addNode(pickaxe);
+        index.addNode(cardboardSword);
         SearchService service = SearchService.buildFrom(index, false);
 
         List<SearchNode> highDps = service.query(">dps:10").get(NodeType.ITEM);
@@ -76,5 +112,21 @@ public class NumericMetadataSearchTest {
         List<SearchNode> highEnergy = service.query(">energy:50000").get(NodeType.ITEM);
         assertTrue(highEnergy.contains(energyCell));
         assertFalse(highEnergy.contains(chest));
+
+        List<SearchNode> highGeneration = service.query(">gen:40").get(NodeType.ITEM);
+        assertTrue(highGeneration.contains(generator));
+        assertFalse(highGeneration.contains(energyCell));
+
+        List<SearchNode> largeTank = service.query(">fluid:8").get(NodeType.ITEM);
+        assertTrue(largeTank.contains(fluidTank));
+        assertFalse(largeTank.contains(chest));
+
+        List<SearchNode> fastTools = service.query(">toolspeed:6").get(NodeType.ITEM);
+        assertTrue(fastTools.contains(pickaxe));
+        assertFalse(fastTools.contains(chest));
+
+        List<SearchNode> lowDurability = service.query("<durability:20").get(NodeType.ITEM);
+        assertTrue(lowDurability.contains(cardboardSword));
+        assertFalse(lowDurability.contains(sword));
     }
 }

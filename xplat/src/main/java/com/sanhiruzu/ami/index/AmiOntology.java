@@ -79,6 +79,8 @@ public final class AmiOntology {
                 "minecraft:compass", 0xFF4499EE,
                 List.of(
                         new SubCategory("navigation", "ami.subcategory.utility.navigation"),
+                        new SubCategory("medical", "ami.subcategory.utility.medical"),
+                        new SubCategory("currency", "ami.subcategory.utility.currency"),
                         new SubCategory("tools", "ami.subcategory.utility.tools"),
                         new SubCategory("misc", "ami.subcategory.utility.misc")
                 ),
@@ -146,6 +148,7 @@ public final class AmiOntology {
                 List.of(
                         new SubCategory("melee", "ami.subcategory.tools.melee"),
                         new SubCategory("ranged", "ami.subcategory.tools.ranged"),
+                        new SubCategory("ammo", "ami.subcategory.tools.ammo"),
                         new SubCategory("harvest", "ami.subcategory.tools.harvest"),
                         new SubCategory("utility", "ami.subcategory.tools.utility")
                 ),
@@ -164,6 +167,9 @@ public final class AmiOntology {
                         new SubCategory("machines", "ami.subcategory.tech.machines"),
                         new SubCategory("redstone", "ami.subcategory.tech.redstone"),
                         new SubCategory("transport", "ami.subcategory.tech.transport"),
+                        new SubCategory("cables", "ami.subcategory.tech.cables"),
+                        new SubCategory("upgrades", "ami.subcategory.tech.upgrades"),
+                        new SubCategory("templates", "ami.subcategory.tech.templates"),
                         new SubCategory("ingots", "ami.subcategory.tech.ingots"),
                         new SubCategory("dusts", "ami.subcategory.tech.dusts"),
                         new SubCategory("parts", "ami.subcategory.tech.parts"),
@@ -252,8 +258,8 @@ public final class AmiOntology {
         );
 
         MASONRY = new Category(
-                "masonry", "ami.category.masonry", "Masonry",
-                "minecraft:bricks", 0xFF888888,
+                "masonry", "ami.category.masonry", "Building",
+                "minecraft:oak_planks", 0xFF888888,
                 List.of(
                         new SubCategory("functional", "ami.subcategory.masonry.functional"),
                         new SubCategory("redstone", "ami.subcategory.masonry.redstone"),

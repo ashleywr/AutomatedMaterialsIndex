@@ -32,4 +32,11 @@ public interface IPlatformHelper {
     List<AmiRecipeHolder<?>> getRecipesFor(ItemStack target);
     List<AmiRecipeHolder<?>> getUsesFor(ItemStack target);
     List<AmiRecipeHolder<?>> getAllRecipesOfType(RecipeType<?> type);
+
+    default boolean tryLoadGlobalIndexCache() {
+        return false;
+    }
+
+    default void saveGlobalIndexCache() {
+    }
 }

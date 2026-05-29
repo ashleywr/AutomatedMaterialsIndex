@@ -93,6 +93,17 @@ final class ResultsSorter {
             case COLOR -> Integer.compare(a.color(), b.color());
             case MOD -> a.id().getNamespace().compareTo(b.id().getNamespace());
             case STORAGE_CAPACITY -> compareNumericMeta(a, b, SearchNodeKeys.ESM_CAPACITY);
+            case ENERGY_CAPACITY -> compareNumericMeta(a, b, SearchNodeKeys.ENERGY_CAPACITY);
+            case ENERGY_GENERATION -> compareNumericMeta(a, b, SearchNodeKeys.ENERGY_GENERATION);
+            case FLUID_CAPACITY -> compareNumericMeta(a, b, SearchNodeKeys.FLUID_CAPACITY);
+            case TOOL_SPEED -> compareNumericMeta(a, b, SearchNodeKeys.TOOL_SPEED);
+            case TOOL_USES -> compareNumericMeta(a, b, SearchNodeKeys.TOOL_USES);
+            case ARMOR_DEFENSE -> compareNumericMeta(a, b, SearchNodeKeys.ARMOR_DEFENSE);
+            case ARMOR_TOUGHNESS -> compareNumericMeta(a, b, SearchNodeKeys.ARMOR_TOUGHNESS);
+            case FOOD_NUTRITION -> compareNumericMeta(a, b, SearchNodeKeys.FOOD_NUTRITION);
+            case FOOD_SATURATION -> compareNumericMeta(a, b, SearchNodeKeys.FOOD_SATURATION);
+            case DAMAGE -> Double.compare(damageValue(a), damageValue(b));
+            case HEALTH -> compareNumericMeta(a, b, SearchNodeKeys.ENTITY_HEALTH);
             case DPS -> compareNumericMeta(a, b, SearchNodeKeys.DPS);
         };
     }
@@ -126,5 +137,13 @@ final class ResultsSorter {
         } catch (NumberFormatException ignored) {
             return Double.NEGATIVE_INFINITY;
         }
+    }
+
+    private double damageValue(SearchNode node) {
+        double itemDamage = parseNumericMeta(node, SearchNodeKeys.ATTACK_DAMAGE);
+        if (itemDamage != Double.NEGATIVE_INFINITY) {
+            return itemDamage;
+        }
+        return parseNumericMeta(node, SearchNodeKeys.ENTITY_ATTACK_DAMAGE);
     }
 }

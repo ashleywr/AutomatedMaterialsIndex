@@ -55,6 +55,23 @@ public class RecipeProvider implements IAmiDataProvider {
         return String.join(",", categories);
     }
 
+    public static String computeRecipeUseCategories(Item item, AmiRecipeIndex recipeIndex) {
+        Set<String> categories = new LinkedHashSet<>();
+        for (com.sanhiruzu.ami.util.AmiRecipeHolder<?> entry : recipeIndex.getUsesFor(new ItemStack(item))) {
+            String name = getCategoryName(entry.value().getType());
+            if (!name.isEmpty()) categories.add(name);
+        }
+        return String.join(",", categories);
+    }
+
+    public static int computeRecipeOutputCount(Item item, AmiRecipeIndex recipeIndex) {
+        return recipeIndex.getRecipesFor(new ItemStack(item)).size();
+    }
+
+    public static int computeRecipeUseCount(Item item, AmiRecipeIndex recipeIndex) {
+        return recipeIndex.getUsesFor(new ItemStack(item)).size();
+    }
+
     private static String getCategoryName(RecipeType<?> type) {
         ResourceLocation key = BuiltInRegistries.RECIPE_TYPE.getKey(type);
         if (key == null) return type.toString().toLowerCase();

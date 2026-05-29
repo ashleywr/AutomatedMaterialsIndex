@@ -50,6 +50,10 @@ public class Item {
         return Component.literal(name);
     }
 
+    public UseAnim getUseAnimation(ItemStack stack) {
+        return stack.has(net.minecraft.core.component.DataComponents.FOOD) ? UseAnim.EAT : UseAnim.NONE;
+    }
+
     private static final class TestHolder extends Holder.Reference<Item> {
         private final Set<TagKey<Item>> tagSet;
 

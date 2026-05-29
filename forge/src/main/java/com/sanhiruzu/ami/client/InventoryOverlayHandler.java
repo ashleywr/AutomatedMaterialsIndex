@@ -263,6 +263,13 @@ public class InventoryOverlayHandler {
         return amiEnabled;
     }
 
+    public static boolean shouldSuppressRecipeViewerChrome() {
+        if (amiEnabled) return true;
+        if (sessionInitialized) return false;
+        Minecraft mc = Minecraft.getInstance();
+        return isAmiAvailable() && mc.screen != null && isAmiScreen(mc.screen);
+    }
+
     public static boolean isMouseOverAmiOverlay(double mouseX, double mouseY) {
         if (!amiEnabled || !manager.isPanelVisible()) return false;
 

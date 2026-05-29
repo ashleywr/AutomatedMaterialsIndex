@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.index.AmiOntology;
+import com.sanhiruzu.ami.index.AmiOntologyKinds;
 import com.sanhiruzu.ami.index.GroupingEngine;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
@@ -207,7 +208,7 @@ final class ResultsTreeBuilder {
 
                 TreeNode subNode = new TreeNode(subKey, subLabel);
                 subNode.setExpanded(true);
-                addLeaves(subNode, subEntry.getValue());
+                addCategoryLeaves(cat.id, subId, subNode, subEntry.getValue());
                 catNode.addChild(subNode);
             }
             result.add(catNode);
@@ -323,6 +324,52 @@ final class ResultsTreeBuilder {
     private static void addLeaves(TreeNode parent, List<SearchNode> nodes) {
         for (SearchNode node : nodes) {
             parent.addChild(new TreeNode(Component.literal(node.displayName()), node));
+        }
+    }
+
+    private static void addCategoryLeaves(String categoryId, String subId, TreeNode parent, List<SearchNode> nodes) {
+        List<AmiOntologyKinds.Kind> knownKinds = AmiOntologyKinds.kindsFor(categoryId, subId);
+        if (knownKinds.isEmpty()) {
+            addLeaves(parent, nodes);
+            return;
+        }
+
+        Map<String, List<SearchNode>> grouped = new LinkedHashMap<>();
+        Map<String, AmiOntologyKinds.Kind> kindsById = new LinkedHashMap<>();
+        for (AmiOntologyKinds.Kind kind : knownKinds) {
+            grouped.put(kind.id(), new ArrayList<>());
+            kindsById.put(kind.id(), kind);
+        }
+
+        List<SearchNode> other = new ArrayList<>();
+        for (SearchNode node : nodes) {
+            var kind = AmiOntologyKinds.classify(node, categoryId, subId);
+            if (kind.isPresent()) {
+                grouped.computeIfAbsent(kind.get().id(), ignored -> new ArrayList<>()).add(node);
+                kindsById.putIfAbsent(kind.get().id(), kind.get());
+            } else {
+                other.add(node);
+            }
+        }
+
+        for (var entry : grouped.entrySet()) {
+            if (entry.getValue().isEmpty()) continue;
+            AmiOntologyKinds.Kind kind = kindsById.get(entry.getKey());
+            TreeNode groupNode = new TreeNode(parent.getKey() + "/" + kind.id(), Component.literal(kind.label()));
+            groupNode.setExpanded(true);
+            addLeaves(groupNode, entry.getValue());
+            parent.addChild(groupNode);
+        }
+
+        if (!other.isEmpty()) {
+            if (parent.getChildren().isEmpty()) {
+                addLeaves(parent, other);
+            } else {
+                TreeNode otherNode = new TreeNode(parent.getKey() + "/other", Component.literal("Other"));
+                otherNode.setExpanded(true);
+                addLeaves(otherNode, other);
+                parent.addChild(otherNode);
+            }
         }
     }
 

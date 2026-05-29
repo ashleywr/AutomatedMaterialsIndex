@@ -49,6 +49,72 @@ public final class AmiGuiIcons {
     }
 
     /**
+     * Split grid/list with a tiny arrow — represents switching result views.
+     * Draws a 10×8 area centred on (cx, cy).
+     */
+    public static void viewSwitch(GuiGraphics g, int cx, int cy, int color) {
+        int sx = cx - 5, sy = cy - 4;
+
+        // Grid half
+        g.fill(sx, sy, sx + 2, sy + 2, color);
+        g.fill(sx + 3, sy, sx + 5, sy + 2, color);
+        g.fill(sx, sy + 3, sx + 2, sy + 5, color);
+        g.fill(sx + 3, sy + 3, sx + 5, sy + 5, color);
+
+        // List half
+        g.fill(sx + 7, sy, sx + 9, sy + 2, color);
+        g.fill(sx + 7, sy + 3, sx + 9, sy + 5, color);
+        g.fill(sx + 10, sy, sx + 13, sy + 1, color);
+        g.fill(sx + 10, sy + 3, sx + 13, sy + 4, color);
+
+        // Switch arrow
+        g.fill(sx + 5, sy + 6, sx + 10, sy + 7, color);
+        g.fill(sx + 9, sy + 5, sx + 11, sy + 8, color);
+    }
+
+    public static void dropdownChevron(GuiGraphics g, int cx, int cy, int color, boolean open) {
+        int sx = cx - 2;
+        int sy = cy - 2;
+        if (open) {
+            g.fill(sx + 2, sy, sx + 3, sy + 1, color);
+            g.fill(sx + 1, sy + 1, sx + 4, sy + 2, color);
+            g.fill(sx, sy + 2, sx + 5, sy + 3, color);
+        } else {
+            g.fill(sx, sy, sx + 5, sy + 1, color);
+            g.fill(sx + 1, sy + 1, sx + 4, sy + 2, color);
+            g.fill(sx + 2, sy + 2, sx + 3, sy + 3, color);
+        }
+    }
+
+    public static void collapseAll(GuiGraphics g, int cx, int cy, int color) {
+        g.fill(cx - 4, cy - 1, cx + 4, cy + 1, color);
+    }
+
+    public static void expandAll(GuiGraphics g, int cx, int cy, int color) {
+        g.fill(cx - 4, cy - 1, cx + 4, cy + 1, color);
+        g.fill(cx - 1, cy - 4, cx + 1, cy + 4, color);
+    }
+
+    public static void sortDirection(GuiGraphics g, int cx, int cy, int color, boolean ascending) {
+        int sx = cx - 4;
+        int sy = cy - 5;
+
+        g.fill(sx + 5, sy + 1, sx + 8, sy + 2, color);
+        g.fill(sx + 5, sy + 4, sx + 8, sy + 5, color);
+        g.fill(sx + 5, sy + 7, sx + 8, sy + 8, color);
+
+        if (ascending) {
+            g.fill(sx + 1, sy + 1, sx + 2, sy + 8, color);
+            g.fill(sx, sy + 2, sx + 3, sy + 3, color);
+            g.fill(sx - 1, sy + 3, sx + 4, sy + 4, color);
+        } else {
+            g.fill(sx + 1, sy + 1, sx + 2, sy + 8, color);
+            g.fill(sx, sy + 6, sx + 3, sy + 7, color);
+            g.fill(sx - 1, sy + 5, sx + 4, sy + 6, color);
+        }
+    }
+
+    /**
      * Cog/Gear icon - for General settings.
      */
     public static void general(GuiGraphics g, int cx, int cy, int color) {

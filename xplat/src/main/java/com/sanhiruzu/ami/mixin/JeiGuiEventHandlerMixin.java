@@ -58,6 +58,6 @@ public class JeiGuiEventHandlerMixin {
     }
 
     private static boolean shouldSuppressJeiChrome() {
-        return InventoryOverlayHandler.isAmiEnabled();
+        return InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
     }
 }

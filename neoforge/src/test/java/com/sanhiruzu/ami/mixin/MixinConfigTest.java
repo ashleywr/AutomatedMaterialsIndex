@@ -45,4 +45,23 @@ public class MixinConfigTest {
                         "This mixin suppresses EMI's UI when AMI is active. Without it, EMI buttons and " +
                         "search bar will appear unchecked. Current client mixins: " + clientMixins);
     }
+
+    @Test
+    void forgeMixinConfigIsDeclaredForDevRunsAndPackagedRuns() throws Exception {
+        Path modsToml = Paths.get("../forge/src/main/resources/META-INF/mods.toml");
+        assertTrue(Files.exists(modsToml), "Forge mods.toml file not found at " + modsToml);
+
+        String modsTomlContent = Files.readString(modsToml, StandardCharsets.UTF_8);
+        assertTrue(modsTomlContent.contains("[[mixins]]"),
+                "Forge mods.toml must declare ami.mixins.json so Forge dev runs load suppression mixins");
+        assertTrue(modsTomlContent.contains("config = \"${mod_id}.mixins.json\""),
+                "Forge mods.toml must point at the AMI mixin config");
+
+        Path buildFile = Paths.get("../forge/build.gradle");
+        assertTrue(Files.exists(buildFile), "Forge build.gradle file not found at " + buildFile);
+
+        String buildFileContent = Files.readString(buildFile, StandardCharsets.UTF_8);
+        assertTrue(buildFileContent.contains("programArguments.addAll '--mixin', \"${mod_id}.mixins.json\".toString()"),
+                "Forge ModDev exploded-source runs must pass --mixin so ami.mixins.json loads without a jar manifest");
+    }
 }

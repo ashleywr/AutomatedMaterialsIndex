@@ -4,6 +4,7 @@ import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
@@ -46,7 +47,6 @@ public class ResultsTreeView {
     private static final int SWATCH_SIZE = 5;
     private static final int SWATCH_GAP = 2;
     private static final int MAX_SWATCHES = 3;
-
     // Recomputed each frame — 0.75× when guiScale ≥ 3, otherwise 1.0×.
     private float currentLabelScale = 1.0f;
 
@@ -347,7 +347,8 @@ public class ResultsTreeView {
     private void renderBadges(GuiGraphics g, net.minecraft.client.gui.Font font,
                               SearchNode entry, int drawY, int rightEdge, int modNameColor, boolean dropShadow) {
         int currentX = rightEdge;
-        int textY = drawY + (AMITheme.ROW_HEIGHT - font.lineHeight) / 2;
+        float badgeScale = currentLabelScale;
+        int textY = drawY + Math.max(1, (int) ((AMITheme.ROW_HEIGHT - font.lineHeight * badgeScale) / 2));
 
         // Tool Requirement Badge — 12×12, vertically centred
         String reqToolStr = entry.meta(SearchNodeKeys.REQUIRED_TOOL, "");
@@ -389,14 +390,14 @@ public class ResultsTreeView {
         if (parts.isEmpty()) return;
 
         // Calculate total width and handle truncation if needed
-        int maxGroupW = (int) (width * 0.45);
+        int maxGroupW = (int) (width * 0.55);
         String fullJoined = RowFieldConfig.buildSubtitle(entry);
-        if (font.width(fullJoined) > maxGroupW) {
+        if (scaledBadgeWidth(font, fullJoined, badgeScale) > maxGroupW) {
             // If the whole thing is too long, we'll render a single truncated string in subtle color
             // (Simpler than per-part truncation while maintaining colors)
-            String truncated = truncate(font, fullJoined, maxGroupW);
-            int tw = font.width(truncated);
-            g.drawString(font, truncated, currentX - tw, textY, AMITheme.TEXT_SUBTLE, false);
+            String truncated = truncate(font, fullJoined, (int) (maxGroupW / badgeScale));
+            int tw = scaledBadgeWidth(font, truncated, badgeScale);
+            drawBadgeText(g, font, truncated, currentX - tw, textY, badgeScale, AMITheme.TEXT_SUBTLE, false);
             return;
         }
 
@@ -406,14 +407,14 @@ public class ResultsTreeView {
             int color = (part.field == RowField.MOD_NAME) ? modNameColor : AMITheme.TEXT_SUBTLE;
             boolean shadow = (part.field == RowField.MOD_NAME) ? dropShadow : false;
 
-            int tw = font.width(part.text);
-            g.drawString(font, part.text, currentX - tw, textY, color, shadow);
+            int tw = scaledBadgeWidth(font, part.text, badgeScale);
+            drawBadgeText(g, font, part.text, currentX - tw, textY, badgeScale, color, shadow);
             currentX -= tw;
 
             if (i > 0) {
                 String sep = " · ";
-                int sw = font.width(sep);
-                g.drawString(font, sep, currentX - sw, textY, AMITheme.TEXT_SUBTLE, false);
+                int sw = scaledBadgeWidth(font, sep, badgeScale);
+                drawBadgeText(g, font, sep, currentX - sw, textY, badgeScale, AMITheme.TEXT_SUBTLE, false);
                 currentX -= sw;
             }
         }
@@ -432,11 +433,24 @@ public class ResultsTreeView {
 
         if (!parts.isEmpty()) {
             String joined = String.join(" · ", parts);
-            int maxGroupW = (int) (width * 0.45);
-            w += font.width(truncate(font, joined, maxGroupW)) + 4;
+            int maxGroupW = (int) (width * 0.55);
+            float badgeScale = currentLabelScale;
+            w += scaledBadgeWidth(font, truncate(font, joined, (int) (maxGroupW / badgeScale)), badgeScale) + 4;
         }
 
         return w;
+    }
+
+    private static int scaledBadgeWidth(net.minecraft.client.gui.Font font, String text, float scale) {
+        return (int) Math.ceil(font.width(text) * scale);
+    }
+
+    private static void drawBadgeText(GuiGraphics g, net.minecraft.client.gui.Font font, String text, int x, int y,
+                                      float scale, int color, boolean shadow) {
+        g.pose().pushPose();
+        g.pose().scale(scale, scale, 1.0f);
+        g.drawString(font, text, Math.round(x / scale), Math.round(y / scale), color, shadow);
+        g.pose().popPose();
     }
 
     // ── Group header ──────────────────────────────────────────────────────────
@@ -743,8 +757,9 @@ public class ResultsTreeView {
         int contentH = lastContentH > 0 ? lastContentH : height;
         int totalH = countAllNodes() * AMITheme.ROW_HEIGHT;
         int maxScroll = Math.max(0, totalH - contentH);
+        int rowsPerWheel = Math.max(1, Math.min(50, AmiConfig.listScrollRows));
         pixelScrollOffset = Math.max(0, Math.min(maxScroll,
-                (int) (pixelScrollOffset - delta * AMITheme.ROW_HEIGHT * 3)));
+                (int) (pixelScrollOffset - delta * AMITheme.ROW_HEIGHT * rowsPerWheel)));
         return true;
     }
 
