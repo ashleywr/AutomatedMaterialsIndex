@@ -35,6 +35,26 @@ public class BuiltInRegistries {
             return Optional.ofNullable(itemsById.get(id));
         }
 
+        @Override
+        public Item get(ResourceLocation id) {
+            return itemsById.getOrDefault(id, net.minecraft.world.item.Items.AIR);
+        }
+
+        @Override
+        public boolean containsKey(ResourceLocation id) {
+            return itemsById.containsKey(id);
+        }
+
+        @Override
+        public int getId(Item value) {
+            int i = 0;
+            for (Item item : ids.keySet()) {
+                if (item == value) return i;
+                i++;
+            }
+            return -1;
+        }
+
         public Stream<TestNamedTag<Item>> getTags() {
             return Stream.empty();
         }

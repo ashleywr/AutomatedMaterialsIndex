@@ -9,7 +9,7 @@ import java.util.List;
 
 public class SingleSelectDropdown<T> implements Dropdown {
     private final Component label;
-    private final List<T> options;
+    private List<T> options;
     private final java.util.function.Function<T, Component> displayName;
     private final java.util.function.Consumer<T> onSelect;
     private T selected;
@@ -33,6 +33,17 @@ public class SingleSelectDropdown<T> implements Dropdown {
         this.x = x;
         this.y = y;
         this.width = width;
+    }
+
+    public boolean isMouseOverButton(int mouseX, int mouseY) {
+        return Dropdown.contains(mouseX, mouseY, x, y, width, HEIGHT);
+    }
+
+    public void setOptions(List<T> options) {
+        this.options = options;
+        if (selected != null && options != null && !options.contains(selected) && !options.isEmpty()) {
+            selected = options.get(0);
+        }
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {

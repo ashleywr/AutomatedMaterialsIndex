@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.client.overlay;
 
 import com.sanhiruzu.ami.forge.AMI;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+import com.sanhiruzu.ami.client.UniversalResultsPanel;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.AmiIndexerService;
@@ -556,6 +557,19 @@ public class OverlayWidgetManager {
     private List<ResultsPanelWidget> getResultPanels() {
         List<ResultsPanelWidget> panels = new ArrayList<>();
         for (PanelSlot slot : allSlots()) panels.add(slot.results);
+        return panels;
+    }
+
+    public List<UniversalResultsPanel> getDebugVisibleResultPanels() {
+        List<UniversalResultsPanel> panels = new ArrayList<>();
+        for (PanelSlot slot : activeSlots) {
+            if (slot.results.visible && slot.results.getInnerPanel() != null) {
+                panels.add(slot.results.getInnerPanel());
+            }
+            if (slot.sidebar.visible && slot.sidebar.getInnerPanel() != null) {
+                panels.add(slot.sidebar.getInnerPanel());
+            }
+        }
         return panels;
     }
 

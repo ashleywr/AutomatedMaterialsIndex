@@ -279,7 +279,7 @@ public class GroupingEngine {
         if (path.contains("pottery_sherd")) return "minecraft:pottery_sherd";
         if (path.startsWith("magma_")) return "minecraft:magma";
 
-        String stripped = stripDynamicShapes(path);
+        String stripped = stripDynamicShapes(stripVariantSuffix(path));
         String noState = stripStatePrefix(stripped);
         String noFamily = stripFamilyPrefix(noState);
         return id.getNamespace() + ":" + stripColorPrefix(noFamily);
@@ -299,18 +299,9 @@ public class GroupingEngine {
 
     public static Optional<CollapsedFamily> classifyCollapsedFamily(ResourceLocation id) {
         String path = id.getPath();
-        if (path.startsWith("music_disc_")) {
-            return Optional.of(new CollapsedFamily("music_discs", "Music Discs"));
-        }
-        if (path.endsWith("_smithing_template")) {
-            return Optional.of(new CollapsedFamily("smithing_templates", "Smithing Templates"));
-        }
-        if (path.endsWith("_banner") && !path.contains("banner_pattern")) {
-            return Optional.of(new CollapsedFamily("banners", "Banners"));
-        }
-        if (path.equals("goat_horn")) {
-            return Optional.of(new CollapsedFamily("goat_horns", "Goat Horns"));
-        }
+        if (path.endsWith("_banner")) return Optional.of(new CollapsedFamily("banners", "Banners"));
+        // goat_horn: SubtypeExpander uses synthetic IDs without item tags, so it needs explicit handling
+        if (path.equals("goat_horn")) return Optional.of(new CollapsedFamily("goat_horns", "Goat Horns"));
         return Optional.empty();
     }
 
@@ -334,6 +325,13 @@ public class GroupingEngine {
             if (path.startsWith(prefix)) {
                 return path.substring(prefix.length());
             }
+        }
+        return path;
+    }
+
+    private static String stripVariantSuffix(String path) {
+        if (path.endsWith("_connecting")) {
+            return path.substring(0, path.length() - "_connecting".length());
         }
         return path;
     }

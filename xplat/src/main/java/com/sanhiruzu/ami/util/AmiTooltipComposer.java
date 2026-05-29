@@ -1,16 +1,17 @@
 package com.sanhiruzu.ami.util;
 
-import com.sanhiruzu.ami.neoforge.client.AMIKeyMappings;
 import com.sanhiruzu.ami.client.AMICheatMode;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.AmiKeybindHandler;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.client.results.DebugTooltip;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.providers.RegistryUtils;
+import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -26,18 +27,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
-import com.sanhiruzu.ami.neoforge.AMI;
-/**
- * Master orchestrator for all AMI tooltips.
- * Unifies layout, branding, and styling across all node types (Items, Entities, Biomes, etc.).
- */
 public final class AmiTooltipComposer {
     private AmiTooltipComposer() {
     }
 
-    /**
-     * Build the full list of components for a tooltip.
-     */
     public static List<Component> buildTooltip(SearchNode entry) {
         if (AmiKeybindHandler.isDebugTooltipsActive()) {
             return DebugTooltip.build(entry);
@@ -100,9 +93,6 @@ public final class AmiTooltipComposer {
         return buildTooltip(entry);
     }
 
-    /**
-     * Returns the graphical component for the tooltip (e.g. Health hearts for entities).
-     */
     public static Optional<TooltipComponent> getTooltipImage(SearchNode node) {
         if (node.type() == NodeType.ITEM) {
             ItemStack stack = ItemIconRenderer.resolveStack(node.id());
@@ -152,10 +142,12 @@ public final class AmiTooltipComposer {
             lines.add(Component.translatable("ami.tooltip.cheat_locate").withStyle(ChatFormatting.GOLD));
         }
 
-        String keybindName = AMIKeyMappings.DEBUG_TOOLTIPS.getTranslatedKeyMessage().getString();
-        String hintKey = AmiKeybindHandler.isDebugTooltipsActive()
-                ? "ami.gui.debug_hint_active" : "ami.gui.debug_hint";
-        lines.add(Component.translatable(hintKey, keybindName).withStyle(ChatFormatting.DARK_GRAY));
+        if (AmiConfig.devMode) {
+            String keybindName = Services.PLATFORM.keyMappings().debugTooltips().getTranslatedKeyMessage().getString();
+            String hintKey = AmiKeybindHandler.isDebugTooltipsActive()
+                    ? "ami.gui.debug_hint_active" : "ami.gui.debug_hint";
+            lines.add(Component.translatable(hintKey, keybindName).withStyle(ChatFormatting.DARK_GRAY));
+        }
     }
 
     private static boolean hasShiftOnlyDetails(SearchNode entry) {
@@ -215,7 +207,7 @@ public final class AmiTooltipComposer {
             case "survival" -> Component.translatable("ami.tooltip.access.survival").getString();
             case "creative" -> Component.translatable("ami.tooltip.access.creative").getString();
             case "cheat" -> Component.translatable("ami.tooltip.access.cheat").getString();
-            case "dev" -> Component.translatable("ami.tooltip.access.dev").getString();
+            case "dev" -> AmiConfig.devMode ? Component.translatable("ami.tooltip.access.dev").getString() : "";
             default -> "";
         };
     }

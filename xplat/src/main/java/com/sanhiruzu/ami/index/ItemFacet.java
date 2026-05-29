@@ -26,6 +26,7 @@ public enum ItemFacet {
     ARMOR_CHEST("armor_chest"),
     ARMOR_LEGS("armor_legs"),
     ARMOR_FEET("armor_feet"),
+    ARMOR_ANIMAL("armor_animal"),
     POTION("potion"),
     ENCHANTED_BOOK("enchanted_book"),
     MAGIC_REAGENT("magic_reagent"),

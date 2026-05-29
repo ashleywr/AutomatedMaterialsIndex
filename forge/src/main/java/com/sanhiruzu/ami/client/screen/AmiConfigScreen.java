@@ -8,12 +8,10 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.fml.ModList;
+import com.sanhiruzu.ami.platform.Services;
 
 import java.lang.reflect.Field;
 import java.util.*;
-
-import com.sanhiruzu.ami.forge.AMI;
 /**
  * Advanced configuration screen for AMI with sidebar navigation, visual grouping, and interactive editors.
  */
@@ -60,7 +58,7 @@ public class AmiConfigScreen extends Screen {
         this.sidebarWidth = Math.min(130, Math.max(90, width / 6));
         this.listX = sidebarWidth + 1;
         this.listWidth = width - listX;
-        boolean emiLoaded = ModList.get().isLoaded("emi");
+        boolean emiLoaded = Services.PLATFORM.isModLoaded("emi");
         int headerAvailable = Math.max(0, listWidth - 16);
         boolean stackedHeader = emiLoaded && headerAvailable < 230;
         this.contentTop = stackedHeader ? 64 : 40;
@@ -232,30 +230,24 @@ public class AmiConfigScreen extends Screen {
     }
 
     private void addKeyMappingEntries() {
-        try {
-            for (Field field : com.sanhiruzu.ami.forge.client.AMIKeyMappings.class.getFields()) {
-                if (java.lang.reflect.Modifier.isStatic(field.getModifiers()) && net.minecraft.client.KeyMapping.class.isAssignableFrom(field.getType())) {
-                    net.minecraft.client.KeyMapping keyMapping = (net.minecraft.client.KeyMapping) field.get(null);
-                    String keybindName = keyMapping.getName();
+        for (net.minecraft.client.KeyMapping keyMapping : Services.PLATFORM.keyMappings().all()) {
+            String keybindName = keyMapping.getName();
 
-                    if ("key.ami.recipe_back".equals(keybindName) && !isNativeRecipeViewerActive()) {
-                        continue;
-                    }
-
-                    Component keyLabel = Component.translatable(keybindName);
-                    if (searchQuery.isEmpty() || keyLabel.getString().toLowerCase().contains(searchQuery)) {
-                        list.publicAddEntry(list.new KeybindEntry(keyLabel, keyMapping));
-                    }
-                }
+            if ("key.ami.recipe_back".equals(keybindName) && !isNativeRecipeViewerActive()) {
+                continue;
             }
-        } catch (Exception e) {
+
+            Component keyLabel = Component.translatable(keybindName);
+            if (searchQuery.isEmpty() || keyLabel.getString().toLowerCase().contains(searchQuery)) {
+                list.publicAddEntry(list.new KeybindEntry(keyLabel, keyMapping));
+            }
         }
     }
 
     private boolean isNativeRecipeViewerActive() {
         if (AmiConfig.recipeViewerMode == AmiConfig.RecipeViewerMode.NATIVE) return true;
         if (AmiConfig.recipeViewerMode == AmiConfig.RecipeViewerMode.EMI_JEI) return false;
-        return !ModList.get().isLoaded("emi") && !ModList.get().isLoaded("jei");
+        return !Services.PLATFORM.isModLoaded("emi") && !Services.PLATFORM.isModLoaded("jei");
     }
 
     private void addSidePanelEditorEntries() {

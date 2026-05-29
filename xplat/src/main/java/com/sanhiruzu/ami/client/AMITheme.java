@@ -135,6 +135,8 @@ public final class AMITheme {
     public static int GRID_HEADER_WHITE_DOT = 0xFFFFFFFF;
     public static int GRID_ROW_TINT_EVEN = 0x08FFFFFF;
     public static int GRID_ROW_TINT_ODD = 0x15000000;
+    public static int GRID_GROUP_BAND = 0x06FFFFFF;
+    public static int GRID_GROUP_RAIL = 0x44FFFFFF;
 
     // Search bar element colors
     public static int SEARCH_PLACEHOLDER = 0xFF666666;
@@ -197,6 +199,8 @@ public final class AMITheme {
     // Player name color
     public static int PLAYER_NAME_COLOR;
 
+    private static Integer debugGridGroupBandOverride = null;
+
     // Recipe Viewer dynamic theme variables
     public static int RECIPE_BG_OVERLAY = 0xFF101010;
     public static int RECIPE_PANEL = 0xFF1A1A1F;
@@ -248,6 +252,19 @@ public final class AMITheme {
 
     public static int getSwatchColor(String colorName) {
         return SWATCH_COLORS.getOrDefault(colorName.toLowerCase(java.util.Locale.ROOT), SWATCH_DEFAULT);
+    }
+
+    public static void setDebugGridGroupBandOverride(Integer color) {
+        debugGridGroupBandOverride = color;
+        applyDebugOverrides();
+    }
+
+    public static Integer getDebugGridGroupBandOverride() {
+        return debugGridGroupBandOverride;
+    }
+
+    public static String formatColor(int color) {
+        return String.format(java.util.Locale.ROOT, "0x%08X", color);
     }
 
     // ── Rendering helpers ─────────────────────────────────────────────────────
@@ -337,6 +354,8 @@ public final class AMITheme {
             SCROLL_THUMB = 0x44FFFFFF;
             SCROLL_THUMB_ACTIVE = 0x66FFFFFF;
             SCROLL_INDICATOR_BG = 0x66000000;
+            GRID_GROUP_BAND = 0x06FFFFFF;
+            GRID_GROUP_RAIL = 0x44FFFFFF;
 
             SEARCH_PLACEHOLDER = 0xFF888888;
             SEARCH_DEFAULT_TEXT = 0xFFFFFFFF;
@@ -405,6 +424,8 @@ public final class AMITheme {
             SCROLL_THUMB = 0x33FFFFFF;
             SCROLL_THUMB_ACTIVE = 0x55FFFFFF;
             SCROLL_INDICATOR_BG = 0x33000000;
+            GRID_GROUP_BAND = 0x05000000;
+            GRID_GROUP_RAIL = 0x33FFFFFF;
 
             BORDER_LIGHT = 0; // NO BORDERS
             ACCENT_BLUE = 0; // NO ACCENT LINE
@@ -469,6 +490,8 @@ public final class AMITheme {
             SCROLL_THUMB = 0xFF8B8B8B;
             SCROLL_THUMB_ACTIVE = 0xFF6B6B6B;
             SCROLL_INDICATOR_BG = 0x66000000;
+            GRID_GROUP_BAND = 0x08000000;
+            GRID_GROUP_RAIL = 0x66000000;
 
             BORDER_LIGHT = 0x33000000;
             GRADIENT_SHADOW = 0x66000000;
@@ -477,6 +500,13 @@ public final class AMITheme {
             CONFIG_SEP = 0x22000000;
 
             PLAYER_NAME_COLOR = 0xFF0000AA;
+        }
+        applyDebugOverrides();
+    }
+
+    private static void applyDebugOverrides() {
+        if (debugGridGroupBandOverride != null) {
+            GRID_GROUP_BAND = debugGridGroupBandOverride;
         }
     }
 

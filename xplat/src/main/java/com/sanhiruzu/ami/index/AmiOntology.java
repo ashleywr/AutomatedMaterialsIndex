@@ -132,6 +132,7 @@ public final class AmiOntology {
                         new SubCategory("chest", "ami.subcategory.armor.chest"),
                         new SubCategory("legs", "ami.subcategory.armor.legs"),
                         new SubCategory("feet", "ami.subcategory.armor.feet"),
+                        new SubCategory("animal", "ami.subcategory.armor.animal"),
                         new SubCategory("curios", "ami.subcategory.armor.curios")
                 ),
                 List.of("head_armor", "chest_armor", "leg_armor", "foot_armor",

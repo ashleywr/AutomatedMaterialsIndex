@@ -166,8 +166,8 @@ class FacetIndexerTest {
         FacetProfile maceProfile = index(mace);
 
         assertTrue(elytraProfile.facets().contains(ItemFacet.ARMOR_CHEST));
-        assertTrue(wolfArmorProfile.facets().contains(ItemFacet.ARMOR_CHEST));
-        assertTrue(horseArmorProfile.facets().contains(ItemFacet.ARMOR_CHEST));
+        assertTrue(wolfArmorProfile.facets().contains(ItemFacet.ARMOR_ANIMAL));
+        assertTrue(horseArmorProfile.facets().contains(ItemFacet.ARMOR_ANIMAL));
         assertTrue(maceProfile.facets().contains(ItemFacet.MELEE_WEAPON));
     }
 
