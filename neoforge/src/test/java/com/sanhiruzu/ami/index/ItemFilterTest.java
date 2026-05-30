@@ -2,6 +2,8 @@ package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.SpawnEggItem;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -21,6 +23,12 @@ public class ItemFilterTest {
 
         // Creative/Cheat items
         assertEquals(ItemFilter.ACCESS_CREATIVE, ItemFilter.classifyAccessLevel(new ResourceLocation("minecraft:zombie_spawn_egg"), true));
+        assertEquals(ItemFilter.ACCESS_CREATIVE, ItemFilter.classifyAccessLevel(
+                new ResourceLocation("alexsmobs:spawn_egg_snow_leopard"), new SpawnEggItem("Snow Leopard Spawn Egg"), true));
+        assertEquals(ItemFilter.ACCESS_CREATIVE, ItemFilter.classifyAccessLevel(
+                new ResourceLocation("mod:nonstandard_entity_token"), new SpawnEggItem("Spawn Egg"), true));
+        assertEquals(ItemFilter.ACCESS_SURVIVAL, ItemFilter.classifyAccessLevel(
+                new ResourceLocation("mod:regular_egg"), new Item("Regular Egg"), true));
         assertEquals(ItemFilter.ACCESS_CHEAT, ItemFilter.classifyAccessLevel(new ResourceLocation("minecraft:command_block"), true));
 
         // Hidden items (not in creative)

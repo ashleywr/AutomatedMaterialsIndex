@@ -23,10 +23,14 @@ import org.slf4j.LoggerFactory;
 public class AMI {
     public static final String MODID = "ami";
     public static final Logger LOGGER = LoggerFactory.getLogger("AMI");
+    private static final String DEBUG_COMMANDS_PROPERTY = "ami.debugCommands";
+    private static final String REGISTER_GAME_TESTS_PROPERTY = "ami.registerGameTests";
 
     public AMI(IEventBus modEventBus, ModContainer modContainer) {
         modEventBus.addListener(this::commonSetup);
-        modEventBus.addListener(this::registerGameTests);
+        if (Boolean.getBoolean(REGISTER_GAME_TESTS_PROPERTY)) {
+            modEventBus.addListener(this::registerGameTests);
+        }
         modEventBus.addListener(this::registerPayloads);
         NeoForge.EVENT_BUS.register(this);
     }
@@ -38,24 +42,31 @@ public class AMI {
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {
-        LOGGER.info("================================");
-        LOGGER.info("Initializing Automated Materials Index...");
-        LOGGER.info("AMI is a client-side recipe UI mod");
-        LOGGER.info("================================");
+        LOGGER.debug("================================");
+        LOGGER.debug("Initializing Automated Materials Index...");
+        LOGGER.debug("AMI is a client-side recipe UI mod");
+        LOGGER.debug("================================");
     }
 
     private void registerGameTests(RegisterGameTestsEvent event) {
-        event.register(com.sanhiruzu.ami.benchmark.AmiBenchmarkGameTests.class);
-        event.register(com.sanhiruzu.ami.benchmark.AmiOntologyDumpGameTest.class);
+        try {
+            event.register(Class.forName("com.sanhiruzu.ami.benchmark.AmiBenchmarkGameTests"));
+            event.register(Class.forName("com.sanhiruzu.ami.benchmark.AmiOntologyDumpGameTest"));
+        } catch (ClassNotFoundException e) {
+            LOGGER.warn("AMI GameTests requested but benchmark classes are not present in this jar", e);
+        }
     }
 
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
-        LOGGER.info("AMI server starting");
+        LOGGER.debug("AMI server starting");
     }
 
     @SubscribeEvent
     public void onRegisterCommands(RegisterCommandsEvent event) {
+        if (!Boolean.getBoolean(DEBUG_COMMANDS_PROPERTY)) {
+            return;
+        }
         AmiStructureCommand.register(event.getDispatcher());
     }
 

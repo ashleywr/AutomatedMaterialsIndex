@@ -5,11 +5,16 @@ import dev.emi.emi.api.EmiApi;
 import dev.emi.emi.api.recipe.EmiRecipe;
 import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
+import dev.emi.emi.api.widget.SlotWidget;
+import dev.emi.emi.config.SidebarType;
 import dev.emi.emi.runtime.EmiFavorite;
 import dev.emi.emi.runtime.EmiFavorites;
+import dev.emi.emi.runtime.EmiPersistentData;
+import dev.emi.emi.screen.EmiScreenManager;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,30 +36,58 @@ public final class EmiFavoritesBridge {
         return false;
     }
 
-    public static void addFavorite(ItemStack stack) {
+    public static boolean addFavorite(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
         EmiFavorites.addFavorite(EmiStack.of(stack));
+        boolean added = hasMatchingFavorite(EmiStack.of(stack), null);
+        if (added) {
+            EmiPersistentData.save();
+            EmiScreenManager.repopulatePanels(SidebarType.FAVORITES);
+        }
+        return added;
     }
 
-    public static void addFavoriteAt(ItemStack stack, int index) {
+    public static boolean addFavoriteAt(ItemStack stack, int index) {
+        if (stack == null || stack.isEmpty()) return false;
         EmiFavorites.removeFavorite(EmiStack.of(stack));
         if (index < 0 || index > EmiFavorites.favorites.size()) {
             EmiFavorites.addFavorite(EmiStack.of(stack));
         } else {
             EmiFavorites.addFavoriteAt(EmiStack.of(stack), index);
         }
+        boolean added = hasMatchingFavorite(EmiStack.of(stack), null);
+        if (added) {
+            EmiPersistentData.save();
+            EmiScreenManager.repopulatePanels(SidebarType.FAVORITES);
+        }
+        return added;
     }
 
     public static void removeFavorite(ItemStack stack) {
-        EmiFavorites.removeFavorite(EmiStack.of(stack));
+        boolean removed = EmiFavorites.removeFavorite(EmiStack.of(stack));
+        if (!removed) {
+            removed = removeMatchingFavorite(EmiStack.of(stack), null);
+        }
+        if (removed) {
+            EmiPersistentData.save();
+            EmiScreenManager.repopulatePanels(SidebarType.FAVORITES);
+        }
     }
 
-    public static void addRecipeFavorite(ItemStack stack, ResourceLocation recipeId) {
+    public static boolean addRecipeFavorite(ItemStack stack, ResourceLocation recipeId) {
+        if (stack == null || stack.isEmpty()) return false;
         EmiRecipe recipe = recipeId == null ? null : EmiApi.getRecipeManager().getRecipe(recipeId);
         if (recipe != null) {
             EmiFavorites.addFavorite(EmiStack.of(stack), recipe);
         } else {
             EmiFavorites.addFavorite(EmiStack.of(stack));
         }
+        boolean added = hasMatchingFavorite(EmiStack.of(stack), recipe);
+        if (added) {
+            EmiPersistentData.save();
+            EmiScreenManager.repopulatePanels(SidebarType.FAVORITES);
+        }
+        return added;
     }
 
     public static void removeRecipeFavorite(ItemStack stack, ResourceLocation recipeId) {
@@ -63,14 +96,53 @@ public final class EmiFavoritesBridge {
             EmiFavorites.removeFavorite(EmiStack.of(stack));
             return;
         }
-        EmiFavorites.favorites.removeIf(favorite -> {
-            EmiIngredient ingredient = favorite.getStack();
-            EmiRecipe favoriteRecipe = favorite.getRecipe();
-            if (!(ingredient instanceof EmiStack emiStack) || favoriteRecipe == null || favoriteRecipe.getId() == null) {
-                return false;
+        if (removeMatchingFavorite(EmiStack.of(stack), recipe)) {
+            EmiPersistentData.save();
+            EmiScreenManager.repopulatePanels(SidebarType.FAVORITES);
+        }
+    }
+
+    public static boolean removeHoveredFavorite() {
+        var hovered = EmiApi.getHoveredStack(true);
+        if (hovered == null || hovered.isEmpty()) return false;
+
+        EmiIngredient ingredient = hovered.getStack();
+        EmiRecipe recipe = hovered.getRecipeContext();
+        if (recipe == null) {
+            recipe = EmiApi.getRecipeContext(ingredient);
+        }
+
+        boolean removed = removeMatchingFavorite(ingredient, recipe);
+        if (removed) {
+            EmiPersistentData.save();
+            EmiScreenManager.repopulatePanels(SidebarType.FAVORITES);
+        }
+        return removed;
+    }
+
+    public static boolean toggleRecipeScreenHoveredFavorite(Object recipeScreen) {
+        SlotWidget slot = getHoveredRecipeSlot(recipeScreen);
+        if (slot == null) return false;
+
+        EmiIngredient ingredient = slot.getStack();
+        if (ingredient == null || ingredient.isEmpty()) return false;
+
+        EmiRecipe recipe = slot.getRecipe();
+        if (recipe == null) {
+            recipe = EmiApi.getRecipeContext(ingredient);
+        }
+
+        boolean removed = removeMatchingFavorite(ingredient, recipe);
+        if (!removed) {
+            if (recipe != null) {
+                EmiFavorites.addFavorite(ingredient, recipe);
+            } else {
+                EmiFavorites.addFavorite(ingredient);
             }
-            return favoriteRecipe.getId().equals(recipeId) && emiStack.getId().equals(EmiStack.of(stack).getId());
-        });
+        }
+        EmiPersistentData.save();
+        EmiScreenManager.repopulatePanels(SidebarType.FAVORITES);
+        return true;
     }
 
     public static List<ResourceLocation> getFavoriteIds() {
@@ -114,5 +186,62 @@ public final class EmiFavoritesBridge {
             }
         }
         return ItemStack.EMPTY;
+    }
+
+    private static SlotWidget getHoveredRecipeSlot(Object recipeScreen) {
+        Object hovered = getFieldValue(recipeScreen, "hoveredWidget");
+        return hovered instanceof SlotWidget slot ? slot : null;
+    }
+
+    private static Object getFieldValue(Object target, String fieldName) {
+        if (target == null) return null;
+        Class<?> clazz = target.getClass();
+        while (clazz != null) {
+            try {
+                Field field = clazz.getDeclaredField(fieldName);
+                field.setAccessible(true);
+                return field.get(target);
+            } catch (ReflectiveOperationException ignored) {
+                clazz = clazz.getSuperclass();
+            }
+        }
+        return null;
+    }
+
+    private static boolean removeMatchingFavorite(EmiIngredient ingredient, EmiRecipe recipe) {
+        ItemStack targetStack = firstItemStack(ingredient);
+        if (targetStack.isEmpty()) return false;
+
+        ResourceLocation targetRecipeId = recipe == null ? null : recipe.getId();
+        String targetStackKey = FavoriteEntry.stackKey(targetStack);
+        return EmiFavorites.favorites.removeIf(favorite -> {
+            return favoriteMatches(favorite, targetRecipeId, targetStackKey);
+        });
+    }
+
+    private static boolean hasMatchingFavorite(EmiIngredient ingredient, EmiRecipe recipe) {
+        ItemStack targetStack = firstItemStack(ingredient);
+        if (targetStack.isEmpty()) return false;
+
+        ResourceLocation targetRecipeId = recipe == null ? null : recipe.getId();
+        String targetStackKey = FavoriteEntry.stackKey(targetStack);
+        for (EmiFavorite favorite : EmiFavorites.favorites) {
+            if (favoriteMatches(favorite, targetRecipeId, targetStackKey)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean favoriteMatches(EmiFavorite favorite, ResourceLocation targetRecipeId, String targetStackKey) {
+            EmiRecipe favoriteRecipe = favorite.getRecipe();
+            ResourceLocation favoriteRecipeId = favoriteRecipe == null ? null : favoriteRecipe.getId();
+            if (targetRecipeId == null != (favoriteRecipeId == null)) {
+                return false;
+            }
+            if (targetRecipeId != null && !targetRecipeId.equals(favoriteRecipeId)) {
+                return false;
+            }
+            return targetStackKey.equals(FavoriteEntry.stackKey(firstItemStack(favorite.getStack())));
     }
 }

@@ -15,9 +15,6 @@ import java.util.stream.Collectors;
  * Shared utilities for all data providers.
  */
 public final class RegistryUtils {
-    private RegistryUtils() {
-    }
-
     /**
      * Vanilla-first comparator matching the former WorldAtlasIndexer.ENTRY_ORDER.
      * Sorts: minecraft namespace first, then alphabetically by namespace, then by displayName.
@@ -26,6 +23,9 @@ public final class RegistryUtils {
             Comparator.comparing((SearchNode n) -> n.id().getNamespace().equals("minecraft") ? 0 : 1)
                     .thenComparing(n -> n.id().getNamespace())
                     .thenComparing(SearchNode::displayName);
+
+    private RegistryUtils() {
+    }
 
     /**
      * "dark_forest" → "Dark Forest"

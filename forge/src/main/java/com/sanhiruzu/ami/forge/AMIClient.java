@@ -5,56 +5,56 @@ import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.ThemeResourceLoader;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.client.results.ItemGridView;
-import com.sanhiruzu.ami.util.AmiWorldTooltipComposer;
+import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
+import com.sanhiruzu.ami.client.tooltip.ForgeTooltipHooks;
 import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.StatIconRowTooltipComponent;
+import com.sanhiruzu.ami.config.AmiConfigStore;
 import com.sanhiruzu.ami.forge.client.AMIKeyMappings;
+import com.sanhiruzu.ami.util.AmiWorldTooltipComposer;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
+import net.minecraftforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
-import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
-import net.minecraftforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
-import net.minecraftforge.client.ConfigScreenHandler;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 public class AMIClient {
 
     public static void init() {
+        AmiTooltipRenderer.setHooks(new ForgeTooltipHooks());
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         modEventBus.addListener(AMIClient::onClientSetup);
         modEventBus.addListener(AMIClient::onRegisterTooltipFactories);
         modEventBus.addListener(AMIClient::onRegisterReloadListeners);
         modEventBus.addListener(AMIKeyMappings::registerKeyMappings);
-        
-        ModList.get().getModContainerById(AMI.MODID).ifPresent(container -> {
-            container.registerExtensionPoint(ConfigScreenHandler.ConfigScreenFactory.class, 
-                () -> new ConfigScreenHandler.ConfigScreenFactory((mc, lastScreen) -> (Screen)null)); // Placeholder
-        });
     }
 
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
-        AMI.LOGGER.info("================================");
-        AMI.LOGGER.info("AMI client setup initialized");
-        AMI.LOGGER.info("================================");
+        AMI.LOGGER.debug("================================");
+        AMI.LOGGER.debug("AMI client setup initialized");
+        AMI.LOGGER.debug("================================");
+
+        AmiConfigStore.load();
+        com.sanhiruzu.ami.client.AMITheme.sync();
 
         boolean jeiLoaded = ModList.get().isLoaded("jei");
         boolean emiLoaded = ModList.get().isLoaded("emi");
 
         if (jeiLoaded) {
-            AMI.LOGGER.info("✓ JEI detected - plugin will integrate when ready");
+            AMI.LOGGER.debug("✓ JEI detected - plugin will integrate when ready");
         }
         if (emiLoaded) {
-            AMI.LOGGER.info("✓ EMI detected - plugin will integrate when ready");
+            AMI.LOGGER.debug("✓ EMI detected - plugin will integrate when ready");
         }
         if (!jeiLoaded && !emiLoaded) {
-            AMI.LOGGER.info("✓ No recipe UI detected - AMI shell UI will be used");
+            AMI.LOGGER.debug("✓ No recipe UI detected - AMI shell UI will be used");
         }
     }
 

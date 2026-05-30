@@ -43,23 +43,54 @@ public final class SearchIndex {
             SearchNodeKeys.OBTAINABILITY,
             SearchNodeKeys.SEARCH_TOKENS
     );
-
-    private static final class TrieNode {
-        final Char2ObjectOpenHashMap<TrieNode> children = new Char2ObjectOpenHashMap<>();
-        final LinkedHashSet<SearchNode> hits = new LinkedHashSet<>();
-    }
-
     private final TrieNode root = new TrieNode();
     private final Set<SearchNode> allNodes = new LinkedHashSet<>();
     private final Map<SearchNode, String> searchableText = new LinkedHashMap<>();
     private final boolean includeMetadata;
-
     public SearchIndex() {
         this(true);
     }
 
     public SearchIndex(boolean includeMetadata) {
         this.includeMetadata = includeMetadata;
+    }
+
+    private static List<String> searchableKeys(SearchNode node, boolean includeMetadata) {
+        LinkedHashSet<String> keys = new LinkedHashSet<>();
+        keys.add(node.displayName());
+        keys.add(node.id().toString());
+        keys.add(node.id().getNamespace());
+        keys.add(node.id().getPath());
+
+        if (includeMetadata) {
+            for (var entry : node.metadata().entrySet()) {
+                if (!SEARCHABLE_METADATA_KEYS.contains(entry.getKey())) continue;
+                addMetadataAliases(keys, entry.getValue());
+            }
+        }
+        return new ArrayList<>(keys);
+    }
+
+    private static void addMetadataAliases(Set<String> keys, String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) return;
+        keys.add(rawValue);
+
+        // Split by all common delimiters
+        for (String part : rawValue.split("[,:/\\s\\-]+")) {
+            if (!part.isBlank()) keys.add(part);
+        }
+
+        // Add variants with spaces
+        keys.add(rawValue.replace('_', ' ').replace('-', ' '));
+        keys.add(rawValue.replace(':', ' '));
+    }
+
+    private static String normalizeSearchText(String text) {
+        return text.toLowerCase(Locale.ROOT)
+                .replace('_', ' ')
+                .replace('-', ' ')
+                .replace(':', ' ')
+                .trim();
     }
 
     /**
@@ -156,22 +187,6 @@ public final class SearchIndex {
         return searchableKeys(node, includeMetadata);
     }
 
-    private static List<String> searchableKeys(SearchNode node, boolean includeMetadata) {
-        LinkedHashSet<String> keys = new LinkedHashSet<>();
-        keys.add(node.displayName());
-        keys.add(node.id().toString());
-        keys.add(node.id().getNamespace());
-        keys.add(node.id().getPath());
-
-        if (includeMetadata) {
-            for (var entry : node.metadata().entrySet()) {
-                if (!SEARCHABLE_METADATA_KEYS.contains(entry.getKey())) continue;
-                addMetadataAliases(keys, entry.getValue());
-            }
-        }
-        return new ArrayList<>(keys);
-    }
-
     private String searchableHaystack(SearchNode node) {
         StringBuilder sb = new StringBuilder();
         for (String key : searchableKeys(node)) {
@@ -180,25 +195,8 @@ public final class SearchIndex {
         return normalizeSearchText(sb.toString());
     }
 
-    private static void addMetadataAliases(Set<String> keys, String rawValue) {
-        if (rawValue == null || rawValue.isBlank()) return;
-        keys.add(rawValue);
-
-        // Split by all common delimiters
-        for (String part : rawValue.split("[,:/\\s\\-]+")) {
-            if (!part.isBlank()) keys.add(part);
-        }
-
-        // Add variants with spaces
-        keys.add(rawValue.replace('_', ' ').replace('-', ' '));
-        keys.add(rawValue.replace(':', ' '));
-    }
-
-    private static String normalizeSearchText(String text) {
-        return text.toLowerCase(Locale.ROOT)
-                .replace('_', ' ')
-                .replace('-', ' ')
-                .replace(':', ' ')
-                .trim();
+    private static final class TrieNode {
+        final Char2ObjectOpenHashMap<TrieNode> children = new Char2ObjectOpenHashMap<>();
+        final LinkedHashSet<SearchNode> hits = new LinkedHashSet<>();
     }
 }

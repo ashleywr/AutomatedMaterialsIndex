@@ -2,15 +2,7 @@ package com.sanhiruzu.ami.client.results;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.sanhiruzu.ami.index.CategoryAssignment;
-import com.sanhiruzu.ami.index.FacetCodec;
-import com.sanhiruzu.ami.index.FacetProfile;
-import com.sanhiruzu.ami.index.GlobalIndex;
-import com.sanhiruzu.ami.index.ItemFacet;
-import com.sanhiruzu.ami.index.NodeType;
-import com.sanhiruzu.ami.index.PrimaryCategoryResolver;
-import com.sanhiruzu.ami.index.SearchNode;
-import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.index.*;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,14 +13,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipFile;
@@ -50,63 +35,6 @@ public class VanillaResultsShapeExplorerTest {
             "chorus_fruit", "carrot", "golden_carrot", "potato", "baked_potato", "poisonous_potato",
             "beetroot", "dried_kelp", "cookie", "bread"
     );
-
-    @BeforeEach
-    void setUp() {
-        GlobalIndex.getInstance().clear();
-        GlobalIndex.getInstance().markIndexReady();
-    }
-
-    @Test
-    void writesVanillaResultShapeExplorationReport() throws IOException {
-        Optional<Path> vanillaJar = locateVanillaJar();
-        Path reportPath = repoRoot().resolve(Path.of("neoforge", "build", "reports", "ami-result-shapes", "vanilla-result-shapes.md"));
-        Files.createDirectories(reportPath.getParent());
-
-        if (vanillaJar.isEmpty()) {
-            Files.writeString(reportPath, "# AMI Vanilla Result Shape Exploration\n\nNo local Minecraft 1.21.1 jar was found.\n");
-            assertTrue(Files.exists(reportPath), "Expected diagnostic report at " + reportPath.toAbsolutePath());
-            return;
-        }
-
-        List<SearchNode> fixture = loadVanillaNodes(vanillaJar.get());
-        StringBuilder report = new StringBuilder();
-        report.append("# AMI Vanilla Result Shape Exploration\n\n");
-        report.append("Source jar: `").append(vanillaJar.get()).append("`\n\n");
-        report.append("Nodes: ").append(fixture.size()).append("\n\n");
-
-        for (ResultsProcessor.GroupBy groupBy : List.of(
-                ResultsProcessor.GroupBy.CATEGORY,
-                ResultsProcessor.GroupBy.FAMILY,
-                ResultsProcessor.GroupBy.MATERIAL
-        )) {
-            for (ResultsProcessor.SortField sortField : List.of(
-                    ResultsProcessor.SortField.REGISTRY,
-                    ResultsProcessor.SortField.ALPHABETICAL,
-                    ResultsProcessor.SortField.COUNT
-            )) {
-                try {
-                    SearchState listState = state(sortField, groupBy, ResultsToolbar.ViewMode.LIST);
-                    SearchState compactState = state(sortField, groupBy, ResultsToolbar.ViewMode.GRID);
-                    List<TreeNode> tree = ResultsViewProjector.project(fixture, listState, null, false, false).roots();
-                    List<TreeNode> compact = ResultsViewProjector.project(fixture, compactState, null, true, false).roots();
-                    report.append(ResultsShapeSnapshot.capture(groupBy, sortField, tree, compact, 9).toMarkdown());
-                } catch (Throwable t) {
-                    report.append("## group=").append(groupBy.name())
-                            .append(" sort=").append(sortField.name())
-                            .append("\n\n");
-                    report.append("Unavailable in JVM explorer: ")
-                            .append(t.getClass().getSimpleName())
-                            .append(": ")
-                            .append(t.getMessage())
-                            .append("\n\n");
-                }
-            }
-        }
-
-        Files.writeString(reportPath, report.toString());
-        assertTrue(Files.exists(reportPath), "Expected diagnostic report at " + reportPath.toAbsolutePath());
-    }
 
     private static SearchState state(ResultsProcessor.SortField sortField,
                                      ResultsProcessor.GroupBy groupBy,
@@ -206,33 +134,48 @@ public class VanillaResultsShapeExplorerTest {
             facets.add(ItemFacet.EDIBLE);
         }
         if (MEALS.contains(path)) facets.add(ItemFacet.FOOD_MEAL);
-        if (!MEALS.contains(path) && (path.endsWith("_bottle") || path.equals("potion"))) facets.add(ItemFacet.FOOD_DRINK);
+        if (!MEALS.contains(path) && (path.endsWith("_bottle") || path.equals("potion")))
+            facets.add(ItemFacet.FOOD_DRINK);
         if (SNACKS.contains(path)) facets.add(ItemFacet.EDIBLE);
         if (path.endsWith("_seeds") || path.equals("nether_wart")) facets.add(ItemFacet.SEED);
-        if (path.contains("wheat") || path.contains("carrot") || path.contains("potato") || path.contains("beetroot")) facets.add(ItemFacet.CROP);
-        if (path.contains("mushroom") || path.contains("fungus") || path.contains("nylium") || path.contains("mycelium")) facets.add(ItemFacet.FUNGI);
-        if (path.contains("flower") || path.contains("tulip") || path.contains("orchid") || path.contains("dandelion") || path.contains("poppy")) facets.add(ItemFacet.FLOWER);
-        if (path.endsWith("_log") || path.endsWith("_wood") || path.endsWith("_stem") || path.endsWith("_hyphae")) facets.add(ItemFacet.LOG);
+        if (path.contains("wheat") || path.contains("carrot") || path.contains("potato") || path.contains("beetroot"))
+            facets.add(ItemFacet.CROP);
+        if (path.contains("mushroom") || path.contains("fungus") || path.contains("nylium") || path.contains("mycelium"))
+            facets.add(ItemFacet.FUNGI);
+        if (path.contains("flower") || path.contains("tulip") || path.contains("orchid") || path.contains("dandelion") || path.contains("poppy"))
+            facets.add(ItemFacet.FLOWER);
+        if (path.endsWith("_log") || path.endsWith("_wood") || path.endsWith("_stem") || path.endsWith("_hyphae"))
+            facets.add(ItemFacet.LOG);
         if (path.contains("leaves")) facets.add(ItemFacet.LEAVES);
-        if (path.endsWith("_dye") || path.equals("ink_sac") || path.equals("glow_ink_sac")) facets.add(ItemFacet.INGREDIENT_DYE);
+        if (path.endsWith("_dye") || path.equals("ink_sac") || path.equals("glow_ink_sac"))
+            facets.add(ItemFacet.INGREDIENT_DYE);
         if (path.endsWith("_ingot")) facets.add(ItemFacet.INGOT);
         if (path.endsWith("_nugget")) facets.add(ItemFacet.NUGGET);
-        if (path.equals("raw_copper") || path.equals("raw_gold") || path.equals("raw_iron")) facets.add(ItemFacet.RAW_MATERIAL);
-        if (path.endsWith("_dust") || path.equals("redstone") || path.equals("glowstone_dust")) facets.add(ItemFacet.DUST);
-        if (path.endsWith("_sword") || path.equals("trident") || path.equals("mace")) facets.add(ItemFacet.MELEE_WEAPON);
-        if (path.endsWith("_pickaxe") || path.endsWith("_axe") || path.endsWith("_shovel") || path.endsWith("_hoe")) facets.add(ItemFacet.HARVEST_TOOL);
+        if (path.equals("raw_copper") || path.equals("raw_gold") || path.equals("raw_iron"))
+            facets.add(ItemFacet.RAW_MATERIAL);
+        if (path.endsWith("_dust") || path.equals("redstone") || path.equals("glowstone_dust"))
+            facets.add(ItemFacet.DUST);
+        if (path.endsWith("_sword") || path.equals("trident") || path.equals("mace"))
+            facets.add(ItemFacet.MELEE_WEAPON);
+        if (path.endsWith("_pickaxe") || path.endsWith("_axe") || path.endsWith("_shovel") || path.endsWith("_hoe"))
+            facets.add(ItemFacet.HARVEST_TOOL);
         if (path.equals("bow") || path.equals("crossbow")) facets.add(ItemFacet.RANGED_WEAPON);
-        if (path.equals("arrow") || path.endsWith("_arrow") || path.equals("snowball") || path.equals("egg")) facets.add(ItemFacet.PROJECTILE);
+        if (path.equals("arrow") || path.endsWith("_arrow") || path.equals("snowball") || path.equals("egg"))
+            facets.add(ItemFacet.PROJECTILE);
         if (path.endsWith("_helmet")) facets.add(ItemFacet.ARMOR_HEAD);
         if (path.endsWith("_chestplate")) facets.add(ItemFacet.ARMOR_CHEST);
         if (path.endsWith("_leggings")) facets.add(ItemFacet.ARMOR_LEGS);
         if (path.endsWith("_boots")) facets.add(ItemFacet.ARMOR_FEET);
         if (path.endsWith("_spawn_egg")) facets.add(ItemFacet.SPAWN_EGG);
         if (path.endsWith("_bucket")) facets.add(ItemFacet.MOB_BUCKET);
-        if (path.contains("rail") || path.contains("minecart") || path.endsWith("_boat")) facets.add(ItemFacet.TRANSPORT);
-        if (path.contains("redstone") || path.equals("repeater") || path.equals("comparator") || path.equals("observer")) facets.add(ItemFacet.REDSTONE_LOGIC);
-        if (path.contains("chest") || path.contains("barrel") || path.contains("shulker_box")) facets.add(ItemFacet.STORAGE);
-        if (path.contains("lantern") || path.contains("torch") || path.contains("candle")) facets.add(ItemFacet.LIGHT_SOURCE);
+        if (path.contains("rail") || path.contains("minecart") || path.endsWith("_boat"))
+            facets.add(ItemFacet.TRANSPORT);
+        if (path.contains("redstone") || path.equals("repeater") || path.equals("comparator") || path.equals("observer"))
+            facets.add(ItemFacet.REDSTONE_LOGIC);
+        if (path.contains("chest") || path.contains("barrel") || path.contains("shulker_box"))
+            facets.add(ItemFacet.STORAGE);
+        if (path.contains("lantern") || path.contains("torch") || path.contains("candle"))
+            facets.add(ItemFacet.LIGHT_SOURCE);
         if (path.endsWith("_stairs")) facets.add(ItemFacet.STAIRS);
         if (path.endsWith("_slab")) facets.add(ItemFacet.SLAB);
         if (path.endsWith("_wall")) facets.add(ItemFacet.WALL);
@@ -319,5 +262,62 @@ public class VanillaResultsShapeExplorerTest {
             current = current.getParent();
         }
         throw new IllegalStateException("Could not locate repository root");
+    }
+
+    @BeforeEach
+    void setUp() {
+        GlobalIndex.getInstance().clear();
+        GlobalIndex.getInstance().markIndexReady();
+    }
+
+    @Test
+    void writesVanillaResultShapeExplorationReport() throws IOException {
+        Optional<Path> vanillaJar = locateVanillaJar();
+        Path reportPath = repoRoot().resolve(Path.of("neoforge", "build", "reports", "ami-result-shapes", "vanilla-result-shapes.md"));
+        Files.createDirectories(reportPath.getParent());
+
+        if (vanillaJar.isEmpty()) {
+            Files.writeString(reportPath, "# AMI Vanilla Result Shape Exploration\n\nNo local Minecraft 1.21.1 jar was found.\n");
+            assertTrue(Files.exists(reportPath), "Expected diagnostic report at " + reportPath.toAbsolutePath());
+            return;
+        }
+
+        List<SearchNode> fixture = loadVanillaNodes(vanillaJar.get());
+        StringBuilder report = new StringBuilder();
+        report.append("# AMI Vanilla Result Shape Exploration\n\n");
+        report.append("Source jar: `").append(vanillaJar.get()).append("`\n\n");
+        report.append("Nodes: ").append(fixture.size()).append("\n\n");
+
+        for (ResultsProcessor.GroupBy groupBy : List.of(
+                ResultsProcessor.GroupBy.CATEGORY,
+                ResultsProcessor.GroupBy.FAMILY,
+                ResultsProcessor.GroupBy.MATERIAL
+        )) {
+            for (ResultsProcessor.SortField sortField : List.of(
+                    ResultsProcessor.SortField.REGISTRY,
+                    ResultsProcessor.SortField.ALPHABETICAL,
+                    ResultsProcessor.SortField.COUNT
+            )) {
+                try {
+                    SearchState listState = state(sortField, groupBy, ResultsToolbar.ViewMode.LIST);
+                    SearchState compactState = state(sortField, groupBy, ResultsToolbar.ViewMode.GRID);
+                    List<TreeNode> tree = ResultsViewProjector.project(fixture, listState, null, false, false).roots();
+                    List<TreeNode> compact = ResultsViewProjector.project(fixture, compactState, null, true, false).roots();
+                    report.append(ResultsShapeSnapshot.capture(groupBy, sortField, tree, compact, 9).toMarkdown());
+                } catch (Throwable t) {
+                    report.append("## group=").append(groupBy.name())
+                            .append(" sort=").append(sortField.name())
+                            .append("\n\n");
+                    report.append("Unavailable in JVM explorer: ")
+                            .append(t.getClass().getSimpleName())
+                            .append(": ")
+                            .append(t.getMessage())
+                            .append("\n\n");
+                }
+            }
+        }
+
+        Files.writeString(reportPath, report.toString());
+        assertTrue(Files.exists(reportPath), "Expected diagnostic report at " + reportPath.toAbsolutePath());
     }
 }

@@ -1,5 +1,19 @@
-{"id":"refurbished_furniture:yellow_toilet","category":"decoration","subcategory":"furniture","notes":"Furniture/bathroom block with passive comparator output, not redstone logic."}
-{"id":"bigreactors:inanite_ingot","category":"tech","subcategory":"ingots","notes":"Material item identified by forge:ingots/inanite tag."}
-{"id":"minecraft:target","category":"tech","subcategory":"redstone","notes":"Active redstone behavior block."}
-{"id":"farmersdelight:stove","category":"tech","subcategory":"machines","notes":"Cooking workstation/block entity, not prepared food."}
-{"id":"farmersdelight:apple_pie","category":"nature","subcategory":"meals","notes":"Placeable prepared food should stay with meals."}
+{"id":"refurbished_furniture:yellow_toilet","category":"decoration","subcategory":"furniture","confidence":"certain","notes":"Furniture/bathroom block with passive comparator output, not redstone logic."}
+{"id":"bigreactors:inanite_ingot","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"Material item identified by forge:ingots/inanite tag."}
+{"id":"minecraft:target","category":"tech","subcategory":"redstone","confidence":"certain","notes":"Active redstone behavior block."}
+{"id":"farmersdelight:stove","category":"tech","subcategory":"machines","confidence":"certain","notes":"Cooking workstation/block entity, not prepared food."}
+{"id":"farmersdelight:apple_pie","category":"nature","subcategory":"meals","confidence":"certain","notes":"Placeable prepared food should stay with meals."}
+{"id":"minecraft:red_carpet","category":"decoration","subcategory":"textiles","confidence":"certain","notes":"Decorative textile; body equipment slot noise must not make it armor."}
+{"id":"alexsmobs:spawn_egg_snow_leopard","category":"bestiary","subcategory":"passive","confidence":"certain","notes":"Actual spawn egg item should follow the entity into Bestiary."}
+{"id":"fruitsdelight:durian_sapling","category":"nature","subcategory":"flora","confidence":"certain","notes":"Sapling block/item should be Flora, not Full Blocks."}
+{"id":"create_winery:red_grape_bush_stage_2","category":"nature","subcategory":"crops","confidence":"certain","notes":"Crop-like hidden stage block with grape bush class."}
+{"id":"railways:track_incomplete_jungle_narrow","category":"tech","subcategory":"transport","confidence":"certain","notes":"Track item should be transport even if stale projectile facets appear."}
+{"id":"alexsmobs:rocky_shell","category":"ingredients","subcategory":"organic","confidence":"certain","notes":"Natural shell/mob drop, not ammunition."}
+{"id":"createbigcannons:drop_mortar_shell","category":"tools","subcategory":"ammo","confidence":"certain","notes":"Mortar shell has explicit ammo context and should remain ammunition."}
+{"id":"mcwbiomesoplenty:maple_japanese_door","category":"masonry","subcategory":"functional","confidence":"certain","notes":"Door block/tag should be a functional building shape."}
+{"id":"silentgear:leggings_blueprint","category":"tech","subcategory":"templates","confidence":"certain","notes":"Blueprint/template; leggings token must not produce organic or armor classification."}
+{"id":"powergrid:integrated_circuit","category":"tech","subcategory":"circuits","confidence":"certain","notes":"Integrated circuit is a tech circuit component."}
+{"id":"createfood:fish_taco_kelp_plate_block","category":"nature","subcategory":"meals","confidence":"certain","notes":"Food display plate should be a prepared meal, not flora from kelp token."}
+{"id":"displaydelight:nd_warped_moldy_meat","category":"nature","subcategory":"meals","confidence":"certain","notes":"FoodBlockItem/WideFoodBlock should beat template facet noise."}
+{"id":"createfood:potato_chip_bowl_block","category":"nature","subcategory":"meals","confidence":"certain","notes":"Food chip token should not become a tech circuit."}
+{"id":"dndesires:roll_table","category":"decoration","subcategory":"furniture","confidence":"certain","notes":"Furniture table; roll token should not classify as food."}

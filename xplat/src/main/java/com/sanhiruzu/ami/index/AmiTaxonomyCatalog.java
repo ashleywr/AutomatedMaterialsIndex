@@ -18,15 +18,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * tree without chasing AmiOntology, AmiOntologyKinds, and lang keys separately.
  */
 public final class AmiTaxonomyCatalog {
-    public record CategoryEntry(String id, String label, List<SubcategoryEntry> subcategories) {
-    }
-
-    public record SubcategoryEntry(String id, String label, List<KindEntry> kinds) {
-    }
-
-    public record KindEntry(String id, String label) {
-    }
-
     private AmiTaxonomyCatalog() {
     }
 
@@ -71,6 +62,15 @@ public final class AmiTaxonomyCatalog {
 
     private static String label(String translationKey) {
         return Labels.EN_US.getOrDefault(translationKey, translationKey);
+    }
+
+    public record CategoryEntry(String id, String label, List<SubcategoryEntry> subcategories) {
+    }
+
+    public record SubcategoryEntry(String id, String label, List<KindEntry> kinds) {
+    }
+
+    public record KindEntry(String id, String label) {
     }
 
     private static final class Labels {

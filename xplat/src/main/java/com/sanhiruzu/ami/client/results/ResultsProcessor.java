@@ -8,63 +8,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ResultsProcessor {
-    public enum SortField {
-        REGISTRY("ami.sort.registry"),
-        ALPHABETICAL("ami.sort.alphabetical"),
-        COLOR("ami.sort.color"),
-        MOD("ami.sort.mod"),
-        STORAGE_CAPACITY("ami.sort.storage"),
-        ENERGY_CAPACITY("ami.sort.energy"),
-        ENERGY_GENERATION("ami.sort.energy_generation"),
-        FLUID_CAPACITY("ami.sort.fluid_capacity"),
-        TOOL_SPEED("ami.sort.tool_speed"),
-        TOOL_USES("ami.sort.tool_uses"),
-        ARMOR_DEFENSE("ami.sort.armor_defense"),
-        ARMOR_TOUGHNESS("ami.sort.armor_toughness"),
-        FOOD_NUTRITION("ami.sort.food_nutrition"),
-        FOOD_SATURATION("ami.sort.food_saturation"),
-        DAMAGE("ami.sort.damage"),
-        HEALTH("ami.sort.health"),
-        DPS("ami.sort.dps"),
-        COUNT("ami.sort.count");
-
-        public final Component displayName;
-
-        SortField(String key) {
-            this.displayName = Component.translatable(key);
-        }
-    }
-
-    public enum GroupBy {
-        NONE("ami.group.none"),
-        DIMENSION("ami.group.dimension"),
-        MOD("ami.group.mod"),
-        CATEGORY("ami.group.category"),
-        CREATIVE("ami.group.creative"),
-        MATERIAL("ami.group.material"),
-        FAMILY("ami.group.family"),
-        SHAPE("ami.group.shape"),
-        TOPOLOGY("ami.group.topology"),
-        SIMILARITY("ami.group.similarity"),
-        PROPERTIES("ami.group.properties");
-
-        public final Component displayName;
-
-        GroupBy(String key) {
-            this.displayName = Component.translatable(key);
-        }
-    }
-
     private final ResultsPresentationOptions options;
     private final ResultsFilter filter;
     private final ResultsSorter sorter;
     private final ResultsTreeBuilder treeBuilder;
-
     public ResultsProcessor(SortField sortField, boolean ascending, GroupBy groupBy,
                             Set<String> selectedMods, Set<String> activeFacets) {
         this(new ResultsPresentationOptions(sortField, ascending, groupBy, selectedMods, activeFacets));
     }
-
     public ResultsProcessor(ResultsPresentationOptions options) {
         this.options = options;
         this.filter = new ResultsFilter(options);
@@ -129,5 +80,52 @@ public class ResultsProcessor {
 
     public Set<String> getActiveFacets() {
         return options.activeFacets();
+    }
+
+    public enum SortField {
+        REGISTRY("ami.sort.registry"),
+        ALPHABETICAL("ami.sort.alphabetical"),
+        COLOR("ami.sort.color"),
+        MOD("ami.sort.mod"),
+        STORAGE_CAPACITY("ami.sort.storage"),
+        ENERGY_CAPACITY("ami.sort.energy"),
+        ENERGY_GENERATION("ami.sort.energy_generation"),
+        FLUID_CAPACITY("ami.sort.fluid_capacity"),
+        TOOL_SPEED("ami.sort.tool_speed"),
+        TOOL_USES("ami.sort.tool_uses"),
+        ARMOR_DEFENSE("ami.sort.armor_defense"),
+        ARMOR_TOUGHNESS("ami.sort.armor_toughness"),
+        FOOD_NUTRITION("ami.sort.food_nutrition"),
+        FOOD_SATURATION("ami.sort.food_saturation"),
+        DAMAGE("ami.sort.damage"),
+        HEALTH("ami.sort.health"),
+        DPS("ami.sort.dps"),
+        COUNT("ami.sort.count");
+
+        public final Component displayName;
+
+        SortField(String key) {
+            this.displayName = Component.translatable(key);
+        }
+    }
+
+    public enum GroupBy {
+        NONE("ami.group.none"),
+        DIMENSION("ami.group.dimension"),
+        MOD("ami.group.mod"),
+        CATEGORY("ami.group.category"),
+        CREATIVE("ami.group.creative"),
+        MATERIAL("ami.group.material"),
+        FAMILY("ami.group.family"),
+        SHAPE("ami.group.shape"),
+        TOPOLOGY("ami.group.topology"),
+        SIMILARITY("ami.group.similarity"),
+        PROPERTIES("ami.group.properties");
+
+        public final Component displayName;
+
+        GroupBy(String key) {
+            this.displayName = Component.translatable(key);
+        }
     }
 }

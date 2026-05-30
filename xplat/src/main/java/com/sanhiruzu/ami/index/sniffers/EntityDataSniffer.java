@@ -3,7 +3,6 @@ package com.sanhiruzu.ami.index.sniffers;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -11,7 +10,6 @@ import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
 
 import java.util.*;
@@ -60,27 +58,6 @@ public final class EntityDataSniffer {
 
     private final ConcurrentHashMap<EntityType<?>, List<String>> cache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<EntityType<?>, Map<String, String>> metadataCache = new ConcurrentHashMap<>();
-
-    public List<String> extractSearchTags(SpawnEggItem eggItem) {
-        if (eggItem == null) {
-            return List.of();
-        }
-        return extractSearchTags(eggItem.getType(null));
-    }
-
-    public List<String> extractSearchTags(EntityType<?> entityType) {
-        if (entityType == null) {
-            return List.of();
-        }
-        return cache.computeIfAbsent(entityType, EntityDataSniffer::extractUncached);
-    }
-
-    public Map<String, String> extractNumericMetadata(EntityType<?> entityType) {
-        if (entityType == null) {
-            return Map.of();
-        }
-        return metadataCache.computeIfAbsent(entityType, EntityDataSniffer::extractNumericMetadataUncached);
-    }
 
     private static List<String> extractUncached(EntityType<?> entityType) {
         LinkedHashSet<String> tags = new LinkedHashSet<>();
@@ -195,5 +172,26 @@ public final class EntityDataSniffer {
 
     private static ResourceLocation mc(String path) {
         return Services.PLATFORM.rl("minecraft", path);
+    }
+
+    public List<String> extractSearchTags(SpawnEggItem eggItem) {
+        if (eggItem == null) {
+            return List.of();
+        }
+        return extractSearchTags(eggItem.getType(null));
+    }
+
+    public List<String> extractSearchTags(EntityType<?> entityType) {
+        if (entityType == null) {
+            return List.of();
+        }
+        return cache.computeIfAbsent(entityType, EntityDataSniffer::extractUncached);
+    }
+
+    public Map<String, String> extractNumericMetadata(EntityType<?> entityType) {
+        if (entityType == null) {
+            return Map.of();
+        }
+        return metadataCache.computeIfAbsent(entityType, EntityDataSniffer::extractNumericMetadataUncached);
     }
 }

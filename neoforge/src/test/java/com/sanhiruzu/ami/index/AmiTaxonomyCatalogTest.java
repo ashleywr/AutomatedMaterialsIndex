@@ -12,6 +12,23 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AmiTaxonomyCatalogTest {
+    private static void assertReadableLabel(String label, String key) {
+        assertFalse(label == null || label.isBlank(), "Blank taxonomy label for " + key);
+        assertFalse(label.startsWith("ami."), "Unresolved translation key for " + key + ": " + label);
+        assertFalse(label.contains("Other"), "Taxonomy label should avoid visible catch-all wording for " + key + ": " + label);
+    }
+
+    private static Path repoRoot() {
+        Path current = Path.of("").toAbsolutePath();
+        while (current != null) {
+            if (Files.exists(current.resolve("AGENTS.md"))) {
+                return current;
+            }
+            current = current.getParent();
+        }
+        throw new IllegalStateException("Could not locate repository root");
+    }
+
     @Test
     void taxonomyCatalogHasReadableUniqueEntries() {
         Set<String> categories = new HashSet<>();
@@ -42,22 +59,5 @@ class AmiTaxonomyCatalogTest {
         Files.createDirectories(reportPath.getParent());
         Files.writeString(reportPath, AmiTaxonomyCatalog.toMarkdown());
         assertTrue(Files.exists(reportPath), "Expected taxonomy report at " + reportPath.toAbsolutePath());
-    }
-
-    private static void assertReadableLabel(String label, String key) {
-        assertFalse(label == null || label.isBlank(), "Blank taxonomy label for " + key);
-        assertFalse(label.startsWith("ami."), "Unresolved translation key for " + key + ": " + label);
-        assertFalse(label.contains("Other"), "Taxonomy label should avoid visible catch-all wording for " + key + ": " + label);
-    }
-
-    private static Path repoRoot() {
-        Path current = Path.of("").toAbsolutePath();
-        while (current != null) {
-            if (Files.exists(current.resolve("AGENTS.md"))) {
-                return current;
-            }
-            current = current.getParent();
-        }
-        throw new IllegalStateException("Could not locate repository root");
     }
 }

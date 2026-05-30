@@ -16,6 +16,38 @@ import java.util.stream.Collectors;
  */
 public class EntityProvider implements IAmiDataProvider {
 
+    private static final Set<String> NEUTRAL_MOBS = Set.of(
+            "wolf", "bee", "polar_bear", "dolphin", "panda",
+            "llama", "trader_llama", "goat", "iron_golem",
+            "piglin", "zombified_piglin", "enderman",
+            "spider", "cave_spider"
+    );
+
+    private static String classifyMobSubcategory(String path, MobCategory category) {
+        if (NEUTRAL_MOBS.contains(path)) return "neutral";
+        return category == MobCategory.MONSTER ? "hostile" : "passive";
+    }
+
+    private static boolean isInternalMarkerEntity(net.minecraft.resources.ResourceLocation id) {
+        String path = id.getPath();
+        return path.equals("marker") || path.endsWith("_marker");
+    }
+
+    private static String entityTags(net.minecraft.world.entity.EntityType<?> entityType, List<String> searchTags) {
+        List<String> tags = new ArrayList<>();
+        BuiltInRegistries.ENTITY_TYPE.wrapAsHolder(entityType).tags()
+                .map(tag -> tag.location().toString().toLowerCase())
+                .forEach(tags::add);
+
+        for (String searchTag : searchTags) {
+            if (searchTag.startsWith("#") && searchTag.length() > 1) {
+                tags.add("ami:" + searchTag.substring(1));
+            }
+        }
+
+        return tags.stream().distinct().collect(Collectors.joining(","));
+    }
+
     @Override
     public void populate(GlobalIndex index, @Nullable Level level) {
         List<SearchNode> nodes = new ArrayList<>();
@@ -76,37 +108,5 @@ public class EntityProvider implements IAmiDataProvider {
 
         nodes.sort(RegistryUtils.ENTRY_ORDER);
         nodes.forEach(index::addNode);
-    }
-
-    private static final Set<String> NEUTRAL_MOBS = Set.of(
-            "wolf", "bee", "polar_bear", "dolphin", "panda",
-            "llama", "trader_llama", "goat", "iron_golem",
-            "piglin", "zombified_piglin", "enderman",
-            "spider", "cave_spider"
-    );
-
-    private static String classifyMobSubcategory(String path, MobCategory category) {
-        if (NEUTRAL_MOBS.contains(path)) return "neutral";
-        return category == MobCategory.MONSTER ? "hostile" : "passive";
-    }
-
-    private static boolean isInternalMarkerEntity(net.minecraft.resources.ResourceLocation id) {
-        String path = id.getPath();
-        return path.equals("marker") || path.endsWith("_marker");
-    }
-
-    private static String entityTags(net.minecraft.world.entity.EntityType<?> entityType, List<String> searchTags) {
-        List<String> tags = new ArrayList<>();
-        BuiltInRegistries.ENTITY_TYPE.wrapAsHolder(entityType).tags()
-                .map(tag -> tag.location().toString().toLowerCase())
-                .forEach(tags::add);
-
-        for (String searchTag : searchTags) {
-            if (searchTag.startsWith("#") && searchTag.length() > 1) {
-                tags.add("ami:" + searchTag.substring(1));
-            }
-        }
-
-        return tags.stream().distinct().collect(Collectors.joining(","));
     }
 }

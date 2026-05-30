@@ -12,8 +12,7 @@ public final class AmiTooltipFacts {
             new StorageTooltipFact(),
             new EnergyTooltipFact(),
             new DurabilityTooltipFact(),
-            new CombatTooltipFact(),
-            new ShiftDetailsTooltipFact()
+            new CombatTooltipFact()
     );
 
     private AmiTooltipFacts() {

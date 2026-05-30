@@ -33,12 +33,6 @@ public final class SearchService {
         this.categoryResolver = categoryResolver;
     }
 
-    public record QueryStep(String operation, String value, Map<NodeType, Integer> counts) {
-    }
-
-    public record QueryExplanation(String input, List<String> tokens, List<QueryStep> steps, Map<NodeType, Integer> finalCounts) {
-    }
-
     /**
      * Build a SearchService from the current GlobalIndex.
      * Constructs LiteralResolver, TagResolver, EnvironmentResolver pre-loaded with indexed nodes,
@@ -84,12 +78,35 @@ public final class SearchService {
         return new SearchService(resolvers, broadResolvers, tagResolver, modResolver, envResolver, numericResolver, propertyResolver, categoryResolver);
     }
 
+    private static void record(QueryTrace trace, String operation, String value, Map<NodeType, List<SearchNode>> results) {
+        if (trace == null) return;
+        trace.steps.add(new QueryStep(operation, value, countsByType(results)));
+    }
+
+    private static Map<NodeType, Integer> countsByType(Map<NodeType, List<SearchNode>> results) {
+        Map<NodeType, Integer> counts = new LinkedHashMap<>();
+        for (var entry : results.entrySet()) {
+            counts.put(entry.getKey(), entry.getValue().size());
+        }
+        return counts;
+    }
+
     /**
      * Query resolvers using UQL tokens if prefixes are present, else fallback to literal search.
      * Handles INCLUDE, TAG, ENV, EXCLUDE tokens.
      * Results are deduplicated and exclusions are applied.
      */
     public Map<NodeType, List<SearchNode>> query(String text) {
+        if (text != null && text.contains("|")) {
+            Map<NodeType, List<SearchNode>> combined = new LinkedHashMap<>();
+            for (String branch : text.split("\\|", -1)) {
+                String trimmed = branch.trim();
+                if (!trimmed.isEmpty()) {
+                    mergeResults(combined, queryInternal(trimmed, null));
+                }
+            }
+            return combined;
+        }
         return queryInternal(text, null);
     }
 
@@ -148,16 +165,28 @@ public final class SearchService {
             }
         }
 
-        // Plain INCLUDE parts search only display/name/id surfaces.
+        // Plain INCLUDE parts: resolve each word independently then intersect,
+        // so "potion heal" matches "Potion of Healing" even without adjacency.
         if (!includeParts.isEmpty()) {
-            String combinedInclude = String.join(" ", includeParts);
-            for (IQueryResolver resolver : resolvers) {
-                Map<NodeType, List<SearchNode>> partial = resolver.resolve(combinedInclude);
-                record(trace, "include:" + resolver.getClass().getSimpleName(), combinedInclude, partial);
-                mergeResults(results, partial);
+            Map<NodeType, List<SearchNode>> includeResults = null;
+            for (String part : includeParts) {
+                Map<NodeType, List<SearchNode>> wordResults = new LinkedHashMap<>();
+                for (IQueryResolver resolver : resolvers) {
+                    Map<NodeType, List<SearchNode>> partial = resolver.resolve(part);
+                    record(trace, "include:" + resolver.getClass().getSimpleName(), part, partial);
+                    mergeResults(wordResults, partial);
+                }
+                if (includeResults == null) {
+                    includeResults = wordResults;
+                } else {
+                    intersectResults(includeResults, wordResults);
+                }
+            }
+            if (includeResults != null) {
+                mergeResults(results, includeResults);
             }
             hasActiveResultSet = true;
-            record(trace, "after-include", combinedInclude, results);
+            record(trace, "after-include", String.join(" ", includeParts), results);
         }
 
         // META parts opt into the broader metadata-inclusive surface.
@@ -229,29 +258,6 @@ public final class SearchService {
         }
 
         return results;
-    }
-
-    private static void record(QueryTrace trace, String operation, String value, Map<NodeType, List<SearchNode>> results) {
-        if (trace == null) return;
-        trace.steps.add(new QueryStep(operation, value, countsByType(results)));
-    }
-
-    private static Map<NodeType, Integer> countsByType(Map<NodeType, List<SearchNode>> results) {
-        Map<NodeType, Integer> counts = new LinkedHashMap<>();
-        for (var entry : results.entrySet()) {
-            counts.put(entry.getKey(), entry.getValue().size());
-        }
-        return counts;
-    }
-
-    private static final class QueryTrace {
-        final String input;
-        final List<String> tokens = new ArrayList<>();
-        final List<QueryStep> steps = new ArrayList<>();
-
-        QueryTrace(String input) {
-            this.input = input;
-        }
     }
 
     private Map<NodeType, List<SearchNode>> resolveExclude(String excludePart) {
@@ -327,5 +333,22 @@ public final class SearchService {
             nodes.removeIf(node -> !allowed.contains(node));
         }
         dest.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+    }
+
+    public record QueryStep(String operation, String value, Map<NodeType, Integer> counts) {
+    }
+
+    public record QueryExplanation(String input, List<String> tokens, List<QueryStep> steps,
+                                   Map<NodeType, Integer> finalCounts) {
+    }
+
+    private static final class QueryTrace {
+        final String input;
+        final List<String> tokens = new ArrayList<>();
+        final List<QueryStep> steps = new ArrayList<>();
+
+        QueryTrace(String input) {
+            this.input = input;
+        }
     }
 }

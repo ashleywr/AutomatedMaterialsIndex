@@ -1,10 +1,10 @@
 package com.sanhiruzu.ami.client.overlay;
 
-import com.sanhiruzu.ami.forge.AMI;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.UniversalResultsPanel;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.forge.AMI;
 import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
@@ -20,15 +20,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class OverlayWidgetManager {
+    public static final int AMI_BTN_X = 2;
+    public static final int AMI_BTN_W = 32;
     private static final int BOTTOM_BAR_H = 32;
     private static final int SEARCH_H = 24;
     private static final int MIN_PANEL_WIDTH = 64;
     private static final int MAX_PANEL_WIDTH = 280;
     private static final int PANEL_MARGIN = 6;
     private static final int PANEL_MARGIN_V = 6;
-
-    public static final int AMI_BTN_X = 2;
-    public static final int AMI_BTN_W = 32;
     private static final int AMI_BTN_H = 22;
     private static final int AMI_BTN_MARGIN = 4;
     public static final int AMI_BTN_NEXT_X = AMI_BTN_X + AMI_BTN_W + AMI_BTN_MARGIN;
@@ -487,6 +486,10 @@ public class OverlayWidgetManager {
         return false;
     }
 
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        return mouseScrolled(mouseX, mouseY, scrollY);
+    }
+
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         for (PanelSlot slot : activeSlots) {
             if (slot.mouseClicked(mouseX, mouseY, button)) return true;
@@ -722,6 +725,10 @@ public class OverlayWidgetManager {
         boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
             AbstractWidget widget = activeWidget();
             return widget != null && widget.visible && widget.mouseScrolled(mouseX, mouseY, scrollY);
+        }
+
+        boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+            return mouseScrolled(mouseX, mouseY, scrollY);
         }
 
         boolean mouseClicked(double mouseX, double mouseY, int button) {

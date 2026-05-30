@@ -7,13 +7,19 @@
   "mixins": [],
   "client": [
     "EmiScreenManagerMixin",
+    "EmiBoMStateMixin",
+    "EmiFavoritesStateMixin",
+    "EmiHiddenStateMixin",
+    "EmiRecipeScreenFavoriteMixin",
+    "EmiSidebarsStateMixin",
     "ForgeEmiAgnosForgeMixin",
     "ForgeEmiBoMMixin",
     "ForgeEmiRecipeDefaultLoaderMixin",
+    "ForgeGuiPluginMixin",
+    "JeiBookmarkListMixin",
+    "JeiBookmarkOverlayMixin",
     "JeiClientInputHandlerMixin",
     "JeiGuiEventHandlerMixin",
-    "JeiIngredientListOverlayMixin",
-    "JeiBookmarkOverlayMixin",
-    "ForgeGuiPluginMixin"
+    "JeiIngredientListOverlayMixin"
   ]
 }

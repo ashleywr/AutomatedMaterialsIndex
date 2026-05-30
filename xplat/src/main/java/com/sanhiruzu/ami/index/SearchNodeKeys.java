@@ -4,12 +4,8 @@ package com.sanhiruzu.ami.index;
  * String constants for SearchNode.metadata() keys.
  */
 public final class SearchNodeKeys {
-    private SearchNodeKeys() {
-    }
-
     // Shared
     public static final String MOD_ID = "modId";
-
     // Item-specific
     public static final String ONTOLOGY_CATEGORY = "ontologyCategory";    // AmiOntology.Category.id
     public static final String ONTOLOGY_SUBCATEGORY = "ontologySubcategory"; // AmiOntology.SubCategory.id
@@ -18,6 +14,7 @@ public final class SearchNodeKeys {
     public static final String MATERIAL_GROUP = "materialGroup";
     public static final String TAGS = "tags";  // Comma-separated tag paths
     public static final String FACETS = "facets"; // Comma-separated stable facet ids
+    public static final String ITEM_CLASS = "itemClass"; // concrete item class
     public static final String ESM_CAPACITY = "emsCapacity";  // Equivalent Stack Metric
     public static final String ENERGY_CAPACITY = "energy_capacity"; // Maximum FE/RF capacity
     public static final String ENERGY_GENERATION = "energy_generation"; // FE/RF generated per tick
@@ -55,7 +52,8 @@ public final class SearchNodeKeys {
     public static final String BLOCK_TAGS = "blockTags"; // comma-separated block tag ids
     public static final String BLOCK_CLASS = "blockClass"; // concrete placed block class
     public static final String BLOCK_STATE_PROPERTIES = "blockStateProperties"; // comma-separated state property names
-
+    public static final String COMPONENT_FACTS = "componentFacts"; // comma-separated normalized DataComponent facts
+    public static final String EQUIPMENT_SLOT = "equipmentSlot"; // normalized EquipmentSlot name when known
     // Atlas-specific
     public static final String DIMENSION = "dimension";
     public static final String ENTITY_CATEGORY = "entityCategory";
@@ -69,7 +67,9 @@ public final class SearchNodeKeys {
     public static final String FOLIAGE_COLOR = "foliageColor"; // Biome foliage color override (hex int string)
     public static final String GRASS_COLOR = "grassColor";   // Biome grass color override (hex int string)
     public static final String TEMPERATURE_MODIFIER = "temperatureModifier"; // "frozen" or empty
-
     // Player-specific (transient, never persisted)
     public static final String PLAYER_UUID = "playerUuid";
+
+    private SearchNodeKeys() {
+    }
 }

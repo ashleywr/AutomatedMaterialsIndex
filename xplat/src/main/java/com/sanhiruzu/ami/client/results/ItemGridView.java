@@ -29,33 +29,27 @@ public class ItemGridView {
     private static final int STICKY_CONTEXT_H = HEADER_H + 3;
     private static final int SCROLLBAR_W = 5;
     private static final int HEADER_INDENT = 12;
-
+    private final Map<TreeNode, TreeNode> expandedGroupCache = new HashMap<>();
     private int x, y, width, height;
     private List<TreeNode> rootNodes = new ArrayList<>();
     private int pixelScrollOffset = 0;
-
     private boolean scrollbarDragging = false;
     private int scrollbarDragStartY;
     private int scrollbarDragStartOffset;
-
     /**
      * Set by UniversalResultsPanel to route clicks to the recipe bridge.
      */
     private BiConsumer<SearchNode, Integer> onItemClick;
     private java.util.function.Consumer<String> onTokenInject;
-
     // Deferred tooltips — built during render, drawn after scissor is popped
     private ItemStack pendingTooltip = null;
     private List<Component> pendingTextTooltip = null;
     private Optional<TooltipComponent> pendingTooltipImage = Optional.empty();
     private SearchNode hoveredNode = null;
     private TreeNode hoveredTreeNode = null;
-
     // Virtual row cache — rebuilt whenever rootNodes changes or a group is toggled
     private List<VirtualRow> cachedRows = null;
     private int cachedCols = -1;
-    private final Map<TreeNode, TreeNode> expandedGroupCache = new HashMap<>();
-
     // Cached animation state per frame
     private float cachedWiggle = 0f;
     private float cachedRotation = 0f;
@@ -65,37 +59,6 @@ public class ItemGridView {
     // Virtual row types
     // =========================================================
 
-    private sealed interface VirtualRow permits HeaderRow, ItemRow {
-        int height();
-    }
-
-    private record HeaderRow(TreeNode node, int depth, int itemCount, boolean toggleable, boolean alternateBand) implements VirtualRow {
-        public int height() {
-            return HEADER_H;
-        }
-    }
-
-    private record ItemRow(List<TreeNode> items, int depth, boolean alternateBand) implements VirtualRow {
-        public int height() {
-            return CELL_SIZE;
-        }
-    }
-
-    private record StickyContext(String label) {
-    }
-
-    private static final class BandSequence {
-        private int index;
-
-        boolean nextBand() {
-            return (index++ & 1) == 1;
-        }
-    }
-
-    // =========================================================
-    // Public API
-    // =========================================================
-
     public ItemGridView(int x, int y, int width, int height) {
         this.x = x;
         this.y = y;
@@ -103,14 +66,39 @@ public class ItemGridView {
         this.height = height;
     }
 
+    public static void clearStackCache() {
+        // Managed by ItemIconRenderer
+    }
+
+    private static int groupBandColor(boolean alternateBand) {
+        return alternateBand ? AMITheme.GRID_GROUP_BAND_ALT : AMITheme.GRID_GROUP_BAND;
+    }
+
+    private static ItemStack resolveStack(SearchNode node) {
+        if (node == null) return ItemStack.EMPTY;
+        return ItemIconRenderer.resolveStack(node.id());
+    }
+
+    private static boolean isTokenInjectClick(int button) {
+        return ViewInputHelper.isTokenInjectClick(button);
+    }
+
+    private static boolean isEmiRecipeScreenActive() {
+        return com.sanhiruzu.ami.compat.RecipeViewerBridge.isEmiRecipeScreenActive();
+    }
+
+    // =========================================================
+    // Public API
+    // =========================================================
+
+    public List<TreeNode> getRootNodes() {
+        return List.copyOf(rootNodes);
+    }
+
     public void setRootNodes(List<TreeNode> nodes) {
         this.rootNodes = nodes;
         this.pixelScrollOffset = 0;
         this.cachedRows = null;
-    }
-
-    public List<TreeNode> getRootNodes() {
-        return List.copyOf(rootNodes);
     }
 
     public void collapseAll() {
@@ -156,16 +144,11 @@ public class ItemGridView {
         this.onTokenInject = callback;
     }
 
-    public void setTooltipLeftOfCursor(boolean ignored) {
-    }
+    private boolean tooltipLeftOfCursor = true;
 
-    public static void clearStackCache() {
-        // Managed by ItemIconRenderer
+    public void setTooltipLeftOfCursor(boolean tooltipLeftOfCursor) {
+        this.tooltipLeftOfCursor = tooltipLeftOfCursor;
     }
-
-    // =========================================================
-    // Rendering
-    // =========================================================
 
     public void render(GuiGraphics g, int mouseX, int mouseY, boolean toolbarDropdownOpen) {
         pendingTooltip = null;
@@ -227,9 +210,17 @@ public class ItemGridView {
             var font = Minecraft.getInstance().font;
             com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
             if (pendingTextTooltip != null) {
-                AmiTooltipRenderer.renderLeftOfCursor(g, font, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY);
+                if (tooltipLeftOfCursor) {
+                    AmiTooltipRenderer.renderLeftOfCursor(g, font, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY);
+                } else {
+                    AmiTooltipRenderer.renderRightOfCursor(g, font, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY);
+                }
             } else if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
-                AmiTooltipRenderer.renderLeftOfCursor(g, font, pendingTooltip, mouseX, mouseY);
+                if (tooltipLeftOfCursor) {
+                    AmiTooltipRenderer.renderLeftOfCursor(g, font, pendingTooltip, mouseX, mouseY);
+                } else {
+                    AmiTooltipRenderer.renderRightOfCursor(g, font, pendingTooltip, mouseX, mouseY);
+                }
             }
         }
     }
@@ -250,6 +241,10 @@ public class ItemGridView {
         String label = marker + hr.node().getLabel().getString() + " (" + hr.itemCount() + ")";
         g.drawString(Minecraft.getInstance().font, label, x + 4 + indent, drawY + 2, com.sanhiruzu.ami.client.AMITheme.TEXT_HEADER, false);
     }
+
+    // =========================================================
+    // Rendering
+    // =========================================================
 
     private void renderItemRow(GuiGraphics g, ItemRow ir, int drawY, int mouseX, int mouseY) {
         int cols = computeCols();
@@ -286,7 +281,7 @@ public class ItemGridView {
 
             boolean hovered = mouseX >= cellX && mouseX < cellX + CELL_SIZE
                     && mouseY >= cellY && mouseY < cellY + CELL_SIZE;
-            
+
             // Render default slot background if defined by theme
             if (AMITheme.SLOT_BG != 0) {
                 g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, AMITheme.SLOT_BG);
@@ -380,7 +375,7 @@ public class ItemGridView {
 
     private void renderIconWithWiggle(GuiGraphics g, ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
         g.pose().pushPose();
-        g.pose().translate(x + 8, y + 8, 150);
+        g.pose().translate(x + 8, y + 8, isEmiRecipeScreenActive() ? 0 : 150);
         if (cachedDragging || hovered) {
             g.pose().scale(1.1f + cachedWiggle, 1.1f + cachedWiggle, 1.1f);
             if (cachedDragging) {
@@ -392,16 +387,21 @@ public class ItemGridView {
     }
 
     private void renderRendererWithWiggle(GuiGraphics g, SearchNode entry, int x, int y, boolean hovered) {
-        GuiGraphics iconGraphics = new GuiGraphics(Minecraft.getInstance(), g.bufferSource());
         if (!hovered) {
             g.enableScissor(x, y, x + 16, y + 16);
         }
-        iconGraphics.pose().pushPose();
-        iconGraphics.pose().translate(0, 0, 100);
+        g.pose().pushPose();
+        g.pose().translate(x + 8, y + 8, isEmiRecipeScreenActive() ? 0 : 150);
+        if (cachedDragging || hovered) {
+            g.pose().scale(1.1f + cachedWiggle, 1.1f + cachedWiggle, 1.1f);
+            if (cachedDragging) {
+                g.pose().mulPose(com.mojang.math.Axis.ZP.rotationDegrees(cachedRotation));
+            }
+        }
         try {
-            com.sanhiruzu.ami.client.icon.RendererRegistry.get(entry.type()).render(iconGraphics, entry, x, y, 16, hovered);
+            com.sanhiruzu.ami.client.icon.RendererRegistry.get(entry.type()).render(g, entry, -8, -8, 16, hovered);
         } finally {
-            iconGraphics.pose().popPose();
+            g.pose().popPose();
             if (!hovered) {
                 g.disableScissor();
             }
@@ -449,10 +449,6 @@ public class ItemGridView {
         if (!uncached.isEmpty()) com.sanhiruzu.ami.client.ItemIconCache.primeVisible(g, uncached);
     }
 
-    // =========================================================
-    // Virtual row construction
-    // =========================================================
-
     private List<VirtualRow> getVirtualRows(int cols) {
         if (cachedRows == null || cachedCols != cols) {
             cachedRows = buildVirtualRows(cols);
@@ -474,6 +470,10 @@ public class ItemGridView {
 
         return rows;
     }
+
+    // =========================================================
+    // Virtual row construction
+    // =========================================================
 
     private void processNode(TreeNode node, int depth, int cols, List<VirtualRow> out, List<TreeNode> linearItems, BandSequence bands) {
         if (node.isLeaf()) {
@@ -514,10 +514,6 @@ public class ItemGridView {
         int contentX = x;
         int contentRight = x + width - SCROLLBAR_W;
         g.fill(contentX, drawY, contentRight, drawY + CELL_SIZE, groupBandColor(alternateBand));
-    }
-
-    private static int groupBandColor(boolean alternateBand) {
-        return alternateBand ? AMITheme.GRID_GROUP_BAND_ALT : AMITheme.GRID_GROUP_BAND;
     }
 
     private void renderStickyContext(GuiGraphics g, StickyContext context) {
@@ -612,17 +608,11 @@ public class ItemGridView {
     }
 
     private int computeCols() {
+        if (com.sanhiruzu.ami.config.AmiConfig.gridColumns > 0) {
+            return Math.max(1, Math.min(com.sanhiruzu.ami.config.AmiConfig.gridColumns, 16));
+        }
         return Math.max(1, (width - SCROLLBAR_W - 2) / CELL_SIZE);
     }
-
-    private static ItemStack resolveStack(SearchNode node) {
-        if (node == null) return ItemStack.EMPTY;
-        return ItemIconRenderer.resolveStack(node.id());
-    }
-
-    // =========================================================
-    // Scrollbar
-    // =========================================================
 
     private void renderScrollbar(GuiGraphics g, int totalH, int contentY, int contentH, int mouseX, int mouseY) {
         if (totalH <= contentH) return;
@@ -651,10 +641,6 @@ public class ItemGridView {
         return mouseX >= x + width - 10 && mouseX < x + width
                 && mouseY >= contentY && mouseY < y + height;
     }
-
-    // =========================================================
-    // Input handlers
-    // =========================================================
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0 && button != 1) return false;
@@ -715,10 +701,6 @@ public class ItemGridView {
         return false;
     }
 
-    private static boolean isTokenInjectClick(int button) {
-        return button == 1 && Screen.hasControlDown();
-    }
-
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         if (!isMouseOver(mouseX, mouseY)) return false;
         int cols = computeCols();
@@ -737,6 +719,10 @@ public class ItemGridView {
                 (int) (pixelScrollOffset - delta * scrollAmount)));
         return true;
     }
+
+    // =========================================================
+    // Scrollbar
+    // =========================================================
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (keyCode == GLFW.GLFW_KEY_A) {
@@ -780,6 +766,10 @@ public class ItemGridView {
         scrollbarDragStartOffset = pixelScrollOffset;
         return true;
     }
+
+    // =========================================================
+    // Input handlers
+    // =========================================================
 
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dx, double dy) {
         if (!scrollbarDragging || button != 0) return false;
@@ -837,5 +827,33 @@ public class ItemGridView {
             drawY += row.height();
         }
         return itemCounter;
+    }
+
+    private sealed interface VirtualRow permits HeaderRow, ItemRow {
+        int height();
+    }
+
+    private record HeaderRow(TreeNode node, int depth, int itemCount, boolean toggleable,
+                             boolean alternateBand) implements VirtualRow {
+        public int height() {
+            return HEADER_H;
+        }
+    }
+
+    private record ItemRow(List<TreeNode> items, int depth, boolean alternateBand) implements VirtualRow {
+        public int height() {
+            return CELL_SIZE;
+        }
+    }
+
+    private record StickyContext(String label) {
+    }
+
+    private static final class BandSequence {
+        private int index;
+
+        boolean nextBand() {
+            return (index++ & 1) == 1;
+        }
     }
 }

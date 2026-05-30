@@ -34,31 +34,6 @@ public class ItemIconRenderer implements IIconRenderer {
      */
     private static final Map<ResourceLocation, ItemStack> lazyCache = new HashMap<>();
 
-    @Override
-    public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
-        ItemStack stack = resolveStack(node.id());
-        if (stack.isEmpty()) {
-            FallbackTextRenderer.renderFallback(g, node, x, y, size);
-            return;
-        }
-
-        if (size == 16) {
-            // ItemIconCache has a Z-projection bug (near/far=[1000,3000] clips item geometry at Z≈100),
-            // producing transparent-black framebuffers. Bypass until projection is fixed.
-            g.renderItem(stack, x, y);
-            return;
-        }
-
-        // Scale item rendering to requested size
-        var poses = g.pose();
-        poses.pushPose();
-        poses.translate(x, y, 0);
-        float s = size / 16f;
-        poses.scale(s, s, 1f);
-        g.renderItem(stack, 0, 0);
-        poses.popPose();
-    }
-
     /**
      * Pre-register a custom ItemStack for a synthetic node id (e.g. subtype nodes).
      */
@@ -72,17 +47,6 @@ public class ItemIconRenderer implements IIconRenderer {
 
         return lazyCache.computeIfAbsent(id,
                 k -> BuiltInRegistries.ITEM.getOptional(k).map(ItemStack::new).orElse(ItemStack.EMPTY));
-    }
-
-    @Override
-    public List<Component> getTooltip(SearchNode node) {
-        // Caller should use ItemStack tooltip for richer item data; return null to signal that.
-        return null;
-    }
-
-    @Override
-    public void invalidate() {
-        lazyCache.clear();
     }
 
     /**
@@ -146,5 +110,41 @@ public class ItemIconRenderer implements IIconRenderer {
         } catch (IOException e) {
             AmiCore.LOGGER.warn("AMI IconAudit: failed to write report to {}: {}", out, e.getMessage(), e);
         }
+    }
+
+    @Override
+    public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
+        ItemStack stack = resolveStack(node.id());
+        if (stack.isEmpty()) {
+            FallbackTextRenderer.renderFallback(g, node, x, y, size);
+            return;
+        }
+
+        if (size == 16) {
+            // ItemIconCache has a Z-projection bug (near/far=[1000,3000] clips item geometry at Z≈100),
+            // producing transparent-black framebuffers. Bypass until projection is fixed.
+            g.renderItem(stack, x, y);
+            return;
+        }
+
+        // Scale item rendering to requested size
+        var poses = g.pose();
+        poses.pushPose();
+        poses.translate(x, y, 0);
+        float s = size / 16f;
+        poses.scale(s, s, 1f);
+        g.renderItem(stack, 0, 0);
+        poses.popPose();
+    }
+
+    @Override
+    public List<Component> getTooltip(SearchNode node) {
+        // Caller should use ItemStack tooltip for richer item data; return null to signal that.
+        return null;
+    }
+
+    @Override
+    public void invalidate() {
+        lazyCache.clear();
     }
 }

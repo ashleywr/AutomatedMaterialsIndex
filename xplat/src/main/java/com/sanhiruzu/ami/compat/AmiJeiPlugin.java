@@ -25,5 +25,13 @@ public class AmiJeiPlugin implements IModPlugin {
     @Override
     public void onRuntimeAvailable(mezz.jei.api.runtime.IJeiRuntime jeiRuntime) {
         JeiRuntimeAccessor.setRuntime(jeiRuntime);
+        JeiRuntimeListenerBridge.register(jeiRuntime);
+        RecipeViewerStateSync.recipesChanged();
+    }
+
+    @Override
+    public void onRuntimeUnavailable() {
+        JeiRuntimeAccessor.clearRuntime();
+        RecipeViewerStateSync.recipesChanged();
     }
 }

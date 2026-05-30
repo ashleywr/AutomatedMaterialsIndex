@@ -17,59 +17,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ResultsShapeExplorerTest {
-    @BeforeEach
-    void setUp() {
-        GlobalIndex.getInstance().clear();
-        GlobalIndex.getInstance().markIndexReady();
-    }
-
-    @Test
-    void writesResultShapeExplorationReport() throws IOException {
-        List<SearchNode> fixture = fixtureNodes();
-        StringBuilder report = new StringBuilder();
-        report.append("# AMI Result Shape Exploration\n\n");
-        report.append("This report is diagnostic. Use it to inspect tree and grid projection shapes before turning a concern into a hard regression assertion.\n\n");
-
-        for (ResultsProcessor.GroupBy groupBy : List.of(
-                ResultsProcessor.GroupBy.NONE,
-                ResultsProcessor.GroupBy.CATEGORY,
-                ResultsProcessor.GroupBy.MOD,
-                ResultsProcessor.GroupBy.MATERIAL,
-                ResultsProcessor.GroupBy.FAMILY
-        )) {
-            for (ResultsProcessor.SortField sortField : List.of(
-                    ResultsProcessor.SortField.REGISTRY,
-                    ResultsProcessor.SortField.ALPHABETICAL,
-                    ResultsProcessor.SortField.MOD,
-                    ResultsProcessor.SortField.COUNT
-            )) {
-                try {
-                    SearchState listState = state(sortField, groupBy, ResultsToolbar.ViewMode.LIST);
-                    SearchState compactState = state(sortField, groupBy, ResultsToolbar.ViewMode.GRID);
-                    List<TreeNode> tree = ResultsViewProjector.project(fixture, listState, null, false, false).roots();
-                    List<TreeNode> compact = ResultsViewProjector.project(fixture, compactState, null, true, false).roots();
-                    report.append(ResultsShapeSnapshot.capture(groupBy, sortField, tree, compact, 6).toMarkdown());
-                } catch (Throwable t) {
-                    report.append("## group=").append(groupBy.name())
-                            .append(" sort=").append(sortField.name())
-                            .append("\n\n");
-                    report.append("Unavailable in JVM explorer: ")
-                            .append(t.getClass().getSimpleName())
-                            .append(": ")
-                            .append(t.getMessage())
-                            .append("\n\n");
-                    continue;
-                }
-            }
-        }
-
-        Path reportPath = repoRoot().resolve(Path.of("neoforge", "build", "reports", "ami-result-shapes", "result-shapes.md"));
-        Files.createDirectories(reportPath.getParent());
-        Files.writeString(reportPath, report.toString());
-
-        assertTrue(Files.exists(reportPath), "Expected diagnostic report at " + reportPath.toAbsolutePath());
-    }
-
     private static SearchState state(ResultsProcessor.SortField sortField,
                                      ResultsProcessor.GroupBy groupBy,
                                      ResultsToolbar.ViewMode viewMode) {
@@ -369,5 +316,58 @@ public class ResultsShapeExplorerTest {
                 0,
                 metadata
         );
+    }
+
+    @BeforeEach
+    void setUp() {
+        GlobalIndex.getInstance().clear();
+        GlobalIndex.getInstance().markIndexReady();
+    }
+
+    @Test
+    void writesResultShapeExplorationReport() throws IOException {
+        List<SearchNode> fixture = fixtureNodes();
+        StringBuilder report = new StringBuilder();
+        report.append("# AMI Result Shape Exploration\n\n");
+        report.append("This report is diagnostic. Use it to inspect tree and grid projection shapes before turning a concern into a hard regression assertion.\n\n");
+
+        for (ResultsProcessor.GroupBy groupBy : List.of(
+                ResultsProcessor.GroupBy.NONE,
+                ResultsProcessor.GroupBy.CATEGORY,
+                ResultsProcessor.GroupBy.MOD,
+                ResultsProcessor.GroupBy.MATERIAL,
+                ResultsProcessor.GroupBy.FAMILY
+        )) {
+            for (ResultsProcessor.SortField sortField : List.of(
+                    ResultsProcessor.SortField.REGISTRY,
+                    ResultsProcessor.SortField.ALPHABETICAL,
+                    ResultsProcessor.SortField.MOD,
+                    ResultsProcessor.SortField.COUNT
+            )) {
+                try {
+                    SearchState listState = state(sortField, groupBy, ResultsToolbar.ViewMode.LIST);
+                    SearchState compactState = state(sortField, groupBy, ResultsToolbar.ViewMode.GRID);
+                    List<TreeNode> tree = ResultsViewProjector.project(fixture, listState, null, false, false).roots();
+                    List<TreeNode> compact = ResultsViewProjector.project(fixture, compactState, null, true, false).roots();
+                    report.append(ResultsShapeSnapshot.capture(groupBy, sortField, tree, compact, 6).toMarkdown());
+                } catch (Throwable t) {
+                    report.append("## group=").append(groupBy.name())
+                            .append(" sort=").append(sortField.name())
+                            .append("\n\n");
+                    report.append("Unavailable in JVM explorer: ")
+                            .append(t.getClass().getSimpleName())
+                            .append(": ")
+                            .append(t.getMessage())
+                            .append("\n\n");
+                    continue;
+                }
+            }
+        }
+
+        Path reportPath = repoRoot().resolve(Path.of("neoforge", "build", "reports", "ami-result-shapes", "result-shapes.md"));
+        Files.createDirectories(reportPath.getParent());
+        Files.writeString(reportPath, report.toString());
+
+        assertTrue(Files.exists(reportPath), "Expected diagnostic report at " + reportPath.toAbsolutePath());
     }
 }

@@ -3,12 +3,12 @@ package net.neoforged.fml.loading;
 public final class FMLLoader {
     private static Dist dist = Dist.CLIENT;
 
-    public static void setDist(Dist d) {
-        dist = d;
-    }
-
     public static Dist getDist() {
         return dist;
+    }
+
+    public static void setDist(Dist d) {
+        dist = d;
     }
 
     public enum Dist {

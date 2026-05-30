@@ -56,19 +56,6 @@ public final class ThemeResourceStyles {
             return new ThemeDefinition(id, values);
         }
 
-        boolean isEmpty() {
-            return values.isEmpty();
-        }
-
-        void apply() {
-            for (Map.Entry<Field, Integer> entry : values.entrySet()) {
-                try {
-                    entry.getKey().setInt(null, entry.getValue());
-                } catch (IllegalAccessException ignored) {
-                }
-            }
-        }
-
         private static void collect(Map<Field, Integer> values, ResourceLocation id, String prefix, JsonObject object) {
             for (Map.Entry<String, JsonElement> entry : object.entrySet()) {
                 String key = prefix.isEmpty() ? entry.getKey() : prefix + "." + entry.getKey();
@@ -131,6 +118,19 @@ public final class ThemeResourceStyles {
 
         private static boolean isHexDigit(int c) {
             return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+        }
+
+        boolean isEmpty() {
+            return values.isEmpty();
+        }
+
+        void apply() {
+            for (Map.Entry<Field, Integer> entry : values.entrySet()) {
+                try {
+                    entry.getKey().setInt(null, entry.getValue());
+                } catch (IllegalAccessException ignored) {
+                }
+            }
         }
     }
 }

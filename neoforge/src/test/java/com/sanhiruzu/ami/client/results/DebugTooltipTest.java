@@ -15,6 +15,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class DebugTooltipTest {
 
+    private static SearchNode node() {
+        return new SearchNode(
+                new ResourceLocation("create:cardboard_sword"),
+                NodeType.ITEM,
+                "Cardboard Sword",
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.DPS, "30.0",
+                        SearchNodeKeys.MAX_DURABILITY, "13"
+                )
+        );
+    }
+
     @AfterEach
     void resetDevMode() {
         AmiConfig.devMode = false;
@@ -32,19 +46,5 @@ public class DebugTooltipTest {
         assertFalse(tooltip.contains("Metadata"));
         assertFalse(tooltip.contains(SearchNodeKeys.DPS));
         assertFalse(tooltip.contains("create:cardboard_sword"));
-    }
-
-    private static SearchNode node() {
-        return new SearchNode(
-                new ResourceLocation("create:cardboard_sword"),
-                NodeType.ITEM,
-                "Cardboard Sword",
-                0,
-                0,
-                Map.of(
-                        SearchNodeKeys.DPS, "30.0",
-                        SearchNodeKeys.MAX_DURABILITY, "13"
-                )
-        );
     }
 }

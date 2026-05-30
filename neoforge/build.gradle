@@ -65,6 +65,8 @@ neoForge {
 
         configureEach {
             systemProperty 'forge.logging.markers', 'SCAN,REGISTRIES,LOADING'
+            systemProperty 'ami.debugCommands', 'true'
+            systemProperty 'ami.registerGameTests', 'true'
             systemProperty 'java.io.tmpdir', rootProject.layout.buildDirectory.dir("tmp/minecraft-runs/neoforge/${name}").get().asFile.absolutePath
             logLevel = org.slf4j.event.Level.DEBUG
             jvmArguments.addAll '-ea', '-Dmixin.debug.export=true'
@@ -185,6 +187,7 @@ var generateModMetadata = tasks.register('generateModMetadata', ProcessResources
             minecraft_version      : neoforge_minecraft_version,
             minecraft_version_range: neoforge_minecraft_version_range,
             neo_version            : neoforge_version,
+            neo_version_range      : neoforge_version_range,
             loader_version_range   : neoforge_loader_version_range,
             mod_id                 : mod_id,
             mod_name               : mod_name,
@@ -213,5 +216,12 @@ publishing {
         register('mavenJava', MavenPublication) {
             from components.java
         }
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    if (!providers.gradleProperty('ami_include_dev_artifacts').map { it.toBoolean() }.getOrElse(false)) {
+        exclude 'com/sanhiruzu/ami/benchmark/**'
+        exclude 'data/ami/structure/ami_benchmark_empty.nbt'
     }
 }

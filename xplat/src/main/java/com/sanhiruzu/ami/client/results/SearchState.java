@@ -4,27 +4,23 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 /**
  * Encapsulates the complete search and filter state for the AMI results panel.
  * Widgets can subscribe to changes to update their internal display state.
  */
 public class SearchState {
 
-    public interface Listener {
-        void onSearchStateChanged(SearchState state);
-    }
-
+    private final Set<String> activeFacets = new HashSet<>();
+    private final Set<String> selectedMods = new HashSet<>();
+    private final List<Listener> listeners = new ArrayList<>();
     private String query = "";
     private ResultsProcessor.SortField sortField = ResultsProcessor.SortField.REGISTRY;
     private boolean ascending = true;
     private ResultsProcessor.GroupBy groupBy = ResultsProcessor.GroupBy.CATEGORY;
-    private final Set<String> activeFacets = new HashSet<>();
-    private final Set<String> selectedMods = new HashSet<>();
     private ResultsToolbar.ViewMode viewMode = ResultsToolbar.ViewMode.LIST;
     private ListLens listLens = ListLens.ALL;
     private List<ListLens> availableListLenses = List.of(ListLens.values());
-
-    private final List<Listener> listeners = new ArrayList<>();
 
     public SearchState() {
         RowFieldConfig.setSubtitleFields(listLens.subtitleFields());
@@ -54,11 +50,11 @@ public class SearchState {
         }
     }
 
-    // ── Getters & Setters ─────────────────────────────────────────────────────
-
     public String getQuery() {
         return query;
     }
+
+    // ── Getters & Setters ─────────────────────────────────────────────────────
 
     public void setQuery(String query) {
         this.query = query;
@@ -196,5 +192,9 @@ public class SearchState {
      */
     public ResultsProcessor createProcessor() {
         return new ResultsProcessor(sortField, ascending, groupBy, selectedMods, activeFacets);
+    }
+
+    public interface Listener {
+        void onSearchStateChanged(SearchState state);
     }
 }

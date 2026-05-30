@@ -1,8 +1,8 @@
 package com.sanhiruzu.ami.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
 import com.sanhiruzu.ami.client.results.*;
+import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
@@ -35,17 +35,16 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private static final int TOGGLE_H = ResultsToolbar.BUTTON_H;
     // Favorites panel heart header height
     private static final int FAV_HEADER_H = 16;
-
+    private static final int SIDEBAR_SWAP_W = 18;
+    private static final int SIDEBAR_SWAP_H = ResultsToolbar.BUTTON_H;
+    private static final double DRAG_THRESHOLD = 5.0;
+    private final SearchState state = new SearchState();
     private int x, y, width, height;
-
     // Toggle button position — recomputed on every layout update
     private int toggleX, toggleY;
-
     private ResultsToolbar toolbar;
     private ResultsTreeView treeView;
     private ItemGridView gridView;
-
-    private final SearchState state = new SearchState();
     private List<SearchNode> currentResults = new ArrayList<>();
     private String currentQuery = "";
     private SearchService searchService;
@@ -58,14 +57,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private boolean chromeOnly = false;
     private boolean tooltipLeftOfCursor = false;
     private Component panelTitle = null;
-
     // Displayed item count shown in the compact header (updated in refreshTree)
     private int displayedItemCount = 0;
-
     private SearchNode pressedNode = null;
     private double pressedX, pressedY;
-    private static final double DRAG_THRESHOLD = 5.0;
-
     // State tracking to trigger auto-refreshes when player context changes
     private net.minecraft.world.level.GameType lastPlayerMode = null;
     private boolean lastDevMode = false;
@@ -83,6 +78,19 @@ public class UniversalResultsPanel implements SearchState.Listener {
         state.setViewMode(preferredView == AmiViewPreferences.StoredView.GRID
                 ? ResultsToolbar.ViewMode.GRID
                 : ResultsToolbar.ViewMode.LIST);
+    }
+
+    private static int countLeaves(List<TreeNode> nodes) {
+        int count = 0;
+        for (TreeNode node : nodes) {
+            if (node.isLeaf()) count++;
+            else count += countLeaves(node.getChildren());
+        }
+        return count;
+    }
+
+    private static boolean isShiftKey(int keyCode) {
+        return keyCode == GLFW.GLFW_KEY_LEFT_SHIFT || keyCode == GLFW.GLFW_KEY_RIGHT_SHIFT;
     }
 
     private void initChildren() {
@@ -145,15 +153,6 @@ public class UniversalResultsPanel implements SearchState.Listener {
         treeView.setRootNodes(normalized);
         gridView.setRootNodes(normalized);
         this.displayedItemCount = countLeaves(normalized);
-    }
-
-    private static int countLeaves(List<TreeNode> nodes) {
-        int count = 0;
-        for (TreeNode node : nodes) {
-            if (node.isLeaf()) count++;
-            else count += countLeaves(node.getChildren());
-        }
-        return count;
     }
 
     public void setOnModClick(java.util.function.Consumer<String> callback) {
@@ -292,8 +291,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
             Component title = panelTitle != null ? panelTitle : Component.translatable("ami.gui.favorites");
             g.drawString(font, title.getString(), x + AMITheme.GLOBAL_PADDING, y + (FAV_HEADER_H - font.lineHeight) / 2, AMITheme.TEXT_HEADER, false);
 
-            // Draw small Grid/List toggle in the header
-            renderSidebarToggle(g, mouseX, mouseY);
+            if (hasSidebarAlternate()) {
+                renderSidebarToggle(g, mouseX, mouseY);
+            }
 
             g.fill(x + 3, y + FAV_HEADER_H - 1, x + width - 3, y + FAV_HEADER_H, AMITheme.SECTION_SEP);
 
@@ -368,17 +368,39 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     private void renderSidebarToggle(GuiGraphics g, int mouseX, int mouseY) {
-        int tx = x + width - AMITheme.GLOBAL_PADDING - 12;
-        int ty = y + (FAV_HEADER_H - 12) / 2;
-        boolean hovered = mouseX >= tx && mouseX < tx + 12 && mouseY >= ty && mouseY < ty + 12;
+        int tx = sidebarSwapX();
+        int ty = sidebarSwapY();
+        boolean hovered = isOverSidebarSwap(mouseX, mouseY);
 
-        int color = hovered ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_SUBTLE;
-        boolean alternateActive = externalModeToggleActive != null && externalModeToggleActive.getAsBoolean();
-        if (alternateActive || state.getViewMode() == ResultsToolbar.ViewMode.LIST) {
-            AmiGuiIcons.compact(g, tx + 6, ty + 6, color); // Show grid icon to switch to grid
-        } else {
-            AmiGuiIcons.expand(g, tx + 6, ty + 6, color); // Show list icon to switch to list
-        }
+        int bgColor = hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
+        int border = AMITheme.SECTION_SEP;
+        g.fill(tx, ty, tx + SIDEBAR_SWAP_W, ty + SIDEBAR_SWAP_H, bgColor);
+        g.fill(tx, ty, tx + SIDEBAR_SWAP_W, ty + 1, border);
+        g.fill(tx, ty + SIDEBAR_SWAP_H - 1, tx + SIDEBAR_SWAP_W, ty + SIDEBAR_SWAP_H, border);
+        g.fill(tx, ty, tx + 1, ty + SIDEBAR_SWAP_H, border);
+        g.fill(tx + SIDEBAR_SWAP_W - 1, ty, tx + SIDEBAR_SWAP_W, ty + SIDEBAR_SWAP_H, border);
+
+        int color = hovered ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_HEADER;
+        AmiGuiIcons.swap(g, tx + SIDEBAR_SWAP_W / 2, ty + SIDEBAR_SWAP_H / 2, color);
+    }
+
+    private boolean hasSidebarAlternate() {
+        return externalModeToggleCallback != null;
+    }
+
+    private int sidebarSwapX() {
+        return x + width - AMITheme.GLOBAL_PADDING - SIDEBAR_SWAP_W;
+    }
+
+    private int sidebarSwapY() {
+        return y + (FAV_HEADER_H - SIDEBAR_SWAP_H) / 2;
+    }
+
+    private boolean isOverSidebarSwap(double mouseX, double mouseY) {
+        int tx = sidebarSwapX();
+        int ty = sidebarSwapY();
+        return mouseX >= tx && mouseX < tx + SIDEBAR_SWAP_W
+                && mouseY >= ty && mouseY < ty + SIDEBAR_SWAP_H;
     }
 
     private void renderToggleBtn(GuiGraphics g, int mouseX, int mouseY) {
@@ -415,6 +437,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
         ), Optional.empty(), mouseX, mouseY);
     }
 
+    // ── Tree refresh ──────────────────────────────────────────────────────────
+
     private void checkPlayerStateChanged() {
         var mc = Minecraft.getInstance();
         var gameMode = mc.gameMode != null ? mc.gameMode.getPlayerMode() : null;
@@ -426,8 +450,6 @@ public class UniversalResultsPanel implements SearchState.Listener {
             refreshTree();
         }
     }
-
-    // ── Tree refresh ──────────────────────────────────────────────────────────
 
     private void refreshTree() {
         // Skip expensive tree rebuilds if we are hidden
@@ -523,21 +545,29 @@ public class UniversalResultsPanel implements SearchState.Listener {
         gridView.setRootNodes(normalized);
     }
 
+    // ── Item click (grid + list) ──────────────────────────────────────────────
+
     private List<SearchNode> resolveSource() {
         return currentResults;
     }
 
-    // ── Item click (grid + list) ──────────────────────────────────────────────
-
     private void onItemClicked(SearchNode node, int button) {
         ItemStack stack = com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node);
-        if (!stack.isEmpty() && shouldOpenLookup(node, stack, button))
-            RecipeViewerBridge.handleItemClick(stack, button, net.minecraft.client.gui.screens.Screen.hasShiftDown());
+        boolean shiftDown = net.minecraft.client.gui.screens.Screen.hasShiftDown();
+        boolean controlDown = net.minecraft.client.gui.screens.Screen.hasControlDown();
+        if (!stack.isEmpty() && shouldOpenLookup(node, stack, button, shiftDown, controlDown))
+            RecipeViewerBridge.handleItemClick(stack, button, shiftDown, controlDown);
     }
 
-    private boolean shouldOpenLookup(SearchNode node, ItemStack stack, int button) {
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private boolean shouldOpenLookup(SearchNode node, ItemStack stack, int button, boolean shiftDown, boolean controlDown) {
         if (node == null || node.type() != NodeType.ENTITY || !Services.PLATFORM.isRecipeIndexBuilt()) {
             return true;
+        }
+
+        if ((shiftDown || controlDown) && button == 0) {
+            return !Services.PLATFORM.getRecipesFor(stack).isEmpty();
         }
 
         if (button == 1) {
@@ -551,19 +581,17 @@ public class UniversalResultsPanel implements SearchState.Listener {
         };
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
     private boolean isGridActive() {
         if (isFavoritesPanel) return state.getViewMode() == ResultsToolbar.ViewMode.GRID;
         return compactMode || state.getViewMode() == ResultsToolbar.ViewMode.GRID;
     }
 
+    // ── Input handlers ────────────────────────────────────────────────────────
+
     private boolean isOverToggle(double mouseX, double mouseY) {
         return mouseX >= toggleX && mouseX < toggleX + TOGGLE_W
                 && mouseY >= toggleY && mouseY < toggleY + TOGGLE_H;
     }
-
-    // ── Input handlers ────────────────────────────────────────────────────────
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (AMICheatMode.isEnabled()) {
@@ -577,12 +605,16 @@ public class UniversalResultsPanel implements SearchState.Listener {
             if (hovered != null) {
                 InputConstants.Key mouseKey = InputConstants.Type.MOUSE.getOrCreate(button);
                 if (hovered.type() == NodeType.ITEM) {
+                    ItemStack stack = com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(hovered);
+                    if (stack.isEmpty()) {
+                        stack = new ItemStack(BuiltInRegistries.ITEM.get(hovered.id()));
+                    }
                     if (Services.PLATFORM.keyMappings().cheatGiveStack().isActiveAndMatches(mouseKey)) {
-                        AMICheatMode.giveStack(hovered.id());
+                        AMICheatMode.giveStack(stack);
                         return true;
                     }
                     if (Services.PLATFORM.keyMappings().cheatGiveOne().isActiveAndMatches(mouseKey)) {
-                        AMICheatMode.giveItem(hovered.id());
+                        AMICheatMode.giveItem(stack);
                         return true;
                     }
                 } else if (hovered.type() == NodeType.ENTITY) {
@@ -619,17 +651,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
             }
         }
 
-        // Favorites panel — grid/list clicks + toggle
+        // Sidebar panel clicks and optional content swap.
         if (isFavoritesPanel) {
-            // Check sidebar toggle
-            int tx = x + width - AMITheme.GLOBAL_PADDING - 12;
-            int ty = y + (FAV_HEADER_H - 12) / 2;
-            if (button == 0 && mouseX >= tx && mouseX < tx + 12 && mouseY >= ty && mouseY < ty + 12) {
-                if (externalModeToggleCallback != null) {
-                    externalModeToggleCallback.run();
-                } else {
-                    state.setViewMode(state.getViewMode() == ResultsToolbar.ViewMode.GRID ? ResultsToolbar.ViewMode.LIST : ResultsToolbar.ViewMode.GRID);
-                }
+            if (hasSidebarAlternate() && button == 0 && isOverSidebarSwap(mouseX, mouseY)) {
+                externalModeToggleCallback.run();
                 updateLayout(x, y, width, height);
                 return true;
             }
@@ -798,10 +823,6 @@ public class UniversalResultsPanel implements SearchState.Listener {
         return treeView.keyPressed(keyCode, scanCode, modifiers);
     }
 
-    private static boolean isShiftKey(int keyCode) {
-        return keyCode == GLFW.GLFW_KEY_LEFT_SHIFT || keyCode == GLFW.GLFW_KEY_RIGHT_SHIFT;
-    }
-
     public boolean mouseClickedScrollbar(double mouseX, double mouseY, int button) {
         if (isGridActive()) return gridView.mouseClickedScrollbar(mouseX, mouseY, button);
         return treeView.mouseClickedScrollbar(mouseX, mouseY, button);
@@ -891,13 +912,29 @@ public class UniversalResultsPanel implements SearchState.Listener {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
     }
 
-    public int getX() { return x; }
-    public int getY() { return y; }
-    public int getWidth() { return width; }
-    public int getHeight() { return height; }
+    public int getX() {
+        return x;
+    }
 
-    public ResultsToolbar getToolbar() { return toolbar; }
-    public SearchState getState() { return state; }
+    public int getY() {
+        return y;
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    public ResultsToolbar getToolbar() {
+        return toolbar;
+    }
+
+    public SearchState getState() {
+        return state;
+    }
 
     public List<TreeNode> getDebugRootNodes() {
         return isGridActive() ? gridView.getRootNodes() : treeView.getRootNodes();

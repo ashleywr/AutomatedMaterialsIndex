@@ -11,11 +11,28 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class ListLensTest {
+    private static SearchNode item(String path, String displayName, Map<String, String> metadata) {
+        return node(NodeType.ITEM, path, displayName, metadata);
+    }
+
+    private static SearchNode entity(String path, String displayName, Map<String, String> metadata) {
+        return node(NodeType.ENTITY, path, displayName, metadata);
+    }
+
+    private static SearchNode node(NodeType type, String path, String displayName, Map<String, String> metadata) {
+        return new SearchNode(
+                new ResourceLocation("minecraft:" + path),
+                type,
+                displayName,
+                0,
+                0,
+                metadata
+        );
+    }
+
     @BeforeEach
     void setUp() {
         GlobalIndex.getInstance().clear();
@@ -321,24 +338,5 @@ class ListLensTest {
         assertEquals(ListLens.ALL, state.getListLens());
         assertEquals(ResultsProcessor.SortField.REGISTRY, state.getSortField());
         assertEquals(ResultsProcessor.GroupBy.CATEGORY, state.getGroupBy());
-    }
-
-    private static SearchNode item(String path, String displayName, Map<String, String> metadata) {
-        return node(NodeType.ITEM, path, displayName, metadata);
-    }
-
-    private static SearchNode entity(String path, String displayName, Map<String, String> metadata) {
-        return node(NodeType.ENTITY, path, displayName, metadata);
-    }
-
-    private static SearchNode node(NodeType type, String path, String displayName, Map<String, String> metadata) {
-        return new SearchNode(
-                new ResourceLocation("minecraft:" + path),
-                type,
-                displayName,
-                0,
-                0,
-                metadata
-        );
     }
 }

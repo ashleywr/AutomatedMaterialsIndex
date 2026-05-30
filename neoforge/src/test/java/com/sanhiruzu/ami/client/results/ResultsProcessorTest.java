@@ -1,10 +1,10 @@
 package com.sanhiruzu.ami.client.results;
 
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.util.StorageDisplayFormatter;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +19,95 @@ import static org.junit.jupiter.api.Assertions.*;
 
 
 public class ResultsProcessorTest {
+
+    private static void assertAllGroupsExpanded(List<TreeNode> nodes) {
+        for (TreeNode node : nodes) {
+            if (!node.isLeaf()) {
+                assertTrue(node.isExpanded(), "Expected group to start expanded: " + node.getLabel().getString());
+                assertAllGroupsExpanded(node.getChildren());
+            }
+        }
+    }
+
+    private static void assertNoRedundantOnlyChildGroups(List<TreeNode> nodes) {
+        for (TreeNode node : nodes) {
+            if (node.isLeaf()) {
+                continue;
+            }
+
+            if (node.getChildren().size() == 1) {
+                TreeNode onlyChild = node.getChildren().get(0);
+                assertFalse(!onlyChild.isLeaf()
+                                && node.getLabel().getString().equalsIgnoreCase(onlyChild.getLabel().getString()),
+                        "Redundant nested group:\n" + ResultsTreeDump.dump(List.of(node)));
+            }
+            assertNoRedundantOnlyChildGroups(node.getChildren());
+        }
+    }
+
+    private static SearchNode item(String path, String displayName, Map<String, String> metadata) {
+        return new SearchNode(
+                new ResourceLocation("minecraft:" + path),
+                NodeType.ITEM,
+                displayName,
+                0,
+                0,
+                metadata
+        );
+    }
+
+    private static List<SearchNode> railwaysMagentaDoorVariants() {
+        Map<String, String> baseMetadata = Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "functional",
+                SearchNodeKeys.MATERIAL_GROUP, "railways:magenta_hinged_locometal_door",
+                SearchNodeKeys.COLOR_BUCKET, "magenta",
+                SearchNodeKeys.VARIANT_GROUP, "doors",
+                "blockShape", "door"
+        );
+        return List.of(
+                item("magenta_hinged_locometal_door", "Magenta Hinged Locometal Door", baseMetadata),
+                item("magenta_sliding_locometal_door", "Magenta Sliding Locometal Door", baseMetadata),
+                item("magenta_folding_locometal_door", "Magenta Folding Locometal Door", baseMetadata),
+                item("magenta_glass_locometal_door", "Magenta Glass Locometal Door", baseMetadata),
+                item("magenta_panel_locometal_door", "Magenta Panel Locometal Door", baseMetadata),
+                item("magenta_windowed_locometal_door", "Magenta Windowed Locometal Door", baseMetadata),
+                item("magenta_barred_locometal_door", "Magenta Barred Locometal Door", baseMetadata),
+                item("magenta_reinforced_locometal_door", "Magenta Reinforced Locometal Door", baseMetadata)
+        );
+    }
+
+    private static boolean hasKeyStartingWith(List<TreeNode> nodes, String prefix) {
+        for (TreeNode node : nodes) {
+            String key = node.getKey();
+            if ((key != null && key.startsWith(prefix)) || hasKeyStartingWith(node.getChildren(), prefix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static SearchNode dye(String path, String displayName, String color) {
+        return item(path, displayName, Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "ingredients",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "dyes",
+                SearchNodeKeys.SUBTYPE_OF, "minecraft:dye",
+                SearchNodeKeys.MATERIAL_GROUP, "minecraft:dye",
+                SearchNodeKeys.COLOR_BUCKET, color
+        ));
+    }
+
+    private static SearchNode banner(String path, String displayName) {
+        String color = path.endsWith("_banner") ? path.substring(0, path.length() - "_banner".length()) : "";
+        return item(path, displayName, Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "decoration",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "banners",
+                SearchNodeKeys.COLLAPSE_FAMILY, "banners",
+                SearchNodeKeys.COLLAPSE_LABEL, "Banners",
+                SearchNodeKeys.MATERIAL_GROUP, "minecraft:banner",
+                SearchNodeKeys.COLOR_BUCKET, color
+        ));
+    }
 
     @BeforeEach
     void setUp() {
@@ -618,6 +707,45 @@ public class ResultsProcessorTest {
     }
 
     @Test
+    void categoryGroupingDoesNotCreateMaterialShapeVariantGroups() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.REGISTRY,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        List<TreeNode> root = processor.process(List.of(
+                item("spruce_planks_brick_pattern", "Spruce Plank Brick Pattern", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "full_block",
+                        SearchNodeKeys.SUBTYPE_OF, "rechiseled:spruce_patterned"
+                )),
+                item("spruce_planks_small_brick_pattern", "Spruce Plank Small Brick Pattern", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "full_block",
+                        SearchNodeKeys.SUBTYPE_OF, "rechiseled:spruce_patterned"
+                )),
+                item("spruce_planks_diagonal_pattern", "Spruce Plank Diagonal Pattern", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "full_block",
+                        SearchNodeKeys.SUBTYPE_OF, "rechiseled:spruce_patterned"
+                )),
+                item("spruce_planks_large_tiles", "Spruce Plank Large Tiles", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "full_block",
+                        SearchNodeKeys.SUBTYPE_OF, "rechiseled:spruce_patterned"
+                ))
+        ));
+
+        TreeNode fullBlocks = root.get(0).getChildren().get(0);
+        assertEquals("masonry/full_block", fullBlocks.getKey());
+        assertEquals(4, fullBlocks.getChildren().size());
+        assertTrue(fullBlocks.getChildren().stream().allMatch(TreeNode::isLeaf));
+    }
+
+    @Test
     void noneGroupingReturnsLiteralSortedLeaves() {
         ResultsProcessor processor = new ResultsProcessor(
                 ResultsProcessor.SortField.ALPHABETICAL,
@@ -803,94 +931,5 @@ public class ResultsProcessorTest {
                     Crimson Nylium
                     Warped Nylium
                 """, ResultsTreeDump.dump(root));
-    }
-
-    private static void assertAllGroupsExpanded(List<TreeNode> nodes) {
-        for (TreeNode node : nodes) {
-            if (!node.isLeaf()) {
-                assertTrue(node.isExpanded(), "Expected group to start expanded: " + node.getLabel().getString());
-                assertAllGroupsExpanded(node.getChildren());
-            }
-        }
-    }
-
-    private static void assertNoRedundantOnlyChildGroups(List<TreeNode> nodes) {
-        for (TreeNode node : nodes) {
-            if (node.isLeaf()) {
-                continue;
-            }
-
-            if (node.getChildren().size() == 1) {
-                TreeNode onlyChild = node.getChildren().get(0);
-                assertFalse(!onlyChild.isLeaf()
-                                && node.getLabel().getString().equalsIgnoreCase(onlyChild.getLabel().getString()),
-                        "Redundant nested group:\n" + ResultsTreeDump.dump(List.of(node)));
-            }
-            assertNoRedundantOnlyChildGroups(node.getChildren());
-        }
-    }
-
-    private static SearchNode item(String path, String displayName, Map<String, String> metadata) {
-        return new SearchNode(
-                new ResourceLocation("minecraft:" + path),
-                NodeType.ITEM,
-                displayName,
-                0,
-                0,
-                metadata
-        );
-    }
-
-    private static List<SearchNode> railwaysMagentaDoorVariants() {
-        Map<String, String> baseMetadata = Map.of(
-                SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
-                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "functional",
-                SearchNodeKeys.MATERIAL_GROUP, "railways:magenta_hinged_locometal_door",
-                SearchNodeKeys.COLOR_BUCKET, "magenta",
-                SearchNodeKeys.VARIANT_GROUP, "doors",
-                "blockShape", "door"
-        );
-        return List.of(
-                item("magenta_hinged_locometal_door", "Magenta Hinged Locometal Door", baseMetadata),
-                item("magenta_sliding_locometal_door", "Magenta Sliding Locometal Door", baseMetadata),
-                item("magenta_folding_locometal_door", "Magenta Folding Locometal Door", baseMetadata),
-                item("magenta_glass_locometal_door", "Magenta Glass Locometal Door", baseMetadata),
-                item("magenta_panel_locometal_door", "Magenta Panel Locometal Door", baseMetadata),
-                item("magenta_windowed_locometal_door", "Magenta Windowed Locometal Door", baseMetadata),
-                item("magenta_barred_locometal_door", "Magenta Barred Locometal Door", baseMetadata),
-                item("magenta_reinforced_locometal_door", "Magenta Reinforced Locometal Door", baseMetadata)
-        );
-    }
-
-    private static boolean hasKeyStartingWith(List<TreeNode> nodes, String prefix) {
-        for (TreeNode node : nodes) {
-            String key = node.getKey();
-            if ((key != null && key.startsWith(prefix)) || hasKeyStartingWith(node.getChildren(), prefix)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static SearchNode dye(String path, String displayName, String color) {
-        return item(path, displayName, Map.of(
-                SearchNodeKeys.ONTOLOGY_CATEGORY, "ingredients",
-                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "dyes",
-                SearchNodeKeys.SUBTYPE_OF, "minecraft:dye",
-                SearchNodeKeys.MATERIAL_GROUP, "minecraft:dye",
-                SearchNodeKeys.COLOR_BUCKET, color
-        ));
-    }
-
-    private static SearchNode banner(String path, String displayName) {
-        String color = path.endsWith("_banner") ? path.substring(0, path.length() - "_banner".length()) : "";
-        return item(path, displayName, Map.of(
-                SearchNodeKeys.ONTOLOGY_CATEGORY, "decoration",
-                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "banners",
-                SearchNodeKeys.COLLAPSE_FAMILY, "banners",
-                SearchNodeKeys.COLLAPSE_LABEL, "Banners",
-                SearchNodeKeys.MATERIAL_GROUP, "minecraft:banner",
-                SearchNodeKeys.COLOR_BUCKET, color
-        ));
     }
 }

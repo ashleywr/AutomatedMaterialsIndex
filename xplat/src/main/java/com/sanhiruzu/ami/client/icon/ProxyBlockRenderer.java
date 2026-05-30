@@ -1,31 +1,144 @@
 package com.sanhiruzu.ami.client.icon;
 
-import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.index.NodeType;
-import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.util.AmiWorldTooltipComposer;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Renders biomes and structures as a "hero block" item over a dimension-tinted
  * pastel gradient background — Cherry Sapling on green = Cherry Grove, not a block.
- * Unknown biomes/structures fall back to a dimension-appropriate default item.
+ * Unknown biomes try to resolve a signature block from the biome id before falling
+ * back to a dimension-appropriate default item.
  */
 public class ProxyBlockRenderer implements IIconRenderer {
 
     // String keys so we don't allocate ResourceLocations at class-load time
     private static final Map<String, String> PROXY_MAP = new HashMap<>();
+    private static final Set<String> BIOME_STOP_WORDS = Set.of(
+            "biome", "biomes", "old", "growth", "deep", "dense", "sparse", "windswept", "wooded",
+            "forest", "forests", "woods", "woodland", "grove", "plains", "plateau", "hills", "hill",
+            "mountain", "mountains", "peaks", "peak", "slopes", "slope", "shore", "beach", "river",
+            "ocean", "island", "islands", "valley", "caves", "cave", "fields", "field", "wastes",
+            "barrens", "midlands", "highlands", "end", "nether"
+    );
+    private static final Map<String, List<String>> BIOME_SIGNATURES = Map.ofEntries(
+            Map.entry("cherry", List.of("cherry_sapling", "cherry_leaves")),
+            Map.entry("jacaranda", List.of("jacaranda_sapling", "jacaranda_leaves", "jacaranda_log")),
+            Map.entry("redwood", List.of("redwood_sapling", "redwood_leaves", "redwood_log")),
+            Map.entry("maple", List.of("maple_sapling", "maple_leaves", "maple_log")),
+            Map.entry("willow", List.of("willow_sapling", "willow_leaves", "willow_log")),
+            Map.entry("pine", List.of("pine_sapling", "pine_leaves", "pine_log", "spruce_sapling")),
+            Map.entry("fir", List.of("fir_sapling", "fir_leaves", "fir_log", "spruce_sapling")),
+            Map.entry("mahogany", List.of("mahogany_sapling", "mahogany_leaves", "mahogany_log")),
+            Map.entry("palm", List.of("palm_sapling", "palm_leaves", "palm_log")),
+            Map.entry("lavender", List.of("lavender", "lavender_flower", "allium")),
+            Map.entry("flower", List.of("wildflowers", "flowering_oak_leaves", "poppy", "dandelion")),
+            Map.entry("mushroom", List.of("red_mushroom_block", "brown_mushroom_block", "red_mushroom")),
+            Map.entry("fungal", List.of("red_mushroom_block", "brown_mushroom_block", "warped_fungus")),
+            Map.entry("glow", List.of("glowshroom", "glow_lichen", "shroomlight")),
+            Map.entry("lush", List.of("azalea_leaves", "flowering_azalea_leaves", "moss_block")),
+            Map.entry("dripstone", List.of("pointed_dripstone", "dripstone_block")),
+            Map.entry("crag", List.of("stone", "calcite", "andesite")),
+            Map.entry("volcanic", List.of("basalt", "magma_block", "blackstone")),
+            Map.entry("basalt", List.of("basalt", "smooth_basalt")),
+            Map.entry("sculk", List.of("sculk", "sculk_shrieker")),
+            Map.entry("dead", List.of("dead_bush", "dead_leaves", "dead_log")),
+            Map.entry("snow", List.of("snow_block", "powder_snow_bucket", "ice")),
+            Map.entry("frozen", List.of("blue_ice", "packed_ice", "ice")),
+            Map.entry("ice", List.of("blue_ice", "packed_ice", "ice")),
+            Map.entry("badlands", List.of("red_sand", "terracotta")),
+            Map.entry("desert", List.of("cactus", "sandstone", "sand")),
+            Map.entry("swamp", List.of("lily_pad", "mangrove_propagule", "mangrove_roots")),
+            Map.entry("mangrove", List.of("mangrove_propagule", "mangrove_roots", "mangrove_log")),
+            Map.entry("bamboo", List.of("bamboo", "bamboo_sapling")),
+            Map.entry("coral", List.of("brain_coral_block", "tube_coral_block", "sea_pickle")),
+            Map.entry("kelp", List.of("kelp", "dried_kelp_block"))
+    );
+    private static final Set<String> STRUCTURE_STOP_WORDS = Set.of(
+            "structure", "structures", "large", "small", "big", "old", "ancient", "ruined", "abandoned",
+            "underground", "surface", "overworld", "nether", "end", "desert", "jungle", "snowy",
+            "taiga", "savanna", "plains", "mountain", "ocean", "warm", "cold"
+    );
+    private static final Map<String, List<String>> STRUCTURE_SIGNATURES = Map.ofEntries(
+            Map.entry("tower", List.of("stone_bricks", "cobblestone", "deepslate_bricks")),
+            Map.entry("castle", List.of("stone_bricks", "chiseled_stone_bricks", "deepslate_bricks")),
+            Map.entry("citadel", List.of("stone_bricks", "deepslate_bricks", "chiseled_stone_bricks")),
+            Map.entry("fortress", List.of("nether_bricks", "cracked_nether_bricks", "stone_bricks")),
+            Map.entry("bastion", List.of("gilded_blackstone", "polished_blackstone_bricks", "blackstone")),
+            Map.entry("dungeon", List.of("spawner", "mossy_cobblestone", "cobblestone")),
+            Map.entry("mineshaft", List.of("rail", "oak_planks", "chain")),
+            Map.entry("village", List.of("bell", "oak_planks", "hay_block")),
+            Map.entry("temple", List.of("chiseled_stone_bricks", "mossy_cobblestone", "sandstone")),
+            Map.entry("pyramid", List.of("chiseled_sandstone", "sandstone", "chiseled_red_sandstone")),
+            Map.entry("outpost", List.of("crossbow", "dark_oak_planks", "cobblestone")),
+            Map.entry("mansion", List.of("dark_oak_planks", "dark_oak_log", "bookshelf")),
+            Map.entry("monument", List.of("prismarine", "sea_lantern", "dark_prismarine")),
+            Map.entry("ruin", List.of("mossy_stone_bricks", "cracked_stone_bricks", "suspicious_gravel")),
+            Map.entry("ship", List.of("oak_planks", "chest", "spruce_planks")),
+            Map.entry("wreck", List.of("oak_planks", "chest", "spruce_planks")),
+            Map.entry("portal", List.of("obsidian", "crying_obsidian", "gold_block")),
+            Map.entry("city", List.of("sculk", "reinforced_deepslate", "purpur_block")),
+            Map.entry("trail", List.of("suspicious_gravel", "decorated_pot", "terracotta")),
+            Map.entry("chamber", List.of("trial_spawner", "copper_grate", "tuff_bricks")),
+            Map.entry("grave", List.of("chiseled_stone_bricks", "stone_bricks", "bone_block")),
+            Map.entry("crypt", List.of("chiseled_stone_bricks", "soul_lantern", "bone_block")),
+            Map.entry("labyrinth", List.of("mossy_stone_bricks", "cracked_stone_bricks", "stone_bricks")),
+            Map.entry("maze", List.of("mossy_stone_bricks", "cracked_stone_bricks", "stone_bricks")),
+            Map.entry("shrine", List.of("chiseled_stone_bricks", "lantern", "gold_block")),
+            Map.entry("hut", List.of("mushroom_stem", "spruce_planks", "cauldron"))
+    );
     private static final Map<ResourceLocation, ItemStack> stackCache = new HashMap<>();
+    private static final Map<ResourceLocation, Integer> backgroundCache = new HashMap<>();
+
+    // ── Mod-item inference ────────────────────────────────────────────────────
+    // Suffix priority: earlier = preferred. Saplings/flowers are the most
+    // distinctive biome icon; bricks/blocks the most distinctive for structures.
+    private static final List<String> BIOME_ITEM_SUFFIXES = List.of(
+            "_sapling", "_seedling",
+            "_flower", "_blossom", "_petal",
+            "_mushroom", "_fungus", "_spore",
+            "_grass", "_fern", "_plant", "_bush", "_reed",
+            "_leaves", "_frond", "_needle",
+            "_log", "_stem", "_wood",
+            "_block"
+    );
+    private static final List<String> STRUCTURE_ITEM_SUFFIXES = List.of(
+            "_brick", "_bricks",
+            "_block", "_stone",
+            "_tile", "_tiles",
+            "_pillar", "_column",
+            "_planks", "_log"
+    );
+
+    // Namespace → all registered item IDs in that namespace (built once, never cleared).
+    private static final Map<String, List<ResourceLocation>> NAMESPACE_ITEM_CACHE = new HashMap<>();
+    private static volatile boolean namespaceCacheReady = false;
+    private static final List<String> LAST_RESORT_PROXIES = List.of(
+            "minecraft:stone_bricks",
+            "minecraft:grass_block",
+            "minecraft:netherrack",
+            "minecraft:end_stone"
+    );
 
     static {
         // ── Overworld biomes ──────────────────────────────────────────────────
@@ -103,15 +216,17 @@ public class ProxyBlockRenderer implements IIconRenderer {
         p("minecraft:village_taiga", "minecraft:spruce_planks");
         p("minecraft:stronghold", "minecraft:stone_bricks");
         p("minecraft:mineshaft", "minecraft:rail");
-        p("minecraft:mineshaft_mesa", "minecraft:golden_rail");
+        p("minecraft:mineshaft_mesa", "minecraft:powered_rail");
         p("minecraft:desert_pyramid", "minecraft:sandstone");
         p("minecraft:jungle_pyramid", "minecraft:mossy_cobblestone");
         p("minecraft:igloo", "minecraft:snow_block");
         p("minecraft:swamp_hut", "minecraft:mushroom_stem");
+        p("minecraft:monument", "minecraft:prismarine");
         p("minecraft:ocean_monument", "minecraft:prismarine");
         p("minecraft:ocean_ruin_cold", "minecraft:mossy_stone_bricks");
         p("minecraft:ocean_ruin_warm", "minecraft:sandstone");
         p("minecraft:pillager_outpost", "minecraft:dark_oak_planks");
+        p("minecraft:mansion", "minecraft:dark_oak_planks");
         p("minecraft:woodland_mansion", "minecraft:dark_oak_planks");
         p("minecraft:buried_treasure", "minecraft:chest");
         p("minecraft:shipwreck", "minecraft:oak_planks");
@@ -129,6 +244,7 @@ public class ProxyBlockRenderer implements IIconRenderer {
         p("minecraft:end_city", "minecraft:purpur_block");
         p("minecraft:ancient_city", "minecraft:sculk");
         p("minecraft:trail_ruins", "minecraft:suspicious_gravel");
+        p("minecraft:trial_chambers", "minecraft:copper_grate");
     }
 
     private static void p(String key, String value) {
@@ -137,46 +253,163 @@ public class ProxyBlockRenderer implements IIconRenderer {
 
     // ── Rendering ─────────────────────────────────────────────────────────────
 
-    @Override
-    public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
-        int bg = dimensionColor(node);
+    private static ItemStack resolveProxy(SearchNode node) {
+        ResourceLocation blockId = resolveProxyId(node);
+        ItemStack stack = resolveStack(blockId);
+        if (!stack.isEmpty()) {
+            return stack;
+        }
 
-        // Two-tone gradient: top half slightly lighter
-        int bgLight = lighten(bg, 20);
-        g.fill(x, y, x + size, y + size / 2, bgLight);
-        g.fill(x, y + size / 2, x + size, y + size, bg);
+        ResourceLocation defaultId = dimensionDefaultBlock(node);
+        if (!defaultId.equals(blockId)) {
+            stack = resolveStack(defaultId);
+            if (!stack.isEmpty()) {
+                return stack;
+            }
+        }
 
-        // Subtle 1px border to show it's a "badge" rather than a real item
-        int borderColor = lighten(bg, 40);
-        g.fill(x, y, x + size, y + 1, borderColor); // Top
-        g.fill(x, y + size - 1, x + size, y + size, borderColor); // Bottom
-        g.fill(x, y + 1, x + 1, y + size - 1, borderColor); // Left
-        g.fill(x + size - 1, y + 1, x + size, y + size - 1, borderColor); // Right
+        for (String fallback : LAST_RESORT_PROXIES) {
+            ResourceLocation fallbackId = Services.PLATFORM.rl(fallback);
+            if (fallbackId.equals(blockId) || fallbackId.equals(defaultId)) {
+                continue;
+            }
+            stack = resolveStack(fallbackId);
+            if (!stack.isEmpty()) {
+                return stack;
+            }
+        }
 
-        ItemStack proxy = resolveProxy(node);
-        if (proxy.isEmpty()) return;
+        return ItemStack.EMPTY;
+    }
 
-        var poses = g.pose();
-        poses.pushPose();
-        poses.translate(x, y, 0);
-        float s = size / 16f;
-        poses.scale(s, s, 1f);
-        g.renderItem(proxy, 0, 0);
-        poses.popPose();
+    private static ItemStack resolveStack(ResourceLocation id) {
+        ItemStack cached = stackCache.get(id);
+        if (cached != null) {
+            return cached;
+        }
+
+        ItemStack stack = BuiltInRegistries.ITEM.getOptional(id).map(ItemStack::new).orElse(ItemStack.EMPTY);
+        if (!stack.isEmpty()) {
+            stackCache.put(id, stack);
+        }
+        return stack;
+    }
+
+    static ResourceLocation resolveProxyId(SearchNode node) {
+        String mapped = PROXY_MAP.get(node.id().toString());
+        if (mapped != null) {
+            return Services.PLATFORM.rl(mapped);
+        }
+        if (node.type() == NodeType.BIOME) {
+            return inferBiomeProxyId(node).orElseGet(() -> dimensionDefaultBlock(node));
+        }
+        if (node.type() == NodeType.STRUCTURE) {
+            return inferStructureProxyId(node).orElseGet(() -> dimensionDefaultBlock(node));
+        }
+        return dimensionDefaultBlock(node);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private static ItemStack resolveProxy(SearchNode node) {
-        String mapped = PROXY_MAP.get(node.id().toString());
-        ResourceLocation blockId;
-        if (mapped != null) {
-            blockId = Services.PLATFORM.rl(mapped);
-        } else {
-            blockId = dimensionDefaultBlock(node);
+    private static Optional<ResourceLocation> inferBiomeProxyId(SearchNode node) {
+        String namespace = node.id().getNamespace();
+        String path = node.id().getPath().toLowerCase(Locale.ROOT);
+        List<ResourceLocation> candidates = new ArrayList<>();
+        Set<ResourceLocation> seen = new HashSet<>();
+
+        addCandidate(candidates, seen, namespace, path);
+        addCandidate(candidates, seen, namespace, path + "_sapling");
+        addCandidate(candidates, seen, namespace, path + "_leaves");
+        addCandidate(candidates, seen, namespace, path + "_log");
+        addCandidate(candidates, seen, namespace, path + "_block");
+
+        for (var entry : BIOME_SIGNATURES.entrySet()) {
+            if (path.contains(entry.getKey())) {
+                for (String itemPath : entry.getValue()) {
+                    addCandidate(candidates, seen, namespace, itemPath);
+                    addCandidate(candidates, seen, "minecraft", itemPath);
+                }
+            }
         }
-        return stackCache.computeIfAbsent(blockId,
-                id -> BuiltInRegistries.ITEM.getOptional(id).map(ItemStack::new).orElse(ItemStack.EMPTY));
+
+        for (String token : path.split("[_/]+")) {
+            if (token.isBlank() || BIOME_STOP_WORDS.contains(token)) continue;
+            addTokenCandidates(candidates, seen, namespace, token);
+            addTokenCandidates(candidates, seen, "minecraft", token);
+        }
+
+        Optional<ResourceLocation> found = candidates.stream().filter(ProxyBlockRenderer::itemExists).findFirst();
+        if (found.isPresent()) return found;
+        return findBestModItem(namespace, path, BIOME_STOP_WORDS, BIOME_ITEM_SUFFIXES);
+    }
+
+    private static Optional<ResourceLocation> inferStructureProxyId(SearchNode node) {
+        String namespace = node.id().getNamespace();
+        String path = node.id().getPath().toLowerCase(Locale.ROOT);
+        List<ResourceLocation> candidates = new ArrayList<>();
+        Set<ResourceLocation> seen = new HashSet<>();
+
+        addCandidate(candidates, seen, namespace, path);
+        addCandidate(candidates, seen, namespace, path + "_block");
+        addCandidate(candidates, seen, namespace, path + "_bricks");
+        addCandidate(candidates, seen, namespace, path + "_stone");
+        addCandidate(candidates, seen, namespace, path + "_planks");
+
+        for (var entry : STRUCTURE_SIGNATURES.entrySet()) {
+            if (path.contains(entry.getKey())) {
+                for (String itemPath : entry.getValue()) {
+                    addCandidate(candidates, seen, namespace, itemPath);
+                    addCandidate(candidates, seen, "minecraft", itemPath);
+                }
+            }
+        }
+
+        for (String token : path.split("[_/]+")) {
+            if (token.isBlank() || STRUCTURE_STOP_WORDS.contains(token)) continue;
+            addStructureTokenCandidates(candidates, seen, namespace, token);
+            addStructureTokenCandidates(candidates, seen, "minecraft", token);
+        }
+
+        Optional<ResourceLocation> found = candidates.stream().filter(ProxyBlockRenderer::itemExists).findFirst();
+        if (found.isPresent()) return found;
+        return findBestModItem(namespace, path, STRUCTURE_STOP_WORDS, STRUCTURE_ITEM_SUFFIXES);
+    }
+
+    private static void addTokenCandidates(List<ResourceLocation> candidates, Set<ResourceLocation> seen,
+                                           String namespace, String token) {
+        addCandidate(candidates, seen, namespace, token + "_sapling");
+        addCandidate(candidates, seen, namespace, token + "_leaves");
+        addCandidate(candidates, seen, namespace, token + "_log");
+        addCandidate(candidates, seen, namespace, token + "_stem");
+        addCandidate(candidates, seen, namespace, token + "_mushroom");
+        addCandidate(candidates, seen, namespace, token + "_block");
+        addCandidate(candidates, seen, namespace, token + "_grass");
+        addCandidate(candidates, seen, namespace, token + "_flower");
+        addCandidate(candidates, seen, namespace, token);
+    }
+
+    private static void addStructureTokenCandidates(List<ResourceLocation> candidates, Set<ResourceLocation> seen,
+                                                    String namespace, String token) {
+        addCandidate(candidates, seen, namespace, token + "_block");
+        addCandidate(candidates, seen, namespace, token + "_bricks");
+        addCandidate(candidates, seen, namespace, token + "_stone");
+        addCandidate(candidates, seen, namespace, token + "_planks");
+        addCandidate(candidates, seen, namespace, token + "_brick");
+        addCandidate(candidates, seen, namespace, token + "_pillar");
+        addCandidate(candidates, seen, namespace, token + "_lantern");
+        addCandidate(candidates, seen, namespace, token);
+    }
+
+    private static void addCandidate(List<ResourceLocation> candidates, Set<ResourceLocation> seen,
+                                     String namespace, String path) {
+        ResourceLocation id = Services.PLATFORM.rl(namespace, path);
+        if (seen.add(id)) {
+            candidates.add(id);
+        }
+    }
+
+    private static boolean itemExists(ResourceLocation id) {
+        return BuiltInRegistries.ITEM.getOptional(id).isPresent();
     }
 
     private static ResourceLocation dimensionDefaultBlock(SearchNode node) {
@@ -192,23 +425,139 @@ public class ProxyBlockRenderer implements IIconRenderer {
         };
     }
 
-    private static int dimensionColor(SearchNode node) {
-        if (node.type() == NodeType.STRUCTURE) return AMITheme.DIM_ICON_BG_STRUCTURE;
-        String dim = node.meta(SearchNodeKeys.DIMENSION, "overworld");
-        return switch (dim) {
-            case "nether" -> AMITheme.DIM_ICON_BG_NETHER;
-            case "the_end",
-                 "end" -> AMITheme.DIM_ICON_BG_END;
-            default -> AMITheme.DIM_ICON_BG_OVERWORLD;
-        };
+    @Override
+    public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
+        ItemStack proxy = resolveProxy(node);
+        if (proxy.isEmpty()) {
+            FallbackTextRenderer.renderFallback(g, node, x, y, size);
+            return;
+        }
+        g.fill(x, y, x + size, y + size, resolveBackground(node));
+
+        var poses = g.pose();
+        poses.pushPose();
+        if (size == 16) {
+            g.renderItem(proxy, x, y);
+        } else {
+            poses.translate(x, y, 0);
+            float s = size / 16f;
+            poses.scale(s, s, 1f);
+            g.renderItem(proxy, 0, 0);
+        }
+        poses.popPose();
     }
 
-    private static int lighten(int argb, int amount) {
-        int a = (argb >> 24) & 0xFF;
-        int r = Math.min(255, ((argb >> 16) & 0xFF) + amount);
-        int gv = Math.min(255, ((argb >> 8) & 0xFF) + amount);
-        int b = Math.min(255, (argb & 0xFF) + amount);
-        return (a << 24) | (r << 16) | (gv << 8) | b;
+    // ── Background color ──────────────────────────────────────────────────────
+
+    private static int resolveBackground(SearchNode node) {
+        return backgroundCache.computeIfAbsent(node.id(), __ -> computeBackground(node));
+    }
+
+    private static int computeBackground(SearchNode node) {
+        if (node.type() == NodeType.BIOME) {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.level != null) {
+                var reg = mc.level.registryAccess().registryOrThrow(Registries.BIOME);
+                var holder = reg.getOptional(node.id());
+                if (holder.isPresent()) {
+                    return darkenRgb(holder.get().getSpecialEffects().getSkyColor(), 0.28f);
+                }
+            }
+            return hashToArgb(node.id().toString(), 0.40f, 0.22f);
+        }
+        // Structures: dimension-family base hue + per-ID perturbation
+        String dim = node.meta(SearchNodeKeys.DIMENSION, "overworld");
+        float baseHue = switch (dim) {
+            case "nether"               -> 0.03f;
+            case "the_end", "end"       -> 0.75f;
+            default                     -> 0.27f;
+        };
+        float hueNoise = ((node.id().toString().hashCode() & 0x3FF) / 1024f - 0.5f) * 0.15f;
+        return hsbToArgb(baseHue + hueNoise, 0.38f, 0.20f);
+    }
+
+    private static int darkenRgb(int rgb, float brightness) {
+        int r = (int)(((rgb >> 16) & 0xFF) * brightness);
+        int g = (int)(((rgb >> 8)  & 0xFF) * brightness);
+        int b = (int)( (rgb        & 0xFF) * brightness);
+        return 0xFF000000 | (r << 16) | (g << 8) | b;
+    }
+
+    private static int hashToArgb(String key, float saturation, float brightness) {
+        float hue = Math.abs(key.hashCode() % 360) / 360f;
+        return hsbToArgb(hue, saturation, brightness);
+    }
+
+    private static int hsbToArgb(float h, float s, float b) {
+        // Inline HSB→RGB to avoid java.awt dependency
+        if (s == 0f) {
+            int v = (int)(b * 255);
+            return 0xFF000000 | (v << 16) | (v << 8) | v;
+        }
+        float hh = (h - (float) Math.floor(h)) * 6f;
+        int   i  = (int) hh;
+        float f  = hh - i;
+        float p  = b * (1f - s);
+        float q  = b * (1f - s * f);
+        float t  = b * (1f - s * (1f - f));
+        float r, g, bv;
+        switch (i) {
+            case 0  -> { r = b;  g = t;  bv = p; }
+            case 1  -> { r = q;  g = b;  bv = p; }
+            case 2  -> { r = p;  g = b;  bv = t; }
+            case 3  -> { r = p;  g = q;  bv = b; }
+            case 4  -> { r = t;  g = p;  bv = b; }
+            default -> { r = b;  g = p;  bv = q; }
+        }
+        return 0xFF000000 | ((int)(r * 255) << 16) | ((int)(g * 255) << 8) | (int)(bv * 255);
+    }
+
+    // ── Mod-namespace item search ─────────────────────────────────────────────
+
+    private static synchronized void buildNamespaceCache() {
+        if (namespaceCacheReady) return;
+        Map<String, List<ResourceLocation>> map = new HashMap<>();
+        for (ResourceLocation id : BuiltInRegistries.ITEM.keySet()) {
+            if (!"minecraft".equals(id.getNamespace())) {
+                map.computeIfAbsent(id.getNamespace(), k -> new ArrayList<>()).add(id);
+            }
+        }
+        NAMESPACE_ITEM_CACHE.putAll(map);
+        namespaceCacheReady = true;
+    }
+
+    /**
+     * Scans all items registered under {@code namespace} for the best match to
+     * {@code path}. Scores by token overlap then breaks ties with {@code suffixes}
+     * priority (earlier = preferred). Returns empty for minecraft: namespace since
+     * the existing candidate lists already cover vanilla exhaustively.
+     */
+    private static Optional<ResourceLocation> findBestModItem(
+            String namespace, String path, Set<String> stopWords, List<String> suffixes) {
+        if ("minecraft".equals(namespace)) return Optional.empty();
+        if (!namespaceCacheReady) buildNamespaceCache();
+        List<ResourceLocation> modItems = NAMESPACE_ITEM_CACHE.get(namespace);
+        if (modItems == null || modItems.isEmpty()) return Optional.empty();
+
+        Set<String> tokens = java.util.Arrays.stream(path.split("[_/]+"))
+                .filter(t -> !t.isBlank() && !stopWords.contains(t))
+                .collect(Collectors.toSet());
+        if (tokens.isEmpty()) return Optional.empty();
+
+        return modItems.stream()
+                .filter(ProxyBlockRenderer::itemExists)
+                .filter(id -> tokens.stream().anyMatch(id.getPath()::contains))
+                .max(Comparator.comparingInt(id -> scoreModItem(id.getPath(), tokens, suffixes)));
+    }
+
+    private static int scoreModItem(String itemPath, Set<String> tokens, List<String> suffixes) {
+        int score = (int) tokens.stream().filter(itemPath::contains).count() * 10;
+        for (int i = 0; i < suffixes.size(); i++) {
+            if (itemPath.endsWith(suffixes.get(i))) {
+                return score + suffixes.size() - i;
+            }
+        }
+        return score;
     }
 
     @Override
@@ -219,5 +568,6 @@ public class ProxyBlockRenderer implements IIconRenderer {
     @Override
     public void invalidate() {
         stackCache.clear();
+        backgroundCache.clear();
     }
 }

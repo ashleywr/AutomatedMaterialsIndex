@@ -90,7 +90,7 @@ public class InventoryOverlayHandler {
             if (amiEnabled) {
                 event.addListener(manager.getSearchBar());
             }
-            manager.getSearchBar().setFocused(false);
+            manager.getSearchBar().unfocus();
         }
         // For RecipeScreen, layout is computed by renderAll each frame.
         // Don't add children — RecipeScreen manages its own widget lifecycle.
@@ -130,11 +130,9 @@ public class InventoryOverlayHandler {
     @SubscribeEvent
     static void onMouseScroll(ScreenEvent.MouseScrolled.Pre event) {
         if (!isAmiScreen(event.getScreen())) return;
-        if (AmiApi.shouldSuppressAmi(event.getScreen())) return;
-        if (!amiEnabled) return;
-        if (!AmiConfig.enableAutoIndexing) return;
 
-        if (manager.mouseScrolled(event.getMouseX(), event.getMouseY(), event.getScrollDeltaX(), event.getScrollDeltaY())) {
+        if (OverlayInputController.mouseScrolled(event.getScreen(), manager, amiEnabled,
+                event.getMouseX(), event.getMouseY(), event.getScrollDeltaX(), event.getScrollDeltaY())) {
             event.setCanceled(true);
         }
     }
@@ -143,112 +141,49 @@ public class InventoryOverlayHandler {
     static void onMouseButtonPressed(ScreenEvent.MouseButtonPressed.Pre event) {
         if (!isAmiScreen(event.getScreen())) return;
 
-        // Check if any registered suppressors want to hide AMI
-        if (AmiApi.shouldSuppressAmi(event.getScreen())) {
-            return;
-        }
-
-        var screen = event.getScreen();
-
-        if (event.getButton() == 0 && manager.getAmiButton().isMouseOver(event.getMouseX(), event.getMouseY())) {
-            manager.getAmiButton().mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton());
+        if (OverlayInputController.mouseButtonPressed(event.getScreen(), manager, amiEnabled,
+                event.getMouseX(), event.getMouseY(), event.getButton())) {
             event.setCanceled(true);
-            return;
-        }
-
-        if (!amiEnabled || !manager.isPanelVisible()) return;
-
-        if (manager.mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton())) {
-            event.setCanceled(true);
-            return;
-        }
-
-        var searchBar = manager.getSearchBar();
-        if (searchBar.isMouseOver(event.getMouseX(), event.getMouseY())) {
-            searchBar.setFocused(true);
-            screen.setFocused(searchBar);
-            searchBar.mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton());
-            event.setCanceled(true);
-        } else if (searchBar.isFocused()) {
-            searchBar.setFocused(false);
         }
     }
 
     @SubscribeEvent
     static void onMouseDragged(ScreenEvent.MouseDragged.Pre event) {
-        if (!amiEnabled || !manager.isPanelVisible()) return;
         if (!isAmiScreen(event.getScreen())) return;
 
-        if (manager.mouseDragged(event.getMouseX(), event.getMouseY(), event.getMouseButton(), event.getDragX(), event.getDragY())) {
-            event.setCanceled(true);
-            return;
-        }
-
-        var searchBar = manager.getSearchBar();
-        if (searchBar.isFocused() && searchBar.mouseDragged(event.getMouseX(), event.getMouseY(), event.getMouseButton(), event.getDragX(), event.getDragY())) {
+        if (OverlayInputController.mouseDragged(event.getScreen(), manager, amiEnabled,
+                event.getMouseX(), event.getMouseY(), event.getMouseButton(), event.getDragX(), event.getDragY())) {
             event.setCanceled(true);
         }
     }
 
     @SubscribeEvent
     static void onMouseButtonReleased(ScreenEvent.MouseButtonReleased.Pre event) {
-        if (!amiEnabled || !manager.isPanelVisible()) return;
         if (!isAmiScreen(event.getScreen())) return;
 
-        manager.mouseReleased(event.getMouseX(), event.getMouseY(), event.getButton());
-
-        var searchBar = manager.getSearchBar();
-        if (searchBar.isFocused() && searchBar.mouseReleased(event.getMouseX(), event.getMouseY(), event.getButton())) {
+        if (OverlayInputController.mouseButtonReleased(event.getScreen(), manager, amiEnabled,
+                event.getMouseX(), event.getMouseY(), event.getButton())) {
             event.setCanceled(true);
         }
     }
 
     @SubscribeEvent
     static void onCharTyped(ScreenEvent.CharacterTyped.Pre event) {
-        if (!amiEnabled || !manager.isPanelVisible()) return;
-        var searchBar = manager.getSearchBar();
-        if (!searchBar.isFocused()) return;
-        if (searchBar.charTyped(event.getCodePoint(), event.getModifiers())) {
+        if (!isAmiScreen(event.getScreen())) return;
+
+        if (OverlayInputController.charTyped(event.getScreen(), manager, amiEnabled,
+                event.getCodePoint(), event.getModifiers())) {
             event.setCanceled(true);
         }
     }
 
     @SubscribeEvent
     static void onKeyPressed(ScreenEvent.KeyPressed.Pre event) {
-        if (!isAmiAvailable()) return;
         if (!isAmiScreen(event.getScreen())) return;
 
-        int key = event.getKeyCode();
-        var searchBar = manager.getSearchBar();
-
-        // If the search bar is focused, let it handle the keystroke first.
-        // SearchBarWidget consumes ESC (to unfocus) and Backspace (as text deletion),
-        // so those keys never reach the handlers below while the bar is active.
-        if (amiEnabled && manager.isPanelVisible() && searchBar.isFocused()) {
-            if (searchBar.keyPressed(key, event.getScanCode(), event.getModifiers())) {
-                event.setCanceled(true);
-                return;
-            }
-        }
-
-        // For EMI/JEI recipe views, ESC should clear the recipe-view focus so the
-        // external viewer can dismiss itself.  Do not cancel — let the event
-        // propagate so EMI/JEI also sees the ESC.
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE
-                && com.sanhiruzu.ami.compat.RecipeViewerBridge.isRecipeViewActive()) {
-            com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
-            return;
-        }
-
-        if (AmiKeybindHandler.onKeyPressed(key, event.getScanCode(), event.getModifiers(), org.lwjgl.glfw.GLFW.GLFW_PRESS)) {
+        if (OverlayInputController.keyPressed(event.getScreen(), manager, amiEnabled,
+                event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
             event.setCanceled(true);
-            return;
-        }
-
-        if (amiEnabled && manager.isPanelVisible()) {
-            if (manager.keyPressed(key, event.getScanCode(), event.getModifiers())) {
-                event.setCanceled(true);
-            }
         }
     }
 
@@ -295,7 +230,7 @@ public class InventoryOverlayHandler {
         if (level == null) return;
 
         indexingRequested = true;
-        AMI.LOGGER.info("AMI: starting background index rebuild");
+        AMI.LOGGER.debug("AMI: starting background index rebuild");
         AmiIndexerService.getInstance().rebuild(level);
     }
 }

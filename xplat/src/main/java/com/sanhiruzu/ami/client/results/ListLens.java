@@ -288,41 +288,6 @@ public enum ListLens {
         this.sortFields = List.copyOf(sortFields);
     }
 
-    public abstract boolean matches(SearchNode node);
-
-    public List<SearchNode> filter(List<SearchNode> nodes) {
-        if (this == ALL) {
-            return nodes;
-        }
-        return nodes.stream()
-                .filter(this::matches)
-                .toList();
-    }
-
-    public ResultsProcessor.SortField sortField() {
-        return sortField;
-    }
-
-    public boolean ascending() {
-        return ascending;
-    }
-
-    public ResultsProcessor.GroupBy groupBy() {
-        return groupBy;
-    }
-
-    public Set<RowField> subtitleFields() {
-        return EnumSet.copyOf(subtitleFields);
-    }
-
-    public List<ResultsProcessor.SortField> sortFields() {
-        return sortFields;
-    }
-
-    public boolean shouldAlwaysShow() {
-        return this == ALL;
-    }
-
     public static List<ListLens> availableFor(List<SearchNode> nodes) {
         List<ListLens> available = new java.util.ArrayList<>();
         for (ListLens lens : values()) {
@@ -412,5 +377,40 @@ public enum ListLens {
                 && !hasFacet(node, "interactive_block")
                 && !hasFacet(node, "has_energy")
                 && !hasMachinePath(node);
+    }
+
+    public abstract boolean matches(SearchNode node);
+
+    public List<SearchNode> filter(List<SearchNode> nodes) {
+        if (this == ALL) {
+            return nodes;
+        }
+        return nodes.stream()
+                .filter(this::matches)
+                .toList();
+    }
+
+    public ResultsProcessor.SortField sortField() {
+        return sortField;
+    }
+
+    public boolean ascending() {
+        return ascending;
+    }
+
+    public ResultsProcessor.GroupBy groupBy() {
+        return groupBy;
+    }
+
+    public Set<RowField> subtitleFields() {
+        return EnumSet.copyOf(subtitleFields);
+    }
+
+    public List<ResultsProcessor.SortField> sortFields() {
+        return sortFields;
+    }
+
+    public boolean shouldAlwaysShow() {
+        return this == ALL;
     }
 }

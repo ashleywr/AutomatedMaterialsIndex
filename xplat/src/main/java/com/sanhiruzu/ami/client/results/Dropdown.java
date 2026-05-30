@@ -7,6 +7,10 @@ import net.minecraft.client.gui.GuiGraphics;
  * Allows generic handling of dropdowns without knowing their specific types.
  */
 public interface Dropdown {
+    static boolean contains(int mx, int my, int rx, int ry, int rw, int rh) {
+        return mx >= rx && mx < rx + rw && my >= ry && my < ry + rh;
+    }
+
     void updatePosition(int x, int y, int width);
 
     /**
@@ -24,8 +28,4 @@ public interface Dropdown {
     void close();
 
     boolean isOpen();
-
-    static boolean contains(int mx, int my, int rx, int ry, int rw, int rh) {
-        return mx >= rx && mx < rx + rw && my >= ry && my < ry + rh;
-    }
 }

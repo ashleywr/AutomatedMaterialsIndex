@@ -5,7 +5,6 @@ import net.minecraft.network.chat.Component;
 import java.util.List;
 import java.util.Locale;
 
-import com.sanhiruzu.ami.AmiCore;
 /**
  * Static 2-level ontology for AMI.
  * Categories are ordered by classification priority — first match wins when
@@ -13,45 +12,10 @@ import com.sanhiruzu.ami.AmiCore;
  */
 public final class AmiOntology {
 
-    public record SubCategory(String id, String translationKey) {
-        public Component displayName() {
-            return Component.translatable(translationKey);
-        }
-    }
-
-    public static final class Category {
-        public final String id;
-        public final String translationKey;
-        public final String shortName;
-        public final String iconItemId;   // e.g. "minecraft:compass"
-        public final int color;           // ARGB
-        public final List<SubCategory> subCategories;
-        // Substrings checked against (lowercased tags + "," + lowercased path).
-        // First category whose any pattern matches wins.
-        public final List<String> matchPatterns;
-
-        public Category(String id, String translationKey, String shortName,
-                        String iconItemId, int color,
-                        List<SubCategory> subCategories,
-                        List<String> matchPatterns) {
-            this.id = id;
-            this.translationKey = translationKey;
-            this.shortName = shortName;
-            this.iconItemId = iconItemId;
-            this.color = color;
-            this.subCategories = subCategories;
-            this.matchPatterns = matchPatterns;
-        }
-
-        public Component displayName() {
-            return Component.translatable(translationKey);
-        }
-    }
-
-    // ── Singleton category constants ──────────────────────────────────────────
-
     public static final Category UTILITY;
     public static final Category SOCIAL;
+
+    // ── Singleton category constants ──────────────────────────────────────────
     public static final Category BESTIARY;
     public static final Category MAGIC;
     public static final Category ARMOR;
@@ -67,7 +31,6 @@ public final class AmiOntology {
      * Terminal catch-all — items that fell through every other classifier.
      */
     public static final Category MISC;
-
     /**
      * All categories in classification-priority order.
      */
@@ -296,7 +259,8 @@ public final class AmiOntology {
         );
     }
 
-    // ── Classification ────────────────────────────────────────────────────────
+    private AmiOntology() {
+    }
 
     /**
      * Classifies a SearchNode into the best-matching ontology category.
@@ -325,6 +289,8 @@ public final class AmiOntology {
         };
     }
 
+    // ── Classification ────────────────────────────────────────────────────────
+
     private static Category classifyItem(SearchNode node) {
         String tags = node.meta(SearchNodeKeys.TAGS, "").toLowerCase(Locale.ROOT);
         String path = node.id().getPath().toLowerCase(Locale.ROOT);
@@ -341,6 +307,38 @@ public final class AmiOntology {
         return MISC;
     }
 
-    private AmiOntology() {
+    public record SubCategory(String id, String translationKey) {
+        public Component displayName() {
+            return Component.translatable(translationKey);
+        }
+    }
+
+    public static final class Category {
+        public final String id;
+        public final String translationKey;
+        public final String shortName;
+        public final String iconItemId;   // e.g. "minecraft:compass"
+        public final int color;           // ARGB
+        public final List<SubCategory> subCategories;
+        // Substrings checked against (lowercased tags + "," + lowercased path).
+        // First category whose any pattern matches wins.
+        public final List<String> matchPatterns;
+
+        public Category(String id, String translationKey, String shortName,
+                        String iconItemId, int color,
+                        List<SubCategory> subCategories,
+                        List<String> matchPatterns) {
+            this.id = id;
+            this.translationKey = translationKey;
+            this.shortName = shortName;
+            this.iconItemId = iconItemId;
+            this.color = color;
+            this.subCategories = subCategories;
+            this.matchPatterns = matchPatterns;
+        }
+
+        public Component displayName() {
+            return Component.translatable(translationKey);
+        }
     }
 }

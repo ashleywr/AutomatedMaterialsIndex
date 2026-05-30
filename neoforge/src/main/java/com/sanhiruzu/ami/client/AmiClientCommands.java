@@ -3,26 +3,15 @@ package com.sanhiruzu.ami.client;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.sanhiruzu.ami.client.results.ResultsTreeShapeDump;
-import com.sanhiruzu.ami.client.results.ResultsToolbar;
-import com.sanhiruzu.ami.client.results.ResultsViewProjector;
-import com.sanhiruzu.ami.client.results.SearchState;
-import com.sanhiruzu.ami.client.results.TreeNode;
+import com.sanhiruzu.ami.client.results.*;
+import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.neoforge.AMI;
-import com.sanhiruzu.ami.benchmark.AmiOntologyDiagnostics;
-import com.sanhiruzu.ami.index.GlobalIndex;
-import com.sanhiruzu.ami.index.NodeType;
-import com.sanhiruzu.ami.index.SearchNode;
-import com.sanhiruzu.ami.index.SearchNodeMirrorDump;
-import com.sanhiruzu.ami.index.SearchService;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
@@ -34,24 +23,17 @@ import java.util.List;
 
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
 public class AmiClientCommands {
+    private static final String DEBUG_COMMANDS_PROPERTY = "ami.debugCommands";
 
     @SubscribeEvent
     public static void onClientCommandsRegister(RegisterClientCommandsEvent event) {
+        if (!Boolean.getBoolean(DEBUG_COMMANDS_PROPERTY)) {
+            return;
+        }
+
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
 
         LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("ami")
-                .then(Commands.literal("dump-ontology")
-                        .executes(context -> {
-                            exportOntologyToCsv(context.getSource());
-                            return 1;
-                        })
-                )
-                .then(Commands.literal("dump-fallback-sample")
-                        .executes(context -> {
-                            exportFallbackSampleToCsv(context.getSource());
-                            return 1;
-                        })
-                )
                 .then(Commands.literal("dump-results-tree")
                         .executes(context -> {
                             exportResultsTree(context.getSource(), "");
@@ -68,40 +50,9 @@ public class AmiClientCommands {
                             exportSearchNodes(context.getSource());
                             return 1;
                         })
-                )
-                .then(AmiDebugStyleCommands.command());
+                );
 
         dispatcher.register(cmd);
-    }
-
-    private static void exportOntologyToCsv(CommandSourceStack source) {
-        Path configDir = FMLPaths.GAMEDIR.get().resolve("ami_dumps");
-        try {
-            Files.createDirectories(configDir);
-            Path csvFile = configDir.resolve("ontology_dump.csv");
-            AmiOntologyDiagnostics.exportOntologyCsv(csvFile);
-            source.sendSystemMessage(Component.translatable("ami.command.ontology_exported", csvFile.toAbsolutePath()).withStyle(ChatFormatting.GREEN));
-        } catch (Exception e) {
-            AMI.LOGGER.error("Failed to export ontology", e);
-            source.sendSystemMessage(Component.translatable("ami.command.ontology_export_failed", e.getMessage()).withStyle(ChatFormatting.RED));
-        }
-    }
-
-    private static void exportFallbackSampleToCsv(CommandSourceStack source) {
-        Path configDir = FMLPaths.GAMEDIR.get().resolve("ami_dumps");
-        try {
-            Files.createDirectories(configDir);
-            Path csvFile = configDir.resolve("facet_fallback_sample.csv");
-            AmiOntologyDiagnostics.FallbackSampleSummary summary = AmiOntologyDiagnostics.exportFacetFallbackCsv(csvFile);
-            source.sendSystemMessage(Component.translatable("ami.command.fallback_exported", csvFile.toAbsolutePath())
-                    .append(Component.translatable("ami.command.fallback_summary",
-                            summary.playerVisibleFacetlessItems(), summary.playerVisibleItems(),
-                            summary.playerVisibleUnresolvedFacetfulItems()))
-                    .withStyle(ChatFormatting.GREEN));
-        } catch (Exception e) {
-            AMI.LOGGER.error("Failed to export fallback sample", e);
-            source.sendSystemMessage(Component.translatable("ami.command.fallback_export_failed", e.getMessage()).withStyle(ChatFormatting.RED));
-        }
     }
 
     private static void exportResultsTree(CommandSourceStack source, String query) {
@@ -153,11 +104,6 @@ public class AmiClientCommands {
     }
 
     private static void appendLivePanels(StringBuilder report) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.screen instanceof AMIScreen amiScreen && amiScreen.getResultsPanel() != null) {
-            appendLivePanel(report, "current-ami-screen", amiScreen.getResultsPanel());
-        }
-
         List<UniversalResultsPanel> panels = InventoryOverlayHandler.getManager().getDebugVisibleResultPanels();
         if (panels.isEmpty()) {
             report.append("## Live Visible Overlay Panels\n\nnone\n\n");

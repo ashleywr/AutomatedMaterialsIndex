@@ -11,15 +11,13 @@ import java.util.List;
 import java.util.Set;
 
 public class MultiSelectDropdown<T> implements Dropdown {
-    private final List<T> options;
-    private final java.util.function.Function<T, String> displayName;
-    private final Set<T> selected;
-
-    private int x, y, width;
     private static final int HEIGHT = 14;
     private static final int ITEM_HEIGHT = 12;
     private static final int MAX_DROPDOWN_HEIGHT = 150;
-
+    private final List<T> options;
+    private final java.util.function.Function<T, String> displayName;
+    private final Set<T> selected;
+    private int x, y, width;
     private boolean open = false;
 
     public MultiSelectDropdown(List<T> options, java.util.function.Function<T, String> displayName) {

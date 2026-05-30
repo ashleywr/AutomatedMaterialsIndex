@@ -95,8 +95,14 @@ public final class ResultsTreeNormalizer {
     }
 
     private static boolean shouldFlattenCoveredSemanticGroup(TreeNode parent, TreeNode child) {
-        return "nature/fungi".equals(parent.getKey())
-                && "cardinality:minecraft:mushroom".equals(child.getKey());
+        return ("nature/fungi".equals(parent.getKey())
+                && "cardinality:minecraft:mushroom".equals(child.getKey()))
+                || isWoodAndLogsBranch(parent);
+    }
+
+    private static boolean isWoodAndLogsBranch(TreeNode parent) {
+        String key = parent.getKey();
+        return "nature/wood".equals(key) || (key != null && key.startsWith("nature/wood/"));
     }
 
     private static String normalizedLabel(TreeNode node) {

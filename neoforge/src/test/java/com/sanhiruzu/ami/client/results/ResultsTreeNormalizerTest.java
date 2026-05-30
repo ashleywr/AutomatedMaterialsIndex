@@ -11,6 +11,23 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ResultsTreeNormalizerTest {
+    private static TreeNode group(String key, String label) {
+        TreeNode node = new TreeNode(key, Component.literal(label));
+        node.setExpanded(true);
+        return node;
+    }
+
+    private static TreeNode leaf(String path, String displayName) {
+        return new TreeNode(Component.literal(displayName), new SearchNode(
+                new ResourceLocation("minecraft:" + path),
+                NodeType.ITEM,
+                displayName,
+                0,
+                0,
+                Map.of()
+        ));
+    }
+
     @Test
     void normalizeChildrenFlattensDuplicateLazySubgroup() {
         TreeNode parent = group("banners", "Banners");
@@ -115,20 +132,21 @@ public class ResultsTreeNormalizerTest {
         assertEquals("White Candle", parent.getChildren().get(1).getLabel().getString());
     }
 
-    private static TreeNode group(String key, String label) {
-        TreeNode node = new TreeNode(key, Component.literal(label));
-        node.setExpanded(true);
-        return node;
-    }
+    @Test
+    void normalizeChildrenFlattensWoodKindAndMaterialLayers() {
+        TreeNode parent = group("nature/wood", "Wood & Logs");
+        TreeNode logs = group("nature/wood/logs", "Logs");
+        TreeNode pine = group("cardinality:biomesoplenty:pine", "Pine");
+        pine.setHighCardinality(true);
+        pine.addChild(leaf("pine_log", "Pine Log"));
+        pine.addChild(leaf("stripped_pine_log", "Stripped Pine Log"));
+        logs.addChild(pine);
+        parent.addChild(logs);
 
-    private static TreeNode leaf(String path, String displayName) {
-        return new TreeNode(Component.literal(displayName), new SearchNode(
-                new ResourceLocation("minecraft:" + path),
-                NodeType.ITEM,
-                displayName,
-                0,
-                0,
-                Map.of()
-        ));
+        ResultsTreeNormalizer.normalizeChildren(parent);
+
+        assertEquals(2, parent.getChildren().size());
+        assertEquals("Pine Log", parent.getChildren().get(0).getLabel().getString());
+        assertEquals("Stripped Pine Log", parent.getChildren().get(1).getLabel().getString());
     }
 }

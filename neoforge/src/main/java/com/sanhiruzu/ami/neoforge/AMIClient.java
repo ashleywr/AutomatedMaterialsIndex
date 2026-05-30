@@ -5,9 +5,12 @@ import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.ThemeResourceLoader;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.client.results.ItemGridView;
+import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
+import com.sanhiruzu.ami.client.tooltip.NeoForgeTooltipHooks;
 import com.sanhiruzu.ami.client.tooltip.StatIconRowTooltipComponent;
+import com.sanhiruzu.ami.config.AmiConfigStore;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
@@ -26,6 +29,7 @@ import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 public class AMIClient {
 
     public AMIClient(ModContainer container, net.neoforged.bus.api.IEventBus modEventBus) {
+        AmiTooltipRenderer.setHooks(new NeoForgeTooltipHooks());
         container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
         modEventBus.addListener(com.sanhiruzu.ami.neoforge.client.AMIKeyMappings::registerKeyMappings);
         modEventBus.addListener(AMIClient::onRegisterReloadListeners);
@@ -33,21 +37,24 @@ public class AMIClient {
 
     @SubscribeEvent
     static void onClientSetup(FMLClientSetupEvent event) {
-        AMI.LOGGER.info("================================");
-        AMI.LOGGER.info("AMI client setup initialized");
-        AMI.LOGGER.info("================================");
+        AMI.LOGGER.debug("================================");
+        AMI.LOGGER.debug("AMI client setup initialized");
+        AMI.LOGGER.debug("================================");
+
+        AmiConfigStore.load();
+        com.sanhiruzu.ami.client.AMITheme.sync();
 
         boolean jeiLoaded = ModList.get().isLoaded("jei");
         boolean emiLoaded = ModList.get().isLoaded("emi");
 
         if (jeiLoaded) {
-            AMI.LOGGER.info("JEI detected - plugin will integrate when ready");
+            AMI.LOGGER.debug("JEI detected - plugin will integrate when ready");
         }
         if (emiLoaded) {
-            AMI.LOGGER.info("EMI detected - plugin will integrate when ready");
+            AMI.LOGGER.debug("EMI detected - plugin will integrate when ready");
         }
         if (!jeiLoaded && !emiLoaded) {
-            AMI.LOGGER.info("No recipe UI detected - AMI shell UI will be used");
+            AMI.LOGGER.debug("No recipe UI detected - AMI shell UI will be used");
         }
     }
 

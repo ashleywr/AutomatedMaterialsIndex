@@ -1,0 +1,336 @@
+{
+  "version": 1,
+  "status": "draft_for_review",
+  "matching": {
+    "tokenization": "lowercase id path and display name; split on non-alphanumeric, underscore, and slash; match whole tokens only",
+    "usage": "tokens produce evidence, not final categories",
+    "notes": [
+      "Do not use substring matching for lexical evidence.",
+      "Contextual entries require another nearby token, tag, item class, block class, or facet.",
+      "Weak entries should not win over strong registry, tag, item type, or block facts."
+    ]
+  },
+  "entries": [
+    {
+      "id": "decorative_furniture",
+      "tokens": ["chair", "table", "desk", "couch", "sofa", "bench", "stool", "cabinet", "cabinetry", "shelf", "rack", "counter", "nightstand", "wardrobe", "dresser", "bookcase", "bookshelves", "postbox"],
+      "facets": ["decorative_block"],
+      "categoryHint": "decoration/furniture",
+      "confidence": "strong",
+      "notes": "Use as primary decoration evidence unless stronger machine/storage facts are present."
+    },
+    {
+      "id": "decorative_lighting",
+      "tokens": ["lamp", "lantern", "chandelier", "sconce", "brazier", "candelabra", "candle", "torch", "glowstone", "shroomlight", "froglight", "beacon"],
+      "facets": ["decorative_block", "light_source"],
+      "categoryHint": "decoration/lighting",
+      "confidence": "strong",
+      "notes": "This is the primary-lighting word list. A light emission value alone should not classify an item as Lighting."
+    },
+    {
+      "id": "decorative_textiles",
+      "tokens": ["curtain", "curtains", "blinds", "shutter", "shutters", "rug", "carpet", "pillow", "cushion", "blanket", "sheet", "banner", "tapestry", "canvas"],
+      "facets": ["decorative_block"],
+      "categoryHint": "decoration/textiles",
+      "confidence": "medium",
+      "notes": "Banner/canvas can need tag-specific handling."
+    },
+    {
+      "id": "rail_transport",
+      "tokens": ["rail", "rails", "track", "tracks", "train", "tram", "monorail", "coupler", "conductor", "semaphore", "handcar", "locomotive"],
+      "facets": ["rail", "transport"],
+      "categoryHint": "tech/transport",
+      "confidence": "strong",
+      "notes": "Railways transport evidence."
+    },
+    {
+      "id": "tech_machine",
+      "tokens": ["machine", "generator", "crusher", "mixer", "press", "millstone", "pump", "fan", "engine", "motor", "charger", "crafter", "assembler", "fabricator", "refinery", "compressor", "chamber"],
+      "facets": ["machine"],
+      "categoryHint": "tech/machines",
+      "confidence": "medium",
+      "notes": "Several tokens are ambiguous. Boost with block entity, energy, recipe category, or known tech tags."
+    },
+    {
+      "id": "tech_redstone",
+      "tokens": ["redstone", "piston", "observer", "comparator", "repeater", "button", "lever", "detector", "pressure", "relay", "transmitter", "receiver", "sensor", "target"],
+      "facets": ["redstone_logic", "redstone_signal"],
+      "categoryHint": "tech/redstone",
+      "confidence": "strong",
+      "notes": "Pressure should prefer pressure plate context."
+    },
+    {
+      "id": "tech_cables",
+      "tokens": ["cable", "cables", "wire", "wires", "pipe", "pipes", "tube", "tubes", "conduit", "duct"],
+      "facets": ["cable", "tech_component"],
+      "categoryHint": "tech/cables",
+      "confidence": "strong",
+      "notes": "Gate natural false positives like coral, cobweb, frogspawn, dead_bush."
+    },
+    {
+      "id": "tech_circuits",
+      "tokens": ["circuit", "circuits", "processor", "chip", "chipset", "logic", "calculation", "engineering"],
+      "facets": ["tech_component"],
+      "categoryHint": "tech/circuits",
+      "confidence": "strong",
+      "notes": "Good evidence for circuit-like components."
+    },
+    {
+      "id": "mechanical_component",
+      "tokens": ["gear", "gears", "gearbox", "cog", "cogs", "cogwheel", "cogwheels", "shaft", "shafts", "belt", "belts", "flywheel"],
+      "facets": ["mechanical_component", "tech_component"],
+      "categoryHint": "tech/parts",
+      "confidence": "strong",
+      "notes": "Match tokens only."
+    },
+    {
+      "id": "template",
+      "tokens": ["blueprint", "schematic", "template", "mold"],
+      "facets": ["template"],
+      "categoryHint": "tech/templates",
+      "confidence": "strong",
+      "notes": "Should outrank incidental ingredient evidence."
+    },
+    {
+      "id": "wood_block",
+      "tokens": ["log", "logs", "planks", "stem", "stems", "hyphae", "stripped"],
+      "facets": ["log", "wood_block"],
+      "categoryHint": "nature/wood",
+      "confidence": "strong",
+      "notes": "Best when path suffix or block tags agree."
+    },
+    {
+      "id": "wood_material_variant",
+      "tokens": ["pine", "palm", "maple", "cherry", "willow", "mahogany", "rosewood", "runewood", "oak", "spruce", "birch", "jungle", "acacia", "mangrove", "crimson", "warped"],
+      "facets": [],
+      "categoryHint": null,
+      "confidence": "weak",
+      "notes": "Material/family grouping only. Do not classify primary category from these tokens alone."
+    },
+    {
+      "id": "flora",
+      "tokens": ["sapling", "saplings", "leaves", "leaf", "flower", "flowers", "bush", "shrub", "sprouts", "roots", "vine", "vines", "moss", "coral", "seagrass", "kelp", "cactus", "fern", "clover"],
+      "facets": ["flower", "leaves", "nature_misc"],
+      "categoryHint": "nature/flora",
+      "confidence": "strong",
+      "notes": "Leaf is weaker than leaves because it appears in enchant/effect names."
+    },
+    {
+      "id": "seeds",
+      "tokens": ["seed", "seeds"],
+      "facets": ["seed"],
+      "categoryHint": "nature/seeds",
+      "confidence": "medium",
+      "blockers": ["pouch", "bucket", "oil", "crystal", "machine", "maker"],
+      "notes": "Gate out seed pouches, seed oil, crystal seeds, and technical seeds."
+    },
+    {
+      "id": "crops",
+      "tokens": ["crop", "crops", "wheat", "carrot", "potato", "beetroot", "tomato", "cabbage", "onion", "pepper", "cucumber", "grape", "berry", "berries", "rice"],
+      "facets": ["crop"],
+      "categoryHint": "nature/crops",
+      "confidence": "medium",
+      "notes": "Placeable/block class/tags should decide crops vs snacks."
+    },
+    {
+      "id": "fungi",
+      "tokens": ["mushroom", "mushrooms", "fungus", "fungi", "mycelium", "nylium"],
+      "facets": ["fungi"],
+      "categoryHint": "nature/fungi",
+      "confidence": "strong",
+      "notes": "Mushroom building variants can still be masonry or decoration."
+    },
+    {
+      "id": "food_meal",
+      "tokens": ["soup", "stew", "sandwich", "burger", "pizza", "pasta", "noodle", "noodles", "rice", "kebab", "salad", "dumpling", "dumplings", "casserole", "lasagna", "quiche", "plate", "bowl", "meal"],
+      "facets": ["edible", "food_meal"],
+      "categoryHint": "nature/meals",
+      "confidence": "strong",
+      "notes": "Bowl as a standalone item is utility/container unless food evidence exists."
+    },
+    {
+      "id": "food_snack",
+      "tokens": ["cake", "pie", "cookie", "bread", "tart", "pudding", "icecream", "preserve", "preserves", "jam", "jelly", "candy", "chocolate", "berry", "berries", "fruit", "apple"],
+      "facets": ["edible"],
+      "categoryHint": "nature/snacks",
+      "confidence": "medium",
+      "notes": "Placeable cakes/pies should stay food/nature, not Full Blocks."
+    },
+    {
+      "id": "food_drink",
+      "tokens": ["juice", "soda", "beer", "wine", "coffee", "tea", "cider", "milk", "bottle", "drink", "smoothie"],
+      "facets": ["food_drink"],
+      "categoryHint": "nature/drinks",
+      "confidence": "medium",
+      "notes": "Bottle is ambiguous; needs food/drink context."
+    },
+    {
+      "id": "food_protein",
+      "tokens": ["beef", "chicken", "pork", "porkchop", "cod", "salmon", "rabbit", "mutton", "fish", "meat", "bacon", "ham", "sausage", "ribs", "wing", "wings", "venison"],
+      "facets": ["food_protein"],
+      "categoryHint": "nature/proteins",
+      "confidence": "strong",
+      "notes": "Some body-part items may need ingredient/mob-drop evidence instead."
+    },
+    {
+      "id": "organic_ingredient",
+      "tokens": ["string", "feather", "feathers", "bone", "bones", "leather", "hide", "scute", "honeycomb", "wool", "egg", "eggs"],
+      "facets": ["ingredient_organic"],
+      "categoryHint": "ingredients/organic",
+      "confidence": "strong",
+      "notes": "Exact tokens only."
+    },
+    {
+      "id": "natural_shell",
+      "tokens": ["shell", "shells"],
+      "facets": ["ingredient_organic"],
+      "categoryHint": "ingredients/organic",
+      "confidence": "weak",
+      "notes": "Only if no ammo/firearm context."
+    },
+    {
+      "id": "mineral_ingredient",
+      "tokens": ["flint", "clay", "shard", "crystal", "crystals", "prismarine", "pottery", "sherd", "brick", "bricks"],
+      "facets": ["ingredient_mineral"],
+      "categoryHint": "ingredients/mineral",
+      "confidence": "medium",
+      "notes": "Crystal, shard, and brick are category-dependent."
+    },
+    {
+      "id": "dyes",
+      "tokens": ["dye", "dyes", "pigment", "pigments", "ink"],
+      "facets": ["ingredient_dye"],
+      "categoryHint": "ingredients/dyes",
+      "confidence": "strong",
+      "notes": "Token/exact matching only."
+    },
+    {
+      "id": "melee_weapon",
+      "tokens": ["sword", "swords", "dagger", "daggers", "spear", "spears", "mace", "club", "katana"],
+      "facets": ["melee_weapon"],
+      "categoryHint": "tools/melee",
+      "confidence": "medium",
+      "notes": "Some weapon words can appear in decorative names."
+    },
+    {
+      "id": "ranged_weapon",
+      "tokens": ["bow", "bows", "crossbow", "crossbows", "gun", "rifle", "pistol", "musket", "cannon"],
+      "facets": ["ranged_weapon"],
+      "categoryHint": "tools/ranged",
+      "confidence": "medium",
+      "notes": "Cannon can also be machine/transport part."
+    },
+    {
+      "id": "ammo_projectile",
+      "tokens": ["arrow", "arrows", "bolt", "bolts", "bullet", "bullets", "round", "rounds", "cartridge", "cartridges", "grenade", "rocket"],
+      "facets": ["projectile"],
+      "categoryHint": "tools/ammo",
+      "confidence": "strong",
+      "notes": "Exact tokens only."
+    },
+    {
+      "id": "ammo_shell",
+      "tokens": ["shell", "shells"],
+      "contextTokensAny": ["ammo", "gun", "shotgun", "cannon", "autocannon", "artillery", "mortar", "munition", "munitions"],
+      "facets": ["projectile"],
+      "categoryHint": "tools/ammo",
+      "confidence": "contextual",
+      "notes": "Shells are ammo only with weapon context."
+    },
+    {
+      "id": "harvest_tool",
+      "tokens": ["pickaxe", "pickaxes", "shovel", "shovels", "axe", "axes", "hoe", "hoes", "sickle", "scythe", "shears"],
+      "facets": ["harvest_tool"],
+      "categoryHint": "tools/harvest",
+      "confidence": "strong",
+      "notes": "Token matching only."
+    },
+    {
+      "id": "utility_tool",
+      "tokens": ["wrench", "hammer", "brush", "fishing", "rod", "flint", "steel"],
+      "facets": ["utility_tool"],
+      "categoryHint": "tools/utility",
+      "confidence": "medium",
+      "notes": "Hammer, flint, and steel are ambiguous without tag/item-type evidence."
+    },
+    {
+      "id": "armor",
+      "tokens": ["helmet", "helmets", "chestplate", "chestplates", "leggings", "boots", "armor", "elytra"],
+      "facets": ["armor_head", "armor_chest", "armor_legs", "armor_feet"],
+      "categoryHint": "armor/*",
+      "confidence": "strong",
+      "notes": "Leggings must not emit egg/organic evidence."
+    },
+    {
+      "id": "animal_armor",
+      "tokens": ["horse", "harness", "saddle"],
+      "facets": ["armor_animal"],
+      "categoryHint": "armor/animal",
+      "confidence": "medium",
+      "notes": "Saddle may be utility unless wearable/entity equipment facts exist."
+    },
+    {
+      "id": "navigation",
+      "tokens": ["compass", "map", "maps", "clock", "spyglass"],
+      "facets": ["utility_navigation"],
+      "categoryHint": "utility/navigation",
+      "confidence": "strong",
+      "notes": "Exact token only; map must not match maple."
+    },
+    {
+      "id": "medical",
+      "tokens": ["bandage", "medkit", "syringe", "morphine", "adrenaline", "splint"],
+      "facets": ["utility_medical"],
+      "categoryHint": "utility/medical",
+      "confidence": "strong",
+      "notes": "Good lexical evidence."
+    },
+    {
+      "id": "currency",
+      "tokens": ["coin", "coins", "cash", "money", "credit", "card"],
+      "facets": ["utility_currency"],
+      "categoryHint": "utility/currency",
+      "confidence": "medium",
+      "notes": "Card can be tech/card/module."
+    },
+    {
+      "id": "magic_artifact",
+      "tokens": ["spell", "wand", "staff", "scroll", "totem", "charm", "relic"],
+      "facets": ["magic_artifact"],
+      "categoryHint": "magic/artifacts",
+      "confidence": "medium",
+      "notes": "Charm may also be curio."
+    },
+    {
+      "id": "magic_reagent",
+      "tokens": ["rune", "runes", "essence", "pearl", "blaze", "ghast", "phantom", "membrane", "wart", "slime"],
+      "facets": ["magic_reagent"],
+      "categoryHint": "magic/reagents",
+      "confidence": "medium",
+      "notes": "Rune must not match runewood. Essence can be broad."
+    },
+    {
+      "id": "spawn_egg",
+      "tokens": ["spawn", "egg"],
+      "facets": ["spawn_egg"],
+      "categoryHint": "bestiary/*",
+      "confidence": "contextual",
+      "notes": "Prefer actual SpawnEggItem; lexical fallback only for full spawn_egg pattern."
+    }
+  ],
+  "reviewOnlyTokens": [
+    {"token": "light", "reason": "Color adjective and light-source trait; not primary lighting evidence."},
+    {"token": "shell", "reason": "Natural shells and ammunition share the word. Needs context."},
+    {"token": "pattern", "reason": "Banner pattern, smithing template, masonry pattern, or decorative variant."},
+    {"token": "fan", "reason": "Machine fan, ceiling fan, decoration."},
+    {"token": "press", "reason": "Machine press, wine press, printed press names."},
+    {"token": "controller", "reason": "Tech controller, handheld controller, UI/control items."},
+    {"token": "module", "reason": "Tech part, upgrade, magic module, generic component."},
+    {"token": "core", "reason": "Magic reagent, machine core, mob drop, material."},
+    {"token": "seed", "reason": "Plant seed, crystal seed, seed oil, seed pouch."},
+    {"token": "crystal", "reason": "Mineral, magic reagent, tech seed/component."},
+    {"token": "gem", "reason": "Material evidence, not necessarily Tech."},
+    {"token": "leaf", "reason": "Flora in many cases, but also enchant/effect names."},
+    {"token": "colors", "reason": "Color names should almost never decide category."}
+  ]
+}

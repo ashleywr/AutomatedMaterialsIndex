@@ -12,24 +12,6 @@ import java.util.*;
 public final class NumericMetadataResolver {
     private final List<SearchNode> nodes = new ArrayList<>();
 
-    public void addNode(SearchNode node) {
-        nodes.add(node);
-    }
-
-    public Map<NodeType, List<SearchNode>> resolve(String token) {
-        Optional<NumericFilter> parsed = NumericFilter.parse(token);
-        if (parsed.isEmpty()) return new LinkedHashMap<>();
-
-        NumericFilter filter = parsed.get();
-        Map<NodeType, List<SearchNode>> result = new LinkedHashMap<>();
-        for (SearchNode node : nodes) {
-            double value = numericValue(node, filter.metadataKey());
-            if (Double.isNaN(value) || !filter.matches(value)) continue;
-            result.computeIfAbsent(node.type(), ignored -> new ArrayList<>()).add(node);
-        }
-        return result;
-    }
-
     private static double numericValue(SearchNode node, String metadataKey) {
         if (SearchNodeKeys.ATTACK_DAMAGE.equals(metadataKey)) {
             double itemDamage = parseDouble(node.meta(SearchNodeKeys.ATTACK_DAMAGE, ""));
@@ -47,6 +29,24 @@ public final class NumericMetadataResolver {
         } catch (NumberFormatException ignored) {
             return Double.NaN;
         }
+    }
+
+    public void addNode(SearchNode node) {
+        nodes.add(node);
+    }
+
+    public Map<NodeType, List<SearchNode>> resolve(String token) {
+        Optional<NumericFilter> parsed = NumericFilter.parse(token);
+        if (parsed.isEmpty()) return new LinkedHashMap<>();
+
+        NumericFilter filter = parsed.get();
+        Map<NodeType, List<SearchNode>> result = new LinkedHashMap<>();
+        for (SearchNode node : nodes) {
+            double value = numericValue(node, filter.metadataKey());
+            if (Double.isNaN(value) || !filter.matches(value)) continue;
+            result.computeIfAbsent(node.type(), ignored -> new ArrayList<>()).add(node);
+        }
+        return result;
     }
 
     private record NumericFilter(char operator, String metadataKey, double threshold) {
@@ -86,9 +86,12 @@ public final class NumericMetadataResolver {
                 case "dps", "damagepersecond" -> SearchNodeKeys.DPS;
                 case "damage", "attack", "attackdamage", "entityattack", "entitydamage" -> SearchNodeKeys.ATTACK_DAMAGE;
                 case "storage", "capacity", "esm", "items" -> SearchNodeKeys.ESM_CAPACITY;
-                case "energy", "energycapacity", "fecapacity", "rfcapacity", "capacityfe", "capacityrf", "fe", "rf" -> SearchNodeKeys.ENERGY_CAPACITY;
-                case "energygeneration", "generation", "gen", "generate", "generator", "fegeneration", "rfgeneration", "fet", "rft", "fepertick", "rfpertick", "power" -> SearchNodeKeys.ENERGY_GENERATION;
-                case "energyconsumption", "consumption", "consume", "feusage", "rfusage", "feuse", "rfuse" -> SearchNodeKeys.ENERGY_CONSUMPTION;
+                case "energy", "energycapacity", "fecapacity", "rfcapacity", "capacityfe", "capacityrf", "fe", "rf" ->
+                        SearchNodeKeys.ENERGY_CAPACITY;
+                case "energygeneration", "generation", "gen", "generate", "generator", "fegeneration", "rfgeneration",
+                     "fet", "rft", "fepertick", "rfpertick", "power" -> SearchNodeKeys.ENERGY_GENERATION;
+                case "energyconsumption", "consumption", "consume", "feusage", "rfusage", "feuse", "rfuse" ->
+                        SearchNodeKeys.ENERGY_CONSUMPTION;
                 case "fluid", "fluids", "fluidcapacity", "tank", "buckets", "bucket" -> SearchNodeKeys.FLUID_CAPACITY;
                 case "toolspeed", "miningspeed", "speed", "mine" -> SearchNodeKeys.TOOL_SPEED;
                 case "tooluses" -> SearchNodeKeys.TOOL_USES;

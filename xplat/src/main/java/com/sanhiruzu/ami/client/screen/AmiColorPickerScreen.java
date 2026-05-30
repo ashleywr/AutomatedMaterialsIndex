@@ -1,6 +1,5 @@
 package com.sanhiruzu.ami.client.screen;
 
-import com.sanhiruzu.ami.client.AMITheme;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
@@ -19,7 +18,7 @@ public class AmiColorPickerScreen extends Screen {
     private final Screen parent;
     private final Field field;
     private final Consumer<Integer> onApply;
-    
+
     private int currentColor;
     private EditBox hexInput;
     private Slider rSlider, gSlider, bSlider, aSlider;
@@ -65,7 +64,8 @@ public class AmiColorPickerScreen extends Screen {
         int g = (int) (gSlider.getValue() * 255);
         int b = (int) (bSlider.getValue() * 255);
         currentColor = (a << 24) | (r << 16) | (g << 8) | b;
-        hexInput.setResponder(s -> {});
+        hexInput.setResponder(s -> {
+        });
         hexInput.setValue(String.format("%08X", currentColor));
         hexInput.setResponder(this::updateFromHex);
     }
@@ -81,29 +81,31 @@ public class AmiColorPickerScreen extends Screen {
             gSlider.setValue(g / 255.0);
             bSlider.setValue(b / 255.0);
             aSlider.setValue(a / 255.0);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     private void apply() {
         try {
             field.set(null, currentColor);
             onApply.accept(currentColor);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         onClose();
     }
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         super.render(g, mouseX, mouseY, partialTick);
-        
+
         int centerX = width / 2;
         int centerY = height / 2;
-        
+
         // Color preview box
         g.fill(centerX + 110, centerY - 60, centerX + 150, centerY + 35, 0xFFFFFFFF);
         g.fill(centerX + 111, centerY - 59, centerX + 149, centerY + 34, currentColor);
         g.renderOutline(centerX + 110, centerY - 60, 40, 95, 0xFF000000);
-        
+
         g.drawCenteredString(font, field.getName(), centerX, centerY - 80, 0xFFFFAA00);
     }
 
@@ -123,9 +125,12 @@ public class AmiColorPickerScreen extends Screen {
             updateMessage();
         }
 
-        public double getValue() { return value; }
-        public void setValue(double v) { 
-            this.value = Mth.clamp(v, 0.0, 1.0); 
+        public double getValue() {
+            return value;
+        }
+
+        public void setValue(double v) {
+            this.value = Mth.clamp(v, 0.0, 1.0);
             updateMessage();
         }
 

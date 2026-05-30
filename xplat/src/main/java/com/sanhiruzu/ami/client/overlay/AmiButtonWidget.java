@@ -47,7 +47,7 @@ public class AmiButtonWidget extends AbstractWidget {
         int accentColor = isVanilla ? 0xFF4488FF : 0xFF00AAFF;
 
         if (hovered) baseBgColor = isVanilla ? 0xFFD0D0D0 : 0xFF3D3D3D;
-        if (isDown)  baseBgColor = isVanilla ? 0xFFA0A0A0 : 0xFF1F1F1F;
+        if (isDown) baseBgColor = isVanilla ? 0xFFA0A0A0 : 0xFF1F1F1F;
 
         AMITheme.fillRounded(g, getX(), getY(), width, height, baseBgColor);
 
