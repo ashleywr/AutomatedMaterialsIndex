@@ -491,28 +491,17 @@ public class ItemGridView {
                 List<TreeNode> childGroups = node.getChildren().stream().filter(child -> !child.isLeaf()).toList();
                 List<TreeNode> directItems = node.getChildren().stream().filter(TreeNode::isLeaf).toList();
 
-                for (int i = 0; i < childGroups.size(); i++) {
-                    processNode(childGroups.get(i), depth + 1, cols, out, linearItems, bands);
-                }
-                boolean directItemsAlternateBand = nodeBand;
-                if (!directItems.isEmpty() && !childGroups.isEmpty()) {
-                    directItemsAlternateBand = bands.nextBand();
-                }
-                if (!childGroups.isEmpty() && !directItems.isEmpty()) {
-                    out.add(new HeaderRow(createLooseItemsNode(node), depth + 1, directItems.size(), false, directItemsAlternateBand));
-                }
                 for (TreeNode child : directItems) {
                     processNode(child, depth + 1, cols, out, linearItems, bands);
                 }
-                packIntoRows(linearItems, cols, out, depth + 1, directItemsAlternateBand);
+                packIntoRows(linearItems, cols, out, depth + 1, nodeBand);
                 linearItems.clear();
+
+                for (TreeNode childGroup : childGroups) {
+                    processNode(childGroup, depth + 1, cols, out, linearItems, bands);
+                }
             }
         }
-    }
-
-    private static TreeNode createLooseItemsNode(TreeNode parent) {
-        String parentKey = parent.getKey() == null ? "anonymous" : parent.getKey();
-        return new TreeNode(parentKey + ":grid_other", Component.translatable("ami.group.other"));
     }
 
     private void renderHeaderContext(GuiGraphics g, int depth, int drawY, boolean alternateBand) {

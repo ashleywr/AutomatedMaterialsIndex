@@ -13,6 +13,7 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 
 final class ResultsTreeBuilder {
     private static final String FALLBACK_GROUP_KEY = "__fallback__";
+    private static final int MIN_CATEGORY_KIND_GROUP_SIZE = 8;
 
     private final ResultsPresentationOptions options;
     private final ResultsSorter sorter;
@@ -341,19 +343,23 @@ final class ResultsTreeBuilder {
             kindsById.put(kind.id(), kind);
         }
 
-        List<SearchNode> other = new ArrayList<>();
+        List<SearchNode> directLeaves = new ArrayList<>();
         for (SearchNode node : nodes) {
             var kind = AmiOntologyKinds.classify(node, categoryId, subId);
             if (kind.isPresent()) {
                 grouped.computeIfAbsent(kind.get().id(), ignored -> new ArrayList<>()).add(node);
                 kindsById.putIfAbsent(kind.get().id(), kind.get());
             } else {
-                other.add(node);
+                directLeaves.add(node);
             }
         }
 
         for (var entry : grouped.entrySet()) {
             if (entry.getValue().isEmpty()) continue;
+            if (entry.getValue().size() < MIN_CATEGORY_KIND_GROUP_SIZE) {
+                directLeaves.addAll(entry.getValue());
+                continue;
+            }
             AmiOntologyKinds.Kind kind = kindsById.get(entry.getKey());
             TreeNode groupNode = new TreeNode(parent.getKey() + "/" + kind.id(), Component.literal(kind.label()));
             groupNode.setExpanded(true);
@@ -361,15 +367,9 @@ final class ResultsTreeBuilder {
             parent.addChild(groupNode);
         }
 
-        if (!other.isEmpty()) {
-            if (parent.getChildren().isEmpty()) {
-                addLeaves(parent, other);
-            } else {
-                TreeNode otherNode = new TreeNode(parent.getKey() + "/other", Component.literal("Other"));
-                otherNode.setExpanded(true);
-                addLeaves(otherNode, other);
-                parent.addChild(otherNode);
-            }
+        if (!directLeaves.isEmpty()) {
+            directLeaves.sort(Comparator.comparing(SearchNode::displayName, String.CASE_INSENSITIVE_ORDER));
+            addLeaves(parent, directLeaves);
         }
     }
 

@@ -10,6 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -300,7 +301,7 @@ public class ResultsProcessorTest {
         TreeNode doorsGroup = functionalGroup.getChildren().get(0);
         assertEquals("masonry/functional/doors", doorsGroup.getKey());
         assertEquals("Doors", doorsGroup.getLabel().getString());
-        assertEquals(3, doorsGroup.getChildren().size());
+        assertEquals(8, doorsGroup.getChildren().size());
         assertTrue(doorsGroup.getChildren().stream().allMatch(TreeNode::isLeaf));
     }
 
@@ -314,33 +315,36 @@ public class ResultsProcessorTest {
                 Set.of()
         );
 
-        List<TreeNode> root = processor.process(List.of(
-                item("oak_chair", "Oak Chair", Map.of(
-                        SearchNodeKeys.ONTOLOGY_CATEGORY, "decoration",
-                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "furniture",
-                        SearchNodeKeys.FACETS, "placeable,decorative_block"
-                )),
-                item("oak_table", "Oak Table", Map.of(
-                        SearchNodeKeys.ONTOLOGY_CATEGORY, "decoration",
-                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "furniture",
-                        SearchNodeKeys.FACETS, "placeable,decorative_block"
-                )),
-                item("crusher", "Crusher", Map.of(
-                        SearchNodeKeys.ONTOLOGY_CATEGORY, "tech",
-                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "machines",
-                        SearchNodeKeys.FACETS, "placeable,machine"
-                )),
-                item("copper_pipe", "Copper Pipe", Map.of(
-                        SearchNodeKeys.ONTOLOGY_CATEGORY, "tech",
-                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "parts",
-                        SearchNodeKeys.FACETS, "tech_component"
-                )),
-                item("tomato_seed", "Tomato Seed", Map.of(
-                        SearchNodeKeys.ONTOLOGY_CATEGORY, "nature",
-                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "seeds",
-                        SearchNodeKeys.FACETS, "seed"
-                ))
-        ));
+        List<SearchNode> nodes = new ArrayList<>();
+        for (int i = 1; i <= 8; i++) {
+            nodes.add(item("oak_chair_" + i, "Oak Chair " + i, Map.of(
+                    SearchNodeKeys.ONTOLOGY_CATEGORY, "decoration",
+                    SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "furniture",
+                    SearchNodeKeys.FACETS, "placeable,decorative_block"
+            )));
+            nodes.add(item("oak_table_" + i, "Oak Table " + i, Map.of(
+                    SearchNodeKeys.ONTOLOGY_CATEGORY, "decoration",
+                    SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "furniture",
+                    SearchNodeKeys.FACETS, "placeable,decorative_block"
+            )));
+            nodes.add(item("crusher_" + i, "Crusher " + i, Map.of(
+                    SearchNodeKeys.ONTOLOGY_CATEGORY, "tech",
+                    SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "machines",
+                    SearchNodeKeys.FACETS, "placeable,machine"
+            )));
+            nodes.add(item("copper_pipe_" + i, "Copper Pipe " + i, Map.of(
+                    SearchNodeKeys.ONTOLOGY_CATEGORY, "tech",
+                    SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "parts",
+                    SearchNodeKeys.FACETS, "tech_component"
+            )));
+            nodes.add(item("tomato_seed_" + i, "Tomato Seed " + i, Map.of(
+                    SearchNodeKeys.ONTOLOGY_CATEGORY, "nature",
+                    SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "seeds",
+                    SearchNodeKeys.FACETS, "seed"
+            )));
+        }
+
+        List<TreeNode> root = processor.process(nodes);
 
         assertTrue(hasKeyStartingWith(root, "decoration/furniture/chairs"));
         assertTrue(hasKeyStartingWith(root, "decoration/furniture/tables"));
@@ -504,7 +508,7 @@ public class ResultsProcessorTest {
     }
 
     @Test
-    void materialRootCollapseFlattensOnlyDyeSubgroupUnderDyes() {
+    void smallDyeKindSetStaysDirectlyUnderDyes() {
         ResultsProcessor processor = new ResultsProcessor(
                 ResultsProcessor.SortField.REGISTRY,
                 true,
@@ -526,11 +530,8 @@ public class ResultsProcessorTest {
         assertEquals(1, categoryGroup.getChildren().size());
 
         TreeNode dyesGroup = categoryGroup.getChildren().get(0);
-        assertEquals(1, dyesGroup.getChildren().size());
-        TreeNode dyeKindGroup = dyesGroup.getChildren().get(0);
-        assertEquals("ingredients/dyes/dyes", dyeKindGroup.getKey());
-        assertEquals(4, dyeKindGroup.getChildren().size());
-        assertTrue(dyeKindGroup.getChildren().stream().allMatch(TreeNode::isLeaf));
+        assertEquals(4, dyesGroup.getChildren().size());
+        assertTrue(dyesGroup.getChildren().stream().allMatch(TreeNode::isLeaf));
     }
 
     @Test
@@ -576,7 +577,7 @@ public class ResultsProcessorTest {
     }
 
     @Test
-    void baseItemJoinsItsMaterialVariantGroup() {
+    void smallCuratedKindSetsStayDirectlyUnderSubcategory() {
         ResultsProcessor processor = new ResultsProcessor(
                 ResultsProcessor.SortField.REGISTRY,
                 true,
@@ -610,11 +611,7 @@ public class ResultsProcessorTest {
         TreeNode lightingGroup = root.get(0).getChildren().get(0);
         assertEquals(1, lightingGroup.getChildren().size());
 
-        TreeNode candlesKindGroup = lightingGroup.getChildren().get(0);
-        assertEquals("decoration/lighting/candles", candlesKindGroup.getKey());
-        assertEquals(1, candlesKindGroup.getChildren().size());
-
-        TreeNode candleGroup = candlesKindGroup.getChildren().get(0);
+        TreeNode candleGroup = lightingGroup.getChildren().get(0);
         assertTrue(candleGroup.isHighCardinality());
         assertEquals(4, candleGroup.getChildren().size());
         assertEquals("Candle", candleGroup.getChildren().get(0).getLabel().getString());
@@ -786,19 +783,17 @@ public class ResultsProcessorTest {
                     Red Banner
                     White Banner
                   Lighting [expanded]
-                    Candles [expanded]
-                      Candle [expanded] [cardinality]
-                        Candle
-                        Black Candle
-                        Red Candle
-                        White Candle
+                    Candle [expanded] [cardinality]
+                      Candle
+                      Black Candle
+                      Red Candle
+                      White Candle
                 Ingredients [expanded]
                   Dyes & Pigments [expanded]
-                    Dyes [expanded]
-                      Black Dye
-                      Blue Dye
-                      Red Dye
-                      White Dye
+                    Black Dye
+                    Blue Dye
+                    Red Dye
+                    White Dye
                 Nature [expanded]
                   Fungi & Forage [expanded]
                     Brown Mushroom
@@ -858,7 +853,12 @@ public class ResultsProcessorTest {
         return List.of(
                 item("magenta_hinged_locometal_door", "Magenta Hinged Locometal Door", baseMetadata),
                 item("magenta_sliding_locometal_door", "Magenta Sliding Locometal Door", baseMetadata),
-                item("magenta_folding_locometal_door", "Magenta Folding Locometal Door", baseMetadata)
+                item("magenta_folding_locometal_door", "Magenta Folding Locometal Door", baseMetadata),
+                item("magenta_glass_locometal_door", "Magenta Glass Locometal Door", baseMetadata),
+                item("magenta_panel_locometal_door", "Magenta Panel Locometal Door", baseMetadata),
+                item("magenta_windowed_locometal_door", "Magenta Windowed Locometal Door", baseMetadata),
+                item("magenta_barred_locometal_door", "Magenta Barred Locometal Door", baseMetadata),
+                item("magenta_reinforced_locometal_door", "Magenta Reinforced Locometal Door", baseMetadata)
         );
     }
 
