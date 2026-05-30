@@ -1,27 +1,14 @@
 # Automated Materials Index (AMI)
 
-AMI is an optimized search mod for NeoForge 1.21.1 (with Forge 1.20.1 support in this repository) designed to manage the
-massive item registries of large-scale Minecraft modpacks. It operates entirely client-side to organize inventory
-clutter into a clean, mathematically searchable data structure without requiring server installation.
+  AMI is an index and search mod for NeoForge 1.21.1 and Forge 1.20.1 designed for large Minecraft modpacks. It builds a client-side searchable index of items, entities, biomes, structures, and recipe data, with recommended integration for JEI and EMI for the recipe viewer support.
 
-* **Material Grouping**: Collapses endless variants of building blocks, such as stairs, slabs, and walls, under a single
-  material node to streamline the inventory interface.
-* **Universal Query Language**: Replaces basic text matching with relational database filtering, allowing players to
-  execute mathematical queries like "energy>50000" or "damage>15" directly in the search bar.
-* **Deep Component Simulation**: Evaluates Data Components to calculate and display simulated DPS, durability, and trait
-  synergies for modular weapons and tools.
-* **Normalized Metrics**: Assigns standardized integer values to diverse modded storage systems, fluid tanks, and energy
-  generators to enable direct cross-mod utility comparisons.
-* **Entity Behavioral Indexing**: Scans entity registries to allow filtering mobs by live game mechanics, such as
-  mountability, base health, or specific taming requirements.
-* **Spatial Awareness**: Bridges inventory management with world navigation by integrating natively with map mods to
-  support waypoint, biome, and structure searching.
-* **Advanced Filtering**: Allows players to pivot search results by source mod, tech tier, or color by scanning item
-  textures to match specific aesthetic requirements.
-* **Built for Scale**: Engineered for modpacks containing hundreds of mods, providing rapid search queries with minimal
-  memory overhead.
-* **Seamless Integration**: Functions as a standalone search tool or integrates directly alongside existing recipe
-  viewers like JEI and EMI.
+  * **Material Grouping**: Groups related block variants such as stairs, slabs, walls, and other material families to make large item lists easier to browse.
+  * **Structured Query Search**: Supports text search plus filters for tags, mods, categories, properties, and numeric metadata such as `>energy:50000`, `>damage:15`, or `>dps:8`.
+  * **Item Metadata Indexing**: Detects useful item facts such as durability, tool stats, armor stats, food values, storage capacity, energy capacity, and fluid capacity where available.
+  * **Entity Indexing**: Adds searchable entity entries with category, health, attack damage, spawn egg support, and metadata hints such as mountable or tamable where detectable.
+  * **Biome and Structure Search**: Includes indexed biome and structure entries alongside item and entity results.
+  * **Recipe Viewer Integration**: Works standalone or alongside JEI/EMI, including lookup history, favorites, cheat-mode actions, and recipe transfer from AMI panels.
+  * **Built for Large Modpacks**: Designed to keep searching and browsing responsive across large registries.
 
 ## Performance & Benchmarks
 
