@@ -6,6 +6,7 @@ import com.sanhiruzu.ami.client.AmiKeybindHandler;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.client.results.DebugTooltip;
+import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
@@ -111,9 +112,25 @@ public final class AmiTooltipComposer {
     private static void appendHints(List<Component> lines, SearchNode entry) {
         lines.add(Component.empty());
         if (entry.type() == NodeType.ITEM) {
-            lines.add(Component.translatable("ami.gui.recipes_hint").withStyle(ChatFormatting.DARK_GRAY));
-            lines.add(Component.translatable("ami.gui.uses_hint").withStyle(ChatFormatting.DARK_GRAY));
-            lines.add(Component.translatable("ami.gui.mod_filter_hint").withStyle(ChatFormatting.DARK_GRAY));
+            appendCheatGiveHints(lines);
+            ItemStack stack = ItemIconRenderer.resolveStack(entry.id());
+            boolean canTransfer = RecipeViewerBridge.canTransferStack(stack);
+            if (canTransfer && Screen.hasShiftDown()) {
+                lines.add(Component.translatable("ami.gui.transfer_max_hint").withStyle(ChatFormatting.GRAY));
+                lines.add(Component.translatable("ami.gui.uses_hint").withStyle(ChatFormatting.DARK_GRAY));
+            } else if (canTransfer && Screen.hasControlDown()) {
+                lines.add(Component.translatable("ami.gui.transfer_one_modified_hint").withStyle(ChatFormatting.GRAY));
+                lines.add(Component.translatable("ami.gui.uses_hint").withStyle(ChatFormatting.DARK_GRAY));
+            } else if (canTransfer) {
+                lines.add(Component.translatable("ami.gui.transfer_one_hint").withStyle(ChatFormatting.GRAY));
+                lines.add(Component.translatable("ami.gui.uses_hint").withStyle(ChatFormatting.DARK_GRAY));
+            } else {
+                lines.add(Component.translatable("ami.gui.recipes_hint").withStyle(ChatFormatting.DARK_GRAY));
+                lines.add(Component.translatable("ami.gui.uses_hint").withStyle(ChatFormatting.DARK_GRAY));
+                lines.add(Component.translatable("ami.gui.mod_filter_hint").withStyle(ChatFormatting.DARK_GRAY));
+            }
+        } else if (entry.type() == NodeType.ENTITY) {
+            appendCheatGiveHints(lines);
         } else if ((entry.type() == NodeType.BIOME || entry.type() == NodeType.STRUCTURE)
                 && AMICheatMode.isEnabled()) {
             lines.add(Component.translatable("ami.tooltip.cheat_locate").withStyle(ChatFormatting.GOLD));
@@ -125,6 +142,17 @@ public final class AmiTooltipComposer {
                     ? "ami.gui.debug_hint_active" : "ami.gui.debug_hint";
             lines.add(Component.translatable(hintKey, keybindName).withStyle(ChatFormatting.DARK_GRAY));
         }
+    }
+
+    private static void appendCheatGiveHints(List<Component> lines) {
+        if (!AMICheatMode.isEnabled()) {
+            return;
+        }
+        var keys = Services.PLATFORM.keyMappings();
+        String giveOne = keys.cheatGiveOne().getTranslatedKeyMessage().getString();
+        String giveStack = keys.cheatGiveStack().getTranslatedKeyMessage().getString();
+        lines.add(Component.translatable("ami.tooltip.cheat_give_one", giveOne).withStyle(ChatFormatting.GOLD));
+        lines.add(Component.translatable("ami.tooltip.cheat_give_stack", giveStack).withStyle(ChatFormatting.GOLD));
     }
 
 }

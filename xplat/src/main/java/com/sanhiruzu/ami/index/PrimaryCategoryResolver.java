@@ -2,25 +2,11 @@ package com.sanhiruzu.ami.index;
 
 import net.minecraft.resources.ResourceLocation;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 public final class PrimaryCategoryResolver {
-    private enum ModFamily {
-        GENERIC,
-        CREATE,
-        FOOD,
-        STORAGE,
-        AUTOMATION,
-        PORTABLE_STORAGE,
-        DECOR
-    }
-
     private static final Set<String> HOSTILE_SPAWN_EGGS = Set.of(
             "blaze", "bogged", "breeze", "creeper", "drowned", "elder_guardian",
             "ender_dragon", "endermite", "evoker", "ghast", "guardian", "hoglin",
@@ -29,13 +15,11 @@ public final class PrimaryCategoryResolver {
             "vex", "vindicator", "warden", "witch", "wither", "wither_skeleton",
             "zoglin", "zombie", "zombie_villager"
     );
-
     private static final Set<String> NEUTRAL_SPAWN_EGGS = Set.of(
             "bee", "cave_spider", "dolphin", "enderman", "goat", "iron_golem",
             "llama", "panda", "piglin", "polar_bear", "spider", "trader_llama",
             "wolf", "zombified_piglin"
     );
-
     private static final Set<String> DECOR_TOKENS = Set.of(
             "chair", "stool", "bench", "sofa", "couch", "banister", "railing",
             "shelf", "curtain", "curtains", "blinds", "shutter", "shutters",
@@ -43,95 +27,65 @@ public final class PrimaryCategoryResolver {
             "lamp", "lantern", "chandelier", "sconce", "brazier", "seat",
             "pillow", "cushion", "hammock", "rack", "sign"
     );
-
     private static final Set<String> LIGHTING_TOKENS = Set.of(
             "lamp", "lantern", "chandelier", "sconce", "brazier", "candelabra"
     );
-
     private static final Set<String> TEXTILE_TOKENS = Set.of(
             "curtain", "curtains", "blinds", "shutter", "shutters", "pillow",
             "cushion", "rug", "carpet", "blanket", "sheet"
     );
-
     private static final Set<String> DISPLAY_TOKENS = Set.of(
             "bookcase", "bookshelf", "shelf", "rack", "sign", "plaque"
     );
-
     private static final Set<String> ARCHITECTURAL_BUILDING_TOKENS = Set.of(
             "stair", "stairs", "roof", "balcony", "bridge", "railing", "banister",
             "parapet", "platform", "path", "paving", "paver", "window", "pier"
     );
-
     private static final Set<String> WORKSTATION_TOKENS = Set.of(
             "station", "terminal", "controller", "assembler", "fabricator",
             "charger", "press", "mixer", "crusher", "grinder", "smelter",
             "refinery", "processor", "forge", "loom", "workbench", "stove", "oven"
     );
-
     private static final Set<String> CREATE_HANDHELD_TOOL_TOKENS = Set.of(
             "wrench", "grip", "worldshaper", "cannon"
     );
-
     private static final Set<String> CREATE_HANDHELD_UTILITY_TOKENS = Set.of(
             "goggle", "filter", "schedule", "shopping", "list", "schematic",
             "quill", "glue", "controller"
     );
-
     private static final Set<String> CREATE_PART_TOKENS = Set.of(
             "belt", "gearbox", "bracket", "pipe", "valve", "handle", "shaft",
-            "cogwheel", "chute", "depot", "ejector", "speedometer", "stressometer"
+            "cogwheel", "chute", "depot", "ejector", "speedometer", "stressometer",
+            "casing"
     );
-
     private static final Set<String> CREATE_MACHINE_TOKENS = Set.of(
             "press", "burner", "wheel", "millstone", "mixer", "fan", "pump",
             "tank", "backtank", "engine"
     );
-
     private static final Set<String> RAILWAYS_TRANSPORT_TOKENS = Set.of(
             "track", "coupler", "conductor", "switch", "semaphore", "handcar"
     );
-
     private static final Set<String> RAILWAYS_PART_TOKENS = Set.of(
             "smokestack", "boiler", "buffer", "cowcatcher", "headstock", "link", "connector"
     );
-
     private static final Set<String> CREATE_ADDON_MACHINE_TOKENS = Set.of(
             "alternator", "motor", "generator", "charger", "accumulator", "battery"
     );
-
     private static final Set<String> CREATE_ADDON_PART_TOKENS = Set.of(
             "connector", "cable", "coil", "wire", "electrode"
     );
-
     private static final Set<String> CREATE_WINERY_MACHINE_TOKENS = Set.of(
             "barrel", "vat", "press", "ferment"
     );
-
     private static final Set<String> CREATE_ORE_MACHINE_TOKENS = Set.of(
             "drill", "pump", "extract", "boring", "survey"
     );
-
     private static final Set<String> CREATE_ORE_PART_TOKENS = Set.of(
             "pipe", "vein", "sample", "core"
     );
-
     private static final Set<String> FOOD_STORAGE_TOKENS = Set.of(
             "crate", "bag", "bale", "sack"
     );
-
-    private record ResolveContext(ResourceLocation id,
-                                  String modId,
-                                  String path,
-                                  Set<ItemFacet> facets,
-                                  Map<String, String> attributes,
-                                  ModFamily modFamily) {
-    }
-
-    private record PrimaryRule(String id,
-                               Predicate<ResolveContext> matches,
-                               Function<ResolveContext, CategoryAssignment> assignment) {
-    }
-
     private static final List<PrimaryRule> PRIMARY_RULES = List.of(
             rule("create handheld tools",
                     c -> shouldBiasCreateFamilyHandheldToTools(c.modFamily, c.path),
@@ -145,6 +99,24 @@ public final class PrimaryCategoryResolver {
             rule("spawn eggs and mob buckets",
                     c -> hasAny(c.facets, ItemFacet.SPAWN_EGG, ItemFacet.MOB_BUCKET),
                     c -> assignment("bestiary", classifyBestiarySubcategory(c.path), c.attributes)),
+            rule("saplings",
+                    c -> isSapling(c.path, c.attributes),
+                    c -> assignment("nature", "flora", c.attributes)),
+            rule("leaves",
+                    c -> isLeaves(c.path, c.facets, c.attributes),
+                    c -> assignment("nature", "flora", c.attributes)),
+            rule("wood blocks",
+                    c -> isWoodBlock(c.path, c.facets, c.attributes),
+                    c -> assignment("nature", "wood", c.attributes)),
+            rule("plant seeds",
+                    c -> isPlantSeed(c.path, c.facets, c.attributes),
+                    c -> assignment("nature", "seeds", c.attributes)),
+            rule("crop-like placeables",
+                    c -> isCropLikePlaceable(c.path, c.facets, c.attributes),
+                    c -> assignment("nature", "crops", c.attributes)),
+            rule("food family placeables",
+                    c -> shouldBiasFoodFamilyPlaceableToNature(c.modFamily, c.facets, c.path, c.attributes),
+                    c -> assignment("nature", classifyFoodFamilyNatureSubcategory(c.path, c.facets), c.attributes)),
             rule("magic facets",
                     c -> hasAny(c.facets, ItemFacet.POTION, ItemFacet.ENCHANTED_BOOK, ItemFacet.MAGIC_ARTIFACT, ItemFacet.MAGIC_REAGENT),
                     c -> assignment("magic", classifyMagicSubcategory(c.facets), c.attributes)),
@@ -161,7 +133,8 @@ public final class PrimaryCategoryResolver {
                     c -> isThrowableIngredient(c.facets),
                     c -> assignment("ingredients", classifyIngredientSubcategory(c.facets), c.attributes)),
             rule("tools and weapons",
-                    c -> hasAny(c.facets, ItemFacet.MELEE_WEAPON, ItemFacet.RANGED_WEAPON, ItemFacet.PROJECTILE, ItemFacet.HARVEST_TOOL, ItemFacet.UTILITY_TOOL),
+                    c -> hasAny(c.facets, ItemFacet.MELEE_WEAPON, ItemFacet.RANGED_WEAPON, ItemFacet.HARVEST_TOOL, ItemFacet.UTILITY_TOOL)
+                            || (c.facets.contains(ItemFacet.PROJECTILE) && hasProjectileToolContext(c.path, c.attributes)),
                     c -> assignment("tools", classifyWeaponSubcategory(c.facets), c.attributes)),
             rule("food before passive redstone",
                     c -> shouldResolveFoodLikeBeforePassiveRedstone(c.modFamily, c.facets, c.path),
@@ -188,12 +161,13 @@ public final class PrimaryCategoryResolver {
                             ItemFacet.UPGRADE,
                             ItemFacet.TEMPLATE,
                             ItemFacet.TECH_COMPONENT,
+                            ItemFacet.MECHANICAL_COMPONENT,
                             ItemFacet.INGOT,
                             ItemFacet.GEM,
                             ItemFacet.NUGGET,
                             ItemFacet.RAW_MATERIAL,
                             ItemFacet.DUST),
-                    c -> assignment("tech", classifyTechSubcategory(c.facets), c.attributes)),
+                    c -> assignment("tech", classifyTechSubcategory(c.path, c.facets), c.attributes)),
             rule("nature facets",
                     c -> hasAny(c.facets, ItemFacet.EDIBLE, ItemFacet.PLACEABLE_FOOD, ItemFacet.FOOD_MEAL, ItemFacet.FOOD_DRINK, ItemFacet.FOOD_PROTEIN, ItemFacet.COMPOSTABLE, ItemFacet.SEED, ItemFacet.CROP, ItemFacet.NATURE_MISC, ItemFacet.FUNGI, ItemFacet.LOG, ItemFacet.LEAVES, ItemFacet.FLOWER),
                     c -> assignment("nature", classifyNatureSubcategory(c.path, c.facets), c.attributes)),
@@ -213,7 +187,7 @@ public final class PrimaryCategoryResolver {
                             ItemFacet.TRAPDOOR),
                     c -> assignment("masonry", classifyMasonrySubcategory(c.facets, c.path, c.attributes), c.attributes)),
             rule("decoration facets",
-                    c -> hasAny(c.facets, ItemFacet.LIGHT_SOURCE, ItemFacet.DECORATIVE_BLOCK),
+                    c -> shouldResolveDecorationFacetPrimary(c.path, c.facets),
                     c -> assignment("decoration", classifyDecorationSubcategory(c.facets), c.attributes)),
             rule("social facets",
                     c -> hasAny(c.facets, ItemFacet.SOCIAL_PLAYERS, ItemFacet.SOCIAL_CLAIMS),
@@ -292,12 +266,178 @@ public final class PrimaryCategoryResolver {
         ModFamily modFamily = classifyModFamily(modId);
         ResolveContext context = new ResolveContext(id, modId, path, facets, attributes, modFamily);
 
+        Optional<CategoryAssignment> hardIdentity = resolveHardIdentity(context);
+        if (hardIdentity.isPresent()) {
+            return hardIdentity.get();
+        }
+
+        Optional<CategoryAssignment> scored = CategoryScorer.resolveStrong(id, profile);
+        if (scored.isPresent()) {
+            return scored.get();
+        }
+
         for (PrimaryRule rule : PRIMARY_RULES) {
             if (rule.matches.test(context)) {
                 return rule.assignment.apply(context);
             }
         }
+        Optional<CategoryAssignment> fallbackScored = CategoryScorer.resolve(id, profile);
+        if (fallbackScored.isPresent()) {
+            return fallbackScored.get();
+        }
         return fallback();
+    }
+
+    private static Optional<CategoryAssignment> resolveHardIdentity(ResolveContext context) {
+        if (hasAny(context.facets, ItemFacet.SPAWN_EGG, ItemFacet.MOB_BUCKET)) {
+            return Optional.of(identityAssignment(
+                    "bestiary",
+                    classifyBestiarySubcategory(context.path),
+                    context.attributes,
+                    "identity.spawn_egg",
+                    "spawn egg or mob bucket facet"
+            ));
+        }
+
+        if (context.facets.contains(ItemFacet.DECORATIVE_BLOCK)
+                && containsPathToken(context.path, TEXTILE_TOKENS)) {
+            return Optional.of(identityAssignment(
+                    "decoration",
+                    "textiles",
+                    context.attributes,
+                    "identity.decorative_textile",
+                    "decorative textile block identity"
+            ));
+        }
+
+        if (shouldResolveAsArmorOrCurio(context.facets)) {
+            return Optional.of(identityAssignment(
+                    "armor",
+                    classifyArmorSubcategory(context.facets),
+                    context.attributes,
+                    "identity.armor",
+                    "armor, equipment slot, or curio facet"
+            ));
+        }
+
+        if (hasHardToolIdentity(context.facets)) {
+            return Optional.of(identityAssignment(
+                    "tools",
+                    classifyWeaponSubcategory(context.facets),
+                    context.attributes,
+                    "identity.tool",
+                    "non-projectile tool or weapon facet"
+            ));
+        }
+
+        if (hasActualFoodIdentity(context.facets, context.attributes)) {
+            return Optional.of(identityAssignment(
+                    "nature",
+                    classifyNatureSubcategory(context.path, context.facets),
+                    context.attributes,
+                    "identity.food",
+                    "food data component or edible facet"
+            ));
+        }
+
+        if (isSapling(context.path, context.attributes) || isLeaves(context.path, context.facets, context.attributes)) {
+            return Optional.of(identityAssignment(
+                    "nature",
+                    "flora",
+                    context.attributes,
+                    "identity.flora",
+                    "sapling or leaves block identity"
+            ));
+        }
+
+        if (isWoodBlock(context.path, context.facets, context.attributes)) {
+            return Optional.of(identityAssignment(
+                    "nature",
+                    "wood",
+                    context.attributes,
+                    "identity.wood",
+                    "log or wood block identity"
+            ));
+        }
+
+        if (isPlantSeed(context.path, context.facets, context.attributes)) {
+            return Optional.of(identityAssignment(
+                    "nature",
+                    "seeds",
+                    context.attributes,
+                    "identity.seed",
+                    "plant seed identity"
+            ));
+        }
+
+        if (isCropLikePlaceable(context.path, context.facets, context.attributes)) {
+            return Optional.of(identityAssignment(
+                    "nature",
+                    "crops",
+                    context.attributes,
+                    "identity.crop",
+                    "crop block identity"
+            ));
+        }
+
+        if (context.facets.contains(ItemFacet.PLACEABLE)
+                && hasAny(context.facets,
+                ItemFacet.STAIRS,
+                ItemFacet.SLAB,
+                ItemFacet.WALL,
+                ItemFacet.FENCE,
+                ItemFacet.FENCE_GATE,
+                ItemFacet.PANE,
+                ItemFacet.DOOR,
+                ItemFacet.TRAPDOOR)) {
+            return Optional.of(identityAssignment(
+                    "masonry",
+                    classifyMasonrySubcategory(context.facets, context.path, context.attributes),
+                    context.attributes,
+                    "identity.block_shape",
+                    "structural block shape facet"
+            ));
+        }
+
+        return Optional.empty();
+    }
+
+    private static CategoryAssignment identityAssignment(
+            String categoryId,
+            String subcategoryId,
+            Map<String, String> attributes,
+            String evidenceId,
+            String reason
+    ) {
+        Map<String, String> diagnosticAttributes = new LinkedHashMap<>(attributes);
+        diagnosticAttributes.put("classificationMode", "hard_identity");
+        diagnosticAttributes.put("classificationScore", "1000");
+        diagnosticAttributes.put("classificationEvidence", "+1000 " + evidenceId + "[" + reason + "]");
+        diagnosticAttributes.put("classificationScores", categoryId + "/" + subcategoryId + "=1000");
+        return assignment(categoryId, subcategoryId, diagnosticAttributes);
+    }
+
+    private static boolean hasHardToolIdentity(Set<ItemFacet> facets) {
+        return hasAny(facets,
+                ItemFacet.MELEE_WEAPON,
+                ItemFacet.HARVEST_TOOL,
+                ItemFacet.UTILITY_TOOL)
+                || (facets.contains(ItemFacet.RANGED_WEAPON) && !facets.contains(ItemFacet.PROJECTILE));
+    }
+
+    private static boolean hasProjectileToolContext(String path, Map<String, String> attributes) {
+        return containsPathToken(path, Set.of(
+                "arrow", "arrows", "bolt", "bolts", "bullet", "bullets", "round", "rounds",
+                "cartridge", "cartridges", "rocket", "ammo", "gun", "shotgun", "cannon",
+                "autocannon", "artillery", "mortar", "munition", "munitions"))
+                || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:arrows")
+                || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "createbigcannons:big_cannon_projectiles")
+                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "createbigcannons:big_cannon_projectiles");
+    }
+
+    private static boolean hasActualFoodIdentity(Set<ItemFacet> facets, Map<String, String> attributes) {
+        return hasAny(facets, ItemFacet.EDIBLE, ItemFacet.PLACEABLE_FOOD)
+                || hasCsvToken(attributes.getOrDefault(SearchNodeKeys.COMPONENT_FACTS, ""), "food");
     }
 
     private static ModFamily classifyModFamily(String modId) {
@@ -485,7 +625,8 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.REDSTONE_LOGIC,
                 ItemFacet.REDSTONE_SIGNAL,
                 ItemFacet.TRANSPORT,
-                ItemFacet.CABLE);
+                ItemFacet.CABLE,
+                ItemFacet.TEMPLATE);
     }
 
     private static boolean shouldResolveAsArmorOrCurio(Set<ItemFacet> facets) {
@@ -508,7 +649,7 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.INGREDIENT_DYE);
     }
 
-    private static String classifyTechSubcategory(Set<ItemFacet> facets) {
+    private static String classifyTechSubcategory(String path, Set<ItemFacet> facets) {
         if (facets.contains(ItemFacet.ACTIVE_REDSTONE_LOGIC) || facets.contains(ItemFacet.REDSTONE_LOGIC)) {
             return "redstone";
         }
@@ -527,7 +668,18 @@ public final class PrimaryCategoryResolver {
         if (facets.contains(ItemFacet.TEMPLATE)) return "templates";
         if (facets.contains(ItemFacet.UPGRADE)) return "upgrades";
         if (facets.contains(ItemFacet.CABLE)) return "cables";
-        if (facets.contains(ItemFacet.TECH_COMPONENT)) return "parts";
+        if (facets.contains(ItemFacet.MECHANICAL_COMPONENT)) return "parts";
+        if (facets.contains(ItemFacet.TECH_COMPONENT)) {
+            if (path.contains("circuit")
+                    || path.contains("processor")
+                    || path.contains("logic")
+                    || path.contains("calculation")
+                    || path.contains("engineering")
+                    || path.contains("chip")) {
+                return "circuits";
+            }
+            return "parts";
+        }
         if (facets.contains(ItemFacet.DUST)) return "dusts";
         if (hasAny(facets, ItemFacet.INGOT, ItemFacet.GEM, ItemFacet.NUGGET, ItemFacet.RAW_MATERIAL)) return "ingots";
         return "parts";
@@ -550,6 +702,116 @@ public final class PrimaryCategoryResolver {
         return "flora";
     }
 
+    private static boolean isSapling(String path, Map<String, String> attributes) {
+        String blockClass = attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "");
+        return containsPathToken(path, Set.of("sapling", "saplings"))
+                || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:saplings")
+                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "minecraft:saplings")
+                || blockClass.endsWith("SaplingBlock")
+                || blockClass.contains(".SaplingBlock");
+    }
+
+    private static boolean isLeaves(String path, Set<ItemFacet> facets, Map<String, String> attributes) {
+        if (facets.contains(ItemFacet.CROP)) {
+            return false;
+        }
+        return facets.contains(ItemFacet.LEAVES)
+                || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:leaves")
+                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "minecraft:leaves")
+                || containsPathToken(path, Set.of("leaf", "leaves"));
+    }
+
+    private static boolean isWoodBlock(String path, Set<ItemFacet> facets, Map<String, String> attributes) {
+        if (isSapling(path, attributes) || isLeaves(path, facets, attributes)) {
+            return false;
+        }
+        return facets.contains(ItemFacet.WOOD_BLOCK)
+                || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:planks")
+                || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:logs")
+                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "minecraft:planks")
+                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "minecraft:logs")
+                || path.endsWith("_planks")
+                || path.endsWith("_log")
+                || path.endsWith("_wood")
+                || path.endsWith("_stem")
+                || path.endsWith("_hyphae");
+    }
+
+    private static boolean isPlantSeed(String path, Set<ItemFacet> facets, Map<String, String> attributes) {
+        if (isSapling(path, attributes)) {
+            return false;
+        }
+        if (hasAny(facets,
+                ItemFacet.INGOT,
+                ItemFacet.GEM,
+                ItemFacet.NUGGET,
+                ItemFacet.RAW_MATERIAL,
+                ItemFacet.DUST,
+                ItemFacet.TECH_COMPONENT,
+                ItemFacet.UTILITY_MISC,
+                ItemFacet.FLUID_CONTAINER)) {
+            return false;
+        }
+        if (!facets.contains(ItemFacet.SEED)
+                && !hasMetadataToken(attributes, SearchNodeKeys.TAGS, "c:seeds")
+                && !hasMetadataToken(attributes, SearchNodeKeys.TAGS, "forge:seeds")
+                && !containsPathToken(path, Set.of("seed", "seeds"))) {
+            return false;
+        }
+        return !containsPathToken(path, Set.of("bag", "bags", "bucket", "oil", "maker", "pouch", "crystal"))
+                && !path.contains("_oil")
+                && !path.contains("crystal_seed")
+                && !path.contains("_crystal")
+                && !path.startsWith("roasted_")
+                && !path.startsWith("baked_");
+    }
+
+    private static boolean isCropLikePlaceable(String path, Set<ItemFacet> facets, Map<String, String> attributes) {
+        if (!facets.contains(ItemFacet.PLACEABLE) || isSapling(path, attributes) || isLeaves(path, facets, attributes)) {
+            return false;
+        }
+        String blockClass = attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "").toLowerCase(Locale.ROOT);
+        if (path.equals("dead_bush") || blockClass.contains("deadbush")) {
+            return false;
+        }
+        return facets.contains(ItemFacet.CROP)
+                || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "c:crops")
+                || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "forge:crops")
+                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "c:crops")
+                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "forge:crops")
+                || path.endsWith("_crop")
+                || path.contains("_crop_")
+                || path.endsWith("_bush")
+                || path.contains("_bush_")
+                || blockClass.contains("crop")
+                || blockClass.contains("bush");
+    }
+
+    private static boolean hasMetadataToken(Map<String, String> attributes, String key, String expected) {
+        String encoded = attributes.getOrDefault(key, "");
+        if (encoded.isBlank()) {
+            return false;
+        }
+        for (String token : encoded.split(",")) {
+            if (expected.equals(token.trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasCsvToken(String encoded, String expected) {
+        if (encoded == null || encoded.isBlank()) {
+            return false;
+        }
+        for (String token : encoded.split(",")) {
+            if (expected.equals(token.trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static String classifyIngredientSubcategory(Set<ItemFacet> facets) {
         if (facets.contains(ItemFacet.INGREDIENT_DYE)) return "dyes";
         if (facets.contains(ItemFacet.INGREDIENT_MINERAL)) return "mineral";
@@ -559,6 +821,16 @@ public final class PrimaryCategoryResolver {
     private static String classifyDecorationSubcategory(Set<ItemFacet> facets) {
         if (facets.contains(ItemFacet.LIGHT_SOURCE)) return "lighting";
         return "furniture";
+    }
+
+    private static boolean shouldResolveDecorationFacetPrimary(String path, Set<ItemFacet> facets) {
+        return facets.contains(ItemFacet.DECORATIVE_BLOCK)
+                || (facets.contains(ItemFacet.LIGHT_SOURCE) && isPrimaryLightingPath(path));
+    }
+
+    private static boolean isPrimaryLightingPath(String path) {
+        return containsPathToken(path, LIGHTING_TOKENS)
+                || containsPathToken(path, Set.of("torch", "torches", "candle", "candles", "glowstone", "shroomlight", "froglight", "beacon"));
     }
 
     private static String classifyLexicalDecorationSubcategory(String path, Set<ItemFacet> facets) {
@@ -587,7 +859,7 @@ public final class PrimaryCategoryResolver {
         if (containsPathToken(path, Set.of("terminal", "controller", "processor"))) {
             return "parts";
         }
-        return classifyTechSubcategory(facets);
+        return classifyTechSubcategory(path, facets);
     }
 
     private static boolean shouldBiasCreateFamilyToDecoration(ModFamily modFamily, Set<ItemFacet> facets) {
@@ -671,6 +943,24 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.INGREDIENT_DYE,
                 ItemFacet.SOCIAL_PLAYERS,
                 ItemFacet.SOCIAL_CLAIMS)
+                && (hasAny(facets,
+                ItemFacet.RAIL,
+                ItemFacet.INTERACTIVE_BLOCK,
+                ItemFacet.HAS_BLOCK_ENTITY,
+                ItemFacet.MACHINE,
+                ItemFacet.STORAGE,
+                ItemFacet.HAS_ENERGY,
+                ItemFacet.REDSTONE_LOGIC,
+                ItemFacet.REDSTONE_SIGNAL,
+                ItemFacet.TRANSPORT,
+                ItemFacet.CABLE,
+                ItemFacet.UPGRADE,
+                ItemFacet.TEMPLATE,
+                ItemFacet.TECH_COMPONENT,
+                ItemFacet.MECHANICAL_COMPONENT)
+                || containsPathToken(path, CREATE_PART_TOKENS)
+                || containsPathToken(path, CREATE_MACHINE_TOKENS)
+                || isCreateAddonTechPath(path))
                 && !hasAny(facets,
                 ItemFacet.STAIRS,
                 ItemFacet.SLAB,
@@ -834,6 +1124,37 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.HAS_BLOCK_ENTITY,
                 ItemFacet.HAS_ENERGY,
                 ItemFacet.STORAGE,
+                ItemFacet.REDSTONE_LOGIC,
+                ItemFacet.REDSTONE_SIGNAL,
+                ItemFacet.TRANSPORT,
+                ItemFacet.SOCIAL_PLAYERS,
+                ItemFacet.SOCIAL_CLAIMS)
+                && !hasAny(facets,
+                ItemFacet.STAIRS,
+                ItemFacet.SLAB,
+                ItemFacet.WALL,
+                ItemFacet.FENCE,
+                ItemFacet.FENCE_GATE,
+                ItemFacet.PANE,
+                ItemFacet.DOOR,
+                ItemFacet.TRAPDOOR)
+                && !shouldBeGeology(facets, path, attributes)
+                && !shouldBiasUncraftableFullBlockToTerrain(facets, attributes);
+    }
+
+    private static boolean shouldBiasFoodFamilyPlaceableToNature(ModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
+        return modFamily == ModFamily.FOOD
+                && facets.contains(ItemFacet.PLACEABLE)
+                && !hasAny(facets,
+                ItemFacet.MACHINE,
+                ItemFacet.HAS_BLOCK_ENTITY,
+                ItemFacet.HAS_ENERGY,
+                ItemFacet.STORAGE,
+                ItemFacet.DECORATIVE_BLOCK,
+                ItemFacet.MELEE_WEAPON,
+                ItemFacet.RANGED_WEAPON,
+                ItemFacet.HARVEST_TOOL,
+                ItemFacet.UTILITY_TOOL,
                 ItemFacet.REDSTONE_LOGIC,
                 ItemFacet.REDSTONE_SIGNAL,
                 ItemFacet.TRANSPORT,
@@ -1127,7 +1448,7 @@ public final class PrimaryCategoryResolver {
         if (containsPathToken(path, CREATE_MACHINE_TOKENS)) {
             return "machines";
         }
-        return classifyTechSubcategory(facets);
+        return classifyTechSubcategory(path, facets);
     }
 
     private static String classifyFoodFamilyIngredientSubcategory(String path, Set<ItemFacet> facets) {
@@ -1397,6 +1718,16 @@ public final class PrimaryCategoryResolver {
                 || path.contains("template");
     }
 
+    private static boolean isCreateAddonTechPath(String path) {
+        return containsPathToken(path, RAILWAYS_TRANSPORT_TOKENS)
+                || containsPathToken(path, RAILWAYS_PART_TOKENS)
+                || containsPathToken(path, CREATE_ADDON_MACHINE_TOKENS)
+                || containsPathToken(path, CREATE_ADDON_PART_TOKENS)
+                || containsPathToken(path, CREATE_WINERY_MACHINE_TOKENS)
+                || containsPathToken(path, CREATE_ORE_MACHINE_TOKENS)
+                || containsPathToken(path, CREATE_ORE_PART_TOKENS);
+    }
+
     private static boolean endsWithPathToken(String path, String token) {
         String[] pathTokens = path.split("[_/]");
         return pathTokens.length > 0 && pathTokens[pathTokens.length - 1].equals(token);
@@ -1463,11 +1794,11 @@ public final class PrimaryCategoryResolver {
     }
 
     private static String classifyMasonrySubcategory(Set<ItemFacet> facets, String path, Map<String, String> attributes) {
-        if (facets.contains(ItemFacet.REDSTONE_LOGIC) || facets.contains(ItemFacet.REDSTONE_SIGNAL)) {
-            return "redstone";
-        }
         if (hasAny(facets, ItemFacet.DOOR, ItemFacet.TRAPDOOR, ItemFacet.FENCE_GATE)) {
             return "functional";
+        }
+        if (facets.contains(ItemFacet.REDSTONE_LOGIC) || facets.contains(ItemFacet.REDSTONE_SIGNAL)) {
+            return "redstone";
         }
         if (facets.contains(ItemFacet.STAIRS)) return "stairs";
         if (facets.contains(ItemFacet.SLAB)) return "slab";
@@ -1490,5 +1821,28 @@ public final class PrimaryCategoryResolver {
             };
         }
         return "full_block";
+    }
+
+    private enum ModFamily {
+        GENERIC,
+        CREATE,
+        FOOD,
+        STORAGE,
+        AUTOMATION,
+        PORTABLE_STORAGE,
+        DECOR
+    }
+
+    private record ResolveContext(ResourceLocation id,
+                                  String modId,
+                                  String path,
+                                  Set<ItemFacet> facets,
+                                  Map<String, String> attributes,
+                                  ModFamily modFamily) {
+    }
+
+    private record PrimaryRule(String id,
+                               Predicate<ResolveContext> matches,
+                               Function<ResolveContext, CategoryAssignment> assignment) {
     }
 }

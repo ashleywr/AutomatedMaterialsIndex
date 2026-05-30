@@ -2,7 +2,6 @@ package com.sanhiruzu.ami.client.widget;
 
 import net.minecraft.client.gui.GuiGraphics;
 
-import com.sanhiruzu.ami.AmiCore;
 /**
  * Base class for all configuration entry widgets in the AMI config screen.
  */

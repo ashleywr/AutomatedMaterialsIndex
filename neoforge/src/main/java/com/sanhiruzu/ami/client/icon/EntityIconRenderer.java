@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.client.icon;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
@@ -9,7 +10,6 @@ import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -37,55 +37,6 @@ public class EntityIconRenderer implements IIconRenderer {
 
     private static final Map<ResourceLocation, LivingEntity> entityCache = new HashMap<>();
     private static final Set<ResourceLocation> failedRenderers = new HashSet<>();
-
-    @Override
-    public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
-        if (size < 12) {
-            FallbackTextRenderer.renderFallback(g, node, x, y, size);
-            return;
-        }
-
-        LivingEntity entity = resolveEntity(node.id());
-        if (entity == null) {
-            ResourceLocation proxyId = resolveProxyItemId(node.id());
-            if (proxyId != null) {
-                ItemStack proxy = BuiltInRegistries.ITEM.getOptional(proxyId).map(ItemStack::new).orElse(ItemStack.EMPTY);
-                if (!proxy.isEmpty()) {
-                    g.pose().pushPose();
-                    g.pose().translate(x + size / 2.0, y + size / 2.0, 150);
-                    float s = size / 16.0f;
-                    g.pose().scale(s, s, 1f);
-                    g.renderItem(proxy, -8, -8);
-                    g.pose().popPose();
-                    return;
-                }
-            }
-            FallbackTextRenderer.renderFallback(g, node, x, y, size);
-            return;
-        }
-
-        float maxBounds = Math.max(entity.getBbHeight(), entity.getBbWidth());
-        int scale = Math.max(1, (int) Math.min(size - 4, (size - 2) / maxBounds));
-
-        if (failedRenderers.contains(node.id())) {
-            FallbackTextRenderer.renderFallback(g, node, x, y, size);
-            return;
-        }
-
-        try {
-            if (!hovered) {
-                renderStaticEntity(g, x, y, size, scale, entity);
-                return;
-            }
-
-            renderSpinningEntity(g, x, y, size, scale, entity);
-        } catch (RuntimeException e) {
-            if (failedRenderers.add(node.id())) {
-                AmiCore.LOGGER.warn("AMI: disabling entity icon renderer for {} after render failure", node.id(), e);
-            }
-            FallbackTextRenderer.renderFallback(g, node, x, y, size);
-        }
-    }
 
     private static void renderStaticEntity(GuiGraphics g, int x, int y, int size, int scale, LivingEntity entity) {
         renderEntityWithRotation(g, x, y, size, scale, entity, 180.0f);
@@ -152,7 +103,8 @@ public class EntityIconRenderer implements IIconRenderer {
 
     private static ResourceLocation resolveProxyItemId(ResourceLocation entityId) {
         // experience_orb has no item form; proxy to experience_bottle for the icon.
-        if ("experience_orb".equals(entityId.getPath())) return ResourceLocation.withDefaultNamespace("experience_bottle");
+        if ("experience_orb".equals(entityId.getPath()))
+            return ResourceLocation.withDefaultNamespace("experience_bottle");
         return null;
     }
 
@@ -179,42 +131,6 @@ public class EntityIconRenderer implements IIconRenderer {
 
         entityCache.put(id, entity); // null entries suppress future attempts
         return entity;
-    }
-
-    @Override
-    public List<Component> getTooltip(SearchNode node) {
-        List<Component> lines = new ArrayList<>();
-        lines.add(Component.literal(node.displayName()));
-        lines.add(Component.literal(node.id().toString()).withStyle(s -> s.withColor(AMITheme.ENTITY_ID_COLOR)));
-
-        String category = node.meta(SearchNodeKeys.ENTITY_CATEGORY, "");
-        if (!category.isEmpty()) {
-            lines.add(Component.translatable("ami.tooltip.category")
-                    .append(": ").append(formatCategoryComponent(category))
-                    .withStyle(s -> s.withColor(AMITheme.ENTITY_CATEGORY_COLOR)));
-        }
-
-        String traits = node.meta(SearchNodeKeys.ENTITY_TRAITS, "");
-        if (!traits.isEmpty()) {
-            lines.add(Component.literal(formatTraits(traits)).withStyle(s -> s.withColor(AMITheme.ENTITY_TRAITS_COLOR)));
-        }
-
-        return lines;
-    }
-
-    @Override
-    public Optional<TooltipComponent> getTooltipImage(SearchNode node) {
-        HeartBarTooltipComponent heartBar = buildHeartBar(node);
-        StatIconRowTooltipComponent attackRow = buildAttackRow(node);
-
-        if (heartBar != null && attackRow != null) {
-            return Optional.of(new CompositeTooltipComponent(List.of(heartBar, attackRow)));
-        } else if (heartBar != null) {
-            return Optional.of(heartBar);
-        } else if (attackRow != null) {
-            return Optional.of(attackRow);
-        }
-        return Optional.empty();
     }
 
     private static HeartBarTooltipComponent buildHeartBar(SearchNode node) {
@@ -263,12 +179,6 @@ public class EntityIconRenderer implements IIconRenderer {
         return sb.toString();
     }
 
-    @Override
-    public void invalidate() {
-        entityCache.clear();
-        failedRenderers.clear();
-    }
-
     /**
      * Scans all ENTITY nodes and returns those that can't be rendered as a LivingEntity.
      * Each entry is "id  (displayName)  [reason]". Requires an active level to instantiate types.
@@ -308,5 +218,96 @@ public class EntityIconRenderer implements IIconRenderer {
 
         missing.sort(String::compareTo);
         return missing;
+    }
+
+    @Override
+    public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
+        if (size < 12) {
+            FallbackTextRenderer.renderFallback(g, node, x, y, size);
+            return;
+        }
+
+        LivingEntity entity = resolveEntity(node.id());
+        if (entity == null) {
+            ResourceLocation proxyId = resolveProxyItemId(node.id());
+            if (proxyId != null) {
+                ItemStack proxy = BuiltInRegistries.ITEM.getOptional(proxyId).map(ItemStack::new).orElse(ItemStack.EMPTY);
+                if (!proxy.isEmpty()) {
+                    g.pose().pushPose();
+                    g.pose().translate(x + size / 2.0, y + size / 2.0, 150);
+                    float s = size / 16.0f;
+                    g.pose().scale(s, s, 1f);
+                    g.renderItem(proxy, -8, -8);
+                    g.pose().popPose();
+                    return;
+                }
+            }
+            FallbackTextRenderer.renderFallback(g, node, x, y, size);
+            return;
+        }
+
+        float maxBounds = Math.max(entity.getBbHeight(), entity.getBbWidth());
+        int scale = Math.max(1, (int) Math.min(size - 4, (size - 2) / maxBounds));
+
+        if (failedRenderers.contains(node.id())) {
+            FallbackTextRenderer.renderFallback(g, node, x, y, size);
+            return;
+        }
+
+        try {
+            if (!hovered) {
+                renderStaticEntity(g, x, y, size, scale, entity);
+                return;
+            }
+
+            renderSpinningEntity(g, x, y, size, scale, entity);
+        } catch (RuntimeException e) {
+            if (failedRenderers.add(node.id())) {
+                AmiCore.LOGGER.warn("AMI: disabling entity icon renderer for {} after render failure", node.id(), e);
+            }
+            FallbackTextRenderer.renderFallback(g, node, x, y, size);
+        }
+    }
+
+    @Override
+    public List<Component> getTooltip(SearchNode node) {
+        List<Component> lines = new ArrayList<>();
+        lines.add(Component.literal(node.displayName()));
+        lines.add(Component.literal(node.id().toString()).withStyle(s -> s.withColor(AMITheme.ENTITY_ID_COLOR)));
+
+        String category = node.meta(SearchNodeKeys.ENTITY_CATEGORY, "");
+        if (!category.isEmpty()) {
+            lines.add(Component.translatable("ami.tooltip.category")
+                    .append(": ").append(formatCategoryComponent(category))
+                    .withStyle(s -> s.withColor(AMITheme.ENTITY_CATEGORY_COLOR)));
+        }
+
+        String traits = node.meta(SearchNodeKeys.ENTITY_TRAITS, "");
+        if (!traits.isEmpty()) {
+            lines.add(Component.literal(formatTraits(traits)).withStyle(s -> s.withColor(AMITheme.ENTITY_TRAITS_COLOR)));
+        }
+
+        return lines;
+    }
+
+    @Override
+    public Optional<TooltipComponent> getTooltipImage(SearchNode node) {
+        HeartBarTooltipComponent heartBar = buildHeartBar(node);
+        StatIconRowTooltipComponent attackRow = buildAttackRow(node);
+
+        if (heartBar != null && attackRow != null) {
+            return Optional.of(new CompositeTooltipComponent(List.of(heartBar, attackRow)));
+        } else if (heartBar != null) {
+            return Optional.of(heartBar);
+        } else if (attackRow != null) {
+            return Optional.of(attackRow);
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public void invalidate() {
+        entityCache.clear();
+        failedRenderers.clear();
     }
 }

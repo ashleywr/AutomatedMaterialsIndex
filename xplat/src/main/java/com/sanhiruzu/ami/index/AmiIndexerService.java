@@ -15,11 +15,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public final class AmiIndexerService {
     private static final AmiIndexerService INSTANCE = new AmiIndexerService();
-
+    private final AtomicBoolean isRebuilding = new AtomicBoolean(false);
     private volatile SearchService searchService;
     private volatile int indexedItemCount;
     private volatile Throwable lastRebuildFailure;
-    private final AtomicBoolean isRebuilding = new AtomicBoolean(false);
 
     private AmiIndexerService() {
     }

@@ -13,6 +13,12 @@ public class ItemStack {
         this.item = item;
     }
 
+    public static boolean isSameItemSameComponents(ItemStack a, ItemStack b) {
+        if (a == b) return true;
+        if (a == null || b == null) return false;
+        return a.item == b.item;
+    }
+
     public boolean isEmpty() {
         return this == EMPTY || item == null;
     }
@@ -41,10 +47,8 @@ public class ItemStack {
         return item == null ? UseAnim.NONE : item.getUseAnimation(this);
     }
 
-    public static boolean isSameItemSameComponents(ItemStack a, ItemStack b) {
-        if (a == b) return true;
-        if (a == null || b == null) return false;
-        return a.item == b.item;
+    public net.minecraft.world.entity.EquipmentSlot getEquipmentSlot() {
+        return item instanceof Equipable equipable ? equipable.getEquipmentSlot() : null;
     }
 
     public net.minecraft.network.chat.Component getHoverName() {

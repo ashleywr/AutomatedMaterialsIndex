@@ -13,16 +13,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ForgeGuiPlugin.class)
 public class ForgeGuiPluginMixin {
 
+    private static boolean shouldSuppressJeiGui() {
+        if (!InventoryOverlayHandler.isAmiEnabled()) return false;
+        var manager = InventoryOverlayHandler.getManager();
+        return manager != null && manager.isPanelVisible();
+    }
+
     @Inject(method = "registerRuntime", at = @At("HEAD"), cancellable = true, remap = false)
     private void suppressRegisterRuntime(IRuntimeRegistration registration, CallbackInfo ci) {
         if (shouldSuppressJeiGui()) {
             ci.cancel();
         }
-    }
-
-    private static boolean shouldSuppressJeiGui() {
-        if (!InventoryOverlayHandler.isAmiEnabled()) return false;
-        var manager = InventoryOverlayHandler.getManager();
-        return manager != null && manager.isPanelVisible();
     }
 }

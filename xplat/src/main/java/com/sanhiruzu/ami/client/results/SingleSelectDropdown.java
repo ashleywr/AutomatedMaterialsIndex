@@ -9,16 +9,14 @@ import net.minecraft.network.chat.Component;
 import java.util.List;
 
 public class SingleSelectDropdown<T> implements Dropdown {
-    private final Component label;
-    private List<T> options;
-    private final java.util.function.Function<T, Component> displayName;
-    private final java.util.function.Consumer<T> onSelect;
-    private T selected;
-
-    private int x, y, width;
     private static final int HEIGHT = 14;
     private static final int ITEM_HEIGHT = 12;
-
+    private final Component label;
+    private final java.util.function.Function<T, Component> displayName;
+    private final java.util.function.Consumer<T> onSelect;
+    private List<T> options;
+    private T selected;
+    private int x, y, width;
     private boolean open = false;
 
     public SingleSelectDropdown(Component label, List<T> options, java.util.function.Function<T, Component> displayName,
@@ -147,12 +145,12 @@ public class SingleSelectDropdown<T> implements Dropdown {
         return open;
     }
 
-    public void setSelected(T selected) {
-        this.selected = selected;
-    }
-
     public T getSelected() {
         return selected;
+    }
+
+    public void setSelected(T selected) {
+        this.selected = selected;
     }
 
 }

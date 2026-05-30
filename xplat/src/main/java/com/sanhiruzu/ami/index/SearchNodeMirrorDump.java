@@ -10,12 +10,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.EnumMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public final class SearchNodeMirrorDump {
     private static final Gson GSON = new Gson();
@@ -50,18 +45,20 @@ public final class SearchNodeMirrorDump {
     public static List<SearchNode> reclassifyItemOntology(List<SearchNode> nodes) {
         List<SearchNode> reclassified = new ArrayList<>(nodes.size());
         for (SearchNode node : nodes) {
-            if (node.type() != NodeType.ITEM || node.meta(SearchNodeKeys.FACETS, "").isBlank()) {
+            if (node.type() != NodeType.ITEM) {
                 reclassified.add(node);
                 continue;
             }
 
             Map<String, String> metadata = new LinkedHashMap<>(node.metadata());
+            removeClassifierDiagnostics(metadata);
             normalizeConnectingVariantMaterial(metadata);
             FacetProfile profile = new FacetProfile(
                     FacetCodec.decode(metadata.get(SearchNodeKeys.FACETS)),
                     metadata
             );
             CategoryAssignment assignment = PrimaryCategoryResolver.resolve(node.id(), profile);
+            metadata.putAll(assignment.attributes());
             metadata.put(SearchNodeKeys.ONTOLOGY_CATEGORY, assignment.categoryId());
             metadata.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, assignment.subcategoryId());
 
@@ -77,6 +74,13 @@ public final class SearchNodeMirrorDump {
             reclassified.add(copy);
         }
         return reclassified;
+    }
+
+    private static void removeClassifierDiagnostics(Map<String, String> metadata) {
+        metadata.remove("classificationMode");
+        metadata.remove("classificationScore");
+        metadata.remove("classificationScores");
+        metadata.remove("classificationEvidence");
     }
 
     private static void normalizeConnectingVariantMaterial(Map<String, String> metadata) {

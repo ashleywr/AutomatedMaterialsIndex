@@ -1,8 +1,8 @@
 package com.sanhiruzu.ami.client;
 
-import com.sanhiruzu.ami.neoforge.AMI;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.GlobalIndex;
+import com.sanhiruzu.ami.neoforge.AMI;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;

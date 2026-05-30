@@ -6,12 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class TokenColorizer {
-    private TokenColorizer() {
-    }
-
-    public record ColorSpan(int startIndex, int endIndex, int argbColor) {
-    }
-
     static final int COLOR_TAG = AmiColors.TAG_COLOR;
     static final int COLOR_MOD = AmiColors.MOD_COLOR;
     static final int COLOR_EXCLUDE = AmiColors.EXCLUDE_COLOR;
@@ -21,6 +15,9 @@ public final class TokenColorizer {
     static final int COLOR_ESM = AmiColors.TOKEN_ESM;
     static final int COLOR_META = AmiColors.TOKEN_META;
     static final int COLOR_PLAIN = AmiColors.TOKEN_PLAIN;
+    static final int COLOR_OR = AmiColors.TOKEN_OR;
+    private TokenColorizer() {
+    }
 
     /**
      * Colorize a query string, returning color spans for each token.
@@ -42,6 +39,13 @@ public final class TokenColorizer {
                 continue;
             }
 
+            // Handle | as OR separator
+            if (!inQuotes && queryText.charAt(pos) == '|') {
+                spans.add(new ColorSpan(pos, pos + 1, COLOR_OR));
+                pos++;
+                continue;
+            }
+
             // Handle quotes
             if (queryText.charAt(pos) == '"') {
                 inQuotes = !inQuotes;
@@ -53,7 +57,7 @@ public final class TokenColorizer {
             int tokenStart = pos;
             while (pos < queryText.length()) {
                 char c = queryText.charAt(pos);
-                if (!inQuotes && c == ' ') break;
+                if (!inQuotes && (c == ' ' || c == '|')) break;
                 if (!inQuotes && c == '"') break;
                 pos++;
             }
@@ -93,5 +97,8 @@ public final class TokenColorizer {
         }
 
         return color;
+    }
+
+    public record ColorSpan(int startIndex, int endIndex, int argbColor) {
     }
 }

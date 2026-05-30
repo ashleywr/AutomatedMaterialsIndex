@@ -1,11 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 
 /**
@@ -13,12 +8,6 @@ import java.util.function.Predicate;
  * Runtime metadata is only used to place nodes into these known buckets.
  */
 public final class AmiOntologyKinds {
-    public record Kind(String id, String label) {
-    }
-
-    private record Rule(String category, String subcategory, Kind kind, Predicate<Context> predicate) {
-    }
-
     private static final List<Rule> RULES = List.of(
             rule("masonry", "functional", "doors", "Doors", c -> c.hasFacet(ItemFacet.DOOR) || c.shape("door") || c.variant("doors") || c.pathToken("door")),
             rule("masonry", "functional", "trapdoors", "Trapdoors", c -> c.hasFacet(ItemFacet.TRAPDOOR) || c.shape("trapdoor") || c.variant("trapdoors") || c.pathToken("trapdoor")),
@@ -207,6 +196,12 @@ public final class AmiOntologyKinds {
         return new Rule(category, subcategory, new Kind(kindId, label), predicate);
     }
 
+    public record Kind(String id, String label) {
+    }
+
+    private record Rule(String category, String subcategory, Kind kind, Predicate<Context> predicate) {
+    }
+
     private static final class Context {
         private final SearchNode node;
         private final EnumSet<ItemFacet> facets;
@@ -220,6 +215,12 @@ public final class AmiOntologyKinds {
             this.path = node.id().getPath().toLowerCase(Locale.ROOT);
             this.tags = node.meta(SearchNodeKeys.TAGS, "").toLowerCase(Locale.ROOT);
             this.blockTags = node.meta(SearchNodeKeys.BLOCK_TAGS, "").toLowerCase(Locale.ROOT);
+        }
+
+        private static boolean containsToken(String value, String token) {
+            if (value == null || value.isEmpty()) return false;
+            if (value.equals(token)) return true;
+            return value.contains(token);
         }
 
         boolean hasFacet(ItemFacet facet) {
@@ -245,12 +246,6 @@ public final class AmiOntologyKinds {
                 }
             }
             return false;
-        }
-
-        private static boolean containsToken(String value, String token) {
-            if (value == null || value.isEmpty()) return false;
-            if (value.equals(token)) return true;
-            return value.contains(token);
         }
     }
 }

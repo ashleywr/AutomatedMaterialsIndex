@@ -17,9 +17,6 @@ import java.util.List;
  * Orchestrates the population of GlobalIndex.
  */
 public final class ProviderRegistry {
-    private ProviderRegistry() {
-    }
-
     /**
      * All providers run on first inventory open, except StructureProvider (deferred).
      */
@@ -33,11 +30,14 @@ public final class ProviderRegistry {
             new SpawnProvider()
     );
 
+    private ProviderRegistry() {
+    }
+
     /**
      * Index all data types except STRUCTURE and DIMENSION (which are deferred).
      */
     public static void indexAll(Level level) {
-        AmiCore.LOGGER.info("Starting GlobalIndex population...");
+        AmiCore.LOGGER.debug("Starting GlobalIndex population...");
         long start = System.currentTimeMillis();
         GlobalIndex index = GlobalIndex.getInstance();
         index.clear();
@@ -56,7 +56,7 @@ public final class ProviderRegistry {
         }
 
         index.setIndexBuildTime(System.currentTimeMillis() - start);
-        AmiCore.LOGGER.info("GlobalIndex populated in {}ms", index.getIndexBuildTimeMs());
+        AmiCore.LOGGER.debug("GlobalIndex populated in {}ms", index.getIndexBuildTimeMs());
     }
 
     /**

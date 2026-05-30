@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler;
+import com.sanhiruzu.ami.compat.EmiFavoritesBridge;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
@@ -76,19 +77,21 @@ public class AmiKeybindHandler {
         return RecipeLookupKeyHandler.openHoveredLookup(showRecipes);
     }
 
-    private static boolean handleGive(boolean stack) {
+    private static boolean handleGive(boolean fullStack) {
         if (!AMICheatMode.isEnabled()) return false;
         SearchNode hovered = InventoryOverlayHandler.getManager().getHoveredNode();
         if (hovered == null) return false;
         if (hovered.type() == NodeType.ITEM) {
-            if (stack) {
-                AMICheatMode.giveStack(hovered.id());
+            var itemStack = AmiFavoritesHandler.resolveStack(hovered);
+            if (itemStack.isEmpty()) return false;
+            if (fullStack) {
+                AMICheatMode.giveStack(itemStack);
             } else {
-                AMICheatMode.giveItem(hovered.id());
+                AMICheatMode.giveItem(itemStack);
             }
             return true;
         } else if (hovered.type() == NodeType.ENTITY) {
-            if (stack) {
+            if (fullStack) {
                 AMICheatMode.giveEntityStackAsSpawnEgg(hovered.id());
             } else {
                 AMICheatMode.giveEntityAsSpawnEgg(hovered.id());
@@ -100,7 +103,7 @@ public class AmiKeybindHandler {
 
     private static boolean handleFavoriteKey() {
         Minecraft mc = Minecraft.getInstance();
-        if (!(mc.screen instanceof AbstractContainerScreen<?> containerScreen)) return false;
+        AbstractContainerScreen<?> containerScreen = mc.screen instanceof AbstractContainerScreen<?> screen ? screen : null;
 
         // 1. Try hovering over an item in any AMI panel.
         SearchNode hoveredNode = InventoryOverlayHandler.getManager().getHoveredNode();
@@ -110,11 +113,18 @@ public class AmiKeybindHandler {
             return true;
         }
 
-        // 2. Try hovering over a vanilla slot
-        var slot = containerScreen.getSlotUnderMouse();
+        // 2. If EMI is handling a recipe screen, its favorite key is add-only for recipe favorites.
+        // Remove an existing hovered EMI favorite here and consume the key so EMI does not re-add it.
+        if (Services.PLATFORM.isModLoaded("emi") && EmiFavoritesBridge.removeHoveredFavorite()) {
+            AmiFavoritesHandler.getInstance().externalFavoritesChanged();
+            return true;
+        }
+
+        // 3. Try hovering over a vanilla slot
+        var slot = containerScreen == null ? null : containerScreen.getSlotUnderMouse();
         if (slot != null && slot.hasItem()) {
             ItemStack stack = slot.getItem();
-            AmiFavoritesHandler.getInstance().addFavorite(stack);
+            AmiFavoritesHandler.getInstance().toggleFavorite(stack);
             return true;
         }
 

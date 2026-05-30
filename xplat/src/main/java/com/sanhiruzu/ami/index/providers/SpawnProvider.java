@@ -20,7 +20,7 @@ public class SpawnProvider implements IAmiDataProvider {
     public void populate(GlobalIndex index, @Nullable Level level) {
         if (level == null) return;
 
-        AmiCore.LOGGER.info("SpawnProvider: scanning biome spawns...");
+        AmiCore.LOGGER.debug("SpawnProvider: scanning biome spawns...");
 
         try {
             level.registryAccess().registry(Registries.BIOME).ifPresent(reg ->

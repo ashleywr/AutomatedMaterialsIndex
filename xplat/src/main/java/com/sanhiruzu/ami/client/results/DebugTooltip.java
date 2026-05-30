@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client.results;
 
-import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.FacetCodec;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import com.sanhiruzu.ami.AmiCore;
 /**
  * Builds an AMI-internal debug tooltip shown when Left Control is held while hovering an entry.
  * Reveals: registry ID, ontology classification (precomputed vs runtime), metadata keys, and tags.
@@ -24,6 +23,9 @@ import com.sanhiruzu.ami.AmiCore;
 public final class DebugTooltip {
 
     private static final int MAX_TAGS_SHOWN = 12;
+
+    private DebugTooltip() {
+    }
 
     public static List<Component> build(SearchNode entry) {
         if (!AmiConfig.devMode) {
@@ -164,8 +166,5 @@ public final class DebugTooltip {
                 })
                 .sorted()
                 .toList();
-    }
-
-    private DebugTooltip() {
     }
 }

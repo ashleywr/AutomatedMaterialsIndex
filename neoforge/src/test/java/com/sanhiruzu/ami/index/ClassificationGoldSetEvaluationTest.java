@@ -11,51 +11,13 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ClassificationGoldSetEvaluationTest {
     private static final String GOLD_SET_RESOURCE = "ami/classification_gold_set.jsonl";
-
-    @Test
-    void writesClassificationGoldSetReportWhenSearchNodeDumpExists() throws IOException {
-        Path reportPath = repoRoot().resolve(Path.of(
-                "neoforge", "build", "reports", "ami-classification", "gold-set.md"));
-        Files.createDirectories(reportPath.getParent());
-
-        List<GoldLabel> labels = readGoldLabels();
-        Path dumpPath = locateDump();
-        if (!Files.exists(dumpPath)) {
-            Files.writeString(reportPath, "# AMI Classification Gold Set\n\n"
-                    + "No runtime search-node dump found at `" + dumpPath + "`.\n\n"
-                    + "Generate one with `/ami dump-search-nodes`, or set `AMI_SEARCH_NODES_DUMP` / "
-                    + "`-Dami.searchNodesDump=...`.\n\n"
-                    + "Gold labels available: " + labels.size() + "\n");
-            assertTrue(Files.exists(reportPath), "Expected classification report at " + reportPath.toAbsolutePath());
-            return;
-        }
-
-        List<SearchNode> nodes = SearchNodeMirrorDump.reclassifyItemOntology(SearchNodeMirrorDump.readJsonl(dumpPath));
-        Evaluation evaluation = evaluate(labels, nodes);
-        Files.writeString(reportPath, evaluation.toMarkdown(dumpPath));
-
-        if (Boolean.getBoolean("ami.classificationGoldStrict")) {
-            assertTrue(evaluation.mismatches().isEmpty(), () ->
-                    "Classification gold-set mismatches. See " + reportPath.toAbsolutePath());
-            assertTrue(evaluation.missing().isEmpty(), () ->
-                    "Classification gold-set labels missing from dump. See " + reportPath.toAbsolutePath());
-        }
-
-        assertTrue(Files.exists(reportPath), "Expected classification report at " + reportPath.toAbsolutePath());
-    }
 
     private static Evaluation evaluate(List<GoldLabel> labels, List<SearchNode> nodes) {
         Map<ResourceLocation, SearchNode> byId = nodes.stream()
@@ -121,6 +83,7 @@ class ClassificationGoldSetEvaluationTest {
                         id,
                         required(object, "category", lineNumber),
                         required(object, "subcategory", lineNumber),
+                        optional(object, "confidence").isBlank() ? "certain" : optional(object, "confidence"),
                         optional(object, "notes")
                 ));
             }
@@ -172,7 +135,39 @@ class ClassificationGoldSetEvaluationTest {
         throw new IllegalStateException("Could not locate repository root");
     }
 
-    private record GoldLabel(ResourceLocation id, String category, String subcategory, String notes) {
+    @Test
+    void writesClassificationGoldSetReportWhenSearchNodeDumpExists() throws IOException {
+        Path reportPath = repoRoot().resolve(Path.of(
+                "neoforge", "build", "reports", "ami-classification", "gold-set.md"));
+        Files.createDirectories(reportPath.getParent());
+
+        List<GoldLabel> labels = readGoldLabels();
+        Path dumpPath = locateDump();
+        if (!Files.exists(dumpPath)) {
+            Files.writeString(reportPath, "# AMI Classification Gold Set\n\n"
+                    + "No runtime search-node dump found at `" + dumpPath + "`.\n\n"
+                    + "Generate one with `/ami dump-search-nodes`, or set `AMI_SEARCH_NODES_DUMP` / "
+                    + "`-Dami.searchNodesDump=...`.\n\n"
+                    + "Gold labels available: " + labels.size() + "\n");
+            assertTrue(Files.exists(reportPath), "Expected classification report at " + reportPath.toAbsolutePath());
+            return;
+        }
+
+        List<SearchNode> nodes = SearchNodeMirrorDump.reclassifyItemOntology(SearchNodeMirrorDump.readJsonl(dumpPath));
+        Evaluation evaluation = evaluate(labels, nodes);
+        Files.writeString(reportPath, evaluation.toMarkdown(dumpPath));
+
+        if (Boolean.getBoolean("ami.classificationGoldStrict")) {
+            assertTrue(evaluation.mismatches().isEmpty(), () ->
+                    "Classification gold-set mismatches. See " + reportPath.toAbsolutePath());
+            assertTrue(evaluation.missing().isEmpty(), () ->
+                    "Classification gold-set labels missing from dump. See " + reportPath.toAbsolutePath());
+        }
+
+        assertTrue(Files.exists(reportPath), "Expected classification report at " + reportPath.toAbsolutePath());
+    }
+
+    private record GoldLabel(ResourceLocation id, String category, String subcategory, String confidence, String notes) {
     }
 
     private record Match(GoldLabel expected, SearchNode actual) {
@@ -212,6 +207,26 @@ class ClassificationGoldSetEvaluationTest {
             Map<String, Integer> confusion,
             Map<String, LabelStats> statsByExpected
     ) {
+        private static String evidence(SearchNode node) {
+            List<String> parts = new ArrayList<>();
+            addEvidence(parts, "facets", node.meta(SearchNodeKeys.FACETS, ""));
+            addEvidence(parts, "tags", node.meta(SearchNodeKeys.TAGS, ""));
+            addEvidence(parts, "blockTags", node.meta(SearchNodeKeys.BLOCK_TAGS, ""));
+            addEvidence(parts, "recipes", node.meta(SearchNodeKeys.RECIPE_CATEGORIES, ""));
+            addEvidence(parts, "uses", node.meta(SearchNodeKeys.RECIPE_USE_CATEGORIES, ""));
+            if (parts.isEmpty()) return "";
+            return " [" + String.join("; ", parts) + "]";
+        }
+
+        private static void addEvidence(List<String> parts, String label, String value) {
+            if (value == null || value.isBlank()) return;
+            parts.add(label + "=" + value);
+        }
+
+        private static String format(double value) {
+            return String.format(java.util.Locale.ROOT, "%.3f", value);
+        }
+
         String toMarkdown(Path dumpPath) {
             int evaluated = matches.size() + mismatches.size();
             double accuracy = evaluated == 0 ? 0.0D : (double) matches.size() / evaluated;
@@ -224,6 +239,7 @@ class ClassificationGoldSetEvaluationTest {
             out.append("# AMI Classification Gold Set\n\n");
             out.append("Source dump: `").append(dumpPath).append("`\n\n");
             out.append("- Labels: ").append(totalLabels).append("\n");
+            appendConfidenceSummary(out);
             out.append("- Evaluated: ").append(evaluated).append("\n");
             out.append("- Missing from dump: ").append(missing.size()).append("\n");
             out.append("- Correct: ").append(matches.size()).append("\n");
@@ -268,8 +284,12 @@ class ClassificationGoldSetEvaluationTest {
                         .append(expected.category()).append("/").append(expected.subcategory())
                         .append(", got ")
                         .append(mismatch.actualCategory()).append("/").append(mismatch.actualSubcategory())
+                        .append(" (").append(expected.confidence()).append(")")
                         .append(evidence(actual))
                         .append("\n");
+                if (!expected.notes().isBlank()) {
+                    out.append("  - notes: ").append(expected.notes()).append("\n");
+                }
             }
             out.append("\n");
         }
@@ -283,29 +303,27 @@ class ClassificationGoldSetEvaluationTest {
             for (Missing missingLabel : missing) {
                 out.append("- `").append(missingLabel.expected().id()).append("`: expected ")
                         .append(missingLabel.expected().category()).append("/")
-                        .append(missingLabel.expected().subcategory()).append("\n");
+                        .append(missingLabel.expected().subcategory())
+                        .append(" (").append(missingLabel.expected().confidence()).append(")")
+                        .append("\n");
             }
             out.append("\n");
         }
 
-        private static String evidence(SearchNode node) {
-            List<String> parts = new ArrayList<>();
-            addEvidence(parts, "facets", node.meta(SearchNodeKeys.FACETS, ""));
-            addEvidence(parts, "tags", node.meta(SearchNodeKeys.TAGS, ""));
-            addEvidence(parts, "blockTags", node.meta(SearchNodeKeys.BLOCK_TAGS, ""));
-            addEvidence(parts, "recipes", node.meta(SearchNodeKeys.RECIPE_CATEGORIES, ""));
-            addEvidence(parts, "uses", node.meta(SearchNodeKeys.RECIPE_USE_CATEGORIES, ""));
-            if (parts.isEmpty()) return "";
-            return " [" + String.join("; ", parts) + "]";
-        }
-
-        private static void addEvidence(List<String> parts, String label, String value) {
-            if (value == null || value.isBlank()) return;
-            parts.add(label + "=" + value);
-        }
-
-        private static String format(double value) {
-            return String.format(java.util.Locale.ROOT, "%.3f", value);
+        private void appendConfidenceSummary(StringBuilder out) {
+            Map<String, Long> counts = new TreeMap<>();
+            for (Match match : matches) {
+                counts.merge(match.expected().confidence(), 1L, Long::sum);
+            }
+            for (Mismatch mismatch : mismatches) {
+                counts.merge(mismatch.expected().confidence(), 1L, Long::sum);
+            }
+            for (Missing missingLabel : missing) {
+                counts.merge(missingLabel.expected().confidence(), 1L, Long::sum);
+            }
+            for (Map.Entry<String, Long> entry : counts.entrySet()) {
+                out.append("- Labels `").append(entry.getKey()).append("`: ").append(entry.getValue()).append("\n");
+            }
         }
     }
 }

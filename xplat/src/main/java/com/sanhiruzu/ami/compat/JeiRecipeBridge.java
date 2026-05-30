@@ -1,11 +1,26 @@
 package com.sanhiruzu.ami.compat;
 
+import mezz.jei.api.gui.IRecipeLayoutDrawable;
+import mezz.jei.api.constants.RecipeTypes;
 import mezz.jei.api.ingredients.IIngredientType;
+import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.IFocus;
 import mezz.jei.api.recipe.IFocusFactory;
 import mezz.jei.api.recipe.RecipeIngredientRole;
+import mezz.jei.api.recipe.category.IRecipeCategory;
+import mezz.jei.common.transfer.RecipeTransferUtil;
+import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Recipe;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Direct JEI API calls — only referenced behind a ModList.isLoaded("jei") guard
@@ -60,5 +75,215 @@ class JeiRecipeBridge {
 
     static void handleShiftClick(ItemStack stack) {
         openRecipes(stack);
+    }
+
+    static boolean transferStack(ItemStack stack, Screen screen, boolean maxTransfer) {
+        if (stack == null || stack.isEmpty() || !(screen instanceof AbstractContainerScreen<?> containerScreen)) {
+            return false;
+        }
+        return JeiRuntimeAccessor.withRuntime(runtime -> {
+            Player player = net.minecraft.client.Minecraft.getInstance().player;
+            if (player == null) return false;
+            IFocusFactory focusFactory = runtime.getJeiHelpers().getFocusFactory();
+            IFocus<ItemStack> focus = focusFactory.createFocus(
+                    RecipeIngredientRole.OUTPUT,
+                    mezz.jei.api.constants.VanillaTypes.ITEM_STACK,
+                    stack);
+            IFocusGroup focusGroup = focusFactory.createFocusGroup(List.of(focus));
+            List<IRecipeCategory<?>> categories = runtime.getRecipeManager()
+                    .createRecipeCategoryLookup()
+                    .limitFocus(focusGroup.getAllFocuses())
+                    .get()
+                    .toList();
+            for (IRecipeCategory<?> category : categories) {
+                if (transferFirstMatching(runtime, category, focusGroup, containerScreen, player, maxTransfer)) {
+                    return true;
+                }
+            }
+            return false;
+        }, false);
+    }
+
+    static boolean canTransferStack(ItemStack stack, Screen screen) {
+        if (stack == null || stack.isEmpty() || !(screen instanceof AbstractContainerScreen<?> containerScreen)) {
+            return false;
+        }
+        return JeiRuntimeAccessor.withRuntime(runtime -> {
+            Player player = net.minecraft.client.Minecraft.getInstance().player;
+            if (player == null) return false;
+            IFocusFactory focusFactory = runtime.getJeiHelpers().getFocusFactory();
+            IFocus<ItemStack> focus = focusFactory.createFocus(
+                    RecipeIngredientRole.OUTPUT,
+                    mezz.jei.api.constants.VanillaTypes.ITEM_STACK,
+                    stack);
+            IFocusGroup focusGroup = focusFactory.createFocusGroup(List.of(focus));
+            List<IRecipeCategory<?>> categories = runtime.getRecipeManager()
+                    .createRecipeCategoryLookup()
+                    .limitFocus(focusGroup.getAllFocuses())
+                    .get()
+                    .toList();
+            for (IRecipeCategory<?> category : categories) {
+                if (canTransferAny(runtime, category, focusGroup, containerScreen, player)) {
+                    return true;
+                }
+            }
+            return false;
+        }, false);
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static boolean transferFirstMatching(IJeiRuntime runtime, IRecipeCategory category, IFocusGroup focusGroup,
+                                                 AbstractContainerScreen<?> containerScreen, Player player,
+                                                 boolean maxTransfer) {
+        var recipeManager = runtime.getRecipeManager();
+        List<?> recipes = recipeManager.createRecipeLookup(category.getRecipeType())
+                .limitFocus(focusGroup.getAllFocuses())
+                .get()
+                .toList();
+        for (Object recipe : recipes) {
+            Optional<IRecipeLayoutDrawable<?>> layout = (Optional) recipeManager.createRecipeLayoutDrawable(
+                    category,
+                    recipe,
+                    focusGroup);
+            if (layout.filter(recipeLayout -> RecipeTransferUtil.transferRecipe(
+                    runtime.getRecipeTransferManager(),
+                    containerScreen.getMenu(),
+                    recipeLayout,
+                    player,
+                    maxTransfer)).isPresent()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static boolean canTransferAny(IJeiRuntime runtime, IRecipeCategory category, IFocusGroup focusGroup,
+                                          AbstractContainerScreen<?> containerScreen, Player player) {
+        var recipeManager = runtime.getRecipeManager();
+        List<?> recipes = recipeManager.createRecipeLookup(category.getRecipeType())
+                .limitFocus(focusGroup.getAllFocuses())
+                .get()
+                .toList();
+        for (Object recipe : recipes) {
+            Optional<IRecipeLayoutDrawable<?>> layout = (Optional) recipeManager.createRecipeLayoutDrawable(
+                    category,
+                    recipe,
+                    focusGroup);
+            if (layout.filter(recipeLayout -> RecipeTransferUtil.getTransferRecipeError(
+                    runtime.getRecipeTransferManager(),
+                    containerScreen.getMenu(),
+                    recipeLayout,
+                    player).map(error -> error.getType().allowsTransfer).orElse(true)).isPresent()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static boolean transfer(com.sanhiruzu.ami.util.AmiRecipeHolder<?> recipe, Screen screen, boolean maxTransfer,
+                            boolean toCursor) {
+        if (toCursor || !(screen instanceof AbstractContainerScreen<?> containerScreen)) {
+            return false;
+        }
+        return JeiRuntimeAccessor.withRuntime(runtime -> {
+            Player player = net.minecraft.client.Minecraft.getInstance().player;
+            if (player == null) return false;
+            Optional<IRecipeLayoutDrawable<?>> layout = createLayout(runtime, recipe);
+            return layout.filter(recipeLayout -> RecipeTransferUtil.transferRecipe(
+                    runtime.getRecipeTransferManager(),
+                    containerScreen.getMenu(),
+                    recipeLayout,
+                    player,
+                    maxTransfer)).isPresent();
+        }, false);
+    }
+
+    static boolean canTransfer(com.sanhiruzu.ami.util.AmiRecipeHolder<?> recipe, Screen screen) {
+        if (!(screen instanceof AbstractContainerScreen<?> containerScreen)) {
+            return false;
+        }
+        return JeiRuntimeAccessor.withRuntime(runtime -> {
+            Player player = net.minecraft.client.Minecraft.getInstance().player;
+            if (player == null) return false;
+            Optional<IRecipeLayoutDrawable<?>> layout = createLayout(runtime, recipe);
+            return layout.filter(recipeLayout -> RecipeTransferUtil.getTransferRecipeError(
+                    runtime.getRecipeTransferManager(),
+                    containerScreen.getMenu(),
+                    recipeLayout,
+                    player).map(error -> error.getType().allowsTransfer).orElse(true)).isPresent();
+        }, false);
+    }
+
+    private static Optional<IRecipeLayoutDrawable<?>> createLayout(mezz.jei.api.runtime.IJeiRuntime runtime,
+                                                                  com.sanhiruzu.ami.util.AmiRecipeHolder<?> recipe) {
+        net.minecraft.world.item.crafting.RecipeType<?> vanillaType = recipe.value().getType();
+        net.minecraft.resources.ResourceLocation typeId = BuiltInRegistries.RECIPE_TYPE.getKey(vanillaType);
+        if (typeId == null) {
+            return Optional.empty();
+        }
+        try {
+            RecipeTypeAndRecipe jeiRecipe = createJeiRecipe(typeId, recipe);
+            return createLayoutUnchecked(runtime, jeiRecipe.type(), jeiRecipe.recipe());
+        } catch (RuntimeException ignored) {
+            return Optional.empty();
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static <R> Optional<IRecipeLayoutDrawable<?>> createLayoutUnchecked(
+            mezz.jei.api.runtime.IJeiRuntime runtime,
+            mezz.jei.api.recipe.RecipeType<?> jeiType,
+            Object recipe) {
+        IRecipeCategory<R> category = runtime.getRecipeManager().getRecipeCategory((mezz.jei.api.recipe.RecipeType<R>) jeiType);
+        IFocusGroup focusGroup = runtime.getJeiHelpers().getFocusFactory().getEmptyFocusGroup();
+        return (Optional) runtime.getRecipeManager().createRecipeLayoutDrawable(category, (R) recipe, focusGroup);
+    }
+
+    private static RecipeTypeAndRecipe createJeiRecipe(
+            net.minecraft.resources.ResourceLocation typeId,
+            com.sanhiruzu.ami.util.AmiRecipeHolder<?> recipe) {
+        Optional<RecipeTypeAndRecipe> holderRecipe = createHolderRecipe(typeId, recipe);
+        if (holderRecipe.isPresent()) {
+            return holderRecipe.get();
+        }
+
+        mezz.jei.api.recipe.RecipeType<?> legacyType = legacyRecipeType(typeId, recipe.value());
+        return new RecipeTypeAndRecipe(legacyType, recipe.value());
+    }
+
+    private static Optional<RecipeTypeAndRecipe> createHolderRecipe(
+            net.minecraft.resources.ResourceLocation typeId,
+            com.sanhiruzu.ami.util.AmiRecipeHolder<?> recipe) {
+        try {
+            Method createHolderType = mezz.jei.api.recipe.RecipeType.class
+                    .getMethod("createRecipeHolderType", net.minecraft.resources.ResourceLocation.class);
+            Object jeiType = createHolderType.invoke(null, typeId);
+            Class<?> holderClass = Class.forName("net.minecraft.world.item.crafting.RecipeHolder");
+            Constructor<?> constructor = holderClass.getConstructor(
+                    net.minecraft.resources.ResourceLocation.class, Recipe.class);
+            Object holder = constructor.newInstance(recipe.id(), recipe.value());
+            return Optional.of(new RecipeTypeAndRecipe((mezz.jei.api.recipe.RecipeType<?>) jeiType, holder));
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+            return Optional.empty();
+        }
+    }
+
+    private static mezz.jei.api.recipe.RecipeType<?> legacyRecipeType(
+            net.minecraft.resources.ResourceLocation typeId,
+            Recipe<?> recipe) {
+        net.minecraft.world.item.crafting.RecipeType<?> type = recipe.getType();
+        if (type == net.minecraft.world.item.crafting.RecipeType.CRAFTING) return RecipeTypes.CRAFTING;
+        if (type == net.minecraft.world.item.crafting.RecipeType.STONECUTTING) return RecipeTypes.STONECUTTING;
+        if (type == net.minecraft.world.item.crafting.RecipeType.SMELTING) return RecipeTypes.SMELTING;
+        if (type == net.minecraft.world.item.crafting.RecipeType.SMOKING) return RecipeTypes.SMOKING;
+        if (type == net.minecraft.world.item.crafting.RecipeType.BLASTING) return RecipeTypes.BLASTING;
+        if (type == net.minecraft.world.item.crafting.RecipeType.CAMPFIRE_COOKING) return RecipeTypes.CAMPFIRE_COOKING;
+        if (type == net.minecraft.world.item.crafting.RecipeType.SMITHING) return RecipeTypes.SMITHING;
+        return mezz.jei.api.recipe.RecipeType.create(
+                typeId.getNamespace(), typeId.getPath(), (Class) recipe.getClass());
+    }
+
+    private record RecipeTypeAndRecipe(mezz.jei.api.recipe.RecipeType<?> type, Object recipe) {
     }
 }

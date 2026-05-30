@@ -14,30 +14,6 @@ import java.util.*;
 public final class PropertyResolver implements IQueryResolver {
     private final List<SearchNode> nodes = new ArrayList<>();
 
-    public void addNode(SearchNode node) {
-        nodes.add(node);
-    }
-
-    @Override
-    public Map<NodeType, List<SearchNode>> resolve(String query) {
-        String normalized = normalize(query);
-        if (normalized.isEmpty()) {
-            return new LinkedHashMap<>();
-        }
-
-        int separator = normalized.indexOf(':');
-        String key = separator >= 0 ? normalized.substring(0, separator) : normalized;
-        String value = separator >= 0 ? normalized.substring(separator + 1) : "";
-
-        Map<NodeType, List<SearchNode>> result = new LinkedHashMap<>();
-        for (SearchNode node : nodes) {
-            if (matches(node, key, value)) {
-                result.computeIfAbsent(node.type(), ignored -> new ArrayList<>()).add(node);
-            }
-        }
-        return result;
-    }
-
     private static boolean matches(SearchNode node, String key, String value) {
         return switch (key) {
             case "tamable", "tameable", "mountable", "trustsplayer", "pet" ->
@@ -101,5 +77,29 @@ public final class PropertyResolver implements IQueryResolver {
                 .replace("_", "")
                 .replace("-", "")
                 .trim();
+    }
+
+    public void addNode(SearchNode node) {
+        nodes.add(node);
+    }
+
+    @Override
+    public Map<NodeType, List<SearchNode>> resolve(String query) {
+        String normalized = normalize(query);
+        if (normalized.isEmpty()) {
+            return new LinkedHashMap<>();
+        }
+
+        int separator = normalized.indexOf(':');
+        String key = separator >= 0 ? normalized.substring(0, separator) : normalized;
+        String value = separator >= 0 ? normalized.substring(separator + 1) : "";
+
+        Map<NodeType, List<SearchNode>> result = new LinkedHashMap<>();
+        for (SearchNode node : nodes) {
+            if (matches(node, key, value)) {
+                result.computeIfAbsent(node.type(), ignored -> new ArrayList<>()).add(node);
+            }
+        }
+        return result;
     }
 }

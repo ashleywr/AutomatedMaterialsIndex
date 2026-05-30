@@ -4,9 +4,7 @@ import com.google.gson.JsonParser;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class ThemeResourceLoaderTest {
     @Test

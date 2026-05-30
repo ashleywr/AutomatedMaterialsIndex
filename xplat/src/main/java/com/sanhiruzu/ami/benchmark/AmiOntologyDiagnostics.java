@@ -206,7 +206,7 @@ public final class AmiOntologyDiagnostics {
                 String topology = escapeCsv(GroupingEngine.classifyTopologyRoot(stack));
                 String similarity = escapeCsv(GroupingEngine.classifySimilarityRoot(stack));
                 String property = escapeCsv(GroupingEngine.classifyPropertyRoot(node));
-                
+
                 String category = AmiOntology.classifyNode(node).id;
                 String subcategory = node.meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "unknown");
 

@@ -14,6 +14,36 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ItemGridViewTest {
 
+    private static int itemCount(Object row) throws Exception {
+        Method items = row.getClass().getDeclaredMethod("items");
+        items.setAccessible(true);
+        return ((List<?>) items.invoke(row)).size();
+    }
+
+    private static String headerLabel(Object row) throws Exception {
+        Method node = row.getClass().getDeclaredMethod("node");
+        node.setAccessible(true);
+        return ((TreeNode) node.invoke(row)).getLabel().getString();
+    }
+
+    private static int itemRowDepth(Object row) throws Exception {
+        Method depth = row.getClass().getDeclaredMethod("depth");
+        depth.setAccessible(true);
+        return (int) depth.invoke(row);
+    }
+
+    private static TreeNode leaf(String path, String displayName) {
+        SearchNode node = new SearchNode(
+                new ResourceLocation("minecraft:" + path),
+                NodeType.ITEM,
+                displayName,
+                0,
+                0,
+                Map.of()
+        );
+        return new TreeNode(Component.literal(displayName), node);
+    }
+
     @Test
     void collapsedGroupsBecomeSectionHeadersInsteadOfInlineCards() throws Exception {
         ItemGridView gridView = new ItemGridView(0, 0, 61, 100);
@@ -115,35 +145,5 @@ public class ItemGridViewTest {
         assertEquals(1, itemRowDepth(rows.get(1)));
         assertEquals("Oak", headerLabel(rows.get(2)));
         assertEquals("Spruce", headerLabel(rows.get(3)));
-    }
-
-    private static int itemCount(Object row) throws Exception {
-        Method items = row.getClass().getDeclaredMethod("items");
-        items.setAccessible(true);
-        return ((List<?>) items.invoke(row)).size();
-    }
-
-    private static String headerLabel(Object row) throws Exception {
-        Method node = row.getClass().getDeclaredMethod("node");
-        node.setAccessible(true);
-        return ((TreeNode) node.invoke(row)).getLabel().getString();
-    }
-
-    private static int itemRowDepth(Object row) throws Exception {
-        Method depth = row.getClass().getDeclaredMethod("depth");
-        depth.setAccessible(true);
-        return (int) depth.invoke(row);
-    }
-
-    private static TreeNode leaf(String path, String displayName) {
-        SearchNode node = new SearchNode(
-                new ResourceLocation("minecraft:" + path),
-                NodeType.ITEM,
-                displayName,
-                0,
-                0,
-                Map.of()
-        );
-        return new TreeNode(Component.literal(displayName), node);
     }
 }

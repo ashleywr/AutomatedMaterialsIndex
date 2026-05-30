@@ -16,6 +16,10 @@ public class BuiltInRegistries {
     public static final DefaultedRegistry<Item> ITEM = new TestItemRegistry();
     public static final net.minecraft.core.Registry<net.minecraft.world.entity.EntityType<?>> ENTITY_TYPE = null;
 
+    public static TestItemRegistry itemRegistry() {
+        return (TestItemRegistry) ITEM;
+    }
+
     public static final class TestItemRegistry implements DefaultedRegistry<Item> {
         private final Map<Item, ResourceLocation> ids = new LinkedHashMap<>();
         private final Map<ResourceLocation, Item> itemsById = new LinkedHashMap<>();
@@ -58,10 +62,6 @@ public class BuiltInRegistries {
         public Stream<TestNamedTag<Item>> getTags() {
             return Stream.empty();
         }
-    }
-
-    public static TestItemRegistry itemRegistry() {
-        return (TestItemRegistry) ITEM;
     }
 
     public record TestNamedTag<T>(TagKey<T> first, Set<Holder.Reference<T>> values) {

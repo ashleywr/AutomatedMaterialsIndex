@@ -6,7 +6,13 @@
   "minVersion": "0.8.4",
   "mixins": [],
   "client": [
+    "EmiBoMStateMixin",
+    "EmiFavoritesStateMixin",
+    "EmiHiddenStateMixin",
+    "EmiRecipeScreenFavoriteMixin",
     "EmiScreenManagerMixin",
+    "EmiSidebarsStateMixin",
+    "JeiBookmarkListMixin",
     "JeiClientInputHandlerMixin",
     "JeiGuiEventHandlerMixin"
   ]

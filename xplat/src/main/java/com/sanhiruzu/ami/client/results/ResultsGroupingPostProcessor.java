@@ -7,16 +7,8 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Locale;
+import java.util.*;
+import java.util.function.Predicate;
 
 /**
  * Applies cross-cutting grouping passes after a result tree has been built.
@@ -26,6 +18,10 @@ final class ResultsGroupingPostProcessor {
     private static final int EXPLICIT_FAMILY_THRESHOLD = 4;
     private static final int COLOR_GROUP_MIN = 3;
     private static final int DUPLICATE_LABEL_THRESHOLD = 4;
+    private static final Set<String> CATEGORY_CARDINALITY_BASE_PATHS = Set.of(
+            "candle",
+            "mushroom"
+    );
 
     private ResultsGroupingPostProcessor() {
     }
@@ -33,7 +29,7 @@ final class ResultsGroupingPostProcessor {
     static List<TreeNode> applyToTree(List<TreeNode> tree, ResultsProcessor.GroupBy groupBy) {
         return switch (groupBy) {
             case NONE -> tree;
-            case CATEGORY -> applyHighCardinalityGrouping(tree);
+            case CATEGORY -> applyCategoryHighCardinalityGrouping(tree);
             case MATERIAL -> applyMaterialGroupingPasses(tree);
             case FAMILY -> applyFamilyGroupingPasses(tree);
             case SHAPE -> applyHighCardinalityGrouping(tree);
@@ -116,6 +112,14 @@ final class ResultsGroupingPostProcessor {
     }
 
     private static List<TreeNode> applyHighCardinalityGrouping(List<TreeNode> nodes) {
+        return applyHighCardinalityGrouping(nodes, ignored -> true);
+    }
+
+    private static List<TreeNode> applyCategoryHighCardinalityGrouping(List<TreeNode> nodes) {
+        return applyHighCardinalityGrouping(nodes, ResultsGroupingPostProcessor::isCategoryCardinalityBaseId);
+    }
+
+    private static List<TreeNode> applyHighCardinalityGrouping(List<TreeNode> nodes, Predicate<String> baseIdFilter) {
         List<TreeNode> recursive = new ArrayList<>();
         for (TreeNode node : nodes) {
             if (node.isLeaf()) {
@@ -123,7 +127,7 @@ final class ResultsGroupingPostProcessor {
                 continue;
             }
 
-            List<TreeNode> children = applyHighCardinalityGrouping(node.getChildren());
+            List<TreeNode> children = applyHighCardinalityGrouping(node.getChildren(), baseIdFilter);
             if (!children.isEmpty()) {
                 TreeNode processedGroup = copyGroupNode(node);
                 processedGroup.getChildren().addAll(children);
@@ -138,7 +142,7 @@ final class ResultsGroupingPostProcessor {
 
             String baseId = highCardinalityBaseId(node, variantBaseIds);
             boolean hasExplicitFamily = !node.getEntry().meta(SearchNodeKeys.COLLAPSE_FAMILY, "").isEmpty();
-            if (!baseId.isEmpty() && !hasExplicitFamily) {
+            if (!baseId.isEmpty() && !hasExplicitFamily && baseIdFilter.test(baseId)) {
                 membersByBaseId.computeIfAbsent(baseId, ignored -> new ArrayList<>()).add(node);
             }
         }
@@ -192,6 +196,12 @@ final class ResultsGroupingPostProcessor {
         }
         String nodeId = node.getEntry().id().toString();
         return variantBaseIds.contains(nodeId) ? nodeId : "";
+    }
+
+    private static boolean isCategoryCardinalityBaseId(String baseId) {
+        ResourceLocation loc = ResourceLocation.tryParse(baseId);
+        String path = loc == null ? baseId : loc.getPath();
+        return CATEGORY_CARDINALITY_BASE_PATHS.contains(path);
     }
 
     private static List<TreeNode> applyExplicitFamilyGrouping(List<TreeNode> nodes) {

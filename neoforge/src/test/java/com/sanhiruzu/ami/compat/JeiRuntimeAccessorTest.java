@@ -16,20 +16,6 @@ public class JeiRuntimeAccessorTest {
 
     private Object mockRuntime;
 
-    @BeforeEach
-    void createMockRuntime() throws Exception {
-        Class<?> iJeiRuntime = Class.forName("mezz.jei.api.runtime.IJeiRuntime");
-        mockRuntime = Proxy.newProxyInstance(
-                iJeiRuntime.getClassLoader(),
-                new Class<?>[]{iJeiRuntime},
-                (proxy, method, args) -> null);
-    }
-
-    @AfterEach
-    void resetRuntime() throws Exception {
-        invokeSetRuntime(null);
-    }
-
     private static void invokeSetRuntime(Object runtime) throws Exception {
         Class<?> clazz = Class.forName(CLASS_NAME);
         for (Method m : clazz.getDeclaredMethods()) {
@@ -58,6 +44,20 @@ public class JeiRuntimeAccessorTest {
             }
         }
         return null;
+    }
+
+    @BeforeEach
+    void createMockRuntime() throws Exception {
+        Class<?> iJeiRuntime = Class.forName("mezz.jei.api.runtime.IJeiRuntime");
+        mockRuntime = Proxy.newProxyInstance(
+                iJeiRuntime.getClassLoader(),
+                new Class<?>[]{iJeiRuntime},
+                (proxy, method, args) -> null);
+    }
+
+    @AfterEach
+    void resetRuntime() throws Exception {
+        invokeSetRuntime(null);
     }
 
     @Test

@@ -3,108 +3,88 @@ package com.sanhiruzu.ami.client;
 import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.client.gui.GuiGraphics;
 
-import com.sanhiruzu.ami.AmiCore;
 /**
  * Central palette for all AMI UI colours.
  * All rendering code reads from here so the entire look can be changed in one place.
  */
 public final class AMITheme {
-    private AMITheme() {
-    }
-
+    // Color swatch map for item variants
+    private static final java.util.Map<String, Integer> SWATCH_COLORS = new java.util.HashMap<>();
+    private static final int SWATCH_DEFAULT = 0xFF888888;
     // Layout (CSS-like constants)
     public static int GLOBAL_PADDING = 6;
     public static int ROW_HEIGHT = 18;
     public static int ICON_SIZE = 16;
     public static int ELEMENT_GAP = 4;
-
     // Panel chrome — vanilla MC light grey palette
     public static int PANEL_BG = 0xFFC6C6C6; // Vanilla inventory grey
     public static int PANEL_INNER = 0xFFD0D0D0; // Slightly lighter inner surface
-
     // Header bar
     public static int HEADER_BG = 0xFFBBBBBB;
     public static int HEADER_SEP = 0xFF999999;
     public static int HEADER_TEXT = 0xFF111111;
-
     // Navigation arrows in header
     public static int ARROW_NORMAL = 0xFF555555;
     public static int ARROW_HOVER = 0xFF000000;
-
     // Namespace group headers in atlas lists
     public static int GROUP_BG = 0xFFBBBBBB;
     public static int GROUP_BG_HOVER = 0xFFAAAAAA;
     public static int GROUP_TEXT = 0xFF222222;
-
     public static int GROUP_HEADER_BG = 0xFFB0B0B0; // slightly darker than panel to separate from leaf rows
     public static int GROUP_HEADER_TEXT = 0xFF333333;
-
     // Atlas entry rows
     public static int ENTRY_HOVER = 0x3300AAFF; // vanilla-style blue tint @ ~20%
     public static int ENTRY_TEXT = 0xFF111111; // near-black on light background
     public static int ENTRY_SUBTITLE = 0xFF555555;
-
     // Scrollbar
     public static int SCROLL_TRACK = 0xFFAAAAAA;
     public static int SCROLL_THUMB = 0xFF777777;
     public static int SCROLL_THUMB_ACTIVE = 0xFF555555; // darker when hovered or dragging
-
     // Dimension badges
     public static int DIM_NETHER = 0xFFCC4444;
     public static int DIM_END = 0xFF9944CC;
-
     // Accents & Status
     public static int ACCENT_GOLD = 0xFFAAAA00;
     public static int ACCENT_BLUE = 0xFF4488FF;
     public static int POSITIVE = 0xFF55FF55;
     public static int NEGATIVE = 0xFFFF5555;
-
     // Borders & Outlines
     public static int BORDER_LIGHT = 0x33FFFFFF;
     public static int BORDER_DARK = 0x33000000;
     public static int WHITE = 0xFFFFFFFF;
     public static int BLACK = 0xFF000000;
-
     // Gradients & Shadows
     public static int GRADIENT_SHADOW = 0xCC000000;
     public static int TRANSPARENT = 0x00000000;
-
     // Typography (light-panel palette — do not use ChatFormatting enums for these)
     public static int TEXT_HEADER = 0xFF404040; // static UI labels, no drop shadow
     public static int TEXT_PRIMARY = 0xFFFFFFFF; // primary item names, with drop shadow
     public static int TEXT_SUBTLE = 0xFF555555; // metadata, counts, badges, no drop shadow
     public static int TEXT_HIGHLIGHT = 0xFF55FFFF; // active query match (e.g. @modid), with drop shadow
-
     // Row and section separators (not configurable — aesthetic constants)
     public static int ROW_SEPARATOR = 0xFF999999; // 1px line between list rows
     public static int SECTION_SEP = 0xFF888888; // 1px line between Toolbar/Results
-
     // Item grid
     public static int SLOT_BG = 0;
     public static int SLOT_HOVER = 0xFFAAAAAA;
-
     // Dropdown buttons and panels
     public static int DROPDOWN_BG = 0xFFAAAAAA; // button idle + list item hover
     public static int DROPDOWN_BG_ACTIVE = 0xFF989898; // button when open or hovered
     public static int DROPDOWN_LIST_BG = 0xFFBBBBBB; // open list panel background
-
     // Current location indicators
     public static int CURRENT_BIOME_BG = 0xFF1A2E1A; // subtle green tint
     public static int CURRENT_BIOME_ACCENT = 0xFF44DD44; // bright green left-edge bar
     public static int CURRENT_STRUCT_BG = 0xFF2E2A14; // subtle amber tint
     public static int CURRENT_STRUCT_ACCENT = 0xFFDD9933; // amber left-edge bar
-
     // Cheat mode
     public static int CHEAT_HEADER_BG = 0xFF3A2800; // dark amber replaces normal header bg
     public static int CHEAT_HEADER_SEP = 0xFF7A5200;
     public static int CHEAT_INDICATOR = 0xFFFFAA00; // gold indicator text
     public static int CHEAT_ENTRY_HOVER = 0xFF5A4A00; // amber entry highlight
-
     // Temperature (biome tooltips)
     public static int TEMP_COOL = 0xFF44AACC;
     public static int TEMP_WARM = 0xFFCCCC44;
     public static int TEMP_HOT = 0xFFCC8844;
-
     // Fallback icon backgrounds per node type
     public static int FALLBACK_BG_ENTITY = 0xFF1A2020;
     public static int FALLBACK_BG_PLAYER = 0xFF1A1A30;
@@ -113,20 +93,17 @@ public final class AMITheme {
     public static int FALLBACK_BG_DIMENSION = 0xFF201020;
     public static int FALLBACK_BG_DEFAULT = 0xFF1E1E1E;
     public static int FALLBACK_BG_DEV = 0xFFAA1100;
-
     // Dimension icon backgrounds (proxy block renderer)
     public static int DIM_ICON_BG_OVERWORLD = 0xFF122010;
     public static int DIM_ICON_BG_NETHER = 0xFF2B1408;
     public static int DIM_ICON_BG_END = 0xFF16101E;
     public static int DIM_ICON_BG_STRUCTURE = 0xFF252512;
-
     // Entity tooltip text colors
     public static int ENTITY_ID_COLOR = 0xFF666666;
     public static int ENTITY_CATEGORY_COLOR = 0xFF888888;
     public static int ENTITY_TRAITS_COLOR = 0xFF55FFFF;
     public static int ENTITY_DAMAGE_COLOR = 0xFFFF5555;
     public static int ENTITY_PLAYER_TEXT = 0xFF5555FF;
-
     // Item grid group highlights
     public static int GRID_NO_RESULTS_TEXT = 0xFFCCCCCC;
     public static int GRID_GOLD_BORDER = 0xFFAAAA00;
@@ -138,7 +115,6 @@ public final class AMITheme {
     public static int GRID_GROUP_BAND = 0x10FFFFFF;
     public static int GRID_GROUP_BAND_ALT = 0x20FFFFFF;
     public static int GRID_GROUP_RAIL = 0x18FFFFFF;
-
     // Search bar element colors
     public static int SEARCH_PLACEHOLDER = 0xFF666666;
     public static int SEARCH_CLEAR_TEXT = 0xFFAAAAAA;
@@ -146,14 +122,11 @@ public final class AMITheme {
     public static int SEARCH_CURSOR = 0xFFCCCCCC;
     public static int SEARCH_SELECTION = 0xFF0000FF;
     public static int SEARCH_DEFAULT_TEXT = 0xFFCCCCCC;
-
     // Heart bar tooltip
     public static int HEART_OVERFLOW_COLOR = 0xFFCC3333;
     public static int HEART_LABEL_COLOR = 0xFFAAAAAA;
-
     // Scroll indicator
     public static int SCROLL_INDICATOR_BG = 0xAA111111;
-
     // Config screen
     public static int CONFIG_BRAND_GOLD = 0xFFFFAA00;
     public static int CONFIG_HEADER_GOLD = 0xFFFFAA00;
@@ -166,7 +139,6 @@ public final class AMITheme {
     public static int CONFIG_PANEL_TITLE = 0xFFFFAA00;
     public static int CONFIG_CARD_BG = 0x15FFFFFF;
     public static int CONFIG_SEP = 0x33FFFFFF;
-
     // Registry utility colors
     public static int REGISTRY_CATEGORY_MONSTER = 0xFFCC4444;
     public static int REGISTRY_CATEGORY_CREATURE = 0xFF44AA44;
@@ -176,10 +148,8 @@ public final class AMITheme {
     public static int REGISTRY_DIM_OVERWORLD = 0xFF66BB6A;
     public static int REGISTRY_DIM_NETHER = 0xFFCC4444;
     public static int REGISTRY_DIM_END = 0xFF7A51A6;
-
     // Mod name color
     public static int MOD_NAME;
-
     // Token colorizer
     public static int TOKEN_ENV = 0xFF44BB44;
     public static int TOKEN_PROP = 0xFFBBBB44;
@@ -187,21 +157,15 @@ public final class AMITheme {
     public static int TOKEN_ESM = 0xFFBB8844;
     public static int TOKEN_META = 0xFF44CCCC;
     public static int TOKEN_PLAIN = 0xFFCCCCCC;
-
     // Sidebar toggle
     public static int SIDEBAR_TOGGLE_HOVER_HALO = 0x33FFFFFF;
     public static int SIDEBAR_TOGGLE_IDLE_HALO = 0x11FFFFFF;
     public static int SIDEBAR_TOGGLE_BORDER = 0x88FFFFFF;
-
     // AMI button state colors
     public static int BUTTON_ACTIVE = 0xFFFFDD44;
     public static int BUTTON_HOVER = 0xFFFFFFA0;
-
     // Player name color
     public static int PLAYER_NAME_COLOR;
-
-    private static Integer debugGridGroupBandOverride = null;
-
     // Recipe Viewer dynamic theme variables
     public static int RECIPE_BG_OVERLAY = 0xFF101010;
     public static int RECIPE_PANEL = 0xFF1A1A1F;
@@ -225,9 +189,14 @@ public final class AMITheme {
     public static int RECIPE_BTN_IDLE = 0xFF226622;
     public static int RECIPE_BTN_HOVER = 0xFF44AA44;
     public static int RECIPE_SHAPELESS = 0xFF5555AA;
-
-    // Color swatch map for item variants
-    private static final java.util.Map<String, Integer> SWATCH_COLORS = new java.util.HashMap<>();
+    /**
+     * Synchronizes theme fields with AmiConfig values.
+     * Called during mod initialization and config reload events.
+     */
+    public static int SIDEBAR_BG;
+    public static int SIDEBAR_TEXT;
+    public static int SIDEBAR_TEXT_ACTIVE;
+    public static int SIDEBAR_SELECTION;
 
     static {
         SWATCH_COLORS.put("red", 0xFFCC3333);
@@ -249,27 +218,14 @@ public final class AMITheme {
         SWATCH_COLORS.put("brown", 0xFF885533);
     }
 
-    private static final int SWATCH_DEFAULT = 0xFF888888;
+    private AMITheme() {
+    }
+
+    // ── Rendering helpers ─────────────────────────────────────────────────────
 
     public static int getSwatchColor(String colorName) {
         return SWATCH_COLORS.getOrDefault(colorName.toLowerCase(java.util.Locale.ROOT), SWATCH_DEFAULT);
     }
-
-    public static void setDebugGridGroupBandOverride(Integer color) {
-        debugGridGroupBandOverride = color;
-        ThemeResourceLoader.applyCurrentTheme();
-        applyDebugOverrides();
-    }
-
-    public static Integer getDebugGridGroupBandOverride() {
-        return debugGridGroupBandOverride;
-    }
-
-    public static String formatColor(int color) {
-        return String.format(java.util.Locale.ROOT, "0x%08X", color);
-    }
-
-    // ── Rendering helpers ─────────────────────────────────────────────────────
 
     /**
      * Draws a 1px border around a 2px-radius rounded rectangle.
@@ -296,15 +252,6 @@ public final class AMITheme {
         g.fill(x + w - 1, y + 2, x + w, y + h - 2, color); // Right edge
     }
 
-    /**
-     * Synchronizes theme fields with AmiConfig values.
-     * Called during mod initialization and config reload events.
-     */
-    public static int SIDEBAR_BG;
-    public static int SIDEBAR_TEXT;
-    public static int SIDEBAR_TEXT_ACTIVE;
-    public static int SIDEBAR_SELECTION;
-
     public static void sync() {
         GLOBAL_PADDING = AmiConfig.globalPadding;
         ROW_HEIGHT = AmiConfig.rowHeight;
@@ -327,10 +274,10 @@ public final class AMITheme {
             // "Modern" is now the glassy look the user liked for readability.
             PANEL_BG = 0xCC101014; // ~80% opacity deep dark glass
             PANEL_INNER = 0x33FFFFFF;
-            
+
             GROUP_HEADER_BG = 0x22FFFFFF;
             GROUP_HEADER_TEXT = 0xFFFFFFFF;
-            
+
             SIDEBAR_BG = 0xCC101014;
             SIDEBAR_TEXT = 0xFFBBBBBB;
             SIDEBAR_TEXT_ACTIVE = 0xFFFFFFFF;
@@ -398,10 +345,10 @@ public final class AMITheme {
             // "Transparent" is now ultra-minimal like EMI.
             PANEL_BG = 0x1A000000; // ~10% opacity black
             PANEL_INNER = 0;
-            
+
             GROUP_HEADER_BG = 0x15FFFFFF;
             GROUP_HEADER_TEXT = 0xFFCCCCCC;
-            
+
             SIDEBAR_BG = 0x1A000000;
             SIDEBAR_TEXT = 0xFFAAAAAA;
             SIDEBAR_TEXT_ACTIVE = 0xFFFFFFFF;
@@ -467,7 +414,7 @@ public final class AMITheme {
             PANEL_BG = 0xFFC6C6C6;
             PANEL_INNER = 0xFFD0D0D0;
             SLOT_BG = 0xFF2D2D2D; // Darker slots for contrast as requested
-            
+
             ENTRY_HOVER = 0x444488FF; // Subtle blue hover on dark slots
             ENTRY_TEXT = 0xFF111111;
             ENTRY_SUBTITLE = 0xFF555555;
@@ -477,7 +424,7 @@ public final class AMITheme {
             TEXT_HEADER = 0xFF333333;
             TEXT_HIGHLIGHT = 0xFF0000AA;
             MOD_NAME = 0xFF0000AA;
-            
+
             SIDEBAR_BG = 0xFFC6C6C6;
             SIDEBAR_TEXT = 0xFF404040;
             SIDEBAR_TEXT_ACTIVE = 0xFF000000;
@@ -507,13 +454,6 @@ public final class AMITheme {
             PLAYER_NAME_COLOR = 0xFF0000AA;
         }
         ThemeResourceLoader.applyCurrentTheme();
-        applyDebugOverrides();
-    }
-
-    private static void applyDebugOverrides() {
-        if (debugGridGroupBandOverride != null) {
-            GRID_GROUP_BAND = debugGridGroupBandOverride;
-        }
     }
 
     public static void load() {

@@ -44,6 +44,149 @@ class PrimaryCategoryResolverTest {
     }
 
     @Test
+    void saplingsResolveToFloraBeforeGenericPlaceableOrMagic() {
+        CategoryAssignment placeableOnlyAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("quark:blue_blossom_sapling"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE), Map.of())
+        );
+        CategoryAssignment magicSaplingAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("malum:runewood_sapling"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.MAGIC_REAGENT), Map.of())
+        );
+        CategoryAssignment taggedSaplingAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("fruitsdelight:durian_seed"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE),
+                        Map.of(
+                                SearchNodeKeys.BLOCK_TAGS, "minecraft:saplings,sereneseasons:summer_crops",
+                                SearchNodeKeys.BLOCK_CLASS, "net.minecraft.world.level.block.SaplingBlock"
+                        )
+                )
+        );
+
+        assertEquals("nature", placeableOnlyAssignment.categoryId());
+        assertEquals("flora", placeableOnlyAssignment.subcategoryId());
+        assertEquals("nature", magicSaplingAssignment.categoryId());
+        assertEquals("flora", magicSaplingAssignment.subcategoryId());
+        assertEquals("nature", taggedSaplingAssignment.categoryId());
+        assertEquals("flora", taggedSaplingAssignment.subcategoryId());
+    }
+
+    @Test
+    void naturalBlocksResolveBeforeMagicUtilityAndLightingSignals() {
+        CategoryAssignment runewoodPlanksAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("malum:runewood_planks"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.WOOD_BLOCK, ItemFacet.MAGIC_REAGENT),
+                        Map.of(SearchNodeKeys.BLOCK_TAGS, "minecraft:planks")
+                )
+        );
+        CategoryAssignment runewoodLeavesAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("malum:runewood_leaves"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.LEAVES, ItemFacet.MAGIC_REAGENT),
+                        Map.of(SearchNodeKeys.BLOCK_TAGS, "minecraft:leaves")
+                )
+        );
+        CategoryAssignment glowingQuartzAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("example:glowing_quartz"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.GEM, ItemFacet.LIGHT_SOURCE), Map.of())
+        );
+
+        assertEquals("nature", runewoodPlanksAssignment.categoryId());
+        assertEquals("wood", runewoodPlanksAssignment.subcategoryId());
+        assertEquals("nature", runewoodLeavesAssignment.categoryId());
+        assertEquals("flora", runewoodLeavesAssignment.subcategoryId());
+        assertEquals("tech", glowingQuartzAssignment.categoryId());
+        assertEquals("ingots", glowingQuartzAssignment.subcategoryId());
+    }
+
+    @Test
+    void plantSeedsResolveToSeedsButSeedContainersAndCrystalSeedsDoNot() {
+        CategoryAssignment plantSeedAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("fruitsdelight:hamimelon_seeds"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.CROP), Map.of())
+        );
+        CategoryAssignment seedPouchAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("quark:seed_pouch"),
+                new FacetProfile(EnumSet.of(ItemFacet.UTILITY_MISC), Map.of())
+        );
+        CategoryAssignment seedOilAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("createaddition:seed_oil_bucket"),
+                new FacetProfile(EnumSet.of(ItemFacet.FLUID_CONTAINER, ItemFacet.UTILITY_MISC), Map.of())
+        );
+        CategoryAssignment crystalSeedAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("ae2cs:certus_quartz_seed"),
+                new FacetProfile(EnumSet.of(ItemFacet.GEM), Map.of())
+        );
+
+        assertEquals("nature", plantSeedAssignment.categoryId());
+        assertEquals("seeds", plantSeedAssignment.subcategoryId());
+        assertEquals("utility", seedPouchAssignment.categoryId());
+        assertEquals("misc", seedPouchAssignment.subcategoryId());
+        assertEquals("utility", seedOilAssignment.categoryId());
+        assertEquals("misc", seedOilAssignment.subcategoryId());
+        assertEquals("tech", crystalSeedAssignment.categoryId());
+        assertEquals("ingots", crystalSeedAssignment.subcategoryId());
+    }
+
+    @Test
+    void integratedCircuitsResolveToTechCircuits() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("ccbr:integrated_circuit"),
+                new FacetProfile(EnumSet.of(ItemFacet.TECH_COMPONENT), Map.of())
+        );
+
+        assertEquals("tech", assignment.categoryId());
+        assertEquals("circuits", assignment.subcategoryId());
+    }
+
+    @Test
+    void cropLikeBlockEntitiesResolveToCropsBeforeCreateTech() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("create_winery:red_grape_bush_stage_2"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY),
+                        Map.of(SearchNodeKeys.BLOCK_CLASS, "create_winery.block.RedGrapeBushStage2Block")
+                )
+        );
+
+        assertEquals("nature", assignment.categoryId());
+        assertEquals("crops", assignment.subcategoryId());
+    }
+
+    @Test
+    void createFamilyDecorativeBricksDoNotResolveAsTechParts() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("createdeco:short_blue_bricks"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE),
+                        Map.of(
+                                SearchNodeKeys.BLOCKS_MATERIAL, "stone",
+                                SearchNodeKeys.VARIANT_GROUP, "bricks"
+                        )
+                )
+        );
+
+        assertEquals("masonry", assignment.categoryId());
+        assertEquals("full_block", assignment.subcategoryId());
+    }
+
+    @Test
+    void doorsResolveAsMasonryEvenWhenDecorativeAndPaneLike() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("mcwbiomesoplenty:maple_japanese_door"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.GLASS_BLOCK, ItemFacet.DECORATIVE_BLOCK, ItemFacet.DOOR, ItemFacet.PANE),
+                        Map.of("blockShape", "pane")
+                )
+        );
+
+        assertEquals("masonry", assignment.categoryId());
+        assertEquals("functional", assignment.subcategoryId());
+    }
+
+    @Test
     void drinksAndMealsPreserveNatureSubcategories() {
         CategoryAssignment drinkAssignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("minecraft:honey_bottle"),
@@ -91,7 +234,18 @@ class PrimaryCategoryResolverTest {
         );
 
         assertEquals("tech", assignment.categoryId());
-        assertEquals("parts", assignment.subcategoryId());
+        assertEquals("cables", assignment.subcategoryId());
+    }
+
+    @Test
+    void templatesDoNotResolveAsIngredientsWhenTheyHaveIncidentalOrganicSignals() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("silentgear:leggings_blueprint"),
+                new FacetProfile(EnumSet.of(ItemFacet.TEMPLATE, ItemFacet.INGREDIENT_ORGANIC), Map.of())
+        );
+
+        assertEquals("tech", assignment.categoryId());
+        assertEquals("templates", assignment.subcategoryId());
     }
 
     @Test
@@ -228,8 +382,8 @@ class PrimaryCategoryResolverTest {
                 )
         );
 
-        assertEquals("tech", assignment.categoryId());
-        assertEquals("redstone", assignment.subcategoryId());
+        assertEquals("masonry", assignment.categoryId());
+        assertEquals("functional", assignment.subcategoryId());
     }
 
     @Test
@@ -470,7 +624,7 @@ class PrimaryCategoryResolverTest {
         assertEquals("tech", lecternAssignment.categoryId());
         assertEquals("machines", lecternAssignment.subcategoryId());
         assertEquals("decoration", carpetAssignment.categoryId());
-        assertEquals("furniture", carpetAssignment.subcategoryId());
+        assertEquals("textiles", carpetAssignment.subcategoryId());
         assertEquals("nature", frogspawnAssignment.categoryId());
         assertEquals("flora", frogspawnAssignment.subcategoryId());
     }
@@ -714,7 +868,7 @@ class PrimaryCategoryResolverTest {
         assertEquals("tools", skilletAssignment.categoryId());
         assertEquals("melee", skilletAssignment.subcategoryId());
         assertEquals("decoration", rugAssignment.categoryId());
-        assertEquals("furniture", rugAssignment.subcategoryId());
+        assertEquals("textiles", rugAssignment.subcategoryId());
     }
 
     @Test
@@ -875,10 +1029,10 @@ class PrimaryCategoryResolverTest {
         assertEquals("ranged", cannonAssignment.subcategoryId());
         assertEquals("utility", filterAssignment.categoryId());
         assertEquals("misc", filterAssignment.subcategoryId());
-        assertEquals("utility", schematicAssignment.categoryId());
-        assertEquals("misc", schematicAssignment.subcategoryId());
-        assertEquals("tools", symmetryAssignment.categoryId());
-        assertEquals("utility", symmetryAssignment.subcategoryId());
+        assertEquals("tech", schematicAssignment.categoryId());
+        assertEquals("templates", schematicAssignment.subcategoryId());
+        assertEquals("magic", symmetryAssignment.categoryId());
+        assertEquals("artifacts", symmetryAssignment.subcategoryId());
     }
 
     @Test

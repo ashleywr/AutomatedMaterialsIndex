@@ -3,31 +3,8 @@ package com.sanhiruzu.ami.index.query;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.sanhiruzu.ami.AmiCore;
 public final class QueryParser {
     private QueryParser() {
-    }
-
-    public enum TokenType {
-        INCLUDE,     // Plain text or -less
-        META,        // ~text broad metadata search
-        EXCLUDE,     // Negation: -word
-        TAG,         // #tag
-        MOD,         // @modid
-        ENV,         // &env
-        PROP,        // ?property
-        ESSENTIAL,   // !curated
-        ESM,         // >capacity:value
-        CATEGORY     // $categoryId  (AMI ontology category)
-    }
-
-    public record QueryToken(TokenType type, String value) {
-    }
-
-    public record ParsedQuery(List<QueryToken> tokens) {
-        public ParsedQuery(List<QueryToken> tokens) {
-            this.tokens = List.copyOf(tokens);
-        }
     }
 
     /**
@@ -160,5 +137,27 @@ public final class QueryParser {
         }
 
         return result;
+    }
+
+    public enum TokenType {
+        INCLUDE,     // Plain text or -less
+        META,        // ~text broad metadata search
+        EXCLUDE,     // Negation: -word
+        TAG,         // #tag
+        MOD,         // @modid
+        ENV,         // &env
+        PROP,        // ?property
+        ESSENTIAL,   // !curated
+        ESM,         // >capacity:value
+        CATEGORY     // $categoryId  (AMI ontology category)
+    }
+
+    public record QueryToken(TokenType type, String value) {
+    }
+
+    public record ParsedQuery(List<QueryToken> tokens) {
+        public ParsedQuery(List<QueryToken> tokens) {
+            this.tokens = List.copyOf(tokens);
+        }
     }
 }

@@ -7,5 +7,6 @@ public final class AmiCore {
     public static final String MODID = "ami";
     public static final Logger LOGGER = LoggerFactory.getLogger("AMI");
 
-    private AmiCore() {}
+    private AmiCore() {
+    }
 }

@@ -17,11 +17,6 @@ public record AmiCheatGivePacket(ItemStack stack) implements CustomPacketPayload
     public static final StreamCodec<RegistryFriendlyByteBuf, AmiCheatGivePacket> STREAM_CODEC =
             ItemStack.OPTIONAL_STREAM_CODEC.map(AmiCheatGivePacket::new, AmiCheatGivePacket::stack);
 
-    @Override
-    public Type<AmiCheatGivePacket> type() {
-        return TYPE;
-    }
-
     public static void handle(AmiCheatGivePacket packet, IPayloadContext context) {
         context.enqueueWork(() -> {
             Player player = context.player();
@@ -33,15 +28,20 @@ public record AmiCheatGivePacket(ItemStack stack) implements CustomPacketPayload
             }
             ItemStack toSet = packet.stack().isEmpty() ? ItemStack.EMPTY : packet.stack().copy();
             if (!toSet.isEmpty()) {
-                AMI.LOGGER.info("AMI cheat give: {} -> {} x{}",
+                AMI.LOGGER.debug("AMI cheat give: {} -> {} x{}",
                         player.getName().getString(),
                         toSet.getItem().getDescriptionId(),
                         toSet.getCount());
             } else {
-                AMI.LOGGER.info("AMI cheat delete cursor: {}", player.getName().getString());
+                AMI.LOGGER.debug("AMI cheat delete cursor: {}", player.getName().getString());
             }
             serverPlayer.containerMenu.setCarried(toSet);
             serverPlayer.containerMenu.broadcastChanges();
         });
+    }
+
+    @Override
+    public Type<AmiCheatGivePacket> type() {
+        return TYPE;
     }
 }

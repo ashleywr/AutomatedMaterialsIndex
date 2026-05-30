@@ -59,6 +59,21 @@ public class AmiFavoritesHandlerTest {
     }
 
     @Test
+    void testStackFavoriteToggleRemovesLocalFavorite() {
+        AmiFavoritesHandler handler = AmiFavoritesHandler.getInstance();
+        ItemStack stack = new ItemStack(Items.REDSTONE);
+
+        handler.removeFavorite(stack);
+        assertFalse(handler.isFavorite(stack));
+
+        handler.toggleFavorite(stack);
+        assertTrue(handler.isFavorite(stack));
+
+        handler.toggleFavorite(stack);
+        assertFalse(handler.isFavorite(stack));
+    }
+
+    @Test
     void testRecipeFavoriteIsDistinctFromItemFavorite() {
         AmiFavoritesHandler handler = AmiFavoritesHandler.getInstance();
         ItemStack stack = new ItemStack(Items.CAKE);
