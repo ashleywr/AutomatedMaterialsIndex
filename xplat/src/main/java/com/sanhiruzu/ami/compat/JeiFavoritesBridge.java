@@ -48,9 +48,10 @@ public final class JeiFavoritesBridge {
         JeiRuntimeAccessor.withRuntime(runtime -> {
             Object bookmarkList = getBookmarkList(runtime);
             Object bookmark = createIngredientBookmark(runtime, bookmarkList, stack);
-            if (bookmark != null) {
-                invokeBoolean(bookmarkList, "remove", bookmark);
+            if (bookmark != null && invokeBoolean(bookmarkList, "remove", bookmark)) {
+                return;
             }
+            removeMatchingBookmarks(bookmarkList, stack);
         });
     }
 
@@ -132,6 +133,24 @@ public final class JeiFavoritesBridge {
         } catch (ReflectiveOperationException ignored) {
         }
         return null;
+    }
+
+    private static void removeMatchingBookmarks(Object bookmarkList, ItemStack stack) {
+        if (bookmarkList == null || stack == null || stack.isEmpty()) return;
+        Object rawList = getFieldValue(bookmarkList, "bookmarksList");
+        if (!(rawList instanceof Iterable<?> bookmarks)) return;
+
+        String key = FavoriteEntry.stackKey(stack);
+        List<Object> matches = new ArrayList<>();
+        for (Object bookmark : bookmarks) {
+            ItemStack bookmarkStack = getBookmarkStack(bookmark);
+            if (!bookmarkStack.isEmpty() && key.equals(FavoriteEntry.stackKey(bookmarkStack))) {
+                matches.add(bookmark);
+            }
+        }
+        for (Object match : matches) {
+            invokeBoolean(bookmarkList, "remove", match);
+        }
     }
 
     private static ItemStack getBookmarkStack(Object bookmark) {

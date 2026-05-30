@@ -15,6 +15,35 @@ public record PowerStats(
         return new PowerStats(null, null, null, "");
     }
 
+    @Nullable
+    private static Integer maxPositive(@Nullable Integer first, @Nullable Integer second) {
+        if (first == null || first <= 0) return second;
+        if (second == null || second <= 0) return first;
+        return Math.max(first, second);
+    }
+
+    @Nullable
+    private static Double maxPositive(@Nullable Double first, @Nullable Double second) {
+        if (first == null || first <= 0.0D) return second;
+        if (second == null || second <= 0.0D) return first;
+        return Math.max(first, second);
+    }
+
+    private static String mergeSources(String first, String second) {
+        Set<String> sources = new LinkedHashSet<>();
+        addSources(sources, first);
+        addSources(sources, second);
+        return String.join(",", sources);
+    }
+
+    private static void addSources(Set<String> sources, String raw) {
+        if (raw == null || raw.isBlank()) return;
+        for (String part : raw.split(",")) {
+            String source = part.trim();
+            if (!source.isBlank()) sources.add(source);
+        }
+    }
+
     public boolean hasAny() {
         return capacityFe != null || generationFePerTick != null || consumptionFePerTick != null;
     }
@@ -44,34 +73,5 @@ public record PowerStats(
                 maxPositive(consumptionFePerTick, other.consumptionFePerTick),
                 mergeSources(source, other.source)
         );
-    }
-
-    @Nullable
-    private static Integer maxPositive(@Nullable Integer first, @Nullable Integer second) {
-        if (first == null || first <= 0) return second;
-        if (second == null || second <= 0) return first;
-        return Math.max(first, second);
-    }
-
-    @Nullable
-    private static Double maxPositive(@Nullable Double first, @Nullable Double second) {
-        if (first == null || first <= 0.0D) return second;
-        if (second == null || second <= 0.0D) return first;
-        return Math.max(first, second);
-    }
-
-    private static String mergeSources(String first, String second) {
-        Set<String> sources = new LinkedHashSet<>();
-        addSources(sources, first);
-        addSources(sources, second);
-        return String.join(",", sources);
-    }
-
-    private static void addSources(Set<String> sources, String raw) {
-        if (raw == null || raw.isBlank()) return;
-        for (String part : raw.split(",")) {
-            String source = part.trim();
-            if (!source.isBlank()) sources.add(source);
-        }
     }
 }

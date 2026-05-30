@@ -5,19 +5,10 @@ import com.sanhiruzu.ami.api.AmiPluginRegistry;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.*;
+import com.sanhiruzu.ami.index.metrics.*;
+import com.sanhiruzu.ami.index.sniffers.*;
 import com.sanhiruzu.ami.platform.Services;
-import com.sanhiruzu.ami.index.metrics.ArmorStats;
-import com.sanhiruzu.ami.index.metrics.DpsMetricSniffer;
-import com.sanhiruzu.ami.index.metrics.FluidStats;
-import com.sanhiruzu.ami.index.metrics.FoodStats;
-import com.sanhiruzu.ami.index.metrics.PowerStats;
-import com.sanhiruzu.ami.index.metrics.StorageMetricSniffer;
-import com.sanhiruzu.ami.index.metrics.ToolStats;
-import com.sanhiruzu.ami.index.sniffers.ArmorMetricSniffer;
-import com.sanhiruzu.ami.index.sniffers.FluidMetricSniffer;
-import com.sanhiruzu.ami.index.sniffers.FoodMetricSniffer;
-import com.sanhiruzu.ami.index.sniffers.PowerMetricSniffer;
-import com.sanhiruzu.ami.index.sniffers.ToolMetricSniffer;
+import com.sanhiruzu.ami.recipe.AmiRecipeIndex;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -32,11 +23,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.sanhiruzu.ami.index.providers.RecipeProvider.computeObtainability;
-import static com.sanhiruzu.ami.index.providers.RecipeProvider.computeRecipeCategories;
-import static com.sanhiruzu.ami.index.providers.RecipeProvider.computeRecipeOutputCount;
-import static com.sanhiruzu.ami.index.providers.RecipeProvider.computeRecipeUseCategories;
-import static com.sanhiruzu.ami.index.providers.RecipeProvider.computeRecipeUseCount;
+import static com.sanhiruzu.ami.index.providers.RecipeProvider.*;
 
 /**
  * Populates the GlobalIndex with all items from BuiltInRegistries.ITEM.
@@ -47,6 +34,218 @@ public class ItemProvider implements IAmiDataProvider {
     private final FluidMetricSniffer fluidMetricSniffer = new FluidMetricSniffer();
     private final ToolMetricSniffer toolMetricSniffer = new ToolMetricSniffer();
     private final ArmorMetricSniffer armorMetricSniffer = new ArmorMetricSniffer();
+
+    private static boolean shouldUseLegacyOntologyFallback(FacetProfile facetProfile) {
+        return facetProfile.facets().isEmpty();
+    }
+
+    private static String formatDps(double value) {
+        return String.format(java.util.Locale.ROOT, "%.1f", value);
+    }
+
+    private static String formatMetric(double value) {
+        if (Math.abs(value - Math.rint(value)) < 0.0001D) {
+            return Long.toString(Math.round(value));
+        }
+        return String.format(java.util.Locale.ROOT, "%.1f", value);
+    }
+
+    private static void addPowerStats(Map<String, String> meta, PowerStats stats) {
+        if (stats.hasCapacity()) {
+            meta.put(SearchNodeKeys.ENERGY_CAPACITY, Integer.toString(stats.capacityFe()));
+        }
+        if (stats.hasGeneration()) {
+            meta.put(SearchNodeKeys.ENERGY_GENERATION, formatMetric(stats.generationFePerTick()));
+        }
+        if (stats.hasConsumption()) {
+            meta.put(SearchNodeKeys.ENERGY_CONSUMPTION, formatMetric(stats.consumptionFePerTick()));
+        }
+        if (!stats.source().isBlank()) {
+            meta.put(SearchNodeKeys.ENERGY_METRIC_SOURCE, stats.source());
+        }
+        addFacet(meta, ItemFacet.HAS_ENERGY);
+        addSearchToken(meta, "has_energy");
+        if (stats.hasGeneration()) {
+            addSearchToken(meta, "fe_generation");
+        }
+        if (stats.hasConsumption()) {
+            addSearchToken(meta, "fe_consumption");
+        }
+    }
+
+    private static void addFoodStats(Map<String, String> meta, FoodStats stats) {
+        meta.put(SearchNodeKeys.FOOD_NUTRITION, Integer.toString(stats.nutrition()));
+        meta.put(SearchNodeKeys.FOOD_SATURATION, formatDps(stats.saturation()));
+        addSearchToken(meta, "food_stats");
+    }
+
+    private static void addFluidStats(Map<String, String> meta, FluidStats stats) {
+        if (!stats.hasAny()) return;
+        meta.put(SearchNodeKeys.FLUID_CAPACITY, formatMetric(stats.buckets()));
+        if (!stats.source().isBlank()) {
+            meta.put(SearchNodeKeys.FLUID_METRIC_SOURCE, stats.source());
+        }
+        addFacet(meta, ItemFacet.FLUID_CONTAINER);
+        addSearchToken(meta, "fluid_container");
+    }
+
+    private static void addToolStats(Map<String, String> meta, ToolStats stats) {
+        if (!stats.hasAny()) return;
+        if (stats.speed() > 0.0D) {
+            meta.put(SearchNodeKeys.TOOL_SPEED, formatMetric(stats.speed()));
+        }
+        if (stats.uses() > 0) {
+            meta.put(SearchNodeKeys.TOOL_USES, Integer.toString(stats.uses()));
+        }
+        if (stats.attackBonus() > 0.0D) {
+            meta.put(SearchNodeKeys.TOOL_ATTACK_BONUS, formatMetric(stats.attackBonus()));
+        }
+    }
+
+    private static void addArmorStats(Map<String, String> meta, ArmorStats stats) {
+        if (!stats.hasAny()) return;
+        if (stats.defense() > 0) {
+            meta.put(SearchNodeKeys.ARMOR_DEFENSE, Integer.toString(stats.defense()));
+        }
+        if (stats.toughness() > 0.0D) {
+            meta.put(SearchNodeKeys.ARMOR_TOUGHNESS, formatMetric(stats.toughness()));
+        }
+    }
+
+    private static void addDurability(Map<String, String> meta, ItemStack stack) {
+        int maxDamage = stack.getMaxDamage();
+        if (maxDamage <= 0) return;
+        meta.put(SearchNodeKeys.MAX_DURABILITY, Integer.toString(maxDamage));
+    }
+
+    private static void addSearchToken(Map<String, String> meta, String token) {
+        meta.merge(SearchNodeKeys.SEARCH_TOKENS, token, (existing, added) ->
+                existing.contains(added) ? existing : existing + " " + added);
+    }
+
+    private static void addFacet(Map<String, String> meta, ItemFacet facet) {
+        String encoded = meta.getOrDefault(SearchNodeKeys.FACETS, "");
+        if (encoded.isBlank()) {
+            meta.put(SearchNodeKeys.FACETS, facet.id());
+            return;
+        }
+        for (String part : encoded.split(",")) {
+            if (facet.id().equals(part.trim())) {
+                return;
+            }
+        }
+        meta.put(SearchNodeKeys.FACETS, encoded + "," + facet.id());
+    }
+
+    private static FacetProfile profileWithMetadata(FacetProfile profile, Map<String, String> meta) {
+        Map<String, String> attributes = new HashMap<>(profile.attributes());
+        attributes.putAll(meta);
+        return new FacetProfile(profile.facets(), attributes);
+    }
+
+    private static void inferAmmoType(ResourceLocation id, Map<String, String> meta) {
+        if (meta.containsKey(SearchNodeKeys.AMMO_TYPE)) {
+            return;
+        }
+        String path = id.getPath().toLowerCase(java.util.Locale.ROOT);
+        if (path.contains("gunpowder") || path.contains("bulletproof")) {
+            return;
+        }
+        Set<String> pathTokens = pathTokens(path);
+        String facets = meta.getOrDefault(SearchNodeKeys.FACETS, "");
+
+        String ammoType = null;
+        if (pathTokens.contains("bullet") || pathTokens.contains("bullets") || pathTokens.contains("ammo") || path.contains("cartridge")) {
+            ammoType = "bullets";
+        } else if (pathTokens.contains("shell") || pathTokens.contains("shells")) {
+            ammoType = "shells";
+        } else if (pathTokens.contains("rocket") || pathTokens.contains("rockets") || path.contains("missile")) {
+            ammoType = "rockets";
+        } else if (pathTokens.contains("bolt") || pathTokens.contains("bolts")) {
+            ammoType = "bolts";
+        } else if (pathTokens.contains("arrow") || pathTokens.contains("arrows") || path.contains("bow")) {
+            ammoType = "arrows";
+        } else if (path.contains("gun") || path.contains("rifle") || path.contains("pistol") || path.contains("shotgun")) {
+            ammoType = "bullets";
+        } else if (path.contains("cannon") || path.contains("launcher")) {
+            ammoType = "shells";
+        }
+
+        if (ammoType != null && (facets.contains("ranged_weapon") || facets.contains("projectile")
+                || path.contains("gun") || path.contains("rifle") || path.contains("pistol") || path.contains("cannon"))) {
+            meta.put(SearchNodeKeys.AMMO_TYPE, ammoType);
+            addSearchToken(meta, ammoType);
+        }
+    }
+
+    private static Set<String> pathTokens(String path) {
+        return new HashSet<>(Arrays.asList(path.split("[_/\\-]")));
+    }
+
+    private static String extractColorBucket(ResourceLocation id) {
+        return GroupingEngine.classifyColorFromPath(id.getPath());
+    }
+
+    private static Map<String, String> buildSubtypeMeta(ResourceLocation baseId, ItemStack stack, String colorBucket,
+                                                        @Nullable ItemFilter.CreativeTabInfo creativeTab) {
+        Map<String, String> meta = new HashMap<>();
+        meta.put(SearchNodeKeys.MOD_ID, baseId.getNamespace());
+        meta.put(SearchNodeKeys.SUBTYPE_OF, baseId.toString());
+        meta.put(SearchNodeKeys.COLOR_BUCKET, colorBucket);
+        meta.put(SearchNodeKeys.MATERIAL_GROUP, baseId.toString());
+        meta.put(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL);
+        applyCreativeTabMeta(meta, creativeTab);
+        GroupingEngine.classifyCollapsedFamily(baseId).ifPresent(family -> {
+            meta.put(SearchNodeKeys.COLLAPSE_FAMILY, family.key());
+            meta.put(SearchNodeKeys.COLLAPSE_LABEL, family.label());
+        });
+        addDurability(meta, stack);
+
+        Item item = stack.getItem();
+        FacetProfile facetProfile = FacetIndexer.index(item, baseId, stack);
+        if (item != null && item != net.minecraft.world.item.Items.ENCHANTED_BOOK
+                && stack.isEnchanted()) {
+            // Only explicit subtype / hero stacks should surface as pre-enchanted variants.
+            addSearchToken(meta, "enchanted");
+            addSearchToken(meta, "pre_enchanted");
+        }
+        String encodedFacets = FacetCodec.encode(facetProfile.facets());
+        if (!encodedFacets.isEmpty()) {
+            meta.put(SearchNodeKeys.FACETS, encodedFacets);
+        }
+        if (!facetProfile.attributes().isEmpty()) {
+            meta.putAll(facetProfile.attributes());
+        }
+
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(baseId, profileWithMetadata(facetProfile, meta));
+        if (!assignment.attributes().isEmpty()) {
+            meta.putAll(assignment.attributes());
+        }
+        if (!"misc".equals(assignment.categoryId())) {
+            meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, assignment.categoryId());
+            meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, assignment.subcategoryId());
+        } else if (shouldUseLegacyOntologyFallback(facetProfile)) {
+            String[] ontology = OntologyClassifier.classifyItem(item, baseId);
+            if (ontology != null) {
+                meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, ontology[0]);
+                if (ontology.length > 1) {
+                    meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, ontology[1]);
+                }
+                if (ontology.length > 2) {
+                    meta.put(SearchNodeKeys.BLOCKS_MATERIAL, ontology[2]);
+                }
+            }
+        }
+        return meta;
+    }
+
+    private static void applyCreativeTabMeta(Map<String, String> meta, @Nullable ItemFilter.CreativeTabInfo creativeTab) {
+        if (creativeTab == null) {
+            return;
+        }
+        meta.put(SearchNodeKeys.CREATIVE_TAB_ID, creativeTab.id());
+        meta.put(SearchNodeKeys.CREATIVE_TAB_LABEL, creativeTab.label());
+    }
 
     @Override
     public void populate(GlobalIndex index, @Nullable Level level) {
@@ -72,7 +271,7 @@ public class ItemProvider implements IAmiDataProvider {
 
             // Layer 2: creative-tab membership
             boolean inCreative = !hasCreativeData || creativeItems.contains(item);
-            String accessLevel = ItemFilter.classifyAccessLevel(id, inCreative);
+            String accessLevel = ItemFilter.classifyAccessLevel(id, item, inCreative);
 
             // Layer 3: recipe availability - items with recipes should be shown as SURVIVAL even if not in creative tabs
             boolean hasRecipe = !hasRecipeData || recipeOutputs.contains(item);
@@ -199,7 +398,7 @@ public class ItemProvider implements IAmiDataProvider {
                 meta.put(SearchNodeKeys.RECIPE_USE_COUNT, Integer.toString(recipeUseCount));
             }
 
-            CategoryAssignment assignment = PrimaryCategoryResolver.resolve(id, facetProfile);
+            CategoryAssignment assignment = PrimaryCategoryResolver.resolve(id, profileWithMetadata(facetProfile, meta));
             if (!assignment.attributes().isEmpty()) {
                 meta.putAll(assignment.attributes());
             }
@@ -273,10 +472,6 @@ public class ItemProvider implements IAmiDataProvider {
         }
     }
 
-    private static boolean shouldUseLegacyOntologyFallback(FacetProfile facetProfile) {
-        return facetProfile.facets().isEmpty();
-    }
-
     @Nullable
     private String determineRequiredTool(Item item) {
         if (!(item instanceof BlockItem blockItem)) {
@@ -316,207 +511,5 @@ public class ItemProvider implements IAmiDataProvider {
         return holder.tags()
                 .map(tag -> tag.location().toString().toLowerCase())
                 .collect(Collectors.joining(","));
-    }
-
-    private static String formatDps(double value) {
-        return String.format(java.util.Locale.ROOT, "%.1f", value);
-    }
-
-    private static String formatMetric(double value) {
-        if (Math.abs(value - Math.rint(value)) < 0.0001D) {
-            return Long.toString(Math.round(value));
-        }
-        return String.format(java.util.Locale.ROOT, "%.1f", value);
-    }
-
-    private static void addPowerStats(Map<String, String> meta, PowerStats stats) {
-        if (stats.hasCapacity()) {
-            meta.put(SearchNodeKeys.ENERGY_CAPACITY, Integer.toString(stats.capacityFe()));
-        }
-        if (stats.hasGeneration()) {
-            meta.put(SearchNodeKeys.ENERGY_GENERATION, formatMetric(stats.generationFePerTick()));
-        }
-        if (stats.hasConsumption()) {
-            meta.put(SearchNodeKeys.ENERGY_CONSUMPTION, formatMetric(stats.consumptionFePerTick()));
-        }
-        if (!stats.source().isBlank()) {
-            meta.put(SearchNodeKeys.ENERGY_METRIC_SOURCE, stats.source());
-        }
-        addFacet(meta, ItemFacet.HAS_ENERGY);
-        addSearchToken(meta, "has_energy");
-        if (stats.hasGeneration()) {
-            addSearchToken(meta, "fe_generation");
-        }
-        if (stats.hasConsumption()) {
-            addSearchToken(meta, "fe_consumption");
-        }
-    }
-
-    private static void addFoodStats(Map<String, String> meta, FoodStats stats) {
-        meta.put(SearchNodeKeys.FOOD_NUTRITION, Integer.toString(stats.nutrition()));
-        meta.put(SearchNodeKeys.FOOD_SATURATION, formatDps(stats.saturation()));
-        addSearchToken(meta, "food_stats");
-    }
-
-    private static void addFluidStats(Map<String, String> meta, FluidStats stats) {
-        if (!stats.hasAny()) return;
-        meta.put(SearchNodeKeys.FLUID_CAPACITY, formatMetric(stats.buckets()));
-        if (!stats.source().isBlank()) {
-            meta.put(SearchNodeKeys.FLUID_METRIC_SOURCE, stats.source());
-        }
-        addFacet(meta, ItemFacet.FLUID_CONTAINER);
-        addSearchToken(meta, "fluid_container");
-    }
-
-    private static void addToolStats(Map<String, String> meta, ToolStats stats) {
-        if (!stats.hasAny()) return;
-        if (stats.speed() > 0.0D) {
-            meta.put(SearchNodeKeys.TOOL_SPEED, formatMetric(stats.speed()));
-        }
-        if (stats.uses() > 0) {
-            meta.put(SearchNodeKeys.TOOL_USES, Integer.toString(stats.uses()));
-        }
-        if (stats.attackBonus() > 0.0D) {
-            meta.put(SearchNodeKeys.TOOL_ATTACK_BONUS, formatMetric(stats.attackBonus()));
-        }
-    }
-
-    private static void addArmorStats(Map<String, String> meta, ArmorStats stats) {
-        if (!stats.hasAny()) return;
-        if (stats.defense() > 0) {
-            meta.put(SearchNodeKeys.ARMOR_DEFENSE, Integer.toString(stats.defense()));
-        }
-        if (stats.toughness() > 0.0D) {
-            meta.put(SearchNodeKeys.ARMOR_TOUGHNESS, formatMetric(stats.toughness()));
-        }
-    }
-
-    private static void addDurability(Map<String, String> meta, ItemStack stack) {
-        int maxDamage = stack.getMaxDamage();
-        if (maxDamage <= 0) return;
-        meta.put(SearchNodeKeys.MAX_DURABILITY, Integer.toString(maxDamage));
-    }
-
-    private static void addSearchToken(Map<String, String> meta, String token) {
-        meta.merge(SearchNodeKeys.SEARCH_TOKENS, token, (existing, added) ->
-                existing.contains(added) ? existing : existing + " " + added);
-    }
-
-    private static void addFacet(Map<String, String> meta, ItemFacet facet) {
-        String encoded = meta.getOrDefault(SearchNodeKeys.FACETS, "");
-        if (encoded.isBlank()) {
-            meta.put(SearchNodeKeys.FACETS, facet.id());
-            return;
-        }
-        for (String part : encoded.split(",")) {
-            if (facet.id().equals(part.trim())) {
-                return;
-            }
-        }
-        meta.put(SearchNodeKeys.FACETS, encoded + "," + facet.id());
-    }
-
-    private static void inferAmmoType(ResourceLocation id, Map<String, String> meta) {
-        if (meta.containsKey(SearchNodeKeys.AMMO_TYPE)) {
-            return;
-        }
-        String path = id.getPath().toLowerCase(java.util.Locale.ROOT);
-        if (path.contains("gunpowder") || path.contains("bulletproof")) {
-            return;
-        }
-        Set<String> pathTokens = pathTokens(path);
-        String facets = meta.getOrDefault(SearchNodeKeys.FACETS, "");
-
-        String ammoType = null;
-        if (pathTokens.contains("bullet") || pathTokens.contains("bullets") || pathTokens.contains("ammo") || path.contains("cartridge")) {
-            ammoType = "bullets";
-        } else if (pathTokens.contains("shell") || pathTokens.contains("shells")) {
-            ammoType = "shells";
-        } else if (pathTokens.contains("rocket") || pathTokens.contains("rockets") || path.contains("missile")) {
-            ammoType = "rockets";
-        } else if (pathTokens.contains("bolt") || pathTokens.contains("bolts")) {
-            ammoType = "bolts";
-        } else if (pathTokens.contains("arrow") || pathTokens.contains("arrows") || path.contains("bow")) {
-            ammoType = "arrows";
-        } else if (path.contains("gun") || path.contains("rifle") || path.contains("pistol") || path.contains("shotgun")) {
-            ammoType = "bullets";
-        } else if (path.contains("cannon") || path.contains("launcher")) {
-            ammoType = "shells";
-        }
-
-        if (ammoType != null && (facets.contains("ranged_weapon") || facets.contains("projectile")
-                || path.contains("gun") || path.contains("rifle") || path.contains("pistol") || path.contains("cannon"))) {
-            meta.put(SearchNodeKeys.AMMO_TYPE, ammoType);
-            addSearchToken(meta, ammoType);
-        }
-    }
-
-    private static Set<String> pathTokens(String path) {
-        return new HashSet<>(Arrays.asList(path.split("[_/\\-]")));
-    }
-
-    private static String extractColorBucket(ResourceLocation id) {
-        return GroupingEngine.classifyColorFromPath(id.getPath());
-    }
-
-    private static Map<String, String> buildSubtypeMeta(ResourceLocation baseId, ItemStack stack, String colorBucket,
-                                                        @Nullable ItemFilter.CreativeTabInfo creativeTab) {
-        Map<String, String> meta = new HashMap<>();
-        meta.put(SearchNodeKeys.MOD_ID, baseId.getNamespace());
-        meta.put(SearchNodeKeys.SUBTYPE_OF, baseId.toString());
-        meta.put(SearchNodeKeys.COLOR_BUCKET, colorBucket);
-        meta.put(SearchNodeKeys.MATERIAL_GROUP, baseId.toString());
-        meta.put(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL);
-        applyCreativeTabMeta(meta, creativeTab);
-        GroupingEngine.classifyCollapsedFamily(baseId).ifPresent(family -> {
-            meta.put(SearchNodeKeys.COLLAPSE_FAMILY, family.key());
-            meta.put(SearchNodeKeys.COLLAPSE_LABEL, family.label());
-        });
-        addDurability(meta, stack);
-
-        Item item = stack.getItem();
-        FacetProfile facetProfile = FacetIndexer.index(item, baseId, stack);
-        if (item != null && item != net.minecraft.world.item.Items.ENCHANTED_BOOK
-                && stack.isEnchanted()) {
-            // Only explicit subtype / hero stacks should surface as pre-enchanted variants.
-            addSearchToken(meta, "enchanted");
-            addSearchToken(meta, "pre_enchanted");
-        }
-        String encodedFacets = FacetCodec.encode(facetProfile.facets());
-        if (!encodedFacets.isEmpty()) {
-            meta.put(SearchNodeKeys.FACETS, encodedFacets);
-        }
-        if (!facetProfile.attributes().isEmpty()) {
-            meta.putAll(facetProfile.attributes());
-        }
-
-        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(baseId, facetProfile);
-        if (!assignment.attributes().isEmpty()) {
-            meta.putAll(assignment.attributes());
-        }
-        if (!"misc".equals(assignment.categoryId())) {
-            meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, assignment.categoryId());
-            meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, assignment.subcategoryId());
-        } else if (shouldUseLegacyOntologyFallback(facetProfile)) {
-            String[] ontology = OntologyClassifier.classifyItem(item, baseId);
-            if (ontology != null) {
-                meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, ontology[0]);
-                if (ontology.length > 1) {
-                    meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, ontology[1]);
-                }
-                if (ontology.length > 2) {
-                    meta.put(SearchNodeKeys.BLOCKS_MATERIAL, ontology[2]);
-                }
-            }
-        }
-        return meta;
-    }
-
-    private static void applyCreativeTabMeta(Map<String, String> meta, @Nullable ItemFilter.CreativeTabInfo creativeTab) {
-        if (creativeTab == null) {
-            return;
-        }
-        meta.put(SearchNodeKeys.CREATIVE_TAB_ID, creativeTab.id());
-        meta.put(SearchNodeKeys.CREATIVE_TAB_LABEL, creativeTab.label());
     }
 }

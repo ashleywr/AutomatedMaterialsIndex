@@ -14,7 +14,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public record FavoriteEntry(String key, ResourceLocation itemId, ItemStack stack, ResourceLocation recipeId, String source) {
+public record FavoriteEntry(String key, ResourceLocation itemId, ItemStack stack, ResourceLocation recipeId,
+                            String source) {
     public static final String META_KIND = "ami.favorite.kind";
     public static final String META_BASE_ID = "ami.favorite.base_id";
     public static final String META_RECIPE_ID = "ami.favorite.recipe_id";
@@ -48,31 +49,6 @@ public record FavoriteEntry(String key, ResourceLocation itemId, ItemStack stack
         String stackKey = stackIdentity(stack);
         String key = recipeId == null ? "item|" + stackKey : "recipe|" + recipeId + "|" + stackKey;
         return new FavoriteEntry(key, itemId, stack.copy(), recipeId, source == null ? "" : source);
-    }
-
-    public boolean isRecipeFavorite() {
-        return recipeId != null;
-    }
-
-    public SearchNode toNode() {
-        ResourceLocation nodeId = nodeId();
-        ItemIconRenderer.registerStack(nodeId, stack);
-
-        Map<String, String> metadata = new LinkedHashMap<>();
-        metadata.put(META_KIND, isRecipeFavorite() ? "recipe" : "item");
-        metadata.put(META_BASE_ID, itemId.toString());
-        metadata.put(META_SOURCE, source);
-        if (recipeId != null) {
-            metadata.put(META_RECIPE_ID, recipeId.toString());
-        }
-
-        return new SearchNode(nodeId, NodeType.ITEM, stack.getHoverName().getString(), 0, 0, metadata);
-    }
-
-    public ResourceLocation nodeId() {
-        String path = "favorite/" + (isRecipeFavorite() ? "recipe/" : "item/") + sha1(key);
-        ResourceLocation id = ResourceLocation.tryParse("ami:" + path);
-        return id == null ? itemId : id;
     }
 
     public static String stackKey(ItemStack stack) {
@@ -125,5 +101,30 @@ public record FavoriteEntry(String key, ResourceLocation itemId, ItemStack stack
         } catch (NoSuchAlgorithmException e) {
             return Integer.toHexString(value.hashCode());
         }
+    }
+
+    public boolean isRecipeFavorite() {
+        return recipeId != null;
+    }
+
+    public SearchNode toNode() {
+        ResourceLocation nodeId = nodeId();
+        ItemIconRenderer.registerStack(nodeId, stack);
+
+        Map<String, String> metadata = new LinkedHashMap<>();
+        metadata.put(META_KIND, isRecipeFavorite() ? "recipe" : "item");
+        metadata.put(META_BASE_ID, itemId.toString());
+        metadata.put(META_SOURCE, source);
+        if (recipeId != null) {
+            metadata.put(META_RECIPE_ID, recipeId.toString());
+        }
+
+        return new SearchNode(nodeId, NodeType.ITEM, stack.getHoverName().getString(), 0, 0, metadata);
+    }
+
+    public ResourceLocation nodeId() {
+        String path = "favorite/" + (isRecipeFavorite() ? "recipe/" : "item/") + sha1(key);
+        ResourceLocation id = ResourceLocation.tryParse("ami:" + path);
+        return id == null ? itemId : id;
     }
 }

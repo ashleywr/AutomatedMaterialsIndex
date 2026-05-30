@@ -14,13 +14,13 @@ public record AmiServerPingPacket() implements CustomPacketPayload {
     public static final StreamCodec<ByteBuf, AmiServerPingPacket> STREAM_CODEC =
             StreamCodec.unit(new AmiServerPingPacket());
 
+    public static void handle(AmiServerPingPacket packet, IPayloadContext context) {
+        AmiNetworkState.onServer = true;
+        AMI.LOGGER.debug("AMI: server has AMI installed - cheat actions use custom packets");
+    }
+
     @Override
     public Type<AmiServerPingPacket> type() {
         return TYPE;
-    }
-
-    public static void handle(AmiServerPingPacket packet, IPayloadContext context) {
-        AmiNetworkState.onServer = true;
-        AMI.LOGGER.info("AMI: server has AMI installed - cheat actions use custom packets");
     }
 }

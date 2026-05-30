@@ -2,7 +2,6 @@ package com.sanhiruzu.ami.client;
 
 import net.minecraft.client.gui.GuiGraphics;
 
-import com.sanhiruzu.ami.AmiCore;
 /**
  * Pixel-art icon helpers for AMI GUI buttons.
  * All methods draw into a fixed-size area centred on (cx, cy).
@@ -70,6 +69,25 @@ public final class AmiGuiIcons {
         // Switch arrow
         g.fill(sx + 5, sy + 6, sx + 10, sy + 7, color);
         g.fill(sx + 9, sy + 5, sx + 11, sy + 8, color);
+    }
+
+    /**
+     * Two opposing arrows — represents swapping a sidebar panel to its alternate content.
+     * Draws a 10x8 area centred on (cx, cy).
+     */
+    public static void swap(GuiGraphics g, int cx, int cy, int color) {
+        int sx = cx - 5;
+        int sy = cy - 4;
+
+        // Top arrow, left to right.
+        g.fill(sx, sy + 1, sx + 8, sy + 2, color);
+        g.fill(sx + 7, sy, sx + 9, sy + 3, color);
+        g.fill(sx + 9, sy + 1, sx + 10, sy + 2, color);
+
+        // Bottom arrow, right to left.
+        g.fill(sx + 2, sy + 6, sx + 10, sy + 7, color);
+        g.fill(sx + 1, sy + 5, sx + 3, sy + 8, color);
+        g.fill(sx, sy + 6, sx + 1, sy + 7, color);
     }
 
     public static void dropdownChevron(GuiGraphics g, int cx, int cy, int color, boolean open) {

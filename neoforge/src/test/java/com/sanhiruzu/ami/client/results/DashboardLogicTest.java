@@ -1,6 +1,10 @@
 package com.sanhiruzu.ami.client.results;
 
-import com.sanhiruzu.ami.index.*;
+import com.sanhiruzu.ami.index.AmiOntology;
+import com.sanhiruzu.ami.index.GlobalIndex;
+import com.sanhiruzu.ami.index.NodeType;
+import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.BeforeEach;

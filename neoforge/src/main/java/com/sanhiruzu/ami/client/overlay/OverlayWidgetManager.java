@@ -1,6 +1,5 @@
 package com.sanhiruzu.ami.client.overlay;
 
-import com.sanhiruzu.ami.neoforge.AMI;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.UniversalResultsPanel;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
@@ -9,6 +8,7 @@ import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.neoforge.AMI;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.events.GuiEventListener;
@@ -20,17 +20,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class OverlayWidgetManager {
+    public static final int AMI_BTN_X = 2;
+    public static final int AMI_BTN_W = 22;
     private static final int BOTTOM_BAR_H = 32;
     private static final int SEARCH_H = 24;
     private static final int MIN_PANEL_WIDTH = 64;
     private static final int MAX_PANEL_WIDTH = 280;
     private static final int PANEL_MARGIN = 6;
     private static final int PANEL_MARGIN_V = 6;
-
-    public static final int AMI_BTN_X = 2;
-    public static final int AMI_BTN_W = 22;
     private static final int AMI_BTN_H = 20;
     private static final int AMI_BTN_MARGIN = 2;
+    private static final int MAX_MARGIN_CONTROL_H = 32;
     public static final int AMI_BTN_NEXT_X = AMI_BTN_X + AMI_BTN_W + AMI_BTN_MARGIN;
 
     private final List<PanelSlot> leftSlotPool = new ArrayList<>();
@@ -109,16 +109,19 @@ public class OverlayWidgetManager {
     }
 
     /**
-     * Returns the maximum bottom-Y of any third-party widget (not belonging to AMI) whose
-     * horizontal extent overlaps the given screen strip [stripX1, stripX2). Used to push
-     * AMI panels below buttons that other mods (e.g. FTB, Quark) inject into the margins.
+     * Returns the maximum bottom-Y of any small third-party control (not belonging to AMI)
+     * whose horizontal extent overlaps the given screen strip [stripX1, stripX2). This only
+     * avoids button-sized margin controls; larger overlay widgets, such as minimaps blurred
+     * behind inventory screens, should not push AMI panels into the lower corner.
      */
     private int thirdPartyWidgetBottomInStrip(Screen screen, int stripX1, int stripX2) {
         int maxBottom = 0;
         for (var listener : screen.children()) {
             if (!(listener instanceof AbstractWidget w)) continue;
+            if (!w.visible) continue;
             if (w.getClass().getName().startsWith("com.sanhiruzu.ami")) continue;
             int wx = w.getX(), wy = w.getY(), ww = w.getWidth(), wh = w.getHeight();
+            if (wh <= 0 || wh > MAX_MARGIN_CONTROL_H) continue;
             if (wx < stripX2 && wx + ww > stripX1) {
                 maxBottom = Math.max(maxBottom, wy + wh);
             }

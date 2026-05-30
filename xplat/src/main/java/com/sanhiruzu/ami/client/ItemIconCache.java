@@ -36,6 +36,7 @@ public class ItemIconCache {
 
     // itemId → registered ResourceLocation key in TextureManager
     private static final Map<ResourceLocation, ResourceLocation> textureKeys = new HashMap<>();
+
     private ItemIconCache() {
     }
 

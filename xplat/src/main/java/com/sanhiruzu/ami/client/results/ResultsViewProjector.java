@@ -11,14 +11,6 @@ public final class ResultsViewProjector {
     private ResultsViewProjector() {
     }
 
-    public record Projection(
-            List<TreeNode> roots,
-            int sourceCount,
-            int displayedItemCount,
-            String summary
-    ) {
-    }
-
     public static Projection project(List<SearchNode> source,
                                      SearchState state,
                                      SearchService searchService,
@@ -76,5 +68,13 @@ public final class ResultsViewProjector {
                 + " group=" + state.getGroupBy()
                 + " compact=" + compactMainPanel
                 + " favorites=" + favoritesPanel;
+    }
+
+    public record Projection(
+            List<TreeNode> roots,
+            int sourceCount,
+            int displayedItemCount,
+            String summary
+    ) {
     }
 }

@@ -31,4 +31,9 @@ final class RecipeViewerBridgeCommon {
         if (stack == null || stack.isEmpty()) return;
         AmiHistoryHandler.getInstance().recordLookup(stack);
     }
+
+    static void recordCraft(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return;
+        AmiHistoryHandler.getInstance().recordCraft(stack);
+    }
 }

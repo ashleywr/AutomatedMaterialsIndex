@@ -39,13 +39,6 @@ public class SidebarPanelWidget extends AbstractWidget {
         refresh();
     }
 
-    public void setContentType(AmiConfig.PanelContent contentType) {
-        this.contentType = contentType;
-        this.panel.setPanelTitle(titleFor(contentType));
-        this.panel.setChromeOnly(contentType == AmiConfig.PanelContent.EMPTY);
-        refresh();
-    }
-
     private static Component titleFor(AmiConfig.PanelContent contentType) {
         if (contentType == AmiConfig.PanelContent.EMPTY) {
             return Component.empty();
@@ -159,5 +152,12 @@ public class SidebarPanelWidget extends AbstractWidget {
 
     public AmiConfig.PanelContent getContentType() {
         return contentType;
+    }
+
+    public void setContentType(AmiConfig.PanelContent contentType) {
+        this.contentType = contentType;
+        this.panel.setPanelTitle(titleFor(contentType));
+        this.panel.setChromeOnly(contentType == AmiConfig.PanelContent.EMPTY);
+        refresh();
     }
 }

@@ -21,6 +21,7 @@ public enum ItemFacet {
     MELEE_WEAPON("melee_weapon"),
     RANGED_WEAPON("ranged_weapon"),
     PROJECTILE("projectile"),
+    EQUIPPABLE("equippable"),
     HARVEST_TOOL("harvest_tool"),
     UTILITY_TOOL("utility_tool"),
     ARMOR_HEAD("armor_head"),
@@ -46,6 +47,7 @@ public enum ItemFacet {
     UPGRADE("upgrade"),
     TEMPLATE("template"),
     TECH_COMPONENT("tech_component"),
+    MECHANICAL_COMPONENT("mechanical_component"),
     INGOT("ingot"),
     GEM("gem"),
     NUGGET("nugget"),
@@ -92,11 +94,11 @@ public enum ItemFacet {
         this.id = id;
     }
 
-    public String id() {
-        return id;
-    }
-
     public static ItemFacet byId(String id) {
         return BY_ID.get(id);
+    }
+
+    public String id() {
+        return id;
     }
 }

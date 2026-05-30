@@ -10,9 +10,11 @@ import java.util.function.Supplier;
  * Play-to-client packet: tells the client that this server has AMI installed.
  */
 public class AmiServerPingPacket {
-    public AmiServerPingPacket() {}
+    public AmiServerPingPacket() {
+    }
 
-    public static void encode(AmiServerPingPacket packet, FriendlyByteBuf buf) {}
+    public static void encode(AmiServerPingPacket packet, FriendlyByteBuf buf) {
+    }
 
     public static AmiServerPingPacket decode(FriendlyByteBuf buf) {
         return new AmiServerPingPacket();
@@ -23,7 +25,7 @@ public class AmiServerPingPacket {
         context.enqueueWork(() -> {
             // Only invoked client-side (play-to-client packet).
             AmiNetworkState.onServer = true;
-            AMI.LOGGER.info("AMI: server has AMI installed — cheat actions use custom packets");
+            AMI.LOGGER.debug("AMI: server has AMI installed — cheat actions use custom packets");
         });
         context.setPacketHandled(true);
     }

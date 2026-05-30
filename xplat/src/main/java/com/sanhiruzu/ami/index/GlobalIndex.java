@@ -16,15 +16,11 @@ public class GlobalIndex {
 
     private final Map<NodeType, List<SearchNode>> nodes = new EnumMap<>(NodeType.class);
     private final Set<NodeType> loadingTypes = EnumSet.noneOf(NodeType.class);
-    private volatile boolean indexReady = false;
-    private long indexBuildTimeMs;
-
-    // Fast lookup by ID + Type
-    private record NodeKey(ResourceLocation id, NodeType type) {}
     private final ConcurrentMap<NodeKey, SearchNode> idIndex = new ConcurrentHashMap<>();
-
     // Category index for fast dashboard lookups
     private final Map<String, List<SearchNode>> categoryIndex = new ConcurrentHashMap<>();
+    private volatile boolean indexReady = false;
+    private long indexBuildTimeMs;
 
     private GlobalIndex() {
         for (NodeType t : NodeType.values()) {
@@ -54,7 +50,7 @@ public class GlobalIndex {
         if (match != null) return Optional.of(match);
         match = idIndex.get(new NodeKey(id, NodeType.ENTITY));
         if (match != null) return Optional.of(match);
-        
+
         for (NodeType type : NodeType.values()) {
             match = idIndex.get(new NodeKey(id, type));
             if (match != null) return Optional.of(match);
@@ -167,5 +163,9 @@ public class GlobalIndex {
                         n -> n.meta(metadataKey, "unknown"),
                         LinkedHashMap::new,
                         Collectors.toList()));
+    }
+
+    // Fast lookup by ID + Type
+    private record NodeKey(ResourceLocation id, NodeType type) {
     }
 }

@@ -1,7 +1,15 @@
 package com.sanhiruzu.ami.compat;
 
 import dev.emi.emi.api.EmiApi;
+import dev.emi.emi.EmiUtil;
+import dev.emi.emi.api.recipe.EmiRecipe;
+import dev.emi.emi.api.recipe.EmiPlayerInventory;
+import dev.emi.emi.api.recipe.handler.EmiCraftContext;
+import dev.emi.emi.api.recipe.handler.EmiRecipeHandler;
 import dev.emi.emi.api.stack.EmiStack;
+import dev.emi.emi.registry.EmiRecipeFiller;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -79,5 +87,85 @@ class EmiRecipeBridge {
 
     static void handleShiftClick(ItemStack stack) {
         EmiApi.displayRecipes(EmiStack.of(stack));
+    }
+
+    static boolean transfer(com.sanhiruzu.ami.util.AmiRecipeHolder<?> recipe, Screen screen, boolean maxTransfer,
+                            boolean toCursor) {
+        if (!(screen instanceof AbstractContainerScreen<?> containerScreen)) {
+            return false;
+        }
+        EmiRecipe emiRecipe = EmiApi.getRecipeManager().getRecipe(recipe.id());
+        if (emiRecipe == null) {
+            return false;
+        }
+        int amount = maxTransfer ? Integer.MAX_VALUE : 1;
+        return EmiRecipeFiller.performFill(emiRecipe, containerScreen, EmiCraftContext.Type.CRAFTABLE,
+                EmiCraftContext.Destination.NONE, amount);
+    }
+
+    static boolean transferStack(ItemStack stack, Screen screen, boolean maxTransfer) {
+        if (stack == null || stack.isEmpty() || !(screen instanceof AbstractContainerScreen<?> containerScreen)) {
+            return false;
+        }
+        EmiRecipe recipe = preferredCraftableRecipe(stack, containerScreen);
+        if (recipe == null) {
+            return false;
+        }
+        int amount = maxTransfer ? Integer.MAX_VALUE : 1;
+        return EmiRecipeFiller.performFill(recipe, containerScreen, EmiCraftContext.Type.CRAFTABLE,
+                EmiCraftContext.Destination.NONE, amount);
+    }
+
+    static boolean canTransferStack(ItemStack stack, Screen screen) {
+        return stack != null
+                && !stack.isEmpty()
+                && screen instanceof AbstractContainerScreen<?> containerScreen
+                && preferredCraftableRecipe(stack, containerScreen) != null;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static EmiRecipe preferredCraftableRecipe(ItemStack stack, AbstractContainerScreen<?> screen) {
+        EmiStack output = EmiStack.of(stack);
+        for (EmiRecipe recipe : EmiApi.getRecipeManager().getRecipesByOutput(output)) {
+            EmiRecipeHandler handler = EmiRecipeFiller.getFirstValidHandler(recipe, screen);
+            if (handler == null || !handler.supportsRecipe(recipe)) {
+                continue;
+            }
+            EmiCraftContext context = new EmiCraftContext<>(
+                    screen, handler.getInventory(screen), EmiCraftContext.Type.CRAFTABLE,
+                    EmiCraftContext.Destination.NONE, 1);
+            if (handler.canCraft(recipe, context)) {
+                return recipe;
+            }
+        }
+        var player = net.minecraft.client.Minecraft.getInstance().player;
+        return EmiUtil.getPreferredRecipe(output, EmiPlayerInventory.of(player), true);
+    }
+
+    static boolean canTransfer(com.sanhiruzu.ami.util.AmiRecipeHolder<?> recipe, Screen screen) {
+        if (!(screen instanceof AbstractContainerScreen<?> containerScreen)) {
+            return false;
+        }
+        EmiRecipe emiRecipe = EmiApi.getRecipeManager().getRecipe(recipe.id());
+        if (emiRecipe == null) {
+            return false;
+        }
+        try {
+            return canTransferUnchecked(emiRecipe, containerScreen);
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private static <T extends net.minecraft.world.inventory.AbstractContainerMenu> boolean canTransferUnchecked(
+            EmiRecipe recipe, AbstractContainerScreen<T> screen) {
+        EmiRecipeHandler<T> handler = EmiRecipeFiller.getFirstValidHandler(recipe, screen);
+        if (handler == null || !handler.supportsRecipe(recipe)) {
+            return false;
+        }
+        EmiCraftContext<T> context = new EmiCraftContext<>(
+                screen, handler.getInventory(screen), EmiCraftContext.Type.CRAFTABLE,
+                EmiCraftContext.Destination.NONE, 1);
+        return handler.canCraft(recipe, context);
     }
 }

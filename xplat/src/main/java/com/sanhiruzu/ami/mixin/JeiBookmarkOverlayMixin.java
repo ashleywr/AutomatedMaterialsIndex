@@ -14,6 +14,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(BookmarkOverlay.class)
 public class JeiBookmarkOverlayMixin {
 
+    private static boolean shouldSuppressJeiRendering() {
+        return InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
+    }
+
     @Inject(method = "drawScreen", at = @At("HEAD"), cancellable = true, remap = false)
     private void suppressDrawScreen(Minecraft minecraft, GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
         if (shouldSuppressJeiRendering()) {
@@ -33,9 +37,5 @@ public class JeiBookmarkOverlayMixin {
         if (shouldSuppressJeiRendering()) {
             ci.cancel();
         }
-    }
-
-    private static boolean shouldSuppressJeiRendering() {
-        return InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
     }
 }

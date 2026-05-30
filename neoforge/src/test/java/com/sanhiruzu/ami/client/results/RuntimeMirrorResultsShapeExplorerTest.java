@@ -10,77 +10,14 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RuntimeMirrorResultsShapeExplorerTest {
-    @BeforeEach
-    void setUp() {
-        GlobalIndex.getInstance().clear();
-        GlobalIndex.getInstance().markIndexReady();
-    }
-
-    @Test
-    void writesRuntimeMirrorShapeReportWhenSearchNodeDumpExists() throws IOException {
-        Path reportPath = repoRoot().resolve(Path.of("neoforge", "build", "reports", "ami-result-shapes", "runtime-mirror-result-shapes.md"));
-        Files.createDirectories(reportPath.getParent());
-
-        Path mirrorPath = locateMirrorDump();
-        if (!Files.exists(mirrorPath)) {
-            Files.writeString(reportPath, "# AMI Runtime Mirror Result Shape Exploration\n\n"
-                    + "No runtime mirror dump found at `" + mirrorPath + "`.\n\n"
-                    + "Run `/ami dump-search-nodes` in the client after indexing to generate it.\n");
-            assertTrue(Files.exists(reportPath), "Expected diagnostic report at " + reportPath.toAbsolutePath());
-            return;
-        }
-
-        List<SearchNode> runtimeFixture = SearchNodeMirrorDump.readJsonl(mirrorPath);
-        List<SearchNode> fixture = SearchNodeMirrorDump.reclassifyItemOntology(runtimeFixture);
-        StringBuilder report = new StringBuilder();
-        report.append("# AMI Runtime Mirror Result Shape Exploration\n\n");
-        report.append("Source dump: `").append(mirrorPath).append("`\n\n");
-        report.append("Nodes: ").append(fixture.size()).append("\n\n");
-        report.append("Ontology replay: current resolver reapplied from dumped item facets.\n\n");
-        report.append("Reclassified items: ").append(countReclassified(runtimeFixture, fixture)).append("\n\n");
-        report.append(categoryTransitionSummary(runtimeFixture, fixture));
-
-        for (ResultsProcessor.GroupBy groupBy : List.of(
-                ResultsProcessor.GroupBy.CATEGORY,
-                ResultsProcessor.GroupBy.FAMILY,
-                ResultsProcessor.GroupBy.MATERIAL
-        )) {
-            for (ResultsProcessor.SortField sortField : List.of(
-                    ResultsProcessor.SortField.REGISTRY,
-                    ResultsProcessor.SortField.ALPHABETICAL,
-                    ResultsProcessor.SortField.COUNT
-            )) {
-                try {
-                    SearchState listState = state(sortField, groupBy, ResultsToolbar.ViewMode.LIST);
-                    SearchState compactState = state(sortField, groupBy, ResultsToolbar.ViewMode.GRID);
-                    List<TreeNode> tree = ResultsViewProjector.project(fixture, listState, null, false, false).roots();
-                    List<TreeNode> compact = ResultsViewProjector.project(fixture, compactState, null, true, false).roots();
-                    report.append(ResultsShapeSnapshot.capture(groupBy, sortField, tree, compact, 9).toMarkdown());
-                } catch (Throwable t) {
-                    report.append("## group=").append(groupBy.name())
-                            .append(" sort=").append(sortField.name())
-                            .append("\n\n");
-                    report.append("Unavailable in runtime mirror explorer: ")
-                            .append(t.getClass().getSimpleName())
-                            .append(": ")
-                            .append(t.getMessage())
-                            .append("\n\n");
-                }
-            }
-        }
-
-        Files.writeString(reportPath, report.toString());
-        assertTrue(Files.exists(reportPath), "Expected diagnostic report at " + reportPath.toAbsolutePath());
-    }
-
     private static long countReclassified(List<SearchNode> before, List<SearchNode> after) {
         long changed = 0;
         int size = Math.min(before.size(), after.size());
@@ -178,5 +115,68 @@ public class RuntimeMirrorResultsShapeExplorerTest {
             current = current.getParent();
         }
         throw new IllegalStateException("Could not locate repository root");
+    }
+
+    @BeforeEach
+    void setUp() {
+        GlobalIndex.getInstance().clear();
+        GlobalIndex.getInstance().markIndexReady();
+    }
+
+    @Test
+    void writesRuntimeMirrorShapeReportWhenSearchNodeDumpExists() throws IOException {
+        Path reportPath = repoRoot().resolve(Path.of("neoforge", "build", "reports", "ami-result-shapes", "runtime-mirror-result-shapes.md"));
+        Files.createDirectories(reportPath.getParent());
+
+        Path mirrorPath = locateMirrorDump();
+        if (!Files.exists(mirrorPath)) {
+            Files.writeString(reportPath, "# AMI Runtime Mirror Result Shape Exploration\n\n"
+                    + "No runtime mirror dump found at `" + mirrorPath + "`.\n\n"
+                    + "Run `/ami dump-search-nodes` in the client after indexing to generate it.\n");
+            assertTrue(Files.exists(reportPath), "Expected diagnostic report at " + reportPath.toAbsolutePath());
+            return;
+        }
+
+        List<SearchNode> runtimeFixture = SearchNodeMirrorDump.readJsonl(mirrorPath);
+        List<SearchNode> fixture = SearchNodeMirrorDump.reclassifyItemOntology(runtimeFixture);
+        StringBuilder report = new StringBuilder();
+        report.append("# AMI Runtime Mirror Result Shape Exploration\n\n");
+        report.append("Source dump: `").append(mirrorPath).append("`\n\n");
+        report.append("Nodes: ").append(fixture.size()).append("\n\n");
+        report.append("Ontology replay: current resolver reapplied from dumped item facets.\n\n");
+        report.append("Reclassified items: ").append(countReclassified(runtimeFixture, fixture)).append("\n\n");
+        report.append(categoryTransitionSummary(runtimeFixture, fixture));
+
+        for (ResultsProcessor.GroupBy groupBy : List.of(
+                ResultsProcessor.GroupBy.CATEGORY,
+                ResultsProcessor.GroupBy.FAMILY,
+                ResultsProcessor.GroupBy.MATERIAL
+        )) {
+            for (ResultsProcessor.SortField sortField : List.of(
+                    ResultsProcessor.SortField.REGISTRY,
+                    ResultsProcessor.SortField.ALPHABETICAL,
+                    ResultsProcessor.SortField.COUNT
+            )) {
+                try {
+                    SearchState listState = state(sortField, groupBy, ResultsToolbar.ViewMode.LIST);
+                    SearchState compactState = state(sortField, groupBy, ResultsToolbar.ViewMode.GRID);
+                    List<TreeNode> tree = ResultsViewProjector.project(fixture, listState, null, false, false).roots();
+                    List<TreeNode> compact = ResultsViewProjector.project(fixture, compactState, null, true, false).roots();
+                    report.append(ResultsShapeSnapshot.capture(groupBy, sortField, tree, compact, 9).toMarkdown());
+                } catch (Throwable t) {
+                    report.append("## group=").append(groupBy.name())
+                            .append(" sort=").append(sortField.name())
+                            .append("\n\n");
+                    report.append("Unavailable in runtime mirror explorer: ")
+                            .append(t.getClass().getSimpleName())
+                            .append(": ")
+                            .append(t.getMessage())
+                            .append("\n\n");
+                }
+            }
+        }
+
+        Files.writeString(reportPath, report.toString());
+        assertTrue(Files.exists(reportPath), "Expected diagnostic report at " + reportPath.toAbsolutePath());
     }
 }

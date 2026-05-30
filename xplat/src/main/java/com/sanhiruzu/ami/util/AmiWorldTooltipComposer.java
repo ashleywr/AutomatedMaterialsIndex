@@ -24,11 +24,11 @@ import java.util.Map;
  * Keeps the text path consistent across the results panel and palette views.
  */
 public final class AmiWorldTooltipComposer {
-    private AmiWorldTooltipComposer() {
-    }
-
     // Lazy cache: biome ID → list of structure display names that generate there
     private static Map<ResourceLocation, List<String>> biomeStructureCache = null;
+
+    private AmiWorldTooltipComposer() {
+    }
 
     public static void invalidateCache() {
         biomeStructureCache = null;
@@ -176,7 +176,11 @@ public final class AmiWorldTooltipComposer {
     }
 
     private static float parseFloat(String s) {
-        try { return Float.parseFloat(s); } catch (NumberFormatException e) { return 0f; }
+        try {
+            return Float.parseFloat(s);
+        } catch (NumberFormatException e) {
+            return 0f;
+        }
     }
 
     private static void appendStructure(List<Component> lines, SearchNode entry) {

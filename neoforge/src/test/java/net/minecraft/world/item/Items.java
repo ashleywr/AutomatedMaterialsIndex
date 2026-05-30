@@ -48,6 +48,9 @@ public final class Items {
         ComposterBlock.COMPOSTABLES.put(CAKE, 1.0f);
     }
 
+    private Items() {
+    }
+
     private static Item register(String path, Item item) {
         BuiltInRegistries.itemRegistry().register(ResourceLocation.fromNamespaceAndPath("minecraft", path), item);
         return item;
@@ -55,8 +58,5 @@ public final class Items {
 
     private static TagKey<Item> itemTag(String namespace, String path) {
         return TagKey.create(null, ResourceLocation.fromNamespaceAndPath(namespace, path));
-    }
-
-    private Items() {
     }
 }

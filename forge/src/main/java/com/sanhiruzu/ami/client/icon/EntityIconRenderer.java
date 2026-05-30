@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client.icon;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.sanhiruzu.ami.client.AMITheme;
-import com.sanhiruzu.ami.client.EntityIconCache;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.StatIconRowTooltipComponent;
@@ -9,7 +9,6 @@ import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -35,65 +34,6 @@ import java.util.*;
 public class EntityIconRenderer implements IIconRenderer {
 
     private static final Map<ResourceLocation, LivingEntity> entityCache = new HashMap<>();
-
-    @Override
-    public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
-        if (size < 12) {
-            FallbackTextRenderer.renderFallback(g, node, x, y, size);
-            return;
-        }
-
-        LivingEntity entity = resolveEntity(node.id());
-        if (entity == null) {
-            ResourceLocation proxyId = resolveProxyItemId(node.id());
-            if (proxyId != null) {
-                ItemStack proxy = BuiltInRegistries.ITEM.getOptional(proxyId).map(ItemStack::new).orElse(ItemStack.EMPTY);
-                if (!proxy.isEmpty()) {
-                    g.pose().pushPose();
-                    g.pose().translate(x + size / 2.0, y + size / 2.0, 0);
-                    float s = size / 16.0f;
-                    g.pose().scale(s, s, 1f);
-                    g.renderItem(proxy, -8, -8);
-                    g.pose().popPose();
-                    return;
-                }
-            }
-            FallbackTextRenderer.renderFallback(g, node, x, y, size);
-            return;
-        }
-
-        float maxBounds = Math.max(entity.getBbHeight(), entity.getBbWidth());
-        int scale = Math.max(1, (int) Math.min(size - 4, (size - 2) / maxBounds));
-
-        // Hovered: live render with spin — no scissor so the full entity shows.
-        int cx = x + size / 2;
-        int cy = y + size - 1;
-        float yRot = 180f;
-        if (hovered) {
-            yRot += (System.currentTimeMillis() % 3000) / 3000f * 360f;
-        }
-        float savedBodyRot = entity.yBodyRot;
-        float savedYRot = entity.getYRot();
-        float savedXRot = entity.getXRot();
-        float savedHeadRotO = entity.yHeadRotO;
-        float savedHeadRot = entity.yHeadRot;
-
-        entity.yBodyRot = yRot;
-        entity.setYRot(yRot);
-        entity.setXRot(0f);
-        entity.yHeadRot = entity.getYRot();
-        entity.yHeadRotO = entity.getYRot();
-
-        try {
-            renderEntity(g, cx, cy, scale, 0f, 0f, entity);
-        } finally {
-            entity.yBodyRot = savedBodyRot;
-            entity.setYRot(savedYRot);
-            entity.setXRot(savedXRot);
-            entity.yHeadRotO = savedHeadRotO;
-            entity.yHeadRot = savedHeadRot;
-        }
-    }
 
     private static void renderEntity(GuiGraphics g, int x, int y, int scale, float angleX, float angleY, LivingEntity entity) {
         float[] shaderColor = RenderSystem.getShaderColor();
@@ -154,40 +94,6 @@ public class EntityIconRenderer implements IIconRenderer {
         return entity;
     }
 
-    @Override
-    public List<Component> getTooltip(SearchNode node) {
-        List<Component> lines = new ArrayList<>();
-
-        String category = node.meta(SearchNodeKeys.ENTITY_CATEGORY, "");
-        if (!category.isEmpty()) {
-            lines.add(Component.translatable("ami.tooltip.category")
-                    .append(": ").append(formatCategoryComponent(category))
-                    .withStyle(s -> s.withColor(AMITheme.ENTITY_CATEGORY_COLOR)));
-        }
-
-        String traits = node.meta(SearchNodeKeys.ENTITY_TRAITS, "");
-        if (!traits.isEmpty()) {
-            lines.add(Component.literal(formatTraits(traits)).withStyle(s -> s.withColor(AMITheme.ENTITY_TRAITS_COLOR)));
-        }
-
-        return lines;
-    }
-
-    @Override
-    public Optional<TooltipComponent> getTooltipImage(SearchNode node) {
-        HeartBarTooltipComponent heartBar = buildHeartBar(node);
-        StatIconRowTooltipComponent attackRow = buildAttackRow(node);
-
-        if (heartBar != null && attackRow != null) {
-            return Optional.of(new CompositeTooltipComponent(List.of(heartBar, attackRow)));
-        } else if (heartBar != null) {
-            return Optional.of(heartBar);
-        } else if (attackRow != null) {
-            return Optional.of(attackRow);
-        }
-        return Optional.empty();
-    }
-
     private static HeartBarTooltipComponent buildHeartBar(SearchNode node) {
         String s = node.meta(SearchNodeKeys.ENTITY_HEALTH, "");
         if (s.isEmpty()) return null;
@@ -234,11 +140,6 @@ public class EntityIconRenderer implements IIconRenderer {
         return sb.toString();
     }
 
-    @Override
-    public void invalidate() {
-        entityCache.clear();
-    }
-
     /**
      * Scans all ENTITY nodes and returns those that can't be rendered as a LivingEntity.
      * Each entry is "id  (displayName)  [reason]". Requires an active level to instantiate types.
@@ -278,5 +179,103 @@ public class EntityIconRenderer implements IIconRenderer {
 
         missing.sort(String::compareTo);
         return missing;
+    }
+
+    @Override
+    public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
+        if (size < 12) {
+            FallbackTextRenderer.renderFallback(g, node, x, y, size);
+            return;
+        }
+
+        LivingEntity entity = resolveEntity(node.id());
+        if (entity == null) {
+            ResourceLocation proxyId = resolveProxyItemId(node.id());
+            if (proxyId != null) {
+                ItemStack proxy = BuiltInRegistries.ITEM.getOptional(proxyId).map(ItemStack::new).orElse(ItemStack.EMPTY);
+                if (!proxy.isEmpty()) {
+                    g.pose().pushPose();
+                    g.pose().translate(x + size / 2.0, y + size / 2.0, 0);
+                    float s = size / 16.0f;
+                    g.pose().scale(s, s, 1f);
+                    g.renderItem(proxy, -8, -8);
+                    g.pose().popPose();
+                    return;
+                }
+            }
+            FallbackTextRenderer.renderFallback(g, node, x, y, size);
+            return;
+        }
+
+        float maxBounds = Math.max(entity.getBbHeight(), entity.getBbWidth());
+        int scale = Math.max(1, (int) Math.min(size - 4, (size - 2) / maxBounds));
+
+        // Hovered: live render with spin — no scissor so the full entity shows.
+        int cx = x + size / 2;
+        int cy = y + size - 1;
+        float yRot = 180f;
+        if (hovered) {
+            yRot += (System.currentTimeMillis() % 3000) / 3000f * 360f;
+        }
+        float savedBodyRot = entity.yBodyRot;
+        float savedYRot = entity.getYRot();
+        float savedXRot = entity.getXRot();
+        float savedHeadRotO = entity.yHeadRotO;
+        float savedHeadRot = entity.yHeadRot;
+
+        entity.yBodyRot = yRot;
+        entity.setYRot(yRot);
+        entity.setXRot(0f);
+        entity.yHeadRot = entity.getYRot();
+        entity.yHeadRotO = entity.getYRot();
+
+        try {
+            renderEntity(g, cx, cy, scale, 0f, 0f, entity);
+        } finally {
+            entity.yBodyRot = savedBodyRot;
+            entity.setYRot(savedYRot);
+            entity.setXRot(savedXRot);
+            entity.yHeadRotO = savedHeadRotO;
+            entity.yHeadRot = savedHeadRot;
+        }
+    }
+
+    @Override
+    public List<Component> getTooltip(SearchNode node) {
+        List<Component> lines = new ArrayList<>();
+
+        String category = node.meta(SearchNodeKeys.ENTITY_CATEGORY, "");
+        if (!category.isEmpty()) {
+            lines.add(Component.translatable("ami.tooltip.category")
+                    .append(": ").append(formatCategoryComponent(category))
+                    .withStyle(s -> s.withColor(AMITheme.ENTITY_CATEGORY_COLOR)));
+        }
+
+        String traits = node.meta(SearchNodeKeys.ENTITY_TRAITS, "");
+        if (!traits.isEmpty()) {
+            lines.add(Component.literal(formatTraits(traits)).withStyle(s -> s.withColor(AMITheme.ENTITY_TRAITS_COLOR)));
+        }
+
+        return lines;
+    }
+
+    @Override
+    public Optional<TooltipComponent> getTooltipImage(SearchNode node) {
+        HeartBarTooltipComponent heartBar = buildHeartBar(node);
+        StatIconRowTooltipComponent attackRow = buildAttackRow(node);
+
+        if (heartBar != null && attackRow != null) {
+            return Optional.of(new CompositeTooltipComponent(List.of(heartBar, attackRow)));
+        } else if (heartBar != null) {
+            return Optional.of(heartBar);
+        } else if (attackRow != null) {
+            return Optional.of(attackRow);
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public void invalidate() {
+        entityCache.clear();
     }
 }

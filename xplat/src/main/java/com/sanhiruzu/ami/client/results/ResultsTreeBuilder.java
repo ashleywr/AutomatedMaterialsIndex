@@ -1,23 +1,12 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
-import com.sanhiruzu.ami.index.AmiOntology;
-import com.sanhiruzu.ami.index.AmiOntologyKinds;
-import com.sanhiruzu.ami.index.GroupingEngine;
-import com.sanhiruzu.ami.index.NodeType;
-import com.sanhiruzu.ami.index.SearchNode;
-import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.index.providers.RegistryUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -31,6 +20,69 @@ final class ResultsTreeBuilder {
     ResultsTreeBuilder(ResultsPresentationOptions options, ResultsSorter sorter) {
         this.options = options;
         this.sorter = sorter;
+    }
+
+    private static void addLeaves(TreeNode parent, List<SearchNode> nodes) {
+        for (SearchNode node : nodes) {
+            parent.addChild(new TreeNode(Component.literal(node.displayName()), node));
+        }
+    }
+
+    private static void addCategoryLeaves(String categoryId, String subId, TreeNode parent, List<SearchNode> nodes) {
+        if (shouldKeepCategorySubcategoryFlat(categoryId, subId)) {
+            addLeaves(parent, nodes);
+            return;
+        }
+
+        List<AmiOntologyKinds.Kind> knownKinds = AmiOntologyKinds.kindsFor(categoryId, subId);
+        if (knownKinds.isEmpty()) {
+            addLeaves(parent, nodes);
+            return;
+        }
+
+        Map<String, List<SearchNode>> grouped = new LinkedHashMap<>();
+        Map<String, AmiOntologyKinds.Kind> kindsById = new LinkedHashMap<>();
+        for (AmiOntologyKinds.Kind kind : knownKinds) {
+            grouped.put(kind.id(), new ArrayList<>());
+            kindsById.put(kind.id(), kind);
+        }
+
+        List<SearchNode> directLeaves = new ArrayList<>();
+        for (SearchNode node : nodes) {
+            var kind = AmiOntologyKinds.classify(node, categoryId, subId);
+            if (kind.isPresent()) {
+                grouped.computeIfAbsent(kind.get().id(), ignored -> new ArrayList<>()).add(node);
+                kindsById.putIfAbsent(kind.get().id(), kind.get());
+            } else {
+                directLeaves.add(node);
+            }
+        }
+
+        for (var entry : grouped.entrySet()) {
+            if (entry.getValue().isEmpty()) continue;
+            if (entry.getValue().size() < MIN_CATEGORY_KIND_GROUP_SIZE) {
+                directLeaves.addAll(entry.getValue());
+                continue;
+            }
+            AmiOntologyKinds.Kind kind = kindsById.get(entry.getKey());
+            TreeNode groupNode = new TreeNode(parent.getKey() + "/" + kind.id(), Component.literal(kind.label()));
+            groupNode.setExpanded(true);
+            addLeaves(groupNode, entry.getValue());
+            parent.addChild(groupNode);
+        }
+
+        if (!directLeaves.isEmpty()) {
+            directLeaves.sort(Comparator.comparing(SearchNode::displayName, String.CASE_INSENSITIVE_ORDER));
+            addLeaves(parent, directLeaves);
+        }
+    }
+
+    private static boolean shouldKeepCategorySubcategoryFlat(String categoryId, String subId) {
+        return "masonry".equals(categoryId) && "full_block".equals(subId);
+    }
+
+    private static boolean isBuildingShape(String subId) {
+        return Set.of("full_block", "stairs", "slab", "wall", "fence", "pane", "building").contains(subId);
     }
 
     List<TreeNode> build(List<SearchNode> sorted) {
@@ -321,60 +373,6 @@ final class ResultsTreeBuilder {
             addLeaves(catNode, catEntry.getValue());
             miscNode.addChild(catNode);
         }
-    }
-
-    private static void addLeaves(TreeNode parent, List<SearchNode> nodes) {
-        for (SearchNode node : nodes) {
-            parent.addChild(new TreeNode(Component.literal(node.displayName()), node));
-        }
-    }
-
-    private static void addCategoryLeaves(String categoryId, String subId, TreeNode parent, List<SearchNode> nodes) {
-        List<AmiOntologyKinds.Kind> knownKinds = AmiOntologyKinds.kindsFor(categoryId, subId);
-        if (knownKinds.isEmpty()) {
-            addLeaves(parent, nodes);
-            return;
-        }
-
-        Map<String, List<SearchNode>> grouped = new LinkedHashMap<>();
-        Map<String, AmiOntologyKinds.Kind> kindsById = new LinkedHashMap<>();
-        for (AmiOntologyKinds.Kind kind : knownKinds) {
-            grouped.put(kind.id(), new ArrayList<>());
-            kindsById.put(kind.id(), kind);
-        }
-
-        List<SearchNode> directLeaves = new ArrayList<>();
-        for (SearchNode node : nodes) {
-            var kind = AmiOntologyKinds.classify(node, categoryId, subId);
-            if (kind.isPresent()) {
-                grouped.computeIfAbsent(kind.get().id(), ignored -> new ArrayList<>()).add(node);
-                kindsById.putIfAbsent(kind.get().id(), kind.get());
-            } else {
-                directLeaves.add(node);
-            }
-        }
-
-        for (var entry : grouped.entrySet()) {
-            if (entry.getValue().isEmpty()) continue;
-            if (entry.getValue().size() < MIN_CATEGORY_KIND_GROUP_SIZE) {
-                directLeaves.addAll(entry.getValue());
-                continue;
-            }
-            AmiOntologyKinds.Kind kind = kindsById.get(entry.getKey());
-            TreeNode groupNode = new TreeNode(parent.getKey() + "/" + kind.id(), Component.literal(kind.label()));
-            groupNode.setExpanded(true);
-            addLeaves(groupNode, entry.getValue());
-            parent.addChild(groupNode);
-        }
-
-        if (!directLeaves.isEmpty()) {
-            directLeaves.sort(Comparator.comparing(SearchNode::displayName, String.CASE_INSENSITIVE_ORDER));
-            addLeaves(parent, directLeaves);
-        }
-    }
-
-    private static boolean isBuildingShape(String subId) {
-        return Set.of("full_block", "stairs", "slab", "wall", "fence", "pane", "building").contains(subId);
     }
 
     private String classifyFamilyRoot(SearchNode node) {

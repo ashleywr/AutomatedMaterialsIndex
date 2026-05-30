@@ -16,6 +16,13 @@ public enum NodeType {
         this.translationKey = translationKey;
     }
 
+    /**
+     * All browseable types in Tab-cycle order: Items → Biomes → Structures → Entities → Dimensions.
+     */
+    public static NodeType[] atlasValues() {
+        return new NodeType[]{ITEM, BIOME, STRUCTURE, ENTITY, DIMENSION};
+    }
+
     public String translationKey() {
         return translationKey;
     }
@@ -47,13 +54,6 @@ public enum NodeType {
         NodeType[] atlas = atlasValues();
         int idx = atlasOrdinal();
         return atlas[(idx - 1 + atlas.length) % atlas.length];
-    }
-
-    /**
-     * All browseable types in Tab-cycle order: Items → Biomes → Structures → Entities → Dimensions.
-     */
-    public static NodeType[] atlasValues() {
-        return new NodeType[]{ITEM, BIOME, STRUCTURE, ENTITY, DIMENSION};
     }
 
     private int atlasOrdinal() {

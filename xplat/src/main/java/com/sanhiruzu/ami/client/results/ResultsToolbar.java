@@ -8,16 +8,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ResultsToolbar implements SearchState.Listener {
-    public enum ViewMode {GRID, LIST}
-
     public static final int TOOLBAR_HEIGHT = 20;
     public static final int BUTTON_H = 14;
     private static final int SORT_DIR_W = 18;
@@ -49,18 +43,14 @@ public class ResultsToolbar implements SearchState.Listener {
             ResultsProcessor.GroupBy.SIMILARITY,
             ResultsProcessor.GroupBy.PROPERTIES
     );
-
-    private int x, y, width;
     private final SearchState state;
+    private final List<Dropdown> dropdowns = new ArrayList<>();
+    private int x, y, width;
     private int contentWidth;
     private int scrollOffset;
-
-    private final List<Dropdown> dropdowns = new ArrayList<>();
     private Runnable onCollapseAll = null;
     private Runnable onExpandAll = null;
-
     private boolean collapseAllNext = true;
-
     private SingleSelectDropdown<ListLens> lensDropdown;
     private SingleSelectDropdown<ResultsProcessor.SortField> sortFieldDropdown;
     private SingleSelectDropdown<ResultsProcessor.GroupBy> groupByDropdown;
@@ -68,7 +58,6 @@ public class ResultsToolbar implements SearchState.Listener {
     private int sortDirY;
     private int collapseToggleX;
     private int collapseToggleY;
-
     public ResultsToolbar(int x, int y, int width, SearchState state) {
         this.x = x;
         this.y = y;
@@ -105,6 +94,29 @@ public class ResultsToolbar implements SearchState.Listener {
         dropdowns.add(groupByDropdown);
 
         updateDropdownPositions();
+    }
+
+    private static boolean isNumericSort(ResultsProcessor.SortField sortField) {
+        return sortField == ResultsProcessor.SortField.STORAGE_CAPACITY
+                || sortField == ResultsProcessor.SortField.ENERGY_CAPACITY
+                || sortField == ResultsProcessor.SortField.ENERGY_GENERATION
+                || sortField == ResultsProcessor.SortField.FLUID_CAPACITY
+                || sortField == ResultsProcessor.SortField.TOOL_SPEED
+                || sortField == ResultsProcessor.SortField.TOOL_USES
+                || sortField == ResultsProcessor.SortField.ARMOR_DEFENSE
+                || sortField == ResultsProcessor.SortField.ARMOR_TOUGHNESS
+                || sortField == ResultsProcessor.SortField.FOOD_NUTRITION
+                || sortField == ResultsProcessor.SortField.FOOD_SATURATION
+                || sortField == ResultsProcessor.SortField.DAMAGE
+                || sortField == ResultsProcessor.SortField.HEALTH
+                || sortField == ResultsProcessor.SortField.DPS
+                || sortField == ResultsProcessor.SortField.COUNT;
+    }
+
+    private static List<ResultsProcessor.GroupBy> groupOptions() {
+        return Arrays.stream(ResultsProcessor.GroupBy.values())
+                .filter(group -> AmiConfig.devMode || !DEV_GROUPS.contains(group))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -248,7 +260,7 @@ public class ResultsToolbar implements SearchState.Listener {
     private void drawButton(GuiGraphics g, int bx, int by, int bw, int bh, boolean hovered) {
         int bgColor = hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
         g.fill(bx, by, bx + bw, by + bh, bgColor);
-        
+
         int borderColor = AMITheme.SECTION_SEP;
         g.fill(bx, by, bx + bw, by + 1, borderColor);
         g.fill(bx, by + bh - 1, bx + bw, by + bh, borderColor);
@@ -260,23 +272,6 @@ public class ResultsToolbar implements SearchState.Listener {
         return isNumericSort(state.getSortField())
                 ? (state.isAscending() ? "Low" : "High")
                 : (state.isAscending() ? "A-Z" : "Z-A");
-    }
-
-    private static boolean isNumericSort(ResultsProcessor.SortField sortField) {
-        return sortField == ResultsProcessor.SortField.STORAGE_CAPACITY
-                || sortField == ResultsProcessor.SortField.ENERGY_CAPACITY
-                || sortField == ResultsProcessor.SortField.ENERGY_GENERATION
-                || sortField == ResultsProcessor.SortField.FLUID_CAPACITY
-                || sortField == ResultsProcessor.SortField.TOOL_SPEED
-                || sortField == ResultsProcessor.SortField.TOOL_USES
-                || sortField == ResultsProcessor.SortField.ARMOR_DEFENSE
-                || sortField == ResultsProcessor.SortField.ARMOR_TOUGHNESS
-                || sortField == ResultsProcessor.SortField.FOOD_NUTRITION
-                || sortField == ResultsProcessor.SortField.FOOD_SATURATION
-                || sortField == ResultsProcessor.SortField.DAMAGE
-                || sortField == ResultsProcessor.SortField.HEALTH
-                || sortField == ResultsProcessor.SortField.DPS
-                || sortField == ResultsProcessor.SortField.COUNT;
     }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
@@ -362,12 +357,6 @@ public class ResultsToolbar implements SearchState.Listener {
         }
     }
 
-    private static List<ResultsProcessor.GroupBy> groupOptions() {
-        return Arrays.stream(ResultsProcessor.GroupBy.values())
-                .filter(group -> AmiConfig.devMode || !DEV_GROUPS.contains(group))
-                .collect(Collectors.toList());
-    }
-
     private void updateLensOptions() {
         lensDropdown.setOptions(state.getAvailableListLenses());
     }
@@ -392,4 +381,6 @@ public class ResultsToolbar implements SearchState.Listener {
             g.drawCenteredString(font, ">", x + width - indicatorW / 2, top + 3, AMITheme.TEXT_SUBTLE);
         }
     }
+
+    public enum ViewMode {GRID, LIST}
 }

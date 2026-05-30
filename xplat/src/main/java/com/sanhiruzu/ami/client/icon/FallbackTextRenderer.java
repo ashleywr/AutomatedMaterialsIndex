@@ -3,7 +3,6 @@ package com.sanhiruzu.ami.client.icon;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.SearchNode;
-import com.sanhiruzu.ami.util.AmiWorldTooltipComposer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -11,11 +10,6 @@ import net.minecraft.network.chat.Component;
 import java.util.List;
 
 public class FallbackTextRenderer implements IIconRenderer {
-
-    @Override
-    public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
-        renderFallback(g, node, x, y, size);
-    }
 
     /**
      * Static helper so other renderers can delegate without holding an instance.
@@ -51,6 +45,11 @@ public class FallbackTextRenderer implements IIconRenderer {
             case DIMENSION -> AMITheme.FALLBACK_BG_DIMENSION;
             default -> AMITheme.FALLBACK_BG_DEFAULT;
         };
+    }
+
+    @Override
+    public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
+        renderFallback(g, node, x, y, size);
     }
 
     @Override

@@ -22,6 +22,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(GuiEventHandler.class)
 public class JeiGuiEventHandlerMixin {
 
+    private static boolean shouldSuppressJeiChrome() {
+        return InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
+    }
+
     @Inject(method = "onGuiInit", at = @At("HEAD"), cancellable = true, remap = false)
     private void suppressOnGuiInit(Screen screen, CallbackInfo ci) {
         if (shouldSuppressJeiChrome()) {
@@ -55,9 +59,5 @@ public class JeiGuiEventHandlerMixin {
         if (shouldSuppressJeiChrome()) {
             cir.setReturnValue(false);
         }
-    }
-
-    private static boolean shouldSuppressJeiChrome() {
-        return InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
     }
 }

@@ -12,13 +12,39 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class JeiClientInputHandlerMixinDescriptorTest {
     private static final String MIXIN_CLASS_FILE = "com/sanhiruzu/ami/mixin/JeiClientInputHandlerMixin.class";
     private static final String INJECTOR_NAME = "suppressMouseScroll";
+
+    private static void assertVendorSourceContains(String sourcePath, String expectedSignature) throws Exception {
+        Path path = Paths.get(sourcePath);
+        assertTrue(Files.exists(path), "Refresh recipe viewer sources; missing " + path);
+        String source = Files.readString(path, StandardCharsets.UTF_8);
+        assertTrue(source.contains(expectedSignature),
+                "Unexpected JEI ClientInputHandler mouse scroll signature in " + path);
+    }
+
+    private static void assertInjectorDescriptor(String classPath, String expectedDescriptor) throws Exception {
+        ClassNode node = readClassNode(Paths.get(classPath));
+        MethodNode method = node.methods.stream()
+                .filter(candidate -> INJECTOR_NAME.equals(candidate.name))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(method, "Missing " + INJECTOR_NAME + " in " + classPath);
+        assertEquals(expectedDescriptor, method.desc,
+                "Mixin injector descriptor must match the platform JEI ClientInputHandler.onGuiMouseScroll signature");
+    }
+
+    private static ClassNode readClassNode(Path path) throws Exception {
+        assertTrue(Files.exists(path), "Missing compiled mixin class at " + path);
+        try (InputStream in = Files.newInputStream(path)) {
+            ClassNode node = new ClassNode();
+            new ClassReader(in).accept(node, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG);
+            return node;
+        }
+    }
 
     @Test
     void forgeMouseScrollInjectorMatchesJei15Signature() throws Exception {
@@ -49,34 +75,6 @@ public class JeiClientInputHandlerMixinDescriptorTest {
             assertTrue(files.noneMatch(path -> path.getFileName().toString().endsWith("Support.java")),
                     "Support classes called by mixins must live outside com.sanhiruzu.ami.mixin; " +
                             "Mixin rejects direct references to classes in an owned mixin package.");
-        }
-    }
-
-    private static void assertVendorSourceContains(String sourcePath, String expectedSignature) throws Exception {
-        Path path = Paths.get(sourcePath);
-        assertTrue(Files.exists(path), "Refresh recipe viewer sources; missing " + path);
-        String source = Files.readString(path, StandardCharsets.UTF_8);
-        assertTrue(source.contains(expectedSignature),
-                "Unexpected JEI ClientInputHandler mouse scroll signature in " + path);
-    }
-
-    private static void assertInjectorDescriptor(String classPath, String expectedDescriptor) throws Exception {
-        ClassNode node = readClassNode(Paths.get(classPath));
-        MethodNode method = node.methods.stream()
-                .filter(candidate -> INJECTOR_NAME.equals(candidate.name))
-                .findFirst()
-                .orElse(null);
-        assertNotNull(method, "Missing " + INJECTOR_NAME + " in " + classPath);
-        assertEquals(expectedDescriptor, method.desc,
-                "Mixin injector descriptor must match the platform JEI ClientInputHandler.onGuiMouseScroll signature");
-    }
-
-    private static ClassNode readClassNode(Path path) throws Exception {
-        assertTrue(Files.exists(path), "Missing compiled mixin class at " + path);
-        try (InputStream in = Files.newInputStream(path)) {
-            ClassNode node = new ClassNode();
-            new ClassReader(in).accept(node, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG);
-            return node;
         }
     }
 }

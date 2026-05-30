@@ -39,12 +39,12 @@ public class AmiCheatGivePacket {
             }
             ItemStack toSet = packet.stack.isEmpty() ? ItemStack.EMPTY : packet.stack.copy();
             if (!toSet.isEmpty()) {
-                AMI.LOGGER.info("AMI cheat give: {} → {} x{}",
+                AMI.LOGGER.debug("AMI cheat give: {} → {} x{}",
                         player.getName().getString(),
                         toSet.getItem().getDescriptionId(),
                         toSet.getCount());
             } else {
-                AMI.LOGGER.info("AMI cheat delete cursor: {}", player.getName().getString());
+                AMI.LOGGER.debug("AMI cheat delete cursor: {}", player.getName().getString());
             }
             serverPlayer.containerMenu.setCarried(toSet);
             serverPlayer.containerMenu.broadcastChanges();

@@ -5,7 +5,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import com.sanhiruzu.ami.AmiCore;
 /**
  * Public API for registering quest requirement groups with AMI.
  *

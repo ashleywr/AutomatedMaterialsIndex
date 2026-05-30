@@ -19,8 +19,8 @@ public final class HeartBarTooltipComponent implements TooltipComponent, ClientT
     // UV offsets from Gui.HeartType: CONTAINER index=0 → u=16, NORMAL index=2 → full u=52, half u=61.
     private static final ResourceLocation ICONS = new ResourceLocation("textures/gui/icons.png");
     private static final int U_CONTAINER = 16;
-    private static final int U_FULL      = 52;
-    private static final int U_HALF      = 61;
+    private static final int U_FULL = 52;
+    private static final int U_HALF = 61;
 
     private static final int MAX_HEARTS = 10;
     private static final int HEART_SIZE = 9;

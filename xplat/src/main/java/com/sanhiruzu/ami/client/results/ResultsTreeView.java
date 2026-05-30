@@ -47,52 +47,75 @@ public class ResultsTreeView {
     private static final int SWATCH_SIZE = 5;
     private static final int SWATCH_GAP = 2;
     private static final int MAX_SWATCHES = 3;
-    // Recomputed each frame — 0.75× when guiScale ≥ 3, otherwise 1.0×.
-    private float currentLabelScale = 1.0f;
-
-    private static float computeLabelScale() {
-        return Minecraft.getInstance().getWindow().getGuiScale() >= 3.0 ? 0.75f : 1.0f;
-    }
-
-    // ── State ─────────────────────────────────────────────────────────────────
-    private int x, y, width, height;
-    private List<TreeNode> rootNodes = new ArrayList<>();
-
     /**
      * Cached representative SearchNode per group TreeNode; cleared whenever rootNodes changes.
      */
     private final Map<TreeNode, SearchNode> representativeCache = new HashMap<>();
-
+    // Recomputed each frame — 0.75× when guiScale ≥ 3, otherwise 1.0×.
+    private float currentLabelScale = 1.0f;
+    // ── State ─────────────────────────────────────────────────────────────────
+    private int x, y, width, height;
+    private List<TreeNode> rootNodes = new ArrayList<>();
     /**
      * Pixel scroll offset — increases as user scrolls down.
      */
     private int pixelScrollOffset = 0;
-
     /**
      * Height of the scrollable content area (height minus any sticky header). Updated each render.
      */
     private int lastContentH = 0;
-
     private boolean scrollbarDragging = false;
     private int scrollbarDragStartY;
     private int scrollbarDragStartOffset;
-
     private List<Component> pendingTooltipLines = null;
     private Optional<TooltipComponent> pendingTooltipImage = Optional.empty();
     private ItemStack pendingItemStack = null;
     private SearchNode hoveredNode = null;
-
     private java.util.function.Consumer<String> onModClick = null;
     private java.util.function.BiConsumer<SearchNode, Integer> onItemClick = null;
     private java.util.function.Consumer<String> onTokenInject = null;
-
-    // ── Construction ──────────────────────────────────────────────────────────
-
     public ResultsTreeView(int x, int y, int width, int height) {
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
+    }
+
+    // ── Construction ──────────────────────────────────────────────────────────
+
+    private static float computeLabelScale() {
+        return Minecraft.getInstance().getWindow().getGuiScale() >= 3.0 ? 0.75f : 1.0f;
+    }
+
+    private static int scaledBadgeWidth(net.minecraft.client.gui.Font font, String text, float scale) {
+        return (int) Math.ceil(font.width(text) * scale);
+    }
+
+    private static void drawBadgeText(GuiGraphics g, net.minecraft.client.gui.Font font, String text, int x, int y,
+                                      float scale, int color, boolean shadow) {
+        g.pose().pushPose();
+        g.pose().scale(scale, scale, 1.0f);
+        g.drawString(font, text, Math.round(x / scale), Math.round(y / scale), color, shadow);
+        g.pose().popPose();
+    }
+
+    private static String truncate(net.minecraft.client.gui.Font font, String text, int maxW) {
+        if (maxW <= 0) return "";
+        if (font.width(text) <= maxW) return text;
+
+        String ellipsis = "...";
+        int ellipsisW = font.width(ellipsis);
+        if (maxW <= ellipsisW) return ellipsis;
+
+        return font.plainSubstrByWidth(text, maxW - ellipsisW) + ellipsis;
+    }
+
+    private static boolean isTokenInjectClick(int button) {
+        return ViewInputHelper.isTokenInjectClick(button);
+    }
+
+    private static boolean isEmiRecipeScreenActive() {
+        return com.sanhiruzu.ami.compat.RecipeViewerBridge.isEmiRecipeScreenActive();
     }
 
     public void setOnModClick(java.util.function.Consumer<String> callback) {
@@ -107,7 +130,14 @@ public class ResultsTreeView {
         this.onTokenInject = callback;
     }
 
-    public void setTooltipLeftOfCursor(boolean ignored) {
+    private boolean tooltipLeftOfCursor = true;
+
+    public void setTooltipLeftOfCursor(boolean tooltipLeftOfCursor) {
+        this.tooltipLeftOfCursor = tooltipLeftOfCursor;
+    }
+
+    public List<TreeNode> getRootNodes() {
+        return List.copyOf(rootNodes);
     }
 
     public void setRootNodes(List<TreeNode> nodes) {
@@ -116,16 +146,14 @@ public class ResultsTreeView {
         this.representativeCache.clear();
     }
 
-    public List<TreeNode> getRootNodes() {
-        return List.copyOf(rootNodes);
-    }
-
     public void collapseAll() {
         for (TreeNode node : rootNodes) {
             collapseNode(node);
         }
         this.pixelScrollOffset = 0;
     }
+
+    // ── Rendering ─────────────────────────────────────────────────────────────
 
     public void expandAll() {
         for (TreeNode node : rootNodes) {
@@ -148,6 +176,8 @@ public class ResultsTreeView {
         }
     }
 
+    // ── Leaf (rich card) ──────────────────────────────────────────────────────
+
     public void updateLayout(int x, int y, int width, int height) {
         this.x = x;
         this.y = y;
@@ -155,7 +185,7 @@ public class ResultsTreeView {
         this.height = height;
     }
 
-    // ── Rendering ─────────────────────────────────────────────────────────────
+    // ── Badges ────────────────────────────────────────────────────────────────
 
     /**
      * @param sectionLabel Optional label drawn as a sticky header above the scroll region
@@ -207,7 +237,17 @@ public class ResultsTreeView {
             var font = Minecraft.getInstance().font;
             com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
             if (pendingTooltipLines != null) {
-                AmiTooltipRenderer.renderLeftOfCursor(g, font, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY);
+                if (tooltipLeftOfCursor) {
+                    AmiTooltipRenderer.renderLeftOfCursor(g, font, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY);
+                } else {
+                    AmiTooltipRenderer.renderRightOfCursor(g, font, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY);
+                }
+            } else if (pendingItemStack != null && !pendingItemStack.isEmpty()) {
+                if (tooltipLeftOfCursor) {
+                    AmiTooltipRenderer.renderLeftOfCursor(g, font, pendingItemStack, mouseX, mouseY);
+                } else {
+                    AmiTooltipRenderer.renderRightOfCursor(g, font, pendingItemStack, mouseX, mouseY);
+                }
             }
         }
     }
@@ -270,8 +310,6 @@ public class ResultsTreeView {
         return rowIdx;
     }
 
-    // ── Leaf (rich card) ──────────────────────────────────────────────────────
-
     private void renderLeaf(GuiGraphics g, TreeNode node, int depth, int drawY, boolean hovered, String currentQuery, Set<String> selectedMods) {
         var font = Minecraft.getInstance().font;
         SearchNode entry = node.getEntry();
@@ -281,7 +319,7 @@ public class ResultsTreeView {
 
         // Z-lift prevents dark-background clipping on 3D item models
         g.pose().pushPose();
-        g.pose().translate(iconX + 8, iconY + 8, 150);
+        g.pose().translate(iconX + 8, iconY + 8, isEmiRecipeScreenActive() ? 0 : 150);
 
         boolean dragging = com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging();
         if (dragging || hovered) {
@@ -342,7 +380,7 @@ public class ResultsTreeView {
         }
     }
 
-    // ── Badges ────────────────────────────────────────────────────────────────
+    // ── Group header ──────────────────────────────────────────────────────────
 
     private void renderBadges(GuiGraphics g, net.minecraft.client.gui.Font font,
                               SearchNode entry, int drawY, int rightEdge, int modNameColor, boolean dropShadow) {
@@ -420,6 +458,8 @@ public class ResultsTreeView {
         }
     }
 
+    // ── Representative icon helpers ───────────────────────────────────────────
+
     private int badgeWidth(net.minecraft.client.gui.Font font, SearchNode entry) {
         // Start with 20px (16px icon + 4px gap) reserved for the tool slot
         int w = 16 + 4;
@@ -440,20 +480,6 @@ public class ResultsTreeView {
 
         return w;
     }
-
-    private static int scaledBadgeWidth(net.minecraft.client.gui.Font font, String text, float scale) {
-        return (int) Math.ceil(font.width(text) * scale);
-    }
-
-    private static void drawBadgeText(GuiGraphics g, net.minecraft.client.gui.Font font, String text, int x, int y,
-                                      float scale, int color, boolean shadow) {
-        g.pose().pushPose();
-        g.pose().scale(scale, scale, 1.0f);
-        g.drawString(font, text, Math.round(x / scale), Math.round(y / scale), color, shadow);
-        g.pose().popPose();
-    }
-
-    // ── Group header ──────────────────────────────────────────────────────────
 
     private void renderGroup(GuiGraphics g, TreeNode node, int depth, int drawY, boolean hovered) {
         var font = Minecraft.getInstance().font;
@@ -515,8 +541,6 @@ public class ResultsTreeView {
                 AMITheme.TEXT_PRIMARY, false);
         g.pose().popPose();
     }
-
-    // ── Representative icon helpers ───────────────────────────────────────────
 
     private ItemStack resolveGroupIcon(TreeNode node) {
         if (node.isHighCardinality()) {
@@ -603,6 +627,8 @@ public class ResultsTreeView {
         }
     }
 
+    // ── Hit-testing ───────────────────────────────────────────────────────────
+
     private List<Integer> collectSwatchColors(TreeNode node, int max) {
         Set<String> seen = new LinkedHashSet<>();
         collectBuckets(node, seen, max);
@@ -613,6 +639,8 @@ public class ResultsTreeView {
         }
         return result;
     }
+
+    // ── Scrollbar ─────────────────────────────────────────────────────────────
 
     private void collectBuckets(TreeNode node, Set<String> out, int max) {
         if (out.size() >= max) return;
@@ -627,14 +655,12 @@ public class ResultsTreeView {
         }
     }
 
-    // ── Hit-testing ───────────────────────────────────────────────────────────
-
     private boolean isRowHovered(int mouseX, int mouseY, int drawY) {
         return mouseX >= x && mouseX < x + width - SCROLLBAR_W
                 && mouseY >= drawY && mouseY < drawY + AMITheme.ROW_HEIGHT;
     }
 
-    // ── Scrollbar ─────────────────────────────────────────────────────────────
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private void renderScrollbar(GuiGraphics g, int totalH, int contentH, int originY,
                                  int mouseX, int mouseY) {
@@ -660,8 +686,6 @@ public class ResultsTreeView {
                 && mouseY >= originY && mouseY < originY + contentH;
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
     private void clampScroll(int totalH, int contentH) {
         int maxScroll = Math.max(0, totalH - contentH);
         pixelScrollOffset = Math.max(0, Math.min(maxScroll, pixelScrollOffset));
@@ -673,6 +697,9 @@ public class ResultsTreeView {
         return count;
     }
 
+
+    // ── Input handlers ────────────────────────────────────────────────────────
+
     private int countNode(TreeNode node) {
         int count = 1;
         if (!node.isLeaf() && node.isExpanded()) {
@@ -680,20 +707,6 @@ public class ResultsTreeView {
         }
         return count;
     }
-
-    private static String truncate(net.minecraft.client.gui.Font font, String text, int maxW) {
-        if (maxW <= 0) return "";
-        if (font.width(text) <= maxW) return text;
-
-        String ellipsis = "...";
-        int ellipsisW = font.width(ellipsis);
-        if (maxW <= ellipsisW) return ellipsis;
-
-        return font.plainSubstrByWidth(text, maxW - ellipsisW) + ellipsis;
-    }
-
-
-    // ── Input handlers ────────────────────────────────────────────────────────
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0 && button != 1) return false;
@@ -708,10 +721,6 @@ public class ResultsTreeView {
             if (handleNodeClick(node, targetRow, counter, mouseX, button)) return true;
         }
         return false;
-    }
-
-    private static boolean isTokenInjectClick(int button) {
-        return button == 1 && Screen.hasControlDown();
     }
 
     /**

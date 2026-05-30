@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.benchmark;
 
-import com.sanhiruzu.ami.neoforge.AMI;
 import com.sanhiruzu.ami.index.AmiIndexerService;
+import com.sanhiruzu.ami.neoforge.AMI;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.neoforged.fml.loading.FMLPaths;

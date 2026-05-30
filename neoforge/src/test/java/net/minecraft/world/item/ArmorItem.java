@@ -2,7 +2,7 @@ package net.minecraft.world.item;
 
 import net.minecraft.world.entity.EquipmentSlot;
 
-public class ArmorItem extends Item {
+public class ArmorItem extends Item implements Equipable {
     private final EquipmentSlot slot;
 
     public ArmorItem(String name, EquipmentSlot slot) {

@@ -1,16 +1,16 @@
 package com.sanhiruzu.ami.client;
 
-import com.sanhiruzu.ami.forge.AMI;
 import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.forge.AMI;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 
 @Mod.EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
 public class AmiDevModeHandler {

@@ -33,10 +33,10 @@ public final class BlockTags {
     public static final TagKey<Block> MINEABLE_WITH_SHOVEL = tag("mineable_with_shovel");
     public static final TagKey<Block> MINEABLE_WITH_HOE = tag("mineable_with_hoe");
 
-    private static TagKey<Block> tag(String path) {
-        return TagKey.create(null, ResourceLocation.fromNamespaceAndPath("minecraft", path));
+    private BlockTags() {
     }
 
-    private BlockTags() {
+    private static TagKey<Block> tag(String path) {
+        return TagKey.create(null, ResourceLocation.fromNamespaceAndPath("minecraft", path));
     }
 }

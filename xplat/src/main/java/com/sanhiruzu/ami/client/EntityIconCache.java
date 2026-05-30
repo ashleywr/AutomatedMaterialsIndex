@@ -22,7 +22,7 @@ import java.util.function.Consumer;
  * Renders each entity into a per-size framebuffer once, copies it into a dynamic texture,
  * then blits the cached texture on subsequent frames — replacing the full 3D render pipeline
  * with a single cheap blit.
- *
+ * <p>
  * The caller supplies a render callback that draws into a GuiGraphics backed by an off-screen
  * framebuffer sized exactly (size × size). Coordinates inside the callback should be 0-based
  * (i.e. entity feet at (size/2, size-1), not panel-relative).
@@ -31,14 +31,15 @@ public class EntityIconCache {
 
     private static final Map<String, ResourceLocation> textureKeys = new HashMap<>();
 
-    private EntityIconCache() {}
+    private EntityIconCache() {
+    }
 
     /**
      * Blits the cached icon at (x, y). Populates the cache on first call for this (id, size)
      * pair by invoking renderToFramebuffer with a 0-based GuiGraphics context.
      */
     public static boolean blitCached(GuiGraphics g, ResourceLocation id, int size, int x, int y,
-                                      Consumer<GuiGraphics> renderToFramebuffer) {
+                                     Consumer<GuiGraphics> renderToFramebuffer) {
         String key = cacheKey(id, size);
         if (!textureKeys.containsKey(key)) {
             g.flush();
@@ -57,7 +58,9 @@ public class EntityIconCache {
         return false;
     }
 
-    /** Release all GL resources. Call on world unload and resource-pack reload. */
+    /**
+     * Release all GL resources. Call on world unload and resource-pack reload.
+     */
     public static void invalidate() {
         Minecraft mc = Minecraft.getInstance();
         textureKeys.values().forEach(mc.getTextureManager()::release);
@@ -81,7 +84,8 @@ public class EntityIconCache {
         float savedBlue = shaderColor[2];
         float savedAlpha = shaderColor[3];
 
-        RenderTarget rt = new RenderTarget(true) {};
+        RenderTarget rt = new RenderTarget(true) {
+        };
         NativeImage image = null;
         try {
             rt.resize(size, size, Minecraft.ON_OSX);

@@ -15,6 +15,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AmiTooltipFactsTest {
 
+    private static SearchNode node(Map<String, String> metadata) {
+        return new SearchNode(
+                new ResourceLocation("create:cardboard_sword"),
+                NodeType.ITEM,
+                "Cardboard Sword",
+                0,
+                0,
+                metadata
+        );
+    }
+
     @AfterEach
     void resetDevMode() {
         AmiConfig.devMode = false;
@@ -31,16 +42,5 @@ public class AmiTooltipFactsTest {
         SearchNode node = node(Map.of(SearchNodeKeys.MOD_ID, "create"));
 
         assertTrue(new ShiftDetailsTooltipFact().build(node).isEmpty());
-    }
-
-    private static SearchNode node(Map<String, String> metadata) {
-        return new SearchNode(
-                new ResourceLocation("create:cardboard_sword"),
-                NodeType.ITEM,
-                "Cardboard Sword",
-                0,
-                0,
-                metadata
-        );
     }
 }
