@@ -3,6 +3,8 @@ package com.sanhiruzu.ami.client.favorites;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -36,5 +38,43 @@ public class AmiFavoritesHandlerTest {
 
         handler.removeFavorite(biome);
         assertFalse(handler.isFavorite(biome));
+    }
+
+    @Test
+    void testLocalStackFavoriteCreatesRenderableSyntheticNode() {
+        AmiFavoritesHandler handler = AmiFavoritesHandler.getInstance();
+        ItemStack stack = new ItemStack(Items.APPLE);
+
+        handler.removeFavorite(stack);
+        assertFalse(handler.isFavorite(stack));
+
+        handler.addFavorite(stack);
+        assertTrue(handler.isFavorite(stack));
+        assertTrue(handler.getFavorites().stream().anyMatch(node ->
+                "item".equals(node.meta(FavoriteEntry.META_KIND)) &&
+                        "minecraft:apple".equals(node.meta(FavoriteEntry.META_BASE_ID))));
+
+        handler.removeFavorite(stack);
+        assertFalse(handler.isFavorite(stack));
+    }
+
+    @Test
+    void testRecipeFavoriteIsDistinctFromItemFavorite() {
+        AmiFavoritesHandler handler = AmiFavoritesHandler.getInstance();
+        ItemStack stack = new ItemStack(Items.CAKE);
+        ResourceLocation recipeId = new ResourceLocation("minecraft:diamond_from_blasting");
+
+        handler.removeFavorite(stack);
+        handler.removeRecipeFavorite(recipeId, stack);
+        assertFalse(handler.isRecipeFavorite(recipeId, stack));
+
+        handler.addRecipeFavorite(recipeId, stack);
+        assertTrue(handler.isRecipeFavorite(recipeId, stack));
+        assertFalse(handler.isFavorite(stack));
+        assertTrue(handler.getFavorites().stream().anyMatch(node ->
+                recipeId.toString().equals(node.meta(FavoriteEntry.META_RECIPE_ID))));
+
+        handler.removeRecipeFavorite(recipeId, stack);
+        assertFalse(handler.isRecipeFavorite(recipeId, stack));
     }
 }

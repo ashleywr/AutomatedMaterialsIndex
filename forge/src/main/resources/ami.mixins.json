@@ -7,6 +7,9 @@
   "mixins": [],
   "client": [
     "EmiScreenManagerMixin",
+    "ForgeEmiAgnosForgeMixin",
+    "ForgeEmiBoMMixin",
+    "ForgeEmiRecipeDefaultLoaderMixin",
     "JeiClientInputHandlerMixin",
     "JeiGuiEventHandlerMixin",
     "JeiIngredientListOverlayMixin",

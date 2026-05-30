@@ -85,7 +85,7 @@ public class ItemGridViewTest {
     }
 
     @Test
-    void mixedGroupChildrenRenderSubheadersBeforeLooseItems() throws Exception {
+    void mixedGroupChildrenRenderLooseItemsBeforeSubheaders() throws Exception {
         ItemGridView gridView = new ItemGridView(0, 0, 61, 100);
 
         TreeNode furniture = new TreeNode("decoration/furniture", Component.literal("Furniture"));
@@ -111,11 +111,10 @@ public class ItemGridViewTest {
         List<Object> rows = (List<Object>) buildVirtualRows.invoke(gridView, 3);
 
         assertEquals("Furniture", headerLabel(rows.get(0)));
-        assertEquals("Oak", headerLabel(rows.get(1)));
-        assertEquals("Spruce", headerLabel(rows.get(2)));
-        assertEquals("ami.group.other", headerLabel(rows.get(3)));
-        assertEquals(2, itemCount(rows.get(4)));
-        assertEquals(1, itemRowDepth(rows.get(4)));
+        assertEquals(2, itemCount(rows.get(1)));
+        assertEquals(1, itemRowDepth(rows.get(1)));
+        assertEquals("Oak", headerLabel(rows.get(2)));
+        assertEquals("Spruce", headerLabel(rows.get(3)));
     }
 
     private static int itemCount(Object row) throws Exception {
