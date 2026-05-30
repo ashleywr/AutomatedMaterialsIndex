@@ -3,9 +3,12 @@ package com.sanhiruzu.ami.index;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 public final class PrimaryCategoryResolver {
     private enum ModFamily {
@@ -116,6 +119,164 @@ public final class PrimaryCategoryResolver {
             "crate", "bag", "bale", "sack"
     );
 
+    private record ResolveContext(ResourceLocation id,
+                                  String modId,
+                                  String path,
+                                  Set<ItemFacet> facets,
+                                  Map<String, String> attributes,
+                                  ModFamily modFamily) {
+    }
+
+    private record PrimaryRule(String id,
+                               Predicate<ResolveContext> matches,
+                               Function<ResolveContext, CategoryAssignment> assignment) {
+    }
+
+    private static final List<PrimaryRule> PRIMARY_RULES = List.of(
+            rule("create handheld tools",
+                    c -> shouldBiasCreateFamilyHandheldToTools(c.modFamily, c.path),
+                    c -> assignment("tools", classifyCreateFamilyToolSubcategory(c.path), c.attributes)),
+            rule("create handheld utility",
+                    c -> shouldBiasCreateFamilyHandheldToUtility(c.modFamily, c.path),
+                    c -> assignment("utility", "misc", c.attributes)),
+            rule("create enchanting magic",
+                    c -> shouldBiasCreateEnchantingFamilyToMagic(c.modId, c.path),
+                    c -> assignment("magic", "reagents", c.attributes)),
+            rule("spawn eggs and mob buckets",
+                    c -> hasAny(c.facets, ItemFacet.SPAWN_EGG, ItemFacet.MOB_BUCKET),
+                    c -> assignment("bestiary", classifyBestiarySubcategory(c.path), c.attributes)),
+            rule("magic facets",
+                    c -> hasAny(c.facets, ItemFacet.POTION, ItemFacet.ENCHANTED_BOOK, ItemFacet.MAGIC_ARTIFACT, ItemFacet.MAGIC_REAGENT),
+                    c -> assignment("magic", classifyMagicSubcategory(c.facets), c.attributes)),
+            rule("utility facets",
+                    c -> hasAny(c.facets, ItemFacet.UTILITY_NAVIGATION, ItemFacet.UTILITY_MEDICAL, ItemFacet.UTILITY_CURRENCY, ItemFacet.UTILITY_MISC),
+                    c -> assignment("utility", classifyUtilitySubcategory(c.facets), c.attributes)),
+            rule("clear ingredients before incidental equipment or tech",
+                    c -> shouldResolveIngredientBeforeEquipmentTech(c.facets),
+                    c -> assignment("ingredients", classifyIngredientSubcategory(c.facets), c.attributes)),
+            rule("armor and real curios",
+                    c -> shouldResolveAsArmorOrCurio(c.facets),
+                    c -> assignment("armor", classifyArmorSubcategory(c.facets), c.attributes)),
+            rule("throwable ingredients",
+                    c -> isThrowableIngredient(c.facets),
+                    c -> assignment("ingredients", classifyIngredientSubcategory(c.facets), c.attributes)),
+            rule("tools and weapons",
+                    c -> hasAny(c.facets, ItemFacet.MELEE_WEAPON, ItemFacet.RANGED_WEAPON, ItemFacet.PROJECTILE, ItemFacet.HARVEST_TOOL, ItemFacet.UTILITY_TOOL),
+                    c -> assignment("tools", classifyWeaponSubcategory(c.facets), c.attributes)),
+            rule("food before passive redstone",
+                    c -> shouldResolveFoodLikeBeforePassiveRedstone(c.modFamily, c.facets, c.path),
+                    c -> assignment("nature", classifyFoodFamilyPreparedSubcategory(c.path, c.facets), c.attributes)),
+            rule("decoration before passive redstone",
+                    c -> shouldResolveDecorLikeBeforePassiveRedstone(c.modFamily, c.facets, c.attributes),
+                    c -> assignment("decoration", classifyDecorationSubcategory(c.facets), c.attributes)),
+            rule("natural cable false positives",
+                    c -> shouldResolveNaturalBeforeTech(c.facets, c.path),
+                    c -> assignment("nature", classifyNatureSubcategory(c.path, c.facets), c.attributes)),
+            rule("tech facets",
+                    c -> hasAny(c.facets,
+                            ItemFacet.HAS_ENERGY,
+                            ItemFacet.STORAGE,
+                            ItemFacet.INTERACTIVE_BLOCK,
+                            ItemFacet.ACTIVE_REDSTONE_LOGIC,
+                            ItemFacet.PASSIVE_COMPARATOR_OUTPUT,
+                            ItemFacet.REDSTONE_LOGIC,
+                            ItemFacet.REDSTONE_SIGNAL,
+                            ItemFacet.TRANSPORT,
+                            ItemFacet.MACHINE,
+                            ItemFacet.WORKSTATION,
+                            ItemFacet.CABLE,
+                            ItemFacet.UPGRADE,
+                            ItemFacet.TEMPLATE,
+                            ItemFacet.TECH_COMPONENT,
+                            ItemFacet.INGOT,
+                            ItemFacet.GEM,
+                            ItemFacet.NUGGET,
+                            ItemFacet.RAW_MATERIAL,
+                            ItemFacet.DUST),
+                    c -> assignment("tech", classifyTechSubcategory(c.facets), c.attributes)),
+            rule("nature facets",
+                    c -> hasAny(c.facets, ItemFacet.EDIBLE, ItemFacet.PLACEABLE_FOOD, ItemFacet.FOOD_MEAL, ItemFacet.FOOD_DRINK, ItemFacet.FOOD_PROTEIN, ItemFacet.COMPOSTABLE, ItemFacet.SEED, ItemFacet.CROP, ItemFacet.NATURE_MISC, ItemFacet.FUNGI, ItemFacet.LOG, ItemFacet.LEAVES, ItemFacet.FLOWER),
+                    c -> assignment("nature", classifyNatureSubcategory(c.path, c.facets), c.attributes)),
+            rule("ingredient facets",
+                    c -> hasAny(c.facets, ItemFacet.INGREDIENT_ORGANIC, ItemFacet.INGREDIENT_MINERAL, ItemFacet.INGREDIENT_DYE),
+                    c -> assignment("ingredients", classifyIngredientSubcategory(c.facets), c.attributes)),
+            rule("structural building shapes",
+                    c -> c.facets.contains(ItemFacet.PLACEABLE)
+                            && hasAny(c.facets,
+                            ItemFacet.STAIRS,
+                            ItemFacet.SLAB,
+                            ItemFacet.WALL,
+                            ItemFacet.FENCE,
+                            ItemFacet.FENCE_GATE,
+                            ItemFacet.PANE,
+                            ItemFacet.DOOR,
+                            ItemFacet.TRAPDOOR),
+                    c -> assignment("masonry", classifyMasonrySubcategory(c.facets, c.path, c.attributes), c.attributes)),
+            rule("decoration facets",
+                    c -> hasAny(c.facets, ItemFacet.LIGHT_SOURCE, ItemFacet.DECORATIVE_BLOCK),
+                    c -> assignment("decoration", classifyDecorationSubcategory(c.facets), c.attributes)),
+            rule("social facets",
+                    c -> hasAny(c.facets, ItemFacet.SOCIAL_PLAYERS, ItemFacet.SOCIAL_CLAIMS),
+                    c -> assignment("social", classifySocialSubcategory(c.facets), c.attributes)),
+            rule("architectural placeables",
+                    c -> shouldBiasArchitecturalPlaceableToBuilding(c.facets, c.path, c.attributes),
+                    c -> assignment("masonry", classifyMasonrySubcategory(c.facets, c.path, c.attributes), c.attributes)),
+            rule("lexical decoration",
+                    c -> shouldBiasLexicalDecoration(c.facets, c.path),
+                    c -> assignment("decoration", classifyLexicalDecorationSubcategory(c.path, c.facets), c.attributes)),
+            rule("lexical workstation tech",
+                    c -> shouldBiasLexicalWorkstationToTech(c.facets, c.path),
+                    c -> assignment("tech", classifyLexicalTechSubcategory(c.path, c.facets), c.attributes)),
+            rule("food family ingredients",
+                    c -> shouldBiasFoodFamilyToIngredients(c.modFamily, c.facets, c.path),
+                    c -> assignment("ingredients", classifyFoodFamilyIngredientSubcategory(c.path, c.facets), c.attributes)),
+            rule("food family prepared food",
+                    c -> shouldBiasFoodFamilyToPreparedFood(c.modFamily, c.facets, c.path),
+                    c -> assignment("nature", classifyFoodFamilyPreparedSubcategory(c.path, c.facets), c.attributes)),
+            rule("decor family decoration",
+                    c -> shouldBiasDecorFamilyToDecoration(c.modFamily, c.facets, c.path, c.attributes),
+                    c -> assignment("decoration", classifyDecorationSubcategory(c.facets), c.attributes)),
+            rule("portable storage armor",
+                    c -> shouldBiasPortableStorageFamilyToArmor(c.modFamily, c.path),
+                    c -> assignment("armor", "curios", c.attributes)),
+            rule("portable storage upgrades",
+                    c -> shouldBiasPortableStorageFamilyToTech(c.modFamily, c.path),
+                    c -> assignment("tech", "upgrades", c.attributes)),
+            rule("storage family tech",
+                    c -> shouldBiasStorageFamilyToTech(c.modFamily, c.facets, c.path, c.attributes),
+                    c -> assignment("tech", classifyStorageSubcategory(c.path, c.facets), c.attributes)),
+            rule("automation family tech",
+                    c -> shouldBiasAutomationFamilyToTech(c.modFamily, c.facets, c.path, c.attributes),
+                    c -> assignment("tech", classifyAutomationSubcategory(c.path, c.facets), c.attributes)),
+            rule("create family decoration",
+                    c -> shouldBiasCreateFamilyToDecoration(c.modFamily, c.facets),
+                    c -> assignment("decoration", classifyDecorationSubcategory(c.facets), c.attributes)),
+            rule("create family tech",
+                    c -> shouldBiasCreateFamilyToTech(c.modFamily, c.facets, c.path, c.attributes),
+                    c -> assignment("tech", classifyCreateFamilyTechSubcategory(c.modId, c.path, c.facets), c.attributes)),
+            rule("food family nature",
+                    c -> shouldBiasFoodFamilyToNature(c.modFamily, c.facets, c.path, c.attributes),
+                    c -> assignment("nature", classifyFoodFamilyNatureSubcategory(c.path, c.facets), c.attributes)),
+            rule("organic surface blocks",
+                    c -> shouldBiasOrganicSurfaceBlockToNature(c.facets, c.path, c.attributes),
+                    c -> assignment("nature", classifyOrganicSurfaceBlockSubcategory(c.path, c.facets), c.attributes)),
+            rule("geology family decoration",
+                    c -> shouldBiasGeologyFamilyToDecoration(c.facets, c.path, c.attributes),
+                    c -> assignment("decoration", classifyDecorationSubcategory(c.facets), c.attributes)),
+            rule("geology family masonry",
+                    c -> shouldBiasGeologyFamilyToMasonry(c.facets, c.path, c.attributes),
+                    c -> assignment("masonry", classifyMasonrySubcategory(c.facets, c.path, c.attributes), c.attributes)),
+            rule("geology blocks",
+                    c -> shouldBeGeology(c.facets, c.path, c.attributes),
+                    c -> assignment("geology", c.facets.contains(ItemFacet.SOIL_BLOCK) ? "terrain" : "stone", c.attributes)),
+            rule("uncraftable terrain blocks",
+                    c -> shouldBiasUncraftableFullBlockToTerrain(c.facets, c.attributes),
+                    c -> assignment("geology", classifyUncraftableTerrainSubcategory(c.facets, c.attributes), c.attributes)),
+            rule("remaining placeables",
+                    c -> c.facets.contains(ItemFacet.PLACEABLE),
+                    c -> assignment("masonry", classifyMasonrySubcategory(c.facets, c.path, c.attributes), c.attributes))
+    );
+
     private PrimaryCategoryResolver() {
     }
 
@@ -129,145 +290,12 @@ public final class PrimaryCategoryResolver {
         var facets = profile.facets();
         var attributes = new HashMap<>(profile.attributes());
         ModFamily modFamily = classifyModFamily(modId);
+        ResolveContext context = new ResolveContext(id, modId, path, facets, attributes, modFamily);
 
-        if (shouldBiasCreateFamilyHandheldToTools(modFamily, path)) {
-            return assignment("tools", classifyCreateFamilyToolSubcategory(path), attributes);
-        }
-        if (shouldBiasCreateFamilyHandheldToUtility(modFamily, path)) {
-            return assignment("utility", "misc", attributes);
-        }
-        if (shouldBiasCreateEnchantingFamilyToMagic(modId, path)) {
-            return assignment("magic", "reagents", attributes);
-        }
-        if (hasAny(facets, ItemFacet.SPAWN_EGG, ItemFacet.MOB_BUCKET)) {
-            return assignment("bestiary", classifyBestiarySubcategory(path), attributes);
-        }
-        if (hasAny(facets, ItemFacet.POTION, ItemFacet.ENCHANTED_BOOK, ItemFacet.MAGIC_ARTIFACT, ItemFacet.MAGIC_REAGENT)) {
-            return assignment("magic", classifyMagicSubcategory(facets), attributes);
-        }
-        if (hasAny(facets, ItemFacet.UTILITY_NAVIGATION, ItemFacet.UTILITY_MEDICAL, ItemFacet.UTILITY_CURRENCY, ItemFacet.UTILITY_MISC)) {
-            return assignment("utility", classifyUtilitySubcategory(facets), attributes);
-        }
-        if (hasAny(facets, ItemFacet.ARMOR_HEAD, ItemFacet.ARMOR_CHEST, ItemFacet.ARMOR_LEGS, ItemFacet.ARMOR_FEET, ItemFacet.ARMOR_ANIMAL, ItemFacet.CURIO)) {
-            return assignment("armor", classifyArmorSubcategory(facets), attributes);
-        }
-        if (isThrowableIngredient(facets)) {
-            return assignment("ingredients", classifyIngredientSubcategory(facets), attributes);
-        }
-        if (hasAny(facets, ItemFacet.MELEE_WEAPON, ItemFacet.RANGED_WEAPON, ItemFacet.PROJECTILE, ItemFacet.HARVEST_TOOL, ItemFacet.UTILITY_TOOL)) {
-            return assignment("tools", classifyWeaponSubcategory(facets), attributes);
-        }
-        if (shouldResolveFoodLikeBeforePassiveRedstone(modFamily, facets, path)) {
-            return assignment("nature", classifyFoodFamilyPreparedSubcategory(path, facets), attributes);
-        }
-        if (shouldResolveDecorLikeBeforePassiveRedstone(modFamily, facets, attributes)) {
-            return assignment("decoration", classifyDecorationSubcategory(facets), attributes);
-        }
-        if (hasAny(facets,
-                ItemFacet.HAS_ENERGY,
-                ItemFacet.STORAGE,
-                ItemFacet.INTERACTIVE_BLOCK,
-                ItemFacet.ACTIVE_REDSTONE_LOGIC,
-                ItemFacet.PASSIVE_COMPARATOR_OUTPUT,
-                ItemFacet.REDSTONE_LOGIC,
-                ItemFacet.REDSTONE_SIGNAL,
-                ItemFacet.TRANSPORT,
-                ItemFacet.MACHINE,
-                ItemFacet.WORKSTATION,
-                ItemFacet.CABLE,
-                ItemFacet.UPGRADE,
-                ItemFacet.TEMPLATE,
-                ItemFacet.TECH_COMPONENT,
-                ItemFacet.INGOT,
-                ItemFacet.GEM,
-                ItemFacet.NUGGET,
-                ItemFacet.RAW_MATERIAL,
-                ItemFacet.DUST)) {
-            return assignment("tech", classifyTechSubcategory(facets), attributes);
-        }
-        if (hasAny(facets, ItemFacet.EDIBLE, ItemFacet.PLACEABLE_FOOD, ItemFacet.FOOD_MEAL, ItemFacet.FOOD_DRINK, ItemFacet.FOOD_PROTEIN, ItemFacet.COMPOSTABLE, ItemFacet.SEED, ItemFacet.CROP, ItemFacet.NATURE_MISC, ItemFacet.FUNGI, ItemFacet.LOG, ItemFacet.LEAVES, ItemFacet.FLOWER)) {
-            return assignment("nature", classifyNatureSubcategory(facets), attributes);
-        }
-        if (hasAny(facets, ItemFacet.INGREDIENT_ORGANIC, ItemFacet.INGREDIENT_MINERAL, ItemFacet.INGREDIENT_DYE)) {
-            return assignment("ingredients", classifyIngredientSubcategory(facets), attributes);
-        }
-        // Structural building variants (stairs/slabs/etc.) are not "decoration" even if they are placeable and
-        // visually decorative. Keep them alongside their base blocks (e.g., planks -> full blocks,
-        // plank stairs/slabs -> building stairs/slabs) instead of Decoration > Furniture.
-        if (facets.contains(ItemFacet.PLACEABLE)
-                && hasAny(facets,
-                ItemFacet.STAIRS,
-                ItemFacet.SLAB,
-                ItemFacet.WALL,
-                ItemFacet.FENCE,
-                ItemFacet.FENCE_GATE,
-                ItemFacet.PANE,
-                ItemFacet.DOOR,
-                ItemFacet.TRAPDOOR)) {
-            return assignment("masonry", classifyMasonrySubcategory(facets, path, attributes), attributes);
-        }
-        if (hasAny(facets, ItemFacet.LIGHT_SOURCE, ItemFacet.DECORATIVE_BLOCK)) {
-            return assignment("decoration", classifyDecorationSubcategory(facets), attributes);
-        }
-        if (hasAny(facets, ItemFacet.SOCIAL_PLAYERS, ItemFacet.SOCIAL_CLAIMS)) {
-            return assignment("social", classifySocialSubcategory(facets), attributes);
-        }
-        if (shouldBiasArchitecturalPlaceableToBuilding(facets, path, attributes)) {
-            return assignment("masonry", classifyMasonrySubcategory(facets, path, attributes), attributes);
-        }
-        if (shouldBiasLexicalDecoration(facets, path)) {
-            return assignment("decoration", classifyLexicalDecorationSubcategory(path, facets), attributes);
-        }
-        if (shouldBiasLexicalWorkstationToTech(facets, path)) {
-            return assignment("tech", classifyLexicalTechSubcategory(path, facets), attributes);
-        }
-        if (shouldBiasFoodFamilyToIngredients(modFamily, facets, path)) {
-            return assignment("ingredients", classifyFoodFamilyIngredientSubcategory(path, facets), attributes);
-        }
-        if (shouldBiasFoodFamilyToPreparedFood(modFamily, facets, path)) {
-            return assignment("nature", classifyFoodFamilyPreparedSubcategory(path, facets), attributes);
-        }
-        if (shouldBiasDecorFamilyToDecoration(modFamily, facets, path, attributes)) {
-            return assignment("decoration", classifyDecorationSubcategory(facets), attributes);
-        }
-        if (shouldBiasPortableStorageFamilyToArmor(modFamily, path)) {
-            return assignment("armor", "curios", attributes);
-        }
-        if (shouldBiasPortableStorageFamilyToTech(modFamily, path)) {
-            return assignment("tech", "upgrades", attributes);
-        }
-        if (shouldBiasStorageFamilyToTech(modFamily, facets, path, attributes)) {
-            return assignment("tech", classifyStorageSubcategory(path, facets), attributes);
-        }
-        if (shouldBiasAutomationFamilyToTech(modFamily, facets, path, attributes)) {
-            return assignment("tech", classifyAutomationSubcategory(path, facets), attributes);
-        }
-        if (shouldBiasCreateFamilyToDecoration(modFamily, facets)) {
-            return assignment("decoration", classifyDecorationSubcategory(facets), attributes);
-        }
-        if (shouldBiasCreateFamilyToTech(modFamily, facets, path, attributes)) {
-            return assignment("tech", classifyCreateFamilyTechSubcategory(modId, path, facets), attributes);
-        }
-        if (shouldBiasFoodFamilyToNature(modFamily, facets, path, attributes)) {
-            return assignment("nature", classifyFoodFamilyNatureSubcategory(path, facets), attributes);
-        }
-        if (shouldBiasOrganicSurfaceBlockToNature(facets, path, attributes)) {
-            return assignment("nature", classifyOrganicSurfaceBlockSubcategory(path, facets), attributes);
-        }
-        if (shouldBiasGeologyFamilyToDecoration(facets, path, attributes)) {
-            return assignment("decoration", classifyDecorationSubcategory(facets), attributes);
-        }
-        if (shouldBiasGeologyFamilyToMasonry(facets, path, attributes)) {
-            return assignment("masonry", classifyMasonrySubcategory(facets, path, attributes), attributes);
-        }
-        if (shouldBeGeology(facets, path, attributes)) {
-            return assignment("geology", facets.contains(ItemFacet.SOIL_BLOCK) ? "terrain" : "stone", attributes);
-        }
-        if (shouldBiasUncraftableFullBlockToTerrain(facets, attributes)) {
-            return assignment("geology", classifyUncraftableTerrainSubcategory(facets, attributes), attributes);
-        }
-        if (facets.contains(ItemFacet.PLACEABLE)) {
-            return assignment("masonry", classifyMasonrySubcategory(facets, path, attributes), attributes);
+        for (PrimaryRule rule : PRIMARY_RULES) {
+            if (rule.matches.test(context)) {
+                return rule.assignment.apply(context);
+            }
         }
         return fallback();
     }
@@ -368,6 +396,12 @@ public final class PrimaryCategoryResolver {
         return new CategoryAssignment(categoryId, subcategoryId, attributes);
     }
 
+    private static PrimaryRule rule(String id,
+                                    Predicate<ResolveContext> matches,
+                                    Function<ResolveContext, CategoryAssignment> assignment) {
+        return new PrimaryRule(id, matches, assignment);
+    }
+
     private static boolean hasAny(Set<ItemFacet> facets, ItemFacet... expected) {
         for (ItemFacet facet : expected) {
             if (facets.contains(facet)) {
@@ -433,6 +467,47 @@ public final class PrimaryCategoryResolver {
                 && !hasAny(facets, ItemFacet.MELEE_WEAPON, ItemFacet.RANGED_WEAPON, ItemFacet.HARVEST_TOOL, ItemFacet.UTILITY_TOOL);
     }
 
+    private static boolean shouldResolveIngredientBeforeEquipmentTech(Set<ItemFacet> facets) {
+        return hasAny(facets, ItemFacet.INGREDIENT_ORGANIC, ItemFacet.INGREDIENT_MINERAL, ItemFacet.INGREDIENT_DYE)
+                && !hasAny(facets,
+                ItemFacet.MELEE_WEAPON,
+                ItemFacet.RANGED_WEAPON,
+                ItemFacet.HARVEST_TOOL,
+                ItemFacet.UTILITY_TOOL,
+                ItemFacet.ARMOR_HEAD,
+                ItemFacet.ARMOR_CHEST,
+                ItemFacet.ARMOR_LEGS,
+                ItemFacet.ARMOR_FEET,
+                ItemFacet.ARMOR_ANIMAL,
+                ItemFacet.MACHINE,
+                ItemFacet.HAS_ENERGY,
+                ItemFacet.STORAGE,
+                ItemFacet.REDSTONE_LOGIC,
+                ItemFacet.REDSTONE_SIGNAL,
+                ItemFacet.TRANSPORT,
+                ItemFacet.CABLE);
+    }
+
+    private static boolean shouldResolveAsArmorOrCurio(Set<ItemFacet> facets) {
+        if (hasAny(facets, ItemFacet.ARMOR_HEAD, ItemFacet.ARMOR_CHEST, ItemFacet.ARMOR_LEGS, ItemFacet.ARMOR_FEET, ItemFacet.ARMOR_ANIMAL)) {
+            return true;
+        }
+        return facets.contains(ItemFacet.CURIO)
+                && !hasAny(facets,
+                ItemFacet.DECORATIVE_BLOCK,
+                ItemFacet.LIGHT_SOURCE,
+                ItemFacet.NATURE_MISC,
+                ItemFacet.FUNGI,
+                ItemFacet.FLOWER,
+                ItemFacet.LOG,
+                ItemFacet.LEAVES,
+                ItemFacet.EDIBLE,
+                ItemFacet.PLACEABLE_FOOD,
+                ItemFacet.INGREDIENT_ORGANIC,
+                ItemFacet.INGREDIENT_MINERAL,
+                ItemFacet.INGREDIENT_DYE);
+    }
+
     private static String classifyTechSubcategory(Set<ItemFacet> facets) {
         if (facets.contains(ItemFacet.ACTIVE_REDSTONE_LOGIC) || facets.contains(ItemFacet.REDSTONE_LOGIC)) {
             return "redstone";
@@ -458,7 +533,8 @@ public final class PrimaryCategoryResolver {
         return "parts";
     }
 
-    private static String classifyNatureSubcategory(Set<ItemFacet> facets) {
+    private static String classifyNatureSubcategory(String path, Set<ItemFacet> facets) {
+        if (hasPreparedMealPath(path)) return "meals";
         if (facets.contains(ItemFacet.FOOD_MEAL)) return "meals";
         if (facets.contains(ItemFacet.FOOD_DRINK)) return "drinks";
         if (facets.contains(ItemFacet.FOOD_PROTEIN)) return "proteins";
@@ -545,6 +621,11 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.LEAVES,
                 ItemFacet.FLOWER)
                 && containsPathToken(path, DECOR_TOKENS);
+    }
+
+    private static boolean shouldResolveNaturalBeforeTech(Set<ItemFacet> facets, String path) {
+        return facets.contains(ItemFacet.NATURE_MISC)
+                && isNaturalCableFalsePositivePath(path);
     }
 
     private static boolean shouldBiasLexicalWorkstationToTech(Set<ItemFacet> facets, String path) {
@@ -773,7 +854,7 @@ public final class PrimaryCategoryResolver {
 
     private static String classifyFoodFamilyNatureSubcategory(String path, Set<ItemFacet> facets) {
         if (isFoodStorageBlockPath(path)) return "crops";
-        return classifyNatureSubcategory(facets);
+        return classifyNatureSubcategory(path, facets);
     }
 
     private static boolean shouldBiasFoodFamilyToIngredients(ModFamily modFamily, Set<ItemFacet> facets, String path) {
@@ -1288,13 +1369,22 @@ public final class PrimaryCategoryResolver {
     }
 
     private static boolean isCablePath(String path) {
-        return (path.contains("cable")
+        return !isNaturalCableFalsePositivePath(path)
+                && (path.contains("cable")
                 || path.endsWith("wire")
                 || path.contains("_wire")
                 || path.contains("wire_")
                 || path.contains("wirecoil")
                 || containsPathToken(path, Set.of("pipe", "tube", "conduit", "duct")))
                 && !path.contains("wire_cut");
+    }
+
+    private static boolean isNaturalCableFalsePositivePath(String path) {
+        return path.contains("coral")
+                || path.equals("cobweb")
+                || path.equals("dead_bush")
+                || path.equals("frogspawn")
+                || path.contains("sculk");
     }
 
     private static boolean isTemplatePath(String path) {

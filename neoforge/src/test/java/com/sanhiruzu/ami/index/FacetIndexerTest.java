@@ -334,6 +334,8 @@ class FacetIndexerTest {
         assertFalse(zombieHeadProfile.facets().contains(ItemFacet.SOCIAL_PLAYERS));
         assertTrue(pointedDripstoneProfile.facets().contains(ItemFacet.STONE_BLOCK));
         assertTrue(tubeCoralProfile.facets().contains(ItemFacet.NATURE_MISC));
+        assertFalse(tubeCoralProfile.facets().contains(ItemFacet.CABLE));
+        assertFalse(tubeCoralProfile.facets().contains(ItemFacet.TECH_COMPONENT));
         assertTrue(oakSignProfile.facets().contains(ItemFacet.DECORATIVE_BLOCK));
         assertTrue(waySignProfile.facets().contains(ItemFacet.DECORATIVE_BLOCK));
         assertTrue(taterInAJarProfile.facets().contains(ItemFacet.DECORATIVE_BLOCK));

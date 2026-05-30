@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.index.GlobalIndex;
+import com.sanhiruzu.ami.index.AmiOntologyKinds;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeMirrorDump;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,13 +31,13 @@ public class RuntimeMirrorOntologyCoverageTest {
     }
 
     @Test
-    void writesOntologyOtherCoverageReportForAvailableRuntimeDumps() throws IOException {
-        Path reportPath = repoRoot().resolve(Path.of("neoforge", "build", "reports", "ami-result-shapes", "ontology-other-coverage.md"));
+    void writesOntologyCoverageReportForAvailableRuntimeDumps() throws IOException {
+        Path reportPath = repoRoot().resolve(Path.of("neoforge", "build", "reports", "ami-result-shapes", "ontology-unclassified-coverage.md"));
         Files.createDirectories(reportPath.getParent());
 
         StringBuilder report = new StringBuilder();
-        report.append("# AMI Ontology Other Coverage\n\n");
-        report.append("Diagnostic report for Category view. `Other` should be a small escape hatch, not a major bucket.\n\n");
+        report.append("# AMI Ontology Unclassified Coverage\n\n");
+        report.append("Diagnostic report for Category view. Direct leaves under subcategories with curated kinds are ontology misses to audit.\n\n");
 
         int dumpsRead = 0;
         for (Path dump : configuredDumps()) {
@@ -53,15 +54,15 @@ public class RuntimeMirrorOntologyCoverageTest {
             List<TreeNode> roots = ResultsViewProjector.project(fixture, state, null, false, false).roots();
 
             Map<String, CoverageBucket> buckets = new LinkedHashMap<>();
-            collectOtherBuckets(roots, "", buckets);
+            collectUnclassifiedBuckets(roots, "", buckets);
 
-            long otherLeaves = buckets.values().stream().mapToLong(bucket -> bucket.count).sum();
+            long unclassifiedLeaves = buckets.values().stream().mapToLong(bucket -> bucket.count).sum();
             long totalLeaves = countLeaves(roots);
             report.append("## ").append(dump.getParent().getParent().getFileName()).append("\n\n");
             report.append("- Source: `").append(dump).append("`\n");
             report.append("- Leaves: ").append(totalLeaves).append("\n");
-            report.append("- Other leaves: ").append(otherLeaves).append("\n");
-            report.append("- Other share: ").append(totalLeaves == 0 ? "0.00" : String.format(java.util.Locale.ROOT, "%.2f", otherLeaves * 100.0 / totalLeaves)).append("%\n\n");
+            report.append("- Unclassified leaves: ").append(unclassifiedLeaves).append("\n");
+            report.append("- Unclassified share: ").append(totalLeaves == 0 ? "0.00" : String.format(java.util.Locale.ROOT, "%.2f", unclassifiedLeaves * 100.0 / totalLeaves)).append("%\n\n");
 
             buckets.entrySet().stream()
                     .sorted((a, b) -> Long.compare(b.getValue().count, a.getValue().count))
@@ -99,21 +100,33 @@ public class RuntimeMirrorOntologyCoverageTest {
         return paths;
     }
 
-    private static void collectOtherBuckets(List<TreeNode> nodes, String path, Map<String, CoverageBucket> buckets) {
+    private static void collectUnclassifiedBuckets(List<TreeNode> nodes, String path, Map<String, CoverageBucket> buckets) {
         for (TreeNode node : nodes) {
             String label = node.getLabel().getString();
             String nextPath = path.isEmpty() ? label : path + " > " + label;
-            if (node.isLeaf()) {
-                if (path.endsWith(" > Other")) {
-                    CoverageBucket bucket = buckets.computeIfAbsent(path, ignored -> new CoverageBucket());
-                    bucket.count++;
-                    if (bucket.examples.size() < 8) {
-                        bucket.examples.add(label + " [" + node.getEntry().id() + "]");
+
+            if (!node.isLeaf()) {
+                String key = node.getKey();
+                if (key != null) {
+                    String[] parts = key.split("/");
+                    if (parts.length == 2 && !AmiOntologyKinds.kindsFor(parts[0], parts[1]).isEmpty()) {
+                        CoverageBucket bucket = buckets.computeIfAbsent(nextPath, ignored -> new CoverageBucket());
+                        for (TreeNode child : node.getChildren()) {
+                            if (child.isLeaf()) {
+                                addExample(bucket, child);
+                            }
+                        }
                     }
                 }
-            } else {
-                collectOtherBuckets(node.getChildren(), nextPath, buckets);
+                collectUnclassifiedBuckets(node.getChildren(), nextPath, buckets);
             }
+        }
+    }
+
+    private static void addExample(CoverageBucket bucket, TreeNode node) {
+        bucket.count++;
+        if (bucket.examples.size() < 8) {
+            bucket.examples.add(node.getLabel().getString() + " [" + node.getEntry().id() + "]");
         }
     }
 

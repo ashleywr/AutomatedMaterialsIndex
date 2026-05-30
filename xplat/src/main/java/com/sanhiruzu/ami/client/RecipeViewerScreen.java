@@ -4,6 +4,7 @@ import com.sanhiruzu.ami.client.recipe.RecipeDisplayHelper;
 import com.sanhiruzu.ami.client.recipe.RecipeDisplayHelper.RecipeLayout;
 import com.sanhiruzu.ami.client.recipe.RecipeDisplayHelper.SlotPosition;
 import com.sanhiruzu.ami.client.recipe.RecipeTransferHandler;
+import com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler;
 import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import net.minecraft.client.gui.GuiGraphics;
@@ -404,6 +405,22 @@ public class RecipeViewerScreen extends Screen {
                 g.drawString(font, shapeless, cardX + cardW - sw - 6, cardY + 4, COL_SHAPELESS, false);
             }
 
+            if (!layout.output().isEmpty()) {
+                int favX = cardX + 6;
+                int favY = cardY + 4;
+                boolean favorite = AmiFavoritesHandler.getInstance().isRecipeFavorite(recipe.id(), layout.output());
+                boolean favHovered = isHovering(mouseX, mouseY, favX, favY, 14, 14);
+                AMITheme.fillRounded(g, favX, favY, 14, 14,
+                        favorite ? COL_TAB_ACTIVE : favHovered ? COL_TAB_HOVER : COL_TAB_IDLE);
+                g.drawCenteredString(font, Component.translatable("ami.recipe_viewer.favorite_icon"),
+                        favX + 7, favY + 3, favorite ? 0xFFFFFFFF : COL_TAB_TEXT_I);
+                if (favHovered) {
+                    g.renderTooltip(font, Component.translatable(favorite
+                            ? "ami.recipe_viewer.unfavorite"
+                            : "ami.recipe_viewer.favorite"), mouseX, mouseY);
+                }
+            }
+
             int slotIdx = 0;
             for (SlotPosition slot : layout.inputs()) {
                 int sx = rx + slot.x();
@@ -731,6 +748,20 @@ public class RecipeViewerScreen extends Screen {
             int ry = cardY + yOffset;
 
             boolean recipeCanTransfer = RecipeTransferHandler.canTransfer(recipe, parentScreen);
+            if (!layout.output().isEmpty() && button == 0) {
+                int favX = cardX + 6;
+                int favY = cardY + 4;
+                if (isHovering(mouseX, mouseY, favX, favY, 14, 14)) {
+                    AmiFavoritesHandler favorites = AmiFavoritesHandler.getInstance();
+                    if (favorites.isRecipeFavorite(recipe.id(), layout.output())) {
+                        favorites.removeRecipeFavorite(recipe.id(), layout.output());
+                    } else {
+                        favorites.addRecipeFavorite(recipe.id(), layout.output());
+                    }
+                    return true;
+                }
+            }
+
             if (recipeCanTransfer && button == 0) {
                 int btnX = cardX + cardW - 22;
                 int btnY = cardY + (cardH - 14) / 2;

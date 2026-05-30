@@ -97,11 +97,12 @@ public final class RecipeTransferHandler {
 
     private static int[] getPlayerSlots(AbstractContainerMenu menu) {
         List<Integer> slots = new ArrayList<>();
-        for (Slot slot : menu.slots) {
+        for (int menuSlot = 0; menuSlot < menu.slots.size(); menuSlot++) {
+            Slot slot = menu.slots.get(menuSlot);
             // Player inventory and hotbar (not armor, not crafting result/input)
             if (slot.container instanceof Inventory inventory
                     && slot.index < inventory.items.size()) {
-                slots.add(slot.index);
+                slots.add(menuSlot);
             }
         }
         return slots.stream().mapToInt(Integer::intValue).toArray();
@@ -110,9 +111,10 @@ public final class RecipeTransferHandler {
     private static int[] getInputSlots(AbstractContainerMenu menu, int ingredientCount) {
         // Crafting table or player 2x2 crafting
         List<Integer> crafting = new ArrayList<>();
-        for (Slot slot : menu.slots) {
+        for (int menuSlot = 0; menuSlot < menu.slots.size(); menuSlot++) {
+            Slot slot = menu.slots.get(menuSlot);
             if (slot.container instanceof CraftingContainer) {
-                crafting.add(slot.index);
+                crafting.add(menuSlot);
             }
         }
         if (!crafting.isEmpty() && ingredientCount <= crafting.size()) {
@@ -122,12 +124,13 @@ public final class RecipeTransferHandler {
 
         // Furnace input: look for slots whose name suggests input, or the first non-fuel, non-result slot
         List<Integer> processingInputs = new ArrayList<>();
-        for (Slot slot : menu.slots) {
+        for (int menuSlot = 0; menuSlot < menu.slots.size(); menuSlot++) {
+            Slot slot = menu.slots.get(menuSlot);
             if (!(slot.container instanceof Inventory)
                     && !(slot.container instanceof CraftingContainer)) {
                 // Don't include result slots (slot index within their container is often 0)
                 // For furnace: slot 0 = input, slot 1 = fuel, slot 2 = result
-                processingInputs.add(slot.index);
+                processingInputs.add(menuSlot);
             }
         }
         if (!processingInputs.isEmpty()) {

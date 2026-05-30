@@ -1,5 +1,8 @@
 package com.sanhiruzu.ami.compat;
 
+import com.sanhiruzu.ami.client.favorites.FavoriteEntry;
+import dev.emi.emi.api.EmiApi;
+import dev.emi.emi.api.recipe.EmiRecipe;
 import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
 import dev.emi.emi.runtime.EmiFavorite;
@@ -45,6 +48,31 @@ public final class EmiFavoritesBridge {
         EmiFavorites.removeFavorite(EmiStack.of(stack));
     }
 
+    public static void addRecipeFavorite(ItemStack stack, ResourceLocation recipeId) {
+        EmiRecipe recipe = recipeId == null ? null : EmiApi.getRecipeManager().getRecipe(recipeId);
+        if (recipe != null) {
+            EmiFavorites.addFavorite(EmiStack.of(stack), recipe);
+        } else {
+            EmiFavorites.addFavorite(EmiStack.of(stack));
+        }
+    }
+
+    public static void removeRecipeFavorite(ItemStack stack, ResourceLocation recipeId) {
+        EmiRecipe recipe = recipeId == null ? null : EmiApi.getRecipeManager().getRecipe(recipeId);
+        if (recipe == null) {
+            EmiFavorites.removeFavorite(EmiStack.of(stack));
+            return;
+        }
+        EmiFavorites.favorites.removeIf(favorite -> {
+            EmiIngredient ingredient = favorite.getStack();
+            EmiRecipe favoriteRecipe = favorite.getRecipe();
+            if (!(ingredient instanceof EmiStack emiStack) || favoriteRecipe == null || favoriteRecipe.getId() == null) {
+                return false;
+            }
+            return favoriteRecipe.getId().equals(recipeId) && emiStack.getId().equals(EmiStack.of(stack).getId());
+        });
+    }
+
     public static List<ResourceLocation> getFavoriteIds() {
         List<ResourceLocation> result = new ArrayList<>();
         for (EmiFavorite favorite : EmiFavorites.favorites) {
@@ -54,5 +82,37 @@ public final class EmiFavoritesBridge {
             }
         }
         return result;
+    }
+
+    public static List<FavoriteEntry> getFavoriteEntries() {
+        List<FavoriteEntry> result = new ArrayList<>();
+        for (EmiFavorite favorite : EmiFavorites.favorites) {
+            EmiIngredient ingredient = favorite.getStack();
+            ItemStack stack = firstItemStack(ingredient);
+            if (stack.isEmpty()) continue;
+
+            EmiRecipe recipe = favorite.getRecipe();
+            ResourceLocation recipeId = recipe == null ? null : recipe.getId();
+            FavoriteEntry entry = recipeId == null
+                    ? FavoriteEntry.item(stack, "emi")
+                    : FavoriteEntry.recipe(stack, recipeId, "emi");
+            if (entry != null) {
+                result.add(entry);
+            }
+        }
+        return result;
+    }
+
+    private static ItemStack firstItemStack(EmiIngredient ingredient) {
+        if (ingredient instanceof EmiStack emiStack) {
+            return emiStack.getItemStack().copy();
+        }
+        for (EmiStack stack : ingredient.getEmiStacks()) {
+            ItemStack itemStack = stack.getItemStack();
+            if (!itemStack.isEmpty()) {
+                return itemStack.copy();
+            }
+        }
+        return ItemStack.EMPTY;
     }
 }

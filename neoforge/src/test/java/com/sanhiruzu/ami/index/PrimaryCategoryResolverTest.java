@@ -70,11 +70,17 @@ class PrimaryCategoryResolverTest {
                 new ResourceLocation("apocalypsenow:canned_soup"),
                 new FacetProfile(EnumSet.of(ItemFacet.FOOD_MEAL, ItemFacet.FOOD_DRINK), Map.of())
         );
+        CategoryAssignment drinkOnlySoupAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("apocalypsenow:canned_soup"),
+                new FacetProfile(EnumSet.of(ItemFacet.FOOD_DRINK), Map.of())
+        );
 
         assertEquals("nature", drinkAssignment.categoryId());
         assertEquals("drinks", drinkAssignment.subcategoryId());
         assertEquals("nature", mealAssignment.categoryId());
         assertEquals("meals", mealAssignment.subcategoryId());
+        assertEquals("nature", drinkOnlySoupAssignment.categoryId());
+        assertEquals("meals", drinkOnlySoupAssignment.subcategoryId());
     }
 
     @Test
@@ -86,6 +92,40 @@ class PrimaryCategoryResolverTest {
 
         assertEquals("tech", assignment.categoryId());
         assertEquals("parts", assignment.subcategoryId());
+    }
+
+    @Test
+    void incidentalCurioAndTechTagsDoNotOverrideClearIngredientOrDecorationRoles() {
+        CategoryAssignment dyeAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:white_dye"),
+                new FacetProfile(EnumSet.of(ItemFacet.CURIO, ItemFacet.INGREDIENT_DYE), Map.of())
+        );
+        CategoryAssignment lanternAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:lantern"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.CURIO, ItemFacet.LIGHT_SOURCE), Map.of())
+        );
+        CategoryAssignment stickAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:stick"),
+                new FacetProfile(EnumSet.of(ItemFacet.TECH_COMPONENT, ItemFacet.LOG, ItemFacet.INGREDIENT_ORGANIC), Map.of())
+        );
+
+        assertEquals("ingredients", dyeAssignment.categoryId());
+        assertEquals("dyes", dyeAssignment.subcategoryId());
+        assertEquals("decoration", lanternAssignment.categoryId());
+        assertEquals("lighting", lanternAssignment.subcategoryId());
+        assertEquals("ingredients", stickAssignment.categoryId());
+        assertEquals("organic", stickAssignment.subcategoryId());
+    }
+
+    @Test
+    void decorativePassiveComparatorBlocksDoNotBecomeMachines() {
+        CategoryAssignment decoratedPotAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:decorated_pot"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.DECORATIVE_BLOCK, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.PASSIVE_COMPARATOR_OUTPUT, ItemFacet.REDSTONE_SIGNAL), Map.of())
+        );
+
+        assertEquals("decoration", decoratedPotAssignment.categoryId());
+        assertEquals("furniture", decoratedPotAssignment.subcategoryId());
     }
 
     @Test
@@ -453,6 +493,10 @@ class PrimaryCategoryResolverTest {
                 new ResourceLocation("minecraft:tube_coral"),
                 new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.NATURE_MISC), Map.of())
         );
+        CategoryAssignment deadTubeCoralBlockAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:dead_tube_coral_block"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.CABLE, ItemFacet.TECH_COMPONENT, ItemFacet.NATURE_MISC), Map.of())
+        );
         CategoryAssignment signAssignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("minecraft:oak_sign"),
                 new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.DECORATIVE_BLOCK), Map.of())
@@ -478,6 +522,8 @@ class PrimaryCategoryResolverTest {
         assertEquals("stone", dripstoneAssignment.subcategoryId());
         assertEquals("nature", coralAssignment.categoryId());
         assertEquals("flora", coralAssignment.subcategoryId());
+        assertEquals("nature", deadTubeCoralBlockAssignment.categoryId());
+        assertEquals("flora", deadTubeCoralBlockAssignment.subcategoryId());
         assertEquals("decoration", signAssignment.categoryId());
         assertEquals("furniture", signAssignment.subcategoryId());
         assertEquals("nature", cobwebAssignment.categoryId());

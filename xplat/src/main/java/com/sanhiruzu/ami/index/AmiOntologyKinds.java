@@ -137,7 +137,7 @@ public final class AmiOntologyKinds {
             rule("nature", "snacks", "fruit", "Fruit", c -> c.pathToken("apple", "berry", "berries", "fruit", "algae")),
             rule("nature", "snacks", "dairy", "Dairy", c -> c.pathToken("cheese", "milk")),
             rule("nature", "snacks", "sweets", "Sweets", c -> c.pathToken("candy", "chocolate", "sweet", "honey")),
-            rule("nature", "drinks", "drinks", "Drinks", c -> c.pathToken("juice", "tea", "coffee", "wine", "beer", "bottle", "milk", "cider", "cocktail", "whiskey", "eggnog", "chai", "espresso", "drink", "cocoa", "shake", "flask", "liquid")),
+            rule("nature", "drinks", "beverages", "Beverages", c -> c.pathToken("juice", "tea", "coffee", "wine", "beer", "bottle", "milk", "cider", "cocktail", "whiskey", "eggnog", "chai", "espresso", "drink", "cocoa", "shake", "flask", "liquid")),
             rule("nature", "proteins", "meat", "Meat", c -> c.pathToken("beef", "pork", "chicken", "mutton", "rabbit", "meat", "bacon")),
             rule("nature", "proteins", "fish", "Fish", c -> c.pathToken("fish", "cod", "salmon", "halibut", "herring")),
 

@@ -135,6 +135,9 @@ public final class FacetIndexer {
         if (path.equals("bamboo") || path.equals("stick")) {
             facets.add(ItemFacet.LOG);
         }
+        if (path.equals("decorated_pot")) {
+            facets.add(ItemFacet.DECORATIVE_BLOCK);
+        }
         if (path.equals("bone_meal")) {
             facets.add(ItemFacet.FLOWER);
         }
@@ -170,7 +173,7 @@ public final class FacetIndexer {
                 || path.contains("leather") || path.contains("bone") || path.contains("egg")
                 || path.contains("honeycomb") || path.contains("rabbit_hide")
                 || path.contains("scute") || path.equals("sugar")
-                || path.equals("gunpowder") || path.equals("blaze_rod")
+                || path.equals("gunpowder") || path.equals("blaze_rod") || path.equals("stick")
                 || path.equals("shulker_shell") || path.equals("popped_chorus_fruit")) {
             facets.add(ItemFacet.INGREDIENT_ORGANIC);
         }
@@ -493,13 +496,22 @@ public final class FacetIndexer {
     }
 
     private static boolean isCablePath(String path) {
-        return (path.contains("cable")
+        return !isNaturalCableFalsePositivePath(path)
+                && (path.contains("cable")
                 || path.endsWith("wire")
                 || path.contains("_wire")
                 || path.contains("wire_")
                 || path.contains("wirecoil")
                 || containsPathToken(path, "pipe", "tube", "conduit", "duct"))
                 && !path.contains("wire_cut");
+    }
+
+    private static boolean isNaturalCableFalsePositivePath(String path) {
+        return path.contains("coral")
+                || path.equals("cobweb")
+                || path.equals("dead_bush")
+                || path.equals("frogspawn")
+                || path.contains("sculk");
     }
 
     private static boolean isTemplatePath(String path) {
