@@ -142,6 +142,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     public void setEntries(List<SearchNode> entries) {
         this.currentResults = entries;
+        refreshAvailableListLenses();
         refreshTree();
     }
 
@@ -178,6 +179,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         List<SearchNode> flat = new ArrayList<>();
         for (List<SearchNode> list : results.values()) flat.addAll(list);
         this.currentResults = flat;
+        refreshAvailableListLenses();
         state.setQuery(query == null ? "" : query.trim());
     }
 
@@ -457,7 +459,6 @@ public class UniversalResultsPanel implements SearchState.Listener {
         var manager = com.sanhiruzu.ami.client.InventoryOverlayHandler.getManager();
         if (manager != null && !manager.isPanelVisible() && !isFavoritesPanel) return;
 
-        state.setAvailableListLenses(ListLens.availableFor(resolveSource()));
         ResultsViewProjector.Projection projection = ResultsViewProjector.project(
                 resolveSource(),
                 state,
@@ -467,6 +468,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
         );
         displayedItemCount = projection.displayedItemCount();
         setViewRoots(projection.roots());
+    }
+
+    private void refreshAvailableListLenses() {
+        state.setAvailableListLenses(ListLens.availableFor(resolveSource()));
     }
 
     private void showDashboard() {

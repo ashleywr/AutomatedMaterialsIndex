@@ -9,6 +9,7 @@ import com.sanhiruzu.ami.compat.CompatFamilyDetector;
 import com.sanhiruzu.ami.compat.CreateCompat;
 import com.sanhiruzu.ami.compat.MekanismCompat;
 import com.sanhiruzu.ami.compat.SophisticatedCompat;
+import com.sanhiruzu.ami.compat.StorageCompat;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.index.metrics.*;
@@ -193,7 +194,8 @@ public class ItemProvider implements IAmiDataProvider {
     }
 
     private static Map<String, String> buildSubtypeMeta(ResourceLocation baseId, ItemStack stack, String colorBucket,
-                                                        @Nullable ItemFilter.CreativeTabInfo creativeTab) {
+                                                        @Nullable ItemFilter.CreativeTabInfo creativeTab,
+                                                        @Nullable Level level) {
         Map<String, String> meta = new HashMap<>();
         meta.put(SearchNodeKeys.MOD_ID, baseId.getNamespace());
         meta.put(SearchNodeKeys.SUBTYPE_OF, baseId.toString());
@@ -209,6 +211,12 @@ public class ItemProvider implements IAmiDataProvider {
 
         Item item = stack.getItem();
         FacetProfile facetProfile = FacetIndexer.index(item, baseId, stack);
+        OptionalLong esmCapacity = StorageMetricSniffer.estimate(stack, baseId, level);
+        java.util.EnumSet<ItemFacet> resolvedFacets = facetProfile.facets().isEmpty()
+                ? java.util.EnumSet.noneOf(ItemFacet.class)
+                : java.util.EnumSet.copyOf(facetProfile.facets());
+        facetProfile = new FacetProfile(resolvedFacets, facetProfile.attributes());
+        esmCapacity.ifPresent(value -> meta.put(SearchNodeKeys.ESM_CAPACITY, Long.toString(value)));
         if (item != null && item != net.minecraft.world.item.Items.ENCHANTED_BOOK
                 && stack.isEnchanted()) {
             // Only explicit subtype / hero stacks should surface as pre-enchanted variants.
@@ -248,6 +256,7 @@ public class ItemProvider implements IAmiDataProvider {
                 }
             }
         }
+        StorageCompat.enrichItem(baseId, meta);
         return meta;
     }
 
@@ -309,7 +318,7 @@ public class ItemProvider implements IAmiDataProvider {
                             SearchNodeKeys.COLOR_BUCKET,
                             extractColorBucket(entry.id())
                     );
-                    Map<String, String> meta = buildSubtypeMeta(id, entry.stack(), colorBucket, creativeTabs.get(item));
+                    Map<String, String> meta = buildSubtypeMeta(id, entry.stack(), colorBucket, creativeTabs.get(item), level);
                     if (!entry.extraMeta().isEmpty()) meta.putAll(entry.extraMeta());
                     if (!tags.isEmpty()) meta.put(SearchNodeKeys.TAGS, tags);
                     foodMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addFoodStats(meta, stats));
@@ -330,6 +339,7 @@ public class ItemProvider implements IAmiDataProvider {
             String modId = id.getNamespace();
             String displayName = item.getName(new ItemStack(item)).getString();
             ItemStack defaultStack = new ItemStack(item);
+            ItemFilter.firstCreativeStack(item, creativeStackMap).ifPresent(stack -> ItemIconRenderer.registerStack(id, stack));
             String variantGroup = GroupingEngine.classifyShape(item);
             String colorBucket = GroupingEngine.classifyColor(defaultStack);
             String materialGroup = GroupingEngine.classifyMaterialRoot(defaultStack);
@@ -338,7 +348,7 @@ public class ItemProvider implements IAmiDataProvider {
             String requiredTool = determineRequiredTool(item);
             OptionalDouble attackDamage = DpsMetricSniffer.estimateDamage(defaultStack);
             OptionalDouble dps = DpsMetricSniffer.estimate(defaultStack);
-            OptionalLong esmCapacity = StorageMetricSniffer.estimate(defaultStack, id);
+            OptionalLong esmCapacity = StorageMetricSniffer.estimate(defaultStack, id, level);
             Optional<PowerStats> powerStats = powerMetricSniffer.sniff(defaultStack, id, level);
             Optional<FoodStats> foodStats = foodMetricSniffer.sniff(defaultStack);
             Optional<FluidStats> fluidStats = fluidMetricSniffer.sniff(defaultStack, id, level);
@@ -350,9 +360,6 @@ public class ItemProvider implements IAmiDataProvider {
                     ? java.util.EnumSet.noneOf(ItemFacet.class)
                     : java.util.EnumSet.copyOf(facetProfile.facets());
             Map<String, String> facetAttributes = new HashMap<>(facetProfile.attributes());
-            if (esmCapacity.isPresent()) {
-                resolvedFacets.add(ItemFacet.STORAGE);
-            }
             if (powerStats.map(PowerStats::hasAny).orElse(false)) {
                 resolvedFacets.add(ItemFacet.HAS_ENERGY);
             }
@@ -448,6 +455,7 @@ public class ItemProvider implements IAmiDataProvider {
                     }
                 }
             }
+            StorageCompat.enrichItem(id, meta);
 
             index.addNode(new SearchNode(id, NodeType.ITEM, displayName, color, 0, meta));
         }
@@ -487,7 +495,7 @@ public class ItemProvider implements IAmiDataProvider {
                 ResourceLocation syntheticId = Services.PLATFORM.rl("ami", "hero/" + pluginKey + "/" + count);
                 ItemIconRenderer.registerStack(syntheticId, stack);
 
-                Map<String, String> meta = buildSubtypeMeta(baseId, stack, extractColorBucket(baseId), creativeTabs.get(stack.getItem()));
+                Map<String, String> meta = buildSubtypeMeta(baseId, stack, extractColorBucket(baseId), creativeTabs.get(stack.getItem()), level);
                 foodMetricSniffer.sniff(stack).ifPresent(stats -> addFoodStats(meta, stats));
                 powerMetricSniffer.sniff(stack, syntheticId, level).ifPresent(stats -> addPowerStats(meta, stats));
                 fluidMetricSniffer.sniff(stack, syntheticId, level).ifPresent(stats -> addFluidStats(meta, stats));

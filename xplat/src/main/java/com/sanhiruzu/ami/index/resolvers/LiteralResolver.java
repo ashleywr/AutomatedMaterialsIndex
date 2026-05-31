@@ -36,8 +36,10 @@ public final class LiteralResolver implements IQueryResolver {
 
         Set<SearchNode> prefixHits = new LinkedHashSet<>(index.prefixSearch(lower));
         List<SearchNode> substringHits = new ArrayList<>();
-        for (SearchNode node : index.substringSearch(lower)) {
-            if (!prefixHits.contains(node)) substringHits.add(node);
+        if (shouldUseSubstringFallback(lower)) {
+            for (SearchNode node : index.substringSearch(lower)) {
+                if (!prefixHits.contains(node)) substringHits.add(node);
+            }
         }
 
         // Step 3: Merge into result map grouped by type
@@ -62,5 +64,9 @@ public final class LiteralResolver implements IQueryResolver {
         }
 
         return result;
+    }
+
+    private static boolean shouldUseSubstringFallback(String query) {
+        return query.trim().length() >= 3;
     }
 }

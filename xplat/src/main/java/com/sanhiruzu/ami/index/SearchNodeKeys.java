@@ -117,6 +117,11 @@ public final class SearchNodeKeys {
     public static final String MEKANISM_ITEM_KIND = "mekanismItemKind";
     public static final String MEKANISM_FACTS = "mekanismFacts"; // Comma-separated Mekanism behavior facts.
     public static final String MEKANISM_TIER = "mekanismTier";
+    // Generic storage-family metadata. These intentionally follow the
+    // *ItemKind / *Facts / *Tier conventions used by broad metadata search.
+    public static final String STORAGE_ITEM_KIND = "storageItemKind";
+    public static final String STORAGE_FACTS = "storageFacts";
+    public static final String STORAGE_TIER = "storageTier";
     // Sophisticated Storage/Backpacks-specific optional metadata.
     public static final String SOPHISTICATED_ITEM_KIND = "sophisticatedItemKind";
     public static final String SOPHISTICATED_FACTS = "sophisticatedFacts";

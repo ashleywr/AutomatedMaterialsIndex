@@ -113,15 +113,16 @@ class ListLensTest {
     }
 
     @Test
-    void storageLensKeepsStorageFacetItemsWithoutCapacity() {
+    void storageLensUsesStorageChoiceMetadataNotRawInventorySlots() {
         SearchState state = new SearchState();
         state.setViewMode(ResultsToolbar.ViewMode.LIST);
         state.setListLens(ListLens.STORAGE);
 
         ResultsViewProjector.Projection projection = ResultsViewProjector.project(List.of(
                 item("iron_sword", "Iron Sword", Map.of(SearchNodeKeys.FACETS, "melee_weapon", SearchNodeKeys.DPS, "9.6")),
-                item("oak_chest", "Oak Chest", Map.of(SearchNodeKeys.FACETS, "storage")),
-                item("diamond_backpack", "Diamond Backpack", Map.of(SearchNodeKeys.ESM_CAPACITY, "6912"))
+                item("furnace", "Furnace", Map.of(SearchNodeKeys.FACETS, "storage,machine,workstation", SearchNodeKeys.ESM_CAPACITY, "297")),
+                item("oak_chest", "Oak Chest", Map.of(SearchNodeKeys.FACETS, "storage", SearchNodeKeys.STORAGE_ITEM_KIND, "chest")),
+                item("diamond_backpack", "Diamond Backpack", Map.of(SearchNodeKeys.ESM_CAPACITY, "6912", SearchNodeKeys.STORAGE_ITEM_KIND, "portable_storage"))
         ), state, null, false, false);
 
         assertEquals(2, projection.displayedItemCount());
@@ -311,8 +312,13 @@ class ListLensTest {
         ), state, null, false, false);
 
         assertEquals(3, projection.displayedItemCount());
-        assertEquals("Advanced Generator", projection.roots().get(0).getLabel().getString());
+        TreeNode generationGroup = projection.roots().stream()
+                .filter(node -> "Energy Generation".equals(node.getLabel().getString()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("Advanced Generator", generationGroup.getChildren().get(0).getLabel().getString());
         assertEquals(ResultsProcessor.SortField.ENERGY_GENERATION, state.getSortField());
+        assertEquals(ResultsProcessor.GroupBy.BEHAVIOR, state.getGroupBy());
         assertEquals(List.of(RowField.MOD_NAME, RowField.ENERGY_GENERATION, RowField.ENERGY_CAPACITY), RowFieldConfig.getSubtitleFields());
     }
 

@@ -138,6 +138,10 @@ Do not reintroduce these:
   `berry`.
 - FTB Quests becoming Mapping. FTB Chunks belongs to mapping/claims; FTB Quests
   does not.
+- Storage capacity tables for modded containers. Storage sizes can be changed by
+  mod configs, datapacks, KubeJS, or upstream updates. AMI should use item/block
+  capabilities, container components, or other runtime APIs. If runtime evidence
+  is unavailable, leave capacity unknown instead of guessing from an item id.
 
 ## Decision History
 

@@ -16,6 +16,26 @@ public final class Items {
     public static final Item CAKE = register("cake",
             new BlockItem("Cake", new Block(new BlockState()))
                     .withComponent(DataComponents.FOOD));
+    public static final Item CHEST = register("chest", new BlockItem("Chest", new Block(new BlockState())));
+    public static final Item TRAPPED_CHEST = register("trapped_chest", new BlockItem("Trapped Chest", new Block(new BlockState())));
+    public static final Item BARREL = register("barrel", new BlockItem("Barrel", new Block(new BlockState())));
+    public static final Item SHULKER_BOX = register("shulker_box", new BlockItem("Shulker Box", new Block(new BlockState())));
+    public static final Item WHITE_SHULKER_BOX = register("white_shulker_box", new BlockItem("White Shulker Box", new Block(new BlockState())));
+    public static final Item ORANGE_SHULKER_BOX = register("orange_shulker_box", new BlockItem("Orange Shulker Box", new Block(new BlockState())));
+    public static final Item MAGENTA_SHULKER_BOX = register("magenta_shulker_box", new BlockItem("Magenta Shulker Box", new Block(new BlockState())));
+    public static final Item LIGHT_BLUE_SHULKER_BOX = register("light_blue_shulker_box", new BlockItem("Light Blue Shulker Box", new Block(new BlockState())));
+    public static final Item YELLOW_SHULKER_BOX = register("yellow_shulker_box", new BlockItem("Yellow Shulker Box", new Block(new BlockState())));
+    public static final Item LIME_SHULKER_BOX = register("lime_shulker_box", new BlockItem("Lime Shulker Box", new Block(new BlockState())));
+    public static final Item PINK_SHULKER_BOX = register("pink_shulker_box", new BlockItem("Pink Shulker Box", new Block(new BlockState())));
+    public static final Item GRAY_SHULKER_BOX = register("gray_shulker_box", new BlockItem("Gray Shulker Box", new Block(new BlockState())));
+    public static final Item LIGHT_GRAY_SHULKER_BOX = register("light_gray_shulker_box", new BlockItem("Light Gray Shulker Box", new Block(new BlockState())));
+    public static final Item CYAN_SHULKER_BOX = register("cyan_shulker_box", new BlockItem("Cyan Shulker Box", new Block(new BlockState())));
+    public static final Item PURPLE_SHULKER_BOX = register("purple_shulker_box", new BlockItem("Purple Shulker Box", new Block(new BlockState())));
+    public static final Item BLUE_SHULKER_BOX = register("blue_shulker_box", new BlockItem("Blue Shulker Box", new Block(new BlockState())));
+    public static final Item BROWN_SHULKER_BOX = register("brown_shulker_box", new BlockItem("Brown Shulker Box", new Block(new BlockState())));
+    public static final Item GREEN_SHULKER_BOX = register("green_shulker_box", new BlockItem("Green Shulker Box", new Block(new BlockState())));
+    public static final Item RED_SHULKER_BOX = register("red_shulker_box", new BlockItem("Red Shulker Box", new Block(new BlockState())));
+    public static final Item BLACK_SHULKER_BOX = register("black_shulker_box", new BlockItem("Black Shulker Box", new Block(new BlockState())));
     public static final Item REDSTONE = register("redstone",
             new Item("Redstone").withTag(itemTag("c", "dusts/redstone")));
     public static final Item RAIL = register("rail",

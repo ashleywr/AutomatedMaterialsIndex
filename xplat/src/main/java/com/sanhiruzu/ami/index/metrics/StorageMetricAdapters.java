@@ -10,28 +10,27 @@ import java.util.OptionalLong;
 /**
  * Ordered registry for storage metric adapters.
  * <p>
- * Generic vanilla/capability rules should stay last. Mod-specific adapters can
- * be registered before them so they win when a storage system needs a custom
- * conversion model.
+ * Capacity should come from runtime components/capabilities or exact platform
+ * APIs. Avoid id-to-slot tables for modded containers; configs and datapacks can
+ * change those values outside AMI.
  */
 public final class StorageMetricAdapters {
     private static final List<StorageMetricAdapter> ADAPTERS = new ArrayList<>();
 
     static {
         register(new VanillaStorageMetricAdapter());
-        register(new SophisticatedBackpacksStorageMetricAdapter());
     }
 
     private StorageMetricAdapters() {
     }
 
-    public static synchronized void register(StorageMetricAdapter adapter) {
+    private static synchronized void register(StorageMetricAdapter adapter) {
         ADAPTERS.add(adapter);
     }
 
-    public static synchronized OptionalLong estimate(ItemStack stack, ResourceLocation id) {
+    public static synchronized OptionalLong estimate(ItemStack stack, ResourceLocation id, @org.jetbrains.annotations.Nullable net.minecraft.world.level.Level level) {
         for (StorageMetricAdapter adapter : ADAPTERS) {
-            OptionalLong estimate = adapter.estimate(stack, id);
+            OptionalLong estimate = adapter.estimate(stack, id, level);
             if (estimate.isPresent()) return estimate;
         }
         return OptionalLong.empty();

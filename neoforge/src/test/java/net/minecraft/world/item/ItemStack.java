@@ -39,6 +39,10 @@ public class ItemStack {
         return item != null && item.builtInRegistryHolder().is(tag);
     }
 
+    public boolean is(Item expected) {
+        return item == expected;
+    }
+
     public Stream<TagKey<Item>> getTags() {
         return item == null ? Stream.empty() : item.builtInRegistryHolder().tags();
     }
