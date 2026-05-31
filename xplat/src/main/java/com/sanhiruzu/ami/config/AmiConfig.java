@@ -2,6 +2,10 @@ package com.sanhiruzu.ami.config;
 
 import net.minecraft.network.chat.Component;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -11,6 +15,13 @@ import java.util.Locale;
  * Values here are synced with the custom GUI and localized tooltips.
  */
 public class AmiConfig {
+    /**
+     * Keeps a stored config value out of the in-game config screen.
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    public @interface ConfigHidden {
+    }
 
     @ConfigGroupEnd
     public static final Object generalGroupEnd = null;
@@ -42,12 +53,15 @@ public class AmiConfig {
     public static boolean strictSurvivalMode = false;
     @ConfigValue("features.enable-material-root-ui")
     public static boolean enableMaterialRootUI = true;
+    @ConfigHidden
     @ConfigValue("features.enable-progression-graph")
     public static boolean enableProgressionGraph = true;
     @ConfigValue("ui.block-subgroup")
     public static BlockSubgroup blockSubgroup = BlockSubgroup.SHAPE;
+    @ConfigHidden
     @ConfigValue("features.dynamic-shape-min-count")
     public static int dynamicShapeMinCount = 40;
+    @ConfigHidden
     @ConfigValue("features.dynamic-shape-min-mod-spread")
     public static int dynamicShapeMinModSpread = 3;
     // --- Display & Appearance ---
@@ -55,26 +69,42 @@ public class AmiConfig {
     @ConfigValue("ui.theme")
     public static Theme theme = Theme.MODERN;
     @ConfigColor
-    @ConfigDependsOn(value = "theme", expected = "TRANSPARENT")
     @ConfigValue("ui.accent-color")
     public static int accentColor = 0xFF5555;
     @ConfigValue("ui.show-header")
     public static boolean showHeader = true;
     @ConfigValue("general.compact-mode")
     public static boolean compactMode = false;
+    @ConfigHidden
     @ConfigValue("subtitles.fields")
     public static String subtitleFields = "MOD_NAME";
     public static int subtitleFieldsChecksum = 0;
     // --- Interaction & Search ---
-    @ConfigGroup(value = "interaction", icon = "interaction", order = 2)
     @ConfigValue("ui.item-click-action")
     public static ItemClickAction itemClickAction = ItemClickAction.RECIPES;
 
     @ConfigValue("features.recipe-viewer-mode")
     public static RecipeViewerMode recipeViewerMode = RecipeViewerMode.AUTO;
 
+    @ConfigHidden
     @ConfigValue("features.enable-ghost-crafting")
     public static boolean enableGhostCrafting = true;
+
+    @ConfigHidden
+    @ConfigValue("ui.context-menu.enabled-actions")
+    public static String contextMenuEnabledActions = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,ami:group_toggle,ami:filter_category,ami:copy_group_key";
+
+    @ConfigHidden
+    @ConfigValue("ui.context-menu.disabled-by-mod")
+    public static String contextMenuDisabledByMod = "";
+
+    @ConfigHidden
+    @ConfigValue("ui.context-menu.disabled-by-type")
+    public static String contextMenuDisabledByType = "";
+
+    @ConfigHidden
+    @ConfigValue("ui.context-menu.disabled-by-category")
+    public static String contextMenuDisabledByCategory = "";
     // --- Compat Category Policy ---
     @ConfigGroup(value = "compat", icon = "compat", order = 9)
     @ConfigValue("compat.cobblemon.category-policy")
@@ -137,7 +167,7 @@ public class AmiConfig {
     @ConfigValue("general.highlight-exclusion-areas")
     public static boolean highlightExclusionAreas = false;
     // --- Layout & Sizing ---
-    @ConfigGroup(value = "layout", icon = "layout", order = 5)
+    @ConfigGroup(value = "layout", icon = "layout", order = 2)
     @ConfigValue("layout.search-bar-width")
     public static int searchBarWidth = 240;
     @ConfigValue("layout.grid-columns")
@@ -154,52 +184,68 @@ public class AmiConfig {
     public static int listScrollRows = 10;
     // --- Palette Group ---
     @ConfigGroup(value = "palette", icon = "palette", order = 6)
+    @ConfigHidden
     @ConfigColor
     @ConfigDependsOn(value = "theme", expected = "TRANSPARENT")
     @ConfigValue("palette.overlay-bg")
     public static int overlayBg = 0x66000000;
+    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.panel-bg")
     public static int panelBg = 0x66000000;
+    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.search-bar-bg")
     public static int searchBarBg = 0x33000000;
+    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.search-bar-border")
     public static int searchBarBorder = 0x884488FF;
+    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.search-text")
     public static int searchText = 0xFFFFFFFF;
+    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.search-placeholder")
     public static int searchPlaceholder = 0xFFAAAAAA;
+    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.card-bg")
     public static int cardBg = 0x22FFFFFF;
+    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.card-bg-hover")
     public static int cardBgHover = 0x44FFFFFF;
+    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.card-text-name")
     public static int cardTextName = 0xFFFFFFFF;
+    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.card-text-subtitle")
     public static int cardTextSubtitle = 0xFFAAAAAA;
+    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.card-action-hint")
     public static int cardActionHint = 0xFF555555;
+    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.group-header-bg")
     public static int groupHeaderBg = 0xFFB0B0B0;
+    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.group-header-text")
     public static int groupHeaderText = 0xFF333333;
+    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.scrollbar-bg")
     public static int scrollbarBg = 0xFFAAAAAA;
+    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.scrollbar-thumb")
     public static int scrollbarThumb = 0xFF777777;
+    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.scrollbar-thumb-hover")
     public static int scrollbarThumbHover = 0xFF555555;
@@ -233,6 +279,10 @@ public class AmiConfig {
         itemClickAction = ItemClickAction.RECIPES;
         recipeViewerMode = RecipeViewerMode.AUTO;
         enableGhostCrafting = true;
+        contextMenuEnabledActions = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,ami:group_toggle,ami:filter_category,ami:copy_group_key";
+        contextMenuDisabledByMod = "";
+        contextMenuDisabledByType = "";
+        contextMenuDisabledByCategory = "";
 
         cobblemonCategoryPolicy = CompatCategoryPolicy.FOCUSED;
         useCobblemonResourcePackSprites = true;
