@@ -22,6 +22,7 @@ public class AmiConfigScreen extends Screen {
     private EditBox searchBox;
     private CategoryList categories;
     private ConfigList list;
+    private ConfigList.ConfigEntry focusedConfigEntry;
     private Button revertBtn;
     private Button defaultsBtn;
 
@@ -173,8 +174,17 @@ public class AmiConfigScreen extends Screen {
             ConfigGroup group = field.getAnnotation(ConfigGroup.class);
             if (group != null) seen.putIfAbsent(group.value(), group);
         }
+        Set<String> visibleGroups = new LinkedHashSet<>();
         seen.values().stream()
                 .sorted(Comparator.comparingInt(ConfigGroup::order))
+                .filter(g -> groupHasVisibleEntries(g.value()))
+                .forEach(g -> visibleGroups.add(g.value()));
+        if (!visibleGroups.contains(activeCategory) && !visibleGroups.isEmpty()) {
+            activeCategory = visibleGroups.iterator().next();
+        }
+        seen.values().stream()
+                .sorted(Comparator.comparingInt(ConfigGroup::order))
+                .filter(g -> visibleGroups.contains(g.value()))
                 .forEach(g -> categories.publicAddEntry(categories.new CategoryEntry(g.value(), g.icon())));
     }
 
@@ -201,6 +211,11 @@ public class AmiConfigScreen extends Screen {
             revertBtn.active = countChanges() > 0;
             revertBtn.setMessage(getRevertLabel());
         }
+    }
+
+    private void onSettingChanged(Field field, Object value) {
+        AMITheme.sync();
+        updateButtonStates();
     }
 
     private void onSearchChanged(String query) {
@@ -232,15 +247,19 @@ public class AmiConfigScreen extends Screen {
     }
 
     private void buildConfigUI() {
+        focusedConfigEntry = null;
         list.publicClearEntries();
         String currentGroup = null;
+        String currentCompatSection = null;
         boolean groupVisible = false;
 
         for (Field field : AmiConfig.class.getFields()) {
             ConfigGroup group = field.getAnnotation(ConfigGroup.class);
             if (group != null) {
                 currentGroup = group.value();
-                groupVisible = searchQuery.isEmpty() ? currentGroup.equals(activeCategory) : true;
+                currentCompatSection = null;
+                groupVisible = (searchQuery.isEmpty() ? currentGroup.equals(activeCategory) : true)
+                        && groupHasRenderableEntries(currentGroup);
 
                 if (groupVisible) {
                     Component groupText = Component.translatable("ami.config.group." + currentGroup);
@@ -254,9 +273,18 @@ public class AmiConfigScreen extends Screen {
 
             if (groupVisible) {
                 ConfigValue value = field.getAnnotation(ConfigValue.class);
-                if (value != null && !isSidePanelField(field)) {
+                if (isVisibleConfigValue(field) && !isSidePanelField(field)) {
                     Component valueText = Component.translatable("ami.config.value." + value.value());
-                    if (searchQuery.isEmpty() || valueText.getString().toLowerCase().contains(searchQuery)) {
+                    String compatSection = "compat".equals(currentGroup) ? compatSection(value.value()) : null;
+                    Component compatSectionText = compatSection == null ? Component.empty() : Component.translatable("ami.config.compat." + compatSection);
+                    boolean matchesSearch = searchQuery.isEmpty()
+                            || valueText.getString().toLowerCase().contains(searchQuery)
+                            || compatSectionText.getString().toLowerCase().contains(searchQuery);
+                    if (matchesSearch) {
+                        if (compatSection != null && !compatSection.equals(currentCompatSection)) {
+                            currentCompatSection = compatSection;
+                            list.publicAddEntry(list.new CompatSectionEntry(compatSectionText));
+                        }
                         list.publicAddEntry(list.new SettingEntry(valueText, field));
                     }
                 }
@@ -329,6 +357,52 @@ public class AmiConfigScreen extends Screen {
         return value != null && value.value().startsWith("sidepanels.");
     }
 
+    private String compatSection(String configKey) {
+        if (!configKey.startsWith("compat.")) {
+            return null;
+        }
+        int start = "compat.".length();
+        int end = configKey.indexOf('.', start);
+        return end > start ? configKey.substring(start, end) : null;
+    }
+
+    private boolean isVisibleConfigValue(Field field) {
+        return field.getAnnotation(ConfigValue.class) != null && !field.isAnnotationPresent(AmiConfig.ConfigHidden.class);
+    }
+
+    private boolean groupHasVisibleEntries(String groupId) {
+        if ("sidepanels".equals(groupId) || "binds".equals(groupId)) {
+            return true;
+        }
+        return groupHasMatchingConfigValue(groupId, false);
+    }
+
+    private boolean groupHasRenderableEntries(String groupId) {
+        if ("sidepanels".equals(groupId) || "binds".equals(groupId)) {
+            return true;
+        }
+        return groupHasMatchingConfigValue(groupId, true);
+    }
+
+    private boolean groupHasMatchingConfigValue(String groupId, boolean applySearch) {
+        String currentGroup = null;
+        for (Field field : AmiConfig.class.getFields()) {
+            ConfigGroup group = field.getAnnotation(ConfigGroup.class);
+            if (group != null) {
+                currentGroup = group.value();
+            }
+            if (!groupId.equals(currentGroup) || !isVisibleConfigValue(field) || isSidePanelField(field)) {
+                continue;
+            }
+            ConfigValue value = field.getAnnotation(ConfigValue.class);
+            Component valueText = Component.translatable("ami.config.value." + value.value());
+            if (!applySearch || searchQuery.isEmpty() || valueText.getString().toLowerCase().contains(searchQuery)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean checkDependency(Field field) {
         ConfigDependsOn dep = field.getAnnotation(ConfigDependsOn.class);
         if (dep == null) return true;
@@ -359,6 +433,28 @@ public class AmiConfigScreen extends Screen {
         g.drawString(this.font, match, curX, y, AMITheme.ACCENT_BLUE);
         curX += font.width(match);
         g.drawString(this.font, post, curX, y, color);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        focusedConfigEntry = null;
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean charTyped(char codePoint, int modifiers) {
+        if (focusedConfigEntry != null && focusedConfigEntry.charTyped(codePoint, modifiers)) {
+            return true;
+        }
+        return super.charTyped(codePoint, modifiers);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (focusedConfigEntry != null && focusedConfigEntry.keyPressed(keyCode, scanCode, modifiers)) {
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
@@ -540,7 +636,7 @@ public class AmiConfigScreen extends Screen {
                 this.field = field;
                 String tooltipKey = "ami.config.tooltip." + field.getAnnotation(ConfigValue.class).value();
                 this.tooltip = Tooltip.create(Component.translatable(tooltipKey));
-                this.widget = AmiWidgetFactory.createWidget(field, o -> updateButtonStates());
+                this.widget = AmiWidgetFactory.createWidget(field, o -> onSettingChanged(field, o));
             }
 
             @Override
@@ -584,13 +680,22 @@ public class AmiConfigScreen extends Screen {
 
             @Override
             public boolean mouseClicked(double mouseX, double mouseY, int button) {
+                if (widget != null && widget.active && field.isAnnotationPresent(ConfigColor.class) && isColorSwatchMouseOver(mouseX, mouseY)) {
+                    openColorPicker();
+                    return true;
+                }
                 if (widget != null && widget.active && widget.mouseClicked(mouseX, mouseY, button)) {
-                    if (field.isAnnotationPresent(ConfigColor.class) && mouseX > widget.getX() + widget.getWidth()) {
-                        openColorPicker();
-                    }
+                    widget.setFocused(true);
+                    AmiConfigScreen.this.focusedConfigEntry = this;
                     return true;
                 }
                 return false;
+            }
+
+            private boolean isColorSwatchMouseOver(double mouseX, double mouseY) {
+                int swatchX = widget.getX() + widget.getWidth() + 5;
+                return mouseX >= swatchX && mouseX <= swatchX + 19
+                        && mouseY >= widget.getY() && mouseY <= widget.getY() + 18;
             }
 
             private void openColorPicker() {
@@ -648,6 +753,26 @@ public class AmiConfigScreen extends Screen {
             @Override
             public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
                 g.drawString(font, text, x + 15, y + 6, AMITheme.CONFIG_TEXT_SECONDARY, false);
+            }
+
+            @Override
+            public Component getNarration() {
+                return text;
+            }
+        }
+
+        class CompatSectionEntry extends ConfigEntry {
+            private final Component text;
+
+            CompatSectionEntry(Component text) {
+                this.text = text;
+            }
+
+            @Override
+            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
+                int lineY = y + 13;
+                g.drawString(font, text, x + 10, y + 6, AMITheme.CONFIG_PANEL_TITLE, false);
+                g.fill(x + 10 + font.width(text) + 8, lineY, x + width - 5, lineY + 1, AMITheme.CONFIG_SEP);
             }
 
             @Override
@@ -796,7 +921,7 @@ public class AmiConfigScreen extends Screen {
 
             SidePanelWidthEntry(Component label, Field field) {
                 this.label = label;
-                this.widget = AmiWidgetFactory.createWidget(field, o -> updateButtonStates());
+                this.widget = AmiWidgetFactory.createWidget(field, o -> onSettingChanged(field, o));
             }
 
             @Override
@@ -814,7 +939,12 @@ public class AmiConfigScreen extends Screen {
 
             @Override
             public boolean mouseClicked(double mouseX, double mouseY, int button) {
-                return widget != null && widget.mouseClicked(mouseX, mouseY, button);
+                if (widget != null && widget.mouseClicked(mouseX, mouseY, button)) {
+                    widget.setFocused(true);
+                    AmiConfigScreen.this.focusedConfigEntry = this;
+                    return true;
+                }
+                return false;
             }
 
             @Override
