@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.AmiGuiIcons;
+import com.sanhiruzu.ami.client.overlay.OverlayLayers;
 import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
 import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.client.Minecraft;
@@ -318,7 +319,7 @@ public class ResultsToolbar implements SearchState.Listener {
     public void renderOpenDropdownLists(GuiGraphics g, int mouseX, int mouseY) {
         g.flush();
         g.pose().pushPose();
-        g.pose().translate(0, 0, 400);
+        g.pose().translate(0, 0, OverlayLayers.DROPDOWN);
         g.pose().translate(-scrollOffset, 0, 0);
         if (state.getViewMode() == ViewMode.LIST) lensDropdown.renderList(g, mouseX, mouseY);
         sortFieldDropdown.renderList(g, mouseX, mouseY);
