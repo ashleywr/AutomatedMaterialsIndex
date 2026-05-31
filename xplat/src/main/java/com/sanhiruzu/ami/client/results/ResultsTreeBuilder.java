@@ -106,6 +106,12 @@ final class ResultsTreeBuilder {
                     true,
                     List.of(),
                     true);
+            case BEHAVIOR -> groupByClassifier(sorted,
+                    GroupingEngine::classifyBehaviorRoot,
+                    Component.translatable("ami.group.unknown_behavior"),
+                    true,
+                    GroupingEngine.BEHAVIOR_ORDER,
+                    true);
             case SHAPE -> groupByClassifier(sorted,
                     n -> n.meta(SearchNodeKeys.VARIANT_GROUP, ""),
                     Component.translatable("ami.group.unknown_shape"),

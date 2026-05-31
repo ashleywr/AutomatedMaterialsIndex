@@ -81,6 +81,9 @@ public final class QueryParser {
         } else if (part.startsWith("!")) {
             type = TokenType.ESSENTIAL;
             value = part.substring(1);
+        } else if (part.startsWith("%egg:")) {
+            type = TokenType.PROP;
+            value = "pokemonEggGroup:" + part.substring("%egg:".length());
         } else if (part.startsWith(">") || part.startsWith("<") || part.startsWith("=")) {
             type = TokenType.ESM;
             value = part;

@@ -20,12 +20,7 @@ class PowerMetricParserTest {
     }
 
     @Test
-    void treatsBareFeRateAsGenerationOnlyForGeneratorItems() {
-        assertTrue(PowerMetricParser.parseTooltip(
-                List.of("40 FE/t"),
-                "example:basic_generator Basic Generator"
-        ).orElseThrow().hasGeneration());
-
+    void ignoresBareFeRateWithoutDirectionText() {
         assertTrue(PowerMetricParser.parseTooltip(
                 List.of("40 FE/t"),
                 "example:energy_cable Energy Cable"

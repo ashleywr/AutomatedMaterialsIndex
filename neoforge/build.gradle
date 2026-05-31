@@ -12,6 +12,8 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 def xplatProject = project(':xplat')
 def runDirectory = rootProject.ext.minecraftRunDirectory
+def amiDebugBuild = providers.gradleProperty('ami_debug_build').map { it.toBoolean() }.getOrElse(false)
+def amiEffectiveModVersion = amiDebugBuild ? "${mod_version}-debug" : mod_version
 
 neoForge {
     version = neoforge_version
@@ -192,7 +194,7 @@ var generateModMetadata = tasks.register('generateModMetadata', ProcessResources
             mod_id                 : mod_id,
             mod_name               : mod_name,
             mod_license            : mod_license,
-            mod_version            : mod_version
+            mod_version            : amiEffectiveModVersion
     ]
     inputs.properties replaceProperties
     expand replaceProperties
@@ -202,6 +204,17 @@ var generateModMetadata = tasks.register('generateModMetadata', ProcessResources
 
 sourceSets.main.resources.srcDir generateModMetadata
 neoForge.ideSyncTask generateModMetadata
+
+var generateAmiBuildMetadata = tasks.register('generateAmiBuildMetadata', WriteProperties) {
+    destinationFile = layout.buildDirectory.file('generated/resources/amiBuildMetadata/ami-build.properties')
+    property 'ami.debugBuild', amiDebugBuild.toString()
+    property 'ami.version', amiEffectiveModVersion
+}
+
+sourceSets.main.resources.srcDir(layout.buildDirectory.dir('generated/resources/amiBuildMetadata'))
+tasks.named('processResources').configure {
+    dependsOn generateAmiBuildMetadata
+}
 
 // Compatibility shim for stale IntelliJ Gradle task activations from the old
 // 1.21.1 workspace import. ModDevGradle's current task is neoForgeIdeSync.
@@ -220,6 +233,9 @@ publishing {
 }
 
 tasks.named('jar', Jar).configure {
+    if (amiDebugBuild) {
+        archiveClassifier = 'debug'
+    }
     if (!providers.gradleProperty('ami_include_dev_artifacts').map { it.toBoolean() }.getOrElse(false)) {
         exclude 'com/sanhiruzu/ami/benchmark/**'
         exclude 'data/ami/structure/ami_benchmark_empty.nbt'

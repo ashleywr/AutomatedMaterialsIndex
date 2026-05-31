@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.index.resolvers;
 import com.sanhiruzu.ami.index.IQueryResolver;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.index.SearchNodeKeys;
 
 import java.util.*;
 
@@ -14,6 +15,19 @@ public class ModResolver implements IQueryResolver {
         if (!namespace.isEmpty()) {
             modIndex.computeIfAbsent(namespace, k -> new ArrayList<>()).add(node);
         }
+        addAlias(node.meta(SearchNodeKeys.PRIMARY_COMPAT_FAMILY, ""), node);
+        addAlias(node.meta(SearchNodeKeys.COMPAT_FAMILY, ""), node);
+        for (String family : node.meta(SearchNodeKeys.COMPAT_FAMILIES, "").split(",")) {
+            addAlias(family, node);
+        }
+    }
+
+    private void addAlias(String alias, SearchNode node) {
+        if (alias == null || alias.isBlank()) {
+            return;
+        }
+        String normalized = alias.trim().toLowerCase(Locale.ROOT);
+        modIndex.computeIfAbsent(normalized, k -> new ArrayList<>()).add(node);
     }
 
     @Override

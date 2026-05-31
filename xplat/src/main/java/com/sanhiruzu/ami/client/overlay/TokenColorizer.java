@@ -1,4 +1,4 @@
-package com.sanhiruzu.ami.index.query;
+package com.sanhiruzu.ami.client.overlay;
 
 import com.sanhiruzu.ami.util.AmiColors;
 
@@ -99,6 +99,42 @@ public final class TokenColorizer {
         return color;
     }
 
-    public record ColorSpan(int startIndex, int endIndex, int argbColor) {
+    public static final class ColorSpan {
+        private final int startIndex;
+        private final int endIndex;
+        private final int argbColor;
+
+        public ColorSpan(int startIndex, int endIndex, int argbColor) {
+            this.startIndex = startIndex;
+            this.endIndex = endIndex;
+            this.argbColor = argbColor;
+        }
+
+        public int startIndex() {
+            return startIndex;
+        }
+
+        public int endIndex() {
+            return endIndex;
+        }
+
+        public int argbColor() {
+            return argbColor;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ColorSpan colorSpan = (ColorSpan) o;
+            return startIndex == colorSpan.startIndex &&
+                    endIndex == colorSpan.endIndex &&
+                    argbColor == colorSpan.argbColor;
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(startIndex, endIndex, argbColor);
+        }
     }
 }

@@ -85,6 +85,20 @@ public final class NumericMetadataResolver {
             return switch (normalized) {
                 case "dps", "damagepersecond" -> SearchNodeKeys.DPS;
                 case "damage", "attack", "attackdamage", "entityattack", "entitydamage" -> SearchNodeKeys.ATTACK_DAMAGE;
+                case "heal", "healing", "hprestore", "pokemonhealing" -> SearchNodeKeys.POKEMON_HEALING;
+                case "dex", "pokedex", "dexnumber", "pokemondex", "pokemondexnumber" -> SearchNodeKeys.POKEMON_DEX_NUMBER;
+                case "pokemonhp", "pokemonbasehp", "basehp" -> SearchNodeKeys.POKEMON_BASE_HP;
+                case "pokemonattack", "pokemonatk", "pokemonbaseattack", "pokemonbaseatk", "baseattack", "baseatk" ->
+                        SearchNodeKeys.POKEMON_BASE_ATTACK;
+                case "pokemondefense", "pokemondef", "pokemonbasedefense", "pokemonbasedef", "basedefense", "basedef" ->
+                        SearchNodeKeys.POKEMON_BASE_DEFENSE;
+                case "pokemonspecialattack", "pokemonspatk", "pokemonspa", "pokemonbasespecialattack",
+                     "pokemonbasespatk", "pokemonbasespa", "basespecialattack", "basespatk", "basespa" ->
+                        SearchNodeKeys.POKEMON_BASE_SPECIAL_ATTACK;
+                case "pokemonspecialdefense", "pokemonspdef", "pokemonspd", "pokemonbasespecialdefense",
+                     "pokemonbasespdef", "pokemonbasespd", "basespecialdefense", "basespdef", "basespd" ->
+                        SearchNodeKeys.POKEMON_BASE_SPECIAL_DEFENSE;
+                case "pokemonspeed", "pokemonbasespeed", "basespeed", "basespe" -> SearchNodeKeys.POKEMON_BASE_SPEED;
                 case "storage", "capacity", "esm", "items" -> SearchNodeKeys.ESM_CAPACITY;
                 case "energy", "energycapacity", "fecapacity", "rfcapacity", "capacityfe", "capacityrf", "fe", "rf" ->
                         SearchNodeKeys.ENERGY_CAPACITY;

@@ -6,6 +6,7 @@ import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.StatIconRowTooltipComponent;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
@@ -157,27 +158,6 @@ public class EntityIconRenderer implements IIconRenderer {
         }
     }
 
-    private static Component formatCategoryComponent(String raw) {
-        return switch (raw.toUpperCase()) {
-            case "MONSTER" -> Component.translatable("ami.entity_category.hostile");
-            case "CREATURE" -> Component.translatable("ami.entity_category.passive");
-            case "AMBIENT" -> Component.translatable("ami.entity_category.ambient");
-            case "WATER_CREATURE", "WATER_AMBIENT" -> Component.translatable("ami.entity_category.aquatic");
-            case "MISC" -> Component.translatable("ami.entity_category.misc");
-            default -> Component.literal(raw);
-        };
-    }
-
-    private static String formatTraits(String raw) {
-        StringBuilder sb = new StringBuilder();
-        for (String token : raw.split(" ")) {
-            if (token.startsWith("#")) {
-                if (sb.length() > 0) sb.append("  ");
-                sb.append(token.substring(1));
-            }
-        }
-        return sb.toString();
-    }
 
     /**
      * Scans all ENTITY nodes and returns those that can't be rendered as a LivingEntity.
@@ -189,6 +169,10 @@ public class EntityIconRenderer implements IIconRenderer {
 
         for (SearchNode node : GlobalIndex.getInstance().getNodes(NodeType.ENTITY)) {
             String base = node.id() + "  (" + node.displayName() + ")";
+
+            if (EntityIconTooltipSupport.isPokemonSpecies(node)) {
+                continue;
+            }
 
             if (resolveProxyItemId(node.id()) != null) {
                 continue;
@@ -208,8 +192,7 @@ public class EntityIconRenderer implements IIconRenderer {
             try {
                 Entity e = type.create(mc.level);
                 if (!(e instanceof LivingEntity)) {
-                    String cls = e != null ? e.getClass().getSimpleName() : "null";
-                    missing.add(base + "  [not LivingEntity: " + cls + "]");
+                    continue;
                 }
             } catch (Exception ex) {
                 missing.add(base + "  [exception: " + ex.getMessage() + "]");
@@ -222,6 +205,11 @@ public class EntityIconRenderer implements IIconRenderer {
 
     @Override
     public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
+        if (EntityIconTooltipSupport.isPokemonSpecies(node)) {
+            CobblemonPokemonIconRenderer.render(g, node, x, y, size, hovered);
+            return;
+        }
+
         if (size < 12) {
             FallbackTextRenderer.renderFallback(g, node, x, y, size);
             return;
@@ -234,7 +222,7 @@ public class EntityIconRenderer implements IIconRenderer {
                 ItemStack proxy = BuiltInRegistries.ITEM.getOptional(proxyId).map(ItemStack::new).orElse(ItemStack.EMPTY);
                 if (!proxy.isEmpty()) {
                     g.pose().pushPose();
-                    g.pose().translate(x + size / 2.0, y + size / 2.0, 150);
+                    g.pose().translate(x + size / 2.0, y + size / 2.0, 0);
                     float s = size / 16.0f;
                     g.pose().scale(s, s, 1f);
                     g.renderItem(proxy, -8, -8);
@@ -272,19 +260,25 @@ public class EntityIconRenderer implements IIconRenderer {
     @Override
     public List<Component> getTooltip(SearchNode node) {
         List<Component> lines = new ArrayList<>();
-        lines.add(Component.literal(node.displayName()));
-        lines.add(Component.literal(node.id().toString()).withStyle(s -> s.withColor(AMITheme.ENTITY_ID_COLOR)));
+        if (com.sanhiruzu.ami.config.AmiConfig.devMode) {
+            lines.add(Component.literal(node.id().toString()).withStyle(s -> s.withColor(AMITheme.ENTITY_ID_COLOR)));
+        }
 
         String category = node.meta(SearchNodeKeys.ENTITY_CATEGORY, "");
         if (!category.isEmpty()) {
             lines.add(Component.translatable("ami.tooltip.category")
-                    .append(": ").append(formatCategoryComponent(category))
+                    .append(": ").append(EntityIconTooltipSupport.formatCategoryComponent(category))
                     .withStyle(s -> s.withColor(AMITheme.ENTITY_CATEGORY_COLOR)));
         }
 
         String traits = node.meta(SearchNodeKeys.ENTITY_TRAITS, "");
         if (!traits.isEmpty()) {
-            lines.add(Component.literal(formatTraits(traits)).withStyle(s -> s.withColor(AMITheme.ENTITY_TRAITS_COLOR)));
+            lines.add(Component.literal(EntityIconTooltipSupport.formatTraits(traits))
+                    .withStyle(s -> s.withColor(AMITheme.ENTITY_TRAITS_COLOR)));
+        }
+
+        if (EntityIconTooltipSupport.isPokemonSpecies(node)) {
+            EntityIconTooltipSupport.appendPokemonTextLines(lines, node);
         }
 
         return lines;
@@ -292,9 +286,11 @@ public class EntityIconRenderer implements IIconRenderer {
 
     @Override
     public Optional<TooltipComponent> getTooltipImage(SearchNode node) {
+        if (EntityIconTooltipSupport.isPokemonSpecies(node)) {
+            return EntityIconTooltipSupport.buildPokemonVisuals(node);
+        }
         HeartBarTooltipComponent heartBar = buildHeartBar(node);
         StatIconRowTooltipComponent attackRow = buildAttackRow(node);
-
         if (heartBar != null && attackRow != null) {
             return Optional.of(new CompositeTooltipComponent(List.of(heartBar, attackRow)));
         } else if (heartBar != null) {
@@ -309,5 +305,6 @@ public class EntityIconRenderer implements IIconRenderer {
     public void invalidate() {
         entityCache.clear();
         failedRenderers.clear();
+        CobblemonPokemonIconRenderer.invalidate();
     }
 }

@@ -117,6 +117,7 @@ public class ResultsProcessor {
         CREATIVE("ami.group.creative"),
         MATERIAL("ami.group.material"),
         FAMILY("ami.group.family"),
+        BEHAVIOR("ami.group.behavior"),
         SHAPE("ami.group.shape"),
         TOPOLOGY("ami.group.topology"),
         SIMILARITY("ami.group.similarity"),

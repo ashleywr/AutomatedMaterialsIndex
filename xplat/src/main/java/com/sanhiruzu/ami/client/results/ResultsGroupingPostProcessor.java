@@ -8,7 +8,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.*;
-import java.util.function.Predicate;
+import java.util.function.BiPredicate;
 
 /**
  * Applies cross-cutting grouping passes after a result tree has been built.
@@ -112,14 +112,14 @@ final class ResultsGroupingPostProcessor {
     }
 
     private static List<TreeNode> applyHighCardinalityGrouping(List<TreeNode> nodes) {
-        return applyHighCardinalityGrouping(nodes, ignored -> true);
+        return applyHighCardinalityGrouping(nodes, (node, baseId) -> true);
     }
 
     private static List<TreeNode> applyCategoryHighCardinalityGrouping(List<TreeNode> nodes) {
-        return applyHighCardinalityGrouping(nodes, ResultsGroupingPostProcessor::isCategoryCardinalityBaseId);
+        return applyHighCardinalityGrouping(nodes, ResultsGroupingPostProcessor::isCategoryCardinalityNode);
     }
 
-    private static List<TreeNode> applyHighCardinalityGrouping(List<TreeNode> nodes, Predicate<String> baseIdFilter) {
+    private static List<TreeNode> applyHighCardinalityGrouping(List<TreeNode> nodes, BiPredicate<TreeNode, String> baseIdFilter) {
         List<TreeNode> recursive = new ArrayList<>();
         for (TreeNode node : nodes) {
             if (node.isLeaf()) {
@@ -142,7 +142,7 @@ final class ResultsGroupingPostProcessor {
 
             String baseId = highCardinalityBaseId(node, variantBaseIds);
             boolean hasExplicitFamily = !node.getEntry().meta(SearchNodeKeys.COLLAPSE_FAMILY, "").isEmpty();
-            if (!baseId.isEmpty() && !hasExplicitFamily && baseIdFilter.test(baseId)) {
+            if (!baseId.isEmpty() && !hasExplicitFamily && baseIdFilter.test(node, baseId)) {
                 membersByBaseId.computeIfAbsent(baseId, ignored -> new ArrayList<>()).add(node);
             }
         }
@@ -202,6 +202,17 @@ final class ResultsGroupingPostProcessor {
         ResourceLocation loc = ResourceLocation.tryParse(baseId);
         String path = loc == null ? baseId : loc.getPath();
         return CATEGORY_CARDINALITY_BASE_PATHS.contains(path);
+    }
+
+    private static boolean isCategoryCardinalityNode(TreeNode node, String baseId) {
+        if (isCategoryCardinalityBaseId(baseId)) {
+            return true;
+        }
+        if (!node.isLeaf()) {
+            return false;
+        }
+        String mode = node.getEntry().meta(SearchNodeKeys.VARIANT_COLLAPSE_MODE, "");
+        return "auto".equals(mode) || "default_collapsed".equals(mode);
     }
 
     private static List<TreeNode> applyExplicitFamilyGrouping(List<TreeNode> nodes) {

@@ -78,10 +78,15 @@ public class ItemIconRenderer implements IIconRenderer {
         List<String> missingEntities = EntityIconRenderer.collectMissingEntities();
         int entityTotal = GlobalIndex.getInstance().getNodes(NodeType.ENTITY).size();
 
-        AmiCore.LOGGER.warn("AMI IconAudit: items {}/{} missing, entities {}/{} missing — see icon_audit.txt",
-                missingItems.size(), items.size(), missingEntities.size(), entityTotal);
-        missingItems.forEach(s -> AmiCore.LOGGER.warn("  ITEM MISSING    {}", s));
-        missingEntities.forEach(s -> AmiCore.LOGGER.warn("  ENTITY MISSING  {}", s));
+        if (missingItems.isEmpty() && missingEntities.isEmpty()) {
+            AmiCore.LOGGER.info("AMI IconAudit: items {}/{} missing, entities {}/{} missing — see icon_audit.txt",
+                    missingItems.size(), items.size(), missingEntities.size(), entityTotal);
+        } else {
+            AmiCore.LOGGER.warn("AMI IconAudit: items {}/{} missing, entities {}/{} missing — see icon_audit.txt",
+                    missingItems.size(), items.size(), missingEntities.size(), entityTotal);
+            missingItems.forEach(s -> AmiCore.LOGGER.warn("  ITEM MISSING    {}", s));
+            missingEntities.forEach(s -> AmiCore.LOGGER.warn("  ENTITY MISSING  {}", s));
+        }
 
         writeAuditReport(missingItems, okItems, missingEntities, entityTotal);
     }

@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.AmiOntology;
+import com.sanhiruzu.ami.index.ItemFilter;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 
@@ -36,9 +37,13 @@ final class ResultsFilter {
 
     private boolean matchesAccessLevel(SearchNode node) {
         String level = node.meta(SearchNodeKeys.ACCESS_LEVEL, "");
-        if ("dev".equals(level)) return AmiConfig.devMode;
+        if (ItemFilter.ACCESS_DEV.equals(level)) return AmiConfig.devMode;
+        if (ItemFilter.ACCESS_CHEAT.equals(level)) return AmiConfig.cheatMode || AmiConfig.devMode;
 
-        if ("creative".equals(level)) {
+        if (ItemFilter.ACCESS_CREATIVE.equals(level)) {
+            if (AmiConfig.cheatMode || AmiConfig.devMode) {
+                return true;
+            }
             net.minecraft.client.multiplayer.MultiPlayerGameMode gameMode = net.minecraft.client.Minecraft.getInstance().gameMode;
             if (gameMode != null && gameMode.getPlayerMode() == net.minecraft.world.level.GameType.SURVIVAL) {
                 return false;

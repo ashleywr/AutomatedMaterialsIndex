@@ -237,17 +237,10 @@ public class ResultsTreeView {
             var font = Minecraft.getInstance().font;
             com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
             if (pendingTooltipLines != null) {
-                if (tooltipLeftOfCursor) {
-                    AmiTooltipRenderer.renderLeftOfCursor(g, font, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY);
-                } else {
-                    AmiTooltipRenderer.renderRightOfCursor(g, font, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY);
-                }
+                ItemStack stackContext = (pendingItemStack != null) ? pendingItemStack : ItemStack.EMPTY;
+                AmiTooltipRenderer.render(g, font, stackContext, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY, tooltipLeftOfCursor);
             } else if (pendingItemStack != null && !pendingItemStack.isEmpty()) {
-                if (tooltipLeftOfCursor) {
-                    AmiTooltipRenderer.renderLeftOfCursor(g, font, pendingItemStack, mouseX, mouseY);
-                } else {
-                    AmiTooltipRenderer.renderRightOfCursor(g, font, pendingItemStack, mouseX, mouseY);
-                }
+                AmiTooltipRenderer.render(g, font, pendingItemStack, mouseX, mouseY, tooltipLeftOfCursor);
             }
         }
     }
@@ -319,7 +312,7 @@ public class ResultsTreeView {
 
         // Z-lift prevents dark-background clipping on 3D item models
         g.pose().pushPose();
-        g.pose().translate(iconX + 8, iconY + 8, isEmiRecipeScreenActive() ? 0 : 150);
+        g.pose().translate(iconX + 8, iconY + 8, 0);
 
         boolean dragging = com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging();
         if (dragging || hovered) {
@@ -400,7 +393,7 @@ public class ResultsTreeView {
                     int iconX = currentX - TOOL_ICON_SIZE;
                     int iconY = drawY + (AMITheme.ROW_HEIGHT - TOOL_ICON_SIZE) / 2;
                     g.pose().pushPose();
-                    g.pose().translate(iconX + TOOL_ICON_SIZE / 2.0, iconY + TOOL_ICON_SIZE / 2.0, 150);
+                    g.pose().translate(iconX + TOOL_ICON_SIZE / 2.0, iconY + TOOL_ICON_SIZE / 2.0, 0);
                     float toolScale = TOOL_ICON_SIZE / 16.0f;
                     g.pose().scale(toolScale, toolScale, 1.0f);
                     g.renderItem(toolStack, -8, -8);
@@ -497,7 +490,7 @@ public class ResultsTreeView {
             int iconX = rowX + 12;
             int iconY = drawY + 1;
             g.pose().pushPose();
-            g.pose().translate(0, 0, 150);
+            g.pose().translate(0, 0, 0);
             g.renderItem(icon, iconX, iconY);
             g.pose().popPose();
         }
@@ -739,7 +732,7 @@ public class ResultsTreeView {
                     onTokenInject.accept("@" + entry.id().getNamespace());
                 } else if (onModClick != null && button == 0 && mouseX >= badgeStartX && mouseX <= rightEdge) {
                     onModClick.accept("@" + entry.id().getNamespace());
-                } else if (onItemClick != null && entry.type() == NodeType.ITEM) {
+                } else if (onItemClick != null) {
                     onItemClick.accept(entry, button);
                 }
             } else {

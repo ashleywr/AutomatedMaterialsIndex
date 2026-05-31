@@ -127,7 +127,7 @@ class ListLensTest {
         assertEquals(2, projection.displayedItemCount());
         assertTrue(projection.summary().contains("lens=STORAGE"));
         assertEquals(ResultsProcessor.SortField.STORAGE_CAPACITY, state.getSortField());
-        assertEquals(ResultsProcessor.GroupBy.NONE, state.getGroupBy());
+        assertEquals(ResultsProcessor.GroupBy.BEHAVIOR, state.getGroupBy());
         assertEquals(List.of(RowField.MOD_NAME, RowField.STORAGE_CAPACITY), RowFieldConfig.getSubtitleFields());
     }
 
@@ -314,6 +314,39 @@ class ListLensTest {
         assertEquals("Advanced Generator", projection.roots().get(0).getLabel().getString());
         assertEquals(ResultsProcessor.SortField.ENERGY_GENERATION, state.getSortField());
         assertEquals(List.of(RowField.MOD_NAME, RowField.ENERGY_GENERATION, RowField.ENERGY_CAPACITY), RowFieldConfig.getSubtitleFields());
+    }
+
+    @Test
+    void behaviorGroupingUsesStructuredCompatFactsInListView() {
+        SearchState state = new SearchState();
+        state.setViewMode(ResultsToolbar.ViewMode.LIST);
+        state.setListLens(ListLens.MACHINES);
+
+        ResultsViewProjector.Projection projection = ResultsViewProjector.project(List.of(
+                item("mechanical_mixer", "Mechanical Mixer", Map.of(
+                        SearchNodeKeys.CREATE_FACTS, "uses_su,kinetic,create_processing",
+                        SearchNodeKeys.CREATE_STRESS_ROLE, "consumes_su",
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "create",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "machines"
+                )),
+                item("energy_cube", "Energy Cube", Map.of(
+                        SearchNodeKeys.ENERGY_CAPACITY, "100000",
+                        SearchNodeKeys.FACETS, "has_energy",
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "mekanism",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "energy"
+                )),
+                item("basic_tank", "Basic Tank", Map.of(
+                        SearchNodeKeys.FLUID_CAPACITY, "14",
+                        SearchNodeKeys.FACETS, "fluid_container",
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "mekanism",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "machines"
+                ))
+        ), state, null, false, false);
+
+        assertEquals(3, projection.displayedItemCount());
+        assertEquals(ResultsProcessor.GroupBy.BEHAVIOR, state.getGroupBy());
+        assertEquals(List.of("Energy Storage", "Fluid Storage", "Kinetic Power"),
+                projection.roots().stream().map(node -> node.getLabel().getString()).sorted().toList());
     }
 
     @Test

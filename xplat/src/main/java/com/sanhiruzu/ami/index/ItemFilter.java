@@ -44,6 +44,28 @@ public final class ItemFilter {
     }
 
     /**
+     * Returns every displayed creative-tab stack grouped by item. Unlike
+     * buildCreativeTabMap, this preserves multiple ItemStack component variants
+     * for the same registered item.
+     */
+    public static Map<Item, List<CreativeStackInfo>> buildCreativeStackMap(net.minecraft.world.level.Level level) {
+        if (Services.PLATFORM.isClient()) {
+            return ClientItemFilter.buildCreativeStackMap(level);
+        }
+        return Collections.emptyMap();
+    }
+
+    public static Map<Item, CreativeTabInfo> firstCreativeTabs(Map<Item, List<CreativeStackInfo>> stackMap) {
+        Map<Item, CreativeTabInfo> result = new LinkedHashMap<>();
+        for (var entry : stackMap.entrySet()) {
+            if (!entry.getValue().isEmpty()) {
+                result.put(entry.getKey(), entry.getValue().get(0).tab());
+            }
+        }
+        return result;
+    }
+
+    /**
      * Returns the set of all items that appear as the output of at least one registered recipe.
      */
     public static Set<Item> buildRecipeOutputSet(net.minecraft.world.level.Level level) {
@@ -75,6 +97,7 @@ public final class ItemFilter {
                 || path.contains("effect") || path.contains("particle")) return ACCESS_DEV;
 
         // Special restricted items
+        if (isCreativeOnlyPath(path)) return ACCESS_CREATIVE;
         if (isSpawnEgg(id, item) || path.contains("spawner")) return ACCESS_CREATIVE;
         if (path.contains("command_block") || path.equals("structure_block") || path.equals("barrier"))
             return ACCESS_CHEAT;
@@ -83,6 +106,13 @@ public final class ItemFilter {
         if (!inCreative) return ACCESS_DEV;
 
         return ACCESS_SURVIVAL;
+    }
+
+    private static boolean isCreativeOnlyPath(String path) {
+        return path.equals("creative")
+                || path.startsWith("creative_")
+                || path.endsWith("_creative")
+                || path.contains("_creative_");
     }
 
     private static boolean isSpawnEgg(ResourceLocation id, Item item) {
@@ -110,15 +140,22 @@ public final class ItemFilter {
     public record CreativeTabInfo(String id, String label) {
     }
 
+    public record CreativeStackInfo(ItemStack stack, CreativeTabInfo tab) {
+    }
+
     /**
      * Internal class to prevent ClientLevel class loading on Dedicated Server.
      */
     private static class ClientItemFilter {
         private static Map<Item, CreativeTabInfo> buildCreativeTabMap(net.minecraft.world.level.Level level) {
+            return firstCreativeTabs(buildCreativeStackMap(level));
+        }
+
+        private static Map<Item, List<CreativeStackInfo>> buildCreativeStackMap(net.minecraft.world.level.Level level) {
             if (!(level instanceof net.minecraft.client.multiplayer.ClientLevel clientLevel)) {
                 return Collections.emptyMap();
             }
-            Map<Item, CreativeTabInfo> items = new LinkedHashMap<>();
+            Map<Item, List<CreativeStackInfo>> items = new LinkedHashMap<>();
             try {
                 var params = new CreativeModeTab.ItemDisplayParameters(
                         clientLevel.enabledFeatures(), false, clientLevel.registryAccess()
@@ -135,7 +172,9 @@ public final class ItemFilter {
                     String tabLabel = tab.getDisplayName().getString();
                     for (ItemStack stack : tab.getDisplayItems()) {
                         if (!stack.isEmpty()) {
-                            items.putIfAbsent(stack.getItem(), new CreativeTabInfo(tabKey, tabLabel));
+                            CreativeTabInfo tabInfo = new CreativeTabInfo(tabKey, tabLabel);
+                            items.computeIfAbsent(stack.getItem(), ignored -> new ArrayList<>())
+                                    .add(new CreativeStackInfo(stack.copy(), tabInfo));
                         }
                     }
                 }

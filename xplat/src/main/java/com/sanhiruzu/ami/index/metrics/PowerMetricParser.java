@@ -19,7 +19,6 @@ public final class PowerMetricParser {
             return Optional.empty();
         }
 
-        String normalizedIdentity = normalize(identity);
         Double generation = null;
         Double consumption = null;
 
@@ -33,7 +32,7 @@ public final class PowerMetricParser {
 
                 if (isConsumptionLine(normalizedLine)) {
                     consumption = max(consumption, value);
-                } else if (isGenerationLine(normalizedLine) || isLikelyGeneratorIdentity(normalizedIdentity)) {
+                } else if (isGenerationLine(normalizedLine)) {
                     generation = max(generation, value);
                 }
             }
@@ -69,13 +68,6 @@ public final class PowerMetricParser {
                 "consume", "consumes", "consumption",
                 "use ", "uses ", "usage", "cost", "input", "drain", "requires", "required"
         ) && !containsAny(line, "output", "generate", "generates", "generation", "produce", "produces");
-    }
-
-    private static boolean isLikelyGeneratorIdentity(String identity) {
-        return containsAny(identity,
-                "generator", "dynamo", "solar", "reactor", "turbine", "alternator",
-                "engine", "furnator", "magmatic", "thermo", "heat", "combustion"
-        );
     }
 
     private static boolean containsAny(String haystack, String... needles) {

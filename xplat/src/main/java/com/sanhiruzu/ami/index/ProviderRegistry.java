@@ -2,6 +2,8 @@ package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
+import com.sanhiruzu.ami.compat.CobblemonSpeciesProvider;
+import com.sanhiruzu.ami.index.providers.CreativeStackVariantExpander;
 import com.sanhiruzu.ami.index.providers.*;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -25,6 +27,7 @@ public final class ProviderRegistry {
             new ItemProvider(),
             new BiomeProvider(),
             new EntityProvider(),
+            new CobblemonSpeciesProvider(),
             new DimensionProvider(),
             new LootTableProvider(),
             new SpawnProvider()
@@ -68,10 +71,15 @@ public final class ProviderRegistry {
     public static void rehydrateSubtypeStacks(@Nullable Level level) {
         ItemIconRenderer.clearPersistent();
         RegistryAccess registryAccess = level != null ? level.registryAccess() : null;
+        var creativeStackMap = com.sanhiruzu.ami.index.ItemFilter.buildCreativeStackMap(level);
         for (Item item : BuiltInRegistries.ITEM) {
             ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
             if (id == null) continue;
-            for (SubtypeExpander.SubtypeEntry entry : SubtypeExpander.expand(id, registryAccess)) {
+            List<SubtypeExpander.SubtypeEntry> entries = SubtypeExpander.expand(id, registryAccess);
+            if (entries.isEmpty()) {
+                entries = CreativeStackVariantExpander.expand(id, creativeStackMap.get(item), level);
+            }
+            for (SubtypeExpander.SubtypeEntry entry : entries) {
                 ItemIconRenderer.registerStack(entry.id(), entry.stack());
             }
         }

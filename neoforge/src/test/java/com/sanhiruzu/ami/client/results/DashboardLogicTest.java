@@ -208,8 +208,12 @@ public class DashboardLogicTest {
         // This is implicitly tested by the fact that we don't re-sort in those cases
         assertTrue(original.size() > 0, "Ontology should have categories defined");
 
-        // Verify the hardcoded order is maintained (NAVIGATION before ENTITIES, etc)
-        assertEquals("utility", original.get(0).id);
-        assertEquals("bestiary", original.get(1).id);
+        // Verify the hardcoded order is maintained. Focused compat categories
+        // come first, followed by generic ontology groups.
+        assertEquals("cobblemon", original.get(0).id);
+        assertEquals("create", original.get(1).id);
+        assertEquals("mapping", original.get(9).id);
+        assertEquals("utility", original.get(10).id);
+        assertEquals("bestiary", original.get(11).id);
     }
 }

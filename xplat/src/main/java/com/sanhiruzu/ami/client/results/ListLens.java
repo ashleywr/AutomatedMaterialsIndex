@@ -125,7 +125,7 @@ public enum ListLens {
     STORAGE("ami.list_lens.storage",
             ResultsProcessor.SortField.STORAGE_CAPACITY,
             false,
-            ResultsProcessor.GroupBy.NONE,
+            ResultsProcessor.GroupBy.BEHAVIOR,
             EnumSet.of(RowField.STORAGE_CAPACITY, RowField.MOD_NAME),
             List.of(
                     ResultsProcessor.SortField.STORAGE_CAPACITY,
@@ -142,7 +142,7 @@ public enum ListLens {
     POWER("ami.list_lens.power",
             ResultsProcessor.SortField.ENERGY_GENERATION,
             false,
-            ResultsProcessor.GroupBy.NONE,
+            ResultsProcessor.GroupBy.BEHAVIOR,
             EnumSet.of(RowField.ENERGY_GENERATION, RowField.ENERGY_CAPACITY, RowField.MOD_NAME),
             List.of(
                     ResultsProcessor.SortField.ENERGY_GENERATION,
@@ -162,7 +162,7 @@ public enum ListLens {
     MACHINES("ami.list_lens.machines",
             ResultsProcessor.SortField.ENERGY_GENERATION,
             false,
-            ResultsProcessor.GroupBy.MOD,
+            ResultsProcessor.GroupBy.BEHAVIOR,
             EnumSet.of(RowField.ENERGY_GENERATION, RowField.ENERGY_CAPACITY, RowField.MOD_NAME),
             List.of(
                     ResultsProcessor.SortField.ENERGY_GENERATION,
@@ -187,7 +187,7 @@ public enum ListLens {
     FLUIDS("ami.list_lens.fluids",
             ResultsProcessor.SortField.FLUID_CAPACITY,
             false,
-            ResultsProcessor.GroupBy.NONE,
+            ResultsProcessor.GroupBy.BEHAVIOR,
             EnumSet.of(RowField.FLUID_CAPACITY, RowField.MOD_NAME),
             List.of(
                     ResultsProcessor.SortField.FLUID_CAPACITY,
@@ -199,7 +199,8 @@ public enum ListLens {
             return hasMetadata(node, SearchNodeKeys.FLUID_CAPACITY)
                     || hasFacet(node, "fluid_container")
                     || hasCategory(node, "utility", "fluids")
-                    || pathContains(node, "tank", "reservoir", "drum", "fluid", "canister");
+                    || hasAnyToken(node, SearchNodeKeys.CREATE_FACTS, "fluid")
+                    || hasAnyToken(node, SearchNodeKeys.MEKANISM_FACTS, "fluid_or_heat");
         }
     },
 
@@ -318,6 +319,25 @@ public enum ListLens {
         String needle = facet.toLowerCase(Locale.ROOT);
         for (String part : facets.split(",")) {
             if (needle.equals(part.trim().toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasAnyToken(SearchNode node, String metadataKey, String... tokens) {
+        String raw = node.meta(metadataKey, "");
+        if (raw.isBlank()) {
+            return false;
+        }
+        Set<String> present = new java.util.HashSet<>();
+        for (String part : raw.split("[,\\s]+")) {
+            if (!part.isBlank()) {
+                present.add(part.trim().toLowerCase(Locale.ROOT).replace("_", "").replace("-", ""));
+            }
+        }
+        for (String token : tokens) {
+            if (present.contains(token.toLowerCase(Locale.ROOT).replace("_", "").replace("-", ""))) {
                 return true;
             }
         }

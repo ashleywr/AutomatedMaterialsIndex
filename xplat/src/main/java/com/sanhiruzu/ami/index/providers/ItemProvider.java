@@ -3,6 +3,12 @@ package com.sanhiruzu.ami.index.providers;
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.api.AmiPluginRegistry;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
+import com.sanhiruzu.ami.compat.AE2Compat;
+import com.sanhiruzu.ami.compat.CobblemonCompat;
+import com.sanhiruzu.ami.compat.CompatFamilyDetector;
+import com.sanhiruzu.ami.compat.CreateCompat;
+import com.sanhiruzu.ami.compat.MekanismCompat;
+import com.sanhiruzu.ami.compat.SophisticatedCompat;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.index.metrics.*;
@@ -217,6 +223,12 @@ public class ItemProvider implements IAmiDataProvider {
             meta.putAll(facetProfile.attributes());
         }
 
+        CompatFamilyDetector.detect(baseId, meta);
+        CobblemonCompat.enrichItem(baseId, meta);
+        CreateCompat.enrichItem(baseId, meta);
+        AE2Compat.enrichItem(baseId, meta);
+        MekanismCompat.enrichItem(baseId, meta);
+        SophisticatedCompat.enrichItem(baseId, meta);
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(baseId, profileWithMetadata(facetProfile, meta));
         if (!assignment.attributes().isEmpty()) {
             meta.putAll(assignment.attributes());
@@ -253,7 +265,8 @@ public class ItemProvider implements IAmiDataProvider {
         GroupingEngine.rebuildDynamicShapeCandidates(BuiltInRegistries.ITEM);
         boolean strictSurvival = AmiConfig.strictSurvivalMode;
 
-        Map<Item, ItemFilter.CreativeTabInfo> creativeTabs = ItemFilter.buildCreativeTabMap(level);
+        Map<Item, List<ItemFilter.CreativeStackInfo>> creativeStackMap = ItemFilter.buildCreativeStackMap(level);
+        Map<Item, ItemFilter.CreativeTabInfo> creativeTabs = ItemFilter.firstCreativeTabs(creativeStackMap);
         Set<Item> creativeItems = creativeTabs.keySet();
         AmiRecipeIndex recipeIndex = AmiRecipeIndex.getInstance();
         Set<Item> recipeOutputs = (strictSurvival || AmiConfig.showHiddenModItems)
@@ -285,11 +298,18 @@ public class ItemProvider implements IAmiDataProvider {
             // Generated subtypes should not be suppressed just because the dummy base item is dev-only.
             List<SubtypeExpander.SubtypeEntry> subtypes =
                     SubtypeExpander.expand(id, registryAccess);
+            if (subtypes.isEmpty() && ItemFilter.shouldShowAccessLevel(accessLevel)) {
+                subtypes = CreativeStackVariantExpander.expand(id, creativeStackMap.get(item), level);
+            }
             if (!subtypes.isEmpty()) {
                 String tags = collectTags(item);
                 for (SubtypeExpander.SubtypeEntry entry : subtypes) {
                     ItemIconRenderer.registerStack(entry.id(), entry.stack());
-                    Map<String, String> meta = buildSubtypeMeta(id, entry.stack(), extractColorBucket(entry.id()), creativeTabs.get(item));
+                    String colorBucket = entry.extraMeta().getOrDefault(
+                            SearchNodeKeys.COLOR_BUCKET,
+                            extractColorBucket(entry.id())
+                    );
+                    Map<String, String> meta = buildSubtypeMeta(id, entry.stack(), colorBucket, creativeTabs.get(item));
                     if (!entry.extraMeta().isEmpty()) meta.putAll(entry.extraMeta());
                     if (!tags.isEmpty()) meta.put(SearchNodeKeys.TAGS, tags);
                     foodMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addFoodStats(meta, stats));
@@ -347,6 +367,9 @@ public class ItemProvider implements IAmiDataProvider {
             meta.put(SearchNodeKeys.COLOR_BUCKET, colorBucket);
             meta.put(SearchNodeKeys.MATERIAL_GROUP, materialGroup);
             meta.put(SearchNodeKeys.ACCESS_LEVEL, accessLevel);
+            if (!facetProfile.attributes().isEmpty()) {
+                meta.putAll(facetProfile.attributes());
+            }
 
             if (collapsedFamily.isEmpty() && !materialGroup.isEmpty() && !materialGroup.equals(id.toString())) {
                 meta.put(SearchNodeKeys.SUBTYPE_OF, materialGroup);
@@ -376,6 +399,8 @@ public class ItemProvider implements IAmiDataProvider {
             toolStats.ifPresent(stats -> addToolStats(meta, stats));
             armorStats.ifPresent(stats -> addArmorStats(meta, stats));
             inferAmmoType(id, meta);
+            CompatFamilyDetector.detect(id, meta);
+            CobblemonCompat.enrichItem(id, meta);
             if (!inCreative) {
                 meta.put(SearchNodeKeys.VISIBILITY, "hidden");
             }
@@ -397,6 +422,10 @@ public class ItemProvider implements IAmiDataProvider {
             if (recipeUseCount > 0) {
                 meta.put(SearchNodeKeys.RECIPE_USE_COUNT, Integer.toString(recipeUseCount));
             }
+            CreateCompat.enrichItem(id, meta);
+            AE2Compat.enrichItem(id, meta);
+            MekanismCompat.enrichItem(id, meta);
+            SophisticatedCompat.enrichItem(id, meta);
 
             CategoryAssignment assignment = PrimaryCategoryResolver.resolve(id, profileWithMetadata(facetProfile, meta));
             if (!assignment.attributes().isEmpty()) {

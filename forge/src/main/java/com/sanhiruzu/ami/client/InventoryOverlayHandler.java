@@ -86,14 +86,24 @@ public class InventoryOverlayHandler {
 
         if (event.getScreen() instanceof AbstractContainerScreen<?> containerScreen) {
             manager.computeLayouts(containerScreen, containerScreen.width, containerScreen.height);
+            
+            class PanelRenderer implements net.minecraft.client.gui.components.Renderable, net.minecraft.client.gui.components.events.GuiEventListener {
+                @Override
+                public void render(net.minecraft.client.gui.GuiGraphics g, int mouseX, int mouseY, float partialTicks) {
+                    if (AmiApi.shouldSuppressAmi(Minecraft.getInstance().screen)) return;
+                    manager.renderPanels(g, mouseX, mouseY, partialTicks);
+                }
+                @Override public void setFocused(boolean focused) {}
+                @Override public boolean isFocused() { return false; }
+            }
+            event.addListener(new PanelRenderer());
+
             event.addListener(manager.getAmiButton());
             if (amiEnabled) {
                 event.addListener(manager.getSearchBar());
             }
             manager.getSearchBar().unfocus();
         }
-        // For RecipeScreen, layout is computed by renderAll each frame.
-        // Don't add children — RecipeScreen manages its own widget lifecycle.
     }
 
     @SubscribeEvent
@@ -106,7 +116,6 @@ public class InventoryOverlayHandler {
     static void onRenderPost(ScreenEvent.Render.Post event) {
         if (!isAmiScreen(event.getScreen())) return;
 
-        // Process deferred screen reinit before any rendering this frame.
         if (pendingScreenReinit) {
             pendingScreenReinit = false;
             Minecraft mc = Minecraft.getInstance();
@@ -114,13 +123,14 @@ public class InventoryOverlayHandler {
             return;
         }
 
-        // Check if any registered suppressors want to hide AMI
         if (AmiApi.shouldSuppressAmi(event.getScreen())) {
             return;
         }
 
-        // renderAll must be called before tick to ensure widgets are initialized
-        manager.renderAll(event);
+        if (isRecipeScreen(event.getScreen())) {
+            manager.computeLayouts(event.getScreen(), event.getScreen().width, event.getScreen().height);
+            manager.renderAll(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
+        }
 
         if (amiEnabled) {
             manager.tick(event);

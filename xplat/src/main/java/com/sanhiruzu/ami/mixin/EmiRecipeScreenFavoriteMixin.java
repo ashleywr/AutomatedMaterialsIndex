@@ -1,6 +1,5 @@
 package com.sanhiruzu.ami.mixin;
 
-import com.sanhiruzu.ami.compat.EmiRecipeScreenFavoriteMixinSupport;
 import dev.emi.emi.screen.RecipeScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
@@ -14,8 +13,19 @@ public class EmiRecipeScreenFavoriteMixin {
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, remap = false)
     private void ami$toggleHoveredFavorite(int keyCode, int scanCode, int modifiers,
                                            CallbackInfoReturnable<Boolean> cir) {
-        if (EmiRecipeScreenFavoriteMixinSupport.handleFavoriteKey(this, keyCode, scanCode)) {
+        if (ami$handleFavoriteKey(this, keyCode, scanCode)) {
             cir.setReturnValue(true);
+        }
+    }
+
+    private static boolean ami$handleFavoriteKey(Object screen, int keyCode, int scanCode) {
+        try {
+            Object handled = Class.forName("com.sanhiruzu.ami.compat.EmiRecipeScreenFavoriteMixinSupport")
+                    .getMethod("handleFavoriteKey", Object.class, int.class, int.class)
+                    .invoke(null, screen, keyCode, scanCode);
+            return handled instanceof Boolean result && result;
+        } catch (ReflectiveOperationException ignored) {
+            return false;
         }
     }
 }
