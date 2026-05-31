@@ -87,6 +87,10 @@ public final class OverlayInputController {
                                     char codePoint, int modifiers) {
         if (!panelInputAllowed(screen, manager, amiEnabled)) return false;
 
+        if (manager.hasOpenContextMenu()) {
+            return manager.charTyped(codePoint, modifiers);
+        }
+
         var searchBar = manager.getSearchBar();
         return searchBar.isFocused() && searchBar.charTyped(codePoint, modifiers);
     }
@@ -97,6 +101,10 @@ public final class OverlayInputController {
         if (AmiApi.shouldSuppressAmi(screen)) return false;
 
         var searchBar = manager.getSearchBar();
+
+        if (amiEnabled && manager.isPanelVisible() && manager.hasOpenContextMenu()) {
+            return manager.keyPressed(keyCode, scanCode, modifiers);
+        }
 
         if (amiEnabled && manager.isPanelVisible() && searchBar.isFocused()) {
             if (searchBar.keyPressed(keyCode, scanCode, modifiers)) {

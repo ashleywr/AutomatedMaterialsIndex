@@ -87,18 +87,24 @@ public class ResultsPanelWidget extends AbstractWidget {
      */
     public void renderOverlay(GuiGraphics g, int mouseX, int mouseY) {
         if (panel == null) return;
-        panel.getToolbar().renderOpenDropdownLists(g, mouseX, mouseY);
+        panel.renderOverlay(g, mouseX, mouseY);
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (panel == null || !this.visible) return false;
-        if (!isMouseOver(mouseX, mouseY)) return false;
-        panel.mouseClickedScrollbar(mouseX, mouseY, button);
+        if (!isMouseOver(mouseX, mouseY) && !panel.isContextMenuOpen()) return false;
+        if (isMouseOver(mouseX, mouseY)) {
+            panel.mouseClickedScrollbar(mouseX, mouseY, button);
+        }
         panel.mouseClicked(mouseX, mouseY, button);
         // Always return true for in-bounds clicks so the screen focuses this widget,
         // enabling mouseDragged (scrollbar) and mouseReleased to route here correctly.
         return true;
+    }
+
+    public boolean isContextMenuOpen() {
+        return panel != null && panel.isContextMenuOpen();
     }
 
     @Override
@@ -124,6 +130,12 @@ public class ResultsPanelWidget extends AbstractWidget {
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (panel == null) return false;
         return panel.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean charTyped(char codePoint, int modifiers) {
+        if (panel == null) return false;
+        return panel.charTyped(codePoint, modifiers);
     }
 
     @Override

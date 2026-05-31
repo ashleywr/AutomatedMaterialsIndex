@@ -390,7 +390,7 @@ public class OverlayWidgetManager {
         g.flush();
         com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
         g.pose().pushPose();
-        g.pose().translate(0, 0, 100);
+        g.pose().translate(0, 0, OverlayLayers.PANEL);
 
         for (PanelSlot slot : activeSlots) {
             slot.render(g, mx, my, pt);
@@ -401,7 +401,10 @@ public class OverlayWidgetManager {
         renderCheatDeleteHint(g, mx, my);
 
         if (AmiConfig.highlightExclusionAreas) {
+            g.pose().pushPose();
+            g.pose().translate(0, 0, OverlayLayers.DEBUG);
             renderExclusionHighlights(g);
+            g.pose().popPose();
         }
 
         g.pose().popPose();
@@ -416,7 +419,10 @@ public class OverlayWidgetManager {
             if (slot.results.visible && slot.results.isMouseOver(mx, my)) {
                 var font = net.minecraft.client.Minecraft.getInstance().font;
                 var msg = net.minecraft.network.chat.Component.translatable("ami.cheat.drop_to_delete");
+                g.pose().pushPose();
+                g.pose().translate(0, 0, OverlayLayers.TRANSIENT_TOOLTIP);
                 g.renderTooltip(font, List.of(msg), java.util.Optional.empty(), mx, my);
+                g.pose().popPose();
                 break;
             }
         }
@@ -519,6 +525,20 @@ public class OverlayWidgetManager {
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         for (PanelSlot slot : activeSlots) {
             if (slot.keyPressed(keyCode, scanCode, modifiers)) return true;
+        }
+        return false;
+    }
+
+    public boolean charTyped(char codePoint, int modifiers) {
+        for (PanelSlot slot : activeSlots) {
+            if (slot.charTyped(codePoint, modifiers)) return true;
+        }
+        return false;
+    }
+
+    public boolean hasOpenContextMenu() {
+        for (PanelSlot slot : activeSlots) {
+            if (slot.hasOpenContextMenu()) return true;
         }
         return false;
     }
@@ -724,6 +744,7 @@ public class OverlayWidgetManager {
 
         void renderOverlay(net.minecraft.client.gui.GuiGraphics g, int mx, int my) {
             if (results.visible) results.renderOverlay(g, mx, my);
+            if (sidebar.visible) sidebar.renderOverlay(g, mx, my);
         }
 
         boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
@@ -737,7 +758,18 @@ public class OverlayWidgetManager {
 
         boolean mouseClicked(double mouseX, double mouseY, int button) {
             AbstractWidget widget = activeWidget();
-            return widget != null && widget.visible && widget.isMouseOver(mouseX, mouseY) && widget.mouseClicked(mouseX, mouseY, button);
+            return widget != null && widget.visible && (widget.isMouseOver(mouseX, mouseY) || hasOpenContextMenu(widget))
+                    && widget.mouseClicked(mouseX, mouseY, button);
+        }
+
+        private boolean hasOpenContextMenu(AbstractWidget widget) {
+            if (widget instanceof ResultsPanelWidget results) {
+                return results.isContextMenuOpen();
+            }
+            if (widget instanceof SidebarPanelWidget sidebar) {
+                return sidebar.isContextMenuOpen();
+            }
+            return false;
         }
 
         boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
@@ -753,6 +785,16 @@ public class OverlayWidgetManager {
         boolean keyPressed(int keyCode, int scanCode, int modifiers) {
             AbstractWidget widget = activeWidget();
             return widget != null && widget.visible && widget.keyPressed(keyCode, scanCode, modifiers);
+        }
+
+        boolean charTyped(char codePoint, int modifiers) {
+            AbstractWidget widget = activeWidget();
+            return widget != null && widget.visible && widget.charTyped(codePoint, modifiers);
+        }
+
+        boolean hasOpenContextMenu() {
+            AbstractWidget widget = activeWidget();
+            return widget != null && widget.visible && hasOpenContextMenu(widget);
         }
 
         boolean isMouseOver(double mouseX, double mouseY) {

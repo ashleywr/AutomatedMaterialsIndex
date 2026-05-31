@@ -106,11 +106,23 @@ public class SidebarPanelWidget extends AbstractWidget {
         panel.render(g, mouseX, mouseY, partialTick);
     }
 
+    public void renderOverlay(GuiGraphics g, int mouseX, int mouseY) {
+        if (!this.visible) return;
+        panel.renderOverlay(g, mouseX, mouseY);
+    }
+
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (!this.visible || !panel.isMouseOver(mouseX, mouseY)) return false;
-        panel.mouseClickedScrollbar(mouseX, mouseY, button);
+        if (!this.visible) return false;
+        if (!panel.isMouseOver(mouseX, mouseY) && !panel.isContextMenuOpen()) return false;
+        if (panel.isMouseOver(mouseX, mouseY)) {
+            panel.mouseClickedScrollbar(mouseX, mouseY, button);
+        }
         return panel.mouseClicked(mouseX, mouseY, button);
+    }
+
+    public boolean isContextMenuOpen() {
+        return panel.isContextMenuOpen();
     }
 
     @Override
@@ -136,6 +148,12 @@ public class SidebarPanelWidget extends AbstractWidget {
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (!this.visible) return false;
         return panel.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean charTyped(char codePoint, int modifiers) {
+        if (!this.visible) return false;
+        return panel.charTyped(codePoint, modifiers);
     }
 
     @Override

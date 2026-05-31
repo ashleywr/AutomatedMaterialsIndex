@@ -317,11 +317,6 @@ public final class CobblemonPokemonIconRenderer {
             return false;
         }
 
-        float[] shaderColor = RenderSystem.getShaderColor();
-        float savedRed = shaderColor[0];
-        float savedGreen = shaderColor[1];
-        float savedBlue = shaderColor[2];
-        float savedAlpha = shaderColor[3];
         g.pose().pushPose();
         try {
             Object state = STATE_CACHE.computeIfAbsent(speciesId, api::newState);
@@ -333,42 +328,41 @@ public final class CobblemonPokemonIconRenderer {
             float spin = hovered ? (System.currentTimeMillis() % 3000L) / 3000.0f * 360.0f : 30.0f;
             Quaternionf rotation = new Quaternionf().rotationXYZ((float) Math.toRadians(13.0f), (float) Math.toRadians(spin), 0.0f);
 
-            RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-            RenderSystem.enableDepthTest();
-            RenderSystem.depthMask(true);
-
-            g.pose().translate(x + size / 2.0f, y + size * 0.9f, 180.0f);
-            g.pose().scale(size / 42.0f, size / 42.0f, size / 42.0f);
-            api.drawProfilePokemon.invoke(
-                    null,
-                    speciesId,
-                    g.pose(),
-                    rotation,
-                    api.profilePose,
-                    state,
-                    0.0f,
-                    20.0f,
-                    false,
-                    false,
-                    false,
-                    1.0f,
-                    1.0f,
-                    1.0f,
-                    1.0f,
-                    0.0f,
-                    0.0f
-            );
+            IconRenderState.render3dIcon(g, () -> {
+                try {
+                    RenderSystem.enableBlend();
+                    RenderSystem.defaultBlendFunc();
+                    g.pose().translate(x + size / 2.0f, y + size * 0.9f, 180.0f);
+                    g.pose().scale(size / 42.0f, size / 42.0f, size / 42.0f);
+                    api.drawProfilePokemon.invoke(
+                            null,
+                            speciesId,
+                            g.pose(),
+                            rotation,
+                            api.profilePose,
+                            state,
+                            0.0f,
+                            20.0f,
+                            false,
+                            false,
+                            false,
+                            1.0f,
+                            1.0f,
+                            1.0f,
+                            1.0f,
+                            0.0f,
+                            0.0f
+                    );
+                } catch (ReflectiveOperationException e) {
+                    throw new IllegalStateException(e);
+                }
+            });
             return true;
         } catch (Throwable e) {
             FAILED_PROFILE_RENDER.add(speciesId);
             return false;
         } finally {
             g.pose().popPose();
-            RenderSystem.setShaderColor(savedRed, savedGreen, savedBlue, savedAlpha);
-            RenderSystem.depthMask(true);
-            RenderSystem.enableDepthTest();
         }
     }
 
