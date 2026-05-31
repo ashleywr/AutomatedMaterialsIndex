@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SearchSuggestionsTest {
@@ -29,15 +30,22 @@ class SearchSuggestionsTest {
         index.addNode(item("examplecompat", "washer", "Washer", Map.of(
                 "exampleRoles", "washing_input,washing_output",
                 "exampleFacts", "fluid_processing",
+                SearchNodeKeys.COLOR_BUCKET, "red",
                 SearchNodeKeys.FLUID_CAPACITY, "4"
         )));
 
+        assertSuggests(index, "?", "?kind:");
+        assertSuggests(index, "?", "?color:");
         assertSuggests(index, "?fact:stores", "?fact:stores_fe");
+        assertSuggests(index, "?stores", "?stores_fe");
         assertSuggests(index, "?kind:energy", "?kind:energy_cell");
+        assertSuggests(index, "?energy", "?energy");
+        assertSuggests(index, "?color:r", "?color:red");
         assertSuggests(index, "?tier:sta", "?tier:starter");
         assertSuggests(index, "?role:washing", "?role:washing_input");
         assertSuggests(index, "?capability:ene", "?capability:energy");
-        assertSuggests(index, ">en", ">energy");
+        assertSuggests(index, "~ene", "~energy");
+        assertSuggests(index, ">en", ">energy:");
     }
 
     @Test
@@ -51,6 +59,49 @@ class SearchSuggestionsTest {
 
         assertSuggests(index, "@storage", "@storagedrawers");
         assertSuggests(index, "#minecraft:mine", "#minecraft:mineable/axe");
+    }
+
+    @Test
+    void suggestsCategoriesEnvironmentsAndPrefixShortcuts() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("example", "battery", "Battery", Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "tech",
+                SearchNodeKeys.ENERGY_CAPACITY, "10000"
+        )));
+        index.addNode(node("minecraft", "the_nether", NodeType.DIMENSION, "The Nether", Map.of()));
+        index.addNode(item("cobblemon", "field_guide", "Field Guide", Map.of(
+                SearchNodeKeys.POKEMON_EGG_GROUPS, "monster,field"
+        )));
+
+        assertSuggests(index, "$te", "$tech");
+        assertSuggests(index, "&net", "&the_nether");
+        assertSuggests(index, "%", "%egg:");
+        assertSuggests(index, "%egg:mon", "%egg:monster");
+    }
+
+    @Test
+    void gatesPokemonShortcutsAndHelpByIndexedMetadata() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("minecraft", "stick", "Stick", Map.of()));
+
+        assertDoesNotSuggest(index, "%", "%egg:");
+        assertFalse(helpExamples(index).stream().anyMatch(example -> example.startsWith("@type:")
+                || example.startsWith("#move:")
+                || example.startsWith("%egg:")));
+        assertFalse(helpExamples(index).contains("@create"));
+        assertTrue(helpExamples(index).contains("@minecraft"));
+
+        index.addNode(item("cobblemon", "pikachu", "Pikachu", Map.of(
+                SearchNodeKeys.POKEMON_TYPE, "electric",
+                SearchNodeKeys.POKEMON_MOVE, "thunderbolt",
+                SearchNodeKeys.POKEMON_EGG_GROUPS, "field"
+        )));
+
+        assertSuggests(index, "%", "%egg:");
+        List<String> examples = helpExamples(index);
+        assertTrue(examples.contains("@type:electric"));
+        assertTrue(examples.contains("#move:thunderbolt"));
+        assertTrue(examples.contains("%egg:field"));
     }
 
     @Test
@@ -83,7 +134,8 @@ class SearchSuggestionsTest {
 
         assertTrue(suggestions.size() > 2);
         assertTrue(suggestions.stream().allMatch(SearchSuggestions.Suggestion::example));
-        assertTrue(suggestions.stream().anyMatch(s -> s.display().startsWith("?capability:")));
+        assertTrue(suggestions.stream().anyMatch(s -> s.display().startsWith("~")));
+        assertTrue(suggestions.stream().noneMatch(s -> s.display().startsWith("?capability:")));
         assertTrue(suggestions.stream().noneMatch(s -> s.display().contains("typed_before")));
     }
 
@@ -93,7 +145,26 @@ class SearchSuggestionsTest {
                 () -> "Expected " + expectedDisplay + " in " + suggestions);
     }
 
+    private static void assertDoesNotSuggest(GlobalIndex index, String query, String rejectedDisplay) {
+        List<SearchSuggestions.Suggestion> suggestions = SearchSuggestions.suggest(index, query, query.length(), 8);
+        assertFalse(suggestions.stream().anyMatch(s -> rejectedDisplay.equals(s.display())),
+                () -> "Did not expect " + rejectedDisplay + " in " + suggestions);
+    }
+
+    private static List<String> helpExamples(GlobalIndex index) {
+        return java.util.stream.Stream.concat(
+                        SearchSuggestions.helpLayout(index).leftSections().stream(),
+                        SearchSuggestions.helpLayout(index).rightSections().stream())
+                .flatMap(section -> section.examples().stream())
+                .map(com.sanhiruzu.ami.index.query.SearchSyntax.Example::text)
+                .toList();
+    }
+
     private static SearchNode item(String namespace, String path, String displayName, Map<String, String> metadata) {
-        return new SearchNode(new ResourceLocation(namespace, path), NodeType.ITEM, displayName, 0, 0, metadata);
+        return node(namespace, path, NodeType.ITEM, displayName, metadata);
+    }
+
+    private static SearchNode node(String namespace, String path, NodeType type, String displayName, Map<String, String> metadata) {
+        return new SearchNode(new ResourceLocation(namespace, path), type, displayName, 0, 0, metadata);
     }
 }

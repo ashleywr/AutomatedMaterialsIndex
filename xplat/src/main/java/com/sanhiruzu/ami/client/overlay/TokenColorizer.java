@@ -1,6 +1,8 @@
 package com.sanhiruzu.ami.client.overlay;
 
 import com.sanhiruzu.ami.util.AmiColors;
+import com.sanhiruzu.ami.index.query.SearchSuggestions;
+import com.sanhiruzu.ami.index.query.SearchSyntax;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,12 +18,13 @@ public final class TokenColorizer {
     static final int COLOR_META = AmiColors.TOKEN_META;
     static final int COLOR_PLAIN = AmiColors.TOKEN_PLAIN;
     static final int COLOR_OR = AmiColors.TOKEN_OR;
+    static final int COLOR_CATEGORY = AmiColors.TOKEN_META;
     private TokenColorizer() {
     }
 
     /**
      * Colorize a query string, returning color spans for each token.
-     * Handles prefixes (~, #, &, ?, !, >, <, =) and negation (-).
+     * Handles prefixes (~, #, @, &, ?, $, %, !, >, <, =) and negation (-).
      */
     public static List<ColorSpan> colorize(String queryText) {
         if (queryText == null || queryText.isEmpty()) {
@@ -79,20 +82,20 @@ public final class TokenColorizer {
         if (stripped.isEmpty()) return COLOR_PLAIN;
 
         char prefix = stripped.charAt(0);
-        int color = switch (prefix) {
-            case '~' -> COLOR_META;
-            case '#' -> COLOR_TAG;
-            case '@' -> COLOR_MOD;
-            case '&' -> COLOR_ENV;
-            case '?' -> COLOR_PROP;
-            case '!' -> COLOR_ESSENTIAL;
-            case '>', '<', '=' -> COLOR_ESM;
-            default -> COLOR_PLAIN;
+        SearchSuggestions.Kind kind = SearchSyntax.kindForPrefix(prefix);
+        int color = switch (kind) {
+            case META -> COLOR_META;
+            case TAG -> COLOR_TAG;
+            case MOD -> COLOR_MOD;
+            case ENVIRONMENT -> COLOR_ENV;
+            case PROPERTY -> COLOR_PROP;
+            case CATEGORY -> COLOR_CATEGORY;
+            case NUMERIC -> COLOR_ESM;
+            default -> prefix == '!' ? COLOR_ESSENTIAL : COLOR_PLAIN;
         };
 
         // Bare negation (no recognised prefix) → exclude color
-        if (isExclude && prefix != '~' && prefix != '#' && prefix != '@' && prefix != '&'
-                && prefix != '?' && prefix != '!' && prefix != '>' && prefix != '<' && prefix != '=') {
+        if (isExclude && kind == SearchSuggestions.Kind.PLAIN && prefix != '!') {
             color = COLOR_EXCLUDE;
         }
 

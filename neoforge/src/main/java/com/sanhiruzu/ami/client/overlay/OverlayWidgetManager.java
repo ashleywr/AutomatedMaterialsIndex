@@ -645,7 +645,7 @@ public class OverlayWidgetManager {
     public List<WidgetBounds> getExclusionBounds() {
         List<WidgetBounds> bounds = new ArrayList<>();
         if (amiButton != null) bounds.add(amiButton.getBounds());
-        if (searchBar != null) bounds.add(searchBar.getBounds());
+        if (searchBar != null) bounds.addAll(searchBar.getPredictiveBounds());
         for (PanelSlot slot : activeSlots) {
             if (slot.results.visible) bounds.add(slot.results.getBounds());
             if (slot.sidebar.visible) bounds.add(slot.sidebar.getBounds());

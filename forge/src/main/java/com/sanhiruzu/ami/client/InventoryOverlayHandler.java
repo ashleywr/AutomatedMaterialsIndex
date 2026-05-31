@@ -12,6 +12,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraftforge.client.event.RenderTooltipEvent;
 import net.minecraftforge.client.event.ScreenEvent;
 
 @Mod.EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
@@ -197,6 +198,15 @@ public class InventoryOverlayHandler {
         }
     }
 
+    @SubscribeEvent
+    static void onRenderTooltip(RenderTooltipEvent.Pre event) {
+        var screen = Minecraft.getInstance().screen;
+        if (screen == null || !isAmiScreen(screen)) return;
+        if (isMouseOverAmiOverlay(event.getX(), event.getY())) {
+            event.setCanceled(true);
+        }
+    }
+
     public static OverlayWidgetManager getManager() {
         return manager;
     }
@@ -216,7 +226,9 @@ public class InventoryOverlayHandler {
         if (!amiEnabled || !manager.isPanelVisible()) return false;
 
         var searchBar = manager.getSearchBar();
-        if (searchBar != null && searchBar.visible && searchBar.isMouseOver(mouseX, mouseY)) {
+        if (searchBar != null && searchBar.visible
+                && (searchBar.isMouseOver(mouseX, mouseY)
+                || searchBar.isSearchOverlayMouseOver(mouseX, mouseY))) {
             return true;
         }
 

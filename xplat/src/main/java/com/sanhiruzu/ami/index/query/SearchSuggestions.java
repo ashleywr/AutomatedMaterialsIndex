@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.index.query;
 
 import com.sanhiruzu.ami.index.GlobalIndex;
+import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
@@ -55,9 +56,45 @@ public final class SearchSuggestions {
             case '@' -> valueSuggestions(vocabulary.mods, text, token, "@", body.substring(1), limit, Kind.MOD);
             case '#' -> valueSuggestions(vocabulary.tags, text, token, "#", body.substring(1), limit, Kind.TAG);
             case '~' -> valueSuggestions(vocabulary.meta, text, token, "~", body.substring(1), limit, Kind.META);
+            case '$' -> valueSuggestions(vocabulary.categories, text, token, "$", body.substring(1), limit, Kind.CATEGORY);
+            case '&' -> valueSuggestions(vocabulary.environments, text, token, "&", body.substring(1), limit, Kind.ENVIRONMENT);
+            case '%' -> prefixShortcutSuggestions(vocabulary, text, token, limit);
             case '>', '<', '=' -> numericSuggestions(vocabulary, text, token, prefix, limit);
             default -> List.of();
         };
+    }
+
+    public static SearchSyntax.HelpLayout helpLayout(GlobalIndex index) {
+        Vocabulary vocabulary = index == null ? Vocabulary.empty() : vocabulary(index);
+        List<SearchSyntax.Example> commonExamples = new ArrayList<>(SearchSyntax.HELP_LEFT_SECTIONS.get(0).examples());
+        vocabulary.mods.firstValue().ifPresent(mod ->
+                commonExamples.add(new SearchSyntax.Example("@" + mod,
+                        "ami.gui.search.help.mod", Kind.MOD)));
+        vocabulary.tags.firstValue().ifPresent(tag ->
+                commonExamples.add(new SearchSyntax.Example("#" + tag,
+                        "ami.gui.search.help.tag", Kind.TAG)));
+        List<SearchSyntax.HelpSection> leftSections = List.of(
+                new SearchSyntax.HelpSection(SearchSyntax.COMMON_SECTION_TITLE_KEY, List.copyOf(commonExamples)));
+
+        List<SearchSyntax.HelpSection> rightSections = new ArrayList<>(SearchSyntax.HELP_RIGHT_SECTIONS);
+        List<SearchSyntax.Example> compatExamples = new ArrayList<>();
+
+        vocabulary.pokemonTypes.firstValue().ifPresent(type ->
+                compatExamples.add(new SearchSyntax.Example("@type:" + type,
+                        "ami.gui.search.help.pokemon_type", Kind.MOD)));
+        vocabulary.pokemonMoves.firstValue().ifPresent(move ->
+                compatExamples.add(new SearchSyntax.Example("#move:" + move,
+                        "ami.gui.search.help.pokemon_move", Kind.TAG)));
+        vocabulary.pokemonEggGroups.firstValue().ifPresent(group ->
+                compatExamples.add(new SearchSyntax.Example("%egg:" + group,
+                        "ami.gui.search.help.pokemon_egg", Kind.PROPERTY)));
+
+        if (!compatExamples.isEmpty()) {
+            rightSections.add(new SearchSyntax.HelpSection(SearchSyntax.COMPAT_SECTION_TITLE_KEY,
+                    List.copyOf(compatExamples)));
+        }
+
+        return new SearchSyntax.HelpLayout(leftSections, List.copyOf(rightSections));
     }
 
     public static String apply(String query, Suggestion suggestion) {
@@ -86,11 +123,7 @@ public final class SearchSuggestions {
 
     private static List<Suggestion> defaultSuggestions(Vocabulary vocabulary, ActiveToken token, int limit) {
         List<Suggestion> suggestions = new ArrayList<>();
-        addTopValueSuggestions(suggestions, vocabulary.capabilities, token, "?capability:", limit, Kind.PROPERTY, 2);
-        addTopValueSuggestions(suggestions, vocabulary.kinds, token, "?kind:", limit, Kind.PROPERTY, 3);
-        addTopValueSuggestions(suggestions, vocabulary.facts, token, "?fact:", limit, Kind.PROPERTY, 4);
-        addTopValueSuggestions(suggestions, vocabulary.tiers, token, "?tier:", limit, Kind.PROPERTY, 2);
-        addTopValueSuggestions(suggestions, vocabulary.roles, token, "?role:", limit, Kind.PROPERTY, 3);
+        addTopValueSuggestions(suggestions, vocabulary.meta, token, "~", limit, Kind.META, 12);
         addTopValueSuggestions(suggestions, vocabulary.mods, token, "@", limit, Kind.MOD, 3);
         addTopValueSuggestions(suggestions, vocabulary.tags, token, "#", limit, Kind.TAG, 2);
         return suggestions;
@@ -114,38 +147,71 @@ public final class SearchSuggestions {
         String body = token.body().substring(1);
         int separator = body.indexOf(':');
         if (separator < 0) {
-            return fieldSuggestions(vocabulary, query, token, body, limit);
+            List<Suggestion> suggestions = new ArrayList<>();
+            addSuggestions(suggestions, fieldSuggestions(vocabulary, query, token, body, limit), limit);
+            addSuggestions(suggestions, simplePropertySuggestions(vocabulary, query, token, body, limit), limit);
+            return suggestions;
         }
 
-        String field = normalizeField(body.substring(0, separator));
+        String rawField = body.substring(0, separator);
+        String field = SearchSyntax.propertyField(rawField)
+                .map(SearchSyntax.PropertyField::id)
+                .orElseGet(() -> normalizeField(rawField));
         String prefix = body.substring(separator + 1);
-        CountedValues values = switch (field) {
-            case "capability", "cap", "resource" -> vocabulary.capabilities;
-            case "kind", "itemkind" -> vocabulary.kinds;
-            case "tier" -> vocabulary.tiers;
-            case "role", "recipe", "processing", "process" -> vocabulary.roles;
-            case "fact", "facts", "behavior", "behaviour" -> vocabulary.facts;
-            case "mod", "modid", "compat", "family", "ecosystem", "compatfamily", "compatfamilies" -> vocabulary.mods;
-            default -> CountedValues.empty();
-        };
-        String propertyPrefix = token.negated() ? "-?" + body.substring(0, separator) + ":" : "?" + body.substring(0, separator) + ":";
-        Kind kind = field.equals("mod") || field.equals("modid") || field.equals("compat") || field.equals("family")
-                || field.equals("ecosystem") || field.equals("compatfamily") || field.equals("compatfamilies")
-                ? Kind.MOD
-                : Kind.PROPERTY;
+        CountedValues values = valuesForPropertyField(vocabulary, field);
+        String propertyPrefix = token.negated() ? "-?" + rawField + ":" : "?" + rawField + ":";
+        Kind kind = SearchSyntax.propertyField(rawField).map(SearchSyntax.PropertyField::kind).orElse(Kind.PROPERTY);
         return valueSuggestions(values, query, token, propertyPrefix, prefix, limit, kind);
     }
 
     private static List<Suggestion> fieldSuggestions(Vocabulary vocabulary, String query, ActiveToken token,
                                                      String prefix, int limit) {
         CountedValues fields = new CountedValues();
-        if (!vocabulary.capabilities.isEmpty()) fields.add("capability");
-        if (!vocabulary.kinds.isEmpty()) fields.add("kind");
-        if (!vocabulary.facts.isEmpty()) fields.add("fact");
-        if (!vocabulary.tiers.isEmpty()) fields.add("tier");
-        if (!vocabulary.roles.isEmpty()) fields.add("role");
-        if (!vocabulary.mods.isEmpty()) fields.add("mod");
+        for (SearchSyntax.PropertyField field : SearchSyntax.PROPERTY_FIELDS) {
+            if (!valuesForPropertyField(vocabulary, field.id()).isEmpty()) {
+                fields.add(field.id());
+            }
+        }
         return valueSuggestions(fields, query, token, token.negated() ? "-?" : "?", prefix, limit, ":", false, Kind.PROPERTY);
+    }
+
+    private static List<Suggestion> simplePropertySuggestions(Vocabulary vocabulary, String query, ActiveToken token,
+                                                              String prefix, int limit) {
+        CountedValues values = new CountedValues();
+        values.addAll(vocabulary.capabilities);
+        values.addAll(vocabulary.kinds);
+        values.addAll(vocabulary.facts);
+        values.addAll(vocabulary.tiers);
+        values.addAll(vocabulary.roles);
+        return valueSuggestions(values, query, token, token.negated() ? "-?" : "?", prefix, limit, Kind.PROPERTY);
+    }
+
+    private static CountedValues valuesForPropertyField(Vocabulary vocabulary, String field) {
+        return switch (field) {
+            case "energy" -> vocabulary.energy;
+            case "fluid" -> vocabulary.fluid;
+            case "storage" -> vocabulary.storage;
+            case "capability" -> vocabulary.capabilities;
+            case "kind" -> vocabulary.kinds;
+            case "tier" -> vocabulary.tiers;
+            case "role" -> vocabulary.roles;
+            case "fact" -> vocabulary.facts;
+            case "mod" -> vocabulary.mods;
+            case "color" -> vocabulary.colors;
+            default -> CountedValues.empty();
+        };
+    }
+
+    private static void addSuggestions(List<Suggestion> out, List<Suggestion> additions, int limit) {
+        for (Suggestion suggestion : additions) {
+            if (out.size() >= limit) {
+                return;
+            }
+            boolean duplicate = out.stream().anyMatch(existing -> existing.display().equals(suggestion.display()));
+            if (!duplicate) {
+                out.add(suggestion);
+            }
+        }
     }
 
     private static List<Suggestion> numericSuggestions(Vocabulary vocabulary, String query, ActiveToken token,
@@ -155,6 +221,38 @@ public final class SearchSuggestions {
             return List.of();
         }
         return valueSuggestions(vocabulary.numericFields, query, token, Character.toString(operator), body, limit, ":", false, Kind.NUMERIC);
+    }
+
+    private static List<Suggestion> prefixShortcutSuggestions(Vocabulary vocabulary, String query, ActiveToken token, int limit) {
+        String body = token.body().substring(1);
+        if (body.startsWith("egg:")) {
+            return valueSuggestions(vocabulary.pokemonEggGroups, query, token, "%egg:", body.substring("egg:".length()), limit, Kind.PROPERTY);
+        }
+        List<Suggestion> suggestions = new ArrayList<>();
+        String normalizedPrefix = normalizeValuePrefix(body);
+        for (SearchSyntax.PrefixShortcut shortcut : SearchSyntax.PREFIX_SHORTCUTS) {
+            if (suggestions.size() >= limit) {
+                break;
+            }
+            if (!shortcutAvailable(vocabulary, shortcut)) {
+                continue;
+            }
+            if (normalizedPrefix.isEmpty()
+                    || normalizeValuePrefix(shortcut.id()).startsWith(normalizedPrefix)
+                    || normalizeValuePrefix(shortcut.display()).contains(normalizedPrefix)) {
+                suggestions.add(new Suggestion(shortcut.replacement(), shortcut.display(), "",
+                        token.start(), token.end(), shortcut.kind(), false));
+            }
+        }
+        return suggestions;
+    }
+
+    private static boolean shortcutAvailable(Vocabulary vocabulary, SearchSyntax.PrefixShortcut shortcut) {
+        return switch (shortcut.feature()) {
+            case POKEMON_TYPES -> !vocabulary.pokemonTypes.isEmpty();
+            case POKEMON_MOVES -> !vocabulary.pokemonMoves.isEmpty();
+            case POKEMON_EGG_GROUPS -> !vocabulary.pokemonEggGroups.isEmpty();
+        };
     }
 
     private static List<Suggestion> valueSuggestions(CountedValues values, String query, ActiveToken token,
@@ -173,7 +271,7 @@ public final class SearchSuggestions {
         List<Suggestion> suggestions = new ArrayList<>(matches.size());
         for (ValueCount value : matches) {
             String replacement = replacementPrefix + value.value() + suffix;
-            String display = replacementPrefix + value.value();
+            String display = replacementPrefix + value.value() + (includeCount ? "" : suffix);
             suggestions.add(new Suggestion(replacement, display, includeCount ? countDetail(value.count()) : "",
                     token.start(), token.end(), kind, false));
         }
@@ -219,7 +317,9 @@ public final class SearchSuggestions {
         MOD,
         TAG,
         META,
-        NUMERIC
+        NUMERIC,
+        CATEGORY,
+        ENVIRONMENT
     }
 
     public record Suggestion(String replacement, String display, String detail, int replaceStart, int replaceEnd,
@@ -244,6 +344,15 @@ public final class SearchSuggestions {
         final CountedValues tiers = new CountedValues();
         final CountedValues roles = new CountedValues();
         final CountedValues capabilities = new CountedValues();
+        final CountedValues energy = new CountedValues();
+        final CountedValues fluid = new CountedValues();
+        final CountedValues storage = new CountedValues();
+        final CountedValues colors = new CountedValues();
+        final CountedValues categories = new CountedValues();
+        final CountedValues environments = new CountedValues();
+        final CountedValues pokemonTypes = new CountedValues();
+        final CountedValues pokemonMoves = new CountedValues();
+        final CountedValues pokemonEggGroups = new CountedValues();
         final CountedValues meta = new CountedValues();
         final CountedValues numericFields = new CountedValues();
 
@@ -262,6 +371,12 @@ public final class SearchSuggestions {
         }
 
         private void add(SearchNode node) {
+            categories.add(AmiOntology.classifyNode(node).id);
+            if (node.type() == NodeType.DIMENSION || node.type() == NodeType.BIOME) {
+                environments.add(node.id().getPath());
+                environments.add(node.displayName().replace(' ', '_'));
+            }
+
             mods.add(node.id().getNamespace());
             addTokens(mods, node.meta(SearchNodeKeys.MOD_ID, ""));
             addTokens(mods, node.meta(SearchNodeKeys.COMPAT_FAMILY, ""));
@@ -274,6 +389,26 @@ public final class SearchSuggestions {
             for (var entry : node.metadata().entrySet()) {
                 String key = entry.getKey();
                 String value = entry.getValue();
+                if (SearchNodeKeys.COLOR_BUCKET.equals(key)) {
+                    addTokens(colors, value);
+                    addTokens(meta, value);
+                }
+                if (SearchNodeKeys.POKEMON_TYPE.equals(key)) {
+                    addTokens(pokemonTypes, value);
+                    addTokens(meta, value);
+                }
+                if (SearchNodeKeys.POKEMON_MOVE.equals(key)
+                        || SearchNodeKeys.POKEMON_TM_MOVE.equals(key)
+                        || SearchNodeKeys.POKEMON_EGG_MOVE.equals(key)
+                        || SearchNodeKeys.POKEMON_TUTOR_MOVE.equals(key)
+                        || SearchNodeKeys.POKEMON_LEVEL_UP_MOVE.equals(key)) {
+                    addTokens(pokemonMoves, value);
+                    addTokens(meta, value);
+                }
+                if (SearchNodeKeys.POKEMON_EGG_GROUPS.equals(key)) {
+                    addTokens(pokemonEggGroups, value);
+                    addTokens(meta, value);
+                }
                 if (matchesConvention(key, FieldConvention.FACTS)
                         || SearchNodeKeys.FACETS.equals(key)
                         || SearchNodeKeys.COMPONENT_FACTS.equals(key)
@@ -298,7 +433,30 @@ public final class SearchSuggestions {
                 }
                 NumericMetadataResolver.aliasesForMetadataKey(key).forEach(numericFields::add);
             }
-            PropertyResolver.indexedCapabilities(node).forEach(capabilities::add);
+            for (String capability : PropertyResolver.indexedCapabilities(node)) {
+                capabilities.add(capability);
+                switch (capability) {
+                    case "energy" -> energy.add(capability);
+                    case "fluid" -> fluid.add(capability);
+                    case "storage" -> storage.add(capability);
+                    default -> {
+                    }
+                }
+                meta.add(capability);
+            }
+            if (!node.meta(SearchNodeKeys.ENERGY_CAPACITY, "").isBlank()
+                    || !node.meta(SearchNodeKeys.ENERGY_GENERATION, "").isBlank()
+                    || !node.meta(SearchNodeKeys.ENERGY_CONSUMPTION, "").isBlank()) {
+                energy.add("energy");
+            }
+            if (!node.meta(SearchNodeKeys.FLUID_CAPACITY, "").isBlank()) {
+                fluid.add("fluid");
+            }
+            if (!node.meta(SearchNodeKeys.ESM_CAPACITY, "").isBlank()
+                    || !node.meta(SearchNodeKeys.STORAGE_ITEM_KIND, "").isBlank()
+                    || !node.meta(SearchNodeKeys.STORAGE_FACTS, "").isBlank()) {
+                storage.add("storage");
+            }
         }
     }
 
@@ -354,8 +512,19 @@ public final class SearchSuggestions {
             counts.merge(cleaned, 1, Integer::sum);
         }
 
+        void addAll(CountedValues values) {
+            for (var entry : values.counts.entrySet()) {
+                counts.merge(entry.getKey(), entry.getValue(), Integer::sum);
+            }
+        }
+
         boolean isEmpty() {
             return counts.isEmpty();
+        }
+
+        java.util.Optional<String> firstValue() {
+            List<ValueCount> values = match("", 1);
+            return values.isEmpty() ? java.util.Optional.empty() : java.util.Optional.of(values.get(0).value());
         }
 
         List<ValueCount> match(String prefix, int limit) {

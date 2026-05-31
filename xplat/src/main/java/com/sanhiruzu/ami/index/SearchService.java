@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.index.query.QueryParser;
+import com.sanhiruzu.ami.index.query.SearchSyntax;
 import com.sanhiruzu.ami.index.resolvers.*;
 
 import java.util.*;
@@ -154,30 +155,23 @@ public final class SearchService {
                 case INCLUDE -> includeParts.add(value);
                 case META -> metaParts.add(value);
                 case TAG -> {
-                    if (value.startsWith("move:")) {
-                        propertyParts.add("pokemonMove:" + value.substring("move:".length()));
-                    } else {
-                        tagParts.add(value);
-                    }
+                    Optional<String> routedProperty = SearchSyntax.routedPropertyToken(token.type(), value);
+                    if (routedProperty.isPresent()) propertyParts.add(routedProperty.get());
+                    else tagParts.add(value);
                 }
                 case MOD -> {
-                    if (value.startsWith("type:")) {
-                        propertyParts.add("pokemonType:" + value.substring("type:".length()));
-                    } else {
-                        modParts.add(value);
-                    }
+                    Optional<String> routedProperty = SearchSyntax.routedPropertyToken(token.type(), value);
+                    if (routedProperty.isPresent()) propertyParts.add(routedProperty.get());
+                    else modParts.add(value);
                 }
                 case ENV -> envParts.add(value);
                 case PROP -> propertyParts.add(value);
                 case EXCLUDE -> excludeParts.add(value);
                 case ESM -> numericParts.add(value);
                 case CATEGORY -> {
-                    String statFilter = pokemonStatFilter(value);
-                    if (statFilter != null) {
-                        numericParts.add(statFilter);
-                    } else {
-                        categoryParts.add(value);
-                    }
+                    Optional<String> numericFilter = SearchSyntax.categoryNumericFilter(value);
+                    if (numericFilter.isPresent()) numericParts.add(numericFilter.get());
+                    else categoryParts.add(value);
                 }
                 default -> {
                 } // ESSENTIAL is reserved for curated result sets.
@@ -217,6 +211,9 @@ public final class SearchService {
                 record(trace, "meta:" + resolver.getClass().getSimpleName(), combinedMeta, partial);
                 mergeResults(metaResults, partial);
             }
+            Map<NodeType, List<SearchNode>> propertyPartial = propertyResolver.resolve(combinedMeta);
+            record(trace, "meta:" + propertyResolver.getClass().getSimpleName(), combinedMeta, propertyPartial);
+            mergeResults(metaResults, propertyPartial);
             hasActiveResultSet = applyPositiveFilter(results, metaResults, hasActiveResultSet);
             record(trace, "after-meta", combinedMeta, results);
         }
@@ -280,35 +277,31 @@ public final class SearchService {
     }
 
     private Map<NodeType, List<SearchNode>> resolveExclude(String excludePart) {
-        if (excludePart.startsWith("$")) {
-            String value = excludePart.substring(1);
-            String statFilter = pokemonStatFilter(value);
-            return statFilter == null ? categoryResolver.resolve(value) : numericResolver.resolve(statFilter);
-        }
-        if (excludePart.startsWith("~")) {
-            return resolveBroadLiteral(excludePart.substring(1));
-        }
-        if (excludePart.startsWith("#")) {
-            String value = excludePart.substring(1);
-            if (value.startsWith("move:")) {
-                return propertyResolver.resolve("pokemonMove:" + value.substring("move:".length()));
+        Optional<SearchSyntax.ParsedPrefix> parsed = SearchSyntax.parseExcludedValue(excludePart);
+        if (parsed.isPresent()) {
+            QueryParser.TokenType type = parsed.get().type();
+            String value = parsed.get().value();
+            Optional<String> routedProperty = SearchSyntax.routedPropertyToken(type, value);
+            if (routedProperty.isPresent()) {
+                return propertyResolver.resolve(routedProperty.get());
             }
-            return tagResolver.resolve(value);
-        }
-        if (excludePart.startsWith("@")) {
-            String value = excludePart.substring(1);
-            if (value.startsWith("type:")) {
-                return propertyResolver.resolve("pokemonType:" + value.substring("type:".length()));
-            }
-            return modResolver.resolve(value);
-        }
-        if (excludePart.startsWith("&")) {
-            return envResolver.resolve(excludePart.substring(1));
-        }
-        if (excludePart.startsWith("?")) {
-            return propertyResolver.resolve(excludePart.substring(1));
+            return switch (type) {
+                case CATEGORY -> SearchSyntax.categoryNumericFilter(value)
+                        .map(numericResolver::resolve)
+                        .orElseGet(() -> categoryResolver.resolve(value));
+                case META -> resolveBroadLiteral(value);
+                case TAG -> tagResolver.resolve(value);
+                case MOD -> modResolver.resolve(value);
+                case ENV -> envResolver.resolve(value);
+                case PROP -> propertyResolver.resolve(value);
+                default -> resolvePlainExclude(excludePart);
+            };
         }
 
+        return resolvePlainExclude(excludePart);
+    }
+
+    private Map<NodeType, List<SearchNode>> resolvePlainExclude(String excludePart) {
         Map<NodeType, List<SearchNode>> results = new LinkedHashMap<>();
         for (IQueryResolver resolver : resolvers) {
             Map<NodeType, List<SearchNode>> partial = resolver.resolve(excludePart);
@@ -317,49 +310,13 @@ public final class SearchService {
         return results;
     }
 
-    private static String pokemonStatFilter(String categoryValue) {
-        if (categoryValue == null || !categoryValue.startsWith("stat:")) {
-            return null;
-        }
-        String body = categoryValue.substring("stat:".length()).trim();
-        int operatorAt = -1;
-        for (int i = 0; i < body.length(); i++) {
-            char c = body.charAt(i);
-            if (c == '>' || c == '<' || c == '=') {
-                operatorAt = i;
-                break;
-            }
-        }
-        if (operatorAt <= 0 || operatorAt >= body.length() - 1) {
-            return null;
-        }
-        String field = body.substring(0, operatorAt).trim();
-        String value = body.substring(operatorAt + 1).trim();
-        if (field.isEmpty() || value.isEmpty()) {
-            return null;
-        }
-
-        String numericField = switch (field.toLowerCase(Locale.ROOT).replace("_", "").replace("-", "")) {
-            case "hp", "health" -> "pokemonHp";
-            case "attack", "atk" -> "pokemonAttack";
-            case "defense", "def" -> "pokemonDefense";
-            case "specialattack", "spatk", "spa" -> "pokemonSpecialAttack";
-            case "specialdefense", "spdef", "spd" -> "pokemonSpecialDefense";
-            case "speed", "spe" -> "pokemonSpeed";
-            default -> null;
-        };
-        if (numericField == null) {
-            return null;
-        }
-        return body.charAt(operatorAt) + numericField + ":" + value;
-    }
-
     private Map<NodeType, List<SearchNode>> resolveBroadLiteral(String query) {
         Map<NodeType, List<SearchNode>> results = new LinkedHashMap<>();
         for (IQueryResolver resolver : broadResolvers) {
             Map<NodeType, List<SearchNode>> partial = resolver.resolve(query);
             mergeResults(results, partial);
         }
+        mergeResults(results, propertyResolver.resolve(query));
         return results;
     }
 

@@ -11,6 +11,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.RenderTooltipEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 
@@ -198,6 +199,15 @@ public class InventoryOverlayHandler {
         }
     }
 
+    @SubscribeEvent
+    static void onRenderTooltip(RenderTooltipEvent.Pre event) {
+        var screen = Minecraft.getInstance().screen;
+        if (screen == null || !isAmiScreen(screen)) return;
+        if (isMouseOverAmiOverlay(event.getX(), event.getY())) {
+            event.setCanceled(true);
+        }
+    }
+
     public static OverlayWidgetManager getManager() {
         return manager;
     }
@@ -217,7 +227,9 @@ public class InventoryOverlayHandler {
         if (!amiEnabled || !manager.isPanelVisible()) return false;
 
         var searchBar = manager.getSearchBar();
-        if (searchBar != null && searchBar.visible && searchBar.isMouseOver(mouseX, mouseY)) {
+        if (searchBar != null && searchBar.visible
+                && (searchBar.isMouseOver(mouseX, mouseY)
+                || searchBar.isSearchOverlayMouseOver(mouseX, mouseY))) {
             return true;
         }
 

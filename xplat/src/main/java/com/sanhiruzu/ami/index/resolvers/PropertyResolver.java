@@ -46,6 +46,10 @@ public final class PropertyResolver implements IQueryResolver {
             case "fluid", "fluids", "liquid", "tank" -> value.isEmpty()
                     ? containsCapability(node, "fluid")
                     : containsResourceMetadata(node, "fluid", value);
+            case "storage", "inventory", "slots" -> value.isEmpty()
+                    ? containsCapability(node, "storage")
+                    : containsResourceMetadata(node, "storage", value);
+            case "color", "colour", "colorbucket", "colourbucket" -> containsValue(node, SearchNodeKeys.COLOR_BUCKET, value);
             case "machine", "machines" -> value.isEmpty()
                     ? containsSemanticToken(node, "machine", "machines", "interactive_block")
                     : containsConventionToken(node, value,

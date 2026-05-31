@@ -47,6 +47,7 @@ class StructuredCompatSearchTest {
                 "powahItemKind", "energy",
                 "powahFacts", "stores_fe,energy",
                 "powahTier", "starter",
+                SearchNodeKeys.COLOR_BUCKET, "red",
                 SearchNodeKeys.ENERGY_CAPACITY, "10000"
         ));
 
@@ -63,11 +64,15 @@ class StructuredCompatSearchTest {
         assertTrue(service.query("?tier:basic").get(NodeType.ITEM).contains(upgrade));
         assertOnlyContains(service.query("?role:mixing_input").get(NodeType.ITEM), mixer, tank);
         assertOnlyContains(service.query("?capability:fluid").get(NodeType.ITEM), tank, mixer);
+        assertOnlyContains(service.query("~fluid").get(NodeType.ITEM), tank, mixer);
         assertOnlyContains(service.query("?upgrade").get(NodeType.ITEM), upgrade, terminal);
         assertOnlyContains(service.query("?machine").get(NodeType.ITEM), tank, terminal);
         assertOnlyContains(service.query("?tier:starter").get(NodeType.ITEM), externalBattery, tank);
         assertOnlyContains(service.query("?fact:stores_fe").get(NodeType.ITEM), externalBattery, terminal);
         assertOnlyContains(service.query("?capability:energy").get(NodeType.ITEM), externalBattery, tank);
+        assertOnlyContains(service.query("?energy").get(NodeType.ITEM), externalBattery, tank);
+        assertOnlyContains(service.query("?color:red").get(NodeType.ITEM), externalBattery, tank);
+        assertOnlyContains(service.query("~energy").get(NodeType.ITEM), externalBattery, tank);
         assertOnlyContains(service.query("~stores_fe").get(NodeType.ITEM), externalBattery, terminal);
     }
 

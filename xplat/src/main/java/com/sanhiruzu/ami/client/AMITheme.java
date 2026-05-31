@@ -122,6 +122,14 @@ public final class AMITheme {
     public static int SEARCH_CURSOR = 0xFFCCCCCC;
     public static int SEARCH_SELECTION = 0xFF0000FF;
     public static int SEARCH_DEFAULT_TEXT = 0xFFCCCCCC;
+    public static int SEARCH_HELP_BG = 0xEE08080A;
+    public static int SEARCH_HELP_BORDER = 0x884488FF;
+    public static int SEARCH_HELP_SHADOW = 0x99000000;
+    public static int SEARCH_HELP_CHIP_BG = 0x22000000;
+    public static int SEARCH_HELP_CHIP_BORDER = 0x334488FF;
+    public static int SEARCH_HELP_SECTION_LINE = 0x224488FF;
+    public static int SEARCH_HELP_TITLE = 0xFF55FFFF;
+    public static int SEARCH_HELP_TEXT = 0xFFE6E6E6;
     // Heart bar tooltip
     public static int HEART_OVERFLOW_COLOR = 0xFFCC3333;
     public static int HEART_LABEL_COLOR = 0xFFAAAAAA;
@@ -309,6 +317,14 @@ public final class AMITheme {
 
             SEARCH_PLACEHOLDER = 0xFF888888;
             SEARCH_DEFAULT_TEXT = 0xFFFFFFFF;
+            SEARCH_HELP_BG = 0xF0101014;
+            SEARCH_HELP_BORDER = AmiConfig.searchBarBorder;
+            SEARCH_HELP_SHADOW = 0xAA000000;
+            SEARCH_HELP_CHIP_BG = 0x22FFFFFF;
+            SEARCH_HELP_CHIP_BORDER = 0x33FFFFFF;
+            SEARCH_HELP_SECTION_LINE = 0x22FFFFFF;
+            SEARCH_HELP_TITLE = TEXT_HIGHLIGHT;
+            SEARCH_HELP_TEXT = TEXT_PRIMARY;
 
             BORDER_LIGHT = 0x33FFFFFF;
             GRADIENT_SHADOW = 0x88000000;
@@ -369,6 +385,14 @@ public final class AMITheme {
             DROPDOWN_BG = 0x22FFFFFF;
             DROPDOWN_BG_ACTIVE = 0x44FFFFFF;
             DROPDOWN_LIST_BG = 0x99000000;
+            SEARCH_HELP_BG = 0xDD000000;
+            SEARCH_HELP_BORDER = 0x33FFFFFF;
+            SEARCH_HELP_SHADOW = 0x66000000;
+            SEARCH_HELP_CHIP_BG = 0x18FFFFFF;
+            SEARCH_HELP_CHIP_BORDER = 0x22FFFFFF;
+            SEARCH_HELP_SECTION_LINE = 0x18FFFFFF;
+            SEARCH_HELP_TITLE = TEXT_HIGHLIGHT;
+            SEARCH_HELP_TEXT = TEXT_PRIMARY;
 
             SCROLL_TRACK = 0;
             SCROLL_THUMB = 0x33FFFFFF;
@@ -436,6 +460,14 @@ public final class AMITheme {
             DROPDOWN_BG = 0xFFC6C6C6;
             DROPDOWN_BG_ACTIVE = 0xFFB0B0B0;
             DROPDOWN_LIST_BG = 0xFFD0D0D0;
+            SEARCH_HELP_BG = 0xFFF0F0F0;
+            SEARCH_HELP_BORDER = AmiConfig.searchBarBorder;
+            SEARCH_HELP_SHADOW = 0x66000000;
+            SEARCH_HELP_CHIP_BG = 0xFFE0E0E0;
+            SEARCH_HELP_CHIP_BORDER = 0xFF9A9A9A;
+            SEARCH_HELP_SECTION_LINE = 0xFFB8B8B8;
+            SEARCH_HELP_TITLE = TEXT_HIGHLIGHT;
+            SEARCH_HELP_TEXT = TEXT_PRIMARY;
 
             SCROLL_TRACK = 0xFFC6C6C6;
             SCROLL_THUMB = 0xFF8B8B8B;
