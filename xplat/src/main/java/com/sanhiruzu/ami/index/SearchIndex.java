@@ -118,11 +118,25 @@ public final class SearchIndex {
 
         if (includeMetadata) {
             for (var entry : node.metadata().entrySet()) {
-                if (!SEARCHABLE_METADATA_KEYS.contains(entry.getKey())) continue;
+                if (!isSearchableMetadataKey(entry.getKey())) continue;
                 addMetadataAliases(keys, entry.getValue());
             }
         }
         return new ArrayList<>(keys);
+    }
+
+    private static boolean isSearchableMetadataKey(String key) {
+        if (SEARCHABLE_METADATA_KEYS.contains(key)) {
+            return true;
+        }
+        String normalized = key == null ? "" : key.toLowerCase(Locale.ROOT).replace("_", "").replace("-", "");
+        return normalized.endsWith("facts")
+                || normalized.endsWith("itemkind")
+                || normalized.endsWith("tier")
+                || normalized.endsWith("role")
+                || normalized.endsWith("roles")
+                || normalized.endsWith("family")
+                || normalized.endsWith("families");
     }
 
     private static void addMetadataAliases(Set<String> keys, String rawValue) {
