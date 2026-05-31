@@ -96,7 +96,7 @@ public class ItemGridView {
     }
 
     public void setRootNodes(List<TreeNode> nodes) {
-        this.rootNodes = nodes;
+        this.rootNodes = copyNodesForGrid(nodes);
         this.pixelScrollOffset = 0;
         this.cachedRows = null;
     }
@@ -126,6 +126,29 @@ public class ItemGridView {
         for (TreeNode child : node.getChildren()) {
             setNodeExpanded(child, expanded);
         }
+    }
+
+    private static List<TreeNode> copyNodesForGrid(List<TreeNode> nodes) {
+        List<TreeNode> copies = new ArrayList<>();
+        for (TreeNode node : nodes) {
+            copies.add(copyNodeForGrid(node));
+        }
+        return copies;
+    }
+
+    private static TreeNode copyNodeForGrid(TreeNode node) {
+        if (node.isLeaf()) {
+            return new TreeNode(node.getLabel(), node.getEntry());
+        }
+        TreeNode copy = new TreeNode(node.getKey(), node.getLabel());
+        copy.setExpanded(node.isHighCardinality() ? false : node.isExpanded());
+        copy.setModGroup(node.isModGroup());
+        copy.setHighCardinality(node.isHighCardinality());
+        copy.setItemCountOverride(node.getItemCountOverride());
+        for (TreeNode child : node.getChildren()) {
+            copy.addChild(copyNodeForGrid(child));
+        }
+        return copy;
     }
 
     public void updateLayout(int x, int y, int width, int height) {
@@ -210,17 +233,10 @@ public class ItemGridView {
             var font = Minecraft.getInstance().font;
             com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
             if (pendingTextTooltip != null) {
-                if (tooltipLeftOfCursor) {
-                    AmiTooltipRenderer.renderLeftOfCursor(g, font, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY);
-                } else {
-                    AmiTooltipRenderer.renderRightOfCursor(g, font, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY);
-                }
+                ItemStack stackContext = (pendingTooltip != null) ? pendingTooltip : ItemStack.EMPTY;
+                AmiTooltipRenderer.render(g, font, stackContext, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY, tooltipLeftOfCursor);
             } else if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
-                if (tooltipLeftOfCursor) {
-                    AmiTooltipRenderer.renderLeftOfCursor(g, font, pendingTooltip, mouseX, mouseY);
-                } else {
-                    AmiTooltipRenderer.renderRightOfCursor(g, font, pendingTooltip, mouseX, mouseY);
-                }
+                AmiTooltipRenderer.render(g, font, pendingTooltip, mouseX, mouseY, tooltipLeftOfCursor);
             }
         }
     }
@@ -375,7 +391,7 @@ public class ItemGridView {
 
     private void renderIconWithWiggle(GuiGraphics g, ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
         g.pose().pushPose();
-        g.pose().translate(x + 8, y + 8, isEmiRecipeScreenActive() ? 0 : 150);
+        g.pose().translate(x + 8, y + 8, 0);
         if (cachedDragging || hovered) {
             g.pose().scale(1.1f + cachedWiggle, 1.1f + cachedWiggle, 1.1f);
             if (cachedDragging) {
@@ -391,7 +407,7 @@ public class ItemGridView {
             g.enableScissor(x, y, x + 16, y + 16);
         }
         g.pose().pushPose();
-        g.pose().translate(x + 8, y + 8, isEmiRecipeScreenActive() ? 0 : 150);
+        g.pose().translate(x + 8, y + 8, 0);
         if (cachedDragging || hovered) {
             g.pose().scale(1.1f + cachedWiggle, 1.1f + cachedWiggle, 1.1f);
             if (cachedDragging) {
@@ -478,6 +494,19 @@ public class ItemGridView {
     private void processNode(TreeNode node, int depth, int cols, List<VirtualRow> out, List<TreeNode> linearItems, BandSequence bands) {
         if (node.isLeaf()) {
             linearItems.add(node);
+        } else if (node.isHighCardinality()) {
+            linearItems.add(node);
+            if (node.isExpanded()) {
+                expandedGroupCache.put(node, node);
+                for (TreeNode child : node.getChildren()) {
+                    if (child.isLeaf()) {
+                        linearItems.add(child);
+                        expandedGroupCache.put(child, node);
+                    } else {
+                        processNode(child, depth, cols, out, linearItems, bands);
+                    }
+                }
+            }
         } else {
             packIntoRows(linearItems, cols, out, depth, false);
             linearItems.clear();
@@ -519,7 +548,7 @@ public class ItemGridView {
     private void renderStickyContext(GuiGraphics g, StickyContext context) {
         g.flush();
         g.pose().pushPose();
-        g.pose().translate(0, 0, 300);
+        g.pose().translate(0, 0, 10);
         try {
             int contentRight = x + width - SCROLLBAR_W;
             int headerBottom = y + STICKY_CONTEXT_H;

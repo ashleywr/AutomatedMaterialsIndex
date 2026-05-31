@@ -1,0 +1,410 @@
+package com.sanhiruzu.ami.config;
+
+import net.minecraft.network.chat.Component;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+/**
+ * Central configuration storage for AMI, using the custom annotation system.
+ * Values here are synced with the custom GUI and localized tooltips.
+ */
+public class AmiConfig {
+
+    @ConfigGroupEnd
+    public static final Object generalGroupEnd = null;
+    @ConfigGroupEnd
+    public static final Object displayGroupEnd = null;
+    @ConfigGroupEnd
+    public static final Object interactionGroupEnd = null;
+    @ConfigGroupEnd
+    public static final Object sidepanelsGroupEnd = null;
+    @ConfigGroupEnd
+    public static final Object compatGroupEnd = null;
+    @ConfigGroupEnd
+    public static final Object cheatGroupEnd = null;
+    @ConfigGroupEnd
+    public static final Object layoutGroupEnd = null;
+    @ConfigGroupEnd
+    public static final Object paletteGroupEnd = null;
+    // --- General Group ---
+    @ConfigGroup(value = "general", icon = "general", order = 0)
+    @ConfigValue("general.mode")
+    public static AmiMode mode = AmiMode.FULL;
+    @ConfigValue("general.enable-auto-indexing")
+    public static boolean enableAutoIndexing = true;
+    @ConfigValue("features.show-spawn-eggs")
+    public static boolean showSpawnEggs = false;
+    @ConfigValue("features.show-hidden-mod-items")
+    public static boolean showHiddenModItems = true;
+    @ConfigValue("features.strict-survival-mode")
+    public static boolean strictSurvivalMode = false;
+    @ConfigValue("features.enable-material-root-ui")
+    public static boolean enableMaterialRootUI = true;
+    @ConfigValue("features.enable-progression-graph")
+    public static boolean enableProgressionGraph = true;
+    @ConfigValue("ui.block-subgroup")
+    public static BlockSubgroup blockSubgroup = BlockSubgroup.SHAPE;
+    @ConfigValue("features.dynamic-shape-min-count")
+    public static int dynamicShapeMinCount = 40;
+    @ConfigValue("features.dynamic-shape-min-mod-spread")
+    public static int dynamicShapeMinModSpread = 3;
+    // --- Display & Appearance ---
+    @ConfigGroup(value = "display", icon = "display", order = 1)
+    @ConfigValue("ui.theme")
+    public static Theme theme = Theme.MODERN;
+    @ConfigColor
+    @ConfigDependsOn(value = "theme", expected = "TRANSPARENT")
+    @ConfigValue("ui.accent-color")
+    public static int accentColor = 0xFF5555;
+    @ConfigValue("ui.show-header")
+    public static boolean showHeader = true;
+    @ConfigValue("general.compact-mode")
+    public static boolean compactMode = false;
+    @ConfigValue("subtitles.fields")
+    public static String subtitleFields = "MOD_NAME";
+    public static int subtitleFieldsChecksum = 0;
+    // --- Interaction & Search ---
+    @ConfigGroup(value = "interaction", icon = "interaction", order = 2)
+    @ConfigValue("ui.item-click-action")
+    public static ItemClickAction itemClickAction = ItemClickAction.RECIPES;
+
+    @ConfigValue("features.recipe-viewer-mode")
+    public static RecipeViewerMode recipeViewerMode = RecipeViewerMode.AUTO;
+
+    @ConfigValue("features.enable-ghost-crafting")
+    public static boolean enableGhostCrafting = true;
+    // --- Compat Category Policy ---
+    @ConfigGroup(value = "compat", icon = "compat", order = 9)
+    @ConfigValue("compat.cobblemon.category-policy")
+    public static CompatCategoryPolicy cobblemonCategoryPolicy = CompatCategoryPolicy.FOCUSED;
+    @ConfigValue("compat.create.category-policy")
+    public static CompatCategoryPolicy createCategoryPolicy = CompatCategoryPolicy.HYBRID;
+    @ConfigValue("compat.ae2.category-policy")
+    public static CompatCategoryPolicy ae2CategoryPolicy = CompatCategoryPolicy.HYBRID;
+    @ConfigValue("compat.mekanism.category-policy")
+    public static CompatCategoryPolicy mekanismCategoryPolicy = CompatCategoryPolicy.HYBRID;
+    @ConfigValue("compat.gregtech.category-policy")
+    public static CompatCategoryPolicy gregtechCategoryPolicy = CompatCategoryPolicy.FOCUSED;
+    @ConfigValue("compat.sophisticated.category-policy")
+    public static CompatCategoryPolicy sophisticatedCategoryPolicy = CompatCategoryPolicy.HYBRID;
+    @ConfigValue("compat.minecolonies.category-policy")
+    public static CompatCategoryPolicy minecoloniesCategoryPolicy = CompatCategoryPolicy.HYBRID;
+    @ConfigValue("compat.apotheosis.category-policy")
+    public static CompatCategoryPolicy apotheosisCategoryPolicy = CompatCategoryPolicy.HYBRID;
+    @ConfigValue("compat.botania.category-policy")
+    public static CompatCategoryPolicy botaniaCategoryPolicy = CompatCategoryPolicy.HYBRID;
+    @ConfigValue("compat.map-utility.category-policy")
+    public static CompatCategoryPolicy mapUtilityCategoryPolicy = CompatCategoryPolicy.HYBRID;
+    // --- Side Panels Group ---
+    @ConfigGroup(value = "sidepanels", icon = "sidepanels", order = 3)
+    @ConfigValue("sidepanels.left.width")
+    public static int leftPanelWidth = 140;
+    @ConfigValue("sidepanels.right.width")
+    public static int rightPanelWidth = 0; // 0 = Auto
+    @ConfigValue("sidepanels.left.slots")
+    public static String leftPanelSlots = "FAVORITES";
+    @ConfigValue("sidepanels.left.alternate-slots")
+    public static String leftPanelAlternateSlots = "NONE";
+    @ConfigValue("sidepanels.right.slots")
+    public static String rightPanelSlots = "GRID";
+    @ConfigValue("sidepanels.right.alternate-slots")
+    public static String rightPanelAlternateSlots = "LIST";
+    // Legacy fields (kept for compatibility, but not annotated)
+    public static PanelContent leftPanelContent = PanelContent.FAVORITES;
+    public static PanelContent leftPanelAlternateContent = PanelContent.NONE;
+    public static PanelContent leftPanelAlternateSecondaryContent = PanelContent.NONE;
+    public static PanelContent leftPanelSecondaryContent = PanelContent.NONE;
+    public static PanelContent rightPanelContent = PanelContent.GRID;
+    public static PanelContent rightPanelAlternateContent = PanelContent.LIST;
+    public static PanelContent rightPanelAlternateSecondaryContent = PanelContent.NONE;
+    public static PanelContent rightPanelSecondaryContent = PanelContent.NONE;
+    // --- Cheats & Developer ---
+    @ConfigGroup(value = "cheat", icon = "cheat", order = 4)
+    @ConfigValue("general.cheat-mode")
+    public static boolean cheatMode = false;
+    @ConfigValue("general.dev-mode")
+    public static boolean devMode = false;
+    @ConfigValue("cheat.give-mode")
+    public static CheatGiveMode cheatGiveMode = CheatGiveMode.CURSOR;
+    @ConfigValue("cheat.drop-to-delete")
+    public static boolean cheatDropToDelete = true;
+    @ConfigValue("general.highlight-exclusion-areas")
+    public static boolean highlightExclusionAreas = false;
+    // --- Layout & Sizing ---
+    @ConfigGroup(value = "layout", icon = "layout", order = 5)
+    @ConfigValue("layout.search-bar-width")
+    public static int searchBarWidth = 240;
+    @ConfigValue("layout.grid-columns")
+    public static int gridColumns = 0; // 0 = auto-fit to panel width
+    @ConfigValue("layout.global-padding")
+    public static int globalPadding = 6;
+    @ConfigValue("layout.row-height")
+    public static int rowHeight = 18;
+    @ConfigValue("layout.icon-size")
+    public static int iconSize = 16;
+    @ConfigValue("layout.element-gap")
+    public static int elementGap = 4;
+    @ConfigValue("layout.list-scroll-rows")
+    public static int listScrollRows = 10;
+    // --- Palette Group ---
+    @ConfigGroup(value = "palette", icon = "palette", order = 6)
+    @ConfigColor
+    @ConfigDependsOn(value = "theme", expected = "TRANSPARENT")
+    @ConfigValue("palette.overlay-bg")
+    public static int overlayBg = 0x66000000;
+    @ConfigColor
+    @ConfigValue("palette.panel-bg")
+    public static int panelBg = 0x66000000;
+    @ConfigColor
+    @ConfigValue("palette.search-bar-bg")
+    public static int searchBarBg = 0x33000000;
+    @ConfigColor
+    @ConfigValue("palette.search-bar-border")
+    public static int searchBarBorder = 0x884488FF;
+    @ConfigColor
+    @ConfigValue("palette.search-text")
+    public static int searchText = 0xFFFFFFFF;
+    @ConfigColor
+    @ConfigValue("palette.search-placeholder")
+    public static int searchPlaceholder = 0xFFAAAAAA;
+    @ConfigColor
+    @ConfigValue("palette.card-bg")
+    public static int cardBg = 0x22FFFFFF;
+    @ConfigColor
+    @ConfigValue("palette.card-bg-hover")
+    public static int cardBgHover = 0x44FFFFFF;
+    @ConfigColor
+    @ConfigValue("palette.card-text-name")
+    public static int cardTextName = 0xFFFFFFFF;
+    @ConfigColor
+    @ConfigValue("palette.card-text-subtitle")
+    public static int cardTextSubtitle = 0xFFAAAAAA;
+    @ConfigColor
+    @ConfigValue("palette.card-action-hint")
+    public static int cardActionHint = 0xFF555555;
+    @ConfigColor
+    @ConfigValue("palette.group-header-bg")
+    public static int groupHeaderBg = 0xFFB0B0B0;
+    @ConfigColor
+    @ConfigValue("palette.group-header-text")
+    public static int groupHeaderText = 0xFF333333;
+    @ConfigColor
+    @ConfigValue("palette.scrollbar-bg")
+    public static int scrollbarBg = 0xFFAAAAAA;
+    @ConfigColor
+    @ConfigValue("palette.scrollbar-thumb")
+    public static int scrollbarThumb = 0xFF777777;
+    @ConfigColor
+    @ConfigValue("palette.scrollbar-thumb-hover")
+    public static int scrollbarThumbHover = 0xFF555555;
+    // --- Keybinds Group ---
+    @ConfigGroup(value = "binds", icon = "keybinds", order = 8)
+    @ConfigGroupEnd
+    public static final Object bindsGroupEnd = null;
+
+    /**
+     * Resets all configuration fields to their hardcoded default values.
+     */
+    public static void resetToDefaults() {
+        mode = AmiMode.FULL;
+        enableAutoIndexing = true;
+        showSpawnEggs = false;
+        showHiddenModItems = true;
+        strictSurvivalMode = false;
+        enableMaterialRootUI = true;
+        enableProgressionGraph = true;
+        blockSubgroup = BlockSubgroup.SHAPE;
+        dynamicShapeMinCount = 40;
+        dynamicShapeMinModSpread = 3;
+
+        theme = Theme.MODERN;
+        accentColor = 0xFF5555;
+        showHeader = true;
+        compactMode = false;
+        subtitleFields = "MOD_NAME";
+        subtitleFieldsChecksum = 0;
+
+        itemClickAction = ItemClickAction.RECIPES;
+        recipeViewerMode = RecipeViewerMode.AUTO;
+        enableGhostCrafting = true;
+
+        cobblemonCategoryPolicy = CompatCategoryPolicy.FOCUSED;
+        createCategoryPolicy = CompatCategoryPolicy.HYBRID;
+        ae2CategoryPolicy = CompatCategoryPolicy.HYBRID;
+        mekanismCategoryPolicy = CompatCategoryPolicy.HYBRID;
+        gregtechCategoryPolicy = CompatCategoryPolicy.FOCUSED;
+        sophisticatedCategoryPolicy = CompatCategoryPolicy.HYBRID;
+        minecoloniesCategoryPolicy = CompatCategoryPolicy.HYBRID;
+        apotheosisCategoryPolicy = CompatCategoryPolicy.HYBRID;
+        botaniaCategoryPolicy = CompatCategoryPolicy.HYBRID;
+        mapUtilityCategoryPolicy = CompatCategoryPolicy.HYBRID;
+
+        leftPanelWidth = 140;
+        rightPanelWidth = 0;
+        leftPanelSlots = "FAVORITES";
+        leftPanelAlternateSlots = "NONE";
+        rightPanelSlots = "GRID";
+        rightPanelAlternateSlots = "LIST";
+        leftPanelContent = PanelContent.FAVORITES;
+        leftPanelAlternateContent = PanelContent.NONE;
+        leftPanelAlternateSecondaryContent = PanelContent.NONE;
+        leftPanelSecondaryContent = PanelContent.NONE;
+        rightPanelContent = PanelContent.GRID;
+        rightPanelAlternateContent = PanelContent.LIST;
+        rightPanelAlternateSecondaryContent = PanelContent.NONE;
+        rightPanelSecondaryContent = PanelContent.NONE;
+
+        cheatMode = false;
+        devMode = false;
+        cheatGiveMode = CheatGiveMode.CURSOR;
+        cheatDropToDelete = true;
+        highlightExclusionAreas = false;
+
+        searchBarWidth = 240;
+        gridColumns = 0;
+        globalPadding = 6;
+        rowHeight = 18;
+        iconSize = 16;
+        elementGap = 4;
+        listScrollRows = 10;
+
+        overlayBg = 0x66000000;
+        panelBg = 0x66000000;
+        searchBarBg = 0x33000000;
+        searchBarBorder = 0x884488FF;
+        searchText = 0xFFFFFFFF;
+        searchPlaceholder = 0xFFAAAAAA;
+        cardBg = 0x22FFFFFF;
+        cardBgHover = 0x44FFFFFF;
+        cardTextName = 0xFFFFFFFF;
+        cardTextSubtitle = 0xFFAAAAAA;
+        cardActionHint = 0xFF555555;
+        groupHeaderBg = 0xFFB0B0B0;
+        groupHeaderText = 0xFF333333;
+        scrollbarBg = 0xFFAAAAAA;
+        scrollbarThumb = 0xFF777777;
+        scrollbarThumbHover = 0xFF555555;
+
+    }
+
+    public static List<PanelContent> parsePanelSlots(String raw) {
+        List<PanelContent> contents = new ArrayList<>();
+        if (raw == null || raw.isBlank()) {
+            return contents;
+        }
+
+        for (String token : raw.split(",")) {
+            String normalized = token.trim().toUpperCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+            if (normalized.isEmpty()) continue;
+            try {
+                PanelContent content = PanelContent.valueOf(normalized);
+                if (content != PanelContent.NONE) {
+                    contents.add(content);
+                }
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        return contents;
+    }
+
+    public static String encodePanelSlots(List<PanelContent> contents) {
+        if (contents == null || contents.isEmpty()) {
+            return PanelContent.NONE.name();
+        }
+        StringBuilder out = new StringBuilder();
+        for (PanelContent content : contents) {
+            if (content == null || content == PanelContent.NONE) continue;
+            if (!out.isEmpty()) out.append(',');
+            out.append(content.name());
+        }
+        return out.isEmpty() ? PanelContent.NONE.name() : out.toString();
+    }
+
+    public enum AmiMode {
+        FULL("ami.config.value.general.mode.full"),
+        COMPACT("ami.config.value.general.mode.compact"),
+        AMI_EMI_BRIDGE("ami.config.value.general.mode.ami_emi_bridge");
+
+        public final Component displayName;
+
+        AmiMode(String key) {
+            this.displayName = Component.translatable(key);
+        }
+    }
+
+    public enum PanelContent {
+        NONE, EMPTY, FAVORITES, GRID, LIST, COMPACT, LOOKUP_HISTORY, CRAFTING_HISTORY, CRAFTABLE, QUESTS
+    }
+
+    public enum Theme {
+        TRANSPARENT("ami.config.value.ui.theme.transparent"),
+        VANILLA("ami.config.value.ui.theme.vanilla"),
+        MODERN("ami.config.value.ui.theme.modern");
+
+        public final Component displayName;
+
+        Theme(String key) {
+            this.displayName = Component.translatable(key);
+        }
+    }
+
+    public enum BlockSubgroup {
+        SHAPE("ami.configuration.ui.block_subgroup.shape"),
+        MATERIAL("ami.configuration.ui.block_subgroup.material");
+
+        public final Component displayName;
+
+        BlockSubgroup(String key) {
+            this.displayName = Component.translatable(key);
+        }
+    }
+
+    public enum ItemClickAction {
+        RECIPES("ami.configuration.ui.item_click_action.recipes"),
+        USES("ami.configuration.ui.item_click_action.uses"),
+        NONE("ami.configuration.ui.item_click_action.none");
+
+        public final Component displayName;
+
+        ItemClickAction(String key) {
+            this.displayName = Component.translatable(key);
+        }
+    }
+
+    public enum RecipeViewerMode {
+        AUTO("ami.config.value.recipe_viewer.auto"),
+        NATIVE("ami.config.value.recipe_viewer.native"),
+        EMI_JEI("ami.config.value.recipe_viewer.emi_jei");
+
+        public final Component displayName;
+
+        RecipeViewerMode(String key) {
+            this.displayName = Component.translatable(key);
+        }
+    }
+
+    public enum CompatCategoryPolicy {
+        FOCUSED("ami.config.value.compat.category_policy.focused"),
+        SEMANTIC("ami.config.value.compat.category_policy.semantic"),
+        HYBRID("ami.config.value.compat.category_policy.hybrid");
+
+        public final Component displayName;
+
+        CompatCategoryPolicy(String key) {
+            this.displayName = Component.translatable(key);
+        }
+    }
+
+    public enum CheatGiveMode {
+        CURSOR("ami.config.value.cheat.give-mode.cursor"),
+        INVENTORY("ami.config.value.cheat.give-mode.inventory");
+
+        public final Component displayName;
+
+        CheatGiveMode(String key) {
+            this.displayName = Component.translatable(key);
+        }
+    }
+}

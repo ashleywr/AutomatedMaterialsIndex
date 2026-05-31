@@ -51,24 +51,7 @@ public final class PowerMetricSniffer {
     }
 
     private static boolean shouldScanTooltip(ItemStack stack, ResourceLocation id, PowerStats stats) {
-        return stats.hasAny() || containsPowerHint(identity(stack, id));
-    }
-
-    private static boolean containsPowerHint(String identity) {
-        String normalized = identity.toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
-        return normalized.contains("energy")
-                || normalized.contains("power")
-                || normalized.contains("generator")
-                || normalized.contains("dynamo")
-                || normalized.contains("solar")
-                || normalized.contains("reactor")
-                || normalized.contains("turbine")
-                || normalized.contains("battery")
-                || normalized.contains("cell")
-                || normalized.contains("capacitor")
-                || normalized.contains("charger")
-                || normalized.contains("fe ")
-                || normalized.contains("rf ");
+        return true;
     }
 
     private static String identity(ItemStack stack, ResourceLocation id) {

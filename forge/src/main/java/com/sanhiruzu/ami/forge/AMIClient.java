@@ -63,6 +63,8 @@ public class AMIClient {
         event.register(CompositeTooltipComponent.class, c -> c);
         event.register(HeartBarTooltipComponent.class, c -> c);
         event.register(StatIconRowTooltipComponent.class, c -> c);
+        event.register(com.sanhiruzu.ami.client.tooltip.PokemonTypeBadgesComponent.class, c -> c);
+        event.register(com.sanhiruzu.ami.client.tooltip.PokemonStatBarsComponent.class, c -> c);
     }
 
     public static void onRegisterReloadListeners(RegisterClientReloadListenersEvent event) {
@@ -79,6 +81,11 @@ public class AMIClient {
             AmiWorldTooltipComposer.invalidateCache();
             InventoryOverlayHandler.resetSessionState();
             com.sanhiruzu.ami.network.AmiNetworkState.onServer = false;
+        }
+
+        @SubscribeEvent
+        public static void onItemTooltip(net.minecraftforge.event.entity.player.ItemTooltipEvent event) {
+            com.sanhiruzu.ami.client.AmiTooltipHandler.appendTooltip(event.getItemStack(), event.getToolTip());
         }
     }
 }

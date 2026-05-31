@@ -16,6 +16,7 @@
     "ForgeEmiBoMMixin",
     "ForgeEmiRecipeDefaultLoaderMixin",
     "ForgeGuiPluginMixin",
+    "GuiGraphicsInvoker",
     "JeiBookmarkListMixin",
     "JeiBookmarkOverlayMixin",
     "JeiClientInputHandlerMixin",

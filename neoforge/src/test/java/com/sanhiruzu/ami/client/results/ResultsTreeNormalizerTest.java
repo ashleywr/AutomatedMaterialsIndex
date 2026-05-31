@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,21 @@ public class ResultsTreeNormalizerTest {
                 0,
                 0,
                 Map.of()
+        ));
+    }
+
+    private static TreeNode variantLeaf(String namespace, String path, String displayName, String subtypeOf) {
+        return new TreeNode(Component.literal(displayName), new SearchNode(
+                new ResourceLocation(namespace + ":" + path),
+                NodeType.ITEM,
+                displayName,
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.SUBTYPE_OF, subtypeOf,
+                        SearchNodeKeys.VARIANT_SOURCE, "creative_tab",
+                        SearchNodeKeys.VARIANT_COLLAPSE_MODE, "auto"
+                )
         ));
     }
 
@@ -130,6 +146,21 @@ public class ResultsTreeNormalizerTest {
         assertEquals(2, parent.getChildren().size());
         assertEquals("Candle", parent.getChildren().get(0).getLabel().getString());
         assertEquals("White Candle", parent.getChildren().get(1).getLabel().getString());
+    }
+
+    @Test
+    void normalizeChildrenPreservesDuplicateNamedRepresentativeVariantSubgroup() {
+        TreeNode parent = group("sophisticated/backpacks", "Backpacks");
+        TreeNode child = group("cardinality:sophisticatedbackpacks:backpack", "Backpacks");
+        child.setHighCardinality(true);
+        child.addChild(variantLeaf("sophisticatedbackpacks", "backpack/variant/backpack_0", "Backpack", "sophisticatedbackpacks:backpack"));
+        child.addChild(variantLeaf("sophisticatedbackpacks", "backpack/variant/backpack_1", "Backpack", "sophisticatedbackpacks:backpack"));
+        parent.addChild(child);
+
+        ResultsTreeNormalizer.normalizeChildren(parent);
+
+        assertEquals(1, parent.getChildren().size());
+        assertEquals("cardinality:sophisticatedbackpacks:backpack", parent.getChildren().get(0).getKey());
     }
 
     @Test

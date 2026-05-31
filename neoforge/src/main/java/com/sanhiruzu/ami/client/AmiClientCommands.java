@@ -23,11 +23,9 @@ import java.util.List;
 
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
 public class AmiClientCommands {
-    private static final String DEBUG_COMMANDS_PROPERTY = "ami.debugCommands";
-
     @SubscribeEvent
     public static void onClientCommandsRegister(RegisterClientCommandsEvent event) {
-        if (!Boolean.getBoolean(DEBUG_COMMANDS_PROPERTY)) {
+        if (!AmiDebugSettings.debugCommandsEnabled()) {
             return;
         }
 
@@ -88,6 +86,8 @@ public class AmiClientCommands {
     private static String buildResultsTreeDump(String query) {
         StringBuilder report = new StringBuilder();
         report.append("# AMI Runtime Results Tree Dump\n\n");
+        report.append("AMI version: ").append(AmiDebugSettings.versionLabel()).append("\n");
+        report.append("Debug build: ").append(AmiDebugSettings.debugBuild()).append("\n");
         report.append("Index ready: ").append(GlobalIndex.getInstance().isIndexReady()).append("\n\n");
 
         List<SearchNode> all = new ArrayList<>();

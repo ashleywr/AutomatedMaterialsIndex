@@ -39,6 +39,25 @@ public class GroupingEngine {
             "minecraft:iron_ore", "minecraft:raw_iron", "minecraft:copper_ore", "minecraft:raw_copper",
             "minecraft:gold_ore", "minecraft:raw_gold", "minecraft:diamond_ore", "minecraft:coal_ore"
     );
+    public static final List<String> BEHAVIOR_ORDER = List.of(
+            "behavior:energy_generation",
+            "behavior:energy_storage",
+            "behavior:energy_usage",
+            "behavior:fluid_storage",
+            "behavior:fluid_transport",
+            "behavior:chemical_handling",
+            "behavior:kinetic_power",
+            "behavior:create_processing",
+            "behavior:logistics",
+            "behavior:network",
+            "behavior:terminal",
+            "behavior:machine",
+            "behavior:upgrade",
+            "behavior:storage",
+            "behavior:portable_storage",
+            "behavior:tool",
+            "behavior:material"
+    );
     private static final List<String> COLOR_BUCKETS = new ArrayList<>(Arrays.asList(
             "light_blue", "light_gray",
             "magenta", "orange", "yellow", "lime", "pink", "cyan", "purple",
@@ -59,6 +78,8 @@ public class GroupingEngine {
             "bucket", "buckets", "boat", "boats", "torch", "torches", "pane", "panes",
             "sapling", "saplings", "carpet", "carpets"
     );
+    private static final String[] ENERGY_TERMS = {"energy", "power", "fe", "rf"};
+    private static final String[] FLUID_TERMS = {"fluid", "fluids", "liquid"};
     // Dynamic discovery state
     private static final Map<Item, Item> STONECUTTER_MAP = new HashMap<>();
     private static final Set<String> DYNAMIC_SHAPE_KEYWORDS = new HashSet<>();
@@ -423,6 +444,75 @@ public class GroupingEngine {
         return "prop:" + bucket + "_" + category;
     }
 
+    public static String classifyBehaviorRoot(SearchNode node) {
+        if (hasMetadata(node, SearchNodeKeys.ENERGY_GENERATION) || factHasResourceAction(node, ENERGY_TERMS, "generate", "generates", "generating")) {
+            return "behavior:energy_generation";
+        }
+        if (hasMetadata(node, SearchNodeKeys.ENERGY_CAPACITY)
+                || tokenAny(node, SearchNodeKeys.FACETS, "has_energy")
+                || factHasAnyComponent(node, ENERGY_TERMS)
+                || factHasResourceAction(node, ENERGY_TERMS, "store", "stores", "storage")) {
+            return "behavior:energy_storage";
+        }
+        if (hasMetadata(node, SearchNodeKeys.ENERGY_CONSUMPTION)
+                || factHasResourceAction(node, ENERGY_TERMS, "use", "uses", "consume", "consumes", "consumption")) {
+            return "behavior:energy_usage";
+        }
+        if (factHasAnyComponent(node, "chemical", "gas", "slurry", "infusion", "pigment")) {
+            return "behavior:chemical_handling";
+        }
+        if (hasMetadata(node, SearchNodeKeys.FLUID_CAPACITY) || tokenAny(node, SearchNodeKeys.FACETS, "fluid_container")) {
+            return "behavior:fluid_storage";
+        }
+        if (factHasAnyComponent(node, FLUID_TERMS)) {
+            return "behavior:fluid_transport";
+        }
+        if (hasConventionMetadata(node, "stressrole", "kineticrole")
+                || factHasAnyComponent(node, "su", "stress", "kinetic")) {
+            return "behavior:kinetic_power";
+        }
+        if (hasConventionMetadata(node, "roles")
+                || factHasAnyComponent(node, "processing", "process")) {
+            return "behavior:create_processing";
+        }
+        if (conventionHasAnyToken(node, "package", "packager", "logistics")
+                || tokenAny(node, SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "logistics")) {
+            return "behavior:logistics";
+        }
+        if (conventionHasAnyToken(node, "network", "cable", "channel")) {
+            return "behavior:network";
+        }
+        if (conventionHasAnyToken(node, "terminal", "terminals")) {
+            return "behavior:terminal";
+        }
+        if (conventionHasAnyToken(node, "upgrade", "upgrades")
+                || tokenAny(node, SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "upgrades")) {
+            return "behavior:upgrade";
+        }
+        if (conventionHasAnyToken(node, "backpack", "backpacks", "portable_storage", "portable")) {
+            return "behavior:portable_storage";
+        }
+        if (hasMetadata(node, SearchNodeKeys.ESM_CAPACITY)
+                || tokenAny(node, SearchNodeKeys.FACETS, "storage")
+                || conventionHasAnyToken(node, "storage")) {
+            return "behavior:storage";
+        }
+        if (tokenAny(node, SearchNodeKeys.FACETS, "machine", "interactive_block")
+                || conventionHasAnyToken(node, "machine", "machines", "machine_part")
+                || tokenAny(node, SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "machines")) {
+            return "behavior:machine";
+        }
+        if (tokenAny(node, SearchNodeKeys.FACETS, "harvest_tool", "utility_tool", "melee_weapon", "ranged_weapon")
+                || tokenAny(node, SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "tools")) {
+            return "behavior:tool";
+        }
+        if (tokenAny(node, SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "materials")
+                || conventionHasAnyToken(node, "material", "materials")) {
+            return "behavior:material";
+        }
+        return "";
+    }
+
     public static String classifySimilarityRoot(ItemStack stack) {
         if (!similarityBuilt) buildSimilarity();
         Item item = stack.getItem();
@@ -699,6 +789,150 @@ public class GroupingEngine {
 
     public static boolean isUnknownGroup(String key) {
         return UNKNOWN_GROUP_MARKERS.contains(key) || key.toLowerCase(Locale.ROOT).contains("unknown");
+    }
+
+    private static boolean hasMetadata(SearchNode node, String key) {
+        return !node.meta(key, "").isBlank();
+    }
+
+    private static boolean tokenAny(SearchNode node, String metadataKey, String... tokens) {
+        String raw = node.meta(metadataKey, "");
+        if (raw.isBlank()) {
+            return false;
+        }
+        Set<String> present = new HashSet<>();
+        for (String part : raw.split("[,\\s]+")) {
+            String normalized = normalizeMetadataToken(part);
+            if (!normalized.isBlank()) {
+                present.add(normalized);
+            }
+        }
+        for (String token : tokens) {
+            if (present.contains(normalizeMetadataToken(token))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasConventionMetadata(SearchNode node, String... normalizedKeySuffixes) {
+        for (String key : node.metadata().keySet()) {
+            String normalizedKey = normalizeMetadataToken(key);
+            for (String suffix : normalizedKeySuffixes) {
+                if (normalizedKey.endsWith(normalizeMetadataToken(suffix))
+                        && !node.meta(key, "").isBlank()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean conventionHasAnyToken(SearchNode node, String... tokens) {
+        for (var entry : node.metadata().entrySet()) {
+            if (!isConventionBehaviorKey(entry.getKey())) {
+                continue;
+            }
+            for (String token : splitMetadataTokens(entry.getValue())) {
+                Set<String> parts = metadataTokenParts(token);
+                for (String candidate : tokens) {
+                    if (parts.contains(normalizeMetadataToken(candidate))) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean factHasAnyComponent(SearchNode node, String... concepts) {
+        for (String token : conventionFactTokens(node)) {
+            Set<String> parts = metadataTokenParts(token);
+            for (String concept : concepts) {
+                if (parts.contains(normalizeMetadataToken(concept))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean factHasResourceAction(SearchNode node, String[] resourceTerms, String... actionTerms) {
+        for (String token : conventionFactTokens(node)) {
+            Set<String> parts = metadataTokenParts(token);
+            boolean hasResource = false;
+            boolean hasAction = false;
+            for (String resourceTerm : resourceTerms) {
+                if (parts.contains(normalizeMetadataToken(resourceTerm))) {
+                    hasResource = true;
+                    break;
+                }
+            }
+            for (String actionTerm : actionTerms) {
+                if (parts.contains(normalizeMetadataToken(actionTerm))) {
+                    hasAction = true;
+                    break;
+                }
+            }
+            if (hasResource && hasAction) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static List<String> conventionFactTokens(SearchNode node) {
+        List<String> tokens = new ArrayList<>();
+        for (var entry : node.metadata().entrySet()) {
+            String normalizedKey = normalizeMetadataToken(entry.getKey());
+            if (normalizedKey.endsWith("facts") || SearchNodeKeys.SEARCH_TOKENS.equals(entry.getKey())) {
+                tokens.addAll(splitMetadataTokens(entry.getValue()));
+            }
+        }
+        return tokens;
+    }
+
+    private static boolean isConventionBehaviorKey(String key) {
+        String normalizedKey = normalizeMetadataToken(key);
+        return normalizedKey.endsWith("facts")
+                || normalizedKey.endsWith("itemkind")
+                || normalizedKey.endsWith("role")
+                || normalizedKey.endsWith("roles")
+                || SearchNodeKeys.FACETS.equals(key)
+                || SearchNodeKeys.COMPONENT_FACTS.equals(key)
+                || SearchNodeKeys.SEARCH_TOKENS.equals(key);
+    }
+
+    private static List<String> splitMetadataTokens(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+        List<String> tokens = new ArrayList<>();
+        for (String part : raw.split("[,\\s]+")) {
+            if (!part.isBlank()) {
+                tokens.add(part.trim());
+            }
+        }
+        return tokens;
+    }
+
+    private static Set<String> metadataTokenParts(String token) {
+        Set<String> parts = new HashSet<>();
+        String normalized = normalizeMetadataToken(token);
+        if (!normalized.isBlank()) {
+            parts.add(normalized);
+        }
+        for (String part : token.split("[_\\-:/]+")) {
+            String normalizedPart = normalizeMetadataToken(part);
+            if (!normalizedPart.isBlank()) {
+                parts.add(normalizedPart);
+            }
+        }
+        return parts;
+    }
+
+    private static String normalizeMetadataToken(String value) {
+        return value == null ? "" : value.toLowerCase(Locale.ROOT).replace("_", "").replace("-", "").trim();
     }
 
     public static Map<String, List<SearchNode>> sortGroups(Map<String, List<SearchNode>> groups, List<String> order, boolean ascending) {

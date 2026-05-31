@@ -1,7 +1,6 @@
 package com.sanhiruzu.ami.mixin;
 
 import com.google.gson.JsonObject;
-import com.sanhiruzu.ami.compat.EmiStateMixinSupport;
 import dev.emi.emi.api.recipe.EmiRecipe;
 import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.runtime.EmiSidebars;
@@ -16,16 +15,25 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class EmiSidebarsStateMixin {
     @Inject(method = "lookup", at = @At("RETURN"), remap = false)
     private static void ami$lookupHistoryChanged(EmiIngredient stack, CallbackInfo ci) {
-        EmiStateMixinSupport.sidebarsChanged();
+        ami$notifySidebarsChanged();
     }
 
     @Inject(method = "craft", at = @At("RETURN"), remap = false)
     private static void ami$craftHistoryChanged(EmiRecipe recipe, CallbackInfo ci) {
-        EmiStateMixinSupport.sidebarsChanged();
+        ami$notifySidebarsChanged();
     }
 
     @Inject(method = "load", at = @At("RETURN"), remap = false)
     private static void ami$sidebarsLoaded(JsonObject json, CallbackInfo ci) {
-        EmiStateMixinSupport.sidebarsChanged();
+        ami$notifySidebarsChanged();
+    }
+
+    private static void ami$notifySidebarsChanged() {
+        try {
+            Class.forName("com.sanhiruzu.ami.compat.RecipeViewerStateSync")
+                    .getMethod("sidebarsChanged")
+                    .invoke(null);
+        } catch (ReflectiveOperationException ignored) {
+        }
     }
 }

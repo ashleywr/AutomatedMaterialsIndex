@@ -130,6 +130,10 @@ public interface IPlatformHelper {
 
     Optional<String> getModName(String modId);
 
+    default Optional<String> getModMetadataText(String modId) {
+        return getModName(modId);
+    }
+
     /**
      * Loaded mod IDs for the current runtime, used for lightweight cache/config invalidation.
      */
@@ -284,6 +288,18 @@ public interface IPlatformHelper {
 
     default Optional<Integer> getItemEnergyCapacity(ItemStack stack) {
         return Optional.empty();
+    }
+
+    default Optional<Integer> getItemEnergyStored(ItemStack stack) {
+        return Optional.empty();
+    }
+
+    default OptionalLong getItemFluidCapacity(ItemStack stack) {
+        return OptionalLong.empty();
+    }
+
+    default OptionalLong getItemFluidAmount(ItemStack stack) {
+        return OptionalLong.empty();
     }
 
     default OptionalLong getItemHandlerCapacity(ItemStack stack) {

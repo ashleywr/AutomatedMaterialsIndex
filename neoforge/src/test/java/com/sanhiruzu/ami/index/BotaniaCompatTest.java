@@ -1,0 +1,99 @@
+package com.sanhiruzu.ami.index;
+
+import com.sanhiruzu.ami.compat.CompatFamilyDetector;
+import com.sanhiruzu.ami.config.AmiConfig;
+import net.minecraft.resources.ResourceLocation;
+import org.junit.jupiter.api.Test;
+
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+class BotaniaCompatTest {
+    @Test
+    void botaniaManaAndRunesUseFocusedBuckets() {
+        Map<String, String> pool = meta("botania", "net.minecraft.world.item.BlockItem");
+        Map<String, String> rune = meta("botania", "net.minecraft.world.item.Item");
+
+        CompatFamilyDetector.detect(new ResourceLocation("botania", "mana_pool"), pool);
+        CompatFamilyDetector.detect(new ResourceLocation("botania", "rune_water"), rune);
+
+        assertEquals("botania", pool.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
+        assertEquals("mana", resolve("botania:mana_pool", pool, ItemFacet.PLACEABLE).subcategoryId());
+        assertEquals("runes", resolve("botania:rune_water", rune).subcategoryId());
+    }
+
+    @Test
+    void botaniaFlowersSeparateGeneratingAndFunctional() {
+        Map<String, String> endoflame = meta("botania", "net.minecraft.world.item.BlockItem");
+        Map<String, String> hopperhock = meta("botania", "net.minecraft.world.item.BlockItem");
+
+        CompatFamilyDetector.detect(new ResourceLocation("botania", "endoflame"), endoflame);
+        CompatFamilyDetector.detect(new ResourceLocation("botania", "hopperhock"), hopperhock);
+
+        assertEquals("generating_flowers", resolve("botania:endoflame", endoflame, ItemFacet.PLACEABLE).subcategoryId());
+        assertEquals("functional_flowers", resolve("botania:hopperhock", hopperhock, ItemFacet.PLACEABLE).subcategoryId());
+    }
+
+    @Test
+    void botaniaBaublesToolsAndMaterialsUseFocusedBuckets() {
+        Map<String, String> ring = meta("botania", "vazkii.botania.common.item.equipment.bauble.BaubleItem");
+        Map<String, String> wand = meta("botania", "vazkii.botania.common.item.WandOfTheForestItem");
+        Map<String, String> ingot = meta("botania", "net.minecraft.world.item.Item");
+
+        CompatFamilyDetector.detect(new ResourceLocation("botania", "aura_ring"), ring);
+        CompatFamilyDetector.detect(new ResourceLocation("botania", "twig_wand"), wand);
+        CompatFamilyDetector.detect(new ResourceLocation("botania", "manasteel_ingot"), ingot);
+
+        assertEquals("baubles", resolve("botania:aura_ring", ring, ItemFacet.CURIO).subcategoryId());
+        assertEquals("tools", resolve("botania:twig_wand", wand, ItemFacet.UTILITY_TOOL).subcategoryId());
+        assertEquals("materials", resolve("botania:manasteel_ingot", ingot, ItemFacet.INGOT).subcategoryId());
+    }
+
+    @Test
+    void knownBotaniaAddonsJoinBotaniaFamily() {
+        Map<String, String> alfsteel = meta("mythicbotany", "net.minecraft.world.item.Item");
+
+        CompatFamilyDetector.detect(new ResourceLocation("mythicbotany", "alfsteel_ingot"), alfsteel);
+        CategoryAssignment assignment = resolve("mythicbotany:alfsteel_ingot", alfsteel, ItemFacet.INGOT);
+
+        assertEquals("botania", alfsteel.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
+        assertEquals("botania", assignment.categoryId());
+        assertEquals("materials", assignment.subcategoryId());
+    }
+
+    @Test
+    void semanticBotaniaPolicyCanStillOptOut() {
+        AmiConfig.CompatCategoryPolicy oldPolicy = AmiConfig.botaniaCategoryPolicy;
+        try {
+            AmiConfig.botaniaCategoryPolicy = AmiConfig.CompatCategoryPolicy.SEMANTIC;
+            Map<String, String> meta = meta("botania", "net.minecraft.world.item.Item");
+            CompatFamilyDetector.detect(new ResourceLocation("botania", "manasteel_ingot"), meta);
+
+            CategoryAssignment assignment = resolve("botania:manasteel_ingot", meta, ItemFacet.INGOT);
+
+            assertNotEquals("botania", assignment.categoryId());
+            assertEquals("semantic", assignment.attributes().get(SearchNodeKeys.COMPAT_CATEGORY_POLICY));
+        } finally {
+            AmiConfig.botaniaCategoryPolicy = oldPolicy;
+        }
+    }
+
+    private static Map<String, String> meta(String modId, String itemClass) {
+        Map<String, String> meta = new HashMap<>();
+        meta.put(SearchNodeKeys.MOD_ID, modId);
+        meta.put(SearchNodeKeys.CREATIVE_TAB_LABEL, modId);
+        meta.put(SearchNodeKeys.ITEM_CLASS, itemClass);
+        return meta;
+    }
+
+    private static CategoryAssignment resolve(String id, Map<String, String> meta, ItemFacet... facets) {
+        return PrimaryCategoryResolver.resolve(
+                new ResourceLocation(id),
+                new FacetProfile(facets.length == 0 ? EnumSet.noneOf(ItemFacet.class) : EnumSet.of(facets[0], facets), meta)
+        );
+    }
+}

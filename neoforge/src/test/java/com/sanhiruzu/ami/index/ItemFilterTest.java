@@ -30,6 +30,8 @@ public class ItemFilterTest {
         assertEquals(ItemFilter.ACCESS_SURVIVAL, ItemFilter.classifyAccessLevel(
                 new ResourceLocation("mod:regular_egg"), new Item("Regular Egg"), true));
         assertEquals(ItemFilter.ACCESS_CHEAT, ItemFilter.classifyAccessLevel(new ResourceLocation("minecraft:command_block"), true));
+        assertEquals(ItemFilter.ACCESS_CREATIVE, ItemFilter.classifyAccessLevel(new ResourceLocation("mekanism:creative_fluid_tank"), true));
+        assertEquals(ItemFilter.ACCESS_CREATIVE, ItemFilter.classifyAccessLevel(new ResourceLocation("example:infinite_creative_battery"), true));
 
         // Hidden items (not in creative)
         assertEquals(ItemFilter.ACCESS_DEV, ItemFilter.classifyAccessLevel(new ResourceLocation("minecraft:iron_ingot"), false));

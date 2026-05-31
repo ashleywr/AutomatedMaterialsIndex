@@ -22,14 +22,91 @@ public final class PropertyResolver implements IQueryResolver {
                             || containsToken(node, SearchNodeKeys.TAGS, "ami:" + key);
             case "category", "entitycategory" -> containsValue(node, SearchNodeKeys.ENTITY_CATEGORY, value);
             case "mod", "modid" -> containsValue(node, SearchNodeKeys.MOD_ID, value);
+            case "compat", "family", "ecosystem", "compatfamily", "compatfamilies" ->
+                    containsToken(node, SearchNodeKeys.COMPAT_FAMILIES, value)
+                            || containsValue(node, SearchNodeKeys.PRIMARY_COMPAT_FAMILY, value)
+                            || containsValue(node, SearchNodeKeys.COMPAT_FAMILY, value)
+                    || containsValue(node, SearchNodeKeys.MOD_ID, value);
+            case "fact", "facts", "behavior", "behaviour" -> containsConventionToken(node, value,
+                    FieldConvention.FACTS,
+                    FieldConvention.FACETS,
+                    FieldConvention.SEARCH_TOKENS);
+            case "kind", "itemkind" -> containsConventionToken(node, value, FieldConvention.KIND);
+            case "tier" -> containsConventionToken(node, value, FieldConvention.TIER);
+            case "role", "recipe", "processing", "process" -> containsConventionToken(node, value,
+                    FieldConvention.ROLE,
+                    FieldConvention.RECIPE);
+            case "capability", "cap", "resource" -> containsCapability(node, value);
+            case "ponder", "hasponder" -> value.isEmpty()
+                    ? hasBooleanConvention(node, "hasponder")
+                    : containsConventionValue(node, "hasponder", value);
+            case "energy", "power", "fe", "rf" -> value.isEmpty()
+                    ? containsCapability(node, "energy")
+                    : containsResourceMetadata(node, "energy", value);
+            case "fluid", "fluids", "liquid", "tank" -> value.isEmpty()
+                    ? containsCapability(node, "fluid")
+                    : containsResourceMetadata(node, "fluid", value);
+            case "machine", "machines" -> value.isEmpty()
+                    ? containsSemanticToken(node, "machine", "machines", "interactive_block")
+                    : containsConventionToken(node, value,
+                    FieldConvention.FACTS,
+                    FieldConvention.FACETS,
+                    FieldConvention.KIND);
+            case "upgrade", "upgrades" -> value.isEmpty()
+                    ? containsSemanticToken(node, "upgrade", "upgrades")
+                    : containsConventionToken(node, value,
+                    FieldConvention.FACTS,
+                    FieldConvention.FACETS,
+                    FieldConvention.KIND);
             case "health", "hp" -> containsValue(node, SearchNodeKeys.ENTITY_HEALTH, value);
             case "attack", "attackdamage", "damage" -> containsValue(node, SearchNodeKeys.ATTACK_DAMAGE, value)
                     || containsValue(node, SearchNodeKeys.ENTITY_ATTACK_DAMAGE, value);
+            case "medicine", "pokemonmedicine" -> containsKind(node, "medicine", value)
+                    || containsToken(node, SearchNodeKeys.POKEMON_MEDICINE_KIND, value);
+            case "pokeball", "pokemonball", "captureball" -> containsKind(node, "poke_ball", value)
+                    || containsToken(node, SearchNodeKeys.POKEMON_BALL_TIER, value)
+                    || containsToken(node, SearchNodeKeys.POKEMON_BALL_FAMILY, value);
+            case "helditem", "pokemonhelditem", "held" -> containsKind(node, "held_item", value)
+                    || containsToken(node, SearchNodeKeys.POKEMON_HELD_ITEM_ROLE, value);
+            case "evolution", "evolutionitem", "pokemonevolution" -> containsKind(node, "evolution_item", value)
+                    || containsToken(node, SearchNodeKeys.POKEMON_EVOLUTION_TRIGGER, value);
+            case "fossil", "pokemonfossil" -> containsKind(node, "fossil", value);
+            case "berry", "pokemonberry" -> containsKind(node, "berry", value);
+            case "apricorn", "pokemonapricorn" -> containsKind(node, "apricorn", value)
+                    || containsKind(node, "apricorn_seed", value);
+            case "type", "pokemontype" -> containsToken(node, SearchNodeKeys.POKEMON_TYPE, value);
+            case "species", "pokemon", "pokemonspecies" -> containsValue(node, SearchNodeKeys.POKEMON_SPECIES, value);
+            case "ability", "pokemonability" -> containsToken(node, SearchNodeKeys.POKEMON_ABILITIES, value);
+            case "status", "statuscure", "pokemonstatus", "pokemonstatuscure" ->
+                    containsToken(node, SearchNodeKeys.POKEMON_STATUS_CURE, value);
+            case "move", "pokemonmove" -> containsToken(node, SearchNodeKeys.POKEMON_MOVE, value);
+            case "tm", "tmmove", "pokemontm" -> containsToken(node, SearchNodeKeys.POKEMON_TM_MOVE, value);
+            case "tutor", "tutormove", "pokemontutor" -> containsToken(node, SearchNodeKeys.POKEMON_TUTOR_MOVE, value);
+            case "egg", "egggroup", "pokemonegg", "pokemonegggroup" ->
+                    containsToken(node, SearchNodeKeys.POKEMON_EGG_GROUPS, value);
+            case "eggmove", "pokemoneggmove" -> containsToken(node, SearchNodeKeys.POKEMON_EGG_MOVE, value);
+            case "drop", "pokemondrop" -> containsValue(node, SearchNodeKeys.POKEMON_DROP_ITEM, value);
             case "fireimmune" -> value.isEmpty()
                     ? "true".equalsIgnoreCase(node.meta(SearchNodeKeys.FIRE_IMMUNE, ""))
                     : containsValue(node, SearchNodeKeys.FIRE_IMMUNE, value);
             default -> containsAnyMetadata(node, key, value);
         };
+    }
+
+    private static boolean containsKind(SearchNode node, String kind, String value) {
+        if (!containsToken(node, SearchNodeKeys.COBBLEMON_ITEM_KIND, kind)) {
+            return false;
+        }
+        if (value == null || value.isBlank()) {
+            return true;
+        }
+        String normalizedValue = normalize(value);
+        for (String metadataValue : node.metadata().values()) {
+            if (normalize(metadataValue).contains(normalizedValue)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean containsToken(SearchNode node, String metadataKey, String token) {
@@ -45,13 +122,112 @@ public final class PropertyResolver implements IQueryResolver {
         return false;
     }
 
+    private static boolean containsConventionToken(SearchNode node, String value, FieldConvention... conventions) {
+        for (var entry : node.metadata().entrySet()) {
+            if (!matchesAnyConvention(entry.getKey(), conventions)) {
+                continue;
+            }
+            if (containsTokenValue(entry.getValue(), value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsConventionValue(SearchNode node, String keySuffix, String value) {
+        String normalizedSuffix = normalize(keySuffix);
+        for (var entry : node.metadata().entrySet()) {
+            if (normalize(entry.getKey()).endsWith(normalizedSuffix) && containsValue(entry.getValue(), value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasBooleanConvention(SearchNode node, String keySuffix) {
+        String normalizedSuffix = normalize(keySuffix);
+        for (var entry : node.metadata().entrySet()) {
+            if (normalize(entry.getKey()).endsWith(normalizedSuffix)
+                    && "true".equalsIgnoreCase(entry.getValue())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsCapability(SearchNode node, String value) {
+        String normalized = normalize(value);
+        return switch (normalized) {
+            case "", "energy", "power", "fe", "rf" -> hasMetadata(node, SearchNodeKeys.ENERGY_CAPACITY)
+                    || hasMetadata(node, SearchNodeKeys.ENERGY_GENERATION)
+                    || hasMetadata(node, SearchNodeKeys.ENERGY_CONSUMPTION)
+                    || containsToken(node, SearchNodeKeys.FACETS, "has_energy")
+                    || containsFactComponent(node, "energy", "power", "fe", "rf");
+            case "fluid", "fluids", "liquid", "tank" -> hasMetadata(node, SearchNodeKeys.FLUID_CAPACITY)
+                    || containsToken(node, SearchNodeKeys.FACETS, "fluid_container")
+                    || containsFactComponent(node, "fluid", "fluids", "liquid");
+            case "storage" -> hasMetadata(node, SearchNodeKeys.ESM_CAPACITY)
+                    || containsToken(node, SearchNodeKeys.FACETS, "storage");
+            default -> false;
+        };
+    }
+
+    private static boolean containsSemanticToken(SearchNode node, String... tokens) {
+        for (String token : tokens) {
+            if (containsConventionToken(node, token,
+                    FieldConvention.FACTS,
+                    FieldConvention.FACETS,
+                    FieldConvention.KIND)
+                    || containsToken(node, SearchNodeKeys.ONTOLOGY_SUBCATEGORY, token)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsResourceMetadata(SearchNode node, String resource, String value) {
+        String normalizedResource = normalize(resource);
+        for (var entry : node.metadata().entrySet()) {
+            String normalizedKey = normalize(entry.getKey());
+            if (normalizedKey.contains(normalizedResource) && containsValue(entry.getValue(), value)) {
+                return true;
+            }
+        }
+        return containsConventionToken(node, value, FieldConvention.FACTS, FieldConvention.FACETS);
+    }
+
+    private static boolean containsFactComponent(SearchNode node, String... concepts) {
+        for (var entry : node.metadata().entrySet()) {
+            if (!FieldConvention.FACTS.matches(entry.getKey()) && !FieldConvention.SEARCH_TOKENS.matches(entry.getKey())) {
+                continue;
+            }
+            for (String token : splitTokens(entry.getValue())) {
+                Set<String> parts = tokenParts(token);
+                for (String concept : concepts) {
+                    if (parts.contains(normalize(concept))) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasMetadata(SearchNode node, String key) {
+        return !node.meta(key, "").isBlank();
+    }
+
     private static boolean containsValue(SearchNode node, String metadataKey, String value) {
-        String metadata = normalize(node.meta(metadataKey, ""));
+        return containsValue(node.meta(metadataKey, ""), value);
+    }
+
+    private static boolean containsValue(String metadata, String value) {
+        String normalizedMetadata = normalize(metadata);
         String normalizedValue = normalize(value);
         if (normalizedValue.isEmpty()) {
-            return !metadata.isEmpty();
+            return !normalizedMetadata.isEmpty();
         }
-        return metadata.contains(normalizedValue);
+        return normalizedMetadata.contains(normalizedValue);
     }
 
     private static boolean containsAnyMetadata(SearchNode node, String key, String value) {
@@ -77,6 +253,105 @@ public final class PropertyResolver implements IQueryResolver {
                 .replace("_", "")
                 .replace("-", "")
                 .trim();
+    }
+
+    private static boolean containsTokenValue(String metadata, String token) {
+        String normalizedToken = normalize(token);
+        if (normalizedToken.isEmpty()) {
+            return metadata != null && !metadata.isBlank();
+        }
+        for (String part : splitTokens(metadata)) {
+            if (normalize(part).equals(normalizedToken)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static List<String> splitTokens(String metadata) {
+        if (metadata == null || metadata.isBlank()) {
+            return List.of();
+        }
+        List<String> tokens = new ArrayList<>();
+        for (String part : metadata.split("[,\\s]+")) {
+            if (!part.isBlank()) {
+                tokens.add(part.trim());
+            }
+        }
+        return tokens;
+    }
+
+    private static Set<String> tokenParts(String token) {
+        Set<String> parts = new HashSet<>();
+        String normalized = normalize(token);
+        if (!normalized.isBlank()) {
+            parts.add(normalized);
+        }
+        for (String part : token.split("[_\\-:/]+")) {
+            String normalizedPart = normalize(part);
+            if (!normalizedPart.isBlank()) {
+                parts.add(normalizedPart);
+            }
+        }
+        return parts;
+    }
+
+    private static boolean matchesAnyConvention(String metadataKey, FieldConvention... conventions) {
+        for (FieldConvention convention : conventions) {
+            if (convention.matches(metadataKey)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private enum FieldConvention {
+        FACTS {
+            @Override
+            boolean matches(String key) {
+                return normalize(key).endsWith("facts");
+            }
+        },
+        FACETS {
+            @Override
+            boolean matches(String key) {
+                return SearchNodeKeys.FACETS.equals(key) || SearchNodeKeys.COMPONENT_FACTS.equals(key);
+            }
+        },
+        SEARCH_TOKENS {
+            @Override
+            boolean matches(String key) {
+                return SearchNodeKeys.SEARCH_TOKENS.equals(key);
+            }
+        },
+        KIND {
+            @Override
+            boolean matches(String key) {
+                String normalized = normalize(key);
+                return normalized.endsWith("itemkind") || SearchNodeKeys.ONTOLOGY_SUBCATEGORY.equals(key);
+            }
+        },
+        TIER {
+            @Override
+            boolean matches(String key) {
+                return normalize(key).endsWith("tier");
+            }
+        },
+        ROLE {
+            @Override
+            boolean matches(String key) {
+                String normalized = normalize(key);
+                return normalized.endsWith("role") || normalized.endsWith("roles");
+            }
+        },
+        RECIPE {
+            @Override
+            boolean matches(String key) {
+                return key.equals(SearchNodeKeys.RECIPE_CATEGORIES) || key.equals(SearchNodeKeys.RECIPE_USE_CATEGORIES);
+            }
+        };
+
+        abstract boolean matches(String key);
     }
 
     public void addNode(SearchNode node) {

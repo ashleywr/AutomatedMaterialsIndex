@@ -1,7 +1,6 @@
 package com.sanhiruzu.ami.mixin;
 
 import com.google.gson.JsonObject;
-import com.sanhiruzu.ami.compat.EmiStateMixinSupport;
 import dev.emi.emi.api.recipe.EmiRecipe;
 import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.bom.BoM;
@@ -17,46 +16,55 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class EmiBoMStateMixin {
     @Inject(method = "setDefaults", at = @At("RETURN"), remap = false)
     private static void ami$defaultsSet(RecipeDefaults defaults, CallbackInfo ci) {
-        EmiStateMixinSupport.recipesChanged();
+        ami$notifyStateChanged("recipesChanged");
     }
 
     @Inject(method = "loadAdded", at = @At("RETURN"), remap = false)
     private static void ami$addedDefaultsLoaded(JsonObject object, CallbackInfo ci) {
-        EmiStateMixinSupport.recipesChanged();
+        ami$notifyStateChanged("recipesChanged");
     }
 
     @Inject(method = "reload", at = @At("RETURN"), remap = false)
     private static void ami$defaultsReloaded(CallbackInfo ci) {
-        EmiStateMixinSupport.recipesChanged();
+        ami$notifyStateChanged("recipesChanged");
     }
 
     @Inject(method = "setGoal", at = @At("RETURN"), remap = false)
     private static void ami$goalChanged(EmiRecipe recipe, CallbackInfo ci) {
-        EmiStateMixinSupport.recipesChanged();
+        ami$notifyStateChanged("recipesChanged");
     }
 
     @Inject(method = "addRecipe(Ldev/emi/emi/api/recipe/EmiRecipe;)V", at = @At("RETURN"), remap = false)
     private static void ami$recipeAdded(EmiRecipe recipe, CallbackInfo ci) {
-        EmiStateMixinSupport.recipesChanged();
+        ami$notifyStateChanged("recipesChanged");
     }
 
     @Inject(method = "addRecipe(Ldev/emi/emi/api/stack/EmiIngredient;Ldev/emi/emi/api/recipe/EmiRecipe;)V", at = @At("RETURN"), remap = false)
     private static void ami$recipeResolutionAdded(EmiIngredient stack, EmiRecipe recipe, CallbackInfo ci) {
-        EmiStateMixinSupport.recipesChanged();
+        ami$notifyStateChanged("recipesChanged");
     }
 
     @Inject(method = "removeRecipe(Ldev/emi/emi/api/recipe/EmiRecipe;)V", at = @At("RETURN"), remap = false)
     private static void ami$recipeRemoved(EmiRecipe recipe, CallbackInfo ci) {
-        EmiStateMixinSupport.recipesChanged();
+        ami$notifyStateChanged("recipesChanged");
     }
 
     @Inject(method = "removeRecipe(Ldev/emi/emi/api/stack/EmiIngredient;Ldev/emi/emi/api/recipe/EmiRecipe;)V", at = @At("RETURN"), remap = false)
     private static void ami$recipeResolutionRemoved(EmiIngredient stack, EmiRecipe recipe, CallbackInfo ci) {
-        EmiStateMixinSupport.recipesChanged();
+        ami$notifyStateChanged("recipesChanged");
     }
 
     @Inject(method = "addResolution", at = @At("RETURN"), remap = false)
     private static void ami$resolutionAdded(EmiIngredient ingredient, EmiRecipe recipe, CallbackInfo ci) {
-        EmiStateMixinSupport.recipesChanged();
+        ami$notifyStateChanged("recipesChanged");
+    }
+
+    private static void ami$notifyStateChanged(String method) {
+        try {
+            Class.forName("com.sanhiruzu.ami.compat.RecipeViewerStateSync")
+                    .getMethod(method)
+                    .invoke(null);
+        } catch (ReflectiveOperationException ignored) {
+        }
     }
 }

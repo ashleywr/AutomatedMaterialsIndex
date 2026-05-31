@@ -13,19 +13,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalLong;
 
 public final class FluidMetricSniffer {
-    private static boolean isLikelyFluidContainer(ResourceLocation id) {
-        String path = id.getPath().toLowerCase(java.util.Locale.ROOT);
-        return path.contains("bucket")
-                || path.contains("tank")
-                || path.contains("reservoir")
-                || path.contains("drum")
-                || path.contains("fluid")
-                || path.contains("cell")
-                || path.contains("canister");
-    }
-
     public Optional<FluidStats> sniff(ItemStack stack, ResourceLocation id, @Nullable Level level) {
         if (stack == null || stack.isEmpty()) {
             return Optional.empty();
@@ -33,9 +23,12 @@ public final class FluidMetricSniffer {
         if (stack.getItem() instanceof BucketItem) {
             return Optional.of(new FluidStats(1.0D, "bucket"));
         }
-        if (!isLikelyFluidContainer(id)) {
-            return Optional.empty();
+
+        OptionalLong capabilityCapacity = Services.PLATFORM.getItemFluidCapacity(stack);
+        if (capabilityCapacity.isPresent()) {
+            return Optional.of(new FluidStats(capabilityCapacity.getAsLong() / 1000.0D, "capability"));
         }
+
         try {
             List<String> lines = Services.PLATFORM.getTooltipLines(stack, level)
                     .stream()
