@@ -33,7 +33,7 @@ final class ResultsGroupingPostProcessor {
             case MATERIAL -> applyMaterialGroupingPasses(tree);
             case FAMILY -> applyFamilyGroupingPasses(tree);
             case SHAPE -> applyHighCardinalityGrouping(tree);
-            case MOD, CREATIVE, DIMENSION, TOPOLOGY, SIMILARITY, PROPERTIES -> applyHighCardinalityGrouping(tree);
+            case MOD, CREATIVE, DIMENSION, BEHAVIOR, TOPOLOGY, SIMILARITY, PROPERTIES -> applyHighCardinalityGrouping(tree);
         };
     }
 
