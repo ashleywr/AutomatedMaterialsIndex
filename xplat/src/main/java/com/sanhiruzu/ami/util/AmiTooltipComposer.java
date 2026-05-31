@@ -46,23 +46,26 @@ public final class AmiTooltipComposer {
             }
         } else {
             // Header: Name and Type Label
+            // Entity type label is omitted — the renderer body provides richer context (Category: X).
+            // All other node types (Biome, Structure, Dimension) keep their label.
             lines.add(Component.literal(entry.displayName()));
-            lines.add(Component.translatable(entry.type().tooltipKey())
-                    .withStyle(s -> s.withColor(AMITheme.TEXT_SUBTLE)));
+            if (entry.type() != NodeType.ENTITY) {
+                lines.add(Component.translatable(entry.type().tooltipKey())
+                        .withStyle(s -> s.withColor(AMITheme.TEXT_SUBTLE)));
+            }
 
             // Body: Delegate to specialized renderer
             var renderer = RendererRegistry.get(entry.type());
             if (renderer != null) {
-                List<Component> body = renderer.getTooltip(entry);
+                List<Component> body = safeRendererTooltip(renderer, entry);
                 if (body != null) lines.addAll(body);
             }
         }
 
-        // 2. AMI Details Section (Common metadata: Storage, FE, DPS, etc.)
+        // 2. Details Section (Common metadata: Storage, FE, DPS, etc.)
         List<Component> amiDetails = buildAmiDetails(entry);
         if (!amiDetails.isEmpty()) {
             lines.add(Component.empty());
-            lines.add(Component.translatable("ami.tooltip.ami_section").withStyle(ChatFormatting.DARK_AQUA));
             lines.addAll(amiDetails);
         }
 
@@ -79,6 +82,17 @@ public final class AmiTooltipComposer {
         appendHints(lines, entry);
 
         return lines;
+    }
+
+    private static List<Component> safeRendererTooltip(
+            com.sanhiruzu.ami.client.icon.IIconRenderer renderer,
+            SearchNode entry
+    ) {
+        try {
+            return renderer.getTooltip(entry);
+        } catch (LinkageError | RuntimeException e) {
+            return List.of();
+        }
     }
 
     /**
@@ -111,48 +125,79 @@ public final class AmiTooltipComposer {
 
     private static void appendHints(List<Component> lines, SearchNode entry) {
         lines.add(Component.empty());
+
         if (entry.type() == NodeType.ITEM) {
-            appendCheatGiveHints(lines);
             ItemStack stack = ItemIconRenderer.resolveStack(entry.id());
             boolean canTransfer = RecipeViewerBridge.canTransferStack(stack);
+
             if (canTransfer && Screen.hasShiftDown()) {
-                lines.add(Component.translatable("ami.gui.transfer_max_hint").withStyle(ChatFormatting.GRAY));
-                lines.add(Component.translatable("ami.gui.uses_hint").withStyle(ChatFormatting.DARK_GRAY));
+                lines.add(hintLine("ami.gui.hint.shift_left_click", "ami.gui.hint.action.craft_stack"));
             } else if (canTransfer && Screen.hasControlDown()) {
-                lines.add(Component.translatable("ami.gui.transfer_one_modified_hint").withStyle(ChatFormatting.GRAY));
-                lines.add(Component.translatable("ami.gui.uses_hint").withStyle(ChatFormatting.DARK_GRAY));
+                lines.add(hintLine("ami.gui.hint.ctrl_left_click", "ami.gui.hint.action.craft_one"));
             } else if (canTransfer) {
-                lines.add(Component.translatable("ami.gui.transfer_one_hint").withStyle(ChatFormatting.GRAY));
-                lines.add(Component.translatable("ami.gui.uses_hint").withStyle(ChatFormatting.DARK_GRAY));
+                lines.add(hintLine("ami.gui.hint.left_click", "ami.gui.hint.action.craft_one"));
             } else {
-                lines.add(Component.translatable("ami.gui.recipes_hint").withStyle(ChatFormatting.DARK_GRAY));
-                lines.add(Component.translatable("ami.gui.uses_hint").withStyle(ChatFormatting.DARK_GRAY));
-                lines.add(Component.translatable("ami.gui.mod_filter_hint").withStyle(ChatFormatting.DARK_GRAY));
+                lines.add(hintLine("ami.gui.hint.left_click", "ami.gui.hint.action.recipes"));
             }
-        } else if (entry.type() == NodeType.ENTITY) {
-            appendCheatGiveHints(lines);
-        } else if ((entry.type() == NodeType.BIOME || entry.type() == NodeType.STRUCTURE)
-                && AMICheatMode.isEnabled()) {
+            lines.add(hintLine("ami.gui.hint.right_click", "ami.gui.hint.action.uses"));
+            if (!canTransfer) {
+                lines.add(hintLine("ami.gui.hint.ctrl_right_click", "ami.gui.hint.action.filter_mod"));
+            }
+        } else if ((entry.type() == NodeType.BIOME || entry.type() == NodeType.STRUCTURE) && AMICheatMode.isEnabled()) {
             lines.add(Component.translatable("ami.tooltip.cheat_locate").withStyle(ChatFormatting.GOLD));
         }
 
         if (AmiConfig.devMode) {
             String keybindName = Services.PLATFORM.keyMappings().debugTooltips().getTranslatedKeyMessage().getString();
-            String hintKey = AmiKeybindHandler.isDebugTooltipsActive()
-                    ? "ami.gui.debug_hint_active" : "ami.gui.debug_hint";
-            lines.add(Component.translatable(hintKey, keybindName).withStyle(ChatFormatting.DARK_GRAY));
+            if (AmiKeybindHandler.isDebugTooltipsActive()) {
+                lines.add(Component.translatable("ami.gui.debug_hint_active", keybindName)
+                        .withStyle(s -> s.withColor(AMITheme.TEXT_SUBTLE)));
+            } else {
+                lines.add(hintLine(Component.literal(keybindName), Component.translatable("ami.gui.hint.action.debug_info")));
+            }
         }
+
+        appendCheatGiveHints(lines, entry);
     }
 
-    private static void appendCheatGiveHints(List<Component> lines) {
-        if (!AMICheatMode.isEnabled()) {
-            return;
-        }
+    private static Component hintLine(String inputI18n, String actionI18n) {
+        return hintLine(Component.translatable(inputI18n), Component.translatable(actionI18n));
+    }
+
+    private static Component hintLine(Component input, Component action) {
+        return Component.empty()
+                .append(input.copy().withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("  "))
+                .append(action.copy().withStyle(s -> s.withColor(AMITheme.TEXT_SUBTLE)));
+    }
+
+    private static void appendCheatGiveHints(List<Component> lines, SearchNode entry) {
+        if (!AMICheatMode.isEnabled()) return;
         var keys = Services.PLATFORM.keyMappings();
-        String giveOne = keys.cheatGiveOne().getTranslatedKeyMessage().getString();
+        String giveOne   = keys.cheatGiveOne().getTranslatedKeyMessage().getString();
         String giveStack = keys.cheatGiveStack().getTranslatedKeyMessage().getString();
-        lines.add(Component.translatable("ami.tooltip.cheat_give_one", giveOne).withStyle(ChatFormatting.GOLD));
-        lines.add(Component.translatable("ami.tooltip.cheat_give_stack", giveStack).withStyle(ChatFormatting.GOLD));
+
+        if (entry.type() == NodeType.ITEM) {
+            lines.add(cheatHintLine(giveOne,   "ami.tooltip.cheat_give_one"));
+            lines.add(cheatHintLine(giveStack, "ami.tooltip.cheat_give_stack"));
+        } else if (entry.type() == NodeType.ENTITY) {
+            boolean isPokemon = "pokemon_species".equals(entry.meta(com.sanhiruzu.ami.index.SearchNodeKeys.ENTITY_CATEGORY, ""));
+            if (isPokemon) {
+                lines.add(cheatHintLine(giveOne,   "ami.tooltip.cheat_pokemon_spawn"));
+                lines.add(cheatHintLine(giveStack, "ami.tooltip.cheat_pokemon_party"));
+            } else {
+                lines.add(cheatHintLine(giveOne,   "ami.tooltip.cheat_spawn_egg"));
+                lines.add(cheatHintLine(giveStack, "ami.tooltip.cheat_spawn_egg_stack"));
+            }
+        }
+        // Biomes and structures use the locate hint instead — no give action there
+    }
+
+    private static Component cheatHintLine(String keyText, String actionI18n) {
+        return Component.empty()
+                .append(Component.literal("[" + keyText + "]").withStyle(ChatFormatting.GOLD))
+                .append(Component.literal("  "))
+                .append(Component.translatable(actionI18n).withStyle(ChatFormatting.GOLD));
     }
 
 }

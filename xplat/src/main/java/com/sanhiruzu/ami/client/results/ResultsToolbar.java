@@ -160,9 +160,14 @@ public class ResultsToolbar implements SearchState.Listener {
         int groupW = listMode ? 0 : Math.max(MIN_DROPDOWN_W, remainingDropdownW - sortW);
 
         int currentX = x + 2;
+        // List: [Lens] [Sort] [SortDir] [Collapse]
+        // Grid: [Group] [Sort] [SortDir] [Collapse]
         if (listMode) {
             lensDropdown.updatePosition(currentX, y + ROW1_Y, lensW);
             currentX += lensW + gap;
+        } else {
+            groupByDropdown.updatePosition(currentX, y + ROW1_Y, groupW);
+            currentX += groupW + gap;
         }
 
         sortFieldDropdown.updatePosition(currentX, y + ROW1_Y, sortW);
@@ -172,13 +177,12 @@ public class ResultsToolbar implements SearchState.Listener {
         sortDirY = y + ROW1_Y;
         currentX += SORT_DIR_W + gap;
 
-        if (!listMode) {
-            groupByDropdown.updatePosition(currentX, y + ROW1_Y, groupW);
-            currentX += groupW + gap;
-        }
-
         collapseToggleX = currentX;
         collapseToggleY = y + ROW1_Y;
+    }
+
+    public void resetCollapseState() {
+        this.collapseAllNext = true;
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
@@ -253,7 +257,7 @@ public class ResultsToolbar implements SearchState.Listener {
         }
 
         if (tooltip != null) {
-            AmiTooltipRenderer.renderLeftOfCursor(g, Minecraft.getInstance().font, tooltip, Optional.empty(), mouseX, mouseY);
+            AmiTooltipRenderer.render(g, Minecraft.getInstance().font, tooltip, Optional.empty(), mouseX, mouseY, true);
         }
     }
 
@@ -313,7 +317,7 @@ public class ResultsToolbar implements SearchState.Listener {
 
     public void renderOpenDropdownLists(GuiGraphics g, int mouseX, int mouseY) {
         g.pose().pushPose();
-        g.pose().translate(0, 0, 400);
+        g.pose().translate(0, 0, 50);
         g.pose().translate(-scrollOffset, 0, 0);
         if (state.getViewMode() == ViewMode.LIST) lensDropdown.renderList(g, mouseX, mouseY);
         sortFieldDropdown.renderList(g, mouseX, mouseY);

@@ -10,9 +10,13 @@ public final class AmiTooltipFacts {
     private static final List<AmiTooltipFact> FACTS = List.of(
             new RequiredToolTooltipFact(),
             new StorageTooltipFact(),
+            new FluidTooltipFact(),
             new EnergyTooltipFact(),
             new DurabilityTooltipFact(),
-            new CombatTooltipFact()
+            new ToolSpeedTooltipFact(),
+            new CombatTooltipFact(),
+            new PokemonTooltipFact(),
+            new CreateTooltipFact()
     );
 
     private AmiTooltipFacts() {

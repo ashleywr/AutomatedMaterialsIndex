@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.sanhiruzu.ami.client.results.*;
 import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
+import com.sanhiruzu.ami.compat.CompatRegistry;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
@@ -431,10 +432,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     private void renderToggleTooltip(GuiGraphics g, int mouseX, int mouseY) {
         if (!isOverToggle(mouseX, mouseY)) return;
-        AmiTooltipRenderer.renderLeftOfCursor(g, Minecraft.getInstance().font, List.of(
+        AmiTooltipRenderer.render(g, Minecraft.getInstance().font, List.of(
                 Component.translatable(isGridActive() ? "ami.gui.tooltip.view_switch_to_list" : "ami.gui.tooltip.view_switch_to_grid"),
                 Component.translatable("ami.gui.tooltip.view_switch_detail")
-        ), Optional.empty(), mouseX, mouseY);
+        ), Optional.empty(), mouseX, mouseY, tooltipLeftOfCursor);
     }
 
     // ── Tree refresh ──────────────────────────────────────────────────────────
@@ -543,6 +544,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         List<TreeNode> normalized = ResultsTreeNormalizer.normalize(roots);
         treeView.setRootNodes(normalized);
         gridView.setRootNodes(normalized);
+        toolbar.resetCollapseState();
     }
 
     // ── Item click (grid + list) ──────────────────────────────────────────────
@@ -552,6 +554,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     private void onItemClicked(SearchNode node, int button) {
+        if (CompatRegistry.handleResultClick(node, button)) {
+            return;
+        }
+
         ItemStack stack = com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node);
         boolean shiftDown = net.minecraft.client.gui.screens.Screen.hasShiftDown();
         boolean controlDown = net.minecraft.client.gui.screens.Screen.hasControlDown();
@@ -618,13 +624,26 @@ public class UniversalResultsPanel implements SearchState.Listener {
                         return true;
                     }
                 } else if (hovered.type() == NodeType.ENTITY) {
-                    if (Services.PLATFORM.keyMappings().cheatGiveStack().isActiveAndMatches(mouseKey)) {
-                        AMICheatMode.giveEntityStackAsSpawnEgg(hovered.id());
-                        return true;
-                    }
-                    if (Services.PLATFORM.keyMappings().cheatGiveOne().isActiveAndMatches(mouseKey)) {
-                        AMICheatMode.giveEntityAsSpawnEgg(hovered.id());
-                        return true;
+                    boolean isPokemon = "pokemon_species".equals(
+                            hovered.meta(com.sanhiruzu.ami.index.SearchNodeKeys.ENTITY_CATEGORY, ""));
+                    if (isPokemon) {
+                        if (Services.PLATFORM.keyMappings().cheatGiveStack().isActiveAndMatches(mouseKey)) {
+                            AMICheatMode.pokemonToParty(hovered.id());
+                            return true;
+                        }
+                        if (Services.PLATFORM.keyMappings().cheatGiveOne().isActiveAndMatches(mouseKey)) {
+                            AMICheatMode.spawnPokemon(hovered.id());
+                            return true;
+                        }
+                    } else {
+                        if (Services.PLATFORM.keyMappings().cheatGiveStack().isActiveAndMatches(mouseKey)) {
+                            AMICheatMode.giveEntityStackAsSpawnEgg(hovered.id());
+                            return true;
+                        }
+                        if (Services.PLATFORM.keyMappings().cheatGiveOne().isActiveAndMatches(mouseKey)) {
+                            AMICheatMode.giveEntityAsSpawnEgg(hovered.id());
+                            return true;
+                        }
                     }
                 } else if (hovered.type() == NodeType.BIOME && button == 0) {
                     AMICheatMode.locateBiome(hovered.id());
@@ -663,18 +682,16 @@ public class UniversalResultsPanel implements SearchState.Listener {
             return treeView.mouseClicked(mouseX, mouseY, button);
         }
 
-        // Compact toggle — always first, regardless of mode
+        // View switch — toggles between list and grid view
         if (button == 0 && isOverToggle(mouseX, mouseY)) {
             if (externalModeToggleCallback != null) {
                 externalModeToggleCallback.run();
             } else {
-                compactMode = !compactMode;
-                if (compactMode) {
-                    resetSearchStateForCompact();
-                }
+                ResultsToolbar.ViewMode next = state.getViewMode() == ResultsToolbar.ViewMode.GRID
+                        ? ResultsToolbar.ViewMode.LIST
+                        : ResultsToolbar.ViewMode.GRID;
+                state.setViewMode(next);
                 saveMainPanelViewPreference();
-                updateLayout(x, y, width, height);
-                refreshTree();
             }
             return true;
         }

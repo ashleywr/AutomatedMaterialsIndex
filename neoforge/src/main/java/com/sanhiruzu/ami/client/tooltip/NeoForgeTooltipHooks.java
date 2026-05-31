@@ -21,17 +21,10 @@ public class NeoForgeTooltipHooks implements AmiTooltipRenderer.TooltipHooks {
     }
 
     @Override
-    public PreResult onPre(ItemStack stack, GuiGraphics g, int mouseX, int mouseY,
-                           int guiWidth, int guiHeight, List<ClientTooltipComponent> components,
-                           Font font, ClientTooltipPositioner positioner) {
-        var e = ClientHooks.onRenderTooltipPre(stack, g, mouseX, mouseY, guiWidth, guiHeight, components, font, positioner);
-        return new PreResult(e.isCanceled(), e.getFont(), e.getX(), e.getY());
-    }
-
-    @Override
-    public ColorResult onColor(ItemStack stack, GuiGraphics g, int x, int y,
-                               Font font, List<ClientTooltipComponent> components) {
-        var e = ClientHooks.onRenderTooltipColor(stack, g, x, y, font, components);
-        return new ColorResult(e.getBackgroundStart(), e.getBackgroundEnd(), e.getBorderStart(), e.getBorderEnd());
+    public Optional<Font> onPre(ItemStack stack, GuiGraphics g, int mouseX, int mouseY,
+                                List<ClientTooltipComponent> components, Font font,
+                                ClientTooltipPositioner positioner) {
+        var e = ClientHooks.onRenderTooltipPre(stack, g, mouseX, mouseY, g.guiWidth(), g.guiHeight(), components, font, positioner);
+        return e.isCanceled() ? Optional.empty() : Optional.of(e.getFont());
     }
 }

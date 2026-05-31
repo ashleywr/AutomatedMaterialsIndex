@@ -175,13 +175,14 @@ public class AmiConfigScreen extends Screen {
 
     private void buildSidebar() {
         categories.publicClearEntries();
-        Set<String> addedCategories = new LinkedHashSet<>();
+        Map<String, ConfigGroup> seen = new java.util.LinkedHashMap<>();
         for (Field field : AmiConfig.class.getFields()) {
             ConfigGroup group = field.getAnnotation(ConfigGroup.class);
-            if (group != null && addedCategories.add(group.value())) {
-                categories.publicAddEntry(categories.new CategoryEntry(group.value(), group.icon()));
-            }
+            if (group != null) seen.putIfAbsent(group.value(), group);
         }
+        seen.values().stream()
+                .sorted(Comparator.comparingInt(ConfigGroup::order))
+                .forEach(g -> categories.publicAddEntry(categories.new CategoryEntry(g.value(), g.icon())));
     }
 
     private Component getRevertLabel() {

@@ -111,6 +111,7 @@ public class ResultsProcessorTest {
 
     @BeforeEach
     void setUp() {
+        AmiConfig.resetToDefaults();
         GlobalIndex.getInstance().clear();
         GlobalIndex.getInstance().markIndexReady();
     }
@@ -322,6 +323,32 @@ public class ResultsProcessorTest {
         assertEquals("Music Disc 13", flat.get(0).getLabel().getString());
         assertEquals("Stone", flat.get(1).getLabel().getString());
         assertEquals("Zinc Plate", flat.get(2).getLabel().getString());
+    }
+
+    @Test
+    void cheatAccessNodesOnlyShowInCheatOrDevMode() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.ALPHABETICAL,
+                true,
+                ResultsProcessor.GroupBy.NONE,
+                Set.of(),
+                Set.of()
+        );
+
+        SearchNode survival = item("energy_tablet", "Energy Tablet", Map.of(
+                SearchNodeKeys.ACCESS_LEVEL, "survival"
+        ));
+        SearchNode full = item("energy_tablet_full", "Energy Tablet", Map.of(
+                SearchNodeKeys.ACCESS_LEVEL, "cheat"
+        ));
+
+        List<TreeNode> survivalOnly = processor.processFlat(List.of(survival, full));
+        assertEquals(1, survivalOnly.size());
+        assertEquals("minecraft:energy_tablet", survivalOnly.get(0).getEntry().id().toString());
+
+        AmiConfig.cheatMode = true;
+        List<TreeNode> cheatVisible = processor.processFlat(List.of(survival, full));
+        assertEquals(2, cheatVisible.size());
     }
 
     @Test
@@ -743,6 +770,35 @@ public class ResultsProcessorTest {
         assertEquals("masonry/full_block", fullBlocks.getKey());
         assertEquals(4, fullBlocks.getChildren().size());
         assertTrue(fullBlocks.getChildren().stream().allMatch(TreeNode::isLeaf));
+    }
+
+    @Test
+    void categoryGroupingCollapsesCreativeStackVariants() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.REGISTRY,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        Map<String, String> variantMeta = Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "sophisticated",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "storage",
+                SearchNodeKeys.SUBTYPE_OF, "sophisticatedstorage:barrel",
+                SearchNodeKeys.VARIANT_SOURCE, "creative_tab",
+                SearchNodeKeys.VARIANT_COLLAPSE_MODE, "auto"
+        );
+
+        List<TreeNode> root = processor.process(List.of(
+                item("oak_barrel_variant", "Oak Barrel", variantMeta),
+                item("spruce_barrel_variant", "Spruce Barrel", variantMeta),
+                item("birch_barrel_variant", "Birch Barrel", variantMeta),
+                item("jungle_barrel_variant", "Jungle Barrel", variantMeta)
+        ));
+
+        assertTrue(hasKeyStartingWith(root, "cardinality:sophisticatedstorage:barrel"),
+                ResultsTreeDump.dump(root));
     }
 
     @Test

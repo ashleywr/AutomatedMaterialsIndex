@@ -3,7 +3,6 @@ package com.sanhiruzu.ami.client.overlay;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.results.SearchQueryHistory;
 import com.sanhiruzu.ami.config.AmiConfig;
-import com.sanhiruzu.ami.index.query.TokenColorizer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;

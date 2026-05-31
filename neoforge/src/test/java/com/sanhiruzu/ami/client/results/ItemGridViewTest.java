@@ -45,7 +45,7 @@ public class ItemGridViewTest {
     }
 
     @Test
-    void collapsedGroupsBecomeSectionHeadersInsteadOfInlineCards() throws Exception {
+    void collapsedGroupsStayAsInlineGridCards() throws Exception {
         ItemGridView gridView = new ItemGridView(0, 0, 61, 100);
 
         TreeNode leafA = leaf("stone", "Stone");
@@ -63,14 +63,13 @@ public class ItemGridViewTest {
         @SuppressWarnings("unchecked")
         List<Object> rows = (List<Object>) buildVirtualRows.invoke(gridView, 3);
 
-        assertEquals(3, rows.size());
-        assertEquals(2, itemCount(rows.get(0)));
-        assertEquals("HeaderRow", rows.get(1).getClass().getSimpleName());
-        assertEquals(1, itemCount(rows.get(2)));
+        assertEquals(2, rows.size());
+        assertEquals(3, itemCount(rows.get(0)));
+        assertEquals(1, itemCount(rows.get(1)));
     }
 
     @Test
-    void expandAllExpandsHighCardinalitySectionHeaders() throws Exception {
+    void expandAllExpandsHighCardinalityCardsInline() throws Exception {
         ItemGridView gridView = new ItemGridView(0, 0, 61, 100);
 
         TreeNode collapsed = new TreeNode("cardinality:family:music_discs", Component.literal("Music Discs"));
@@ -86,13 +85,12 @@ public class ItemGridViewTest {
         @SuppressWarnings("unchecked")
         List<Object> rows = (List<Object>) buildVirtualRows.invoke(gridView, 3);
 
-        assertEquals(2, rows.size());
-        assertEquals("HeaderRow", rows.get(0).getClass().getSimpleName());
-        assertEquals(2, itemCount(rows.get(1)));
+        assertEquals(1, rows.size());
+        assertEquals(3, itemCount(rows.get(0)));
     }
 
     @Test
-    void expandedGroupItemsStayInTheirOwnRows() throws Exception {
+    void expandedGroupItemsExpandInPlaceInTheGrid() throws Exception {
         ItemGridView gridView = new ItemGridView(0, 0, 61, 100);
 
         TreeNode group = new TreeNode("cardinality:minecraft:mushroom", Component.literal("Mushrooms"));
@@ -102,16 +100,16 @@ public class ItemGridViewTest {
         group.addChild(leaf("brown_mushroom", "Brown Mushroom"));
 
         gridView.setRootNodes(List.of(group, leaf("apple", "Apple")));
+        gridView.expandAll();
 
         Method buildVirtualRows = ItemGridView.class.getDeclaredMethod("buildVirtualRows", int.class);
         buildVirtualRows.setAccessible(true);
         @SuppressWarnings("unchecked")
         List<Object> rows = (List<Object>) buildVirtualRows.invoke(gridView, 3);
 
-        assertEquals(3, rows.size());
-        assertEquals("HeaderRow", rows.get(0).getClass().getSimpleName());
-        assertEquals(2, itemCount(rows.get(1)));
-        assertEquals(1, itemCount(rows.get(2)));
+        assertEquals(2, rows.size());
+        assertEquals(3, itemCount(rows.get(0)));
+        assertEquals(1, itemCount(rows.get(1)));
     }
 
     @Test

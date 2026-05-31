@@ -251,6 +251,58 @@ public enum RowField {
         public boolean hasValue(SearchNode node) {
             return !node.meta(SearchNodeKeys.DPS, "").isEmpty();
         }
+    },
+
+    POKEMON_TYPE(Component.translatable("ami.row_field.pokemon_type")) {
+        @Override
+        public String extract(SearchNode node) {
+            String type = formatTokenList(node.meta(SearchNodeKeys.POKEMON_TYPE, ""));
+            return type.isEmpty() ? "" : type;
+        }
+
+        @Override
+        public boolean hasValue(SearchNode node) {
+            return !node.meta(SearchNodeKeys.POKEMON_TYPE, "").isEmpty();
+        }
+    },
+
+    POKEMON_HEALING(Component.translatable("ami.row_field.pokemon_healing")) {
+        @Override
+        public String extract(SearchNode node) {
+            String healing = node.meta(SearchNodeKeys.POKEMON_HEALING, "");
+            return healing.isEmpty() ? "" : healing + " HP";
+        }
+
+        @Override
+        public boolean hasValue(SearchNode node) {
+            return !node.meta(SearchNodeKeys.POKEMON_HEALING, "").isEmpty();
+        }
+    },
+
+    POKEMON_DEX(Component.translatable("ami.row_field.pokemon_dex")) {
+        @Override
+        public String extract(SearchNode node) {
+            String dex = node.meta(SearchNodeKeys.POKEMON_DEX_NUMBER, "");
+            return dex.isEmpty() ? "" : "#" + dex;
+        }
+
+        @Override
+        public boolean hasValue(SearchNode node) {
+            return !node.meta(SearchNodeKeys.POKEMON_DEX_NUMBER, "").isEmpty();
+        }
+    },
+
+    POKEMON_SPEED(Component.translatable("ami.row_field.pokemon_speed")) {
+        @Override
+        public String extract(SearchNode node) {
+            String speed = node.meta(SearchNodeKeys.POKEMON_BASE_SPEED, "");
+            return speed.isEmpty() ? "" : speed + " Spe";
+        }
+
+        @Override
+        public boolean hasValue(SearchNode node) {
+            return !node.meta(SearchNodeKeys.POKEMON_BASE_SPEED, "").isEmpty();
+        }
     };
 
     public final Component displayName;
@@ -266,5 +318,33 @@ public enum RowField {
 
     public boolean hasValue(SearchNode node) {
         return !extract(node).isEmpty();
+    }
+
+    private static String formatTokenList(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        StringBuilder out = new StringBuilder();
+        for (String token : raw.split("[,\\s]+")) {
+            if (token.isBlank()) continue;
+            if (out.length() > 0) out.append(", ");
+            out.append(formatToken(token));
+        }
+        return out.toString();
+    }
+
+    private static String formatToken(String raw) {
+        String normalized = raw.replace('_', ' ').replace('-', ' ').trim();
+        if (normalized.isBlank()) return "";
+        StringBuilder out = new StringBuilder();
+        for (String word : normalized.split("\\s+")) {
+            if (word.isBlank()) continue;
+            if (out.length() > 0) out.append(' ');
+            out.append(word.substring(0, 1).toUpperCase(java.util.Locale.ROOT));
+            if (word.length() > 1) {
+                out.append(word.substring(1).toLowerCase(java.util.Locale.ROOT));
+            }
+        }
+        return out.toString();
     }
 }

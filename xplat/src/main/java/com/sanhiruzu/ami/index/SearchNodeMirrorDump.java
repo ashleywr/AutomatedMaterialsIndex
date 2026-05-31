@@ -81,6 +81,10 @@ public final class SearchNodeMirrorDump {
         metadata.remove("classificationScore");
         metadata.remove("classificationScores");
         metadata.remove("classificationEvidence");
+        metadata.remove(SearchNodeKeys.COMPAT_CATEGORY_POLICY);
+        metadata.remove(SearchNodeKeys.CLASSIFICATION_ROUTE);
+        metadata.remove(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE);
+        metadata.remove(SearchNodeKeys.CLASSIFICATION_ROUTE_RULE);
     }
 
     private static void normalizeConnectingVariantMaterial(Map<String, String> metadata) {

@@ -14,6 +14,16 @@ public final class AmiOntology {
 
     public static final Category UTILITY;
     public static final Category SOCIAL;
+    public static final Category COBBLEMON;
+    public static final Category CREATE;
+    public static final Category AE2;
+    public static final Category MEKANISM;
+    public static final Category GREGTECH;
+    public static final Category MINECOLONIES;
+    public static final Category APOTHEOSIS;
+    public static final Category BOTANIA;
+    public static final Category SOPHISTICATED;
+    public static final Category MAPPING;
 
     // ── Singleton category constants ──────────────────────────────────────────
     public static final Category BESTIARY;
@@ -60,6 +70,172 @@ public final class AmiOntology {
                         new SubCategory("claims", "ami.subcategory.social.claims")
                 ),
                 List.of("player_head")
+        );
+
+        COBBLEMON = new Category(
+                "cobblemon", "ami.category.cobblemon", "Cobblemon",
+                "cobblemon:poke_ball", 0xFFE95B5B,
+                List.of(
+                        new SubCategory("species", "ami.subcategory.cobblemon.species"),
+                        new SubCategory("poke_balls", "ami.subcategory.cobblemon.poke_balls"),
+                        new SubCategory("medicine", "ami.subcategory.cobblemon.medicine"),
+                        new SubCategory("berries", "ami.subcategory.cobblemon.berries"),
+                        new SubCategory("apricorns", "ami.subcategory.cobblemon.apricorns"),
+                        new SubCategory("evolution", "ami.subcategory.cobblemon.evolution"),
+                        new SubCategory("fossils", "ami.subcategory.cobblemon.fossils"),
+                        new SubCategory("machines", "ami.subcategory.cobblemon.machines"),
+                        new SubCategory("decor", "ami.subcategory.cobblemon.decor"),
+                        new SubCategory("transport", "ami.subcategory.cobblemon.transport"),
+                        new SubCategory("held_items", "ami.subcategory.cobblemon.held_items"),
+                        new SubCategory("utility", "ami.subcategory.cobblemon.utility"),
+                        new SubCategory("consumables", "ami.subcategory.cobblemon.consumables"),
+                        new SubCategory("agriculture", "ami.subcategory.cobblemon.agriculture"),
+                        new SubCategory("building", "ami.subcategory.cobblemon.building"),
+                        new SubCategory("archaeology", "ami.subcategory.cobblemon.archaeology"),
+                        new SubCategory("misc", "ami.subcategory.cobblemon.misc")
+                ),
+                List.of()
+        );
+
+        CREATE = new Category(
+                "create", "ami.category.create", "Create",
+                "create:cogwheel", 0xFFD79B5D,
+                List.of(
+                        new SubCategory("kinetics", "ami.subcategory.create.kinetics"),
+                        new SubCategory("machines", "ami.subcategory.create.machines"),
+                        new SubCategory("logistics", "ami.subcategory.create.logistics"),
+                        new SubCategory("trains", "ami.subcategory.create.trains"),
+                        new SubCategory("contraptions", "ami.subcategory.create.contraptions"),
+                        new SubCategory("fluids", "ami.subcategory.create.fluids"),
+                        new SubCategory("tools", "ami.subcategory.create.tools"),
+                        new SubCategory("materials", "ami.subcategory.create.materials"),
+                        new SubCategory("building", "ami.subcategory.create.building"),
+                        new SubCategory("misc", "ami.subcategory.create.misc")
+                ),
+                List.of()
+        );
+
+        AE2 = new Category(
+                "ae2", "ami.category.ae2", "AE2",
+                "ae2:controller", 0xFF79B7E8,
+                List.of(
+                        new SubCategory("network", "ami.subcategory.ae2.network"),
+                        new SubCategory("storage", "ami.subcategory.ae2.storage"),
+                        new SubCategory("terminals", "ami.subcategory.ae2.terminals"),
+                        new SubCategory("crafting", "ami.subcategory.ae2.crafting"),
+                        new SubCategory("channels", "ami.subcategory.ae2.channels"),
+                        new SubCategory("spatial", "ami.subcategory.ae2.spatial"),
+                        new SubCategory("materials", "ami.subcategory.ae2.materials"),
+                        new SubCategory("misc", "ami.subcategory.ae2.misc")
+                ),
+                List.of()
+        );
+
+        MEKANISM = new Category(
+                "mekanism", "ami.category.mekanism", "Mekanism",
+                "mekanism:metallurgic_infuser", 0xFF48B7A7,
+                List.of(
+                        new SubCategory("machines", "ami.subcategory.mekanism.machines"),
+                        new SubCategory("energy", "ami.subcategory.mekanism.energy"),
+                        new SubCategory("chemicals", "ami.subcategory.mekanism.chemicals"),
+                        new SubCategory("logistics", "ami.subcategory.mekanism.logistics"),
+                        new SubCategory("upgrades", "ami.subcategory.mekanism.upgrades"),
+                        new SubCategory("tools", "ami.subcategory.mekanism.tools"),
+                        new SubCategory("materials", "ami.subcategory.mekanism.materials"),
+                        new SubCategory("misc", "ami.subcategory.mekanism.misc")
+                ),
+                List.of()
+        );
+
+        GREGTECH = new Category(
+                "gregtech", "ami.category.gregtech", "GregTech",
+                "gtceu:steam_solid_boiler", 0xFF8FA0AA,
+                List.of(
+                        new SubCategory("machines", "ami.subcategory.gregtech.machines"),
+                        new SubCategory("multiblocks", "ami.subcategory.gregtech.multiblocks"),
+                        new SubCategory("power", "ami.subcategory.gregtech.power"),
+                        new SubCategory("circuits", "ami.subcategory.gregtech.circuits"),
+                        new SubCategory("materials", "ami.subcategory.gregtech.materials"),
+                        new SubCategory("tools", "ami.subcategory.gregtech.tools"),
+                        new SubCategory("covers", "ami.subcategory.gregtech.covers"),
+                        new SubCategory("misc", "ami.subcategory.gregtech.misc")
+                ),
+                List.of()
+        );
+
+        MINECOLONIES = new Category(
+                "minecolonies", "ami.category.minecolonies", "MineColonies",
+                "minecolonies:buildingtool", 0xFFB68B5B,
+                List.of(
+                        new SubCategory("buildings", "ami.subcategory.minecolonies.buildings"),
+                        new SubCategory("workorders", "ami.subcategory.minecolonies.workorders"),
+                        new SubCategory("workers", "ami.subcategory.minecolonies.workers"),
+                        new SubCategory("research", "ami.subcategory.minecolonies.research"),
+                        new SubCategory("supply", "ami.subcategory.minecolonies.supply"),
+                        new SubCategory("decor", "ami.subcategory.minecolonies.decor"),
+                        new SubCategory("misc", "ami.subcategory.minecolonies.misc")
+                ),
+                List.of()
+        );
+
+        APOTHEOSIS = new Category(
+                "apotheosis", "ami.category.apotheosis", "Apotheosis",
+                "apotheosis:hellshelf", 0xFFD05BC6,
+                List.of(
+                        new SubCategory("affixes", "ami.subcategory.apotheosis.affixes"),
+                        new SubCategory("gems", "ami.subcategory.apotheosis.gems"),
+                        new SubCategory("sockets", "ami.subcategory.apotheosis.sockets"),
+                        new SubCategory("enchanting", "ami.subcategory.apotheosis.enchanting"),
+                        new SubCategory("spawners", "ami.subcategory.apotheosis.spawners"),
+                        new SubCategory("bosses", "ami.subcategory.apotheosis.bosses"),
+                        new SubCategory("misc", "ami.subcategory.apotheosis.misc")
+                ),
+                List.of()
+        );
+
+        BOTANIA = new Category(
+                "botania", "ami.category.botania", "Botania",
+                "botania:lexicon", 0xFF65C66F,
+                List.of(
+                        new SubCategory("mana", "ami.subcategory.botania.mana"),
+                        new SubCategory("generating_flowers", "ami.subcategory.botania.generating_flowers"),
+                        new SubCategory("functional_flowers", "ami.subcategory.botania.functional_flowers"),
+                        new SubCategory("runes", "ami.subcategory.botania.runes"),
+                        new SubCategory("baubles", "ami.subcategory.botania.baubles"),
+                        new SubCategory("tools", "ami.subcategory.botania.tools"),
+                        new SubCategory("materials", "ami.subcategory.botania.materials"),
+                        new SubCategory("misc", "ami.subcategory.botania.misc")
+                ),
+                List.of()
+        );
+
+        SOPHISTICATED = new Category(
+                "sophisticated", "ami.category.sophisticated", "Sophisticated",
+                "sophisticatedbackpacks:backpack", 0xFFB78F62,
+                List.of(
+                        new SubCategory("backpacks", "ami.subcategory.sophisticated.backpacks"),
+                        new SubCategory("storage", "ami.subcategory.sophisticated.storage"),
+                        new SubCategory("upgrades", "ami.subcategory.sophisticated.upgrades"),
+                        new SubCategory("filters", "ami.subcategory.sophisticated.filters"),
+                        new SubCategory("tools", "ami.subcategory.sophisticated.tools"),
+                        new SubCategory("misc", "ami.subcategory.sophisticated.misc")
+                ),
+                List.of()
+        );
+
+        MAPPING = new Category(
+                "mapping", "ami.category.mapping", "Mapping",
+                "minecraft:filled_map", 0xFF5FA8A6,
+                List.of(
+                        new SubCategory("waypoints", "ami.subcategory.mapping.waypoints"),
+                        new SubCategory("markers", "ami.subcategory.mapping.markers"),
+                        new SubCategory("claims", "ami.subcategory.mapping.claims"),
+                        new SubCategory("death_points", "ami.subcategory.mapping.death_points"),
+                        new SubCategory("dimensions", "ami.subcategory.mapping.dimensions"),
+                        new SubCategory("sharing", "ami.subcategory.mapping.sharing"),
+                        new SubCategory("misc", "ami.subcategory.mapping.misc")
+                ),
+                List.of()
         );
 
         BESTIARY = new Category(
@@ -255,7 +431,9 @@ public final class AmiOntology {
 
         // Priority order: most-specific first, GEOLOGY/MASONRY second-to-last, MISC as terminal fallback.
         CATEGORIES = List.of(
-                UTILITY, BESTIARY, MAGIC, ARMOR, TOOLS, TECH, NATURE, INGREDIENTS, DECORATION, ENVIRONMENT, SOCIAL, GEOLOGY, MASONRY, MISC
+                COBBLEMON, CREATE, AE2, MEKANISM, GREGTECH, MINECOLONIES, APOTHEOSIS, BOTANIA, SOPHISTICATED, MAPPING,
+                UTILITY, BESTIARY, MAGIC, ARMOR, TOOLS, TECH, NATURE, INGREDIENTS, DECORATION, ENVIRONMENT, SOCIAL,
+                GEOLOGY, MASONRY, MISC
         );
     }
 

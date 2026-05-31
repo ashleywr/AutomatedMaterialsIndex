@@ -153,13 +153,32 @@ public final class SearchService {
             switch (token.type()) {
                 case INCLUDE -> includeParts.add(value);
                 case META -> metaParts.add(value);
-                case TAG -> tagParts.add(value);
-                case MOD -> modParts.add(value);
+                case TAG -> {
+                    if (value.startsWith("move:")) {
+                        propertyParts.add("pokemonMove:" + value.substring("move:".length()));
+                    } else {
+                        tagParts.add(value);
+                    }
+                }
+                case MOD -> {
+                    if (value.startsWith("type:")) {
+                        propertyParts.add("pokemonType:" + value.substring("type:".length()));
+                    } else {
+                        modParts.add(value);
+                    }
+                }
                 case ENV -> envParts.add(value);
                 case PROP -> propertyParts.add(value);
                 case EXCLUDE -> excludeParts.add(value);
                 case ESM -> numericParts.add(value);
-                case CATEGORY -> categoryParts.add(value);
+                case CATEGORY -> {
+                    String statFilter = pokemonStatFilter(value);
+                    if (statFilter != null) {
+                        numericParts.add(statFilter);
+                    } else {
+                        categoryParts.add(value);
+                    }
+                }
                 default -> {
                 } // ESSENTIAL is reserved for curated result sets.
             }
@@ -262,16 +281,26 @@ public final class SearchService {
 
     private Map<NodeType, List<SearchNode>> resolveExclude(String excludePart) {
         if (excludePart.startsWith("$")) {
-            return categoryResolver.resolve(excludePart.substring(1));
+            String value = excludePart.substring(1);
+            String statFilter = pokemonStatFilter(value);
+            return statFilter == null ? categoryResolver.resolve(value) : numericResolver.resolve(statFilter);
         }
         if (excludePart.startsWith("~")) {
             return resolveBroadLiteral(excludePart.substring(1));
         }
         if (excludePart.startsWith("#")) {
-            return tagResolver.resolve(excludePart.substring(1));
+            String value = excludePart.substring(1);
+            if (value.startsWith("move:")) {
+                return propertyResolver.resolve("pokemonMove:" + value.substring("move:".length()));
+            }
+            return tagResolver.resolve(value);
         }
         if (excludePart.startsWith("@")) {
-            return modResolver.resolve(excludePart.substring(1));
+            String value = excludePart.substring(1);
+            if (value.startsWith("type:")) {
+                return propertyResolver.resolve("pokemonType:" + value.substring("type:".length()));
+            }
+            return modResolver.resolve(value);
         }
         if (excludePart.startsWith("&")) {
             return envResolver.resolve(excludePart.substring(1));
@@ -286,6 +315,43 @@ public final class SearchService {
             mergeResults(results, partial);
         }
         return results;
+    }
+
+    private static String pokemonStatFilter(String categoryValue) {
+        if (categoryValue == null || !categoryValue.startsWith("stat:")) {
+            return null;
+        }
+        String body = categoryValue.substring("stat:".length()).trim();
+        int operatorAt = -1;
+        for (int i = 0; i < body.length(); i++) {
+            char c = body.charAt(i);
+            if (c == '>' || c == '<' || c == '=') {
+                operatorAt = i;
+                break;
+            }
+        }
+        if (operatorAt <= 0 || operatorAt >= body.length() - 1) {
+            return null;
+        }
+        String field = body.substring(0, operatorAt).trim();
+        String value = body.substring(operatorAt + 1).trim();
+        if (field.isEmpty() || value.isEmpty()) {
+            return null;
+        }
+
+        String numericField = switch (field.toLowerCase(Locale.ROOT).replace("_", "").replace("-", "")) {
+            case "hp", "health" -> "pokemonHp";
+            case "attack", "atk" -> "pokemonAttack";
+            case "defense", "def" -> "pokemonDefense";
+            case "specialattack", "spatk", "spa" -> "pokemonSpecialAttack";
+            case "specialdefense", "spdef", "spd" -> "pokemonSpecialDefense";
+            case "speed", "spe" -> "pokemonSpeed";
+            default -> null;
+        };
+        if (numericField == null) {
+            return null;
+        }
+        return body.charAt(operatorAt) + numericField + ":" + value;
     }
 
     private Map<NodeType, List<SearchNode>> resolveBroadLiteral(String query) {

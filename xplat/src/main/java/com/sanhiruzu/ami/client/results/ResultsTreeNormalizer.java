@@ -1,5 +1,7 @@
 package com.sanhiruzu.ami.client.results;
 
+import com.sanhiruzu.ami.index.SearchNodeKeys;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -78,6 +80,7 @@ public final class ResultsTreeNormalizer {
     private static boolean shouldFlattenMatchingChildGroup(TreeNode parent, TreeNode child) {
         return !child.isLeaf()
                 && child.isExpanded()
+                && !isRepresentativeVariantGroup(child)
                 && (normalizedLabel(parent).equals(normalizedLabel(child))
                 || shouldFlattenCoveredSemanticGroup(parent, child));
     }
@@ -86,12 +89,30 @@ public final class ResultsTreeNormalizer {
         if (child.isLeaf() || !child.isExpanded()) {
             return false;
         }
+        if (isRepresentativeVariantGroup(child)) {
+            return false;
+        }
         if (child.isHighCardinality()) {
             return "cardinality:minecraft:dye".equals(child.getKey())
                     || normalizedLabel(parent).equals(normalizedLabel(child))
                     || shouldFlattenCoveredSemanticGroup(parent, child);
         }
         return normalizedLabel(parent).equals(normalizedLabel(child));
+    }
+
+    private static boolean isRepresentativeVariantGroup(TreeNode node) {
+        if (node == null || !node.isHighCardinality()) {
+            return false;
+        }
+        for (TreeNode child : node.getChildren()) {
+            if (child.isLeaf()) {
+                String mode = child.getEntry().meta(SearchNodeKeys.VARIANT_COLLAPSE_MODE, "");
+                if ("auto".equals(mode) || "default_collapsed".equals(mode)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static boolean shouldFlattenCoveredSemanticGroup(TreeNode parent, TreeNode child) {

@@ -1,5 +1,8 @@
 package com.sanhiruzu.ami.index;
 
+import com.sanhiruzu.ami.compat.CompatFamilyDetector;
+import com.sanhiruzu.ami.config.AmiConfig;
+
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.*;
@@ -7,6 +10,16 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 public final class PrimaryCategoryResolver {
+    /*
+     * Classification guardrail:
+     * - Runtime/API facts beat names: facets, capabilities, components, tags, item/block classes,
+     *   explicit compat metadata, and exact registry identities should drive hard routing.
+     * - Tokenized path/name evidence is a fallback only. It may help choose among already plausible
+     *   buckets, but it must not create ownership, cheat/dev visibility, or broad top-level routes.
+     * - Avoid new "isLikely*" gates or arbitrary substring checks. If lexical evidence is unavoidable,
+     *   prefer exact tokens/phrases and add a false-positive regression test plus a note in
+     *   docs/classification-routing-log.md.
+     */
     private static final Set<String> HOSTILE_SPAWN_EGGS = Set.of(
             "blaze", "bogged", "breeze", "creeper", "drowned", "elder_guardian",
             "ender_dragon", "endermite", "evoker", "ghast", "guardian", "hoglin",
@@ -255,6 +268,18 @@ public final class PrimaryCategoryResolver {
     }
 
     public static CategoryAssignment resolve(ResourceLocation id, FacetProfile profile) {
+        /*
+         * Classification routing rule:
+         * - compat family ownership, semantic ontology, and family enrichment are separate decisions.
+         * - item path terms and foreign mod tags may refine an already-owned family item, but must not
+         *   establish ownership or override semantic category by themselves.
+         * - strong semantic identities such as swords, armor, ingots, ores, storage, food, and stone
+         *   should remain discoverable in their normal ontology even when owned by a compat family.
+         *
+         * Keep docs/classification-routing-log.md updated before changing these gates; it records
+         * known failed approaches such as omega->mega, Cobblemon tags claiming vanilla shulkers,
+         * Create terms claiming AE2 presses/GTCEu casings, and andesite becoming Create-owned.
+         */
         if (id == null) {
             return fallback();
         }
@@ -264,28 +289,38 @@ public final class PrimaryCategoryResolver {
         var facets = profile.facets();
         var attributes = new HashMap<>(profile.attributes());
         ModFamily modFamily = classifyModFamily(modId);
-        ResolveContext context = new ResolveContext(id, modId, path, facets, attributes, modFamily);
+        AmiConfig.CompatCategoryPolicy categoryPolicy = CompatCategoryPolicyResolver.resolve(attributes);
+        if (hasCompatFamily(attributes)) {
+            attributes.put(SearchNodeKeys.COMPAT_CATEGORY_POLICY, categoryPolicy.name().toLowerCase(Locale.ROOT));
+        }
+        FacetProfile routedProfile = new FacetProfile(facets, attributes);
+        ResolveContext context = new ResolveContext(id, modId, path, facets, attributes, modFamily, categoryPolicy);
+        CategoryRouteTrace route = CategoryRouteTrace.start(id, modFamily.name().toLowerCase(Locale.ROOT), attributes);
 
         Optional<CategoryAssignment> hardIdentity = resolveHardIdentity(context);
         if (hardIdentity.isPresent()) {
-            return hardIdentity.get();
+            return route.finish("hard_identity", "identity", hardIdentity.get());
         }
 
-        Optional<CategoryAssignment> scored = CategoryScorer.resolveStrong(id, profile);
+        Optional<CategoryAssignment> scored = CategoryScorer.resolveStrong(id, routedProfile);
         if (scored.isPresent()) {
-            return scored.get();
+            return route.finish("evidence_strong", "category_scorer", scored.get());
         }
 
         for (PrimaryRule rule : PRIMARY_RULES) {
             if (rule.matches.test(context)) {
-                return rule.assignment.apply(context);
+                return route.finish("primary_rule", rule.id(), rule.assignment().apply(context));
             }
         }
-        Optional<CategoryAssignment> fallbackScored = CategoryScorer.resolve(id, profile);
+        Optional<CategoryAssignment> fallbackScored = CategoryScorer.resolve(id, routedProfile);
         if (fallbackScored.isPresent()) {
-            return fallbackScored.get();
+            return route.finish("evidence_fallback", "category_scorer", fallbackScored.get());
         }
-        return fallback();
+        Optional<CategoryAssignment> compatFallback = resolveCompatUnknownFallback(context);
+        if (compatFallback.isPresent()) {
+            return route.finish("compat_fallback", "recognized_compat_kind", compatFallback.get());
+        }
+        return route.finish("fallback", "unknown", fallback());
     }
 
     private static Optional<CategoryAssignment> resolveHardIdentity(ResolveContext context) {
@@ -297,6 +332,46 @@ public final class PrimaryCategoryResolver {
                     "identity.spawn_egg",
                     "spawn egg or mob bucket facet"
             ));
+        }
+
+        Optional<CategoryAssignment> cobblemon = resolveCobblemonIdentity(context);
+        if (cobblemon.isPresent()) {
+            return cobblemon;
+        }
+
+        Optional<CategoryAssignment> create = resolveCreateIdentity(context);
+        if (create.isPresent()) {
+            return create;
+        }
+
+        Optional<CategoryAssignment> ae2 = resolveAe2Identity(context);
+        if (ae2.isPresent()) {
+            return ae2;
+        }
+
+        Optional<CategoryAssignment> mekanism = resolveMekanismIdentity(context);
+        if (mekanism.isPresent()) {
+            return mekanism;
+        }
+
+        Optional<CategoryAssignment> gregTech = resolveGregTechIdentity(context);
+        if (gregTech.isPresent()) {
+            return gregTech;
+        }
+
+        Optional<CategoryAssignment> apotheosis = resolveApotheosisIdentity(context);
+        if (apotheosis.isPresent()) {
+            return apotheosis;
+        }
+
+        Optional<CategoryAssignment> botania = resolveBotaniaIdentity(context);
+        if (botania.isPresent()) {
+            return botania;
+        }
+
+        Optional<CategoryAssignment> sophisticated = resolveSophisticatedIdentity(context);
+        if (sophisticated.isPresent()) {
+            return sophisticated;
         }
 
         if (context.facets.contains(ItemFacet.DECORATIVE_BLOCK)
@@ -400,6 +475,520 @@ public final class PrimaryCategoryResolver {
         }
 
         return Optional.empty();
+    }
+
+    private static Optional<CategoryAssignment> resolveCobblemonIdentity(ResolveContext context) {
+        if (!"cobblemon".equals(context.modId)
+                && !CompatFamilyDetector.isPrimaryFamily(context.attributes, CompatFamilyDetector.COBBLEMON)) {
+            return Optional.empty();
+        }
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.SEMANTIC) {
+            return Optional.empty();
+        }
+        String kind = context.attributes.getOrDefault(SearchNodeKeys.COBBLEMON_ITEM_KIND, "");
+        if (kind.isBlank()) {
+            return Optional.empty();
+        }
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.HYBRID && !isFocusedCobblemonKind(kind)) {
+            return Optional.empty();
+        }
+
+        return Optional.of(switch (kind) {
+            case "poke_ball" -> identityAssignment(
+                    "cobblemon", "poke_balls", context.attributes,
+                    "identity.cobblemon.poke_ball", "Cobblemon capture item");
+            case "medicine", "status_cure", "vitamin", "mint", "mochi" -> identityAssignment(
+                    "cobblemon", "medicine", context.attributes,
+                    "identity.cobblemon.medicine", "Cobblemon medicine or consumable");
+            case "berry" -> identityAssignment(
+                    "cobblemon", "berries", context.attributes,
+                    "identity.cobblemon.berry", "Cobblemon berry");
+            case "apricorn", "apricorn_seed" -> identityAssignment(
+                    "cobblemon", "apricorns", context.attributes,
+                    "identity.cobblemon.apricorn", "Cobblemon apricorn");
+            case "evolution_item" -> identityAssignment(
+                    "cobblemon", "evolution", context.attributes,
+                    "identity.cobblemon.evolution", "Cobblemon evolution item");
+            case "fossil" -> identityAssignment(
+                    "cobblemon", "fossils", context.attributes,
+                    "identity.cobblemon.fossil", "Cobblemon fossil or archaeology item");
+            case "machine" -> identityAssignment(
+                    "cobblemon", "machines", context.attributes,
+                    "identity.cobblemon.machine", "Cobblemon machine or station");
+            case "decor" -> identityAssignment(
+                    "cobblemon", "decor", context.attributes,
+                    "identity.cobblemon.decor", "Cobblemon display or decor item");
+            case "transport" -> identityAssignment(
+                    "cobblemon", "transport", context.attributes,
+                    "identity.cobblemon.transport", "Cobblemon transport item");
+            case "held_item" -> identityAssignment(
+                    "cobblemon", "held_items", context.attributes,
+                    "identity.cobblemon.held_item", "Cobblemon held item");
+            case "utility_item" -> identityAssignment(
+                    "cobblemon", "utility", context.attributes,
+                    "identity.cobblemon.utility", "Cobblemon utility item");
+            case "consumable" -> identityAssignment(
+                    "cobblemon", "consumables", context.attributes,
+                    "identity.cobblemon.consumable", "Cobblemon consumable");
+            case "agriculture" -> identityAssignment(
+                    "cobblemon", "agriculture", context.attributes,
+                    "identity.cobblemon.agriculture", "Cobblemon agriculture item");
+            case "building" -> identityAssignment(
+                    "cobblemon", "building", context.attributes,
+                    "identity.cobblemon.building", "Cobblemon building block");
+            case "archaeology" -> identityAssignment(
+                    "cobblemon", "archaeology", context.attributes,
+                    "identity.cobblemon.archaeology", "Cobblemon archaeology item");
+            default -> identityAssignment(
+                    "cobblemon", "misc", context.attributes,
+                    "identity.cobblemon", "Cobblemon item");
+        });
+    }
+
+    private static boolean isFocusedCobblemonKind(String kind) {
+        return switch (kind) {
+            case "poke_ball", "medicine", "status_cure", "vitamin", "mint", "mochi",
+                    "berry", "apricorn", "apricorn_seed", "evolution_item", "fossil",
+                    "machine", "held_item", "utility_item", "consumable", "agriculture",
+                    "archaeology" -> true;
+            default -> false;
+        };
+    }
+
+    private static Optional<CategoryAssignment> resolveCreateIdentity(ResolveContext context) {
+        if (!"create".equals(context.modId)
+                && !CompatFamilyDetector.isPrimaryFamily(context.attributes, CompatFamilyDetector.CREATE)) {
+            return Optional.empty();
+        }
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.SEMANTIC) {
+            return Optional.empty();
+        }
+        String kind = context.attributes.getOrDefault(SearchNodeKeys.CREATE_ITEM_KIND, "");
+        if (kind.isBlank()) {
+            return Optional.empty();
+        }
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.HYBRID && !isFocusedCreateKind(kind)) {
+            return Optional.empty();
+        }
+        String subcategory = mapCreateSubcategory(kind);
+        return Optional.of(identityAssignment(
+                "create",
+                subcategory,
+                context.attributes,
+                "identity.create." + subcategory,
+                "Create " + subcategory + " identity"
+        ));
+    }
+
+    private static boolean isFocusedCreateKind(String kind) {
+        return switch (kind) {
+            case "kinetics", "machines", "logistics", "trains", "contraptions", "fluids" -> true;
+            default -> false;
+        };
+    }
+
+    private static Optional<CategoryAssignment> resolveCompatUnknownFallback(ResolveContext context) {
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.SEMANTIC) {
+            return Optional.empty();
+        }
+        if ("create".equals(context.modId)
+                || CompatFamilyDetector.isPrimaryFamily(context.attributes, CompatFamilyDetector.CREATE)) {
+            String kind = context.attributes.getOrDefault(SearchNodeKeys.CREATE_ITEM_KIND, "");
+            if (!kind.isBlank()) {
+                return Optional.of(compatFallbackAssignment("create", mapCreateSubcategory(kind), context.attributes));
+            }
+        }
+        if ("ae2".equals(context.modId)
+                || "appliedenergistics2".equals(context.modId)
+                || CompatFamilyDetector.isPrimaryFamily(context.attributes, CompatFamilyDetector.AE2)) {
+            String kind = context.attributes.getOrDefault(SearchNodeKeys.AE2_ITEM_KIND, "");
+            if (!kind.isBlank()) {
+                return Optional.of(compatFallbackAssignment("ae2", mapAe2Subcategory(kind), context.attributes));
+            }
+        }
+        if ("mekanism".equals(context.modId)
+                || context.modId.startsWith("mekanism")
+                || CompatFamilyDetector.isPrimaryFamily(context.attributes, CompatFamilyDetector.MEKANISM)) {
+            String kind = context.attributes.getOrDefault(SearchNodeKeys.MEKANISM_ITEM_KIND, "");
+            if (!kind.isBlank()) {
+                return Optional.of(compatFallbackAssignment("mekanism", mapMekanismSubcategory(kind), context.attributes));
+            }
+        }
+        if ("sophisticatedbackpacks".equals(context.modId)
+                || "sophisticatedstorage".equals(context.modId)
+                || "sophisticatedcore".equals(context.modId)
+                || CompatFamilyDetector.isPrimaryFamily(context.attributes, CompatFamilyDetector.SOPHISTICATED)) {
+            String kind = context.attributes.getOrDefault(SearchNodeKeys.SOPHISTICATED_ITEM_KIND, "");
+            if (!kind.isBlank()) {
+                return Optional.of(compatFallbackAssignment("sophisticated", mapSophisticatedSubcategory(kind), context.attributes));
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static CategoryAssignment compatFallbackAssignment(String categoryId, String subcategoryId, Map<String, String> attributes) {
+        return identityAssignment(
+                categoryId,
+                subcategoryId,
+                attributes,
+                "fallback." + categoryId + "." + subcategoryId,
+                "recognized " + categoryId + " item with no stronger semantic route"
+        );
+    }
+
+    private static String mapCreateSubcategory(String kind) {
+        return switch (kind) {
+            case "kinetics" -> "kinetics";
+            case "machines" -> "machines";
+            case "logistics" -> "logistics";
+            case "trains" -> "trains";
+            case "contraptions" -> "contraptions";
+            case "fluids" -> "fluids";
+            case "tools" -> "tools";
+            case "materials" -> "materials";
+            case "building" -> "building";
+            default -> "misc";
+        };
+    }
+
+    private static String mapAe2Subcategory(String kind) {
+        return switch (kind) {
+            case "network" -> "network";
+            case "storage" -> "storage";
+            case "terminals" -> "terminals";
+            case "crafting" -> "crafting";
+            case "channels" -> "channels";
+            case "spatial" -> "spatial";
+            case "materials" -> "materials";
+            default -> "misc";
+        };
+    }
+
+    private static String mapMekanismSubcategory(String kind) {
+        return switch (kind) {
+            case "machines" -> "machines";
+            case "energy" -> "energy";
+            case "chemicals" -> "chemicals";
+            case "logistics" -> "logistics";
+            case "upgrades" -> "upgrades";
+            case "tools" -> "tools";
+            case "materials" -> "materials";
+            default -> "misc";
+        };
+    }
+
+    private static String mapSophisticatedSubcategory(String kind) {
+        return switch (kind) {
+            case "backpacks" -> "backpacks";
+            case "storage" -> "storage";
+            case "upgrades" -> "upgrades";
+            case "filters" -> "filters";
+            case "tools" -> "tools";
+            default -> "misc";
+        };
+    }
+
+    private static Optional<CategoryAssignment> resolveAe2Identity(ResolveContext context) {
+        if (!"ae2".equals(context.modId)
+                && !"appliedenergistics2".equals(context.modId)
+                && !CompatFamilyDetector.isPrimaryFamily(context.attributes, CompatFamilyDetector.AE2)) {
+            return Optional.empty();
+        }
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.SEMANTIC) {
+            return Optional.empty();
+        }
+        String kind = context.attributes.getOrDefault(SearchNodeKeys.AE2_ITEM_KIND, "");
+        if (kind.isBlank()) {
+            return Optional.empty();
+        }
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.HYBRID && !isFocusedAe2Kind(kind)) {
+            return Optional.empty();
+        }
+        String subcategory = mapAe2Subcategory(kind);
+        return Optional.of(identityAssignment(
+                "ae2",
+                subcategory,
+                context.attributes,
+                "identity.ae2." + subcategory,
+                "AE2 " + subcategory + " identity"
+        ));
+    }
+
+    private static boolean isFocusedAe2Kind(String kind) {
+        return switch (kind) {
+            case "network", "storage", "terminals", "crafting", "channels", "spatial" -> true;
+            default -> false;
+        };
+    }
+
+    private static Optional<CategoryAssignment> resolveMekanismIdentity(ResolveContext context) {
+        if (!"mekanism".equals(context.modId)
+                && !context.modId.startsWith("mekanism")
+                && !CompatFamilyDetector.isPrimaryFamily(context.attributes, CompatFamilyDetector.MEKANISM)) {
+            return Optional.empty();
+        }
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.SEMANTIC) {
+            return Optional.empty();
+        }
+        String kind = context.attributes.getOrDefault(SearchNodeKeys.MEKANISM_ITEM_KIND, "");
+        if (kind.isBlank()) {
+            return Optional.empty();
+        }
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.HYBRID && !isFocusedMekanismKind(kind)) {
+            return Optional.empty();
+        }
+        String subcategory = mapMekanismSubcategory(kind);
+        return Optional.of(identityAssignment(
+                "mekanism",
+                subcategory,
+                context.attributes,
+                "identity.mekanism." + subcategory,
+                "Mekanism " + subcategory + " identity"
+        ));
+    }
+
+    private static boolean isFocusedMekanismKind(String kind) {
+        return switch (kind) {
+            case "machines", "energy", "chemicals", "logistics", "upgrades" -> true;
+            default -> false;
+        };
+    }
+
+    private static Optional<CategoryAssignment> resolveGregTechIdentity(ResolveContext context) {
+        if (!"gtceu".equals(context.modId)
+                && !"gregtech".equals(context.modId)
+                && !CompatFamilyDetector.isPrimaryFamily(context.attributes, CompatFamilyDetector.GREGTECH)) {
+            return Optional.empty();
+        }
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.SEMANTIC) {
+            return Optional.empty();
+        }
+        String subcategory = classifyGregTechSubcategory(context);
+        return Optional.of(identityAssignment(
+                "gregtech",
+                subcategory,
+                context.attributes,
+                "identity.gregtech." + subcategory,
+                "GregTech family isolation"
+        ));
+    }
+
+    private static String classifyGregTechSubcategory(ResolveContext context) {
+        if (containsPathToken(context.path, Set.of("multiblock", "multiblocks"))
+                || containsAny(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "multiblock")
+                || containsAny(context.attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, ""), "multiblock")) {
+            return "multiblocks";
+        }
+        if (containsPathToken(context.path, Set.of("cover", "covers"))) {
+            return "covers";
+        }
+        if (containsAny(context.path, "circuit", "processor", "chip")) {
+            return "circuits";
+        }
+        if (hasAny(context.facets, ItemFacet.MELEE_WEAPON, ItemFacet.RANGED_WEAPON,
+                ItemFacet.HARVEST_TOOL, ItemFacet.UTILITY_TOOL)) {
+            return "tools";
+        }
+        if (hasAny(context.facets, ItemFacet.MACHINE, ItemFacet.WORKSTATION)
+                || containsAny(context.path, "machine", "hatch", "bus", "conveyor", "robot_arm",
+                "emitter", "sensor", "regulator", "pump", "motor", "piston", "assembler",
+                "macerator", "centrifuge", "electrolyzer", "compressor", "extractor", "furnace",
+                "mixer", "canner", "lathe", "bender", "wiremill", "polarizer")) {
+            return "machines";
+        }
+        if (hasAny(context.facets, ItemFacet.HAS_ENERGY, ItemFacet.CABLE)
+                || containsAny(context.path, "battery", "capacitor", "cable", "wire", "energy", "power",
+                "generator", "dynamo", "transformer", "converter", "diode")) {
+            return "power";
+        }
+        if (hasAny(context.facets, ItemFacet.INGOT, ItemFacet.NUGGET, ItemFacet.DUST,
+                ItemFacet.GEM, ItemFacet.RAW_MATERIAL, ItemFacet.TECH_COMPONENT,
+                ItemFacet.MECHANICAL_COMPONENT, ItemFacet.INGREDIENT_MINERAL)
+                || containsAny(context.path, "ingot", "nugget", "dust", "plate", "rod", "bolt",
+                "screw", "ring", "foil", "wire", "gear", "spring", "rotor", "gem",
+                "ore", "crushed", "purified", "impure", "raw", "tiny", "small")) {
+            return "materials";
+        }
+        return "misc";
+    }
+
+    private static Optional<CategoryAssignment> resolveApotheosisIdentity(ResolveContext context) {
+        if (!isApotheosisFamily(context)) {
+            return Optional.empty();
+        }
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.SEMANTIC) {
+            return Optional.empty();
+        }
+        String subcategory = classifyApotheosisSubcategory(context);
+        return Optional.of(identityAssignment(
+                "apotheosis",
+                subcategory,
+                context.attributes,
+                "identity.apotheosis." + subcategory,
+                "Apotheosis family identity"
+        ));
+    }
+
+    private static boolean isApotheosisFamily(ResolveContext context) {
+        return "apotheosis".equals(context.modId)
+                || "apothic_attributes".equals(context.modId)
+                || "apothic_enchanting".equals(context.modId)
+                || "apothic_spawners".equals(context.modId)
+                || CompatFamilyDetector.isPrimaryFamily(context.attributes, CompatFamilyDetector.APOTHEOSIS);
+    }
+
+    private static String classifyApotheosisSubcategory(ResolveContext context) {
+        String itemClass = context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
+        String blockClass = context.attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "");
+        String tags = context.attributes.getOrDefault(SearchNodeKeys.TAGS, "");
+
+        if ("apothic_enchanting".equals(context.modId)
+                || containsAny(context.path, "shelf", "tome", "library", "ender_lead", "infused_")
+                || containsAny(itemClass, "tomeitem", "shelf", "enchlibrary", "enderlead")
+                || containsAny(blockClass, "shelf", "enchlibrary")) {
+            return "enchanting";
+        }
+        if (containsAny(context.path, "boss")
+                || containsAny(tags, "boss_music_discs")
+                || containsAny(itemClass, "bosssummoner")) {
+            return "bosses";
+        }
+        if (containsAny(context.path, "spawner", "spawn_egg")
+                || containsAny(itemClass, "spawner")
+                || containsAny(blockClass, "spawner")) {
+            return "spawners";
+        }
+        if (containsAny(context.path, "socket", "potion_charm")
+                || containsAny(itemClass, "potioncharm")
+                || hasMetadataToken(context.attributes, SearchNodeKeys.TAGS, "curios:charm")) {
+            return "sockets";
+        }
+        if (containsAny(context.path, "gem")
+                || containsAny(itemClass, "gemitem")
+                || containsAny(blockClass, "gem")) {
+            return "gems";
+        }
+        if (containsAny(context.path, "affix", "reforging", "salvaging", "augmenting", "sigil", "material", "smithing_template")
+                || containsAny(itemClass, "salvageitem", "tooltipitem")
+                || containsAny(blockClass, "reforging", "salvaging", "augmenting")
+                || containsAny(tags, "rarity_materials")) {
+            return "affixes";
+        }
+        return "misc";
+    }
+
+    private static Optional<CategoryAssignment> resolveBotaniaIdentity(ResolveContext context) {
+        if (!isBotaniaFamily(context)) {
+            return Optional.empty();
+        }
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.SEMANTIC) {
+            return Optional.empty();
+        }
+        String subcategory = classifyBotaniaSubcategory(context);
+        return Optional.of(identityAssignment(
+                "botania",
+                subcategory,
+                context.attributes,
+                "identity.botania." + subcategory,
+                "Botania family identity"
+        ));
+    }
+
+    private static boolean isBotaniaFamily(ResolveContext context) {
+        return "botania".equals(context.modId)
+                || "mythicbotany".equals(context.modId)
+                || "botanicalmachinery".equals(context.modId)
+                || "extrabotany".equals(context.modId)
+                || CompatFamilyDetector.isPrimaryFamily(context.attributes, CompatFamilyDetector.BOTANIA);
+    }
+
+    private static String classifyBotaniaSubcategory(ResolveContext context) {
+        if (containsPathToken(context.path, Set.of("rune", "runes"))) {
+            return "runes";
+        }
+        if (containsAny(context.path, "mana_", "_mana", "mana_pool", "spreader", "spark", "alfheim_portal",
+                "gaia_pylon", "natura_pylon", "mana_pylon", "mana_tablet", "mana_pearl", "mana_diamond",
+                "mana_string", "manaweave", "pool")
+                || containsAny(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "mana")) {
+            return "mana";
+        }
+        if (isBotaniaGeneratingFlower(context.path)) {
+            return "generating_flowers";
+        }
+        if (isBotaniaFunctionalFlower(context.path)) {
+            return "functional_flowers";
+        }
+        if (hasAny(context.facets, ItemFacet.CURIO, ItemFacet.EQUIPPABLE)
+                || containsAny(context.path, "ring", "band", "amulet", "pendant", "belt", "sash",
+                "tiara", "cloak", "bauble", "charm", "flugel_eye", "monocle")) {
+            return "baubles";
+        }
+        if (hasAny(context.facets, ItemFacet.MELEE_WEAPON, ItemFacet.RANGED_WEAPON,
+                ItemFacet.HARVEST_TOOL, ItemFacet.UTILITY_TOOL)
+                || containsAny(context.path, "wand", "rod", "lens", "sword", "bow", "pickaxe",
+                "axe", "shovel", "hoe", "terraformer", "horn", "drum", "magnet", "brewer")) {
+            return "tools";
+        }
+        if (hasAny(context.facets, ItemFacet.INGOT, ItemFacet.NUGGET, ItemFacet.DUST,
+                ItemFacet.GEM, ItemFacet.RAW_MATERIAL, ItemFacet.TECH_COMPONENT,
+                ItemFacet.INGREDIENT_ORGANIC, ItemFacet.INGREDIENT_MINERAL)
+                || containsAny(context.path, "petal", "mystical_flower", "livingwood", "livingrock",
+                "dreamwood", "manasteel", "terrasteel", "elementium", "gaia", "pixie_dust",
+                "dragonstone", "mana_powder", "mana_dust", "quartz", "shimmerrock", "shimmerwood")) {
+            return "materials";
+        }
+        return "misc";
+    }
+
+    private static boolean isBotaniaGeneratingFlower(String path) {
+        return containsAny(path,
+                "endoflame", "hydroangeas", "thermalily", "gourmaryllis", "munchdew",
+                "rosa_arcana", "entropinnyum", "kekimurus", "narslimmus", "spectrolus",
+                "dandelifeon", "shulk_me_not", "rafflowsia");
+    }
+
+    private static boolean isBotaniaFunctionalFlower(String path) {
+        return containsAny(path,
+                "pure_daisy", "agricarnation", "bellethorn", "bergamute", "bubbell",
+                "clayconia", "daffomill", "dreadthorn", "exoflame", "fallen_kanade",
+                "heisei_dream", "hopperhock", "hyacidus", "jaded_amaranthus", "labellia",
+                "loonium", "marimorphosis", "medumone", "pollidisiac", "rannuncarpus",
+                "solegnolia", "spectranthemum", "tangleberrie", "tigerseye", "vinculotus",
+                "orechid", "orechid_ignem");
+    }
+
+    private static Optional<CategoryAssignment> resolveSophisticatedIdentity(ResolveContext context) {
+        if (!"sophisticatedbackpacks".equals(context.modId)
+                && !"sophisticatedstorage".equals(context.modId)
+                && !"sophisticatedcore".equals(context.modId)
+                && !CompatFamilyDetector.isPrimaryFamily(context.attributes, CompatFamilyDetector.SOPHISTICATED)) {
+            return Optional.empty();
+        }
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.SEMANTIC) {
+            return Optional.empty();
+        }
+        String kind = context.attributes.getOrDefault(SearchNodeKeys.SOPHISTICATED_ITEM_KIND, "");
+        if (kind.isBlank()) {
+            return Optional.empty();
+        }
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.HYBRID && !isFocusedSophisticatedKind(kind)) {
+            return Optional.empty();
+        }
+        String subcategory = mapSophisticatedSubcategory(kind);
+        return Optional.of(identityAssignment(
+                "sophisticated",
+                subcategory,
+                context.attributes,
+                "identity.sophisticated." + subcategory,
+                "Sophisticated " + subcategory + " identity"
+        ));
+    }
+
+    private static boolean isFocusedSophisticatedKind(String kind) {
+        return switch (kind) {
+            case "backpacks", "storage", "upgrades", "filters" -> true;
+            default -> false;
+        };
     }
 
     private static CategoryAssignment identityAssignment(
@@ -530,6 +1119,13 @@ public final class PrimaryCategoryResolver {
 
     private static CategoryAssignment fallback() {
         return new CategoryAssignment("misc", "unknown", Map.of());
+    }
+
+    private static boolean hasCompatFamily(Map<String, String> attributes) {
+        return attributes != null
+                && (!attributes.getOrDefault(SearchNodeKeys.COMPAT_FAMILIES, "").isBlank()
+                || !attributes.getOrDefault(SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "").isBlank()
+                || !attributes.getOrDefault(SearchNodeKeys.COMPAT_FAMILY, "").isBlank());
     }
 
     private static CategoryAssignment assignment(String categoryId, String subcategoryId, Map<String, String> attributes) {
@@ -1689,6 +2285,19 @@ public final class PrimaryCategoryResolver {
         return false;
     }
 
+    private static boolean containsAny(String value, String... needles) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        String normalized = value.toLowerCase(Locale.ROOT);
+        for (String needle : needles) {
+            if (normalized.contains(needle.toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean isCablePath(String path) {
         return !isNaturalCableFalsePositivePath(path)
                 && (path.contains("cable")
@@ -1838,7 +2447,8 @@ public final class PrimaryCategoryResolver {
                                   String path,
                                   Set<ItemFacet> facets,
                                   Map<String, String> attributes,
-                                  ModFamily modFamily) {
+                                  ModFamily modFamily,
+                                  AmiConfig.CompatCategoryPolicy categoryPolicy) {
     }
 
     private record PrimaryRule(String id,

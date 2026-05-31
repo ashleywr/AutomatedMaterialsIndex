@@ -33,6 +33,7 @@ import net.neoforged.fml.loading.FMLLoader;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.energy.IEnergyStorage;
+import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
 import net.neoforged.neoforge.items.IItemHandler;
 
 import java.nio.file.Path;
@@ -130,6 +131,18 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     }
 
     @Override
+    public Optional<String> getModMetadataText(String modId) {
+        if (ModList.get() != null) {
+            for (var info : ModList.get().getMods()) {
+                if (info.getModId().equals(modId)) {
+                    return Optional.of((info.getDisplayName() + " " + info.getDescription()).trim());
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    @Override
     public boolean isModLoaded(String modId) {
         return ModList.get() != null && ModList.get().isLoaded(modId);
     }
@@ -180,6 +193,36 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
         if (energyStorage == null) return Optional.empty();
         int capacity = energyStorage.getMaxEnergyStored();
         return capacity > 0 ? Optional.of(capacity) : Optional.empty();
+    }
+
+    @Override
+    public Optional<Integer> getItemEnergyStored(ItemStack stack) {
+        IEnergyStorage energyStorage = stack.getCapability(Capabilities.EnergyStorage.ITEM);
+        if (energyStorage == null) return Optional.empty();
+        int stored = energyStorage.getEnergyStored();
+        return stored > 0 ? Optional.of(stored) : Optional.empty();
+    }
+
+    @Override
+    public OptionalLong getItemFluidCapacity(ItemStack stack) {
+        IFluidHandlerItem handler = stack.getCapability(Capabilities.FluidHandler.ITEM);
+        if (handler == null || handler.getTanks() <= 0) return OptionalLong.empty();
+        long capacity = 0L;
+        for (int tank = 0; tank < handler.getTanks(); tank++) {
+            capacity += Math.max(0, handler.getTankCapacity(tank));
+        }
+        return capacity > 0 ? OptionalLong.of(capacity) : OptionalLong.empty();
+    }
+
+    @Override
+    public OptionalLong getItemFluidAmount(ItemStack stack) {
+        IFluidHandlerItem handler = stack.getCapability(Capabilities.FluidHandler.ITEM);
+        if (handler == null || handler.getTanks() <= 0) return OptionalLong.empty();
+        long amount = 0L;
+        for (int tank = 0; tank < handler.getTanks(); tank++) {
+            amount += Math.max(0, handler.getFluidInTank(tank).getAmount());
+        }
+        return amount > 0 ? OptionalLong.of(amount) : OptionalLong.empty();
     }
 
     @Override

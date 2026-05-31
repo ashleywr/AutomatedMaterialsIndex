@@ -6,7 +6,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -59,5 +61,34 @@ class AmiTaxonomyCatalogTest {
         Files.createDirectories(reportPath.getParent());
         Files.writeString(reportPath, AmiTaxonomyCatalog.toMarkdown());
         assertTrue(Files.exists(reportPath), "Expected taxonomy report at " + reportPath.toAbsolutePath());
+    }
+
+    @Test
+    void majorCompatCategoriesExistAsTopLevelBuckets() {
+        Map<String, AmiTaxonomyCatalog.CategoryEntry> categories = AmiTaxonomyCatalog.categories().stream()
+                .collect(Collectors.toMap(AmiTaxonomyCatalog.CategoryEntry::id, category -> category));
+
+        for (String id : Set.of(
+                "cobblemon", "create", "ae2", "mekanism", "gregtech", "minecolonies",
+                "apotheosis", "botania", "sophisticated", "mapping")) {
+            assertTrue(categories.containsKey(id), "Missing compat category: " + id);
+            assertFalse(categories.get(id).subcategories().isEmpty(), "Missing subcategories for " + id);
+        }
+
+        assertTrue(hasSubcategory(categories, "mapping", "waypoints"));
+        assertTrue(hasSubcategory(categories, "mapping", "claims"));
+        assertTrue(hasSubcategory(categories, "create", "kinetics"));
+        assertTrue(hasSubcategory(categories, "ae2", "storage"));
+        assertTrue(hasSubcategory(categories, "mekanism", "chemicals"));
+        assertTrue(hasSubcategory(categories, "gregtech", "multiblocks"));
+        assertTrue(hasSubcategory(categories, "sophisticated", "backpacks"));
+    }
+
+    private static boolean hasSubcategory(Map<String, AmiTaxonomyCatalog.CategoryEntry> categories,
+                                          String categoryId,
+                                          String subcategoryId) {
+        AmiTaxonomyCatalog.CategoryEntry category = categories.get(categoryId);
+        return category != null && category.subcategories().stream()
+                .anyMatch(subcategory -> subcategory.id().equals(subcategoryId));
     }
 }

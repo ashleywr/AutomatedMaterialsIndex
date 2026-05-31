@@ -198,6 +198,28 @@ public final class AMICheatMode {
         return null;
     }
 
+    /**
+     * Spawns a Cobblemon Pokémon species in the world in front of the player.
+     * Entity ID is expected in the form cobblemon:species/pancham.
+     */
+    public static void spawnPokemon(ResourceLocation entityId) {
+        String species = extractSpeciesName(entityId);
+        sendCommand("spawnpokemon " + species);
+    }
+
+    /**
+     * Adds a Cobblemon Pokémon species directly to the player's party.
+     */
+    public static void pokemonToParty(ResourceLocation entityId) {
+        String species = extractSpeciesName(entityId);
+        sendCommand("pokegive @s " + species);
+    }
+
+    private static String extractSpeciesName(ResourceLocation entityId) {
+        String path = entityId.getPath();
+        return path.startsWith("species/") ? path.substring("species/".length()) : path;
+    }
+
     private static void sendCommand(String command) {
         var mc = Minecraft.getInstance();
         if (mc.player == null) return;

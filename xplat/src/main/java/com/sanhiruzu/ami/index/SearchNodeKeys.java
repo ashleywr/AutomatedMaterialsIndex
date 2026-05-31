@@ -6,6 +6,13 @@ package com.sanhiruzu.ami.index;
 public final class SearchNodeKeys {
     // Shared
     public static final String MOD_ID = "modId";
+    public static final String COMPAT_FAMILY = "compatFamily"; // Legacy alias for primaryCompatFamily.
+    public static final String COMPAT_FAMILIES = "compatFamilies"; // Comma-separated parent ecosystem ids.
+    public static final String PRIMARY_COMPAT_FAMILY = "primaryCompatFamily"; // UI/category owner when one family must win.
+    public static final String COMPAT_CATEGORY_POLICY = "compatCategoryPolicy"; // focused, semantic, or hybrid.
+    public static final String CLASSIFICATION_ROUTE = "classificationRoute"; // Human-readable resolver path.
+    public static final String CLASSIFICATION_ROUTE_PHASE = "classificationRoutePhase"; // Final resolver gate.
+    public static final String CLASSIFICATION_ROUTE_RULE = "classificationRouteRule"; // Final rule/scorer id.
     // Item-specific
     public static final String ONTOLOGY_CATEGORY = "ontologyCategory";    // AmiOntology.Category.id
     public static final String ONTOLOGY_SUBCATEGORY = "ontologySubcategory"; // AmiOntology.SubCategory.id
@@ -45,6 +52,9 @@ public final class SearchNodeKeys {
     public static final String CREATIVE_TAB_ID = "creativeTabId";
     public static final String CREATIVE_TAB_LABEL = "creativeTabLabel";
     public static final String SUBTYPE_OF = "subtypeOf";     // base item id for subtype nodes
+    public static final String VARIANT_SOURCE = "variantSource"; // source of a representative stack variant, e.g. creative_tab
+    public static final String VARIANT_AXES = "variantAxes"; // comma-separated visual/material axes such as color,wood
+    public static final String VARIANT_COLLAPSE_MODE = "variantCollapseMode"; // auto, default_collapsed, or never
     public static final String POTION_EFFECT = "potionEffect";  // full ResourceLocation of the potion effect (e.g. "minecraft:fire_resistance")
     public static final String COLLAPSE_FAMILY = "collapseFamily"; // stable UI grouping key for explicit family collapse
     public static final String COLLAPSE_LABEL = "collapseLabel";  // user-facing label for explicit family collapse
@@ -54,6 +64,63 @@ public final class SearchNodeKeys {
     public static final String BLOCK_STATE_PROPERTIES = "blockStateProperties"; // comma-separated state property names
     public static final String COMPONENT_FACTS = "componentFacts"; // comma-separated normalized DataComponent facts
     public static final String EQUIPMENT_SLOT = "equipmentSlot"; // normalized EquipmentSlot name when known
+    // Cobblemon / Pokemon-specific optional metadata. These are plain strings so
+    // AMI can index datapack-backed Cobblemon content without a hard dependency.
+    public static final String COBBLEMON_ITEM_KIND = "cobblemonItemKind";
+    public static final String POKEMON_BALL_FAMILY = "pokemonBallFamily";
+    public static final String POKEMON_BALL_TIER = "pokemonBallTier";
+    public static final String POKEMON_MEDICINE_KIND = "pokemonMedicineKind";
+    public static final String POKEMON_HEALING = "pokemonHealing";
+    public static final String POKEMON_STATUS_CURE = "pokemonStatusCure";
+    public static final String POKEMON_HELD_ITEM_ROLE = "pokemonHeldItemRole";
+    public static final String POKEMON_EVOLUTION_TRIGGER = "pokemonEvolutionTrigger";
+    public static final String POKEMON_TYPE = "pokemonType";
+    public static final String POKEMON_SPECIES = "pokemonSpecies";
+    public static final String POKEMON_DEX_NUMBER = "pokemonDexNumber";
+    public static final String POKEMON_PRIMARY_TYPE = "pokemonPrimaryType";
+    public static final String POKEMON_SECONDARY_TYPE = "pokemonSecondaryType";
+    public static final String POKEMON_GENERATION = "pokemonGeneration";
+    public static final String POKEMON_ABILITIES = "pokemonAbilities";
+    public static final String POKEMON_EGG_GROUPS = "pokemonEggGroups";
+    public static final String POKEMON_MOVE = "pokemonMove";
+    public static final String POKEMON_DROP_ITEM = "pokemonDropItem";
+    public static final String POKEMON_DROP_CHANCE = "pokemonDropChance";
+    public static final String POKEMON_DROP_MIN = "pokemonDropMin";
+    public static final String POKEMON_DROP_MAX = "pokemonDropMax";
+    public static final String POKEMON_BASE_HP = "pokemonBaseHp";
+    public static final String POKEMON_BASE_ATTACK = "pokemonBaseAttack";
+    public static final String POKEMON_BASE_DEFENSE = "pokemonBaseDefense";
+    public static final String POKEMON_BASE_SPECIAL_ATTACK = "pokemonBaseSpecialAttack";
+    public static final String POKEMON_BASE_SPECIAL_DEFENSE = "pokemonBaseSpecialDefense";
+    public static final String POKEMON_BASE_SPEED = "pokemonBaseSpeed";
+    public static final String POKEMON_HEIGHT = "pokemonHeight";
+    public static final String POKEMON_WEIGHT = "pokemonWeight";
+    public static final String POKEMON_IMPLEMENTED = "pokemonImplemented";
+    public static final String POKEMON_TM_MOVE = "pokemonTmMove";
+    public static final String POKEMON_EGG_MOVE = "pokemonEggMove";
+    public static final String POKEMON_TUTOR_MOVE = "pokemonTutorMove";
+    public static final String POKEMON_LEVEL_UP_MOVE = "pokemonLevelUpMove";
+    // Create-specific optional metadata. Ownership is established separately;
+    // these facts describe how confirmed Create-family content behaves.
+    public static final String CREATE_ITEM_KIND = "createItemKind";
+    public static final String CREATE_FACTS = "createFacts"; // Comma-separated behavior facts.
+    public static final String CREATE_RECIPE_ROLES = "createRecipeRoles"; // Create processing inputs/outputs.
+    public static final String CREATE_STRESS_ROLE = "createStressRole"; // consumes_su, generates_su, transfers_su.
+    public static final String CREATE_KINETIC_ROLE = "createKineticRole";
+    public static final String CREATE_HAS_PONDER = "createHasPonder";
+    // AE2-specific optional metadata.
+    public static final String AE2_ITEM_KIND = "ae2ItemKind";
+    public static final String AE2_FACTS = "ae2Facts"; // Comma-separated Applied Energistics behavior facts.
+    public static final String AE2_STORAGE_TIER = "ae2StorageTier";
+    public static final String AE2_STORAGE_MEDIUM = "ae2StorageMedium";
+    // Mekanism-specific optional metadata.
+    public static final String MEKANISM_ITEM_KIND = "mekanismItemKind";
+    public static final String MEKANISM_FACTS = "mekanismFacts"; // Comma-separated Mekanism behavior facts.
+    public static final String MEKANISM_TIER = "mekanismTier";
+    // Sophisticated Storage/Backpacks-specific optional metadata.
+    public static final String SOPHISTICATED_ITEM_KIND = "sophisticatedItemKind";
+    public static final String SOPHISTICATED_FACTS = "sophisticatedFacts";
+    public static final String SOPHISTICATED_TIER = "sophisticatedTier";
     // Atlas-specific
     public static final String DIMENSION = "dimension";
     public static final String ENTITY_CATEGORY = "entityCategory";

@@ -6,6 +6,7 @@ import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.item.ItemStack;
+import java.lang.ref.WeakReference;
 
 public class RecipeViewerBridge {
 
@@ -214,25 +215,55 @@ public class RecipeViewerBridge {
         return false;
     }
 
+    private static ItemStack lastTransferStack = ItemStack.EMPTY;
+    private static WeakReference<Screen> lastTransferScreenRef = new WeakReference<>(null);
+    private static boolean lastTransferResult = false;
+    private static long lastTransferTime = 0;
+
     public static boolean canTransferStack(ItemStack stack) {
         Minecraft mc = Minecraft.getInstance();
         Screen screen = mc.screen;
         if (stack == null || stack.isEmpty() || screen == null) {
             return false;
         }
-        if (Services.PLATFORM.isModLoaded("emi") && EmiRecipeBridge.canTransferStack(stack, screen)) {
-            return true;
+
+        // 1-element cache for tooltips
+        long now = System.currentTimeMillis();
+        if (Services.PLATFORM.sameItemSameComponents(stack, lastTransferStack) 
+                && lastTransferScreenRef.get() == screen 
+                && (now - lastTransferTime) < 500) {
+            return lastTransferResult;
         }
-        if (Services.PLATFORM.isModLoaded("jei") && JeiRecipeBridge.canTransferStack(stack, screen)) {
-            return true;
-        }
-        if (!Services.PLATFORM.isRecipeIndexBuilt()) {
-            return false;
-        }
-        for (var recipe : Services.PLATFORM.getRecipesFor(stack)) {
-            if (canTransferRecipe(recipe, screen)) {
+
+        boolean result = computeCanTransferStack(stack, screen);
+        
+        lastTransferStack = stack.copy();
+        lastTransferScreenRef = new WeakReference<>(screen);
+        lastTransferResult = result;
+        lastTransferTime = now;
+        
+        return result;
+    }
+
+    private static boolean computeCanTransferStack(ItemStack stack, Screen screen) {
+        try {
+            if (Services.PLATFORM.isModLoaded("emi") && EmiRecipeBridge.canTransferStack(stack, screen)) {
                 return true;
             }
+            if (Services.PLATFORM.isModLoaded("jei") && JeiRecipeBridge.canTransferStack(stack, screen)) {
+                return true;
+            }
+            if (!Services.PLATFORM.isRecipeIndexBuilt()) {
+                return false;
+            }
+            for (var recipe : Services.PLATFORM.getRecipesFor(stack)) {
+                if (canTransferRecipe(recipe, screen)) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            // Log once per item maybe? For now just ignore to prevent crashes
+            return false;
         }
         return false;
     }

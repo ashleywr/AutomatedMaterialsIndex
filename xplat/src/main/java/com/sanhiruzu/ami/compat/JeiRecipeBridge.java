@@ -141,17 +141,23 @@ class JeiRecipeBridge {
                 .get()
                 .toList();
         for (Object recipe : recipes) {
-            Optional<IRecipeLayoutDrawable<?>> layout = (Optional) recipeManager.createRecipeLayoutDrawable(
-                    category,
-                    recipe,
-                    focusGroup);
-            if (layout.filter(recipeLayout -> RecipeTransferUtil.transferRecipe(
-                    runtime.getRecipeTransferManager(),
-                    containerScreen.getMenu(),
-                    recipeLayout,
-                    player,
-                    maxTransfer)).isPresent()) {
-                return true;
+            if (!isHandled(category, recipe)) {
+                continue;
+            }
+            try {
+                Optional<IRecipeLayoutDrawable<?>> layout = (Optional) recipeManager.createRecipeLayoutDrawable(
+                        category,
+                        recipe,
+                        focusGroup);
+                if (layout.filter(recipeLayout -> RecipeTransferUtil.transferRecipe(
+                        runtime.getRecipeTransferManager(),
+                        containerScreen.getMenu(),
+                        recipeLayout,
+                        player,
+                        maxTransfer)).isPresent()) {
+                    return true;
+                }
+            } catch (RuntimeException | LinkageError ignored) {
             }
         }
         return false;
@@ -166,16 +172,22 @@ class JeiRecipeBridge {
                 .get()
                 .toList();
         for (Object recipe : recipes) {
-            Optional<IRecipeLayoutDrawable<?>> layout = (Optional) recipeManager.createRecipeLayoutDrawable(
-                    category,
-                    recipe,
-                    focusGroup);
-            if (layout.filter(recipeLayout -> RecipeTransferUtil.getTransferRecipeError(
-                    runtime.getRecipeTransferManager(),
-                    containerScreen.getMenu(),
-                    recipeLayout,
-                    player).map(error -> error.getType().allowsTransfer).orElse(true)).isPresent()) {
-                return true;
+            if (!isHandled(category, recipe)) {
+                continue;
+            }
+            try {
+                Optional<IRecipeLayoutDrawable<?>> layout = (Optional) recipeManager.createRecipeLayoutDrawable(
+                        category,
+                        recipe,
+                        focusGroup);
+                if (layout.filter(recipeLayout -> RecipeTransferUtil.getTransferRecipeError(
+                        runtime.getRecipeTransferManager(),
+                        containerScreen.getMenu(),
+                        recipeLayout,
+                        player).map(error -> error.getType().allowsTransfer).orElse(true)).isPresent()) {
+                    return true;
+                }
+            } catch (RuntimeException | LinkageError ignored) {
             }
         }
         return false;
@@ -236,8 +248,23 @@ class JeiRecipeBridge {
             mezz.jei.api.recipe.RecipeType<?> jeiType,
             Object recipe) {
         IRecipeCategory<R> category = runtime.getRecipeManager().getRecipeCategory((mezz.jei.api.recipe.RecipeType<R>) jeiType);
+        if (!isHandled(category, recipe)) {
+            return Optional.empty();
+        }
         IFocusGroup focusGroup = runtime.getJeiHelpers().getFocusFactory().getEmptyFocusGroup();
         return (Optional) runtime.getRecipeManager().createRecipeLayoutDrawable(category, (R) recipe, focusGroup);
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static boolean isHandled(IRecipeCategory category, Object recipe) {
+        if (category == null || recipe == null) {
+            return false;
+        }
+        try {
+            return category.isHandled(recipe);
+        } catch (RuntimeException | LinkageError ignored) {
+            return false;
+        }
     }
 
     private static RecipeTypeAndRecipe createJeiRecipe(
