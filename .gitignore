@@ -57,6 +57,9 @@ internal/
 
 ### Local Development ###
 dev/
+font_issue.png
+release-assets/
+test.java
 
 ### Dot directories (keep only .gitignore) ###
 .*
