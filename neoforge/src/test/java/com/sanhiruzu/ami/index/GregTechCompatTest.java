@@ -42,6 +42,42 @@ class GregTechCompatTest {
     }
 
     @Test
+    void gregTechRuntimeClassMetadataRoutesDumpedMachineFamilies() {
+        Map<String, String> metaMachine = meta("gtceu");
+        metaMachine.put(SearchNodeKeys.ITEM_CLASS, "com.gregtechceu.gtceu.api.item.MetaMachineItem");
+        metaMachine.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY)));
+        CompatFamilyDetector.detect(new ResourceLocation("gtceu", "lv_alloy_smelter"), metaMachine);
+
+        Map<String, String> metaMachineBlock = meta("gtceu");
+        metaMachineBlock.put(SearchNodeKeys.BLOCK_CLASS, "com.gregtechceu.gtceu.api.block.MetaMachineBlock");
+        metaMachineBlock.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY)));
+        CompatFamilyDetector.detect(new ResourceLocation("gtceu", "mv_chemical_reactor"), metaMachineBlock);
+
+        assertEquals("machines", resolve("gtceu:lv_alloy_smelter", metaMachine,
+                ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY).subcategoryId());
+        assertEquals("machines", resolve("gtceu:mv_chemical_reactor", metaMachineBlock,
+                ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY).subcategoryId());
+    }
+
+    @Test
+    void gregTechRuntimeClassMetadataRoutesDumpedMaterialFamilies() {
+        Map<String, String> bucket = meta("gtceu");
+        bucket.put(SearchNodeKeys.ITEM_CLASS, "com.gregtechceu.gtceu.api.item.GTBucketItem");
+        bucket.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.FLUID_CONTAINER, ItemFacet.UTILITY_MISC)));
+        CompatFamilyDetector.detect(new ResourceLocation("gtceu", "aluminium_bucket"), bucket);
+
+        Map<String, String> surfaceRock = meta("gtceu");
+        surfaceRock.put(SearchNodeKeys.ITEM_CLASS, "com.gregtechceu.gtceu.api.item.SurfaceRockBlockItem");
+        surfaceRock.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.PLACEABLE)));
+        CompatFamilyDetector.detect(new ResourceLocation("gtceu", "aluminium_indicator"), surfaceRock);
+
+        assertEquals("materials", resolve("gtceu:aluminium_bucket", bucket,
+                ItemFacet.FLUID_CONTAINER, ItemFacet.UTILITY_MISC).subcategoryId());
+        assertEquals("materials", resolve("gtceu:aluminium_indicator", surfaceRock,
+                ItemFacet.PLACEABLE).subcategoryId());
+    }
+
+    @Test
     void semanticGregTechPolicyCanStillOptOut() {
         AmiConfig.CompatCategoryPolicy oldPolicy = AmiConfig.gregtechCategoryPolicy;
         try {

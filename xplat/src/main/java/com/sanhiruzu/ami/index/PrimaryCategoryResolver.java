@@ -99,6 +99,18 @@ public final class PrimaryCategoryResolver {
     private static final Set<String> FOOD_STORAGE_TOKENS = Set.of(
             "crate", "bag", "bale", "sack"
     );
+    private static final Set<String> PORTABLE_STORAGE_FAMILY_MOD_IDS = Set.of(
+            "sophisticatedbackpacks"
+    );
+    private static final Set<String> STORAGE_FAMILY_MOD_IDS = Set.of(
+            "ae2",
+            "functionalstorage",
+            "ironchest",
+            "merequester",
+            "refinedstorage",
+            "sophisticatedstorage",
+            "storagedrawers"
+    );
     private static final List<PrimaryRule> PRIMARY_RULES = List.of(
             rule("create handheld tools",
                     c -> shouldBiasCreateFamilyHandheldToTools(c.modFamily, c.path),
@@ -374,6 +386,11 @@ public final class PrimaryCategoryResolver {
             return sophisticated;
         }
 
+        Optional<CategoryAssignment> waystones = resolveWaystonesIdentity(context);
+        if (waystones.isPresent()) {
+            return waystones;
+        }
+
         if (context.facets.contains(ItemFacet.DECORATIVE_BLOCK)
                 && containsPathToken(context.path, TEXTILE_TOKENS)) {
             return Optional.of(identityAssignment(
@@ -471,6 +488,41 @@ public final class PrimaryCategoryResolver {
                     context.attributes,
                     "identity.block_shape",
                     "structural block shape facet"
+            ));
+        }
+
+        return Optional.empty();
+    }
+
+    private static Optional<CategoryAssignment> resolveWaystonesIdentity(ResolveContext context) {
+        if (!"waystones".equals(context.modId)
+                && !containsAny(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "net.blay09.mods.waystones.")
+                && !containsAny(context.attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, ""), "net.blay09.mods.waystones.")
+                && !hasMetadataToken(context.attributes, SearchNodeKeys.BLOCK_TAGS, "waystones:is_teleport_target")) {
+            return Optional.empty();
+        }
+
+        if (containsAny(context.path, "dust", "shard")
+                || containsAny(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "ShardItem", "WarpDustItem")) {
+            return Optional.of(identityAssignment(
+                    "magic",
+                    "reagents",
+                    context.attributes,
+                    "identity.waystones.reagent",
+                    "Waystones teleport reagent"
+            ));
+        }
+
+        if (hasMetadataToken(context.attributes, SearchNodeKeys.BLOCK_TAGS, "waystones:is_teleport_target")
+                || containsAny(context.path, "waystone", "portstone", "sharestone", "warp_plate", "warp_stone", "scroll")
+                || containsAny(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "WarpStoneItem", "ScrollItem")
+                || containsAny(context.attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, ""), "WaystoneBlock", "PortstoneBlock", "SharestoneBlock", "WarpPlateBlock")) {
+            return Optional.of(identityAssignment(
+                    "magic",
+                    "artifacts",
+                    context.attributes,
+                    "identity.waystones.teleport",
+                    "Waystones teleport target or item"
             ));
         }
 
@@ -774,9 +826,11 @@ public final class PrimaryCategoryResolver {
     }
 
     private static String classifyGregTechSubcategory(ResolveContext context) {
+        String itemClass = context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
+        String blockClass = context.attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "");
         if (containsPathToken(context.path, Set.of("multiblock", "multiblocks"))
-                || containsAny(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "multiblock")
-                || containsAny(context.attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, ""), "multiblock")) {
+                || containsAny(itemClass, "multiblock")
+                || containsAny(blockClass, "multiblock")) {
             return "multiblocks";
         }
         if (containsPathToken(context.path, Set.of("cover", "covers"))) {
@@ -789,24 +843,39 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.HARVEST_TOOL, ItemFacet.UTILITY_TOOL)) {
             return "tools";
         }
+        if (containsAny(itemClass, ".MetaMachineItem")
+                || containsAny(blockClass, ".MetaMachineBlock")) {
+            return "machines";
+        }
         if (hasAny(context.facets, ItemFacet.MACHINE, ItemFacet.WORKSTATION)
                 || containsAny(context.path, "machine", "hatch", "bus", "conveyor", "robot_arm",
                 "emitter", "sensor", "regulator", "pump", "motor", "piston", "assembler",
                 "macerator", "centrifuge", "electrolyzer", "compressor", "extractor", "furnace",
-                "mixer", "canner", "lathe", "bender", "wiremill", "polarizer")) {
+                "mixer", "canner", "lathe", "bender", "wiremill", "polarizer")
+                || containsPathToken(context.path, Set.of(
+                "smelter", "reactor", "collector", "boiler", "crusher", "autoclave", "bath",
+                "cutter", "distillery", "extruder", "solidifier", "press", "packer", "turbine",
+                "miner", "brewery", "separator", "fermenter", "heater", "engraver", "sifter",
+                "accelerator", "fisher", "scrubber", "breaker", "buffer"))) {
             return "machines";
         }
         if (hasAny(context.facets, ItemFacet.HAS_ENERGY, ItemFacet.CABLE)
                 || containsAny(context.path, "battery", "capacitor", "cable", "wire", "energy", "power",
-                "generator", "dynamo", "transformer", "converter", "diode")) {
+                "generator", "dynamo", "transformer", "converter", "diode", "solar_panel", "voltage_coil")) {
             return "power";
+        }
+        if (containsAny(itemClass, ".GTBucketItem", ".SurfaceRockBlockItem")) {
+            return "materials";
         }
         if (hasAny(context.facets, ItemFacet.INGOT, ItemFacet.NUGGET, ItemFacet.DUST,
                 ItemFacet.GEM, ItemFacet.RAW_MATERIAL, ItemFacet.TECH_COMPONENT,
                 ItemFacet.MECHANICAL_COMPONENT, ItemFacet.INGREDIENT_MINERAL)
                 || containsAny(context.path, "ingot", "nugget", "dust", "plate", "rod", "bolt",
                 "screw", "ring", "foil", "wire", "gear", "spring", "rotor", "gem",
-                "ore", "crushed", "purified", "impure", "raw", "tiny", "small")) {
+                "ore", "crushed", "purified", "impure", "raw", "tiny", "small")
+                || containsPathToken(context.path, Set.of(
+                "bucket", "indicator", "blade", "head", "tip", "lens", "wafer", "mold",
+                "casing", "frame", "sheet", "studs", "dye", "can", "boule", "round"))) {
             return "materials";
         }
         return "misc";
@@ -1070,28 +1139,11 @@ public final class PrimaryCategoryResolver {
     }
 
     private static boolean isPortableStorageFamilyMod(String modId) {
-        return modId.equals("sophisticatedbackpacks")
-                || modId.contains("backpack")
-                || modId.contains("satchel")
-                || modId.contains("pouch");
+        return PORTABLE_STORAGE_FAMILY_MOD_IDS.contains(modId);
     }
 
     private static boolean isStorageFamilyMod(String modId) {
-        if (modId.equals("ae2")
-                || modId.startsWith("ae2")
-                || modId.contains("refinedstorage")
-                || modId.equals("merequester")
-                || modId.contains("functionalstorage")
-                || modId.contains("compatible_storage")
-                || modId.contains("compatiblestorage")
-                || modId.contains("sophisticatedstorage")
-                || modId.contains("storagedrawers")
-                || modId.contains("drawer")
-                || modId.contains("ironchest")
-                || modId.contains("iron_chest")) {
-            return true;
-        }
-        return false;
+        return STORAGE_FAMILY_MOD_IDS.contains(modId);
     }
 
     private static boolean isDecorFamilyMod(String modId) {

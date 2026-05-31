@@ -7,6 +7,7 @@ import java.util.EnumSet;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class PrimaryCategoryResolverTest {
 
@@ -963,6 +964,26 @@ class PrimaryCategoryResolverTest {
         assertEquals("machines", storageDrawersKeyAssignment.subcategoryId());
         assertEquals("tech", backpackUpgradeAssignment.categoryId());
         assertEquals("upgrades", backpackUpgradeAssignment.subcategoryId());
+    }
+
+    @Test
+    void storageFamilyDetectionDoesNotUseBroadNamespaceSubstrings() {
+        CategoryAssignment drawerWordAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("drawersnacks:oak_drawer_cookie"),
+                new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
+        );
+        CategoryAssignment ironChestWordAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("ironchestnut:chestnut"),
+                new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
+        );
+        CategoryAssignment backpackWordAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("backpackaged:paper_pouch"),
+                new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
+        );
+
+        assertNotEquals("tech", drawerWordAssignment.categoryId());
+        assertNotEquals("tech", ironChestWordAssignment.categoryId());
+        assertNotEquals("armor", backpackWordAssignment.categoryId());
     }
 
     @Test

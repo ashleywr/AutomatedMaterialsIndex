@@ -32,6 +32,12 @@ public class ItemGridViewTest {
         return (int) depth.invoke(row);
     }
 
+    private static String itemLabel(Object row, int index) throws Exception {
+        Method items = row.getClass().getDeclaredMethod("items");
+        items.setAccessible(true);
+        return ((TreeNode) ((List<?>) items.invoke(row)).get(index)).getLabel().getString();
+    }
+
     private static TreeNode leaf(String path, String displayName) {
         SearchNode node = new SearchNode(
                 new ResourceLocation("minecraft:" + path),
@@ -143,5 +149,35 @@ public class ItemGridViewTest {
         assertEquals(1, itemRowDepth(rows.get(1)));
         assertEquals("Oak", headerLabel(rows.get(2)));
         assertEquals("Spruce", headerLabel(rows.get(3)));
+    }
+
+    @Test
+    void collapsedChildGroupsShareItemRowsWithSiblingLeaves() throws Exception {
+        ItemGridView gridView = new ItemGridView(0, 0, 61, 100);
+
+        TreeNode storage = new TreeNode("behavior:storage", Component.literal("Storage"));
+        storage.setExpanded(true);
+        storage.addChild(leaf("iron_chest", "Iron Chest"));
+
+        TreeNode barrels = new TreeNode("cardinality:sophisticatedstorage:barrel", Component.literal("Barrels"));
+        barrels.setHighCardinality(true);
+        barrels.addChild(leaf("oak_barrel", "Oak Barrel"));
+        barrels.addChild(leaf("spruce_barrel", "Spruce Barrel"));
+        storage.addChild(barrels);
+        storage.addChild(leaf("terminal", "Storage Terminal"));
+
+        gridView.setRootNodes(List.of(storage));
+
+        Method buildVirtualRows = ItemGridView.class.getDeclaredMethod("buildVirtualRows", int.class);
+        buildVirtualRows.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        List<Object> rows = (List<Object>) buildVirtualRows.invoke(gridView, 3);
+
+        assertEquals("Storage", headerLabel(rows.get(0)));
+        assertEquals(3, itemCount(rows.get(1)));
+        assertEquals(1, itemRowDepth(rows.get(1)));
+        assertEquals("Iron Chest", itemLabel(rows.get(1), 0));
+        assertEquals("Barrels", itemLabel(rows.get(1), 1));
+        assertEquals("Storage Terminal", itemLabel(rows.get(1), 2));
     }
 }

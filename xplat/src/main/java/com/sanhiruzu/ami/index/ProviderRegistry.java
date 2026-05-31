@@ -75,6 +75,7 @@ public final class ProviderRegistry {
         for (Item item : BuiltInRegistries.ITEM) {
             ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
             if (id == null) continue;
+            ItemFilter.firstCreativeStack(item, creativeStackMap).ifPresent(stack -> ItemIconRenderer.registerStack(id, stack));
             List<SubtypeExpander.SubtypeEntry> entries = SubtypeExpander.expand(id, registryAccess);
             if (entries.isEmpty()) {
                 entries = CreativeStackVariantExpander.expand(id, creativeStackMap.get(item), level);

@@ -45,6 +45,22 @@ public class ResultsProcessorTest {
         }
     }
 
+    private static List<String> leafLabels(List<TreeNode> nodes) {
+        List<String> labels = new ArrayList<>();
+        collectLeafLabels(nodes, labels);
+        return labels;
+    }
+
+    private static void collectLeafLabels(List<TreeNode> nodes, List<String> labels) {
+        for (TreeNode node : nodes) {
+            if (node.isLeaf()) {
+                labels.add(node.getLabel().getString());
+            } else {
+                collectLeafLabels(node.getChildren(), labels);
+            }
+        }
+    }
+
     private static SearchNode item(String path, String displayName, Map<String, String> metadata) {
         return new SearchNode(
                 new ResourceLocation("minecraft:" + path),
@@ -511,14 +527,15 @@ public class ResultsProcessorTest {
                         SearchNodeKeys.ESM_CAPACITY, "10000",
                         SearchNodeKeys.DPS, "8.0"
                 )),
-                item("barrel", "Barrel", Map.of(SearchNodeKeys.FACETS, "storage")),
+                item("barrel", "Barrel", Map.of(
+                        SearchNodeKeys.FACETS, "storage",
+                        SearchNodeKeys.STORAGE_ITEM_KIND, "barrel"
+                )),
                 item("sword", "Sword", Map.of(SearchNodeKeys.DPS, "8.0"))
         ), state, null, false, false);
 
-        assertEquals(2, projection.displayedItemCount());
-        assertEquals(List.of("Battery Sword", "Barrel"), projection.roots().stream()
-                .map(node -> node.getLabel().getString())
-                .toList());
+        assertEquals(1, projection.displayedItemCount());
+        assertEquals(List.of("Barrel"), leafLabels(projection.roots()));
     }
 
     @Test

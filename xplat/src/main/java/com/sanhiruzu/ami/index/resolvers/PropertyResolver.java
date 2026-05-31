@@ -166,8 +166,9 @@ public final class PropertyResolver implements IQueryResolver {
             case "fluid", "fluids", "liquid", "tank" -> hasMetadata(node, SearchNodeKeys.FLUID_CAPACITY)
                     || containsToken(node, SearchNodeKeys.FACETS, "fluid_container")
                     || containsFactComponent(node, "fluid", "fluids", "liquid");
-            case "storage" -> hasMetadata(node, SearchNodeKeys.ESM_CAPACITY)
-                    || containsToken(node, SearchNodeKeys.FACETS, "storage");
+            case "storage" -> hasMetadata(node, SearchNodeKeys.STORAGE_ITEM_KIND)
+                    || containsToken(node, SearchNodeKeys.STORAGE_FACTS, "storage")
+                    || containsFactComponent(node, "storage");
             default -> false;
         };
     }
