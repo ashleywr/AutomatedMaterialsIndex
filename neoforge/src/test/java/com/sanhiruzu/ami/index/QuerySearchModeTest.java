@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.index;
 
+import com.sanhiruzu.ami.index.query.QueryParser;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -140,5 +141,16 @@ public class QuerySearchModeTest {
         assertEquals(1, explanation.finalCounts().get(NodeType.ITEM));
         assertTrue(explanation.steps().stream().anyMatch(step -> step.operation().equals("include:LiteralResolver")));
         assertTrue(explanation.steps().stream().anyMatch(step -> step.operation().equals("after-mod")));
+    }
+
+    @Test
+    public void parserUsesSharedSearchSyntaxForPrefixesAndShortcuts() {
+        assertTrue(QueryParser.parse("?").tokens().isEmpty());
+        assertTrue(QueryParser.parse("%egg:").tokens().isEmpty());
+
+        assertEquals(List.of(new QueryParser.QueryToken(QueryParser.TokenType.PROP, "pokemonEggGroup:field")),
+                QueryParser.parse("%egg:field").tokens());
+        assertEquals(List.of(new QueryParser.QueryToken(QueryParser.TokenType.EXCLUDE, "@type:grass")),
+                QueryParser.parse("-@type:grass").tokens());
     }
 }

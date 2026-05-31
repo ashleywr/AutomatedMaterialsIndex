@@ -19,8 +19,8 @@ public final class OverlayInputController {
                                         double mouseX, double mouseY, double scrollX, double scrollY) {
         if (!panelInputAllowed(screen, manager, amiEnabled)) return false;
         var searchBar = manager.getSearchBar();
-        if (searchBar.isFocused() && searchBar.isSuggestionPopupMouseOver(mouseX, mouseY)
-                && searchBar.handleSuggestionScroll(scrollY)) {
+        if (searchBar.isFocused() && searchBar.isSearchOverlayMouseOver(mouseX, mouseY)) {
+            searchBar.handleSuggestionScroll(scrollY);
             return true;
         }
         return manager.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
@@ -32,7 +32,7 @@ public final class OverlayInputController {
 
         var searchBar = manager.getSearchBar();
 
-        if (searchBar.isFocused() && searchBar.isSuggestionPopupMouseOver(mouseX, mouseY)) {
+        if (searchBar.isFocused() && searchBar.isSearchOverlayMouseOver(mouseX, mouseY)) {
             return searchBar.mouseClicked(mouseX, mouseY, button);
         }
 
