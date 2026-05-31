@@ -5,6 +5,7 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 /**
@@ -17,6 +18,7 @@ public class GlobalIndex {
     private final Map<NodeType, List<SearchNode>> nodes = new EnumMap<>(NodeType.class);
     private final Set<NodeType> loadingTypes = EnumSet.noneOf(NodeType.class);
     private final ConcurrentMap<NodeKey, SearchNode> idIndex = new ConcurrentHashMap<>();
+    private final AtomicLong revision = new AtomicLong();
     // Category index for fast dashboard lookups
     private final Map<String, List<SearchNode>> categoryIndex = new ConcurrentHashMap<>();
     private volatile boolean indexReady = false;
@@ -42,6 +44,7 @@ public class GlobalIndex {
             category = AmiOntology.classifyNode(node).id;
         }
         categoryIndex.computeIfAbsent(category, k -> Collections.synchronizedList(new ArrayList<>())).add(node);
+        revision.incrementAndGet();
     }
 
     public Optional<SearchNode> getNode(ResourceLocation id) {
@@ -86,6 +89,7 @@ public class GlobalIndex {
         list.clear();
         list.addAll(newNodes);
         for (SearchNode n : newNodes) addNodeToIndices(n);
+        revision.incrementAndGet();
     }
 
     /**
@@ -105,6 +109,7 @@ public class GlobalIndex {
         List<SearchNode> typeList = nodes.get(updated.type());
         typeList.add(updated);
         addNodeToIndices(updated);
+        revision.incrementAndGet();
     }
 
     private void addNodeToIndices(SearchNode n) {
@@ -123,6 +128,11 @@ public class GlobalIndex {
         loadingTypes.clear();
         indexReady = false;
         indexBuildTimeMs = 0;
+        revision.incrementAndGet();
+    }
+
+    public long revision() {
+        return revision.get();
     }
 
     public void markIndexReady() {

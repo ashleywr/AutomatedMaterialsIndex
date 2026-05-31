@@ -18,6 +18,11 @@ public final class OverlayInputController {
     public static boolean mouseScrolled(Screen screen, OverlayWidgetManager manager, boolean amiEnabled,
                                         double mouseX, double mouseY, double scrollX, double scrollY) {
         if (!panelInputAllowed(screen, manager, amiEnabled)) return false;
+        var searchBar = manager.getSearchBar();
+        if (searchBar.isFocused() && searchBar.isSuggestionPopupMouseOver(mouseX, mouseY)
+                && searchBar.handleSuggestionScroll(scrollY)) {
+            return true;
+        }
         return manager.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
@@ -26,6 +31,10 @@ public final class OverlayInputController {
         if (AmiApi.shouldSuppressAmi(screen)) return false;
 
         var searchBar = manager.getSearchBar();
+
+        if (searchBar.isFocused() && searchBar.isSuggestionPopupMouseOver(mouseX, mouseY)) {
+            return searchBar.mouseClicked(mouseX, mouseY, button);
+        }
 
         if (searchBar.isFocused() && !searchBar.isMouseOver(mouseX, mouseY)) {
             // AMI search is live-filtered; click-away records history and only changes focus.

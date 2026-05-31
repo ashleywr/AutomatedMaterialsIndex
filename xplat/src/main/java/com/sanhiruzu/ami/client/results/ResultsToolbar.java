@@ -316,13 +316,15 @@ public class ResultsToolbar implements SearchState.Listener {
     }
 
     public void renderOpenDropdownLists(GuiGraphics g, int mouseX, int mouseY) {
+        g.flush();
         g.pose().pushPose();
-        g.pose().translate(0, 0, 50);
+        g.pose().translate(0, 0, 400);
         g.pose().translate(-scrollOffset, 0, 0);
         if (state.getViewMode() == ViewMode.LIST) lensDropdown.renderList(g, mouseX, mouseY);
         sortFieldDropdown.renderList(g, mouseX, mouseY);
         if (state.getViewMode() != ViewMode.LIST) groupByDropdown.renderList(g, mouseX, mouseY);
         g.pose().popPose();
+        g.flush();
     }
 
     public void closeAllDropdowns() {

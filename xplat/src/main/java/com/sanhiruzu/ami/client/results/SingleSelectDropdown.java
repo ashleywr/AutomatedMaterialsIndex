@@ -104,8 +104,11 @@ public class SingleSelectDropdown<T> implements Dropdown {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0) return false;
 
+        int mx = (int) mouseX;
+        int my = (int) mouseY;
+
         // Toggle on button click
-        if (Dropdown.contains((int) mouseX, (int) mouseY, x, y, width, HEIGHT)) {
+        if (Dropdown.contains(mx, my, x, y, width, HEIGHT)) {
             if (options != null && options.size() > 1) {
                 open = !open;
             }
@@ -114,15 +117,25 @@ public class SingleSelectDropdown<T> implements Dropdown {
 
         // Handle dropdown item clicks
         if (open) {
+            if (options == null || options.size() <= 1) {
+                return false;
+            }
+
             var font = Minecraft.getInstance().font;
             int listWidth = width;
             for (T option : options) {
                 listWidth = Math.max(listWidth, font.width(displayName.apply(option).getString()) + 20);
             }
 
+            int listY = y + HEIGHT + 2;
+            int dropH = options.size() * ITEM_HEIGHT + 2;
+            if (!Dropdown.contains(mx, my, x, listY, listWidth, dropH)) {
+                return false;
+            }
+
             int itemY = y + HEIGHT + 3;
             for (T option : options) {
-                if (Dropdown.contains((int) mouseX, (int) mouseY, x, itemY, listWidth, ITEM_HEIGHT)) {
+                if (Dropdown.contains(mx, my, x, itemY, listWidth, ITEM_HEIGHT)) {
                     selected = option;
                     onSelect.accept(option);
                     open = false;

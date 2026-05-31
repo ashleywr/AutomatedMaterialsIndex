@@ -11,13 +11,13 @@ public class TagResolver implements IQueryResolver {
     private final Map<String, List<SearchNode>> tagIndex = new HashMap<>();
 
     public void addNode(SearchNode node) {
-        String tagsStr = node.metadata().get(SearchNodeKeys.TAGS);
-        if (tagsStr == null || tagsStr.isBlank()) {
-            return;
-        }
+        addTags(node.metadata().get(SearchNodeKeys.TAGS), node);
+        addTags(node.metadata().get(SearchNodeKeys.BLOCK_TAGS), node);
+    }
 
-        String[] tags = tagsStr.split(",");
-        for (String tag : tags) {
+    private void addTags(String tagsStr, SearchNode node) {
+        if (tagsStr == null || tagsStr.isBlank()) return;
+        for (String tag : tagsStr.split(",")) {
             tag = tag.trim().toLowerCase();
             if (!tag.isEmpty()) {
                 tagIndex.computeIfAbsent(tag, k -> new ArrayList<>()).add(node);

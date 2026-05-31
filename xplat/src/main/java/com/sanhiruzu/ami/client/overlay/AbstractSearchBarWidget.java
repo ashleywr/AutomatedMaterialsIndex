@@ -3,6 +3,8 @@ package com.sanhiruzu.ami.client.overlay;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.results.SearchQueryHistory;
 import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.index.GlobalIndex;
+import com.sanhiruzu.ami.index.query.SearchSuggestions;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -20,6 +22,10 @@ import java.util.List;
 public abstract class AbstractSearchBarWidget extends EditBox {
     private static final Component PLACEHOLDER_HINT = Component.translatable("ami.gui.search.placeholder_hint");
     private static final Component TYPING_HINT = Component.translatable("ami.gui.search.typing");
+    private static final int MAX_SUGGESTIONS = 24;
+    private static final int MAX_VISIBLE_SUGGESTIONS = 8;
+    private static final int SUGGESTION_ROW_HEIGHT = 14;
+    private static final int SUGGESTION_MARGIN = 2;
     private final Listener listener;
     private final Deque<String> undoStack = new ArrayDeque<>();
     private final SearchQueryHistory queryHistory = new SearchQueryHistory();
@@ -32,6 +38,9 @@ public abstract class AbstractSearchBarWidget extends EditBox {
     private boolean navigatingHistory = false;
 
     private List<TokenColorizer.ColorSpan> colorSpans = List.of();
+    private List<SearchSuggestions.Suggestion> suggestions = List.of();
+    private int selectedSuggestion = 0;
+    private int suggestionScrollOffset = 0;
 
     protected AbstractSearchBarWidget(Listener listener) {
         super(Minecraft.getInstance().font, 0, 0, 160, 14, Component.empty());
@@ -66,6 +75,10 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         super.setFocused(focused);
         if (!focused) {
             lastClickTime = 0;
+            suggestions = List.of();
+            suggestionScrollOffset = 0;
+        } else {
+            updateSuggestions();
         }
     }
 
@@ -122,12 +135,22 @@ public abstract class AbstractSearchBarWidget extends EditBox {
             int cursorX = textX + font.width(value.substring(displayStart, displayStart + cursorInVisible)) + 1;
             g.fill(cursorX, textY - 1, cursorX + 1, textY + font.lineHeight, AMITheme.SEARCH_CURSOR);
         }
+
+        renderSuggestions(g, font, mouseX, mouseY);
     }
 
     // ── Rendering ─────────────────────────────────────────────────────────────
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0 && isSuggestionPopupMouseOver(mouseX, mouseY)) {
+            int row = suggestionRowAt(mouseY);
+            if (row >= 0 && row < suggestions.size()) {
+                selectedSuggestion = row;
+                acceptSelectedSuggestion();
+                return true;
+            }
+        }
         if (!isMouseOver(mouseX, mouseY)) return false;
 
         String value = getValue();
@@ -187,6 +210,11 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         if (!isFocused()) return false;
 
         if (keyCode == GLFW.GLFW_KEY_UP) {
+            if (hasVisibleSuggestions()) {
+                selectedSuggestion = Math.max(0, selectedSuggestion - 1);
+                ensureSelectedSuggestionVisible();
+                return true;
+            }
             String next = queryHistory.navigateUp(getValue());
             navigatingHistory = true;
             setValue(next);
@@ -195,6 +223,11 @@ public abstract class AbstractSearchBarWidget extends EditBox {
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_DOWN) {
+            if (hasVisibleSuggestions()) {
+                selectedSuggestion = Math.min(suggestions.size() - 1, selectedSuggestion + 1);
+                ensureSelectedSuggestionVisible();
+                return true;
+            }
             String next = queryHistory.navigateDown(getValue());
             navigatingHistory = true;
             setValue(next);
@@ -203,13 +236,21 @@ public abstract class AbstractSearchBarWidget extends EditBox {
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+            if (hasVisibleSuggestions()) {
+                suggestions = List.of();
+                suggestionScrollOffset = 0;
+                return true;
+            }
             unfocus();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_TAB) {
-            return false;
+            return acceptSelectedSuggestion();
         }
         if (keyCode == GLFW.GLFW_KEY_ENTER) {
+            if (acceptSelectedSuggestion()) {
+                return true;
+            }
             submitAndUnfocus();
             return true;
         }
@@ -269,10 +310,14 @@ public abstract class AbstractSearchBarWidget extends EditBox {
 
     public void submitAndUnfocus() {
         queryHistory.submit(getValue());
+        suggestions = List.of();
+        suggestionScrollOffset = 0;
         unfocus();
     }
 
     public void unfocus() {
+        suggestions = List.of();
+        suggestionScrollOffset = 0;
         setFocused(false);
         Screen screen = Minecraft.getInstance().screen;
         if (screen != null) {
@@ -301,6 +346,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
 
     private void onTextChanged(String newValue) {
         updateColorSpans();
+        updateSuggestions();
         if (!silentUpdate && !undoing && !newValue.equals(lastValue)) {
             undoStack.push(lastValue);
             if (undoStack.size() > 50) {
@@ -329,6 +375,120 @@ public abstract class AbstractSearchBarWidget extends EditBox {
 
     private void updateColorSpans() {
         colorSpans = TokenColorizer.colorize(getValue());
+    }
+
+    private void updateSuggestions() {
+        if (!isFocused()) {
+            suggestions = List.of();
+            selectedSuggestion = 0;
+            suggestionScrollOffset = 0;
+            return;
+        }
+        suggestions = SearchSuggestions.suggest(GlobalIndex.getInstance(), getValue(), getCursorPosition(), MAX_SUGGESTIONS);
+        selectedSuggestion = Mth.clamp(selectedSuggestion, 0, Math.max(0, suggestions.size() - 1));
+        suggestionScrollOffset = Mth.clamp(suggestionScrollOffset, 0, maxSuggestionScrollOffset());
+        ensureSelectedSuggestionVisible();
+    }
+
+    private boolean acceptSelectedSuggestion() {
+        if (!hasVisibleSuggestions()) {
+            return false;
+        }
+        SearchSuggestions.Suggestion suggestion = suggestions.get(Mth.clamp(selectedSuggestion, 0, suggestions.size() - 1));
+        String next = SearchSuggestions.apply(getValue(), suggestion);
+        setValue(next);
+        doMoveCursorTo(Mth.clamp(suggestion.cursorAfterApply(), 0, next.length()), false);
+        setHighlightPos(getCursorPosition());
+        if (suggestion.replacement().endsWith(":")) {
+            updateSuggestions();
+        } else {
+            suggestions = List.of();
+            selectedSuggestion = 0;
+            suggestionScrollOffset = 0;
+        }
+        return true;
+    }
+
+    public boolean handleSuggestionScroll(double scrollDelta) {
+        if (!hasVisibleSuggestions() || suggestions.size() <= visibleSuggestionRows()) {
+            return false;
+        }
+        int direction = scrollDelta > 0 ? -1 : 1;
+        suggestionScrollOffset = Mth.clamp(suggestionScrollOffset + direction, 0, maxSuggestionScrollOffset());
+        selectedSuggestion = Mth.clamp(selectedSuggestion, suggestionScrollOffset,
+                Math.min(suggestions.size() - 1, suggestionScrollOffset + visibleSuggestionRows() - 1));
+        return true;
+    }
+
+    public boolean isSuggestionPopupMouseOver(double mouseX, double mouseY) {
+        if (!hasVisibleSuggestions()) {
+            return false;
+        }
+        int popupX = getX();
+        int popupY = suggestionPopupY();
+        int popupH = visibleSuggestionRows() * SUGGESTION_ROW_HEIGHT + SUGGESTION_MARGIN * 2;
+        return mouseX >= popupX && mouseX < popupX + width && mouseY >= popupY && mouseY < popupY + popupH;
+    }
+
+    private boolean hasVisibleSuggestions() {
+        return isFocused() && !suggestions.isEmpty();
+    }
+
+    private int suggestionPopupY() {
+        int popupH = visibleSuggestionRows() * SUGGESTION_ROW_HEIGHT + SUGGESTION_MARGIN * 2;
+        Screen screen = Minecraft.getInstance().screen;
+        int screenH = screen == null ? 0 : screen.height;
+        int below = getY() + height + 2;
+        if (screenH <= 0 || below + popupH <= screenH - 2) {
+            return below;
+        }
+        return getY() - popupH - 2;
+    }
+
+    private int suggestionRowAt(double mouseY) {
+        int localY = Mth.floor(mouseY) - suggestionPopupY() - SUGGESTION_MARGIN;
+        if (localY < 0) {
+            return -1;
+        }
+        int visibleRow = localY / SUGGESTION_ROW_HEIGHT;
+        if (visibleRow < 0 || visibleRow >= visibleSuggestionRows()) {
+            return -1;
+        }
+        return suggestionScrollOffset + visibleRow;
+    }
+
+    private int visibleSuggestionRows() {
+        if (suggestions.isEmpty()) {
+            return 0;
+        }
+        int configuredRows = Math.min(MAX_VISIBLE_SUGGESTIONS, suggestions.size());
+        Screen screen = Minecraft.getInstance().screen;
+        if (screen == null) {
+            return configuredRows;
+        }
+
+        int belowSpace = screen.height - 2 - (getY() + height + 2) - SUGGESTION_MARGIN * 2;
+        int aboveSpace = getY() - 2 - SUGGESTION_MARGIN * 2;
+        int bestSpace = Math.max(belowSpace, aboveSpace);
+        int rowsBySpace = bestSpace / SUGGESTION_ROW_HEIGHT;
+        return Mth.clamp(rowsBySpace, 1, configuredRows);
+    }
+
+    private int maxSuggestionScrollOffset() {
+        return Math.max(0, suggestions.size() - MAX_VISIBLE_SUGGESTIONS);
+    }
+
+    private void ensureSelectedSuggestionVisible() {
+        if (!hasVisibleSuggestions()) {
+            suggestionScrollOffset = 0;
+            return;
+        }
+        if (selectedSuggestion < suggestionScrollOffset) {
+            suggestionScrollOffset = selectedSuggestion;
+        } else if (selectedSuggestion >= suggestionScrollOffset + visibleSuggestionRows()) {
+            suggestionScrollOffset = selectedSuggestion - visibleSuggestionRows() + 1;
+        }
+        suggestionScrollOffset = Mth.clamp(suggestionScrollOffset, 0, maxSuggestionScrollOffset());
     }
 
     private int computeDisplayStart(Font font, int maxTextWidth) {
@@ -432,6 +592,68 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         } finally {
             g.disableScissor();
         }
+    }
+
+    private void renderSuggestions(GuiGraphics g, Font font, int mouseX, int mouseY) {
+        if (!hasVisibleSuggestions()) {
+            return;
+        }
+        int popupX = getX();
+        int popupY = suggestionPopupY();
+        int popupW = width;
+        int visibleRows = visibleSuggestionRows();
+        int popupH = visibleRows * SUGGESTION_ROW_HEIGHT + SUGGESTION_MARGIN * 2;
+
+        g.fill(popupX, popupY, popupX + popupW, popupY + popupH, AMITheme.DROPDOWN_LIST_BG);
+        g.fill(popupX, popupY, popupX + popupW, popupY + 1, AMITheme.BORDER_LIGHT);
+        g.fill(popupX, popupY + popupH - 1, popupX + popupW, popupY + popupH, AMITheme.BORDER_DARK);
+        g.fill(popupX, popupY, popupX + 1, popupY + popupH, AMITheme.BORDER_LIGHT);
+        g.fill(popupX + popupW - 1, popupY, popupX + popupW, popupY + popupH, AMITheme.BORDER_DARK);
+
+        int hoveredRow = isSuggestionPopupMouseOver(mouseX, mouseY) ? suggestionRowAt(mouseY) : -1;
+        for (int visibleIndex = 0; visibleIndex < visibleRows; visibleIndex++) {
+            int i = suggestionScrollOffset + visibleIndex;
+            SearchSuggestions.Suggestion suggestion = suggestions.get(i);
+            int rowY = popupY + SUGGESTION_MARGIN + visibleIndex * SUGGESTION_ROW_HEIGHT;
+            boolean active = i == selectedSuggestion || i == hoveredRow;
+            if (active) {
+                g.fill(popupX + 1, rowY, popupX + popupW - 1, rowY + SUGGESTION_ROW_HEIGHT, AMITheme.DROPDOWN_BG_ACTIVE);
+            }
+
+            String detail = popupW >= 96
+                    ? suggestion.example() ? "example" : suggestion.detail() == null ? "" : suggestion.detail()
+                    : "";
+            int detailW = detail.isBlank() ? 0 : font.width(detail);
+            int scrollbarReserve = suggestions.size() > visibleRows ? 4 : 0;
+            int labelMaxW = Math.max(20, popupW - 8 - detailW - scrollbarReserve - (detailW > 0 ? 8 : 0));
+            String label = font.plainSubstrByWidth(suggestion.display(), labelMaxW);
+            int textY = rowY + (SUGGESTION_ROW_HEIGHT - font.lineHeight) / 2 + 1;
+            g.drawString(font, label, popupX + 4, textY, suggestionColor(suggestion.kind()), false);
+            if (!detail.isBlank()) {
+                g.drawString(font, detail, popupX + popupW - 4 - detailW, textY, AMITheme.TEXT_SUBTLE, false);
+            }
+        }
+
+        if (suggestions.size() > visibleRows) {
+            int trackX = popupX + popupW - 2;
+            int trackY = popupY + SUGGESTION_MARGIN;
+            int trackH = visibleRows * SUGGESTION_ROW_HEIGHT;
+            int thumbH = Math.max(6, trackH * visibleRows / suggestions.size());
+            int thumbY = trackY + (trackH - thumbH) * suggestionScrollOffset / maxSuggestionScrollOffset();
+            g.fill(trackX, trackY, trackX + 1, trackY + trackH, AMITheme.SCROLL_TRACK);
+            g.fill(trackX, thumbY, trackX + 1, thumbY + thumbH, AMITheme.SCROLL_THUMB_ACTIVE);
+        }
+    }
+
+    private int suggestionColor(SearchSuggestions.Kind kind) {
+        return switch (kind) {
+            case PROPERTY -> AMITheme.TOKEN_PROP;
+            case MOD -> AMITheme.MOD_NAME;
+            case TAG -> com.sanhiruzu.ami.util.AmiColors.TAG_COLOR;
+            case META -> AMITheme.TOKEN_META;
+            case NUMERIC -> AMITheme.TOKEN_ESM;
+            default -> AMITheme.SEARCH_DEFAULT_TEXT;
+        };
     }
 
     public interface Listener {
