@@ -86,8 +86,11 @@ public class MultiSelectDropdown<T> implements Dropdown {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0) return false;
 
+        int mx = (int) mouseX;
+        int my = (int) mouseY;
+
         // Toggle on button click
-        if (Dropdown.contains((int) mouseX, (int) mouseY, x, y, width, HEIGHT)) {
+        if (Dropdown.contains(mx, my, x, y, width, HEIGHT)) {
             if (options != null && !options.isEmpty()) {
                 open = !open;
             }
@@ -96,6 +99,10 @@ public class MultiSelectDropdown<T> implements Dropdown {
 
         // Handle dropdown item clicks
         if (open) {
+            if (options == null || options.isEmpty()) {
+                return false;
+            }
+
             var font = Minecraft.getInstance().font;
             int listWidth = width;
             for (T option : options) {
@@ -104,10 +111,14 @@ public class MultiSelectDropdown<T> implements Dropdown {
 
             int itemY = y + HEIGHT + 3;
             int dropH = Math.min(MAX_DROPDOWN_HEIGHT, options.size() * ITEM_HEIGHT + 2);
+            if (!Dropdown.contains(mx, my, x, y + HEIGHT + 2, listWidth, dropH)) {
+                return false;
+            }
+
             for (T option : options) {
                 if (itemY >= y + HEIGHT + 2 + dropH - ITEM_HEIGHT) break;
 
-                if (Dropdown.contains((int) mouseX, (int) mouseY, x, itemY, listWidth, ITEM_HEIGHT)) {
+                if (Dropdown.contains(mx, my, x, itemY, listWidth, ITEM_HEIGHT)) {
                     if (selected.contains(option)) {
                         selected.remove(option);
                     } else {

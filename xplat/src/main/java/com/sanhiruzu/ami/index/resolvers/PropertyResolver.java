@@ -157,20 +157,37 @@ public final class PropertyResolver implements IQueryResolver {
 
     private static boolean containsCapability(SearchNode node, String value) {
         String normalized = normalize(value);
-        return switch (normalized) {
-            case "", "energy", "power", "fe", "rf" -> hasMetadata(node, SearchNodeKeys.ENERGY_CAPACITY)
-                    || hasMetadata(node, SearchNodeKeys.ENERGY_GENERATION)
-                    || hasMetadata(node, SearchNodeKeys.ENERGY_CONSUMPTION)
-                    || containsToken(node, SearchNodeKeys.FACETS, "has_energy")
-                    || containsFactComponent(node, "energy", "power", "fe", "rf");
-            case "fluid", "fluids", "liquid", "tank" -> hasMetadata(node, SearchNodeKeys.FLUID_CAPACITY)
-                    || containsToken(node, SearchNodeKeys.FACETS, "fluid_container")
-                    || containsFactComponent(node, "fluid", "fluids", "liquid");
-            case "storage" -> hasMetadata(node, SearchNodeKeys.STORAGE_ITEM_KIND)
-                    || containsToken(node, SearchNodeKeys.STORAGE_FACTS, "storage")
-                    || containsFactComponent(node, "storage");
-            default -> false;
-        };
+        if (normalized.isEmpty()) {
+            return !indexedCapabilities(node).isEmpty();
+        }
+        if (Set.of("power", "fe", "rf").contains(normalized)) {
+            normalized = "energy";
+        } else if (Set.of("fluids", "liquid", "tank").contains(normalized)) {
+            normalized = "fluid";
+        }
+        return indexedCapabilities(node).contains(normalized);
+    }
+
+    public static Set<String> indexedCapabilities(SearchNode node) {
+        LinkedHashSet<String> capabilities = new LinkedHashSet<>();
+        if (hasMetadata(node, SearchNodeKeys.ENERGY_CAPACITY)
+                || hasMetadata(node, SearchNodeKeys.ENERGY_GENERATION)
+                || hasMetadata(node, SearchNodeKeys.ENERGY_CONSUMPTION)
+                || containsToken(node, SearchNodeKeys.FACETS, "has_energy")
+                || containsFactComponent(node, "energy", "power", "fe", "rf")) {
+            capabilities.add("energy");
+        }
+        if (hasMetadata(node, SearchNodeKeys.FLUID_CAPACITY)
+                || containsToken(node, SearchNodeKeys.FACETS, "fluid_container")
+                || containsFactComponent(node, "fluid", "fluids", "liquid")) {
+            capabilities.add("fluid");
+        }
+        if (hasMetadata(node, SearchNodeKeys.STORAGE_ITEM_KIND)
+                || containsToken(node, SearchNodeKeys.STORAGE_FACTS, "storage")
+                || containsFactComponent(node, "storage")) {
+            capabilities.add("storage");
+        }
+        return capabilities;
     }
 
     private static boolean containsSemanticToken(SearchNode node, String... tokens) {
