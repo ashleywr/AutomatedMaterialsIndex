@@ -73,6 +73,7 @@ public class ResultsTreeView {
     private SearchNode hoveredNode = null;
     private java.util.function.Consumer<String> onModClick = null;
     private java.util.function.BiConsumer<SearchNode, Integer> onItemClick = null;
+    private java.util.function.BiConsumer<TreeNode, Integer> onGroupClick = null;
     private java.util.function.Consumer<String> onTokenInject = null;
     public ResultsTreeView(int x, int y, int width, int height) {
         this.x = x;
@@ -124,6 +125,10 @@ public class ResultsTreeView {
 
     public void setItemClickCallback(java.util.function.BiConsumer<SearchNode, Integer> callback) {
         this.onItemClick = callback;
+    }
+
+    public void setGroupClickCallback(java.util.function.BiConsumer<TreeNode, Integer> callback) {
+        this.onGroupClick = callback;
     }
 
     public void setOnTokenInject(java.util.function.Consumer<String> callback) {
@@ -741,6 +746,8 @@ public class ResultsTreeView {
                     node.setExpanded(!node.isExpanded());
                 } else if (isTokenInjectClick(button) && onTokenInject != null) {
                     onTokenInject.accept("$" + node.getKey());
+                } else if (onGroupClick != null) {
+                    onGroupClick.accept(node, button);
                 }
             }
             return true;

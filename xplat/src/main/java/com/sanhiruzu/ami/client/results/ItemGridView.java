@@ -40,6 +40,7 @@ public class ItemGridView {
      * Set by UniversalResultsPanel to route clicks to the recipe bridge.
      */
     private BiConsumer<SearchNode, Integer> onItemClick;
+    private BiConsumer<TreeNode, Integer> onGroupClick;
     private java.util.function.Consumer<String> onTokenInject;
     // Deferred tooltips — built during render, drawn after scissor is popped
     private ItemStack pendingTooltip = null;
@@ -161,6 +162,10 @@ public class ItemGridView {
 
     public void setItemClickCallback(BiConsumer<SearchNode, Integer> callback) {
         this.onItemClick = callback;
+    }
+
+    public void setGroupClickCallback(BiConsumer<TreeNode, Integer> callback) {
+        this.onGroupClick = callback;
     }
 
     public void setOnTokenInject(java.util.function.Consumer<String> callback) {
@@ -699,6 +704,8 @@ public class ItemGridView {
                     } else if (isTokenInjectClick(button) && hr.toggleable() && onTokenInject != null) {
                         // Ctrl+right-click on group header: inject category token
                         onTokenInject.accept("$" + hr.node().getKey());
+                    } else if (button == 1 && onGroupClick != null) {
+                        onGroupClick.accept(hr.node(), button);
                     } else if (!hr.toggleable()) {
                         return false;
                     }
@@ -711,6 +718,8 @@ public class ItemGridView {
                             if (button == 0) {
                                 node.setExpanded(!node.isExpanded());
                                 cachedRows = null;
+                            } else if (button == 1 && onGroupClick != null) {
+                                onGroupClick.accept(node, button);
                             }
                             return true;
                         }

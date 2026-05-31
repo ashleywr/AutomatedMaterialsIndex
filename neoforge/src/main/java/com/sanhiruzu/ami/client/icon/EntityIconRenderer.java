@@ -1,6 +1,5 @@
 package com.sanhiruzu.ami.client.icon;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
@@ -25,7 +24,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
-import org.lwjgl.opengl.GL11;
 
 import java.util.*;
 
@@ -67,22 +65,12 @@ public class EntityIconRenderer implements IIconRenderer {
         float centerY = y + size / 2.0f;
         Vector3f translate = new Vector3f(0.0f, entity.getBbHeight() / 2.0f, 0.0f);
         Quaternionf pose = new Quaternionf().rotateZ((float) Math.PI);
-        float[] shaderColor = RenderSystem.getShaderColor();
-        float savedRed = shaderColor[0];
-        float savedGreen = shaderColor[1];
-        float savedBlue = shaderColor[2];
-        float savedAlpha = shaderColor[3];
-
         g.pose().pushPose();
         try {
             try {
-                RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-                RenderSystem.enableDepthTest();
-                RenderSystem.depthMask(true);
-                RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
-                RenderSystem.enableBlend();
-                RenderSystem.defaultBlendFunc();
-                InventoryScreen.renderEntityInInventory(g, centerX, centerY, renderScale, translate, pose, new Quaternionf(), entity);
+                IconRenderState.render3dIcon(g, () ->
+                        InventoryScreen.renderEntityInInventory(g, centerX, centerY, renderScale, translate, pose, new Quaternionf(), entity)
+                );
             } catch (RuntimeException e) {
                 // renderEntityInInventory pushes before dispatching to entity renderers; if a modded renderer
                 // throws, vanilla never pops that frame. Pop the leaked vanilla frame before unwinding ours.
@@ -91,9 +79,6 @@ public class EntityIconRenderer implements IIconRenderer {
             }
         } finally {
             g.pose().popPose();
-            RenderSystem.setShaderColor(savedRed, savedGreen, savedBlue, savedAlpha);
-            RenderSystem.depthMask(true);
-            RenderSystem.enableDepthTest();
             entity.yBodyRot = savedBodyRot;
             entity.setYRot(savedYRot);
             entity.setXRot(savedXRot);
@@ -221,12 +206,17 @@ public class EntityIconRenderer implements IIconRenderer {
             if (proxyId != null) {
                 ItemStack proxy = BuiltInRegistries.ITEM.getOptional(proxyId).map(ItemStack::new).orElse(ItemStack.EMPTY);
                 if (!proxy.isEmpty()) {
-                    g.pose().pushPose();
-                    g.pose().translate(x + size / 2.0, y + size / 2.0, 0);
-                    float s = size / 16.0f;
-                    g.pose().scale(s, s, 1f);
-                    g.renderItem(proxy, -8, -8);
-                    g.pose().popPose();
+                    IconRenderState.render3dIcon(g, () -> {
+                        g.pose().pushPose();
+                        try {
+                            g.pose().translate(x + size / 2.0, y + size / 2.0, 0);
+                            float s = size / 16.0f;
+                            g.pose().scale(s, s, 1f);
+                            g.renderItem(proxy, -8, -8);
+                        } finally {
+                            g.pose().popPose();
+                        }
+                    });
                     return;
                 }
             }

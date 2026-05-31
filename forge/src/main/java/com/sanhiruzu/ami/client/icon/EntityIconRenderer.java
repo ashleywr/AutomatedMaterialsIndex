@@ -1,6 +1,5 @@
 package com.sanhiruzu.ami.client.icon;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
@@ -22,7 +21,6 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.joml.Quaternionf;
-import org.lwjgl.opengl.GL11;
 
 import java.util.*;
 
@@ -36,17 +34,7 @@ public class EntityIconRenderer implements IIconRenderer {
     private static final Map<ResourceLocation, LivingEntity> entityCache = new HashMap<>();
 
     private static void renderEntity(GuiGraphics g, int x, int y, int scale, float angleX, float angleY, LivingEntity entity) {
-        float[] shaderColor = RenderSystem.getShaderColor();
-        float savedRed = shaderColor[0];
-        float savedGreen = shaderColor[1];
-        float savedBlue = shaderColor[2];
-        float savedAlpha = shaderColor[3];
-
-        try {
-            RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-            RenderSystem.enableDepthTest();
-            RenderSystem.depthMask(true);
-            RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
+        IconRenderState.render3dIcon(g, () ->
             InventoryScreen.renderEntityInInventory(
                     g,
                     x,
@@ -55,12 +43,8 @@ public class EntityIconRenderer implements IIconRenderer {
                     new Quaternionf().rotateZ((float) Math.PI),
                     new Quaternionf(),
                     entity
-            );
-        } finally {
-            RenderSystem.setShaderColor(savedRed, savedGreen, savedBlue, savedAlpha);
-            RenderSystem.depthMask(true);
-            RenderSystem.enableDepthTest();
-        }
+            )
+        );
     }
 
     private static ResourceLocation resolveProxyItemId(ResourceLocation entityId) {
@@ -181,12 +165,17 @@ public class EntityIconRenderer implements IIconRenderer {
             if (proxyId != null) {
                 ItemStack proxy = BuiltInRegistries.ITEM.getOptional(proxyId).map(ItemStack::new).orElse(ItemStack.EMPTY);
                 if (!proxy.isEmpty()) {
-                    g.pose().pushPose();
-                    g.pose().translate(x + size / 2.0, y + size / 2.0, 0);
-                    float s = size / 16.0f;
-                    g.pose().scale(s, s, 1f);
-                    g.renderItem(proxy, -8, -8);
-                    g.pose().popPose();
+                    IconRenderState.render3dIcon(g, () -> {
+                        g.pose().pushPose();
+                        try {
+                            g.pose().translate(x + size / 2.0, y + size / 2.0, 0);
+                            float s = size / 16.0f;
+                            g.pose().scale(s, s, 1f);
+                            g.renderItem(proxy, -8, -8);
+                        } finally {
+                            g.pose().popPose();
+                        }
+                    });
                     return;
                 }
             }
