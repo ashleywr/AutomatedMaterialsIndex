@@ -56,55 +56,15 @@ public final class QueryParser {
 
         if (part.isEmpty()) return null;
 
-        // Detect prefix and extract value
-        TokenType type;
-        String value;
-
-        if (part.startsWith("$")) {
-            type = TokenType.CATEGORY;
-            value = part.substring(1);
-        } else if (part.startsWith("~")) {
-            type = TokenType.META;
-            value = part.substring(1);
-        } else if (part.startsWith("#")) {
-            type = TokenType.TAG;
-            value = part.substring(1);
-        } else if (part.startsWith("@")) {
-            type = TokenType.MOD;
-            value = part.substring(1);
-        } else if (part.startsWith("&")) {
-            type = TokenType.ENV;
-            value = part.substring(1);
-        } else if (part.startsWith("?")) {
-            type = TokenType.PROP;
-            value = part.substring(1);
-        } else if (part.startsWith("!")) {
-            type = TokenType.ESSENTIAL;
-            value = part.substring(1);
-        } else if (part.startsWith("%egg:")) {
-            type = TokenType.PROP;
-            value = "pokemonEggGroup:" + part.substring("%egg:".length());
-        } else if (part.startsWith(">") || part.startsWith("<") || part.startsWith("=")) {
-            type = TokenType.ESM;
-            value = part;
-        } else {
-            type = TokenType.INCLUDE;
-            value = part;
-        }
+        SearchSyntax.ParsedPrefix parsedPrefix = SearchSyntax.parsePrefixedToken(part)
+                .orElse(new SearchSyntax.ParsedPrefix(TokenType.INCLUDE, part));
+        TokenType type = parsedPrefix.type();
+        String value = parsedPrefix.value();
 
         if (value.isEmpty()) return null;
 
         if (isExclude) {
-            value = switch (type) {
-                case CATEGORY -> "$" + value;
-                case META -> "~" + value;
-                case TAG -> "#" + value;
-                case MOD -> "@" + value;
-                case ENV -> "&" + value;
-                case PROP -> "?" + value;
-                case ESSENTIAL -> "!" + value;
-                default -> value;
-            };
+            value = SearchSyntax.exclusionValue(type, value);
             type = TokenType.EXCLUDE;
         }
 
