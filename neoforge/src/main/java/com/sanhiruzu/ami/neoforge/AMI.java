@@ -36,7 +36,7 @@ public class AMI {
     }
 
     private void registerPayloads(RegisterPayloadHandlersEvent event) {
-        var registrar = event.registrar("1");
+        var registrar = event.registrar("1").optional();
         registrar.playToServer(AmiCheatGivePacket.TYPE, AmiCheatGivePacket.STREAM_CODEC, AmiCheatGivePacket::handle);
         registrar.playToClient(AmiServerPingPacket.TYPE, AmiServerPingPacket.STREAM_CODEC, AmiServerPingPacket::handle);
     }

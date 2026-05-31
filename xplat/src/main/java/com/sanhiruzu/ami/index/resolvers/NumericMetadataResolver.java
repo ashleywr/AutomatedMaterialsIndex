@@ -35,6 +35,34 @@ public final class NumericMetadataResolver {
         nodes.add(node);
     }
 
+    public static List<String> aliasesForMetadataKey(String metadataKey) {
+        return switch (metadataKey) {
+            case SearchNodeKeys.DPS -> List.of("dps");
+            case SearchNodeKeys.ATTACK_DAMAGE, SearchNodeKeys.ENTITY_ATTACK_DAMAGE -> List.of("damage");
+            case SearchNodeKeys.POKEMON_HEALING -> List.of("heal");
+            case SearchNodeKeys.POKEMON_DEX_NUMBER -> List.of("dex");
+            case SearchNodeKeys.POKEMON_BASE_HP -> List.of("pokemonHp");
+            case SearchNodeKeys.POKEMON_BASE_ATTACK -> List.of("pokemonAttack");
+            case SearchNodeKeys.POKEMON_BASE_DEFENSE -> List.of("pokemonDefense");
+            case SearchNodeKeys.POKEMON_BASE_SPECIAL_ATTACK -> List.of("pokemonSpecialAttack");
+            case SearchNodeKeys.POKEMON_BASE_SPECIAL_DEFENSE -> List.of("pokemonSpecialDefense");
+            case SearchNodeKeys.POKEMON_BASE_SPEED -> List.of("pokemonSpeed");
+            case SearchNodeKeys.ESM_CAPACITY -> List.of("storage");
+            case SearchNodeKeys.ENERGY_CAPACITY -> List.of("energy");
+            case SearchNodeKeys.ENERGY_GENERATION -> List.of("gen");
+            case SearchNodeKeys.ENERGY_CONSUMPTION -> List.of("consume");
+            case SearchNodeKeys.FLUID_CAPACITY -> List.of("fluid");
+            case SearchNodeKeys.TOOL_SPEED -> List.of("toolspeed");
+            case SearchNodeKeys.MAX_DURABILITY, SearchNodeKeys.TOOL_USES -> List.of("durability");
+            case SearchNodeKeys.ARMOR_DEFENSE -> List.of("armor");
+            case SearchNodeKeys.ARMOR_TOUGHNESS -> List.of("toughness");
+            case SearchNodeKeys.FOOD_NUTRITION -> List.of("food");
+            case SearchNodeKeys.FOOD_SATURATION -> List.of("saturation");
+            case SearchNodeKeys.ENTITY_HEALTH -> List.of("health");
+            default -> List.of();
+        };
+    }
+
     public Map<NodeType, List<SearchNode>> resolve(String token) {
         Optional<NumericFilter> parsed = NumericFilter.parse(token);
         if (parsed.isEmpty()) return new LinkedHashMap<>();
