@@ -79,6 +79,10 @@ public class AmiConfig {
     @ConfigGroup(value = "compat", icon = "compat", order = 9)
     @ConfigValue("compat.cobblemon.category-policy")
     public static CompatCategoryPolicy cobblemonCategoryPolicy = CompatCategoryPolicy.FOCUSED;
+    @ConfigValue("compat.cobblemon.use-resource-pack-sprites")
+    public static boolean useCobblemonResourcePackSprites = true;
+    @ConfigValue("compat.cobblemon.render-3d-pokemon-icons")
+    public static boolean renderCobblemon3dPokemonIcons = false;
     @ConfigValue("compat.create.category-policy")
     public static CompatCategoryPolicy createCategoryPolicy = CompatCategoryPolicy.HYBRID;
     @ConfigValue("compat.ae2.category-policy")
@@ -231,6 +235,8 @@ public class AmiConfig {
         enableGhostCrafting = true;
 
         cobblemonCategoryPolicy = CompatCategoryPolicy.FOCUSED;
+        useCobblemonResourcePackSprites = true;
+        renderCobblemon3dPokemonIcons = false;
         createCategoryPolicy = CompatCategoryPolicy.HYBRID;
         ae2CategoryPolicy = CompatCategoryPolicy.HYBRID;
         mekanismCategoryPolicy = CompatCategoryPolicy.HYBRID;

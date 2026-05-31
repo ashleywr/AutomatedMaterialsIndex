@@ -517,10 +517,14 @@ public class ItemGridView {
             out.add(new HeaderRow(node, depth, totalItems, true, nodeBand));
 
             if (node.isExpanded()) {
-                List<TreeNode> childGroups = node.getChildren().stream().filter(child -> !child.isLeaf()).toList();
-                List<TreeNode> directItems = node.getChildren().stream().filter(TreeNode::isLeaf).toList();
+                List<TreeNode> inlineItems = node.getChildren().stream()
+                        .filter(child -> child.isLeaf() || child.isHighCardinality())
+                        .toList();
+                List<TreeNode> childGroups = node.getChildren().stream()
+                        .filter(child -> !child.isLeaf() && !child.isHighCardinality())
+                        .toList();
 
-                for (TreeNode child : directItems) {
+                for (TreeNode child : inlineItems) {
                     processNode(child, depth + 1, cols, out, linearItems, bands);
                 }
                 packIntoRows(linearItems, cols, out, depth + 1, nodeBand);

@@ -450,7 +450,6 @@ public class GroupingEngine {
         }
         if (hasMetadata(node, SearchNodeKeys.ENERGY_CAPACITY)
                 || tokenAny(node, SearchNodeKeys.FACETS, "has_energy")
-                || factHasAnyComponent(node, ENERGY_TERMS)
                 || factHasResourceAction(node, ENERGY_TERMS, "store", "stores", "storage")) {
             return "behavior:energy_storage";
         }
@@ -492,9 +491,8 @@ public class GroupingEngine {
         if (conventionHasAnyToken(node, "backpack", "backpacks", "portable_storage", "portable")) {
             return "behavior:portable_storage";
         }
-        if (hasMetadata(node, SearchNodeKeys.ESM_CAPACITY)
-                || tokenAny(node, SearchNodeKeys.FACETS, "storage")
-                || conventionHasAnyToken(node, "storage")) {
+        if (hasMetadata(node, SearchNodeKeys.STORAGE_ITEM_KIND)
+                || tokenAny(node, SearchNodeKeys.STORAGE_FACTS, "storage")) {
             return "behavior:storage";
         }
         if (tokenAny(node, SearchNodeKeys.FACETS, "machine", "interactive_block")

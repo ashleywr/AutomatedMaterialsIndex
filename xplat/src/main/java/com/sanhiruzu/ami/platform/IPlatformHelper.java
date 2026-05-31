@@ -306,6 +306,10 @@ public interface IPlatformHelper {
         return OptionalLong.empty();
     }
 
+    default OptionalLong getBlockItemHandlerCapacity(ItemStack stack, Level level) {
+        return OptionalLong.empty();
+    }
+
     default boolean isInstanceOf(Object target, String className) {
         if (target == null) return false;
         try {

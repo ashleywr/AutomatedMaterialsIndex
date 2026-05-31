@@ -346,10 +346,20 @@ public class OverlayWidgetManager {
 
     private void toggleLeftAlternate() {
         leftAlternateActive = !leftAlternateActive;
+        refreshCurrentLayout();
     }
 
     private void toggleRightAlternate() {
         rightAlternateActive = !rightAlternateActive;
+        refreshCurrentLayout();
+    }
+
+    private void refreshCurrentLayout() {
+        Minecraft mc = Minecraft.getInstance();
+        Screen screen = mc.screen;
+        if (screen != null) {
+            computeLayouts(screen, screen.width, screen.height);
+        }
     }
 
     public void tick(ScreenEvent.Render.Post event) {

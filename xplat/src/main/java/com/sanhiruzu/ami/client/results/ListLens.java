@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.index.NodeType;
+import com.sanhiruzu.ami.index.GroupingEngine;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.network.chat.Component;
@@ -134,8 +135,8 @@ public enum ListLens {
             )) {
         @Override
         public boolean matches(SearchNode node) {
-            return hasMetadata(node, SearchNodeKeys.ESM_CAPACITY)
-                    || hasFacet(node, "storage");
+            return hasMetadata(node, SearchNodeKeys.STORAGE_ITEM_KIND)
+                    || hasBehavior(node, "behavior:storage", "behavior:portable_storage");
         }
     },
 
@@ -155,7 +156,8 @@ public enum ListLens {
             return hasMetadata(node, SearchNodeKeys.ENERGY_CAPACITY)
                     || hasMetadata(node, SearchNodeKeys.ENERGY_GENERATION)
                     || hasMetadata(node, SearchNodeKeys.ENERGY_CONSUMPTION)
-                    || hasFacet(node, "has_energy");
+                    || hasFacet(node, "has_energy")
+                    || hasBehavior(node, "behavior:energy_generation", "behavior:energy_storage", "behavior:energy_usage");
         }
     },
 
@@ -180,7 +182,19 @@ public enum ListLens {
                     || hasFacet(node, "has_energy")
                     || hasCategory(node, "tech", "machines")
                     || hasCategory(node, "tech", "power")
-                    || hasMachinePath(node);
+                    || hasBehavior(node,
+                    "behavior:energy_generation",
+                    "behavior:energy_storage",
+                    "behavior:energy_usage",
+                    "behavior:fluid_storage",
+                    "behavior:fluid_transport",
+                    "behavior:chemical_handling",
+                    "behavior:kinetic_power",
+                    "behavior:create_processing",
+                    "behavior:logistics",
+                    "behavior:network",
+                    "behavior:terminal",
+                    "behavior:machine");
         }
     },
 
@@ -199,8 +213,7 @@ public enum ListLens {
             return hasMetadata(node, SearchNodeKeys.FLUID_CAPACITY)
                     || hasFacet(node, "fluid_container")
                     || hasCategory(node, "utility", "fluids")
-                    || hasAnyToken(node, SearchNodeKeys.CREATE_FACTS, "fluid")
-                    || hasAnyToken(node, SearchNodeKeys.MEKANISM_FACTS, "fluid_or_heat");
+                    || hasBehavior(node, "behavior:fluid_storage", "behavior:fluid_transport");
         }
     },
 
@@ -325,19 +338,13 @@ public enum ListLens {
         return false;
     }
 
-    private static boolean hasAnyToken(SearchNode node, String metadataKey, String... tokens) {
-        String raw = node.meta(metadataKey, "");
-        if (raw.isBlank()) {
+    private static boolean hasBehavior(SearchNode node, String... behaviorKeys) {
+        String behavior = GroupingEngine.classifyBehaviorRoot(node);
+        if (behavior.isBlank()) {
             return false;
         }
-        Set<String> present = new java.util.HashSet<>();
-        for (String part : raw.split("[,\\s]+")) {
-            if (!part.isBlank()) {
-                present.add(part.trim().toLowerCase(Locale.ROOT).replace("_", "").replace("-", ""));
-            }
-        }
-        for (String token : tokens) {
-            if (present.contains(token.toLowerCase(Locale.ROOT).replace("_", "").replace("-", ""))) {
+        for (String behaviorKey : behaviorKeys) {
+            if (behavior.equals(behaviorKey)) {
                 return true;
             }
         }
@@ -386,17 +393,24 @@ public enum ListLens {
         return path.contains("gunpowder") || path.contains("bulletproof");
     }
 
-    private static boolean hasMachinePath(SearchNode node) {
-        return pathContains(node, "machine", "generator", "crusher", "smelter", "pulverizer",
-                "assembler", "fabricator", "processor", "charger");
-    }
-
     private static boolean isStorageOnlyMachineFalsePositive(SearchNode node) {
         return hasFacet(node, "storage")
                 && !hasFacet(node, "machine")
                 && !hasFacet(node, "interactive_block")
                 && !hasFacet(node, "has_energy")
-                && !hasMachinePath(node);
+                && !hasBehavior(node,
+                "behavior:energy_generation",
+                "behavior:energy_storage",
+                "behavior:energy_usage",
+                "behavior:fluid_storage",
+                "behavior:fluid_transport",
+                "behavior:chemical_handling",
+                "behavior:kinetic_power",
+                "behavior:create_processing",
+                "behavior:logistics",
+                "behavior:network",
+                "behavior:terminal",
+                "behavior:machine");
     }
 
     public abstract boolean matches(SearchNode node);

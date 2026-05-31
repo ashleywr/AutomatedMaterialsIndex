@@ -65,6 +65,22 @@ public final class ItemFilter {
         return result;
     }
 
+    public static Optional<ItemStack> firstCreativeStack(Item item, Map<Item, List<CreativeStackInfo>> stackMap) {
+        List<CreativeStackInfo> stacks = stackMap.get(item);
+        if (stacks == null || stacks.isEmpty()) {
+            return Optional.empty();
+        }
+        for (CreativeStackInfo info : stacks) {
+            if (info == null || info.stack() == null || info.stack().isEmpty()) {
+                continue;
+            }
+            ItemStack stack = info.stack().copy();
+            stack.setCount(1);
+            return Optional.of(stack);
+        }
+        return Optional.empty();
+    }
+
     /**
      * Returns the set of all items that appear as the output of at least one registered recipe.
      */
