@@ -43,11 +43,18 @@ class StructuredCompatSearchTest {
                 SearchNodeKeys.AE2_ITEM_KIND, "terminals",
                 SearchNodeKeys.AE2_FACTS, "terminal,network"
         ));
+        SearchNode externalBattery = item("powah", "starter_cell", "Starter Cell", Map.of(
+                "powahItemKind", "energy",
+                "powahFacts", "stores_fe,energy",
+                "powahTier", "starter",
+                SearchNodeKeys.ENERGY_CAPACITY, "10000"
+        ));
 
         index.addNode(mixer);
         index.addNode(tank);
         index.addNode(upgrade);
         index.addNode(terminal);
+        index.addNode(externalBattery);
         SearchService service = SearchService.buildFrom(index, false);
 
         assertOnlyContains(service.query("?fact:uses_su").get(NodeType.ITEM), mixer, tank);
@@ -58,6 +65,10 @@ class StructuredCompatSearchTest {
         assertOnlyContains(service.query("?capability:fluid").get(NodeType.ITEM), tank, mixer);
         assertOnlyContains(service.query("?upgrade").get(NodeType.ITEM), upgrade, terminal);
         assertOnlyContains(service.query("?machine").get(NodeType.ITEM), tank, terminal);
+        assertOnlyContains(service.query("?tier:starter").get(NodeType.ITEM), externalBattery, tank);
+        assertOnlyContains(service.query("?fact:stores_fe").get(NodeType.ITEM), externalBattery, terminal);
+        assertOnlyContains(service.query("?capability:energy").get(NodeType.ITEM), externalBattery, tank);
+        assertOnlyContains(service.query("~stores_fe").get(NodeType.ITEM), externalBattery, terminal);
     }
 
     @Test
