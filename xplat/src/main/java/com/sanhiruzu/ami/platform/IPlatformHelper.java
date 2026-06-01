@@ -157,6 +157,11 @@ public interface IPlatformHelper {
 
     IAmiKeyMappings keyMappings();
 
+    /** Returns true if the off-screen framebuffer item icon cache is stable on this platform/MC version. */
+    default boolean supportsItemIconCache() {
+        return false;
+    }
+
     default ResourceLocation rl(String namespaceAndPath) {
         int colon = namespaceAndPath.indexOf(':');
         return colon >= 0

@@ -49,6 +49,14 @@ public class ItemIconCache {
      * own framebuffer. Call before the render loop with the set of visible item IDs + stacks.
      */
     public static void primeVisible(GuiGraphics g, Iterable<Map.Entry<ResourceLocation, ItemStack>> visible) {
+        primeVisible(g, visible, Integer.MAX_VALUE);
+    }
+
+    /**
+     * Budgeted variant for scrollable grids. Populating cached icons requires framebuffer
+     * switches, so spread misses over multiple frames instead of doing a whole viewport at once.
+     */
+    public static void primeVisible(GuiGraphics g, Iterable<Map.Entry<ResourceLocation, ItemStack>> visible, int maxNewEntries) {
         boolean anyUncached = false;
         for (var e : visible) {
             if (!textureKeys.containsKey(e.getKey())) {
@@ -61,9 +69,14 @@ public class ItemIconCache {
         // One flush before we start switching framebuffers.
         g.flush();
 
+        int populated = 0;
         for (var e : visible) {
             if (!textureKeys.containsKey(e.getKey())) {
                 populateEntry(e.getKey(), e.getValue());
+                populated++;
+                if (populated >= maxNewEntries) {
+                    return;
+                }
             }
         }
     }
@@ -120,10 +133,18 @@ public class ItemIconCache {
             RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
             GlStateManager._viewport(0, 0, ICON_SIZE, ICON_SIZE);
             RenderSystem.setProjectionMatrix(
-                    new Matrix4f().setOrtho(0, ICON_SIZE, ICON_SIZE, 0, -100, 3000),
+                    new Matrix4f().setOrtho(0, ICON_SIZE, ICON_SIZE, 0, -200, 3000),
                     VertexSorting.ORTHOGRAPHIC_Z);
 
             GuiGraphics cacheG = new GuiGraphics(mc, mc.renderBuffers().bufferSource());
+            // Compensate for any model-view Z translation active during the GUI render frame.
+            // In MC 1.20.x (Forge), GameRenderer.renderGui applies translate(0,0,-11000) to the
+            // model-view stack, pushing items to view-space Z≈-10900 — outside the off-screen
+            // frustum unless we neutralise it here.  In 1.21.x the offset is 0 so this is a no-op.
+            float mvZ = RenderSystem.getModelViewMatrix().m32();
+            if (mvZ != 0) {
+                cacheG.pose().translate(0.0, 0.0, (double) -mvZ);
+            }
             cacheG.renderItem(stack, 0, 0);
             cacheG.flush();
             image = Screenshot.takeScreenshot(rt);
