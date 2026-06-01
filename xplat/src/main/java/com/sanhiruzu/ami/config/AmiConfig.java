@@ -90,9 +90,19 @@ public class AmiConfig {
     @ConfigValue("features.enable-ghost-crafting")
     public static boolean enableGhostCrafting = true;
 
+    @ConfigValue("features.guide-indexing-mode")
+    public static GuideIndexingMode guideIndexingMode = GuideIndexingMode.TITLES;
+
+    @ConfigValue("features.pack-author-mode")
+    public static boolean packAuthorMode = false;
+
+    @ConfigHidden
+    @ConfigValue("features.guide-summary-text-cap")
+    public static int guideSummaryTextCap = 4096;
+
     @ConfigHidden
     @ConfigValue("ui.context-menu.enabled-actions")
-    public static String contextMenuEnabledActions = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,ami:group_toggle,ami:filter_category,ami:copy_group_key";
+    public static String contextMenuEnabledActions = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,ami:group_toggle,ami:filter_category,ami:copy_group_key,ami:start_category_fix,ami:apply_category_fix,ami:clear_item_fix,ami:quests_for_item,ami:open_quest,ami:copy_quest_matches";
 
     @ConfigHidden
     @ConfigValue("ui.context-menu.disabled-by-mod")
@@ -279,7 +289,10 @@ public class AmiConfig {
         itemClickAction = ItemClickAction.RECIPES;
         recipeViewerMode = RecipeViewerMode.AUTO;
         enableGhostCrafting = true;
-        contextMenuEnabledActions = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,ami:group_toggle,ami:filter_category,ami:copy_group_key";
+        guideIndexingMode = GuideIndexingMode.TITLES;
+        packAuthorMode = false;
+        guideSummaryTextCap = 4096;
+        contextMenuEnabledActions = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,ami:group_toggle,ami:filter_category,ami:copy_group_key,ami:start_category_fix,ami:apply_category_fix,ami:clear_item_fix,ami:quests_for_item,ami:open_quest,ami:copy_quest_matches";
         contextMenuDisabledByMod = "";
         contextMenuDisabledByType = "";
         contextMenuDisabledByCategory = "";
@@ -437,6 +450,18 @@ public class AmiConfig {
         public final Component displayName;
 
         RecipeViewerMode(String key) {
+            this.displayName = Component.translatable(key);
+        }
+    }
+
+    public enum GuideIndexingMode {
+        OFF("ami.config.value.guide_indexing.off"),
+        TITLES("ami.config.value.guide_indexing.titles"),
+        SUMMARY("ami.config.value.guide_indexing.summary");
+
+        public final Component displayName;
+
+        GuideIndexingMode(String key) {
             this.displayName = Component.translatable(key);
         }
     }

@@ -42,6 +42,14 @@ public final class ResultContextMenuActionPolicy {
 
     public boolean allows(SearchNode node, String actionId) {
         if (!isGloballyEnabled(actionId)) return false;
+        return allowsWhenEnabled(node, actionId);
+    }
+
+    public boolean allowsDev(SearchNode node, String actionId) {
+        return allowsWhenEnabled(node, actionId);
+    }
+
+    private boolean allowsWhenEnabled(SearchNode node, String actionId) {
         if (node == null) return true;
 
         if (node.id() != null && scopeBlocks(disabledByMod, node.id().getNamespace(), actionId)) {
@@ -61,6 +69,10 @@ public final class ResultContextMenuActionPolicy {
 
     public boolean allowsGroup(TreeNode node, String actionId) {
         if (!isGloballyEnabled(actionId)) return false;
+        return allowsDevGroup(node, actionId);
+    }
+
+    public boolean allowsDevGroup(TreeNode node, String actionId) {
         if (node == null) return true;
 
         String key = node.getKey();

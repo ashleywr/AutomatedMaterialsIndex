@@ -135,12 +135,6 @@ public class ResultsTreeView {
         this.onTokenInject = callback;
     }
 
-    private boolean tooltipLeftOfCursor = true;
-
-    public void setTooltipLeftOfCursor(boolean tooltipLeftOfCursor) {
-        this.tooltipLeftOfCursor = tooltipLeftOfCursor;
-    }
-
     public List<TreeNode> getRootNodes() {
         return List.copyOf(rootNodes);
     }
@@ -243,9 +237,9 @@ public class ResultsTreeView {
             com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
             if (pendingTooltipLines != null) {
                 ItemStack stackContext = (pendingItemStack != null) ? pendingItemStack : ItemStack.EMPTY;
-                AmiTooltipRenderer.render(g, font, stackContext, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY, tooltipLeftOfCursor);
+                AmiTooltipRenderer.render(g, font, stackContext, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY);
             } else if (pendingItemStack != null && !pendingItemStack.isEmpty()) {
-                AmiTooltipRenderer.render(g, font, pendingItemStack, mouseX, mouseY, tooltipLeftOfCursor);
+                AmiTooltipRenderer.render(g, font, pendingItemStack, mouseX, mouseY);
             }
         }
     }
@@ -410,6 +404,11 @@ public class ResultsTreeView {
         // Always skip the tool icon slot (12px + 4px gap) to keep mod names aligned
         currentX -= (12 + 4);
 
+        QuestItemEvidence questEvidence = QuestItemEvidenceProjector.project(entry);
+        if (questEvidence.hasMatches()) {
+            currentX = renderQuestBadge(g, font, questEvidence, currentX, drawY, badgeScale);
+        }
+
         // Subtitle fields (Mod, Storage, DPS, etc.) from RowFieldConfig
         List<RowField> active = RowFieldConfig.getSubtitleFields();
         if (active.isEmpty()) return;
@@ -456,11 +455,32 @@ public class ResultsTreeView {
         }
     }
 
+    private int renderQuestBadge(GuiGraphics g, net.minecraft.client.gui.Font font,
+                                 QuestItemEvidence evidence, int currentX, int drawY, float scale) {
+        String label = evidence.badgeLabel();
+        int textW = scaledBadgeWidth(font, label, scale);
+        int badgeW = textW + 6;
+        int badgeH = Math.max(9, (int) Math.ceil(font.lineHeight * scale) + 1);
+        int badgeX = currentX - badgeW;
+        int badgeY = drawY + (AMITheme.ROW_HEIGHT - badgeH) / 2;
+        int color = evidence.hasRequirement() ? AMITheme.ACCENT_BLUE : AMITheme.ACCENT_GOLD;
+
+        g.fill(badgeX, badgeY, badgeX + badgeW, badgeY + badgeH, 0xAA000000);
+        g.fill(badgeX, badgeY, badgeX + 1, badgeY + badgeH, color);
+        drawBadgeText(g, font, label, badgeX + 3, badgeY + 1, scale, color, false);
+        return badgeX - 4;
+    }
+
     // ── Representative icon helpers ───────────────────────────────────────────
 
     private int badgeWidth(net.minecraft.client.gui.Font font, SearchNode entry) {
         // Start with 20px (16px icon + 4px gap) reserved for the tool slot
         int w = 16 + 4;
+
+        QuestItemEvidence questEvidence = QuestItemEvidenceProjector.project(entry);
+        if (questEvidence.hasMatches()) {
+            w += scaledBadgeWidth(font, questEvidence.badgeLabel(), currentLabelScale) + 10;
+        }
 
         List<RowField> active = RowFieldConfig.getSubtitleFields();
         List<String> parts = new ArrayList<>();

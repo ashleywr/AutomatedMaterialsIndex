@@ -457,6 +457,7 @@ public final class AmiOntology {
             for (Category cat : CATEGORIES) {
                 if (cat.id.equals(precomputed)) return cat;
             }
+            return dynamicCategory(precomputed);
         }
 
         return switch (node.type()) {
@@ -483,6 +484,42 @@ public final class AmiOntology {
         }
 
         return MISC;
+    }
+
+    public static Category categoryForId(String categoryId) {
+        if (categoryId == null || categoryId.isBlank()) return MISC;
+        String normalized = categoryId.trim().toLowerCase(Locale.ROOT);
+        for (Category category : CATEGORIES) {
+            if (category.id.equals(normalized)) return category;
+        }
+        return dynamicCategory(normalized);
+    }
+
+    private static Category dynamicCategory(String id) {
+        String normalized = id == null || id.isBlank() ? "custom" : id.trim().toLowerCase(Locale.ROOT);
+        return new Category(
+                normalized,
+                "",
+                titleCase(normalized.replace(':', ' ').replace('/', ' ').replace('_', ' ')),
+                "minecraft:paper",
+                0xFF888888,
+                List.of(),
+                List.of()
+        );
+    }
+
+    private static String titleCase(String value) {
+        String[] words = value.trim().split("\\s+");
+        StringBuilder out = new StringBuilder(value.length());
+        for (String word : words) {
+            if (word.isBlank()) continue;
+            if (!out.isEmpty()) out.append(' ');
+            out.append(Character.toUpperCase(word.charAt(0)));
+            if (word.length() > 1) {
+                out.append(word.substring(1));
+            }
+        }
+        return out.isEmpty() ? "Custom" : out.toString();
     }
 
     public record SubCategory(String id, String translationKey) {
@@ -516,6 +553,9 @@ public final class AmiOntology {
         }
 
         public Component displayName() {
+            if (translationKey == null || translationKey.isBlank()) {
+                return Component.literal(shortName);
+            }
             return Component.translatable(translationKey);
         }
     }
