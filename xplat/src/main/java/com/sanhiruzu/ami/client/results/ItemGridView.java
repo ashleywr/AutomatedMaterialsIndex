@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.AMITheme;
+import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
 import com.sanhiruzu.ami.index.SearchNode;
@@ -29,6 +30,11 @@ public class ItemGridView {
     private static final int STICKY_CONTEXT_H = HEADER_H + 3;
     private static final int SCROLLBAR_W = 5;
     private static final int HEADER_INDENT = 12;
+    private static final int ICON_CACHE_PRIME_BUDGET = 12;
+    private static final boolean ITEM_ICON_CACHE_ENABLED =
+            System.getProperty("ami.itemIconCache") != null
+                    ? Boolean.getBoolean("ami.itemIconCache")
+                    : com.sanhiruzu.ami.platform.Services.PLATFORM.supportsItemIconCache();
     private final Map<TreeNode, TreeNode> expandedGroupCache = new HashMap<>();
     private int x, y, width, height;
     private List<TreeNode> rootNodes = new ArrayList<>();
@@ -211,6 +217,10 @@ public class ItemGridView {
 
         g.enableScissor(x, contentY, x + width, y + height);
 
+        if (ITEM_ICON_CACHE_ENABLED && !cachedDragging) {
+            primeIconCache(g, rows, contentY);
+        }
+
         int drawY = contentY - pixelScrollOffset;
         for (VirtualRow row : rows) {
             int rowBottom = drawY + row.height();
@@ -272,6 +282,7 @@ public class ItemGridView {
 
             SearchNode entry = null;
             ItemStack overrideStack = null;
+            ResourceLocation overrideId = null;
 
             if (node.isLeaf()) {
                 entry = node.getEntry();
@@ -285,6 +296,7 @@ public class ItemGridView {
                         net.minecraft.world.item.Item baseItem = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(baseLoc);
                         if (baseItem != null && baseItem != net.minecraft.world.item.Items.AIR) {
                             overrideStack = new ItemStack(baseItem);
+                            overrideId = baseLoc;
                         }
                     }
                 }
@@ -374,7 +386,7 @@ public class ItemGridView {
             }
 
             if (overrideStack != null) {
-                renderIconWithWiggle(g, overrideStack, cellX + 1, cellY + 1, hovered);
+                renderIconWithWiggle(g, overrideId, overrideStack, cellX + 1, cellY + 1, hovered);
             } else if (entry.type() == com.sanhiruzu.ami.index.NodeType.ITEM) {
                 ItemStack stack = resolveStack(entry);
                 if (!stack.isEmpty()) renderIconWithWiggle(g, entry.id(), stack, cellX + 1, cellY + 1, hovered);
@@ -408,6 +420,10 @@ public class ItemGridView {
     }
 
     private void renderIconWithWiggle(GuiGraphics g, ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
+        if (ITEM_ICON_CACHE_ENABLED && !hovered && !cachedDragging && itemId != null && ItemIconCache.isCached(itemId)) {
+            ItemIconCache.blit(g, itemId, x, y);
+            return;
+        }
         g.pose().pushPose();
         g.pose().translate(x + 8, y + 8, 0);
         if (cachedDragging || hovered) {
@@ -442,11 +458,11 @@ public class ItemGridView {
         }
     }
 
-    private void primeIconCache(GuiGraphics g, List<VirtualRow> rows) {
+    private void primeIconCache(GuiGraphics g, List<VirtualRow> rows, int contentY) {
         List<Map.Entry<ResourceLocation, ItemStack>> uncached = new ArrayList<>();
-        int drawY = y - pixelScrollOffset;
+        int drawY = contentY - pixelScrollOffset;
         for (VirtualRow row : rows) {
-            if (drawY + row.height() > y && drawY < y + height && row instanceof ItemRow ir) {
+            if (drawY + row.height() > contentY && drawY < y + height && row instanceof ItemRow ir) {
                 for (TreeNode node : ir.items()) {
                     ResourceLocation overrideId = null;
                     ItemStack overrideStack = null;
@@ -480,7 +496,7 @@ public class ItemGridView {
             }
             drawY += row.height();
         }
-        if (!uncached.isEmpty()) com.sanhiruzu.ami.client.ItemIconCache.primeVisible(g, uncached);
+        if (!uncached.isEmpty()) ItemIconCache.primeVisible(g, uncached, ICON_CACHE_PRIME_BUDGET);
     }
 
     private List<VirtualRow> getVirtualRows(int cols) {
@@ -568,26 +584,18 @@ public class ItemGridView {
     }
 
     private void renderStickyContext(GuiGraphics g, StickyContext context) {
-        g.flush();
-        g.pose().pushPose();
-        g.pose().translate(0, 0, 10);
-        try {
-            int contentRight = x + width - SCROLLBAR_W;
-            int headerBottom = y + STICKY_CONTEXT_H;
-            g.fill(x, y, contentRight, headerBottom, AMITheme.GRID_HEADER_DARKEN);
-            g.fill(x, headerBottom - 1, contentRight, headerBottom, AMITheme.GRID_GROUP_BAND);
+        int contentRight = x + width - SCROLLBAR_W;
+        int headerBottom = y + STICKY_CONTEXT_H;
+        g.fill(x, y, contentRight, headerBottom, AMITheme.GRID_HEADER_DARKEN);
+        g.fill(x, headerBottom - 1, contentRight, headerBottom, AMITheme.GRID_GROUP_BAND);
 
-            var font = Minecraft.getInstance().font;
-            String label = context.label();
-            int maxWidth = Math.max(0, contentRight - x - 8);
-            if (font.width(label) > maxWidth) {
-                label = font.plainSubstrByWidth(label, Math.max(0, maxWidth - font.width("..."))) + "...";
-            }
-            g.drawString(font, label, x + 4, y + 3, AMITheme.TEXT_HEADER, false);
-        } finally {
-            g.pose().popPose();
-            g.flush();
+        var font = Minecraft.getInstance().font;
+        String label = context.label();
+        int maxWidth = Math.max(0, contentRight - x - 8);
+        if (font.width(label) > maxWidth) {
+            label = font.plainSubstrByWidth(label, Math.max(0, maxWidth - font.width("..."))) + "...";
         }
+        g.drawString(font, label, x + 4, y + 3, AMITheme.TEXT_HEADER, false);
     }
 
     private int contentY(StickyContext context) {
