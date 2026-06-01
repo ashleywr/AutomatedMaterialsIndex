@@ -166,7 +166,7 @@ public final class SubtypeExpander {
 
     private static boolean isAtCap(List<SubtypeEntry> result, String itemPath) {
         if (result.size() < HARD_CAP) return false;
-        AmiCore.LOGGER.warn("SubtypeExpander: hit HARD_CAP for {}; truncating expansion to {} entries.",
+        AmiCore.LOGGER.debug("SubtypeExpander: hit HARD_CAP for {}; truncating expansion to {} entries.",
                 itemPath, HARD_CAP);
         return true;
     }

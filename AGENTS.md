@@ -93,6 +93,16 @@ C:\WorkDir\AutoMineTesting\scripts\send-automine-command.ps1 `
   -Screenshot inventory.png
 ```
 
+To load a known singleplayer world without screen-reading/menu navigation:
+
+```powershell
+C:\WorkDir\AutoMineTesting\scripts\send-automine-command.ps1 `
+  -GameDir C:\WorkDir\AutomatedMaterialsIndex\run\neoforge-emi `
+  -Action open_world `
+  -World "New World" `
+  -TimeoutSeconds 90
+```
+
 Inspect the resulting screenshot:
 
 ```text
@@ -118,4 +128,26 @@ C:\WorkDir\AutomatedMaterialsIndex\run\neoforge-emi\screenshots\inventory.crop.p
 
 AutoMine Testing watches `automine_testing/command.json` in the game directory, writes status to
 `automine_testing/status.json`, and saves screenshots to the normal Minecraft `screenshots/` folder. Supported actions
-currently include `status`, `open_inventory`, `close_screen`, `screenshot`, and `open_inventory_and_screenshot`.
+currently include `status`, `open_world`, `ami_quest_status`, `open_inventory`, `close_screen`, `screenshot`, and
+`open_inventory_and_screenshot`.
+
+For FTB Quests integration checks, prefer the generated vanilla progression fixture before visual testing:
+
+```powershell
+.\gradlew.bat writeVanillaFtbQuestFixture
+```
+
+Run the structured no-screenshot smoke:
+
+```powershell
+.\scripts\smoke-ftb-quests-fixture.ps1 -RestartClient -StopAfter
+```
+
+To also cover FTB Filter System smart filters, use:
+
+```powershell
+.\scripts\smoke-ftb-quests-fixture.ps1 -IncludeSmartFilters -RestartClient -StopAfter
+```
+
+The smoke script launches the hidden `:neoforge:runClientEmi` client, opens `New World`, and asserts AMI quest matches
+through AutoMine's `ami_quest_status` action.

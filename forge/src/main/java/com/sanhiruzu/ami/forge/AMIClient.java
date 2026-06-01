@@ -5,11 +5,10 @@ import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.ThemeResourceLoader;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.client.results.ItemGridView;
-import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
-import com.sanhiruzu.ami.client.tooltip.ForgeTooltipHooks;
 import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.StatIconRowTooltipComponent;
+import com.sanhiruzu.ami.compat.FtbQuestsRuntimeCompat;
 import com.sanhiruzu.ami.config.AmiConfigStore;
 import com.sanhiruzu.ami.forge.client.AMIKeyMappings;
 import com.sanhiruzu.ami.util.AmiWorldTooltipComposer;
@@ -17,6 +16,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
 import net.minecraftforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
@@ -27,7 +27,6 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 public class AMIClient {
 
     public static void init() {
-        AmiTooltipRenderer.setHooks(new ForgeTooltipHooks());
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         modEventBus.addListener(AMIClient::onClientSetup);
         modEventBus.addListener(AMIClient::onRegisterTooltipFactories);
@@ -46,6 +45,7 @@ public class AMIClient {
 
         boolean jeiLoaded = ModList.get().isLoaded("jei");
         boolean emiLoaded = ModList.get().isLoaded("emi");
+        boolean ftbQuestsLoaded = ModList.get().isLoaded("ftbquests");
 
         if (jeiLoaded) {
             AMI.LOGGER.debug("✓ JEI detected - plugin will integrate when ready");
@@ -53,9 +53,13 @@ public class AMIClient {
         if (emiLoaded) {
             AMI.LOGGER.debug("✓ EMI detected - plugin will integrate when ready");
         }
+        if (ftbQuestsLoaded) {
+            AMI.LOGGER.debug("✓ FTB Quests detected - runtime quest mirror enabled");
+        }
         if (!jeiLoaded && !emiLoaded) {
             AMI.LOGGER.debug("✓ No recipe UI detected - AMI shell UI will be used");
         }
+        FtbQuestsRuntimeCompat.setModLoaded(ftbQuestsLoaded);
     }
 
     @SubscribeEvent
@@ -81,6 +85,14 @@ public class AMIClient {
             AmiWorldTooltipComposer.invalidateCache();
             InventoryOverlayHandler.resetSessionState();
             com.sanhiruzu.ami.network.AmiNetworkState.onServer = false;
+            FtbQuestsRuntimeCompat.clear();
+        }
+
+        @SubscribeEvent
+        public static void onClientTick(TickEvent.ClientTickEvent event) {
+            if (event.phase == TickEvent.Phase.END) {
+                FtbQuestsRuntimeCompat.clientTick();
+            }
         }
 
         @SubscribeEvent

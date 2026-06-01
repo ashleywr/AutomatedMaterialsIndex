@@ -1005,4 +1005,26 @@ public class ResultsProcessorTest {
                     Warped Nylium
                 """, ResultsTreeDump.dump(root));
     }
+
+    @Test
+    void categoryGroupingShowsCustomCategoryFixes() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.ALPHABETICAL,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        List<TreeNode> root = processor.process(List.of(item("scanner", "Scanner", Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "automation",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "diagnostics"
+        ))));
+
+        assertEquals("""
+                Automation [expanded]
+                  Diagnostics [expanded]
+                    Scanner
+                """, ResultsTreeDump.dump(root));
+    }
 }

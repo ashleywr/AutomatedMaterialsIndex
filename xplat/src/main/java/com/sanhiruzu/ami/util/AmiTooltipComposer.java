@@ -6,7 +6,8 @@ import com.sanhiruzu.ami.client.AmiKeybindHandler;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.client.results.DebugTooltip;
-import com.sanhiruzu.ami.compat.RecipeViewerBridge;
+import com.sanhiruzu.ami.client.results.QuestItemEvidence;
+import com.sanhiruzu.ami.client.results.QuestItemEvidenceProjector;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
@@ -78,7 +79,18 @@ public final class AmiTooltipComposer {
             lines.add(Component.literal(modName).withStyle(ChatFormatting.BLUE, ChatFormatting.ITALIC));
         }
 
-        // 4. Interaction Hints (Footer)
+        // 4. Quest provenance for item hits
+        QuestItemEvidence questEvidence = QuestItemEvidenceProjector.project(entry);
+        if (questEvidence.hasMatches()) {
+            lines.add(Component.empty());
+            for (int i = 0; i < questEvidence.tooltipLines().size(); i++) {
+                String line = questEvidence.tooltipLines().get(i);
+                int color = i == 0 ? AMITheme.TEXT_HIGHLIGHT : AMITheme.TEXT_SUBTLE;
+                lines.add(Component.literal(line).withStyle(style -> style.withColor(color)));
+            }
+        }
+
+        // 5. Interaction Hints (Footer)
         appendHints(lines, entry);
 
         return lines;
@@ -124,40 +136,33 @@ public final class AmiTooltipComposer {
     }
 
     private static void appendHints(List<Component> lines, SearchNode entry) {
-        lines.add(Component.empty());
+        List<Component> hints = new ArrayList<>();
 
-        if (entry.type() == NodeType.ITEM) {
-            ItemStack stack = ItemIconRenderer.resolveStack(entry.id());
-            boolean canTransfer = RecipeViewerBridge.canTransferStack(stack);
-
-            if (canTransfer && Screen.hasShiftDown()) {
-                lines.add(hintLine("ami.gui.hint.shift_left_click", "ami.gui.hint.action.craft_stack"));
-            } else if (canTransfer && Screen.hasControlDown()) {
-                lines.add(hintLine("ami.gui.hint.ctrl_left_click", "ami.gui.hint.action.craft_one"));
-            } else if (canTransfer) {
-                lines.add(hintLine("ami.gui.hint.left_click", "ami.gui.hint.action.craft_one"));
-            } else {
-                lines.add(hintLine("ami.gui.hint.left_click", "ami.gui.hint.action.recipes"));
-            }
-            lines.add(hintLine("ami.gui.hint.right_click", "ami.gui.hint.action.uses"));
-            if (!canTransfer) {
-                lines.add(hintLine("ami.gui.hint.ctrl_right_click", "ami.gui.hint.action.filter_mod"));
-            }
-        } else if ((entry.type() == NodeType.BIOME || entry.type() == NodeType.STRUCTURE) && AMICheatMode.isEnabled()) {
-            lines.add(Component.translatable("ami.tooltip.cheat_locate").withStyle(ChatFormatting.GOLD));
+        if (entry.type() == NodeType.ITEM || entry.type() == NodeType.ENTITY
+                || entry.type() == NodeType.BIOME || entry.type() == NodeType.STRUCTURE) {
+            hints.add(hintLine("ami.gui.hint.right_click", "ami.gui.hint.action.actions"));
         }
+
+        if ((entry.type() == NodeType.BIOME || entry.type() == NodeType.STRUCTURE) && AMICheatMode.isEnabled()) {
+            hints.add(Component.translatable("ami.tooltip.cheat_locate").withStyle(ChatFormatting.GOLD));
+        }
+
+        appendCheatGiveHints(hints, entry);
 
         if (AmiConfig.devMode) {
             String keybindName = Services.PLATFORM.keyMappings().debugTooltips().getTranslatedKeyMessage().getString();
             if (AmiKeybindHandler.isDebugTooltipsActive()) {
-                lines.add(Component.translatable("ami.gui.debug_hint_active", keybindName)
+                hints.add(Component.translatable("ami.gui.debug_hint_active", keybindName)
                         .withStyle(s -> s.withColor(AMITheme.TEXT_SUBTLE)));
             } else {
-                lines.add(hintLine(Component.literal(keybindName), Component.translatable("ami.gui.hint.action.debug_info")));
+                hints.add(hintLine(Component.literal(keybindName), Component.translatable("ami.gui.hint.action.debug_info")));
             }
         }
 
-        appendCheatGiveHints(lines, entry);
+        if (!hints.isEmpty()) {
+            lines.add(Component.empty());
+            lines.addAll(hints);
+        }
     }
 
     private static Component hintLine(String inputI18n, String actionI18n) {

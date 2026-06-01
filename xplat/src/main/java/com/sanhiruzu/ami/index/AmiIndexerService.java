@@ -1,8 +1,10 @@
 package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.AmiCore;
+import com.sanhiruzu.ami.api.AmiGuideRegistry;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.config.AmiDataFixes;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.world.level.Level;
 
@@ -17,6 +19,7 @@ public final class AmiIndexerService {
     private static final AmiIndexerService INSTANCE = new AmiIndexerService();
     private final AtomicBoolean isRebuilding = new AtomicBoolean(false);
     private volatile SearchService searchService;
+    private volatile AmiGuideSearchIndex guideSearchIndex = new AmiGuideSearchIndex(null, AmiGuideSearchIndex.GuideIndexingMode.OFF);
     private volatile int indexedItemCount;
     private volatile Throwable lastRebuildFailure;
 
@@ -42,6 +45,10 @@ public final class AmiIndexerService {
 
     public Throwable getLastRebuildFailure() {
         return lastRebuildFailure;
+    }
+
+    public AmiGuideSearchIndex getGuideSearchIndex() {
+        return guideSearchIndex;
     }
 
     public void rebuild() {
@@ -70,6 +77,7 @@ public final class AmiIndexerService {
 
         // 1. Core indexing of all standard types
         GroupingEngine.initialize(level);
+        AmiDataFixes.reload();
         if (Services.PLATFORM.tryLoadGlobalIndexCache()) {
             ProviderRegistry.rehydrateSubtypeStacks(level);
         } else {
@@ -81,9 +89,14 @@ public final class AmiIndexerService {
         ProviderRegistry.indexStructuresDeferred(level);
 
         // 3. Post-indexing tasks
+        AmiDataFixes.applyToIndex(index);
         if (AmiConfig.devMode) {
             ItemIconRenderer.auditMissingIcons();
         }
+
+        AmiGuideRegistry.clear();
+        AmiGuideRegistry.registerPluginGuides();
+        guideSearchIndex = AmiGuideSearchIndex.fromConfig(AmiGuideRegistry.getDocuments());
 
         index.markIndexReady();
         indexedItemCount = index.getNodes(NodeType.ITEM).size();
@@ -94,8 +107,8 @@ public final class AmiIndexerService {
         long searchServiceMs = System.currentTimeMillis() - searchServiceStart;
 
         index.setIndexBuildTime(System.currentTimeMillis() - started);
-        AmiCore.LOGGER.info("AMI: Index rebuild complete in {}ms (search service: {}ms). Indexed {} items.",
-                index.getIndexBuildTimeMs(), searchServiceMs, indexedItemCount);
+        AmiCore.LOGGER.info("AMI: Index rebuild complete in {}ms (search service: {}ms). Indexed {} items and {} guide docs.",
+                index.getIndexBuildTimeMs(), searchServiceMs, indexedItemCount, guideSearchIndex.allDocuments().size());
     }
 
     public int indexedItemCount() {

@@ -225,6 +225,12 @@ final class ResultsTreeBuilder {
         boolean blocksMaterial = false;
 
         List<AmiOntology.Category> categoriesToDisplay = new ArrayList<>(AmiOntology.CATEGORIES);
+        Set<String> knownCategoryIds = categoriesToDisplay.stream().map(category -> category.id).collect(Collectors.toSet());
+        for (String categoryId : catMap.keySet()) {
+            if (!knownCategoryIds.contains(categoryId)) {
+                categoriesToDisplay.add(AmiOntology.categoryForId(categoryId));
+            }
+        }
         categoriesToDisplay.sort((a, b) -> a.displayName().getString().compareToIgnoreCase(b.displayName().getString()));
         if (!options.ascending()) {
             Collections.reverse(categoriesToDisplay);
