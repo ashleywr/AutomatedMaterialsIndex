@@ -1,23 +1,25 @@
 package com.sanhiruzu.ami.forge.recipe.special;
 
-import com.sanhiruzu.ami.recipe.special.AmiSpecialRecipe;
 import com.sanhiruzu.ami.recipe.special.PotionBrewingRecipeView;
+import net.minecraft.core.NonNullList;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 
 import java.util.List;
 
-public class PotionBrewingRecipe extends AmiSpecialRecipe implements Recipe<net.minecraft.world.Container>, PotionBrewingRecipeView {
+public class PotionBrewingRecipe implements Recipe<net.minecraft.world.Container>, PotionBrewingRecipeView {
+    private final ForgeSpecialRecipeData special;
     private final ResourceLocation id;
     private final ItemStack input;
     private final Ingredient ingredient;
 
     public PotionBrewingRecipe(ResourceLocation id, ItemStack input, Ingredient ingredient, ItemStack output, RecipeType<?> type) {
-        super(output, type, List.of(Ingredient.of(input), ingredient));
+        this.special = new ForgeSpecialRecipeData(output, type, List.of(Ingredient.of(input), ingredient));
         this.id = id;
         this.input = input;
         this.ingredient = ingredient;
@@ -36,7 +38,7 @@ public class PotionBrewingRecipe extends AmiSpecialRecipe implements Recipe<net.
     }
 
     public ItemStack getOutput() {
-        return result();
+        return special.result();
     }
 
     @Override
@@ -46,11 +48,36 @@ public class PotionBrewingRecipe extends AmiSpecialRecipe implements Recipe<net.
 
     @Override
     public ItemStack assemble(net.minecraft.world.Container container, net.minecraft.core.RegistryAccess registryAccess) {
-        return resultCopy();
+        return special.resultCopy();
     }
 
     @Override
     public ItemStack getResultItem(net.minecraft.core.RegistryAccess registryAccess) {
-        return result();
+        return special.result();
+    }
+
+    @Override
+    public boolean canCraftInDimensions(int width, int height) {
+        return true;
+    }
+
+    @Override
+    public NonNullList<Ingredient> getIngredients() {
+        return special.ingredientsCopy();
+    }
+
+    @Override
+    public boolean isSpecial() {
+        return true;
+    }
+
+    @Override
+    public RecipeSerializer<?> getSerializer() {
+        return special.serializer();
+    }
+
+    @Override
+    public RecipeType<?> getType() {
+        return special.type();
     }
 }
