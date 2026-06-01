@@ -235,29 +235,10 @@ public class ForgePlatformHelper implements IPlatformHelper {
 
     @Override
     public OptionalLong getBlockItemHandlerCapacity(ItemStack stack, Level level) {
-        if (stack == null || stack.isEmpty() || level == null || !(stack.getItem() instanceof BlockItem blockItem)) {
-            return OptionalLong.empty();
-        }
-        Block block = blockItem.getBlock();
-        if (!(block instanceof EntityBlock entityBlock)) {
-            return OptionalLong.empty();
-        }
-        try {
-            BlockPos pos = BlockPos.ZERO;
-            BlockState state = block.defaultBlockState();
-            BlockEntity blockEntity = entityBlock.newBlockEntity(pos, state);
-            if (blockEntity == null) return OptionalLong.empty();
-            blockEntity.setLevel(level);
-
-            long capacity = 0L;
-            capacity = Math.max(capacity, itemHandlerCapacity(blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null)));
-            for (Direction direction : Direction.values()) {
-                capacity = Math.max(capacity, itemHandlerCapacity(blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER, direction).orElse(null)));
-            }
-            return capacity > 0 ? OptionalLong.of(capacity) : OptionalLong.empty();
-        } catch (RuntimeException | LinkageError ignored) {
-            return OptionalLong.empty();
-        }
+        // Avoid constructing arbitrary modded BlockEntity instances during background indexing.
+        // Several Forge mods lazily transform capability classes from a thread context where
+        // Forge's eventbus class hierarchy scanner cannot resolve their parent chain.
+        return OptionalLong.empty();
     }
 
     private static long itemHandlerCapacity(IItemHandler handler) {
