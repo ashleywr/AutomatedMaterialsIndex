@@ -1,23 +1,25 @@
 package com.sanhiruzu.ami.forge.recipe.special;
 
-import com.sanhiruzu.ami.recipe.special.AmiSpecialRecipe;
 import com.sanhiruzu.ami.recipe.special.AnvilRepairRecipeView;
+import net.minecraft.core.NonNullList;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 
 import java.util.List;
 
-public class AnvilRepairRecipe extends AmiSpecialRecipe implements Recipe<net.minecraft.world.Container>, AnvilRepairRecipeView {
+public class AnvilRepairRecipe implements Recipe<net.minecraft.world.Container>, AnvilRepairRecipeView {
+    private final ForgeSpecialRecipeData special;
     private final ResourceLocation id;
     private final ItemStack tool;
     private final Ingredient material;
 
     public AnvilRepairRecipe(ResourceLocation id, ItemStack tool, Ingredient material, ItemStack output, RecipeType<?> type) {
-        super(output, type, List.of(Ingredient.of(tool), material));
+        this.special = new ForgeSpecialRecipeData(output, type, List.of(Ingredient.of(tool), material));
         this.id = id;
         this.tool = tool;
         this.material = material;
@@ -36,7 +38,7 @@ public class AnvilRepairRecipe extends AmiSpecialRecipe implements Recipe<net.mi
     }
 
     public ItemStack getOutput() {
-        return result();
+        return special.result();
     }
 
     @Override
@@ -46,11 +48,36 @@ public class AnvilRepairRecipe extends AmiSpecialRecipe implements Recipe<net.mi
 
     @Override
     public ItemStack assemble(net.minecraft.world.Container container, net.minecraft.core.RegistryAccess registryAccess) {
-        return resultCopy();
+        return special.resultCopy();
     }
 
     @Override
     public ItemStack getResultItem(net.minecraft.core.RegistryAccess registryAccess) {
-        return result();
+        return special.result();
+    }
+
+    @Override
+    public boolean canCraftInDimensions(int width, int height) {
+        return true;
+    }
+
+    @Override
+    public NonNullList<Ingredient> getIngredients() {
+        return special.ingredientsCopy();
+    }
+
+    @Override
+    public boolean isSpecial() {
+        return true;
+    }
+
+    @Override
+    public RecipeSerializer<?> getSerializer() {
+        return special.serializer();
+    }
+
+    @Override
+    public RecipeType<?> getType() {
+        return special.type();
     }
 }
