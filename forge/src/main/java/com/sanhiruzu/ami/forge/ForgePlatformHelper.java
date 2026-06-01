@@ -119,6 +119,11 @@ public class ForgePlatformHelper implements IPlatformHelper {
     }
 
     @Override
+    public boolean supportsItemIconCache() {
+        return true;
+    }
+
+    @Override
     public Optional<String> getModName(String modId) {
         if (ModList.get() != null) {
             for (var info : ModList.get().getMods()) {
@@ -227,10 +232,14 @@ public class ForgePlatformHelper implements IPlatformHelper {
 
     @Override
     public OptionalLong getItemHandlerCapacity(ItemStack stack) {
-        IItemHandler handler = stack.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
-        if (handler == null || handler.getSlots() <= 0) return OptionalLong.empty();
-        long capacity = itemHandlerCapacity(handler);
-        return capacity > 0 ? OptionalLong.of(capacity) : OptionalLong.empty();
+        try {
+            IItemHandler handler = stack.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
+            if (handler == null || handler.getSlots() <= 0) return OptionalLong.empty();
+            long capacity = itemHandlerCapacity(handler);
+            return capacity > 0 ? OptionalLong.of(capacity) : OptionalLong.empty();
+        } catch (RuntimeException | LinkageError ignored) {
+            return OptionalLong.empty();
+        }
     }
 
     @Override
