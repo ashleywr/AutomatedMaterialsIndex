@@ -13,7 +13,6 @@
     "EmiRecipeScreenFavoriteMixin",
     "EmiScreenManagerMixin",
     "EmiSidebarsStateMixin",
-    "GuiGraphicsInvoker",
     "JeiBookmarkListMixin",
     "JeiClientInputHandlerMixin",
     "JeiGuiEventHandlerMixin"

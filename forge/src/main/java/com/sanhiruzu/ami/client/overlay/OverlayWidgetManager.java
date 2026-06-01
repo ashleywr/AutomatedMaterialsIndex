@@ -74,7 +74,6 @@ public class OverlayWidgetManager {
 
     private PanelSlot createPanelSlot(boolean leftSide) {
         PanelSlot slot = new PanelSlot();
-        slot.setTooltipLeftOfCursor(!leftSide);
         configureResultsCallbacks(slot.results);
         Runnable refreshSidebars = this::refreshSidebars;
         slot.sidebar.getInnerPanel().setOnReset(refreshSidebars);
@@ -707,11 +706,6 @@ public class OverlayWidgetManager {
     private static final class PanelSlot {
         final ResultsPanelWidget results = new ResultsPanelWidget();
         final SidebarPanelWidget sidebar = new SidebarPanelWidget(0, 0, 0, 0, AmiConfig.PanelContent.EMPTY);
-
-        void setTooltipLeftOfCursor(boolean tooltipLeftOfCursor) {
-            results.setTooltipLeftOfCursor(tooltipLeftOfCursor);
-            sidebar.setTooltipLeftOfCursor(tooltipLeftOfCursor);
-        }
 
         void setOnModeToggle(Runnable callback, java.util.function.BooleanSupplier activeSupplier) {
             results.setOnModeToggle(callback, activeSupplier);

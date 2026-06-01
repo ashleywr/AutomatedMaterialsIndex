@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class MixinConfigTest {
@@ -63,5 +64,17 @@ public class MixinConfigTest {
         String buildFileContent = Files.readString(buildFile, StandardCharsets.UTF_8);
         assertTrue(buildFileContent.contains("programArguments.addAll '--mixin', \"${mod_id}.mixins.json\".toString()"),
                 "Forge ModDev exploded-source runs must pass --mixin so ami.mixins.json loads without a jar manifest");
+    }
+
+    @Test
+    void privateGuiGraphicsInvokerIsNotRegistered() throws Exception {
+        for (Path mixinConfigPath : new Path[] {
+                Paths.get("../forge/src/main/resources/ami.mixins.json"),
+                Paths.get("../neoforge/src/main/resources/ami.mixins.json")
+        }) {
+            String jsonContent = Files.readString(mixinConfigPath, StandardCharsets.UTF_8);
+            assertFalse(jsonContent.contains("\"GuiGraphicsInvoker\""),
+                    "Private GuiGraphics invoker must not be registered in " + mixinConfigPath);
+        }
     }
 }
