@@ -2,6 +2,8 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'net.neoforged.moddev.legacyforge' version "${moddevgradle_version}"
+    id 'com.modrinth.minotaur' version '2.8.7'
+    id 'com.matthewprenger.cursegradle' version '1.4.0'
 }
 
 base {
@@ -251,6 +253,52 @@ publishing {
     publications {
         register('mavenJava', MavenPublication) {
             from components.java
+        }
+    }
+}
+
+// ──── Release publishing ─────────────────────────────────────────────────────
+
+def changelogText = {
+    def f = rootProject.file('CHANGELOG.md')
+    f.exists() ? f.text : ''
+}
+
+modrinth {
+    token = System.getenv('MODRINTH_TOKEN') ?: ''
+    projectId = 'QOM56zjQ'
+    versionNumber = "${mod_version}+forge.${forge_minecraft_version}"
+    versionName = "AMI ${mod_version} (Forge ${forge_minecraft_version})"
+    versionType = 'release'
+    uploadFile = tasks.named('jar')
+    gameVersions = [forge_minecraft_version]
+    loaders = ['forge']
+    detectLoaders = false
+    changelog = changelogText()
+    dependencies {
+        optional.project 'emi'
+        optional.project 'jei'
+    }
+}
+
+if (System.getenv('CURSEFORGE_TOKEN')) {
+    curseforge {
+        apiKey = System.getenv('CURSEFORGE_TOKEN')
+        project {
+            id = '1558643'
+            releaseType = 'release'
+            changelogType = 'markdown'
+            changelog = rootProject.file('CHANGELOG.md')
+            addGameVersion forge_minecraft_version
+            addGameVersion 'Forge'
+            mainArtifact(tasks.jar) {
+                displayName = "AMI ${mod_version} (Forge ${forge_minecraft_version})"
+            }
+        }
+        options {
+            javaIntegration = false
+            forgeGradleIntegration = false
+            javaVersionAutoDetect = false
         }
     }
 }
