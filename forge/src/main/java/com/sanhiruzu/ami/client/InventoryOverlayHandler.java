@@ -202,6 +202,7 @@ public class InventoryOverlayHandler {
     static void onRenderTooltip(RenderTooltipEvent.Pre event) {
         var screen = Minecraft.getInstance().screen;
         if (screen == null || !isAmiScreen(screen)) return;
+        if (com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer.isRenderingAmiTooltip()) return;
         if (isMouseOverAmiOverlay(event.getX(), event.getY())) {
             event.setCanceled(true);
         }

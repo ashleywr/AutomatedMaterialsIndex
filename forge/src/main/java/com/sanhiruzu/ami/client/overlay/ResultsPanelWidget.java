@@ -15,7 +15,6 @@ public class ResultsPanelWidget extends AbstractWidget {
     private Runnable modeToggleCallback;
     private java.util.function.BooleanSupplier modeToggleActive;
     private AmiConfig.PanelContent contentType = AmiConfig.PanelContent.GRID;
-    private boolean tooltipLeftOfCursor = false;
 
     public ResultsPanelWidget() {
         super(0, 0, 0, 0, Component.empty());
@@ -47,11 +46,6 @@ public class ResultsPanelWidget extends AbstractWidget {
         if (panel != null) panel.configureView(contentType);
     }
 
-    public void setTooltipLeftOfCursor(boolean tooltipLeftOfCursor) {
-        this.tooltipLeftOfCursor = tooltipLeftOfCursor;
-        if (panel != null) panel.setTooltipLeftOfCursor(tooltipLeftOfCursor);
-    }
-
     public void updateBounds(WidgetBounds bounds) {
         setX(bounds.x());
         setY(bounds.y());
@@ -64,7 +58,6 @@ public class ResultsPanelWidget extends AbstractWidget {
             if (resetCallback != null) panel.setOnReset(resetCallback);
             if (tokenInjectCallback != null) panel.setOnTokenInject(tokenInjectCallback);
             if (modeToggleCallback != null) panel.setOnModeToggle(modeToggleCallback, modeToggleActive);
-            panel.setTooltipLeftOfCursor(tooltipLeftOfCursor);
             panel.configureView(contentType);
         } else {
             panel.updateLayout(bounds.x(), bounds.y(), bounds.width(), bounds.height());
