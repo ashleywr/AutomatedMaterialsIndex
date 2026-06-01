@@ -258,7 +258,7 @@ public class ResultsToolbar implements SearchState.Listener {
         }
 
         if (tooltip != null) {
-            AmiTooltipRenderer.render(g, Minecraft.getInstance().font, tooltip, Optional.empty(), mouseX, mouseY, true);
+            AmiTooltipRenderer.render(g, Minecraft.getInstance().font, tooltip, Optional.empty(), mouseX, mouseY);
         }
     }
 

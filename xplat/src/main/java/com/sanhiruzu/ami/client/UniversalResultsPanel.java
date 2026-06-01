@@ -1,15 +1,18 @@
 package com.sanhiruzu.ami.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.sanhiruzu.ami.api.AmiQuestsApi;
 import com.sanhiruzu.ami.client.results.*;
 import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
 import com.sanhiruzu.ami.compat.CompatRegistry;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchService;
 import com.sanhiruzu.ami.platform.Services;
+import com.sanhiruzu.ami.util.AmiClipboardHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -39,6 +42,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private static final int SIDEBAR_SWAP_W = 18;
     private static final int SIDEBAR_SWAP_H = ResultsToolbar.BUTTON_H;
     private static final double DRAG_THRESHOLD = 5.0;
+    private static final int GUIDE_HEADER_H = 12;
+    private static final int GUIDE_ROW_H = 20;
+    private static final int MAX_VISIBLE_GUIDE_ROWS = 3;
+    private static final int MAX_VISIBLE_QUEST_ROWS = 3;
     private final SearchState state = new SearchState();
     private int x, y, width, height;
     // Toggle button position — recomputed on every layout update
@@ -51,6 +58,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private List<SearchNode> currentResults = new ArrayList<>();
     private String currentQuery = "";
     private SearchService searchService;
+    private List<GuideResultRow> currentGuideRows = List.of();
+    private List<QuestResultRow> currentQuestRows = List.of();
     private Runnable externalResetCallback;
     private java.util.function.Consumer<String> onTokenInject;
     private Runnable externalModeToggleCallback;
@@ -58,7 +67,6 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private boolean isFavoritesPanel = false;
     private boolean compactMode = false;
     private boolean chromeOnly = false;
-    private boolean tooltipLeftOfCursor = false;
     private Component panelTitle = null;
     // Displayed item count shown in the compact header (updated in refreshTree)
     private int displayedItemCount = 0;
@@ -120,8 +128,6 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         this.treeView = new ResultsTreeView(innerX, contentY, innerW, contentH);
         this.gridView = new ItemGridView(innerX, contentY, innerW, contentH);
-        this.treeView.setTooltipLeftOfCursor(tooltipLeftOfCursor);
-        this.gridView.setTooltipLeftOfCursor(tooltipLeftOfCursor);
         this.gridView.setItemClickCallback(this::onItemClicked);
         this.treeView.setItemClickCallback(this::onItemClicked);
         this.gridView.setGroupClickCallback(this::onGroupClicked);
@@ -159,6 +165,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
         List<TreeNode> normalized = ResultsTreeNormalizer.normalize(roots);
         treeView.setRootNodes(normalized);
         gridView.setRootNodes(normalized);
+        currentGuideRows = List.of();
+        currentQuestRows = List.of();
         this.displayedItemCount = countLeaves(normalized);
     }
 
@@ -172,12 +180,6 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     public void setOnTokenInject(java.util.function.Consumer<String> callback) {
         this.onTokenInject = callback;
-    }
-
-    public void setTooltipLeftOfCursor(boolean tooltipLeftOfCursor) {
-        this.tooltipLeftOfCursor = tooltipLeftOfCursor;
-        if (treeView != null) treeView.setTooltipLeftOfCursor(tooltipLeftOfCursor);
-        if (gridView != null) gridView.setTooltipLeftOfCursor(tooltipLeftOfCursor);
     }
 
     public void setSearchResults(Map<NodeType, List<SearchNode>> results, String query) {
@@ -261,8 +263,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             } else {
                 int toolbarW = innerW - TOGGLE_W - AMITheme.ELEMENT_GAP;
                 toolbar.updateLayout(innerX + TOGGLE_W + AMITheme.ELEMENT_GAP, y + AMITheme.GLOBAL_PADDING, toolbarW);
-                treeView.updateLayout(innerX, contentY, innerW, contentH);
-                gridView.updateLayout(innerX, contentY, innerW, contentH);
+                updateResultViewLayouts(innerX, contentY, innerW, contentH);
             }
         }
     }
@@ -364,6 +365,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
             }
         } else {
             boolean dropdownOpen = toolbar.isAnyDropdownOpen() || contextMenu.isOpen();
+            renderQuestRows(g, mouseX, mouseY);
+            renderGuideRows(g, mouseX, mouseY);
             if (isGridActive()) {
                 gridView.render(g, mouseX, mouseY, dropdownOpen);
             } else {
@@ -373,6 +376,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         if (!toolbar.isAnyDropdownOpen() && !contextMenu.isOpen()) {
             renderToggleTooltip(g, mouseX, mouseY);
+            renderQuestTooltip(g, mouseX, mouseY);
+            renderGuideTooltip(g, mouseX, mouseY);
         }
     }
 
@@ -448,7 +453,125 @@ public class UniversalResultsPanel implements SearchState.Listener {
         AmiTooltipRenderer.render(g, Minecraft.getInstance().font, List.of(
                 Component.translatable(isGridActive() ? "ami.gui.tooltip.view_switch_to_list" : "ami.gui.tooltip.view_switch_to_grid"),
                 Component.translatable("ami.gui.tooltip.view_switch_detail")
-        ), Optional.empty(), mouseX, mouseY, tooltipLeftOfCursor);
+        ), Optional.empty(), mouseX, mouseY);
+    }
+
+    private void renderGuideRows(GuiGraphics g, int mouseX, int mouseY) {
+        if (!shouldShowGuideRows()) return;
+
+        var font = Minecraft.getInstance().font;
+        int innerX = x + AMITheme.GLOBAL_PADDING;
+        int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
+        int topY = contentY() + questSectionHeight();
+        int rowCount = visibleGuideRowCount();
+
+        g.fill(innerX, topY, innerX + innerW, topY + GUIDE_HEADER_H, AMITheme.GROUP_HEADER_BG);
+        g.drawString(font, Component.translatable("ami.gui.guides").getString(), innerX + 4, topY + 2, AMITheme.TEXT_HEADER, false);
+
+        int rowY = topY + GUIDE_HEADER_H;
+        for (int i = 0; i < rowCount; i++) {
+            GuideResultRow row = currentGuideRows.get(i);
+            boolean hovered = guideRowAt(mouseX, mouseY) == row;
+            int bg = i % 2 == 0 ? AMITheme.GRID_ROW_TINT_EVEN : AMITheme.GRID_ROW_TINT_ODD;
+            g.fill(innerX, rowY, innerX + innerW, rowY + GUIDE_ROW_H, bg);
+            if (hovered) {
+                g.fill(innerX, rowY, innerX + innerW, rowY + GUIDE_ROW_H, AMITheme.ENTRY_HOVER);
+            }
+
+            int iconX = innerX + 4;
+            int iconY = rowY + 4;
+            g.fill(iconX, iconY, iconX + 12, iconY + 12, AMITheme.DROPDOWN_BG);
+            g.fill(iconX, iconY, iconX + 12, iconY + 1, AMITheme.SECTION_SEP);
+            g.fill(iconX, iconY + 11, iconX + 12, iconY + 12, AMITheme.SECTION_SEP);
+            g.fill(iconX, iconY, iconX + 1, iconY + 12, AMITheme.SECTION_SEP);
+            g.fill(iconX + 11, iconY, iconX + 12, iconY + 12, AMITheme.SECTION_SEP);
+            g.drawString(font, "?", iconX + 4, iconY + 2, AMITheme.ACCENT_BLUE, false);
+
+            int textX = iconX + 16;
+            int maxTextW = innerX + innerW - textX - 4;
+            String title = truncate(font, row.title(), maxTextW);
+            String subtitle = truncate(font, row.sourceLine() + " - " + row.provenanceLine(), maxTextW);
+            g.drawString(font, title, textX, rowY + 2, AMITheme.TEXT_PRIMARY, false);
+            g.drawString(font, subtitle, textX, rowY + 11, AMITheme.TEXT_SUBTLE, false);
+            rowY += GUIDE_ROW_H;
+        }
+
+        int sepY = topY + guideSectionHeight() - AMITheme.ELEMENT_GAP;
+        g.fill(innerX + 3, sepY, innerX + innerW - 3, sepY + 1, AMITheme.SECTION_SEP);
+    }
+
+    private void renderQuestRows(GuiGraphics g, int mouseX, int mouseY) {
+        if (!shouldShowQuestRows()) return;
+
+        var font = Minecraft.getInstance().font;
+        int innerX = x + AMITheme.GLOBAL_PADDING;
+        int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
+        int topY = contentY();
+        int rowCount = visibleQuestRowCount();
+
+        g.fill(innerX, topY, innerX + innerW, topY + GUIDE_HEADER_H, AMITheme.GROUP_HEADER_BG);
+        g.drawString(font, Component.translatable("ami.gui.quest_results").getString(), innerX + 4, topY + 2, AMITheme.TEXT_HEADER, false);
+
+        int rowY = topY + GUIDE_HEADER_H;
+        for (int i = 0; i < rowCount; i++) {
+            QuestResultRow row = currentQuestRows.get(i);
+            boolean hovered = questRowAt(mouseX, mouseY) == row;
+            int bg = i % 2 == 0 ? AMITheme.GRID_ROW_TINT_EVEN : AMITheme.GRID_ROW_TINT_ODD;
+            g.fill(innerX, rowY, innerX + innerW, rowY + GUIDE_ROW_H, bg);
+            if (hovered) {
+                g.fill(innerX, rowY, innerX + innerW, rowY + GUIDE_ROW_H, AMITheme.ENTRY_HOVER);
+            }
+
+            int iconX = innerX + 4;
+            int iconY = rowY + 4;
+            g.fill(iconX, iconY, iconX + 12, iconY + 12, AMITheme.DROPDOWN_BG);
+            g.fill(iconX, iconY, iconX + 12, iconY + 1, AMITheme.SECTION_SEP);
+            g.fill(iconX, iconY + 11, iconX + 12, iconY + 12, AMITheme.SECTION_SEP);
+            g.fill(iconX, iconY, iconX + 1, iconY + 12, AMITheme.SECTION_SEP);
+            g.fill(iconX + 11, iconY, iconX + 12, iconY + 12, AMITheme.SECTION_SEP);
+            g.drawString(font, "Q", iconX + 3, iconY + 2, AMITheme.ACCENT_BLUE, false);
+
+            int textX = iconX + 16;
+            int maxTextW = innerX + innerW - textX - 4;
+            String title = truncate(font, row.title(), maxTextW);
+            String subtitle = truncate(font, row.sourceLine() + " - " + row.provenanceLine(), maxTextW);
+            g.drawString(font, title, textX, rowY + 2, AMITheme.TEXT_PRIMARY, false);
+            g.drawString(font, subtitle, textX, rowY + 11, AMITheme.TEXT_SUBTLE, false);
+            rowY += GUIDE_ROW_H;
+        }
+
+        int sepY = topY + questSectionHeight() - AMITheme.ELEMENT_GAP;
+        g.fill(innerX + 3, sepY, innerX + innerW - 3, sepY + 1, AMITheme.SECTION_SEP);
+    }
+
+    private void renderGuideTooltip(GuiGraphics g, int mouseX, int mouseY) {
+        GuideResultRow row = guideRowAt(mouseX, mouseY);
+        if (row == null) return;
+
+        List<Component> lines = new ArrayList<>();
+        lines.add(Component.literal(row.title()));
+        lines.add(Component.literal(row.sourceLine()));
+        lines.add(Component.literal(row.provenanceLine()));
+        row.evidence().stream()
+                .filter(evidence -> !evidence.snippet().isBlank())
+                .findFirst()
+                .ifPresent(evidence -> lines.add(Component.literal(evidence.snippet())));
+        AmiTooltipRenderer.render(g, Minecraft.getInstance().font, lines, Optional.empty(), mouseX, mouseY);
+    }
+
+    private void renderQuestTooltip(GuiGraphics g, int mouseX, int mouseY) {
+        QuestResultRow row = questRowAt(mouseX, mouseY);
+        if (row == null) return;
+
+        List<Component> lines = new ArrayList<>();
+        lines.add(Component.literal(row.title()));
+        lines.add(Component.literal(row.sourceLine()));
+        lines.add(Component.literal(row.provenanceLine()));
+        row.evidence().stream()
+                .filter(evidence -> !evidence.snippet().isBlank())
+                .findFirst()
+                .ifPresent(evidence -> lines.add(Component.literal(evidence.snippet())));
+        AmiTooltipRenderer.render(g, Minecraft.getInstance().font, lines, Optional.empty(), mouseX, mouseY);
     }
 
     // ── Tree refresh ──────────────────────────────────────────────────────────
@@ -474,10 +597,15 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 resolveSource(),
                 state,
                 searchService,
+                AmiIndexerService.getInstance().getGuideSearchIndex(),
+                AmiQuestsApi.getQuestSearchIndex(),
                 compactMode && !isFavoritesPanel,
                 isFavoritesPanel
         );
         displayedItemCount = projection.displayedItemCount();
+        currentGuideRows = projection.guideRows();
+        currentQuestRows = projection.questRows();
+        updateResultViewLayouts();
         setViewRoots(projection.roots());
     }
 
@@ -563,6 +691,104 @@ public class UniversalResultsPanel implements SearchState.Listener {
         toolbar.resetCollapseState();
     }
 
+    private void updateResultViewLayouts() {
+        int innerX = x + AMITheme.GLOBAL_PADDING;
+        int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
+        if (isFavoritesPanel) {
+            int contentY = y + FAV_HEADER_H;
+            int contentH = height - FAV_HEADER_H - AMITheme.GLOBAL_PADDING;
+            treeView.updateLayout(innerX, contentY, innerW, contentH);
+            gridView.updateLayout(innerX, contentY, innerW, contentH);
+            return;
+        }
+
+        int headerH = compactMode ? COMPACT_HEADER_H : HEADER_H;
+        int contentY = y + AMITheme.GLOBAL_PADDING + headerH + AMITheme.ELEMENT_GAP;
+        int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
+        updateResultViewLayouts(innerX, contentY, innerW, contentH);
+    }
+
+    private void updateResultViewLayouts(int innerX, int contentY, int innerW, int contentH) {
+        int sourceSectionsH = sourceSectionsHeight();
+        int shiftedY = contentY + sourceSectionsH;
+        int shiftedH = Math.max(0, contentH - sourceSectionsH);
+        treeView.updateLayout(innerX, shiftedY, innerW, shiftedH);
+        gridView.updateLayout(innerX, shiftedY, innerW, shiftedH);
+    }
+
+    private int contentY() {
+        int headerH = compactMode ? COMPACT_HEADER_H : HEADER_H;
+        return y + AMITheme.GLOBAL_PADDING + headerH + AMITheme.ELEMENT_GAP;
+    }
+
+    private boolean shouldShowGuideRows() {
+        return !compactMode
+                && !isFavoritesPanel
+                && !currentQuery.isBlank()
+                && !currentGuideRows.isEmpty();
+    }
+
+    private boolean shouldShowQuestRows() {
+        return !compactMode
+                && !isFavoritesPanel
+                && !currentQuery.isBlank()
+                && !currentQuestRows.isEmpty();
+    }
+
+    private int visibleGuideRowCount() {
+        return Math.min(MAX_VISIBLE_GUIDE_ROWS, currentGuideRows.size());
+    }
+
+    private int visibleQuestRowCount() {
+        return Math.min(MAX_VISIBLE_QUEST_ROWS, currentQuestRows.size());
+    }
+
+    private int guideSectionHeight() {
+        if (!shouldShowGuideRows()) return 0;
+        return GUIDE_HEADER_H + visibleGuideRowCount() * GUIDE_ROW_H + AMITheme.ELEMENT_GAP;
+    }
+
+    private int questSectionHeight() {
+        if (!shouldShowQuestRows()) return 0;
+        return GUIDE_HEADER_H + visibleQuestRowCount() * GUIDE_ROW_H + AMITheme.ELEMENT_GAP;
+    }
+
+    private int sourceSectionsHeight() {
+        return questSectionHeight() + guideSectionHeight();
+    }
+
+    private GuideResultRow guideRowAt(double mouseX, double mouseY) {
+        if (!shouldShowGuideRows()) return null;
+        int innerX = x + AMITheme.GLOBAL_PADDING;
+        int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
+        int rowY = contentY() + questSectionHeight() + GUIDE_HEADER_H;
+        if (mouseX < innerX || mouseX >= innerX + innerW) return null;
+        int row = ((int) mouseY - rowY) / GUIDE_ROW_H;
+        if (row < 0 || row >= visibleGuideRowCount()) return null;
+        int y0 = rowY + row * GUIDE_ROW_H;
+        if (mouseY < y0 || mouseY >= y0 + GUIDE_ROW_H) return null;
+        return currentGuideRows.get(row);
+    }
+
+    private QuestResultRow questRowAt(double mouseX, double mouseY) {
+        if (!shouldShowQuestRows()) return null;
+        int innerX = x + AMITheme.GLOBAL_PADDING;
+        int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
+        int rowY = contentY() + GUIDE_HEADER_H;
+        if (mouseX < innerX || mouseX >= innerX + innerW) return null;
+        int row = ((int) mouseY - rowY) / GUIDE_ROW_H;
+        if (row < 0 || row >= visibleQuestRowCount()) return null;
+        int y0 = rowY + row * GUIDE_ROW_H;
+        if (mouseY < y0 || mouseY >= y0 + GUIDE_ROW_H) return null;
+        return currentQuestRows.get(row);
+    }
+
+    private static String truncate(net.minecraft.client.gui.Font font, String text, int maxWidth) {
+        if (text == null || text.isEmpty() || maxWidth <= 0) return "";
+        if (font.width(text) <= maxWidth) return text;
+        return font.plainSubstrByWidth(text, Math.max(0, maxWidth - font.width("..."))) + "...";
+    }
+
     // ── Item click (grid + list) ──────────────────────────────────────────────
 
     private List<SearchNode> resolveSource() {
@@ -611,6 +837,90 @@ public class UniversalResultsPanel implements SearchState.Listener {
         contextMenu.open(mouseX, mouseY, x, y, width, height, contextMenuActions.forGroup(
                 new ResultContextMenuActionBuilder.GroupContext(node, onTokenInject, gridView::invalidateCache)
         ));
+    }
+
+    private void openGuideContextMenu(GuideResultRow row, int mouseX, int mouseY) {
+        if (row == null || row.document() == null) return;
+
+        List<ResultContextMenu.Action> actions = new ArrayList<>();
+        if (row.document().canOpen()) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    "ami:open_guide",
+                    Component.translatable("ami.context.open_guide_page"),
+                    'o',
+                    row.document()::open
+            ));
+        } else {
+            actions.add(ResultContextMenu.Action.disabled(
+                    "ami:open_guide",
+                    Component.translatable("ami.context.open_guide_page"),
+                    'o'
+            ));
+        }
+        actions.add(ResultContextMenu.Action.enabled(
+                "ami:copy_guide_title",
+                Component.translatable("ami.context.copy_guide_title"),
+                't',
+                () -> AmiClipboardHelper.copyToClipboard(row.title())
+        ));
+        actions.add(ResultContextMenu.Action.enabled(
+                "ami:copy_guide_id",
+                Component.translatable("ami.context.copy_guide_id"),
+                'i',
+                () -> AmiClipboardHelper.copyToClipboard(row.document().id().toString())
+        ));
+        if (onTokenInject != null && !row.document().modId().isBlank()) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    "ami:filter_guide_mod",
+                    Component.translatable("ami.context.filter_mod"),
+                    'm',
+                    () -> onTokenInject.accept("@" + row.document().modId())
+            ));
+        }
+
+        contextMenu.open(mouseX, mouseY, x, y, width, height, actions);
+    }
+
+    private void openQuestContextMenu(QuestResultRow row, int mouseX, int mouseY) {
+        if (row == null || row.document() == null) return;
+
+        List<ResultContextMenu.Action> actions = new ArrayList<>();
+        if (row.document().canOpen()) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    "ami:open_quest",
+                    Component.translatable("ami.context.open_quest"),
+                    'o',
+                    row.document()::open
+            ));
+        } else {
+            actions.add(ResultContextMenu.Action.disabled(
+                    "ami:open_quest",
+                    Component.translatable("ami.context.open_quest"),
+                    'o'
+            ));
+        }
+        actions.add(ResultContextMenu.Action.enabled(
+                "ami:copy_quest_title",
+                Component.translatable("ami.context.copy_quest_title"),
+                't',
+                () -> AmiClipboardHelper.copyToClipboard(row.title())
+        ));
+        actions.add(ResultContextMenu.Action.enabled(
+                "ami:copy_quest_id",
+                Component.translatable("ami.context.copy_quest_id"),
+                'i',
+                () -> AmiClipboardHelper.copyToClipboard(row.document().id())
+        ));
+        if (onTokenInject != null && !row.document().sourceId().isBlank()) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    "ami:filter_quest_source",
+                    Component.translatable("ami.context.filter_mod"),
+                    'm',
+                    () -> onTokenInject.accept("@" + row.document().sourceId())
+            ));
+        }
+
+        contextMenu.open(mouseX, mouseY, x, y, width, height, actions);
     }
 
     private ItemStack resolveStackForContextMenu(SearchNode node) {
@@ -786,6 +1096,36 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (button == 0 && toolbar.mouseClicked(mouseX, mouseY, button)) {
             saveMainPanelViewPreference();
             return true;
+        }
+
+        QuestResultRow questRow = questRowAt(mouseX, mouseY);
+        if (questRow != null) {
+            if (button == 1) {
+                openQuestContextMenu(questRow, (int) mouseX, (int) mouseY);
+                return true;
+            }
+            if (button == 0 && questRow.document().canOpen()) {
+                try {
+                    questRow.document().open();
+                } catch (RuntimeException ignored) {
+                }
+                return true;
+            }
+        }
+
+        GuideResultRow guideRow = guideRowAt(mouseX, mouseY);
+        if (guideRow != null) {
+            if (button == 1) {
+                openGuideContextMenu(guideRow, (int) mouseX, (int) mouseY);
+                return true;
+            }
+            if (button == 0 && guideRow.document().canOpen()) {
+                try {
+                    guideRow.document().open();
+                } catch (RuntimeException ignored) {
+                }
+                return true;
+            }
         }
 
         // Handle Dashboard Atlas lazy loading

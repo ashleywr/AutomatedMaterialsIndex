@@ -1,5 +1,7 @@
 package com.sanhiruzu.ami.client.results;
 
+import com.sanhiruzu.ami.index.AmiGuideSearchIndex;
+import com.sanhiruzu.ami.index.AmiQuestSearchIndex;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchService;
 import net.minecraft.network.chat.Component;
@@ -14,6 +16,25 @@ public final class ResultsViewProjector {
     public static Projection project(List<SearchNode> source,
                                      SearchState state,
                                      SearchService searchService,
+                                     boolean compactMainPanel,
+                                     boolean favoritesPanel) {
+        return project(source, state, searchService, null, compactMainPanel, favoritesPanel);
+    }
+
+    public static Projection project(List<SearchNode> source,
+                                     SearchState state,
+                                     SearchService searchService,
+                                     AmiGuideSearchIndex guideSearchIndex,
+                                     boolean compactMainPanel,
+                                     boolean favoritesPanel) {
+        return project(source, state, searchService, guideSearchIndex, null, compactMainPanel, favoritesPanel);
+    }
+
+    public static Projection project(List<SearchNode> source,
+                                     SearchState state,
+                                     SearchService searchService,
+                                     AmiGuideSearchIndex guideSearchIndex,
+                                     AmiQuestSearchIndex questSearchIndex,
                                      boolean compactMainPanel,
                                      boolean favoritesPanel) {
         List<SearchNode> effectiveSource = source;
@@ -45,22 +66,34 @@ public final class ResultsViewProjector {
         }
 
         roots = ResultsTreeNormalizer.normalize(roots);
+        List<GuideResultRow> guideRows = favoritesPanel || compactMainPanel
+                ? List.of()
+                : GuideResultsProjector.project(query, guideSearchIndex);
+        List<QuestResultRow> questRows = favoritesPanel || compactMainPanel
+                ? List.of()
+                : QuestResultsProjector.project(query, questSearchIndex);
         return new Projection(
                 roots,
+                guideRows,
+                questRows,
                 source.size(),
                 effectiveSource.size(),
-                summary(state, source.size(), effectiveSource.size(), compactMainPanel, favoritesPanel)
+                summary(state, source.size(), effectiveSource.size(), guideRows.size(), questRows.size(), compactMainPanel, favoritesPanel)
         );
     }
 
     private static String summary(SearchState state,
                                   int sourceCount,
                                   int displayedItemCount,
+                                  int displayedGuideCount,
+                                  int displayedQuestCount,
                                   boolean compactMainPanel,
                                   boolean favoritesPanel) {
         return "query=\"" + state.getQuery() + "\""
                 + " entries=" + sourceCount
                 + " displayed=" + displayedItemCount
+                + " guides=" + displayedGuideCount
+                + " quests=" + displayedQuestCount
                 + " view=" + state.getViewMode()
                 + " lens=" + state.getListLens()
                 + " sort=" + state.getSortField()
@@ -72,6 +105,8 @@ public final class ResultsViewProjector {
 
     public record Projection(
             List<TreeNode> roots,
+            List<GuideResultRow> guideRows,
+            List<QuestResultRow> questRows,
             int sourceCount,
             int displayedItemCount,
             String summary

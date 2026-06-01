@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client.overlay;
 
 import com.sanhiruzu.ami.client.UniversalResultsPanel;
-import com.sanhiruzu.ami.client.results.TreeNode;
+import com.sanhiruzu.ami.api.AmiQuestsApi;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.SearchNode;
@@ -10,7 +10,6 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -19,7 +18,9 @@ import java.util.List;
  */
 public class SidebarPanelWidget extends AbstractWidget {
     private final UniversalResultsPanel panel;
+    private final Runnable questRefreshListener = this::refresh;
     private AmiConfig.PanelContent contentType;
+    private boolean questListenerRegistered;
 
     public SidebarPanelWidget(int x, int y, int width, int height, AmiConfig.PanelContent contentType) {
         super(x, y, width, height, Component.translatable("ami.gui.sidebar." + contentType.name().toLowerCase()));
@@ -32,9 +33,7 @@ public class SidebarPanelWidget extends AbstractWidget {
         if (contentType == AmiConfig.PanelContent.LOOKUP_HISTORY) {
             com.sanhiruzu.ami.client.favorites.AmiHistoryHandler.getInstance().setOnChange(this::refresh);
         }
-        if (contentType == AmiConfig.PanelContent.QUESTS) {
-            com.sanhiruzu.ami.api.AmiQuestsApi.setOnChange(this::refresh);
-        }
+        updateQuestChangeListener();
 
         refresh();
     }
@@ -50,42 +49,21 @@ public class SidebarPanelWidget extends AbstractWidget {
         this.panel.setOnModeToggle(callback, activeSupplier);
     }
 
-    public void setTooltipLeftOfCursor(boolean tooltipLeftOfCursor) {
-        this.panel.setTooltipLeftOfCursor(tooltipLeftOfCursor);
-    }
-
     public void refresh() {
         if (contentType == null || contentType == AmiConfig.PanelContent.NONE) {
             panel.setEntries(List.of());
             return;
         }
         if (contentType == AmiConfig.PanelContent.QUESTS) {
-            panel.setGroupedEntries(buildQuestTree());
+            panel.setGroupedEntries(QuestSidebarProjector.project(
+                    AmiQuestsApi.getQuestGroups(),
+                    AmiQuestsApi.getQuestDocuments(),
+                    GlobalIndex.getInstance()::getNode
+            ));
             return;
         }
         List<SearchNode> nodes = AmiSidebarSyncHandler.getNodesForContent(contentType);
         panel.setEntries(nodes);
-    }
-
-    private List<TreeNode> buildQuestTree() {
-        List<TreeNode> roots = new ArrayList<>();
-        var index = GlobalIndex.getInstance();
-        for (var group : com.sanhiruzu.ami.api.AmiQuestsApi.getQuestGroups()) {
-            TreeNode groupNode = new TreeNode(group.id(), group.label());
-            groupNode.setExpanded(true);
-            for (var entry : group.entries()) {
-                index.getNode(entry.itemId()).ifPresent(node -> {
-                    Component leafLabel = entry.requiredCount() > 1
-                            ? Component.translatable("ami.tooltip.quest_item_count", node.displayName(), entry.requiredCount())
-                            : Component.literal(node.displayName());
-                    groupNode.addChild(new TreeNode(leafLabel, node));
-                });
-            }
-            if (!groupNode.getChildren().isEmpty()) {
-                roots.add(groupNode);
-            }
-        }
-        return roots;
     }
 
     public void updateLayout(Rect rect) {
@@ -176,6 +154,18 @@ public class SidebarPanelWidget extends AbstractWidget {
         this.contentType = contentType;
         this.panel.setPanelTitle(titleFor(contentType));
         this.panel.setChromeOnly(contentType == AmiConfig.PanelContent.EMPTY);
+        updateQuestChangeListener();
         refresh();
+    }
+
+    private void updateQuestChangeListener() {
+        boolean shouldRegister = contentType == AmiConfig.PanelContent.QUESTS;
+        if (shouldRegister && !questListenerRegistered) {
+            AmiQuestsApi.addOnChangeListener(questRefreshListener);
+            questListenerRegistered = true;
+        } else if (!shouldRegister && questListenerRegistered) {
+            AmiQuestsApi.removeOnChangeListener(questRefreshListener);
+            questListenerRegistered = false;
+        }
     }
 }

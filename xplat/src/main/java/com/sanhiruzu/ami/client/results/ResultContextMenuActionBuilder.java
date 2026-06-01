@@ -1,12 +1,26 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.AMICheatMode;
+import com.sanhiruzu.ami.api.AmiContextMenuAction;
+import com.sanhiruzu.ami.api.AmiItemContext;
+import com.sanhiruzu.ami.api.AmiPluginRegistry;
+import com.sanhiruzu.ami.api.AmiQuestItemMatch;
+import com.sanhiruzu.ami.api.AmiQuestsApi;
+import com.sanhiruzu.ami.api.IAmiPlugin;
+import com.sanhiruzu.ami.author.PackAuthorDiagnostics;
+import com.sanhiruzu.ami.client.screen.AmiCategoryFixScreen;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
+import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.config.AmiDataFixes;
+import com.sanhiruzu.ami.index.AmiIndexerService;
+import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.util.AmiClipboardHelper;
+import net.minecraft.client.Minecraft;
+import net.minecraft.Util;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -17,12 +31,16 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -53,13 +71,31 @@ public class ResultContextMenuActionBuilder {
     public static final String GROUP_TOGGLE = "ami:group_toggle";
     public static final String FILTER_CATEGORY = "ami:filter_category";
     public static final String COPY_GROUP_KEY = "ami:copy_group_key";
+    public static final String START_CATEGORY_FIX = "ami:start_category_fix";
+    public static final String EDIT_CATEGORY_FIX = "ami:edit_category_fix";
+    public static final String APPLY_CATEGORY_FIX = "ami:apply_category_fix";
+    public static final String CLEAR_ITEM_FIX = "ami:clear_item_fix";
+    public static final String QUESTS_FOR_ITEM = "ami:quests_for_item";
+    public static final String OPEN_QUEST = "ami:open_quest";
+    public static final String COPY_QUEST_MATCHES = "ami:copy_quest_matches";
+    public static final String COPY_FTB_ITEM_TASK = "ami:copy_ftb_item_task";
+    public static final String COPY_FTB_QUEST_SKELETON = "ami:copy_ftb_quest_skeleton";
+    public static final String COPY_KUBEJS_RECIPE_STUB = "ami:copy_kubejs_recipe_stub";
+    public static final String COPY_GAMESTAGE_CONDITION = "ami:copy_gamestage_condition";
+    public static final String COPY_PACK_AUTHOR_REPORT = "ami:copy_pack_author_report";
+    private static final int MAX_GROUP_AUTHORING_ITEMS = 64;
+    private static final int MAX_GROUP_REPORT_ITEMS = 512;
 
     public static final Set<String> KNOWN_ACTIONS = Set.of(
             COPY_TOOLTIP, CRAFT_ONE, CRAFT_STACK, RECIPES, USES, FAVORITE, CHAT, WIKI, LOCATE,
             CHEAT_GIVE_ONE, CHEAT_GIVE_STACK, CHEAT_SPAWN_EGG, CHEAT_SPAWN_EGG_STACK,
             CHEAT_SPAWN_POKEMON, CHEAT_POKEMON_PARTY,
             FILTER_MOD, COPY_ID,
-            GROUP_TOGGLE, FILTER_CATEGORY, COPY_GROUP_KEY
+            GROUP_TOGGLE, FILTER_CATEGORY, COPY_GROUP_KEY,
+            START_CATEGORY_FIX, EDIT_CATEGORY_FIX, APPLY_CATEGORY_FIX, CLEAR_ITEM_FIX,
+            QUESTS_FOR_ITEM, OPEN_QUEST, COPY_QUEST_MATCHES,
+            COPY_FTB_ITEM_TASK, COPY_FTB_QUEST_SKELETON, COPY_KUBEJS_RECIPE_STUB, COPY_GAMESTAGE_CONDITION,
+            COPY_PACK_AUTHOR_REPORT
     );
     public static final String DEFAULT_ACTIONS = String.join(",",
             COPY_TOOLTIP,
@@ -79,23 +115,38 @@ public class ResultContextMenuActionBuilder {
             CHEAT_POKEMON_PARTY,
             GROUP_TOGGLE,
             FILTER_CATEGORY,
-            COPY_GROUP_KEY
+            COPY_GROUP_KEY,
+            START_CATEGORY_FIX,
+            APPLY_CATEGORY_FIX,
+            CLEAR_ITEM_FIX,
+            QUESTS_FOR_ITEM,
+            OPEN_QUEST,
+            COPY_QUEST_MATCHES
     );
+
+    private static volatile SearchNode pendingCategoryFixNode;
 
     private final BooleanSupplier cheatEnabled;
     private final Predicate<ItemStack> craftable;
+    private final Supplier<List<IAmiPlugin>> pluginSupplier;
 
     public ResultContextMenuActionBuilder() {
-        this(ResultContextMenuActionBuilder::isCheatEnabled, ResultContextMenuActionBuilder::canTransferCraft);
+        this(ResultContextMenuActionBuilder::isCheatEnabled, ResultContextMenuActionBuilder::canTransferCraft, AmiPluginRegistry::getPlugins);
     }
 
     ResultContextMenuActionBuilder(BooleanSupplier cheatEnabled) {
-        this(cheatEnabled, ResultContextMenuActionBuilder::canTransferCraft);
+        this(cheatEnabled, ResultContextMenuActionBuilder::canTransferCraft, AmiPluginRegistry::getPlugins);
     }
 
     ResultContextMenuActionBuilder(BooleanSupplier cheatEnabled, Predicate<ItemStack> craftable) {
+        this(cheatEnabled, craftable, AmiPluginRegistry::getPlugins);
+    }
+
+    ResultContextMenuActionBuilder(BooleanSupplier cheatEnabled, Predicate<ItemStack> craftable,
+                                   Supplier<List<IAmiPlugin>> pluginSupplier) {
         this.cheatEnabled = cheatEnabled == null ? () -> false : cheatEnabled;
         this.craftable = craftable == null ? stack -> false : craftable;
+        this.pluginSupplier = pluginSupplier == null ? List::of : pluginSupplier;
     }
 
     public List<ResultContextMenu.Action> forItem(ItemContext context) {
@@ -107,6 +158,9 @@ public class ResultContextMenuActionBuilder {
         ResourceLocation id = node.id();
         ItemStack stack = context.stack() == null ? ItemStack.EMPTY : context.stack().copy();
         boolean hasStack = !stack.isEmpty();
+        List<AmiQuestItemMatch> questMatches = node.type() == NodeType.ITEM
+                ? AmiQuestsApi.getQuestMatchesForItem(id)
+                : List.of();
 
         if (policy.allows(node, COPY_TOOLTIP) && hasStack) {
             actions.add(ResultContextMenu.Action.enabled(
@@ -157,6 +211,9 @@ public class ResultContextMenuActionBuilder {
             addCheatActions(actions, policy, node, id, stack, hasStack);
         }
 
+        addQuestActions(actions, policy, context, node, id, questMatches);
+        addPluginActions(actions, context, node, stack);
+
         if (policy.allows(node, FAVORITE) && id != null && node.type() != null && context.favorites() != null) {
             actions.add(ResultContextMenu.Action.enabled(
                     FAVORITE,
@@ -176,11 +233,42 @@ public class ResultContextMenuActionBuilder {
         }
 
         if (policy.allows(node, WIKI) && id != null) {
+            DocumentationTarget documentationTarget = documentationTargetFor(node);
             actions.add(ResultContextMenu.Action.enabled(
                     WIKI,
-                    Component.translatable("ami.context.wiki"),
+                    documentationTarget.label(),
                     'w',
-                    () -> openWikiSearch(node)
+                    () -> openDocumentationTarget(node, documentationTarget)
+            ));
+        }
+
+        if (policy.allows(node, START_CATEGORY_FIX) && id != null && node.type() == NodeType.ITEM) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    START_CATEGORY_FIX,
+                    Component.translatable("ami.context.start_category_fix"),
+                    'x',
+                    () -> pendingCategoryFixNode = node
+            ));
+        }
+
+        if (allowsEditCategoryFix(policy, node) && id != null && node.type() == NodeType.ITEM) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    EDIT_CATEGORY_FIX,
+                    Component.translatable("ami.context.edit_category_fix"),
+                    'e',
+                    () -> openCategoryFixScreenLater(node)
+            ));
+        }
+
+        if (policy.allows(node, CLEAR_ITEM_FIX) && id != null && AmiDataFixes.hasUserFix(id, node.type())) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    CLEAR_ITEM_FIX,
+                    Component.translatable("ami.context.clear_item_fix"),
+                    'l',
+                    () -> {
+                        AmiDataFixes.removeUserFix(id, node.type());
+                        AmiIndexerService.getInstance().rebuild();
+                    }
             ));
         }
 
@@ -219,6 +307,252 @@ public class ResultContextMenuActionBuilder {
         }
 
         return actions;
+    }
+
+    private static void addQuestActions(List<ResultContextMenu.Action> actions,
+                                        ResultContextMenuActionPolicy policy,
+                                        ItemContext context,
+                                        SearchNode node,
+                                        ResourceLocation id,
+                                        List<AmiQuestItemMatch> questMatches) {
+        if (actions == null || policy == null || context == null || node == null || id == null || node.type() != NodeType.ITEM) {
+            return;
+        }
+
+        if (questMatches != null && !questMatches.isEmpty()) {
+            if (policy.allows(node, QUESTS_FOR_ITEM) && context.tokenInject() != null) {
+                actions.add(ResultContextMenu.Action.enabled(
+                        QUESTS_FOR_ITEM,
+                        Component.translatable("ami.context.quests_for_item"),
+                        'q',
+                        () -> context.tokenInject().accept("quest " + id.getPath().replace('_', ' '))
+                ));
+            }
+
+            questMatches.stream()
+                    .map(AmiQuestItemMatch::quest)
+                    .filter(quest -> quest != null && quest.canOpen())
+                    .findFirst()
+                    .ifPresent(quest -> {
+                        if (policy.allows(node, OPEN_QUEST)) {
+                            actions.add(ResultContextMenu.Action.enabled(
+                                    OPEN_QUEST,
+                                    Component.translatable("ami.context.open_quest"),
+                                    'o',
+                                    quest::open
+                            ));
+                        }
+                    });
+
+            if (policy.allows(node, COPY_QUEST_MATCHES)) {
+                actions.add(ResultContextMenu.Action.enabled(
+                        COPY_QUEST_MATCHES,
+                        Component.translatable("ami.context.copy_quest_matches"),
+                        'v',
+                        () -> AmiClipboardHelper.copyToClipboard(questMatchesSummary(id, questMatches))
+                ));
+            }
+        }
+
+        if (isPackAuthorMode() && policy.allowsDev(node, COPY_FTB_ITEM_TASK)) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    COPY_FTB_ITEM_TASK,
+                    Component.translatable("ami.context.copy_ftb_item_task"),
+                    'b',
+                    () -> AmiClipboardHelper.copyToClipboard(ftbItemTaskTemplate(id, 1))
+            ));
+        }
+        if (isPackAuthorMode() && policy.allowsDev(node, COPY_FTB_QUEST_SKELETON)) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    COPY_FTB_QUEST_SKELETON,
+                    Component.translatable("ami.context.copy_ftb_quest_skeleton"),
+                    's',
+                    () -> AmiClipboardHelper.copyToClipboard(ftbQuestSkeleton(node))
+            ));
+        }
+        if (isPackAuthorMode() && policy.allowsDev(node, COPY_KUBEJS_RECIPE_STUB)) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    COPY_KUBEJS_RECIPE_STUB,
+                    Component.translatable("ami.context.copy_kubejs_recipe_stub"),
+                    'j',
+                    () -> AmiClipboardHelper.copyToClipboard(kubeJsRecipeStub(id))
+            ));
+        }
+        if (isPackAuthorMode() && policy.allowsDev(node, COPY_GAMESTAGE_CONDITION)) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    COPY_GAMESTAGE_CONDITION,
+                    Component.translatable("ami.context.copy_gamestage_condition"),
+                    'g',
+                    () -> AmiClipboardHelper.copyToClipboard(gameStageConditionStub(id))
+            ));
+        }
+        if (isPackAuthorMode() && policy.allowsDev(node, COPY_PACK_AUTHOR_REPORT)) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    COPY_PACK_AUTHOR_REPORT,
+                    Component.translatable("ami.context.copy_pack_author_item_report"),
+                    'p',
+                    () -> AmiClipboardHelper.copyToClipboard(PackAuthorDiagnostics.itemReport(node, questMatches))
+            ));
+        }
+    }
+
+    static String ftbItemTaskTemplate(ResourceLocation itemId, long count) {
+        if (itemId == null) {
+            return "";
+        }
+        long safeCount = Math.max(1L, count);
+        return "{type:\"item\",item:\"" + itemId + "\",count:" + safeCount + "}";
+    }
+
+    static String ftbQuestSkeleton(SearchNode node) {
+        if (node == null || node.id() == null) {
+            return "";
+        }
+        return ftbQuestSkeleton(displayNameOrPath(node), List.of(node), false);
+    }
+
+    static String ftbQuestSkeleton(String title, List<SearchNode> nodes, boolean capped) {
+        List<SearchNode> items = nodes == null ? List.of() : nodes.stream()
+                .filter(node -> node != null && node.id() != null && node.type() == NodeType.ITEM)
+                .limit(MAX_GROUP_AUTHORING_ITEMS)
+                .toList();
+        if (items.isEmpty()) {
+            return "";
+        }
+
+        String safeTitle = snbtString(title == null || title.isBlank() ? "AMI Quest" : title.trim());
+        StringBuilder out = new StringBuilder();
+        out.append("{").append(System.lineSeparator());
+        out.append("  id:\"REPLACE_WITH_16_HEX_ID\",").append(System.lineSeparator());
+        out.append("  title:\"").append(safeTitle).append("\",").append(System.lineSeparator());
+        out.append("  x:0.0d,").append(System.lineSeparator());
+        out.append("  y:0.0d,").append(System.lineSeparator());
+        out.append("  tasks:[").append(System.lineSeparator());
+        for (int i = 0; i < items.size(); i++) {
+            SearchNode item = items.get(i);
+            out.append("    {id:\"REPLACE_TASK_").append(String.format(Locale.ROOT, "%03d", i + 1))
+                    .append("\",type:\"item\",item:\"").append(item.id()).append("\",count:1}");
+            if (i < items.size() - 1) {
+                out.append(",");
+            }
+            out.append(System.lineSeparator());
+        }
+        out.append("  ],").append(System.lineSeparator());
+        out.append("  rewards:[]");
+        if (capped) {
+            out.append(",").append(System.lineSeparator());
+            out.append("  subtitle:\"AMI export capped at ").append(MAX_GROUP_AUTHORING_ITEMS).append(" items\"");
+        }
+        out.append(System.lineSeparator()).append("}");
+        return out.toString();
+    }
+
+    static String kubeJsRecipeStub(ResourceLocation outputId) {
+        if (outputId == null) {
+            return "";
+        }
+        return "ServerEvents.recipes(event => {" + System.lineSeparator()
+                + "  event.shaped('" + outputId + "', [" + System.lineSeparator()
+                + "    'AAA'," + System.lineSeparator()
+                + "    'ABA'," + System.lineSeparator()
+                + "    'AAA'" + System.lineSeparator()
+                + "  ], {" + System.lineSeparator()
+                + "    A: 'minecraft:stone'," + System.lineSeparator()
+                + "    B: 'minecraft:crafting_table'" + System.lineSeparator()
+                + "  })" + System.lineSeparator()
+                + "})";
+    }
+
+    static String gameStageConditionStub(ResourceLocation outputId) {
+        if (outputId == null) {
+            return "";
+        }
+        return "ServerEvents.recipes(event => {" + System.lineSeparator()
+                + "  const stage = 'replace_stage_id'" + System.lineSeparator()
+                + "  event.remove({ output: '" + outputId + "' })" + System.lineSeparator()
+                + "  // Requires RecipeStages or another GameStages recipe bridge that exposes .stage(stage)." + System.lineSeparator()
+                + "  event.shaped('" + outputId + "', [" + System.lineSeparator()
+                + "    'AAA'," + System.lineSeparator()
+                + "    'ABA'," + System.lineSeparator()
+                + "    'AAA'" + System.lineSeparator()
+                + "  ], {" + System.lineSeparator()
+                + "    A: 'minecraft:stone'," + System.lineSeparator()
+                + "    B: 'minecraft:crafting_table'" + System.lineSeparator()
+                + "  }).stage(stage)" + System.lineSeparator()
+                + "})";
+    }
+
+    static String questMatchesSummary(ResourceLocation itemId, List<AmiQuestItemMatch> matches) {
+        StringBuilder out = new StringBuilder();
+        out.append("Quests for ").append(itemId == null ? "item" : itemId.toString());
+        if (matches == null || matches.isEmpty()) {
+            return out.append(": none").toString();
+        }
+        for (AmiQuestItemMatch match : matches) {
+            if (match == null || match.quest() == null || match.task() == null) {
+                continue;
+            }
+            out.append(System.lineSeparator())
+                    .append("- ");
+            if (!match.quest().chapterTitle().isBlank()) {
+                out.append(match.quest().chapterTitle()).append(" > ");
+            }
+            out.append(match.quest().title().isBlank() ? match.quest().id() : match.quest().title());
+            if (match.task().requiredCount() > 1) {
+                out.append(" x").append(match.task().requiredCount());
+            }
+            out.append(" (").append(match.task().role().name().toLowerCase(Locale.ROOT)).append(")");
+        }
+        return out.toString();
+    }
+
+    private void addPluginActions(List<ResultContextMenu.Action> actions, ItemContext context, SearchNode node, ItemStack stack) {
+        if (actions == null || context == null || node == null) return;
+
+        List<IAmiPlugin> plugins;
+        try {
+            plugins = pluginSupplier.get();
+        } catch (RuntimeException | LinkageError e) {
+            LOGGER.log(Level.WARNING, "AMI: Failed to obtain plugins for context menu", e);
+            return;
+        }
+        if (plugins == null || plugins.isEmpty()) return;
+
+        AmiItemContext apiContext = new AmiItemContext(
+                node.id(),
+                node.type() == null ? "" : node.type().name(),
+                Component.literal(node.displayName() == null ? "" : node.displayName()),
+                stack,
+                node.metadata(),
+                cheatEnabled.getAsBoolean(),
+                context.tokenInject()
+        );
+
+        for (IAmiPlugin plugin : plugins) {
+            try {
+                plugin.addItemContextMenuActions(apiContext, action -> addPluginAction(actions, action));
+            } catch (RuntimeException | LinkageError e) {
+                LOGGER.log(Level.WARNING,
+                        "AMI: Context menu plugin failed: " + plugin.getClass().getName(), e);
+            }
+        }
+    }
+
+    private static void addPluginAction(List<ResultContextMenu.Action> actions, AmiContextMenuAction action) {
+        if (actions == null || action == null || action.label() == null) return;
+        actions.add(new ResultContextMenu.Action(
+                action.id(),
+                action.label(),
+                action.mnemonic(),
+                action.enabled(),
+                action.onClick()
+        ));
+    }
+
+    private static boolean allowsEditCategoryFix(ResultContextMenuActionPolicy policy, SearchNode node) {
+        if (policy == null) return false;
+        return policy.allows(node, EDIT_CATEGORY_FIX)
+                || (AmiConfig.devMode && policy.allowsDev(node, EDIT_CATEGORY_FIX));
     }
 
     private void addCheatActions(List<ResultContextMenu.Action> actions, ResultContextMenuActionPolicy policy,
@@ -324,7 +658,147 @@ public class ResultContextMenuActionBuilder {
             ));
         }
 
+        List<SearchNode> authoringItems = collectAuthoringItems(node, MAX_GROUP_AUTHORING_ITEMS);
+        if (isPackAuthorMode() && !authoringItems.isEmpty() && policy.allowsDevGroup(node, COPY_FTB_QUEST_SKELETON)) {
+            boolean capped = countAuthoringItems(node, MAX_GROUP_AUTHORING_ITEMS + 1) > MAX_GROUP_AUTHORING_ITEMS;
+            actions.add(ResultContextMenu.Action.enabled(
+                    COPY_FTB_QUEST_SKELETON,
+                    Component.translatable("ami.context.copy_ftb_quest_skeleton"),
+                    's',
+                    () -> AmiClipboardHelper.copyToClipboard(ftbQuestSkeleton(groupTitle(node), authoringItems, capped))
+            ));
+        }
+
+        List<SearchNode> reportItems = collectAuthoringItems(node, MAX_GROUP_REPORT_ITEMS);
+        if (isPackAuthorMode() && !reportItems.isEmpty() && policy.allowsDevGroup(node, COPY_PACK_AUTHOR_REPORT)) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    COPY_PACK_AUTHOR_REPORT,
+                    Component.translatable("ami.context.copy_pack_author_group_report"),
+                    'p',
+                    () -> AmiClipboardHelper.copyToClipboard(PackAuthorDiagnostics.groupReport(
+                            groupTitle(node),
+                            reportItems,
+                            AmiQuestsApi.getQuestDocuments()
+                    ))
+            ));
+        }
+
+        SearchNode pending = pendingCategoryFixNode;
+        Optional<CategoryTarget> target = categoryTargetFor(key);
+        if (pending != null && target.isPresent() && policy.allowsGroup(node, APPLY_CATEGORY_FIX)) {
+            CategoryTarget categoryTarget = target.get();
+            actions.add(ResultContextMenu.Action.enabled(
+                    APPLY_CATEGORY_FIX,
+                    Component.translatable("ami.context.apply_category_fix", pending.displayName()),
+                    'm',
+                    () -> {
+                        Map<String, String> metadata = new LinkedHashMap<>();
+                        metadata.put(SearchNodeKeys.ONTOLOGY_CATEGORY, categoryTarget.categoryId());
+                        metadata.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, categoryTarget.subcategoryId());
+                        AmiDataFixes.putUserMetadataFix(pending.id(), pending.type(), metadata);
+                        pendingCategoryFixNode = null;
+                        AmiIndexerService.getInstance().rebuild();
+                        if (context.onTreeChanged() != null) context.onTreeChanged().run();
+                    }
+            ));
+        }
+
         return actions;
+    }
+
+    private static boolean isPackAuthorMode() {
+        return AmiConfig.packAuthorMode || AmiConfig.devMode;
+    }
+
+    private static List<SearchNode> collectAuthoringItems(TreeNode node, int limit) {
+        List<SearchNode> out = new ArrayList<>();
+        collectAuthoringItems(node, Math.max(0, limit), out);
+        return out;
+    }
+
+    private static void collectAuthoringItems(TreeNode node, int limit, List<SearchNode> out) {
+        if (node == null || out == null || out.size() >= limit) {
+            return;
+        }
+        if (node.isLeaf()) {
+            SearchNode entry = node.getEntry();
+            if (entry != null && entry.type() == NodeType.ITEM && entry.id() != null) {
+                out.add(entry);
+            }
+            return;
+        }
+        for (TreeNode child : node.getChildren()) {
+            collectAuthoringItems(child, limit, out);
+            if (out.size() >= limit) {
+                return;
+            }
+        }
+    }
+
+    private static int countAuthoringItems(TreeNode node, int limit) {
+        if (node == null || limit <= 0) {
+            return 0;
+        }
+        if (node.isLeaf()) {
+            SearchNode entry = node.getEntry();
+            return entry != null && entry.type() == NodeType.ITEM && entry.id() != null ? 1 : 0;
+        }
+        int count = 0;
+        for (TreeNode child : node.getChildren()) {
+            count += countAuthoringItems(child, limit - count);
+            if (count >= limit) {
+                return count;
+            }
+        }
+        return count;
+    }
+
+    private static String groupTitle(TreeNode node) {
+        if (node == null || node.getLabel() == null) {
+            return "AMI Quest";
+        }
+        String label = node.getLabel().getString();
+        return label == null || label.isBlank() ? "AMI Quest" : label;
+    }
+
+    private static String displayNameOrPath(SearchNode node) {
+        if (node == null) {
+            return "AMI Quest";
+        }
+        if (node.displayName() != null && !node.displayName().isBlank()) {
+            return node.displayName();
+        }
+        ResourceLocation id = node.id();
+        return id == null ? "AMI Quest" : id.getPath().replace('_', ' ');
+    }
+
+    private static String snbtString(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private static Optional<CategoryTarget> categoryTargetFor(String groupKey) {
+        if (groupKey == null || groupKey.isBlank()) return Optional.empty();
+
+        String[] parts = groupKey.toLowerCase(Locale.ROOT).split("/");
+        String categoryId = parts[0].trim();
+        String subcategoryId = parts.length > 1 ? parts[1].trim() : "";
+        if ("none".equals(subcategoryId)) {
+            subcategoryId = "";
+        }
+
+        for (AmiOntology.Category category : AmiOntology.CATEGORIES) {
+            if (!category.id.equals(categoryId)) continue;
+            if (subcategoryId.isBlank() || hasSubcategory(category, subcategoryId)) {
+                return Optional.of(new CategoryTarget(categoryId, subcategoryId));
+            }
+            return Optional.empty();
+        }
+        return Optional.empty();
+    }
+
+    private static boolean hasSubcategory(AmiOntology.Category category, String subcategoryId) {
+        if (category == null || subcategoryId == null || subcategoryId.isBlank()) return false;
+        return category.subCategories.stream().anyMatch(subcategory -> subcategory.id().equals(subcategoryId));
     }
 
     private boolean hasRecipes(SearchNode node, ItemStack stack) {
@@ -445,33 +919,122 @@ public class ResultContextMenuActionBuilder {
         }
     }
 
-    private static void openWikiSearch(SearchNode node) {
+    private static void openDocumentationTarget(SearchNode node, DocumentationTarget target) {
+        if (target == null) return;
+        if (target.kind() == DocumentationKind.AE2_GUIDE) {
+            if (openAe2Guide()) {
+                return;
+            }
+            openUri(node, target.fallbackUri());
+            return;
+        }
+        openUri(node, target.uri());
+    }
+
+    private static boolean openAe2Guide() {
         try {
-            Optional<URI> uri = wikiUriFor(node);
-            if (uri.isEmpty()) return;
-            Class<?> utilClass = Class.forName("net.minecraft.Util");
-            Object platform = utilClass.getMethod("getPlatform").invoke(null);
-            platform.getClass()
-                    .getMethod("openUri", URI.class)
-                    .invoke(platform, uri.get());
-        } catch (ReflectiveOperationException | RuntimeException e) {
-            LOGGER.log(Level.WARNING, "AMI: Failed to open wiki search from context menu for " + chatText(node), e);
+            Minecraft minecraft = Minecraft.getInstance();
+            if (minecraft.player == null) return false;
+
+            Class<?> guidesCommon = Class.forName("guideme.GuidesCommon");
+            for (var method : guidesCommon.getMethods()) {
+                if (!method.getName().equals("openGuide") || method.getParameterCount() != 2) continue;
+                method.invoke(null, minecraft.player, Services.PLATFORM.rl("ae2", "guide"));
+                return true;
+            }
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: GuideME unavailable for AE2 documentation action", e);
+        }
+        return false;
+    }
+
+    private static void openUri(SearchNode node, URI uri) {
+        try {
+            if (uri == null) return;
+            Util.getPlatform().openUri(uri);
+        } catch (RuntimeException e) {
+            LOGGER.log(Level.WARNING, "AMI: Failed to open documentation target from context menu for " + chatText(node), e);
         }
     }
 
     static Optional<URI> wikiUriFor(SearchNode node) {
-        if (node == null) return Optional.empty();
+        DocumentationTarget target = documentationTargetFor(node);
+        return Optional.ofNullable(target.uri());
+    }
+
+    static DocumentationTarget documentationTargetFor(SearchNode node) {
+        if (node == null) {
+            return new DocumentationTarget(DocumentationKind.WEB_SEARCH, Component.translatable("ami.context.search_web"), null, null);
+        }
 
         ResourceLocation id = node.id();
         String query = wikiQueryText(node);
-        if (query.isBlank()) return Optional.empty();
-
-        if (id != null && "minecraft".equals(id.getNamespace())) {
-            return Optional.of(URI.create("https://minecraft.wiki/w/" + encodeWikiPath(wikiPageTitle(node, query))));
+        if (query.isBlank()) {
+            return new DocumentationTarget(DocumentationKind.WEB_SEARCH, Component.translatable("ami.context.search_web"), null, null);
         }
 
-        String encoded = URLEncoder.encode(query, StandardCharsets.UTF_8);
-        return Optional.of(URI.create("https://minecraft.wiki/w/Special:Search?search=" + encoded));
+        if (id != null && "minecraft".equals(id.getNamespace())) {
+            return new DocumentationTarget(
+                    DocumentationKind.MINECRAFT_WIKI,
+                    Component.translatable("ami.context.wiki"),
+                    URI.create("https://minecraft.wiki/w/" + encodeWikiPath(wikiPageTitle(node, query))),
+                    null
+            );
+        }
+
+        if (id != null && "ae2".equals(id.getNamespace()) && Services.PLATFORM.isModLoaded("guideme")) {
+            return new DocumentationTarget(
+                    DocumentationKind.AE2_GUIDE,
+                    Component.translatable("ami.context.open_ae2_guide"),
+                    null,
+                    ae2WebGuideUri(node, query)
+            );
+        }
+
+        if (id != null && "mekanism".equals(id.getNamespace())) {
+            return new DocumentationTarget(
+                    DocumentationKind.MEKANISM_WIKI,
+                    Component.translatable("ami.context.open_mekanism_wiki"),
+                    URI.create("https://wiki.aidancbrady.com/wiki/" + encodeWikiPath(wikiPageTitle(node, query))),
+                    null
+            );
+        }
+
+        return new DocumentationTarget(
+                DocumentationKind.WEB_SEARCH,
+                Component.translatable("ami.context.search_web"),
+                webSearchUri(node, query),
+                null
+        );
+    }
+
+    private static URI ae2WebGuideUri(SearchNode node, String query) {
+        return URI.create("https://guide.appliedenergistics.org/1.21.1/?search="
+                + URLEncoder.encode(query, StandardCharsets.UTF_8));
+    }
+
+    private static URI webSearchUri(SearchNode node, String query) {
+        ResourceLocation id = node == null ? null : node.id();
+        String modText = id == null ? "" : modMetadataText(id.getNamespace());
+        String search = query;
+        if (id != null) {
+            search += " " + id;
+        }
+        if (!modText.isBlank()) {
+            search += " " + modText;
+        }
+        search += " minecraft mod";
+        return URI.create("https://duckduckgo.com/?q=" + URLEncoder.encode(search, StandardCharsets.UTF_8));
+    }
+
+    private static String modMetadataText(String namespace) {
+        if (namespace == null || namespace.isBlank()) return "";
+        try {
+            return Services.PLATFORM.getModMetadataText(namespace).orElse(namespace);
+        } catch (RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Mod metadata unavailable while building documentation search for " + namespace, e);
+            return namespace;
+        }
     }
 
     private static String wikiPageTitle(SearchNode node, String fallbackQuery) {
@@ -583,6 +1146,14 @@ public class ResultContextMenuActionBuilder {
         });
     }
 
+    private static void openCategoryFixScreenLater(SearchNode node) {
+        if (node == null) return;
+        runOnClient(() -> {
+            Minecraft minecraft = Minecraft.getInstance();
+            minecraft.setScreen(new AmiCategoryFixScreen(minecraft.screen, node));
+        });
+    }
+
     private static void runOnClient(Runnable action) {
         if (action == null) return;
 
@@ -608,5 +1179,18 @@ public class ResultContextMenuActionBuilder {
             Consumer<String> tokenInject,
             Runnable onTreeChanged
     ) {
+    }
+
+    private record CategoryTarget(String categoryId, String subcategoryId) {
+    }
+
+    enum DocumentationKind {
+        MINECRAFT_WIKI,
+        AE2_GUIDE,
+        MEKANISM_WIKI,
+        WEB_SEARCH
+    }
+
+    record DocumentationTarget(DocumentationKind kind, Component label, URI uri, URI fallbackUri) {
     }
 }

@@ -172,12 +172,6 @@ public class ItemGridView {
         this.onTokenInject = callback;
     }
 
-    private boolean tooltipLeftOfCursor = true;
-
-    public void setTooltipLeftOfCursor(boolean tooltipLeftOfCursor) {
-        this.tooltipLeftOfCursor = tooltipLeftOfCursor;
-    }
-
     public void render(GuiGraphics g, int mouseX, int mouseY, boolean toolbarDropdownOpen) {
         pendingTooltip = null;
         pendingTextTooltip = null;
@@ -239,9 +233,9 @@ public class ItemGridView {
             com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
             if (pendingTextTooltip != null) {
                 ItemStack stackContext = (pendingTooltip != null) ? pendingTooltip : ItemStack.EMPTY;
-                AmiTooltipRenderer.render(g, font, stackContext, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY, tooltipLeftOfCursor);
+                AmiTooltipRenderer.render(g, font, stackContext, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY);
             } else if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
-                AmiTooltipRenderer.render(g, font, pendingTooltip, mouseX, mouseY, tooltipLeftOfCursor);
+                AmiTooltipRenderer.render(g, font, pendingTooltip, mouseX, mouseY);
             }
         }
     }
@@ -387,6 +381,25 @@ public class ItemGridView {
             } else {
                 renderRendererWithWiggle(g, entry, cellX + 1, cellY + 1, hovered);
             }
+
+            if (node.isLeaf()) {
+                renderQuestMarker(g, entry, cellX, cellY);
+            }
+        }
+    }
+
+    private void renderQuestMarker(GuiGraphics g, SearchNode entry, int cellX, int cellY) {
+        QuestItemEvidence evidence = QuestItemEvidenceProjector.project(entry);
+        if (!evidence.hasMatches()) {
+            return;
+        }
+        int color = evidence.hasRequirement() ? AMITheme.ACCENT_BLUE : AMITheme.ACCENT_GOLD;
+        int markerX = cellX + CELL_SIZE - 7;
+        int markerY = cellY + 1;
+        g.fill(markerX, markerY, markerX + 6, markerY + 6, 0xCC000000);
+        g.fill(markerX + 1, markerY + 1, markerX + 5, markerY + 5, color);
+        if (evidence.totalCount() > 1) {
+            g.fill(markerX + 4, markerY + 4, markerX + 6, markerY + 6, AMITheme.WHITE);
         }
     }
 

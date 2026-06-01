@@ -13,6 +13,7 @@ public final class SearchNodeKeys {
     public static final String CLASSIFICATION_ROUTE = "classificationRoute"; // Human-readable resolver path.
     public static final String CLASSIFICATION_ROUTE_PHASE = "classificationRoutePhase"; // Final resolver gate.
     public static final String CLASSIFICATION_ROUTE_RULE = "classificationRouteRule"; // Final rule/scorer id.
+    public static final String DATA_FIX_SOURCE = "amiDataFixSource"; // user or pack metadata override source.
     // Item-specific
     public static final String ONTOLOGY_CATEGORY = "ontologyCategory";    // AmiOntology.Category.id
     public static final String ONTOLOGY_SUBCATEGORY = "ontologySubcategory"; // AmiOntology.SubCategory.id

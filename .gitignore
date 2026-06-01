@@ -44,6 +44,10 @@ repo/
 logs/
 crash-reports/
 config/
+!**/src/main/java/**/config/
+!**/src/main/java/**/config/**
+!**/src/test/java/**/config/
+!**/src/test/java/**/config/**
 defaultconfigs/
 anomaly_report.md
 

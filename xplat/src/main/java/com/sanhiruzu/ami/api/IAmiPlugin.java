@@ -5,6 +5,7 @@ import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Interface for mods to provide AMI with layout-specific data.
@@ -35,5 +36,27 @@ public interface IAmiPlugin {
      */
     default List<ItemStack> getHeroItems() {
         return List.of();
+    }
+
+    /**
+     * Allows a mod to append actions to AMI's item result context menu.
+     * <p>
+     * Called client-side when the player opens the right-click menu for an item
+     * result. Actions should do their own permission/config checks before
+     * registering. Cheat actions can use {@code context.cheatEnabled()} to match
+     * AMI's built-in cheat-mode visibility.
+     */
+    default void addItemContextMenuActions(AmiItemContext context, Consumer<AmiContextMenuAction> actions) {
+    }
+
+    /**
+     * Allows a mod to contribute searchable guide/tutorial documents.
+     * <p>
+     * Documents should be lightweight and stable. Large guide bodies should be
+     * summarized or provided through a bounded text field; the owning mod should
+     * keep responsibility for opening the actual guide UI through each document's
+     * optional open action.
+     */
+    default void addGuideDocuments(Consumer<AmiGuideDocument> documents) {
     }
 }

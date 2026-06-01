@@ -10,6 +10,9 @@ import net.minecraft.resources.ResourceLocation;
  */
 public record AmiQuestEntry(ResourceLocation itemId, int requiredCount) {
     public AmiQuestEntry {
+        if (itemId == null) {
+            throw new IllegalArgumentException("itemId must not be null");
+        }
         if (requiredCount <= 0) {
             throw new IllegalArgumentException("requiredCount must be positive, got " + requiredCount);
         }

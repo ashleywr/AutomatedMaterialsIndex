@@ -184,3 +184,14 @@ tasks.register('cleanRuns', Delete) {
     description = 'Deletes all disposable Minecraft run directories under run/.'
     delete layout.projectDirectory.dir('run')
 }
+
+tasks.register('writeVanillaFtbQuestFixture', Exec) {
+    group = 'verification'
+    description = 'Writes a deterministic vanilla-progression FTB Quests fixture into run/neoforge-emi.'
+    onlyIf { org.gradle.internal.os.OperatingSystem.current().isWindows() }
+    commandLine 'powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass',
+            '-File', rootProject.file('scripts/write-vanilla-ftb-quests-fixture.ps1').absolutePath,
+            '-AmiRepo', rootProject.projectDir.absolutePath,
+            '-RunName', 'neoforge-emi',
+            '-CleanGenerated'
+}

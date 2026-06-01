@@ -57,6 +57,17 @@ public class SearchNode {
         return Collections.unmodifiableMap(metadata);
     }
 
+    public SearchNode withMetadata(Map<String, String> updatedMetadata) {
+        SearchNode copy = new SearchNode(id, type, displayName, color, searchWeight, updatedMetadata);
+        for (var entry : unresolvedEdges.entrySet()) {
+            copy.unresolvedEdges.put(entry.getKey(), new CopyOnWriteArrayList<>(entry.getValue()));
+        }
+        for (var entry : resolvedEdges.entrySet()) {
+            copy.resolvedEdges.put(entry.getKey(), new CopyOnWriteArrayList<>(entry.getValue()));
+        }
+        return copy;
+    }
+
     /**
      * Convenience: read a metadata key with a default.
      */
