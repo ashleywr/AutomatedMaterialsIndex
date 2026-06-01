@@ -336,22 +336,7 @@ public final class CobblemonPokemonIconRenderer {
                     g.pose().scale(size / 42.0f, size / 42.0f, size / 42.0f);
                     api.drawProfilePokemon.invoke(
                             null,
-                            speciesId,
-                            g.pose(),
-                            rotation,
-                            api.profilePose,
-                            state,
-                            0.0f,
-                            20.0f,
-                            false,
-                            false,
-                            false,
-                            1.0f,
-                            1.0f,
-                            1.0f,
-                            1.0f,
-                            0.0f,
-                            0.0f
+                            api.arguments(speciesId, g.pose(), rotation, state)
                     );
                 } catch (ReflectiveOperationException e) {
                     throw new IllegalStateException(e);
@@ -377,10 +362,16 @@ public final class CobblemonPokemonIconRenderer {
         try {
             Class<?> guiUtils = ReflectiveCompat.findClass("com.cobblemon.mod.common.client.gui.PokemonGuiUtilsKt").orElseThrow();
             Class<?> poseType = ReflectiveCompat.findClass("com.cobblemon.mod.common.entity.PoseType").orElseThrow();
-            Class<?> posableState = ReflectiveCompat.findClass("com.cobblemon.mod.common.client.render.models.blockbench.PosableState").orElseThrow();
-            Class<?> floatingState = ReflectiveCompat.findClass("com.cobblemon.mod.common.client.render.models.blockbench.FloatingState").orElseThrow();
+            Class<?> posableState = firstClass(
+                    "com.cobblemon.mod.common.client.render.models.blockbench.PosableState",
+                    "com.cobblemon.mod.common.client.render.models.blockbench.PoseableEntityState"
+            ).orElseThrow();
+            Class<?> floatingState = firstClass(
+                    "com.cobblemon.mod.common.client.render.models.blockbench.FloatingState",
+                    "com.cobblemon.mod.common.client.render.models.blockbench.pokemon.PokemonFloatingState"
+            ).orElseThrow();
 
-            Method draw = ReflectiveCompat.findMethod(
+            Optional<Method> currentDraw = ReflectiveCompat.findMethod(
                     guiUtils,
                     "drawProfilePokemon",
                     ResourceLocation.class,
@@ -399,16 +390,42 @@ public final class CobblemonPokemonIconRenderer {
                     float.class,
                     float.class,
                     float.class
-            ).orElseThrow();
+            );
             Constructor<?> stateCtor = ReflectiveCompat.findConstructor(floatingState).orElseThrow();
             Object profilePose = Enum.valueOf(poseType.asSubclass(Enum.class), "PROFILE");
 
-            profileApi = new ProfileApi(draw, stateCtor, profilePose);
+            if (currentDraw.isPresent()) {
+                profileApi = new ProfileApi(currentDraw.get(), stateCtor, profilePose, false);
+                return profileApi;
+            }
+
+            Method legacyDraw = ReflectiveCompat.findMethod(
+                    guiUtils,
+                    "drawProfilePokemon",
+                    ResourceLocation.class,
+                    Set.class,
+                    PoseStack.class,
+                    Quaternionf.class,
+                    posableState,
+                    float.class,
+                    float.class
+            ).orElseThrow();
+            profileApi = new ProfileApi(legacyDraw, stateCtor, profilePose, true);
             return profileApi;
         } catch (Throwable e) {
             profileApiUnavailable = true;
             return null;
         }
+    }
+
+    private static Optional<Class<?>> firstClass(String... classNames) {
+        for (String className : classNames) {
+            Optional<Class<?>> type = ReflectiveCompat.findClass(className);
+            if (type.isPresent()) {
+                return type;
+            }
+        }
+        return Optional.empty();
     }
 
     private static ResourceLocation speciesId(SearchNode node) {
@@ -569,13 +586,45 @@ public final class CobblemonPokemonIconRenderer {
         }
     }
 
-    private record ProfileApi(Method drawProfilePokemon, Constructor<?> stateCtor, Object profilePose) {
+    private record ProfileApi(Method drawProfilePokemon, Constructor<?> stateCtor, Object profilePose, boolean legacy) {
         private Object newState(ResourceLocation ignored) {
             try {
                 return stateCtor.newInstance();
             } catch (ReflectiveOperationException e) {
                 return null;
             }
+        }
+
+        private Object[] arguments(ResourceLocation speciesId, PoseStack pose, Quaternionf rotation, Object state) {
+            if (legacy) {
+                return new Object[]{
+                        speciesId,
+                        Set.of(),
+                        pose,
+                        rotation,
+                        state,
+                        0.0f,
+                        20.0f
+                };
+            }
+            return new Object[]{
+                    speciesId,
+                    pose,
+                    rotation,
+                    profilePose,
+                    state,
+                    0.0f,
+                    20.0f,
+                    false,
+                    false,
+                    false,
+                    1.0f,
+                    1.0f,
+                    1.0f,
+                    1.0f,
+                    0.0f,
+                    0.0f
+            };
         }
     }
 }

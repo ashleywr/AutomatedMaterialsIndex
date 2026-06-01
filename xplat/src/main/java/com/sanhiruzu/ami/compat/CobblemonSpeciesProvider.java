@@ -12,6 +12,7 @@ import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -122,7 +123,7 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
 
         LinkedHashSet<String> values = new LinkedHashSet<>();
         for (Object group : groups) {
-            String value = invokeString(api.getEggGroupShowdownId, group);
+            String value = invokeString(findNoArgMethod(group.getClass(), "getShowdownID", "getShowdownID$common"), group);
             if (value.isBlank()) {
                 value = safeString(group);
             }
@@ -139,8 +140,8 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
 
         LinkedHashSet<String> values = new LinkedHashSet<>();
         for (Object potential : abilities) {
-            Object template = api.getAbilityTemplate.invoke(potential);
-            addNormalized(values, invokeString(api.getAbilityName, template));
+            Object template = invokeNoArg(potential, "getTemplate");
+            addNormalized(values, invokeString(findNoArgMethod(template == null ? null : template.getClass(), "getName"), template));
         }
         putJoined(meta, SearchNodeKeys.POKEMON_ABILITIES, values);
     }
@@ -151,13 +152,26 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
             return;
         }
 
-        LinkedHashSet<String> allMoves = moves(api, api.getAllLegalMoves.invoke(learnset));
+        LinkedHashSet<String> allMoves = moves(api, invokeNoArg(learnset, "getAllLegalMoves"));
+        if (allMoves.isEmpty()) {
+            allMoves.addAll(moves(api, invokeNoArg(learnset, "getTmMoves")));
+            allMoves.addAll(moves(api, invokeNoArg(learnset, "getEggMoves")));
+            allMoves.addAll(moves(api, invokeNoArg(learnset, "getTutorMoves")));
+            allMoves.addAll(moves(api, invokeNoArg(learnset, "getEvolutionMoves")));
+            allMoves.addAll(moves(api, invokeNoArg(learnset, "getFormChangeMoves")));
+            Object rawLevelMoves = invokeNoArg(learnset, "getLevelUpMoves");
+            if (rawLevelMoves instanceof Map<?, ?> levelMoves) {
+                for (Object moveList : levelMoves.values()) {
+                    allMoves.addAll(moves(api, moveList));
+                }
+            }
+        }
         putJoined(meta, SearchNodeKeys.POKEMON_MOVE, allMoves);
-        putJoined(meta, SearchNodeKeys.POKEMON_TM_MOVE, moves(api, api.getTmMoves.invoke(learnset)));
-        putJoined(meta, SearchNodeKeys.POKEMON_EGG_MOVE, moves(api, api.getEggMoves.invoke(learnset)));
-        putJoined(meta, SearchNodeKeys.POKEMON_TUTOR_MOVE, moves(api, api.getTutorMoves.invoke(learnset)));
+        putJoined(meta, SearchNodeKeys.POKEMON_TM_MOVE, moves(api, invokeNoArg(learnset, "getTmMoves")));
+        putJoined(meta, SearchNodeKeys.POKEMON_EGG_MOVE, moves(api, invokeNoArg(learnset, "getEggMoves")));
+        putJoined(meta, SearchNodeKeys.POKEMON_TUTOR_MOVE, moves(api, invokeNoArg(learnset, "getTutorMoves")));
 
-        Object rawLevelMoves = api.getLevelUpMoves.invoke(learnset);
+        Object rawLevelMoves = invokeNoArg(learnset, "getLevelUpMoves");
         if (rawLevelMoves instanceof Map<?, ?> levelMoves) {
             LinkedHashSet<String> values = new LinkedHashSet<>();
             for (Object moveList : levelMoves.values()) {
@@ -173,7 +187,7 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
             return values;
         }
         for (Object move : moves) {
-            addNormalized(values, invokeString(api.getMoveName, move));
+            addNormalized(values, invokeString(findNoArgMethod(move == null ? null : move.getClass(), "getName"), move));
         }
         return values;
     }
@@ -182,7 +196,7 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
         if (type == null) {
             return "";
         }
-        String name = invokeString(api.getTypeName, type);
+        String name = invokeString(findNoArgMethod(type.getClass(), "getName"), type);
         return normalizeToken(name);
     }
 
@@ -190,7 +204,7 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
         if (stat == null) {
             return "";
         }
-        String showdown = invokeString(api.getStatShowdownId, stat);
+        String showdown = invokeString(findNoArgMethod(stat.getClass(), "getShowdownId"), stat);
         if (!showdown.isBlank()) {
             return normalizeToken(showdown);
         }
@@ -240,6 +254,36 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
         return value == null ? "" : value.toString();
     }
 
+    private static Object invokeNoArg(Object target, String methodName) throws ReflectiveOperationException {
+        if (target == null || methodName == null || methodName.isBlank()) {
+            return null;
+        }
+        Method method = findNoArgMethod(target.getClass(), methodName);
+        return method == null ? null : method.invoke(target);
+    }
+
+    private static Method findNoArgMethod(Class<?> owner, String... names) {
+        if (owner == null || names == null) {
+            return null;
+        }
+        for (String name : names) {
+            if (name == null || name.isBlank()) continue;
+            try {
+                Method method = owner.getMethod(name);
+                method.setAccessible(true);
+                return method;
+            } catch (NoSuchMethodException ignored) {
+            }
+            try {
+                Method method = owner.getDeclaredMethod(name);
+                method.setAccessible(true);
+                return method;
+            } catch (NoSuchMethodException ignored) {
+            }
+        }
+        return null;
+    }
+
     private static String componentString(Object component, String fallback) {
         if (component instanceof Component text) {
             String value = text.getString();
@@ -276,6 +320,7 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
     }
 
     private record SpeciesApi(
+            Object speciesRegistry,
             Method getSpecies,
             Method getResourceIdentifier,
             Method getTranslatedName,
@@ -288,33 +333,20 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
             Method getAbilities,
             Method getMoves,
             Method getHeight,
-            Method getWeight,
-            Method getTypeName,
-            Method getStatShowdownId,
-            Method getEggGroupShowdownId,
-            Method getAbilityTemplate,
-            Method getAbilityName,
-            Method getAllLegalMoves,
-            Method getTmMoves,
-            Method getEggMoves,
-            Method getTutorMoves,
-            Method getLevelUpMoves,
-            Method getMoveName
+            Method getWeight
     ) {
         static SpeciesApi tryLoad() {
             try {
                 Class<?> pokemonSpecies = Class.forName(SPECIES_REGISTRY_CLASS);
                 Class<?> species = Class.forName("com.cobblemon.mod.common.pokemon.Species");
-                Class<?> elementalType = Class.forName("com.cobblemon.mod.common.api.types.ElementalType");
-                Class<?> stat = Class.forName("com.cobblemon.mod.common.api.pokemon.stats.Stat");
-                Class<?> eggGroup = Class.forName("com.cobblemon.mod.common.api.pokemon.egg.EggGroup");
-                Class<?> potentialAbility = Class.forName("com.cobblemon.mod.common.api.abilities.PotentialAbility");
-                Class<?> abilityTemplate = Class.forName("com.cobblemon.mod.common.api.abilities.AbilityTemplate");
-                Class<?> learnset = Class.forName("com.cobblemon.mod.common.api.pokemon.moves.Learnset");
-                Class<?> moveTemplate = Class.forName("com.cobblemon.mod.common.api.moves.MoveTemplate");
+                Method getSpecies = pokemonSpecies.getMethod("getSpecies");
+                Object speciesRegistry = Modifier.isStatic(getSpecies.getModifiers())
+                        ? null
+                        : pokemonSpecies.getField("INSTANCE").get(null);
 
                 return new SpeciesApi(
-                        pokemonSpecies.getMethod("getSpecies"),
+                        speciesRegistry,
+                        getSpecies,
                         species.getMethod("getResourceIdentifier"),
                         species.getMethod("getTranslatedName"),
                         species.getMethod("getNationalPokedexNumber"),
@@ -326,18 +358,7 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
                         species.getMethod("getAbilities"),
                         species.getMethod("getMoves"),
                         species.getMethod("getHeight"),
-                        species.getMethod("getWeight"),
-                        elementalType.getMethod("getName"),
-                        stat.getMethod("getShowdownId"),
-                        eggGroup.getMethod("getShowdownID"),
-                        potentialAbility.getMethod("getTemplate"),
-                        abilityTemplate.getMethod("getName"),
-                        learnset.getMethod("getAllLegalMoves"),
-                        learnset.getMethod("getTmMoves"),
-                        learnset.getMethod("getEggMoves"),
-                        learnset.getMethod("getTutorMoves"),
-                        learnset.getMethod("getLevelUpMoves"),
-                        moveTemplate.getMethod("getName")
+                        species.getMethod("getWeight")
                 );
             } catch (ClassNotFoundException ignored) {
                 return null;
@@ -350,13 +371,13 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
         @SuppressWarnings("unchecked")
         Collection<Object> species() {
             try {
-                Object value = getSpecies.invoke(null);
+                Object value = getSpecies.invoke(speciesRegistry);
                 if (value instanceof Collection<?> collection) {
                     List<Object> copy = new ArrayList<>((Collection<Object>) collection);
                     copy.sort(Comparator.comparing(CobblemonSpeciesProvider::safeString));
                     return copy;
                 }
-            } catch (ReflectiveOperationException e) {
+            } catch (ReflectiveOperationException | RuntimeException e) {
                 AmiCore.LOGGER.warn("Failed to read Cobblemon species registry", e);
             }
             return List.of();
