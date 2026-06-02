@@ -841,7 +841,7 @@ class PrimaryCategoryResolverTest {
     }
 
     @Test
-    void foodFamilyPriorsDoNotSweepUtilityPlaceablesIntoSnacks() {
+    void foodFamilyPriorsRouteFunctionalPlaceablesByPrimaryUse() {
         CategoryAssignment stoveAssignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("farmersdelight:stove"),
                 new FacetProfile(
@@ -849,11 +849,26 @@ class PrimaryCategoryResolverTest {
                         Map.of(SearchNodeKeys.BLOCKS_MATERIAL, "other_building")
                 )
         );
+        CategoryAssignment runtimeSkilletAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("farmersdelight:skillet"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY),
+                        Map.of(
+                                SearchNodeKeys.BLOCKS_MATERIAL, "other_building",
+                                SearchNodeKeys.ITEM_CLASS, "vectorwing.farmersdelight.common.item.SkilletItem",
+                                SearchNodeKeys.BLOCK_CLASS, "vectorwing.farmersdelight.common.block.SkilletBlock"
+                        )
+                )
+        );
         CategoryAssignment skilletAssignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("farmersdelight:skillet"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.MELEE_WEAPON),
-                        Map.of(SearchNodeKeys.BLOCKS_MATERIAL, "other_building")
+                        Map.of(
+                                SearchNodeKeys.BLOCKS_MATERIAL, "other_building",
+                                SearchNodeKeys.ITEM_CLASS, "vectorwing.farmersdelight.common.item.SkilletItem",
+                                SearchNodeKeys.BLOCK_CLASS, "vectorwing.farmersdelight.common.block.SkilletBlock"
+                        )
                 )
         );
         CategoryAssignment rugAssignment = PrimaryCategoryResolver.resolve(
@@ -866,8 +881,10 @@ class PrimaryCategoryResolverTest {
 
         assertEquals("tech", stoveAssignment.categoryId());
         assertEquals("machines", stoveAssignment.subcategoryId());
-        assertEquals("tools", skilletAssignment.categoryId());
-        assertEquals("melee", skilletAssignment.subcategoryId());
+        assertEquals("tech", runtimeSkilletAssignment.categoryId());
+        assertEquals("machines", runtimeSkilletAssignment.subcategoryId());
+        assertEquals("tech", skilletAssignment.categoryId());
+        assertEquals("machines", skilletAssignment.subcategoryId());
         assertEquals("decoration", rugAssignment.categoryId());
         assertEquals("textiles", rugAssignment.subcategoryId());
     }

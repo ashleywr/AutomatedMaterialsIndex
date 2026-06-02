@@ -2,6 +2,7 @@
 {"id":"bigreactors:inanite_ingot","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"Material item identified by forge:ingots/inanite tag."}
 {"id":"minecraft:target","category":"tech","subcategory":"redstone","confidence":"certain","notes":"Active redstone behavior block."}
 {"id":"farmersdelight:stove","category":"tech","subcategory":"machines","confidence":"certain","notes":"Cooking workstation/block entity, not prepared food."}
+{"id":"farmersdelight:skillet","category":"tech","subcategory":"machines","confidence":"certain","notes":"Placeable cooking vessel/block entity; combat stats should not make it primarily a melee weapon."}
 {"id":"farmersdelight:apple_pie","category":"nature","subcategory":"meals","confidence":"certain","notes":"Placeable prepared food should stay with meals."}
 {"id":"minecraft:red_carpet","category":"decoration","subcategory":"textiles","confidence":"certain","notes":"Decorative textile; body equipment slot noise must not make it armor."}
 {"id":"alexsmobs:spawn_egg_snow_leopard","category":"bestiary","subcategory":"passive","confidence":"certain","notes":"Actual spawn egg item should follow the entity into Bestiary."}
