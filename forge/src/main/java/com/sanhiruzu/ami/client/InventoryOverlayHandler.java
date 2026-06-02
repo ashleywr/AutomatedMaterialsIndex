@@ -93,6 +93,7 @@ public class InventoryOverlayHandler {
                 public void render(net.minecraft.client.gui.GuiGraphics g, int mouseX, int mouseY, float partialTicks) {
                     if (AmiApi.shouldSuppressAmi(Minecraft.getInstance().screen)) return;
                     manager.renderPanels(g, mouseX, mouseY, partialTicks);
+                    manager.renderSearchBar(g, mouseX, mouseY, partialTicks);
                 }
                 @Override public void setFocused(boolean focused) {}
                 @Override public boolean isFocused() { return false; }
@@ -100,9 +101,6 @@ public class InventoryOverlayHandler {
             event.addListener(new PanelRenderer());
 
             event.addListener(manager.getAmiButton());
-            if (amiEnabled) {
-                event.addListener(manager.getSearchBar());
-            }
             manager.getSearchBar().unfocus();
         }
     }

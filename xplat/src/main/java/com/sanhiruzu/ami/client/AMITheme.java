@@ -68,6 +68,8 @@ public final class AMITheme {
     public static int SECTION_SEP = 0xFF888888; // 1px line between Toolbar/Results
     // Item grid
     public static int SLOT_BG = 0;
+    public static int SLOT_EDGE_LIGHT = 0x22FFFFFF;
+    public static int SLOT_EDGE_DARK = 0x66000000;
     public static int SLOT_HOVER = 0xFFAAAAAA;
     // Dropdown buttons and panels
     public static int DROPDOWN_BG = 0xFFAAAAAA; // button idle + list item hover
@@ -350,6 +352,10 @@ public final class AMITheme {
             TEXT_HIGHLIGHT = 0xFF55FFFF;
             MOD_NAME = 0xFF5555FF;
 
+            SLOT_BG = 0x22000000;
+            SLOT_EDGE_LIGHT = 0x34FFFFFF;
+            SLOT_EDGE_DARK = 0x99000000;
+
             DROPDOWN_BG = 0x2CFFFFFF;
             DROPDOWN_BG_ACTIVE = 0x46FFFFFF;
             DROPDOWN_LIST_BG = 0xCC000000;
@@ -438,6 +444,9 @@ public final class AMITheme {
             DROPDOWN_BG = 0x22FFFFFF;
             DROPDOWN_BG_ACTIVE = 0x44FFFFFF;
             DROPDOWN_LIST_BG = 0x99000000;
+            SLOT_BG = 0x1A000000;
+            SLOT_EDGE_LIGHT = 0x20FFFFFF;
+            SLOT_EDGE_DARK = 0x66000000;
             CONTROL_EDGE_LIGHT = 0x18FFFFFF;
             CONTROL_EDGE_DARK = 0x44000000;
             SEARCH_HELP_BG = 0xDD000000;
@@ -497,6 +506,8 @@ public final class AMITheme {
             PANEL_TEXTURE_LIGHT = 0x22FFFFFF;
             PANEL_TEXTURE_DARK = 0x18000000;
             SLOT_BG = 0xFF2D2D2D; // Darker slots for contrast as requested
+            SLOT_EDGE_LIGHT = 0xFF5C5C5C;
+            SLOT_EDGE_DARK = 0xFF141414;
 
             ENTRY_HOVER = 0x444488FF; // Subtle blue hover on dark slots
             ENTRY_TEXT = 0xFF111111;
