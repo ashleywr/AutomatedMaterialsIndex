@@ -1327,6 +1327,19 @@ public final class PrimaryCategoryResolver {
         return false;
     }
 
+    private static boolean hasStructuralBuildingShape(Set<ItemFacet> facets) {
+        return facets.contains(ItemFacet.PLACEABLE)
+                && hasAny(facets,
+                ItemFacet.STAIRS,
+                ItemFacet.SLAB,
+                ItemFacet.WALL,
+                ItemFacet.FENCE,
+                ItemFacet.FENCE_GATE,
+                ItemFacet.PANE,
+                ItemFacet.DOOR,
+                ItemFacet.TRAPDOOR);
+    }
+
     private static String classifyBestiarySubcategory(String path) {
         if (!path.endsWith("_spawn_egg")) {
             return "passive";
@@ -1810,6 +1823,7 @@ public final class PrimaryCategoryResolver {
 
     private static boolean shouldBiasStorageFamilyToTech(ModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
         return modFamily == ModFamily.STORAGE
+                && !hasStructuralBuildingShape(facets)
                 && !hasAny(facets,
                 ItemFacet.DECORATIVE_BLOCK,
                 ItemFacet.LIGHT_SOURCE,
