@@ -87,25 +87,35 @@ public class ResultsProcessor {
         ALPHABETICAL("ami.sort.alphabetical"),
         COLOR("ami.sort.color"),
         MOD("ami.sort.mod"),
-        STORAGE_CAPACITY("ami.sort.storage"),
-        ENERGY_CAPACITY("ami.sort.energy"),
-        ENERGY_GENERATION("ami.sort.energy_generation"),
-        FLUID_CAPACITY("ami.sort.fluid_capacity"),
-        TOOL_SPEED("ami.sort.tool_speed"),
-        TOOL_USES("ami.sort.tool_uses"),
-        ARMOR_DEFENSE("ami.sort.armor_defense"),
-        ARMOR_TOUGHNESS("ami.sort.armor_toughness"),
-        FOOD_NUTRITION("ami.sort.food_nutrition"),
-        FOOD_SATURATION("ami.sort.food_saturation"),
-        DAMAGE("ami.sort.damage"),
-        HEALTH("ami.sort.health"),
-        DPS("ami.sort.dps"),
-        COUNT("ami.sort.count");
+        STORAGE_CAPACITY("ami.sort.storage", true),
+        ENERGY_CAPACITY("ami.sort.energy", true),
+        ENERGY_GENERATION("ami.sort.energy_generation", true),
+        FLUID_CAPACITY("ami.sort.fluid_capacity", true),
+        TOOL_SPEED("ami.sort.tool_speed", true),
+        TOOL_USES("ami.sort.tool_uses", true),
+        ARMOR_DEFENSE("ami.sort.armor_defense", true),
+        ARMOR_TOUGHNESS("ami.sort.armor_toughness", true),
+        FOOD_NUTRITION("ami.sort.food_nutrition", true),
+        FOOD_SATURATION("ami.sort.food_saturation", true),
+        DAMAGE("ami.sort.damage", true),
+        HEALTH("ami.sort.health", true),
+        DPS("ami.sort.dps", true),
+        COUNT("ami.sort.count", true);
 
         public final Component displayName;
+        private final boolean numeric;
 
         SortField(String key) {
+            this(key, false);
+        }
+
+        SortField(String key, boolean numeric) {
             this.displayName = Component.translatable(key);
+            this.numeric = numeric;
+        }
+
+        public boolean isNumeric() {
+            return numeric;
         }
     }
 

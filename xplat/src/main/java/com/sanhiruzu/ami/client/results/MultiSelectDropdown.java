@@ -35,7 +35,7 @@ public class MultiSelectDropdown<T> implements Dropdown {
     public void render(GuiGraphics g, int mouseX, int mouseY) {
         boolean canOpen = options != null && !options.isEmpty();
         boolean hovered = canOpen && Dropdown.contains(mouseX, mouseY, x, y, width, HEIGHT);
-        AMITheme.fillInsetRect(g, x, y, width, HEIGHT,
+        AMITheme.fillControlChrome(g, x, y, width, HEIGHT,
                 (open || hovered) ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG, open);
 
         var font = Minecraft.getInstance().font;

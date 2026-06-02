@@ -28,8 +28,8 @@ public abstract class AbstractSearchBarWidget extends EditBox {
     private static final int MAX_VISIBLE_SUGGESTIONS = 8;
     private static final int SUGGESTION_ROW_HEIGHT = 14;
     private static final int SUGGESTION_MARGIN = 2;
-    private static final int HELP_BUTTON_W = 14;
     private static final int CLEAR_BUTTON_W = 14;
+    private static final int SEARCH_ICON_BUTTON_W = 16;
     private static final int HELP_MARGIN = 9;
     private static final int HELP_ROW_HEIGHT = 15;
     private static final int HELP_SECTION_GAP = 9;
@@ -125,15 +125,15 @@ public abstract class AbstractSearchBarWidget extends EditBox {
             border = (alpha / 2 << 24) | (border & 0x00FFFFFF);
         }
 
-        AMITheme.fillInsetRect(g, x, y, w, h, bgColor, focused);
+        AMITheme.fillControlChrome(g, x, y, w, h, bgColor, focused);
         g.fill(x, y, x + w, y + 1, border);
 
-        int textX = x + 18;
+        int textX = searchTextX();
         int textY = y + (h - font.lineHeight) / 2 + 1;
-        AmiGuiIcons.search(g, x + 9, y + h / 2, focused ? AMITheme.TEXT_HEADER : AMITheme.SEARCH_PLACEHOLDER);
+        renderSearchIconButton(g, mouseX, mouseY);
         String value = getValue();
-        int reservedActionW = HELP_BUTTON_W + 4 + (value.isEmpty() ? 0 : CLEAR_BUTTON_W);
-        int maxTextWidth = Math.max(20, w - 10 - reservedActionW);
+        int reservedActionW = value.isEmpty() ? 0 : CLEAR_BUTTON_W;
+        int maxTextWidth = Math.max(20, w - (textX - x) - reservedActionW - 6);
 
         int displayStart = computeDisplayStart(font, maxTextWidth);
 
@@ -152,8 +152,6 @@ public abstract class AbstractSearchBarWidget extends EditBox {
             boolean hoveredX = mouseX >= clearX && mouseX < clearX + 12 && mouseY >= clearY && mouseY < clearY + 10;
             g.drawString(font, Component.translatable("ami.gui.search.clear"), clearX + 3, clearY, hoveredX ? AMITheme.SEARCH_CLEAR_TEXT_HOVER : AMITheme.SEARCH_CLEAR_TEXT, false);
         }
-
-        renderHelpButton(g, font, mouseX, mouseY);
 
         if (focused && (System.currentTimeMillis() % 1000) < 500) {
             int cursorInVisible = Math.max(0, Math.min(getCursorPosition() - displayStart, value.length() - displayStart));
@@ -187,7 +185,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
 
         String value = getValue();
         if (button == 0) {
-            if (isHelpButtonMouseOver(mouseX, mouseY)) {
+            if (isSearchIconMouseOver(mouseX, mouseY)) {
                 helpOpen = !helpOpen;
                 suggestions = List.of();
                 suggestionScrollOffset = 0;
@@ -559,10 +557,10 @@ public abstract class AbstractSearchBarWidget extends EditBox {
 
     private int cursorPositionFromMouse(double mouseX) {
         Font font = Minecraft.getInstance().font;
-        int textX = getX() + 5;
+        int textX = searchTextX();
         String value = getValue();
-        int reservedActionW = HELP_BUTTON_W + 4 + (value.isEmpty() ? 0 : CLEAR_BUTTON_W);
-        int maxTextWidth = Math.max(20, width - 10 - reservedActionW);
+        int reservedActionW = value.isEmpty() ? 0 : CLEAR_BUTTON_W;
+        int maxTextWidth = Math.max(20, width - (textX - getX()) - reservedActionW - 6);
         if (value.isEmpty()) return 0;
 
         if (mouseX <= textX) return 0;
@@ -654,63 +652,71 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         if (!hasVisibleSuggestions()) {
             return;
         }
-        int popupX = getX();
-        int popupY = suggestionPopupY();
-        int popupW = width;
-        int visibleRows = visibleSuggestionRows();
-        int popupH = visibleRows * SUGGESTION_ROW_HEIGHT + SUGGESTION_MARGIN * 2;
+        g.flush();
+        g.pose().pushPose();
+        g.pose().translate(0, 0, OverlayLayers.DROPDOWN);
+        try {
+            int popupX = getX();
+            int popupY = suggestionPopupY();
+            int popupW = width;
+            int visibleRows = visibleSuggestionRows();
+            int popupH = visibleRows * SUGGESTION_ROW_HEIGHT + SUGGESTION_MARGIN * 2;
 
-        g.fill(popupX, popupY, popupX + popupW, popupY + popupH, AMITheme.DROPDOWN_LIST_BG);
-        g.fill(popupX, popupY, popupX + popupW, popupY + 1, AMITheme.BORDER_LIGHT);
-        g.fill(popupX, popupY + popupH - 1, popupX + popupW, popupY + popupH, AMITheme.BORDER_DARK);
-        g.fill(popupX, popupY, popupX + 1, popupY + popupH, AMITheme.BORDER_LIGHT);
-        g.fill(popupX + popupW - 1, popupY, popupX + popupW, popupY + popupH, AMITheme.BORDER_DARK);
+            g.fill(popupX, popupY, popupX + popupW, popupY + popupH, solidPopupColor(AMITheme.DROPDOWN_LIST_BG));
+            g.fill(popupX, popupY, popupX + popupW, popupY + 1, AMITheme.BORDER_LIGHT);
+            g.fill(popupX, popupY + popupH - 1, popupX + popupW, popupY + popupH, AMITheme.BORDER_DARK);
+            g.fill(popupX, popupY, popupX + 1, popupY + popupH, AMITheme.BORDER_LIGHT);
+            g.fill(popupX + popupW - 1, popupY, popupX + popupW, popupY + popupH, AMITheme.BORDER_DARK);
 
-        int hoveredRow = isSuggestionPopupMouseOver(mouseX, mouseY) ? suggestionRowAt(mouseY) : -1;
-        for (int visibleIndex = 0; visibleIndex < visibleRows; visibleIndex++) {
-            int i = suggestionScrollOffset + visibleIndex;
-            SearchSuggestions.Suggestion suggestion = suggestions.get(i);
-            int rowY = popupY + SUGGESTION_MARGIN + visibleIndex * SUGGESTION_ROW_HEIGHT;
-            boolean active = i == selectedSuggestion || i == hoveredRow;
-            if (active) {
-                g.fill(popupX + 1, rowY, popupX + popupW - 1, rowY + SUGGESTION_ROW_HEIGHT, AMITheme.DROPDOWN_BG_ACTIVE);
+            int hoveredRow = isSuggestionPopupMouseOver(mouseX, mouseY) ? suggestionRowAt(mouseY) : -1;
+            for (int visibleIndex = 0; visibleIndex < visibleRows; visibleIndex++) {
+                int i = suggestionScrollOffset + visibleIndex;
+                SearchSuggestions.Suggestion suggestion = suggestions.get(i);
+                int rowY = popupY + SUGGESTION_MARGIN + visibleIndex * SUGGESTION_ROW_HEIGHT;
+                boolean active = i == selectedSuggestion || i == hoveredRow;
+                if (active) {
+                    g.fill(popupX + 1, rowY, popupX + popupW - 1, rowY + SUGGESTION_ROW_HEIGHT, AMITheme.DROPDOWN_BG_ACTIVE);
+                }
+
+                String detail = popupW >= 96 && !suggestion.example() && suggestion.detail() != null
+                        ? suggestion.detail()
+                        : "";
+                int detailW = detail.isBlank() ? 0 : font.width(detail);
+                int scrollbarReserve = suggestions.size() > visibleRows ? 4 : 0;
+                int labelMaxW = Math.max(20, popupW - 8 - detailW - scrollbarReserve - (detailW > 0 ? 8 : 0));
+                String label = font.plainSubstrByWidth(suggestion.display(), labelMaxW);
+                int textY = rowY + (SUGGESTION_ROW_HEIGHT - font.lineHeight) / 2 + 1;
+                g.drawString(font, label, popupX + 4, textY, suggestionColor(suggestion.kind()), false);
+                if (!detail.isBlank()) {
+                    g.drawString(font, detail, popupX + popupW - 4 - detailW, textY, AMITheme.TEXT_SUBTLE, false);
+                }
             }
 
-            String detail = popupW >= 96
-                    ? suggestion.example() ? "example" : suggestion.detail() == null ? "" : suggestion.detail()
-                    : "";
-            int detailW = detail.isBlank() ? 0 : font.width(detail);
-            int scrollbarReserve = suggestions.size() > visibleRows ? 4 : 0;
-            int labelMaxW = Math.max(20, popupW - 8 - detailW - scrollbarReserve - (detailW > 0 ? 8 : 0));
-            String label = font.plainSubstrByWidth(suggestion.display(), labelMaxW);
-            int textY = rowY + (SUGGESTION_ROW_HEIGHT - font.lineHeight) / 2 + 1;
-            g.drawString(font, label, popupX + 4, textY, suggestionColor(suggestion.kind()), false);
-            if (!detail.isBlank()) {
-                g.drawString(font, detail, popupX + popupW - 4 - detailW, textY, AMITheme.TEXT_SUBTLE, false);
+            if (suggestions.size() > visibleRows) {
+                int trackX = popupX + popupW - 2;
+                int trackY = popupY + SUGGESTION_MARGIN;
+                int trackH = visibleRows * SUGGESTION_ROW_HEIGHT;
+                int thumbH = Math.max(6, trackH * visibleRows / suggestions.size());
+                int thumbY = trackY + (trackH - thumbH) * suggestionScrollOffset / maxSuggestionScrollOffset();
+                g.fill(trackX, trackY, trackX + 1, trackY + trackH, AMITheme.SCROLL_TRACK);
+                g.fill(trackX, thumbY, trackX + 1, thumbY + thumbH, AMITheme.SCROLL_THUMB_ACTIVE);
             }
-        }
-
-        if (suggestions.size() > visibleRows) {
-            int trackX = popupX + popupW - 2;
-            int trackY = popupY + SUGGESTION_MARGIN;
-            int trackH = visibleRows * SUGGESTION_ROW_HEIGHT;
-            int thumbH = Math.max(6, trackH * visibleRows / suggestions.size());
-            int thumbY = trackY + (trackH - thumbH) * suggestionScrollOffset / maxSuggestionScrollOffset();
-            g.fill(trackX, trackY, trackX + 1, trackY + trackH, AMITheme.SCROLL_TRACK);
-            g.fill(trackX, thumbY, trackX + 1, thumbY + thumbH, AMITheme.SCROLL_THUMB_ACTIVE);
+        } finally {
+            g.pose().popPose();
+            g.flush();
         }
     }
 
-    private void renderHelpButton(GuiGraphics g, Font font, int mouseX, int mouseY) {
-        int buttonX = helpButtonX();
-        int buttonY = getY() + (height - 12) / 2;
-        boolean hovered = isHelpButtonMouseOver(mouseX, mouseY);
-        int fill = helpOpen ? AMITheme.DROPDOWN_BG_ACTIVE : hovered ? AMITheme.BUTTON_HOVER : 0x00000000;
+    private void renderSearchIconButton(GuiGraphics g, int mouseX, int mouseY) {
+        int buttonX = searchIconButtonX();
+        int buttonY = searchIconButtonY();
+        boolean hovered = isSearchIconMouseOver(mouseX, mouseY);
+        int fill = helpOpen ? AMITheme.DROPDOWN_BG_ACTIVE : hovered ? AMITheme.DROPDOWN_BG_ACTIVE : 0x00000000;
         if (fill != 0) {
-            g.fill(buttonX, buttonY, buttonX + 12, buttonY + 12, fill);
+            g.fill(buttonX, buttonY, buttonX + SEARCH_ICON_BUTTON_W, buttonY + SEARCH_ICON_BUTTON_W, fill);
         }
-        int color = helpOpen || hovered ? AMITheme.TEXT_HIGHLIGHT : AMITheme.TEXT_SUBTLE;
-        g.drawString(font, Component.translatable("ami.gui.search.help_button"), buttonX + 3, buttonY + 2, color, false);
+        int color = helpOpen || hovered || isFocused() ? AMITheme.TEXT_HEADER : AMITheme.SEARCH_PLACEHOLDER;
+        AmiGuiIcons.search(g, buttonX + SEARCH_ICON_BUTTON_W / 2, getY() + height / 2, color);
     }
 
     private void renderSearchHelp(GuiGraphics g, Font font, int mouseX, int mouseY) {
@@ -765,18 +771,27 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         return y;
     }
 
-    private int helpButtonX() {
-        return getX() + width - HELP_BUTTON_W - 2;
+    private int searchIconButtonX() {
+        return getX() + 1;
+    }
+
+    private int searchIconButtonY() {
+        return getY() + (height - SEARCH_ICON_BUTTON_W) / 2;
+    }
+
+    private int searchTextX() {
+        return getX() + SEARCH_ICON_BUTTON_W + 3;
     }
 
     private int clearButtonX() {
-        return helpButtonX() - CLEAR_BUTTON_W;
+        return getX() + width - CLEAR_BUTTON_W - 2;
     }
 
-    private boolean isHelpButtonMouseOver(double mouseX, double mouseY) {
-        int buttonX = helpButtonX();
-        int buttonY = getY() + (height - 12) / 2;
-        return mouseX >= buttonX && mouseX < buttonX + 12 && mouseY >= buttonY && mouseY < buttonY + 12;
+    private boolean isSearchIconMouseOver(double mouseX, double mouseY) {
+        int buttonX = searchIconButtonX();
+        int buttonY = searchIconButtonY();
+        return mouseX >= buttonX && mouseX < buttonX + SEARCH_ICON_BUTTON_W
+                && mouseY >= buttonY && mouseY < buttonY + SEARCH_ICON_BUTTON_W;
     }
 
     private boolean isHelpPopupMouseOver(double mouseX, double mouseY) {
@@ -825,7 +840,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         Screen screen = Minecraft.getInstance().screen;
         int screenW = screen == null ? 0 : screen.width;
         int popupW = helpPopupW();
-        int x = helpButtonX() + 12 - popupW;
+        int x = getX();
         if (screenW > 0) {
             x = Mth.clamp(x, 2, Math.max(2, screenW - popupW - 2));
         }
@@ -855,6 +870,11 @@ public abstract class AbstractSearchBarWidget extends EditBox {
             case ENVIRONMENT -> AMITheme.TOKEN_ENV;
             default -> AMITheme.SEARCH_DEFAULT_TEXT;
         };
+    }
+
+    private static int solidPopupColor(int argb) {
+        int alpha = (argb >>> 24) & 0xFF;
+        return (Math.max(alpha, 0xF0) << 24) | (argb & 0x00FFFFFF);
     }
 
     public interface Listener {

@@ -21,6 +21,9 @@ public final class AMITheme {
     public static int PANEL_INNER = 0xFFD0D0D0; // Slightly lighter inner surface
     public static int PANEL_TEXTURE_LIGHT = 0x08FFFFFF;
     public static int PANEL_TEXTURE_DARK = 0x12000000;
+    public static int PANEL_HEADER_BG = 0x22FFFFFF;
+    public static int PANEL_CONTENT_BG = 0x26000000;
+    public static int PANEL_CONTENT_BORDER = 0x24FFFFFF;
     // Header bar
     public static int HEADER_BG = 0xFFBBBBBB;
     public static int HEADER_SEP = 0xFF999999;
@@ -46,7 +49,7 @@ public final class AMITheme {
     public static int DIM_NETHER = 0xFFCC4444;
     public static int DIM_END = 0xFF9944CC;
     // Accents & Status
-    public static int ACCENT_GOLD = 0xFFAAAA00;
+    public static int ACCENT_GOLD = 0xFFD6C17A;
     public static int ACCENT_BLUE = 0xFF4488FF;
     public static int POSITIVE = 0xFF55FF55;
     public static int NEGATIVE = 0xFFFF5555;
@@ -77,6 +80,7 @@ public final class AMITheme {
     public static int DROPDOWN_LIST_BG = 0xFFBBBBBB; // open list panel background
     public static int CONTROL_EDGE_LIGHT = 0x26FFFFFF;
     public static int CONTROL_EDGE_DARK = 0x66000000;
+    public static int CONTROL_SHADOW = 0x66000000;
     // Current location indicators
     public static int CURRENT_BIOME_BG = 0xFF1A2E1A; // subtle green tint
     public static int CURRENT_BIOME_ACCENT = 0xFF44DD44; // bright green left-edge bar
@@ -112,8 +116,8 @@ public final class AMITheme {
     public static int ENTITY_PLAYER_TEXT = 0xFF5555FF;
     // Item grid group highlights
     public static int GRID_NO_RESULTS_TEXT = 0xFFCCCCCC;
-    public static int GRID_GOLD_BORDER = 0xFFAAAA00;
-    public static int GRID_GOLD_TINT = 0x44AAAA00;
+    public static int GRID_GOLD_BORDER = 0xFFD6C17A;
+    public static int GRID_GOLD_TINT = 0x44D6C17A;
     public static int GRID_HEADER_DARKEN = 0x66000000;
     public static int GRID_HEADER_WHITE_DOT = 0xFFFFFFFF;
     public static int GRID_ROW_TINT_EVEN = 0x08FFFFFF;
@@ -292,6 +296,37 @@ public final class AMITheme {
         g.fill(x + w - 1, y, x + w, y + h, bottom);
     }
 
+    public static void fillControlChrome(GuiGraphics g, int x, int y, int w, int h, int fill, boolean pressed) {
+        if (!pressed && CONTROL_SHADOW != 0) {
+            g.fill(x + 1, y + 1, x + w + 1, y + h + 1, CONTROL_SHADOW);
+        }
+        fillInsetRect(g, x, y, w, h, fill, pressed);
+        if (!pressed) {
+            g.fill(x + 1, y + h - 2, x + w - 1, y + h - 1, 0x22000000);
+        }
+    }
+
+    public static void fillPanelHeaderChrome(GuiGraphics g, int x, int y, int w, int h) {
+        if (w <= 0 || h <= 0) return;
+        g.fill(x, y, x + w, y + h, PANEL_HEADER_BG);
+        fillPixelTexture(g, x + 1, y + 1, w - 2, h - 2);
+        g.fill(x, y, x + w, y + 1, CONTROL_EDGE_LIGHT);
+        g.fill(x, y, x + 1, y + h, CONTROL_EDGE_LIGHT);
+        g.fill(x, y + h - 1, x + w, y + h, CONTROL_EDGE_DARK);
+        g.fill(x + w - 1, y, x + w, y + h, CONTROL_EDGE_DARK);
+    }
+
+    public static void fillContentChrome(GuiGraphics g, int x, int y, int w, int h) {
+        if (w <= 0 || h <= 0) return;
+        fillRounded(g, x, y, w, h, PANEL_CONTENT_BORDER);
+        fillRounded(g, x + 1, y + 1, w - 2, h - 2, PANEL_CONTENT_BG);
+        fillPixelTexture(g, x + 2, y + 2, w - 4, h - 4);
+        g.fill(x + 1, y + 1, x + w - 1, y + 2, CONTROL_EDGE_DARK);
+        g.fill(x + 1, y + 1, x + 2, y + h - 1, CONTROL_EDGE_DARK);
+        g.fill(x + 1, y + h - 2, x + w - 1, y + h - 1, CONTROL_EDGE_LIGHT);
+        g.fill(x + w - 2, y + 1, x + w - 1, y + h - 1, CONTROL_EDGE_LIGHT);
+    }
+
     public static void fillPixelTexture(GuiGraphics g, int x, int y, int w, int h) {
         if (w <= 0 || h <= 0) return;
 
@@ -331,6 +366,9 @@ public final class AMITheme {
             PANEL_INNER = 0x33FFFFFF;
             PANEL_TEXTURE_LIGHT = 0x08FFFFFF;
             PANEL_TEXTURE_DARK = 0x18000000;
+            PANEL_HEADER_BG = 0x2AFFFFFF;
+            PANEL_CONTENT_BG = 0x38000000;
+            PANEL_CONTENT_BORDER = 0x30FFFFFF;
 
             GROUP_HEADER_BG = 0x2AFFFFFF;
             GROUP_HEADER_TEXT = 0xFFFFFFFF;
@@ -361,6 +399,7 @@ public final class AMITheme {
             DROPDOWN_LIST_BG = 0xCC000000;
             CONTROL_EDGE_LIGHT = 0x30FFFFFF;
             CONTROL_EDGE_DARK = 0x88000000;
+            CONTROL_SHADOW = 0x66000000;
 
             SCROLL_TRACK = 0x11FFFFFF;
             SCROLL_THUMB = 0x44FFFFFF;
@@ -420,6 +459,9 @@ public final class AMITheme {
             PANEL_INNER = 0;
             PANEL_TEXTURE_LIGHT = 0x04FFFFFF;
             PANEL_TEXTURE_DARK = 0x08000000;
+            PANEL_HEADER_BG = 0x10FFFFFF;
+            PANEL_CONTENT_BG = 0x18000000;
+            PANEL_CONTENT_BORDER = 0x16FFFFFF;
 
             GROUP_HEADER_BG = 0x15FFFFFF;
             GROUP_HEADER_TEXT = 0xFFCCCCCC;
@@ -449,6 +491,7 @@ public final class AMITheme {
             SLOT_EDGE_DARK = 0x66000000;
             CONTROL_EDGE_LIGHT = 0x18FFFFFF;
             CONTROL_EDGE_DARK = 0x44000000;
+            CONTROL_SHADOW = 0x33000000;
             SEARCH_HELP_BG = 0xDD000000;
             SEARCH_HELP_BORDER = 0x33FFFFFF;
             SEARCH_HELP_SHADOW = 0x66000000;
@@ -505,6 +548,9 @@ public final class AMITheme {
             PANEL_INNER = 0xFFD0D0D0;
             PANEL_TEXTURE_LIGHT = 0x22FFFFFF;
             PANEL_TEXTURE_DARK = 0x18000000;
+            PANEL_HEADER_BG = 0xFFC0C0C0;
+            PANEL_CONTENT_BG = 0xFFD0D0D0;
+            PANEL_CONTENT_BORDER = 0xFF8A8A8A;
             SLOT_BG = 0xFF2D2D2D; // Darker slots for contrast as requested
             SLOT_EDGE_LIGHT = 0xFF5C5C5C;
             SLOT_EDGE_DARK = 0xFF141414;
@@ -532,6 +578,7 @@ public final class AMITheme {
             DROPDOWN_LIST_BG = 0xFFD0D0D0;
             CONTROL_EDGE_LIGHT = 0xAAFFFFFF;
             CONTROL_EDGE_DARK = 0x88000000;
+            CONTROL_SHADOW = 0x55000000;
             SEARCH_HELP_BG = 0xFFF0F0F0;
             SEARCH_HELP_BORDER = AmiConfig.searchBarBorder;
             SEARCH_HELP_SHADOW = 0x66000000;

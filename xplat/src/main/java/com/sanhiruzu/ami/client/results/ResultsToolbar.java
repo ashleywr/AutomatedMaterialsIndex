@@ -97,23 +97,6 @@ public class ResultsToolbar implements SearchState.Listener {
         updateDropdownPositions();
     }
 
-    private static boolean isNumericSort(ResultsProcessor.SortField sortField) {
-        return sortField == ResultsProcessor.SortField.STORAGE_CAPACITY
-                || sortField == ResultsProcessor.SortField.ENERGY_CAPACITY
-                || sortField == ResultsProcessor.SortField.ENERGY_GENERATION
-                || sortField == ResultsProcessor.SortField.FLUID_CAPACITY
-                || sortField == ResultsProcessor.SortField.TOOL_SPEED
-                || sortField == ResultsProcessor.SortField.TOOL_USES
-                || sortField == ResultsProcessor.SortField.ARMOR_DEFENSE
-                || sortField == ResultsProcessor.SortField.ARMOR_TOUGHNESS
-                || sortField == ResultsProcessor.SortField.FOOD_NUTRITION
-                || sortField == ResultsProcessor.SortField.FOOD_SATURATION
-                || sortField == ResultsProcessor.SortField.DAMAGE
-                || sortField == ResultsProcessor.SortField.HEALTH
-                || sortField == ResultsProcessor.SortField.DPS
-                || sortField == ResultsProcessor.SortField.COUNT;
-    }
-
     private static List<ResultsProcessor.GroupBy> groupOptions() {
         return Arrays.stream(ResultsProcessor.GroupBy.values())
                 .filter(group -> AmiConfig.devMode || !DEV_GROUPS.contains(group))
@@ -264,11 +247,11 @@ public class ResultsToolbar implements SearchState.Listener {
 
     private void drawButton(GuiGraphics g, int bx, int by, int bw, int bh, boolean hovered) {
         int bgColor = hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
-        AMITheme.fillInsetRect(g, bx, by, bw, bh, bgColor, false);
+        AMITheme.fillControlChrome(g, bx, by, bw, bh, bgColor, false);
     }
 
     private String sortDirectionLabel() {
-        return isNumericSort(state.getSortField())
+        return state.getSortField().isNumeric()
                 ? (state.isAscending() ? "Low" : "High")
                 : (state.isAscending() ? "A-Z" : "Z-A");
     }

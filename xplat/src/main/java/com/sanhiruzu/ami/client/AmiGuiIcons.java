@@ -72,6 +72,41 @@ public final class AmiGuiIcons {
     }
 
     /**
+     * Small index-book glyph for the main result-view toggle.
+     * The page contents show the target view: list rows when leaving grid,
+     * item dots when leaving list.
+     */
+    public static void resultBook(GuiGraphics g, int cx, int cy, int color, boolean targetList) {
+        int sx = cx - 6;
+        int sy = cy - 5;
+        int paper = 0x55FFFFFF;
+
+        // Covers
+        g.fill(sx, sy + 1, sx + 5, sy + 10, color);
+        g.fill(sx + 7, sy + 1, sx + 12, sy + 10, color);
+        g.fill(sx + 1, sy, sx + 5, sy + 1, color);
+        g.fill(sx + 7, sy, sx + 11, sy + 1, color);
+
+        // Pages
+        g.fill(sx + 1, sy + 2, sx + 5, sy + 9, paper);
+        g.fill(sx + 7, sy + 2, sx + 11, sy + 9, paper);
+        g.fill(sx + 6, sy + 1, sx + 7, sy + 10, color);
+
+        if (targetList) {
+            g.fill(sx + 2, sy + 3, sx + 5, sy + 4, color);
+            g.fill(sx + 2, sy + 5, sx + 5, sy + 6, color);
+            g.fill(sx + 8, sy + 3, sx + 11, sy + 4, color);
+            g.fill(sx + 8, sy + 5, sx + 11, sy + 6, color);
+            g.fill(sx + 8, sy + 7, sx + 10, sy + 8, color);
+        } else {
+            g.fill(sx + 2, sy + 3, sx + 4, sy + 5, color);
+            g.fill(sx + 8, sy + 3, sx + 10, sy + 5, color);
+            g.fill(sx + 2, sy + 7, sx + 4, sy + 9, color);
+            g.fill(sx + 8, sy + 7, sx + 10, sy + 9, color);
+        }
+    }
+
+    /**
      * Two opposing arrows — represents swapping a sidebar panel to its alternate content.
      * Draws a 10x8 area centred on (cx, cy).
      */
