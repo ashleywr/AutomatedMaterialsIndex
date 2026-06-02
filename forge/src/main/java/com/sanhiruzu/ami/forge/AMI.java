@@ -59,7 +59,9 @@ public class AMI {
     @SubscribeEvent
     public void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer serverPlayer) {
-            AmiPacketHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> serverPlayer), new AmiServerPingPacket());
+            if (AmiPacketHandler.INSTANCE.isRemotePresent(serverPlayer.connection.connection)) {
+                AmiPacketHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> serverPlayer), new AmiServerPingPacket());
+            }
         }
     }
 }
