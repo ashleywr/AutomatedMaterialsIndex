@@ -273,15 +273,12 @@ public final class AMITheme {
     }
 
     public static void fillPanelChrome(GuiGraphics g, int x, int y, int w, int h) {
-        fillRounded(g, x, y, w, h, PANEL_BG);
-        fillPixelTexture(g, x + 1, y + 1, w - 2, h - 2);
-
-        g.fill(x + 2, y, x + w - 2, y + 1, CONTROL_EDGE_LIGHT);
-        g.fill(x + 1, y + 1, x + w - 1, y + 2, 0x14000000);
-        g.fill(x + 1, y + h - 2, x + w - 1, y + h - 1, CONTROL_EDGE_DARK);
-        g.fill(x + 2, y + h - 1, x + w - 2, y + h, 0xAA000000);
-        g.fill(x, y + 2, x + 1, y + h - 2, CONTROL_EDGE_LIGHT);
-        g.fill(x + w - 1, y + 2, x + w, y + h - 2, CONTROL_EDGE_DARK);
+        if (w <= 0 || h <= 0) return;
+        fillVisible(g, x, y, x + w, y + h, PANEL_BG);
+        fillVisible(g, x, y, x + w, y + 1, CONTROL_EDGE_LIGHT);
+        fillVisible(g, x, y, x + 1, y + h, CONTROL_EDGE_LIGHT);
+        fillVisible(g, x, y + h - 1, x + w, y + h, CONTROL_EDGE_DARK);
+        fillVisible(g, x + w - 1, y, x + w, y + h, CONTROL_EDGE_DARK);
     }
 
     public static void fillInsetRect(GuiGraphics g, int x, int y, int w, int h, int fill, boolean pressed) {
@@ -308,38 +305,32 @@ public final class AMITheme {
 
     public static void fillPanelHeaderChrome(GuiGraphics g, int x, int y, int w, int h) {
         if (w <= 0 || h <= 0) return;
-        g.fill(x, y, x + w, y + h, PANEL_HEADER_BG);
-        fillPixelTexture(g, x + 1, y + 1, w - 2, h - 2);
-        g.fill(x, y, x + w, y + 1, CONTROL_EDGE_LIGHT);
-        g.fill(x, y, x + 1, y + h, CONTROL_EDGE_LIGHT);
-        g.fill(x, y + h - 1, x + w, y + h, CONTROL_EDGE_DARK);
-        g.fill(x + w - 1, y, x + w, y + h, CONTROL_EDGE_DARK);
+        fillVisible(g, x, y, x + w, y + h, PANEL_HEADER_BG);
+        fillVisible(g, x, y, x + w, y + 1, CONTROL_EDGE_LIGHT);
+        fillVisible(g, x, y, x + 1, y + h, CONTROL_EDGE_LIGHT);
+        fillVisible(g, x, y + h - 1, x + w, y + h, CONTROL_EDGE_DARK);
+        fillVisible(g, x + w - 1, y, x + w, y + h, CONTROL_EDGE_DARK);
     }
 
     public static void fillContentChrome(GuiGraphics g, int x, int y, int w, int h) {
         if (w <= 0 || h <= 0) return;
-        fillRounded(g, x, y, w, h, PANEL_CONTENT_BORDER);
-        fillRounded(g, x + 1, y + 1, w - 2, h - 2, PANEL_CONTENT_BG);
-        fillPixelTexture(g, x + 2, y + 2, w - 4, h - 4);
-        g.fill(x + 1, y + 1, x + w - 1, y + 2, CONTROL_EDGE_DARK);
-        g.fill(x + 1, y + 1, x + 2, y + h - 1, CONTROL_EDGE_DARK);
-        g.fill(x + 1, y + h - 2, x + w - 1, y + h - 1, CONTROL_EDGE_LIGHT);
-        g.fill(x + w - 2, y + 1, x + w - 1, y + h - 1, CONTROL_EDGE_LIGHT);
+        fillVisible(g, x, y, x + w, y + h, PANEL_CONTENT_BORDER);
+        if (w <= 2 || h <= 2) return;
+        fillVisible(g, x + 1, y + 1, x + w - 1, y + h - 1, PANEL_CONTENT_BG);
+        fillVisible(g, x + 1, y + 1, x + w - 1, y + 2, CONTROL_EDGE_DARK);
+        fillVisible(g, x + 1, y + 1, x + 2, y + h - 1, CONTROL_EDGE_DARK);
+        fillVisible(g, x + 1, y + h - 2, x + w - 1, y + h - 1, CONTROL_EDGE_LIGHT);
+        fillVisible(g, x + w - 2, y + 1, x + w - 1, y + h - 1, CONTROL_EDGE_LIGHT);
     }
 
     public static void fillPixelTexture(GuiGraphics g, int x, int y, int w, int h) {
-        if (w <= 0 || h <= 0) return;
+        // Per-pixel GuiGraphics.fill calls force costly GUI buffer flushes on 1.21.1.
+        // Keep panel chrome flat; borders and translucent surfaces provide the depth.
+    }
 
-        for (int py = y + 2; py < y + h; py += 7) {
-            for (int px = x + ((py / 7) & 1) * 3; px < x + w; px += 11) {
-                g.fill(px, py, Math.min(px + 1, x + w), Math.min(py + 1, y + h), PANEL_TEXTURE_LIGHT);
-            }
-        }
-        for (int py = y + 5; py < y + h; py += 9) {
-            for (int px = x + 2 + ((py / 9) & 1) * 4; px < x + w; px += 13) {
-                g.fill(px, py, Math.min(px + 2, x + w), Math.min(py + 1, y + h), PANEL_TEXTURE_DARK);
-            }
-        }
+    private static void fillVisible(GuiGraphics g, int x1, int y1, int x2, int y2, int color) {
+        if (x2 <= x1 || y2 <= y1 || (color >>> 24) == 0) return;
+        g.fill(x1, y1, x2, y2, color);
     }
 
     public static void sync() {

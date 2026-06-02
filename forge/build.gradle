@@ -63,6 +63,12 @@ legacyForge {
         configureEach {
             systemProperty 'forge.logging.markers', 'SCAN,REGISTRIES,LOADING'
             systemProperty 'ami.debugCommands', 'true'
+            if (System.getProperty('ami.renderProfiler') != null) {
+                systemProperty 'ami.renderProfiler', System.getProperty('ami.renderProfiler')
+            }
+            if (System.getProperty('ami.renderProfiler.frames') != null) {
+                systemProperty 'ami.renderProfiler.frames', System.getProperty('ami.renderProfiler.frames')
+            }
             systemProperty 'java.io.tmpdir', rootProject.layout.buildDirectory.dir("tmp/minecraft-runs/forge/${name}").get().asFile.absolutePath
             logLevel = org.slf4j.event.Level.DEBUG
             programArguments.addAll '--mixin', "${mod_id}.mixins.json".toString()
