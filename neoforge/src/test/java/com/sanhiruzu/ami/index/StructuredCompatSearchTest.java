@@ -50,12 +50,23 @@ class StructuredCompatSearchTest {
                 SearchNodeKeys.COLOR_BUCKET, "red",
                 SearchNodeKeys.ENERGY_CAPACITY, "10000"
         ));
+        SearchNode pickaxeBlueprint = item("silentgear", "pickaxe_blueprint", "Pickaxe Blueprint", Map.of(
+                SearchNodeKeys.COMPAT_FAMILIES, "silent_gear,modular_gear",
+                SearchNodeKeys.MODULAR_GEAR_FAMILY, "silent_gear",
+                SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, "blueprints",
+                SearchNodeKeys.MODULAR_GEAR_PART, "pickaxe",
+                SearchNodeKeys.MODULAR_GEAR_FACTS, "blueprint,tool",
+                SearchNodeKeys.MODULAR_GEAR_RUNTIME_MATERIALS, "crimson_iron",
+                SearchNodeKeys.MODULAR_GEAR_RUNTIME_TRAITS, "magnetic,brittle",
+                SearchNodeKeys.SEARCH_TOKENS, "gear_trait_magnetic gear_trait_brittle"
+        ));
 
         index.addNode(mixer);
         index.addNode(tank);
         index.addNode(upgrade);
         index.addNode(terminal);
         index.addNode(externalBattery);
+        index.addNode(pickaxeBlueprint);
         SearchService service = SearchService.buildFrom(index, false);
 
         assertOnlyContains(service.query("?fact:uses_su").get(NodeType.ITEM), mixer, tank);
@@ -72,6 +83,16 @@ class StructuredCompatSearchTest {
         assertOnlyContains(service.query("?capability:energy").get(NodeType.ITEM), externalBattery, tank);
         assertOnlyContains(service.query("?energy").get(NodeType.ITEM), externalBattery, tank);
         assertOnlyContains(service.query("?color:red").get(NodeType.ITEM), externalBattery, tank);
+        assertOnlyContains(service.query("?gear").get(NodeType.ITEM), pickaxeBlueprint, terminal);
+        assertOnlyContains(service.query("?part:pickaxe").get(NodeType.ITEM), pickaxeBlueprint, terminal);
+        assertOnlyContains(service.query("?trait:blueprint").get(NodeType.ITEM), pickaxeBlueprint, terminal);
+        assertFalse(service.query("?trait:magnetic").getOrDefault(NodeType.ITEM, List.of()).contains(pickaxeBlueprint));
+        assertOnlyContains(service.query("?runtime_trait:magnetic").get(NodeType.ITEM), pickaxeBlueprint, terminal);
+        assertFalse(service.query("?gear_trait_magnetic").getOrDefault(NodeType.ITEM, List.of()).contains(pickaxeBlueprint));
+        assertOnlyContains(service.query("?token:gear_trait_magnetic").get(NodeType.ITEM), pickaxeBlueprint, terminal);
+        assertOnlyContains(service.query("~gear_trait_magnetic").get(NodeType.ITEM), pickaxeBlueprint, terminal);
+        assertOnlyContains(service.query("?material:crimson_iron").get(NodeType.ITEM), pickaxeBlueprint, terminal);
+        assertOnlyContains(service.query("~magnetic").get(NodeType.ITEM), pickaxeBlueprint, terminal);
         assertOnlyContains(service.query("~energy").get(NodeType.ITEM), externalBattery, tank);
         assertOnlyContains(service.query("~stores_fe").get(NodeType.ITEM), externalBattery, terminal);
     }

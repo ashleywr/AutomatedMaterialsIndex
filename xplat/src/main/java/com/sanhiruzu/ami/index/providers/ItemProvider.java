@@ -8,6 +8,7 @@ import com.sanhiruzu.ami.compat.CobblemonCompat;
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
 import com.sanhiruzu.ami.compat.CreateCompat;
 import com.sanhiruzu.ami.compat.MekanismCompat;
+import com.sanhiruzu.ami.compat.ModularGearCompat;
 import com.sanhiruzu.ami.compat.SophisticatedCompat;
 import com.sanhiruzu.ami.compat.StorageCompat;
 import com.sanhiruzu.ami.config.AmiConfig;
@@ -237,6 +238,8 @@ public class ItemProvider implements IAmiDataProvider {
         AE2Compat.enrichItem(baseId, meta);
         MekanismCompat.enrichItem(baseId, meta);
         SophisticatedCompat.enrichItem(baseId, meta);
+        ModularGearCompat.enrichItem(baseId, meta);
+        ModularGearCompat.enrichRuntimeStack(baseId, stack, level, meta);
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(baseId, profileWithMetadata(facetProfile, meta));
         if (!assignment.attributes().isEmpty()) {
             meta.putAll(assignment.attributes());
@@ -327,6 +330,10 @@ public class ItemProvider implements IAmiDataProvider {
                     toolMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addToolStats(meta, stats));
                     armorMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addArmorStats(meta, stats));
                     inferAmmoType(entry.id(), meta);
+                    markGeneratedModularGearVariantCheatOnly(entry.id(), meta);
+                    if (!ItemFilter.shouldShowAccessLevel(meta.getOrDefault(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL))) {
+                        continue;
+                    }
                     index.addNode(new SearchNode(entry.id(), NodeType.ITEM,
                             entry.displayName(), 0xFFFFFF, 0, meta));
                 }
@@ -433,6 +440,8 @@ public class ItemProvider implements IAmiDataProvider {
             AE2Compat.enrichItem(id, meta);
             MekanismCompat.enrichItem(id, meta);
             SophisticatedCompat.enrichItem(id, meta);
+            ModularGearCompat.enrichItem(id, meta);
+            ModularGearCompat.enrichRuntimeStack(id, defaultStack, level, meta);
 
             CategoryAssignment assignment = PrimaryCategoryResolver.resolve(id, profileWithMetadata(facetProfile, meta));
             if (!assignment.attributes().isEmpty()) {
@@ -467,6 +476,9 @@ public class ItemProvider implements IAmiDataProvider {
     private void indexHeroItems(GlobalIndex index, @Nullable RegistryAccess registryAccess,
                                 Map<Item, ItemFilter.CreativeTabInfo> creativeTabs,
                                 @Nullable Level level) {
+        if (!ItemFilter.shouldShowAccessLevel(ItemFilter.ACCESS_CHEAT)) {
+            return;
+        }
         for (var plugin : AmiPluginRegistry.getPlugins()) {
             List<ItemStack> heroItems;
             try {
@@ -496,6 +508,9 @@ public class ItemProvider implements IAmiDataProvider {
                 ItemIconRenderer.registerStack(syntheticId, stack);
 
                 Map<String, String> meta = buildSubtypeMeta(baseId, stack, extractColorBucket(baseId), creativeTabs.get(stack.getItem()), level);
+                meta.put(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_CHEAT);
+                meta.put(SearchNodeKeys.VARIANT_SOURCE, "plugin_hero_stack");
+                meta.put("variantAccessReason", "modular_generated_stack");
                 foodMetricSniffer.sniff(stack).ifPresent(stats -> addFoodStats(meta, stats));
                 powerMetricSniffer.sniff(stack, syntheticId, level).ifPresent(stats -> addPowerStats(meta, stats));
                 fluidMetricSniffer.sniff(stack, syntheticId, level).ifPresent(stats -> addFluidStats(meta, stats));
@@ -507,6 +522,21 @@ public class ItemProvider implements IAmiDataProvider {
                 count++;
             }
         }
+    }
+
+    private static void markGeneratedModularGearVariantCheatOnly(ResourceLocation syntheticId, Map<String, String> meta) {
+        if (syntheticId == null || meta == null || !syntheticId.getPath().contains("/variant/")) {
+            return;
+        }
+        boolean modularGear = meta.getOrDefault(SearchNodeKeys.COMPAT_FAMILIES, "").contains(CompatFamilyDetector.MODULAR_GEAR)
+                || !meta.getOrDefault(SearchNodeKeys.MODULAR_GEAR_FAMILY, "").isBlank();
+        boolean assembledVariant = !meta.getOrDefault(SearchNodeKeys.MODULAR_GEAR_RUNTIME_TRAITS, "").isBlank()
+                || !meta.getOrDefault(SearchNodeKeys.MODULAR_GEAR_RUNTIME_MATERIALS, "").isBlank();
+        if (!modularGear || !assembledVariant) {
+            return;
+        }
+        meta.put(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_CHEAT);
+        meta.put("variantAccessReason", "modular_generated_stack");
     }
 
     @Nullable

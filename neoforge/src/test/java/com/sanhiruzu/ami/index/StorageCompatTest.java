@@ -118,4 +118,29 @@ class StorageCompatTest {
         assertEquals("diamond", meta.get(SearchNodeKeys.STORAGE_TIER));
         assertFalse(meta.containsKey(SearchNodeKeys.ESM_CAPACITY));
     }
+
+    @Test
+    void refinedStorageMediaGetsSearchableStorageFacts() {
+        Map<String, String> meta = new HashMap<>();
+        meta.put(SearchNodeKeys.MOD_ID, "refinedstorage");
+
+        StorageCompat.enrichItem(new ResourceLocation("refinedstorage", "64k_storage_disk"), meta);
+
+        assertEquals("disk", meta.get(SearchNodeKeys.STORAGE_ITEM_KIND));
+        assertEquals("64k", meta.get(SearchNodeKeys.STORAGE_TIER));
+        assertTrue(meta.getOrDefault(SearchNodeKeys.STORAGE_FACTS, "").contains("storage_disk"));
+        assertTrue(meta.getOrDefault(SearchNodeKeys.SEARCH_TOKENS, "").contains("storage_disk"));
+    }
+
+    @Test
+    void refinedStorageNetworkBlocksGetSearchableStorageFacts() {
+        Map<String, String> meta = new HashMap<>();
+        meta.put(SearchNodeKeys.MOD_ID, "refinedstorage");
+        meta.put(SearchNodeKeys.BLOCK_CLASS, "com.refinedmods.refinedstorage.block.ImporterBlock");
+
+        StorageCompat.enrichItem(new ResourceLocation("refinedstorage", "importer"), meta);
+
+        assertEquals("network_device", meta.get(SearchNodeKeys.STORAGE_ITEM_KIND));
+        assertTrue(meta.getOrDefault(SearchNodeKeys.STORAGE_FACTS, "").contains("network_device"));
+    }
 }

@@ -133,6 +133,8 @@ public class AmiConfig {
     public static CompatCategoryPolicy gregtechCategoryPolicy = CompatCategoryPolicy.FOCUSED;
     @ConfigValue("compat.sophisticated.category-policy")
     public static CompatCategoryPolicy sophisticatedCategoryPolicy = CompatCategoryPolicy.HYBRID;
+    @ConfigValue("compat.modular-gear.category-policy")
+    public static CompatCategoryPolicy modularGearCategoryPolicy = CompatCategoryPolicy.HYBRID;
     @ConfigValue("compat.minecolonies.category-policy")
     public static CompatCategoryPolicy minecoloniesCategoryPolicy = CompatCategoryPolicy.HYBRID;
     @ConfigValue("compat.apotheosis.category-policy")
@@ -305,6 +307,7 @@ public class AmiConfig {
         mekanismCategoryPolicy = CompatCategoryPolicy.HYBRID;
         gregtechCategoryPolicy = CompatCategoryPolicy.FOCUSED;
         sophisticatedCategoryPolicy = CompatCategoryPolicy.HYBRID;
+        modularGearCategoryPolicy = CompatCategoryPolicy.HYBRID;
         minecoloniesCategoryPolicy = CompatCategoryPolicy.HYBRID;
         apotheosisCategoryPolicy = CompatCategoryPolicy.HYBRID;
         botaniaCategoryPolicy = CompatCategoryPolicy.HYBRID;

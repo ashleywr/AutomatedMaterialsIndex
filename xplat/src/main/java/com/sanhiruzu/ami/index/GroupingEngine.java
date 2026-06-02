@@ -243,10 +243,13 @@ public class GroupingEngine {
             if (dynamic != null) return dynamic;
 
             try {
-                if (s.isCollisionShapeFullBlock(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, net.minecraft.core.BlockPos.ZERO)) {
+                if (isSafeCollisionShapeProbe(item)
+                        && s.isCollisionShapeFullBlock(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, net.minecraft.core.BlockPos.ZERO)) {
                     return "cube";
                 }
-            } catch (Exception ignored) {
+            } catch (Throwable ignored) {
+                // Some modded blocks load helper classes or dynamic caches from shape methods.
+                // Shape grouping should never make background indexing fail or force async class loading.
             }
             return "block";
         }
@@ -257,6 +260,11 @@ public class GroupingEngine {
 
     public static String classifyShape(Item item) {
         return classifyShape(new ItemStack(item));
+    }
+
+    private static boolean isSafeCollisionShapeProbe(Item item) {
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+        return id != null && "minecraft".equals(id.getNamespace());
     }
 
     public static Map<String, List<ItemStack>> groupByColor(List<ItemStack> items) {

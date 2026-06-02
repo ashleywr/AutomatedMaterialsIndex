@@ -48,6 +48,12 @@ public class AmiClientCommands {
                             exportSearchNodes(context.getSource());
                             return 1;
                         })
+                )
+                .then(Commands.literal("rebuild-index")
+                        .executes(context -> {
+                            rebuildIndex(context.getSource(), true);
+                            return 1;
+                        })
                 );
 
         dispatcher.register(cmd);
@@ -80,6 +86,18 @@ public class AmiClientCommands {
             AMI.LOGGER.error("Failed to export search node mirror", e);
             source.sendSystemMessage(Component.literal("Failed to export AMI search node mirror: " + e.getMessage())
                     .withStyle(ChatFormatting.RED));
+        }
+    }
+
+    private static void rebuildIndex(CommandSourceStack source, boolean forceProviderRebuild) {
+        boolean accepted = AmiIndexerService.getInstance().rebuild(forceProviderRebuild);
+        if (accepted) {
+            source.sendSystemMessage(Component.literal("AMI index rebuild started"
+                            + (forceProviderRebuild ? " (provider cache bypassed)" : ""))
+                    .withStyle(ChatFormatting.GREEN));
+        } else {
+            source.sendSystemMessage(Component.literal("AMI index rebuild is already running")
+                    .withStyle(ChatFormatting.YELLOW));
         }
     }
 

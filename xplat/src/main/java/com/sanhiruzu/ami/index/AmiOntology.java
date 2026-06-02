@@ -24,6 +24,7 @@ public final class AmiOntology {
     public static final Category BOTANIA;
     public static final Category SOPHISTICATED;
     public static final Category MAPPING;
+    public static final Category MODULAR_GEAR;
 
     // ── Singleton category constants ──────────────────────────────────────────
     public static final Category BESTIARY;
@@ -238,6 +239,23 @@ public final class AmiOntology {
                 List.of()
         );
 
+        MODULAR_GEAR = new Category(
+                "modular_gear", "ami.category.modular_gear", "Modular Gear",
+                "minecraft:smithing_table", 0xFF9D7AE2,
+                List.of(
+                        new SubCategory("tools", "ami.subcategory.modular_gear.tools"),
+                        new SubCategory("weapons", "ami.subcategory.modular_gear.weapons"),
+                        new SubCategory("armor", "ami.subcategory.modular_gear.armor"),
+                        new SubCategory("parts", "ami.subcategory.modular_gear.parts"),
+                        new SubCategory("materials", "ami.subcategory.modular_gear.materials"),
+                        new SubCategory("modifiers", "ami.subcategory.modular_gear.modifiers"),
+                        new SubCategory("stations", "ami.subcategory.modular_gear.stations"),
+                        new SubCategory("blueprints", "ami.subcategory.modular_gear.blueprints"),
+                        new SubCategory("misc", "ami.subcategory.modular_gear.misc")
+                ),
+                List.of()
+        );
+
         BESTIARY = new Category(
                 "bestiary", "ami.category.bestiary", "Bestiary",
                 "minecraft:zombie_head", 0xFFAA3322,
@@ -432,7 +450,7 @@ public final class AmiOntology {
         // Priority order: most-specific first, GEOLOGY/MASONRY second-to-last, MISC as terminal fallback.
         CATEGORIES = List.of(
                 COBBLEMON, CREATE, AE2, MEKANISM, GREGTECH, MINECOLONIES, APOTHEOSIS, BOTANIA, SOPHISTICATED, MAPPING,
-                UTILITY, BESTIARY, MAGIC, ARMOR, TOOLS, TECH, NATURE, INGREDIENTS, DECORATION, ENVIRONMENT, SOCIAL,
+                MODULAR_GEAR, UTILITY, BESTIARY, MAGIC, ARMOR, TOOLS, TECH, NATURE, INGREDIENTS, DECORATION, ENVIRONMENT, SOCIAL,
                 GEOLOGY, MASONRY, MISC
         );
     }

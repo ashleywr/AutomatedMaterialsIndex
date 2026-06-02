@@ -13,6 +13,8 @@ base {
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 def runDirectory = rootProject.ext.minecraftRunDirectory
+def amiDebugBuild = providers.gradleProperty('ami_debug_build').map { it.toBoolean() }.getOrElse(false)
+def amiEffectiveModVersion = amiDebugBuild ? "${mod_version}-debug" : mod_version
 
 legacyForge {
     version = "${forge_minecraft_version}-${forge_version}"
@@ -229,7 +231,7 @@ tasks.named('processResources', ProcessResources).configure {
             mod_id                 : mod_id,
             mod_name               : mod_name,
             mod_license            : mod_license,
-            mod_version            : mod_version,
+            mod_version            : amiEffectiveModVersion,
             mod_group_id           : mod_group_id
     ]
     inputs.properties replaceProperties
@@ -237,6 +239,17 @@ tasks.named('processResources', ProcessResources).configure {
     filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
         expand replaceProperties
     }
+}
+
+var generateAmiBuildMetadata = tasks.register('generateAmiBuildMetadata', WriteProperties) {
+    destinationFile = layout.buildDirectory.file('generated/resources/amiBuildMetadata/ami-build.properties')
+    property 'ami.debugBuild', amiDebugBuild.toString()
+    property 'ami.version', amiEffectiveModVersion
+}
+
+sourceSets.main.resources.srcDir(layout.buildDirectory.dir('generated/resources/amiBuildMetadata'))
+tasks.named('processResources').configure {
+    dependsOn generateAmiBuildMetadata
 }
 
 tasks.named('jar', Jar).configure {

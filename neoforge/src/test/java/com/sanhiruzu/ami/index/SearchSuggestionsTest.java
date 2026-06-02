@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.index;
 
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.query.SearchSuggestions;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.AfterEach;
@@ -16,6 +17,7 @@ class SearchSuggestionsTest {
     @AfterEach
     void cleanup() {
         GlobalIndex.getInstance().clear();
+        AmiConfig.resetToDefaults();
     }
 
     @Test
@@ -39,7 +41,7 @@ class SearchSuggestionsTest {
         assertSuggests(index, "?fact:stores", "?fact:stores_fe");
         assertSuggests(index, "?stores", "?stores_fe");
         assertSuggests(index, "?kind:energy", "?kind:energy_cell");
-        assertSuggests(index, "?energy", "?energy");
+        assertSuggests(index, "?energy", "?energy:");
         assertSuggests(index, "?color:r", "?color:red");
         assertSuggests(index, "?tier:sta", "?tier:starter");
         assertSuggests(index, "?role:washing", "?role:washing_input");
@@ -118,6 +120,50 @@ class SearchSuggestionsTest {
     }
 
     @Test
+    void traitSuggestionsAreTwoStageAndUseVisibleMaterialTraits() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("silentgear", "crimson_steel_ingot", "Crimson Steel Ingot", Map.of(
+                SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL,
+                SearchNodeKeys.MODULAR_GEAR_MATERIAL_TRAITS, "malleable,malleable_v,hard_iii",
+                SearchNodeKeys.SEARCH_TOKENS, "gear_trait_malleable_v"
+        )));
+
+        List<SearchSuggestions.Suggestion> fieldSuggestions = SearchSuggestions.suggest(index, "?tr", 3, 8);
+        assertTrue(fieldSuggestions.stream().anyMatch(s -> "?trait:".equals(s.display())),
+                () -> "Expected ?trait: in " + fieldSuggestions);
+        assertFalse(fieldSuggestions.stream().anyMatch(s -> s.display().startsWith("?trait:malleable")),
+                () -> "Trait values should wait until the field prefix is accepted: " + fieldSuggestions);
+
+        assertSuggests(index, "?trait:", "?trait:malleable");
+        assertSuggests(index, "?trait:malleable_", "?trait:malleable_v");
+    }
+
+    @Test
+    void suggestionsRespectCheatAndDevVisibility() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("silentgear", "fishing_rod/variant/crimson_steel", "Crimson Steel Fishing Rod", Map.of(
+                SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_CHEAT,
+                SearchNodeKeys.SEARCH_TOKENS, "gear_trait_hidden_cheat"
+        )));
+        index.addNode(item("example", "debug_probe", "Debug Probe", Map.of(
+                SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_DEV,
+                "exampleFacts", "debug_probe_fact"
+        )));
+
+        assertDoesNotSuggest(index, "~gear_trait_hidden", "~gear_trait_hidden_cheat");
+        assertDoesNotSuggest(index, "?fact:debug", "?fact:debug_probe_fact");
+
+        AmiConfig.cheatMode = true;
+        assertSuggests(index, "~gear_trait_hidden", "~gear_trait_hidden_cheat");
+        assertDoesNotSuggest(index, "?fact:debug", "?fact:debug_probe_fact");
+
+        AmiConfig.cheatMode = false;
+        AmiConfig.devMode = true;
+        assertSuggests(index, "~gear_trait_hidden", "~gear_trait_hidden_cheat");
+        assertSuggests(index, "?fact:debug", "?fact:debug_probe_fact");
+    }
+
+    @Test
     void emptyQuerySuggestionsAreIndexedExamplesNotHistory() {
         GlobalIndex index = GlobalIndex.getInstance();
         index.addNode(item("powah", "starter_cell", "Starter Cell", Map.of(
@@ -134,8 +180,13 @@ class SearchSuggestionsTest {
 
         assertTrue(suggestions.size() > 2);
         assertTrue(suggestions.stream().allMatch(SearchSuggestions.Suggestion::example));
-        assertTrue(suggestions.stream().anyMatch(s -> s.display().startsWith("~")));
-        assertTrue(suggestions.stream().noneMatch(s -> s.display().startsWith("?capability:")));
+        assertTrue(suggestions.stream().anyMatch(s -> s.display().equals("?kind:")));
+        assertTrue(suggestions.stream().anyMatch(s -> s.display().equals("?capability:")));
+        assertTrue(suggestions.stream().anyMatch(s -> s.display().startsWith("@")));
+        assertTrue(suggestions.stream().noneMatch(s -> s.display().startsWith("~")));
+        assertTrue(suggestions.stream().noneMatch(s -> s.display().startsWith("#")));
+        assertTrue(suggestions.stream().noneMatch(s ->
+                s.display().startsWith("?capability:") && !s.display().equals("?capability:")));
         assertTrue(suggestions.stream().noneMatch(s -> s.display().contains("typed_before")));
     }
 

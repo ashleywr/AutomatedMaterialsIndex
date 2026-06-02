@@ -206,21 +206,17 @@ public final class AmiOntologyKinds {
         private final SearchNode node;
         private final EnumSet<ItemFacet> facets;
         private final String path;
-        private final String tags;
-        private final String blockTags;
+        private final PathTokens pathTokens;
+        private final PathTokens tagTokens;
+        private final PathTokens blockTagTokens;
 
         Context(SearchNode node) {
             this.node = node;
             this.facets = FacetCodec.decode(node.meta(SearchNodeKeys.FACETS, ""));
             this.path = node.id().getPath().toLowerCase(Locale.ROOT);
-            this.tags = node.meta(SearchNodeKeys.TAGS, "").toLowerCase(Locale.ROOT);
-            this.blockTags = node.meta(SearchNodeKeys.BLOCK_TAGS, "").toLowerCase(Locale.ROOT);
-        }
-
-        private static boolean containsToken(String value, String token) {
-            if (value == null || value.isEmpty()) return false;
-            if (value.equals(token)) return true;
-            return value.contains(token);
+            this.pathTokens = PathTokens.of(path);
+            this.tagTokens = PathTokens.of(node.meta(SearchNodeKeys.TAGS, ""));
+            this.blockTagTokens = PathTokens.of(node.meta(SearchNodeKeys.BLOCK_TAGS, ""));
         }
 
         boolean hasFacet(ItemFacet facet) {
@@ -241,7 +237,7 @@ public final class AmiOntologyKinds {
 
         boolean pathToken(String... tokens) {
             for (String token : tokens) {
-                if (containsToken(path, token) || containsToken(tags, token) || containsToken(blockTags, token)) {
+                if (pathTokens.contains(token) || tagTokens.contains(token) || blockTagTokens.contains(token)) {
                     return true;
                 }
             }

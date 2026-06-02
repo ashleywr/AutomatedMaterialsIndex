@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.client.icon;
 
+import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
@@ -32,6 +33,7 @@ import java.util.*;
 public class EntityIconRenderer implements IIconRenderer {
 
     private static final Map<ResourceLocation, LivingEntity> entityCache = new HashMap<>();
+    private static final Set<ResourceLocation> failedRenderers = new HashSet<>();
 
     private static void renderEntity(GuiGraphics g, int x, int y, int scale, float angleX, float angleY, LivingEntity entity) {
         IconRenderState.render3dIcon(g, () ->
@@ -76,6 +78,19 @@ public class EntityIconRenderer implements IIconRenderer {
 
         entityCache.put(id, entity); // null entries suppress future attempts
         return entity;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static boolean hasRenderableTexture(LivingEntity entity) {
+        try {
+            var renderer = Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(entity);
+            ResourceLocation texture = renderer.getTextureLocation(entity);
+            if (texture == null) return false;
+            String path = texture.getPath();
+            return path != null && !path.isBlank() && !".png".equals(path) && !path.endsWith("/.png");
+        } catch (RuntimeException e) {
+            return false;
+        }
     }
 
     private static HeartBarTooltipComponent buildHeartBar(SearchNode node) {
@@ -186,6 +201,11 @@ public class EntityIconRenderer implements IIconRenderer {
         float maxBounds = Math.max(entity.getBbHeight(), entity.getBbWidth());
         int scale = Math.max(1, (int) Math.min(size - 4, (size - 2) / maxBounds));
 
+        if (failedRenderers.contains(node.id()) || !hasRenderableTexture(entity)) {
+            FallbackTextRenderer.renderFallback(g, node, x, y, size);
+            return;
+        }
+
         // Hovered: live render with spin — no scissor so the full entity shows.
         int cx = x + size / 2;
         int cy = y + size - 1;
@@ -207,6 +227,11 @@ public class EntityIconRenderer implements IIconRenderer {
 
         try {
             renderEntity(g, cx, cy, scale, 0f, 0f, entity);
+        } catch (RuntimeException e) {
+            if (failedRenderers.add(node.id())) {
+                AmiCore.LOGGER.warn("AMI: disabling entity icon renderer for {} after render failure", node.id(), e);
+            }
+            FallbackTextRenderer.renderFallback(g, node, x, y, size);
         } finally {
             entity.yBodyRot = savedBodyRot;
             entity.setYRot(savedYRot);

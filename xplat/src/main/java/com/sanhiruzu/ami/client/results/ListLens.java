@@ -123,6 +123,25 @@ public enum ListLens {
         }
     },
 
+    MODULAR_GEAR("ami.list_lens.modular_gear",
+            ResultsProcessor.SortField.ALPHABETICAL,
+            true,
+            ResultsProcessor.GroupBy.CATEGORY,
+            EnumSet.of(RowField.MODULAR_GEAR_KIND, RowField.MODULAR_GEAR_MATERIAL, RowField.MODULAR_GEAR_PART,
+                    RowField.MODULAR_GEAR_TRAITS, RowField.MOD_NAME),
+            List.of(
+                    ResultsProcessor.SortField.ALPHABETICAL,
+                    ResultsProcessor.SortField.REGISTRY,
+                    ResultsProcessor.SortField.MOD
+            )) {
+        @Override
+        public boolean matches(SearchNode node) {
+            return hasMetadata(node, SearchNodeKeys.MODULAR_GEAR_FAMILY)
+                    || hasMetadata(node, SearchNodeKeys.MODULAR_GEAR_ITEM_KIND)
+                    || hasCategory(node, "modular_gear", null);
+        }
+    },
+
     STORAGE("ami.list_lens.storage",
             ResultsProcessor.SortField.STORAGE_CAPACITY,
             false,

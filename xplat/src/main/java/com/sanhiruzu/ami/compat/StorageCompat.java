@@ -20,6 +20,11 @@ public final class StorageCompat {
             "compacting_storage",
             "storage_controller",
             "storage_connector",
+            "storage_disk",
+            "storage_part",
+            "storage_block",
+            "network_device",
+            "grid",
             "upgrade",
             "filter",
             "access_tool",
@@ -29,6 +34,11 @@ public final class StorageCompat {
             "fluid_handling",
             "energy_storage",
             "stack_size_modifier",
+            "wireless_access",
+            "auto_crafting",
+            "security",
+            "cover",
+            "core",
             "capacity_indexed"
     );
 
@@ -74,6 +84,7 @@ public final class StorageCompat {
     private static boolean isKnownStorageFamily(String namespace) {
         return namespace.equals("storagedrawers")
                 || namespace.equals("ironchest")
+                || namespace.equals("refinedstorage")
                 || namespace.equals("sophisticatedstorage")
                 || namespace.equals("sophisticatedbackpacks");
     }
@@ -145,8 +156,16 @@ public final class StorageCompat {
                 || path.contains("shulker_box")
                 || path.contains("shipping_container")
                 || path.contains("storage_container")) facts.add("storage");
+        if (path.contains("storage_block")) facts.add("storage_block");
+        if (path.contains("storage_disk")) facts.add("storage_disk");
+        if (path.contains("storage_part") || path.contains("storage_housing")) facts.add("storage_part");
         if (hasPathToken(path, "controller")) facts.add("storage_controller");
         if (hasPathToken(path, "connector")) facts.add("storage_connector");
+        if (hasPathToken(path, "grid")) facts.add("grid");
+        if (hasPathToken(path, "interface", "importer", "exporter", "constructor", "destructor",
+                "drive", "manipulator", "monitor", "detector", "relay", "transmitter", "receiver")) {
+            facts.add("network_device");
+        }
         if (hasPathToken(path, "upgrade", "downgrade")) facts.add("upgrade");
         if (hasPathToken(path, "filter")) facts.add("filter");
         if (hasPathToken(path, "key", "remote")) facts.add("access_tool");
@@ -156,6 +175,13 @@ public final class StorageCompat {
         if (hasPathToken(path, "tank", "pump")) facts.add("fluid_handling");
         if (hasPathToken(path, "battery")) facts.add("energy_storage");
         if (path.contains("stack_upgrade") || path.contains("stack_downgrade")) facts.add("stack_size_modifier");
+        if (path.contains("wireless")) facts.add("wireless_access");
+        if (hasPathToken(path, "crafter") || path.contains("crafting_grid") || path.contains("crafting_monitor")) {
+            facts.add("auto_crafting");
+        }
+        if (path.contains("security")) facts.add("security");
+        if (hasPathToken(path, "cover")) facts.add("cover");
+        if (hasPathToken(path, "core")) facts.add("core");
     }
 
     private static void addClassFacts(Context context, Set<String> facts) {
@@ -164,11 +190,21 @@ public final class StorageCompat {
                 || containsAny(context.blockClass, "Drawer", "ChestBlock", "BarrelBlock", "LimitedBarrelBlock")) {
             facts.add("storage");
         }
+        if (containsAny(context.itemClass, "StorageDiskItem", "FluidStorageDiskItem")) facts.add("storage_disk");
+        if (containsAny(context.itemClass, "StoragePartItem", "FluidStoragePartItem", "StorageHousingItem")) facts.add("storage_part");
+        if (containsAny(context.itemClass, "StorageBlockItem", "FluidStorageBlockItem")) facts.add("storage_block");
         if (containsAny(context.itemClass, "UpgradeItem", "ChestUpgradeItem")) facts.add("upgrade");
         if (containsAny(context.itemClass, "FilterUpgradeItem")) facts.add("filter");
         if (containsAny(context.itemClass, "Key", "Remote")) facts.add("access_tool");
         if (containsAny(context.blockClass, "Controller")) facts.add("storage_controller");
         if (containsAny(context.blockClass, "Connector")) facts.add("storage_connector");
+        if (containsAny(context.blockClass, "GridBlock")) facts.add("grid");
+        if (containsAny(context.blockClass, "Interface", "Importer", "Exporter", "Constructor", "Destructor",
+                "DiskDrive", "Manipulator", "Monitor", "Detector", "Relay", "Transmitter", "Receiver")) {
+            facts.add("network_device");
+        }
+        if (containsAny(context.itemClass, "Wireless")) facts.add("wireless_access");
+        if (containsAny(context.itemClass, "CoreItem")) facts.add("core");
     }
 
     private static void addFacetFacts(Context context, Set<String> facts) {
@@ -180,6 +216,11 @@ public final class StorageCompat {
         if (facts.contains("portable_storage")) return "portable_storage";
         if (facts.contains("storage_controller")) return "controller";
         if (facts.contains("storage_connector")) return "connector";
+        if (facts.contains("storage_disk")) return "disk";
+        if (facts.contains("storage_part")) return "part";
+        if (facts.contains("storage_block")) return "storage";
+        if (facts.contains("grid")) return "grid";
+        if (facts.contains("network_device")) return "network_device";
         if (facts.contains("filter")) return "filter";
         if (facts.contains("upgrade")) return "upgrade";
         if (facts.contains("access_tool")) return "access_tool";
@@ -193,6 +234,11 @@ public final class StorageCompat {
 
     private static String classifyTier(String path) {
         if (path.contains("omega")) return "omega";
+        for (String tier : new String[]{"4096k", "1024k", "256k", "64k", "16k", "4k", "1k"}) {
+            if (path.startsWith(tier + "_") || path.contains("_" + tier + "_") || path.endsWith("_" + tier)) {
+                return tier;
+            }
+        }
         for (String tier : new String[]{"netherite", "diamond", "obsidian", "crystal", "gold", "iron", "copper", "basic", "starter"}) {
             if (path.startsWith(tier + "_") || path.contains("_" + tier + "_") || path.endsWith("_" + tier)) {
                 return tier;

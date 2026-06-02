@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client.icon;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.sanhiruzu.ami.client.RenderStateSnapshot;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import org.lwjgl.opengl.GL11;
@@ -18,12 +19,7 @@ public final class IconRenderState {
     public static void render3dIcon(GuiGraphics g, Runnable renderer) {
         if (g == null || renderer == null) return;
 
-        float[] shaderColor = RenderSystem.getShaderColor();
-        float savedRed = shaderColor[0];
-        float savedGreen = shaderColor[1];
-        float savedBlue = shaderColor[2];
-        float savedAlpha = shaderColor[3];
-
+        RenderStateSnapshot state = RenderStateSnapshot.capture();
         g.flush();
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
         RenderSystem.enableDepthTest();
@@ -35,9 +31,7 @@ public final class IconRenderState {
             g.flush();
         } finally {
             RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
-            RenderSystem.setShaderColor(savedRed, savedGreen, savedBlue, savedAlpha);
-            RenderSystem.depthMask(true);
-            RenderSystem.enableDepthTest();
+            state.restore();
         }
     }
 }

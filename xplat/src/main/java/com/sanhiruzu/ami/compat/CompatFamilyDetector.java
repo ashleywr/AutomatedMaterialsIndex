@@ -24,6 +24,9 @@ public final class CompatFamilyDetector {
     public static final String APOTHEOSIS = "apotheosis";
     public static final String BOTANIA = "botania";
     public static final String MAPPING = "mapping";
+    public static final String MODULAR_GEAR = "modular_gear";
+    public static final String TINKERS = "tinkers";
+    public static final String SILENT_GEAR = "silent_gear";
     private static final int FAMILY_THRESHOLD = 25;
     private static final Map<String, String> MOD_METADATA_CACHE = new ConcurrentHashMap<>();
 
@@ -79,7 +82,9 @@ public final class CompatFamilyDetector {
             Map.entry("botania", BOTANIA),
             Map.entry("mythicbotany", BOTANIA),
             Map.entry("botanicalmachinery", BOTANIA),
-            Map.entry("extrabotany", BOTANIA)
+            Map.entry("extrabotany", BOTANIA),
+            Map.entry("tconstruct", TINKERS),
+            Map.entry("silentgear", SILENT_GEAR)
     );
 
     private static final Set<String> CREATE_OWNERSHIP_TERMS = Set.of(
