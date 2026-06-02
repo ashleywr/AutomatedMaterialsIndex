@@ -419,6 +419,124 @@ class ResultContextMenuActionBuilderTest {
     }
 
     @Test
+    void cobblemonPokemonDocumentationUsesCobblemonToolsPokedexPage() {
+        SearchNode node = new SearchNode(
+                new ResourceLocation("cobblemon", "species/mr_mime"),
+                NodeType.ENTITY,
+                "Mr. Mime",
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.ENTITY_CATEGORY, "pokemon_species",
+                        SearchNodeKeys.POKEMON_SPECIES, "cobblemon:mr_mime"
+                )
+        );
+
+        ResultContextMenuActionBuilder.DocumentationTarget target =
+                ResultContextMenuActionBuilder.documentationTargetFor(node);
+
+        assertEquals(ResultContextMenuActionBuilder.DocumentationKind.COBBLEMON_TOOLS, target.kind());
+        assertEquals("ami.context.open_cobblemon_tools", target.label().getString());
+        assertEquals(URI.create("https://cobblemon.tools/pokedex/pokemon/mr_mime"), target.uri());
+    }
+
+    @Test
+    void cobblemonPokemonDocumentationUsesSpeciesIdWhenNameMissing() {
+        SearchNode node = new SearchNode(
+                new ResourceLocation("cobblemon", "species/mr_mime"),
+                NodeType.ENTITY,
+                "",
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.ENTITY_CATEGORY, "pokemon_species",
+                        SearchNodeKeys.POKEMON_SPECIES, "cobblemon:mr_mime"
+                )
+        );
+
+        ResultContextMenuActionBuilder.DocumentationTarget target =
+                ResultContextMenuActionBuilder.documentationTargetFor(node);
+
+        assertEquals(ResultContextMenuActionBuilder.DocumentationKind.COBBLEMON_TOOLS, target.kind());
+        assertEquals(URI.create("https://cobblemon.tools/pokedex/pokemon/mr_mime"), target.uri());
+    }
+
+    @Test
+    void pokemonContextActionsAddClientSideFiltersAndDropRoutes() {
+        AtomicReference<String> token = new AtomicReference<>();
+        ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder();
+        SearchNode node = new SearchNode(
+                new ResourceLocation("cobblemon", "species/bulbasaur"),
+                NodeType.ENTITY,
+                "Bulbasaur",
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.ENTITY_CATEGORY, "pokemon_species",
+                        SearchNodeKeys.POKEMON_SPECIES, "cobblemon:bulbasaur",
+                        SearchNodeKeys.POKEMON_DEX_NUMBER, "1",
+                        SearchNodeKeys.POKEMON_GENERATION, "1",
+                        SearchNodeKeys.POKEMON_PRIMARY_TYPE, "grass",
+                        SearchNodeKeys.POKEMON_SECONDARY_TYPE, "poison",
+                        SearchNodeKeys.POKEMON_EGG_GROUPS, "monster,grass",
+                        SearchNodeKeys.POKEMON_ABILITIES, "overgrow,chlorophyll",
+                        SearchNodeKeys.POKEMON_DROP_ITEM, "minecraft:apple,minecraft:redstone"
+                )
+        );
+
+        List<ResultContextMenu.Action> actions = builder.forItem(
+                new ResultContextMenuActionBuilder.ItemContext(node, ItemStack.EMPTY, null, token::set)
+        );
+
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.FILTER_POKEMON_GENERATION));
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.FILTER_POKEMON_EGG_GROUP));
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.FILTER_POKEMON_ABILITY));
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.SEARCH_POKEMON_DROP_ITEM));
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.RECIPES_POKEMON_DROP_ITEM));
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.COPY_POKEMON_DEX_NUMBER));
+
+        firstAction(actions, ResultContextMenuActionBuilder.FILTER_POKEMON_GENERATION).onClick().run();
+        assertEquals("?generation:1", token.get());
+        firstAction(actions, ResultContextMenuActionBuilder.FILTER_POKEMON_EGG_GROUP).onClick().run();
+        assertEquals("%egg:monster", token.get());
+        firstAction(actions, ResultContextMenuActionBuilder.FILTER_POKEMON_ABILITY).onClick().run();
+        assertEquals("?ability:overgrow", token.get());
+        firstAction(actions, ResultContextMenuActionBuilder.SEARCH_POKEMON_DROP_ITEM).onClick().run();
+        assertEquals("apple", token.get());
+    }
+
+    @Test
+    void pokemonDropContextActionsIgnoreInvalidDropItems() {
+        AtomicReference<String> token = new AtomicReference<>();
+        ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder();
+        SearchNode node = new SearchNode(
+                new ResourceLocation("cobblemon", "species/bulbasaur"),
+                NodeType.ENTITY,
+                "Bulbasaur",
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.ENTITY_CATEGORY, "pokemon_species",
+                        SearchNodeKeys.POKEMON_DROP_ITEM, "minecraft:,minecraft:air,minecraft:missing_item,minecraft:apple"
+                )
+        );
+
+        List<ResultContextMenu.Action> actions = builder.forItem(
+                new ResultContextMenuActionBuilder.ItemContext(node, ItemStack.EMPTY, null, token::set)
+        );
+
+        assertEquals(1, actions.stream()
+                .filter(action -> action.id().equals(ResultContextMenuActionBuilder.SEARCH_POKEMON_DROP_ITEM))
+                .count());
+        assertEquals(1, actions.stream()
+                .filter(action -> action.id().equals(ResultContextMenuActionBuilder.RECIPES_POKEMON_DROP_ITEM))
+                .count());
+
+        firstAction(actions, ResultContextMenuActionBuilder.SEARCH_POKEMON_DROP_ITEM).onClick().run();
+        assertEquals("apple", token.get());
+    }
+
+    @Test
     void unknownModDocumentationUsesWebSearch() {
         SearchNode node = modItem("simpletms", "tr_irontail", "Iron Tail TM");
 
@@ -437,6 +555,20 @@ class ResultContextMenuActionBuilderTest {
         assertEquals(ResultContextMenuActionBuilder.KNOWN_ACTIONS,
                 ResultContextMenuActionPolicy.parseEnabledActionIds("missing nonsense"));
         assertTrue(ResultContextMenuActionPolicy.parseScopedDisables("bad; also bad; =ami:wiki").isEmpty());
+    }
+
+    @Test
+    void legacyDefaultContextMenuConfigPicksUpPokemonActions() {
+        String legacyDefault = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,"
+                + "ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,"
+                + "ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,ami:group_toggle,"
+                + "ami:filter_category,ami:copy_group_key,ami:start_category_fix,ami:apply_category_fix,"
+                + "ami:clear_item_fix,ami:quests_for_item,ami:open_quest,ami:copy_quest_matches";
+
+        assertTrue(ResultContextMenuActionPolicy.parseEnabledActionIds(legacyDefault)
+                .contains(ResultContextMenuActionBuilder.FILTER_POKEMON_GENERATION));
+        assertTrue(ResultContextMenuActionPolicy.parseEnabledActionIds(legacyDefault)
+                .contains(ResultContextMenuActionBuilder.RECIPES_POKEMON_DROP_ITEM));
     }
 
     @Test
@@ -554,6 +686,13 @@ class ResultContextMenuActionBuilderTest {
 
     private static List<String> ids(List<ResultContextMenu.Action> actions) {
         return actions.stream().map(ResultContextMenu.Action::id).toList();
+    }
+
+    private static ResultContextMenu.Action firstAction(List<ResultContextMenu.Action> actions, String id) {
+        return actions.stream()
+                .filter(action -> action.id().equals(id))
+                .findFirst()
+                .orElseThrow();
     }
 
     private static SearchNode item(String path, String name) {

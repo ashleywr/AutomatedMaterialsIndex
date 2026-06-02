@@ -43,6 +43,68 @@ class GroupingEngineTest {
     }
 
     @Test
+    void classifiesTintableGeneratedShapeFamiliesByColorAndShape() {
+        GroupingEngine.CollapsedFamily family = GroupingEngine.classifyTintableGeneratedFamily(
+                new ResourceLocation("colors:yellow_stone_button"),
+                "buttons",
+                "yellow",
+                "bblcore:tintable/yellow,minecraft:buttons"
+        ).orElseThrow();
+
+        assertEquals("colors:tintable/yellow/buttons", family.key());
+        assertEquals("Yellow Buttons", family.label());
+    }
+
+    @Test
+    void classifiesColoredLinguisticGlyphFamiliesByColor() {
+        GroupingEngine.CollapsedFamily family = GroupingEngine.classifyLexicalGeneratedFamily(
+                new ResourceLocation("atlantis:yellow_linguistic_glyph_e"),
+                "yellow"
+        ).orElseThrow();
+
+        assertEquals("atlantis:linguistic_glyph/yellow", family.key());
+        assertEquals("Yellow Linguistic Glyphs", family.label());
+    }
+
+    @Test
+    void classifiesColorizedFamiliesFromSharedMaterialRoot() {
+        GroupingEngine.CollapsedFamily family = GroupingEngine.classifyColorizedGeneratedFamily(
+                new ResourceLocation("cabletiers:red_ultra_exporter"),
+                "Red Ultra Exporter",
+                "red",
+                "cabletiers:ultra_exporters",
+                "cabletiers:ultra_exporter"
+        ).orElseThrow();
+
+        assertEquals("cabletiers:ultra_exporter", family.key());
+        assertEquals("Ultra Exporters", family.label());
+    }
+
+    @Test
+    void classifiesColorizedFamiliesFromColorStrippedTag() {
+        GroupingEngine.CollapsedFamily family = GroupingEngine.classifyColorizedGeneratedFamily(
+                new ResourceLocation("enderio:clear_glass_ena_light_blue"),
+                "Light Blue Enlightened Clear Glass",
+                "light_blue",
+                "enderio:clear_glass_ena,c:glass_blocks/clear",
+                "enderio:clear_glass_ena_light_blue"
+        ).orElseThrow();
+
+        assertEquals("enderio:clear_glass_ena", family.key());
+        assertEquals("Enlightened Clear Glass", family.label());
+    }
+
+    @Test
+    void classifiesCompressedBlockLaddersByBaseBlock() {
+        GroupingEngine.CollapsedFamily family = GroupingEngine.classifyCompressedBlockFamily(
+                new ResourceLocation("compressedblocks:c9_stripped_oak_log")
+        ).orElseThrow();
+
+        assertEquals("compressedblocks:compressed/stripped_oak_log", family.key());
+        assertEquals("Compressed Stripped Oak Log", family.label());
+    }
+
+    @Test
     void supportsDynamicModShapeFromCommonTag() {
         Item copperWire = new Item("copper_wire")
                 .withTag(TagKey.create(null, new ResourceLocation("c:shapes/wire")));

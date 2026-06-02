@@ -276,7 +276,9 @@ public class ItemProvider implements IAmiDataProvider {
         GroupingEngine.initialize(level);
         GroupingEngine.rebuildDynamicShapeCandidates(BuiltInRegistries.ITEM);
         boolean strictSurvival = AmiConfig.strictSurvivalMode;
+        AmiIndexerService progress = AmiIndexerService.getInstance();
 
+        progress.beginProgress("Reading creative tabs");
         Map<Item, List<ItemFilter.CreativeStackInfo>> creativeStackMap = ItemFilter.buildCreativeStackMap(level);
         Map<Item, ItemFilter.CreativeTabInfo> creativeTabs = ItemFilter.firstCreativeTabs(creativeStackMap);
         Set<Item> creativeItems = creativeTabs.keySet();
@@ -289,9 +291,19 @@ public class ItemProvider implements IAmiDataProvider {
         boolean hasRecipeData = !recipeOutputs.isEmpty();
 
         RegistryAccess registryAccess = level != null ? level.registryAccess() : null;
+        int totalItems = BuiltInRegistries.ITEM.size();
+        int scannedItems = 0;
+        progress.beginProgress("Indexing items", "", totalItems);
 
         for (Item item : BuiltInRegistries.ITEM) {
+            scannedItems++;
             ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+            if ((scannedItems & 31) == 0 || scannedItems == totalItems) {
+                progress.updateProgress(scannedItems);
+                if (id != null) {
+                    progress.updateProgressDetail(id.toString());
+                }
+            }
             if (id == null || id.getNamespace().equals("air") || id.getPath().equals("air")) continue;
 
             // Layer 2: creative-tab membership
@@ -331,7 +343,8 @@ public class ItemProvider implements IAmiDataProvider {
                     armorMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addArmorStats(meta, stats));
                     inferAmmoType(entry.id(), meta);
                     markGeneratedModularGearVariantCheatOnly(entry.id(), meta);
-                    if (!ItemFilter.shouldShowAccessLevel(meta.getOrDefault(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL))) {
+                    if (!ItemFilter.shouldShowAccessLevel(meta.getOrDefault(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL))
+                            && !isHiddenComponentDuplicateVariant(meta)) {
                         continue;
                     }
                     index.addNode(new SearchNode(entry.id(), NodeType.ITEM,
@@ -403,6 +416,17 @@ public class ItemProvider implements IAmiDataProvider {
                 meta.put(SearchNodeKeys.COLLAPSE_FAMILY, family.key());
                 meta.put(SearchNodeKeys.COLLAPSE_LABEL, family.label());
             });
+            if (collapsedFamily.isEmpty()) {
+                GroupingEngine.classifyTintableGeneratedFamily(id, variantGroup, colorBucket, tags)
+                        .or(() -> GroupingEngine.classifyLexicalGeneratedFamily(id, colorBucket))
+                        .or(() -> GroupingEngine.classifyColorizedGeneratedFamily(id, displayName, colorBucket, tags, materialGroup))
+                        .or(() -> GroupingEngine.classifyCompressedBlockFamily(id))
+                        .ifPresent(family -> {
+                            meta.put(SearchNodeKeys.COLLAPSE_FAMILY, family.key());
+                            meta.put(SearchNodeKeys.COLLAPSE_LABEL, family.label());
+                            meta.put(SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed");
+                        });
+            }
             addDurability(meta, defaultStack);
             attackDamage.ifPresent(value -> meta.put(SearchNodeKeys.ATTACK_DAMAGE, formatDps(value)));
             dps.ifPresent(value -> meta.put(SearchNodeKeys.DPS, formatDps(value)));
@@ -470,7 +494,12 @@ public class ItemProvider implements IAmiDataProvider {
         }
 
         // Collect hero items from registered plugins (mods with infinite modular variants).
+        progress.beginProgress("Indexing plugin variants");
         indexHeroItems(index, registryAccess, creativeTabs, level);
+    }
+
+    private static boolean isHiddenComponentDuplicateVariant(Map<String, String> meta) {
+        return "hidden_component_duplicate".equals(meta.get("variantAccessReason"));
     }
 
     private void indexHeroItems(GlobalIndex index, @Nullable RegistryAccess registryAccess,

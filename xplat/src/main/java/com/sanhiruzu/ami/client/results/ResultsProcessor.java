@@ -50,7 +50,11 @@ public class ResultsProcessor {
     }
 
     private TreeNode createIndexingNode() {
-        return new TreeNode("indexing", Component.translatable("ami.gui.background_indexing")
+        String message = com.sanhiruzu.ami.index.AmiIndexerService.getInstance().progress().message();
+        if (message == null || message.isBlank() || "Ready".equals(message)) {
+            message = Component.translatable("ami.gui.background_indexing").getString();
+        }
+        return new TreeNode("indexing", Component.literal(message)
                 .withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.CHEAT_INDICATOR)));
     }
 

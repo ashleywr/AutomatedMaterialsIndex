@@ -7,15 +7,14 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Optional;
-import java.util.TreeMap;
 
 /**
  * Optional FTB Library sidebar integration.
  *
- * FTB Library draws inventory sidebar buttons in the screen margin. AMI needs
- * to reserve that grid before FTB's widget has rendered, so this computes the
- * same top/bottom/left/right button area from FTB's runtime state instead of
- * reading SidebarGroupGuiButton.lastDrawnArea after the fact.
+ * FTB Library draws inventory sidebar buttons in the screen margin. Its
+ * SidebarGroupGuiButton.lastDrawnArea is a broad recipe-viewer exclusion and
+ * can include non-button space, so AMI computes the visible button grid from
+ * FTB's runtime state.
  */
 public final class FtbLibrarySidebarCompat {
     private static final int BUTTON_SPACING = 17;
@@ -48,9 +47,9 @@ public final class FtbLibrarySidebarCompat {
             boolean bottom = Boolean.TRUE.equals(positionIsBottom.invoke(position));
             boolean right = Boolean.TRUE.equals(positionIsRight.invoke(position));
 
-            GridSize grid = gridSize();
-            int width = Math.max(1, grid.width()) * BUTTON_SPACING + EDGE_PADDING;
-            int height = Math.max(1, grid.height()) * BUTTON_SPACING + EDGE_PADDING;
+            GridSize grid = visibleButtonGridSize();
+            int width = grid.width() * BUTTON_SPACING + EDGE_PADDING;
+            int height = grid.height() * BUTTON_SPACING + EDGE_PADDING;
             int x = right ? screen.width - width : 0;
             int y = bottom ? screen.height - height : 0;
             return Optional.of(new WidgetBounds(x, y, width, height));
@@ -59,7 +58,7 @@ public final class FtbLibrarySidebarCompat {
         }
     }
 
-    private static GridSize gridSize() throws ReflectiveOperationException {
+    private static GridSize visibleButtonGridSize() throws ReflectiveOperationException {
         Object manager = sidebarManagerInstanceField.get(null);
         @SuppressWarnings("unchecked")
         List<Object> buttons = (List<Object>) getEnabledButtonList.invoke(manager, false);
@@ -67,20 +66,17 @@ public final class FtbLibrarySidebarCompat {
             return new GridSize(1, 1);
         }
 
-        TreeMap<Integer, Integer> rowWidths = new TreeMap<>();
+        int maxX = 0;
+        int maxY = 0;
         for (Object button : buttons) {
             Object location = buttonGetGridLocation.invoke(button);
             int x = ((Number) gridX.invoke(location)).intValue();
             int y = ((Number) gridY.invoke(location)).intValue();
             if (x < 0 || y < 0) continue;
-            rowWidths.merge(y, 1, Integer::sum);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
         }
-
-        int width = 1;
-        for (int rowWidth : rowWidths.values()) {
-            width = Math.max(width, rowWidth);
-        }
-        return new GridSize(width, Math.max(1, rowWidths.size()));
+        return new GridSize(maxX + 1, maxY + 1);
     }
 
     private static void resolve() throws ReflectiveOperationException {

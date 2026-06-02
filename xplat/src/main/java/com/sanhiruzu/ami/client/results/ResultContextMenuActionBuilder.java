@@ -37,6 +37,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -73,6 +74,14 @@ public class ResultContextMenuActionBuilder {
     public static final String CHEAT_POKEMON_PARTY = "ami:cheat_pokemon_party";
     public static final String OPEN_POKEDEX = "ami:open_pokedex";
     public static final String FILTER_POKEMON_TYPE = "ami:filter_pokemon_type";
+    public static final String FILTER_POKEMON_SECONDARY_TYPE = "ami:filter_pokemon_secondary_type";
+    public static final String FILTER_POKEMON_GENERATION = "ami:filter_pokemon_generation";
+    public static final String FILTER_POKEMON_EGG_GROUP = "ami:filter_pokemon_egg_group";
+    public static final String FILTER_POKEMON_ABILITY = "ami:filter_pokemon_ability";
+    public static final String SEARCH_POKEMON_DROP_ITEM = "ami:search_pokemon_drop_item";
+    public static final String RECIPES_POKEMON_DROP_ITEM = "ami:recipes_pokemon_drop_item";
+    public static final String COPY_POKEMON_SPECIES = "ami:copy_pokemon_species";
+    public static final String COPY_POKEMON_DEX_NUMBER = "ami:copy_pokemon_dex_number";
     public static final String FILTER_MOD = "ami:filter_mod";
     public static final String COPY_ID = "ami:copy_id";
     public static final String GROUP_TOGGLE = "ami:group_toggle";
@@ -97,7 +106,10 @@ public class ResultContextMenuActionBuilder {
             COPY_TOOLTIP, CRAFT_ONE, CRAFT_STACK, RECIPES, USES, FAVORITE, CHAT, WIKI, LOCATE,
             CHEAT_GIVE_ONE, CHEAT_GIVE_STACK, CHEAT_SPAWN_EGG, CHEAT_SPAWN_EGG_STACK,
             CHEAT_SPAWN_POKEMON, CHEAT_POKEMON_PARTY,
-            OPEN_POKEDEX, FILTER_POKEMON_TYPE,
+            OPEN_POKEDEX, FILTER_POKEMON_TYPE, FILTER_POKEMON_SECONDARY_TYPE,
+            FILTER_POKEMON_GENERATION, FILTER_POKEMON_EGG_GROUP, FILTER_POKEMON_ABILITY,
+            SEARCH_POKEMON_DROP_ITEM, RECIPES_POKEMON_DROP_ITEM,
+            COPY_POKEMON_SPECIES, COPY_POKEMON_DEX_NUMBER,
             FILTER_MOD, COPY_ID,
             GROUP_TOGGLE, FILTER_CATEGORY, COPY_GROUP_KEY,
             START_CATEGORY_FIX, EDIT_CATEGORY_FIX, APPLY_CATEGORY_FIX, CLEAR_ITEM_FIX,
@@ -123,6 +135,14 @@ public class ResultContextMenuActionBuilder {
             CHEAT_POKEMON_PARTY,
             OPEN_POKEDEX,
             FILTER_POKEMON_TYPE,
+            FILTER_POKEMON_SECONDARY_TYPE,
+            FILTER_POKEMON_GENERATION,
+            FILTER_POKEMON_EGG_GROUP,
+            FILTER_POKEMON_ABILITY,
+            SEARCH_POKEMON_DROP_ITEM,
+            RECIPES_POKEMON_DROP_ITEM,
+            COPY_POKEMON_SPECIES,
+            COPY_POKEMON_DEX_NUMBER,
             GROUP_TOGGLE,
             FILTER_CATEGORY,
             COPY_GROUP_KEY,
@@ -223,13 +243,13 @@ public class ResultContextMenuActionBuilder {
 
         if (isPokemonSpecies(node)) {
             if (policy.allows(node, OPEN_POKEDEX)) {
-                boolean hasPokedex = CobblemonPokedexOpener.hasPokedex();
+                boolean hasPokedex = hasCobblemonPokedex();
                 if (hasPokedex) {
                     actions.add(ResultContextMenu.Action.enabled(
                             OPEN_POKEDEX,
                             Component.translatable("ami.context.open_pokedex"),
                             'v',
-                            () -> CobblemonPokedexOpener.handlePrimaryClick(node)
+                            () -> openCobblemonPokedex(node)
                     ));
                 } else {
                     actions.add(ResultContextMenu.Action.disabled(
@@ -243,10 +263,96 @@ public class ResultContextMenuActionBuilder {
             if (policy.allows(node, FILTER_POKEMON_TYPE) && context.tokenInject() != null && !primaryType.isBlank()) {
                 actions.add(ResultContextMenu.Action.enabled(
                         FILTER_POKEMON_TYPE,
-                        Component.translatable("ami.context.filter_pokemon_type"),
+                        Component.translatable("ami.context.filter_pokemon_type_named", titleCaseUnderscorePath(primaryType)),
                         'y',
                         () -> context.tokenInject().accept(primaryType)
                 ));
+            }
+            String secondaryType = node.meta(SearchNodeKeys.POKEMON_SECONDARY_TYPE, "");
+            if (policy.allows(node, FILTER_POKEMON_SECONDARY_TYPE)
+                    && context.tokenInject() != null
+                    && !secondaryType.isBlank()
+                    && !secondaryType.equalsIgnoreCase(primaryType)) {
+                actions.add(ResultContextMenu.Action.enabled(
+                        FILTER_POKEMON_SECONDARY_TYPE,
+                        Component.translatable("ami.context.filter_pokemon_type_named", titleCaseUnderscorePath(secondaryType)),
+                        't',
+                        () -> context.tokenInject().accept(secondaryType)
+                ));
+            }
+            String generation = node.meta(SearchNodeKeys.POKEMON_GENERATION, "");
+            if (policy.allows(node, FILTER_POKEMON_GENERATION) && context.tokenInject() != null && !generation.isBlank()) {
+                actions.add(ResultContextMenu.Action.enabled(
+                        FILTER_POKEMON_GENERATION,
+                        Component.translatable("ami.context.filter_pokemon_generation_named", generation),
+                        'g',
+                        () -> context.tokenInject().accept("?generation:" + generation)
+                ));
+            }
+            for (String eggGroup : splitMetadataTokens(node.meta(SearchNodeKeys.POKEMON_EGG_GROUPS, ""))) {
+                if (!policy.allows(node, FILTER_POKEMON_EGG_GROUP) || context.tokenInject() == null) {
+                    break;
+                }
+                actions.add(ResultContextMenu.Action.enabled(
+                        FILTER_POKEMON_EGG_GROUP,
+                        Component.translatable("ami.context.filter_pokemon_egg_group_named", titleCaseUnderscorePath(eggGroup)),
+                        'e',
+                        () -> context.tokenInject().accept("%egg:" + eggGroup)
+                ));
+            }
+            for (String ability : splitMetadataTokens(node.meta(SearchNodeKeys.POKEMON_ABILITIES, ""))) {
+                if (!policy.allows(node, FILTER_POKEMON_ABILITY) || context.tokenInject() == null) {
+                    break;
+                }
+                actions.add(ResultContextMenu.Action.enabled(
+                        FILTER_POKEMON_ABILITY,
+                        Component.translatable("ami.context.filter_pokemon_ability_named", titleCaseUnderscorePath(ability)),
+                        'a',
+                        () -> context.tokenInject().accept("?ability:" + ability)
+                ));
+            }
+            for (ResourceLocation dropItemId : pokemonDropItemIds(node)) {
+                String itemName = itemDisplayName(dropItemId);
+                if (policy.allows(node, SEARCH_POKEMON_DROP_ITEM) && context.tokenInject() != null) {
+                    actions.add(ResultContextMenu.Action.enabled(
+                            SEARCH_POKEMON_DROP_ITEM,
+                            Component.translatable("ami.context.search_pokemon_drop_item_named", itemName),
+                            'd',
+                            () -> context.tokenInject().accept(dropSearchQuery(dropItemId))
+                    ));
+                }
+
+                ItemStack dropStack = stackForItem(dropItemId);
+                if (policy.allows(node, RECIPES_POKEMON_DROP_ITEM) && !dropStack.isEmpty()) {
+                    actions.add(ResultContextMenu.Action.enabled(
+                            RECIPES_POKEMON_DROP_ITEM,
+                            Component.translatable("ami.context.recipes_pokemon_drop_item_named", itemName),
+                            'r',
+                            () -> openRecipesLater(dropStack)
+                    ));
+                }
+            }
+            if (policy.allows(node, COPY_POKEMON_SPECIES)) {
+                ResourceLocation speciesId = pokemonSpeciesId(node);
+                if (speciesId != null) {
+                    actions.add(ResultContextMenu.Action.enabled(
+                            COPY_POKEMON_SPECIES,
+                            Component.translatable("ami.context.copy_pokemon_species"),
+                            'i',
+                            () -> AmiClipboardHelper.copyToClipboard(speciesId.toString())
+                    ));
+                }
+            }
+            if (policy.allows(node, COPY_POKEMON_DEX_NUMBER)) {
+                String dexNumber = node.meta(SearchNodeKeys.POKEMON_DEX_NUMBER, "");
+                if (!dexNumber.isBlank()) {
+                    actions.add(ResultContextMenu.Action.enabled(
+                            COPY_POKEMON_DEX_NUMBER,
+                            Component.translatable("ami.context.copy_pokemon_dex_number"),
+                            'x',
+                            () -> AmiClipboardHelper.copyToClipboard(dexNumber)
+                    ));
+                }
             }
         }
 
@@ -954,6 +1060,119 @@ public class ResultContextMenuActionBuilder {
         return node != null && "pokemon_species".equals(node.meta(SearchNodeKeys.ENTITY_CATEGORY, ""));
     }
 
+    private static boolean hasCobblemonPokedex() {
+        try {
+            return CobblemonPokedexOpener.hasPokedex();
+        } catch (RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Cobblemon Pokedex unavailable for context menu", e);
+            return false;
+        }
+    }
+
+    private static void openCobblemonPokedex(SearchNode node) {
+        try {
+            CobblemonPokedexOpener.handlePrimaryClick(node);
+        } catch (RuntimeException | LinkageError e) {
+            LOGGER.log(Level.WARNING, "AMI: Failed to open Cobblemon Pokedex for " + chatText(node), e);
+        }
+    }
+
+    private static List<String> splitMetadataTokens(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+
+        LinkedHashSet<String> values = new LinkedHashSet<>();
+        for (String part : raw.split("[,\\s]+")) {
+            String value = part == null ? "" : part.trim();
+            if (!value.isBlank()) {
+                values.add(value);
+            }
+        }
+        return List.copyOf(values);
+    }
+
+    private static List<ResourceLocation> pokemonDropItemIds(SearchNode node) {
+        if (node == null) {
+            return List.of();
+        }
+
+        LinkedHashSet<ResourceLocation> values = new LinkedHashSet<>();
+        for (String raw : node.meta(SearchNodeKeys.POKEMON_DROP_ITEM, "").split(",")) {
+            ResourceLocation itemId = ResourceLocation.tryParse(raw.trim());
+            if (isUsableItemId(itemId)) {
+                values.add(itemId);
+            }
+        }
+        return List.copyOf(values);
+    }
+
+    private static ItemStack stackForItem(ResourceLocation itemId) {
+        if (!isUsableItemId(itemId)) {
+            return ItemStack.EMPTY;
+        }
+
+        try {
+            var item = BuiltInRegistries.ITEM.get(itemId);
+            if (item == Items.AIR) {
+                return ItemStack.EMPTY;
+            }
+            return defaultStackForItem(item, itemId);
+        } catch (RuntimeException e) {
+            LOGGER.log(Level.FINE, "AMI: Failed to resolve Pokemon drop item " + itemId, e);
+            return ItemStack.EMPTY;
+        }
+    }
+
+    private static ItemStack defaultStackForItem(Object item, ResourceLocation itemId) {
+        try {
+            Object stack = item.getClass().getMethod("getDefaultInstance").invoke(item);
+            if (stack instanceof ItemStack itemStack) {
+                return itemStack;
+            }
+        } catch (ReflectiveOperationException ignored) {
+        }
+
+        try {
+            for (var constructor : ItemStack.class.getConstructors()) {
+                Class<?>[] parameterTypes = constructor.getParameterTypes();
+                if (parameterTypes.length == 1 && parameterTypes[0].isAssignableFrom(item.getClass())) {
+                    Object stack = constructor.newInstance(item);
+                    return stack instanceof ItemStack itemStack ? itemStack : ItemStack.EMPTY;
+                }
+            }
+        } catch (ReflectiveOperationException e) {
+            LOGGER.log(Level.FINE, "AMI: Failed to create Pokemon drop stack for " + itemId, e);
+        }
+        return ItemStack.EMPTY;
+    }
+
+    private static String itemDisplayName(ResourceLocation itemId) {
+        return itemId == null ? "" : titleCaseUnderscorePath(itemId.getPath());
+    }
+
+    private static String dropSearchQuery(ResourceLocation itemId) {
+        if (itemId == null) {
+            return "";
+        }
+        if ("minecraft".equals(itemId.getNamespace())) {
+            return itemId.getPath().replace('_', ' ');
+        }
+        return itemId.toString();
+    }
+
+    private static boolean isUsableItemId(ResourceLocation itemId) {
+        if (itemId == null || itemId.getPath().isBlank()) {
+            return false;
+        }
+        try {
+            return BuiltInRegistries.ITEM.get(itemId) != Items.AIR;
+        } catch (RuntimeException e) {
+            LOGGER.log(Level.FINE, "AMI: Ignoring unresolved item id " + itemId, e);
+            return false;
+        }
+    }
+
     private static boolean hasSpawnEgg(ResourceLocation entityId) {
         if (entityId == null) return false;
 
@@ -1054,6 +1273,15 @@ public class ResultContextMenuActionBuilder {
 
         ResourceLocation id = node.id();
         String query = wikiQueryText(node);
+        if (isPokemonSpecies(node)) {
+            return new DocumentationTarget(
+                    DocumentationKind.COBBLEMON_TOOLS,
+                    Component.translatable("ami.context.open_cobblemon_tools"),
+                    cobblemonPokemonToolsUri(node),
+                    null
+            );
+        }
+
         if (query.isBlank()) {
             return new DocumentationTarget(DocumentationKind.WEB_SEARCH, Component.translatable("ami.context.search_web"), null, null);
         }
@@ -1096,6 +1324,43 @@ public class ResultContextMenuActionBuilder {
     private static URI ae2WebGuideUri(SearchNode node, String query) {
         return URI.create("https://guide.appliedenergistics.org/1.21.1/?search="
                 + URLEncoder.encode(query, StandardCharsets.UTF_8));
+    }
+
+    private static URI cobblemonPokemonToolsUri(SearchNode node) {
+        return URI.create("https://cobblemon.tools/pokedex/pokemon/" + encodePathSegment(cobblemonPokemonToolsSlug(node)));
+    }
+
+    private static String cobblemonPokemonToolsSlug(SearchNode node) {
+        ResourceLocation speciesId = pokemonSpeciesId(node);
+        String path = speciesId == null ? "" : speciesId.getPath();
+        if (!path.isBlank()) {
+            return path.toLowerCase(Locale.ROOT);
+        }
+
+        String fallback = node == null ? "" : node.displayName();
+        return fallback.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+    }
+
+    private static ResourceLocation pokemonSpeciesId(SearchNode node) {
+        if (node == null) {
+            return null;
+        }
+
+        String species = node.meta(SearchNodeKeys.POKEMON_SPECIES, "");
+        if (!species.isBlank()) {
+            ResourceLocation parsed = ResourceLocation.tryParse(species);
+            if (parsed != null) return parsed;
+        }
+
+        ResourceLocation id = node.id();
+        if (id != null && "cobblemon".equals(id.getNamespace())) {
+            String path = id.getPath();
+            if (path.startsWith("species/")) {
+                return ResourceLocation.fromNamespaceAndPath("cobblemon", path.substring("species/".length()));
+            }
+        }
+
+        return null;
     }
 
     private static URI webSearchUri(SearchNode node, String query) {
@@ -1182,6 +1447,11 @@ public class ResultContextMenuActionBuilder {
     private static String encodeWikiPath(String title) {
         if (title == null || title.isBlank()) return "";
         return URLEncoder.encode(title, StandardCharsets.UTF_8).replace("+", "_");
+    }
+
+    private static String encodePathSegment(String value) {
+        if (value == null || value.isBlank()) return "";
+        return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     private static void openRecipesLater(ItemStack stack) {
@@ -1308,6 +1578,7 @@ public class ResultContextMenuActionBuilder {
         MINECRAFT_WIKI,
         AE2_GUIDE,
         MEKANISM_WIKI,
+        COBBLEMON_TOOLS,
         WEB_SEARCH
     }
 

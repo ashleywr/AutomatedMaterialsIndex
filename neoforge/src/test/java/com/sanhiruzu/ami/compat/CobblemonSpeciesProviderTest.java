@@ -35,5 +35,6 @@ class CobblemonSpeciesProviderTest {
         assertEquals("1", node.meta(SearchNodeKeys.POKEMON_DEX_NUMBER, ""));
         assertTrue(node.meta(SearchNodeKeys.POKEMON_MOVE, "").contains("tackle"));
         assertTrue(node.meta(SearchNodeKeys.POKEMON_MOVE, "").contains("solar_beam"));
+        assertEquals("minecraft:apple,minecraft:redstone", node.meta(SearchNodeKeys.POKEMON_DROP_ITEM, ""));
     }
 }

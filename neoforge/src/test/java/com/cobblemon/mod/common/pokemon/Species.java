@@ -52,6 +52,10 @@ public final class Species {
         return new LegacyLearnset();
     }
 
+    public Object getDrops() {
+        return new DropTableValue();
+    }
+
     public float getHeight() {
         return 0.7f;
     }
@@ -81,6 +85,46 @@ public final class Species {
     private record PotentialAbilityValue(String name) {
         public Object getTemplate() {
             return new NamedValue(name);
+        }
+    }
+
+    private static final class DropTableValue {
+        public List<Object> getEntries() {
+            return List.of(
+                    new RawItemDropValue("minecraft:", 1.0f, 1),
+                    new ItemDropValue(ResourceLocation.fromNamespaceAndPath("minecraft", "air"), 1.0f, 1),
+                    new ItemDropValue(ResourceLocation.fromNamespaceAndPath("minecraft", "missing_item"), 1.0f, 1),
+                    new ItemDropValue(ResourceLocation.fromNamespaceAndPath("minecraft", "apple"), 0.5f, 1),
+                    new ItemDropValue(ResourceLocation.fromNamespaceAndPath("minecraft", "redstone"), 0.1f, 2)
+            );
+        }
+    }
+
+    private record RawItemDropValue(String item, float percentage, int quantity) {
+        public String getItem() {
+            return item;
+        }
+
+        public float getPercentage() {
+            return percentage;
+        }
+
+        public int getQuantity() {
+            return quantity;
+        }
+    }
+
+    private record ItemDropValue(ResourceLocation item, float percentage, int quantity) {
+        public ResourceLocation getItem() {
+            return item;
+        }
+
+        public float getPercentage() {
+            return percentage;
+        }
+
+        public int getQuantity() {
+            return quantity;
         }
     }
 

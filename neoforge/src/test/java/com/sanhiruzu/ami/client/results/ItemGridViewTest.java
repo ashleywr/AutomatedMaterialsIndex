@@ -75,7 +75,7 @@ public class ItemGridViewTest {
     }
 
     @Test
-    void expandAllExpandsHighCardinalityCardsInline() throws Exception {
+    void expandAllExpandsHighCardinalityCardsAsCleanSections() throws Exception {
         ItemGridView gridView = new ItemGridView(0, 0, 61, 100);
 
         TreeNode collapsed = new TreeNode("cardinality:family:music_discs", Component.literal("Music Discs"));
@@ -91,12 +91,14 @@ public class ItemGridViewTest {
         @SuppressWarnings("unchecked")
         List<Object> rows = (List<Object>) buildVirtualRows.invoke(gridView, 3);
 
-        assertEquals(1, rows.size());
-        assertEquals(3, itemCount(rows.get(0)));
+        assertEquals(2, rows.size());
+        assertEquals("Music Discs", headerLabel(rows.get(0)));
+        assertEquals(2, itemCount(rows.get(1)));
+        assertEquals(1, itemRowDepth(rows.get(1)));
     }
 
     @Test
-    void expandedGroupItemsExpandInPlaceInTheGrid() throws Exception {
+    void expandedGroupItemsInsertAsSectionBeforeFollowingItems() throws Exception {
         ItemGridView gridView = new ItemGridView(0, 0, 61, 100);
 
         TreeNode group = new TreeNode("cardinality:minecraft:mushroom", Component.literal("Mushrooms"));
@@ -113,9 +115,12 @@ public class ItemGridViewTest {
         @SuppressWarnings("unchecked")
         List<Object> rows = (List<Object>) buildVirtualRows.invoke(gridView, 3);
 
-        assertEquals(2, rows.size());
-        assertEquals(3, itemCount(rows.get(0)));
-        assertEquals(1, itemCount(rows.get(1)));
+        assertEquals(3, rows.size());
+        assertEquals("Mushrooms", headerLabel(rows.get(0)));
+        assertEquals(2, itemCount(rows.get(1)));
+        assertEquals(1, itemRowDepth(rows.get(1)));
+        assertEquals(1, itemCount(rows.get(2)));
+        assertEquals("Apple", itemLabel(rows.get(2), 0));
     }
 
     @Test
@@ -136,11 +141,13 @@ public class ItemGridViewTest {
         @SuppressWarnings("unchecked")
         List<Object> rows = (List<Object>) buildVirtualRows.invoke(gridView, 4);
 
-        assertEquals(2, rows.size());
-        assertEquals(3, itemCount(rows.get(0)));
-        assertEquals("Dragon Scales", itemLabel(rows.get(0), 0));
-        assertEquals(1, itemCount(rows.get(1)));
-        assertEquals("Apple", itemLabel(rows.get(1), 0));
+        assertEquals(3, rows.size());
+        assertEquals("Dragon Scales", headerLabel(rows.get(0)));
+        assertEquals(2, itemCount(rows.get(1)));
+        assertEquals("Red Dragon Scale", itemLabel(rows.get(1), 0));
+        assertEquals("Blue Dragon Scale", itemLabel(rows.get(1), 1));
+        assertEquals(1, itemCount(rows.get(2)));
+        assertEquals("Apple", itemLabel(rows.get(2), 0));
     }
 
     @Test
