@@ -344,6 +344,17 @@ still assigning normal semantic `tech` buckets. Storage media and housings route
 to `tech/parts`, processors and cores to `tech/circuits`, quartz-enriched iron
 to `tech/ingots`, and placeable network devices to `tech/machines`.
 
+### 2026-06-02: Food-Family Cooking Vessels Beat Incidental Tool Identity
+
+Farmer's Delight skillet exposed only `placeable,has_block_entity` in runtime
+metadata, so it fell through to the generic masonry full-block fallback. It can
+also carry combat/tool evidence, but its primary gameplay role is a cooking
+vessel placed on kitchen blocks. Food-family placeable block entities with exact
+cooking-station identity (`skillet`, `stove`, `cooking_pot`, or matching
+item/block classes) now route to `tech/machines` before hard tool identity.
+Prepared food blocks still route to meals, crop/storage blocks still route to
+nature, and decorative textiles still route to decoration.
+
 ## Open Work
 
 - Split Cobblemon identity routing into strong Pokemon gameplay identities
