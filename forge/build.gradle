@@ -270,11 +270,16 @@ publishing {
     }
 }
 
-// ──── Release publishing ─────────────────────────────────────────────────────
+// Release publishing
 
 def changelogText = {
     def f = rootProject.file('CHANGELOG.md')
-    f.exists() ? f.text : ''
+    if (!f.exists()) return ''
+    def text = f.text.replace('\r\n', '\n')
+    def start = text.indexOf("## ${mod_version}")
+    if (start < 0) return text.trim()
+    def next = text.indexOf('\n## ', start + 1)
+    return (next < 0 ? text.substring(start) : text.substring(start, next)).trim()
 }
 
 modrinth {
@@ -301,7 +306,7 @@ if (System.getenv('CURSEFORGE_TOKEN')) {
             id = '1558643'
             releaseType = 'release'
             changelogType = 'markdown'
-            changelog = rootProject.file('CHANGELOG.md')
+            changelog = changelogText()
             addGameVersion forge_minecraft_version
             addGameVersion 'Forge'
             mainArtifact(tasks.jar) {
