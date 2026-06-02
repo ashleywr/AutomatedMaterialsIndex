@@ -9,11 +9,13 @@ import com.sanhiruzu.ami.api.AmiQuestsApi;
 import com.sanhiruzu.ami.api.IAmiPlugin;
 import com.sanhiruzu.ami.author.PackAuthorDiagnostics;
 import com.sanhiruzu.ami.client.screen.AmiCategoryFixScreen;
+import com.sanhiruzu.ami.compat.CobblemonPokedexOpener;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.config.AmiDataFixes;
 import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.index.AmiOntology;
+import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
@@ -66,6 +68,8 @@ public class ResultContextMenuActionBuilder {
     public static final String CHEAT_SPAWN_EGG_STACK = "ami:cheat_spawn_egg_stack";
     public static final String CHEAT_SPAWN_POKEMON = "ami:cheat_spawn_pokemon";
     public static final String CHEAT_POKEMON_PARTY = "ami:cheat_pokemon_party";
+    public static final String OPEN_POKEDEX = "ami:open_pokedex";
+    public static final String FILTER_POKEMON_TYPE = "ami:filter_pokemon_type";
     public static final String FILTER_MOD = "ami:filter_mod";
     public static final String COPY_ID = "ami:copy_id";
     public static final String GROUP_TOGGLE = "ami:group_toggle";
@@ -90,6 +94,7 @@ public class ResultContextMenuActionBuilder {
             COPY_TOOLTIP, CRAFT_ONE, CRAFT_STACK, RECIPES, USES, FAVORITE, CHAT, WIKI, LOCATE,
             CHEAT_GIVE_ONE, CHEAT_GIVE_STACK, CHEAT_SPAWN_EGG, CHEAT_SPAWN_EGG_STACK,
             CHEAT_SPAWN_POKEMON, CHEAT_POKEMON_PARTY,
+            OPEN_POKEDEX, FILTER_POKEMON_TYPE,
             FILTER_MOD, COPY_ID,
             GROUP_TOGGLE, FILTER_CATEGORY, COPY_GROUP_KEY,
             START_CATEGORY_FIX, EDIT_CATEGORY_FIX, APPLY_CATEGORY_FIX, CLEAR_ITEM_FIX,
@@ -113,6 +118,8 @@ public class ResultContextMenuActionBuilder {
             CHEAT_SPAWN_EGG_STACK,
             CHEAT_SPAWN_POKEMON,
             CHEAT_POKEMON_PARTY,
+            OPEN_POKEDEX,
+            FILTER_POKEMON_TYPE,
             GROUP_TOGGLE,
             FILTER_CATEGORY,
             COPY_GROUP_KEY,
@@ -125,6 +132,10 @@ public class ResultContextMenuActionBuilder {
     );
 
     private static volatile SearchNode pendingCategoryFixNode;
+
+    static void clearPendingCategoryFixForTests() {
+        pendingCategoryFixNode = null;
+    }
 
     private final BooleanSupplier cheatEnabled;
     private final Predicate<ItemStack> craftable;
@@ -207,6 +218,35 @@ public class ResultContextMenuActionBuilder {
             ));
         }
 
+        if (isPokemonSpecies(node)) {
+            if (policy.allows(node, OPEN_POKEDEX)) {
+                boolean hasPokedex = CobblemonPokedexOpener.hasPokedex();
+                if (hasPokedex) {
+                    actions.add(ResultContextMenu.Action.enabled(
+                            OPEN_POKEDEX,
+                            Component.translatable("ami.context.open_pokedex"),
+                            'v',
+                            () -> CobblemonPokedexOpener.handlePrimaryClick(node)
+                    ));
+                } else {
+                    actions.add(ResultContextMenu.Action.disabled(
+                            OPEN_POKEDEX,
+                            Component.translatable("ami.context.open_pokedex_no_item"),
+                            'v'
+                    ));
+                }
+            }
+            String primaryType = node.meta(SearchNodeKeys.POKEMON_PRIMARY_TYPE, "");
+            if (policy.allows(node, FILTER_POKEMON_TYPE) && context.tokenInject() != null && !primaryType.isBlank()) {
+                actions.add(ResultContextMenu.Action.enabled(
+                        FILTER_POKEMON_TYPE,
+                        Component.translatable("ami.context.filter_pokemon_type"),
+                        'y',
+                        () -> context.tokenInject().accept(primaryType)
+                ));
+            }
+        }
+
         if (cheatEnabled.getAsBoolean()) {
             addCheatActions(actions, policy, node, id, stack, hasStack);
         }
@@ -247,7 +287,7 @@ public class ResultContextMenuActionBuilder {
                     START_CATEGORY_FIX,
                     Component.translatable("ami.context.start_category_fix"),
                     'x',
-                    () -> pendingCategoryFixNode = node
+                    () -> startCategoryFix(node)
             ));
         }
 
@@ -696,9 +736,20 @@ public class ResultContextMenuActionBuilder {
                         metadata.put(SearchNodeKeys.ONTOLOGY_CATEGORY, categoryTarget.categoryId());
                         metadata.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, categoryTarget.subcategoryId());
                         AmiDataFixes.putUserMetadataFix(pending.id(), pending.type(), metadata);
+                        SearchNode updated = pending.withMetadata(AmiDataFixes.apply(pending.id(), pending.type(), pending.metadata()));
+                        GlobalIndex.getInstance().replaceNode(pending.id(), pending.type(), updated);
                         pendingCategoryFixNode = null;
                         AmiIndexerService.getInstance().rebuild();
-                        if (context.onTreeChanged() != null) context.onTreeChanged().run();
+                        showClientStatus(Component.translatable(
+                                "ami.context.category_fix_applied",
+                                pending.displayName(),
+                                groupTitle(node)
+                        ));
+                        if (context.onDataFixApplied() != null) {
+                            context.onDataFixApplied().run();
+                        } else if (context.onTreeChanged() != null) {
+                            context.onTreeChanged().run();
+                        }
                     }
             ));
         }
@@ -708,6 +759,13 @@ public class ResultContextMenuActionBuilder {
 
     private static boolean isPackAuthorMode() {
         return AmiConfig.packAuthorMode || AmiConfig.devMode;
+    }
+
+    private static void startCategoryFix(SearchNode node) {
+        pendingCategoryFixNode = node;
+        if (node != null) {
+            showClientStatus(Component.translatable("ami.context.category_fix_selected", node.displayName()));
+        }
     }
 
     private static List<SearchNode> collectAuthoringItems(TreeNode node, int limit) {
@@ -1166,6 +1224,37 @@ public class ResultContextMenuActionBuilder {
         }
     }
 
+    private static void showClientStatus(Component message) {
+        if (message == null) return;
+
+        try {
+            Object minecraft = Minecraft.getInstance();
+            Object player = publicFieldValue(minecraft, "player");
+            if (player != null) {
+                player.getClass().getMethod("displayClientMessage", Component.class, boolean.class)
+                        .invoke(player, message, true);
+                return;
+            }
+
+            Object gui = publicFieldValue(minecraft, "gui");
+            if (gui != null) {
+                gui.getClass().getMethod("setOverlayMessage", Component.class, boolean.class)
+                        .invoke(gui, message, false);
+            }
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            LOGGER.log(Level.FINE, "AMI: Failed to show context menu status", e);
+        }
+    }
+
+    private static Object publicFieldValue(Object owner, String fieldName) throws IllegalAccessException {
+        if (owner == null || fieldName == null || fieldName.isBlank()) return null;
+        try {
+            return owner.getClass().getField(fieldName).get(owner);
+        } catch (NoSuchFieldException e) {
+            return null;
+        }
+    }
+
     public record ItemContext(
             SearchNode node,
             ItemStack stack,
@@ -1177,8 +1266,12 @@ public class ResultContextMenuActionBuilder {
     public record GroupContext(
             TreeNode node,
             Consumer<String> tokenInject,
-            Runnable onTreeChanged
+            Runnable onTreeChanged,
+            Runnable onDataFixApplied
     ) {
+        public GroupContext(TreeNode node, Consumer<String> tokenInject, Runnable onTreeChanged) {
+            this(node, tokenInject, onTreeChanged, null);
+        }
     }
 
     private record CategoryTarget(String categoryId, String subcategoryId) {

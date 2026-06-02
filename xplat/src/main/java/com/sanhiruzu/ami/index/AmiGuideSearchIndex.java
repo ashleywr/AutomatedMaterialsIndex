@@ -157,12 +157,32 @@ public final class AmiGuideSearchIndex {
 
     private static List<String> tokens(String query) {
         List<String> tokens = new ArrayList<>();
-        for (String token : normalize(query).split("\\s+")) {
-            if (!token.isBlank()) {
-                tokens.add(token);
+        if (query == null || query.isBlank()) {
+            return tokens;
+        }
+        for (String rawToken : query.split("\\s+")) {
+            String stripped = stripQuerySyntax(rawToken);
+            for (String token : normalize(stripped).split("\\s+")) {
+                if (!token.isBlank()) {
+                    tokens.add(token);
+                }
             }
         }
         return tokens;
+    }
+
+    private static String stripQuerySyntax(String rawToken) {
+        if (rawToken == null || rawToken.isBlank()) {
+            return "";
+        }
+        String token = rawToken.trim();
+        while (token.startsWith("-")) {
+            token = token.substring(1);
+        }
+        while (!token.isEmpty() && "?~$#@&!><=".indexOf(token.charAt(0)) >= 0) {
+            token = token.substring(1);
+        }
+        return token;
     }
 
     private static String normalize(String value) {

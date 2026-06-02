@@ -33,6 +33,27 @@ public final class PropertyResolver implements IQueryResolver {
                     FieldConvention.SEARCH_TOKENS);
             case "kind", "itemkind" -> containsConventionToken(node, value, FieldConvention.KIND);
             case "tier" -> containsConventionToken(node, value, FieldConvention.TIER);
+            case "gear", "modulargear" -> value.isEmpty()
+                    ? containsToken(node, SearchNodeKeys.COMPAT_FAMILIES, "modular_gear")
+                            || containsValue(node, SearchNodeKeys.MODULAR_GEAR_FAMILY, "")
+                    : containsModularGearValue(node, value);
+            case "material", "materials", "gearmaterial" -> containsValue(node, SearchNodeKeys.MODULAR_GEAR_MATERIAL, value)
+                    || containsToken(node, SearchNodeKeys.MODULAR_GEAR_RUNTIME_MATERIALS, value)
+                    || containsValue(node, SearchNodeKeys.MATERIAL_GROUP, value)
+                    || containsValue(node, SearchNodeKeys.BLOCKS_MATERIAL, value);
+            case "part", "parts", "gearpart" -> containsModularGearPart(node, value);
+            case "trait", "traits", "modifier", "modifiers" -> value.isEmpty()
+                    ? containsToken(node, SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, "modifiers")
+                            || containsValue(node, SearchNodeKeys.MODULAR_GEAR_MATERIAL_TRAITS, "")
+                    : containsToken(node, SearchNodeKeys.MODULAR_GEAR_MATERIAL_TRAITS, value)
+                            || containsToken(node, SearchNodeKeys.MODULAR_GEAR_FACTS, value)
+                            || containsToken(node, SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, value)
+                            || containsConventionToken(node, value, FieldConvention.FACTS, FieldConvention.KIND);
+            case "runtimetrait", "runtimetraits", "runtime_trait", "runtime_traits", "geartrait", "geartraits",
+                    "gear_trait", "gear_traits" ->
+                    value.isEmpty()
+                            ? containsValue(node, SearchNodeKeys.MODULAR_GEAR_RUNTIME_TRAITS, "")
+                            : containsToken(node, SearchNodeKeys.MODULAR_GEAR_RUNTIME_TRAITS, value);
             case "role", "recipe", "processing", "process" -> containsConventionToken(node, value,
                     FieldConvention.ROLE,
                     FieldConvention.RECIPE);
@@ -62,6 +83,9 @@ public final class PropertyResolver implements IQueryResolver {
                     FieldConvention.FACTS,
                     FieldConvention.FACETS,
                     FieldConvention.KIND);
+            case "token", "tokens", "searchtoken", "searchtokens", "rawtoken", "debugtoken" ->
+                    containsToken(node, SearchNodeKeys.SEARCH_TOKENS, value);
+            case "meta", "metadata", "rawmeta", "debugmeta" -> containsAnyMetadata(node, key, value);
             case "health", "hp" -> containsValue(node, SearchNodeKeys.ENTITY_HEALTH, value);
             case "attack", "attackdamage", "damage" -> containsValue(node, SearchNodeKeys.ATTACK_DAMAGE, value)
                     || containsValue(node, SearchNodeKeys.ENTITY_ATTACK_DAMAGE, value);
@@ -93,7 +117,7 @@ public final class PropertyResolver implements IQueryResolver {
             case "fireimmune" -> value.isEmpty()
                     ? "true".equalsIgnoreCase(node.meta(SearchNodeKeys.FIRE_IMMUNE, ""))
                     : containsValue(node, SearchNodeKeys.FIRE_IMMUNE, value);
-            default -> containsAnyMetadata(node, key, value);
+            default -> value.isEmpty() && containsSemanticPropertyValue(node, key);
         };
     }
 
@@ -111,6 +135,27 @@ public final class PropertyResolver implements IQueryResolver {
             }
         }
         return false;
+    }
+
+    private static boolean containsModularGearPart(SearchNode node, String value) {
+        if (value == null || value.isBlank()) {
+            return containsValue(node, SearchNodeKeys.MODULAR_GEAR_PART, "")
+                    || containsToken(node, SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, "parts");
+        }
+        return containsToken(node, SearchNodeKeys.MODULAR_GEAR_PART, value);
+    }
+
+    private static boolean containsModularGearValue(SearchNode node, String value) {
+        return containsValue(node, SearchNodeKeys.MODULAR_GEAR_FAMILY, value)
+                || containsValue(node, SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, value)
+                || containsValue(node, SearchNodeKeys.MODULAR_GEAR_FACTS, value)
+                || containsValue(node, SearchNodeKeys.MODULAR_GEAR_MATERIAL, value)
+                || containsValue(node, SearchNodeKeys.MODULAR_GEAR_PART, value)
+                || containsValue(node, SearchNodeKeys.MODULAR_GEAR_TIER, value)
+                || containsValue(node, SearchNodeKeys.MODULAR_GEAR_MATERIAL_TRAITS, value)
+                || containsValue(node, SearchNodeKeys.MODULAR_GEAR_RUNTIME_MATERIALS, value)
+                || containsValue(node, SearchNodeKeys.MODULAR_GEAR_RUNTIME_TRAITS, value)
+                || containsValue(node, SearchNodeKeys.MODULAR_GEAR_RUNTIME_STATS, value);
     }
 
     private static boolean containsToken(SearchNode node, String metadataKey, String token) {
@@ -205,6 +250,16 @@ public final class PropertyResolver implements IQueryResolver {
             }
         }
         return false;
+    }
+
+    private static boolean containsSemanticPropertyValue(SearchNode node, String value) {
+        return containsConventionToken(node, value,
+                FieldConvention.FACTS,
+                FieldConvention.FACETS,
+                FieldConvention.KIND,
+                FieldConvention.TIER,
+                FieldConvention.ROLE,
+                FieldConvention.RECIPE);
     }
 
     private static boolean containsResourceMetadata(SearchNode node, String resource, String value) {
@@ -328,52 +383,31 @@ public final class PropertyResolver implements IQueryResolver {
     }
 
     private enum FieldConvention {
-        FACTS {
-            @Override
-            boolean matches(String key) {
-                return normalize(key).endsWith("facts");
-            }
-        },
-        FACETS {
-            @Override
-            boolean matches(String key) {
-                return SearchNodeKeys.FACETS.equals(key) || SearchNodeKeys.COMPONENT_FACTS.equals(key);
-            }
-        },
-        SEARCH_TOKENS {
-            @Override
-            boolean matches(String key) {
-                return SearchNodeKeys.SEARCH_TOKENS.equals(key);
-            }
-        },
-        KIND {
-            @Override
-            boolean matches(String key) {
-                String normalized = normalize(key);
-                return normalized.endsWith("itemkind") || SearchNodeKeys.ONTOLOGY_SUBCATEGORY.equals(key);
-            }
-        },
-        TIER {
-            @Override
-            boolean matches(String key) {
-                return normalize(key).endsWith("tier");
-            }
-        },
-        ROLE {
-            @Override
-            boolean matches(String key) {
-                String normalized = normalize(key);
-                return normalized.endsWith("role") || normalized.endsWith("roles");
-            }
-        },
-        RECIPE {
-            @Override
-            boolean matches(String key) {
-                return key.equals(SearchNodeKeys.RECIPE_CATEGORIES) || key.equals(SearchNodeKeys.RECIPE_USE_CATEGORIES);
-            }
-        };
+        FACTS,
+        FACETS,
+        SEARCH_TOKENS,
+        KIND,
+        TIER,
+        ROLE,
+        RECIPE;
 
-        abstract boolean matches(String key);
+        boolean matches(String key) {
+            return switch (this) {
+                case FACTS -> normalize(key).endsWith("facts");
+                case FACETS -> SearchNodeKeys.FACETS.equals(key) || SearchNodeKeys.COMPONENT_FACTS.equals(key);
+                case SEARCH_TOKENS -> SearchNodeKeys.SEARCH_TOKENS.equals(key);
+                case KIND -> {
+                    String normalized = normalize(key);
+                    yield normalized.endsWith("itemkind") || SearchNodeKeys.ONTOLOGY_SUBCATEGORY.equals(key);
+                }
+                case TIER -> normalize(key).endsWith("tier");
+                case ROLE -> {
+                    String normalized = normalize(key);
+                    yield normalized.endsWith("role") || normalized.endsWith("roles");
+                }
+                case RECIPE -> key.equals(SearchNodeKeys.RECIPE_CATEGORIES) || key.equals(SearchNodeKeys.RECIPE_USE_CATEGORIES);
+            };
+        }
     }
 
     public void addNode(SearchNode node) {

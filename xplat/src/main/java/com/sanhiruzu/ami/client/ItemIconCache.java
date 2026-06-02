@@ -1,7 +1,6 @@
 package com.sanhiruzu.ami.client;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexSorting;
@@ -13,7 +12,6 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import org.joml.Matrix4f;
-import org.lwjgl.opengl.GL11;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -88,10 +86,14 @@ public class ItemIconCache {
     public static void blit(GuiGraphics g, ResourceLocation itemId, int x, int y) {
         ResourceLocation texKey = textureKeys.get(itemId);
         if (texKey == null) return;
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        g.blit(texKey, x, y, 0.0f, 0.0f, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
-        RenderSystem.disableBlend();
+        RenderStateSnapshot state = RenderStateSnapshot.capture();
+        try {
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
+            g.blit(texKey, x, y, 0.0f, 0.0f, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
+        } finally {
+            state.restore();
+        }
     }
 
     /**
@@ -107,19 +109,8 @@ public class ItemIconCache {
 
     private static void populateEntry(ResourceLocation itemId, ItemStack stack) {
         Minecraft mc = Minecraft.getInstance();
-        var window = mc.getWindow();
-
+        RenderStateSnapshot state = RenderStateSnapshot.capture();
         Matrix4f savedProj = new Matrix4f(RenderSystem.getProjectionMatrix());
-        boolean scissorEnabled = GL11.glIsEnabled(GL11.GL_SCISSOR_TEST);
-        int[] scissorBox = new int[4];
-        if (scissorEnabled) {
-            GL11.glGetIntegerv(GL11.GL_SCISSOR_BOX, scissorBox);
-        }
-        float[] shaderColor = RenderSystem.getShaderColor();
-        float savedRed = shaderColor[0];
-        float savedGreen = shaderColor[1];
-        float savedBlue = shaderColor[2];
-        float savedAlpha = shaderColor[3];
 
         RenderTarget rt = new RenderTarget(true) {
         };
@@ -131,7 +122,7 @@ public class ItemIconCache {
             rt.bindWrite(true);
             RenderSystem.disableScissor();
             RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-            GlStateManager._viewport(0, 0, ICON_SIZE, ICON_SIZE);
+            com.mojang.blaze3d.platform.GlStateManager._viewport(0, 0, ICON_SIZE, ICON_SIZE);
             RenderSystem.setProjectionMatrix(
                     new Matrix4f().setOrtho(0, ICON_SIZE, ICON_SIZE, 0, -200, 3000),
                     VertexSorting.ORTHOGRAPHIC_Z);
@@ -150,14 +141,8 @@ public class ItemIconCache {
             image = Screenshot.takeScreenshot(rt);
         } finally {
             mc.getMainRenderTarget().bindWrite(true);
-            GlStateManager._viewport(0, 0, window.getWidth(), window.getHeight());
             RenderSystem.setProjectionMatrix(savedProj, VertexSorting.ORTHOGRAPHIC_Z);
-            RenderSystem.setShaderColor(savedRed, savedGreen, savedBlue, savedAlpha);
-            if (scissorEnabled) {
-                RenderSystem.enableScissor(scissorBox[0], scissorBox[1], scissorBox[2], scissorBox[3]);
-            } else {
-                RenderSystem.disableScissor();
-            }
+            state.restore();
             rt.destroyBuffers();
         }
 

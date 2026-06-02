@@ -253,6 +253,61 @@ public enum RowField {
         }
     },
 
+    MODULAR_GEAR_KIND(Component.translatable("ami.row_field.modular_gear_kind")) {
+        @Override
+        public String extract(SearchNode node) {
+            return formatTokenList(node.meta(SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, ""));
+        }
+
+        @Override
+        public boolean hasValue(SearchNode node) {
+            return !node.meta(SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, "").isBlank();
+        }
+    },
+
+    MODULAR_GEAR_MATERIAL(Component.translatable("ami.row_field.modular_gear_material")) {
+        @Override
+        public String extract(SearchNode node) {
+            return formatToken(node.meta(SearchNodeKeys.MODULAR_GEAR_MATERIAL, ""));
+        }
+
+        @Override
+        public boolean hasValue(SearchNode node) {
+            return !node.meta(SearchNodeKeys.MODULAR_GEAR_MATERIAL, "").isBlank();
+        }
+    },
+
+    MODULAR_GEAR_PART(Component.translatable("ami.row_field.modular_gear_part")) {
+        @Override
+        public String extract(SearchNode node) {
+            return formatToken(node.meta(SearchNodeKeys.MODULAR_GEAR_PART, ""));
+        }
+
+        @Override
+        public boolean hasValue(SearchNode node) {
+            return !node.meta(SearchNodeKeys.MODULAR_GEAR_PART, "").isBlank();
+        }
+    },
+
+    MODULAR_GEAR_TRAITS(Component.translatable("ami.row_field.modular_gear_traits")) {
+        @Override
+        public String extract(SearchNode node) {
+            String runtimeTraits = formatTokenList(node.meta(SearchNodeKeys.MODULAR_GEAR_RUNTIME_TRAITS, ""));
+            if (!runtimeTraits.isBlank()) {
+                return runtimeTraits;
+            }
+            return formatMaterialTraitDetails(
+                    node.meta(SearchNodeKeys.MODULAR_GEAR_MATERIAL_TRAIT_DETAILS, ""),
+                    node.meta(SearchNodeKeys.MODULAR_GEAR_MATERIAL_TRAITS, ""));
+        }
+
+        @Override
+        public boolean hasValue(SearchNode node) {
+            return !node.meta(SearchNodeKeys.MODULAR_GEAR_RUNTIME_TRAITS, "").isBlank()
+                    || !node.meta(SearchNodeKeys.MODULAR_GEAR_MATERIAL_TRAITS, "").isBlank();
+        }
+    },
+
     POKEMON_TYPE(Component.translatable("ami.row_field.pokemon_type")) {
         @Override
         public String extract(SearchNode node) {
@@ -333,6 +388,34 @@ public enum RowField {
         return out.toString();
     }
 
+    private static String formatMaterialTraitDetails(String details, String rawTraits) {
+        java.util.LinkedHashSet<String> values = new java.util.LinkedHashSet<>();
+        if (details != null && !details.isBlank()) {
+            for (String detail : details.split(",")) {
+                String token = detail.trim();
+                int separator = token.lastIndexOf(':');
+                if (separator >= 0 && separator < token.length() - 1) {
+                    token = token.substring(separator + 1);
+                }
+                if (!token.isBlank()) {
+                    values.add(token);
+                }
+            }
+        }
+        if (values.isEmpty() && rawTraits != null && !rawTraits.isBlank()) {
+            java.util.List<String> tokens = java.util.Arrays.stream(rawTraits.split("[,\\s]+"))
+                    .filter(token -> !token.isBlank())
+                    .toList();
+            for (String token : tokens) {
+                boolean hasLevelToken = tokens.stream().anyMatch(other -> other.startsWith(token + "_"));
+                if (!hasLevelToken) {
+                    values.add(token);
+                }
+            }
+        }
+        return formatTokenList(String.join(",", values));
+    }
+
     private static String formatToken(String raw) {
         String normalized = raw.replace('_', ' ').replace('-', ' ').trim();
         if (normalized.isBlank()) return "";
@@ -340,6 +423,10 @@ public enum RowField {
         for (String word : normalized.split("\\s+")) {
             if (word.isBlank()) continue;
             if (out.length() > 0) out.append(' ');
+            if (word.matches("(?i)[ivxlcdm]+")) {
+                out.append(word.toUpperCase(java.util.Locale.ROOT));
+                continue;
+            }
             out.append(word.substring(0, 1).toUpperCase(java.util.Locale.ROOT));
             if (word.length() > 1) {
                 out.append(word.substring(1).toLowerCase(java.util.Locale.ROOT));

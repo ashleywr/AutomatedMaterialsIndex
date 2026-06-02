@@ -233,6 +233,73 @@ class ListLensTest {
     }
 
     @Test
+    void modularGearLensUsesStructuredCompatMetadata() {
+        SearchState state = new SearchState();
+        state.setViewMode(ResultsToolbar.ViewMode.LIST);
+        state.setListLens(ListLens.MODULAR_GEAR);
+
+        List<SearchNode> nodes = List.of(
+                item("pickaxe_blueprint", "Pickaxe Blueprint", Map.of(
+                        SearchNodeKeys.MODULAR_GEAR_FAMILY, "silent_gear",
+                        SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, "blueprints",
+                        SearchNodeKeys.MODULAR_GEAR_PART, "pickaxe",
+                        SearchNodeKeys.MODULAR_GEAR_RUNTIME_TRAITS, "magnetic",
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "modular_gear",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "blueprints"
+                )),
+                item("manyullyn_pickaxe", "Manyullyn Pickaxe", Map.of(
+                        SearchNodeKeys.MODULAR_GEAR_FAMILY, "tinkers",
+                        SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, "tools",
+                        SearchNodeKeys.MODULAR_GEAR_MATERIAL, "manyullyn",
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "tools",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "harvest"
+                )),
+                item("stone", "Stone", Map.of(SearchNodeKeys.FACETS, "placeable"))
+        );
+        ResultsViewProjector.Projection projection = ResultsViewProjector.project(nodes, state, null, false, false);
+
+        assertEquals(2, projection.displayedItemCount());
+        assertEquals(ResultsProcessor.SortField.ALPHABETICAL, state.getSortField());
+        assertEquals(ResultsProcessor.GroupBy.CATEGORY, state.getGroupBy());
+        assertEquals(List.of(RowField.MOD_NAME, RowField.MODULAR_GEAR_KIND, RowField.MODULAR_GEAR_MATERIAL,
+                        RowField.MODULAR_GEAR_PART, RowField.MODULAR_GEAR_TRAITS),
+                RowFieldConfig.getSubtitleFields());
+        assertTrue(ListLens.availableFor(nodes).contains(ListLens.MODULAR_GEAR));
+    }
+
+    @Test
+    void modularGearLensAlsoMatchesFocusedCategoryFallback() {
+        SearchNode focusedOnly = item("modifier_slot", "Modifier Slot", Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "modular_gear",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "modifiers"
+        ));
+
+        assertTrue(ListLens.MODULAR_GEAR.matches(focusedOnly));
+        assertTrue(ListLens.availableFor(List.of(focusedOnly)).contains(ListLens.MODULAR_GEAR));
+    }
+
+    @Test
+    void modularGearRowFieldsFormatStructuredTokens() {
+        SearchNode node = item("pickaxe_blueprint", "Pickaxe Blueprint", Map.of(
+                SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, "blueprints",
+                SearchNodeKeys.MODULAR_GEAR_MATERIAL, "crimson_iron",
+                SearchNodeKeys.MODULAR_GEAR_PART, "pickaxe",
+                SearchNodeKeys.MODULAR_GEAR_RUNTIME_TRAITS, "magnetic,brittle"
+        ));
+
+        assertEquals("Blueprints", RowField.MODULAR_GEAR_KIND.extract(node));
+        assertEquals("Crimson Iron", RowField.MODULAR_GEAR_MATERIAL.extract(node));
+        assertEquals("Pickaxe", RowField.MODULAR_GEAR_PART.extract(node));
+        assertEquals("Magnetic, Brittle", RowField.MODULAR_GEAR_TRAITS.extract(node));
+
+        SearchNode material = item("crimson_steel_ingot", "Crimson Steel Ingot", Map.of(
+                SearchNodeKeys.MODULAR_GEAR_MATERIAL_TRAITS, "malleable,malleable_v,hard,hard_iii",
+                SearchNodeKeys.MODULAR_GEAR_MATERIAL_TRAIT_DETAILS, "crimson_steel:main:malleable_v,crimson_steel:main:hard_iii"
+        ));
+        assertEquals("Malleable V, Hard III", RowField.MODULAR_GEAR_TRAITS.extract(material));
+    }
+
+    @Test
     void entityLensFiltersToEntityNodes() {
         SearchState state = new SearchState();
         state.setViewMode(ResultsToolbar.ViewMode.LIST);

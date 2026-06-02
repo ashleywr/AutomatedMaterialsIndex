@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.AMITheme;
+import com.sanhiruzu.ami.client.RenderStateSnapshot;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
@@ -234,12 +235,17 @@ public class ResultsTreeView {
 
         if (!toolbarDropdownOpen) {
             var font = Minecraft.getInstance().font;
-            com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
-            if (pendingTooltipLines != null) {
-                ItemStack stackContext = (pendingItemStack != null) ? pendingItemStack : ItemStack.EMPTY;
-                AmiTooltipRenderer.render(g, font, stackContext, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY);
-            } else if (pendingItemStack != null && !pendingItemStack.isEmpty()) {
-                AmiTooltipRenderer.render(g, font, pendingItemStack, mouseX, mouseY);
+            RenderStateSnapshot renderState = RenderStateSnapshot.capture();
+            try {
+                com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
+                if (pendingTooltipLines != null) {
+                    ItemStack stackContext = (pendingItemStack != null) ? pendingItemStack : ItemStack.EMPTY;
+                    AmiTooltipRenderer.render(g, font, stackContext, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY);
+                } else if (pendingItemStack != null && !pendingItemStack.isEmpty()) {
+                    AmiTooltipRenderer.render(g, font, pendingItemStack, mouseX, mouseY);
+                }
+            } finally {
+                renderState.restore();
             }
         }
     }

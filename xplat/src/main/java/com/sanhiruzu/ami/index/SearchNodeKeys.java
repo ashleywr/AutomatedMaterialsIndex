@@ -127,6 +127,18 @@ public final class SearchNodeKeys {
     public static final String SOPHISTICATED_ITEM_KIND = "sophisticatedItemKind";
     public static final String SOPHISTICATED_FACTS = "sophisticatedFacts";
     public static final String SOPHISTICATED_TIER = "sophisticatedTier";
+    // Modular tool/gear mods such as Tinkers' Construct and Silent Gear.
+    public static final String MODULAR_GEAR_FAMILY = "modularGearFamily";
+    public static final String MODULAR_GEAR_ITEM_KIND = "modularGearItemKind";
+    public static final String MODULAR_GEAR_FACTS = "modularGearFacts";
+    public static final String MODULAR_GEAR_MATERIAL = "modularGearMaterial";
+    public static final String MODULAR_GEAR_PART = "modularGearPart";
+    public static final String MODULAR_GEAR_TIER = "modularGearTier";
+    public static final String MODULAR_GEAR_MATERIAL_TRAITS = "modularGearMaterialTraits";
+    public static final String MODULAR_GEAR_MATERIAL_TRAIT_DETAILS = "modularGearMaterialTraitDetails";
+    public static final String MODULAR_GEAR_RUNTIME_MATERIALS = "modularGearRuntimeMaterials";
+    public static final String MODULAR_GEAR_RUNTIME_TRAITS = "modularGearRuntimeTraits";
+    public static final String MODULAR_GEAR_RUNTIME_STATS = "modularGearRuntimeStats";
     // Atlas-specific
     public static final String DIMENSION = "dimension";
     public static final String ENTITY_CATEGORY = "entityCategory";

@@ -7,6 +7,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import com.sanhiruzu.ami.client.AMITheme;
+import com.sanhiruzu.ami.client.RenderStateSnapshot;
 import com.sanhiruzu.ami.compat.ReflectiveCompat;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.SearchNode;
@@ -21,7 +22,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
-import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -92,9 +92,14 @@ public final class CobblemonPokemonIconRenderer {
             return false;
         }
 
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        g.blit(sprite.get(), x, y, size, size, 0.0f, 0.0f, 64, 64, 64, 64);
+        RenderStateSnapshot state = RenderStateSnapshot.capture();
+        try {
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
+            g.blit(sprite.get(), x, y, size, size, 0.0f, 0.0f, 64, 64, 64, 64);
+        } finally {
+            state.restore();
+        }
         return true;
     }
 
@@ -113,10 +118,15 @@ public final class CobblemonPokemonIconRenderer {
             return false;
         }
 
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        g.blit(texture.get(), x, y, size, size, 0.0f, 0.0f,
-                GENERATED_SPRITE_SIZE, GENERATED_SPRITE_SIZE, GENERATED_SPRITE_SIZE, GENERATED_SPRITE_SIZE);
+        RenderStateSnapshot state = RenderStateSnapshot.capture();
+        try {
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
+            g.blit(texture.get(), x, y, size, size, 0.0f, 0.0f,
+                    GENERATED_SPRITE_SIZE, GENERATED_SPRITE_SIZE, GENERATED_SPRITE_SIZE, GENERATED_SPRITE_SIZE);
+        } finally {
+            state.restore();
+        }
         return true;
     }
 
@@ -173,18 +183,8 @@ public final class CobblemonPokemonIconRenderer {
         }
 
         Minecraft mc = Minecraft.getInstance();
-        var window = mc.getWindow();
+        RenderStateSnapshot state = RenderStateSnapshot.capture();
         Matrix4f savedProj = new Matrix4f(RenderSystem.getProjectionMatrix());
-        boolean scissorEnabled = GL11.glIsEnabled(GL11.GL_SCISSOR_TEST);
-        int[] scissorBox = new int[4];
-        if (scissorEnabled) {
-            GL11.glGetIntegerv(GL11.GL_SCISSOR_BOX, scissorBox);
-        }
-        float[] shaderColor = RenderSystem.getShaderColor();
-        float savedRed = shaderColor[0];
-        float savedGreen = shaderColor[1];
-        float savedBlue = shaderColor[2];
-        float savedAlpha = shaderColor[3];
 
         RenderTarget rt = new RenderTarget(true) {
         };
@@ -210,14 +210,8 @@ public final class CobblemonPokemonIconRenderer {
             return image;
         } finally {
             mc.getMainRenderTarget().bindWrite(true);
-            GlStateManager._viewport(0, 0, window.getWidth(), window.getHeight());
             RenderSystem.setProjectionMatrix(savedProj, VertexSorting.ORTHOGRAPHIC_Z);
-            RenderSystem.setShaderColor(savedRed, savedGreen, savedBlue, savedAlpha);
-            if (scissorEnabled) {
-                RenderSystem.enableScissor(scissorBox[0], scissorBox[1], scissorBox[2], scissorBox[3]);
-            } else {
-                RenderSystem.disableScissor();
-            }
+            state.restore();
             rt.destroyBuffers();
         }
     }

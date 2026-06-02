@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SearchIndexTest {
@@ -83,5 +84,30 @@ public class SearchIndexTest {
         assertTrue(idx.prefixSearch("zen_amphibia:cricket").contains(cricket));
         assertTrue(idx.prefixSearch("cricket").contains(cricket));
         assertTrue(idx.substringSearch("amphibia").contains(cricket));
+    }
+
+    @Test
+    public void globalIndexGetNodesReturnsStableSnapshot() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        var codBucket = new SearchNode(
+                new ResourceLocation("minecraft:cod_bucket"),
+                NodeType.ITEM,
+                "Bucket of Cod",
+                0,
+                0,
+                Map.of(SearchNodeKeys.ONTOLOGY_CATEGORY, "food")
+        );
+        index.addNode(codBucket);
+
+        List<SearchNode> snapshot = index.getNodes(NodeType.ITEM);
+        index.replaceNode(
+                codBucket.id(),
+                codBucket.type(),
+                codBucket.withMetadata(Map.of(SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry"))
+        );
+
+        assertEquals(1, snapshot.size());
+        assertEquals("food", snapshot.get(0).meta(SearchNodeKeys.ONTOLOGY_CATEGORY));
+        assertEquals("masonry", index.getNodes(NodeType.ITEM).get(0).meta(SearchNodeKeys.ONTOLOGY_CATEGORY));
     }
 }

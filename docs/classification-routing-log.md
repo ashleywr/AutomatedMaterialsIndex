@@ -324,6 +324,26 @@ category unless the policy is explicitly `SEMANTIC`. The first pass keeps the
 existing buckets only: mana, generating flowers, functional flowers, runes,
 baubles, tools, materials, and misc.
 
+### 2026-06-01: Exact Token Fallbacks For Lexical Routing
+
+Added `PathTokens` for low-confidence lexical fallback. Fallback string evidence
+should use exact normalized tokens or phrases, not arbitrary substrings, so
+`gear` does not match `gearbox` unless the rule explicitly asks for `gearbox`.
+Facet/component/tag/class facts still outrank names. Remaining raw
+`path.contains(...)` family-prior blocks in `PrimaryCategoryResolver` are
+tracked as TODO work and should migrate to facets/facts first, then
+`PathTokens` exact token/phrase sets with false-positive tests.
+
+### 2026-06-01: Refined Storage Uses Storage-Family Tech Identity
+
+Refined Storage blocks with weak runtime facets, such as grids, importers,
+exporters, storage monitors, disk manipulators, and storage blocks, were falling
+through to the generic no-recipe terrain rule. Storage-family technical identity
+now wins before fallback scoring for exact storage-family namespaces, while
+still assigning normal semantic `tech` buckets. Storage media and housings route
+to `tech/parts`, processors and cores to `tech/circuits`, quartz-enriched iron
+to `tech/ingots`, and placeable network devices to `tech/machines`.
+
 ## Open Work
 
 - Split Cobblemon identity routing into strong Pokemon gameplay identities
@@ -333,6 +353,10 @@ baubles, tools, materials, and misc.
   machine stays `tech` or Create-focused depending policy.
 - Move scattered substring checks in classification/facet code toward shared
   token utilities and explicit context gates.
+- Replace remaining raw lexical category checks in `PrimaryCategoryResolver`
+  family-prior helpers with structured evidence first and `PathTokens` fallback
+  second. Start with GregTech, Apotheosis, Botania, storage/automation,
+  food-family ingredient, and geology/masonry fallback blocks.
 - Do not add new `isLikely*` gates or ambiguous path/name substring checks for
   ownership, access level, top-level category, or cheat/dev visibility. Use
   capability/component/tag/class data first; use exact compat APIs next; use

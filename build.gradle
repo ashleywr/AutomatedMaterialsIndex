@@ -63,6 +63,16 @@ dependencies {
 }
 
 configurations {
+    neoforgeReferenceSources {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
+    forgeReferenceSources {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
     neoforgeJeiApiSources {
         canBeConsumed = false
         canBeResolved = true
@@ -96,6 +106,8 @@ configurations {
 }
 
 dependencies {
+    neoforgeReferenceSources("net.neoforged:neoforge:${neoforge_version}:sources")
+    forgeReferenceSources("net.minecraftforge:forge:${forge_minecraft_version}-${forge_version}:sources")
     neoforgeJeiApiSources("mezz.jei:jei-${neoforge_minecraft_version}-neoforge-api:${neoforge_jei_version}:sources")
     neoforgeJeiSources("mezz.jei:jei-${neoforge_minecraft_version}-neoforge:${neoforge_jei_version}:sources")
     neoforgeEmiSources("dev.emi:emi-neoforge:${neoforge_emi_version}+${neoforge_minecraft_version}:sources")
@@ -144,6 +156,24 @@ def syncForgeEmiSources = registerVendorSourceSync(
         'forgeEmiSources',
         "vendor-sources/resolved/emi/forge-${forge_minecraft_version}"
 )
+
+def syncNeoForgeReferenceSources = registerVendorSourceSync(
+        'syncNeoForgeReferenceSources',
+        'neoforgeReferenceSources',
+        "internal/reference-sources/minecraft-${neoforge_minecraft_version}-neoforge-${neoforge_version}"
+)
+def syncForgeReferenceSources = registerVendorSourceSync(
+        'syncForgeReferenceSources',
+        'forgeReferenceSources',
+        "internal/reference-sources/minecraft-${forge_minecraft_version}-forge-${forge_version}"
+)
+
+tasks.register('syncReferenceSources') {
+    group = 'documentation'
+    description = 'Resolves and extracts NeoForge and Forge sources jars into internal/reference-sources.'
+    dependsOn syncNeoForgeReferenceSources
+    dependsOn syncForgeReferenceSources
+}
 
 tasks.register('syncRecipeViewerSources') {
     group = 'documentation'

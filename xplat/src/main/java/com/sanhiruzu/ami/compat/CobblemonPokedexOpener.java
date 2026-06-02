@@ -17,6 +17,8 @@ import java.util.Optional;
 import java.util.function.Predicate;
 
 public final class CobblemonPokedexOpener {
+    private enum GuiCtorVariant { THREE_ARG, TWO_ARG, FIVE_ARG }
+
     private static PokedexApi api;
     private static boolean unavailable;
     private static CuriosBridge curiosBridge;
@@ -30,6 +32,14 @@ public final class CobblemonPokedexOpener {
         unavailable = false;
         curiosBridge = null;
         curiosUnavailable = false;
+    }
+
+    public static boolean hasPokedex() {
+        PokedexApi api = api();
+        if (api == null) return false;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return false;
+        return findPokedexType(api, mc.player) != null;
     }
 
     public static boolean isPokemonSpecies(SearchNode node) {
@@ -62,7 +72,7 @@ public final class CobblemonPokedexOpener {
         }
 
         try {
-            Object screen = api.pokedexGuiCtor.newInstance(pokedexType, speciesId, null, null);
+            Object screen = api.createGui(pokedexType, speciesId);
             mc.setScreen((Screen) screen);
         } catch (Throwable ignored) {
             // Keep AMI clicks non-fatal when Cobblemon changes the screen ABI.
@@ -160,18 +170,49 @@ public final class CobblemonPokedexOpener {
             Class<?> pokedexItem = ReflectiveCompat.findClass("com.cobblemon.mod.common.item.PokedexItem").orElseThrow();
             Class<?> pokedexType = ReflectiveCompat.findClass("com.cobblemon.mod.common.client.pokedex.PokedexType").orElseThrow();
             Class<?> pokedexGui = ReflectiveCompat.findClass("com.cobblemon.mod.common.client.gui.pokedex.PokedexGUI").orElseThrow();
-            Class<?> defaultConstructorMarker = ReflectiveCompat.findClass("kotlin.jvm.internal.DefaultConstructorMarker").orElseThrow();
 
             Method getType = ReflectiveCompat.findMethod(pokedexItem, "getType").orElseThrow();
-            Constructor<?> guiCtor = ReflectiveCompat.findConstructor(
-                    pokedexGui,
-                    pokedexType,
-                    ResourceLocation.class,
-                    BlockPos.class,
-                    defaultConstructorMarker
-            ).orElseThrow();
 
-            api = new PokedexApi(pokedexItem, getType, guiCtor);
+            // Try multiple constructor shapes across Cobblemon builds. Cobblemon uses @JvmOverloads
+            // on PokedexGUI, so the preferred form is the 3-arg @JvmOverloads constructor.
+            Constructor<?> guiCtor = null;
+            GuiCtorVariant ctorVariant = null;
+
+            // Shape 1: @JvmOverloads primary — PokedexGUI(PokedexType, ResourceLocation, BlockPos)
+            var c3 = ReflectiveCompat.findConstructor(pokedexGui, pokedexType, ResourceLocation.class, BlockPos.class);
+            if (c3.isPresent()) {
+                guiCtor = c3.get();
+                ctorVariant = GuiCtorVariant.THREE_ARG;
+            }
+
+            // Shape 2: @JvmOverloads secondary — PokedexGUI(PokedexType, ResourceLocation)
+            if (guiCtor == null) {
+                var c2 = ReflectiveCompat.findConstructor(pokedexGui, pokedexType, ResourceLocation.class);
+                if (c2.isPresent()) {
+                    guiCtor = c2.get();
+                    ctorVariant = GuiCtorVariant.TWO_ARG;
+                }
+            }
+
+            // Shape 3: Kotlin default-args synthetic — PokedexGUI(PokedexType, ResourceLocation, BlockPos, int, DefaultConstructorMarker)
+            if (guiCtor == null) {
+                try {
+                    Class<?> dcm = Class.forName("kotlin.jvm.internal.DefaultConstructorMarker");
+                    Constructor<?> c5 = pokedexGui.getDeclaredConstructor(
+                            pokedexType, ResourceLocation.class, BlockPos.class, int.class, dcm);
+                    c5.setAccessible(true);
+                    guiCtor = c5;
+                    ctorVariant = GuiCtorVariant.FIVE_ARG;
+                } catch (Throwable ignored) {
+                }
+            }
+
+            if (guiCtor == null) {
+                unavailable = true;
+                return null;
+            }
+
+            api = new PokedexApi(pokedexItem, getType, guiCtor, ctorVariant);
             return api;
         } catch (Throwable e) {
             unavailable = true;
@@ -204,7 +245,20 @@ public final class CobblemonPokedexOpener {
         }
     }
 
-    private record PokedexApi(Class<?> pokedexItemClass, Method getType, Constructor<?> pokedexGuiCtor) {
+    private record PokedexApi(
+            Class<?> pokedexItemClass,
+            Method getType,
+            Constructor<?> pokedexGuiCtor,
+            GuiCtorVariant ctorVariant
+    ) {
+        Object createGui(Object type, ResourceLocation speciesId) throws ReflectiveOperationException {
+            return switch (ctorVariant) {
+                case THREE_ARG -> pokedexGuiCtor.newInstance(type, speciesId, null);
+                case TWO_ARG -> pokedexGuiCtor.newInstance(type, speciesId);
+                // bitmask 4 = bit 2 set: BlockPos parameter uses its default (null)
+                case FIVE_ARG -> pokedexGuiCtor.newInstance(type, speciesId, null, 4, null);
+            };
+        }
     }
 
     private record CuriosBridge(Method getCuriosInventory, Method findFirstCurio, Method slotResultStack) {

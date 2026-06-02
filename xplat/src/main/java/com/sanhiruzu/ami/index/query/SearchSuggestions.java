@@ -2,6 +2,8 @@ package com.sanhiruzu.ami.index.query;
 
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.AmiOntology;
+import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.index.ItemFilter;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
@@ -23,7 +25,10 @@ import java.util.Map;
  */
 public final class SearchSuggestions {
     private static final int DEFAULT_LIMIT = 24;
-    private static volatile Cache cache = new Cache(-1L, Vocabulary.empty());
+    private static final List<String> DEFAULT_PROPERTY_FIELDS = List.of(
+            "trait", "kind", "material", "role", "capability", "energy", "storage", "fluid", "color"
+    );
+    private static volatile Cache cache = new Cache(-1L, false, false, false, Vocabulary.empty());
 
     private SearchSuggestions() {
     }
@@ -97,6 +102,12 @@ public final class SearchSuggestions {
         return new SearchSyntax.HelpLayout(leftSections, List.copyOf(rightSections));
     }
 
+    public static void warm(GlobalIndex index) {
+        if (index != null) {
+            vocabulary(index);
+        }
+    }
+
     public static String apply(String query, Suggestion suggestion) {
         if (suggestion == null) {
             return query == null ? "" : query;
@@ -112,21 +123,44 @@ public final class SearchSuggestions {
 
     private static Vocabulary vocabulary(GlobalIndex index) {
         long revision = index.revision();
+        boolean cheatMode = AmiConfig.cheatMode;
+        boolean devMode = AmiConfig.devMode;
+        boolean showHidden = AmiConfig.showHiddenModItems;
         Cache cached = cache;
-        if (cached.revision == revision) {
+        if (cached.revision == revision
+                && cached.cheatMode == cheatMode
+                && cached.devMode == devMode
+                && cached.showHidden == showHidden) {
             return cached.vocabulary;
         }
-        Vocabulary built = Vocabulary.build(index);
-        cache = new Cache(revision, built);
+        Vocabulary built = Vocabulary.build(index, cheatMode, devMode, showHidden);
+        cache = new Cache(revision, cheatMode, devMode, showHidden, built);
         return built;
     }
 
     private static List<Suggestion> defaultSuggestions(Vocabulary vocabulary, ActiveToken token, int limit) {
         List<Suggestion> suggestions = new ArrayList<>();
-        addTopValueSuggestions(suggestions, vocabulary.meta, token, "~", limit, Kind.META, 12);
-        addTopValueSuggestions(suggestions, vocabulary.mods, token, "@", limit, Kind.MOD, 3);
-        addTopValueSuggestions(suggestions, vocabulary.tags, token, "#", limit, Kind.TAG, 2);
+        addDefaultPropertyFields(suggestions, vocabulary, token, limit);
+        addTopValueSuggestions(suggestions, vocabulary.categories, token, "$", limit, Kind.CATEGORY, 3);
+        addTopValueSuggestions(suggestions, vocabulary.mods, token, "@", limit, Kind.MOD, 4);
         return suggestions;
+    }
+
+    private static void addDefaultPropertyFields(List<Suggestion> out, Vocabulary vocabulary, ActiveToken token, int limit) {
+        for (String field : DEFAULT_PROPERTY_FIELDS) {
+            if (out.size() >= limit) {
+                return;
+            }
+            if (valuesForPropertyField(vocabulary, field).isEmpty()) {
+                continue;
+            }
+            String replacement = (token.negated() ? "-?" : "?") + field + ":";
+            boolean duplicate = out.stream().anyMatch(existing -> existing.display().equals(replacement));
+            if (!duplicate) {
+                out.add(new Suggestion(replacement, replacement, "field", token.start(), token.end(),
+                        Kind.PROPERTY, true));
+            }
+        }
     }
 
     private static void addTopValueSuggestions(List<Suggestion> out, CountedValues values, ActiveToken token,
@@ -149,7 +183,9 @@ public final class SearchSuggestions {
         if (separator < 0) {
             List<Suggestion> suggestions = new ArrayList<>();
             addSuggestions(suggestions, fieldSuggestions(vocabulary, query, token, body, limit), limit);
-            addSuggestions(suggestions, simplePropertySuggestions(vocabulary, query, token, body, limit), limit);
+            if (suggestions.isEmpty()) {
+                addSuggestions(suggestions, simplePropertySuggestions(vocabulary, query, token, body, limit), limit);
+            }
             return suggestions;
         }
 
@@ -196,6 +232,8 @@ public final class SearchSuggestions {
             case "tier" -> vocabulary.tiers;
             case "role" -> vocabulary.roles;
             case "fact" -> vocabulary.facts;
+            case "trait" -> vocabulary.traits;
+            case "material" -> vocabulary.materials;
             case "mod" -> vocabulary.mods;
             case "color" -> vocabulary.colors;
             default -> CountedValues.empty();
@@ -305,7 +343,7 @@ public final class SearchSuggestions {
         return Integer.toString(count);
     }
 
-    private record Cache(long revision, Vocabulary vocabulary) {
+    private record Cache(long revision, boolean cheatMode, boolean devMode, boolean showHidden, Vocabulary vocabulary) {
     }
 
     private record ActiveToken(int start, int end, String raw, String body, boolean negated) {
@@ -343,6 +381,8 @@ public final class SearchSuggestions {
         final CountedValues kinds = new CountedValues();
         final CountedValues tiers = new CountedValues();
         final CountedValues roles = new CountedValues();
+        final CountedValues traits = new CountedValues();
+        final CountedValues materials = new CountedValues();
         final CountedValues capabilities = new CountedValues();
         final CountedValues energy = new CountedValues();
         final CountedValues fluid = new CountedValues();
@@ -360,17 +400,33 @@ public final class SearchSuggestions {
             return new Vocabulary();
         }
 
-        static Vocabulary build(GlobalIndex index) {
+        static Vocabulary build(GlobalIndex index, boolean cheatMode, boolean devMode, boolean showHidden) {
             Vocabulary vocabulary = new Vocabulary();
             for (NodeType type : NodeType.values()) {
                 for (SearchNode node : index.getNodes(type)) {
-                    vocabulary.add(node);
+                    if (isSuggestionVisible(node, cheatMode, devMode, showHidden)) {
+                        vocabulary.add(node, cheatMode || devMode);
+                    }
                 }
             }
             return vocabulary;
         }
 
-        private void add(SearchNode node) {
+        private static boolean isSuggestionVisible(SearchNode node, boolean cheatMode, boolean devMode, boolean showHidden) {
+            if (!devMode && !showHidden && "hidden".equals(node.meta(SearchNodeKeys.VISIBILITY, ""))) {
+                return false;
+            }
+            String level = node.meta(SearchNodeKeys.ACCESS_LEVEL, "");
+            if (ItemFilter.ACCESS_DEV.equals(level)) {
+                return devMode;
+            }
+            if (ItemFilter.ACCESS_CHEAT.equals(level)) {
+                return cheatMode || devMode;
+            }
+            return true;
+        }
+
+        private void add(SearchNode node, boolean includeDebugTokens) {
             categories.add(AmiOntology.classifyNode(node).id);
             if (node.type() == NodeType.DIMENSION || node.type() == NodeType.BIOME) {
                 environments.add(node.id().getPath());
@@ -409,10 +465,20 @@ public final class SearchSuggestions {
                     addTokens(pokemonEggGroups, value);
                     addTokens(meta, value);
                 }
+                if (SearchNodeKeys.MODULAR_GEAR_MATERIAL_TRAITS.equals(key)) {
+                    addTokens(traits, value);
+                    addTokens(meta, value);
+                }
+                if (SearchNodeKeys.MODULAR_GEAR_MATERIAL.equals(key)
+                        || SearchNodeKeys.MATERIAL_GROUP.equals(key)
+                        || SearchNodeKeys.BLOCKS_MATERIAL.equals(key)) {
+                    addTokens(materials, value);
+                    addTokens(meta, value);
+                }
                 if (matchesConvention(key, FieldConvention.FACTS)
                         || SearchNodeKeys.FACETS.equals(key)
                         || SearchNodeKeys.COMPONENT_FACTS.equals(key)
-                        || SearchNodeKeys.SEARCH_TOKENS.equals(key)) {
+                        || (includeDebugTokens && SearchNodeKeys.SEARCH_TOKENS.equals(key))) {
                     addTokens(facts, value);
                     addTokens(meta, value);
                 }
