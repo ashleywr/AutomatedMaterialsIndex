@@ -35,7 +35,8 @@ public class RowFieldPickerDropdown {
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
         boolean hovered = Dropdown.contains(mouseX, mouseY, x, y, width, BTN_H);
-        g.fill(x, y, x + width, y + BTN_H, open || hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG);
+        AMITheme.fillInsetRect(g, x, y, width, BTN_H,
+                open || hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG, open);
 
         var font = Minecraft.getInstance().font;
         String label = Component.translatable("ami.gui.fields_button").getString();
@@ -57,9 +58,7 @@ public class RowFieldPickerDropdown {
         int dropH = fields.length * ITEM_H + 4;
         int dy = y + BTN_H + 2;
 
-        // Background + top rule
-        g.fill(x, dy, x + listWidth, dy + dropH, AMITheme.DROPDOWN_LIST_BG);
-        g.fill(x, dy, x + listWidth, dy + 1, AMITheme.SECTION_SEP);
+        AMITheme.fillInsetRect(g, x, dy, listWidth, dropH, AMITheme.DROPDOWN_LIST_BG, false);
 
         int iy = dy + 2;
         for (RowField field : fields) {

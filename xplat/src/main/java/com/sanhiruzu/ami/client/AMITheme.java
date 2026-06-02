@@ -19,6 +19,8 @@ public final class AMITheme {
     // Panel chrome — vanilla MC light grey palette
     public static int PANEL_BG = 0xFFC6C6C6; // Vanilla inventory grey
     public static int PANEL_INNER = 0xFFD0D0D0; // Slightly lighter inner surface
+    public static int PANEL_TEXTURE_LIGHT = 0x08FFFFFF;
+    public static int PANEL_TEXTURE_DARK = 0x12000000;
     // Header bar
     public static int HEADER_BG = 0xFFBBBBBB;
     public static int HEADER_SEP = 0xFF999999;
@@ -71,6 +73,8 @@ public final class AMITheme {
     public static int DROPDOWN_BG = 0xFFAAAAAA; // button idle + list item hover
     public static int DROPDOWN_BG_ACTIVE = 0xFF989898; // button when open or hovered
     public static int DROPDOWN_LIST_BG = 0xFFBBBBBB; // open list panel background
+    public static int CONTROL_EDGE_LIGHT = 0x26FFFFFF;
+    public static int CONTROL_EDGE_DARK = 0x66000000;
     // Current location indicators
     public static int CURRENT_BIOME_BG = 0xFF1A2E1A; // subtle green tint
     public static int CURRENT_BIOME_ACCENT = 0xFF44DD44; // bright green left-edge bar
@@ -115,6 +119,8 @@ public final class AMITheme {
     public static int GRID_GROUP_BAND = 0x10FFFFFF;
     public static int GRID_GROUP_BAND_ALT = 0x20FFFFFF;
     public static int GRID_GROUP_RAIL = 0x18FFFFFF;
+    public static int GRID_GROUP_ROOT_BG = 0x38000000;
+    public static int GRID_GROUP_CHILD_BG = 0x1CFFFFFF;
     // Search bar element colors
     public static int SEARCH_PLACEHOLDER = 0xFF666666;
     public static int SEARCH_CLEAR_TEXT = 0xFFAAAAAA;
@@ -260,6 +266,45 @@ public final class AMITheme {
         g.fill(x + w - 1, y + 2, x + w, y + h - 2, color); // Right edge
     }
 
+    public static void fillPanelChrome(GuiGraphics g, int x, int y, int w, int h) {
+        fillRounded(g, x, y, w, h, PANEL_BG);
+        fillPixelTexture(g, x + 1, y + 1, w - 2, h - 2);
+
+        g.fill(x + 2, y, x + w - 2, y + 1, CONTROL_EDGE_LIGHT);
+        g.fill(x + 1, y + 1, x + w - 1, y + 2, 0x14000000);
+        g.fill(x + 1, y + h - 2, x + w - 1, y + h - 1, CONTROL_EDGE_DARK);
+        g.fill(x + 2, y + h - 1, x + w - 2, y + h, 0xAA000000);
+        g.fill(x, y + 2, x + 1, y + h - 2, CONTROL_EDGE_LIGHT);
+        g.fill(x + w - 1, y + 2, x + w, y + h - 2, CONTROL_EDGE_DARK);
+    }
+
+    public static void fillInsetRect(GuiGraphics g, int x, int y, int w, int h, int fill, boolean pressed) {
+        g.fill(x, y, x + w, y + h, fill);
+        fillPixelTexture(g, x + 1, y + 1, w - 2, h - 2);
+
+        int top = pressed ? CONTROL_EDGE_DARK : CONTROL_EDGE_LIGHT;
+        int bottom = pressed ? CONTROL_EDGE_LIGHT : CONTROL_EDGE_DARK;
+        g.fill(x, y, x + w, y + 1, top);
+        g.fill(x, y, x + 1, y + h, top);
+        g.fill(x, y + h - 1, x + w, y + h, bottom);
+        g.fill(x + w - 1, y, x + w, y + h, bottom);
+    }
+
+    public static void fillPixelTexture(GuiGraphics g, int x, int y, int w, int h) {
+        if (w <= 0 || h <= 0) return;
+
+        for (int py = y + 2; py < y + h; py += 7) {
+            for (int px = x + ((py / 7) & 1) * 3; px < x + w; px += 11) {
+                g.fill(px, py, Math.min(px + 1, x + w), Math.min(py + 1, y + h), PANEL_TEXTURE_LIGHT);
+            }
+        }
+        for (int py = y + 5; py < y + h; py += 9) {
+            for (int px = x + 2 + ((py / 9) & 1) * 4; px < x + w; px += 13) {
+                g.fill(px, py, Math.min(px + 2, x + w), Math.min(py + 1, y + h), PANEL_TEXTURE_DARK);
+            }
+        }
+    }
+
     public static void sync() {
         GLOBAL_PADDING = AmiConfig.globalPadding;
         ROW_HEIGHT = AmiConfig.rowHeight;
@@ -282,8 +327,10 @@ public final class AMITheme {
             // "Modern" is now the glassy look the user liked for readability.
             PANEL_BG = 0xCC101014; // ~80% opacity deep dark glass
             PANEL_INNER = 0x33FFFFFF;
+            PANEL_TEXTURE_LIGHT = 0x08FFFFFF;
+            PANEL_TEXTURE_DARK = 0x18000000;
 
-            GROUP_HEADER_BG = 0x22FFFFFF;
+            GROUP_HEADER_BG = 0x2AFFFFFF;
             GROUP_HEADER_TEXT = 0xFFFFFFFF;
 
             SIDEBAR_BG = 0xCC101014;
@@ -292,28 +339,32 @@ public final class AMITheme {
             SIDEBAR_SELECTION = 0x44FFFFFF;
 
             ENTRY_HOVER = 0x44FFFFFF;
-            ENTRY_TEXT = 0xFFFFFFFF;
-            ENTRY_SUBTITLE = 0xFFAAAAAA;
+            ENTRY_TEXT = 0xFFE8E4D8;
+            ENTRY_SUBTITLE = 0xFFB8B2A4;
 
-            SECTION_SEP = 0x33FFFFFF;
+            SECTION_SEP = 0x2CFFFFFF;
             ROW_SEPARATOR = 0x11FFFFFF;
-            TEXT_HEADER = 0xFFEEEEEE;
-            TEXT_PRIMARY = 0xFFFFFFFF;
-            TEXT_SUBTLE = 0xFFAAAAAA;
+            TEXT_HEADER = 0xFFE7E2D2;
+            TEXT_PRIMARY = 0xFFECE6D8;
+            TEXT_SUBTLE = 0xFFB9B2A3;
             TEXT_HIGHLIGHT = 0xFF55FFFF;
             MOD_NAME = 0xFF5555FF;
 
-            DROPDOWN_BG = 0x44FFFFFF;
-            DROPDOWN_BG_ACTIVE = 0x66FFFFFF;
+            DROPDOWN_BG = 0x2CFFFFFF;
+            DROPDOWN_BG_ACTIVE = 0x46FFFFFF;
             DROPDOWN_LIST_BG = 0xCC000000;
+            CONTROL_EDGE_LIGHT = 0x30FFFFFF;
+            CONTROL_EDGE_DARK = 0x88000000;
 
             SCROLL_TRACK = 0x11FFFFFF;
             SCROLL_THUMB = 0x44FFFFFF;
             SCROLL_THUMB_ACTIVE = 0x66FFFFFF;
             SCROLL_INDICATOR_BG = 0x66000000;
-            GRID_GROUP_BAND = 0x10FFFFFF;
-            GRID_GROUP_BAND_ALT = 0x20FFFFFF;
-            GRID_GROUP_RAIL = 0x18FFFFFF;
+            GRID_GROUP_BAND = 0x0F000000;
+            GRID_GROUP_BAND_ALT = 0x16FFFFFF;
+            GRID_GROUP_RAIL = 0x38FFFFFF;
+            GRID_GROUP_ROOT_BG = 0x52000000;
+            GRID_GROUP_CHILD_BG = 0x24FFFFFF;
 
             SEARCH_PLACEHOLDER = 0xFF888888;
             SEARCH_DEFAULT_TEXT = 0xFFFFFFFF;
@@ -361,6 +412,8 @@ public final class AMITheme {
             // "Transparent" is now ultra-minimal like EMI.
             PANEL_BG = 0x1A000000; // ~10% opacity black
             PANEL_INNER = 0;
+            PANEL_TEXTURE_LIGHT = 0x04FFFFFF;
+            PANEL_TEXTURE_DARK = 0x08000000;
 
             GROUP_HEADER_BG = 0x15FFFFFF;
             GROUP_HEADER_TEXT = 0xFFCCCCCC;
@@ -385,6 +438,8 @@ public final class AMITheme {
             DROPDOWN_BG = 0x22FFFFFF;
             DROPDOWN_BG_ACTIVE = 0x44FFFFFF;
             DROPDOWN_LIST_BG = 0x99000000;
+            CONTROL_EDGE_LIGHT = 0x18FFFFFF;
+            CONTROL_EDGE_DARK = 0x44000000;
             SEARCH_HELP_BG = 0xDD000000;
             SEARCH_HELP_BORDER = 0x33FFFFFF;
             SEARCH_HELP_SHADOW = 0x66000000;
@@ -401,6 +456,8 @@ public final class AMITheme {
             GRID_GROUP_BAND = 0x0C000000;
             GRID_GROUP_BAND_ALT = 0x14FFFFFF;
             GRID_GROUP_RAIL = 0x14000000;
+            GRID_GROUP_ROOT_BG = 0x26000000;
+            GRID_GROUP_CHILD_BG = 0x12FFFFFF;
 
             BORDER_LIGHT = 0; // NO BORDERS
             ACCENT_BLUE = 0; // NO ACCENT LINE
@@ -437,6 +494,8 @@ public final class AMITheme {
             // VANILLA
             PANEL_BG = 0xFFC6C6C6;
             PANEL_INNER = 0xFFD0D0D0;
+            PANEL_TEXTURE_LIGHT = 0x22FFFFFF;
+            PANEL_TEXTURE_DARK = 0x18000000;
             SLOT_BG = 0xFF2D2D2D; // Darker slots for contrast as requested
 
             ENTRY_HOVER = 0x444488FF; // Subtle blue hover on dark slots
@@ -460,6 +519,8 @@ public final class AMITheme {
             DROPDOWN_BG = 0xFFC6C6C6;
             DROPDOWN_BG_ACTIVE = 0xFFB0B0B0;
             DROPDOWN_LIST_BG = 0xFFD0D0D0;
+            CONTROL_EDGE_LIGHT = 0xAAFFFFFF;
+            CONTROL_EDGE_DARK = 0x88000000;
             SEARCH_HELP_BG = 0xFFF0F0F0;
             SEARCH_HELP_BORDER = AmiConfig.searchBarBorder;
             SEARCH_HELP_SHADOW = 0x66000000;
@@ -476,6 +537,8 @@ public final class AMITheme {
             GRID_GROUP_BAND = 0x0C000000;
             GRID_GROUP_BAND_ALT = 0x14FFFFFF;
             GRID_GROUP_RAIL = 0x66000000;
+            GRID_GROUP_ROOT_BG = 0x33000000;
+            GRID_GROUP_CHILD_BG = 0x22FFFFFF;
 
             BORDER_LIGHT = 0x33000000;
             GRADIENT_SHADOW = 0x66000000;
