@@ -32,6 +32,7 @@ class ResultContextMenuActionBuilderTest {
     void resetConfig() {
         AmiConfig.resetToDefaults();
         AmiQuestsApi.clearQuestGroups();
+        ResultContextMenuActionBuilder.clearPendingCategoryFixForTests();
     }
 
     @Test
@@ -474,6 +475,33 @@ class ResultContextMenuActionBuilderTest {
         assertTrue(group.isExpanded());
         assertTrue(invalidated.get());
         assertEquals("$building", token.get());
+    }
+
+    @Test
+    void startCategoryFixEnablesMoveHereOnCategoryGroup() {
+        ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder();
+        SearchNode stone = item("stone", "Stone");
+        List<ResultContextMenu.Action> itemActions = builder.forItem(
+                new ResultContextMenuActionBuilder.ItemContext(stone, ItemStack.EMPTY, null, ignored -> {
+                })
+        );
+
+        itemActions.stream()
+                .filter(action -> ResultContextMenuActionBuilder.START_CATEGORY_FIX.equals(action.id()))
+                .findFirst()
+                .orElseThrow()
+                .onClick()
+                .run();
+
+        TreeNode group = new TreeNode("masonry/full_block", Component.literal("Full Blocks"));
+        group.addChild(new TreeNode(Component.literal("Dirt"), item("dirt", "Dirt")));
+        List<ResultContextMenu.Action> groupActions = builder.forGroup(
+                new ResultContextMenuActionBuilder.GroupContext(group, ignored -> {
+                }, () -> {
+                })
+        );
+
+        assertTrue(ids(groupActions).contains(ResultContextMenuActionBuilder.APPLY_CATEGORY_FIX));
     }
 
     @Test

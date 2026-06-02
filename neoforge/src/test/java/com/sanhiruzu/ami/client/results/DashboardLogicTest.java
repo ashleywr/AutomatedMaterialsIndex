@@ -213,7 +213,8 @@ public class DashboardLogicTest {
         assertEquals("cobblemon", original.get(0).id);
         assertEquals("create", original.get(1).id);
         assertEquals("mapping", original.get(9).id);
-        assertEquals("utility", original.get(10).id);
-        assertEquals("bestiary", original.get(11).id);
+        assertEquals("modular_gear", original.get(10).id);
+        assertEquals("utility", original.get(11).id);
+        assertEquals("bestiary", original.get(12).id);
     }
 }

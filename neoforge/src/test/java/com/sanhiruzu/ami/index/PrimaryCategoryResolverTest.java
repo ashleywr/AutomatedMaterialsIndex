@@ -941,6 +941,34 @@ class PrimaryCategoryResolverTest {
                 new ResourceLocation("refinedstorage:speed_upgrade"),
                 new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
         );
+        CategoryAssignment refinedStorageBindingAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("refinedstorage:processor_binding"),
+                new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
+        );
+        CategoryAssignment refinedStorageQuartzAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("refinedstorage:quartz_enriched_iron"),
+                new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
+        );
+        CategoryAssignment refinedStoragePartAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("refinedstorage:1k_storage_part"),
+                new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
+        );
+        CategoryAssignment refinedStorageDiskAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("refinedstorage:1k_storage_disk"),
+                new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
+        );
+        CategoryAssignment refinedStorageGridAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("refinedstorage:grid"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY), Map.of(
+                        SearchNodeKeys.OBTAINABILITY, "no_recipe"
+                ))
+        );
+        CategoryAssignment refinedStorageImporterAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("refinedstorage:importer"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY), Map.of(
+                        SearchNodeKeys.OBTAINABILITY, "no_recipe"
+                ))
+        );
         CategoryAssignment storageDrawersKeyAssignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("storagedrawers:personal_key"),
                 new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
@@ -960,6 +988,18 @@ class PrimaryCategoryResolverTest {
         assertEquals("parts", partsAssignment.subcategoryId());
         assertEquals("tech", refinedStorageUpgradeAssignment.categoryId());
         assertEquals("upgrades", refinedStorageUpgradeAssignment.subcategoryId());
+        assertEquals("tech", refinedStorageBindingAssignment.categoryId());
+        assertEquals("circuits", refinedStorageBindingAssignment.subcategoryId());
+        assertEquals("tech", refinedStorageQuartzAssignment.categoryId());
+        assertEquals("ingots", refinedStorageQuartzAssignment.subcategoryId());
+        assertEquals("tech", refinedStoragePartAssignment.categoryId());
+        assertEquals("parts", refinedStoragePartAssignment.subcategoryId());
+        assertEquals("tech", refinedStorageDiskAssignment.categoryId());
+        assertEquals("parts", refinedStorageDiskAssignment.subcategoryId());
+        assertEquals("tech", refinedStorageGridAssignment.categoryId());
+        assertEquals("machines", refinedStorageGridAssignment.subcategoryId());
+        assertEquals("tech", refinedStorageImporterAssignment.categoryId());
+        assertEquals("machines", refinedStorageImporterAssignment.subcategoryId());
         assertEquals("tech", storageDrawersKeyAssignment.categoryId());
         assertEquals("machines", storageDrawersKeyAssignment.subcategoryId());
         assertEquals("tech", backpackUpgradeAssignment.categoryId());

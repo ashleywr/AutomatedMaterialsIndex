@@ -29,6 +29,8 @@ final class CompatCategoryPolicyResolver {
             case "mekanism" -> AmiConfig.mekanismCategoryPolicy;
             case "gregtech", "gtceu" -> AmiConfig.gregtechCategoryPolicy;
             case "sophisticated", "sophisticatedbackpacks", "sophisticatedstorage" -> AmiConfig.sophisticatedCategoryPolicy;
+            case CompatFamilyDetector.MODULAR_GEAR, CompatFamilyDetector.TINKERS, CompatFamilyDetector.SILENT_GEAR,
+                 "tconstruct", "silentgear" -> AmiConfig.modularGearCategoryPolicy;
             case "minecolonies" -> AmiConfig.minecoloniesCategoryPolicy;
             case "apotheosis" -> AmiConfig.apotheosisCategoryPolicy;
             case "botania" -> AmiConfig.botaniaCategoryPolicy;

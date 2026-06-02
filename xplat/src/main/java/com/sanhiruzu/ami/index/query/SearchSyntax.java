@@ -27,11 +27,13 @@ public final class SearchSyntax {
             new PropertyField("fluid", List.of("fluids", "liquid", "tank"), "ami.gui.search.help.property_fluid", SearchSuggestions.Kind.PROPERTY),
             new PropertyField("storage", List.of("inventory", "slots"), "ami.gui.search.help.property_storage", SearchSuggestions.Kind.PROPERTY),
             new PropertyField("kind", List.of("itemkind"), "ami.gui.search.help.property_kind", SearchSuggestions.Kind.PROPERTY),
+            new PropertyField("material", List.of("materials", "gearmaterial"), "ami.gui.search.help.property_material", SearchSuggestions.Kind.PROPERTY),
             new PropertyField("tier", List.of(), "ami.gui.search.help.property_tier", SearchSuggestions.Kind.PROPERTY),
             new PropertyField("role", List.of("recipe", "processing", "process"), "ami.gui.search.help.property_role", SearchSuggestions.Kind.PROPERTY),
             new PropertyField("color", List.of("colour", "colorbucket", "colourbucket"), "ami.gui.search.help.property_color", SearchSuggestions.Kind.PROPERTY),
             new PropertyField("capability", List.of("cap", "resource"), "ami.gui.search.help.property_capability", SearchSuggestions.Kind.PROPERTY),
             new PropertyField("fact", List.of("facts", "behavior", "behaviour"), "ami.gui.search.help.property_fact", SearchSuggestions.Kind.PROPERTY),
+            new PropertyField("trait", List.of("traits", "modifier", "modifiers"), "ami.gui.search.help.property_trait", SearchSuggestions.Kind.PROPERTY),
             new PropertyField("mod", List.of("modid", "compat", "family", "ecosystem", "compatfamily", "compatfamilies"),
                     "ami.gui.search.help.property_mod", SearchSuggestions.Kind.MOD)
     );

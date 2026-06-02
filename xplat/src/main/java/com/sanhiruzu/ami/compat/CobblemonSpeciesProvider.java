@@ -77,7 +77,9 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
         putFloat(api.getHeight.invoke(species), SearchNodeKeys.POKEMON_HEIGHT, meta);
         putFloat(api.getWeight.invoke(species), SearchNodeKeys.POKEMON_WEIGHT, meta);
 
-        meta.put(SearchNodeKeys.SEARCH_TOKENS, "pokemon species pokedex " + speciesPath.replace('_', ' '));
+        String typeTokens = buildTypeTokens(meta);
+        meta.put(SearchNodeKeys.SEARCH_TOKENS, "pokemon species pokedex " + speciesPath.replace('_', ' ')
+                + (typeTokens.isEmpty() ? "" : " " + typeTokens));
         return new SearchNode(nodeId, NodeType.ENTITY, displayName, 0xFFFFFF, 0, meta);
     }
 
@@ -209,6 +211,15 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
             return normalizeToken(showdown);
         }
         return normalizeToken(safeString(stat));
+    }
+
+    private static String buildTypeTokens(Map<String, String> meta) {
+        String primary = meta.getOrDefault(SearchNodeKeys.POKEMON_PRIMARY_TYPE, "");
+        String secondary = meta.getOrDefault(SearchNodeKeys.POKEMON_SECONDARY_TYPE, "");
+        if (primary.isBlank() && secondary.isBlank()) return "";
+        if (secondary.isBlank()) return primary;
+        if (primary.isBlank()) return secondary;
+        return primary + " " + secondary;
     }
 
     private static void putFloat(Object value, String key, Map<String, String> meta) {

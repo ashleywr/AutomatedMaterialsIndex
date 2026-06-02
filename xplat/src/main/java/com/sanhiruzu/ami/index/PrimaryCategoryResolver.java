@@ -20,6 +20,9 @@ public final class PrimaryCategoryResolver {
      *   prefer exact tokens/phrases and add a false-positive regression test plus a note in
      *   docs/classification-routing-log.md.
      */
+    // TODO(classification): migrate remaining family-prior raw path.contains(...) blocks below to
+    // facets/facts first, then PathTokens exact token/phrase sets. Current high-risk areas are
+    // GregTech, Apotheosis, Botania, storage/automation, food-family ingredients, and geology/masonry fallbacks.
     private static final Set<String> HOSTILE_SPAWN_EGGS = Set.of(
             "blaze", "bogged", "breeze", "creeper", "drowned", "elder_guardian",
             "ender_dragon", "endermite", "evoker", "ghast", "guardian", "hoglin",
@@ -386,6 +389,16 @@ public final class PrimaryCategoryResolver {
             return sophisticated;
         }
 
+        Optional<CategoryAssignment> storageFamily = resolveStorageFamilyTechIdentity(context);
+        if (storageFamily.isPresent()) {
+            return storageFamily;
+        }
+
+        Optional<CategoryAssignment> modularGear = resolveModularGearIdentity(context);
+        if (modularGear.isPresent()) {
+            return modularGear;
+        }
+
         Optional<CategoryAssignment> waystones = resolveWaystonesIdentity(context);
         if (waystones.isPresent()) {
             return waystones;
@@ -675,6 +688,16 @@ public final class PrimaryCategoryResolver {
                 return Optional.of(compatFallbackAssignment("sophisticated", mapSophisticatedSubcategory(kind), context.attributes));
             }
         }
+        if ("tconstruct".equals(context.modId)
+                || "silentgear".equals(context.modId)
+                || CompatFamilyDetector.isPrimaryFamily(context.attributes, CompatFamilyDetector.TINKERS)
+                || CompatFamilyDetector.isPrimaryFamily(context.attributes, CompatFamilyDetector.SILENT_GEAR)
+                || CompatFamilyDetector.hasFamily(context.attributes, CompatFamilyDetector.MODULAR_GEAR)) {
+            String kind = context.attributes.getOrDefault(SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, "");
+            if (!kind.isBlank()) {
+                return Optional.of(compatFallbackAssignment("modular_gear", mapModularGearSubcategory(kind), context.attributes));
+            }
+        }
         return Optional.empty();
     }
 
@@ -738,6 +761,34 @@ public final class PrimaryCategoryResolver {
             case "tools" -> "tools";
             default -> "misc";
         };
+    }
+
+    private static String mapModularGearSubcategory(String kind) {
+        return switch (kind) {
+            case "tools" -> "tools";
+            case "weapons" -> "weapons";
+            case "armor" -> "armor";
+            case "parts" -> "parts";
+            case "materials" -> "materials";
+            case "modifiers" -> "modifiers";
+            case "stations" -> "stations";
+            case "blueprints" -> "blueprints";
+            default -> "misc";
+        };
+    }
+
+    private static Optional<CategoryAssignment> resolveStorageFamilyTechIdentity(ResolveContext context) {
+        if (!shouldBiasStorageFamilyToTech(context.modFamily, context.facets, context.path, context.attributes)) {
+            return Optional.empty();
+        }
+        String subcategory = classifyStorageSubcategory(context.path, context.facets);
+        return Optional.of(identityAssignment(
+                "tech",
+                subcategory,
+                context.attributes,
+                "identity.storage_family." + subcategory,
+                "storage-family technical item"
+        ));
     }
 
     private static Optional<CategoryAssignment> resolveAe2Identity(ResolveContext context) {
@@ -1060,6 +1111,41 @@ public final class PrimaryCategoryResolver {
         };
     }
 
+    private static Optional<CategoryAssignment> resolveModularGearIdentity(ResolveContext context) {
+        if (!"tconstruct".equals(context.modId)
+                && !"silentgear".equals(context.modId)
+                && !CompatFamilyDetector.isPrimaryFamily(context.attributes, CompatFamilyDetector.TINKERS)
+                && !CompatFamilyDetector.isPrimaryFamily(context.attributes, CompatFamilyDetector.SILENT_GEAR)
+                && !CompatFamilyDetector.hasFamily(context.attributes, CompatFamilyDetector.MODULAR_GEAR)) {
+            return Optional.empty();
+        }
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.SEMANTIC) {
+            return Optional.empty();
+        }
+        String kind = context.attributes.getOrDefault(SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, "");
+        if (kind.isBlank()) {
+            return Optional.empty();
+        }
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.HYBRID && !isFocusedModularGearKind(kind)) {
+            return Optional.empty();
+        }
+        String subcategory = mapModularGearSubcategory(kind);
+        return Optional.of(identityAssignment(
+                "modular_gear",
+                subcategory,
+                context.attributes,
+                "identity.modular_gear." + subcategory,
+                "Modular gear " + subcategory + " identity"
+        ));
+    }
+
+    private static boolean isFocusedModularGearKind(String kind) {
+        return switch (kind) {
+            case "parts", "modifiers", "stations", "blueprints" -> true;
+            default -> false;
+        };
+    }
+
     private static CategoryAssignment identityAssignment(
             String categoryId,
             String subcategoryId,
@@ -1245,7 +1331,7 @@ public final class PrimaryCategoryResolver {
     }
 
     private static String classifyCreateFamilyToolSubcategory(String path) {
-        if (path.contains("cannon") || path.endsWith("_gun")) return "ranged";
+        if (PathTokens.of(path).containsAny("cannon", "gun")) return "ranged";
         return "utility";
     }
 
@@ -1318,12 +1404,7 @@ public final class PrimaryCategoryResolver {
         if (facets.contains(ItemFacet.CABLE)) return "cables";
         if (facets.contains(ItemFacet.MECHANICAL_COMPONENT)) return "parts";
         if (facets.contains(ItemFacet.TECH_COMPONENT)) {
-            if (path.contains("circuit")
-                    || path.contains("processor")
-                    || path.contains("logic")
-                    || path.contains("calculation")
-                    || path.contains("engineering")
-                    || path.contains("chip")) {
+            if (PathTokens.of(path).containsAny("circuit", "processor", "logic", "calculation", "engineering", "chip")) {
                 return "circuits";
             }
             return "parts";
@@ -1378,11 +1459,11 @@ public final class PrimaryCategoryResolver {
                 || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:logs")
                 || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "minecraft:planks")
                 || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "minecraft:logs")
-                || path.endsWith("_planks")
-                || path.endsWith("_log")
-                || path.endsWith("_wood")
-                || path.endsWith("_stem")
-                || path.endsWith("_hyphae");
+                || PathTokens.of(path).endsWith("planks")
+                || PathTokens.of(path).endsWith("log")
+                || PathTokens.of(path).endsWith("wood")
+                || PathTokens.of(path).endsWith("stem")
+                || PathTokens.of(path).endsWith("hyphae");
     }
 
     private static boolean isPlantSeed(String path, Set<ItemFacet> facets, Map<String, String> attributes) {
@@ -1406,12 +1487,11 @@ public final class PrimaryCategoryResolver {
                 && !containsPathToken(path, Set.of("seed", "seeds"))) {
             return false;
         }
-        return !containsPathToken(path, Set.of("bag", "bags", "bucket", "oil", "maker", "pouch", "crystal"))
-                && !path.contains("_oil")
-                && !path.contains("crystal_seed")
-                && !path.contains("_crystal")
-                && !path.startsWith("roasted_")
-                && !path.startsWith("baked_");
+        PathTokens tokens = PathTokens.of(path);
+        return !tokens.containsAny("bag", "bags", "bucket", "oil", "maker", "pouch", "crystal")
+                && !tokens.contains("crystal_seed")
+                && !tokens.startsWith("roasted")
+                && !tokens.startsWith("baked");
     }
 
     private static boolean isCropLikePlaceable(String path, Set<ItemFacet> facets, Map<String, String> attributes) {
@@ -1427,10 +1507,7 @@ public final class PrimaryCategoryResolver {
                 || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "forge:crops")
                 || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "c:crops")
                 || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "forge:crops")
-                || path.endsWith("_crop")
-                || path.contains("_crop_")
-                || path.endsWith("_bush")
-                || path.contains("_bush_")
+                || PathTokens.of(path).containsAny("crop", "bush")
                 || blockClass.contains("crop")
                 || blockClass.contains("bush");
     }
@@ -1725,8 +1802,20 @@ public final class PrimaryCategoryResolver {
                         || path.contains("cable")
                         || path.contains("bus")
                         || path.contains("tank")
+                        || path.contains("grid")
+                        || path.contains("monitor")
+                        || path.contains("manager")
+                        || path.contains("manipulator")
+                        || path.contains("constructor")
+                        || path.contains("destructor")
+                        || path.contains("detector")
+                        || path.contains("relay")
+                        || path.contains("transmitter")
+                        || path.contains("receiver")
+                        || path.contains("network")
                         || path.contains("silicon")
                         || path.contains("processor")
+                        || path.contains("binding")
                         || path.contains("printed")
                         || path.contains("logic")
                         || path.contains("calculation")
@@ -1735,6 +1824,7 @@ public final class PrimaryCategoryResolver {
                         || path.contains("card")
                         || path.contains("module")
                         || path.contains("core")
+                        || path.contains("quartz_enriched_iron")
                         || path.contains("upgrade")
                         || path.contains("pattern")
                         || path.contains("filter")
@@ -1744,8 +1834,7 @@ public final class PrimaryCategoryResolver {
                         || path.contains("keyring")
                         || path.contains("template")
         )
-                && !shouldBeGeology(facets, path, attributes)
-                && !shouldBiasUncraftableFullBlockToTerrain(facets, attributes);
+                && !shouldBeGeology(facets, path, attributes);
     }
 
     private static boolean shouldBiasFoodFamilyToNature(ModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
@@ -1994,6 +2083,7 @@ public final class PrimaryCategoryResolver {
     }
 
     private static String classifyStorageSubcategory(String path, Set<ItemFacet> facets) {
+        PathTokens tokens = PathTokens.of(path);
         if (facets.contains(ItemFacet.UPGRADE) || path.contains("upgrade")) {
             return "upgrades";
         }
@@ -2003,8 +2093,12 @@ public final class PrimaryCategoryResolver {
         if (facets.contains(ItemFacet.CABLE) || path.contains("cable") || path.contains("bus")) {
             return "cables";
         }
+        if (tokens.contains("quartz_enriched_iron")) {
+            return "ingots";
+        }
         if (path.contains("silicon")
                 || path.contains("processor")
+                || path.contains("binding")
                 || path.contains("printed_")
                 || path.contains("printed")
                 || path.contains("logic_")
@@ -2013,8 +2107,19 @@ public final class PrimaryCategoryResolver {
                 || path.contains("engineering")
                 || path.contains("chip")
                 || path.contains("card")
-                || path.contains("module")) {
+                || path.contains("module")
+                || path.contains("core")) {
             return "circuits";
+        }
+        if (tokens.containsAny("storage_part", "storage_disk", "fluid_storage_part", "fluid_storage_disk")
+                || tokens.containsAny("storage_housing", "cover")) {
+            return "parts";
+        }
+        if (tokens.containsAny("grid", "monitor") || path.contains("wireless")) {
+            return "machines";
+        }
+        if (facets.contains(ItemFacet.PLACEABLE) || facets.contains(ItemFacet.HAS_BLOCK_ENTITY)) {
+            return "machines";
         }
         if (facets.contains(ItemFacet.STORAGE)
                 || path.contains("storage")
@@ -2031,7 +2136,18 @@ public final class PrimaryCategoryResolver {
                 || path.contains("drive")
                 || path.contains("disk")
                 || path.contains("cell")
-                || path.contains("controller")) {
+                || path.contains("controller")
+                || path.contains("grid")
+                || path.contains("monitor")
+                || path.contains("manager")
+                || path.contains("manipulator")
+                || path.contains("constructor")
+                || path.contains("destructor")
+                || path.contains("detector")
+                || path.contains("relay")
+                || path.contains("transmitter")
+                || path.contains("receiver")
+                || path.contains("network")) {
             return "parts";
         }
         return "machines";
@@ -2121,33 +2237,14 @@ public final class PrimaryCategoryResolver {
 
     private static boolean hasPreparedFoodPath(String path) {
         return hasPreparedMealPath(path)
-                || path.contains("bottle")
-                || path.contains("on_a_stick");
+                || PathTokens.of(path).containsAny("bottle", "on_a_stick");
     }
 
     private static boolean hasPreparedMealPath(String path) {
-        return path.contains("plate")
-                || path.contains("bowl")
-                || path.contains("pie")
-                || path.contains("tart")
-                || path.contains("pudding")
-                || path.contains("calzone")
-                || path.contains("sandwich")
-                || path.contains("parmesan")
-                || path.contains("sausage")
-                || path.contains("burger")
-                || path.contains("pasta")
-                || path.contains("dessert")
-                || path.contains("patty")
-                || path.contains("pizza")
-                || path.contains("noodle")
-                || path.contains("rice")
-                || path.contains("kebab")
-                || path.contains("canned")
-                || path.contains("mre")
-                || path.contains("macandcheese")
-                || path.contains("soup")
-                || path.contains("stew");
+        return PathTokens.of(path).containsAny(
+                "plate", "plated", "bowl", "pie", "tart", "pudding", "calzone", "sandwich",
+                "parmesan", "sausage", "burger", "pasta", "dessert", "patty", "pizza",
+                "noodle", "rice", "kebab", "canned", "mre", "macandcheese", "on_a_stick", "soup", "stew");
     }
 
     private static boolean isFoodStorageBlockPath(String path) {
@@ -2328,13 +2425,7 @@ public final class PrimaryCategoryResolver {
     }
 
     private static boolean containsPathToken(String path, Set<String> expectedTokens) {
-        String[] pathTokens = path.split("[_/]");
-        for (String pathToken : pathTokens) {
-            if (expectedTokens.contains(pathToken)) {
-                return true;
-            }
-        }
-        return false;
+        return PathTokens.of(path).containsAny(expectedTokens);
     }
 
     private static boolean containsAny(String value, String... needles) {
@@ -2351,32 +2442,19 @@ public final class PrimaryCategoryResolver {
     }
 
     private static boolean isCablePath(String path) {
+        PathTokens tokens = PathTokens.of(path);
         return !isNaturalCableFalsePositivePath(path)
-                && (path.contains("cable")
-                || path.endsWith("wire")
-                || path.contains("_wire")
-                || path.contains("wire_")
-                || path.contains("wirecoil")
-                || containsPathToken(path, Set.of("pipe", "tube", "conduit", "duct")))
-                && !path.contains("wire_cut");
+                && tokens.containsAny("cable", "wire", "wirecoil", "pipe", "tube", "conduit", "duct")
+                && !tokens.contains("wire_cut");
     }
 
     private static boolean isNaturalCableFalsePositivePath(String path) {
-        return path.contains("coral")
-                || path.equals("cobweb")
-                || path.equals("dead_bush")
-                || path.equals("frogspawn")
-                || path.contains("sculk");
+        PathTokens tokens = PathTokens.of(path);
+        return tokens.containsAny("coral", "cobweb", "dead_bush", "frogspawn", "sculk");
     }
 
     private static boolean isTemplatePath(String path) {
-        return path.contains("blueprint")
-                || path.contains("schematic")
-                || path.equals("mold")
-                || path.startsWith("mold_")
-                || path.contains("_mold")
-                || path.contains("pattern")
-                || path.contains("template");
+        return PathTokens.of(path).containsAny("blueprint", "schematic", "mold", "pattern", "template");
     }
 
     private static boolean isCreateAddonTechPath(String path) {
@@ -2390,8 +2468,7 @@ public final class PrimaryCategoryResolver {
     }
 
     private static boolean endsWithPathToken(String path, String token) {
-        String[] pathTokens = path.split("[_/]");
-        return pathTokens.length > 0 && pathTokens[pathTokens.length - 1].equals(token);
+        return PathTokens.of(path).endsWith(token);
     }
 
     private static boolean shouldBeGeology(Set<ItemFacet> facets, String path, Map<String, String> attributes) {

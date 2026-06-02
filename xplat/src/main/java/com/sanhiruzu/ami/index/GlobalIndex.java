@@ -34,7 +34,7 @@ public class GlobalIndex {
         return INSTANCE;
     }
 
-    public void addNode(SearchNode node) {
+    public synchronized void addNode(SearchNode node) {
         nodes.get(node.type()).add(node);
         idIndex.put(new NodeKey(node.id(), node.type()), node);
 
@@ -65,18 +65,18 @@ public class GlobalIndex {
         return Optional.ofNullable(idIndex.get(new NodeKey(id, type)));
     }
 
-    public List<SearchNode> getNodes(NodeType type) {
-        return Collections.unmodifiableList(nodes.get(type));
+    public synchronized List<SearchNode> getNodes(NodeType type) {
+        return List.copyOf(nodes.get(type));
     }
 
-    public List<SearchNode> getNodesByCategory(String categoryId) {
-        return Collections.unmodifiableList(categoryIndex.getOrDefault(categoryId, List.of()));
+    public synchronized List<SearchNode> getNodesByCategory(String categoryId) {
+        return List.copyOf(categoryIndex.getOrDefault(categoryId, List.of()));
     }
 
     /**
      * Replace all nodes of a given type. Used for deferred/retry population.
      */
-    public void replaceNodes(NodeType type, List<SearchNode> newNodes) {
+    public synchronized void replaceNodes(NodeType type, List<SearchNode> newNodes) {
         List<SearchNode> list = nodes.get(type);
         // Remove old entries from id index and category index
         for (SearchNode n : list) {
@@ -95,7 +95,7 @@ public class GlobalIndex {
     /**
      * Replace a single node by id. If no existing node matches, adds the new one.
      */
-    public void replaceNode(ResourceLocation id, NodeType type, SearchNode updated) {
+    public synchronized void replaceNode(ResourceLocation id, NodeType type, SearchNode updated) {
         SearchNode old = idIndex.get(new NodeKey(id, type));
         if (old != null) {
             List<SearchNode> typeList = nodes.get(type);
@@ -121,7 +121,7 @@ public class GlobalIndex {
         categoryIndex.computeIfAbsent(category, k -> Collections.synchronizedList(new ArrayList<>())).add(n);
     }
 
-    public void clear() {
+    public synchronized void clear() {
         nodes.values().forEach(List::clear);
         idIndex.clear();
         categoryIndex.clear();
