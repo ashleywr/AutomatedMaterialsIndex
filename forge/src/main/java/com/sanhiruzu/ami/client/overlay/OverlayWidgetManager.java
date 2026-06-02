@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client.overlay;
 
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+import com.sanhiruzu.ami.client.AmiRenderProfiler;
 import com.sanhiruzu.ami.client.UniversalResultsPanel;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.config.AmiConfig;
@@ -446,24 +447,29 @@ public class OverlayWidgetManager {
     }
 
     public void renderAll(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
+        AmiRenderProfiler.beginFrame();
         try {
-            g.flush();
-            com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
-            g.pose().pushPose();
-            g.pose().translate(0, 0, 0);
+            try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("overlay.renderAll")) {
+                com.sanhiruzu.ami.client.AMITheme.sync();
+                g.flush();
+                com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
+                g.pose().pushPose();
+                g.pose().translate(0, 0, 0);
 
-            amiButton.render(g, mx, my, pt);
+                amiButton.render(g, mx, my, pt);
 
-            if (panelVisible) {
-                renderPanels(g, mx, my, pt);
-                renderSearchBar(g, mx, my, pt);
+                if (panelVisible) {
+                    renderPanels(g, mx, my, pt);
+                    renderSearchBar(g, mx, my, pt);
+                }
+
+                g.pose().popPose();
+                g.flush();
             }
-
-            g.pose().popPose();
-            g.flush();
-
         } catch (Exception e) {
             AMI.LOGGER.error("AMI overlay render failed", e);
+        } finally {
+            AmiRenderProfiler.endFrame();
         }
 
         if (pendingEmiReinit) {
@@ -475,46 +481,56 @@ public class OverlayWidgetManager {
 
     public void renderPanels(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
         if (!panelVisible) return;
-        g.flush();
-        com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
-        g.pose().pushPose();
-        g.pose().translate(0, 0, OverlayLayers.PANEL);
-
-        for (PanelSlot slot : activeSlots) {
-            slot.render(g, mx, my, pt);
-        }
-        for (PanelSlot slot : activeSlots) {
-            slot.renderOverlay(g, mx, my);
-        }
-        renderCheatDeleteHint(g, mx, my);
-
-        if (AmiConfig.highlightExclusionAreas) {
+        try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("overlay.renderPanels")) {
+            List<PanelSlot> renderingSlots = activeSlotsSnapshot();
+            AmiRenderProfiler.add("overlay.panelSlots", renderingSlots.size());
+            g.flush();
+            com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
             g.pose().pushPose();
-            g.pose().translate(0, 0, OverlayLayers.DEBUG);
-            renderExclusionHighlights(g);
-            g.pose().popPose();
-        }
+            g.pose().translate(0, 0, OverlayLayers.PANEL);
 
-        g.pose().popPose();
-        g.flush();
+            for (PanelSlot slot : renderingSlots) {
+                slot.render(g, mx, my, pt);
+            }
+            for (PanelSlot slot : renderingSlots) {
+                slot.renderOverlay(g, mx, my);
+            }
+            renderCheatDeleteHint(g, mx, my, renderingSlots);
+
+            if (AmiConfig.highlightExclusionAreas) {
+                g.pose().pushPose();
+                g.pose().translate(0, 0, OverlayLayers.DEBUG);
+                renderExclusionHighlights(g, renderingSlots);
+                g.pose().popPose();
+            }
+
+            g.pose().popPose();
+            g.flush();
+        }
     }
 
     public void renderSearchBar(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
         if (!panelVisible || searchBar == null) return;
-        g.flush();
-        com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
-        g.pose().pushPose();
-        g.pose().translate(0, 0, OverlayLayers.PANEL + 1);
-        searchBar.render(g, mx, my, pt);
-        g.pose().popPose();
-        g.flush();
+        try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("overlay.searchBar")) {
+            g.flush();
+            com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
+            g.pose().pushPose();
+            g.pose().translate(0, 0, OverlayLayers.PANEL + 1);
+            searchBar.render(g, mx, my, pt);
+            g.pose().popPose();
+            g.flush();
+        }
     }
 
 
-    private void renderCheatDeleteHint(net.minecraft.client.gui.GuiGraphics g, int mx, int my) {
+    private List<PanelSlot> activeSlotsSnapshot() {
+        return new ArrayList<>(activeSlots);
+    }
+
+    private void renderCheatDeleteHint(net.minecraft.client.gui.GuiGraphics g, int mx, int my, List<PanelSlot> slots) {
         if (!com.sanhiruzu.ami.client.AMICheatMode.isEnabled()) return;
         if (!com.sanhiruzu.ami.client.AMICheatMode.hasCarriedItem()) return;
-        for (PanelSlot slot : activeSlots) {
+        for (PanelSlot slot : slots) {
             if (slot.results.visible && slot.results.isMouseOver(mx, my)) {
                 var font = net.minecraft.client.Minecraft.getInstance().font;
                 var msg = net.minecraft.network.chat.Component.translatable("ami.cheat.drop_to_delete");
@@ -527,9 +543,9 @@ public class OverlayWidgetManager {
         }
     }
 
-    private void renderExclusionHighlights(net.minecraft.client.gui.GuiGraphics g) {
+    private void renderExclusionHighlights(net.minecraft.client.gui.GuiGraphics g, List<PanelSlot> slots) {
         // Render panel bounds in blue (matching EMI's debug style)
-        for (PanelSlot slot : activeSlots) {
+        for (PanelSlot slot : slots) {
             if (slot.results.visible) {
                 WidgetBounds b = slot.results.getBounds();
                 g.fill(b.x(), b.y(), b.x() + b.width(), b.y() + b.height(), 0x440000ff);

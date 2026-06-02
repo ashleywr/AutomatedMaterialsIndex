@@ -27,7 +27,7 @@ import java.util.function.Consumer;
  */
 public class EntityIconCache {
 
-    private static final Map<String, ResourceLocation> textureKeys = new HashMap<>();
+    private static final Map<ResourceLocation, Map<Integer, ResourceLocation>> textureKeys = new HashMap<>();
 
     private EntityIconCache() {
     }
@@ -38,26 +38,25 @@ public class EntityIconCache {
      */
     public static boolean blitCached(GuiGraphics g, ResourceLocation id, int size, int x, int y,
                                      Consumer<GuiGraphics> renderToFramebuffer) {
-        String key = cacheKey(id, size);
-        if (!textureKeys.containsKey(key)) {
+        Map<Integer, ResourceLocation> bySize = textureKeys.get(id);
+        ResourceLocation texKey = bySize == null ? null : bySize.get(size);
+        if (texKey == null) {
             g.flush();
-            if (!populate(key, id, size, renderToFramebuffer)) {
+            texKey = populate(id, size, renderToFramebuffer);
+            if (texKey == null) {
                 return false;
             }
+            textureKeys.computeIfAbsent(id, ignored -> new HashMap<>()).put(size, texKey);
         }
-        ResourceLocation texKey = textureKeys.get(key);
-        if (texKey != null) {
-            RenderStateSnapshot state = RenderStateSnapshot.capture();
-            try {
-                RenderSystem.enableBlend();
-                RenderSystem.defaultBlendFunc();
-                g.blit(texKey, x, y, 0f, 0f, size, size, size, size);
-            } finally {
-                state.restore();
-            }
-            return true;
+        RenderStateSnapshot state = RenderStateSnapshot.capture();
+        try {
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
+            g.blit(texKey, x, y, 0f, 0f, size, size, size, size);
+        } finally {
+            state.restore();
         }
-        return false;
+        return true;
     }
 
     /**
@@ -65,12 +64,13 @@ public class EntityIconCache {
      */
     public static void invalidate() {
         Minecraft mc = Minecraft.getInstance();
-        textureKeys.values().forEach(mc.getTextureManager()::release);
+        for (Map<Integer, ResourceLocation> bySize : textureKeys.values()) {
+            bySize.values().forEach(mc.getTextureManager()::release);
+        }
         textureKeys.clear();
     }
 
-    private static boolean populate(String key, ResourceLocation id, int size,
-                                    Consumer<GuiGraphics> renderFunc) {
+    private static ResourceLocation populate(ResourceLocation id, int size, Consumer<GuiGraphics> renderFunc) {
         Minecraft mc = Minecraft.getInstance();
         RenderStateSnapshot state = RenderStateSnapshot.capture();
         Matrix4f savedProj = new Matrix4f(RenderSystem.getProjectionMatrix());
@@ -106,14 +106,13 @@ public class EntityIconCache {
             if (image != null) {
                 image.close();
             }
-            return false;
+            return null;
         }
 
         ResourceLocation texKey = Services.PLATFORM.rl("ami",
                 "entity_icon/" + id.getNamespace() + "/" + id.getPath().replace('/', '_') + "_" + size);
         mc.getTextureManager().register(texKey, new DynamicTexture(image));
-        textureKeys.put(key, texKey);
-        return true;
+        return texKey;
     }
 
     private static boolean isBlankOrBlack(NativeImage image) {
@@ -138,7 +137,4 @@ public class EntityIconCache {
         return !sawVisible || !sawNonBlack;
     }
 
-    private static String cacheKey(ResourceLocation id, int size) {
-        return id + "@" + size;
-    }
 }

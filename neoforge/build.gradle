@@ -71,6 +71,12 @@ neoForge {
             systemProperty 'forge.logging.markers', 'SCAN,REGISTRIES,LOADING'
             systemProperty 'ami.debugCommands', 'true'
             systemProperty 'ami.registerGameTests', 'true'
+            if (System.getProperty('ami.renderProfiler') != null) {
+                systemProperty 'ami.renderProfiler', System.getProperty('ami.renderProfiler')
+            }
+            if (System.getProperty('ami.renderProfiler.frames') != null) {
+                systemProperty 'ami.renderProfiler.frames', System.getProperty('ami.renderProfiler.frames')
+            }
             systemProperty 'java.io.tmpdir', rootProject.layout.buildDirectory.dir("tmp/minecraft-runs/neoforge/${name}").get().asFile.absolutePath
             logLevel = org.slf4j.event.Level.DEBUG
             jvmArguments.addAll '-ea', '-Dmixin.debug.export=true'
