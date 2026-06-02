@@ -18,6 +18,7 @@ import net.neoforged.neoforge.client.event.ScreenEvent;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class OverlayWidgetManager {
     public static final int AMI_BTN_X = 2;
@@ -50,6 +51,8 @@ public class OverlayWidgetManager {
     private WidgetBounds leftStripBounds = null;
     private WidgetBounds rightStripBounds = null;
     private boolean searchBarEmbedded = false;
+    private int lastLayoutSignature = Integer.MIN_VALUE;
+    private boolean layoutDirty = true;
 
     public OverlayWidgetManager() {
     }
@@ -62,7 +65,7 @@ public class OverlayWidgetManager {
             mc.setScreen(new com.sanhiruzu.ami.client.screen.AmiConfigScreen(mc.screen));
         }, InventoryOverlayHandler::toggleAmi, () -> panelVisible);
 
-        com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().setOnChange(this::refreshSidebars);
+        com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().setOnChange(this::refreshSidebarsAndLayout);
 
         widgetsReady = true;
     }
@@ -154,6 +157,10 @@ public class OverlayWidgetManager {
                 int thirdPartyBottom = thirdPartyWidgetBottomInStrip(containerScreen, 0, containerLeftEdge);
                 int leftY = thirdPartyBottom > panelY ? thirdPartyBottom + PANEL_MARGIN : panelY;
                 int leftH = panelBottom - leftY;
+                if (leftH < 80) {
+                    leftY = panelY;
+                    leftH = panelBottom - leftY;
+                }
                 if (leftH > 0) {
                     Rect leftSlot = Rect.of(PANEL_MARGIN, leftY, leftW, leftH);
                     placeSideSlots(leftSlot, leftContents, leftSlotPool);
@@ -204,6 +211,8 @@ public class OverlayWidgetManager {
             }
             searchBar.updateBounds(new WidgetBounds(barX, screenH - BOTTOM_BAR_H + 2, barW, SEARCH_H));
         }
+
+        rememberLayout(containerScreen, screenW, screenH);
     }
 
     private void placeSideSlots(Rect sideSlot, List<AmiConfig.PanelContent> contents, List<PanelSlot> pool) {
@@ -245,7 +254,7 @@ public class OverlayWidgetManager {
         if (screen instanceof AbstractContainerScreen<?> containerScreen) {
             computeLayouts(containerScreen, screenW, screenH);
         } else {
-            computeLayoutsForCustomScreen(screenW, screenH);
+            computeLayoutsForCustomScreen(screen, screenW, screenH);
         }
     }
 
@@ -254,7 +263,7 @@ public class OverlayWidgetManager {
      * Panels are kept in the left/right margins, away from the center of the screen
      * where recipe content and other modal UI typically renders.
      */
-    private void computeLayoutsForCustomScreen(int screenW, int screenH) {
+    private void computeLayoutsForCustomScreen(Screen screen, int screenW, int screenH) {
         ensureWidgets();
         activeSlots.clear();
         hideAllSlots();
@@ -320,6 +329,56 @@ public class OverlayWidgetManager {
             }
             searchBar.updateBounds(new WidgetBounds(barX, screenH - BOTTOM_BAR_H + 2, barW, SEARCH_H));
         }
+
+        rememberLayout(screen, screenW, screenH);
+    }
+
+    public void invalidateLayout() {
+        layoutDirty = true;
+    }
+
+    public void refreshLayoutIfNeeded(Screen screen) {
+        if (screen == null) return;
+        int signature = layoutSignature(screen, screen.width, screen.height);
+        if (layoutDirty || signature != lastLayoutSignature) {
+            computeLayouts(screen, screen.width, screen.height);
+        }
+    }
+
+    private void rememberLayout(Screen screen, int screenW, int screenH) {
+        lastLayoutSignature = layoutSignature(screen, screenW, screenH);
+        layoutDirty = false;
+    }
+
+    private int layoutSignature(Screen screen, int screenW, int screenH) {
+        int guiLeft = -1;
+        int guiTop = -1;
+        int guiWidth = -1;
+        int guiHeight = -1;
+        if (screen instanceof AbstractContainerScreen<?> containerScreen) {
+            guiLeft = containerScreen.getGuiLeft();
+            guiTop = containerScreen.getGuiTop();
+            guiWidth = containerScreen.getXSize();
+            guiHeight = containerScreen.getYSize();
+        }
+        return Objects.hash(
+                System.identityHashCode(screen),
+                screenW,
+                screenH,
+                guiLeft,
+                guiTop,
+                guiWidth,
+                guiHeight,
+                AmiConfig.leftPanelWidth,
+                AmiConfig.rightPanelWidth,
+                AmiConfig.leftPanelSlots,
+                AmiConfig.leftPanelAlternateSlots,
+                AmiConfig.rightPanelSlots,
+                AmiConfig.rightPanelAlternateSlots,
+                leftAlternateActive,
+                rightAlternateActive,
+                panelVisible
+        );
     }
 
     private boolean shouldEmbedSearchBar(List<AmiConfig.PanelContent> contents, WidgetBounds panelBounds) {
@@ -382,6 +441,11 @@ public class OverlayWidgetManager {
         if (screen != null) {
             computeLayouts(screen, screen.width, screen.height);
         }
+    }
+
+    private void refreshSidebarsAndLayout() {
+        refreshCurrentLayout();
+        refreshSidebars();
     }
 
     public void tick(ScreenEvent.Render.Post event) {
@@ -780,10 +844,11 @@ public class OverlayWidgetManager {
                 results.visible = true;
                 sidebar.visible = false;
             } else {
-                sidebar.setContentType(content);
                 sidebar.updateLayout(rect);
                 sidebar.visible = true;
                 results.visible = false;
+                sidebar.setContentType(content);
+                sidebar.refresh();
             }
         }
 
