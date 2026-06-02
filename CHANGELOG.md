@@ -1,34 +1,35 @@
-# Changelog
+# AMI Changelog
 
-All notable user-facing changes should be recorded here.
+User-facing changes are recorded here.
 
 ## Unreleased
 
 ## 0.9.0 - 2026-05-30
 
+AMI 0.9.0 focuses on recipe viewer support, panel actions, and persistent client settings.
+
 ### Added
 
-- Added AMI panel recipe transfer support through JEI and EMI when the current screen accepts recipe transfers.
-- Added crafting actions from favorites, lookup history, crafting history, and craftable side panels.
-- Added AMI-recorded JEI crafting history for crafts started from AMI panels.
-- Added cheat-mode tooltip hints for panel items when cheat hotkeys are available.
-- Added persistent client config storage for AMI UI and behavior settings.
+- Recipe transfer from AMI panels through JEI and EMI when the current screen accepts transfers.
+- Crafting actions in favorites, lookup history, crafting history, and craftable side panels.
+- JEI crafting history entries for crafts started from AMI panels.
+- Cheat-mode tooltip hints for panel items when cheat hotkeys are available.
+- Saved client configuration for AMI UI and behavior settings.
 
 ### Changed
 
-- Moved more shared client, recipe, result, tooltip, and indexing code into the xplat source set.
-- Updated AMI sidebar panel controls so alternate-content swap buttons only show when another panel mode is available.
-- Refined sidebar button styling and placement to align with the surrounding result panel controls.
-- Improved recipe viewer integration state syncing for EMI and JEI favorites, hidden stacks, and sidebars.
+- Sidebar swap buttons now appear only when another panel mode is available.
+- Sidebar buttons now line up more cleanly with the surrounding result panel controls.
+- EMI and JEI favorites, hidden stacks, and sidebars now stay in sync more reliably with AMI.
 
 ### Fixed
 
-- Fixed AMI config changes reverting after restarting the game.
-- Fixed JEI recipe transfer from AMI lookup history and favorites.
-- Fixed crafting history panels not responding to AMI crafting actions.
-- Fixed AMI crafting transfer being blocked when AMI's own recipe index was not ready but the recipe viewer could still transfer.
-- Removed the old Shift-hover debug id tooltip from normal item tooltip flow.
-- Fixed tooltip modifier help so Shift and Ctrl update the AMI action hints while hovering panel entries.
+- AMI config changes no longer revert after restarting the game.
+- JEI recipe transfer now works from AMI lookup history and favorites.
+- Crafting history panels now respond to AMI crafting actions.
+- AMI now allows recipe viewer transfers even while AMI's own recipe index is still loading.
+- The old Shift-hover debug ID tooltip no longer appears in normal item tooltips.
+- Shift and Ctrl now update AMI action hints correctly while hovering panel entries.
 
 ## 0.3.1-alpha.1 - 2026-05-28
 

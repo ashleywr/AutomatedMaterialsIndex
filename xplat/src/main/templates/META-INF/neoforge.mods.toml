@@ -46,9 +46,9 @@ authors = "Ashley"
 
 # The description text for the mod (multi line!) (#mandatory)
 description = '''
-The next-generation recipe and progression UI for modded Minecraft.
+Search, recipe browsing, and content indexing for large modded Minecraft packs.
 
-AMI eliminates UI bloat with smart, faceted recipe organization, Ghost Crafting for seamless item selection, automated material indexing, and a directed progression graph for guiding players through modpack content.
+AMI groups related blocks and items, adds filters for mods, tags, categories, stats, biomes, structures, and entities, and connects AMI panels with JEI or EMI when installed.
 '''
 
 # The [[mixins]] block allows you to declare your mixin config to FML so that it gets loaded.
