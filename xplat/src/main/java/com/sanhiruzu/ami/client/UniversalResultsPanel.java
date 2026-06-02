@@ -5,6 +5,7 @@ import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.api.AmiGuideOpeners;
 import com.sanhiruzu.ami.api.AmiQuestsApi;
 import com.sanhiruzu.ami.client.results.*;
+import com.sanhiruzu.ami.client.overlay.WidgetBounds;
 import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
 import com.sanhiruzu.ami.compat.CompatRegistry;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
@@ -35,8 +36,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private static final ResourceLocation PANEL_SPRITE =
             Services.PLATFORM.rl("recipe_book/overlay_recipe");
 
-    // Fixed height of the top header area — full mode uses toolbar height, compact uses minimal space
-    private static final int HEADER_H = ResultsToolbar.TOOLBAR_HEIGHT;
+    // Fixed height of the top header area — full mode reserves room for the embedded search/control bar.
+    private static final int HEADER_H = 24;
     private static final int COMPACT_HEADER_H = 20; // Minimal height for item count + toggle button
     // Compact toggle button dimensions — height matches toolbar buttons for visual consistency
     private static final int TOGGLE_W = 22;
@@ -50,6 +51,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private static final int GUIDE_ROW_H = 20;
     private static final int MAX_VISIBLE_GUIDE_ROWS = 3;
     private static final int MAX_VISIBLE_QUEST_ROWS = 3;
+    private static final int EMBEDDED_SEARCH_H = 18;
+    private static final int EMBEDDED_SEARCH_MIN_W = 76;
+    private static final int EMBEDDED_SEARCH_MAX_W = 190;
+    private static final int EMBEDDED_TOOLBAR_MIN_W = 170;
     private final SearchState state = new SearchState();
     private int x, y, width, height;
     // Toggle button position — recomputed on every layout update
@@ -109,24 +114,72 @@ public class UniversalResultsPanel implements SearchState.Listener {
         return keyCode == GLFW.GLFW_KEY_LEFT_SHIFT || keyCode == GLFW.GLFW_KEY_RIGHT_SHIFT;
     }
 
+    public static WidgetBounds embeddedSearchBounds(WidgetBounds panelBounds) {
+        int innerX = panelBounds.x() + AMITheme.GLOBAL_PADDING;
+        int innerW = panelBounds.width() - AMITheme.GLOBAL_PADDING * 2;
+        int searchX = innerX + TOGGLE_W + AMITheme.ELEMENT_GAP;
+        return new WidgetBounds(searchX, panelBounds.y() + AMITheme.GLOBAL_PADDING + 1,
+                embeddedSearchW(innerW), EMBEDDED_SEARCH_H);
+    }
+
+    public static boolean supportsEmbeddedSearch(WidgetBounds panelBounds) {
+        int innerW = panelBounds.width() - AMITheme.GLOBAL_PADDING * 2;
+        return innerW >= embeddedHeaderMinW();
+    }
+
+    private static int embeddedHeaderMinW() {
+        return TOGGLE_W + AMITheme.ELEMENT_GAP + EMBEDDED_SEARCH_MIN_W
+                + AMITheme.ELEMENT_GAP + EMBEDDED_TOOLBAR_MIN_W;
+    }
+
+    private static int embeddedSearchW(int innerW) {
+        int available = innerW - TOGGLE_W - AMITheme.ELEMENT_GAP * 2 - EMBEDDED_TOOLBAR_MIN_W;
+        return net.minecraft.util.Mth.clamp(available, EMBEDDED_SEARCH_MIN_W, EMBEDDED_SEARCH_MAX_W);
+    }
+
+    private static int embeddedToolbarX(int innerX, int innerW) {
+        return innerX + TOGGLE_W + AMITheme.ELEMENT_GAP + embeddedSearchW(innerW) + AMITheme.ELEMENT_GAP;
+    }
+
+    private static int embeddedToolbarW(int innerX, int innerW) {
+        return Math.max(64, innerX + innerW - embeddedToolbarX(innerX, innerW));
+    }
+
+    private static int narrowToolbarX(int innerX) {
+        return innerX + TOGGLE_W + AMITheme.ELEMENT_GAP;
+    }
+
+    private static int narrowToolbarW(int innerX, int innerW) {
+        return Math.max(64, innerX + innerW - narrowToolbarX(innerX));
+    }
+
+    private boolean isCompactLayout() {
+        return compactMode || (!isFavoritesPanel && !supportsEmbeddedSearch(new WidgetBounds(x, y, width, height)));
+    }
+
     private void initChildren() {
         int innerX = x + AMITheme.GLOBAL_PADDING;
         int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
 
+        boolean compact = isCompactLayout();
+        int headerH = compact ? COMPACT_HEADER_H : HEADER_H;
+
         // View switch sits at the left edge of the header, before sort/group controls.
         this.toggleX = innerX;
-        this.toggleY = y + AMITheme.GLOBAL_PADDING + (HEADER_H - TOGGLE_H) / 2;
+        this.toggleY = y + AMITheme.GLOBAL_PADDING + (headerH - TOGGLE_H) / 2;
 
-        int toolbarW = innerW - TOGGLE_W - AMITheme.ELEMENT_GAP;
+        boolean embeddedSearch = supportsEmbeddedSearch(new WidgetBounds(x, y, width, height));
+        int toolbarW = embeddedSearch ? embeddedToolbarW(innerX, innerW) : narrowToolbarW(innerX, innerW);
         int toolbarY = y + AMITheme.GLOBAL_PADDING;
-        this.toolbar = new ResultsToolbar(innerX + TOGGLE_W + AMITheme.ELEMENT_GAP, toolbarY, toolbarW, state);
+        int toolbarX = embeddedSearch ? embeddedToolbarX(innerX, innerW) : narrowToolbarX(innerX);
+        this.toolbar = new ResultsToolbar(toolbarX, toolbarY, toolbarW, state);
 
         int contentY, contentH;
         if (isFavoritesPanel) {
             contentY = y + FAV_HEADER_H;
             contentH = height - FAV_HEADER_H - AMITheme.GLOBAL_PADDING;
         } else {
-            contentY = y + AMITheme.GLOBAL_PADDING + HEADER_H + AMITheme.ELEMENT_GAP;
+            contentY = y + AMITheme.GLOBAL_PADDING + headerH + AMITheme.ELEMENT_GAP;
             contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
         }
 
@@ -259,14 +312,16 @@ public class UniversalResultsPanel implements SearchState.Listener {
             treeView.updateLayout(innerX, contentY, innerW, contentH);
             gridView.updateLayout(innerX, contentY, innerW, contentH);
         } else {
-            int headerH = compactMode ? COMPACT_HEADER_H : HEADER_H;
+            int headerH = isCompactLayout() ? COMPACT_HEADER_H : HEADER_H;
             int contentY = y + AMITheme.GLOBAL_PADDING + headerH + AMITheme.ELEMENT_GAP;
             int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
-            if (compactMode) {
+            if (isCompactLayout()) {
                 gridView.updateLayout(innerX, contentY, innerW, contentH);
             } else {
-                int toolbarW = innerW - TOGGLE_W - AMITheme.ELEMENT_GAP;
-                toolbar.updateLayout(innerX + TOGGLE_W + AMITheme.ELEMENT_GAP, y + AMITheme.GLOBAL_PADDING, toolbarW);
+                boolean embeddedSearch = supportsEmbeddedSearch(new WidgetBounds(x, y, width, height));
+                int toolbarX = embeddedSearch ? embeddedToolbarX(innerX, innerW) : narrowToolbarX(innerX);
+                int toolbarW = embeddedSearch ? embeddedToolbarW(innerX, innerW) : narrowToolbarW(innerX, innerW);
+                toolbar.updateLayout(toolbarX, y + AMITheme.GLOBAL_PADDING, toolbarW);
                 updateResultViewLayouts(innerX, contentY, innerW, contentH);
             }
         }
@@ -291,7 +346,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             com.mojang.blaze3d.systems.RenderSystem.disableBlend();
         }
 
-        boolean compact = compactMode;
+        boolean compact = isCompactLayout();
 
         if (isFavoritesPanel) {
             if (chromeOnly) {
@@ -457,7 +512,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     private void renderToggleBtn(GuiGraphics g, int mouseX, int mouseY) {
-        boolean compact = compactMode;
+        boolean compact = isCompactLayout();
         boolean alternateActive = externalModeToggleActive != null && externalModeToggleActive.getAsBoolean();
         boolean hovered = mouseX >= toggleX && mouseX < toggleX + TOGGLE_W
                 && mouseY >= toggleY && mouseY < toggleY + TOGGLE_H;
@@ -636,7 +691,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 searchService,
                 AmiIndexerService.getInstance().getGuideSearchIndex(),
                 AmiQuestsApi.getQuestSearchIndex(),
-                compactMode && !isFavoritesPanel,
+                isCompactLayout() && !isFavoritesPanel,
                 isFavoritesPanel
         );
         displayedItemCount = projection.displayedItemCount();
@@ -739,7 +794,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             return;
         }
 
-        int headerH = compactMode ? COMPACT_HEADER_H : HEADER_H;
+        int headerH = isCompactLayout() ? COMPACT_HEADER_H : HEADER_H;
         int contentY = y + AMITheme.GLOBAL_PADDING + headerH + AMITheme.ELEMENT_GAP;
         int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
         updateResultViewLayouts(innerX, contentY, innerW, contentH);
@@ -754,19 +809,19 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     private int contentY() {
-        int headerH = compactMode ? COMPACT_HEADER_H : HEADER_H;
+        int headerH = isCompactLayout() ? COMPACT_HEADER_H : HEADER_H;
         return y + AMITheme.GLOBAL_PADDING + headerH + AMITheme.ELEMENT_GAP;
     }
 
     private boolean shouldShowGuideRows() {
-        return !compactMode
+        return !isCompactLayout()
                 && !isFavoritesPanel
                 && !currentQuery.isBlank()
                 && !currentGuideRows.isEmpty();
     }
 
     private boolean shouldShowQuestRows() {
-        return !compactMode
+        return !isCompactLayout()
                 && !isFavoritesPanel
                 && !currentQuery.isBlank()
                 && !currentQuestRows.isEmpty();
@@ -1024,7 +1079,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     private boolean isGridActive() {
         if (isFavoritesPanel) return state.getViewMode() == ResultsToolbar.ViewMode.GRID;
-        return compactMode || state.getViewMode() == ResultsToolbar.ViewMode.GRID;
+        return isCompactLayout() || state.getViewMode() == ResultsToolbar.ViewMode.GRID;
     }
 
     // ── Input handlers ────────────────────────────────────────────────────────
@@ -1142,7 +1197,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             return true;
         }
 
-        boolean compact = compactMode;
+        boolean compact = isCompactLayout();
         if (compact) {
             boolean handled = gridView.mouseClicked(mouseX, mouseY, button);
             if (handled && currentQuery.isEmpty()) {
@@ -1286,7 +1341,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
 
         if (toolbar.isAnyDropdownOpen()) return true;
-        if (!compactMode && !isFavoritesPanel && toolbar.mouseScrolled(mouseX, mouseY, scrollDelta)) {
+        if (!isCompactLayout() && !isFavoritesPanel && toolbar.mouseScrolled(mouseX, mouseY, scrollDelta)) {
             return true;
         }
 

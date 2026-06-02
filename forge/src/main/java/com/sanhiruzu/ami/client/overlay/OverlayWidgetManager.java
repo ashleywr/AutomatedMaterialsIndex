@@ -25,7 +25,7 @@ public class OverlayWidgetManager {
     private static final int BOTTOM_BAR_H = 32;
     private static final int SEARCH_H = 24;
     private static final int MIN_PANEL_WIDTH = 64;
-    private static final int MAX_PANEL_WIDTH = 280;
+    private static final int MAX_PANEL_WIDTH = 420;
     private static final int PANEL_MARGIN = 6;
     private static final int PANEL_MARGIN_V = 6;
     private static final int AMI_BTN_H = 22;
@@ -48,6 +48,7 @@ public class OverlayWidgetManager {
     private boolean rightAlternateActive = false;
     private WidgetBounds leftStripBounds = null;
     private WidgetBounds rightStripBounds = null;
+    private boolean searchBarEmbedded = false;
 
     public OverlayWidgetManager() {
     }
@@ -111,6 +112,7 @@ public class OverlayWidgetManager {
         ensureWidgets();
         activeSlots.clear();
         hideAllSlots();
+        searchBarEmbedded = false;
         lastScreenH = screenH;
 
         amiButton.updateBounds(new WidgetBounds(AMI_BTN_X, screenH - AMI_BTN_H - AMI_BTN_MARGIN, AMI_BTN_W, AMI_BTN_H));
@@ -155,6 +157,10 @@ public class OverlayWidgetManager {
             List<AmiConfig.PanelContent> rightContents = rightContents();
             placeSideSlots(rightSlot, rightContents, rightSlotPool);
             lastResultsBounds = rightSlot.toWidgetBounds();
+            if (shouldEmbedSearchBar(rightContents, lastResultsBounds)) {
+                searchBar.updateBounds(UniversalResultsPanel.embeddedSearchBounds(lastResultsBounds));
+                searchBarEmbedded = true;
+            }
             // Claim full right vertical strip to screen bottom so JEI can't use the corner
             rightStripBounds = new WidgetBounds(panelStartX, 0, screenW - panelStartX, screenH - BOTTOM_BAR_H);
         } else {
@@ -162,14 +168,16 @@ public class OverlayWidgetManager {
             rightStripBounds = null;
         }
 
-        int maxBarRight = (safeWidth >= MIN_PANEL_WIDTH) ? (panelStartX - PANEL_MARGIN) : (screenW - 4);
-        int barW = Math.min(AmiConfig.searchBarWidth, screenW - 8);
-        int barX = Math.max(4, (screenW - barW) / 2);
-        if (barX + barW > maxBarRight) {
-            barX = Math.max(4, maxBarRight - barW);
-            barW = Math.max(60, Math.min(barW, maxBarRight - barX));
+        if (!searchBarEmbedded) {
+            int maxBarRight = (safeWidth >= MIN_PANEL_WIDTH) ? (panelStartX - PANEL_MARGIN) : (screenW - 4);
+            int barW = Math.min(AmiConfig.searchBarWidth, screenW - 8);
+            int barX = Math.max(4, (screenW - barW) / 2);
+            if (barX + barW > maxBarRight) {
+                barX = Math.max(4, maxBarRight - barW);
+                barW = Math.max(60, Math.min(barW, maxBarRight - barX));
+            }
+            searchBar.updateBounds(new WidgetBounds(barX, screenH - BOTTOM_BAR_H + 2, barW, SEARCH_H));
         }
-        searchBar.updateBounds(new WidgetBounds(barX, screenH - BOTTOM_BAR_H + 2, barW, SEARCH_H));
     }
 
     private void placeSideSlots(Rect sideSlot, List<AmiConfig.PanelContent> contents, List<PanelSlot> pool) {
@@ -224,6 +232,7 @@ public class OverlayWidgetManager {
         ensureWidgets();
         activeSlots.clear();
         hideAllSlots();
+        searchBarEmbedded = false;
         lastScreenH = screenH;
 
         amiButton.updateBounds(new WidgetBounds(AMI_BTN_X, screenH - AMI_BTN_H - AMI_BTN_MARGIN, AMI_BTN_W, AMI_BTN_H));
@@ -269,20 +278,33 @@ public class OverlayWidgetManager {
             List<AmiConfig.PanelContent> rightContents = rightContents();
             placeSideSlots(rightSlot, rightContents, rightSlotPool);
             lastResultsBounds = rightSlot.toWidgetBounds();
+            if (shouldEmbedSearchBar(rightContents, lastResultsBounds)) {
+                searchBar.updateBounds(UniversalResultsPanel.embeddedSearchBounds(lastResultsBounds));
+                searchBarEmbedded = true;
+            }
             rightStripBounds = new WidgetBounds(panelStartX, 0, screenW - panelStartX, screenH - BOTTOM_BAR_H);
         } else {
             lastResultsBounds = null;
             rightStripBounds = null;
         }
 
-        int maxBarRight = (safeWidth >= MIN_PANEL_WIDTH) ? (panelStartX - PANEL_MARGIN) : (screenW - 4);
-        int barW = Math.min(AmiConfig.searchBarWidth, screenW - 8);
-        int barX = Math.max(4, (screenW - barW) / 2);
-        if (barX + barW > maxBarRight) {
-            barX = Math.max(4, maxBarRight - barW);
-            barW = Math.max(60, Math.min(barW, maxBarRight - barX));
+        if (!searchBarEmbedded) {
+            int maxBarRight = (safeWidth >= MIN_PANEL_WIDTH) ? (panelStartX - PANEL_MARGIN) : (screenW - 4);
+            int barW = Math.min(AmiConfig.searchBarWidth, screenW - 8);
+            int barX = Math.max(4, (screenW - barW) / 2);
+            if (barX + barW > maxBarRight) {
+                barX = Math.max(4, maxBarRight - barW);
+                barW = Math.max(60, Math.min(barW, maxBarRight - barX));
+            }
+            searchBar.updateBounds(new WidgetBounds(barX, screenH - BOTTOM_BAR_H + 2, barW, SEARCH_H));
         }
-        searchBar.updateBounds(new WidgetBounds(barX, screenH - BOTTOM_BAR_H + 2, barW, SEARCH_H));
+    }
+
+    private boolean shouldEmbedSearchBar(List<AmiConfig.PanelContent> contents, WidgetBounds panelBounds) {
+        if (contents == null || contents.isEmpty() || panelBounds == null) return false;
+        AmiConfig.PanelContent first = contents.get(0);
+        return (first == AmiConfig.PanelContent.GRID || first == AmiConfig.PanelContent.LIST)
+                && UniversalResultsPanel.supportsEmbeddedSearch(panelBounds);
     }
 
     private boolean isSearchContent(AmiConfig.PanelContent content) {
@@ -366,8 +388,8 @@ public class OverlayWidgetManager {
             amiButton.render(g, mx, my, pt);
 
             if (panelVisible) {
-                searchBar.render(g, mx, my, pt);
                 renderPanels(g, mx, my, pt);
+                renderSearchBar(g, mx, my, pt);
             }
 
             g.pose().popPose();
@@ -406,6 +428,17 @@ public class OverlayWidgetManager {
             g.pose().popPose();
         }
 
+        g.pose().popPose();
+        g.flush();
+    }
+
+    public void renderSearchBar(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
+        if (!panelVisible || searchBar == null) return;
+        g.flush();
+        com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
+        g.pose().pushPose();
+        g.pose().translate(0, 0, OverlayLayers.PANEL + 1);
+        searchBar.render(g, mx, my, pt);
         g.pose().popPose();
         g.flush();
     }

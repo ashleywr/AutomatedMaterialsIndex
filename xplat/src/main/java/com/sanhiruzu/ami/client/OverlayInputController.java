@@ -48,13 +48,13 @@ public final class OverlayInputController {
 
         if (!amiEnabled || !manager.isPanelVisible()) return false;
 
-        if (manager.mouseClicked(mouseX, mouseY, button)) {
-            return true;
-        }
-
         if (searchBar.isMouseOver(mouseX, mouseY)) {
             searchBar.focusForInput();
             searchBar.mouseClicked(mouseX, mouseY, button);
+            return true;
+        }
+
+        if (manager.mouseClicked(mouseX, mouseY, button)) {
             return true;
         }
 

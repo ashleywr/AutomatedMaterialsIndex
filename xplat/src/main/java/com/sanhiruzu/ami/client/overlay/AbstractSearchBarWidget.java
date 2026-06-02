@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client.overlay;
 
 import com.sanhiruzu.ami.client.AMITheme;
+import com.sanhiruzu.ami.client.AmiGuiIcons;
 import com.sanhiruzu.ami.client.results.SearchQueryHistory;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.GlobalIndex;
@@ -124,15 +125,12 @@ public abstract class AbstractSearchBarWidget extends EditBox {
             border = (alpha / 2 << 24) | (border & 0x00FFFFFF);
         }
 
-        g.fill(x, y, x + w, y + h, bgColor);
-
+        AMITheme.fillInsetRect(g, x, y, w, h, bgColor, focused);
         g.fill(x, y, x + w, y + 1, border);
-        g.fill(x, y + h - 1, x + w, y + h, border);
-        g.fill(x, y + 1, x + 1, y + h - 1, border);
-        g.fill(x + w - 1, y + 1, x + w, y + h - 1, border);
 
-        int textX = x + 5;
+        int textX = x + 18;
         int textY = y + (h - font.lineHeight) / 2 + 1;
+        AmiGuiIcons.search(g, x + 9, y + h / 2, focused ? AMITheme.TEXT_HEADER : AMITheme.SEARCH_PLACEHOLDER);
         String value = getValue();
         int reservedActionW = HELP_BUTTON_W + 4 + (value.isEmpty() ? 0 : CLEAR_BUTTON_W);
         int maxTextWidth = Math.max(20, w - 10 - reservedActionW);
