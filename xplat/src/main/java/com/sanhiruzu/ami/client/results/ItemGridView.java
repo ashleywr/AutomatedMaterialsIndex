@@ -321,7 +321,7 @@ public class ItemGridView {
         int labelMaxW = Math.max(0, countX - rowX - 6);
         String label = truncate(font, hr.node().getLabel().getString(), labelMaxW);
         int labelColor = hr.depth() == 0 ? AMITheme.ACCENT_GOLD : AMITheme.TEXT_HEADER;
-        g.drawString(font, label, rowX, textY, labelColor, hr.depth() == 0);
+        g.drawString(font, label, rowX, textY, labelColor, false);
         g.drawString(font, count, countX, textY, AMITheme.TEXT_SUBTLE, false);
     }
 
@@ -604,7 +604,7 @@ public class ItemGridView {
         List<TreeNode> linearItems = new ArrayList<>();
         BandSequence bands = new BandSequence();
         for (TreeNode root : rootNodes) {
-            processNode(root, 0, cols, rows, linearItems, bands);
+            processNode(root, 0, cols, rows, linearItems, bands, false);
         }
         packIntoRows(linearItems, cols, rows, 0, false);
 
@@ -615,24 +615,36 @@ public class ItemGridView {
     // Virtual row construction
     // =========================================================
 
-    private void processNode(TreeNode node, int depth, int cols, List<VirtualRow> out, List<TreeNode> linearItems, BandSequence bands) {
+    private void processNode(TreeNode node, int depth, int cols, List<VirtualRow> out, List<TreeNode> linearItems,
+                             BandSequence bands, boolean alternateBand) {
         if (node.isLeaf()) {
             linearItems.add(node);
         } else if (node.isHighCardinality()) {
-            linearItems.add(node);
             if (node.isExpanded()) {
+                packIntoRows(linearItems, cols, out, depth, alternateBand);
+                linearItems.clear();
+
+                List<TreeNode> groupItems = new ArrayList<>();
+                List<TreeNode> nestedGroups = new ArrayList<>();
+                groupItems.add(node);
                 expandedGroupCache.put(node, node);
                 for (TreeNode child : node.getChildren()) {
                     if (child.isLeaf()) {
-                        linearItems.add(child);
+                        groupItems.add(child);
                         expandedGroupCache.put(child, node);
                     } else {
-                        processNode(child, depth, cols, out, linearItems, bands);
+                        nestedGroups.add(child);
                     }
                 }
+                packIntoRows(groupItems, cols, out, depth, alternateBand);
+                for (TreeNode childGroup : nestedGroups) {
+                    processNode(childGroup, depth, cols, out, linearItems, bands, alternateBand);
+                }
+            } else {
+                linearItems.add(node);
             }
         } else {
-            packIntoRows(linearItems, cols, out, depth, false);
+            packIntoRows(linearItems, cols, out, depth, alternateBand);
             linearItems.clear();
 
             boolean nodeBand = bands.nextBand();
@@ -649,13 +661,13 @@ public class ItemGridView {
                         .toList();
 
                 for (TreeNode child : inlineItems) {
-                    processNode(child, depth + 1, cols, out, linearItems, bands);
+                    processNode(child, depth + 1, cols, out, linearItems, bands, nodeBand);
                 }
                 packIntoRows(linearItems, cols, out, depth + 1, nodeBand);
                 linearItems.clear();
 
                 for (TreeNode childGroup : childGroups) {
-                    processNode(childGroup, depth + 1, cols, out, linearItems, bands);
+                    processNode(childGroup, depth + 1, cols, out, linearItems, bands, nodeBand);
                 }
             }
         }

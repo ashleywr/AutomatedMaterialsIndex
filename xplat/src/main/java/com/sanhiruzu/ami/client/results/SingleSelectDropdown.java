@@ -50,7 +50,7 @@ public class SingleSelectDropdown<T> implements Dropdown {
         boolean hovered = canOpen && Dropdown.contains(mouseX, mouseY, x, y, width, HEIGHT);
         int bgColor = (open || hovered) ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
 
-        AMITheme.fillInsetRect(g, x, y, width, HEIGHT, bgColor, open);
+        AMITheme.fillControlChrome(g, x, y, width, HEIGHT, bgColor, open);
         Component textComp = displayName.apply(selected);
         String text = textComp.getString();
         var font = Minecraft.getInstance().font;

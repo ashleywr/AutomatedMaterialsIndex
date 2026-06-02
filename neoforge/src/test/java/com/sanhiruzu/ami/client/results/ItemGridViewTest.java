@@ -119,6 +119,31 @@ public class ItemGridViewTest {
     }
 
     @Test
+    void expandedHighCardinalityGroupDoesNotShareRowWithFollowingLooseItems() throws Exception {
+        ItemGridView gridView = new ItemGridView(0, 0, 81, 100);
+
+        TreeNode group = new TreeNode("cardinality:minecraft:dragon_scale", Component.literal("Dragon Scales"));
+        group.setHighCardinality(true);
+        group.setExpanded(true);
+        group.addChild(leaf("red_dragon_scale", "Red Dragon Scale"));
+        group.addChild(leaf("blue_dragon_scale", "Blue Dragon Scale"));
+
+        gridView.setRootNodes(List.of(group, leaf("apple", "Apple")));
+        gridView.expandAll();
+
+        Method buildVirtualRows = ItemGridView.class.getDeclaredMethod("buildVirtualRows", int.class);
+        buildVirtualRows.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        List<Object> rows = (List<Object>) buildVirtualRows.invoke(gridView, 4);
+
+        assertEquals(2, rows.size());
+        assertEquals(3, itemCount(rows.get(0)));
+        assertEquals("Dragon Scales", itemLabel(rows.get(0), 0));
+        assertEquals(1, itemCount(rows.get(1)));
+        assertEquals("Apple", itemLabel(rows.get(1), 0));
+    }
+
+    @Test
     void mixedGroupChildrenRenderLooseItemsBeforeSubheaders() throws Exception {
         ItemGridView gridView = new ItemGridView(0, 0, 61, 100);
 

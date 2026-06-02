@@ -38,7 +38,7 @@ final class ResultsGroupingPostProcessor {
     }
 
     static List<TreeNode> applyToFlatCards(List<TreeNode> flat) {
-        return applyDuplicateLabelGrouping(applyExplicitFamilyGrouping(applyHighCardinalityGrouping(flat)));
+        return applyDuplicateLabelGrouping(applyExplicitFamilyGrouping(applyHighCardinalityGrouping(flat), true), true);
     }
 
     private static List<TreeNode> applyMaterialGroupingPasses(List<TreeNode> tree) {
@@ -50,7 +50,7 @@ final class ResultsGroupingPostProcessor {
     }
 
     private static List<TreeNode> applyFamilyGroupingPasses(List<TreeNode> tree) {
-        return applyDuplicateLabelGrouping(applyExplicitFamilyGrouping(applyHighCardinalityGrouping(tree)));
+        return applyDuplicateLabelGrouping(applyExplicitFamilyGrouping(applyHighCardinalityGrouping(tree), false), false);
     }
 
     /**
@@ -215,7 +215,7 @@ final class ResultsGroupingPostProcessor {
         return "auto".equals(mode) || "default_collapsed".equals(mode);
     }
 
-    private static List<TreeNode> applyExplicitFamilyGrouping(List<TreeNode> nodes) {
+    private static List<TreeNode> applyExplicitFamilyGrouping(List<TreeNode> nodes, boolean compactCards) {
         List<TreeNode> recursive = new ArrayList<>();
         for (TreeNode node : nodes) {
             if (node.isLeaf()) {
@@ -224,7 +224,7 @@ final class ResultsGroupingPostProcessor {
             }
 
             TreeNode processedGroup = copyGroupNode(node);
-            processedGroup.getChildren().addAll(applyExplicitFamilyGrouping(node.getChildren()));
+            processedGroup.getChildren().addAll(applyExplicitFamilyGrouping(node.getChildren(), compactCards));
             recursive.add(processedGroup);
         }
 
@@ -245,7 +245,7 @@ final class ResultsGroupingPostProcessor {
             String label = familyLabels.getOrDefault(familyKey,
                     ResultsGroupLabels.formatGroupLabel(ResultsGroupLabels.formatGroupKey(familyKey, false)));
             TreeNode group = new TreeNode("cardinality:family:" + familyKey, Component.literal(label));
-            group.setHighCardinality(false);
+            group.setHighCardinality(compactCards);
             group.setExpanded(true);
             group.getChildren().addAll(entry.getValue());
             for (TreeNode member : entry.getValue()) {
@@ -272,7 +272,7 @@ final class ResultsGroupingPostProcessor {
         return result;
     }
 
-    private static List<TreeNode> applyDuplicateLabelGrouping(List<TreeNode> nodes) {
+    private static List<TreeNode> applyDuplicateLabelGrouping(List<TreeNode> nodes, boolean compactCards) {
         List<TreeNode> recursive = new ArrayList<>();
         for (TreeNode node : nodes) {
             if (node.isLeaf() || isIntentionalLeafFamily(node)) {
@@ -281,7 +281,7 @@ final class ResultsGroupingPostProcessor {
             }
 
             TreeNode processedGroup = copyGroupNode(node);
-            processedGroup.getChildren().addAll(applyDuplicateLabelGrouping(node.getChildren()));
+            processedGroup.getChildren().addAll(applyDuplicateLabelGrouping(node.getChildren(), compactCards));
             recursive.add(processedGroup);
         }
 
@@ -297,7 +297,7 @@ final class ResultsGroupingPostProcessor {
         for (var entry : membersByLabel.entrySet()) {
             List<TreeNode> members = entry.getValue();
             if (members.size() < DUPLICATE_LABEL_THRESHOLD) continue;
-            TreeNode group = duplicateLabelGroup(entry.getKey(), members);
+            TreeNode group = duplicateLabelGroup(entry.getKey(), members, compactCards);
             for (TreeNode member : members) {
                 replacementGroups.put(member, group);
             }
@@ -346,9 +346,10 @@ final class ResultsGroupingPostProcessor {
         return group;
     }
 
-    private static TreeNode duplicateLabelGroup(String label, List<TreeNode> members) {
+    private static TreeNode duplicateLabelGroup(String label, List<TreeNode> members, boolean compactCards) {
         TreeNode group = new TreeNode("duplicate_label:" + label.toLowerCase(Locale.ROOT).replace(' ', '_'),
                 Component.literal(pluralize(label)));
+        group.setHighCardinality(compactCards);
         group.setExpanded(true);
         group.getChildren().addAll(members);
         return group;

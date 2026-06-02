@@ -35,7 +35,7 @@ public class RowFieldPickerDropdown {
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
         boolean hovered = Dropdown.contains(mouseX, mouseY, x, y, width, BTN_H);
-        AMITheme.fillInsetRect(g, x, y, width, BTN_H,
+        AMITheme.fillControlChrome(g, x, y, width, BTN_H,
                 open || hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG, open);
 
         var font = Minecraft.getInstance().font;
