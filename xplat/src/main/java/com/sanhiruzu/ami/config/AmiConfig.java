@@ -80,6 +80,7 @@ public class AmiConfig {
     public static String subtitleFields = "MOD_NAME";
     public static int subtitleFieldsChecksum = 0;
     // --- Interaction & Search ---
+    @ConfigGroup(value = "interaction", icon = "interaction", order = 2)
     @ConfigValue("ui.item-click-action")
     public static ItemClickAction itemClickAction = ItemClickAction.RECIPES;
 
@@ -95,6 +96,9 @@ public class AmiConfig {
 
     @ConfigValue("features.pack-author-mode")
     public static boolean packAuthorMode = false;
+
+    @ConfigValue("ui.confirm-external-links")
+    public static boolean confirmExternalLinks = true;
 
     @ConfigHidden
     @ConfigValue("features.guide-summary-text-cap")
@@ -293,6 +297,7 @@ public class AmiConfig {
         enableGhostCrafting = true;
         guideIndexingMode = GuideIndexingMode.TITLES;
         packAuthorMode = false;
+        confirmExternalLinks = true;
         guideSummaryTextCap = 4096;
         contextMenuEnabledActions = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,ami:group_toggle,ami:filter_category,ami:copy_group_key,ami:start_category_fix,ami:apply_category_fix,ami:clear_item_fix,ami:quests_for_item,ami:open_quest,ami:copy_quest_matches";
         contextMenuDisabledByMod = "";
