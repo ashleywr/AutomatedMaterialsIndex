@@ -35,7 +35,7 @@ public class ItemGridView {
     private static final int HEADER_INDENT = 12;
     private static final int GRID_LEFT_PAD = 1;
     private static final int ICON_CACHE_PRIME_BUDGET = 12;
-    private static final boolean TEXTURE_ITEM_ICON_CACHE_ENABLED = Boolean.getBoolean("ami.itemIconCache");
+    private static final boolean TEXTURE_ITEM_ICON_CACHE_ENABLED = Boolean.getBoolean("ami." + "itemIconCache");
     private Object itemIconBatchRenderer;
     private final List<PendingItemIcon> pendingDirectItemIcons = new ArrayList<>();
     private final List<PendingRendererIcon> pendingRendererIcons = new ArrayList<>();
