@@ -11,6 +11,7 @@ import com.sanhiruzu.ami.compat.CompatRegistry;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.config.AmiDataFixes;
+import com.sanhiruzu.ami.index.AmiIndexProgress;
 import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
@@ -46,6 +47,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private static final int COMPACT_CONTROL_H = ResultsToolbar.BUTTON_H;
     // Sidebar header height
     private static final int FAV_HEADER_H = 18;
+    private static final int SIDEBAR_RAIL_MAX_W = 64;
+    private static final int SIDEBAR_RAIL_MAX_H = 44;
     private static final int SIDEBAR_SWAP_W = 18;
     private static final int SIDEBAR_SWAP_H = ResultsToolbar.BUTTON_H;
     private static final double DRAG_THRESHOLD = 5.0;
@@ -93,6 +96,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     // State tracking to trigger auto-refreshes when player context changes
     private net.minecraft.world.level.GameType lastPlayerMode = null;
     private boolean lastDevMode = false;
+    private long lastIndexProgressRefreshMs = 0L;
 
     public UniversalResultsPanel(int x, int y, int width, int height) {
         this.x = x;
@@ -176,9 +180,17 @@ public class UniversalResultsPanel implements SearchState.Listener {
         return isForcedCompactByScreenSize() && isCompactLayout();
     }
 
+    private boolean isSidebarRailLayout() {
+        return isFavoritesPanel && (width <= SIDEBAR_RAIL_MAX_W || height <= SIDEBAR_RAIL_MAX_H);
+    }
+
+    private int sidebarPadding() {
+        return isSidebarRailLayout() ? 1 : AMITheme.GLOBAL_PADDING;
+    }
+
     private void initChildren() {
-        int innerX = x + AMITheme.GLOBAL_PADDING;
-        int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
+        int innerX = x + sidebarPadding();
+        int innerW = width - (sidebarPadding() * 2);
 
         boolean compact = isCompactLayout();
         int headerH = compact ? COMPACT_HEADER_H : HEADER_H;
@@ -195,7 +207,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
         this.toolbar = new ResultsToolbar(toolbarX, toolbarY, toolbarW, state);
 
         int contentY, contentH;
-        if (isFavoritesPanel) {
+        if (isSidebarRailLayout()) {
+            contentY = y + 3;
+            contentH = height - 6;
+        } else if (isFavoritesPanel) {
             contentY = y + FAV_HEADER_H;
             contentH = height - FAV_HEADER_H - AMITheme.GLOBAL_PADDING;
         } else {
@@ -323,15 +338,20 @@ public class UniversalResultsPanel implements SearchState.Listener {
         this.width = width;
         this.height = height;
 
-        int innerX = x + AMITheme.GLOBAL_PADDING;
-        int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
+        int innerX = x + sidebarPadding();
+        int innerW = width - (sidebarPadding() * 2);
 
         // View switch stays at the left edge of the header, before sort/group controls.
         this.toggleX = innerX;
         this.toggleY = y + AMITheme.GLOBAL_PADDING;
         updateCompactControlPositions(innerX, innerW);
 
-        if (isFavoritesPanel) {
+        if (isSidebarRailLayout()) {
+            int contentY = y + 3;
+            int contentH = height - 6;
+            treeView.updateLayout(innerX, contentY, innerW, contentH);
+            gridView.updateLayout(innerX, contentY, innerW, contentH);
+        } else if (isFavoritesPanel) {
             int contentY = y + FAV_HEADER_H;
             int contentH = height - FAV_HEADER_H - AMITheme.GLOBAL_PADDING;
             treeView.updateLayout(innerX, contentY, innerW, contentH);
@@ -353,165 +373,239 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        AMITheme.sync();
-        checkPlayerStateChanged();
+        try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("panel.render")) {
+            checkPlayerStateChanged();
+            refreshIndexProgressIfNeeded();
 
-        if (AmiConfig.theme == AmiConfig.Theme.VANILLA) {
-            g.blit(PANEL_SPRITE, x, y, 0, 0, width, height);
-        } else {
-            com.mojang.blaze3d.systems.RenderSystem.enableBlend();
-            com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
-            AMITheme.fillPanelChrome(g, x, y, width, height);
+            if (AmiConfig.theme == AmiConfig.Theme.VANILLA) {
+                g.blit(PANEL_SPRITE, x, y, 0, 0, width, height);
+            } else {
+                try (AmiRenderProfiler.Section chrome = AmiRenderProfiler.section("panel.chrome")) {
+                    com.mojang.blaze3d.systems.RenderSystem.enableBlend();
+                    com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
+                    AMITheme.fillPanelChrome(g, x, y, width, height);
 
-            // Add subtle borders, only if defined by the theme.
-            if (AMITheme.BORDER_LIGHT != 0) {
-                g.fill(x + 2, y + 1, x + width - 2, y + 2, AMITheme.BORDER_LIGHT);
-                g.fill(x + 2, y + height - 2, x + width - 2, y + height - 1, AMITheme.CONTROL_EDGE_DARK);
+                    // Add subtle borders, only if defined by the theme.
+                    if (AMITheme.BORDER_LIGHT != 0) {
+                        g.fill(x + 2, y + 1, x + width - 2, y + 2, AMITheme.BORDER_LIGHT);
+                        g.fill(x + 2, y + height - 2, x + width - 2, y + height - 1, AMITheme.CONTROL_EDGE_DARK);
+                    }
+                    com.mojang.blaze3d.systems.RenderSystem.disableBlend();
+                }
             }
-            com.mojang.blaze3d.systems.RenderSystem.disableBlend();
-        }
 
-        boolean compact = isCompactLayout();
+            boolean compact = isCompactLayout();
 
-        if (!isFavoritesPanel) {
+            if (!isFavoritesPanel) {
+                int headerY = y + AMITheme.GLOBAL_PADDING;
+                int headerH = compact ? COMPACT_HEADER_H : HEADER_H;
+                int sepY = headerY + headerH;
+                int contentY = sepY + AMITheme.ELEMENT_GAP;
+                renderPanelSurfaces(g, headerY, headerH, contentY);
+            } else if (isSidebarRailLayout()) {
+                renderSidebarRailSurfaces(g);
+            } else if (!chromeOnly) {
+                renderFavoritesSurfaces(g);
+            }
+
+            if (isSidebarRailLayout()) {
+                if (displayedItemCount == 0) {
+                    return;
+                }
+                gridView.render(g, mouseX, mouseY, contextMenu.isOpen());
+                return;
+            }
+
+            if (isFavoritesPanel) {
+                if (chromeOnly) {
+                    return;
+                }
+                var font = Minecraft.getInstance().font;
+                Component title = panelTitle != null ? panelTitle : Component.translatable("ami.gui.favorites");
+                int titleRight = hasSidebarAlternate()
+                        ? sidebarSwapX() - AMITheme.ELEMENT_GAP
+                        : x + width - AMITheme.GLOBAL_PADDING;
+                String titleText = truncate(font, title.getString(), Math.max(0, titleRight - x - AMITheme.GLOBAL_PADDING));
+                g.drawString(font, titleText, x + AMITheme.GLOBAL_PADDING, y + (FAV_HEADER_H - font.lineHeight) / 2, AMITheme.TEXT_HEADER, false);
+
+                if (hasSidebarAlternate()) {
+                    renderSidebarToggle(g, mouseX, mouseY);
+                }
+
+                g.fill(x + 3, y + FAV_HEADER_H - 1, x + width - 3, y + FAV_HEADER_H, AMITheme.SECTION_SEP);
+
+                if (displayedItemCount == 0) {
+                    renderSidebarEmptyState(g);
+                    return;
+                }
+
+                if (isGridActive()) {
+                    gridView.render(g, mouseX, mouseY, contextMenu.isOpen());
+                } else {
+                    treeView.render(g, mouseX, mouseY, contextMenu.isOpen(), null, state);
+                }
+                return;
+            }
+
+            // Shared header geometry — compact mode uses smaller header height
             int headerY = y + AMITheme.GLOBAL_PADDING;
             int headerH = compact ? COMPACT_HEADER_H : HEADER_H;
             int sepY = headerY + headerH;
             int contentY = sepY + AMITheme.ELEMENT_GAP;
-            renderPanelSurfaces(g, headerY, headerH, contentY);
-        } else if (!chromeOnly) {
-            renderFavoritesSurfaces(g);
-        }
 
-        if (isFavoritesPanel) {
-            if (chromeOnly) {
+            if (compact) {
+                var font = Minecraft.getInstance().font;
+
+                // Item count centered vertically in the header strip
+                String countStr = Component.translatable("ami.gui.items_label", displayedItemCount).getString();
+                int textY = headerY + (headerH - font.lineHeight) / 2;
+                int countX = toggleX + TOGGLE_W + AMITheme.ELEMENT_GAP;
+                int countRight = compactControlsFit() ? compactSortX - AMITheme.ELEMENT_GAP : x + width - AMITheme.GLOBAL_PADDING;
+                String clippedCount = truncate(font, countStr, Math.max(0, countRight - countX));
+                g.drawString(font, clippedCount, countX, textY, AMITheme.TEXT_SUBTLE, false);
+
+                renderToggleBtn(g, mouseX, mouseY);
+                renderCompactControls(g, mouseX, mouseY);
+
+                g.fill(x + 3, sepY, x + width - 3, sepY + 1, AMITheme.SECTION_SEP);
+
+                if (!com.sanhiruzu.ami.index.GlobalIndex.getInstance().isIndexReady()) {
+                    renderCompactIndexingProgress(g, contentY);
+                } else {
+                    gridView.render(g, mouseX, mouseY, contextMenu.isOpen());
+                }
+                if (!contextMenu.isOpen()) {
+                    renderToggleTooltip(g, mouseX, mouseY);
+                    renderCompactControlTooltips(g, mouseX, mouseY);
+                }
                 return;
             }
+
+            // Full mode
             var font = Minecraft.getInstance().font;
-            Component title = panelTitle != null ? panelTitle : Component.translatable("ami.gui.favorites");
-            int titleRight = hasSidebarAlternate()
-                    ? sidebarSwapX() - AMITheme.ELEMENT_GAP
-                    : x + width - AMITheme.GLOBAL_PADDING;
-            String titleText = truncate(font, title.getString(), Math.max(0, titleRight - x - AMITheme.GLOBAL_PADDING));
-            g.drawString(font, titleText, x + AMITheme.GLOBAL_PADDING, y + (FAV_HEADER_H - font.lineHeight) / 2, AMITheme.TEXT_HEADER, false);
-
-            if (hasSidebarAlternate()) {
-                renderSidebarToggle(g, mouseX, mouseY);
-            }
-
-            g.fill(x + 3, y + FAV_HEADER_H - 1, x + width - 3, y + FAV_HEADER_H, AMITheme.SECTION_SEP);
-
-            if (displayedItemCount == 0) {
-                renderSidebarEmptyState(g);
-                return;
-            }
-
-            if (isGridActive()) {
-                gridView.render(g, mouseX, mouseY, contextMenu.isOpen());
-            } else {
-                treeView.render(g, mouseX, mouseY, contextMenu.isOpen(), null, state);
-            }
-            return;
-        }
-
-        // Shared header geometry — compact mode uses smaller header height
-        int headerY = y + AMITheme.GLOBAL_PADDING;
-        int headerH = compact ? COMPACT_HEADER_H : HEADER_H;
-        int sepY = headerY + headerH;
-        int contentY = sepY + AMITheme.ELEMENT_GAP;
-
-        if (compact) {
-            var font = Minecraft.getInstance().font;
-
-            // Item count centered vertically in the header strip
-            String countStr = Component.translatable("ami.gui.items_label", displayedItemCount).getString();
-            int textY = headerY + (headerH - font.lineHeight) / 2;
-            int countX = toggleX + TOGGLE_W + AMITheme.ELEMENT_GAP;
-            int countRight = compactControlsFit() ? compactSortX - AMITheme.ELEMENT_GAP : x + width - AMITheme.GLOBAL_PADDING;
-            String clippedCount = truncate(font, countStr, Math.max(0, countRight - countX));
-            g.drawString(font, clippedCount, countX, textY, AMITheme.TEXT_SUBTLE, false);
-
+            toolbar.render(g, mouseX, mouseY);
             renderToggleBtn(g, mouseX, mouseY);
-            renderCompactControls(g, mouseX, mouseY);
 
             g.fill(x + 3, sepY, x + width - 3, sepY + 1, AMITheme.SECTION_SEP);
 
-            if (!com.sanhiruzu.ami.index.GlobalIndex.getInstance().isIndexReady()) {
-                g.drawString(font, Component.translatable("ami.gui.loading_dots"), x + AMITheme.GLOBAL_PADDING, contentY, AMITheme.TEXT_SUBTLE, false);
+            if (!com.sanhiruzu.ami.index.AmiIndexerService.getInstance().isReady() && currentResults.isEmpty() && currentQuery.isEmpty()) {
+                renderIndexingProgress(g, contentY);
             } else {
-                gridView.render(g, mouseX, mouseY, contextMenu.isOpen());
+                boolean dropdownOpen = toolbar.isAnyDropdownOpen() || contextMenu.isOpen();
+                renderQuestRows(g, mouseX, mouseY);
+                renderGuideRows(g, mouseX, mouseY);
+                if (isGridActive()) {
+                    gridView.render(g, mouseX, mouseY, dropdownOpen);
+                } else {
+                    treeView.render(g, mouseX, mouseY, dropdownOpen, null, state);
+                }
             }
-            if (!contextMenu.isOpen()) {
+
+            if (!toolbar.isAnyDropdownOpen() && !contextMenu.isOpen()) {
                 renderToggleTooltip(g, mouseX, mouseY);
-                renderCompactControlTooltips(g, mouseX, mouseY);
+                renderQuestTooltip(g, mouseX, mouseY);
+                renderGuideTooltip(g, mouseX, mouseY);
             }
-            return;
-        }
-
-        // Full mode
-        var font = Minecraft.getInstance().font;
-        toolbar.render(g, mouseX, mouseY);
-        renderToggleBtn(g, mouseX, mouseY);
-
-        g.fill(x + 3, sepY, x + width - 3, sepY + 1, AMITheme.SECTION_SEP);
-
-        if (!com.sanhiruzu.ami.index.AmiIndexerService.getInstance().isReady() && currentResults.isEmpty() && currentQuery.isEmpty()) {
-            net.minecraft.network.chat.Component msg = net.minecraft.network.chat.Component.translatable("ami.gui.background_indexing")
-                    .withStyle(net.minecraft.ChatFormatting.GOLD);
-            int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
-            int textMaxWidth = Math.max(32, width - (AMITheme.GLOBAL_PADDING * 4));
-            List<net.minecraft.util.FormattedCharSequence> lines = font.split(msg, textMaxWidth);
-            int blockH = lines.size() * font.lineHeight;
-            int drawY = contentY + Math.max(0, (contentH - blockH) / 2);
-            for (net.minecraft.util.FormattedCharSequence line : lines) {
-                int lineW = font.width(line);
-                g.drawString(font, line, x + (width - lineW) / 2, drawY, com.sanhiruzu.ami.client.AMITheme.WHITE, false);
-                drawY += font.lineHeight;
-            }
-        } else {
-            boolean dropdownOpen = toolbar.isAnyDropdownOpen() || contextMenu.isOpen();
-            renderQuestRows(g, mouseX, mouseY);
-            renderGuideRows(g, mouseX, mouseY);
-            if (isGridActive()) {
-                gridView.render(g, mouseX, mouseY, dropdownOpen);
-            } else {
-                treeView.render(g, mouseX, mouseY, dropdownOpen, null, state);
-            }
-        }
-
-        if (!toolbar.isAnyDropdownOpen() && !contextMenu.isOpen()) {
-            renderToggleTooltip(g, mouseX, mouseY);
-            renderQuestTooltip(g, mouseX, mouseY);
-            renderGuideTooltip(g, mouseX, mouseY);
         }
     }
 
     private void renderPanelSurfaces(GuiGraphics g, int headerY, int headerH, int contentY) {
-        int panelX = x + 3;
-        int panelW = width - 6;
-        if (panelW <= 0) return;
+        try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("panel.surfaces")) {
+            int panelX = x + 3;
+            int panelW = width - 6;
+            if (panelW <= 0) return;
 
-        int headerSurfaceY = y + 3;
-        int headerSurfaceH = Math.max(0, headerY + headerH - headerSurfaceY);
-        AMITheme.fillPanelHeaderChrome(g, panelX, headerSurfaceY, panelW, headerSurfaceH);
+            int headerSurfaceY = y + 3;
+            int headerSurfaceH = Math.max(0, headerY + headerH - headerSurfaceY);
+            AMITheme.fillPanelHeaderChrome(g, panelX, headerSurfaceY, panelW, headerSurfaceH);
 
-        int contentSurfaceY = Math.max(headerY + headerH + 2, contentY - 2);
-        int contentSurfaceH = y + height - 3 - contentSurfaceY;
-        AMITheme.fillContentChrome(g, panelX, contentSurfaceY, panelW, contentSurfaceH);
+            int contentSurfaceY = Math.max(headerY + headerH + 2, contentY - 2);
+            int contentSurfaceH = y + height - 3 - contentSurfaceY;
+            AMITheme.fillContentChrome(g, panelX, contentSurfaceY, panelW, contentSurfaceH);
+        }
+    }
+
+    private void refreshIndexProgressIfNeeded() {
+        if (AmiIndexerService.getInstance().isReady()) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now - lastIndexProgressRefreshMs < 250L) {
+            return;
+        }
+        lastIndexProgressRefreshMs = now;
+        refreshTree();
+    }
+
+    private void renderCompactIndexingProgress(GuiGraphics g, int contentY) {
+        var font = Minecraft.getInstance().font;
+        AmiIndexProgress progress = AmiIndexerService.getInstance().progress();
+        String text = progress.message();
+        if (text == null || text.isBlank() || "Ready".equals(text)) {
+            text = Component.translatable("ami.gui.background_indexing").getString();
+        }
+        int maxW = Math.max(0, width - (AMITheme.GLOBAL_PADDING * 2));
+        g.drawString(font, truncate(font, text, maxW), x + AMITheme.GLOBAL_PADDING, contentY, AMITheme.TEXT_SUBTLE, false);
+    }
+
+    private void renderIndexingProgress(GuiGraphics g, int contentY) {
+        var font = Minecraft.getInstance().font;
+        AmiIndexProgress progress = AmiIndexerService.getInstance().progress();
+        String text = progress.message();
+        if (text == null || text.isBlank() || "Ready".equals(text)) {
+            text = Component.translatable("ami.gui.background_indexing").getString();
+        }
+
+        int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
+        int textMaxWidth = Math.max(32, width - (AMITheme.GLOBAL_PADDING * 4));
+        List<net.minecraft.util.FormattedCharSequence> lines = font.split(Component.literal(text).withStyle(net.minecraft.ChatFormatting.GOLD), textMaxWidth);
+        int barH = progress.percent() >= 0 ? 8 : 0;
+        int blockH = lines.size() * font.lineHeight + (barH > 0 ? barH + 7 : 0);
+        int drawY = contentY + Math.max(0, (contentH - blockH) / 2);
+        for (net.minecraft.util.FormattedCharSequence line : lines) {
+            int lineW = font.width(line);
+            g.drawString(font, line, x + (width - lineW) / 2, drawY, AMITheme.WHITE, false);
+            drawY += font.lineHeight;
+        }
+
+        int percent = progress.percent();
+        if (percent >= 0) {
+            int barW = Math.min(Math.max(72, width - AMITheme.GLOBAL_PADDING * 6), 180);
+            int barX = x + (width - barW) / 2;
+            int barY = drawY + 5;
+            int fillW = Math.max(0, Math.min(barW, Math.round(barW * (percent / 100.0F))));
+            g.fill(barX, barY, barX + barW, barY + barH, AMITheme.DROPDOWN_BG);
+            g.fill(barX, barY, barX + fillW, barY + barH, AMITheme.ACCENT_BLUE);
+            g.fill(barX, barY, barX + barW, barY + 1, AMITheme.SECTION_SEP);
+            g.fill(barX, barY + barH - 1, barX + barW, barY + barH, AMITheme.SECTION_SEP);
+            g.fill(barX, barY, barX + 1, barY + barH, AMITheme.SECTION_SEP);
+            g.fill(barX + barW - 1, barY, barX + barW, barY + barH, AMITheme.SECTION_SEP);
+        }
     }
 
     private void renderFavoritesSurfaces(GuiGraphics g) {
-        int panelX = x + 3;
-        int panelW = width - 6;
-        if (panelW <= 0) return;
+        try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("panel.surfaces")) {
+            int panelX = x + 3;
+            int panelW = width - 6;
+            if (panelW <= 0) return;
 
-        int headerSurfaceY = y + 3;
-        int headerSurfaceH = Math.max(0, FAV_HEADER_H - 3);
-        AMITheme.fillPanelHeaderChrome(g, panelX, headerSurfaceY, panelW, headerSurfaceH);
+            int headerSurfaceY = y + 3;
+            int headerSurfaceH = Math.max(0, FAV_HEADER_H - 3);
+            AMITheme.fillPanelHeaderChrome(g, panelX, headerSurfaceY, panelW, headerSurfaceH);
 
-        int contentSurfaceY = y + FAV_HEADER_H;
-        int contentSurfaceH = y + height - 3 - contentSurfaceY;
-        AMITheme.fillContentChrome(g, panelX, contentSurfaceY, panelW, contentSurfaceH);
+            int contentSurfaceY = y + FAV_HEADER_H;
+            int contentSurfaceH = y + height - 3 - contentSurfaceY;
+            AMITheme.fillContentChrome(g, panelX, contentSurfaceY, panelW, contentSurfaceH);
+        }
+    }
+
+    private void renderSidebarRailSurfaces(GuiGraphics g) {
+        try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("panel.surfaces")) {
+            int panelX = x + 2;
+            int panelW = width - 4;
+            if (panelW <= 0) return;
+            AMITheme.fillContentChrome(g, panelX, y + 2, panelW, height - 4);
+        }
     }
 
     public void renderOverlay(GuiGraphics g, int mouseX, int mouseY) {

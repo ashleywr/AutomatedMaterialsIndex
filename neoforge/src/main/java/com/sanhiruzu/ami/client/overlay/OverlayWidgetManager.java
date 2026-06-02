@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client.overlay;
 
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+import com.sanhiruzu.ami.client.AmiRenderProfiler;
 import com.sanhiruzu.ami.client.UniversalResultsPanel;
 import com.sanhiruzu.ami.api.AmiPluginRegistry;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
@@ -35,6 +36,11 @@ public class OverlayWidgetManager {
     private static final int AMI_BTN_H = 20;
     private static final int AMI_BTN_MARGIN = 2;
     private static final int MAX_MARGIN_CONTROL_H = 32;
+    private static final int TOP_MARGIN_CONTROL_MAX_Y = 96;
+    private static final int MIN_SIDE_PANEL_HEIGHT = 24;
+    private static final int MIN_SIDE_PANEL_WIDTH = 24;
+    private static final int MIN_SEARCH_PANEL_HEIGHT = 80;
+    private static final int WIDTH_SHRINK_STEP_PERCENT = 10;
     public static final int AMI_BTN_NEXT_X = AMI_BTN_X + AMI_BTN_W + AMI_BTN_MARGIN;
 
     private final List<PanelSlot> leftSlotPool = new ArrayList<>();
@@ -57,6 +63,9 @@ public class OverlayWidgetManager {
     private int lastLayoutSignature = Integer.MIN_VALUE;
     private boolean layoutDirty = true;
     private int lastThirdPartyMarginSignature = 0;
+    private final List<WidgetBounds> lastRejectedPanelBounds = new ArrayList<>();
+    private int lastAdaptiveLeftPanelWidth = -1;
+    private int lastAdaptiveRightPanelWidth = -1;
 
     public OverlayWidgetManager() {
     }
@@ -117,46 +126,41 @@ public class OverlayWidgetManager {
     }
 
     /**
-     * Returns the maximum bottom-Y of any small third-party control (not belonging to AMI)
-     * whose horizontal extent overlaps the given screen strip [stripX1, stripX2). This only
-     * avoids button-sized margin controls; larger overlay widgets, such as minimaps blurred
-     * behind inventory screens, should not push AMI panels into the lower corner.
+     * Returns the maximum bottom-Y of top-anchored third-party controls whose horizontal
+     * extent overlaps the given screen strip [stripX1, stripX2). Bottom margin controls
+     * such as FTB's "Dark Mode" button remain exclusions, but must not define where a
+     * panel can start below top sidebar buttons.
      */
-    private int thirdPartyWidgetBottomInStrip(Screen screen, int stripX1, int stripX2) {
+    private int thirdPartyWidgetBottomInStrip(Screen screen, int stripX1, int stripX2, int panelY, int panelBottom) {
         int maxBottom = 0;
-        for (var listener : screen.children()) {
-            if (!(listener instanceof AbstractWidget w)) continue;
-            if (!w.visible) continue;
-            if (w.getClass().getName().startsWith("com.sanhiruzu.ami")) continue;
-            int wx = w.getX(), wy = w.getY(), ww = w.getWidth(), wh = w.getHeight();
-            if (wh <= 0 || wh > MAX_MARGIN_CONTROL_H) continue;
-            if (wx < stripX2 && wx + ww > stripX1) {
-                maxBottom = Math.max(maxBottom, wy + wh);
-            }
-        }
-        for (WidgetBounds bounds : thirdPartyExclusionBounds(screen)) {
-            if (bounds.x() < stripX2
-                    && bounds.x() + bounds.width() > stripX1) {
-                maxBottom = Math.max(maxBottom, bounds.y() + bounds.height());
-            }
+        for (WidgetBounds bounds : topSideBlockers(screen, stripX1, stripX2, panelY, panelBottom)) {
+            maxBottom = Math.max(maxBottom, bounds.y() + bounds.height());
         }
         return maxBottom;
     }
 
     private int thirdPartyMarginSignature(Screen screen) {
         int signature = 1;
+        for (WidgetBounds bounds : thirdPartyMarginWidgetBounds(screen)) {
+            signature = 31 * signature + Objects.hash("third-party-widget", bounds);
+        }
+        for (WidgetBounds bounds : thirdPartyExclusionBounds(screen)) {
+            signature = 31 * signature + Objects.hash("third-party-zone", bounds);
+        }
+        return signature;
+    }
+
+    private List<WidgetBounds> thirdPartyMarginWidgetBounds(Screen screen) {
+        List<WidgetBounds> bounds = new ArrayList<>();
         for (var listener : screen.children()) {
             if (!(listener instanceof AbstractWidget w)) continue;
             if (!w.visible) continue;
             if (w.getClass().getName().startsWith("com.sanhiruzu.ami")) continue;
             int wh = w.getHeight();
             if (wh <= 0 || wh > MAX_MARGIN_CONTROL_H) continue;
-            signature = 31 * signature + Objects.hash(w.getClass().getName(), w.getX(), w.getY(), w.getWidth(), wh);
+            bounds.add(new WidgetBounds(w.getX(), w.getY(), w.getWidth(), wh));
         }
-        for (WidgetBounds bounds : thirdPartyExclusionBounds(screen)) {
-            signature = 31 * signature + Objects.hash("third-party-zone", bounds);
-        }
-        return signature;
+        return bounds;
     }
 
     private List<WidgetBounds> thirdPartyExclusionBounds(Screen screen) {
@@ -183,6 +187,10 @@ public class OverlayWidgetManager {
         activeSlots.clear();
         hideAllSlots();
         searchBarEmbedded = false;
+        leftStripBounds = null;
+        rightStripBounds = null;
+        lastResultsBounds = null;
+        lastRejectedPanelBounds.clear();
         lastScreenH = screenH;
 
         amiButton.updateBounds(new WidgetBounds(AMI_BTN_X, screenH - AMI_BTN_H - AMI_BTN_MARGIN, AMI_BTN_W, AMI_BTN_H));
@@ -196,56 +204,41 @@ public class OverlayWidgetManager {
         int containerRightEdge = containerScreen.getGuiLeft() + containerScreen.getXSize();
 
         List<AmiConfig.PanelContent> leftContents = leftContents();
-        if (!leftContents.isEmpty()) {
-            int leftW = Math.min(AmiConfig.leftPanelWidth, containerLeftEdge - PANEL_MARGIN * 2);
-            if (leftW >= 40) {
-                int thirdPartyBottom = thirdPartyWidgetBottomInStrip(containerScreen, 0, containerLeftEdge);
-                int leftY = thirdPartyBottom > panelY ? thirdPartyBottom + PANEL_MARGIN : panelY;
-                int leftH = panelBottom - leftY;
-                if (leftH >= 80) {
-                    Rect leftSlot = Rect.of(PANEL_MARGIN, leftY, leftW, leftH);
-                    placeSideSlots(leftSlot, leftContents, leftSlotPool);
-                    // Claim full left vertical strip to screen bottom so JEI can't use the corner
-                    leftStripBounds = new WidgetBounds(0, 0, leftSlot.x() + leftSlot.w(), screenH - BOTTOM_BAR_H);
-                } else {
-                    leftStripBounds = null;
-                }
+        List<AmiConfig.PanelContent> rightContents = rightContents();
+        boolean leftTaken = false;
+        boolean rightTaken = false;
+
+        PlacedSlot leftPlacement = placeResponsiveSideSlots(containerScreen, leftContents, leftSlotPool,
+                AmiConfig.leftPanelWidth, true, screenW, screenH, containerLeftEdge, containerRightEdge, panelY, panelBottom,
+                false, false);
+        if (leftPlacement != null) {
+            leftTaken = leftPlacement.leftSide();
+            rightTaken = !leftPlacement.leftSide();
+            claimStrip(leftPlacement.leftSide(), leftPlacement.rect(), screenW, screenH);
+            if (containsSearchContent(leftContents)) {
+                lastResultsBounds = leftPlacement.rect().toWidgetBounds();
             }
-        } else {
-            leftStripBounds = null;
         }
 
-        int safeWidth = screenW - containerRightEdge - PANEL_MARGIN * 2;
-        int panelStartX = screenW;
-        if (safeWidth >= MIN_PANEL_WIDTH) {
-            int configuredRightWidth = AmiConfig.rightPanelWidth > 0
-                    ? AmiConfig.rightPanelWidth
-                    : net.minecraft.util.Mth.clamp((int) (screenW * 0.35f), MIN_PANEL_WIDTH, MAX_PANEL_WIDTH);
-            int rw = net.minecraft.util.Mth.clamp(configuredRightWidth, MIN_PANEL_WIDTH, Math.min(safeWidth, MAX_PANEL_WIDTH));
-            panelStartX = screenW - rw - PANEL_MARGIN;
-            int thirdPartyBottom = thirdPartyWidgetBottomInStrip(containerScreen, containerRightEdge, screenW);
-            int rightY = thirdPartyBottom > panelY ? thirdPartyBottom + PANEL_MARGIN : panelY;
-            // Extend right panel to screen bottom so JEI's config button has no
-            // empty space to draw in below the panel.
-            int rightH = screenH - BOTTOM_BAR_H - PANEL_MARGIN_V - rightY;
-            Rect rightSlot = Rect.of(panelStartX, rightY, rw, rightH);
-
-            List<AmiConfig.PanelContent> rightContents = rightContents();
-            placeSideSlots(rightSlot, rightContents, rightSlotPool);
-            lastResultsBounds = rightSlot.toWidgetBounds();
-            if (shouldEmbedSearchBar(rightContents, lastResultsBounds)) {
-                searchBar.updateBounds(UniversalResultsPanel.embeddedSearchBounds(lastResultsBounds));
-                searchBarEmbedded = true;
+        int configuredRightWidth = AmiConfig.rightPanelWidth > 0
+                ? AmiConfig.rightPanelWidth
+                : net.minecraft.util.Mth.clamp((int) (screenW * 0.35f), MIN_PANEL_WIDTH, MAX_PANEL_WIDTH);
+        PlacedSlot rightPlacement = placeResponsiveSideSlots(containerScreen, rightContents, rightSlotPool,
+                configuredRightWidth, false, screenW, screenH, containerLeftEdge, containerRightEdge, panelY, panelBottom,
+                leftTaken, rightTaken);
+        if (rightPlacement != null) {
+            claimStrip(rightPlacement.leftSide(), rightPlacement.rect(), screenW, screenH);
+            if (containsSearchContent(rightContents)) {
+                lastResultsBounds = rightPlacement.rect().toWidgetBounds();
+                if (shouldEmbedSearchBar(rightContents, lastResultsBounds)) {
+                    searchBar.updateBounds(UniversalResultsPanel.embeddedSearchBounds(lastResultsBounds));
+                    searchBarEmbedded = true;
+                }
             }
-            // Claim full right vertical strip to screen bottom so JEI can't use the corner
-            rightStripBounds = new WidgetBounds(panelStartX, 0, screenW - panelStartX, screenH - BOTTOM_BAR_H);
-        } else {
-            lastResultsBounds = null;
-            rightStripBounds = null;
         }
 
         if (!searchBarEmbedded) {
-            int maxBarRight = (safeWidth >= MIN_PANEL_WIDTH) ? (panelStartX - PANEL_MARGIN) : (screenW - 4);
+            int maxBarRight = rightStripBounds != null ? rightStripBounds.x() - PANEL_MARGIN : (screenW - 4);
             int barW = Math.min(AmiConfig.searchBarWidth, screenW - 8);
             int barX = Math.max(4, (screenW - barW) / 2);
             if (barX + barW > maxBarRight) {
@@ -257,6 +250,212 @@ public class OverlayWidgetManager {
 
         lastThirdPartyMarginSignature = thirdPartyMarginSignature(containerScreen);
         rememberLayout(containerScreen, screenW, screenH);
+    }
+
+    private PlacedSlot placeResponsiveSideSlots(Screen screen, List<AmiConfig.PanelContent> contents, List<PanelSlot> pool,
+                                                int preferredWidth, boolean preferLeft, int screenW, int screenH,
+                                                int containerLeftEdge, int containerRightEdge, int panelY, int panelBottom,
+                                                boolean leftTaken, boolean rightTaken) {
+        if (contents.isEmpty()) return null;
+
+        boolean[] sides = preferLeft ? new boolean[]{true, false} : new boolean[]{false, true};
+        for (boolean leftSide : sides) {
+            if (leftSide && leftTaken || !leftSide && rightTaken) continue;
+            Rect slot = sideSlot(screen, contents, preferredWidth, leftSide, screenW, screenH,
+                    containerLeftEdge, containerRightEdge, panelY, panelBottom);
+            if (slot == null) continue;
+            placeSideSlots(slot, contents, pool);
+            rememberAdaptiveWidth(preferLeft, slot.w());
+            return new PlacedSlot(leftSide, slot);
+        }
+        return null;
+    }
+
+    private Rect sideSlot(Screen screen, List<AmiConfig.PanelContent> contents, int preferredWidth, boolean leftSide,
+                          int screenW, int screenH, int containerLeftEdge, int containerRightEdge,
+                          int panelY, int panelBottom) {
+        int stripX1 = leftSide ? 0 : containerRightEdge;
+        int stripX2 = leftSide ? containerLeftEdge : screenW;
+        int availableW = stripX2 - stripX1 - PANEL_MARGIN * 2;
+        int minW = minWidthFor(contents);
+        if (availableW < minW) {
+            if (!containsSearchContent(contents)) {
+                Rect forced = forcedSidebarSlot(screen, preferredWidth, leftSide, stripX1, stripX2, panelY, panelBottom);
+                if (forced != null) {
+                    return forced;
+                }
+            }
+            rememberRejectedSlot(leftSide ? PANEL_MARGIN : stripX1 + PANEL_MARGIN,
+                    panelY, Math.max(0, availableW), Math.max(0, panelBottom - panelY));
+            return null;
+        }
+
+        int maxW = Math.min(availableW, MAX_PANEL_WIDTH);
+        for (int width : widthAttempts(preferredWidth, minW, maxW, leftSide)) {
+            Rect below = belowBlockersSlot(screen, width, leftSide, stripX1, stripX2, panelY, panelBottom);
+            if (isAcceptableSideSlot(contents, below)) {
+                return below;
+            }
+
+            Rect beside = besideBlockersSlot(screen, width, leftSide, stripX1, stripX2, panelY, panelBottom);
+            if (isAcceptableSideSlot(contents, beside)) {
+                return beside;
+            }
+        }
+
+        if (!containsSearchContent(contents)) {
+            Rect forced = forcedSidebarSlot(screen, preferredWidth, leftSide, stripX1, stripX2, panelY, panelBottom);
+            if (forced != null) {
+                return forced;
+            }
+        }
+
+        rememberRejectedSlot(leftSide ? PANEL_MARGIN : screenW - maxW - PANEL_MARGIN,
+                panelY, maxW, Math.max(0, panelBottom - panelY));
+        return null;
+    }
+
+    private Rect forcedSidebarSlot(Screen screen, int preferredWidth, boolean leftSide, int stripX1, int stripX2,
+                                   int panelY, int panelBottom) {
+        int availableW = stripX2 - stripX1 - PANEL_MARGIN * 2;
+        int availableH = panelBottom - panelY;
+        if (availableW <= 0 || availableH <= 0) return null;
+
+        int width = net.minecraft.util.Mth.clamp(preferredWidth, Math.min(MIN_SIDE_PANEL_WIDTH, availableW),
+                Math.min(availableW, MAX_PANEL_WIDTH));
+        int x = leftSide ? PANEL_MARGIN : stripX2 - width - PANEL_MARGIN;
+
+        int minH = Math.min(MIN_SIDE_PANEL_HEIGHT, availableH);
+        int thirdPartyBottom = thirdPartyWidgetBottomInStrip(screen, stripX1, stripX2, panelY, panelBottom);
+        int y = thirdPartyBottom > panelY ? thirdPartyBottom + PANEL_MARGIN : panelY;
+        if (panelBottom - y < minH) {
+            y = Math.max(panelY, panelBottom - minH);
+        }
+        int height = Math.max(minH, panelBottom - y);
+        return Rect.of(x, y, width, height);
+    }
+
+    private List<Integer> widthAttempts(int preferredWidth, int minW, int maxW, boolean leftSide) {
+        List<Integer> attempts = new ArrayList<>();
+        int start = net.minecraft.util.Mth.clamp(preferredWidth, minW, maxW);
+        for (int percent = 100; percent >= WIDTH_SHRINK_STEP_PERCENT; percent -= WIDTH_SHRINK_STEP_PERCENT) {
+            int width = net.minecraft.util.Mth.clamp(start * percent / 100, minW, maxW);
+            if (!attempts.contains(width)) {
+                attempts.add(width);
+            }
+            if (width == minW) break;
+        }
+        int cached = leftSide ? lastAdaptiveLeftPanelWidth : lastAdaptiveRightPanelWidth;
+        if (cached >= minW && cached <= maxW && !attempts.contains(cached)) {
+            attempts.add(cached);
+        }
+        if (!attempts.contains(minW)) attempts.add(minW);
+        return attempts;
+    }
+
+    private void rememberAdaptiveWidth(boolean preferredLeftPanel, int width) {
+        if (preferredLeftPanel) {
+            lastAdaptiveLeftPanelWidth = width;
+        } else {
+            lastAdaptiveRightPanelWidth = width;
+        }
+    }
+
+    private Rect belowBlockersSlot(Screen screen, int width, boolean leftSide, int stripX1, int stripX2,
+                                  int panelY, int panelBottom) {
+        int x = leftSide ? PANEL_MARGIN : stripX2 - width - PANEL_MARGIN;
+        int thirdPartyBottom = thirdPartyWidgetBottomInStrip(screen, stripX1, stripX2, panelY, panelBottom);
+        int y = thirdPartyBottom > panelY ? thirdPartyBottom + PANEL_MARGIN : panelY;
+        int height = panelBottom - y;
+        if (height <= 0) {
+            rememberRejectedSlot(x, y, width, 0);
+            return null;
+        }
+        return Rect.of(x, y, width, height);
+    }
+
+    private Rect besideBlockersSlot(Screen screen, int width, boolean leftSide, int stripX1, int stripX2,
+                                   int panelY, int panelBottom) {
+        int x;
+        if (leftSide) {
+            x = Math.max(PANEL_MARGIN, rightEdgeOfTopBlockers(screen, stripX1, stripX2, panelY, panelBottom) + PANEL_MARGIN);
+            if (x + width + PANEL_MARGIN > stripX2) return null;
+        } else {
+            int leftEdge = leftEdgeOfTopBlockers(screen, stripX1, stripX2, panelY, panelBottom);
+            x = leftEdge - PANEL_MARGIN - width;
+            if (x < stripX1 + PANEL_MARGIN) return null;
+        }
+        int height = panelBottom - panelY;
+        if (height <= 0) return null;
+        return Rect.of(x, panelY, width, height);
+    }
+
+    private int rightEdgeOfTopBlockers(Screen screen, int stripX1, int stripX2, int panelY, int panelBottom) {
+        int edge = stripX1;
+        for (WidgetBounds bounds : topSideBlockers(screen, stripX1, stripX2, panelY, panelBottom)) {
+            edge = Math.max(edge, bounds.x() + bounds.width());
+        }
+        return edge;
+    }
+
+    private int leftEdgeOfTopBlockers(Screen screen, int stripX1, int stripX2, int panelY, int panelBottom) {
+        int edge = stripX2;
+        for (WidgetBounds bounds : topSideBlockers(screen, stripX1, stripX2, panelY, panelBottom)) {
+            edge = Math.min(edge, bounds.x());
+        }
+        return edge;
+    }
+
+    private List<WidgetBounds> topSideBlockers(Screen screen, int stripX1, int stripX2, int panelY, int panelBottom) {
+        List<WidgetBounds> blockers = new ArrayList<>();
+        List<WidgetBounds> all = new ArrayList<>();
+        all.addAll(thirdPartyMarginWidgetBounds(screen));
+        all.addAll(thirdPartyExclusionBounds(screen));
+        for (WidgetBounds bounds : all) {
+            if (bounds.x() >= stripX2 || bounds.x() + bounds.width() <= stripX1) continue;
+            if (bounds.y() >= panelBottom || bounds.y() + bounds.height() <= panelY) continue;
+            if (!isTopSideBlocker(bounds, panelY)) continue;
+            blockers.add(bounds);
+        }
+        return blockers;
+    }
+
+    private boolean isTopSideBlocker(WidgetBounds bounds, int panelY) {
+        return bounds.y() <= panelY + TOP_MARGIN_CONTROL_MAX_Y;
+    }
+
+    private void rememberRejectedSlot(int x, int y, int width, int height) {
+        if (width <= 0 || height <= 0) return;
+        lastRejectedPanelBounds.add(new WidgetBounds(x, y, width, height));
+    }
+
+    private void claimStrip(boolean leftSide, Rect slot, int screenW, int screenH) {
+        WidgetBounds actualPanelBounds = slot.toWidgetBounds();
+        if (leftSide) {
+            leftStripBounds = slot.x() <= PANEL_MARGIN
+                    ? new WidgetBounds(0, 0, slot.x() + slot.w(), screenH - BOTTOM_BAR_H)
+                    : actualPanelBounds;
+        } else {
+            rightStripBounds = slot.x() + slot.w() >= screenW - PANEL_MARGIN
+                    ? new WidgetBounds(slot.x(), 0, screenW - slot.x(), screenH - BOTTOM_BAR_H)
+                    : actualPanelBounds;
+        }
+    }
+
+    private int minWidthFor(List<AmiConfig.PanelContent> contents) {
+        return containsSearchContent(contents) ? MIN_PANEL_WIDTH : MIN_SIDE_PANEL_WIDTH;
+    }
+
+    private boolean isAcceptableSideSlot(List<AmiConfig.PanelContent> contents, Rect slot) {
+        if (slot == null || slot.w() <= 0 || slot.h() <= 0) return false;
+        return !containsSearchContent(contents) || slot.h() >= MIN_SEARCH_PANEL_HEIGHT;
+    }
+
+    private boolean containsSearchContent(List<AmiConfig.PanelContent> contents) {
+        for (AmiConfig.PanelContent content : contents) {
+            if (isSearchContent(content)) return true;
+        }
+        return false;
     }
 
     private void placeSideSlots(Rect sideSlot, List<AmiConfig.PanelContent> contents, List<PanelSlot> pool) {
@@ -518,24 +717,29 @@ public class OverlayWidgetManager {
     }
 
     public void renderAll(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
+        AmiRenderProfiler.beginFrame();
         try {
-            g.flush();
-            com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
-            g.pose().pushPose();
-            g.pose().translate(0, 0, 0);
+            try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("overlay.renderAll")) {
+                com.sanhiruzu.ami.client.AMITheme.sync();
+                g.flush();
+                com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
+                g.pose().pushPose();
+                g.pose().translate(0, 0, 0);
 
-            amiButton.render(g, mx, my, pt);
+                amiButton.render(g, mx, my, pt);
 
-            if (panelVisible) {
-                renderPanels(g, mx, my, pt);
-                renderSearchBar(g, mx, my, pt);
+                if (panelVisible) {
+                    renderPanels(g, mx, my, pt);
+                    renderSearchBar(g, mx, my, pt);
+                }
+
+                g.pose().popPose();
+                g.flush();
             }
-
-            g.pose().popPose();
-            g.flush();
-
         } catch (Exception e) {
             AMI.LOGGER.error("AMI overlay render failed", e);
+        } finally {
+            AmiRenderProfiler.endFrame();
         }
 
         if (pendingEmiReinit) {
@@ -547,46 +751,56 @@ public class OverlayWidgetManager {
 
     public void renderPanels(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
         if (!panelVisible) return;
-        g.flush();
-        com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
-        g.pose().pushPose();
-        g.pose().translate(0, 0, OverlayLayers.PANEL);
-
-        for (PanelSlot slot : activeSlots) {
-            slot.render(g, mx, my, pt);
-        }
-        for (PanelSlot slot : activeSlots) {
-            slot.renderOverlay(g, mx, my);
-        }
-        renderCheatDeleteHint(g, mx, my);
-
-        if (AmiConfig.highlightExclusionAreas) {
+        try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("overlay.renderPanels")) {
+            List<PanelSlot> renderingSlots = activeSlotsSnapshot();
+            AmiRenderProfiler.add("overlay.panelSlots", renderingSlots.size());
+            g.flush();
+            com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
             g.pose().pushPose();
-            g.pose().translate(0, 0, OverlayLayers.DEBUG);
-            renderExclusionHighlights(g);
-            g.pose().popPose();
-        }
+            g.pose().translate(0, 0, OverlayLayers.PANEL);
 
-        g.pose().popPose();
-        g.flush();
+            for (PanelSlot slot : renderingSlots) {
+                slot.render(g, mx, my, pt);
+            }
+            for (PanelSlot slot : renderingSlots) {
+                slot.renderOverlay(g, mx, my);
+            }
+            renderCheatDeleteHint(g, mx, my, renderingSlots);
+
+            if (AmiConfig.highlightExclusionAreas) {
+                g.pose().pushPose();
+                g.pose().translate(0, 0, OverlayLayers.DEBUG);
+                renderExclusionHighlights(g, renderingSlots);
+                g.pose().popPose();
+            }
+
+            g.pose().popPose();
+            g.flush();
+        }
     }
 
     public void renderSearchBar(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
         if (!panelVisible || searchBar == null) return;
-        g.flush();
-        com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
-        g.pose().pushPose();
-        g.pose().translate(0, 0, OverlayLayers.PANEL + 1);
-        searchBar.render(g, mx, my, pt);
-        g.pose().popPose();
-        g.flush();
+        try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("overlay.searchBar")) {
+            g.flush();
+            com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
+            g.pose().pushPose();
+            g.pose().translate(0, 0, OverlayLayers.PANEL + 1);
+            searchBar.render(g, mx, my, pt);
+            g.pose().popPose();
+            g.flush();
+        }
     }
 
 
-    private void renderCheatDeleteHint(net.minecraft.client.gui.GuiGraphics g, int mx, int my) {
+    private List<PanelSlot> activeSlotsSnapshot() {
+        return new ArrayList<>(activeSlots);
+    }
+
+    private void renderCheatDeleteHint(net.minecraft.client.gui.GuiGraphics g, int mx, int my, List<PanelSlot> slots) {
         if (!com.sanhiruzu.ami.client.AMICheatMode.isEnabled()) return;
         if (!com.sanhiruzu.ami.client.AMICheatMode.hasCarriedItem()) return;
-        for (PanelSlot slot : activeSlots) {
+        for (PanelSlot slot : slots) {
             if (slot.results.visible && slot.results.isMouseOver(mx, my)) {
                 var font = net.minecraft.client.Minecraft.getInstance().font;
                 var msg = net.minecraft.network.chat.Component.translatable("ami.cheat.drop_to_delete");
@@ -599,9 +813,9 @@ public class OverlayWidgetManager {
         }
     }
 
-    private void renderExclusionHighlights(net.minecraft.client.gui.GuiGraphics g) {
+    private void renderExclusionHighlights(net.minecraft.client.gui.GuiGraphics g, List<PanelSlot> slots) {
         // Render panel bounds in blue (matching EMI's debug style)
-        for (PanelSlot slot : activeSlots) {
+        for (PanelSlot slot : slots) {
             if (slot.results.visible) {
                 WidgetBounds b = slot.results.getBounds();
                 g.fill(b.x(), b.y(), b.x() + b.width(), b.y() + b.height(), 0x440000ff);
@@ -610,6 +824,9 @@ public class OverlayWidgetManager {
                 WidgetBounds b = slot.sidebar.getBounds();
                 g.fill(b.x(), b.y(), b.x() + b.width(), b.y() + b.height(), 0x440000ff);
             }
+        }
+        for (WidgetBounds b : lastRejectedPanelBounds) {
+            g.fill(b.x(), b.y(), b.x() + b.width(), b.y() + b.height(), 0x55ffaa00);
         }
 
         // Render exclusion bounds: first in green, rest in red (matching EMI's convention)
@@ -808,6 +1025,7 @@ public class OverlayWidgetManager {
         if (searchBar != null) bounds.addAll(searchBar.getPredictiveBounds());
         Minecraft mc = Minecraft.getInstance();
         if (mc.screen != null) {
+            bounds.addAll(thirdPartyMarginWidgetBounds(mc.screen));
             bounds.addAll(thirdPartyExclusionBounds(mc.screen));
         }
         for (PanelSlot slot : activeSlots) {
@@ -873,6 +1091,9 @@ public class OverlayWidgetManager {
     public SidebarPanelWidget getRightPanelSecondary() {
         ensureWidgets();
         return getSlot(rightSlotPool, 1, false).sidebar;
+    }
+
+    private record PlacedSlot(boolean leftSide, Rect rect) {
     }
 
     private static final class PanelSlot {

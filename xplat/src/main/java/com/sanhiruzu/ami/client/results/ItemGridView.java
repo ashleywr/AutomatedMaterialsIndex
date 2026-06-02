@@ -1,11 +1,13 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.AMITheme;
+import com.sanhiruzu.ami.client.AmiRenderProfiler;
 import com.sanhiruzu.ami.client.ItemIconBatchRenderer;
 import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.RenderStateSnapshot;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
+import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.util.AmiClipboardHelper;
 import com.sanhiruzu.ami.util.AmiTooltipComposer;
@@ -40,7 +42,9 @@ public class ItemGridView {
     private final List<PendingItemIcon> pendingDirectItemIcons = new ArrayList<>();
     private final List<PendingRendererIcon> pendingRendererIcons = new ArrayList<>();
     private final List<PendingQuestMarker> pendingQuestMarkers = new ArrayList<>();
-    private final Map<TreeNode, TreeNode> expandedGroupCache = new HashMap<>();
+    private int pendingDirectItemIconCount;
+    private int pendingRendererIconCount;
+    private int pendingQuestMarkerCount;
     private int x, y, width, height;
     private List<TreeNode> rootNodes = new ArrayList<>();
     private int pixelScrollOffset = 0;
@@ -191,15 +195,14 @@ public class ItemGridView {
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY, boolean toolbarDropdownOpen) {
+        try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("grid.render")) {
         pendingTooltip = null;
         pendingTextTooltip = null;
         pendingTooltipImage = Optional.empty();
         hoveredNode = null;
         hoveredTreeNode = null;
         clearItemIconBatchRenderer();
-        pendingDirectItemIcons.clear();
-        pendingRendererIcons.clear();
-        pendingQuestMarkers.clear();
+        clearPendingQueues();
 
         // Cache animation state once per frame
         cachedDragging = com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging();
@@ -222,6 +225,7 @@ public class ItemGridView {
 
         int cols = computeCols();
         List<VirtualRow> rows = getVirtualRows(cols);
+        AmiRenderProfiler.add("grid.virtualRows", rows.size());
         int totalH = calcTotalHeight(rows);
         StickyContext stickyContext = stickyContext(rows);
         int contentY = contentY(stickyContext);
@@ -234,20 +238,27 @@ public class ItemGridView {
         g.enableScissor(x, contentY, x + width, y + height);
         try {
             if (TEXTURE_ITEM_ICON_CACHE_ENABLED && !cachedDragging) {
-                primeIconCache(g, rows, contentY);
+                try (AmiRenderProfiler.Section icons = AmiRenderProfiler.section("grid.iconCachePrime")) {
+                    primeIconCache(g, rows, contentY);
+                }
             }
 
-            int drawY = contentY - pixelScrollOffset;
-            for (VirtualRow row : rows) {
-                int rowBottom = drawY + row.height();
-                if (rowBottom > contentY && drawY < y + height) {
-                    if (row instanceof HeaderRow hr) {
-                        renderHeader(g, hr, drawY, effectiveMouseX, mouseY);
-                    } else if (row instanceof ItemRow ir) {
-                        renderItemRow(g, ir, drawY, effectiveMouseX, mouseY);
+            try (AmiRenderProfiler.Section rowsSection = AmiRenderProfiler.section("grid.rows")) {
+                int drawY = contentY - pixelScrollOffset;
+                for (VirtualRow row : rows) {
+                    int rowBottom = drawY + row.height();
+                    if (rowBottom > contentY && drawY < y + height) {
+                        if (row instanceof HeaderRow hr) {
+                            AmiRenderProfiler.count("grid.visibleHeaders");
+                            renderHeader(g, hr, drawY, effectiveMouseX, mouseY);
+                        } else if (row instanceof ItemRow ir) {
+                            AmiRenderProfiler.count("grid.visibleItemRows");
+                            AmiRenderProfiler.add("grid.visibleCells", ir.items().size());
+                            renderItemRow(g, ir, drawY, effectiveMouseX, mouseY);
+                        }
                     }
+                    drawY += row.height();
                 }
-                drawY += row.height();
             }
 
             renderItemIconBatch(g);
@@ -256,27 +267,28 @@ public class ItemGridView {
         } finally {
             g.disableScissor();
             clearItemIconBatchRenderer();
-            pendingDirectItemIcons.clear();
-            pendingRendererIcons.clear();
-            pendingQuestMarkers.clear();
+            clearPendingQueues();
         }
 
         renderScrollbar(g, totalH, contentY, contentH, mouseX, mouseY);
 
         if (!toolbarDropdownOpen) {
-            var font = Minecraft.getInstance().font;
-            RenderStateSnapshot state = RenderStateSnapshot.capture();
-            try {
-                com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
-                if (pendingTextTooltip != null) {
-                    ItemStack stackContext = (pendingTooltip != null) ? pendingTooltip : ItemStack.EMPTY;
-                    AmiTooltipRenderer.render(g, font, stackContext, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY);
-                } else if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
-                    AmiTooltipRenderer.render(g, font, pendingTooltip, mouseX, mouseY);
+            try (AmiRenderProfiler.Section tooltipSection = AmiRenderProfiler.section("grid.tooltip")) {
+                var font = Minecraft.getInstance().font;
+                RenderStateSnapshot state = RenderStateSnapshot.capture();
+                try {
+                    com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
+                    if (pendingTextTooltip != null) {
+                        ItemStack stackContext = (pendingTooltip != null) ? pendingTooltip : ItemStack.EMPTY;
+                        AmiTooltipRenderer.render(g, font, stackContext, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY);
+                    } else if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
+                        AmiTooltipRenderer.render(g, font, pendingTooltip, mouseX, mouseY);
+                    }
+                } finally {
+                    state.restore();
                 }
-            } finally {
-                state.restore();
             }
+        }
         }
     }
 
@@ -409,35 +421,6 @@ public class ItemGridView {
                 g.fill(cellX, cellY + CELL_SIZE - 1, cellX + CELL_SIZE, cellY + CELL_SIZE, AMITheme.GRID_GOLD_BORDER);
                 g.fill(cellX, cellY, cellX + 1, cellY + CELL_SIZE, AMITheme.GRID_GOLD_BORDER);
                 g.fill(cellX + CELL_SIZE - 1, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, AMITheme.GRID_GOLD_BORDER);
-            } else {
-                TreeNode expandedGroup = expandedGroupCache.get(node);
-                if (expandedGroup != null) {
-                    // Union shape border for expanded groups
-                    int idx = (node == expandedGroup) ? 0 : 1 + expandedGroup.getChildren().indexOf(node);
-                    int totalSize = 1 + expandedGroup.getChildren().size();
-                    int col = i;
-
-                    boolean topEdge = idx < cols;
-                    boolean bottomEdge = idx + cols >= totalSize;
-                    boolean leftEdge = col == 0 || idx == 0;
-                    boolean rightEdge = col == cols - 1 || idx == totalSize - 1;
-
-                    int color = AMITheme.GRID_GOLD_BORDER; // Opaque gold border
-                    int bgCol = AMITheme.GRID_GOLD_TINT; // Visible gold tint background
-
-                    g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, bgCol);
-
-                    if (topEdge) g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + 1, color);
-                    if (bottomEdge) g.fill(cellX, cellY + CELL_SIZE - 1, cellX + CELL_SIZE, cellY + CELL_SIZE, color);
-                    if (leftEdge) g.fill(cellX, cellY, cellX + 1, cellY + CELL_SIZE, color);
-                    if (rightEdge) g.fill(cellX + CELL_SIZE - 1, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, color);
-
-                    // If this is the header node of the expanded group, make it look like a "close" button
-                    if (node == expandedGroup) {
-                        g.fill(cellX + 1, cellY + 1, cellX + CELL_SIZE - 1, cellY + CELL_SIZE - 1, AMITheme.GRID_HEADER_DARKEN); // Darken the header icon
-                        g.fill(cellX + 2, cellY + 2, cellX + 4, cellY + 4, AMITheme.GRID_HEADER_WHITE_DOT); // Small visual indicator
-                    }
-                }
             }
 
             if (overrideStack != null) {
@@ -446,26 +429,74 @@ public class ItemGridView {
                 ItemStack stack = resolveStack(entry);
                 if (!stack.isEmpty()) queueItemIcon(entry.id(), stack, cellX + 2, cellY + 2, hovered);
             } else {
-                pendingRendererIcons.add(new PendingRendererIcon(entry, cellX + 2, cellY + 2, hovered));
+                AmiRenderProfiler.count("grid.queuedRendererIcons");
+                AmiRenderProfiler.count("grid.rendererIcon." + entry.type().name());
+                queueRendererIcon(entry, cellX + 2, cellY + 2, hovered);
             }
 
             if (node.isLeaf()) {
-                pendingQuestMarkers.add(new PendingQuestMarker(entry, cellX, cellY));
+                queueQuestMarker(entry, cellX, cellY);
             }
         }
     }
 
     private void queueItemIcon(ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
         if (TEXTURE_ITEM_ICON_CACHE_ENABLED || hovered || cachedDragging) {
-            pendingDirectItemIcons.add(new PendingItemIcon(itemId, stack, x, y, hovered));
+            AmiRenderProfiler.count("grid.queuedDirectIcons");
+            queueDirectItemIcon(itemId, stack, x, y, hovered);
         } else {
+            AmiRenderProfiler.count("grid.queuedBatchedIcons");
             itemIconBatchRenderer().add(stack, x, y);
         }
     }
 
+    private void clearPendingQueues() {
+        pendingDirectItemIconCount = 0;
+        pendingRendererIconCount = 0;
+        pendingQuestMarkerCount = 0;
+    }
+
+    private void queueDirectItemIcon(ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
+        PendingItemIcon icon;
+        if (pendingDirectItemIconCount < pendingDirectItemIcons.size()) {
+            icon = pendingDirectItemIcons.get(pendingDirectItemIconCount);
+        } else {
+            icon = new PendingItemIcon();
+            pendingDirectItemIcons.add(icon);
+        }
+        pendingDirectItemIconCount++;
+        icon.set(itemId, stack, x, y, hovered);
+    }
+
+    private void queueRendererIcon(SearchNode entry, int x, int y, boolean hovered) {
+        PendingRendererIcon icon;
+        if (pendingRendererIconCount < pendingRendererIcons.size()) {
+            icon = pendingRendererIcons.get(pendingRendererIconCount);
+        } else {
+            icon = new PendingRendererIcon();
+            pendingRendererIcons.add(icon);
+        }
+        pendingRendererIconCount++;
+        icon.set(entry, x, y, hovered);
+    }
+
+    private void queueQuestMarker(SearchNode entry, int cellX, int cellY) {
+        PendingQuestMarker marker;
+        if (pendingQuestMarkerCount < pendingQuestMarkers.size()) {
+            marker = pendingQuestMarkers.get(pendingQuestMarkerCount);
+        } else {
+            marker = new PendingQuestMarker();
+            pendingQuestMarkers.add(marker);
+        }
+        pendingQuestMarkerCount++;
+        marker.set(entry, cellX, cellY);
+    }
+
     private void renderItemIconBatch(GuiGraphics g) {
-        if (itemIconBatchRenderer instanceof ItemIconBatchRenderer renderer) {
-            renderer.render(g);
+        try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("grid.iconBatch")) {
+            if (itemIconBatchRenderer instanceof ItemIconBatchRenderer renderer) {
+                renderer.render(g);
+            }
         }
     }
 
@@ -476,17 +507,27 @@ public class ItemGridView {
     }
 
     private void renderPendingDirectIcons(GuiGraphics g) {
-        for (PendingItemIcon icon : pendingDirectItemIcons) {
-            renderIconWithWiggle(g, icon.itemId(), icon.stack(), icon.x(), icon.y(), icon.hovered());
-        }
-        for (PendingRendererIcon icon : pendingRendererIcons) {
-            renderRendererWithWiggle(g, icon.entry(), icon.x(), icon.y(), icon.hovered());
+        try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("grid.directIcons")) {
+            AmiRenderProfiler.add("grid.renderedDirectIcons", pendingDirectItemIconCount);
+            AmiRenderProfiler.add("grid.renderedRendererIcons", pendingRendererIconCount);
+            for (int i = 0; i < pendingDirectItemIconCount; i++) {
+                PendingItemIcon icon = pendingDirectItemIcons.get(i);
+                renderIconWithWiggle(g, icon.itemId, icon.stack, icon.x, icon.y, icon.hovered);
+            }
+            for (int i = 0; i < pendingRendererIconCount; i++) {
+                PendingRendererIcon icon = pendingRendererIcons.get(i);
+                renderRendererWithWiggle(g, icon.entry, icon.x, icon.y, icon.hovered);
+            }
         }
     }
 
     private void renderPendingQuestMarkers(GuiGraphics g) {
-        for (PendingQuestMarker marker : pendingQuestMarkers) {
-            renderQuestMarker(g, marker.entry(), marker.cellX(), marker.cellY());
+        try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("grid.questMarkers")) {
+            AmiRenderProfiler.add("grid.questMarkers", pendingQuestMarkerCount);
+            for (int i = 0; i < pendingQuestMarkerCount; i++) {
+                PendingQuestMarker marker = pendingQuestMarkers.get(i);
+                renderQuestMarker(g, marker.entry, marker.cellX, marker.cellY);
+            }
         }
     }
 
@@ -527,7 +568,8 @@ public class ItemGridView {
     }
 
     private void renderRendererWithWiggle(GuiGraphics g, SearchNode entry, int x, int y, boolean hovered) {
-        if (!hovered) {
+        boolean needsCellClip = !hovered && needsRendererCellClip(entry.type());
+        if (needsCellClip) {
             g.enableScissor(x, y, x + 16, y + 16);
         }
         g.pose().pushPose();
@@ -542,10 +584,14 @@ public class ItemGridView {
             com.sanhiruzu.ami.client.icon.RendererRegistry.get(entry.type()).render(g, entry, -8, -8, 16, hovered);
         } finally {
             g.pose().popPose();
-            if (!hovered) {
+            if (needsCellClip) {
                 g.disableScissor();
             }
         }
+    }
+
+    private static boolean needsRendererCellClip(NodeType type) {
+        return type == NodeType.ENTITY || type == NodeType.PLAYER;
     }
 
     private void primeIconCache(GuiGraphics g, List<VirtualRow> rows, int contentY) {
@@ -599,7 +645,6 @@ public class ItemGridView {
 
     private List<VirtualRow> buildVirtualRows(int cols) {
         List<VirtualRow> rows = new ArrayList<>();
-        expandedGroupCache.clear();
 
         List<TreeNode> linearItems = new ArrayList<>();
         BandSequence bands = new BandSequence();
@@ -624,22 +669,24 @@ public class ItemGridView {
                 packIntoRows(linearItems, cols, out, depth, alternateBand);
                 linearItems.clear();
 
+                out.add(new HeaderRow(node, depth, countItemsRecursive(node), true, alternateBand));
+
                 List<TreeNode> groupItems = new ArrayList<>();
                 List<TreeNode> nestedGroups = new ArrayList<>();
-                groupItems.add(node);
-                expandedGroupCache.put(node, node);
                 for (TreeNode child : node.getChildren()) {
                     if (child.isLeaf()) {
                         groupItems.add(child);
-                        expandedGroupCache.put(child, node);
                     } else {
                         nestedGroups.add(child);
                     }
                 }
-                packIntoRows(groupItems, cols, out, depth, alternateBand);
+                packIntoRows(groupItems, cols, out, depth + 1, alternateBand);
+                groupItems.clear();
                 for (TreeNode childGroup : nestedGroups) {
-                    processNode(childGroup, depth, cols, out, linearItems, bands, alternateBand);
+                    processNode(childGroup, depth + 1, cols, out, linearItems, bands, alternateBand);
                 }
+                packIntoRows(linearItems, cols, out, depth + 1, alternateBand);
+                linearItems.clear();
             } else {
                 linearItems.add(node);
             }
@@ -692,15 +739,9 @@ public class ItemGridView {
     }
 
     private void renderSlotBackground(GuiGraphics g, int cellX, int cellY) {
-        if (AMITheme.SLOT_BG == 0) return;
-        int right = cellX + CELL_SIZE;
-        int bottom = cellY + CELL_SIZE;
-        g.fill(cellX, cellY, right, bottom, AMITheme.SLOT_BG);
-        g.fill(cellX, cellY, right, cellY + 1, AMITheme.SLOT_EDGE_LIGHT);
-        g.fill(cellX, cellY, cellX + 1, bottom, AMITheme.SLOT_EDGE_LIGHT);
-        g.fill(cellX + 1, cellY + 1, right - 1, bottom - 1, 0x14000000);
-        g.fill(cellX, bottom - 1, right, bottom, AMITheme.SLOT_EDGE_DARK);
-        g.fill(right - 1, cellY, right, bottom, AMITheme.SLOT_EDGE_DARK);
+        if ((AMITheme.SLOT_BG >>> 24) == 0) return;
+        AmiRenderProfiler.count("grid.slotBackgrounds");
+        g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, AMITheme.SLOT_BG);
     }
 
     private void renderStickyContext(GuiGraphics g, StickyContext context) {
@@ -810,17 +851,20 @@ public class ItemGridView {
 
     private void renderScrollbar(GuiGraphics g, int totalH, int contentY, int contentH, int mouseX, int mouseY) {
         if (totalH <= contentH) return;
-        boolean active = scrollbarDragging || isScrollbarHovered(mouseX, mouseY);
-        int barW = active ? 6 : 4;
-        int barX = x + width - 1 - barW;
-        int thumbH = Math.max(12, (contentH * contentH) / totalH);
-        int maxScroll = totalH - contentH;
-        int thumbY = contentY + (pixelScrollOffset * (contentH - thumbH)) / maxScroll;
+        try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("grid.scrollbar")) {
+            AmiRenderProfiler.count("grid.scrollbars");
+            boolean active = scrollbarDragging || isScrollbarHovered(mouseX, mouseY);
+            int barW = active ? 6 : 4;
+            int barX = x + width - 1 - barW;
+            int thumbH = Math.max(12, (contentH * contentH) / totalH);
+            int maxScroll = totalH - contentH;
+            int thumbY = contentY + (pixelScrollOffset * (contentH - thumbH)) / maxScroll;
 
-        // Use themed colors
-        g.fill(x + width - SCROLLBAR_W, contentY, x + width, y + height, com.sanhiruzu.ami.client.AMITheme.SCROLL_TRACK);
-        g.fill(barX, thumbY, barX + barW, thumbY + thumbH,
-                active ? com.sanhiruzu.ami.client.AMITheme.SCROLL_THUMB_ACTIVE : com.sanhiruzu.ami.client.AMITheme.SCROLL_THUMB);
+            // Use themed colors
+            g.fill(x + width - SCROLLBAR_W, contentY, x + width, y + height, com.sanhiruzu.ami.client.AMITheme.SCROLL_TRACK);
+            g.fill(barX, thumbY, barX + barW, thumbY + thumbH,
+                    active ? com.sanhiruzu.ami.client.AMITheme.SCROLL_THUMB_ACTIVE : com.sanhiruzu.ami.client.AMITheme.SCROLL_THUMB);
+        }
     }
 
     private boolean isScrollbarHovered(int mouseX, int mouseY) {
@@ -1047,13 +1091,46 @@ public class ItemGridView {
     private record StickyContext(String label) {
     }
 
-    private record PendingItemIcon(ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
+    private static final class PendingItemIcon {
+        private ResourceLocation itemId;
+        private ItemStack stack = ItemStack.EMPTY;
+        private int x;
+        private int y;
+        private boolean hovered;
+
+        private void set(ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
+            this.itemId = itemId;
+            this.stack = stack;
+            this.x = x;
+            this.y = y;
+            this.hovered = hovered;
+        }
     }
 
-    private record PendingRendererIcon(SearchNode entry, int x, int y, boolean hovered) {
+    private static final class PendingRendererIcon {
+        private SearchNode entry;
+        private int x;
+        private int y;
+        private boolean hovered;
+
+        private void set(SearchNode entry, int x, int y, boolean hovered) {
+            this.entry = entry;
+            this.x = x;
+            this.y = y;
+            this.hovered = hovered;
+        }
     }
 
-    private record PendingQuestMarker(SearchNode entry, int cellX, int cellY) {
+    private static final class PendingQuestMarker {
+        private SearchNode entry;
+        private int cellX;
+        private int cellY;
+
+        private void set(SearchNode entry, int cellX, int cellY) {
+            this.entry = entry;
+            this.cellX = cellX;
+            this.cellY = cellY;
+        }
     }
 
     private static final class BandSequence {

@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.client.icon;
 
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.client.AMITheme;
+import com.sanhiruzu.ami.client.EntityIconCache;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.StatIconRowTooltipComponent;
@@ -34,6 +35,7 @@ import java.util.*;
  */
 public class EntityIconRenderer implements IIconRenderer {
 
+    private static final boolean ENTITY_ICON_CACHE_ENABLED = Boolean.getBoolean("ami.entityIconCache");
     private static final Map<ResourceLocation, LivingEntity> entityCache = new HashMap<>();
     private static final Set<ResourceLocation> failedRenderers = new HashSet<>();
 
@@ -234,6 +236,10 @@ public class EntityIconRenderer implements IIconRenderer {
 
         try {
             if (!hovered) {
+                if (ENTITY_ICON_CACHE_ENABLED && EntityIconCache.blitCached(g, node.id(), size, x, y,
+                        cacheG -> renderStaticEntity(cacheG, 0, 0, size, scale, entity))) {
+                    return;
+                }
                 renderStaticEntity(g, x, y, size, scale, entity);
                 return;
             }
@@ -295,6 +301,7 @@ public class EntityIconRenderer implements IIconRenderer {
     public void invalidate() {
         entityCache.clear();
         failedRenderers.clear();
+        EntityIconCache.invalidate();
         CobblemonPokemonIconRenderer.invalidate();
     }
 }
