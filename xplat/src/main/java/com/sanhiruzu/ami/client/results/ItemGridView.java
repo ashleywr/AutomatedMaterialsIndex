@@ -27,12 +27,13 @@ import java.util.function.BiConsumer;
  * Non-ITEM leaf nodes are silently skipped.
  */
 public class ItemGridView {
-    private static final int CELL_SIZE = 18;
+    private static final int CELL_SIZE = 20;
     private static final int HEADER_H = 13;
     private static final int ROOT_HEADER_H = 16;
     private static final int STICKY_CONTEXT_H = HEADER_H + 3;
     private static final int SCROLLBAR_W = 5;
     private static final int HEADER_INDENT = 12;
+    private static final int GRID_LEFT_PAD = 1;
     private static final int ICON_CACHE_PRIME_BUDGET = 12;
     private static final boolean TEXTURE_ITEM_ICON_CACHE_ENABLED = Boolean.getBoolean("ami.itemIconCache");
     private Object itemIconBatchRenderer;
@@ -296,7 +297,8 @@ public class ItemGridView {
         int textY = drawY + Math.max(1, (rowH - font.lineHeight) / 2);
 
         if (hr.depth() == 0) {
-            g.fill(x, drawY, x + 2, drawY + rowH, AMITheme.ACCENT_BLUE);
+            g.fill(x, drawY, contentRight, drawY + 1, AMITheme.SECTION_SEP);
+            g.fill(x, drawY, x + 2, drawY + rowH, AMITheme.ACCENT_GOLD);
             g.fill(x + 2, drawY + rowH - 1, contentRight - 2, drawY + rowH, AMITheme.SECTION_SEP);
             rowX += 2;
         }
@@ -318,7 +320,7 @@ public class ItemGridView {
         int countX = contentRight - countW - 5;
         int labelMaxW = Math.max(0, countX - rowX - 6);
         String label = truncate(font, hr.node().getLabel().getString(), labelMaxW);
-        int labelColor = hr.depth() == 0 ? AMITheme.TEXT_PRIMARY : AMITheme.TEXT_HEADER;
+        int labelColor = hr.depth() == 0 ? AMITheme.ACCENT_GOLD : AMITheme.TEXT_HEADER;
         g.drawString(font, label, rowX, textY, labelColor, hr.depth() == 0);
         g.drawString(font, count, countX, textY, AMITheme.TEXT_SUBTLE, false);
     }
@@ -331,7 +333,7 @@ public class ItemGridView {
         int cols = computeCols();
         renderGroupContext(g, ir.depth(), drawY, ir.alternateBand());
         for (int i = 0; i < ir.items().size(); i++) {
-            int cellX = x + 1 + i * CELL_SIZE;
+            int cellX = gridLeftX() + i * CELL_SIZE;
             int cellY = drawY;
 
             TreeNode node = ir.items().get(i);
@@ -365,10 +367,7 @@ public class ItemGridView {
             boolean hovered = mouseX >= cellX && mouseX < cellX + CELL_SIZE
                     && mouseY >= cellY && mouseY < cellY + CELL_SIZE;
 
-            // Render default slot background if defined by theme
-            if (AMITheme.SLOT_BG != 0) {
-                g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, AMITheme.SLOT_BG);
-            }
+            renderSlotBackground(g, cellX, cellY);
 
             if (hovered) {
                 // Background tint
@@ -442,12 +441,12 @@ public class ItemGridView {
             }
 
             if (overrideStack != null) {
-                queueItemIcon(overrideId, overrideStack, cellX + 1, cellY + 1, hovered);
+                queueItemIcon(overrideId, overrideStack, cellX + 2, cellY + 2, hovered);
             } else if (entry.type() == com.sanhiruzu.ami.index.NodeType.ITEM) {
                 ItemStack stack = resolveStack(entry);
-                if (!stack.isEmpty()) queueItemIcon(entry.id(), stack, cellX + 1, cellY + 1, hovered);
+                if (!stack.isEmpty()) queueItemIcon(entry.id(), stack, cellX + 2, cellY + 2, hovered);
             } else {
-                pendingRendererIcons.add(new PendingRendererIcon(entry, cellX + 1, cellY + 1, hovered));
+                pendingRendererIcons.add(new PendingRendererIcon(entry, cellX + 2, cellY + 2, hovered));
             }
 
             if (node.isLeaf()) {
@@ -667,7 +666,9 @@ public class ItemGridView {
         int contentRight = x + width - SCROLLBAR_W;
         int color = depth == 0 ? AMITheme.GRID_GROUP_ROOT_BG : AMITheme.GRID_GROUP_CHILD_BG;
         g.fill(contentX, drawY, contentRight, drawY + rowH, color);
-        if (depth > 0) {
+        if (depth == 0) {
+            g.fill(contentX, drawY, contentRight, drawY + rowH, AMITheme.GRID_HEADER_DARKEN);
+        } else {
             g.fill(contentX, drawY, contentRight, drawY + rowH, groupBandColor(alternateBand));
         }
     }
@@ -676,6 +677,18 @@ public class ItemGridView {
         int contentX = x;
         int contentRight = x + width - SCROLLBAR_W;
         g.fill(contentX, drawY, contentRight, drawY + CELL_SIZE, groupBandColor(alternateBand));
+    }
+
+    private void renderSlotBackground(GuiGraphics g, int cellX, int cellY) {
+        if (AMITheme.SLOT_BG == 0) return;
+        int right = cellX + CELL_SIZE;
+        int bottom = cellY + CELL_SIZE;
+        g.fill(cellX, cellY, right, bottom, AMITheme.SLOT_BG);
+        g.fill(cellX, cellY, right, cellY + 1, AMITheme.SLOT_EDGE_LIGHT);
+        g.fill(cellX, cellY, cellX + 1, bottom, AMITheme.SLOT_EDGE_LIGHT);
+        g.fill(cellX + 1, cellY + 1, right - 1, bottom - 1, 0x14000000);
+        g.fill(cellX, bottom - 1, right, bottom, AMITheme.SLOT_EDGE_DARK);
+        g.fill(right - 1, cellY, right, bottom, AMITheme.SLOT_EDGE_DARK);
     }
 
     private void renderStickyContext(GuiGraphics g, StickyContext context) {
@@ -776,7 +789,11 @@ public class ItemGridView {
         if (com.sanhiruzu.ami.config.AmiConfig.gridColumns > 0) {
             return Math.max(1, Math.min(com.sanhiruzu.ami.config.AmiConfig.gridColumns, 16));
         }
-        return Math.max(1, (width - SCROLLBAR_W - 2) / CELL_SIZE);
+        return Math.max(1, (x + width - SCROLLBAR_W - gridLeftX() - 1) / CELL_SIZE);
+    }
+
+    private int gridLeftX() {
+        return x + GRID_LEFT_PAD;
     }
 
     private void renderScrollbar(GuiGraphics g, int totalH, int contentY, int contentH, int mouseX, int mouseY) {
@@ -838,7 +855,7 @@ public class ItemGridView {
                     }
                     return true;
                 } else if (row instanceof ItemRow ir) {
-                    int col = ((int) mouseX - x - 1) / CELL_SIZE;
+                    int col = ((int) mouseX - gridLeftX()) / CELL_SIZE;
                     if (col >= 0 && col < ir.items().size()) {
                         TreeNode node = ir.items().get(col);
                         if (node.isHighCardinality()) {
@@ -988,7 +1005,7 @@ public class ItemGridView {
             if (mouseY >= drawY && mouseY < drawY + row.height()) {
                 if (row instanceof HeaderRow) return itemCounter;
                 if (row instanceof ItemRow ir) {
-                    int col = ((int) mouseX - x - 1) / CELL_SIZE;
+                    int col = ((int) mouseX - gridLeftX()) / CELL_SIZE;
                     return itemCounter + net.minecraft.util.Mth.clamp(col, 0, ir.items().size());
                 }
             }

@@ -104,6 +104,17 @@ public final class AmiGuiIcons {
         }
     }
 
+    public static void search(GuiGraphics g, int cx, int cy, int color) {
+        int sx = cx - 4;
+        int sy = cy - 4;
+        g.fill(sx + 1, sy, sx + 5, sy + 1, color);
+        g.fill(sx, sy + 1, sx + 1, sy + 5, color);
+        g.fill(sx + 5, sy + 1, sx + 6, sy + 5, color);
+        g.fill(sx + 1, sy + 5, sx + 5, sy + 6, color);
+        g.fill(sx + 5, sy + 5, sx + 7, sy + 7, color);
+        g.fill(sx + 7, sy + 7, sx + 9, sy + 8, color);
+    }
+
     public static void collapseAll(GuiGraphics g, int cx, int cy, int color) {
         g.fill(cx - 4, cy - 1, cx + 4, cy + 1, color);
     }
