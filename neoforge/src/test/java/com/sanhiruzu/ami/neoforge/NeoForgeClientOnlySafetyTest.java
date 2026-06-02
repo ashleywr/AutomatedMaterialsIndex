@@ -24,6 +24,16 @@ public class NeoForgeClientOnlySafetyTest {
     }
 
     @Test
+    void neoforgeServerOnlyInstallDoesNotSendToClientsWithoutAmi() throws Exception {
+        String source = Files.readString(MAIN_MOD);
+
+        assertTrue(source.contains("serverPlayer.connection.hasChannel(AmiServerPingPacket.TYPE)"),
+                "AMI's NeoForge server ping must only be sent to clients that negotiated AMI's payload channel");
+        assertTrue(source.contains("PacketDistributor.sendToPlayer(serverPlayer, new AmiServerPingPacket())"),
+                "AMI should still detect AMI-enabled servers when both sides negotiated the channel");
+    }
+
+    @Test
     void commonEntrypointDoesNotReferenceMinecraftClientClasses() throws Exception {
         String source = Files.readString(MAIN_MOD);
 

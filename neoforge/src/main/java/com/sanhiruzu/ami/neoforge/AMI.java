@@ -73,7 +73,9 @@ public class AMI {
     @SubscribeEvent
     public void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer serverPlayer) {
-            PacketDistributor.sendToPlayer(serverPlayer, new AmiServerPingPacket());
+            if (serverPlayer.connection.hasChannel(AmiServerPingPacket.TYPE)) {
+                PacketDistributor.sendToPlayer(serverPlayer, new AmiServerPingPacket());
+            }
         }
     }
 }
