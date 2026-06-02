@@ -1,16 +1,20 @@
 # Automated Materials Index (AMI)
 
-  AMI is an index and search mod for NeoForge 1.21.1 and Forge 1.20.1 designed for large Minecraft modpacks. It builds a client-side searchable index of items, entities, biomes, structures, and recipe data, with recommended integration for JEI and EMI for the recipe viewer support.
+Automated Materials Index is a search and recipe browsing mod for large Minecraft modpacks. It builds a client-side index of items, entities, biomes, structures, and recipe data, with optional JEI and EMI integration.
 
-  * **Material Grouping**: Groups related block variants such as stairs, slabs, walls, and other material families to make large item lists easier to browse.
-  * **Structured Query Search**: Supports text search plus filters for tags, mods, categories, properties, and numeric metadata such as `>energy:50000`, `>damage:15`, or `>dps:8`.
-  * **Item Metadata Indexing**: Detects useful item facts such as durability, tool stats, armor stats, food values, storage capacity, energy capacity, and fluid capacity where available.
-  * **Entity Indexing**: Adds searchable entity entries with category, health, attack damage, spawn egg support, and metadata hints such as mountable or tamable where detectable.
-  * **Biome and Structure Search**: Includes indexed biome and structure entries alongside item and entity results.
-  * **Recipe Viewer Integration**: Works standalone or alongside JEI/EMI, including lookup history, favorites, cheat-mode actions, and recipe transfer from AMI panels.
-  * **Built for Large Modpacks**: Designed to keep searching and browsing responsive across large registries.
+AMI targets NeoForge 1.21.1 and Forge 1.20.1.
 
-## Performance & Benchmarks
+## Features
+
+- **Material grouping**: Groups related block variants such as stairs, slabs, walls, colors, and other material families so large item lists are easier to scan.
+- **Structured search**: Supports normal text search plus filters for tags, mods, categories, properties, and numeric metadata such as `>energy:50000`, `>damage:15`, or `>dps:8`.
+- **Item facts**: Indexes useful details such as durability, tool stats, armor stats, food values, storage capacity, energy capacity, and fluid capacity when AMI can detect them.
+- **Entity search**: Adds searchable entity entries with category, health, attack damage, spawn egg support, and hints such as mountable or tamable when available.
+- **World entries**: Includes indexed biomes and structures alongside item and entity results.
+- **Recipe viewer support**: Works with AMI's built-in viewer, JEI, or EMI. AMI panels support lookup history, favorites, cheat actions, and recipe transfer when the current screen supports it.
+- **Large pack support**: Keeps search and browsing responsive across large registries.
+
+## Performance and Benchmarks
 
 We use a headless NeoForge GameTest suite to keep track of how the search index performs.
 
@@ -37,7 +41,7 @@ counts and search latency (average and P99).
 This project includes NeoForge and Forge modules. Opening it in IntelliJ or Eclipse should handle most of the setup
 automatically.
 
-If dependencies get weird or something isn't loading right, you can try:
+If dependencies stop resolving cleanly, refresh them and rebuild:
 
 ```bash
 ./gradlew --refresh-dependencies
@@ -56,4 +60,4 @@ https://github.com/NeoForged/NeoForm/blob/main/Mojang.md
 
 ## License
 
-This project is open-source and licensed under the MIT License. See the `LICENSE` file for details.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
