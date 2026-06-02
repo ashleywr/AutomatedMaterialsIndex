@@ -23,6 +23,9 @@ import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.util.AmiClipboardHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.Util;
+import net.minecraft.client.gui.screens.ConfirmLinkScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -1007,8 +1010,32 @@ public class ResultContextMenuActionBuilder {
     }
 
     private static void openUri(SearchNode node, URI uri) {
+        if (uri == null) return;
+        if (!AmiConfig.confirmExternalLinks) {
+            openUriDirect(node, uri);
+            return;
+        }
+
+        Minecraft minecraft = Minecraft.getInstance();
+        Screen parent = minecraft.screen;
+        minecraft.setScreen(new ConfirmLinkScreen(confirmed -> {
+            if (confirmed) {
+                openUriDirect(node, uri);
+            }
+            minecraft.setScreen(screenAfterExternalLinkPrompt(parent));
+        }, Component.translatable("ami.external_link.title"), Component.literal(uri.toString()), uri,
+                Component.translatable("ami.external_link.cancel"), true));
+    }
+
+    private static Screen screenAfterExternalLinkPrompt(Screen parent) {
+        if (parent instanceof AbstractContainerScreen<?>) {
+            return null;
+        }
+        return parent;
+    }
+
+    private static void openUriDirect(SearchNode node, URI uri) {
         try {
-            if (uri == null) return;
             Util.getPlatform().openUri(uri);
         } catch (RuntimeException e) {
             LOGGER.log(Level.WARNING, "AMI: Failed to open documentation target from context menu for " + chatText(node), e);
