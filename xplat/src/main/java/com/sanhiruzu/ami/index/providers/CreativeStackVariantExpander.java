@@ -47,20 +47,26 @@ public final class CreativeStackVariantExpander {
             return List.of();
         }
 
-        Map<String, Integer> displayNameCounts = displayNameCounts(distinct);
+        List<VisibleStack> visibleStacks = distinct.stream()
+                .map(stack -> new VisibleStack(stack, level))
+                .toList();
+        Map<String, Integer> displayNameCounts = displayNameCounts(visibleStacks);
         Map<String, Integer> emittedByDisplayName = new HashMap<>();
+        Map<String, List<VisibleStack>> emittedByVisibleName = new HashMap<>();
+        boolean includeDiagnosticVariants = ItemFilter.shouldShowAccessLevel(ItemFilter.ACCESS_CHEAT);
 
         List<SubtypeExpander.SubtypeEntry> result = new ArrayList<>();
         Set<ResourceLocation> emittedIds = new HashSet<>();
         int ordinal = 0;
-        for (ItemStack stack : distinct) {
+        for (VisibleStack visibleStack : visibleStacks) {
             if (result.size() >= SubtypeExpander.HARD_CAP) {
                 AmiCore.LOGGER.debug("CreativeStackVariantExpander: hit HARD_CAP for {}; truncating expansion to {} entries.",
                         baseId, SubtypeExpander.HARD_CAP);
                 break;
             }
 
-            String displayName = stack.getHoverName().getString();
+            ItemStack stack = visibleStack.stack;
+            String displayName = visibleStack.displayName;
             ResourceLocation syntheticId = syntheticId(baseId, displayName, ordinal++);
             while (!emittedIds.add(syntheticId)) {
                 syntheticId = Services.PLATFORM.rl(baseId.getNamespace(), syntheticId.getPath() + "_" + ordinal++);
@@ -69,11 +75,22 @@ public final class CreativeStackVariantExpander {
             Map<String, String> extra = new LinkedHashMap<>();
             extra.put(SearchNodeKeys.VARIANT_SOURCE, "creative_tab");
             extra.put(SearchNodeKeys.VARIANT_COLLAPSE_MODE, "auto");
-            String displayKey = normalizedDisplayName(displayName);
+            List<VisibleStack> sameNameStacks = emittedByVisibleName.getOrDefault(visibleStack.displayKey, List.of());
+            boolean hiddenDuplicate = visiblyEquivalentToAny(sameNameStacks, visibleStack);
+            String displayKey = visibleStack.displayKey;
             int displayOrdinal = emittedByDisplayName.merge(displayKey, 1, Integer::sum) - 1;
-            if (displayNameCounts.getOrDefault(displayKey, 0) > 1
+            if (hiddenDuplicate) {
+                if (!includeDiagnosticVariants) {
+                    continue;
+                }
+                extra.put(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_CHEAT);
+                extra.put("variantAccessReason", "hidden_component_duplicate");
+            } else if (displayNameCounts.getOrDefault(displayKey, 0) > 1
                     && displayOrdinal > 0
-                    && hasPositiveStoredResource(stack, level)) {
+                    && visibleStack.hasPositiveStoredResource()) {
+                if (!includeDiagnosticVariants) {
+                    continue;
+                }
                 extra.put(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_CHEAT);
                 extra.put("variantAccessReason", "prefilled_creative_stack");
             }
@@ -87,14 +104,16 @@ public final class CreativeStackVariantExpander {
             }
 
             result.add(new SubtypeExpander.SubtypeEntry(syntheticId, stack, displayName, extra));
+            emittedByVisibleName.computeIfAbsent(visibleStack.displayKey, ignored -> new ArrayList<>())
+                    .add(visibleStack);
         }
         return result;
     }
 
-    private static Map<String, Integer> displayNameCounts(List<ItemStack> stacks) {
+    private static Map<String, Integer> displayNameCounts(List<VisibleStack> stacks) {
         Map<String, Integer> counts = new HashMap<>();
-        for (ItemStack stack : stacks) {
-            counts.merge(normalizedDisplayName(stack.getHoverName().getString()), 1, Integer::sum);
+        for (VisibleStack stack : stacks) {
+            counts.merge(stack.displayKey, 1, Integer::sum);
         }
         return counts;
     }
@@ -121,6 +140,44 @@ public final class CreativeStackVariantExpander {
         return result;
     }
 
+    private static boolean visiblyEquivalentToAny(List<VisibleStack> existingStacks, VisibleStack candidate) {
+        for (VisibleStack existing : existingStacks) {
+            if (visiblyEquivalentCreativeStack(existing, candidate)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean visiblyEquivalentCreativeStack(VisibleStack first, VisibleStack second) {
+        if (first == null || second == null || first.stack.isEmpty() || second.stack.isEmpty()) {
+            return false;
+        }
+        if (first.stack.getItem() != second.stack.getItem()) {
+            return false;
+        }
+        if (!first.displayKey.equals(second.displayKey)) {
+            return false;
+        }
+        if (first.hasPositiveStoredResource() != second.hasPositiveStoredResource()) {
+            return false;
+        }
+        return first.tooltipSignature().equals(second.tooltipSignature());
+    }
+
+    private static List<String> tooltipSignature(ItemStack stack, @Nullable Level level) {
+        try {
+            return Services.PLATFORM.getTooltipLines(stack, level)
+                    .stream()
+                    .map(Component::getString)
+                    .map(CreativeStackVariantExpander::normalizeTooltipLine)
+                    .filter(line -> !line.isBlank())
+                    .toList();
+        } catch (RuntimeException | LinkageError ignored) {
+            return List.of();
+        }
+    }
+
     private static ResourceLocation syntheticId(ResourceLocation baseId, String displayName, int ordinal) {
         String slug = slug(displayName);
         if (slug.isBlank()) {
@@ -141,10 +198,10 @@ public final class CreativeStackVariantExpander {
     }
 
     private static boolean hasPositiveStoredResource(ItemStack stack, @Nullable Level level) {
-        if (Services.PLATFORM.getItemEnergyStored(stack).orElse(0) > 0) {
+        if (safeItemEnergyStored(stack) > 0) {
             return true;
         }
-        if (Services.PLATFORM.getItemFluidAmount(stack).orElse(0L) > 0L) {
+        if (safeItemFluidAmount(stack) > 0L) {
             return true;
         }
 
@@ -156,6 +213,22 @@ public final class CreativeStackVariantExpander {
         } catch (RuntimeException | LinkageError ignored) {
         }
         return false;
+    }
+
+    private static int safeItemEnergyStored(ItemStack stack) {
+        try {
+            return Services.PLATFORM.getItemEnergyStored(stack).orElse(0);
+        } catch (RuntimeException | LinkageError ignored) {
+            return 0;
+        }
+    }
+
+    private static long safeItemFluidAmount(ItemStack stack) {
+        try {
+            return Services.PLATFORM.getItemFluidAmount(stack).orElse(0L);
+        } catch (RuntimeException | LinkageError ignored) {
+            return 0L;
+        }
     }
 
     static boolean tooltipIndicatesPositiveStoredResource(Collection<String> tooltipLines) {
@@ -274,5 +347,35 @@ public final class CreativeStackVariantExpander {
             normalized = normalized.substring(0, normalized.length() - 1);
         }
         return normalized;
+    }
+
+    private static final class VisibleStack {
+        final ItemStack stack;
+        final Level level;
+        final String displayName;
+        final String displayKey;
+        private Boolean positiveStoredResource;
+        private List<String> tooltipSignature;
+
+        VisibleStack(ItemStack stack, @Nullable Level level) {
+            this.stack = stack;
+            this.level = level;
+            this.displayName = stack.getHoverName().getString();
+            this.displayKey = normalizedDisplayName(displayName);
+        }
+
+        boolean hasPositiveStoredResource() {
+            if (positiveStoredResource == null) {
+                positiveStoredResource = CreativeStackVariantExpander.hasPositiveStoredResource(stack, level);
+            }
+            return positiveStoredResource;
+        }
+
+        List<String> tooltipSignature() {
+            if (tooltipSignature == null) {
+                tooltipSignature = CreativeStackVariantExpander.tooltipSignature(stack, level);
+            }
+            return tooltipSignature;
+        }
     }
 }

@@ -29,11 +29,12 @@ final class ResultsGroupingPostProcessor {
     static List<TreeNode> applyToTree(List<TreeNode> tree, ResultsProcessor.GroupBy groupBy) {
         return switch (groupBy) {
             case NONE -> tree;
-            case CATEGORY -> applyCategoryHighCardinalityGrouping(tree);
-            case MATERIAL -> applyMaterialGroupingPasses(tree);
+            case CATEGORY -> applyDefaultCollapsedFamilyGrouping(applyCategoryHighCardinalityGrouping(tree), true);
+            case MATERIAL -> applyDefaultCollapsedFamilyGrouping(applyMaterialGroupingPasses(tree), true);
             case FAMILY -> applyFamilyGroupingPasses(tree);
-            case SHAPE -> applyHighCardinalityGrouping(tree);
-            case MOD, CREATIVE, DIMENSION, BEHAVIOR, TOPOLOGY, SIMILARITY, PROPERTIES -> applyHighCardinalityGrouping(tree);
+            case SHAPE -> applyDefaultCollapsedFamilyGrouping(applyHighCardinalityGrouping(tree), true);
+            case MOD, CREATIVE, DIMENSION, BEHAVIOR, TOPOLOGY, SIMILARITY, PROPERTIES ->
+                    applyDefaultCollapsedFamilyGrouping(applyHighCardinalityGrouping(tree), true);
         };
     }
 
@@ -51,6 +52,10 @@ final class ResultsGroupingPostProcessor {
 
     private static List<TreeNode> applyFamilyGroupingPasses(List<TreeNode> tree) {
         return applyDuplicateLabelGrouping(applyExplicitFamilyGrouping(applyHighCardinalityGrouping(tree), false), false);
+    }
+
+    private static List<TreeNode> applyDefaultCollapsedFamilyGrouping(List<TreeNode> nodes, boolean compactCards) {
+        return applyExplicitFamilyGrouping(nodes, compactCards, true);
     }
 
     /**
@@ -216,6 +221,11 @@ final class ResultsGroupingPostProcessor {
     }
 
     private static List<TreeNode> applyExplicitFamilyGrouping(List<TreeNode> nodes, boolean compactCards) {
+        return applyExplicitFamilyGrouping(nodes, compactCards, false);
+    }
+
+    private static List<TreeNode> applyExplicitFamilyGrouping(List<TreeNode> nodes, boolean compactCards,
+                                                             boolean requireDefaultCollapsed) {
         List<TreeNode> recursive = new ArrayList<>();
         for (TreeNode node : nodes) {
             if (node.isLeaf()) {
@@ -224,7 +234,11 @@ final class ResultsGroupingPostProcessor {
             }
 
             TreeNode processedGroup = copyGroupNode(node);
-            processedGroup.getChildren().addAll(applyExplicitFamilyGrouping(node.getChildren(), compactCards));
+            processedGroup.getChildren().addAll(applyExplicitFamilyGrouping(
+                    node.getChildren(),
+                    compactCards,
+                    requireDefaultCollapsed
+            ));
             recursive.add(processedGroup);
         }
 
@@ -234,6 +248,7 @@ final class ResultsGroupingPostProcessor {
             if (!node.isLeaf()) continue;
             String familyKey = node.getEntry().meta(SearchNodeKeys.COLLAPSE_FAMILY, "");
             if (familyKey.isEmpty()) continue;
+            if (requireDefaultCollapsed && !isDefaultCollapsedFamilyMember(node)) continue;
             familyMembers.computeIfAbsent(familyKey, ignored -> new ArrayList<>()).add(node);
             familyLabels.putIfAbsent(familyKey, node.getEntry().meta(SearchNodeKeys.COLLAPSE_LABEL, ""));
         }
@@ -270,6 +285,11 @@ final class ResultsGroupingPostProcessor {
             }
         }
         return result;
+    }
+
+    private static boolean isDefaultCollapsedFamilyMember(TreeNode node) {
+        String mode = node.getEntry().meta(SearchNodeKeys.VARIANT_COLLAPSE_MODE, "");
+        return "default_collapsed".equals(mode);
     }
 
     private static List<TreeNode> applyDuplicateLabelGrouping(List<TreeNode> nodes, boolean compactCards) {

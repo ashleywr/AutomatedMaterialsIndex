@@ -1,22 +1,41 @@
 package net.minecraft.world.item;
 
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.network.chat.Component;
 import net.minecraft.tags.TagKey;
 
+import java.util.Objects;
 import java.util.stream.Stream;
 
 public class ItemStack {
     public static final ItemStack EMPTY = new ItemStack(null);
     private final Item item;
+    private final Object componentSignature;
+    private final String hoverName;
+    private int count = 1;
 
     public ItemStack(Item item) {
+        this(item, null, null);
+    }
+
+    private ItemStack(Item item, Object componentSignature, String hoverName) {
         this.item = item;
+        this.componentSignature = componentSignature;
+        this.hoverName = hoverName;
     }
 
     public static boolean isSameItemSameComponents(ItemStack a, ItemStack b) {
         if (a == b) return true;
         if (a == null || b == null) return false;
-        return a.item == b.item;
+        return a.item == b.item && Objects.equals(a.componentSignature, b.componentSignature);
+    }
+
+    public ItemStack withComponentSignature(Object componentSignature) {
+        return new ItemStack(item, componentSignature, hoverName);
+    }
+
+    public ItemStack withHoverName(String hoverName) {
+        return new ItemStack(item, componentSignature, hoverName);
     }
 
     public boolean isEmpty() {
@@ -28,7 +47,13 @@ public class ItemStack {
     }
 
     public ItemStack copy() {
-        return new ItemStack(item);
+        ItemStack copy = new ItemStack(item, componentSignature, hoverName);
+        copy.count = count;
+        return copy;
+    }
+
+    public void setCount(int count) {
+        this.count = count;
     }
 
     public boolean has(DataComponentType<?> component) {
@@ -55,7 +80,7 @@ public class ItemStack {
         return item instanceof Equipable equipable ? equipable.getEquipmentSlot() : null;
     }
 
-    public net.minecraft.network.chat.Component getHoverName() {
-        return net.minecraft.network.chat.Component.literal(item != null ? item.toString() : "empty");
+    public Component getHoverName() {
+        return Component.literal(hoverName != null ? hoverName : item != null ? item.toString() : "empty");
     }
 }

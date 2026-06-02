@@ -13,6 +13,7 @@ import com.sanhiruzu.ami.client.results.ResultsViewProjector;
 import com.sanhiruzu.ami.client.results.SearchState;
 import com.sanhiruzu.ami.client.results.TreeNode;
 import com.sanhiruzu.ami.index.AmiIndexerService;
+import com.sanhiruzu.ami.index.AmiIndexProgress;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
@@ -104,6 +105,17 @@ public final class AmiRuntimeDebugApi {
         out.addProperty("revision", index.revision());
         out.addProperty("indexBuildTimeMs", index.getIndexBuildTimeMs());
         out.addProperty("indexedItemCount", indexer.indexedItemCount());
+        AmiIndexProgress progress = indexer.progress();
+        JsonObject progressJson = new JsonObject();
+        progressJson.addProperty("active", progress.active());
+        progressJson.addProperty("phase", progress.phase());
+        progressJson.addProperty("detail", progress.detail());
+        progressJson.addProperty("current", progress.current());
+        progressJson.addProperty("total", progress.total());
+        progressJson.addProperty("percent", progress.percent());
+        progressJson.addProperty("elapsedMs", progress.elapsedMs());
+        progressJson.addProperty("message", progress.message());
+        out.add("progress", progressJson);
         Throwable failure = indexer.getLastRebuildFailure();
         if (failure != null) {
             out.addProperty("lastRebuildFailure", failure.getClass().getName() + ": " + failure.getMessage());

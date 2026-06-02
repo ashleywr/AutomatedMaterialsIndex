@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import com.google.gson.*;
 import com.sanhiruzu.ami.AmiCore;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
@@ -28,7 +29,7 @@ import java.util.zip.GZIPOutputStream;
  * STRUCTURE and DIMENSION are always live-loaded (world/datapack-specific).
  */
 public final class GlobalIndexCache {
-    private static final int CACHE_VERSION = 38; // Bump this when index data format changes
+    private static final int CACHE_VERSION = 42; // Bump this when index data format changes
 
     private static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
@@ -44,6 +45,7 @@ public final class GlobalIndexCache {
     public static boolean tryLoad() {
         Path cacheFile = resolveCacheFile();
         if (!Files.exists(cacheFile)) return false;
+        AmiIndexerService.getInstance().beginProgress("Loading index cache");
         try (var gzipIn = new GZIPInputStream(Files.newInputStream(cacheFile));
              var reader = new InputStreamReader(gzipIn, StandardCharsets.UTF_8)) {
             deserializeInto(GlobalIndex.getInstance(), reader);
@@ -121,7 +123,13 @@ public final class GlobalIndexCache {
         try {
             String input = Services.PLATFORM.getLoadedModFingerprintEntries().stream()
                     .sorted(Comparator.naturalOrder())
-                    .reduce("", (a, b) -> a + "|" + b) + "_v" + CACHE_VERSION;
+                    .reduce("", (a, b) -> a + "|" + b)
+                    + "_v" + CACHE_VERSION
+                    + "_spawnEggs=" + AmiConfig.showSpawnEggs
+                    + "_hidden=" + AmiConfig.showHiddenModItems
+                    + "_strictSurvival=" + AmiConfig.strictSurvivalMode
+                    + "_cheat=" + AmiConfig.cheatMode
+                    + "_dev=" + AmiConfig.devMode;
 
             MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
             byte[] digest = sha256.digest(input.getBytes(StandardCharsets.UTF_8));
@@ -158,6 +166,16 @@ public final class GlobalIndexCache {
         JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
 
         index.clear();
+        int total = 0;
+        for (String typeStr : root.keySet()) {
+            JsonArray array = root.getAsJsonArray(typeStr);
+            if (array != null) {
+                total += array.size();
+            }
+        }
+        AmiIndexerService progress = AmiIndexerService.getInstance();
+        progress.beginProgress("Loading index cache", "", total);
+        int loaded = 0;
 
         for (String typeStr : root.keySet()) {
             try {
@@ -167,6 +185,11 @@ public final class GlobalIndexCache {
                 for (JsonElement elem : array) {
                     SearchNode node = nodeFromJson(elem.getAsJsonObject(), type);
                     index.addNode(node);
+                    loaded++;
+                    if ((loaded & 255) == 0 || loaded == total) {
+                        progress.updateProgress(loaded);
+                        progress.updateProgressDetail(node.id().toString());
+                    }
                 }
             } catch (IllegalArgumentException e) {
                 AmiCore.LOGGER.warn("Unknown NodeType in cache: {}", typeStr);

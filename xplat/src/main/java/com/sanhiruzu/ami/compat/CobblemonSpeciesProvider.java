@@ -6,8 +6,10 @@ import com.sanhiruzu.ami.index.IAmiDataProvider;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
@@ -74,12 +76,14 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
         putEggGroups(api, species, meta);
         putAbilities(api, species, meta);
         putMoves(api, species, meta);
+        putDrops(api, species, meta);
         putFloat(api.getHeight.invoke(species), SearchNodeKeys.POKEMON_HEIGHT, meta);
         putFloat(api.getWeight.invoke(species), SearchNodeKeys.POKEMON_WEIGHT, meta);
 
         String typeTokens = buildTypeTokens(meta);
         meta.put(SearchNodeKeys.SEARCH_TOKENS, "pokemon species pokedex " + speciesPath.replace('_', ' ')
-                + (typeTokens.isEmpty() ? "" : " " + typeTokens));
+                + (typeTokens.isEmpty() ? "" : " " + typeTokens)
+                + dropSearchTokens(meta));
         return new SearchNode(nodeId, NodeType.ENTITY, displayName, 0xFFFFFF, 0, meta);
     }
 
@@ -194,6 +198,62 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
         return values;
     }
 
+    private static void putDrops(SpeciesApi api, Object species, Map<String, String> meta) throws ReflectiveOperationException {
+        if (api.getDrops == null) {
+            return;
+        }
+
+        Object dropTable = api.getDrops.invoke(species);
+        Object rawEntries = invokeNoArg(dropTable, "getEntries");
+        if (!(rawEntries instanceof Iterable<?> entries)) {
+            return;
+        }
+
+        LinkedHashSet<String> items = new LinkedHashSet<>();
+        List<String> chances = new ArrayList<>();
+        List<String> minimums = new ArrayList<>();
+        List<String> maximums = new ArrayList<>();
+        for (Object entry : entries) {
+            Object rawItem = invokeNoArg(entry, "getItem");
+            ResourceLocation itemId = rawItem instanceof ResourceLocation resourceLocation
+                    ? resourceLocation
+                    : ResourceLocation.tryParse(rawItem == null ? "" : rawItem.toString());
+            if (!isUsableDropItemId(itemId)) {
+                continue;
+            }
+            items.add(itemId.toString());
+
+            Object percentage = invokeNoArg(entry, "getPercentage");
+            if (percentage instanceof Number number) {
+                chances.add(Float.toString(number.floatValue()));
+            }
+
+            String minimum = "";
+            String maximum = "";
+            Object quantity = invokeNoArg(entry, "getQuantity");
+            if (quantity instanceof Number number) {
+                String value = Integer.toString(number.intValue());
+                minimum = value;
+                maximum = value;
+            }
+
+            Object range = invokeNoArg(entry, "getQuantityRange");
+            if (range != null) {
+                String first = intRangeBound(range, "getFirst", "getStart");
+                String last = intRangeBound(range, "getLast", "getEndInclusive");
+                if (!first.isBlank()) minimum = first;
+                if (!last.isBlank()) maximum = last;
+            }
+            if (!minimum.isBlank()) minimums.add(minimum);
+            if (!maximum.isBlank()) maximums.add(maximum);
+        }
+
+        putJoined(meta, SearchNodeKeys.POKEMON_DROP_ITEM, items);
+        putJoined(meta, SearchNodeKeys.POKEMON_DROP_CHANCE, chances);
+        putJoined(meta, SearchNodeKeys.POKEMON_DROP_MIN, minimums);
+        putJoined(meta, SearchNodeKeys.POKEMON_DROP_MAX, maximums);
+    }
+
     private static String typeName(SpeciesApi api, Object type) throws ReflectiveOperationException {
         if (type == null) {
             return "";
@@ -257,6 +317,36 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
         return first + "," + second;
     }
 
+    private static String dropSearchTokens(Map<String, String> meta) {
+        String raw = meta.getOrDefault(SearchNodeKeys.POKEMON_DROP_ITEM, "");
+        if (raw.isBlank()) {
+            return "";
+        }
+
+        StringBuilder out = new StringBuilder();
+        for (String part : raw.split(",")) {
+            ResourceLocation id = ResourceLocation.tryParse(part.trim());
+            if (id == null) continue;
+            out.append(' ')
+                    .append(id.getNamespace())
+                    .append(' ')
+                    .append(id.getPath().replace('_', ' '));
+        }
+        return out.toString();
+    }
+
+    private static boolean isUsableDropItemId(ResourceLocation itemId) {
+        if (itemId == null || itemId.getPath().isBlank()) {
+            return false;
+        }
+        try {
+            return BuiltInRegistries.ITEM.get(itemId) != Items.AIR;
+        } catch (RuntimeException e) {
+            AmiCore.LOGGER.debug("Ignoring unresolved Cobblemon drop item {}", itemId, e);
+            return false;
+        }
+    }
+
     private static String invokeString(Method method, Object target) throws ReflectiveOperationException {
         if (method == null || target == null) {
             return "";
@@ -271,6 +361,19 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
         }
         Method method = findNoArgMethod(target.getClass(), methodName);
         return method == null ? null : method.invoke(target);
+    }
+
+    private static String intRangeBound(Object target, String... methodNames) throws ReflectiveOperationException {
+        if (target == null || methodNames == null) {
+            return "";
+        }
+        for (String methodName : methodNames) {
+            Object value = invokeNoArg(target, methodName);
+            if (value instanceof Number number) {
+                return Integer.toString(number.intValue());
+            }
+        }
+        return "";
     }
 
     private static Method findNoArgMethod(Class<?> owner, String... names) {
@@ -343,6 +446,7 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
             Method getEggGroups,
             Method getAbilities,
             Method getMoves,
+            Method getDrops,
             Method getHeight,
             Method getWeight
     ) {
@@ -368,6 +472,7 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
                         species.getMethod("getEggGroups"),
                         species.getMethod("getAbilities"),
                         species.getMethod("getMoves"),
+                        findNoArgMethod(species, "getDrops"),
                         species.getMethod("getHeight"),
                         species.getMethod("getWeight")
                 );

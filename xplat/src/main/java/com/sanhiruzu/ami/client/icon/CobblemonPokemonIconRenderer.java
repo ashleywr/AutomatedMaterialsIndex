@@ -6,6 +6,7 @@ import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexSorting;
+import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.RenderStateSnapshot;
 import com.sanhiruzu.ami.compat.ReflectiveCompat;
@@ -26,6 +27,7 @@ import org.joml.Quaternionf;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,16 +40,28 @@ import java.util.Set;
 public final class CobblemonPokemonIconRenderer {
     private static final int GENERATED_SPRITE_SIZE = 64;
     private static final int ICON_CONTENT_SIZE = 62;
-    private static final String GENERATED_SPRITE_CACHE_VERSION = "v2";
+    private static final String GENERATED_SPRITE_CACHE_VERSION = "v3";
     private static final Map<ResourceLocation, Object> STATE_CACHE = new HashMap<>();
     private static final Map<ResourceLocation, Optional<ResourceLocation>> SPRITE_CACHE = new HashMap<>();
     private static final Map<ResourceLocation, Optional<ResourceLocation>> GENERATED_PROFILE_SPRITES = new HashMap<>();
+    private static final Set<ResourceLocation> FAILED_PORTRAIT_RENDER = new HashSet<>();
     private static final Set<ResourceLocation> FAILED_PROFILE_RENDER = new HashSet<>();
+    private static final Set<ResourceLocation> LOGGED_PORTRAIT_FAILURES = new HashSet<>();
+    private static final Set<ResourceLocation> LOGGED_PROFILE_FAILURES = new HashSet<>();
+    private static final Set<ResourceLocation> LOGGED_BLANK_PROFILE_CAPTURES = new HashSet<>();
+    private static final int MAX_BLANK_CAPTURE_LOGS = 8;
     private static final Set<ResourceLocation> BROKEN_PROFILE_RENDER = Set.of(
             ResourceLocation.fromNamespaceAndPath("cobblemon", "coalossal")
     );
+    private static PortraitApi portraitApi;
     private static ProfileApi profileApi;
+    private static boolean portraitApiUnavailable;
     private static boolean profileApiUnavailable;
+    private static boolean loggedPortraitApiUnavailable;
+    private static boolean loggedPortraitApiMode;
+    private static boolean loggedProfileApiUnavailable;
+    private static boolean loggedProfileApiMode;
+    private static int blankProfileCaptureLogCount;
 
     private CobblemonPokemonIconRenderer() {
     }
@@ -62,8 +76,15 @@ public final class CobblemonPokemonIconRenderer {
 
         if (speciesId != null
                 && AmiConfig.renderCobblemon3dPokemonIcons
-                && canUseProfileRenderer(node, speciesId)
-                && tryRenderCachedProfileSprite(g, speciesId, x, y, size)) {
+                && isImplementedPokemon(node)) {
+            if (tryRenderCachedProfileSprite(g, speciesId, x, y, size)) {
+                return;
+            }
+            if (tryRenderPortrait(g, speciesId, x, y, size)) {
+                return;
+            }
+            renderBadge(g, node, x, y, size);
+            tryRenderProfile(g, speciesId, x, y, size, hovered, true);
             return;
         }
 
@@ -76,14 +97,64 @@ public final class CobblemonPokemonIconRenderer {
         SPRITE_CACHE.clear();
         releaseGeneratedTextures();
         GENERATED_PROFILE_SPRITES.clear();
+        FAILED_PORTRAIT_RENDER.clear();
         FAILED_PROFILE_RENDER.clear();
+        LOGGED_PORTRAIT_FAILURES.clear();
+        LOGGED_PROFILE_FAILURES.clear();
+        LOGGED_BLANK_PROFILE_CAPTURES.clear();
+        blankProfileCaptureLogCount = 0;
     }
 
-    private static boolean canUseProfileRenderer(SearchNode node, ResourceLocation speciesId) {
+    private static boolean isImplementedPokemon(SearchNode node) {
+        return Boolean.parseBoolean(node.meta(SearchNodeKeys.POKEMON_IMPLEMENTED, "true"));
+    }
+
+    private static boolean canUseProfileRenderer(ResourceLocation speciesId) {
         if (BROKEN_PROFILE_RENDER.contains(speciesId) || FAILED_PROFILE_RENDER.contains(speciesId)) {
             return false;
         }
-        return Boolean.parseBoolean(node.meta(SearchNodeKeys.POKEMON_IMPLEMENTED, "true"));
+        return true;
+    }
+
+    private static boolean tryRenderPortrait(GuiGraphics g, ResourceLocation speciesId, int x, int y, int size) {
+        if (FAILED_PORTRAIT_RENDER.contains(speciesId)) {
+            return false;
+        }
+
+        PortraitApi api = portraitApi();
+        if (api == null) {
+            return false;
+        }
+
+        Object species = api.species(speciesId);
+        if (species == null) {
+            FAILED_PORTRAIT_RENDER.add(speciesId);
+            return false;
+        }
+
+        g.pose().pushPose();
+        try {
+            IconRenderState.render3dIcon(g, () -> {
+                try {
+                    RenderSystem.enableBlend();
+                    RenderSystem.defaultBlendFunc();
+                    // Cobbledex renders its 16px collection entries at x+8,y-2 with a 0.5x pose scale.
+                    g.pose().translate(x + size * 0.5f, y - size * 0.125f, 0.0f);
+                    float slotScale = size / 32.0f;
+                    g.pose().scale(slotScale, slotScale, 1.0f);
+                    api.drawPortraitPokemon.invoke(null, api.arguments(species, g.pose()));
+                } catch (ReflectiveOperationException e) {
+                    throw new IllegalStateException(e);
+                }
+            });
+            return true;
+        } catch (Throwable e) {
+            FAILED_PORTRAIT_RENDER.add(speciesId);
+            logPortraitFailure(speciesId, e);
+            return false;
+        } finally {
+            g.pose().popPose();
+        }
     }
 
     private static boolean tryRenderSprite(GuiGraphics g, SearchNode node, ResourceLocation speciesId, int x, int y, int size) {
@@ -154,13 +225,14 @@ public final class CobblemonPokemonIconRenderer {
             image = renderProfileToImage(speciesId);
         } catch (RuntimeException e) {
             FAILED_PROFILE_RENDER.add(speciesId);
+            logProfileFailure(speciesId, e);
             return Optional.empty();
         }
         if (image == null || isBlankOrBlack(image)) {
             if (image != null) {
                 image.close();
             }
-            FAILED_PROFILE_RENDER.add(speciesId);
+            logBlankProfileCapture(speciesId);
             return Optional.empty();
         }
         image = normalizeIcon(image);
@@ -177,11 +249,6 @@ public final class CobblemonPokemonIconRenderer {
     }
 
     private static NativeImage renderProfileToImage(ResourceLocation speciesId) {
-        ProfileApi api = profileApi();
-        if (api == null) {
-            return null;
-        }
-
         Minecraft mc = Minecraft.getInstance();
         RenderStateSnapshot state = RenderStateSnapshot.capture();
         Matrix4f savedProj = new Matrix4f(RenderSystem.getProjectionMatrix());
@@ -202,7 +269,15 @@ public final class CobblemonPokemonIconRenderer {
                     VertexSorting.ORTHOGRAPHIC_Z);
 
             GuiGraphics cacheG = new GuiGraphics(mc, mc.renderBuffers().bufferSource());
-            if (!tryRenderProfile(cacheG, speciesId, 0, 0, GENERATED_SPRITE_SIZE, false)) {
+            // Match ItemIconCache's Forge 1.20.x framebuffer compensation. Cobblemon's
+            // profile renderer applies the current model-view matrix, so a GUI render
+            // offset can otherwise push the offscreen model outside the capture frustum.
+            float mvZ = RenderSystem.getModelViewMatrix().m32();
+            if (mvZ != 0) {
+                cacheG.pose().translate(0.0, 0.0, (double) -mvZ);
+            }
+            if (!tryRenderPortrait(cacheG, speciesId, 0, 0, GENERATED_SPRITE_SIZE)
+                    && !tryRenderProfile(cacheG, speciesId, 0, 0, GENERATED_SPRITE_SIZE, false, false)) {
                 return null;
             }
             cacheG.flush();
@@ -305,7 +380,11 @@ public final class CobblemonPokemonIconRenderer {
         }
     }
 
-    private static boolean tryRenderProfile(GuiGraphics g, ResourceLocation speciesId, int x, int y, int size, boolean hovered) {
+    private static boolean tryRenderProfile(GuiGraphics g, ResourceLocation speciesId, int x, int y, int size, boolean hovered, boolean cacheState) {
+        if (!canUseProfileRenderer(speciesId)) {
+            return false;
+        }
+
         ProfileApi api = profileApi();
         if (api == null) {
             return false;
@@ -313,7 +392,7 @@ public final class CobblemonPokemonIconRenderer {
 
         g.pose().pushPose();
         try {
-            Object state = STATE_CACHE.computeIfAbsent(speciesId, api::newState);
+            Object state = cacheState ? STATE_CACHE.computeIfAbsent(speciesId, api::newState) : api.newState(speciesId);
             if (state == null) {
                 FAILED_PROFILE_RENDER.add(speciesId);
                 return false;
@@ -339,6 +418,7 @@ public final class CobblemonPokemonIconRenderer {
             return true;
         } catch (Throwable e) {
             FAILED_PROFILE_RENDER.add(speciesId);
+            logProfileFailure(speciesId, e);
             return false;
         } finally {
             g.pose().popPose();
@@ -390,6 +470,7 @@ public final class CobblemonPokemonIconRenderer {
 
             if (currentDraw.isPresent()) {
                 profileApi = new ProfileApi(currentDraw.get(), stateCtor, profilePose, false);
+                logProfileApiMode("current");
                 return profileApi;
             }
 
@@ -405,9 +486,76 @@ public final class CobblemonPokemonIconRenderer {
                     float.class
             ).orElseThrow();
             profileApi = new ProfileApi(legacyDraw, stateCtor, profilePose, true);
+            logProfileApiMode("legacy");
             return profileApi;
         } catch (Throwable e) {
             profileApiUnavailable = true;
+            logProfileApiUnavailable(e);
+            return null;
+        }
+    }
+
+    private static PortraitApi portraitApi() {
+        if (portraitApiUnavailable) {
+            return null;
+        }
+        if (portraitApi != null) {
+            return portraitApi;
+        }
+
+        try {
+            Class<?> guiUtils = ReflectiveCompat.findClass("com.cobblemon.mod.common.api.gui.GuiUtilsKt").orElseThrow();
+            Class<?> pokemonSpecies = ReflectiveCompat.findClass("com.cobblemon.mod.common.api.pokemon.PokemonSpecies").orElseThrow();
+            Class<?> species = ReflectiveCompat.findClass("com.cobblemon.mod.common.pokemon.Species").orElseThrow();
+            Class<?> posableState = firstClass(
+                    "com.cobblemon.mod.common.client.render.models.blockbench.PosableState",
+                    "com.cobblemon.mod.common.client.render.models.blockbench.PoseableEntityState"
+            ).orElseThrow();
+
+            Optional<Method> drawPortrait = ReflectiveCompat.findMethod(
+                    guiUtils,
+                    "drawPortraitPokemon",
+                    species,
+                    Set.class,
+                    PoseStack.class,
+                    float.class,
+                    boolean.class,
+                    posableState,
+                    float.class
+            );
+            if (drawPortrait.isPresent()) {
+                Field instance = pokemonSpecies.getField("INSTANCE");
+                Method getByIdentifier = ReflectiveCompat.findMethod(
+                        pokemonSpecies,
+                        "getByIdentifier",
+                        ResourceLocation.class
+                ).orElseThrow();
+
+                portraitApi = new PortraitApi(drawPortrait.get(), instance.get(null), getByIdentifier, null);
+                logPortraitApiMode("species");
+                return portraitApi;
+            }
+
+            Method drawPosablePortrait = ReflectiveCompat.findMethod(
+                    guiUtils,
+                    "drawPosablePortrait",
+                    ResourceLocation.class,
+                    PoseStack.class,
+                    posableState,
+                    float.class
+            ).orElseThrow();
+            Class<?> floatingState = firstClass(
+                    "com.cobblemon.mod.common.client.render.models.blockbench.FloatingState",
+                    "com.cobblemon.mod.common.client.render.models.blockbench.pokemon.PokemonFloatingState"
+            ).orElseThrow();
+            Constructor<?> stateCtor = ReflectiveCompat.findConstructor(floatingState).orElseThrow();
+
+            portraitApi = new PortraitApi(drawPosablePortrait, null, null, stateCtor);
+            logPortraitApiMode("posable");
+            return portraitApi;
+        } catch (Throwable e) {
+            portraitApiUnavailable = true;
+            logPortraitApiUnavailable(e);
             return null;
         }
     }
@@ -620,5 +768,87 @@ public final class CobblemonPokemonIconRenderer {
                     0.0f
             };
         }
+    }
+
+    private record PortraitApi(
+            Method drawPortraitPokemon,
+            Object pokemonSpecies,
+            Method getByIdentifier,
+            Constructor<?> stateCtor
+    ) {
+        private Object species(ResourceLocation speciesId) {
+            if (getByIdentifier == null) {
+                return speciesId;
+            }
+            try {
+                return getByIdentifier.invoke(pokemonSpecies, speciesId);
+            } catch (ReflectiveOperationException e) {
+                return null;
+            }
+        }
+
+        private Object[] arguments(Object species, PoseStack pose) throws ReflectiveOperationException {
+            if (getByIdentifier != null) {
+                return new Object[]{
+                        species,
+                        Set.of(),
+                        pose,
+                        13.0f,
+                        false,
+                        null,
+                        0.0f
+                };
+            }
+            return new Object[]{
+                    species,
+                    pose,
+                    stateCtor.newInstance(),
+                    13.0f
+            };
+        }
+    }
+
+    private static void logPortraitApiMode(String mode) {
+        if (loggedPortraitApiMode) return;
+        loggedPortraitApiMode = true;
+        AmiCore.LOGGER.info("AMI Cobblemon 3D Pokémon icons: using {} portrait renderer", mode);
+    }
+
+    private static void logPortraitApiUnavailable(Throwable e) {
+        if (loggedPortraitApiUnavailable) return;
+        loggedPortraitApiUnavailable = true;
+        AmiCore.LOGGER.warn("AMI Cobblemon 3D Pokémon icons: portrait renderer API unavailable", e);
+    }
+
+    private static void logProfileApiMode(String mode) {
+        if (loggedProfileApiMode) return;
+        loggedProfileApiMode = true;
+        AmiCore.LOGGER.info("AMI Cobblemon 3D Pokémon icons: using {} profile renderer", mode);
+    }
+
+    private static void logProfileApiUnavailable(Throwable e) {
+        if (loggedProfileApiUnavailable) return;
+        loggedProfileApiUnavailable = true;
+        AmiCore.LOGGER.warn("AMI Cobblemon 3D Pokémon icons: profile renderer API unavailable", e);
+    }
+
+    private static void logPortraitFailure(ResourceLocation speciesId, Throwable e) {
+        if (!LOGGED_PORTRAIT_FAILURES.add(speciesId)) return;
+        AmiCore.LOGGER.warn("AMI Cobblemon 3D Pokémon icons: failed to render portrait {}", speciesId, e);
+    }
+
+    private static void logProfileFailure(ResourceLocation speciesId, Throwable e) {
+        if (!LOGGED_PROFILE_FAILURES.add(speciesId)) return;
+        AmiCore.LOGGER.warn("AMI Cobblemon 3D Pokémon icons: failed to render {}", speciesId, e);
+    }
+
+    private static void logBlankProfileCapture(ResourceLocation speciesId) {
+        if (!LOGGED_BLANK_PROFILE_CAPTURES.add(speciesId)) return;
+        if (blankProfileCaptureLogCount < MAX_BLANK_CAPTURE_LOGS) {
+            AmiCore.LOGGER.warn("AMI Cobblemon 3D Pokémon icons: profile capture was blank for {}; using live render fallback", speciesId);
+        } else if (blankProfileCaptureLogCount == MAX_BLANK_CAPTURE_LOGS) {
+            AmiCore.LOGGER.warn("AMI Cobblemon 3D Pokémon icons: suppressing further blank profile capture logs");
+        }
+        blankProfileCaptureLogCount++;
     }
 }

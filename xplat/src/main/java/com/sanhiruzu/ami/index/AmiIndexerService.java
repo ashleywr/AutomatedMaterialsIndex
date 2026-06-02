@@ -27,6 +27,7 @@ public final class AmiIndexerService {
     private volatile AmiGuideSearchIndex guideSearchIndex = new AmiGuideSearchIndex(null, AmiGuideSearchIndex.GuideIndexingMode.OFF);
     private volatile int indexedItemCount;
     private volatile Throwable lastRebuildFailure;
+    private volatile AmiIndexProgress progress = AmiIndexProgress.idle();
 
     private AmiIndexerService() {
     }
@@ -50,6 +51,10 @@ public final class AmiIndexerService {
 
     public Throwable getLastRebuildFailure() {
         return lastRebuildFailure;
+    }
+
+    public AmiIndexProgress progress() {
+        return progress;
     }
 
     public AmiGuideSearchIndex getGuideSearchIndex() {
@@ -77,6 +82,7 @@ public final class AmiIndexerService {
                 performRebuild(level, forceProviderRebuild);
             } catch (Throwable t) {
                 lastRebuildFailure = t;
+                beginProgress("Indexing failed");
                 AmiCore.LOGGER.error("AMI: Index rebuild failed", t);
             } finally {
                 isRebuilding.set(false);
@@ -104,25 +110,34 @@ public final class AmiIndexerService {
         GlobalIndex index = GlobalIndex.getInstance();
 
         // 1. Core indexing of all standard types
+        beginProgress("Preparing index");
         GroupingEngine.initialize(level);
         AmiDataFixes.reload();
+        beginProgress("Checking index cache");
         if (!forceProviderRebuild && Services.PLATFORM.tryLoadGlobalIndexCache()) {
+            beginProgress("Restoring cached item icons", "Rebuilding runtime stacks", estimatedItemTotal());
             ProviderRegistry.rehydrateSubtypeStacks(level);
         } else {
+            beginProgress("Building item index");
             ProviderRegistry.indexAll(level);
+            beginProgress("Saving index cache");
             Services.PLATFORM.saveGlobalIndexCache();
         }
 
         // 2. Populate world/datapack-backed atlas types before we snapshot the search service.
+        beginProgress("Indexing world data");
         ProviderRegistry.indexStructuresDeferred(level);
 
         // 3. Post-indexing tasks
+        beginProgress("Applying data fixes");
         AmiDataFixes.applyToIndex(index);
+        beginProgress("Applying compatibility metadata");
         SilentGearMaterialTraitIndex.applyToIndex(index);
         if (AmiConfig.devMode) {
             ItemIconRenderer.auditMissingIcons();
         }
 
+        beginProgress("Indexing guides");
         AmiGuideRegistry.clear();
         ApotheosisGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
         SilentGearTraitGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
@@ -134,13 +149,40 @@ public final class AmiIndexerService {
 
         // Build search service from the new index
         long searchServiceStart = System.currentTimeMillis();
+        beginProgress("Building search cache");
         searchService = SearchService.buildFrom(index, true);
+        beginProgress("Warming suggestions");
         SearchSuggestions.warm(index);
         long searchServiceMs = System.currentTimeMillis() - searchServiceStart;
 
         index.setIndexBuildTime(System.currentTimeMillis() - started);
+        progress = AmiIndexProgress.idle();
         AmiCore.LOGGER.info("AMI: Index rebuild complete in {}ms (search service: {}ms). Indexed {} items and {} guide docs.",
                 index.getIndexBuildTimeMs(), searchServiceMs, indexedItemCount, guideSearchIndex.allDocuments().size());
+    }
+
+    public void beginProgress(String phase) {
+        progress = AmiIndexProgress.start(phase);
+    }
+
+    public void beginProgress(String phase, String detail, int total) {
+        progress = AmiIndexProgress.start(phase, detail, total);
+    }
+
+    public void updateProgress(int current) {
+        progress = progress.withProgress(current);
+    }
+
+    public void updateProgressDetail(String detail) {
+        progress = progress.withDetail(detail);
+    }
+
+    private static int estimatedItemTotal() {
+        try {
+            return net.minecraft.core.registries.BuiltInRegistries.ITEM.size();
+        } catch (RuntimeException ignored) {
+            return 0;
+        }
     }
 
     public int indexedItemCount() {
