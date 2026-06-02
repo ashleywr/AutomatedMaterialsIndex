@@ -50,7 +50,7 @@ public class SingleSelectDropdown<T> implements Dropdown {
         boolean hovered = canOpen && Dropdown.contains(mouseX, mouseY, x, y, width, HEIGHT);
         int bgColor = (open || hovered) ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
 
-        g.fill(x, y, x + width, y + HEIGHT, bgColor);
+        AMITheme.fillInsetRect(g, x, y, width, HEIGHT, bgColor, open);
         Component textComp = displayName.apply(selected);
         String text = textComp.getString();
         var font = Minecraft.getInstance().font;
@@ -81,8 +81,7 @@ public class SingleSelectDropdown<T> implements Dropdown {
         }
 
         int dropH = options.size() * ITEM_HEIGHT + 2;
-        g.fill(x, y + HEIGHT + 2, x + listWidth, y + HEIGHT + 2 + dropH, AMITheme.DROPDOWN_LIST_BG);
-        g.fill(x, y + HEIGHT + 2, x + listWidth, y + HEIGHT + 3, AMITheme.SECTION_SEP);
+        AMITheme.fillInsetRect(g, x, y + HEIGHT + 2, listWidth, dropH, AMITheme.DROPDOWN_LIST_BG, false);
 
         int itemY = y + HEIGHT + 3;
         for (T option : options) {

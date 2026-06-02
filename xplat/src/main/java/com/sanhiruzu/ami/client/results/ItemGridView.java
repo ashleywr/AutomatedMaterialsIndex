@@ -28,7 +28,8 @@ import java.util.function.BiConsumer;
  */
 public class ItemGridView {
     private static final int CELL_SIZE = 18;
-    private static final int HEADER_H = 12;
+    private static final int HEADER_H = 13;
+    private static final int ROOT_HEADER_H = 16;
     private static final int STICKY_CONTEXT_H = HEADER_H + 3;
     private static final int SCROLLBAR_W = 5;
     private static final int HEADER_INDENT = 12;
@@ -279,11 +280,12 @@ public class ItemGridView {
     }
 
     private void renderHeader(GuiGraphics g, HeaderRow hr, int drawY, int mouseX, int mouseY) {
+        int rowH = hr.height();
         boolean hovered = mouseX >= x && mouseX < x + width - SCROLLBAR_W
-                && mouseY >= drawY && mouseY < drawY + HEADER_H;
-        renderHeaderContext(g, hr.depth(), drawY, hr.alternateBand());
+                && mouseY >= drawY && mouseY < drawY + rowH;
+        renderHeaderContext(g, hr.depth(), drawY, rowH, hr.alternateBand());
         if (hovered) {
-            g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + HEADER_H, com.sanhiruzu.ami.client.AMITheme.ENTRY_HOVER);
+            g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + rowH, com.sanhiruzu.ami.client.AMITheme.ENTRY_HOVER);
             hoveredTreeNode = hr.node();
         }
 
@@ -291,16 +293,23 @@ public class ItemGridView {
         int contentRight = x + width - SCROLLBAR_W;
         int rowX = x + 4 + indent;
         var font = Minecraft.getInstance().font;
+        int textY = drawY + Math.max(1, (rowH - font.lineHeight) / 2);
+
+        if (hr.depth() == 0) {
+            g.fill(x, drawY, x + 2, drawY + rowH, AMITheme.ACCENT_BLUE);
+            g.fill(x + 2, drawY + rowH - 1, contentRight - 2, drawY + rowH, AMITheme.SECTION_SEP);
+            rowX += 2;
+        }
 
         if (hr.depth() > 0) {
             int railX = x + 5 + (hr.depth() - 1) * HEADER_INDENT;
-            g.fill(railX, drawY + 2, railX + 1, drawY + HEADER_H - 2, AMITheme.GRID_GROUP_RAIL);
+            g.fill(railX, drawY + 2, railX + 1, drawY + rowH - 2, AMITheme.GRID_GROUP_RAIL);
         }
 
         if (hr.toggleable()) {
             int caretColor = hovered ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_SUBTLE;
             String marker = hr.node().isExpanded() ? "▼" : "▶";
-            g.drawString(font, marker, rowX, drawY + 2, caretColor, false);
+            g.drawString(font, marker, rowX, textY, caretColor, false);
             rowX += 10;
         }
 
@@ -309,8 +318,9 @@ public class ItemGridView {
         int countX = contentRight - countW - 5;
         int labelMaxW = Math.max(0, countX - rowX - 6);
         String label = truncate(font, hr.node().getLabel().getString(), labelMaxW);
-        g.drawString(font, label, rowX, drawY + 2, com.sanhiruzu.ami.client.AMITheme.TEXT_HEADER, false);
-        g.drawString(font, count, countX, drawY + 2, AMITheme.TEXT_SUBTLE, false);
+        int labelColor = hr.depth() == 0 ? AMITheme.TEXT_PRIMARY : AMITheme.TEXT_HEADER;
+        g.drawString(font, label, rowX, textY, labelColor, hr.depth() == 0);
+        g.drawString(font, count, countX, textY, AMITheme.TEXT_SUBTLE, false);
     }
 
     // =========================================================
@@ -652,10 +662,14 @@ public class ItemGridView {
         }
     }
 
-    private void renderHeaderContext(GuiGraphics g, int depth, int drawY, boolean alternateBand) {
+    private void renderHeaderContext(GuiGraphics g, int depth, int drawY, int rowH, boolean alternateBand) {
         int contentX = x;
         int contentRight = x + width - SCROLLBAR_W;
-        g.fill(contentX, drawY, contentRight, drawY + HEADER_H, groupBandColor(alternateBand));
+        int color = depth == 0 ? AMITheme.GRID_GROUP_ROOT_BG : AMITheme.GRID_GROUP_CHILD_BG;
+        g.fill(contentX, drawY, contentRight, drawY + rowH, color);
+        if (depth > 0) {
+            g.fill(contentX, drawY, contentRight, drawY + rowH, groupBandColor(alternateBand));
+        }
     }
 
     private void renderGroupContext(GuiGraphics g, int depth, int drawY, boolean alternateBand) {
@@ -991,7 +1005,7 @@ public class ItemGridView {
     private record HeaderRow(TreeNode node, int depth, int itemCount, boolean toggleable,
                              boolean alternateBand) implements VirtualRow {
         public int height() {
-            return HEADER_H;
+            return depth == 0 ? ROOT_HEADER_H : HEADER_H;
         }
     }
 

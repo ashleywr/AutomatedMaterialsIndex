@@ -264,13 +264,7 @@ public class ResultsToolbar implements SearchState.Listener {
 
     private void drawButton(GuiGraphics g, int bx, int by, int bw, int bh, boolean hovered) {
         int bgColor = hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
-        g.fill(bx, by, bx + bw, by + bh, bgColor);
-
-        int borderColor = AMITheme.SECTION_SEP;
-        g.fill(bx, by, bx + bw, by + 1, borderColor);
-        g.fill(bx, by + bh - 1, bx + bw, by + bh, borderColor);
-        g.fill(bx, by, bx + 1, by + bh, borderColor);
-        g.fill(bx + bw - 1, by, bx + bw, by + bh, borderColor);
+        AMITheme.fillInsetRect(g, bx, by, bw, bh, bgColor, false);
     }
 
     private String sortDirectionLabel() {
