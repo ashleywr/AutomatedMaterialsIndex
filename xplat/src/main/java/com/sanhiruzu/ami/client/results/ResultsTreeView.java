@@ -278,7 +278,16 @@ public class ResultsTreeView {
             }
 
             if (!node.isLeaf()) {
-                g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + AMITheme.ROW_HEIGHT, AMITheme.GROUP_HEADER_BG);
+                int groupBg = depth == 0 ? AMITheme.GRID_GROUP_ROOT_BG : AMITheme.GROUP_HEADER_BG;
+                g.fill(x, drawY, x + width - SCROLLBAR_W, drawY + AMITheme.ROW_HEIGHT, groupBg);
+                if (depth == 0) {
+                    g.fill(x, drawY, x + 2, drawY + AMITheme.ROW_HEIGHT, AMITheme.ACCENT_BLUE);
+                    g.fill(x + 2, drawY + AMITheme.ROW_HEIGHT - 1,
+                            x + width - SCROLLBAR_W - 2, drawY + AMITheme.ROW_HEIGHT, AMITheme.SECTION_SEP);
+                } else {
+                    int railX = x + 5 + (depth - 1) * INDENT;
+                    g.fill(railX, drawY + 3, railX + 1, drawY + AMITheme.ROW_HEIGHT - 3, AMITheme.GRID_GROUP_RAIL);
+                }
             }
 
             if (hovered) {
@@ -545,14 +554,14 @@ public class ResultsTreeView {
         g.pose().pushPose();
         g.pose().scale(currentLabelScale, currentLabelScale, 1f);
 
-        int labelColor = node.isModGroup() ? AmiColors.MOD_COLOR : AMITheme.TEXT_HEADER;
+        int labelColor = depth == 0 ? AMITheme.TEXT_PRIMARY : node.isModGroup() ? AmiColors.MOD_COLOR : AMITheme.TEXT_HEADER;
         if (node.isHighCardinality()) {
             labelColor = AMITheme.GRID_GOLD_BORDER; // Gold for high-cardinality groups
         }
 
         g.drawString(font, label,
                 Math.round((rowX + 32) / currentLabelScale), Math.round(screenLabelY / currentLabelScale),
-                labelColor, false);
+                labelColor, depth == 0 && currentLabelScale >= 1f);
         g.pose().popPose();
 
         // Render badge at the same scale as the group label — higher contrast for visibility

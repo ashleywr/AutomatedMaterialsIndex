@@ -281,15 +281,12 @@ public class UniversalResultsPanel implements SearchState.Listener {
         } else {
             com.mojang.blaze3d.systems.RenderSystem.enableBlend();
             com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
-            AMITheme.fillRounded(g, x, y, width, height, AMITheme.PANEL_BG);
+            AMITheme.fillPanelChrome(g, x, y, width, height);
 
-            // Add subtle borders and accent line, only if defined by the theme
+            // Add subtle borders, only if defined by the theme.
             if (AMITheme.BORDER_LIGHT != 0) {
-                int border = AMITheme.BORDER_LIGHT;
-                g.fill(x, y, x + width, y + 2, AMITheme.ACCENT_BLUE);
-                g.fill(x, y + height - 1, x + width, y + height, border);
-                g.fill(x, y, x + 1, y + height, border);
-                g.fill(x + width - 1, y, x + width, y + height, border);
+                g.fill(x + 2, y + 1, x + width - 2, y + 2, AMITheme.BORDER_LIGHT);
+                g.fill(x + 2, y + height - 2, x + width - 2, y + height - 1, AMITheme.CONTROL_EDGE_DARK);
             }
             com.mojang.blaze3d.systems.RenderSystem.disableBlend();
         }
@@ -405,12 +402,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         boolean hovered = isOverSidebarSwap(mouseX, mouseY);
 
         int bgColor = hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
-        int border = AMITheme.SECTION_SEP;
-        g.fill(tx, ty, tx + SIDEBAR_SWAP_W, ty + SIDEBAR_SWAP_H, bgColor);
-        g.fill(tx, ty, tx + SIDEBAR_SWAP_W, ty + 1, border);
-        g.fill(tx, ty + SIDEBAR_SWAP_H - 1, tx + SIDEBAR_SWAP_W, ty + SIDEBAR_SWAP_H, border);
-        g.fill(tx, ty, tx + 1, ty + SIDEBAR_SWAP_H, border);
-        g.fill(tx + SIDEBAR_SWAP_W - 1, ty, tx + SIDEBAR_SWAP_W, ty + SIDEBAR_SWAP_H, border);
+        AMITheme.fillInsetRect(g, tx, ty, SIDEBAR_SWAP_W, SIDEBAR_SWAP_H, bgColor, false);
 
         int color = hovered ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_HEADER;
         AmiGuiIcons.swap(g, tx + SIDEBAR_SWAP_W / 2, ty + SIDEBAR_SWAP_H / 2, color);
@@ -471,14 +463,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 && mouseY >= toggleY && mouseY < toggleY + TOGGLE_H;
 
         int bgColor = hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
-        g.fill(toggleX, toggleY, toggleX + TOGGLE_W, toggleY + TOGGLE_H, bgColor);
-
-        // Borders
-        int border = AMITheme.SECTION_SEP;
-        g.fill(toggleX, toggleY, toggleX + TOGGLE_W, toggleY + 1, border);
-        g.fill(toggleX, toggleY + TOGGLE_H - 1, toggleX + TOGGLE_W, toggleY + TOGGLE_H, border);
-        g.fill(toggleX, toggleY, toggleX + 1, toggleY + TOGGLE_H, border);
-        g.fill(toggleX + TOGGLE_W - 1, toggleY, toggleX + TOGGLE_W, toggleY + TOGGLE_H, border);
+        AMITheme.fillInsetRect(g, toggleX, toggleY, TOGGLE_W, TOGGLE_H, bgColor, false);
 
         int contentColor = hovered ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_HEADER;
         int cx = toggleX + TOGGLE_W / 2;

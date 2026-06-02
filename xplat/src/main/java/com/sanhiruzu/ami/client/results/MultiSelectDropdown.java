@@ -35,7 +35,8 @@ public class MultiSelectDropdown<T> implements Dropdown {
     public void render(GuiGraphics g, int mouseX, int mouseY) {
         boolean canOpen = options != null && !options.isEmpty();
         boolean hovered = canOpen && Dropdown.contains(mouseX, mouseY, x, y, width, HEIGHT);
-        g.fill(x, y, x + width, y + HEIGHT, (open || hovered) ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG);
+        AMITheme.fillInsetRect(g, x, y, width, HEIGHT,
+                (open || hovered) ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG, open);
 
         var font = Minecraft.getInstance().font;
         if (canOpen) {
@@ -60,8 +61,7 @@ public class MultiSelectDropdown<T> implements Dropdown {
         }
 
         int dropH = Math.min(MAX_DROPDOWN_HEIGHT, options.size() * ITEM_HEIGHT + 2);
-        g.fill(x, y + HEIGHT + 2, x + listWidth, y + HEIGHT + 2 + dropH, AMITheme.DROPDOWN_LIST_BG);
-        g.fill(x, y + HEIGHT + 2, x + listWidth, y + HEIGHT + 3, AMITheme.SECTION_SEP);
+        AMITheme.fillInsetRect(g, x, y + HEIGHT + 2, listWidth, dropH, AMITheme.DROPDOWN_LIST_BG, false);
 
         int itemY = y + HEIGHT + 3;
         for (T option : options) {
