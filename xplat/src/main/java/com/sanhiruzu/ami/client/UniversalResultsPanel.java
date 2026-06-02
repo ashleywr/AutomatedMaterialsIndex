@@ -42,6 +42,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
     // Compact toggle button dimensions — height matches toolbar buttons for visual consistency
     private static final int TOGGLE_W = 22;
     private static final int TOGGLE_H = ResultsToolbar.BUTTON_H;
+    private static final int COMPACT_CONTROL_W = 18;
+    private static final int COMPACT_CONTROL_H = ResultsToolbar.BUTTON_H;
     // Sidebar header height
     private static final int FAV_HEADER_H = 18;
     private static final int SIDEBAR_SWAP_W = 18;
@@ -59,6 +61,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private int x, y, width, height;
     // Toggle button position — recomputed on every layout update
     private int toggleX, toggleY;
+    private int compactSortX, compactSortY;
+    private int compactCollapseX, compactCollapseY;
     private ResultsToolbar toolbar;
     private ResultsTreeView treeView;
     private ItemGridView gridView;
@@ -75,6 +79,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private java.util.function.BooleanSupplier externalModeToggleActive;
     private boolean isFavoritesPanel = false;
     private boolean compactMode = false;
+    private boolean compactAutoBypass = false;
+    private int compactAutoBypassW = -1;
+    private int compactAutoBypassH = -1;
+    private boolean compactCollapseAllNext = true;
     private boolean chromeOnly = false;
     private Component panelTitle = null;
     // Displayed item count shown in the compact header (updated in refreshTree)
@@ -154,7 +162,18 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     private boolean isCompactLayout() {
-        return compactMode || (!isFavoritesPanel && !supportsEmbeddedSearch(new WidgetBounds(x, y, width, height)));
+        if (compactMode) return true;
+        if (isFavoritesPanel) return false;
+        if (supportsEmbeddedSearch(new WidgetBounds(x, y, width, height))) return false;
+        return !compactAutoBypass || compactAutoBypassW != width || compactAutoBypassH != height;
+    }
+
+    private boolean isForcedCompactByScreenSize() {
+        return !compactMode && !isFavoritesPanel && !supportsEmbeddedSearch(new WidgetBounds(x, y, width, height));
+    }
+
+    private boolean isForcedCompactActive() {
+        return isForcedCompactByScreenSize() && isCompactLayout();
     }
 
     private void initChildren() {
@@ -167,6 +186,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         // View switch sits at the left edge of the header, before sort/group controls.
         this.toggleX = innerX;
         this.toggleY = y + AMITheme.GLOBAL_PADDING + (headerH - TOGGLE_H) / 2;
+        updateCompactControlPositions(innerX, innerW);
 
         boolean embeddedSearch = supportsEmbeddedSearch(new WidgetBounds(x, y, width, height));
         int toolbarW = embeddedSearch ? embeddedToolbarW(innerX, innerW) : narrowToolbarW(innerX, innerW);
@@ -294,6 +314,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     public void updateLayout(int x, int y, int width, int height) {
+        if (compactAutoBypass && (width != compactAutoBypassW || height != compactAutoBypassH)) {
+            compactAutoBypass = false;
+        }
+
         this.x = x;
         this.y = y;
         this.width = width;
@@ -305,6 +329,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         // View switch stays at the left edge of the header, before sort/group controls.
         this.toggleX = innerX;
         this.toggleY = y + AMITheme.GLOBAL_PADDING;
+        updateCompactControlPositions(innerX, innerW);
 
         if (isFavoritesPanel) {
             int contentY = y + FAV_HEADER_H;
@@ -347,6 +372,16 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
 
         boolean compact = isCompactLayout();
+
+        if (!isFavoritesPanel) {
+            int headerY = y + AMITheme.GLOBAL_PADDING;
+            int headerH = compact ? COMPACT_HEADER_H : HEADER_H;
+            int sepY = headerY + headerH;
+            int contentY = sepY + AMITheme.ELEMENT_GAP;
+            renderPanelSurfaces(g, headerY, headerH, contentY);
+        } else if (!chromeOnly) {
+            renderFavoritesSurfaces(g);
+        }
 
         if (isFavoritesPanel) {
             if (chromeOnly) {
@@ -391,9 +426,13 @@ public class UniversalResultsPanel implements SearchState.Listener {
             // Item count centered vertically in the header strip
             String countStr = Component.translatable("ami.gui.items_label", displayedItemCount).getString();
             int textY = headerY + (headerH - font.lineHeight) / 2;
-            g.drawString(font, countStr, toggleX + TOGGLE_W + AMITheme.ELEMENT_GAP, textY, AMITheme.TEXT_SUBTLE, false);
+            int countX = toggleX + TOGGLE_W + AMITheme.ELEMENT_GAP;
+            int countRight = compactControlsFit() ? compactSortX - AMITheme.ELEMENT_GAP : x + width - AMITheme.GLOBAL_PADDING;
+            String clippedCount = truncate(font, countStr, Math.max(0, countRight - countX));
+            g.drawString(font, clippedCount, countX, textY, AMITheme.TEXT_SUBTLE, false);
 
             renderToggleBtn(g, mouseX, mouseY);
+            renderCompactControls(g, mouseX, mouseY);
 
             g.fill(x + 3, sepY, x + width - 3, sepY + 1, AMITheme.SECTION_SEP);
 
@@ -404,6 +443,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             }
             if (!contextMenu.isOpen()) {
                 renderToggleTooltip(g, mouseX, mouseY);
+                renderCompactControlTooltips(g, mouseX, mouseY);
             }
             return;
         }
@@ -446,6 +486,34 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
     }
 
+    private void renderPanelSurfaces(GuiGraphics g, int headerY, int headerH, int contentY) {
+        int panelX = x + 3;
+        int panelW = width - 6;
+        if (panelW <= 0) return;
+
+        int headerSurfaceY = y + 3;
+        int headerSurfaceH = Math.max(0, headerY + headerH - headerSurfaceY);
+        AMITheme.fillPanelHeaderChrome(g, panelX, headerSurfaceY, panelW, headerSurfaceH);
+
+        int contentSurfaceY = Math.max(headerY + headerH + 2, contentY - 2);
+        int contentSurfaceH = y + height - 3 - contentSurfaceY;
+        AMITheme.fillContentChrome(g, panelX, contentSurfaceY, panelW, contentSurfaceH);
+    }
+
+    private void renderFavoritesSurfaces(GuiGraphics g) {
+        int panelX = x + 3;
+        int panelW = width - 6;
+        if (panelW <= 0) return;
+
+        int headerSurfaceY = y + 3;
+        int headerSurfaceH = Math.max(0, FAV_HEADER_H - 3);
+        AMITheme.fillPanelHeaderChrome(g, panelX, headerSurfaceY, panelW, headerSurfaceH);
+
+        int contentSurfaceY = y + FAV_HEADER_H;
+        int contentSurfaceH = y + height - 3 - contentSurfaceY;
+        AMITheme.fillContentChrome(g, panelX, contentSurfaceY, panelW, contentSurfaceH);
+    }
+
     public void renderOverlay(GuiGraphics g, int mouseX, int mouseY) {
         toolbar.renderOpenDropdownLists(g, mouseX, mouseY);
         contextMenu.render(g, mouseX, mouseY);
@@ -457,7 +525,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         boolean hovered = isOverSidebarSwap(mouseX, mouseY);
 
         int bgColor = hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
-        AMITheme.fillInsetRect(g, tx, ty, SIDEBAR_SWAP_W, SIDEBAR_SWAP_H, bgColor, false);
+        AMITheme.fillControlChrome(g, tx, ty, SIDEBAR_SWAP_W, SIDEBAR_SWAP_H, bgColor, false);
 
         int color = hovered ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_HEADER;
         AmiGuiIcons.swap(g, tx + SIDEBAR_SWAP_W / 2, ty + SIDEBAR_SWAP_H / 2, color);
@@ -511,6 +579,56 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 && mouseY >= ty && mouseY < ty + SIDEBAR_SWAP_H;
     }
 
+    private void updateCompactControlPositions(int innerX, int innerW) {
+        int right = innerX + innerW;
+        compactCollapseX = right - COMPACT_CONTROL_W;
+        compactSortX = compactCollapseX - AMITheme.ELEMENT_GAP - COMPACT_CONTROL_W;
+        compactSortY = y + AMITheme.GLOBAL_PADDING + (COMPACT_HEADER_H - COMPACT_CONTROL_H) / 2;
+        compactCollapseY = compactSortY;
+    }
+
+    private boolean compactControlsFit() {
+        int countMinW = 34;
+        return compactSortX - AMITheme.ELEMENT_GAP >= toggleX + TOGGLE_W + AMITheme.ELEMENT_GAP + countMinW;
+    }
+
+    private boolean isOverCompactSort(double mouseX, double mouseY) {
+        return compactControlsFit()
+                && mouseX >= compactSortX && mouseX < compactSortX + COMPACT_CONTROL_W
+                && mouseY >= compactSortY && mouseY < compactSortY + COMPACT_CONTROL_H;
+    }
+
+    private boolean isOverCompactCollapse(double mouseX, double mouseY) {
+        return compactControlsFit()
+                && mouseX >= compactCollapseX && mouseX < compactCollapseX + COMPACT_CONTROL_W
+                && mouseY >= compactCollapseY && mouseY < compactCollapseY + COMPACT_CONTROL_H;
+    }
+
+    private void renderCompactControls(GuiGraphics g, int mouseX, int mouseY) {
+        if (!compactControlsFit()) return;
+
+        renderCompactIconButton(g, compactSortX, compactSortY, COMPACT_CONTROL_W, COMPACT_CONTROL_H,
+                isOverCompactSort(mouseX, mouseY),
+                (cx, cy, color) -> AmiGuiIcons.sortDirection(g, cx, cy, color, state.isAscending()));
+        renderCompactIconButton(g, compactCollapseX, compactCollapseY, COMPACT_CONTROL_W, COMPACT_CONTROL_H,
+                isOverCompactCollapse(mouseX, mouseY),
+                (cx, cy, color) -> {
+                    if (compactCollapseAllNext) {
+                        AmiGuiIcons.collapseAll(g, cx, cy, color);
+                    } else {
+                        AmiGuiIcons.expandAll(g, cx, cy, color);
+                    }
+                });
+    }
+
+    private void renderCompactIconButton(GuiGraphics g, int bx, int by, int bw, int bh, boolean hovered,
+                                         IconPainter icon) {
+        int bgColor = hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
+        AMITheme.fillControlChrome(g, bx, by, bw, bh, bgColor, false);
+        int color = hovered ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_HEADER;
+        icon.paint(bx + bw / 2, by + bh / 2, color);
+    }
+
     private void renderToggleBtn(GuiGraphics g, int mouseX, int mouseY) {
         boolean compact = isCompactLayout();
         boolean alternateActive = externalModeToggleActive != null && externalModeToggleActive.getAsBoolean();
@@ -518,24 +636,50 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 && mouseY >= toggleY && mouseY < toggleY + TOGGLE_H;
 
         int bgColor = hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
-        AMITheme.fillInsetRect(g, toggleX, toggleY, TOGGLE_W, TOGGLE_H, bgColor, false);
+        AMITheme.fillControlChrome(g, toggleX, toggleY, TOGGLE_W, TOGGLE_H, bgColor, false);
 
         int contentColor = hovered ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_HEADER;
         int cx = toggleX + TOGGLE_W / 2;
         int cy = toggleY + TOGGLE_H / 2;
-        if (isGridActive()) {
-            AmiGuiIcons.expand(g, cx, cy, contentColor);
-        } else {
-            AmiGuiIcons.compact(g, cx, cy, contentColor);
-        }
+        AmiGuiIcons.resultBook(g, cx, cy, contentColor, isGridActive());
     }
 
     private void renderToggleTooltip(GuiGraphics g, int mouseX, int mouseY) {
         if (!isOverToggle(mouseX, mouseY)) return;
-        AmiTooltipRenderer.render(g, Minecraft.getInstance().font, List.of(
-                Component.translatable(isGridActive() ? "ami.gui.tooltip.view_switch_to_list" : "ami.gui.tooltip.view_switch_to_grid"),
-                Component.translatable("ami.gui.tooltip.view_switch_detail")
-        ), Optional.empty(), mouseX, mouseY);
+        List<Component> lines;
+        if (isForcedCompactActive()) {
+            lines = List.of(
+                    Component.translatable("ami.gui.tooltip.compact_forced"),
+                    Component.translatable("ami.gui.tooltip.compact_forced_action")
+            );
+        } else {
+            lines = List.of(
+                    Component.translatable(isGridActive() ? "ami.gui.tooltip.view_switch_to_list" : "ami.gui.tooltip.view_switch_to_grid"),
+                    Component.translatable("ami.gui.tooltip.view_switch_detail")
+            );
+        }
+        AmiTooltipRenderer.render(g, Minecraft.getInstance().font, lines, Optional.empty(), mouseX, mouseY);
+    }
+
+    private void renderCompactControlTooltips(GuiGraphics g, int mouseX, int mouseY) {
+        if (isOverCompactSort(mouseX, mouseY)) {
+            AmiTooltipRenderer.render(g, Minecraft.getInstance().font, List.of(
+                    Component.translatable("ami.gui.tooltip.sort_direction", sortDirectionLabel()),
+                    Component.translatable("ami.gui.tooltip.sort_scope")
+            ), Optional.empty(), mouseX, mouseY);
+        } else if (isOverCompactCollapse(mouseX, mouseY)) {
+            AmiTooltipRenderer.render(g, Minecraft.getInstance().font, List.of(
+                    Component.translatable(compactCollapseAllNext
+                            ? "ami.gui.tooltip.collapse_all"
+                            : "ami.gui.tooltip.expand_all")
+            ), Optional.empty(), mouseX, mouseY);
+        }
+    }
+
+    private String sortDirectionLabel() {
+        return state.getSortField().isNumeric()
+                ? (state.isAscending() ? "Low" : "High")
+                : (state.isAscending() ? "A-Z" : "Z-A");
     }
 
     private void renderGuideRows(GuiGraphics g, int mouseX, int mouseY) {
@@ -1185,7 +1329,13 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         // View switch — toggles between list and grid view
         if (button == 0 && isOverToggle(mouseX, mouseY)) {
-            if (externalModeToggleCallback != null) {
+            if (isForcedCompactActive()) {
+                compactAutoBypass = true;
+                compactAutoBypassW = width;
+                compactAutoBypassH = height;
+                updateLayout(x, y, width, height);
+                refreshTree();
+            } else if (externalModeToggleCallback != null) {
                 externalModeToggleCallback.run();
             } else {
                 ResultsToolbar.ViewMode next = state.getViewMode() == ResultsToolbar.ViewMode.GRID
@@ -1199,6 +1349,19 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         boolean compact = isCompactLayout();
         if (compact) {
+            if (button == 0 && isOverCompactSort(mouseX, mouseY)) {
+                state.setAscending(!state.isAscending());
+                return true;
+            }
+            if (button == 0 && isOverCompactCollapse(mouseX, mouseY)) {
+                if (compactCollapseAllNext) {
+                    gridView.collapseAll();
+                } else {
+                    gridView.expandAll();
+                }
+                compactCollapseAllNext = !compactCollapseAllNext;
+                return true;
+            }
             boolean handled = gridView.mouseClicked(mouseX, mouseY, button);
             if (handled && currentQuery.isEmpty()) {
                 tryLazyLoad(gridView.getHoveredTreeNode());
@@ -1545,5 +1708,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
     public TreeNode getHoveredTreeNode() {
         if (isGridActive()) return gridView.getHoveredTreeNode();
         return treeView.getHoveredTreeNode();
+    }
+
+    private interface IconPainter {
+        void paint(int cx, int cy, int color);
     }
 }

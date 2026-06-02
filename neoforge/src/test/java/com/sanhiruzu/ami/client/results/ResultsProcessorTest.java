@@ -368,7 +368,7 @@ public class ResultsProcessorTest {
     }
 
     @Test
-    void processFlatWithCardGroupingKeepsFlatResultsButCollapsesFamilies() {
+    void processFlatWithCardGroupingKeepsFlatResultsButCollapsesFamiliesAsCards() {
         ResultsProcessor processor = new ResultsProcessor(
                 ResultsProcessor.SortField.ALPHABETICAL,
                 true,
@@ -404,7 +404,7 @@ public class ResultsProcessorTest {
         List<TreeNode> flat = processor.processFlatWithCardGrouping(List.of(stone, disc13, discCat, discBlocks, discChirp));
 
         assertEquals(2, flat.size());
-        assertFalse(flat.get(0).isHighCardinality());
+        assertTrue(flat.get(0).isHighCardinality());
         assertTrue(flat.get(0).isExpanded());
         assertEquals("Music Discs", flat.get(0).getLabel().getString());
         assertEquals(4, flat.get(0).getChildren().size());

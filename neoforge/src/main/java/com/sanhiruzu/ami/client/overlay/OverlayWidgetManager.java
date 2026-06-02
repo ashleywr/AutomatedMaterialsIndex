@@ -382,10 +382,7 @@ public class OverlayWidgetManager {
     }
 
     private boolean shouldEmbedSearchBar(List<AmiConfig.PanelContent> contents, WidgetBounds panelBounds) {
-        if (contents == null || contents.isEmpty() || panelBounds == null) return false;
-        AmiConfig.PanelContent first = contents.get(0);
-        return (first == AmiConfig.PanelContent.GRID || first == AmiConfig.PanelContent.LIST)
-                && UniversalResultsPanel.supportsEmbeddedSearch(panelBounds);
+        return false;
     }
 
     private boolean isSearchContent(AmiConfig.PanelContent content) {
