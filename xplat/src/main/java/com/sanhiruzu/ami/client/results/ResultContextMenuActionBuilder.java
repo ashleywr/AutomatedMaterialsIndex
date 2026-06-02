@@ -1023,7 +1023,7 @@ public class ResultContextMenuActionBuilder {
                 openUriDirect(node, uri);
             }
             minecraft.setScreen(screenAfterExternalLinkPrompt(parent));
-        }, Component.translatable("ami.external_link.title"), Component.literal(uri.toString()), uri,
+        }, Component.translatable("ami.external_link.title"), Component.literal(uri.toString()), uri.toString(),
                 Component.translatable("ami.external_link.cancel"), true));
     }
 
