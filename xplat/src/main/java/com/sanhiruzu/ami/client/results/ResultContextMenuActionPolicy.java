@@ -16,6 +16,14 @@ import java.util.Set;
  * specific action should be shown for a specific target.
  */
 public final class ResultContextMenuActionPolicy {
+    private static final String LEGACY_DEFAULT_ACTIONS =
+            "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,ami:chat,ami:wiki,"
+                    + "ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,"
+                    + "ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,"
+                    + "ami:group_toggle,ami:filter_category,ami:copy_group_key,ami:start_category_fix,"
+                    + "ami:apply_category_fix,ami:clear_item_fix,ami:quests_for_item,ami:open_quest,"
+                    + "ami:copy_quest_matches";
+
     private final Set<String> enabledActions;
     private final Map<String, Set<String>> disabledByMod;
     private final Map<String, Set<String>> disabledByType;
@@ -91,6 +99,9 @@ public final class ResultContextMenuActionPolicy {
 
     static Set<String> parseEnabledActionIds(String raw) {
         if (raw == null || raw.isBlank()) return ResultContextMenuActionBuilder.KNOWN_ACTIONS;
+        if (canonicalActionList(raw).equals(canonicalActionList(LEGACY_DEFAULT_ACTIONS))) {
+            raw = ResultContextMenuActionBuilder.DEFAULT_ACTIONS;
+        }
 
         Set<String> enabled = new HashSet<>();
         String[] tokens = raw.split("[,;\\s]+");
@@ -156,6 +167,18 @@ public final class ResultContextMenuActionPolicy {
 
     private static String normalize(String value) {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static String canonicalActionList(String raw) {
+        if (raw == null || raw.isBlank()) return "";
+        Set<String> values = new HashSet<>();
+        for (String token : raw.split("[,;\\s]+")) {
+            String normalized = normalize(token);
+            if (!normalized.isEmpty()) {
+                values.add(normalized);
+            }
+        }
+        return String.join(",", values.stream().sorted().toList());
     }
 
     private static String normalizeScope(String value) {

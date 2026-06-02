@@ -9,6 +9,8 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BooleanSupplier;
 
 public class AmiButtonWidget extends AbstractWidget {
@@ -41,10 +43,14 @@ public class AmiButtonWidget extends AbstractWidget {
         boolean panelOpen = isPanelVisible.getAsBoolean();
         boolean hovered = isMouseOver(mouseX, mouseY);
         boolean isVanilla = AmiConfig.theme == AmiConfig.Theme.VANILLA;
+        boolean devMode = AmiConfig.devMode;
+        boolean cheatMode = AmiConfig.cheatMode;
+        boolean elevatedMode = devMode || cheatMode;
 
         int baseBgColor = isVanilla ? 0xFFC6C6C6 : 0xFF2D2D2D;
         int borderColor = isVanilla ? 0xFF555555 : 0xFF181818;
         int accentColor = isVanilla ? 0xFF4488FF : 0xFF00AAFF;
+        int modeAccent = devMode ? 0xFFFF5555 : 0xFFFFAA00;
 
         if (hovered) baseBgColor = isVanilla ? 0xFFD0D0D0 : 0xFF3D3D3D;
         if (isDown) baseBgColor = isVanilla ? 0xFFA0A0A0 : 0xFF1F1F1F;
@@ -63,12 +69,16 @@ public class AmiButtonWidget extends AbstractWidget {
         }
 
         g.renderOutline(getX(), getY(), width, height, borderColor);
+        if (elevatedMode) {
+            g.renderOutline(getX() + 1, getY() + 1, width - 2, height - 2, modeAccent);
+        }
 
         if (panelOpen || hovered) {
             int indicatorW = panelOpen ? 18 : 12;
             int indicatorX = getX() + (width - indicatorW) / 2;
             int indicatorY = getY() + height - 3;
-            int color = panelOpen ? (0xFF000000 | accentColor) : (0x88000000 | (accentColor & 0xFFFFFF));
+            int activeAccent = elevatedMode ? modeAccent : accentColor;
+            int color = panelOpen ? (0xFF000000 | activeAccent) : (0x88000000 | (activeAccent & 0xFFFFFF));
             g.fill(indicatorX, indicatorY, indicatorX + indicatorW, indicatorY + 2, color);
         }
 
@@ -91,11 +101,34 @@ public class AmiButtonWidget extends AbstractWidget {
         g.drawString(font, label, -labelW / 2, 0, textColor, false);
         g.pose().popPose();
 
+        if (elevatedMode) {
+            String badge = devMode ? "DEV" : "CHT";
+            int badgeW = Math.min(width - 4, font.width(badge) + 4);
+            int badgeH = 8;
+            int badgeX = getX() + width - badgeW - 1;
+            int badgeY = getY() + 1;
+            g.fill(badgeX, badgeY, badgeX + badgeW, badgeY + badgeH, 0xEE000000 | (modeAccent & 0xFFFFFF));
+            g.fill(badgeX, badgeY + badgeH - 1, badgeX + badgeW, badgeY + badgeH, 0xAA000000);
+            float badgeScale = 0.55f;
+            g.pose().pushPose();
+            g.pose().translate(badgeX + 2, badgeY + 1, 0);
+            g.pose().scale(badgeScale, badgeScale, 1.0f);
+            g.drawString(font, badge, 0, 0, 0xFFFFFFFF, false);
+            g.pose().popPose();
+        }
+
         if (hovered) {
-            Component tooltip = Component.translatable("ami.gui.ami_button.tooltip");
-            Component hotkeyHint = Component.translatable("ami.gui.ami_button.hotkey",
-                    Services.PLATFORM.keyMappings().toggleViewer().getTranslatedKeyMessage());
-            g.renderTooltip(font, java.util.List.of(tooltip, hotkeyHint), java.util.Optional.empty(), mouseX, mouseY);
+            List<Component> tooltip = new ArrayList<>();
+            tooltip.add(Component.translatable("ami.gui.ami_button.tooltip"));
+            tooltip.add(Component.translatable("ami.gui.ami_button.hotkey",
+                    Services.PLATFORM.keyMappings().toggleViewer().getTranslatedKeyMessage()));
+            if (devMode) {
+                tooltip.add(Component.translatable("ami.gui.ami_button.dev_mode"));
+                tooltip.add(Component.translatable("ami.gui.ami_button.cheat_actions_enabled"));
+            } else if (cheatMode) {
+                tooltip.add(Component.translatable("ami.gui.ami_button.cheat_mode"));
+            }
+            g.renderTooltip(font, tooltip, java.util.Optional.empty(), mouseX, mouseY);
         }
     }
 

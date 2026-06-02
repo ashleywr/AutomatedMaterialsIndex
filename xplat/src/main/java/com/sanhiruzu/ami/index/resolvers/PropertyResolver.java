@@ -104,6 +104,7 @@ public final class PropertyResolver implements IQueryResolver {
                     || containsKind(node, "apricorn_seed", value);
             case "type", "pokemontype" -> containsToken(node, SearchNodeKeys.POKEMON_TYPE, value);
             case "species", "pokemon", "pokemonspecies" -> containsValue(node, SearchNodeKeys.POKEMON_SPECIES, value);
+            case "generation", "gen", "pokemongeneration" -> containsValue(node, SearchNodeKeys.POKEMON_GENERATION, value);
             case "ability", "pokemonability" -> containsToken(node, SearchNodeKeys.POKEMON_ABILITIES, value);
             case "status", "statuscure", "pokemonstatus", "pokemonstatuscure" ->
                     containsToken(node, SearchNodeKeys.POKEMON_STATUS_CURE, value);

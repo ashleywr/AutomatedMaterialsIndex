@@ -104,20 +104,66 @@ final class ResultsSorter {
     }
 
     private int compareByRegistryOrder(SearchNode a, SearchNode b) {
-        int idA = registryId(a);
-        int idB = registryId(b);
-        if (idA >= 0 && idB >= 0) return Integer.compare(idA, idB);
-        if (idA >= 0) return -1;
-        if (idB >= 0) return 1;
-        return a.displayName().compareTo(b.displayName());
+        int bucketA = registrySortBucket(a);
+        int bucketB = registrySortBucket(b);
+        if (bucketA != bucketB) {
+            return Integer.compare(bucketA, bucketB);
+        }
+
+        int cmp;
+        if (bucketA == 0) {
+            cmp = Integer.compare(registryId(a), registryId(b));
+        } else if (bucketA == 1) {
+            cmp = compareNumericMeta(a, b, SearchNodeKeys.POKEMON_DEX_NUMBER);
+        } else {
+            cmp = compareDisplayName(a, b);
+        }
+        return cmp != 0 ? cmp : compareStableIdentity(a, b);
+    }
+
+    private int registrySortBucket(SearchNode node) {
+        if (registryId(node) >= 0) {
+            return 0;
+        }
+        if (isPokemonSpecies(node)) {
+            return 1;
+        }
+        return 2;
     }
 
     private int registryId(SearchNode node) {
+        if (node == null || node.id() == null) return -1;
         ResourceLocation loc = node.id();
         if (loc.getPath().contains("/")) return -1;
         var item = BuiltInRegistries.ITEM.get(loc);
         if (item == net.minecraft.world.item.Items.AIR && !loc.getPath().equals("air")) return -1;
         return BuiltInRegistries.ITEM.getId(item);
+    }
+
+    private boolean isPokemonSpecies(SearchNode node) {
+        return node != null && "pokemon_species".equals(node.meta(SearchNodeKeys.ENTITY_CATEGORY, ""));
+    }
+
+    private int compareDisplayName(SearchNode a, SearchNode b) {
+        String nameA = a == null || a.displayName() == null ? "" : a.displayName();
+        String nameB = b == null || b.displayName() == null ? "" : b.displayName();
+        return nameA.compareTo(nameB);
+    }
+
+    private int compareStableIdentity(SearchNode a, SearchNode b) {
+        int cmp = compareDisplayName(a, b);
+        if (cmp != 0) {
+            return cmp;
+        }
+        ResourceLocation idA = a == null ? null : a.id();
+        ResourceLocation idB = b == null ? null : b.id();
+        cmp = String.valueOf(idA).compareTo(String.valueOf(idB));
+        if (cmp != 0) {
+            return cmp;
+        }
+        String typeA = a == null || a.type() == null ? "" : a.type().name();
+        String typeB = b == null || b.type() == null ? "" : b.type().name();
+        return typeA.compareTo(typeB);
     }
 
     private int compareNumericMeta(SearchNode a, SearchNode b, String metadataKey) {

@@ -25,36 +25,35 @@ import java.util.List;
 public class AmiClientCommands {
     @SubscribeEvent
     public static void onClientCommandsRegister(RegisterClientCommandsEvent event) {
-        if (!AmiDebugSettings.debugCommandsEnabled()) {
-            return;
-        }
-
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
 
         LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("ami")
-                .then(Commands.literal("dump-results-tree")
-                        .executes(context -> {
-                            exportResultsTree(context.getSource(), "");
-                            return 1;
-                        })
-                        .then(Commands.argument("query", StringArgumentType.greedyString())
-                                .executes(context -> {
-                                    exportResultsTree(context.getSource(), StringArgumentType.getString(context, "query"));
-                                    return 1;
-                                }))
-                )
                 .then(Commands.literal("dump-search-nodes")
                         .executes(context -> {
                             exportSearchNodes(context.getSource());
                             return 1;
                         })
-                )
-                .then(Commands.literal("rebuild-index")
-                        .executes(context -> {
-                            rebuildIndex(context.getSource(), true);
-                            return 1;
-                        })
                 );
+
+        if (AmiDebugSettings.debugCommandsEnabled()) {
+            cmd.then(Commands.literal("dump-results-tree")
+                    .executes(context -> {
+                        exportResultsTree(context.getSource(), "");
+                        return 1;
+                    })
+                    .then(Commands.argument("query", StringArgumentType.greedyString())
+                            .executes(context -> {
+                                exportResultsTree(context.getSource(), StringArgumentType.getString(context, "query"));
+                                return 1;
+                            }))
+            );
+            cmd.then(Commands.literal("rebuild-index")
+                    .executes(context -> {
+                        rebuildIndex(context.getSource(), true);
+                        return 1;
+                    })
+            );
+        }
 
         dispatcher.register(cmd);
     }

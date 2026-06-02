@@ -72,6 +72,32 @@ public class ResultsProcessorTest {
         );
     }
 
+    private static SearchNode pokemon(String species, String displayName, int dexNumber) {
+        return new SearchNode(
+                new ResourceLocation("cobblemon", "species/" + species),
+                NodeType.ENTITY,
+                displayName,
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.ENTITY_CATEGORY, "pokemon_species",
+                        SearchNodeKeys.POKEMON_SPECIES, "cobblemon:" + species,
+                        SearchNodeKeys.POKEMON_DEX_NUMBER, Integer.toString(dexNumber)
+                )
+        );
+    }
+
+    private static SearchNode virtualEntity(String namespace, String path, String displayName) {
+        return new SearchNode(
+                new ResourceLocation(namespace, path),
+                NodeType.ENTITY,
+                displayName,
+                0,
+                0,
+                Map.of()
+        );
+    }
+
     private static List<SearchNode> railwaysMagentaDoorVariants() {
         Map<String, String> baseMetadata = Map.of(
                 SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
@@ -130,6 +156,46 @@ public class ResultsProcessorTest {
         AmiConfig.resetToDefaults();
         GlobalIndex.getInstance().clear();
         GlobalIndex.getInstance().markIndexReady();
+    }
+
+    @Test
+    void defaultRegistrySortOrdersPokemonSpeciesByDexNumber() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.REGISTRY,
+                true,
+                ResultsProcessor.GroupBy.NONE,
+                Set.of(),
+                Set.of()
+        );
+
+        List<TreeNode> root = processor.process(List.of(
+                pokemon("abomasnow", "Abomasnow", 460),
+                pokemon("bulbasaur", "Bulbasaur", 1),
+                pokemon("charizard", "Charizard", 6),
+                pokemon("mewtwo", "Mewtwo", 150)
+        ));
+
+        assertEquals(List.of("Bulbasaur", "Charizard", "Mewtwo", "Abomasnow"), leafLabels(root));
+    }
+
+    @Test
+    void defaultRegistrySortKeepsMixedPokemonAndVirtualEntitiesComparatorTransitive() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.REGISTRY,
+                true,
+                ResultsProcessor.GroupBy.NONE,
+                Set.of(),
+                Set.of()
+        );
+
+        List<TreeNode> root = processor.process(List.of(
+                pokemon("charizard", "Charizard", 6),
+                virtualEntity("example", "aardvark", "Aardvark"),
+                pokemon("bulbasaur", "Bulbasaur", 1),
+                item("stone", "Stone", Map.of())
+        ));
+
+        assertEquals(List.of("Bulbasaur", "Charizard", "Aardvark", "Stone"), leafLabels(root));
     }
 
     @Test
@@ -815,6 +881,71 @@ public class ResultsProcessorTest {
         ));
 
         assertTrue(hasKeyStartingWith(root, "cardinality:sophisticatedstorage:barrel"),
+                ResultsTreeDump.dump(root));
+    }
+
+    @Test
+    void categoryGroupingCondensesTintableGeneratedShapeFamilies() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.ALPHABETICAL,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        Map<String, String> baseMeta = Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "redstone",
+                SearchNodeKeys.COLLAPSE_FAMILY, "colors:tintable/yellow/buttons",
+                SearchNodeKeys.COLLAPSE_LABEL, "Yellow Buttons",
+                SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed"
+        );
+
+        List<TreeNode> root = processor.process(List.of(
+                item("yellow_stone_button", "Yellow Stone Button", baseMeta),
+                item("yellow_prismarine_button", "Yellow Prismarine Button", baseMeta),
+                item("yellow_deepslate_button", "Yellow Deepslate Button", baseMeta),
+                item("yellow_calcite_button", "Yellow Calcite Button", baseMeta)
+        ));
+
+        assertEquals("""
+                Building [expanded]
+                  Redstone [expanded]
+                    Yellow Buttons [expanded] [cardinality]
+                      Yellow Calcite Button
+                      Yellow Deepslate Button
+                      Yellow Prismarine Button
+                      Yellow Stone Button
+                """, ResultsTreeDump.dump(root));
+    }
+
+    @Test
+    void categoryGroupingCondensesColoredLinguisticGlyphFamilies() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.ALPHABETICAL,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        Map<String, String> baseMeta = Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "misc",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "glyphs",
+                SearchNodeKeys.COLLAPSE_FAMILY, "atlantis:linguistic_glyph/yellow",
+                SearchNodeKeys.COLLAPSE_LABEL, "Yellow Linguistic Glyphs",
+                SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed"
+        );
+
+        List<TreeNode> root = processor.process(List.of(
+                item("yellow_linguistic_glyph_a", "Yellow Linguistic Glyph A", baseMeta),
+                item("yellow_linguistic_glyph_b", "Yellow Linguistic Glyph B", baseMeta),
+                item("yellow_linguistic_glyph_e", "Yellow Linguistic Glyph E", baseMeta),
+                item("yellow_linguistic_glyph_f", "Yellow Linguistic Glyph F", baseMeta)
+        ));
+
+        assertTrue(hasKeyStartingWith(root, "cardinality:family:atlantis:linguistic_glyph/yellow"),
                 ResultsTreeDump.dump(root));
     }
 

@@ -27,6 +27,7 @@ class PokemonSearchSyntaxTest {
                 SearchNodeKeys.POKEMON_EGG_GROUPS, "monster,grass",
                 SearchNodeKeys.POKEMON_ABILITIES, "overgrow,chlorophyll",
                 SearchNodeKeys.POKEMON_DEX_NUMBER, "1",
+                SearchNodeKeys.POKEMON_GENERATION, "1",
                 SearchNodeKeys.POKEMON_BASE_SPEED, "45"
         ));
         SearchNode pikachu = species("pikachu", "Pikachu", Map.of(
@@ -35,6 +36,7 @@ class PokemonSearchSyntaxTest {
                 SearchNodeKeys.POKEMON_EGG_GROUPS, "field,fairy",
                 SearchNodeKeys.POKEMON_ABILITIES, "static,lightning_rod",
                 SearchNodeKeys.POKEMON_DEX_NUMBER, "25",
+                SearchNodeKeys.POKEMON_GENERATION, "2",
                 SearchNodeKeys.POKEMON_BASE_SPEED, "90"
         ));
 
@@ -47,6 +49,7 @@ class PokemonSearchSyntaxTest {
         assertOnlyContains(service.query("#move:earthquake").get(NodeType.ENTITY), bulbasaur, pikachu);
         assertOnlyContains(service.query("%egg:monster").get(NodeType.ENTITY), bulbasaur, pikachu);
         assertOnlyContains(service.query("?ability:overgrow").get(NodeType.ENTITY), bulbasaur, pikachu);
+        assertOnlyContains(service.query("?generation:1").get(NodeType.ENTITY), bulbasaur, pikachu);
         assertOnlyContains(service.query("$stat:speed>80").get(NodeType.ENTITY), pikachu, bulbasaur);
         assertOnlyContains(service.query("@type:grass -#move:earthquake").get(NodeType.ENTITY), null, bulbasaur);
         assertOnlyContains(service.query("@type:grass -$stat:speed>40").get(NodeType.ENTITY), null, bulbasaur);

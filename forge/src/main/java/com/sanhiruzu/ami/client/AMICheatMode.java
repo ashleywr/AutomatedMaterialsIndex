@@ -17,11 +17,11 @@ public final class AMICheatMode {
     }
 
     /**
-     * Config toggle is on AND the player is allowed to perform elevated actions.
+     * Cheat or dev mode is on AND the player is allowed to perform elevated actions.
      * Always true in singleplayer / as LAN host. On a dedicated server requires OP (level 2).
      */
     public static boolean isEnabled() {
-        return AmiConfig.cheatMode && isAllowed();
+        return (AmiConfig.cheatMode || AmiConfig.devMode) && isAllowed();
     }
 
     /**
@@ -204,7 +204,7 @@ public final class AMICheatMode {
      */
     public static void spawnPokemon(ResourceLocation entityId) {
         String species = extractSpeciesName(entityId);
-        sendCommand("spawnpokemon " + species);
+        sendCommand("summon cobblemon:pokemon ^ ^ ^2 {Pokemon:{Species:\"cobblemon:" + species + "\"}}");
     }
 
     /**
@@ -212,7 +212,7 @@ public final class AMICheatMode {
      */
     public static void pokemonToParty(ResourceLocation entityId) {
         String species = extractSpeciesName(entityId);
-        sendCommand("pokegive @s " + species);
+        sendCommand("pokegive " + species);
     }
 
     private static String extractSpeciesName(ResourceLocation entityId) {

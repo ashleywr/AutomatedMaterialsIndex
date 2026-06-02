@@ -63,6 +63,21 @@ class ResultViewContextClickTest {
         assertFalse(clicked.get().isExpanded());
     }
 
+    @Test
+    void gridViewExpandedHighCardinalityHeaderTogglesLikeAGroupRow() {
+        ItemGridView gridView = new ItemGridView(0, 0, 61, 100);
+        TreeNode group = new TreeNode("cardinality:minecraft:disc", Component.literal("Discs"));
+        group.setHighCardinality(true);
+        group.addChild(new TreeNode(Component.literal("Disc"), item("music_disc_13", "Disc")));
+        gridView.setRootNodes(List.of(group));
+        gridView.expandAll();
+
+        assertTrue(gridView.getRootNodes().getFirst().isExpanded());
+        assertTrue(gridView.mouseClicked(5, 5, 0));
+
+        assertFalse(gridView.getRootNodes().getFirst().isExpanded());
+    }
+
     private static SearchNode item(String path, String name) {
         return new SearchNode(
                 new ResourceLocation("minecraft:" + path),

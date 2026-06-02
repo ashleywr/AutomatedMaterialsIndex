@@ -43,6 +43,7 @@ public final class ProviderRegistry {
         AmiCore.LOGGER.debug("Starting GlobalIndex population...");
         long start = System.currentTimeMillis();
         GlobalIndex index = GlobalIndex.getInstance();
+        AmiIndexerService progress = AmiIndexerService.getInstance();
         index.clear();
         ItemIconRenderer.clearPersistent();
 
@@ -50,7 +51,9 @@ public final class ProviderRegistry {
         index.setLoading(NodeType.STRUCTURE, true);
         index.setLoading(NodeType.DIMENSION, true);
 
-        for (IAmiDataProvider provider : PROVIDERS) {
+        for (int i = 0; i < PROVIDERS.size(); i++) {
+            IAmiDataProvider provider = PROVIDERS.get(i);
+            progress.beginProgress("Indexing " + providerName(provider), (i + 1) + "/" + PROVIDERS.size(), 0);
             try {
                 provider.populate(index, level);
             } catch (Exception e) {
@@ -71,13 +74,26 @@ public final class ProviderRegistry {
     public static void rehydrateSubtypeStacks(@Nullable Level level) {
         ItemIconRenderer.clearPersistent();
         RegistryAccess registryAccess = level != null ? level.registryAccess() : null;
+        AmiIndexerService progress = AmiIndexerService.getInstance();
+        progress.beginProgress("Reading creative tabs");
         var creativeStackMap = com.sanhiruzu.ami.index.ItemFilter.buildCreativeStackMap(level);
+        int total = BuiltInRegistries.ITEM.size();
+        progress.beginProgress("Restoring cached item icons", "", total);
+        int current = 0;
         for (Item item : BuiltInRegistries.ITEM) {
+            current++;
+            if ((current & 31) == 0 || current == total) {
+                ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(item);
+                progress.updateProgress(current);
+                if (itemId != null) {
+                    progress.updateProgressDetail(itemId.toString());
+                }
+            }
             ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
             if (id == null) continue;
             ItemFilter.firstCreativeStack(item, creativeStackMap).ifPresent(stack -> ItemIconRenderer.registerStack(id, stack));
             List<SubtypeExpander.SubtypeEntry> entries = SubtypeExpander.expand(id, registryAccess);
-            if (entries.isEmpty()) {
+            if (entries.isEmpty() && hasMultipleCreativeStacks(creativeStackMap.get(item))) {
                 entries = CreativeStackVariantExpander.expand(id, creativeStackMap.get(item), level);
             }
             for (SubtypeExpander.SubtypeEntry entry : entries) {
@@ -92,14 +108,25 @@ public final class ProviderRegistry {
      */
     public static void indexStructuresDeferred(Level level) {
         try {
+            AmiIndexerService.getInstance().beginProgress("Indexing structures");
             new StructureProvider().populate(GlobalIndex.getInstance(), level);
         } catch (Exception e) {
             AmiCore.LOGGER.error("Deferred StructureProvider failed", e);
         }
         try {
+            AmiIndexerService.getInstance().beginProgress("Indexing dimensions");
             new DimensionProvider().populate(GlobalIndex.getInstance(), level);
         } catch (Exception e) {
             AmiCore.LOGGER.error("Deferred DimensionProvider failed", e);
         }
+    }
+
+    private static String providerName(IAmiDataProvider provider) {
+        String name = provider.getClass().getSimpleName();
+        return name.endsWith("Provider") ? name.substring(0, name.length() - "Provider".length()) : name;
+    }
+
+    private static boolean hasMultipleCreativeStacks(@Nullable List<ItemFilter.CreativeStackInfo> stacks) {
+        return stacks != null && stacks.size() > 1;
     }
 }

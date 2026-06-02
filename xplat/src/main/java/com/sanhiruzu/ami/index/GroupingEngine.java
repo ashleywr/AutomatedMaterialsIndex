@@ -78,6 +78,10 @@ public class GroupingEngine {
             "bucket", "buckets", "boat", "boats", "torch", "torches", "pane", "panes",
             "sapling", "saplings", "carpet", "carpets"
     );
+    private static final Set<String> TINTABLE_FAMILY_SHAPES = Set.of(
+            "stairs", "slabs", "walls", "fences", "fence_gates",
+            "doors", "trapdoors", "buttons", "pressure_plates"
+    );
     private static final String[] ENERGY_TERMS = {"energy", "power", "fe", "rf"};
     private static final String[] FLUID_TERMS = {"fluid", "fluids", "liquid"};
     // Dynamic discovery state
@@ -345,6 +349,165 @@ public class GroupingEngine {
         // goat_horn: SubtypeExpander uses synthetic IDs without item tags, so it needs explicit handling
         if (path.equals("goat_horn")) return Optional.of(new CollapsedFamily("goat_horns", "Goat Horns"));
         return Optional.empty();
+    }
+
+    public static Optional<CollapsedFamily> classifyTintableGeneratedFamily(ResourceLocation id, String shape,
+                                                                            String colorBucket, String tags) {
+        if (id == null || shape == null || shape.isBlank()) {
+            return Optional.empty();
+        }
+        String normalizedShape = shape.toLowerCase(Locale.ROOT);
+        if (!TINTABLE_FAMILY_SHAPES.contains(normalizedShape)) {
+            return Optional.empty();
+        }
+
+        String color = tintableTagColor(tags);
+        if (color.isBlank()) {
+            return Optional.empty();
+        }
+        color = color.toLowerCase(Locale.ROOT);
+
+        String key = id.getNamespace() + ":tintable/" + color + "/" + normalizedShape;
+        return Optional.of(new CollapsedFamily(key, title(color) + " " + title(normalizedShape)));
+    }
+
+    public static Optional<CollapsedFamily> classifyLexicalGeneratedFamily(ResourceLocation id, String colorBucket) {
+        if (id == null || colorBucket == null || colorBucket.isBlank()) {
+            return Optional.empty();
+        }
+        String path = id.getPath().toLowerCase(Locale.ROOT);
+        String color = colorBucket.toLowerCase(Locale.ROOT);
+        if (path.startsWith(color + "_linguistic_glyph_")) {
+            String key = id.getNamespace() + ":linguistic_glyph/" + color;
+            return Optional.of(new CollapsedFamily(key, title(color) + " Linguistic Glyphs"));
+        }
+        return Optional.empty();
+    }
+
+    public static Optional<CollapsedFamily> classifyColorizedGeneratedFamily(ResourceLocation id, String displayName,
+                                                                             String colorBucket, String tags,
+                                                                             String materialGroup) {
+        if (id == null || colorBucket == null || colorBucket.isBlank()) {
+            return Optional.empty();
+        }
+        String familyKey = "";
+        if (materialGroup != null && !materialGroup.isBlank() && !materialGroup.equals(id.toString())) {
+            familyKey = materialGroup;
+        } else {
+            familyKey = matchingColorStrippedTag(id, colorBucket, tags);
+        }
+        if (familyKey.isBlank()) {
+            return Optional.empty();
+        }
+
+        String label = stripColorPrefixFromDisplayName(displayName, colorBucket);
+        if (label.isBlank()) {
+            ResourceLocation familyId = ResourceLocation.tryParse(familyKey);
+            label = familyId == null ? familyKey : title(familyId.getPath());
+        }
+        return Optional.of(new CollapsedFamily(familyKey, pluralize(label)));
+    }
+
+    public static Optional<CollapsedFamily> classifyCompressedBlockFamily(ResourceLocation id) {
+        if (id == null || !"compressedblocks".equals(id.getNamespace())) {
+            return Optional.empty();
+        }
+        String path = id.getPath().toLowerCase(Locale.ROOT);
+        if (!path.matches("c\\d+_.+")) {
+            return Optional.empty();
+        }
+        String base = path.substring(path.indexOf('_') + 1);
+        return Optional.of(new CollapsedFamily(
+                id.getNamespace() + ":compressed/" + base,
+                "Compressed " + title(base)
+        ));
+    }
+
+    private static String matchingColorStrippedTag(ResourceLocation id, String colorBucket, String tags) {
+        if (tags == null || tags.isBlank()) {
+            return "";
+        }
+        String strippedPath = stripColorToken(id.getPath(), colorBucket);
+        if (strippedPath.equals(id.getPath())) {
+            return "";
+        }
+        String expected = id.getNamespace() + ":" + strippedPath;
+        for (String rawTag : tags.split(",")) {
+            String tag = rawTag.trim().toLowerCase(Locale.ROOT);
+            if (tag.equals(expected)) {
+                return tag;
+            }
+        }
+        return "";
+    }
+
+    private static String stripColorToken(String path, String colorBucket) {
+        String color = colorBucket.toLowerCase(Locale.ROOT);
+        if (path.startsWith(color + "_")) {
+            return path.substring(color.length() + 1);
+        }
+        if (path.endsWith("_" + color)) {
+            return path.substring(0, path.length() - color.length() - 1);
+        }
+        return path;
+    }
+
+    private static String stripColorPrefixFromDisplayName(String displayName, String colorBucket) {
+        if (displayName == null || displayName.isBlank()) {
+            return "";
+        }
+        String colorWords = title(colorBucket);
+        if (displayName.regionMatches(true, 0, colorWords, 0, colorWords.length())
+                && displayName.length() > colorWords.length()
+                && Character.isWhitespace(displayName.charAt(colorWords.length()))) {
+            return displayName.substring(colorWords.length()).trim();
+        }
+        return displayName.trim();
+    }
+
+    private static String pluralize(String label) {
+        if (label.isBlank() || label.endsWith("s")) return label;
+        String lower = label.toLowerCase(Locale.ROOT);
+        if (lower.endsWith("glass") || lower.endsWith("quartz") || lower.endsWith("wool")) {
+            return label;
+        }
+        if (label.endsWith("y") && label.length() > 1) {
+            char beforeY = Character.toLowerCase(label.charAt(label.length() - 2));
+            if ("aeiou".indexOf(beforeY) < 0) {
+                return label.substring(0, label.length() - 1) + "ies";
+            }
+        }
+        return label + "s";
+    }
+
+    private static String tintableTagColor(String tags) {
+        if (tags == null || tags.isBlank()) {
+            return "";
+        }
+        for (String rawTag : tags.split(",")) {
+            String tag = rawTag.trim().toLowerCase(Locale.ROOT);
+            int tintable = tag.indexOf(":tintable/");
+            if (tintable < 0) {
+                continue;
+            }
+            String color = tag.substring(tintable + ":tintable/".length()).trim();
+            if (!color.isBlank()) {
+                return color;
+            }
+        }
+        return "";
+    }
+
+    private static String title(String value) {
+        String[] words = value.replace('_', ' ').split("\\s+");
+        StringBuilder out = new StringBuilder(value.length());
+        for (String word : words) {
+            if (word.isEmpty()) continue;
+            if (out.length() > 0) out.append(' ');
+            out.append(Character.toUpperCase(word.charAt(0)));
+            if (word.length() > 1) out.append(word.substring(1));
+        }
+        return out.toString();
     }
 
     private static String stripFamilyPrefix(String path) {
