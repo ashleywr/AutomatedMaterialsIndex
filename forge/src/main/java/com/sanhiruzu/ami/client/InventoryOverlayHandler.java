@@ -92,6 +92,7 @@ public class InventoryOverlayHandler {
                 @Override
                 public void render(net.minecraft.client.gui.GuiGraphics g, int mouseX, int mouseY, float partialTicks) {
                     if (AmiApi.shouldSuppressAmi(Minecraft.getInstance().screen)) return;
+                    manager.refreshLayoutIfNeeded(Minecraft.getInstance().screen);
                     manager.renderPanels(g, mouseX, mouseY, partialTicks);
                     manager.renderSearchBar(g, mouseX, mouseY, partialTicks);
                 }
@@ -102,6 +103,7 @@ public class InventoryOverlayHandler {
 
             event.addListener(manager.getAmiButton());
             manager.getSearchBar().unfocus();
+            manager.invalidateLayout();
         }
     }
 
