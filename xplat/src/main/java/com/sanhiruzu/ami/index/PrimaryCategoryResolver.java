@@ -102,6 +102,9 @@ public final class PrimaryCategoryResolver {
     private static final Set<String> FOOD_STORAGE_TOKENS = Set.of(
             "crate", "bag", "bale", "sack"
     );
+    private static final Set<String> FOOD_COOKING_STATION_TOKENS = Set.of(
+            "skillet", "stove", "cooking_pot"
+    );
     private static final Set<String> PORTABLE_STORAGE_FAMILY_MOD_IDS = Set.of(
             "sophisticatedbackpacks"
     );
@@ -402,6 +405,16 @@ public final class PrimaryCategoryResolver {
         Optional<CategoryAssignment> waystones = resolveWaystonesIdentity(context);
         if (waystones.isPresent()) {
             return waystones;
+        }
+
+        if (shouldResolveFoodFamilyCookingStation(context)) {
+            return Optional.of(identityAssignment(
+                    "tech",
+                    "machines",
+                    context.attributes,
+                    "identity.food_cooking_station",
+                    "food-family cooking station or vessel"
+            ));
         }
 
         if (context.facets.contains(ItemFacet.DECORATIVE_BLOCK)
@@ -1167,6 +1180,35 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.HARVEST_TOOL,
                 ItemFacet.UTILITY_TOOL)
                 || (facets.contains(ItemFacet.RANGED_WEAPON) && !facets.contains(ItemFacet.PROJECTILE));
+    }
+
+    private static boolean shouldResolveFoodFamilyCookingStation(ResolveContext context) {
+        if (context.modFamily != ModFamily.FOOD
+                || !context.facets.contains(ItemFacet.PLACEABLE)
+                || !context.facets.contains(ItemFacet.HAS_BLOCK_ENTITY)) {
+            return false;
+        }
+        if (hasAny(context.facets,
+                ItemFacet.EDIBLE,
+                ItemFacet.PLACEABLE_FOOD,
+                ItemFacet.FOOD_MEAL,
+                ItemFacet.FOOD_DRINK,
+                ItemFacet.FOOD_PROTEIN,
+                ItemFacet.SEED,
+                ItemFacet.CROP,
+                ItemFacet.NATURE_MISC,
+                ItemFacet.FUNGI,
+                ItemFacet.LEAVES,
+                ItemFacet.FLOWER,
+                ItemFacet.DECORATIVE_BLOCK)) {
+            return false;
+        }
+
+        String itemClass = context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
+        String blockClass = context.attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "");
+        return PathTokens.of(context.path).containsAny(FOOD_COOKING_STATION_TOKENS)
+                || containsAny(itemClass, "SkilletItem", "CookingPotItem", "StoveItem")
+                || containsAny(blockClass, "SkilletBlock", "CookingPotBlock", "StoveBlock");
     }
 
     private static boolean hasProjectileToolContext(String path, Map<String, String> attributes) {
