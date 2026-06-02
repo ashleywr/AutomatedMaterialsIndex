@@ -87,21 +87,6 @@ public class InventoryOverlayHandler {
 
         if (event.getScreen() instanceof AbstractContainerScreen<?> containerScreen) {
             manager.computeLayouts(containerScreen, containerScreen.width, containerScreen.height);
-            
-            class PanelRenderer implements net.minecraft.client.gui.components.Renderable, net.minecraft.client.gui.components.events.GuiEventListener {
-                @Override
-                public void render(net.minecraft.client.gui.GuiGraphics g, int mouseX, int mouseY, float partialTicks) {
-                    if (AmiApi.shouldSuppressAmi(Minecraft.getInstance().screen)) return;
-                    manager.refreshLayoutIfNeeded(Minecraft.getInstance().screen);
-                    manager.renderPanels(g, mouseX, mouseY, partialTicks);
-                    manager.renderSearchBar(g, mouseX, mouseY, partialTicks);
-                }
-                @Override public void setFocused(boolean focused) {}
-                @Override public boolean isFocused() { return false; }
-            }
-            event.addListener(new PanelRenderer());
-
-            event.addListener(manager.getAmiButton());
             manager.getSearchBar().unfocus();
             manager.invalidateLayout();
         }
@@ -128,9 +113,8 @@ public class InventoryOverlayHandler {
             return;
         }
 
-        // Only explicitly render everything if it's a RecipeScreen (since they aren't added to children)
-        if (isRecipeScreen(event.getScreen())) {
-            manager.computeLayouts(event.getScreen(), event.getScreen().width, event.getScreen().height);
+        if (isAmiAvailable() || isRecipeScreen(event.getScreen())) {
+            manager.refreshLayoutIfNeeded(event.getScreen());
             manager.renderAll(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
         }
 
