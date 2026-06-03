@@ -102,7 +102,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
             lastClickTime = 0;
             suggestions = List.of();
             suggestionScrollOffset = 0;
-        } else {
+        } else if (!getValue().isBlank()) {
             updateSuggestions();
         }
     }
@@ -422,6 +422,12 @@ public abstract class AbstractSearchBarWidget extends EditBox {
 
     private void updateSuggestions() {
         if (!isFocused()) {
+            suggestions = List.of();
+            selectedSuggestion = 0;
+            suggestionScrollOffset = 0;
+            return;
+        }
+        if (getValue().isBlank()) {
             suggestions = List.of();
             selectedSuggestion = 0;
             suggestionScrollOffset = 0;

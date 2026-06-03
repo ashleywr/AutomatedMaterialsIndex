@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeSet;
 
 public class UniversalResultsPanel implements SearchState.Listener {
 
@@ -74,6 +75,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private List<SearchNode> currentResults = new ArrayList<>();
     private String currentQuery = "";
     private SearchService searchService;
+    private ResultsViewProjector.Projection emptyQueryProjectionCache = null;
+    private String emptyQueryProjectionCacheKey = "";
     private List<GuideResultRow> currentGuideRows = List.of();
     private List<QuestResultRow> currentQuestRows = List.of();
     private Runnable externalResetCallback;
@@ -245,6 +248,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     public void setEntries(List<SearchNode> entries) {
         this.currentResults = entries;
+        invalidateProjectionCache();
         refreshAvailableListLenses();
         refreshTree();
     }
@@ -278,12 +282,19 @@ public class UniversalResultsPanel implements SearchState.Listener {
         List<SearchNode> flat = new ArrayList<>();
         for (List<SearchNode> list : results.values()) flat.addAll(list);
         this.currentResults = flat;
+        invalidateProjectionCache();
         refreshAvailableListLenses();
-        state.setQuery(query == null ? "" : query.trim());
+        String normalizedQuery = query == null ? "" : query.trim();
+        if (state.getQuery().equals(normalizedQuery)) {
+            refreshTree();
+        } else {
+            state.setQuery(normalizedQuery);
+        }
     }
 
     public void setSearchService(SearchService service) {
         this.searchService = service;
+        invalidateProjectionCache();
         refreshTree();
     }
 
@@ -926,6 +937,20 @@ public class UniversalResultsPanel implements SearchState.Listener {
         var manager = com.sanhiruzu.ami.client.InventoryOverlayHandler.getManager();
         if (manager != null && !manager.isPanelVisible() && !isFavoritesPanel) return;
 
+        ResultsViewProjector.Projection projection = projectResults();
+        displayedItemCount = projection.displayedItemCount();
+        currentGuideRows = projection.guideRows();
+        currentQuestRows = projection.questRows();
+        updateResultViewLayouts();
+        setViewRoots(projection.roots());
+    }
+
+    private ResultsViewProjector.Projection projectResults() {
+        String cacheKey = emptyQueryProjectionCacheKey();
+        if (cacheKey != null && cacheKey.equals(emptyQueryProjectionCacheKey) && emptyQueryProjectionCache != null) {
+            return emptyQueryProjectionCache;
+        }
+
         ResultsViewProjector.Projection projection = ResultsViewProjector.project(
                 resolveSource(),
                 state,
@@ -935,11 +960,38 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 isCompactLayout() && !isFavoritesPanel,
                 isFavoritesPanel
         );
-        displayedItemCount = projection.displayedItemCount();
-        currentGuideRows = projection.guideRows();
-        currentQuestRows = projection.questRows();
-        updateResultViewLayouts();
-        setViewRoots(projection.roots());
+
+        if (cacheKey != null) {
+            emptyQueryProjectionCacheKey = cacheKey;
+            emptyQueryProjectionCache = projection;
+        }
+        return projection;
+    }
+
+    private String emptyQueryProjectionCacheKey() {
+        if (!state.getQuery().isBlank()) {
+            return null;
+        }
+        return GlobalIndex.getInstance().revision()
+                + "|source=" + System.identityHashCode(currentResults)
+                + "|size=" + currentResults.size()
+                + "|view=" + state.getViewMode()
+                + "|lens=" + state.getListLens()
+                + "|sort=" + state.getSortField()
+                + "|asc=" + state.isAscending()
+                + "|group=" + state.getGroupBy()
+                + "|mods=" + new TreeSet<>(state.getSelectedMods())
+                + "|facets=" + new TreeSet<>(state.getActiveFacets())
+                + "|compact=" + (isCompactLayout() && !isFavoritesPanel)
+                + "|favorites=" + isFavoritesPanel
+                + "|dev=" + AmiConfig.devMode
+                + "|cheat=" + AmiConfig.cheatMode
+                + "|hidden=" + AmiConfig.showHiddenModItems;
+    }
+
+    private void invalidateProjectionCache() {
+        emptyQueryProjectionCache = null;
+        emptyQueryProjectionCacheKey = "";
     }
 
     private void refreshAvailableListLenses() {
@@ -1197,6 +1249,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
         currentResults = updated;
         searchService = SearchService.buildFrom(GlobalIndex.getInstance(), true);
+        invalidateProjectionCache();
         refreshAvailableListLenses();
         refreshTree();
         gridView.invalidateCache();

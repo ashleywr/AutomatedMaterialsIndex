@@ -57,6 +57,10 @@ public class SearchState {
     // ── Getters & Setters ─────────────────────────────────────────────────────
 
     public void setQuery(String query) {
+        query = query == null ? "" : query;
+        if (this.query.equals(query)) {
+            return;
+        }
         this.query = query;
         notifyListeners();
     }
