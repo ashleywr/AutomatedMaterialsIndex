@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Forge needs Java 17; NeoForge needs Java 21.
+      # Installing both lets Gradle toolchains find them without downloading.
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: temurin
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: temurin
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Read mod version
+        id: version
+        run: echo "mod_version=$(grep '^mod_version' gradle.properties | cut -d= -f2 | tr -d ' ')" >> $GITHUB_OUTPUT
+
+      - name: Validate release tag
+        run: |
+          tag="v${{ steps.version.outputs.mod_version }}"
+          tag_ref="$(git ls-remote --tags origin "refs/tags/${tag}" | cut -f1 || true)"
+          tag_target="$(git ls-remote --tags origin "refs/tags/${tag}^{}" | cut -f1 || true)"
+          if [ -n "$tag_ref" ]; then
+            if [ -z "$tag_target" ]; then
+              tag_target="$tag_ref"
+            fi
+            if [ "$tag_target" != "$GITHUB_SHA" ]; then
+              echo "::error::Remote tag ${tag} points at ${tag_target}, but this workflow is running ${GITHUB_SHA}."
+              echo "Move ${tag} to this commit or bump mod_version before publishing."
+              exit 1
+            fi
+          fi
+
+      - name: Write GitHub release notes
+        run: |
+          heading="## ${{ steps.version.outputs.mod_version }}"
+          awk -v heading="$heading" '
+            index($0, heading) == 1 { capture = 1 }
+            capture && /^## / && index($0, heading) != 1 { exit }
+            capture { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            cp CHANGELOG.md release-notes.md
+          fi
+
+      - name: Build NeoForge
+        run: ./gradlew :neoforge:build
+
+      - name: Build Forge
+        run: ./gradlew :forge:build
+
+      - name: Publish NeoForge to Modrinth
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: ./gradlew :neoforge:modrinth
+
+      - name: Publish Forge to Modrinth
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: ./gradlew :forge:modrinth
+
+      - name: Publish NeoForge to CurseForge
+        env:
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+        run: ./gradlew :neoforge:curseforge
+
+      - name: Publish Forge to CurseForge
+        env:
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+        run: ./gradlew :forge:curseforge
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${{ steps.version.outputs.mod_version }}" \
+            --target "$GITHUB_SHA" \
+            --title "AMI ${{ steps.version.outputs.mod_version }}" \
+            --notes-file release-notes.md \
+            "neoforge/build/libs/ami-neoforge-1.21.1-${{ steps.version.outputs.mod_version }}.jar" \
+            "forge/build/libs/ami-forge-1.20.1-${{ steps.version.outputs.mod_version }}.jar"
