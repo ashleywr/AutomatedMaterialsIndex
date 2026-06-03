@@ -759,7 +759,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (isOverCompactSort(mouseX, mouseY)) {
             AmiTooltipRenderer.render(g, Minecraft.getInstance().font, List.of(
                     Component.translatable("ami.gui.tooltip.sort_direction", sortDirectionLabel()),
-                    Component.translatable("ami.gui.tooltip.sort_scope")
+                    Component.translatable("ami.gui.tooltip.grid_reverse_scope")
             ), Optional.empty(), mouseX, mouseY);
         } else if (isOverCompactCollapse(mouseX, mouseY)) {
             AmiTooltipRenderer.render(g, Minecraft.getInstance().font, List.of(
@@ -771,6 +771,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     private String sortDirectionLabel() {
+        if (isGridActive()) {
+            return state.isAscending() ? "Default" : "Reverse";
+        }
         return state.getSortField().isNumeric()
                 ? (state.isAscending() ? "Low" : "High")
                 : (state.isAscending() ? "A-Z" : "Z-A");

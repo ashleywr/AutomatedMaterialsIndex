@@ -23,6 +23,12 @@ public final class ResultContextMenuActionPolicy {
                     + "ami:group_toggle,ami:filter_category,ami:copy_group_key,ami:start_category_fix,"
                     + "ami:apply_category_fix,ami:clear_item_fix,ami:quests_for_item,ami:open_quest,"
                     + "ami:copy_quest_matches";
+    private static final String PRE_QUEST_LEGACY_DEFAULT_ACTIONS =
+            "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,ami:chat,ami:wiki,"
+                    + "ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,"
+                    + "ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,"
+                    + "ami:group_toggle,ami:filter_category,ami:copy_group_key,ami:start_category_fix,"
+                    + "ami:apply_category_fix,ami:clear_item_fix";
 
     private final Set<String> enabledActions;
     private final Map<String, Set<String>> disabledByMod;
@@ -99,7 +105,7 @@ public final class ResultContextMenuActionPolicy {
 
     static Set<String> parseEnabledActionIds(String raw) {
         if (raw == null || raw.isBlank()) return ResultContextMenuActionBuilder.KNOWN_ACTIONS;
-        if (canonicalActionList(raw).equals(canonicalActionList(LEGACY_DEFAULT_ACTIONS))) {
+        if (isLegacyDefaultActionList(raw)) {
             raw = ResultContextMenuActionBuilder.DEFAULT_ACTIONS;
         }
 
@@ -117,6 +123,12 @@ public final class ResultContextMenuActionPolicy {
             }
         }
         return enabled.isEmpty() ? ResultContextMenuActionBuilder.KNOWN_ACTIONS : Set.copyOf(enabled);
+    }
+
+    private static boolean isLegacyDefaultActionList(String raw) {
+        String canonical = canonicalActionList(raw);
+        return canonical.equals(canonicalActionList(LEGACY_DEFAULT_ACTIONS))
+                || canonical.equals(canonicalActionList(PRE_QUEST_LEGACY_DEFAULT_ACTIONS));
     }
 
     static Map<String, Set<String>> parseScopedDisables(String raw) {

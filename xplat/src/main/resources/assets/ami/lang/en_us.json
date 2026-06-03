@@ -236,6 +236,7 @@
   "ami.gui.tooltip.sort_descending": "Descending item order",
   "ami.gui.tooltip.sort_direction": "Sort direction: %s first",
   "ami.gui.tooltip.sort_scope": "Applies inside the current grouping.",
+  "ami.gui.tooltip.grid_reverse_scope": "Grid uses default order; this only reverses it.",
   "ami.gui.tooltip.collapse_all": "Collapse all groups",
   "ami.gui.tooltip.expand_all": "Expand all groups",
   "ami.gui.tooltip.group": "Group results",

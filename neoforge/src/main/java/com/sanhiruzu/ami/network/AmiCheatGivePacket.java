@@ -21,7 +21,7 @@ public record AmiCheatGivePacket(ItemStack stack) implements CustomPacketPayload
         context.enqueueWork(() -> {
             Player player = context.player();
             if (!(player instanceof ServerPlayer serverPlayer)) return;
-            if (!player.getAbilities().instabuild && !player.hasPermissions(2)) {
+            if (!AmiCheatPermissions.canUseCheats(serverPlayer)) {
                 AMI.LOGGER.warn("AMI cheat: {} attempted give/delete without permission",
                         player.getName().getString());
                 return;
