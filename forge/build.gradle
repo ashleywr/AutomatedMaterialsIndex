@@ -268,6 +268,54 @@ tasks.named('jar', Jar).configure {
     }
 }
 
+def forgeReobfuscatedJarFile = layout.buildDirectory.file("libs/${mod_id}-forge-${forge_minecraft_version}-${amiEffectiveModVersion}.jar")
+def forgeReleaseJarFile = layout.buildDirectory.file("release/${mod_id}-forge-${forge_minecraft_version}-${amiEffectiveModVersion}.jar")
+
+def forgeReleaseJar = tasks.register('forgeReleaseJar', Copy) {
+    group = 'build'
+    description = 'Copies the reobfuscated Forge jar to the release upload location.'
+    dependsOn tasks.named('reobfJar')
+    from(forgeReobfuscatedJarFile)
+    into(layout.buildDirectory.dir('release'))
+    rename { forgeReleaseJarFile.get().asFile.name }
+    outputs.file(forgeReleaseJarFile)
+}
+
+tasks.register('verifyForgeReleaseJarReobfuscated') {
+    group = 'verification'
+    description = 'Fails if the Forge release jar still contains named Minecraft runtime method calls.'
+    dependsOn forgeReleaseJar
+    inputs.file(forgeReleaseJarFile)
+
+    doLast {
+        def jar = forgeReleaseJarFile.get().asFile
+        def zip = new java.util.zip.ZipFile(jar)
+        try {
+            def readClass = { String path ->
+                def entry = zip.getEntry(path)
+                if (entry == null) {
+                    throw new GradleException("Missing class in Forge release jar: ${path}")
+                }
+                zip.getInputStream(entry).withCloseable { stream ->
+                    new String(stream.bytes, java.nio.charset.StandardCharsets.ISO_8859_1)
+                }
+            }
+
+            def amiMode = readClass('com/sanhiruzu/ami/config/AmiConfig$AmiMode.class')
+            if (amiMode.contains('translatable') || !amiMode.contains('m_237115_')) {
+                throw new GradleException("Forge release jar is not reobfuscated: AmiConfig\$AmiMode still references Component.translatable")
+            }
+
+            def themeLoader = readClass('com/sanhiruzu/ami/client/ThemeResourceLoader.class')
+            if (!themeLoader.contains('m_5787_')) {
+                throw new GradleException("Forge release jar is not reobfuscated: ThemeResourceLoader is missing SimplePreparableReloadListener.m_5787_")
+            }
+        } finally {
+            zip.close()
+        }
+    }
+}
+
 publishing {
     publications {
         register('mavenJava', MavenPublication) {
@@ -294,7 +342,7 @@ modrinth {
     versionNumber = "${mod_version}+forge.${forge_minecraft_version}"
     versionName = "AMI ${mod_version} (Forge ${forge_minecraft_version})"
     versionType = 'release'
-    uploadFile = tasks.named('jar')
+    uploadFile = forgeReleaseJarFile
     gameVersions = [forge_minecraft_version]
     loaders = ['forge']
     detectLoaders = false
@@ -306,7 +354,7 @@ modrinth {
 }
 
 tasks.named('modrinth').configure {
-    dependsOn tasks.named('reobfJar')
+    dependsOn tasks.named('verifyForgeReleaseJarReobfuscated')
 }
 
 if (System.getenv('CURSEFORGE_TOKEN')) {
@@ -319,7 +367,7 @@ if (System.getenv('CURSEFORGE_TOKEN')) {
             changelog = changelogText()
             addGameVersion forge_minecraft_version
             addGameVersion 'Forge'
-            mainArtifact(tasks.jar) {
+            mainArtifact(forgeReleaseJarFile) {
                 displayName = "AMI ${mod_version} (Forge ${forge_minecraft_version})"
             }
         }
@@ -330,7 +378,7 @@ if (System.getenv('CURSEFORGE_TOKEN')) {
         }
     }
 
-    tasks.named('curseforge').configure {
-        dependsOn tasks.named('reobfJar')
+    tasks.matching { it.name.startsWith('curseforge') }.configureEach {
+        dependsOn tasks.named('verifyForgeReleaseJarReobfuscated')
     }
 }
