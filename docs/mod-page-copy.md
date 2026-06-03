@@ -98,4 +98,4 @@ AMI reads what it can from registries, tags, recipes, item data, and compatible 
 
 ## Current Status
 
-AMI is ready for public testing. Large modpacks vary widely, so edge cases can happen with unusual items, generated variants, or custom recipe systems. Reports with the modpack name, loader, Minecraft version, and a short reproduction path are the most useful.
+AMI 1.0 is the first public release. Large modpacks vary widely, so edge cases can happen with unusual items, generated variants, or custom recipe systems. Reports with the modpack name, loader, Minecraft version, and a short reproduction path are the most useful.
