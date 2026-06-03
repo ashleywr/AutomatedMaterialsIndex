@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.client.overlay.WidgetBounds;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.Rect2i;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -37,6 +38,11 @@ public final class FtbLibrarySidebarCompat {
 
     public static Optional<WidgetBounds> sidebarBounds(Screen screen) {
         if (screen == null) return Optional.empty();
+        Optional<WidgetBounds> lastDrawnArea = buttonsVisible(screen) ? lastDrawnAreaBounds() : Optional.empty();
+        if (lastDrawnArea.isPresent()) {
+            return lastDrawnArea;
+        }
+
         try {
             resolve();
             if (areButtonsVisible == null) return Optional.empty();
@@ -54,7 +60,33 @@ public final class FtbLibrarySidebarCompat {
             int y = bottom ? screen.height - height : 0;
             return Optional.of(new WidgetBounds(x, y, width, height));
         } catch (ReflectiveOperationException | LinkageError ignored) {
+            return lastDrawnAreaBounds();
+        }
+    }
+
+    private static Optional<WidgetBounds> lastDrawnAreaBounds() {
+        try {
+            Class<?> groupButtonClass = Class.forName("dev.ftb.mods.ftblibrary.sidebar.SidebarGroupGuiButton");
+            Object value = groupButtonClass.getField("lastDrawnArea").get(null);
+            if (!(value instanceof Rect2i area)) {
+                return Optional.empty();
+            }
+            if (area.getWidth() <= 0 || area.getHeight() <= 0) {
+                return Optional.empty();
+            }
+            return Optional.of(new WidgetBounds(area.getX(), area.getY(), area.getWidth(), area.getHeight()));
+        } catch (ReflectiveOperationException | LinkageError ignored) {
             return Optional.empty();
+        }
+    }
+
+    private static boolean buttonsVisible(Screen screen) {
+        try {
+            Class<?> clientClass = Class.forName("dev.ftb.mods.ftblibrary.FTBLibraryClient");
+            Method method = clientClass.getMethod("areButtonsVisible", Screen.class);
+            return Boolean.TRUE.equals(method.invoke(null, screen));
+        } catch (ReflectiveOperationException | LinkageError ignored) {
+            return true;
         }
     }
 
