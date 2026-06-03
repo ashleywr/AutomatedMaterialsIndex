@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
 import dev.emi.emi.api.EmiApi;
+import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.EmiUtil;
 import dev.emi.emi.api.recipe.EmiRecipe;
 import dev.emi.emi.api.recipe.EmiPlayerInventory;
@@ -8,9 +9,12 @@ import dev.emi.emi.api.recipe.handler.EmiCraftContext;
 import dev.emi.emi.api.recipe.handler.EmiRecipeHandler;
 import dev.emi.emi.api.stack.EmiStack;
 import dev.emi.emi.registry.EmiRecipeFiller;
+import dev.emi.emi.registry.EmiRecipes;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.item.ItemStack;
+
+import java.util.List;
 
 /**
  * Direct EMI API calls — only referenced behind a ModList.isLoaded("emi") guard
@@ -23,6 +27,37 @@ class EmiRecipeBridge {
 
     static void openUses(ItemStack stack) {
         EmiApi.displayUses(EmiStack.of(stack));
+    }
+
+    static boolean hasRecipes(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+
+        EmiStack output = EmiStack.of(stack);
+        return EmiApi.getRecipeManager().getRecipesByOutput(output).stream()
+                .anyMatch(recipe -> recipe.getOutputs().stream().anyMatch(recipeOutput -> recipeOutput.isEqual(output)));
+    }
+
+    static boolean hasUses(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+
+        EmiStack input = EmiStack.of(stack);
+        boolean recipeUse = EmiApi.getRecipeManager().getRecipesByInput(input).stream()
+                .anyMatch(recipe -> recipe.getInputs().stream().anyMatch(ingredient -> containsAll(ingredient, input))
+                        || recipe.getCatalysts().stream().anyMatch(ingredient -> containsAll(ingredient, input)));
+        return recipeUse || !EmiRecipes.byWorkstation.getOrDefault(input, List.of()).isEmpty();
+    }
+
+    private static boolean containsAll(EmiIngredient collection, EmiIngredient ingredient) {
+        outer:
+        for (EmiStack stack : ingredient.getEmiStacks()) {
+            for (EmiStack candidate : collection.getEmiStacks()) {
+                if (candidate.isEqual(stack)) {
+                    continue outer;
+                }
+            }
+            return false;
+        }
+        return true;
     }
 
     static void startDrag(ItemStack stack) {

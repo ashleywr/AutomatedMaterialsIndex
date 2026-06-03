@@ -172,24 +172,36 @@ public class ResultContextMenuActionBuilder {
     private final BooleanSupplier cheatEnabled;
     private final Predicate<ItemStack> craftable;
     private final Supplier<List<IAmiPlugin>> pluginSupplier;
+    private final BooleanSupplier externalRecipeViewerAvailable;
 
     public ResultContextMenuActionBuilder() {
-        this(ResultContextMenuActionBuilder::isCheatEnabled, ResultContextMenuActionBuilder::canTransferCraft, AmiPluginRegistry::getPlugins);
+        this(ResultContextMenuActionBuilder::isCheatEnabled, ResultContextMenuActionBuilder::canTransferCraft,
+                AmiPluginRegistry::getPlugins, RecipeViewerBridge::isAvailable);
     }
 
     ResultContextMenuActionBuilder(BooleanSupplier cheatEnabled) {
-        this(cheatEnabled, ResultContextMenuActionBuilder::canTransferCraft, AmiPluginRegistry::getPlugins);
+        this(cheatEnabled, ResultContextMenuActionBuilder::canTransferCraft,
+                AmiPluginRegistry::getPlugins, RecipeViewerBridge::isAvailable);
     }
 
     ResultContextMenuActionBuilder(BooleanSupplier cheatEnabled, Predicate<ItemStack> craftable) {
-        this(cheatEnabled, craftable, AmiPluginRegistry::getPlugins);
+        this(cheatEnabled, craftable, AmiPluginRegistry::getPlugins, RecipeViewerBridge::isAvailable);
     }
 
     ResultContextMenuActionBuilder(BooleanSupplier cheatEnabled, Predicate<ItemStack> craftable,
                                    Supplier<List<IAmiPlugin>> pluginSupplier) {
+        this(cheatEnabled, craftable, pluginSupplier, RecipeViewerBridge::isAvailable);
+    }
+
+    ResultContextMenuActionBuilder(BooleanSupplier cheatEnabled, Predicate<ItemStack> craftable,
+                                   Supplier<List<IAmiPlugin>> pluginSupplier,
+                                   BooleanSupplier externalRecipeViewerAvailable) {
         this.cheatEnabled = cheatEnabled == null ? () -> false : cheatEnabled;
         this.craftable = craftable == null ? stack -> false : craftable;
         this.pluginSupplier = pluginSupplier == null ? List::of : pluginSupplier;
+        this.externalRecipeViewerAvailable = externalRecipeViewerAvailable == null
+                ? () -> false
+                : externalRecipeViewerAvailable;
     }
 
     public List<ResultContextMenu.Action> forItem(ItemContext context) {
@@ -1055,10 +1067,13 @@ public class ResultContextMenuActionBuilder {
 
         try {
             Optional<Integer> metadataCount = positiveMetadataCount(node, SearchNodeKeys.RECIPE_OUTPUT_COUNT);
-            if (metadataCount.isPresent()) return metadataCount.get() > 0;
+            if (metadataCount.isPresent() && metadataCount.get() > 0) return true;
+            if (externalRecipeViewerAvailable.getAsBoolean()) return true;
+            if (RecipeViewerBridge.hasRecipes(stack)) return true;
+            if (metadataCount.isPresent()) return false;
             if (!Services.PLATFORM.isRecipeIndexBuilt()) return false;
             return !Services.PLATFORM.getRecipesFor(stack).isEmpty();
-        } catch (RuntimeException e) {
+        } catch (RuntimeException | LinkageError e) {
             LOGGER.log(Level.WARNING, "AMI: Failed to query recipes for context menu stack " + stack, e);
             return false;
         }
@@ -1069,10 +1084,13 @@ public class ResultContextMenuActionBuilder {
 
         try {
             Optional<Integer> metadataCount = positiveMetadataCount(node, SearchNodeKeys.RECIPE_USE_COUNT);
-            if (metadataCount.isPresent()) return metadataCount.get() > 0;
+            if (metadataCount.isPresent() && metadataCount.get() > 0) return true;
+            if (externalRecipeViewerAvailable.getAsBoolean()) return true;
+            if (RecipeViewerBridge.hasUses(stack)) return true;
+            if (metadataCount.isPresent()) return false;
             if (!Services.PLATFORM.isRecipeIndexBuilt()) return false;
             return !Services.PLATFORM.getUsesFor(stack).isEmpty();
-        } catch (RuntimeException e) {
+        } catch (RuntimeException | LinkageError e) {
             LOGGER.log(Level.WARNING, "AMI: Failed to query uses for context menu stack " + stack, e);
             return false;
         }
@@ -1083,7 +1101,7 @@ public class ResultContextMenuActionBuilder {
 
         String raw = node.meta(key, "");
         if (raw == null || raw.isBlank()) {
-            return node.type() == NodeType.ITEM ? Optional.of(0) : Optional.empty();
+            return Optional.empty();
         }
         try {
             return Optional.of(Math.max(0, Integer.parseInt(raw.trim())));
@@ -1660,10 +1678,8 @@ public class ResultContextMenuActionBuilder {
         if (action == null) return;
 
         try {
-            Class<?> minecraftClass = Class.forName("net.minecraft.client.Minecraft");
-            Object minecraft = minecraftClass.getMethod("getInstance").invoke(null);
-            minecraftClass.getMethod("tell", Runnable.class).invoke(minecraft, action);
-        } catch (ReflectiveOperationException | RuntimeException e) {
+            Minecraft.getInstance().tell(action);
+        } catch (RuntimeException | LinkageError e) {
             LOGGER.log(Level.WARNING, "AMI: Failed to schedule context menu action", e);
         }
     }
