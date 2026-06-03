@@ -4,6 +4,16 @@ User-facing changes are recorded here.
 
 ## Unreleased
 
+## 1.0.2 - 2026-06-03
+
+AMI 1.0.2 is a compatibility hotfix for Forge EMI installs and recipe viewer favorites.
+
+### Fixed
+
+- Fixed a Forge 1.20.1 crash during EMI recipe loading in production modpacks.
+- Kept AMI favorites in sync when favoriting items from EMI recipe screens.
+- Avoided unnecessary quest panel tree refreshes when visible quest content has not changed.
+
 ## 1.0.1 - 2026-06-03
 
 AMI 1.0.1 is a hotfix for large Forge and NeoForge modpacks.
