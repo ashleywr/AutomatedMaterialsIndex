@@ -259,6 +259,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
      */
     public void setGroupedEntries(List<TreeNode> roots) {
         List<TreeNode> normalized = ResultsTreeNormalizer.normalize(roots);
+        if (TreeNodeShape.sameVisibleContent(treeView.getRootNodes(), normalized)) {
+            return;
+        }
         treeView.setRootNodes(normalized);
         gridView.setRootNodes(normalized);
         currentGuideRows = List.of();
