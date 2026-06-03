@@ -9,11 +9,15 @@ public final class ForgeEmiSyntheticRecipeIds {
 
     public static ResourceLocation normalize(String id) {
         ResourceLocation parsed = EmiPort.id(id);
-        String normalizedPath = normalizePath(parsed.getNamespace(), parsed.getPath());
-        if (normalizedPath.equals(parsed.getPath())) {
+        String parsedId = parsed.toString();
+        int separator = parsedId.indexOf(':');
+        String namespace = separator >= 0 ? parsedId.substring(0, separator) : "minecraft";
+        String path = separator >= 0 ? parsedId.substring(separator + 1) : parsedId;
+        String normalizedPath = normalizePath(namespace, path);
+        if (normalizedPath.equals(path)) {
             return parsed;
         }
-        return EmiPort.id(parsed.getNamespace(), normalizedPath);
+        return EmiPort.id(namespace, normalizedPath);
     }
 
     public static String normalizePath(String namespace, String path) {

@@ -11,6 +11,7 @@ import dev.emi.emi.runtime.EmiFavorite;
 import dev.emi.emi.runtime.EmiFavorites;
 import dev.emi.emi.runtime.EmiPersistentData;
 import dev.emi.emi.screen.EmiScreenManager;
+import dev.emi.emi.screen.WidgetGroup;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
@@ -41,8 +42,7 @@ public final class EmiFavoritesBridge {
         EmiFavorites.addFavorite(EmiStack.of(stack));
         boolean added = hasMatchingFavorite(EmiStack.of(stack), null);
         if (added) {
-            EmiPersistentData.save();
-            EmiScreenManager.repopulatePanels(SidebarType.FAVORITES);
+            syncFavoritesPanel();
         }
         return added;
     }
@@ -57,8 +57,7 @@ public final class EmiFavoritesBridge {
         }
         boolean added = hasMatchingFavorite(EmiStack.of(stack), null);
         if (added) {
-            EmiPersistentData.save();
-            EmiScreenManager.repopulatePanels(SidebarType.FAVORITES);
+            syncFavoritesPanel();
         }
         return added;
     }
@@ -69,8 +68,7 @@ public final class EmiFavoritesBridge {
             removed = removeMatchingFavorite(EmiStack.of(stack), null);
         }
         if (removed) {
-            EmiPersistentData.save();
-            EmiScreenManager.repopulatePanels(SidebarType.FAVORITES);
+            syncFavoritesPanel();
         }
     }
 
@@ -84,8 +82,7 @@ public final class EmiFavoritesBridge {
         }
         boolean added = hasMatchingFavorite(EmiStack.of(stack), recipe);
         if (added) {
-            EmiPersistentData.save();
-            EmiScreenManager.repopulatePanels(SidebarType.FAVORITES);
+            syncFavoritesPanel();
         }
         return added;
     }
@@ -93,12 +90,13 @@ public final class EmiFavoritesBridge {
     public static void removeRecipeFavorite(ItemStack stack, ResourceLocation recipeId) {
         EmiRecipe recipe = recipeId == null ? null : EmiApi.getRecipeManager().getRecipe(recipeId);
         if (recipe == null) {
-            EmiFavorites.removeFavorite(EmiStack.of(stack));
+            if (EmiFavorites.removeFavorite(EmiStack.of(stack))) {
+                syncFavoritesPanel();
+            }
             return;
         }
         if (removeMatchingFavorite(EmiStack.of(stack), recipe)) {
-            EmiPersistentData.save();
-            EmiScreenManager.repopulatePanels(SidebarType.FAVORITES);
+            syncFavoritesPanel();
         }
     }
 
@@ -114,8 +112,7 @@ public final class EmiFavoritesBridge {
 
         boolean removed = removeMatchingFavorite(ingredient, recipe);
         if (removed) {
-            EmiPersistentData.save();
-            EmiScreenManager.repopulatePanels(SidebarType.FAVORITES);
+            syncFavoritesPanel();
         }
         return removed;
     }
@@ -124,10 +121,12 @@ public final class EmiFavoritesBridge {
         SlotWidget slot = getHoveredRecipeSlot(recipeScreen);
         if (slot == null) return false;
 
-        EmiIngredient ingredient = slot.getStack();
+        return toggleFavorite(slot.getStack(), slot.getRecipe());
+    }
+
+    private static boolean toggleFavorite(EmiIngredient ingredient, EmiRecipe recipe) {
         if (ingredient == null || ingredient.isEmpty()) return false;
 
-        EmiRecipe recipe = slot.getRecipe();
         if (recipe == null) {
             recipe = EmiApi.getRecipeContext(ingredient);
         }
@@ -140,8 +139,7 @@ public final class EmiFavoritesBridge {
                 EmiFavorites.addFavorite(ingredient);
             }
         }
-        EmiPersistentData.save();
-        EmiScreenManager.repopulatePanels(SidebarType.FAVORITES);
+        syncFavoritesPanel();
         return true;
     }
 
@@ -189,8 +187,31 @@ public final class EmiFavoritesBridge {
     }
 
     private static SlotWidget getHoveredRecipeSlot(Object recipeScreen) {
+        SlotWidget slot = getHoveredRecipeSlotFromPage(recipeScreen);
+        if (slot != null) return slot;
+
         Object hovered = getFieldValue(recipeScreen, "hoveredWidget");
-        return hovered instanceof SlotWidget slot ? slot : null;
+        return hovered instanceof SlotWidget hoveredSlot ? hoveredSlot : null;
+    }
+
+    private static SlotWidget getHoveredRecipeSlotFromPage(Object recipeScreen) {
+        Object currentPage = getFieldValue(recipeScreen, "currentPage");
+        if (!(currentPage instanceof Iterable<?> groups)) return null;
+
+        int mouseX = EmiScreenManager.lastMouseX;
+        int mouseY = EmiScreenManager.lastMouseY;
+        for (Object groupObject : groups) {
+            if (!(groupObject instanceof WidgetGroup group)) continue;
+
+            int localX = mouseX - group.x;
+            int localY = mouseY - group.y;
+            for (dev.emi.emi.api.widget.Widget widget : group.widgets) {
+                if (widget instanceof SlotWidget slot && slot.getBounds().contains(localX, localY)) {
+                    return slot;
+                }
+            }
+        }
+        return null;
     }
 
     private static Object getFieldValue(Object target, String fieldName) {
@@ -231,6 +252,12 @@ public final class EmiFavoritesBridge {
             }
         }
         return false;
+    }
+
+    private static void syncFavoritesPanel() {
+        EmiPersistentData.save();
+        EmiScreenManager.repopulatePanels(SidebarType.FAVORITES);
+        RecipeViewerStateSync.favoritesChanged();
     }
 
     private static boolean favoriteMatches(EmiFavorite favorite, ResourceLocation targetRecipeId, String targetStackKey) {
