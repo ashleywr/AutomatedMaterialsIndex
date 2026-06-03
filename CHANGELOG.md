@@ -4,7 +4,7 @@ User-facing changes are recorded here.
 
 ## Unreleased
 
-## 1.0.0 - 2026-06-02
+## 1.0.0 - 2026-06-03
 
 AMI 1.0.0 focuses on broad modpack compatibility, inventory overlay polish, and safer external integrations.
 
@@ -12,6 +12,7 @@ AMI 1.0.0 focuses on broad modpack compatibility, inventory overlay polish, and 
 
 - Context actions for guides, quests, pack-author diagnostics, and web/wiki documentation.
 - FTB Quests, guide indexing, and pack-author helper integrations.
+- Cobblemon Pokemon indexing and action support when Cobblemon is present.
 - External link confirmation before AMI opens browser URLs, with a config toggle for trusted setups.
 - Publishing tasks for Forge and NeoForge release builds.
 
@@ -20,6 +21,7 @@ AMI 1.0.0 focuses on broad modpack compatibility, inventory overlay polish, and 
 - Inventory overlays now reserve exclusion zones for recipe viewers and third-party UI, including FTB Library sidebars.
 - AMI result panels, sidebars, search controls, and visual hierarchy have been polished for denser modpack inventories.
 - Compatibility indexing and categorization were refined for major mod families, storage items, food machines, and hidden or technical entries.
+- Overlay rendering now does less repeated work while projecting and drawing AMI result panels.
 - Item icon caching and projection were hardened across Forge and NeoForge.
 
 ### Fixed
@@ -28,6 +30,7 @@ AMI 1.0.0 focuses on broad modpack compatibility, inventory overlay polish, and 
 - Tooltip and overlay render order no longer lets inventory slot outlines bleed through AMI tooltips.
 - Client-only installs now avoid server-side class loading failures.
 - Forge block entity capacity probing and Cobblemon reflection paths are more defensive.
+- Cobblemon Pokemon cheat actions now route through the loader network path correctly.
 - Search grouping and behavior post-processing no longer duplicate or misplace several result groups.
 
 ## 0.9.0 - 2026-05-30

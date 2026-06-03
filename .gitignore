@@ -68,3 +68,5 @@ test.java
 ### Dot directories (keep only .gitignore) ###
 .*
 !.gitignore
+!.github/
+!.github/**
