@@ -4,6 +4,16 @@ User-facing changes are recorded here.
 
 ## Unreleased
 
+## 1.0.1 - 2026-06-03
+
+AMI 1.0.1 is a hotfix for large Forge and NeoForge modpacks.
+
+### Fixed
+
+- Reduced the delay when focusing or clearing an empty AMI search box in large modpacks.
+- Reused empty-query result projections so clearing search no longer rebuilds the full results tree unnecessarily.
+- Restored Forge FTB Library sidebar exclusion handling so AMI avoids and reports the FTB sidebar area correctly.
+
 ## 1.0.0 - 2026-06-03
 
 AMI 1.0.0 focuses on broad modpack compatibility, inventory overlay polish, and safer external integrations.
