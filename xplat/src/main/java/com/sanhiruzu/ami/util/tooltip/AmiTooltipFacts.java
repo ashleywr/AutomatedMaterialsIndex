@@ -17,7 +17,8 @@ public final class AmiTooltipFacts {
             new CombatTooltipFact(),
             new PokemonTooltipFact(),
             new ModularGearTooltipFact(),
-            new CreateTooltipFact()
+            new CreateTooltipFact(),
+            new TagTooltipFact()
     );
 
     private AmiTooltipFacts() {
