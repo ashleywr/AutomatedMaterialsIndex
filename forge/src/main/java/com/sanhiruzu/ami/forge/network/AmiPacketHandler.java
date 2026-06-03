@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.forge.network;
 
 import com.sanhiruzu.ami.forge.AMI;
 import com.sanhiruzu.ami.network.AmiCheatGivePacket;
+import com.sanhiruzu.ami.network.AmiCheatPokemonPacket;
 import com.sanhiruzu.ami.network.AmiServerPingPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkRegistry;
@@ -20,6 +21,7 @@ public class AmiPacketHandler {
 
     public static void register() {
         INSTANCE.registerMessage(nextId++, AmiCheatGivePacket.class, AmiCheatGivePacket::encode, AmiCheatGivePacket::decode, AmiCheatGivePacket::handle);
+        INSTANCE.registerMessage(nextId++, AmiCheatPokemonPacket.class, AmiCheatPokemonPacket::encode, AmiCheatPokemonPacket::decode, AmiCheatPokemonPacket::handle);
         INSTANCE.registerMessage(nextId++, AmiServerPingPacket.class, AmiServerPingPacket::encode, AmiServerPingPacket::decode, AmiServerPingPacket::handle);
     }
 }

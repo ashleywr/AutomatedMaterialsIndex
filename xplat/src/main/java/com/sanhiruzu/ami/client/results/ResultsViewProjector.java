@@ -54,7 +54,7 @@ public final class ResultsViewProjector {
                     .map(n -> new TreeNode(Component.literal(n.displayName()), n))
                     .collect(Collectors.toList());
         } else {
-            ResultsProcessor processor = state.createProcessor();
+            ResultsProcessor processor = createProcessorForProjection(state, compactMainPanel);
             if (compactMainPanel) {
                 roots = processor.processFlatWithCardGrouping(effectiveSource);
             } else if (state.getViewMode() == ResultsToolbar.ViewMode.LIST
@@ -79,6 +79,21 @@ public final class ResultsViewProjector {
                 source.size(),
                 effectiveSource.size(),
                 summary(state, source.size(), effectiveSource.size(), guideRows.size(), questRows.size(), compactMainPanel, favoritesPanel)
+        );
+    }
+
+    private static ResultsProcessor createProcessorForProjection(SearchState state, boolean compactMainPanel) {
+        boolean gridPresentation = compactMainPanel || state.getViewMode() == ResultsToolbar.ViewMode.GRID;
+        if (!gridPresentation) {
+            return state.createProcessor();
+        }
+
+        return new ResultsProcessor(
+                ResultsProcessor.SortField.REGISTRY,
+                state.isAscending(),
+                state.getGroupBy(),
+                state.getSelectedMods(),
+                state.getActiveFacets()
         );
     }
 

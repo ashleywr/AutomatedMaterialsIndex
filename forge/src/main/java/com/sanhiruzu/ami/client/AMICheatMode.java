@@ -4,6 +4,7 @@ import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.config.AmiConfig.CheatGiveMode;
 import com.sanhiruzu.ami.forge.AMI;
 import com.sanhiruzu.ami.network.AmiCheatGivePacket;
+import com.sanhiruzu.ami.network.AmiCheatPokemonPacket;
 import com.sanhiruzu.ami.network.AmiNetworkState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -204,7 +205,14 @@ public final class AMICheatMode {
      */
     public static void spawnPokemon(ResourceLocation entityId) {
         String species = extractSpeciesName(entityId);
-        sendCommand("summon cobblemon:pokemon ^ ^ ^2 {Pokemon:{Species:\"cobblemon:" + species + "\"}}");
+        var mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+        if (AmiNetworkState.onServer || mc.hasSingleplayerServer()) {
+            com.sanhiruzu.ami.forge.network.AmiPacketHandler.INSTANCE.sendToServer(
+                    new AmiCheatPokemonPacket(entityId, AmiCheatPokemonPacket.Action.SPAWN));
+        } else {
+            sendCommand("spawnpokemonat ^ ^ ^2 " + species);
+        }
     }
 
     /**
@@ -212,7 +220,14 @@ public final class AMICheatMode {
      */
     public static void pokemonToParty(ResourceLocation entityId) {
         String species = extractSpeciesName(entityId);
-        sendCommand("pokegive " + species);
+        var mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+        if (AmiNetworkState.onServer || mc.hasSingleplayerServer()) {
+            com.sanhiruzu.ami.forge.network.AmiPacketHandler.INSTANCE.sendToServer(
+                    new AmiCheatPokemonPacket(entityId, AmiCheatPokemonPacket.Action.PARTY));
+        } else {
+            sendCommand("givepokemon " + species);
+        }
     }
 
     private static String extractSpeciesName(ResourceLocation entityId) {

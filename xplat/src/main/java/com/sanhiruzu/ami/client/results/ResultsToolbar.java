@@ -20,25 +20,6 @@ public class ResultsToolbar implements SearchState.Listener {
     private static final int MIN_DROPDOWN_W = 60;
     private static final int SCROLL_STEP = 18;
     private static final int ROW1_Y = 3;
-    private static final List<ResultsProcessor.SortField> ITEM_SORT_FIELDS = List.of(
-            ResultsProcessor.SortField.REGISTRY,
-            ResultsProcessor.SortField.ALPHABETICAL,
-            ResultsProcessor.SortField.COLOR,
-            ResultsProcessor.SortField.MOD,
-            ResultsProcessor.SortField.STORAGE_CAPACITY,
-            ResultsProcessor.SortField.ENERGY_CAPACITY,
-            ResultsProcessor.SortField.ENERGY_GENERATION,
-            ResultsProcessor.SortField.FLUID_CAPACITY,
-            ResultsProcessor.SortField.TOOL_SPEED,
-            ResultsProcessor.SortField.TOOL_USES,
-            ResultsProcessor.SortField.ARMOR_DEFENSE,
-            ResultsProcessor.SortField.ARMOR_TOUGHNESS,
-            ResultsProcessor.SortField.FOOD_NUTRITION,
-            ResultsProcessor.SortField.FOOD_SATURATION,
-            ResultsProcessor.SortField.DAMAGE,
-            ResultsProcessor.SortField.HEALTH,
-            ResultsProcessor.SortField.DPS
-    );
     private static final EnumSet<ResultsProcessor.GroupBy> DEV_GROUPS = EnumSet.of(
             ResultsProcessor.GroupBy.TOPOLOGY,
             ResultsProcessor.GroupBy.SIMILARITY,
@@ -113,6 +94,8 @@ public class ResultsToolbar implements SearchState.Listener {
         this.groupByDropdown.setSelected(state.getGroupBy());
         if (state.getViewMode() == ViewMode.LIST) {
             this.groupByDropdown.close();
+        } else {
+            this.sortFieldDropdown.close();
         }
         updateDropdownPositions();
     }
@@ -128,7 +111,7 @@ public class ResultsToolbar implements SearchState.Listener {
         int gap = 3;
         int fixedControlsW = SORT_DIR_W + COLLAPSE_TOGGLE_W;
         boolean listMode = state.getViewMode() == ViewMode.LIST;
-        int dropdownCount = 2;
+        int dropdownCount = listMode ? 2 : 1;
         int totalGaps = gap * (dropdownCount + 1);
 
         int minContentWidth = fixedControlsW + (dropdownCount * MIN_DROPDOWN_W) + totalGaps + 4;
@@ -138,24 +121,21 @@ public class ResultsToolbar implements SearchState.Listener {
         int availableDropdownW = contentWidth - fixedControlsW - totalGaps - 4;
         int lensW = listMode ? Math.max(MIN_DROPDOWN_W, availableDropdownW / 2) : 0;
         int remainingDropdownW = availableDropdownW - lensW;
-        int sortW = listMode
-                ? Math.max(MIN_DROPDOWN_W, remainingDropdownW)
-                : Math.max(MIN_DROPDOWN_W, remainingDropdownW / 2);
-        int groupW = listMode ? 0 : Math.max(MIN_DROPDOWN_W, remainingDropdownW - sortW);
+        int sortW = listMode ? Math.max(MIN_DROPDOWN_W, remainingDropdownW) : 0;
+        int groupW = listMode ? 0 : Math.max(MIN_DROPDOWN_W, remainingDropdownW);
 
         int currentX = x + 2;
         // List: [Lens] [Sort] [SortDir] [Collapse]
-        // Grid: [Group] [Sort] [SortDir] [Collapse]
+        // Grid: [Group] [SortDir] [Collapse]
         if (listMode) {
             lensDropdown.updatePosition(currentX, y + ROW1_Y, lensW);
             currentX += lensW + gap;
+            sortFieldDropdown.updatePosition(currentX, y + ROW1_Y, sortW);
+            currentX += sortW + gap;
         } else {
             groupByDropdown.updatePosition(currentX, y + ROW1_Y, groupW);
             currentX += groupW + gap;
         }
-
-        sortFieldDropdown.updatePosition(currentX, y + ROW1_Y, sortW);
-        currentX += sortW + gap;
 
         sortDirX = currentX;
         sortDirY = y + ROW1_Y;
@@ -183,8 +163,8 @@ public class ResultsToolbar implements SearchState.Listener {
         // ── Row 1 ──────────────────────────────────────────────────────────
         if (state.getViewMode() == ViewMode.LIST) {
             lensDropdown.render(g, effectiveMouseX, mouseY);
+            sortFieldDropdown.render(g, effectiveMouseX, mouseY);
         }
-        sortFieldDropdown.render(g, effectiveMouseX, mouseY);
 
         // Sort Direction
         boolean sortDirHov = Dropdown.contains(effectiveMouseX, mouseY, sortDirX, sortDirY, SORT_DIR_W, BUTTON_H);
@@ -221,7 +201,9 @@ public class ResultsToolbar implements SearchState.Listener {
         if (Dropdown.contains(mouseX + scrollOffset, mouseY, sortDirX, sortDirY, SORT_DIR_W, BUTTON_H)) {
             tooltip = List.of(
                     Component.translatable("ami.gui.tooltip.sort_direction", sortDirectionLabel()),
-                    Component.translatable("ami.gui.tooltip.sort_scope")
+                    Component.translatable(state.getViewMode() == ViewMode.LIST
+                            ? "ami.gui.tooltip.sort_scope"
+                            : "ami.gui.tooltip.grid_reverse_scope")
             );
         } else if (state.getViewMode() == ViewMode.LIST && lensDropdown.isMouseOverButton(mouseX + scrollOffset, mouseY)) {
             tooltip = List.of(
@@ -251,6 +233,9 @@ public class ResultsToolbar implements SearchState.Listener {
     }
 
     private String sortDirectionLabel() {
+        if (state.getViewMode() != ViewMode.LIST) {
+            return state.isAscending() ? "Default" : "Reverse";
+        }
         return state.getSortField().isNumeric()
                 ? (state.isAscending() ? "Low" : "High")
                 : (state.isAscending() ? "A-Z" : "Z-A");
@@ -282,7 +267,7 @@ public class ResultsToolbar implements SearchState.Listener {
         // Row 1 dropdowns
         List<Dropdown> active = state.getViewMode() == ViewMode.LIST
                 ? List.of(lensDropdown, sortFieldDropdown)
-                : List.of(sortFieldDropdown, groupByDropdown);
+                : List.of(groupByDropdown);
         for (Dropdown d : active) {
             if (d.mouseClicked(mouseX + scrollOffset, mouseY, button)) {
                 for (Dropdown other : active) if (other != d) other.close();
@@ -298,9 +283,12 @@ public class ResultsToolbar implements SearchState.Listener {
         g.pose().pushPose();
         g.pose().translate(0, 0, OverlayLayers.DROPDOWN);
         g.pose().translate(-scrollOffset, 0, 0);
-        if (state.getViewMode() == ViewMode.LIST) lensDropdown.renderList(g, mouseX, mouseY);
-        sortFieldDropdown.renderList(g, mouseX, mouseY);
-        if (state.getViewMode() != ViewMode.LIST) groupByDropdown.renderList(g, mouseX, mouseY);
+        if (state.getViewMode() == ViewMode.LIST) {
+            lensDropdown.renderList(g, mouseX, mouseY);
+            sortFieldDropdown.renderList(g, mouseX, mouseY);
+        } else {
+            groupByDropdown.renderList(g, mouseX, mouseY);
+        }
         g.pose().popPose();
         g.flush();
     }
@@ -346,9 +334,7 @@ public class ResultsToolbar implements SearchState.Listener {
     }
 
     private List<ResultsProcessor.SortField> sortOptions() {
-        return state.getViewMode() == ViewMode.LIST
-                ? state.getListLens().sortFields()
-                : ITEM_SORT_FIELDS;
+        return state.getListLens().sortFields();
     }
 
     private void renderScrollIndicators(GuiGraphics g) {

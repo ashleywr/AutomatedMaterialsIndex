@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.neoforge;
 
 import com.sanhiruzu.ami.command.AmiStructureCommand;
 import com.sanhiruzu.ami.network.AmiCheatGivePacket;
+import com.sanhiruzu.ami.network.AmiCheatPokemonPacket;
 import com.sanhiruzu.ami.network.AmiServerPingPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
@@ -38,6 +39,7 @@ public class AMI {
     private void registerPayloads(RegisterPayloadHandlersEvent event) {
         var registrar = event.registrar("1").optional();
         registrar.playToServer(AmiCheatGivePacket.TYPE, AmiCheatGivePacket.STREAM_CODEC, AmiCheatGivePacket::handle);
+        registrar.playToServer(AmiCheatPokemonPacket.TYPE, AmiCheatPokemonPacket.STREAM_CODEC, AmiCheatPokemonPacket::handle);
         registrar.playToClient(AmiServerPingPacket.TYPE, AmiServerPingPacket.STREAM_CODEC, AmiServerPingPacket::handle);
     }
 

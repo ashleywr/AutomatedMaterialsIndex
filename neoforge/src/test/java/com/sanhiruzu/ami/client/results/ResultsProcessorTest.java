@@ -605,6 +605,46 @@ public class ResultsProcessorTest {
     }
 
     @Test
+    void gridProjectionUsesRegistryOrderAndKeepsReverseInsteadOfSpecialSort() {
+        SearchState state = new SearchState();
+        state.setViewMode(ResultsToolbar.ViewMode.GRID);
+        state.setGroupBy(ResultsProcessor.GroupBy.NONE);
+        state.setSortField(ResultsProcessor.SortField.ALPHABETICAL);
+
+        List<SearchNode> nodes = List.of(
+                pokemon("abomasnow", "Abomasnow", 460),
+                pokemon("bulbasaur", "Bulbasaur", 1)
+        );
+
+        ResultsViewProjector.Projection ascending = ResultsViewProjector.project(nodes, state, null, false, false);
+        assertEquals(List.of("Bulbasaur", "Abomasnow"), leafLabels(ascending.roots()));
+
+        state.setAscending(false);
+        ResultsViewProjector.Projection descending = ResultsViewProjector.project(nodes, state, null, false, false);
+        assertEquals(List.of("Abomasnow", "Bulbasaur"), leafLabels(descending.roots()));
+    }
+
+    @Test
+    void compactGridProjectionUsesRegistryOrderAndKeepsReverseInsteadOfSpecialSort() {
+        SearchState state = new SearchState();
+        state.setViewMode(ResultsToolbar.ViewMode.LIST);
+        state.setGroupBy(ResultsProcessor.GroupBy.NONE);
+        state.setSortField(ResultsProcessor.SortField.ALPHABETICAL);
+
+        List<SearchNode> nodes = List.of(
+                pokemon("abomasnow", "Abomasnow", 460),
+                pokemon("bulbasaur", "Bulbasaur", 1)
+        );
+
+        ResultsViewProjector.Projection ascending = ResultsViewProjector.project(nodes, state, null, true, false);
+        assertEquals(List.of("Bulbasaur", "Abomasnow"), leafLabels(ascending.roots()));
+
+        state.setAscending(false);
+        ResultsViewProjector.Projection descending = ResultsViewProjector.project(nodes, state, null, true, false);
+        assertEquals(List.of("Abomasnow", "Bulbasaur"), leafLabels(descending.roots()));
+    }
+
+    @Test
     void damageFieldIncludesItemsAndEntitiesWithAttackDamage() {
         SearchNode mace = item("mace", "Mace", Map.of(SearchNodeKeys.ATTACK_DAMAGE, "6.0"));
         SearchNode zombie = new SearchNode(
