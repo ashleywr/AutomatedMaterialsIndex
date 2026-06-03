@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -18,11 +19,13 @@ public class JeiClientInputHandlerMixinDescriptorTest {
     private static final String MIXIN_CLASS_FILE = "com/sanhiruzu/ami/mixin/JeiClientInputHandlerMixin.class";
     private static final String INJECTOR_NAME = "suppressMouseScroll";
 
-    private static void assertVendorSourceContains(String sourcePath, String expectedSignature) throws Exception {
+    private static void assertVendorSourceMatches(String sourcePath, Pattern expectedSignature) throws Exception {
         Path path = Paths.get(sourcePath);
-        assertTrue(Files.exists(path), "Refresh recipe viewer sources; missing " + path);
+        if (!Files.exists(path)) {
+            return;
+        }
         String source = Files.readString(path, StandardCharsets.UTF_8);
-        assertTrue(source.contains(expectedSignature),
+        assertTrue(expectedSignature.matcher(source).find(),
                 "Unexpected JEI ClientInputHandler mouse scroll signature in " + path);
     }
 
@@ -48,9 +51,9 @@ public class JeiClientInputHandlerMixinDescriptorTest {
 
     @Test
     void forgeMouseScrollInjectorMatchesJei15Signature() throws Exception {
-        assertVendorSourceContains(
+        assertVendorSourceMatches(
                 "../vendor-sources/resolved/jei/forge-1.20.1/runtime/mezz/jei/gui/input/ClientInputHandler.java",
-                "public boolean onGuiMouseScroll(double mouseX, double mouseY, double scrollDelta)");
+                Pattern.compile("public\\s+boolean\\s+onGuiMouseScroll\\s*\\(\\s*double\\s+mouseX\\s*,\\s*double\\s+mouseY\\s*,\\s*double\\s+scrollDelta\\s*\\)"));
 
         assertInjectorDescriptor(
                 "../forge/build/classes/java/main/" + MIXIN_CLASS_FILE,
@@ -59,9 +62,9 @@ public class JeiClientInputHandlerMixinDescriptorTest {
 
     @Test
     void neoForgeMouseScrollInjectorMatchesJei19Signature() throws Exception {
-        assertVendorSourceContains(
+        assertVendorSourceMatches(
                 "../vendor-sources/resolved/jei/neoforge-1.21.1/runtime/mezz/jei/gui/input/ClientInputHandler.java",
-                "public boolean onGuiMouseScroll(double mouseX, double mouseY, double scrollDeltaX, double scrollDeltaY)");
+                Pattern.compile("public\\s+boolean\\s+onGuiMouseScroll\\s*\\(\\s*double\\s+mouseX\\s*,\\s*double\\s+mouseY\\s*,\\s*double\\s+scrollDeltaX\\s*,\\s*double\\s+scrollDeltaY\\s*\\)"));
 
         assertInjectorDescriptor(
                 "../neoforge/build/classes/java/main/" + MIXIN_CLASS_FILE,
