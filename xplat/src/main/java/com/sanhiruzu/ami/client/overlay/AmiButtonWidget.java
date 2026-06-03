@@ -49,7 +49,7 @@ public class AmiButtonWidget extends AbstractWidget {
 
         int baseBgColor = isVanilla ? 0xFFC6C6C6 : 0xFF2D2D2D;
         int borderColor = isVanilla ? 0xFF555555 : 0xFF181818;
-        int accentColor = isVanilla ? 0xFF4488FF : 0xFF00AAFF;
+        int accentColor = isVanilla ? AMITheme.ACCENT_BLUE : 0xFF00AAFF;
         int modeAccent = devMode ? 0xFFFF5555 : 0xFFFFAA00;
 
         if (hovered) baseBgColor = isVanilla ? 0xFFD0D0D0 : 0xFF3D3D3D;

@@ -11,6 +11,7 @@
     "EmiScreenManagerMixin",
     "JeiBookmarkListMixin",
     "JeiClientInputHandlerMixin",
-    "JeiGuiEventHandlerMixin"
+    "JeiGuiEventHandlerMixin",
+    "RecipeBookComponentMixin"
   ]
 }

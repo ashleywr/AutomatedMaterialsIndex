@@ -117,8 +117,8 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         int x = getX(), y = getY(), w = width, h = height;
         boolean focused = isFocused();
 
-        int bgColor = AmiConfig.searchBarBg;
-        int border = AmiConfig.searchBarBorder;
+        int bgColor = AMITheme.SEARCH_BAR_BG;
+        int border = AMITheme.SEARCH_BAR_BORDER;
 
         if (!focused) {
             int alpha = (border >> 24) & 0xFF;

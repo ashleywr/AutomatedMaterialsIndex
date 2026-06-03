@@ -73,37 +73,21 @@ public final class AmiGuiIcons {
 
     /**
      * Small index-book glyph for the main result-view toggle.
-     * The page contents show the target view: list rows when leaving grid,
-     * item dots when leaving list.
      */
     public static void resultBook(GuiGraphics g, int cx, int cy, int color, boolean targetList) {
-        int sx = cx - 6;
+        int sx = cx - 5;
         int sy = cy - 5;
-        int paper = 0x55FFFFFF;
+        int paper = 0x66FFFFFF;
+        int shadow = 0x33000000;
 
-        // Covers
-        g.fill(sx, sy + 1, sx + 5, sy + 10, color);
-        g.fill(sx + 7, sy + 1, sx + 12, sy + 10, color);
-        g.fill(sx + 1, sy, sx + 5, sy + 1, color);
-        g.fill(sx + 7, sy, sx + 11, sy + 1, color);
+        // Closed book silhouette; avoids the open-book center seam at small scale.
+        g.fill(sx + 1, sy, sx + 9, sy + 1, color);
+        g.fill(sx, sy + 1, sx + 10, sy + 9, color);
+        g.fill(sx + 1, sy + 9, sx + 10, sy + 10, color);
 
-        // Pages
-        g.fill(sx + 1, sy + 2, sx + 5, sy + 9, paper);
-        g.fill(sx + 7, sy + 2, sx + 11, sy + 9, paper);
-        g.fill(sx + 6, sy + 1, sx + 7, sy + 10, color);
-
-        if (targetList) {
-            g.fill(sx + 2, sy + 3, sx + 5, sy + 4, color);
-            g.fill(sx + 2, sy + 5, sx + 5, sy + 6, color);
-            g.fill(sx + 8, sy + 3, sx + 11, sy + 4, color);
-            g.fill(sx + 8, sy + 5, sx + 11, sy + 6, color);
-            g.fill(sx + 8, sy + 7, sx + 10, sy + 8, color);
-        } else {
-            g.fill(sx + 2, sy + 3, sx + 4, sy + 5, color);
-            g.fill(sx + 8, sy + 3, sx + 10, sy + 5, color);
-            g.fill(sx + 2, sy + 7, sx + 4, sy + 9, color);
-            g.fill(sx + 8, sy + 7, sx + 10, sy + 9, color);
-        }
+        g.fill(sx + 2, sy + 2, sx + 9, sy + 8, paper);
+        g.fill(sx + 2, sy + 8, sx + 9, sy + 9, shadow);
+        g.fill(sx + 1, sy + 2, sx + 2, sy + 9, shadow);
     }
 
     /**

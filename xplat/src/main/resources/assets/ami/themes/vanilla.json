@@ -5,11 +5,30 @@
     "icon-size": 16,
     "element-gap": 4
   },
+  "accent-blue": "#A02020",
+  "entry-hover": "#55A02020",
+  "search": {
+    "bar": {
+      "bg": "#000000",
+      "border": "#E0E0E0"
+    },
+    "placeholder": "#B0B0B0",
+    "default-text": "#FFFFFF",
+    "cursor": "#FFFFFF",
+    "help": {
+      "border": "#555555"
+    }
+  },
+  "slot": {
+    "bg": "#8B8B8B",
+    "edge-light": "#D8D8D8",
+    "edge-dark": "#555555"
+  },
   "grid": {
     "group": {
-      "band": "#0C000000",
-      "band-alt": "#14FFFFFF",
-      "rail": "#18000000"
+      "band": "#0A000000",
+      "band-alt": "#10FFFFFF",
+      "rail": "#44000000"
     }
   }
 }
