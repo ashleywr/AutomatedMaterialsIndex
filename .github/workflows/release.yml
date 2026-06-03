@@ -78,22 +78,22 @@ jobs:
       - name: Publish NeoForge to Modrinth
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
-        run: ./gradlew :neoforge:modrinth
+        run: ./gradlew --no-configuration-cache :neoforge:modrinth
 
       - name: Publish Forge to Modrinth
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
-        run: ./gradlew :forge:modrinth
+        run: ./gradlew --no-configuration-cache :forge:modrinth
 
       - name: Publish NeoForge to CurseForge
         env:
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
-        run: ./gradlew :neoforge:curseforge
+        run: ./gradlew --no-configuration-cache :neoforge:curseforge
 
       - name: Publish Forge to CurseForge
         env:
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
-        run: ./gradlew :forge:curseforge
+        run: ./gradlew --no-configuration-cache :forge:curseforge
 
       - name: Create GitHub Release
         env:
