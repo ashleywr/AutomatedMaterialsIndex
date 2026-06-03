@@ -51,6 +51,8 @@ AMI 1.1.0 is a GregTech/GTCEu-focused feature release. GregTech packs are large 
 - GregTech now stays under the GregTech top-level category by default, so large packs do not scatter thousands of GregTech parts across unrelated normal categories.
 - AMI still lets obvious non-GregTech gameplay categories escape when they are clear and useful, such as food, armor, weapons, and tools.
 - Generic FE/RF energy fields remain separate from GregTech EU/t fields. AMI does not label GregTech EU as FE.
+- The vanilla theme now more closely matches Minecraft's recipe book, including vanilla-style search controls, beveled item slots, subdued scrollbars, and tighter favorites spacing.
+- The recipe book button now continues to toggle AMI while the new Start AMI Hidden setting only controls whether AMI opens hidden on new inventory screens.
 
 ### Fixed
 
@@ -58,6 +60,7 @@ AMI 1.1.0 is a GregTech/GTCEu-focused feature release. GregTech packs are large 
 - Autocomplete now suggests GregTech-specific property filters such as `?gregtechTier:`, `?gregtechCircuit:`, `?gregtechEnergy:`, and `?gregtechEnergyRole:`.
 - List view now has a combined `GT EU/t` sort that works across GregTech generators, consumers, input hatches, and output hatches.
 - GregTech material fasteners such as bolts, screws, and nuts no longer appear in the Ranged or Weapons List lenses just because they look projectile-like to generic metadata.
+- Forge inventory overlays now follow the same render path as NeoForge, so AMI toggles and recipe viewer suppression remain consistent.
 
 ### Compatibility Notes
 
