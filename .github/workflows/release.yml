@@ -107,4 +107,4 @@ jobs:
             --title "AMI ${{ steps.version.outputs.mod_version }}" \
             --notes-file release-notes.md \
             "neoforge/build/libs/ami-neoforge-1.21.1-${{ steps.version.outputs.mod_version }}.jar" \
-            "forge/build/libs/ami-forge-1.20.1-${{ steps.version.outputs.mod_version }}.jar"
+            "forge/build/release/ami-forge-1.20.1-${{ steps.version.outputs.mod_version }}.jar"

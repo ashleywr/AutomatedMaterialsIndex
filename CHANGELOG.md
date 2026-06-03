@@ -4,6 +4,15 @@ User-facing changes are recorded here.
 
 ## Unreleased
 
+## 1.1.2 - 2026-06-03
+
+AMI 1.1.2 is a Forge release packaging hotfix.
+
+### Fixed
+
+- Fixed Forge Modrinth, CurseForge, and GitHub release packaging to upload a verified reobfuscated Forge jar instead of the raw development jar.
+- Added a Forge release-jar verification step so publishing fails before upload if the Forge jar still contains named Minecraft runtime calls.
+
 ## 1.1.1 - 2026-06-03
 
 AMI 1.1.1 is a Forge release packaging hotfix.
