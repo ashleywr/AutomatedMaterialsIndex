@@ -26,6 +26,26 @@ public final class EnergyTooltipFact implements AmiTooltipFact {
                 TooltipFactSupport.formatNumber(entry.meta(SearchNodeKeys.ENERGY_CONSUMPTION, ""), " FE/t"),
                 ChatFormatting.YELLOW
         ));
+        lines.addAll(TooltipFactSupport.line(
+                "ami.tooltip.gregtech_eu_generation",
+                TooltipFactSupport.formatNumber(entry.meta(SearchNodeKeys.GREGTECH_EU_GENERATION, ""), " EU/t"),
+                ChatFormatting.GOLD
+        ));
+        lines.addAll(TooltipFactSupport.line(
+                "ami.tooltip.gregtech_eu_consumption",
+                TooltipFactSupport.formatNumber(entry.meta(SearchNodeKeys.GREGTECH_EU_CONSUMPTION, ""), " EU/t"),
+                ChatFormatting.YELLOW
+        ));
+        lines.addAll(TooltipFactSupport.line(
+                "ami.tooltip.gregtech_eu_input",
+                TooltipFactSupport.formatNumber(entry.meta(SearchNodeKeys.GREGTECH_EU_INPUT, ""), " EU/t"),
+                ChatFormatting.YELLOW
+        ));
+        lines.addAll(TooltipFactSupport.line(
+                "ami.tooltip.gregtech_eu_output",
+                TooltipFactSupport.formatNumber(entry.meta(SearchNodeKeys.GREGTECH_EU_OUTPUT, ""), " EU/t"),
+                ChatFormatting.GOLD
+        ));
         return lines;
     }
 }

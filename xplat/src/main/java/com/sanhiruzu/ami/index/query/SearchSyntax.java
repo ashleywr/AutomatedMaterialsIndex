@@ -34,6 +34,13 @@ public final class SearchSyntax {
             new PropertyField("capability", List.of("cap", "resource"), "ami.gui.search.help.property_capability", SearchSuggestions.Kind.PROPERTY),
             new PropertyField("fact", List.of("facts", "behavior", "behaviour"), "ami.gui.search.help.property_fact", SearchSuggestions.Kind.PROPERTY),
             new PropertyField("trait", List.of("traits", "modifier", "modifiers"), "ami.gui.search.help.property_trait", SearchSuggestions.Kind.PROPERTY),
+            new PropertyField("gregtech", List.of("gtceu"), "ami.gui.search.help.property_field", SearchSuggestions.Kind.PROPERTY),
+            new PropertyField("gregtechTier", List.of("gtceuTier", "voltage", "voltageTier"), "ami.gui.search.help.property_tier", SearchSuggestions.Kind.PROPERTY),
+            new PropertyField("gregtechKind", List.of("gtceuKind"), "ami.gui.search.help.property_kind", SearchSuggestions.Kind.PROPERTY),
+            new PropertyField("gregtechFact", List.of("gregtechFacts", "gtceuFact", "gtceuFacts"), "ami.gui.search.help.property_fact", SearchSuggestions.Kind.PROPERTY),
+            new PropertyField("gregtechCircuit", List.of("gtceuCircuit", "gregtechGrade", "gtceuGrade", "circuitGrade"), "ami.gui.search.help.property_field", SearchSuggestions.Kind.PROPERTY),
+            new PropertyField("gregtechEnergy", List.of("gtceuEnergy", "gregtechEu", "gtceuEu", "eu", "eut", "euPerTick"), "ami.gui.search.help.property_energy", SearchSuggestions.Kind.PROPERTY),
+            new PropertyField("gregtechEnergyRole", List.of("gtceuEnergyRole", "euRole"), "ami.gui.search.help.property_role", SearchSuggestions.Kind.PROPERTY),
             new PropertyField("mod", List.of("modid", "compat", "family", "ecosystem", "compatfamily", "compatfamilies"),
                     "ami.gui.search.help.property_mod", SearchSuggestions.Kind.MOD)
     );

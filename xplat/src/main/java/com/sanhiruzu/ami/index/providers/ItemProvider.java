@@ -7,6 +7,7 @@ import com.sanhiruzu.ami.compat.AE2Compat;
 import com.sanhiruzu.ami.compat.CobblemonCompat;
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
 import com.sanhiruzu.ami.compat.CreateCompat;
+import com.sanhiruzu.ami.compat.GregTechCompat;
 import com.sanhiruzu.ami.compat.MekanismCompat;
 import com.sanhiruzu.ami.compat.ModularGearCompat;
 import com.sanhiruzu.ami.compat.SophisticatedCompat;
@@ -237,6 +238,7 @@ public class ItemProvider implements IAmiDataProvider {
         CreateCompat.enrichItem(baseId, meta);
         AE2Compat.enrichItem(baseId, meta);
         MekanismCompat.enrichItem(baseId, meta);
+        GregTechCompat.enrichItem(baseId, meta);
         SophisticatedCompat.enrichItem(baseId, meta);
         ModularGearCompat.enrichItem(baseId, meta);
         ModularGearCompat.enrichRuntimeStack(baseId, stack, level, meta);
@@ -342,6 +344,8 @@ public class ItemProvider implements IAmiDataProvider {
                     toolMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addToolStats(meta, stats));
                     armorMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addArmorStats(meta, stats));
                     inferAmmoType(entry.id(), meta);
+                    CompatFamilyDetector.detect(entry.id(), meta);
+                    GregTechCompat.enrichItem(entry.id(), meta);
                     markGeneratedModularGearVariantCheatOnly(entry.id(), meta);
                     if (!ItemFilter.shouldShowAccessLevel(meta.getOrDefault(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL))
                             && !isHiddenComponentDuplicateVariant(meta)) {
@@ -463,6 +467,7 @@ public class ItemProvider implements IAmiDataProvider {
             CreateCompat.enrichItem(id, meta);
             AE2Compat.enrichItem(id, meta);
             MekanismCompat.enrichItem(id, meta);
+            GregTechCompat.enrichItem(id, meta);
             SophisticatedCompat.enrichItem(id, meta);
             ModularGearCompat.enrichItem(id, meta);
             ModularGearCompat.enrichRuntimeStack(id, defaultStack, level, meta);

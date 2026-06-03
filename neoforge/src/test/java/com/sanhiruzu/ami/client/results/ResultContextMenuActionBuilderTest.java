@@ -6,6 +6,7 @@ import com.sanhiruzu.ami.api.AmiQuestDocument;
 import com.sanhiruzu.ami.api.AmiQuestTaskDocument;
 import com.sanhiruzu.ami.api.AmiQuestsApi;
 import com.sanhiruzu.ami.api.IAmiPlugin;
+import com.sanhiruzu.ami.compat.GregTechCompat;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -538,6 +540,104 @@ class ResultContextMenuActionBuilderTest {
     }
 
     @Test
+    void gregTechContextActionsAddTierKindAndFactFilters() {
+        AtomicReference<String> token = new AtomicReference<>();
+        ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder();
+        SearchNode node = new SearchNode(
+                new ResourceLocation("gtceu", "lv_macerator"),
+                NodeType.ITEM,
+                "LV Macerator",
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.COMPAT_FAMILIES, "gregtech",
+                        SearchNodeKeys.GREGTECH_ITEM_KIND, "machines",
+                        SearchNodeKeys.GREGTECH_TIER, "lv",
+                        SearchNodeKeys.GREGTECH_FACTS, "machine,power"
+                )
+        );
+
+        List<ResultContextMenu.Action> actions = builder.forItem(
+                new ResultContextMenuActionBuilder.ItemContext(node, ItemStack.EMPTY, null, token::set)
+        );
+
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_TIER));
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_KIND));
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_FACT));
+
+        firstAction(actions, ResultContextMenuActionBuilder.FILTER_GREGTECH_TIER).onClick().run();
+        assertEquals("?gregtechTier:lv", token.get());
+        firstAction(actions, ResultContextMenuActionBuilder.FILTER_GREGTECH_KIND).onClick().run();
+        assertEquals("?gregtechKind:machines", token.get());
+        firstAction(actions, ResultContextMenuActionBuilder.FILTER_GREGTECH_FACT).onClick().run();
+        assertEquals("?gregtechFact:power", token.get());
+    }
+
+    @Test
+    void gregTechCircuitContextActionsUseTierAndGradeWithoutDuplicateCircuitFact() {
+        AtomicReference<String> token = new AtomicReference<>();
+        ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder();
+        SearchNode node = new SearchNode(
+                new ResourceLocation("gtceu", "basic_electronic_circuit"),
+                NodeType.ITEM,
+                "Basic Electronic Circuit",
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.COMPAT_FAMILIES, "gregtech",
+                        SearchNodeKeys.GREGTECH_ITEM_KIND, "circuits",
+                        SearchNodeKeys.GREGTECH_TIER, "lv",
+                        SearchNodeKeys.GREGTECH_CIRCUIT_GRADE, "basic",
+                        SearchNodeKeys.GREGTECH_FACTS, "circuit"
+                )
+        );
+
+        List<ResultContextMenu.Action> actions = builder.forItem(
+                new ResultContextMenuActionBuilder.ItemContext(node, ItemStack.EMPTY, null, token::set)
+        );
+
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_TIER));
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_KIND));
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_CIRCUIT_GRADE));
+        assertTrue(!ids(actions).contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_FACT));
+
+        firstAction(actions, ResultContextMenuActionBuilder.FILTER_GREGTECH_TIER).onClick().run();
+        assertEquals("?gregtechTier:lv", token.get());
+        firstAction(actions, ResultContextMenuActionBuilder.FILTER_GREGTECH_CIRCUIT_GRADE).onClick().run();
+        assertEquals("?gregtechCircuit:basic", token.get());
+    }
+
+    @Test
+    void gregTechCircuitContextActionsUseIndexedFallbackTierAndGrade() {
+        AtomicReference<String> token = new AtomicReference<>();
+        ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder();
+        ResourceLocation id = new ResourceLocation("gtceu", "good_electronic_circuit");
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put(SearchNodeKeys.MOD_ID, "gtceu");
+        GregTechCompat.enrichItem(id, metadata);
+        SearchNode node = new SearchNode(
+                id,
+                NodeType.ITEM,
+                "Good Electronic Circuit",
+                0,
+                0,
+                Map.copyOf(metadata)
+        );
+
+        List<ResultContextMenu.Action> actions = builder.forItem(
+                new ResultContextMenuActionBuilder.ItemContext(node, ItemStack.EMPTY, null, token::set)
+        );
+
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_TIER));
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_CIRCUIT_GRADE));
+
+        firstAction(actions, ResultContextMenuActionBuilder.FILTER_GREGTECH_TIER).onClick().run();
+        assertEquals("?gregtechTier:mv", token.get());
+        firstAction(actions, ResultContextMenuActionBuilder.FILTER_GREGTECH_CIRCUIT_GRADE).onClick().run();
+        assertEquals("?gregtechCircuit:good", token.get());
+    }
+
+    @Test
     void unknownModDocumentationUsesWebSearch() {
         SearchNode node = modItem("simpletms", "tr_irontail", "Iron Tail TM");
 
@@ -547,8 +647,27 @@ class ResultContextMenuActionBuilderTest {
         assertEquals(ResultContextMenuActionBuilder.DocumentationKind.WEB_SEARCH, target.kind());
         assertEquals("ami.context.search_web", target.label().getString());
         String uri = target.uri().toString();
-        assertTrue(uri.startsWith("https://duckduckgo.com/?q="));
-        assertTrue(uri.contains("simpletms%3Atr_irontail"));
+        assertEquals("https://duckduckgo.com/?q=Iron+Tail+TM+simpletms", uri);
+        assertTrue(!uri.contains("simpletms%3Atr_irontail"));
+        assertTrue(!uri.contains("minecraft+mod"));
+    }
+
+    @Test
+    void gregTechDocumentationSearchUsesItemNameAndModNameOnly() {
+        SearchNode node = new SearchNode(
+                new ResourceLocation("gtceu", "wetware_printed_circuit_board"),
+                NodeType.ITEM,
+                "Wetware Printed Circuit Board",
+                0,
+                0,
+                Map.of(SearchNodeKeys.COMPAT_FAMILIES, "gregtech")
+        );
+
+        ResultContextMenuActionBuilder.DocumentationTarget target =
+                ResultContextMenuActionBuilder.documentationTargetFor(node);
+
+        assertEquals(ResultContextMenuActionBuilder.DocumentationKind.WEB_SEARCH, target.kind());
+        assertEquals(URI.create("https://duckduckgo.com/?q=Wetware+Printed+Circuit+Board+GregTech"), target.uri());
     }
 
     @Test
@@ -570,6 +689,10 @@ class ResultContextMenuActionBuilderTest {
                 .contains(ResultContextMenuActionBuilder.FILTER_POKEMON_GENERATION));
         assertTrue(ResultContextMenuActionPolicy.parseEnabledActionIds(legacyDefault)
                 .contains(ResultContextMenuActionBuilder.RECIPES_POKEMON_DROP_ITEM));
+        assertTrue(ResultContextMenuActionPolicy.parseEnabledActionIds(legacyDefault)
+                .contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_TIER));
+        assertTrue(ResultContextMenuActionPolicy.parseEnabledActionIds(legacyDefault)
+                .contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_CIRCUIT_GRADE));
     }
 
     @Test
@@ -586,6 +709,8 @@ class ResultContextMenuActionBuilderTest {
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.SEARCH_POKEMON_DROP_ITEM));
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.RECIPES_POKEMON_DROP_ITEM));
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.COPY_POKEMON_DEX_NUMBER));
+        assertTrue(enabled.contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_KIND));
+        assertTrue(enabled.contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_CIRCUIT_GRADE));
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.COPY_QUEST_MATCHES));
     }
 

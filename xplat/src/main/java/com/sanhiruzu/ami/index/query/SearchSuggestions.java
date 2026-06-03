@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.index.query;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.compat.CompatDisplayNames;
 import com.sanhiruzu.ami.index.ItemFilter;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
@@ -26,7 +27,8 @@ import java.util.Map;
 public final class SearchSuggestions {
     private static final int DEFAULT_LIMIT = 24;
     private static final List<String> DEFAULT_PROPERTY_FIELDS = List.of(
-            "trait", "kind", "material", "role", "capability", "energy", "storage", "fluid", "color"
+            "trait", "kind", "material", "role", "capability", "energy", "gregtechTier",
+            "gregtechCircuit", "gregtechEnergy", "storage", "fluid", "color"
     );
     private static volatile Cache cache = new Cache(-1L, false, false, false, Vocabulary.empty());
 
@@ -202,13 +204,25 @@ public final class SearchSuggestions {
 
     private static List<Suggestion> fieldSuggestions(Vocabulary vocabulary, String query, ActiveToken token,
                                                      String prefix, int limit) {
-        CountedValues fields = new CountedValues();
+        String normalizedPrefix = normalizeValuePrefix(prefix);
+        List<Suggestion> suggestions = new ArrayList<>();
         for (SearchSyntax.PropertyField field : SearchSyntax.PROPERTY_FIELDS) {
-            if (!valuesForPropertyField(vocabulary, field.id()).isEmpty()) {
-                fields.add(field.id());
+            if (suggestions.size() >= limit) {
+                break;
+            }
+            if (valuesForPropertyField(vocabulary, field.id()).isEmpty()) {
+                continue;
+            }
+            String normalizedField = normalizeValuePrefix(field.id());
+            if (normalizedPrefix.isEmpty()
+                    || normalizedField.startsWith(normalizedPrefix)
+                    || normalizedField.contains(normalizedPrefix)) {
+                String replacement = (token.negated() ? "-?" : "?") + field.id() + ":";
+                suggestions.add(new Suggestion(replacement, replacement, "",
+                        token.start(), token.end(), field.kind(), false));
             }
         }
-        return valueSuggestions(fields, query, token, token.negated() ? "-?" : "?", prefix, limit, ":", false, Kind.PROPERTY);
+        return suggestions;
     }
 
     private static List<Suggestion> simplePropertySuggestions(Vocabulary vocabulary, String query, ActiveToken token,
@@ -236,6 +250,13 @@ public final class SearchSuggestions {
             case "material" -> vocabulary.materials;
             case "mod" -> vocabulary.mods;
             case "color" -> vocabulary.colors;
+            case "gregtech" -> vocabulary.gregtech;
+            case "gregtechTier" -> vocabulary.gregtechTiers;
+            case "gregtechKind" -> vocabulary.gregtechKinds;
+            case "gregtechFact" -> vocabulary.gregtechFacts;
+            case "gregtechCircuit" -> vocabulary.gregtechCircuitGrades;
+            case "gregtechEnergy" -> vocabulary.gregtechEnergy;
+            case "gregtechEnergyRole" -> vocabulary.gregtechEnergyRoles;
             default -> CountedValues.empty();
         };
     }
@@ -309,11 +330,18 @@ public final class SearchSuggestions {
         List<Suggestion> suggestions = new ArrayList<>(matches.size());
         for (ValueCount value : matches) {
             String replacement = replacementPrefix + value.value() + suffix;
-            String display = replacementPrefix + value.value() + (includeCount ? "" : suffix);
+            String display = replacementPrefix + displayValue(kind, value.value()) + (includeCount ? "" : suffix);
             suggestions.add(new Suggestion(replacement, display, includeCount ? countDetail(value.count()) : "",
                     token.start(), token.end(), kind, false));
         }
         return suggestions;
+    }
+
+    private static String displayValue(Kind kind, String value) {
+        if (kind == Kind.MOD) {
+            return CompatDisplayNames.displayModSuggestionToken(value);
+        }
+        return value;
     }
 
     private static ActiveToken activeToken(String query, int cursor) {
@@ -385,6 +413,13 @@ public final class SearchSuggestions {
         final CountedValues materials = new CountedValues();
         final CountedValues capabilities = new CountedValues();
         final CountedValues energy = new CountedValues();
+        final CountedValues gregtech = new CountedValues();
+        final CountedValues gregtechTiers = new CountedValues();
+        final CountedValues gregtechKinds = new CountedValues();
+        final CountedValues gregtechFacts = new CountedValues();
+        final CountedValues gregtechCircuitGrades = new CountedValues();
+        final CountedValues gregtechEnergy = new CountedValues();
+        final CountedValues gregtechEnergyRoles = new CountedValues();
         final CountedValues fluid = new CountedValues();
         final CountedValues storage = new CountedValues();
         final CountedValues colors = new CountedValues();
@@ -433,11 +468,11 @@ public final class SearchSuggestions {
                 environments.add(node.displayName().replace(' ', '_'));
             }
 
-            mods.add(node.id().getNamespace());
-            addTokens(mods, node.meta(SearchNodeKeys.MOD_ID, ""));
-            addTokens(mods, node.meta(SearchNodeKeys.COMPAT_FAMILY, ""));
-            addTokens(mods, node.meta(SearchNodeKeys.COMPAT_FAMILIES, ""));
-            addTokens(mods, node.meta(SearchNodeKeys.PRIMARY_COMPAT_FAMILY, ""));
+            addModToken(node.id().getNamespace());
+            addModTokens(node.meta(SearchNodeKeys.MOD_ID, ""));
+            addModTokens(node.meta(SearchNodeKeys.COMPAT_FAMILY, ""));
+            addModTokens(node.meta(SearchNodeKeys.COMPAT_FAMILIES, ""));
+            addModTokens(node.meta(SearchNodeKeys.PRIMARY_COMPAT_FAMILY, ""));
 
             addTokens(tags, node.meta(SearchNodeKeys.TAGS, ""));
             addTokens(tags, node.meta(SearchNodeKeys.BLOCK_TAGS, ""));
@@ -482,14 +517,31 @@ public final class SearchSuggestions {
                     addTokens(facts, value);
                     addTokens(meta, value);
                 }
+                if (SearchNodeKeys.PRIMARY_COMPAT_FAMILY.equals(key)
+                        || SearchNodeKeys.COMPAT_FAMILY.equals(key)
+                        || SearchNodeKeys.COMPAT_FAMILIES.equals(key)) {
+                    if (containsToken(value, "gregtech")) {
+                        gregtech.add("gregtech");
+                    }
+                }
+                if (SearchNodeKeys.GREGTECH_FACTS.equals(key)) {
+                    addTokens(gregtechFacts, value);
+                }
                 if (matchesConvention(key, FieldConvention.KIND)
                         || SearchNodeKeys.ONTOLOGY_SUBCATEGORY.equals(key)) {
                     addTokens(kinds, value);
                     addTokens(meta, value);
                 }
+                if (SearchNodeKeys.GREGTECH_ITEM_KIND.equals(key)) {
+                    addTokens(gregtechKinds, value);
+                }
                 if (matchesConvention(key, FieldConvention.TIER)) {
                     addTokens(tiers, value);
                     addTokens(meta, value);
+                }
+                if (SearchNodeKeys.GREGTECH_TIER.equals(key)) {
+                    addTokens(gregtechTiers, value);
+                    addTokens(gregtechEnergy, value);
                 }
                 if (matchesConvention(key, FieldConvention.ROLE)
                         || SearchNodeKeys.RECIPE_CATEGORIES.equals(key)
@@ -497,7 +549,21 @@ public final class SearchSuggestions {
                     addTokens(roles, value);
                     addTokens(meta, value);
                 }
+                if (SearchNodeKeys.GREGTECH_CIRCUIT_GRADE.equals(key)) {
+                    addTokens(gregtechCircuitGrades, value);
+                }
+                if (SearchNodeKeys.GREGTECH_ENERGY_ROLE.equals(key)) {
+                    addTokens(gregtechEnergyRoles, value);
+                    addTokens(gregtechEnergy, value);
+                }
+                if (SearchNodeKeys.GREGTECH_AMPERAGE.equals(key)) {
+                    addTokens(gregtechEnergy, value);
+                    addTokens(gregtechEnergy, value + "a");
+                }
                 NumericMetadataResolver.aliasesForMetadataKey(key).forEach(numericFields::add);
+            }
+            if ("gtceu".equals(node.id().getNamespace()) || "gregtech".equals(node.id().getNamespace())) {
+                gregtech.add("gregtech");
             }
             for (String capability : PropertyResolver.indexedCapabilities(node)) {
                 capabilities.add(capability);
@@ -512,8 +578,20 @@ public final class SearchSuggestions {
             }
             if (!node.meta(SearchNodeKeys.ENERGY_CAPACITY, "").isBlank()
                     || !node.meta(SearchNodeKeys.ENERGY_GENERATION, "").isBlank()
-                    || !node.meta(SearchNodeKeys.ENERGY_CONSUMPTION, "").isBlank()) {
+                    || !node.meta(SearchNodeKeys.ENERGY_CONSUMPTION, "").isBlank()
+                    || !node.meta(SearchNodeKeys.GREGTECH_ENERGY_ROLE, "").isBlank()
+                    || !node.meta(SearchNodeKeys.GREGTECH_EU_GENERATION, "").isBlank()
+                    || !node.meta(SearchNodeKeys.GREGTECH_EU_CONSUMPTION, "").isBlank()
+                    || !node.meta(SearchNodeKeys.GREGTECH_EU_INPUT, "").isBlank()
+                    || !node.meta(SearchNodeKeys.GREGTECH_EU_OUTPUT, "").isBlank()) {
                 energy.add("energy");
+            }
+            if (!node.meta(SearchNodeKeys.GREGTECH_ENERGY_ROLE, "").isBlank()
+                    || !node.meta(SearchNodeKeys.GREGTECH_EU_GENERATION, "").isBlank()
+                    || !node.meta(SearchNodeKeys.GREGTECH_EU_CONSUMPTION, "").isBlank()
+                    || !node.meta(SearchNodeKeys.GREGTECH_EU_INPUT, "").isBlank()
+                    || !node.meta(SearchNodeKeys.GREGTECH_EU_OUTPUT, "").isBlank()) {
+                gregtechEnergy.add("energy");
             }
             if (!node.meta(SearchNodeKeys.FLUID_CAPACITY, "").isBlank()) {
                 fluid.add("fluid");
@@ -522,6 +600,28 @@ public final class SearchSuggestions {
                     || !node.meta(SearchNodeKeys.STORAGE_ITEM_KIND, "").isBlank()
                     || !node.meta(SearchNodeKeys.STORAGE_FACTS, "").isBlank()) {
                 storage.add("storage");
+            }
+        }
+
+        private void addModTokens(String rawValue) {
+            if (rawValue == null || rawValue.isBlank()) {
+                return;
+            }
+            for (String part : rawValue.split("[,\\s]+")) {
+                addModToken(part);
+            }
+        }
+
+        private void addModToken(String value) {
+            String token = CompatDisplayNames.canonicalModSuggestionToken(value);
+            if (token.isBlank()) {
+                return;
+            }
+            mods.add(token);
+            String original = cleanToken(value);
+            if (CompatDisplayNames.isModSuggestionAlias(original, token)) {
+                mods.addAlias(original, token);
+                return;
             }
         }
     }
@@ -536,6 +636,19 @@ public final class SearchSuggestions {
                 values.add(token);
             }
         }
+    }
+
+    private static boolean containsToken(String rawValue, String expected) {
+        if (rawValue == null || rawValue.isBlank()) {
+            return false;
+        }
+        String normalizedExpected = cleanToken(expected);
+        for (String part : rawValue.split("[,\\s]+")) {
+            if (cleanToken(part).equals(normalizedExpected)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String cleanToken(String raw) {
@@ -565,6 +678,7 @@ public final class SearchSuggestions {
 
     private static final class CountedValues {
         private final Map<String, Integer> counts = new LinkedHashMap<>();
+        private final Map<String, String> aliases = new LinkedHashMap<>();
 
         static CountedValues empty() {
             return new CountedValues();
@@ -576,6 +690,15 @@ public final class SearchSuggestions {
                 return;
             }
             counts.merge(cleaned, 1, Integer::sum);
+        }
+
+        void addAlias(String alias, String value) {
+            String cleanedAlias = cleanToken(alias);
+            String cleanedValue = cleanToken(value);
+            if (cleanedAlias.isBlank() || cleanedValue.isBlank()) {
+                return;
+            }
+            aliases.put(cleanedAlias, cleanedValue);
         }
 
         void addAll(CountedValues values) {
@@ -596,9 +719,7 @@ public final class SearchSuggestions {
         List<ValueCount> match(String prefix, int limit) {
             String normalizedPrefix = normalizeValuePrefix(prefix);
             return counts.entrySet().stream()
-                    .filter(entry -> normalizedPrefix.isEmpty()
-                            || normalizeValuePrefix(entry.getKey()).startsWith(normalizedPrefix)
-                            || normalizeValuePrefix(entry.getKey()).contains(normalizedPrefix))
+                    .filter(entry -> matches(entry.getKey(), normalizedPrefix))
                     .sorted(Comparator
                             .<Map.Entry<String, Integer>>comparingInt(entry -> matchRank(entry.getKey(), normalizedPrefix))
                             .thenComparing(Comparator.<Map.Entry<String, Integer>>comparingInt(Map.Entry::getValue).reversed())
@@ -608,12 +729,43 @@ public final class SearchSuggestions {
                     .toList();
         }
 
-        private static int matchRank(String value, String prefix) {
+        private boolean matches(String value, String prefix) {
+            if (prefix.isEmpty()) {
+                return true;
+            }
+            if (tokenMatches(value, prefix)) {
+                return true;
+            }
+            for (var entry : aliases.entrySet()) {
+                if (entry.getValue().equals(value) && tokenMatches(entry.getKey(), prefix)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private int matchRank(String value, String prefix) {
             if (prefix.isEmpty()) {
                 return 0;
             }
+            if (startsWithToken(value, prefix)) {
+                return 0;
+            }
+            for (var entry : aliases.entrySet()) {
+                if (entry.getValue().equals(value) && startsWithToken(entry.getKey(), prefix)) {
+                    return 0;
+                }
+            }
+            return 1;
+        }
+
+        private static boolean tokenMatches(String value, String prefix) {
             String normalized = normalizeValuePrefix(value);
-            return normalized.startsWith(prefix) ? 0 : 1;
+            return normalized.startsWith(prefix) || normalized.contains(prefix);
+        }
+
+        private static boolean startsWithToken(String value, String prefix) {
+            return normalizeValuePrefix(value).startsWith(prefix);
         }
     }
 }

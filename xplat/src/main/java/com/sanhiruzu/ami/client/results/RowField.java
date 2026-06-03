@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.client.results;
 
+import com.sanhiruzu.ami.compat.CompatDisplayNames;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.util.StorageDisplayFormatter;
@@ -14,7 +15,7 @@ public enum RowField {
     MOD_NAME(Component.translatable("ami.row_field.mod")) {
         @Override
         public String extract(SearchNode node) {
-            return node.id().getNamespace();
+            return displayModName(node);
         }
 
         @Override
@@ -97,6 +98,71 @@ public enum RowField {
         @Override
         public boolean hasValue(SearchNode node) {
             return !node.meta(SearchNodeKeys.ENERGY_CAPACITY, "").isEmpty();
+        }
+    },
+
+    GREGTECH_EU_GENERATION(Component.translatable("ami.row_field.gregtech_eu_generation")) {
+        @Override
+        public String extract(SearchNode node) {
+            String eu = node.meta(SearchNodeKeys.GREGTECH_EU_GENERATION, "");
+            return eu.isEmpty() ? "" : eu + " EU/t out";
+        }
+
+        @Override
+        public boolean hasValue(SearchNode node) {
+            return !node.meta(SearchNodeKeys.GREGTECH_EU_GENERATION, "").isEmpty();
+        }
+    },
+
+    GREGTECH_EU_CONSUMPTION(Component.translatable("ami.row_field.gregtech_eu_consumption")) {
+        @Override
+        public String extract(SearchNode node) {
+            String eu = node.meta(SearchNodeKeys.GREGTECH_EU_CONSUMPTION, "");
+            return eu.isEmpty() ? "" : eu + " EU/t use";
+        }
+
+        @Override
+        public boolean hasValue(SearchNode node) {
+            return !node.meta(SearchNodeKeys.GREGTECH_EU_CONSUMPTION, "").isEmpty();
+        }
+    },
+
+    GREGTECH_EU_INPUT(Component.translatable("ami.row_field.gregtech_eu_input")) {
+        @Override
+        public String extract(SearchNode node) {
+            String eu = node.meta(SearchNodeKeys.GREGTECH_EU_INPUT, "");
+            return eu.isEmpty() ? "" : eu + " EU/t in";
+        }
+
+        @Override
+        public boolean hasValue(SearchNode node) {
+            return !node.meta(SearchNodeKeys.GREGTECH_EU_INPUT, "").isEmpty();
+        }
+    },
+
+    GREGTECH_EU_OUTPUT(Component.translatable("ami.row_field.gregtech_eu_output")) {
+        @Override
+        public String extract(SearchNode node) {
+            String eu = node.meta(SearchNodeKeys.GREGTECH_EU_OUTPUT, "");
+            return eu.isEmpty() ? "" : eu + " EU/t out";
+        }
+
+        @Override
+        public boolean hasValue(SearchNode node) {
+            return !node.meta(SearchNodeKeys.GREGTECH_EU_OUTPUT, "").isEmpty();
+        }
+    },
+
+    GREGTECH_AMPERAGE(Component.translatable("ami.row_field.gregtech_amps")) {
+        @Override
+        public String extract(SearchNode node) {
+            String amps = node.meta(SearchNodeKeys.GREGTECH_AMPERAGE, "");
+            return amps.isEmpty() ? "" : amps + "A";
+        }
+
+        @Override
+        public boolean hasValue(SearchNode node) {
+            return !node.meta(SearchNodeKeys.GREGTECH_AMPERAGE, "").isEmpty();
         }
     },
 
@@ -373,6 +439,10 @@ public enum RowField {
 
     public boolean hasValue(SearchNode node) {
         return !extract(node).isEmpty();
+    }
+
+    private static String displayModName(SearchNode node) {
+        return CompatDisplayNames.displayModName(node);
     }
 
     private static String formatTokenList(String raw) {
