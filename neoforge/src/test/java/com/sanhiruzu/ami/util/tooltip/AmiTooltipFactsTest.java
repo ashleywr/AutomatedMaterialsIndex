@@ -27,8 +27,9 @@ public class AmiTooltipFactsTest {
     }
 
     @AfterEach
-    void resetDevMode() {
+    void resetConfig() {
         AmiConfig.devMode = false;
+        AmiConfig.showTooltipTags = false;
     }
 
     @Test
@@ -42,5 +43,24 @@ public class AmiTooltipFactsTest {
         SearchNode node = node(Map.of(SearchNodeKeys.MOD_ID, "create"));
 
         assertTrue(new ShiftDetailsTooltipFact().build(node).isEmpty());
+    }
+
+    @Test
+    void tagTooltipFactIsUserConfigurableAndSorted() {
+        SearchNode node = node(Map.of(
+                SearchNodeKeys.TAGS, "minecraft:tools,minecraft:swords,minecraft:tools",
+                SearchNodeKeys.BLOCK_TAGS, "minecraft:mineable/axe,minecraft:logs"
+        ));
+
+        assertTrue(new TagTooltipFact().build(node).isEmpty());
+
+        assertEquals(
+                java.util.List.of("minecraft:swords", "minecraft:tools"),
+                TagTooltipFact.parseTags(node.meta(SearchNodeKeys.TAGS, ""))
+        );
+        assertEquals(
+                java.util.List.of("minecraft:logs", "minecraft:mineable/axe"),
+                TagTooltipFact.parseTags(node.meta(SearchNodeKeys.BLOCK_TAGS, ""))
+        );
     }
 }

@@ -73,6 +73,8 @@ public class AmiConfig {
     public static int accentColor = 0xFF5555;
     @ConfigValue("ui.show-header")
     public static boolean showHeader = true;
+    @ConfigValue("ui.show-tooltip-tags")
+    public static boolean showTooltipTags = false;
     @ConfigValue("general.compact-mode")
     public static boolean compactMode = false;
     @ConfigHidden
@@ -288,6 +290,7 @@ public class AmiConfig {
         theme = Theme.MODERN;
         accentColor = 0xFF5555;
         showHeader = true;
+        showTooltipTags = false;
         compactMode = false;
         subtitleFields = "MOD_NAME";
         subtitleFieldsChecksum = 0;

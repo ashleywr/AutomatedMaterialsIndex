@@ -61,6 +61,7 @@ public class EntityProvider implements IAmiDataProvider {
             var entityType = e.getValue();
             var category = entityType.getCategory();
             List<String> searchTags = entityDataSniffer.extractSearchTags(entityType);
+            String tags = entityTags(entityType, searchTags);
             Map<String, String> numericMetadata = entityDataSniffer.extractNumericMetadata(entityType);
 
             Map<String, String> meta = new HashMap<>();
@@ -76,7 +77,9 @@ public class EntityProvider implements IAmiDataProvider {
             if (!searchTags.isEmpty()) {
                 meta.put(SearchNodeKeys.ENTITY_TRAITS, String.join(" ", searchTags));
                 meta.put(SearchNodeKeys.SEARCH_TOKENS, String.join(" ", searchTags));
-                meta.put(SearchNodeKeys.TAGS, entityTags(entityType, searchTags));
+            }
+            if (!tags.isEmpty()) {
+                meta.put(SearchNodeKeys.TAGS, tags);
             }
 
             // ── Classification ──────────────────────────────────────────────────
