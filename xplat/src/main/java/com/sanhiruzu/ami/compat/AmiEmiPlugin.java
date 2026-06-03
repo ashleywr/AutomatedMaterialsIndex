@@ -2,10 +2,12 @@ package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.overlay.WidgetBounds;
+import dev.emi.emi.EmiPort;
 import dev.emi.emi.api.EmiEntrypoint;
 import dev.emi.emi.api.EmiPlugin;
 import dev.emi.emi.api.EmiRegistry;
 import dev.emi.emi.api.widget.Bounds;
+import dev.emi.emi.runtime.EmiTagKey;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 
 import java.util.List;
@@ -15,6 +17,8 @@ public class AmiEmiPlugin implements EmiPlugin {
 
     @Override
     public void register(EmiRegistry registry) {
+        prewarmTagSearchCache();
+
         // Reserve AMI panel areas so EMI doesn't render its item list into them.
         // We intentionally do NOT use a screen suppressor — that would also block
         // the recipe view from appearing when the user clicks an item.
@@ -38,5 +42,16 @@ public class AmiEmiPlugin implements EmiPlugin {
                 consumer.accept(new Bounds(b.x(), b.y(), b.width(), b.height()));
             }
         });
+    }
+
+    private static void prewarmTagSearchCache() {
+        try {
+            EmiTagKey.fromRegistry(EmiPort.getItemRegistry()).forEach(tag -> {
+            });
+            EmiTagKey.fromRegistry(EmiPort.getBlockRegistry()).forEach(tag -> {
+            });
+        } catch (RuntimeException ignored) {
+            // Do not fail EMI plugin registration if EMI internals change.
+        }
     }
 }
