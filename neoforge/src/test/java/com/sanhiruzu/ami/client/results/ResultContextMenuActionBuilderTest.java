@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -569,6 +570,23 @@ class ResultContextMenuActionBuilderTest {
                 .contains(ResultContextMenuActionBuilder.FILTER_POKEMON_GENERATION));
         assertTrue(ResultContextMenuActionPolicy.parseEnabledActionIds(legacyDefault)
                 .contains(ResultContextMenuActionBuilder.RECIPES_POKEMON_DROP_ITEM));
+    }
+
+    @Test
+    void preQuestLegacyDefaultContextMenuConfigPicksUpPokemonActions() {
+        String legacyDefault = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,"
+                + "ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,"
+                + "ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,ami:group_toggle,"
+                + "ami:filter_category,ami:copy_group_key,ami:start_category_fix,ami:apply_category_fix,"
+                + "ami:clear_item_fix";
+
+        Set<String> enabled = ResultContextMenuActionPolicy.parseEnabledActionIds(legacyDefault);
+
+        assertTrue(enabled.contains(ResultContextMenuActionBuilder.OPEN_POKEDEX));
+        assertTrue(enabled.contains(ResultContextMenuActionBuilder.SEARCH_POKEMON_DROP_ITEM));
+        assertTrue(enabled.contains(ResultContextMenuActionBuilder.RECIPES_POKEMON_DROP_ITEM));
+        assertTrue(enabled.contains(ResultContextMenuActionBuilder.COPY_POKEMON_DEX_NUMBER));
+        assertTrue(enabled.contains(ResultContextMenuActionBuilder.COPY_QUEST_MATCHES));
     }
 
     @Test
