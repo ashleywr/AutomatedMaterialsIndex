@@ -8,11 +8,7 @@
   "client": [
     "ContainerTooltipMixin",
     "EmiScreenManagerMixin",
-    "EmiBoMStateMixin",
-    "EmiFavoritesStateMixin",
-    "EmiHiddenStateMixin",
     "EmiRecipeScreenFavoriteMixin",
-    "EmiSidebarsStateMixin",
     "ForgeEmiAgnosForgeMixin",
     "ForgeEmiBoMMixin",
     "ForgeEmiRecipeDefaultLoaderMixin",
