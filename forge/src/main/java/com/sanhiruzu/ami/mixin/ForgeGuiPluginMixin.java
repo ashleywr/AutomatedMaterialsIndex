@@ -14,9 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class ForgeGuiPluginMixin {
 
     private static boolean shouldSuppressJeiGui() {
-        if (!InventoryOverlayHandler.isAmiEnabled()) return false;
-        var manager = InventoryOverlayHandler.getManager();
-        return manager != null && manager.isPanelVisible();
+        return InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
     }
 
     @Inject(method = "registerRuntime", at = @At("HEAD"), cancellable = true, remap = false)

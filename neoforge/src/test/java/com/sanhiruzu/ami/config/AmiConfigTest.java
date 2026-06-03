@@ -32,6 +32,7 @@ public class AmiConfigTest {
         assertEquals(AmiConfig.GuideIndexingMode.TITLES, AmiConfig.guideIndexingMode);
         assertEquals(4096, AmiConfig.guideSummaryTextCap);
         assertFalse(AmiConfig.showTooltipTags);
+        assertFalse(AmiConfig.startHidden);
     }
 
     @Test

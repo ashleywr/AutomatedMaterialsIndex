@@ -128,6 +128,8 @@ public final class AMITheme {
     public static int GRID_GROUP_ROOT_BG = 0x38000000;
     public static int GRID_GROUP_CHILD_BG = 0x1CFFFFFF;
     // Search bar element colors
+    public static int SEARCH_BAR_BG = 0x33000000;
+    public static int SEARCH_BAR_BORDER = 0x884488FF;
     public static int SEARCH_PLACEHOLDER = 0xFF666666;
     public static int SEARCH_CLEAR_TEXT = 0xFFAAAAAA;
     public static int SEARCH_CLEAR_TEXT_HOVER = 0xFFFFFFFF;
@@ -341,6 +343,8 @@ public final class AMITheme {
 
         PANEL_BG = AmiConfig.panelBg;
         PANEL_INNER = AmiConfig.searchBarBg;
+        SEARCH_BAR_BG = AmiConfig.searchBarBg;
+        SEARCH_BAR_BORDER = AmiConfig.searchBarBorder;
         ENTRY_HOVER = AmiConfig.cardBgHover;
         ENTRY_TEXT = AmiConfig.cardTextName;
         ENTRY_SUBTITLE = AmiConfig.cardTextSubtitle;
@@ -403,6 +407,8 @@ public final class AMITheme {
             GRID_GROUP_CHILD_BG = 0x24FFFFFF;
 
             SEARCH_PLACEHOLDER = 0xFF888888;
+            SEARCH_BAR_BG = 0xFF101014;
+            SEARCH_BAR_BORDER = AmiConfig.searchBarBorder;
             SEARCH_DEFAULT_TEXT = 0xFFFFFFFF;
             SEARCH_HELP_BG = 0xF0101014;
             SEARCH_HELP_BORDER = AmiConfig.searchBarBorder;
@@ -485,6 +491,8 @@ public final class AMITheme {
             CONTROL_SHADOW = 0x33000000;
             SEARCH_HELP_BG = 0xDD000000;
             SEARCH_HELP_BORDER = 0x33FFFFFF;
+            SEARCH_BAR_BG = AmiConfig.searchBarBg;
+            SEARCH_BAR_BORDER = 0x33FFFFFF;
             SEARCH_HELP_SHADOW = 0x66000000;
             SEARCH_HELP_CHIP_BG = 0x18FFFFFF;
             SEARCH_HELP_CHIP_BORDER = 0x22FFFFFF;
@@ -542,11 +550,12 @@ public final class AMITheme {
             PANEL_HEADER_BG = 0xFFC0C0C0;
             PANEL_CONTENT_BG = 0xFFD0D0D0;
             PANEL_CONTENT_BORDER = 0xFF8A8A8A;
-            SLOT_BG = 0xFF2D2D2D; // Darker slots for contrast as requested
-            SLOT_EDGE_LIGHT = 0xFF5C5C5C;
-            SLOT_EDGE_DARK = 0xFF141414;
+            SLOT_BG = 0xFF8B8B8B;
+            SLOT_EDGE_LIGHT = 0xFFD8D8D8;
+            SLOT_EDGE_DARK = 0xFF555555;
 
-            ENTRY_HOVER = 0x444488FF; // Subtle blue hover on dark slots
+            ACCENT_BLUE = 0xFFA02020;
+            ENTRY_HOVER = 0x55A02020;
             ENTRY_TEXT = 0xFF111111;
             ENTRY_SUBTITLE = 0xFF555555;
 
@@ -570,8 +579,13 @@ public final class AMITheme {
             CONTROL_EDGE_LIGHT = 0xAAFFFFFF;
             CONTROL_EDGE_DARK = 0x88000000;
             CONTROL_SHADOW = 0x55000000;
+            SEARCH_BAR_BG = 0xFF000000;
+            SEARCH_BAR_BORDER = 0xFFE0E0E0;
+            SEARCH_PLACEHOLDER = 0xFFB0B0B0;
+            SEARCH_DEFAULT_TEXT = 0xFFFFFFFF;
+            SEARCH_CURSOR = 0xFFFFFFFF;
             SEARCH_HELP_BG = 0xFFF0F0F0;
-            SEARCH_HELP_BORDER = AmiConfig.searchBarBorder;
+            SEARCH_HELP_BORDER = 0xFF555555;
             SEARCH_HELP_SHADOW = 0x66000000;
             SEARCH_HELP_CHIP_BG = 0xFFE0E0E0;
             SEARCH_HELP_CHIP_BORDER = 0xFF9A9A9A;

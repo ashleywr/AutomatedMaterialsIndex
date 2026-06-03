@@ -23,6 +23,7 @@ public class InventoryOverlayHandler {
     private static final OverlayWidgetManager manager = new OverlayWidgetManager();
     private static boolean amiEnabled = false;
     private static boolean pendingScreenReinit = false;
+    private static net.minecraft.client.gui.screens.Screen initializedScreen = null;
     private static boolean sessionInitialized = false;
     private static boolean indexingRequested = false;
 
@@ -77,31 +78,24 @@ public class InventoryOverlayHandler {
         // Screen reinit dismisses any active recipe view
         com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
 
-        if (!sessionInitialized) {
-            sessionInitialized = true;
-            amiEnabled = true;
-            manager.setPanelVisible(true);
+        boolean newScreenInstance = event.getScreen() != initializedScreen;
+        if (newScreenInstance) {
+            initializedScreen = event.getScreen();
+            if (AmiConfig.startHidden) {
+                sessionInitialized = true;
+                amiEnabled = false;
+                manager.setPanelVisible(amiEnabled);
+            } else if (!sessionInitialized) {
+                sessionInitialized = true;
+                amiEnabled = true;
+                manager.setPanelVisible(true);
+            }
         }
 
         ensureIndexingStarted();
 
         if (event.getScreen() instanceof AbstractContainerScreen<?> containerScreen) {
             manager.computeLayouts(containerScreen, containerScreen.width, containerScreen.height);
-            
-            class PanelRenderer implements net.minecraft.client.gui.components.Renderable, net.minecraft.client.gui.components.events.GuiEventListener {
-                @Override
-                public void render(net.minecraft.client.gui.GuiGraphics g, int mouseX, int mouseY, float partialTicks) {
-                    if (AmiApi.shouldSuppressAmi(Minecraft.getInstance().screen)) return;
-                    manager.refreshLayoutIfNeeded(Minecraft.getInstance().screen);
-                    manager.renderPanels(g, mouseX, mouseY, partialTicks);
-                    manager.renderSearchBar(g, mouseX, mouseY, partialTicks);
-                }
-                @Override public void setFocused(boolean focused) {}
-                @Override public boolean isFocused() { return false; }
-            }
-            event.addListener(new PanelRenderer());
-
-            event.addListener(manager.getAmiButton());
             manager.getSearchBar().unfocus();
             manager.invalidateLayout();
         }
@@ -120,7 +114,9 @@ public class InventoryOverlayHandler {
         if (pendingScreenReinit) {
             pendingScreenReinit = false;
             Minecraft mc = Minecraft.getInstance();
-            if (mc.screen != null) mc.screen.init(mc, mc.screen.width, mc.screen.height);
+            if (mc.screen != null) {
+                mc.screen.init(mc, mc.screen.width, mc.screen.height);
+            }
             return;
         }
 
@@ -128,8 +124,8 @@ public class InventoryOverlayHandler {
             return;
         }
 
-        if (isRecipeScreen(event.getScreen())) {
-            manager.computeLayouts(event.getScreen(), event.getScreen().width, event.getScreen().height);
+        if (isAmiAvailable() || isRecipeScreen(event.getScreen())) {
+            manager.refreshLayoutIfNeeded(event.getScreen());
             manager.renderAll(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
         }
 
@@ -217,8 +213,6 @@ public class InventoryOverlayHandler {
     }
 
     public static boolean shouldSuppressRecipeViewerChrome() {
-        if (amiEnabled) return true;
-        if (sessionInitialized) return false;
         Minecraft mc = Minecraft.getInstance();
         return isAmiAvailable() && mc.screen != null && isAmiScreen(mc.screen);
     }
@@ -241,6 +235,7 @@ public class InventoryOverlayHandler {
     public static void resetSessionState() {
         amiEnabled = false;
         pendingScreenReinit = false;
+        initializedScreen = null;
         sessionInitialized = false;
         indexingRequested = false;
     }

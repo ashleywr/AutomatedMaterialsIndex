@@ -7,8 +7,10 @@ import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.RenderStateSnapshot;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.util.AmiClipboardHelper;
 import com.sanhiruzu.ami.util.AmiTooltipComposer;
 import net.minecraft.client.Minecraft;
@@ -33,10 +35,14 @@ public class ItemGridView {
     private static final int HEADER_H = 13;
     private static final int ROOT_HEADER_H = 16;
     private static final int STICKY_CONTEXT_H = HEADER_H + 3;
-    private static final int SCROLLBAR_W = 5;
+    private static final int SCROLLBAR_W = 6;
     private static final int HEADER_INDENT = 12;
     private static final int GRID_LEFT_PAD = 1;
     private static final int ICON_CACHE_PRIME_BUDGET = 12;
+    private static final ResourceLocation VANILLA_SCROLLER =
+            Services.PLATFORM.rl("minecraft", "widget/scroller");
+    private static final ResourceLocation VANILLA_SCROLLER_BACKGROUND =
+            Services.PLATFORM.rl("minecraft", "widget/scroller_background");
     private static final boolean TEXTURE_ITEM_ICON_CACHE_ENABLED = Boolean.getBoolean("ami." + "itemIconCache");
     private Object itemIconBatchRenderer;
     private final List<PendingItemIcon> pendingDirectItemIcons = new ArrayList<>();
@@ -742,6 +748,10 @@ public class ItemGridView {
         if ((AMITheme.SLOT_BG >>> 24) == 0) return;
         AmiRenderProfiler.count("grid.slotBackgrounds");
         g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + CELL_SIZE, AMITheme.SLOT_BG);
+        g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + 1, AMITheme.SLOT_EDGE_DARK);
+        g.fill(cellX, cellY, cellX + 1, cellY + CELL_SIZE, AMITheme.SLOT_EDGE_DARK);
+        g.fill(cellX + 1, cellY + CELL_SIZE - 1, cellX + CELL_SIZE, cellY + CELL_SIZE, AMITheme.SLOT_EDGE_LIGHT);
+        g.fill(cellX + CELL_SIZE - 1, cellY + 1, cellX + CELL_SIZE, cellY + CELL_SIZE, AMITheme.SLOT_EDGE_LIGHT);
     }
 
     private void renderStickyContext(GuiGraphics g, StickyContext context) {
@@ -854,17 +864,29 @@ public class ItemGridView {
         try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("grid.scrollbar")) {
             AmiRenderProfiler.count("grid.scrollbars");
             boolean active = scrollbarDragging || isScrollbarHovered(mouseX, mouseY);
-            int barW = active ? 6 : 4;
-            int barX = x + width - 1 - barW;
-            int thumbH = Math.max(12, (contentH * contentH) / totalH);
+            boolean vanilla = AmiConfig.theme == AmiConfig.Theme.VANILLA;
+            int thumbH = vanilla ? vanillaThumbHeight(totalH, contentH) : Math.max(12, (contentH * contentH) / totalH);
             int maxScroll = totalH - contentH;
             int thumbY = contentY + (pixelScrollOffset * (contentH - thumbH)) / maxScroll;
 
-            // Use themed colors
-            g.fill(x + width - SCROLLBAR_W, contentY, x + width, y + height, com.sanhiruzu.ami.client.AMITheme.SCROLL_TRACK);
-            g.fill(barX, thumbY, barX + barW, thumbY + thumbH,
-                    active ? com.sanhiruzu.ami.client.AMITheme.SCROLL_THUMB_ACTIVE : com.sanhiruzu.ami.client.AMITheme.SCROLL_THUMB);
+            if (vanilla) {
+                int barX = x + width - SCROLLBAR_W;
+                Services.PLATFORM.renderVanillaScrollbar(g, VANILLA_SCROLLER, VANILLA_SCROLLER_BACKGROUND,
+                        barX, contentY, SCROLLBAR_W, contentH, thumbY, thumbH);
+            } else {
+                int barW = active ? 6 : 4;
+                int barX = x + width - 1 - barW;
+                g.fill(x + width - SCROLLBAR_W, contentY, x + width, y + height, AMITheme.SCROLL_TRACK);
+                g.fill(barX, thumbY, barX + barW, thumbY + thumbH,
+                        active ? AMITheme.SCROLL_THUMB_ACTIVE : AMITheme.SCROLL_THUMB);
+            }
         }
+    }
+
+    private static int vanillaThumbHeight(int totalH, int contentH) {
+        int max = Math.max(1, contentH - 8);
+        int min = Math.min(32, max);
+        return net.minecraft.util.Mth.clamp((contentH * contentH) / totalH, min, max);
     }
 
     private boolean isScrollbarHovered(int mouseX, int mouseY) {

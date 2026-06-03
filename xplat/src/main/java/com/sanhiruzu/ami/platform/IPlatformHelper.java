@@ -157,6 +157,11 @@ public interface IPlatformHelper {
 
     IAmiKeyMappings keyMappings();
 
+    default void renderVanillaScrollbar(Object guiGraphics, ResourceLocation scroller, ResourceLocation scrollerBackground,
+                                        int x, int y, int width, int height, int thumbY, int thumbHeight) {
+        throw new UnsupportedOperationException("Vanilla scrollbar rendering is client-only");
+    }
+
     /** Returns true if the off-screen framebuffer item icon cache is stable on this platform/MC version. */
     default boolean supportsItemIconCache() {
         return false;

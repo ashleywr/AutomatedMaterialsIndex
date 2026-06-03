@@ -41,8 +41,12 @@ public class ResultsTreeView {
 
     // ── Layout constants ──────────────────────────────────────────────────────
     private static final int INDENT = 12;
-    private static final int SCROLLBAR_W = 5;
+    private static final int SCROLLBAR_W = 6;
     private static final int HEADER_LABEL_H = 16; // height reserved for the optional pinned header (column row)
+    private static final ResourceLocation VANILLA_SCROLLER =
+            Services.PLATFORM.rl("minecraft", "widget/scroller");
+    private static final ResourceLocation VANILLA_SCROLLER_BACKGROUND =
+            Services.PLATFORM.rl("minecraft", "widget/scroller_background");
 
     // Swatch dots for variant collapsing
     private static final int SWATCH_SIZE = 5;
@@ -700,16 +704,28 @@ public class ResultsTreeView {
         if (totalH <= contentH) return;
 
         boolean active = scrollbarDragging || isScrollbarHovered(mouseX, mouseY, totalH, contentH, originY);
-        int barW = active ? 6 : 4;
-        int barX = x + width - 1 - barW;
-        int thumbH = Math.max(12, (contentH * contentH) / totalH);
+        boolean vanilla = AmiConfig.theme == AmiConfig.Theme.VANILLA;
+        int thumbH = vanilla ? vanillaThumbHeight(totalH, contentH) : Math.max(12, (contentH * contentH) / totalH);
         int maxScroll = totalH - contentH;
         int thumbY = originY + (pixelScrollOffset * (contentH - thumbH)) / maxScroll;
 
-        // Use themed colors
-        g.fill(x + width - SCROLLBAR_W, originY, x + width, originY + contentH, com.sanhiruzu.ami.client.AMITheme.SCROLL_TRACK);
-        g.fill(barX, thumbY, barX + barW, thumbY + thumbH,
-                active ? com.sanhiruzu.ami.client.AMITheme.SCROLL_THUMB_ACTIVE : com.sanhiruzu.ami.client.AMITheme.SCROLL_THUMB);
+        if (vanilla) {
+            int barX = x + width - SCROLLBAR_W;
+            Services.PLATFORM.renderVanillaScrollbar(g, VANILLA_SCROLLER, VANILLA_SCROLLER_BACKGROUND,
+                    barX, originY, SCROLLBAR_W, contentH, thumbY, thumbH);
+        } else {
+            int barW = active ? 6 : 4;
+            int barX = x + width - 1 - barW;
+            g.fill(x + width - SCROLLBAR_W, originY, x + width, originY + contentH, AMITheme.SCROLL_TRACK);
+            g.fill(barX, thumbY, barX + barW, thumbY + thumbH,
+                    active ? AMITheme.SCROLL_THUMB_ACTIVE : AMITheme.SCROLL_THUMB);
+        }
+    }
+
+    private static int vanillaThumbHeight(int totalH, int contentH) {
+        int max = Math.max(1, contentH - 8);
+        int min = Math.min(32, max);
+        return net.minecraft.util.Mth.clamp((contentH * contentH) / totalH, min, max);
     }
 
     private boolean isScrollbarHovered(int mouseX, int mouseY, int totalH, int contentH, int originY) {
