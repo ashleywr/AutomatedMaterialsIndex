@@ -34,6 +34,22 @@ public class RecipeViewerBridge {
         return Services.PLATFORM.isModLoaded("emi") || Services.PLATFORM.isModLoaded("jei");
     }
 
+    public static boolean hasRecipes(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        if (Services.PLATFORM.isModLoaded("emi")) {
+            return EmiRecipeBridge.hasRecipes(stack);
+        }
+        return false;
+    }
+
+    public static boolean hasUses(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        if (Services.PLATFORM.isModLoaded("emi")) {
+            return EmiRecipeBridge.hasUses(stack);
+        }
+        return false;
+    }
+
     public static boolean supportsSearchSync() {
         if (Services.PLATFORM.isModLoaded("emi")) return EmiSearchSyncBridge.isAvailable();
         if (Services.PLATFORM.isModLoaded("jei")) return JeiSearchSyncBridge.isAvailable();

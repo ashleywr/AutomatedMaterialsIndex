@@ -310,6 +310,11 @@ tasks.register('verifyForgeReleaseJarReobfuscated') {
             if (!themeLoader.contains('m_5787_')) {
                 throw new GradleException("Forge release jar is not reobfuscated: ThemeResourceLoader is missing SimplePreparableReloadListener.m_5787_")
             }
+
+            def contextMenuActions = readClass('com/sanhiruzu/ami/client/results/ResultContextMenuActionBuilder.class')
+            if (contextMenuActions.contains('getMethod') && contextMenuActions.contains('tell')) {
+                throw new GradleException("Forge release jar contains reflective Minecraft.tell lookup; context menu actions will fail in production Forge")
+            }
         } finally {
             zip.close()
         }

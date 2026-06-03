@@ -4,6 +4,15 @@ User-facing changes are recorded here.
 
 ## Unreleased
 
+## 1.1.3 - 2026-06-03
+
+AMI 1.1.3 is a Forge compatibility hotfix.
+
+### Fixed
+
+- Fixed a Forge 1.20.1 crash when opening inventory with GTCEu/GregTech installed. AMI's Forge recipe book mixin now targets Forge's SRG runtime names directly instead of applying the shared NeoForge/named mixin without a refmap.
+- Fixed Forge + EMI result context menus for GTCEu/GregTech items. AMI now asks EMI for recipe/use availability before hiding `Show Recipes` or `Show Uses`, and lets EMI's recipe screen render and tick after AMI opens it.
+
 ## 1.1.2 - 2026-06-03
 
 AMI 1.1.2 is a Forge release packaging hotfix.

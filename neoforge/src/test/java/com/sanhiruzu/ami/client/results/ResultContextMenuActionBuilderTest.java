@@ -162,6 +162,32 @@ class ResultContextMenuActionBuilderTest {
     }
 
     @Test
+    void externalRecipeViewerShowsRecipeAndUseActionsWithoutIndexedEvidence() {
+        ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder(
+                () -> false,
+                stack -> false,
+                List::of,
+                () -> true
+        );
+
+        List<ResultContextMenu.Action> actions = builder.forItem(
+                new ResultContextMenuActionBuilder.ItemContext(
+                        item("diamond", "Diamond", Map.of(
+                                SearchNodeKeys.RECIPE_OUTPUT_COUNT, "0",
+                                SearchNodeKeys.RECIPE_USE_COUNT, "0"
+                        )),
+                        stack("diamond"),
+                        null,
+                        ignored -> {
+                        }
+                )
+        );
+
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.RECIPES));
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.USES));
+    }
+
+    @Test
     void cheatModeAddsItemCheatActions() {
         ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder(() -> true);
 
