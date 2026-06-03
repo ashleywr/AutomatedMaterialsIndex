@@ -23,6 +23,7 @@ public class InventoryOverlayHandler {
     private static final OverlayWidgetManager manager = new OverlayWidgetManager();
     private static boolean amiEnabled = false;
     private static boolean pendingScreenReinit = false;
+    private static net.minecraft.client.gui.screens.Screen initializedScreen = null;
     private static boolean sessionInitialized = false;
     private static boolean indexingRequested = false;
 
@@ -77,10 +78,18 @@ public class InventoryOverlayHandler {
         // Screen reinit dismisses any active recipe view
         com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
 
-        if (!sessionInitialized) {
-            sessionInitialized = true;
-            amiEnabled = true;
-            manager.setPanelVisible(true);
+        boolean newScreenInstance = event.getScreen() != initializedScreen;
+        if (newScreenInstance) {
+            initializedScreen = event.getScreen();
+            if (AmiConfig.startHidden) {
+                sessionInitialized = true;
+                amiEnabled = false;
+                manager.setPanelVisible(amiEnabled);
+            } else if (!sessionInitialized) {
+                sessionInitialized = true;
+                amiEnabled = true;
+                manager.setPanelVisible(true);
+            }
         }
 
         ensureIndexingStarted();
@@ -105,7 +114,9 @@ public class InventoryOverlayHandler {
         if (pendingScreenReinit) {
             pendingScreenReinit = false;
             Minecraft mc = Minecraft.getInstance();
-            if (mc.screen != null) mc.screen.init(mc, mc.screen.width, mc.screen.height);
+            if (mc.screen != null) {
+                mc.screen.init(mc, mc.screen.width, mc.screen.height);
+            }
             return;
         }
 
@@ -202,8 +213,6 @@ public class InventoryOverlayHandler {
     }
 
     public static boolean shouldSuppressRecipeViewerChrome() {
-        if (amiEnabled) return true;
-        if (sessionInitialized) return false;
         Minecraft mc = Minecraft.getInstance();
         return isAmiAvailable() && mc.screen != null && isAmiScreen(mc.screen);
     }
@@ -226,6 +235,7 @@ public class InventoryOverlayHandler {
     public static void resetSessionState() {
         amiEnabled = false;
         pendingScreenReinit = false;
+        initializedScreen = null;
         sessionInitialized = false;
         indexingRequested = false;
     }

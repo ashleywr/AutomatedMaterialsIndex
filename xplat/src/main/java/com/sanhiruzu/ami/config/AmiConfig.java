@@ -45,6 +45,9 @@ public class AmiConfig {
     public static AmiMode mode = AmiMode.FULL;
     @ConfigValue("general.enable-auto-indexing")
     public static boolean enableAutoIndexing = true;
+    // Legacy key kept so existing configs migrate without losing the preference.
+    @ConfigValue("general.recipe-book-toggles-ami")
+    public static boolean startHidden = false;
     @ConfigValue("features.show-spawn-eggs")
     public static boolean showSpawnEggs = false;
     @ConfigValue("features.show-hidden-mod-items")
@@ -278,6 +281,7 @@ public class AmiConfig {
     public static void resetToDefaults() {
         mode = AmiMode.FULL;
         enableAutoIndexing = true;
+        startHidden = false;
         showSpawnEggs = false;
         showHiddenModItems = true;
         strictSurvivalMode = false;

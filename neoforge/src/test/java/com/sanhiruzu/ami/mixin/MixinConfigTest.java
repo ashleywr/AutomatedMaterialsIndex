@@ -48,6 +48,32 @@ public class MixinConfigTest {
     }
 
     @Test
+    void recipeBookComponentMixinIsRegistered() throws Exception {
+        for (Path mixinConfigPath : new Path[] {
+                Paths.get("../forge/src/main/resources/ami.mixins.json"),
+                Paths.get("../neoforge/src/main/resources/ami.mixins.json")
+        }) {
+            assertTrue(Files.exists(mixinConfigPath), "Mixin config file not found at " + mixinConfigPath);
+
+            String jsonContent = Files.readString(mixinConfigPath, StandardCharsets.UTF_8);
+            JsonObject config = JsonParser.parseString(jsonContent).getAsJsonObject();
+            JsonArray clientMixins = config.getAsJsonArray("client");
+
+            boolean hasRecipeBookMixin = false;
+            for (var element : clientMixins) {
+                if ("RecipeBookComponentMixin".equals(element.getAsString())) {
+                    hasRecipeBookMixin = true;
+                    break;
+                }
+            }
+
+            assertTrue(hasRecipeBookMixin,
+                    "RecipeBookComponentMixin must be registered in " + mixinConfigPath
+                            + " so the vanilla recipe book button can toggle AMI.");
+        }
+    }
+
+    @Test
     void forgeMixinConfigIsDeclaredForDevRunsAndPackagedRuns() throws Exception {
         Path modsToml = Paths.get("../forge/src/main/resources/META-INF/mods.toml");
         assertTrue(Files.exists(modsToml), "Forge mods.toml file not found at " + modsToml);

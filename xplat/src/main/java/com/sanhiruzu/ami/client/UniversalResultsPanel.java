@@ -35,9 +35,6 @@ import java.util.TreeSet;
 
 public class UniversalResultsPanel implements SearchState.Listener {
 
-    private static final ResourceLocation PANEL_SPRITE =
-            Services.PLATFORM.rl("recipe_book/overlay_recipe");
-
     // Fixed height of the top header area — full mode reserves room for the embedded search/control bar.
     private static final int HEADER_H = 24;
     private static final int COMPACT_HEADER_H = 20; // Minimal height for item count + toggle button
@@ -48,6 +45,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private static final int COMPACT_CONTROL_H = ResultsToolbar.BUTTON_H;
     // Sidebar header height
     private static final int FAV_HEADER_H = 18;
+    private static final int FAV_CONTENT_TOP_PAD = 3;
     private static final int SIDEBAR_RAIL_MAX_W = 64;
     private static final int SIDEBAR_RAIL_MAX_H = 44;
     private static final int SIDEBAR_SWAP_W = 18;
@@ -214,8 +212,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
             contentY = y + 3;
             contentH = height - 6;
         } else if (isFavoritesPanel) {
-            contentY = y + FAV_HEADER_H;
-            contentH = height - FAV_HEADER_H - AMITheme.GLOBAL_PADDING;
+            contentY = y + FAV_HEADER_H + FAV_CONTENT_TOP_PAD;
+            contentH = height - FAV_HEADER_H - FAV_CONTENT_TOP_PAD - AMITheme.GLOBAL_PADDING;
         } else {
             contentY = y + AMITheme.GLOBAL_PADDING + headerH + AMITheme.ELEMENT_GAP;
             contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
@@ -366,8 +364,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
             treeView.updateLayout(innerX, contentY, innerW, contentH);
             gridView.updateLayout(innerX, contentY, innerW, contentH);
         } else if (isFavoritesPanel) {
-            int contentY = y + FAV_HEADER_H;
-            int contentH = height - FAV_HEADER_H - AMITheme.GLOBAL_PADDING;
+            int contentY = y + FAV_HEADER_H + FAV_CONTENT_TOP_PAD;
+            int contentH = height - FAV_HEADER_H - FAV_CONTENT_TOP_PAD - AMITheme.GLOBAL_PADDING;
             treeView.updateLayout(innerX, contentY, innerW, contentH);
             gridView.updateLayout(innerX, contentY, innerW, contentH);
         } else {
@@ -391,21 +389,17 @@ public class UniversalResultsPanel implements SearchState.Listener {
             checkPlayerStateChanged();
             refreshIndexProgressIfNeeded();
 
-            if (AmiConfig.theme == AmiConfig.Theme.VANILLA) {
-                g.blit(PANEL_SPRITE, x, y, 0, 0, width, height);
-            } else {
-                try (AmiRenderProfiler.Section chrome = AmiRenderProfiler.section("panel.chrome")) {
-                    com.mojang.blaze3d.systems.RenderSystem.enableBlend();
-                    com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
-                    AMITheme.fillPanelChrome(g, x, y, width, height);
+            try (AmiRenderProfiler.Section chrome = AmiRenderProfiler.section("panel.chrome")) {
+                com.mojang.blaze3d.systems.RenderSystem.enableBlend();
+                com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
+                AMITheme.fillPanelChrome(g, x, y, width, height);
 
-                    // Add subtle borders, only if defined by the theme.
-                    if (AMITheme.BORDER_LIGHT != 0) {
-                        g.fill(x + 2, y + 1, x + width - 2, y + 2, AMITheme.BORDER_LIGHT);
-                        g.fill(x + 2, y + height - 2, x + width - 2, y + height - 1, AMITheme.CONTROL_EDGE_DARK);
-                    }
-                    com.mojang.blaze3d.systems.RenderSystem.disableBlend();
+                // Add subtle borders, only if defined by the theme.
+                if (AMITheme.BORDER_LIGHT != 0) {
+                    g.fill(x + 2, y + 1, x + width - 2, y + 2, AMITheme.BORDER_LIGHT);
+                    g.fill(x + 2, y + height - 2, x + width - 2, y + height - 1, AMITheme.CONTROL_EDGE_DARK);
                 }
+                com.mojang.blaze3d.systems.RenderSystem.disableBlend();
             }
 
             boolean compact = isCompactLayout();
@@ -1083,8 +1077,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
         int innerX = x + AMITheme.GLOBAL_PADDING;
         int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
         if (isFavoritesPanel) {
-            int contentY = y + FAV_HEADER_H;
-            int contentH = height - FAV_HEADER_H - AMITheme.GLOBAL_PADDING;
+            int contentY = y + FAV_HEADER_H + FAV_CONTENT_TOP_PAD;
+            int contentH = height - FAV_HEADER_H - FAV_CONTENT_TOP_PAD - AMITheme.GLOBAL_PADDING;
             treeView.updateLayout(innerX, contentY, innerW, contentH);
             gridView.updateLayout(innerX, contentY, innerW, contentH);
             return;

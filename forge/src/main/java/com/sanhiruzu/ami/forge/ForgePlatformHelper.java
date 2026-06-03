@@ -7,6 +7,7 @@ import com.sanhiruzu.ami.platform.IPlatformHelper;
 import com.sanhiruzu.ami.recipe.AmiRecipeIndex;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
@@ -190,6 +191,14 @@ public class ForgePlatformHelper implements IPlatformHelper {
     @Override
     public IAmiKeyMappings keyMappings() {
         return KEY_MAPPINGS;
+    }
+
+    @Override
+    public void renderVanillaScrollbar(Object guiGraphics, ResourceLocation scroller, ResourceLocation scrollerBackground,
+                                       int x, int y, int width, int height, int thumbY, int thumbHeight) {
+        GuiGraphics g = (GuiGraphics) guiGraphics;
+        g.fill(x, thumbY, x + width, thumbY + thumbHeight, -8355712);
+        g.fill(x, thumbY, x + width - 1, thumbY + thumbHeight - 1, -4144960);
     }
 
     @Override
