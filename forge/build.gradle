@@ -305,6 +305,10 @@ modrinth {
     }
 }
 
+tasks.named('modrinth').configure {
+    dependsOn tasks.named('reobfJar')
+}
+
 if (System.getenv('CURSEFORGE_TOKEN')) {
     curseforge {
         apiKey = System.getenv('CURSEFORGE_TOKEN')
@@ -324,5 +328,9 @@ if (System.getenv('CURSEFORGE_TOKEN')) {
             forgeGradleIntegration = false
             javaVersionAutoDetect = false
         }
+    }
+
+    tasks.named('curseforge').configure {
+        dependsOn tasks.named('reobfJar')
     }
 }

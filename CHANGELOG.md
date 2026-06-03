@@ -4,6 +4,15 @@ User-facing changes are recorded here.
 
 ## Unreleased
 
+## 1.1.1 - 2026-06-03
+
+AMI 1.1.1 is a Forge release packaging hotfix.
+
+### Fixed
+
+- Fixed Forge Modrinth and CurseForge publishing so release uploads run Forge reobfuscation before the jar is uploaded.
+- Replaced the broken Forge 1.1.0 release path that could ship named/development bytecode and crash production Forge 1.20.1 clients during startup.
+
 ## 1.1.0 - 2026-06-03
 
 AMI 1.1.0 is a GregTech/GTCEu-focused feature release. GregTech packs are large enough that a normal item-name search is not enough, so AMI now indexes more of the structure GregTech players actually use: voltage tiers, circuit grades, machine/power roles, EU/t values, and GregTech-specific right-click filters.
