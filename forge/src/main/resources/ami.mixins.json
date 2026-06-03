@@ -18,6 +18,6 @@
     "JeiClientInputHandlerMixin",
     "JeiGuiEventHandlerMixin",
     "JeiIngredientListOverlayMixin",
-    "RecipeBookComponentMixin"
+    "ForgeRecipeBookComponentMixin"
   ]
 }

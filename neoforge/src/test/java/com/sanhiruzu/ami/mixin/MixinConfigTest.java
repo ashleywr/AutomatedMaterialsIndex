@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -49,10 +50,12 @@ public class MixinConfigTest {
 
     @Test
     void recipeBookComponentMixinIsRegistered() throws Exception {
-        for (Path mixinConfigPath : new Path[] {
-                Paths.get("../forge/src/main/resources/ami.mixins.json"),
-                Paths.get("../neoforge/src/main/resources/ami.mixins.json")
-        }) {
+        Map<Path, String> expectedMixins = Map.of(
+                Paths.get("../forge/src/main/resources/ami.mixins.json"), "ForgeRecipeBookComponentMixin",
+                Paths.get("../neoforge/src/main/resources/ami.mixins.json"), "RecipeBookComponentMixin"
+        );
+        for (Map.Entry<Path, String> expected : expectedMixins.entrySet()) {
+            Path mixinConfigPath = expected.getKey();
             assertTrue(Files.exists(mixinConfigPath), "Mixin config file not found at " + mixinConfigPath);
 
             String jsonContent = Files.readString(mixinConfigPath, StandardCharsets.UTF_8);
@@ -61,14 +64,14 @@ public class MixinConfigTest {
 
             boolean hasRecipeBookMixin = false;
             for (var element : clientMixins) {
-                if ("RecipeBookComponentMixin".equals(element.getAsString())) {
+                if (expected.getValue().equals(element.getAsString())) {
                     hasRecipeBookMixin = true;
                     break;
                 }
             }
 
             assertTrue(hasRecipeBookMixin,
-                    "RecipeBookComponentMixin must be registered in " + mixinConfigPath
+                    expected.getValue() + " must be registered in " + mixinConfigPath
                             + " so the vanilla recipe book button can toggle AMI.");
         }
     }
