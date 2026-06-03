@@ -15,16 +15,20 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ListLensTest {
     private static SearchNode item(String path, String displayName, Map<String, String> metadata) {
-        return node(NodeType.ITEM, path, displayName, metadata);
+        return item("minecraft", path, displayName, metadata);
+    }
+
+    private static SearchNode item(String namespace, String path, String displayName, Map<String, String> metadata) {
+        return node(NodeType.ITEM, namespace, path, displayName, metadata);
     }
 
     private static SearchNode entity(String path, String displayName, Map<String, String> metadata) {
-        return node(NodeType.ENTITY, path, displayName, metadata);
+        return node(NodeType.ENTITY, "minecraft", path, displayName, metadata);
     }
 
-    private static SearchNode node(NodeType type, String path, String displayName, Map<String, String> metadata) {
+    private static SearchNode node(NodeType type, String namespace, String path, String displayName, Map<String, String> metadata) {
         return new SearchNode(
-                new ResourceLocation("minecraft:" + path),
+                new ResourceLocation(namespace + ":" + path),
                 type,
                 displayName,
                 0,
@@ -189,6 +193,11 @@ class ListLensTest {
         assertFalse(ListLens.FOOD.sortFields().contains(ResultsProcessor.SortField.DAMAGE));
 
         assertEquals(List.of(
+                ResultsProcessor.SortField.GREGTECH_EU,
+                ResultsProcessor.SortField.GREGTECH_EU_GENERATION,
+                ResultsProcessor.SortField.GREGTECH_EU_CONSUMPTION,
+                ResultsProcessor.SortField.GREGTECH_EU_OUTPUT,
+                ResultsProcessor.SortField.GREGTECH_EU_INPUT,
                 ResultsProcessor.SortField.ENERGY_GENERATION,
                 ResultsProcessor.SortField.ENERGY_CAPACITY,
                 ResultsProcessor.SortField.ALPHABETICAL,
@@ -230,6 +239,33 @@ class ListLensTest {
         assertEquals(1, ResultsViewProjector.project(nodes, state, null, false, false).displayedItemCount());
         assertEquals(ResultsProcessor.SortField.FLUID_CAPACITY, state.getSortField());
         assertEquals(List.of(RowField.MOD_NAME, RowField.FLUID_CAPACITY), RowFieldConfig.getSubtitleFields());
+    }
+
+    @Test
+    void rangedAndWeaponLensesIgnoreGregTechMaterialFasteners() {
+        SearchNode bolt = item("steel_bolt", "Steel Bolt", Map.of(
+                SearchNodeKeys.MOD_ID, "gtceu",
+                SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "gregtech",
+                SearchNodeKeys.GREGTECH_ITEM_KIND, "materials",
+                SearchNodeKeys.FACETS, "projectile,tech_component"
+        ));
+        SearchNode arrow = item("arrow", "Arrow", Map.of(SearchNodeKeys.FACETS, "projectile"));
+
+        assertFalse(ListLens.RANGED.matches(bolt));
+        assertFalse(ListLens.WEAPONS.matches(bolt));
+        assertTrue(ListLens.RANGED.matches(arrow));
+        assertTrue(ListLens.WEAPONS.matches(arrow));
+    }
+
+    @Test
+    void modRowFieldUsesFriendlyNamesForSameModAliases() {
+        assertEquals("GregTech", RowField.MOD_NAME.extract(item("gtceu", "lv_macerator", "LV Macerator", Map.of())));
+        assertEquals("Applied Energistics 2", RowField.MOD_NAME.extract(item(
+                "appliedenergistics2", "crafting_unit", "Crafting Unit", Map.of())));
+        assertEquals("Tinkers' Construct", RowField.MOD_NAME.extract(item(
+                "tconstruct", "part_builder", "Part Builder", Map.of())));
+        assertEquals("Silent Gear", RowField.MOD_NAME.extract(item(
+                "silentgear", "pickaxe_blueprint", "Pickaxe Blueprint", Map.of())));
     }
 
     @Test
@@ -363,6 +399,12 @@ class ListLensTest {
                 item("stone", "Stone", Map.of(SearchNodeKeys.FACETS, "placeable"))
         );
         assertTrue(ListLens.availableFor(withGeneration).contains(ListLens.POWER));
+
+        List<SearchNode> withGregTechEu = List.of(
+                item("lv_macerator", "LV Macerator", Map.of(SearchNodeKeys.GREGTECH_EU_CONSUMPTION, "32")),
+                item("stone", "Stone", Map.of(SearchNodeKeys.FACETS, "placeable"))
+        );
+        assertTrue(ListLens.availableFor(withGregTechEu).contains(ListLens.POWER));
     }
 
     @Test
@@ -386,7 +428,121 @@ class ListLensTest {
         assertEquals("Advanced Generator", generationGroup.getChildren().get(0).getLabel().getString());
         assertEquals(ResultsProcessor.SortField.ENERGY_GENERATION, state.getSortField());
         assertEquals(ResultsProcessor.GroupBy.BEHAVIOR, state.getGroupBy());
-        assertEquals(List.of(RowField.MOD_NAME, RowField.ENERGY_GENERATION, RowField.ENERGY_CAPACITY), RowFieldConfig.getSubtitleFields());
+        assertEquals(List.of(RowField.MOD_NAME, RowField.ENERGY_GENERATION, RowField.ENERGY_CAPACITY,
+                RowField.GREGTECH_EU_GENERATION, RowField.GREGTECH_EU_CONSUMPTION, RowField.GREGTECH_EU_INPUT,
+                RowField.GREGTECH_EU_OUTPUT, RowField.GREGTECH_AMPERAGE), RowFieldConfig.getSubtitleFields());
+    }
+
+    @Test
+    void powerLensShowsAndSortsGregTechEuFieldsSeparatelyFromFe() {
+        SearchState state = new SearchState();
+        state.setViewMode(ResultsToolbar.ViewMode.LIST);
+        state.setListLens(ListLens.POWER);
+        state.setSortField(ResultsProcessor.SortField.GREGTECH_EU_OUTPUT);
+
+        SearchNode inputHatch = item("gtceu", "ev_energy_input_hatch_4a", "EV Energy Input Hatch (4A)", Map.of(
+                SearchNodeKeys.COMPAT_FAMILIES, "gregtech",
+                SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "gregtech",
+                SearchNodeKeys.GREGTECH_ENERGY_ROLE, "inputs_eu",
+                SearchNodeKeys.GREGTECH_EU_INPUT, "8192",
+                SearchNodeKeys.GREGTECH_AMPERAGE, "4"
+        ));
+        SearchNode outputHatch = item("gtceu", "ev_energy_output_hatch_16a", "EV Energy Output Hatch (16A)", Map.of(
+                SearchNodeKeys.COMPAT_FAMILIES, "gregtech",
+                SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "gregtech",
+                SearchNodeKeys.GREGTECH_ENERGY_ROLE, "outputs_eu",
+                SearchNodeKeys.GREGTECH_EU_OUTPUT, "32768",
+                SearchNodeKeys.GREGTECH_AMPERAGE, "16"
+        ));
+        SearchNode macerator = item("gtceu", "lv_macerator", "LV Macerator", Map.of(
+                SearchNodeKeys.COMPAT_FAMILIES, "gregtech",
+                SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "gregtech",
+                SearchNodeKeys.GREGTECH_ENERGY_ROLE, "consumes_eu",
+                SearchNodeKeys.GREGTECH_EU_CONSUMPTION, "32"
+        ));
+
+        ResultsViewProjector.Projection projection = ResultsViewProjector.project(List.of(
+                inputHatch,
+                outputHatch,
+                macerator,
+                item("stone", "Stone", Map.of(SearchNodeKeys.FACETS, "placeable"))
+        ), state, null, false, false);
+
+        assertEquals(3, projection.displayedItemCount());
+        assertEquals(ResultsProcessor.SortField.GREGTECH_EU_OUTPUT, state.getSortField());
+        TreeNode generationGroup = projection.roots().stream()
+                .filter(node -> "Energy Generation".equals(node.getLabel().getString()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("EV Energy Output Hatch (16A)", generationGroup.getChildren().get(0).getLabel().getString());
+        assertEquals("GregTech", RowFieldConfig.buildSubtitle(inputHatch).split(" · ")[0]);
+        assertTrue(RowFieldConfig.buildSubtitle(inputHatch).contains("8192 EU/t in"));
+        assertTrue(RowFieldConfig.buildSubtitle(inputHatch).contains("4A"));
+        assertTrue(RowFieldConfig.buildSubtitle(outputHatch).contains("32768 EU/t out"));
+        assertTrue(RowFieldConfig.buildSubtitle(macerator).contains("32 EU/t use"));
+    }
+
+    @Test
+    void machinesLensCanSortByAnyGregTechEuMetric() {
+        SearchState state = new SearchState();
+        state.setViewMode(ResultsToolbar.ViewMode.LIST);
+        state.setListLens(ListLens.MACHINES);
+        state.setSortField(ResultsProcessor.SortField.GREGTECH_EU);
+
+        ResultsViewProjector.Projection projection = ResultsViewProjector.project(List.of(
+                item("lv_macerator", "LV Macerator", Map.of(
+                        SearchNodeKeys.GREGTECH_ITEM_KIND, "machines",
+                        SearchNodeKeys.GREGTECH_EU_CONSUMPTION, "32"
+                )),
+                item("hv_macerator", "HV Macerator", Map.of(
+                        SearchNodeKeys.GREGTECH_ITEM_KIND, "machines",
+                        SearchNodeKeys.GREGTECH_EU_CONSUMPTION, "512"
+                )),
+                item("ev_energy_input_hatch_4a", "EV Energy Input Hatch (4A)", Map.of(
+                        SearchNodeKeys.GREGTECH_ITEM_KIND, "machines",
+                        SearchNodeKeys.GREGTECH_EU_INPUT, "8192"
+                ))
+        ), state, null, false, false);
+
+        List<String> flattened = projection.roots().stream()
+                .flatMap(root -> root.isLeaf()
+                        ? java.util.stream.Stream.of(root.getLabel().getString())
+                        : root.getChildren().stream().map(child -> child.getLabel().getString()))
+                .toList();
+
+        assertEquals(ResultsProcessor.SortField.GREGTECH_EU, state.getSortField());
+        assertEquals(List.of("EV Energy Input Hatch (4A)", "HV Macerator", "LV Macerator"), flattened);
+    }
+
+    @Test
+    void machinesLensIgnoresStorageFamilyAccessoriesAndPlainStorage() {
+        SearchNode drawerKeyButton = item("storagedrawers", "drawer_key_button", "Drawer Key Button", Map.of(
+                SearchNodeKeys.STORAGE_ITEM_KIND, "access_tool",
+                SearchNodeKeys.STORAGE_FACTS, "drawer_storage,access_tool",
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "tech",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "machines",
+                SearchNodeKeys.FACETS, "interactive_block"
+        ));
+        SearchNode oakDrawer = item("storagedrawers", "oak_full_drawers_1", "Oak Full Drawers 1", Map.of(
+                SearchNodeKeys.STORAGE_ITEM_KIND, "drawer",
+                SearchNodeKeys.STORAGE_FACTS, "drawer_storage,storage",
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "tech",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "machines",
+                SearchNodeKeys.FACETS, "placeable,storage,interactive_block"
+        ));
+        SearchNode importer = item("refinedstorage", "importer", "Importer", Map.of(
+                SearchNodeKeys.STORAGE_ITEM_KIND, "network_device",
+                SearchNodeKeys.STORAGE_FACTS, "network_device,item_transfer",
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "tech",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "machines",
+                SearchNodeKeys.FACETS, "placeable,interactive_block"
+        ));
+
+        assertTrue(ListLens.STORAGE.matches(drawerKeyButton));
+        assertTrue(ListLens.STORAGE.matches(oakDrawer));
+        assertFalse(ListLens.MACHINES.matches(drawerKeyButton));
+        assertFalse(ListLens.MACHINES.matches(oakDrawer));
+        assertTrue(ListLens.MACHINES.matches(importer));
     }
 
     @Test

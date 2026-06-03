@@ -616,7 +616,10 @@ public class GroupingEngine {
     }
 
     public static String classifyBehaviorRoot(SearchNode node) {
-        if (hasMetadata(node, SearchNodeKeys.ENERGY_GENERATION) || factHasResourceAction(node, ENERGY_TERMS, "generate", "generates", "generating")) {
+        if (hasMetadata(node, SearchNodeKeys.ENERGY_GENERATION)
+                || hasMetadata(node, SearchNodeKeys.GREGTECH_EU_GENERATION)
+                || hasMetadata(node, SearchNodeKeys.GREGTECH_EU_OUTPUT)
+                || factHasResourceAction(node, ENERGY_TERMS, "generate", "generates", "generating")) {
             return "behavior:energy_generation";
         }
         if (hasMetadata(node, SearchNodeKeys.ENERGY_CAPACITY)
@@ -625,6 +628,8 @@ public class GroupingEngine {
             return "behavior:energy_storage";
         }
         if (hasMetadata(node, SearchNodeKeys.ENERGY_CONSUMPTION)
+                || hasMetadata(node, SearchNodeKeys.GREGTECH_EU_CONSUMPTION)
+                || hasMetadata(node, SearchNodeKeys.GREGTECH_EU_INPUT)
                 || factHasResourceAction(node, ENERGY_TERMS, "use", "uses", "consume", "consumes", "consumption")) {
             return "behavior:energy_usage";
         }

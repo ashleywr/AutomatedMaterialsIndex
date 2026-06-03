@@ -85,6 +85,44 @@ public class NumericMetadataSearchTest {
                 0,
                 Map.of(SearchNodeKeys.MAX_DURABILITY, "13")
         );
+        SearchNode gtGenerator = new SearchNode(
+                new ResourceLocation("gtceu:hv_combustion"),
+                NodeType.ITEM,
+                "HV Combustion Generator",
+                0,
+                0,
+                Map.of(SearchNodeKeys.GREGTECH_EU_GENERATION, "512")
+        );
+        SearchNode gtMachine = new SearchNode(
+                new ResourceLocation("gtceu:lv_macerator"),
+                NodeType.ITEM,
+                "LV Macerator",
+                0,
+                0,
+                Map.of(SearchNodeKeys.GREGTECH_EU_CONSUMPTION, "32")
+        );
+        SearchNode gtInputHatch = new SearchNode(
+                new ResourceLocation("gtceu:ev_energy_input_hatch_4a"),
+                NodeType.ITEM,
+                "EV Energy Input Hatch (4A)",
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.GREGTECH_EU_INPUT, "8192",
+                        SearchNodeKeys.GREGTECH_AMPERAGE, "4"
+                )
+        );
+        SearchNode gtOutputHatch = new SearchNode(
+                new ResourceLocation("gtceu:ev_energy_output_hatch_16a"),
+                NodeType.ITEM,
+                "EV Energy Output Hatch (16A)",
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.GREGTECH_EU_OUTPUT, "32768",
+                        SearchNodeKeys.GREGTECH_AMPERAGE, "16"
+                )
+        );
 
         index.addNode(sword);
         index.addNode(chest);
@@ -94,6 +132,10 @@ public class NumericMetadataSearchTest {
         index.addNode(fluidTank);
         index.addNode(pickaxe);
         index.addNode(cardboardSword);
+        index.addNode(gtGenerator);
+        index.addNode(gtMachine);
+        index.addNode(gtInputHatch);
+        index.addNode(gtOutputHatch);
         SearchService service = SearchService.buildFrom(index, false);
 
         List<SearchNode> highDps = service.query(">dps:10").get(NodeType.ITEM);
@@ -128,5 +170,25 @@ public class NumericMetadataSearchTest {
         List<SearchNode> lowDurability = service.query("<durability:20").get(NodeType.ITEM);
         assertTrue(lowDurability.contains(cardboardSword));
         assertFalse(lowDurability.contains(sword));
+
+        List<SearchNode> gtHighEuGeneration = service.query(">eugen:500").get(NodeType.ITEM);
+        assertTrue(gtHighEuGeneration.contains(gtGenerator));
+        assertFalse(gtHighEuGeneration.contains(gtMachine));
+
+        List<SearchNode> gtEuConsumption = service.query("=euconsume:32").get(NodeType.ITEM);
+        assertTrue(gtEuConsumption.contains(gtMachine));
+        assertFalse(gtEuConsumption.contains(gtGenerator));
+
+        List<SearchNode> gtEuInput = service.query(">euinput:8000").get(NodeType.ITEM);
+        assertTrue(gtEuInput.contains(gtInputHatch));
+        assertFalse(gtEuInput.contains(gtOutputHatch));
+
+        List<SearchNode> gtEuOutput = service.query(">euoutput:30000").get(NodeType.ITEM);
+        assertTrue(gtEuOutput.contains(gtOutputHatch));
+        assertFalse(gtEuOutput.contains(gtInputHatch));
+
+        List<SearchNode> gtFourAmp = service.query("=amps:4").get(NodeType.ITEM);
+        assertTrue(gtFourAmp.contains(gtInputHatch));
+        assertFalse(gtFourAmp.contains(gtOutputHatch));
     }
 }

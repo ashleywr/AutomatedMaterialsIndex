@@ -51,6 +51,11 @@ public final class NumericMetadataResolver {
             case SearchNodeKeys.ENERGY_CAPACITY -> List.of("energy");
             case SearchNodeKeys.ENERGY_GENERATION -> List.of("gen");
             case SearchNodeKeys.ENERGY_CONSUMPTION -> List.of("consume");
+            case SearchNodeKeys.GREGTECH_EU_GENERATION -> List.of("eugen", "euproduce");
+            case SearchNodeKeys.GREGTECH_EU_CONSUMPTION -> List.of("euconsume", "euuse");
+            case SearchNodeKeys.GREGTECH_EU_INPUT -> List.of("euinput", "euin");
+            case SearchNodeKeys.GREGTECH_EU_OUTPUT -> List.of("euoutput", "euout");
+            case SearchNodeKeys.GREGTECH_AMPERAGE -> List.of("amps", "amperage");
             case SearchNodeKeys.FLUID_CAPACITY -> List.of("fluid");
             case SearchNodeKeys.TOOL_SPEED -> List.of("toolspeed");
             case SearchNodeKeys.MAX_DURABILITY, SearchNodeKeys.TOOL_USES -> List.of("durability");
@@ -134,6 +139,18 @@ public final class NumericMetadataResolver {
                      "fet", "rft", "fepertick", "rfpertick", "power" -> SearchNodeKeys.ENERGY_GENERATION;
                 case "energyconsumption", "consumption", "consume", "feusage", "rfusage", "feuse", "rfuse" ->
                         SearchNodeKeys.ENERGY_CONSUMPTION;
+                case "eugeneration", "eugen", "eugenerate", "euproduce", "euproduces", "euproduced",
+                     "euproduction", "gtceugen", "gtceugeneration", "gregtechgen", "gregtechgeneration",
+                     "gregtecheugen", "gregtecheugeneration" -> SearchNodeKeys.GREGTECH_EU_GENERATION;
+                case "euconsumption", "euconsume", "euconsumes", "euconsumed", "euusage", "euuse", "euuses",
+                     "eucost", "gtceuconsume", "gtceuconsumption", "gregtechconsume", "gregtechconsumption",
+                     "gregtecheuconsume", "gregtecheuconsumption" -> SearchNodeKeys.GREGTECH_EU_CONSUMPTION;
+                case "euinput", "euin", "euaccept", "euaccepts", "gtceuinput", "gtceuin",
+                     "gregtechinput", "gregtechin", "gregtecheuinput" -> SearchNodeKeys.GREGTECH_EU_INPUT;
+                case "euoutput", "euout", "euemit", "euemits", "gtceuoutput", "gtceuout",
+                     "gregtechoutput", "gregtechout", "gregtecheuoutput" -> SearchNodeKeys.GREGTECH_EU_OUTPUT;
+                case "amps", "amp", "amperage", "gtamps", "gtceuamps", "gtceuamperage",
+                     "gregtechamps", "gregtechamperage" -> SearchNodeKeys.GREGTECH_AMPERAGE;
                 case "fluid", "fluids", "fluidcapacity", "tank", "buckets", "bucket" -> SearchNodeKeys.FLUID_CAPACITY;
                 case "toolspeed", "miningspeed", "speed", "mine" -> SearchNodeKeys.TOOL_SPEED;
                 case "tooluses" -> SearchNodeKeys.TOOL_USES;

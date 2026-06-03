@@ -90,6 +90,11 @@ final class ResultsSorter {
             case STORAGE_CAPACITY -> compareNumericMeta(a, b, SearchNodeKeys.ESM_CAPACITY);
             case ENERGY_CAPACITY -> compareNumericMeta(a, b, SearchNodeKeys.ENERGY_CAPACITY);
             case ENERGY_GENERATION -> compareNumericMeta(a, b, SearchNodeKeys.ENERGY_GENERATION);
+            case GREGTECH_EU -> Double.compare(gregTechEuValue(a), gregTechEuValue(b));
+            case GREGTECH_EU_GENERATION -> compareNumericMeta(a, b, SearchNodeKeys.GREGTECH_EU_GENERATION);
+            case GREGTECH_EU_CONSUMPTION -> compareNumericMeta(a, b, SearchNodeKeys.GREGTECH_EU_CONSUMPTION);
+            case GREGTECH_EU_INPUT -> compareNumericMeta(a, b, SearchNodeKeys.GREGTECH_EU_INPUT);
+            case GREGTECH_EU_OUTPUT -> compareNumericMeta(a, b, SearchNodeKeys.GREGTECH_EU_OUTPUT);
             case FLUID_CAPACITY -> compareNumericMeta(a, b, SearchNodeKeys.FLUID_CAPACITY);
             case TOOL_SPEED -> compareNumericMeta(a, b, SearchNodeKeys.TOOL_SPEED);
             case TOOL_USES -> compareNumericMeta(a, b, SearchNodeKeys.TOOL_USES);
@@ -186,5 +191,13 @@ final class ResultsSorter {
             return itemDamage;
         }
         return parseNumericMeta(node, SearchNodeKeys.ENTITY_ATTACK_DAMAGE);
+    }
+
+    private double gregTechEuValue(SearchNode node) {
+        double generation = parseNumericMeta(node, SearchNodeKeys.GREGTECH_EU_GENERATION);
+        double output = parseNumericMeta(node, SearchNodeKeys.GREGTECH_EU_OUTPUT);
+        double consumption = parseNumericMeta(node, SearchNodeKeys.GREGTECH_EU_CONSUMPTION);
+        double input = parseNumericMeta(node, SearchNodeKeys.GREGTECH_EU_INPUT);
+        return Math.max(Math.max(generation, output), Math.max(consumption, input));
     }
 }

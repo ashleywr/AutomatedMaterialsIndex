@@ -33,6 +33,27 @@ public final class PropertyResolver implements IQueryResolver {
                     FieldConvention.SEARCH_TOKENS);
             case "kind", "itemkind" -> containsConventionToken(node, value, FieldConvention.KIND);
             case "tier" -> containsConventionToken(node, value, FieldConvention.TIER);
+            case "gregtech", "gtceu" -> value.isEmpty()
+                    ? containsToken(node, SearchNodeKeys.COMPAT_FAMILIES, "gregtech")
+                            || containsValue(node, SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "gregtech")
+                            || containsValue(node, SearchNodeKeys.MOD_ID, "gtceu")
+                            || containsValue(node, SearchNodeKeys.MOD_ID, "gregtech")
+                    : containsValue(node, SearchNodeKeys.GREGTECH_ITEM_KIND, value)
+                            || containsToken(node, SearchNodeKeys.GREGTECH_FACTS, value)
+                            || containsToken(node, SearchNodeKeys.GREGTECH_TIER, value)
+                            || containsToken(node, SearchNodeKeys.GREGTECH_CIRCUIT_GRADE, value)
+                            || containsGregTechEnergyValue(node, value);
+            case "gregtechtier", "gtceutier", "voltage", "voltagetier" ->
+                    containsToken(node, SearchNodeKeys.GREGTECH_TIER, value);
+            case "gregtechkind", "gtceukind" -> containsToken(node, SearchNodeKeys.GREGTECH_ITEM_KIND, value);
+            case "gregtechfact", "gregtechfacts", "gtceufact", "gtceufacts" ->
+                    containsToken(node, SearchNodeKeys.GREGTECH_FACTS, value);
+            case "gregtechcircuit", "gtceucircuit", "gregtechgrade", "gtceugrade", "circuitgrade" ->
+                    containsToken(node, SearchNodeKeys.GREGTECH_CIRCUIT_GRADE, value);
+            case "gregtechenergy", "gtceuenergy", "gregtecheu", "gtceueu", "eu", "eut", "eupertick" ->
+                    value.isEmpty() ? hasGregTechEnergyMetadata(node) : containsGregTechEnergyValue(node, value);
+            case "gregtechenergyrole", "gtceuenergyrole", "eurole" ->
+                    containsToken(node, SearchNodeKeys.GREGTECH_ENERGY_ROLE, value);
             case "gear", "modulargear" -> value.isEmpty()
                     ? containsToken(node, SearchNodeKeys.COMPAT_FAMILIES, "modular_gear")
                             || containsValue(node, SearchNodeKeys.MODULAR_GEAR_FAMILY, "")
@@ -223,6 +244,7 @@ public final class PropertyResolver implements IQueryResolver {
         if (hasMetadata(node, SearchNodeKeys.ENERGY_CAPACITY)
                 || hasMetadata(node, SearchNodeKeys.ENERGY_GENERATION)
                 || hasMetadata(node, SearchNodeKeys.ENERGY_CONSUMPTION)
+                || hasGregTechEnergyMetadata(node)
                 || containsToken(node, SearchNodeKeys.FACETS, "has_energy")
                 || containsFactComponent(node, "energy", "power", "fe", "rf")) {
             capabilities.add("energy");
@@ -293,6 +315,30 @@ public final class PropertyResolver implements IQueryResolver {
 
     private static boolean hasMetadata(SearchNode node, String key) {
         return !node.meta(key, "").isBlank();
+    }
+
+    private static boolean hasGregTechEnergyMetadata(SearchNode node) {
+        return hasMetadata(node, SearchNodeKeys.GREGTECH_ENERGY_ROLE)
+                || hasMetadata(node, SearchNodeKeys.GREGTECH_EU_GENERATION)
+                || hasMetadata(node, SearchNodeKeys.GREGTECH_EU_CONSUMPTION)
+                || hasMetadata(node, SearchNodeKeys.GREGTECH_EU_INPUT)
+                || hasMetadata(node, SearchNodeKeys.GREGTECH_EU_OUTPUT);
+    }
+
+    private static boolean containsGregTechEnergyValue(SearchNode node, String value) {
+        String normalizedValue = normalize(value);
+        String amperageValue = normalizedValue.endsWith("a")
+                ? normalizedValue.substring(0, normalizedValue.length() - 1)
+                : normalizedValue;
+        return containsToken(node, SearchNodeKeys.GREGTECH_ENERGY_ROLE, value)
+                || containsToken(node, SearchNodeKeys.GREGTECH_TIER, value)
+                || containsValue(node, SearchNodeKeys.GREGTECH_EU_GENERATION, value)
+                || containsValue(node, SearchNodeKeys.GREGTECH_EU_CONSUMPTION, value)
+                || containsValue(node, SearchNodeKeys.GREGTECH_EU_INPUT, value)
+                || containsValue(node, SearchNodeKeys.GREGTECH_EU_OUTPUT, value)
+                || containsValue(node, SearchNodeKeys.GREGTECH_AMPERAGE, value)
+                || (!amperageValue.equals(normalizedValue)
+                && containsValue(node, SearchNodeKeys.GREGTECH_AMPERAGE, amperageValue));
     }
 
     private static boolean containsValue(SearchNode node, String metadataKey, String value) {
