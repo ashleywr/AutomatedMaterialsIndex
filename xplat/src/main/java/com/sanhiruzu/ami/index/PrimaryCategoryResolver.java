@@ -879,6 +879,9 @@ public final class PrimaryCategoryResolver {
         if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.SEMANTIC) {
             return Optional.empty();
         }
+        if (shouldLetGregTechUseObviousSemanticCategory(context)) {
+            return Optional.empty();
+        }
         String subcategory = classifyGregTechSubcategory(context);
         return Optional.of(identityAssignment(
                 "gregtech",
@@ -889,7 +892,17 @@ public final class PrimaryCategoryResolver {
         ));
     }
 
+    private static boolean shouldLetGregTechUseObviousSemanticCategory(ResolveContext context) {
+        return hasActualFoodIdentity(context.facets, context.attributes)
+                || shouldResolveAsArmorOrCurio(context.facets)
+                || hasHardToolIdentity(context.facets);
+    }
+
     private static String classifyGregTechSubcategory(ResolveContext context) {
+        String kind = context.attributes.getOrDefault(SearchNodeKeys.GREGTECH_ITEM_KIND, "");
+        if (!kind.isBlank()) {
+            return mapGregTechSubcategory(kind);
+        }
         String itemClass = context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
         String blockClass = context.attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "");
         if (containsPathToken(context.path, Set.of("multiblock", "multiblocks"))
@@ -943,6 +956,19 @@ public final class PrimaryCategoryResolver {
             return "materials";
         }
         return "misc";
+    }
+
+    private static String mapGregTechSubcategory(String kind) {
+        return switch (kind) {
+            case "machines" -> "machines";
+            case "multiblocks" -> "multiblocks";
+            case "power" -> "power";
+            case "circuits" -> "circuits";
+            case "materials" -> "materials";
+            case "tools" -> "tools";
+            case "covers" -> "covers";
+            default -> "misc";
+        };
     }
 
     private static Optional<CategoryAssignment> resolveApotheosisIdentity(ResolveContext context) {

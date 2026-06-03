@@ -51,6 +51,84 @@ class SearchSuggestionsTest {
     }
 
     @Test
+    void suggestsGregTechPropertyFieldsAndValuesFromGregTechMetadataOnly() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("powah", "starter_cell", "Starter Cell", Map.of(
+                "powahTier", "starter",
+                "powahItemKind", "energy_cell"
+        )));
+        index.addNode(item("gtceu", "good_electronic_circuit", "Good Electronic Circuit", Map.of(
+                SearchNodeKeys.COMPAT_FAMILIES, "gregtech",
+                SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "gregtech",
+                SearchNodeKeys.GREGTECH_ITEM_KIND, "circuits",
+                SearchNodeKeys.GREGTECH_FACTS, "circuit",
+                SearchNodeKeys.GREGTECH_TIER, "mv",
+                SearchNodeKeys.GREGTECH_CIRCUIT_GRADE, "good"
+        )));
+        index.addNode(item("gtceu", "ev_energy_input_hatch_4a", "EV Energy Input Hatch (4A)", Map.of(
+                SearchNodeKeys.COMPAT_FAMILIES, "gregtech",
+                SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "gregtech",
+                SearchNodeKeys.GREGTECH_ITEM_KIND, "machines",
+                SearchNodeKeys.GREGTECH_FACTS, "machine,power,inputs_eu",
+                SearchNodeKeys.GREGTECH_TIER, "ev",
+                SearchNodeKeys.GREGTECH_ENERGY_ROLE, "inputs_eu",
+                SearchNodeKeys.GREGTECH_EU_INPUT, "8192",
+                SearchNodeKeys.GREGTECH_AMPERAGE, "4"
+        )));
+
+        assertSuggests(index, "?", "?gregtechTier:");
+        assertSuggests(index, "?", "?gregtechCircuit:");
+        assertSuggests(index, "?", "?gregtechEnergy:");
+        assertSuggests(index, "?gregtechT", "?gregtechTier:");
+        assertSuggests(index, "?gregtechTier:m", "?gregtechTier:mv");
+        assertDoesNotSuggest(index, "?gregtechTier:sta", "?gregtechTier:starter");
+        assertSuggests(index, "?gregtechCircuit:g", "?gregtechCircuit:good");
+        assertSuggests(index, "?gregtechKind:cir", "?gregtechKind:circuits");
+        assertSuggests(index, "?gregtechFact:pow", "?gregtechFact:power");
+        assertSuggests(index, "?gregtechEnergyRole:inputs", "?gregtechEnergyRole:inputs_eu");
+        assertSuggests(index, "?gregtechEnergy:4", "?gregtechEnergy:4a");
+    }
+
+    @Test
+    void gregTechModSuggestionUsesFriendlyCompatAlias() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("gtceu", "lv_macerator", "LV Macerator", Map.of(
+                SearchNodeKeys.MOD_ID, "gtceu",
+                SearchNodeKeys.COMPAT_FAMILIES, "gregtech",
+                SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "gregtech"
+        )));
+
+        assertSuggests(index, "@greg", "@GregTech");
+        assertSuggests(index, "@gt", "@GregTech");
+        assertSuggestion(index, "@gt", "@GregTech", "@gregtech ");
+        assertDoesNotSuggest(index, "@gt", "@gtceu");
+    }
+
+    @Test
+    void sameModTechnicalAliasesCollapseToCanonicalFriendlySuggestions() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("appliedenergistics2", "crafting_unit", "Crafting Unit", Map.of(
+                SearchNodeKeys.COMPAT_FAMILIES, "ae2",
+                SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "ae2"
+        )));
+        index.addNode(item("tconstruct", "part_builder", "Part Builder", Map.of(
+                SearchNodeKeys.COMPAT_FAMILIES, "tinkers",
+                SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "tinkers"
+        )));
+        index.addNode(item("silentgear", "pickaxe_blueprint", "Pickaxe Blueprint", Map.of(
+                SearchNodeKeys.COMPAT_FAMILIES, "silent_gear,modular_gear",
+                SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "silent_gear"
+        )));
+
+        assertSuggestion(index, "@applied", "@Applied Energistics 2", "@ae2 ");
+        assertSuggestion(index, "@tc", "@Tinkers' Construct", "@tinkers ");
+        assertSuggestion(index, "@silentg", "@Silent Gear", "@silent_gear ");
+        assertDoesNotSuggest(index, "@applied", "@appliedenergistics2");
+        assertDoesNotSuggest(index, "@tc", "@tconstruct");
+        assertDoesNotSuggest(index, "@silentg", "@silentgear");
+    }
+
+    @Test
     void suggestsModsFamiliesAndTagsThatResolversCanUse() {
         GlobalIndex index = GlobalIndex.getInstance();
         index.addNode(item("addonmod", "copper_drawer", "Copper Drawer", Map.of(
@@ -191,13 +269,20 @@ class SearchSuggestionsTest {
     }
 
     private static void assertSuggests(GlobalIndex index, String query, String expectedDisplay) {
-        List<SearchSuggestions.Suggestion> suggestions = SearchSuggestions.suggest(index, query, query.length(), 8);
+        List<SearchSuggestions.Suggestion> suggestions = SearchSuggestions.suggest(index, query, query.length(), 16);
         assertTrue(suggestions.stream().anyMatch(s -> expectedDisplay.equals(s.display())),
                 () -> "Expected " + expectedDisplay + " in " + suggestions);
     }
 
+    private static void assertSuggestion(GlobalIndex index, String query, String expectedDisplay, String expectedReplacement) {
+        List<SearchSuggestions.Suggestion> suggestions = SearchSuggestions.suggest(index, query, query.length(), 16);
+        assertTrue(suggestions.stream().anyMatch(s -> expectedDisplay.equals(s.display())
+                        && expectedReplacement.equals(s.replacement())),
+                () -> "Expected " + expectedDisplay + " -> " + expectedReplacement + " in " + suggestions);
+    }
+
     private static void assertDoesNotSuggest(GlobalIndex index, String query, String rejectedDisplay) {
-        List<SearchSuggestions.Suggestion> suggestions = SearchSuggestions.suggest(index, query, query.length(), 8);
+        List<SearchSuggestions.Suggestion> suggestions = SearchSuggestions.suggest(index, query, query.length(), 16);
         assertFalse(suggestions.stream().anyMatch(s -> rejectedDisplay.equals(s.display())),
                 () -> "Did not expect " + rejectedDisplay + " in " + suggestions);
     }

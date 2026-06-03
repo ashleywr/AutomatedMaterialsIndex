@@ -42,7 +42,7 @@ public enum ListLens {
             )) {
         @Override
         public boolean matches(SearchNode node) {
-            if (isRangedFalsePositivePath(node)) {
+            if (isRangedFalsePositivePath(node) || isGregTechFastenerFalsePositive(node)) {
                 return false;
             }
             return hasMetadata(node, SearchNodeKeys.DPS)
@@ -91,7 +91,7 @@ public enum ListLens {
             )) {
         @Override
         public boolean matches(SearchNode node) {
-            if (isRangedFalsePositivePath(node)) {
+            if (isRangedFalsePositivePath(node) || isGregTechFastenerFalsePositive(node)) {
                 return false;
             }
             return hasFacet(node, "ranged_weapon")
@@ -163,8 +163,15 @@ public enum ListLens {
             ResultsProcessor.SortField.ENERGY_GENERATION,
             false,
             ResultsProcessor.GroupBy.BEHAVIOR,
-            EnumSet.of(RowField.ENERGY_GENERATION, RowField.ENERGY_CAPACITY, RowField.MOD_NAME),
+            EnumSet.of(RowField.ENERGY_GENERATION, RowField.ENERGY_CAPACITY, RowField.GREGTECH_EU_GENERATION,
+                    RowField.GREGTECH_EU_CONSUMPTION, RowField.GREGTECH_EU_INPUT, RowField.GREGTECH_EU_OUTPUT,
+                    RowField.GREGTECH_AMPERAGE, RowField.MOD_NAME),
             List.of(
+                    ResultsProcessor.SortField.GREGTECH_EU,
+                    ResultsProcessor.SortField.GREGTECH_EU_GENERATION,
+                    ResultsProcessor.SortField.GREGTECH_EU_CONSUMPTION,
+                    ResultsProcessor.SortField.GREGTECH_EU_OUTPUT,
+                    ResultsProcessor.SortField.GREGTECH_EU_INPUT,
                     ResultsProcessor.SortField.ENERGY_GENERATION,
                     ResultsProcessor.SortField.ENERGY_CAPACITY,
                     ResultsProcessor.SortField.ALPHABETICAL,
@@ -175,6 +182,7 @@ public enum ListLens {
             return hasMetadata(node, SearchNodeKeys.ENERGY_CAPACITY)
                     || hasMetadata(node, SearchNodeKeys.ENERGY_GENERATION)
                     || hasMetadata(node, SearchNodeKeys.ENERGY_CONSUMPTION)
+                    || hasGregTechEnergyMetadata(node)
                     || hasFacet(node, "has_energy")
                     || hasBehavior(node, "behavior:energy_generation", "behavior:energy_storage", "behavior:energy_usage");
         }
@@ -184,8 +192,15 @@ public enum ListLens {
             ResultsProcessor.SortField.ENERGY_GENERATION,
             false,
             ResultsProcessor.GroupBy.BEHAVIOR,
-            EnumSet.of(RowField.ENERGY_GENERATION, RowField.ENERGY_CAPACITY, RowField.MOD_NAME),
+            EnumSet.of(RowField.ENERGY_GENERATION, RowField.ENERGY_CAPACITY, RowField.GREGTECH_EU_GENERATION,
+                    RowField.GREGTECH_EU_CONSUMPTION, RowField.GREGTECH_EU_INPUT, RowField.GREGTECH_EU_OUTPUT,
+                    RowField.GREGTECH_AMPERAGE, RowField.MOD_NAME),
             List.of(
+                    ResultsProcessor.SortField.GREGTECH_EU,
+                    ResultsProcessor.SortField.GREGTECH_EU_GENERATION,
+                    ResultsProcessor.SortField.GREGTECH_EU_CONSUMPTION,
+                    ResultsProcessor.SortField.GREGTECH_EU_OUTPUT,
+                    ResultsProcessor.SortField.GREGTECH_EU_INPUT,
                     ResultsProcessor.SortField.ENERGY_GENERATION,
                     ResultsProcessor.SortField.ENERGY_CAPACITY,
                     ResultsProcessor.SortField.ALPHABETICAL,
@@ -193,7 +208,7 @@ public enum ListLens {
             )) {
         @Override
         public boolean matches(SearchNode node) {
-            if (isStorageOnlyMachineFalsePositive(node)) {
+            if (isStorageOnlyMachineFalsePositive(node) || isStorageFamilyMachineFalsePositive(node)) {
                 return false;
             }
             return hasFacet(node, "machine")
@@ -201,6 +216,7 @@ public enum ListLens {
                     || hasFacet(node, "has_energy")
                     || hasCategory(node, "tech", "machines")
                     || hasCategory(node, "tech", "power")
+                    || hasGregTechEnergyMetadata(node)
                     || hasBehavior(node,
                     "behavior:energy_generation",
                     "behavior:energy_storage",
@@ -335,6 +351,14 @@ public enum ListLens {
         return !node.meta(key, "").isBlank();
     }
 
+    private static boolean hasGregTechEnergyMetadata(SearchNode node) {
+        return hasMetadata(node, SearchNodeKeys.GREGTECH_ENERGY_ROLE)
+                || hasMetadata(node, SearchNodeKeys.GREGTECH_EU_GENERATION)
+                || hasMetadata(node, SearchNodeKeys.GREGTECH_EU_CONSUMPTION)
+                || hasMetadata(node, SearchNodeKeys.GREGTECH_EU_INPUT)
+                || hasMetadata(node, SearchNodeKeys.GREGTECH_EU_OUTPUT);
+    }
+
     private static boolean hasCategory(SearchNode node, String category, String subcategory) {
         if (!category.equalsIgnoreCase(node.meta(SearchNodeKeys.ONTOLOGY_CATEGORY, ""))) {
             return false;
@@ -350,6 +374,19 @@ public enum ListLens {
         }
         String needle = facet.toLowerCase(Locale.ROOT);
         for (String part : facets.split(",")) {
+            if (needle.equals(part.trim().toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsMetadataToken(String metadata, String token) {
+        if (metadata == null || metadata.isBlank() || token == null || token.isBlank()) {
+            return false;
+        }
+        String needle = token.toLowerCase(Locale.ROOT);
+        for (String part : metadata.split("[,\\s]+")) {
             if (needle.equals(part.trim().toLowerCase(Locale.ROOT))) {
                 return true;
             }
@@ -412,6 +449,26 @@ public enum ListLens {
         return path.contains("gunpowder") || path.contains("bulletproof");
     }
 
+    private static boolean isGregTechFastenerFalsePositive(SearchNode node) {
+        if (node == null || node.id() == null) {
+            return false;
+        }
+        String namespace = node.id().getNamespace();
+        if (!"gtceu".equals(namespace) && !"gregtech".equals(namespace)
+                && !"gregtech".equalsIgnoreCase(node.meta(SearchNodeKeys.PRIMARY_COMPAT_FAMILY, ""))) {
+            return false;
+        }
+        String path = node.id().getPath().toLowerCase(Locale.ROOT);
+        for (String token : pathTokens(path)) {
+            if (token.equals("bolt") || token.equals("bolts")
+                    || token.equals("screw") || token.equals("screws")
+                    || token.equals("nut") || token.equals("nuts")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean isStorageOnlyMachineFalsePositive(SearchNode node) {
         return hasFacet(node, "storage")
                 && !hasFacet(node, "machine")
@@ -430,6 +487,33 @@ public enum ListLens {
                 "behavior:network",
                 "behavior:terminal",
                 "behavior:machine");
+    }
+
+    private static boolean isStorageFamilyMachineFalsePositive(SearchNode node) {
+        if (!hasMetadata(node, SearchNodeKeys.STORAGE_ITEM_KIND)
+                && !hasMetadata(node, SearchNodeKeys.STORAGE_FACTS)) {
+            return false;
+        }
+        return !hasFacet(node, "machine")
+                && !hasFacet(node, "has_energy")
+                && !hasMetadata(node, SearchNodeKeys.ENERGY_CAPACITY)
+                && !hasMetadata(node, SearchNodeKeys.ENERGY_GENERATION)
+                && !hasMetadata(node, SearchNodeKeys.ENERGY_CONSUMPTION)
+                && !hasMetadata(node, SearchNodeKeys.FLUID_CAPACITY)
+                && !hasGregTechEnergyMetadata(node)
+                && !hasStorageFamilyMachineFact(node);
+    }
+
+    private static boolean hasStorageFamilyMachineFact(SearchNode node) {
+        String facts = node.meta(SearchNodeKeys.STORAGE_FACTS, "");
+        return containsMetadataToken(facts, "auto_crafting")
+                || containsMetadataToken(facts, "fluid_handling")
+                || containsMetadataToken(facts, "energy_storage")
+                || containsMetadataToken(facts, "item_transfer")
+                || containsMetadataToken(facts, "network_device")
+                || containsMetadataToken(facts, "storage_controller")
+                || containsMetadataToken(facts, "storage_connector")
+                || containsMetadataToken(facts, "grid");
     }
 
     public abstract boolean matches(SearchNode node);

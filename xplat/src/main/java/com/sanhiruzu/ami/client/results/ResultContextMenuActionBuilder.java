@@ -82,6 +82,10 @@ public class ResultContextMenuActionBuilder {
     public static final String RECIPES_POKEMON_DROP_ITEM = "ami:recipes_pokemon_drop_item";
     public static final String COPY_POKEMON_SPECIES = "ami:copy_pokemon_species";
     public static final String COPY_POKEMON_DEX_NUMBER = "ami:copy_pokemon_dex_number";
+    public static final String FILTER_GREGTECH_TIER = "ami:filter_gregtech_tier";
+    public static final String FILTER_GREGTECH_KIND = "ami:filter_gregtech_kind";
+    public static final String FILTER_GREGTECH_FACT = "ami:filter_gregtech_fact";
+    public static final String FILTER_GREGTECH_CIRCUIT_GRADE = "ami:filter_gregtech_circuit_grade";
     public static final String FILTER_MOD = "ami:filter_mod";
     public static final String COPY_ID = "ami:copy_id";
     public static final String GROUP_TOGGLE = "ami:group_toggle";
@@ -110,6 +114,7 @@ public class ResultContextMenuActionBuilder {
             FILTER_POKEMON_GENERATION, FILTER_POKEMON_EGG_GROUP, FILTER_POKEMON_ABILITY,
             SEARCH_POKEMON_DROP_ITEM, RECIPES_POKEMON_DROP_ITEM,
             COPY_POKEMON_SPECIES, COPY_POKEMON_DEX_NUMBER,
+            FILTER_GREGTECH_TIER, FILTER_GREGTECH_KIND, FILTER_GREGTECH_FACT, FILTER_GREGTECH_CIRCUIT_GRADE,
             FILTER_MOD, COPY_ID,
             GROUP_TOGGLE, FILTER_CATEGORY, COPY_GROUP_KEY,
             START_CATEGORY_FIX, EDIT_CATEGORY_FIX, APPLY_CATEGORY_FIX, CLEAR_ITEM_FIX,
@@ -143,6 +148,10 @@ public class ResultContextMenuActionBuilder {
             RECIPES_POKEMON_DROP_ITEM,
             COPY_POKEMON_SPECIES,
             COPY_POKEMON_DEX_NUMBER,
+            FILTER_GREGTECH_TIER,
+            FILTER_GREGTECH_KIND,
+            FILTER_GREGTECH_FACT,
+            FILTER_GREGTECH_CIRCUIT_GRADE,
             GROUP_TOGGLE,
             FILTER_CATEGORY,
             COPY_GROUP_KEY,
@@ -356,6 +365,8 @@ public class ResultContextMenuActionBuilder {
             }
         }
 
+        addGregTechFilterActions(actions, policy, context, node);
+
         if (cheatEnabled.getAsBoolean()) {
             addCheatActions(actions, policy, node, id, stack, hasStack);
         }
@@ -456,6 +467,77 @@ public class ResultContextMenuActionBuilder {
         }
 
         return actions;
+    }
+
+    private static void addGregTechFilterActions(List<ResultContextMenu.Action> actions,
+                                                 ResultContextMenuActionPolicy policy,
+                                                 ItemContext context,
+                                                 SearchNode node) {
+        if (actions == null || policy == null || context == null || node == null || context.tokenInject() == null) {
+            return;
+        }
+        if (!isGregTechNode(node)) {
+            return;
+        }
+
+        String tier = node.meta(SearchNodeKeys.GREGTECH_TIER, "");
+        if (policy.allows(node, FILTER_GREGTECH_TIER) && !tier.isBlank()) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    FILTER_GREGTECH_TIER,
+                    Component.translatable("ami.context.filter_gregtech_tier_named", formatGregTechTier(tier)),
+                    'v',
+                    () -> context.tokenInject().accept("?gregtechTier:" + tier)
+            ));
+        }
+
+        String kind = node.meta(SearchNodeKeys.GREGTECH_ITEM_KIND, "");
+        if (policy.allows(node, FILTER_GREGTECH_KIND) && !kind.isBlank()) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    FILTER_GREGTECH_KIND,
+                    Component.translatable("ami.context.filter_gregtech_kind_named", titleCaseUnderscorePath(kind)),
+                    'k',
+                    () -> context.tokenInject().accept("?gregtechKind:" + kind)
+            ));
+        }
+
+        String circuitGrade = node.meta(SearchNodeKeys.GREGTECH_CIRCUIT_GRADE, "");
+        if (policy.allows(node, FILTER_GREGTECH_CIRCUIT_GRADE) && !circuitGrade.isBlank()) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    FILTER_GREGTECH_CIRCUIT_GRADE,
+                    Component.translatable("ami.context.filter_gregtech_circuit_grade_named",
+                            titleCaseUnderscorePath(circuitGrade)),
+                    'b',
+                    () -> context.tokenInject().accept("?gregtechCircuit:" + circuitGrade)
+            ));
+        }
+
+        for (String fact : splitMetadataTokens(node.meta(SearchNodeKeys.GREGTECH_FACTS, ""))) {
+            if (!policy.allows(node, FILTER_GREGTECH_FACT)) {
+                break;
+            }
+            if (isRedundantGregTechFact(kind, fact)) {
+                continue;
+            }
+            actions.add(ResultContextMenu.Action.enabled(
+                    FILTER_GREGTECH_FACT,
+                    Component.translatable("ami.context.filter_gregtech_fact_named", titleCaseUnderscorePath(fact)),
+                    'g',
+                    () -> context.tokenInject().accept("?gregtechFact:" + fact)
+            ));
+            break;
+        }
+    }
+
+    private static boolean isRedundantGregTechFact(String kind, String fact) {
+        if (kind == null || fact == null || kind.isBlank() || fact.isBlank()) {
+            return false;
+        }
+        String normalizedKind = kind.toLowerCase(Locale.ROOT);
+        String normalizedFact = fact.toLowerCase(Locale.ROOT);
+        return normalizedKind.equals(normalizedFact)
+                || normalizedKind.equals(normalizedFact + "s")
+                || (normalizedKind.endsWith("s")
+                && normalizedKind.substring(0, normalizedKind.length() - 1).equals(normalizedFact));
     }
 
     private static void addQuestActions(List<ResultContextMenu.Action> actions,
@@ -1060,6 +1142,17 @@ public class ResultContextMenuActionBuilder {
         return node != null && "pokemon_species".equals(node.meta(SearchNodeKeys.ENTITY_CATEGORY, ""));
     }
 
+    private static boolean isGregTechNode(SearchNode node) {
+        if (node == null) {
+            return false;
+        }
+        ResourceLocation id = node.id();
+        return (id != null && ("gtceu".equals(id.getNamespace()) || "gregtech".equals(id.getNamespace())))
+                || containsMetadataToken(node.meta(SearchNodeKeys.COMPAT_FAMILIES, ""), "gregtech")
+                || "gregtech".equalsIgnoreCase(node.meta(SearchNodeKeys.PRIMARY_COMPAT_FAMILY, ""))
+                || "gregtech".equalsIgnoreCase(node.meta(SearchNodeKeys.COMPAT_FAMILY, ""));
+    }
+
     private static boolean hasCobblemonPokedex() {
         try {
             return CobblemonPokedexOpener.hasPokedex();
@@ -1364,27 +1457,43 @@ public class ResultContextMenuActionBuilder {
     }
 
     private static URI webSearchUri(SearchNode node, String query) {
-        ResourceLocation id = node == null ? null : node.id();
-        String modText = id == null ? "" : modMetadataText(id.getNamespace());
-        String search = query;
-        if (id != null) {
-            search += " " + id;
-        }
-        if (!modText.isBlank()) {
-            search += " " + modText;
-        }
-        search += " minecraft mod";
+        String search = webSearchText(node, query);
         return URI.create("https://duckduckgo.com/?q=" + URLEncoder.encode(search, StandardCharsets.UTF_8));
     }
 
-    private static String modMetadataText(String namespace) {
-        if (namespace == null || namespace.isBlank()) return "";
-        try {
-            return Services.PLATFORM.getModMetadataText(namespace).orElse(namespace);
-        } catch (RuntimeException | LinkageError e) {
-            LOGGER.log(Level.FINE, "AMI: Mod metadata unavailable while building documentation search for " + namespace, e);
-            return namespace;
+    private static String webSearchText(SearchNode node, String query) {
+        List<String> terms = new ArrayList<>();
+        String itemText = query == null ? "" : query.trim();
+        if (!itemText.isBlank()) {
+            terms.add(itemText);
         }
+
+        String modText = modSearchText(node);
+        if (!modText.isBlank() && terms.stream().noneMatch(term -> term.equalsIgnoreCase(modText))) {
+            terms.add(modText);
+        }
+
+        return String.join(" ", terms);
+    }
+
+    private static String modSearchText(SearchNode node) {
+        ResourceLocation id = node == null ? null : node.id();
+        String namespace = id == null ? "" : id.getNamespace();
+        if (namespace.isBlank()) return "";
+
+        try {
+            String modName = Services.PLATFORM.getModName(namespace).orElse("");
+            if (!modName.isBlank()) {
+                return modName.trim();
+            }
+        } catch (RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Mod name unavailable while building documentation search for " + namespace, e);
+        }
+
+        if (isGregTechNode(node)) {
+            return "GregTech";
+        }
+        return namespace;
     }
 
     private static String wikiPageTitle(SearchNode node, String fallbackQuery) {
@@ -1442,6 +1551,44 @@ public class ResultContextMenuActionBuilder {
             }
         }
         return out.toString();
+    }
+
+    private static String formatGregTechTier(String tier) {
+        if (tier == null || tier.isBlank()) {
+            return "";
+        }
+        return switch (tier.toLowerCase(Locale.ROOT)) {
+            case "steam" -> "Steam";
+            case "ulv" -> "ULV";
+            case "lv" -> "LV";
+            case "mv" -> "MV";
+            case "hv" -> "HV";
+            case "ev" -> "EV";
+            case "iv" -> "IV";
+            case "luv" -> "LuV";
+            case "zpm" -> "ZPM";
+            case "uv" -> "UV";
+            case "uhv" -> "UHV";
+            case "uev" -> "UEV";
+            case "uiv" -> "UIV";
+            case "uxv" -> "UXV";
+            case "opv" -> "OpV";
+            case "max" -> "MAX";
+            default -> titleCaseUnderscorePath(tier);
+        };
+    }
+
+    private static boolean containsMetadataToken(String raw, String token) {
+        if (raw == null || raw.isBlank() || token == null || token.isBlank()) {
+            return false;
+        }
+        String normalizedToken = token.toLowerCase(Locale.ROOT);
+        for (String part : raw.split("[,\\s]+")) {
+            if (part.trim().equalsIgnoreCase(normalizedToken)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String encodeWikiPath(String title) {

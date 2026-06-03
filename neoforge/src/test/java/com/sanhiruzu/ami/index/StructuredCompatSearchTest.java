@@ -1,9 +1,11 @@
 package com.sanhiruzu.ami.index;
 
+import com.sanhiruzu.ami.compat.GregTechCompat;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -43,6 +45,33 @@ class StructuredCompatSearchTest {
                 SearchNodeKeys.AE2_ITEM_KIND, "terminals",
                 SearchNodeKeys.AE2_FACTS, "terminal,network"
         ));
+        SearchNode gregTechMacerator = item("gtceu", "lv_macerator", "LV Macerator", Map.of(
+                SearchNodeKeys.COMPAT_FAMILIES, "gregtech",
+                SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "gregtech",
+                SearchNodeKeys.GREGTECH_ITEM_KIND, "machines",
+                SearchNodeKeys.GREGTECH_FACTS, "machine,consumes_eu",
+                SearchNodeKeys.GREGTECH_TIER, "lv",
+                SearchNodeKeys.GREGTECH_ENERGY_ROLE, "consumes_eu",
+                SearchNodeKeys.GREGTECH_EU_CONSUMPTION, "32"
+        ));
+        SearchNode gregTechCircuit = item("gtceu", "basic_electronic_circuit", "Basic Electronic Circuit", Map.of(
+                SearchNodeKeys.COMPAT_FAMILIES, "gregtech",
+                SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "gregtech",
+                SearchNodeKeys.GREGTECH_ITEM_KIND, "circuits",
+                SearchNodeKeys.GREGTECH_FACTS, "circuit",
+                SearchNodeKeys.GREGTECH_TIER, "lv",
+                SearchNodeKeys.GREGTECH_CIRCUIT_GRADE, "basic"
+        ));
+        SearchNode gregTechInputHatch = item("gtceu", "ev_energy_input_hatch_4a", "EV Energy Input Hatch (4A)", Map.of(
+                SearchNodeKeys.COMPAT_FAMILIES, "gregtech",
+                SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "gregtech",
+                SearchNodeKeys.GREGTECH_ITEM_KIND, "machines",
+                SearchNodeKeys.GREGTECH_FACTS, "machine,power,inputs_eu",
+                SearchNodeKeys.GREGTECH_TIER, "ev",
+                SearchNodeKeys.GREGTECH_ENERGY_ROLE, "inputs_eu",
+                SearchNodeKeys.GREGTECH_EU_INPUT, "8192",
+                SearchNodeKeys.GREGTECH_AMPERAGE, "4"
+        ));
         SearchNode externalBattery = item("powah", "starter_cell", "Starter Cell", Map.of(
                 "powahItemKind", "energy",
                 "powahFacts", "stores_fe,energy",
@@ -65,6 +94,9 @@ class StructuredCompatSearchTest {
         index.addNode(tank);
         index.addNode(upgrade);
         index.addNode(terminal);
+        index.addNode(gregTechMacerator);
+        index.addNode(gregTechCircuit);
+        index.addNode(gregTechInputHatch);
         index.addNode(externalBattery);
         index.addNode(pickaxeBlueprint);
         SearchService service = SearchService.buildFrom(index, false);
@@ -78,10 +110,26 @@ class StructuredCompatSearchTest {
         assertOnlyContains(service.query("~fluid").get(NodeType.ITEM), tank, mixer);
         assertOnlyContains(service.query("?upgrade").get(NodeType.ITEM), upgrade, terminal);
         assertOnlyContains(service.query("?machine").get(NodeType.ITEM), tank, terminal);
+        assertOnlyContains(service.query("?gregtech").get(NodeType.ITEM), gregTechMacerator, terminal);
+        assertOnlyContains(service.query("?gregtechTier:lv").get(NodeType.ITEM), gregTechMacerator, tank);
+        assertTrue(service.query("?gregtechTier:lv").get(NodeType.ITEM).contains(gregTechCircuit));
+        assertOnlyContains(service.query("?gregtechKind:machines").get(NodeType.ITEM), gregTechMacerator, terminal);
+        assertOnlyContains(service.query("?gregtechFact:machine").get(NodeType.ITEM), gregTechMacerator, terminal);
+        assertOnlyContains(service.query("?gregtechCircuit:basic").get(NodeType.ITEM), gregTechCircuit, gregTechMacerator);
+        assertOnlyContains(service.query("?gregtechGrade:basic").get(NodeType.ITEM), gregTechCircuit, gregTechMacerator);
+        assertOnlyContains(service.query("?gregtechEnergy").get(NodeType.ITEM), gregTechMacerator, terminal);
+        assertTrue(service.query("?gregtechEnergy").get(NodeType.ITEM).contains(gregTechInputHatch));
+        assertOnlyContains(service.query("?gregtechEnergyRole:inputs_eu").get(NodeType.ITEM), gregTechInputHatch, gregTechMacerator);
+        assertOnlyContains(service.query("?gregtechEnergy:4a").get(NodeType.ITEM), gregTechInputHatch, gregTechMacerator);
+        assertOnlyContains(service.query("~inputs_eu").get(NodeType.ITEM), gregTechInputHatch, gregTechMacerator);
         assertOnlyContains(service.query("?tier:starter").get(NodeType.ITEM), externalBattery, tank);
         assertOnlyContains(service.query("?fact:stores_fe").get(NodeType.ITEM), externalBattery, terminal);
         assertOnlyContains(service.query("?capability:energy").get(NodeType.ITEM), externalBattery, tank);
+        assertTrue(service.query("?capability:energy").get(NodeType.ITEM).contains(gregTechMacerator));
+        assertTrue(service.query("?capability:energy").get(NodeType.ITEM).contains(gregTechInputHatch));
         assertOnlyContains(service.query("?energy").get(NodeType.ITEM), externalBattery, tank);
+        assertTrue(service.query("?energy").get(NodeType.ITEM).contains(gregTechMacerator));
+        assertTrue(service.query("?energy").get(NodeType.ITEM).contains(gregTechInputHatch));
         assertOnlyContains(service.query("?color:red").get(NodeType.ITEM), externalBattery, tank);
         assertOnlyContains(service.query("?gear").get(NodeType.ITEM), pickaxeBlueprint, terminal);
         assertOnlyContains(service.query("?part:pickaxe").get(NodeType.ITEM), pickaxeBlueprint, terminal);
@@ -116,8 +164,46 @@ class StructuredCompatSearchTest {
         assertFalse(createFamily.contains(vanillaRail));
     }
 
+    @Test
+    void gregTechEnrichedMetadataIsIndexedForPlainStructuredAndNumericSearch() {
+        GlobalIndex index = GlobalIndex.getInstance();
+
+        SearchNode macerator = enrichedGregTechItem("lv_macerator", "LV Macerator", Map.of(
+                SearchNodeKeys.ITEM_CLASS, "com.gregtechceu.gtceu.api.item.MetaMachineItem"
+        ));
+        SearchNode circuit = enrichedGregTechItem("basic_electronic_circuit", "Basic Electronic Circuit", Map.of(
+                SearchNodeKeys.TAGS, "gtceu:circuits,gtceu:circuits/lv"
+        ));
+        SearchNode inputHatch = enrichedGregTechItem("ev_energy_input_hatch_4a", "EV Energy Input Hatch (4A)", Map.of(
+                SearchNodeKeys.ITEM_CLASS, "com.gregtechceu.gtceu.api.item.MetaMachineItem"
+        ));
+
+        index.addNode(macerator);
+        index.addNode(circuit);
+        index.addNode(inputHatch);
+        SearchService service = SearchService.buildFrom(index, false);
+
+        assertTrue(service.query("~lv_tier").get(NodeType.ITEM).contains(macerator));
+        assertTrue(service.query("~basic_circuit").get(NodeType.ITEM).contains(circuit));
+        assertTrue(service.query("~inputs_eu").get(NodeType.ITEM).contains(inputHatch));
+        assertTrue(service.query("?gregtechTier:lv").get(NodeType.ITEM).contains(macerator));
+        assertTrue(service.query("?gregtechCircuit:basic").get(NodeType.ITEM).contains(circuit));
+        assertTrue(service.query("?gregtechEnergyRole:inputs_eu").get(NodeType.ITEM).contains(inputHatch));
+        assertTrue(service.query("=euconsume:32").get(NodeType.ITEM).contains(macerator));
+        assertTrue(service.query("=euinput:8192").get(NodeType.ITEM).contains(inputHatch));
+        assertFalse(service.query(">eugen:0").getOrDefault(NodeType.ITEM, List.of()).contains(macerator));
+    }
+
     private static SearchNode item(String namespace, String path, String displayName, Map<String, String> metadata) {
         return new SearchNode(new ResourceLocation(namespace, path), NodeType.ITEM, displayName, 0, 0, metadata);
+    }
+
+    private static SearchNode enrichedGregTechItem(String path, String displayName, Map<String, String> metadata) {
+        Map<String, String> mutable = new HashMap<>(metadata);
+        mutable.putIfAbsent(SearchNodeKeys.MOD_ID, "gtceu");
+        ResourceLocation id = new ResourceLocation("gtceu", path);
+        GregTechCompat.enrichItem(id, mutable);
+        return new SearchNode(id, NodeType.ITEM, displayName, 0, 0, Map.copyOf(mutable));
     }
 
     private static void assertOnlyContains(List<SearchNode> results, SearchNode expected, SearchNode unexpected) {
