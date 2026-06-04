@@ -154,6 +154,7 @@ public final class AmiOntologyKinds {
             rule("tools", "harvest", "axes", "Axes", c -> c.pathToken("axe") && !c.pathToken("pickaxe")),
             rule("tools", "harvest", "shovels", "Shovels", c -> c.pathToken("shovel")),
             rule("tools", "harvest", "hoes", "Hoes", c -> c.pathToken("hoe")),
+            rule("tools", "harvest", "scythes", "Scythes & Sickles", c -> c.pathToken("scythe", "sickle")),
             rule("tools", "harvest", "hammers", "Hammers", c -> c.pathToken("hammer")),
             rule("tools", "harvest", "knives", "Knives", c -> c.pathToken("knife", "needle")),
             rule("tools", "melee", "swords", "Swords", c -> c.pathToken("sword")),

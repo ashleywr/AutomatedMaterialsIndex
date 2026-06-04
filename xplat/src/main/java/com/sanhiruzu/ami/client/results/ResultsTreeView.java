@@ -595,17 +595,16 @@ public class ResultsTreeView {
         }
 
         // Category-level nodes use the ontology's designated icon item.
-        for (AmiOntology.Category cat : AmiOntology.CATEGORIES) {
-            if (cat.id.equals(node.getKey())) {
-                ResourceLocation iconId = ResourceLocation.tryParse(cat.iconItemId);
-                if (iconId != null) {
-                    Item item = BuiltInRegistries.ITEM.get(iconId);
-                    if (item != null && item != net.minecraft.world.item.Items.AIR) {
-                        return new ItemStack(item);
-                    }
+        if (AmiOntology.isDefinedCategoryId(node.getKey())) {
+            AmiOntology.Category cat = AmiOntology.categoryForId(node.getKey());
+            ResourceLocation iconId = ResourceLocation.tryParse(cat.iconItemId);
+            if (iconId != null) {
+                Item item = BuiltInRegistries.ITEM.get(iconId);
+                if (item != null && item != net.minecraft.world.item.Items.AIR) {
+                    return new ItemStack(item);
                 }
-                return ItemStack.EMPTY;
             }
+            return ItemStack.EMPTY;
         }
         // All other groups: use the alphabetically-first resolvable item in the subtree.
         SearchNode rep = getRepresentative(node);

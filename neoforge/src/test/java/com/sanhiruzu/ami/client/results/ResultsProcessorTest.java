@@ -896,6 +896,35 @@ public class ResultsProcessorTest {
     }
 
     @Test
+    void categoryGroupingCondensesRechiseledMaterialFamilies() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.REGISTRY,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        Map<String, String> meta = Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "full_block",
+                SearchNodeKeys.COLLAPSE_FAMILY, "rechiseled:acacia_planks",
+                SearchNodeKeys.COLLAPSE_LABEL, "Acacia Planks",
+                SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed"
+        );
+
+        List<TreeNode> root = processor.process(List.of(
+                item("acacia_planks_beams", "Acacia Plank Beams", meta),
+                item("acacia_planks_bricks", "Acacia Plank Bricks", meta),
+                item("acacia_planks_crate", "Acacia Planks Crate", meta),
+                item("acacia_planks_tiles", "Acacia Plank Tiles", meta)
+        ));
+
+        assertTrue(hasKeyStartingWith(root, "cardinality:family:rechiseled:acacia_planks"),
+                ResultsTreeDump.dump(root));
+    }
+
+    @Test
     void categoryGroupingCollapsesCreativeStackVariants() {
         ResultsProcessor processor = new ResultsProcessor(
                 ResultsProcessor.SortField.REGISTRY,

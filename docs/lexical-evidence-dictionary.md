@@ -28,31 +28,32 @@ Machine-readable draft: `neoforge/src/test/resources/ami/lexical_evidence_dictio
 | template | blueprint, schematic, template, mold | template | tech/templates | strong | Should outrank incidental ingredient signals. |
 | wood_block | log, logs, planks, stem, stems, hyphae, stripped | log, wood_block | nature/wood | strong | Best when path suffix or block tags agree. |
 | wood_material_variant | pine, palm, maple, cherry, willow, mahogany, rosewood, runewood, oak, spruce, birch, jungle, acacia, mangrove, crimson, warped | none | none | weak | Material/family evidence only. Do not use as category evidence by itself. |
-| flora | sapling, saplings, leaves, leaf, flower, flowers, bush, shrub, sprouts, roots, vine, vines, moss, coral, seagrass, kelp, cactus, fern, clover | flower, leaves, nature_misc | nature/flora | strong | `leaf` is weaker than `leaves`; enchanted-book names can contain leaf effects. |
-| seeds | seed, seeds | seed | nature/seeds | medium | Gate out pouches, buckets, oils, crystal seeds, machines, and technical seeds. |
+| flora | leaves, leaf, flower, flowers, bush, shrub, sprouts, roots, vine, vines, moss, coral, seagrass, kelp, cactus, fern, clover | flower, leaves, nature_misc | nature/flora | strong | `leaf` is weaker than `leaves`; enchanted-book names can contain leaf effects. |
+| seeds | seed, seeds, sapling, saplings | seed, sapling tags | nature/seeds | medium | Gate out pouches, buckets, oils, crystal seeds, machines, and technical seeds. |
 | crops | crop, crops, wheat, carrot, potato, beetroot, tomato, cabbage, onion, pepper, cucumber, grape, berry, berries, rice | crop | nature/crops | medium | Many are also food tokens; placeable/block class/tags should decide crops vs snacks. |
 | fungi | mushroom, mushrooms, fungus, fungi, mycelium, nylium | fungi | nature/fungi | strong | Mushroom building variants may still be masonry/decor. |
 | food_meal | soup, stew, sandwich, burger, pizza, pasta, noodle, noodles, rice, kebab, salad, dumpling, dumplings, casserole, lasagna, quiche, plate, bowl, meal | edible, food_meal | nature/meals | strong | `bowl` as item is utility/container unless food evidence exists. |
 | food_snack | cake, pie, cookie, bread, tart, pudding, icecream, preserve, preserves, jam, jelly, candy, chocolate, berry, berries, fruit, apple | edible | nature/snacks | medium | Placeable cakes/pies should stay food/nature, not Full Blocks. |
 | food_drink | juice, soda, beer, wine, coffee, tea, cider, milk, bottle, drink, smoothie | food_drink | nature/drinks | medium | `bottle` is ambiguous; needs food/drink context. |
 | food_protein | beef, chicken, pork, porkchop, cod, salmon, rabbit, mutton, fish, meat, bacon, ham, sausage, ribs, wing, wings, venison | food_protein | nature/proteins | strong | Entity/body-part mod items may need ingredient/mob-drop evidence instead. |
-| organic_ingredient | string, feather, feathers, bone, bones, leather, hide, scute, honeycomb, wool, egg, eggs | ingredient_organic | ingredients/organic | strong | Exact tokens only. |
+| organic_ingredient | string, feather, feathers, bone, bones, leather, hide, scute, honeycomb, wool, egg, eggs, crumb, crumbs, scale, scales, sprig, thread | ingredient_organic | ingredients/organic | strong | Exact tokens only. |
 | natural_shell | shell, shells | ingredient_organic | ingredients/organic | weak | Only if no ammo/firearm context. Natural shells should not become projectile. |
-| mineral_ingredient | flint, clay, shard, crystal, crystals, prismarine, pottery, sherd, brick, bricks | ingredient_mineral | ingredients/mineral | medium | `crystal`, `shard`, and `brick` are often category-dependent. |
+| mineral_ingredient | flint, clay, shard, crystal, crystals, quartz, prismarine, pottery, sherd, brick, bricks, salt, salts, rock | ingredient_mineral | ingredients/mineral | medium | `crystal`, `shard`, `salt`, and `brick` are often category-dependent. |
 | dyes | dye, dyes, pigment, pigments, ink | ingredient_dye | ingredients/dyes | strong | `dye` should be token/exact, not substring. |
 | melee_weapon | sword, swords, dagger, daggers, spear, spears, mace, club, katana | melee_weapon | tools/melee | medium | Some weapon words also appear in decorative names. |
 | ranged_weapon | bow, bows, crossbow, crossbows, gun, rifle, pistol, musket, cannon | ranged_weapon | tools/ranged | medium | `cannon` can also mean machine/transport part. |
 | ammo_projectile | arrow, arrows, bolt, bolts, bullet, bullets, round, rounds, cartridge, cartridges, grenade, rocket | projectile | tools/ammo | strong | Exact tokens only. |
 | ammo_shell | shell, shells | projectile | tools/ammo | contextual | Require ammo, gun, shotgun, cannon, autocannon, artillery, mortar, munition, or weapon context. |
 | harvest_tool | pickaxe, pickaxes, shovel, shovels, axe, axes, hoe, hoes, sickle, scythe, shears | harvest_tool | tools/harvest | strong | `axe` should be token only. |
-| utility_tool | wrench, hammer, brush, fishing, rod, flint, steel | utility_tool | tools/utility | medium | `hammer`, `flint`, and `steel` are ambiguous without tag/item-type evidence. |
+| utility_tool | wrench, hammer, mallet, brush, fishing, rod, flint, steel | utility_tool | tools/utility | medium | `hammer`, `mallet`, `flint`, and `steel` are ambiguous without tag/item-type evidence. |
+| utility_container | pouch, satchel, dish, bottle, bottles, flask | utility_misc | utility/misc | medium | Non-food bottles/flasks are generic utility unless stronger potion, food, or magic evidence exists. |
 | armor | helmet, helmets, chestplate, chestplates, leggings, boots, armor, elytra | armor_head/chest/legs/feet | armor/* | strong | Should not imply organic ingredient due to `egg` inside `leggings`. |
 | animal_armor | horse, harness, saddle | armor_animal | armor/animal | medium | `saddle` may be utility unless wearable/entity equipment facts exist. |
 | navigation | compass, map, maps, clock, spyglass | utility_navigation | utility/navigation | strong | Exact token only. |
 | medical | bandage, medkit, syringe, morphine, adrenaline, splint | utility_medical | utility/medical | strong | Good lexical evidence. |
 | currency | coin, coins, cash, money, credit, card | utility_currency | utility/currency | medium | `card` can be tech/card/module. |
 | magic_artifact | spell, wand, staff, scroll, totem, charm, relic | magic_artifact | magic/artifacts | medium | `charm` may also be curio. |
-| magic_reagent | rune, runes, essence, pearl, blaze, ghast, phantom, membrane, wart, slime | magic_reagent | magic/reagents | medium | `rune` token only; do not match `runewood`. `essence` can be very broad. |
+| magic_reagent | rune, runes, essence, pearl, blaze, ghast, phantom, membrane, wart, slime, stardust | magic_reagent | magic/reagents | medium | `rune` token only; do not match `runewood`. `essence` can be very broad. |
 | spawn_egg | spawn, egg | spawn_egg | bestiary/* | contextual | Prefer actual `SpawnEggItem`; lexical fallback only for full `spawn_egg` pattern. |
 
 ## Ambiguous Or Review-Only Tokens
@@ -75,4 +76,3 @@ These should not be standalone category evidence:
 | leaf | Flora in many cases, but also enchant/effect names. |
 | wood-family names | Pine, maple, runewood, etc. should influence family/material grouping, not primary category. |
 | colors | Color names should almost never decide category. |
-

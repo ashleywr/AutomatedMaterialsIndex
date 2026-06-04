@@ -195,7 +195,7 @@ class GregTechCompatTest {
     }
 
     @Test
-    void gregTechObviousFoodEquipmentAndToolsUseSemanticTopLevelCategories() {
+    void gregTechFoodArmorWeaponsAndHarvestToolsUseSemanticCategories() {
         Map<String, String> food = meta("gtceu");
         CompatFamilyDetector.detect(new ResourceLocation("gtceu", "chocolate_bar"), food);
 
@@ -204,6 +204,7 @@ class GregTechCompatTest {
 
         Map<String, String> weapon = meta("gtceu");
         CompatFamilyDetector.detect(new ResourceLocation("gtceu", "nano_saber"), weapon);
+        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "nano_saber"), weapon);
 
         Map<String, String> tool = meta("gtceu");
         CompatFamilyDetector.detect(new ResourceLocation("gtceu", "lv_drill"), tool);
@@ -212,9 +213,39 @@ class GregTechCompatTest {
         assertEquals("nature", resolve("gtceu:chocolate_bar", food, ItemFacet.EDIBLE).categoryId());
         assertEquals("armor", resolve("gtceu:nano_chestplate", armor, ItemFacet.ARMOR_CHEST).categoryId());
         assertEquals("tools", resolve("gtceu:nano_saber", weapon, ItemFacet.MELEE_WEAPON).categoryId());
+        assertEquals("melee", resolve("gtceu:nano_saber", weapon, ItemFacet.MELEE_WEAPON).subcategoryId());
         assertEquals("tools", resolve("gtceu:lv_drill", tool, ItemFacet.HARVEST_TOOL).categoryId());
+        assertEquals("harvest", resolve("gtceu:lv_drill", tool, ItemFacet.HARVEST_TOOL).subcategoryId());
         assertEquals("tools", tool.get(SearchNodeKeys.GREGTECH_ITEM_KIND));
         assertEquals("lv", tool.get(SearchNodeKeys.GREGTECH_TIER));
+    }
+
+    @Test
+    void gregTechWorkUtilityToolsRouteToGregTechToolsFromConcreteFamilyFacts() {
+        Map<String, String> screwdriver = meta("gtceu");
+        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "screwdriver"), screwdriver);
+
+        Map<String, String> wireCutters = meta("gtceu");
+        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "wire_cutters"), wireCutters);
+
+        Map<String, String> mortar = meta("gtceu");
+        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "flint_mortar"), mortar);
+
+        Map<String, String> saw = meta("gtceu");
+        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "steel_saw"), saw);
+
+        assertEquals("tools", screwdriver.get(SearchNodeKeys.GREGTECH_ITEM_KIND));
+        assertEquals("tools", wireCutters.get(SearchNodeKeys.GREGTECH_ITEM_KIND));
+        assertEquals("tools", mortar.get(SearchNodeKeys.GREGTECH_ITEM_KIND));
+        assertEquals("tools", saw.get(SearchNodeKeys.GREGTECH_ITEM_KIND));
+        assertEquals("gregtech", resolve("gtceu:screwdriver", screwdriver, ItemFacet.UTILITY_TOOL).categoryId());
+        assertEquals("tools", resolve("gtceu:screwdriver", screwdriver, ItemFacet.UTILITY_TOOL).subcategoryId());
+        assertEquals("gregtech", resolve("gtceu:wire_cutters", wireCutters, ItemFacet.UTILITY_TOOL).categoryId());
+        assertEquals("tools", resolve("gtceu:wire_cutters", wireCutters, ItemFacet.UTILITY_TOOL).subcategoryId());
+        assertEquals("gregtech", resolve("gtceu:flint_mortar", mortar).categoryId());
+        assertEquals("tools", resolve("gtceu:flint_mortar", mortar).subcategoryId());
+        assertEquals("tools", resolve("gtceu:steel_saw", saw, ItemFacet.HARVEST_TOOL).categoryId());
+        assertEquals("harvest", resolve("gtceu:steel_saw", saw, ItemFacet.HARVEST_TOOL).subcategoryId());
     }
 
     @Test

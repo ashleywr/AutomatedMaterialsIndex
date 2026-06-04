@@ -32,7 +32,7 @@ public final class LiteralResolver implements IQueryResolver {
 
     @Override
     public Map<NodeType, List<SearchNode>> resolve(String query) {
-        String lower = query.toLowerCase();
+        String lower = query.toLowerCase(Locale.ROOT);
 
         Set<SearchNode> prefixHits = new LinkedHashSet<>(index.prefixSearch(lower));
         List<SearchNode> substringHits = new ArrayList<>();

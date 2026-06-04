@@ -1,5 +1,9 @@
 package com.sanhiruzu.ami.client.results;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.sanhiruzu.ami.client.AMICheatMode;
 import com.sanhiruzu.ami.api.AmiContextMenuAction;
 import com.sanhiruzu.ami.api.AmiItemContext;
@@ -36,6 +40,9 @@ import net.minecraft.world.item.Items;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -58,6 +65,7 @@ import java.util.logging.Logger;
  */
 public class ResultContextMenuActionBuilder {
     private static final Logger LOGGER = Logger.getLogger(ResultContextMenuActionBuilder.class.getName());
+    private static final Gson JSON = new GsonBuilder().setPrettyPrinting().create();
     public static final String COPY_TOOLTIP = "ami:copy_tooltip";
     public static final String CRAFT_ONE = "ami:craft_one";
     public static final String CRAFT_STACK = "ami:craft_stack";
@@ -102,8 +110,11 @@ public class ResultContextMenuActionBuilder {
     public static final String COPY_FTB_ITEM_TASK = "ami:copy_ftb_item_task";
     public static final String COPY_FTB_QUEST_SKELETON = "ami:copy_ftb_quest_skeleton";
     public static final String COPY_KUBEJS_RECIPE_STUB = "ami:copy_kubejs_recipe_stub";
+    public static final String COPY_KUBEJS_RECIPE_REMOVAL_SCRIPT = "ami:copy_kubejs_recipe_removal_script";
     public static final String COPY_GAMESTAGE_CONDITION = "ami:copy_gamestage_condition";
     public static final String COPY_PACK_AUTHOR_REPORT = "ami:copy_pack_author_report";
+    public static final String COPY_TAXONOMY_TEMPLATE = "ami:copy_taxonomy_template";
+    public static final String CREATE_PACK_FILES = "ami:create_pack_files";
     private static final int MAX_GROUP_AUTHORING_ITEMS = 64;
     private static final int MAX_GROUP_REPORT_ITEMS = 512;
 
@@ -120,8 +131,8 @@ public class ResultContextMenuActionBuilder {
             GROUP_TOGGLE, FILTER_CATEGORY, COPY_GROUP_KEY,
             START_CATEGORY_FIX, EDIT_CATEGORY_FIX, APPLY_CATEGORY_FIX, CLEAR_ITEM_FIX,
             QUESTS_FOR_ITEM, OPEN_QUEST, COPY_QUEST_MATCHES,
-            COPY_FTB_ITEM_TASK, COPY_FTB_QUEST_SKELETON, COPY_KUBEJS_RECIPE_STUB, COPY_GAMESTAGE_CONDITION,
-            COPY_PACK_AUTHOR_REPORT
+            COPY_FTB_ITEM_TASK, COPY_FTB_QUEST_SKELETON, COPY_KUBEJS_RECIPE_STUB, COPY_KUBEJS_RECIPE_REMOVAL_SCRIPT, COPY_GAMESTAGE_CONDITION,
+            COPY_PACK_AUTHOR_REPORT, COPY_TAXONOMY_TEMPLATE, CREATE_PACK_FILES
     );
     public static final String DEFAULT_ACTIONS = String.join(",",
             COPY_TOOLTIP,
@@ -711,6 +722,130 @@ public class ResultContextMenuActionBuilder {
                 + "})";
     }
 
+    static String kubeJsRecipeRemovalScript(String title, List<SearchNode> nodes, boolean capped) {
+        List<SearchNode> items = nodes == null ? List.of() : nodes.stream()
+                .filter(node -> node != null && node.id() != null && node.type() == NodeType.ITEM)
+                .limit(MAX_GROUP_AUTHORING_ITEMS)
+                .toList();
+        if (items.isEmpty()) {
+            return "";
+        }
+
+        String safeTitle = title == null || title.isBlank() ? "Selected Items" : title.trim();
+        StringBuilder out = new StringBuilder();
+        out.append("// AMI export: remove recipes for ").append(safeTitle).append(System.lineSeparator());
+        out.append("// Review each line before using it in a pack.").append(System.lineSeparator());
+        if (capped) {
+            out.append("// Export capped at ").append(MAX_GROUP_AUTHORING_ITEMS).append(" items.").append(System.lineSeparator());
+        }
+        out.append("ServerEvents.recipes(event => {").append(System.lineSeparator());
+        for (SearchNode item : items) {
+            out.append("  event.remove({ output: '").append(item.id()).append("' })").append(System.lineSeparator());
+        }
+        out.append("})");
+        return out.toString();
+    }
+
+    static List<PackAuthorExportFile> packAuthorGroupFiles(TreeNode groupNode, List<SearchNode> nodes, boolean capped) {
+        List<SearchNode> items = nodes == null ? List.of() : nodes.stream()
+                .filter(node -> node != null && node.id() != null && node.type() == NodeType.ITEM)
+                .limit(MAX_GROUP_AUTHORING_ITEMS)
+                .toList();
+        if (items.isEmpty()) {
+            return List.of();
+        }
+
+        String title = groupTitle(groupNode);
+        String slug = normalizeTaxonomyId(title, "ami_group");
+        return List.of(
+                new PackAuthorExportFile(
+                        Path.of("ami", "ami-export-" + slug + "-README.md"),
+                        packAuthorReadme(groupNode, items, capped)
+                ),
+                new PackAuthorExportFile(
+                        Path.of("ami", "taxonomy", "ami-export-" + slug + ".json"),
+                        customTaxonomyTemplate(groupNode, items, capped)
+                ),
+                new PackAuthorExportFile(
+                        Path.of("kubejs", "server_scripts", "ami", "ami-export-" + slug + ".js"),
+                        kubeJsRecipeRemovalScript(title, items, capped)
+                )
+        );
+    }
+
+    static String packAuthorReadme(TreeNode groupNode, List<SearchNode> nodes, boolean capped) {
+        List<SearchNode> items = nodes == null ? List.of() : nodes.stream()
+                .filter(node -> node != null && node.id() != null && node.type() == NodeType.ITEM)
+                .limit(MAX_GROUP_AUTHORING_ITEMS)
+                .toList();
+        if (items.isEmpty()) {
+            return "";
+        }
+
+        String title = groupTitle(groupNode);
+        String slug = normalizeTaxonomyId(title, "ami_group");
+        StringBuilder out = new StringBuilder();
+        out.append("# AMI Pack Export: ").append(title).append(System.lineSeparator()).append(System.lineSeparator());
+        out.append("AMI created these files for the selected result group:").append(System.lineSeparator()).append(System.lineSeparator());
+        out.append("- `ami/taxonomy/ami-export-").append(slug).append(".json`").append(System.lineSeparator());
+        out.append("  - Use this to move the group into a category or keep similar items together.").append(System.lineSeparator());
+        out.append("- `kubejs/server_scripts/ami/ami-export-").append(slug).append(".js`").append(System.lineSeparator());
+        out.append("  - Use this to remove the current recipes for these items before replacing them.").append(System.lineSeparator()).append(System.lineSeparator());
+        out.append("## What to edit first").append(System.lineSeparator()).append(System.lineSeparator());
+        out.append("1. Open the taxonomy JSON if the group belongs in a different category or needs a broader match.").append(System.lineSeparator());
+        out.append("2. Open the KubeJS script if you want to hide or replace the recipes for this group.").append(System.lineSeparator());
+        out.append("3. Review the item list below before shipping the files in a pack.").append(System.lineSeparator()).append(System.lineSeparator());
+        out.append("## Exported items").append(System.lineSeparator()).append(System.lineSeparator());
+        for (SearchNode item : items) {
+            out.append("- `").append(item.id()).append("`");
+            String displayName = item.displayName() == null ? "" : item.displayName().trim();
+            if (!displayName.isBlank()) {
+                out.append(" — ").append(displayName);
+            }
+            out.append(System.lineSeparator());
+        }
+        if (capped) {
+            out.append(System.lineSeparator())
+                    .append("AMI capped this export at ")
+                    .append(MAX_GROUP_AUTHORING_ITEMS)
+                    .append(" items. If this group should cover more items, widen the taxonomy match before relying on it.")
+                    .append(System.lineSeparator());
+        }
+        return out.toString();
+    }
+
+    static List<Path> writePackAuthorGroupFiles(TreeNode groupNode, List<SearchNode> nodes, boolean capped, Path gameDir) throws IOException {
+        if (gameDir == null) {
+            return List.of();
+        }
+        List<Path> written = new ArrayList<>();
+        for (PackAuthorExportFile export : packAuthorGroupFiles(groupNode, nodes, capped)) {
+            Path target = nextAvailablePath(gameDir, export.relativePath());
+            Files.createDirectories(target.getParent());
+            Files.writeString(target, export.content(), StandardCharsets.UTF_8);
+            written.add(target);
+        }
+        return List.copyOf(written);
+    }
+
+    private static void writePackAuthorGroupFilesLater(TreeNode groupNode, List<SearchNode> nodes, boolean capped) {
+        try {
+            Path gameDir = Services.PLATFORM.getGameDir();
+            List<Path> written = writePackAuthorGroupFiles(groupNode, nodes, capped, gameDir);
+            if (written.isEmpty()) {
+                showClientStatus(Component.translatable("ami.context.pack_files_failed"));
+                return;
+            }
+            String summary = written.stream()
+                    .map(path -> describeGameRelativePath(gameDir, path))
+                    .collect(java.util.stream.Collectors.joining(", "));
+            showClientStatus(Component.translatable("ami.context.pack_files_created", summary));
+        } catch (IOException | RuntimeException e) {
+            LOGGER.log(Level.WARNING, "AMI: Failed to create pack files for group export", e);
+            showClientStatus(Component.translatable("ami.context.pack_files_failed"));
+        }
+    }
+
     static String gameStageConditionStub(ResourceLocation outputId) {
         if (outputId == null) {
             return "";
@@ -728,6 +863,70 @@ public class ResultContextMenuActionBuilder {
                 + "    B: 'minecraft:crafting_table'" + System.lineSeparator()
                 + "  }).stage(stage)" + System.lineSeparator()
                 + "})";
+    }
+
+    static String customTaxonomyTemplate(TreeNode groupNode, List<SearchNode> nodes, boolean capped) {
+        List<SearchNode> items = nodes == null ? List.of() : nodes.stream()
+                .filter(node -> node != null && node.id() != null && node.type() == NodeType.ITEM)
+                .limit(MAX_GROUP_AUTHORING_ITEMS)
+                .toList();
+        if (items.isEmpty()) {
+            return "";
+        }
+
+        String title = groupTitle(groupNode);
+        TaxonomyTemplateTarget target = taxonomyTemplateTarget(groupNode, items);
+
+        JsonObject root = new JsonObject();
+        JsonArray notes = new JsonArray();
+        notes.add("Starter export from AMI pack-author mode.");
+        notes.add("This export intentionally matches exact item IDs first; broaden to mods, paths, or tags after review.");
+        if (capped) {
+            notes.add("Export capped at " + MAX_GROUP_AUTHORING_ITEMS + " items; broaden the match before relying on it.");
+        }
+        if (target.categoryNeedsDefinition()) {
+            notes.add("Edit the generated category id/label if you want a different name or icon.");
+        }
+        root.add("notes", notes);
+
+        if (target.categoryNeedsDefinition()) {
+            JsonObject categories = new JsonObject();
+            JsonObject category = new JsonObject();
+            category.addProperty("label", target.categoryLabel());
+            category.addProperty("iconItem", "minecraft:paper");
+            if (!target.subcategoryId().isBlank()) {
+                JsonObject subcategories = new JsonObject();
+                subcategories.addProperty(target.subcategoryId(), target.subcategoryLabel());
+                category.add("subcategories", subcategories);
+            }
+            categories.add(target.categoryId(), category);
+            root.add("categories", categories);
+        }
+
+        JsonObject rule = new JsonObject();
+        JsonObject match = new JsonObject();
+        JsonArray ids = new JsonArray();
+        items.stream()
+                .map(SearchNode::id)
+                .map(ResourceLocation::toString)
+                .sorted()
+                .forEach(ids::add);
+        match.add("ids", ids);
+        rule.add("match", match);
+        rule.addProperty("category", target.categoryId());
+        if (!target.subcategoryId().isBlank()) {
+            rule.addProperty("subcategory", target.subcategoryId());
+        }
+
+        JsonObject metadata = commonTaxonomyMetadata(items, title);
+        if (metadata.size() > 0) {
+            rule.add("metadata", metadata);
+        }
+
+        JsonArray rules = new JsonArray();
+        rules.add(rule);
+        root.add("rules", rules);
+        return JSON.toJson(root);
     }
 
     static String questMatchesSummary(ResourceLocation itemId, List<AmiQuestItemMatch> matches) {
@@ -907,13 +1106,37 @@ public class ResultContextMenuActionBuilder {
         }
 
         List<SearchNode> authoringItems = collectAuthoringItems(node, MAX_GROUP_AUTHORING_ITEMS);
+        boolean capped = countAuthoringItems(node, MAX_GROUP_AUTHORING_ITEMS + 1) > MAX_GROUP_AUTHORING_ITEMS;
+        if (isPackAuthorMode() && !authoringItems.isEmpty() && policy.allowsDevGroup(node, CREATE_PACK_FILES)) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    CREATE_PACK_FILES,
+                    Component.translatable("ami.context.create_pack_files"),
+                    'a',
+                    () -> writePackAuthorGroupFilesLater(node, authoringItems, capped)
+            ));
+        }
         if (isPackAuthorMode() && !authoringItems.isEmpty() && policy.allowsDevGroup(node, COPY_FTB_QUEST_SKELETON)) {
-            boolean capped = countAuthoringItems(node, MAX_GROUP_AUTHORING_ITEMS + 1) > MAX_GROUP_AUTHORING_ITEMS;
             actions.add(ResultContextMenu.Action.enabled(
                     COPY_FTB_QUEST_SKELETON,
                     Component.translatable("ami.context.copy_ftb_quest_skeleton"),
                     's',
                     () -> AmiClipboardHelper.copyToClipboard(ftbQuestSkeleton(groupTitle(node), authoringItems, capped))
+            ));
+        }
+        if (isPackAuthorMode() && !authoringItems.isEmpty() && policy.allowsDevGroup(node, COPY_TAXONOMY_TEMPLATE)) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    COPY_TAXONOMY_TEMPLATE,
+                    Component.translatable("ami.context.copy_taxonomy_template"),
+                    'x',
+                    () -> AmiClipboardHelper.copyToClipboard(customTaxonomyTemplate(node, authoringItems, capped))
+            ));
+        }
+        if (isPackAuthorMode() && !authoringItems.isEmpty() && policy.allowsDevGroup(node, COPY_KUBEJS_RECIPE_REMOVAL_SCRIPT)) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    COPY_KUBEJS_RECIPE_REMOVAL_SCRIPT,
+                    Component.translatable("ami.context.copy_kubejs_recipe_removal_script"),
+                    'j',
+                    () -> AmiClipboardHelper.copyToClipboard(kubeJsRecipeRemovalScript(groupTitle(node), authoringItems, capped))
             ));
         }
 
@@ -1044,6 +1267,155 @@ public class ResultContextMenuActionBuilder {
         return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
+    private static TaxonomyTemplateTarget taxonomyTemplateTarget(TreeNode groupNode, List<SearchNode> items) {
+        Optional<CategoryTarget> directTarget = categoryTargetFor(groupNode == null ? null : groupNode.getKey());
+        if (directTarget.isPresent()) {
+            CategoryTarget target = directTarget.get();
+            String subcategoryLabel = target.subcategoryId().isBlank()
+                    ? ""
+                    : titleCaseUnderscorePath(target.subcategoryId());
+            return new TaxonomyTemplateTarget(
+                    target.categoryId(),
+                    target.subcategoryId(),
+                    AmiOntology.categoryForId(target.categoryId()).displayName().getString(),
+                    subcategoryLabel,
+                    !AmiOntology.isDefinedCategoryId(target.categoryId())
+            );
+        }
+
+        String inferredCategory = dominantMetadata(items, SearchNodeKeys.ONTOLOGY_CATEGORY).orElse("");
+        String inferredSubcategory = dominantMetadata(items, SearchNodeKeys.ONTOLOGY_SUBCATEGORY).orElse("");
+        if (!inferredCategory.isBlank()) {
+            return new TaxonomyTemplateTarget(
+                    inferredCategory,
+                    inferredSubcategory,
+                    AmiOntology.categoryForId(inferredCategory).displayName().getString(),
+                    inferredSubcategory.isBlank() ? "" : titleCaseUnderscorePath(inferredSubcategory),
+                    !AmiOntology.isDefinedCategoryId(inferredCategory)
+            );
+        }
+
+        String title = groupTitle(groupNode);
+        return new TaxonomyTemplateTarget(
+                normalizeTaxonomyId(title, "replace_category_id"),
+                "group",
+                title,
+                "Group",
+                true
+        );
+    }
+
+    private static JsonObject commonTaxonomyMetadata(List<SearchNode> items, String title) {
+        JsonObject metadata = new JsonObject();
+        addCommonMetadata(metadata, items, SearchNodeKeys.COLLAPSE_FAMILY);
+        addCommonMetadata(metadata, items, SearchNodeKeys.VARIANT_COLLAPSE_MODE);
+        addCommonMetadata(metadata, items, SearchNodeKeys.MATERIAL_GROUP);
+        addCommonMetadata(metadata, items, SearchNodeKeys.VARIANT_GROUP);
+        addCommonMetadata(metadata, items, SearchNodeKeys.BLOCKS_MATERIAL);
+
+        String collapseLabel = commonMetadata(items, SearchNodeKeys.COLLAPSE_LABEL).orElse("");
+        if (collapseLabel.isBlank() && !commonMetadata(items, SearchNodeKeys.COLLAPSE_FAMILY).orElse("").isBlank()) {
+            collapseLabel = title == null ? "" : title.trim();
+        }
+        if (!collapseLabel.isBlank()) {
+            metadata.addProperty(SearchNodeKeys.COLLAPSE_LABEL, collapseLabel);
+        }
+        return metadata;
+    }
+
+    private static void addCommonMetadata(JsonObject out, List<SearchNode> items, String key) {
+        commonMetadata(items, key).ifPresent(value -> out.addProperty(key, value));
+    }
+
+    private static Optional<String> commonMetadata(List<SearchNode> items, String key) {
+        if (items == null || items.isEmpty() || key == null || key.isBlank()) {
+            return Optional.empty();
+        }
+        String common = null;
+        for (SearchNode item : items) {
+            String value = item == null ? "" : item.meta(key, "");
+            if (value.isBlank()) {
+                return Optional.empty();
+            }
+            if (common == null) {
+                common = value;
+            } else if (!common.equals(value)) {
+                return Optional.empty();
+            }
+        }
+        return Optional.ofNullable(common);
+    }
+
+    private static Optional<String> dominantMetadata(List<SearchNode> items, String key) {
+        if (items == null || items.isEmpty() || key == null || key.isBlank()) {
+            return Optional.empty();
+        }
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (SearchNode item : items) {
+            String value = item == null ? "" : item.meta(key, "").trim().toLowerCase(Locale.ROOT);
+            if (!value.isBlank()) {
+                counts.merge(value, 1, Integer::sum);
+            }
+        }
+        return counts.entrySet().stream()
+                .max(Map.Entry.<String, Integer>comparingByValue().thenComparing(Map.Entry::getKey))
+                .map(Map.Entry::getKey);
+    }
+
+    private static String normalizeTaxonomyId(String raw, String fallback) {
+        if (raw == null) {
+            return fallback;
+        }
+        String normalized = raw.trim().toLowerCase(Locale.ROOT)
+                .replace(' ', '_')
+                .replace('-', '_')
+                .replace('/', '_');
+        StringBuilder out = new StringBuilder(normalized.length());
+        for (int i = 0; i < normalized.length(); i++) {
+            char c = normalized.charAt(i);
+            if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == ':') {
+                out.append(c);
+            }
+        }
+        return out.isEmpty() ? fallback : out.toString();
+    }
+
+    private static Path nextAvailablePath(Path baseDir, Path relativePath) {
+        Path candidate = baseDir.resolve(relativePath);
+        if (!Files.exists(candidate)) {
+            return candidate;
+        }
+
+        String fileName = relativePath.getFileName().toString();
+        int dot = fileName.lastIndexOf('.');
+        String stem = dot >= 0 ? fileName.substring(0, dot) : fileName;
+        String extension = dot >= 0 ? fileName.substring(dot) : "";
+        Path parent = relativePath.getParent();
+        for (int index = 2; index < 1000; index++) {
+            Path numbered = parent == null
+                    ? Path.of(stem + "-" + index + extension)
+                    : parent.resolve(stem + "-" + index + extension);
+            candidate = baseDir.resolve(numbered);
+            if (!Files.exists(candidate)) {
+                return candidate;
+            }
+        }
+        return candidate;
+    }
+
+    private static String describeGameRelativePath(Path gameDir, Path path) {
+        if (path == null) {
+            return "";
+        }
+        if (gameDir != null) {
+            try {
+                return gameDir.relativize(path).toString().replace('\\', '/');
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        return path.toString().replace('\\', '/');
+    }
+
     private static Optional<CategoryTarget> categoryTargetFor(String groupKey) {
         if (groupKey == null || groupKey.isBlank()) return Optional.empty();
 
@@ -1054,12 +1426,13 @@ public class ResultContextMenuActionBuilder {
             subcategoryId = "";
         }
 
-        for (AmiOntology.Category category : AmiOntology.CATEGORIES) {
-            if (!category.id.equals(categoryId)) continue;
-            if (subcategoryId.isBlank() || hasSubcategory(category, subcategoryId)) {
-                return Optional.of(new CategoryTarget(categoryId, subcategoryId));
-            }
+        if (!AmiOntology.isDefinedCategoryId(categoryId)) {
             return Optional.empty();
+        }
+
+        AmiOntology.Category category = AmiOntology.categoryForId(categoryId);
+        if (subcategoryId.isBlank() || hasSubcategory(category, subcategoryId)) {
+            return Optional.of(new CategoryTarget(categoryId, subcategoryId));
         }
         return Optional.empty();
     }
@@ -1755,6 +2128,22 @@ public class ResultContextMenuActionBuilder {
     }
 
     private record CategoryTarget(String categoryId, String subcategoryId) {
+    }
+
+    private record TaxonomyTemplateTarget(
+            String categoryId,
+            String subcategoryId,
+            String categoryLabel,
+            String subcategoryLabel,
+            boolean categoryNeedsDefinition
+    ) {
+    }
+
+    record PackAuthorExportFile(Path relativePath, String content) {
+        PackAuthorExportFile {
+            relativePath = relativePath == null ? Path.of("ami-export.txt") : relativePath;
+            content = content == null ? "" : content;
+        }
     }
 
     enum DocumentationKind {

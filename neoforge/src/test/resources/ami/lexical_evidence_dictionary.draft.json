@@ -109,7 +109,7 @@
     },
     {
       "id": "flora",
-      "tokens": ["sapling", "saplings", "leaves", "leaf", "flower", "flowers", "bush", "shrub", "sprouts", "roots", "vine", "vines", "moss", "coral", "seagrass", "kelp", "cactus", "fern", "clover"],
+      "tokens": ["leaves", "leaf", "flower", "flowers", "bush", "shrub", "sprouts", "roots", "vine", "vines", "moss", "coral", "seagrass", "kelp", "cactus", "fern", "clover"],
       "facets": ["flower", "leaves", "nature_misc"],
       "categoryHint": "nature/flora",
       "confidence": "strong",
@@ -117,8 +117,8 @@
     },
     {
       "id": "seeds",
-      "tokens": ["seed", "seeds"],
-      "facets": ["seed"],
+      "tokens": ["seed", "seeds", "sapling", "saplings"],
+      "facets": ["seed", "sapling_tags"],
       "categoryHint": "nature/seeds",
       "confidence": "medium",
       "blockers": ["pouch", "bucket", "oil", "crystal", "machine", "maker"],
@@ -174,7 +174,7 @@
     },
     {
       "id": "organic_ingredient",
-      "tokens": ["string", "feather", "feathers", "bone", "bones", "leather", "hide", "scute", "honeycomb", "wool", "egg", "eggs"],
+      "tokens": ["string", "feather", "feathers", "bone", "bones", "leather", "hide", "scute", "honeycomb", "wool", "egg", "eggs", "crumb", "crumbs", "scale", "scales", "sprig", "thread"],
       "facets": ["ingredient_organic"],
       "categoryHint": "ingredients/organic",
       "confidence": "strong",
@@ -190,7 +190,7 @@
     },
     {
       "id": "mineral_ingredient",
-      "tokens": ["flint", "clay", "shard", "crystal", "crystals", "prismarine", "pottery", "sherd", "brick", "bricks"],
+      "tokens": ["flint", "clay", "shard", "crystal", "crystals", "quartz", "prismarine", "pottery", "sherd", "brick", "bricks", "salt", "salts", "rock"],
       "facets": ["ingredient_mineral"],
       "categoryHint": "ingredients/mineral",
       "confidence": "medium",
@@ -247,11 +247,19 @@
     },
     {
       "id": "utility_tool",
-      "tokens": ["wrench", "hammer", "brush", "fishing", "rod", "flint", "steel"],
+      "tokens": ["wrench", "hammer", "mallet", "brush", "fishing", "rod", "flint", "steel"],
       "facets": ["utility_tool"],
       "categoryHint": "tools/utility",
       "confidence": "medium",
       "notes": "Hammer, flint, and steel are ambiguous without tag/item-type evidence."
+    },
+    {
+      "id": "utility_container",
+      "tokens": ["pouch", "satchel", "dish", "bottle", "bottles", "flask"],
+      "facets": ["utility_misc"],
+      "categoryHint": "utility/misc",
+      "confidence": "medium",
+      "notes": "Non-food bottles/flasks are utility unless stronger potion, food, or magic evidence exists."
     },
     {
       "id": "armor",
@@ -303,7 +311,7 @@
     },
     {
       "id": "magic_reagent",
-      "tokens": ["rune", "runes", "essence", "pearl", "blaze", "ghast", "phantom", "membrane", "wart", "slime"],
+      "tokens": ["rune", "runes", "essence", "pearl", "blaze", "ghast", "phantom", "membrane", "wart", "slime", "stardust"],
       "facets": ["magic_reagent"],
       "categoryHint": "magic/reagents",
       "confidence": "medium",

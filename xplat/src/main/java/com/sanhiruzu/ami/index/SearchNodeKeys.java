@@ -11,9 +11,11 @@ public final class SearchNodeKeys {
     public static final String PRIMARY_COMPAT_FAMILY = "primaryCompatFamily"; // UI/category owner when one family must win.
     public static final String COMPAT_CATEGORY_POLICY = "compatCategoryPolicy"; // focused, semantic, or hybrid.
     public static final String CLASSIFICATION_ROUTE = "classificationRoute"; // Human-readable resolver path.
+    public static final String CLASSIFICATION_TRACE = "classificationTrace"; // Step-by-step resolver trace for debug UI.
     public static final String CLASSIFICATION_ROUTE_PHASE = "classificationRoutePhase"; // Final resolver gate.
     public static final String CLASSIFICATION_ROUTE_RULE = "classificationRouteRule"; // Final rule/scorer id.
     public static final String DATA_FIX_SOURCE = "amiDataFixSource"; // user or pack metadata override source.
+    public static final String CUSTOM_TAXONOMY_SOURCE = "amiCustomTaxonomySource"; // user or pack rule source.
     // Item-specific
     public static final String ONTOLOGY_CATEGORY = "ontologyCategory";    // AmiOntology.Category.id
     public static final String ONTOLOGY_SUBCATEGORY = "ontologySubcategory"; // AmiOntology.SubCategory.id
@@ -150,6 +152,11 @@ public final class SearchNodeKeys {
     public static final String MODULAR_GEAR_RUNTIME_MATERIALS = "modularGearRuntimeMaterials";
     public static final String MODULAR_GEAR_RUNTIME_TRAITS = "modularGearRuntimeTraits";
     public static final String MODULAR_GEAR_RUNTIME_STATS = "modularGearRuntimeStats";
+    // Modular Golems-specific optional metadata.
+    public static final String MODULAR_GOLEMS_ITEM_KIND = "modularGolemsItemKind";
+    public static final String MODULAR_GOLEMS_FACTS = "modularGolemsFacts";
+    public static final String MODULAR_GOLEMS_GOLEM_TYPE = "modularGolemsGolemType";
+    public static final String MODULAR_GOLEMS_PART = "modularGolemsPart";
     // Atlas-specific
     public static final String DIMENSION = "dimension";
     public static final String ENTITY_CATEGORY = "entityCategory";

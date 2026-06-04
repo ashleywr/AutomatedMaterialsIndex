@@ -1,0 +1,10 @@
+{
+  "ami.gui.search.placeholder": "Поиск",
+  "ami.gui.search.placeholder_hint": "Искать все предметы",
+  "ami.gui.items": "Предметы",
+  "ami.gui.biomes": "Биомы",
+  "ami.gui.structures": "Структуры",
+  "ami.gui.entities": "Сущности",
+  "ami.gui.dimensions": "Измерения",
+  "ami.gui.players": "Игроки"
+}

@@ -57,6 +57,18 @@ class CategoryScorerTest {
     }
 
     @Test
+    void pathOnlyCableWordsClassifyThroughLexicalEvidenceNotFacets() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("immersiveengineering:wire_copper"),
+                new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
+        );
+
+        assertEquals("tech", assignment.categoryId());
+        assertEquals("cables", assignment.subcategoryId());
+        assertTrue(assignment.attributes().getOrDefault("classificationEvidence", "").contains("tech_cables"));
+    }
+
+    @Test
     void equipmentArmorEvidenceBeatsStaleUtilityToolFacet() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("ami_test:copper_chestplate"),
@@ -244,6 +256,27 @@ class CategoryScorerTest {
 
         assertEquals("ingredients", assignment.categoryId());
         assertEquals("mineral", assignment.subcategoryId());
+    }
+
+    @Test
+    void ingredientsTabShardEvidenceBeatsStaleMagicFacet() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("quark:magenta_shard"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.MAGIC_REAGENT),
+                        Map.of(
+                                SearchNodeKeys.TAGS, "quark:shards",
+                                SearchNodeKeys.CREATIVE_TAB_ID, "minecraft:ingredients",
+                                SearchNodeKeys.CREATIVE_TAB_LABEL, "Ingredients",
+                                SearchNodeKeys.RECIPE_USE_CATEGORIES, "crafting"
+                        )
+                )
+        );
+
+        assertEquals("ingredients", assignment.categoryId());
+        assertEquals("mineral", assignment.subcategoryId());
+        assertTrue(assignment.attributes().getOrDefault("classificationEvidence", "").contains("mineral_ingredient"));
+        assertTrue(assignment.attributes().getOrDefault("classificationEvidence", "").contains("creative_tab.ingredients"));
     }
 
     @Test

@@ -83,6 +83,7 @@ public final class SearchNodeMirrorDump {
         metadata.remove("classificationEvidence");
         metadata.remove(SearchNodeKeys.COMPAT_CATEGORY_POLICY);
         metadata.remove(SearchNodeKeys.CLASSIFICATION_ROUTE);
+        metadata.remove(SearchNodeKeys.CLASSIFICATION_TRACE);
         metadata.remove(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE);
         metadata.remove(SearchNodeKeys.CLASSIFICATION_ROUTE_RULE);
     }

@@ -125,7 +125,7 @@ public class RuntimeMirrorOntologyAnomalyReportTest {
         String facets = node.meta(SearchNodeKeys.FACETS, "");
 
         if (isSapling(node)) {
-            expected.add(new ExpectedPlacement("sapling evidence", "nature", "flora"));
+            expected.add(new ExpectedPlacement("sapling evidence", "nature", "seeds"));
         } else if (hasPathToken(path, "seed", "seeds") || hasDisplayToken(displayName, "seed", "seeds")
                 || hasCsvToken(facets, ItemFacet.SEED.id())) {
             expected.add(new ExpectedPlacement("seed evidence", "nature", "seeds"));
