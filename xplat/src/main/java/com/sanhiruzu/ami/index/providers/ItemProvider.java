@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.index.providers;
 
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.api.AmiPluginRegistry;
+import com.sanhiruzu.ami.api.ItemProviderCompatHooks;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.compat.AE2Compat;
 import com.sanhiruzu.ami.compat.CobblemonCompat;
@@ -10,6 +11,7 @@ import com.sanhiruzu.ami.compat.CreateCompat;
 import com.sanhiruzu.ami.compat.GregTechCompat;
 import com.sanhiruzu.ami.compat.MekanismCompat;
 import com.sanhiruzu.ami.compat.ModularGearCompat;
+import com.sanhiruzu.ami.compat.ModularGolemsCompat;
 import com.sanhiruzu.ami.compat.SophisticatedCompat;
 import com.sanhiruzu.ami.compat.StorageCompat;
 import com.sanhiruzu.ami.config.AmiConfig;
@@ -43,7 +45,6 @@ public class ItemProvider implements IAmiDataProvider {
     private final FluidMetricSniffer fluidMetricSniffer = new FluidMetricSniffer();
     private final ToolMetricSniffer toolMetricSniffer = new ToolMetricSniffer();
     private final ArmorMetricSniffer armorMetricSniffer = new ArmorMetricSniffer();
-
     private static boolean shouldUseLegacyOntologyFallback(FacetProfile facetProfile) {
         return facetProfile.facets().isEmpty();
     }
@@ -233,15 +234,18 @@ public class ItemProvider implements IAmiDataProvider {
             meta.putAll(facetProfile.attributes());
         }
 
-        CompatFamilyDetector.detect(baseId, meta);
-        CobblemonCompat.enrichItem(baseId, meta);
-        CreateCompat.enrichItem(baseId, meta);
-        AE2Compat.enrichItem(baseId, meta);
-        MekanismCompat.enrichItem(baseId, meta);
-        GregTechCompat.enrichItem(baseId, meta);
-        SophisticatedCompat.enrichItem(baseId, meta);
-        ModularGearCompat.enrichItem(baseId, meta);
-        ModularGearCompat.enrichRuntimeStack(baseId, stack, level, meta);
+        ItemProviderCompatHooks.runCompatSafely("CompatFamilyDetector", () -> CompatFamilyDetector.detect(baseId, meta));
+        ItemProviderCompatHooks.runCompatSafely("CobblemonCompat", () -> CobblemonCompat.enrichItem(baseId, meta));
+        ItemProviderCompatHooks.runCompatSafely("CreateCompat", () -> CreateCompat.enrichItem(baseId, meta));
+        ItemProviderCompatHooks.runCompatSafely("AE2Compat", () -> AE2Compat.enrichItem(baseId, meta));
+        ItemProviderCompatHooks.runCompatSafely("MekanismCompat", () -> MekanismCompat.enrichItem(baseId, meta));
+        ItemProviderCompatHooks.runCompatSafely("GregTechCompat", () -> GregTechCompat.enrichItem(baseId, meta));
+        ItemProviderCompatHooks.runCompatSafely("SophisticatedCompat", () -> SophisticatedCompat.enrichItem(baseId, meta));
+        ItemProviderCompatHooks.runCompatSafely("ModularGearCompat", () -> ModularGearCompat.enrichItem(baseId, meta));
+        ItemProviderCompatHooks.runCompatSafely("ModularGearCompatRuntime", () ->
+                ModularGearCompat.enrichRuntimeStack(baseId, stack, level, meta));
+        ItemProviderCompatHooks.runCompatSafely("ModularGolemsCompat", () -> ModularGolemsCompat.enrichItem(baseId, meta));
+        ItemProviderCompatHooks.runPluginItemCompatHooks(baseId, stack, level, meta);
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(baseId, profileWithMetadata(facetProfile, meta));
         if (!assignment.attributes().isEmpty()) {
             meta.putAll(assignment.attributes());
@@ -261,7 +265,7 @@ public class ItemProvider implements IAmiDataProvider {
                 }
             }
         }
-        StorageCompat.enrichItem(baseId, meta);
+        ItemProviderCompatHooks.runCompatSafely("StorageCompat", () -> StorageCompat.enrichItem(baseId, meta));
         return meta;
     }
 
@@ -275,6 +279,7 @@ public class ItemProvider implements IAmiDataProvider {
 
     @Override
     public void populate(GlobalIndex index, @Nullable Level level) {
+        ItemProviderCompatHooks.clearDisabledCompatHooks();
         GroupingEngine.initialize(level);
         GroupingEngine.rebuildDynamicShapeCandidates(BuiltInRegistries.ITEM);
         boolean strictSurvival = AmiConfig.strictSurvivalMode;
@@ -344,8 +349,9 @@ public class ItemProvider implements IAmiDataProvider {
                     toolMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addToolStats(meta, stats));
                     armorMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addArmorStats(meta, stats));
                     inferAmmoType(entry.id(), meta);
-                    CompatFamilyDetector.detect(entry.id(), meta);
-                    GregTechCompat.enrichItem(entry.id(), meta);
+                    ItemProviderCompatHooks.runCompatSafely("CompatFamilyDetector", () -> CompatFamilyDetector.detect(entry.id(), meta));
+                    ItemProviderCompatHooks.runCompatSafely("GregTechCompat", () -> GregTechCompat.enrichItem(entry.id(), meta));
+                    ItemProviderCompatHooks.runPluginItemCompatHooks(entry.id(), entry.stack(), level, meta);
                     markGeneratedModularGearVariantCheatOnly(entry.id(), meta);
                     if (!ItemFilter.shouldShowAccessLevel(meta.getOrDefault(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL))
                             && !isHiddenComponentDuplicateVariant(meta)) {
@@ -441,8 +447,8 @@ public class ItemProvider implements IAmiDataProvider {
             toolStats.ifPresent(stats -> addToolStats(meta, stats));
             armorStats.ifPresent(stats -> addArmorStats(meta, stats));
             inferAmmoType(id, meta);
-            CompatFamilyDetector.detect(id, meta);
-            CobblemonCompat.enrichItem(id, meta);
+            ItemProviderCompatHooks.runCompatSafely("CompatFamilyDetector", () -> CompatFamilyDetector.detect(id, meta));
+            ItemProviderCompatHooks.runCompatSafely("CobblemonCompat", () -> CobblemonCompat.enrichItem(id, meta));
             if (!inCreative) {
                 meta.put(SearchNodeKeys.VISIBILITY, "hidden");
             }
@@ -464,13 +470,16 @@ public class ItemProvider implements IAmiDataProvider {
             if (recipeUseCount > 0) {
                 meta.put(SearchNodeKeys.RECIPE_USE_COUNT, Integer.toString(recipeUseCount));
             }
-            CreateCompat.enrichItem(id, meta);
-            AE2Compat.enrichItem(id, meta);
-            MekanismCompat.enrichItem(id, meta);
-            GregTechCompat.enrichItem(id, meta);
-            SophisticatedCompat.enrichItem(id, meta);
-            ModularGearCompat.enrichItem(id, meta);
-            ModularGearCompat.enrichRuntimeStack(id, defaultStack, level, meta);
+            ItemProviderCompatHooks.runCompatSafely("CreateCompat", () -> CreateCompat.enrichItem(id, meta));
+            ItemProviderCompatHooks.runCompatSafely("AE2Compat", () -> AE2Compat.enrichItem(id, meta));
+            ItemProviderCompatHooks.runCompatSafely("MekanismCompat", () -> MekanismCompat.enrichItem(id, meta));
+            ItemProviderCompatHooks.runCompatSafely("GregTechCompat", () -> GregTechCompat.enrichItem(id, meta));
+            ItemProviderCompatHooks.runCompatSafely("SophisticatedCompat", () -> SophisticatedCompat.enrichItem(id, meta));
+            ItemProviderCompatHooks.runCompatSafely("ModularGearCompat", () -> ModularGearCompat.enrichItem(id, meta));
+            ItemProviderCompatHooks.runCompatSafely("ModularGearCompatRuntime", () ->
+                    ModularGearCompat.enrichRuntimeStack(id, defaultStack, level, meta));
+            ItemProviderCompatHooks.runCompatSafely("ModularGolemsCompat", () -> ModularGolemsCompat.enrichItem(id, meta));
+            ItemProviderCompatHooks.runPluginItemCompatHooks(id, defaultStack, level, meta);
 
             CategoryAssignment assignment = PrimaryCategoryResolver.resolve(id, profileWithMetadata(facetProfile, meta));
             if (!assignment.attributes().isEmpty()) {
@@ -493,7 +502,7 @@ public class ItemProvider implements IAmiDataProvider {
                     }
                 }
             }
-            StorageCompat.enrichItem(id, meta);
+            ItemProviderCompatHooks.runCompatSafely("StorageCompat", () -> StorageCompat.enrichItem(id, meta));
 
             index.addNode(new SearchNode(id, NodeType.ITEM, displayName, color, 0, meta));
         }
