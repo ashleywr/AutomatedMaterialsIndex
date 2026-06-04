@@ -80,6 +80,8 @@ public class AmiConfig {
     public static boolean showTooltipTags = false;
     @ConfigValue("general.compact-mode")
     public static boolean compactMode = false;
+    @ConfigValue("general.disable-auto-compact")
+    public static boolean disableAutoCompact = false;
     @ConfigHidden
     @ConfigValue("subtitles.fields")
     public static String subtitleFields = "MOD_NAME";
@@ -296,6 +298,7 @@ public class AmiConfig {
         showHeader = true;
         showTooltipTags = false;
         compactMode = false;
+        disableAutoCompact = false;
         subtitleFields = "MOD_NAME";
         subtitleFieldsChecksum = 0;
 

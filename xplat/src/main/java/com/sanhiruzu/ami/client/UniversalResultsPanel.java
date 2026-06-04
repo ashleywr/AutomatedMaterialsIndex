@@ -169,12 +169,14 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private boolean isCompactLayout() {
         if (compactMode) return true;
         if (isFavoritesPanel) return false;
+        if (AmiConfig.disableAutoCompact) return false;
         if (supportsEmbeddedSearch(new WidgetBounds(x, y, width, height))) return false;
         return !compactAutoBypass || compactAutoBypassW != width || compactAutoBypassH != height;
     }
 
     private boolean isForcedCompactByScreenSize() {
-        return !compactMode && !isFavoritesPanel && !supportsEmbeddedSearch(new WidgetBounds(x, y, width, height));
+        return !compactMode && !isFavoritesPanel && !AmiConfig.disableAutoCompact
+                && !supportsEmbeddedSearch(new WidgetBounds(x, y, width, height));
     }
 
     private boolean isForcedCompactActive() {
