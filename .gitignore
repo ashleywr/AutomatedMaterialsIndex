@@ -58,12 +58,15 @@ internal/
 ### Claude Code / AI Agent Files ###
 .claude/
 .geminiignore
+AGENTS.md
 
 ### Local Development ###
 dev/
 font_issue.png
 release-assets/
 test.java
+build_error*.log
+build_errors*.txt
 
 ### Dot directories (keep only .gitignore) ###
 .*
