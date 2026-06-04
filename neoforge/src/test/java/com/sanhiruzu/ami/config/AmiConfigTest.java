@@ -33,6 +33,7 @@ public class AmiConfigTest {
         assertEquals(4096, AmiConfig.guideSummaryTextCap);
         assertFalse(AmiConfig.showTooltipTags);
         assertFalse(AmiConfig.startHidden);
+        assertFalse(AmiConfig.disableAutoCompact);
     }
 
     @Test
