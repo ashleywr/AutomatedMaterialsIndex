@@ -298,6 +298,15 @@ the policy is explicitly set to `SEMANTIC`. The subcategory classifier is coarse
 on purpose: machines, multiblocks, power, circuits, materials, tools, covers, or
 misc. This is an isolation pass, not final GregTech ontology work.
 
+### 2026-06-04: GregTech Work Utility Tools Stay With GregTech
+
+GregTech work utility tools such as screwdrivers, wire cutters, and mortars are
+primarily GregTech workflow objects rather than broadly useful vanilla-style
+tools. Under the default focused GregTech policy they remain in
+`gregtech/tools`. Items with concrete general gameplay roles, such as drills,
+saws, chainsaws, weapons, food, and armor, may still use semantic categories.
+Setting the GregTech policy to `SEMANTIC` remains the explicit opt-out.
+
 ### 2026-05-31: Apotheosis Modules Route Together
 
 The dump showed `apothic_enchanting` content outside the Apotheosis family, so
@@ -354,6 +363,75 @@ cooking-station identity (`skillet`, `stove`, `cooking_pot`, or matching
 item/block classes) now route to `tech/machines` before hard tool identity.
 Prepared food blocks still route to meals, crop/storage blocks still route to
 nature, and decorative textiles still route to decoration.
+
+### 2026-06-04: Concrete Facts Beat Cable And Flora Name Noise
+
+Runtime mirror data showed vanilla saplings carrying trusted `minecraft:saplings`
+tags and vanilla conduits carrying a real `ConduitBlock` class while also having
+path words that looked like flora or cables. Saplings now route to
+`nature/seeds` from sapling identity/tag evidence, while leaves remain
+`nature/flora`. Vanilla conduits route through concrete `ConduitBlock` class
+evidence to `utility/misc`.
+
+Path-only cable words no longer create concrete `ItemFacet.CABLE` facts. They
+remain lexical evidence for scoring, while actual cable facets must come from
+trusted tags, classes, capabilities, or other concrete runtime facts.
+
+Create-family focused tech subcategory routing now follows the same rule:
+`tech/cables` in the Create compat branch requires `ItemFacet.CABLE`. Generic
+path-only cable/wire/tube words can still participate in evidence scoring, but
+compat-owned subcategory shortcuts should not reintroduce raw cable-name
+decisions.
+
+### 2026-06-04: Reactive Bottles Expose Overbroad Terrain Fallback
+
+The Reactive dump showed `reactive:soul_bottle` and related power bottles
+routing to `geology/terrain` because they were placeable, no-recipe blocks with
+only weak facets. The fix is not an item-id override: the terrain fallback now
+requires actual terrain-like material/facets (`soil` or `stone`) and refuses
+custom blocks with stronger semantic facts such as block entities, lighting,
+redstone, utility, magic, tech, or decoration.
+
+Facet/evidence extraction now also understands reusable signals that Reactive
+exposed: non-food bottle/flask item classes become utility containers,
+`power_bottles` tags and `PowerBottle*` classes become magic artifacts,
+crucible/plinth classes become workstation-like machines, symbol classes become
+magic artifacts, and active/powered/charged/enabled block-state properties
+contribute redstone facts. Alchemy-like recipe categories such as
+`transmutation`, `dissolve`, and `brewing` now provide fallback magic evidence
+for item-only materials.
+
+### 2026-06-04: Generic Shards Are Material Evidence, Not Magic Facts
+
+Quark glass shards exposed a stale `magic_reagent` facet because the facet
+indexer treated any registry path token `shard` as magic. That is too broad:
+shard is a material shape word unless a concrete magic fact is also present.
+Generic `shard`/`shards` tokens now contribute lexical mineral-ingredient
+evidence instead of concrete magic facets. The vanilla Ingredients creative tab
+adds weak ingredient evidence, strong enough to combine with shard material
+evidence and rescue old dumps, but too weak to classify items by itself.
+
+### 2026-06-04: Entity Armor Slots Are Not Player Armor Slots
+
+Modded entity equipment can expose humanoid-looking equipment slots even when
+the stack is not wearable by a player. Modular Golems dog golem armor reports a
+`chest` equipment slot through its item class, but the concrete owner is a
+golem/dog armor item, not a player chestplate. Facet extraction now treats known
+entity armor item classes and vanilla animal armor as non-player armor, keeping
+them in the armor family without promoting them to `armor_chest`.
+
+### 2026-06-04: Modular Golems Uses Mod-Owned Equipment Vocabulary
+
+Modular Golems exposes many item families whose meaning comes from its own
+classes and tags: `GolemPart`, `GolemHolder`, `GolemFacade`,
+`modulargolems:parts`, `modulargolems:holders`, and golem-scoped Curios tags
+such as `curios:golem_skin` and `curios:golem_route`. Those Curios tags are
+not player wearable armor by themselves. A focused Modular Golems compat
+enricher now writes golem item-kind/fact metadata, routes confirmed golem-only
+equipment to existing semantic AMI categories, and supplies collapse metadata
+for generated `/variant/` part, holder, and facade families. Twilight Forest armor
+compatibility classes now also resolve to confirmed golem-armor identities when
+their compat-material armor classes and slot paths match the expected pattern.
 
 ## Open Work
 
