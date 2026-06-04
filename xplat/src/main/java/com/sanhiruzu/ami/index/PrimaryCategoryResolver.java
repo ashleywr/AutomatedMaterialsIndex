@@ -20,9 +20,8 @@ public final class PrimaryCategoryResolver {
      *   prefer exact tokens/phrases and add a false-positive regression test plus a note in
      *   docs/classification-routing-log.md.
      */
-    // TODO(classification): migrate remaining family-prior raw path.contains(...) blocks below to
-    // facets/facts first, then PathTokens exact token/phrase sets. Current high-risk areas are
-    // GregTech, Apotheosis, Botania, storage/automation, food-family ingredients, and geology/masonry fallbacks.
+    // TODO(classification): continue shrinking the remaining raw lexical fallbacks below.
+    // Prefer facets/facts first, then PathTokens exact token/phrase sets with false-positive tests.
     private static final Set<String> HOSTILE_SPAWN_EGGS = Set.of(
             "blaze", "bogged", "breeze", "creeper", "drowned", "elder_guardian",
             "ender_dragon", "endermite", "evoker", "ghast", "guardian", "hoglin",
@@ -45,6 +44,35 @@ public final class PrimaryCategoryResolver {
     );
     private static final Set<String> LIGHTING_TOKENS = Set.of(
             "lamp", "lantern", "chandelier", "sconce", "brazier", "candelabra"
+    );
+    private static final Set<String> MICRO_PARTIAL_STATE_HINTS = Set.of(
+            "axis", "facing", "connected", "extend", "left", "right", "bottom", "distance",
+            "layers", "delay", "lavalogged", "level", "moisture", "particle_radius", "waterlogged",
+            "signal_fire", "north", "south", "east", "west", "up", "down"
+    );
+    private static final Set<String> MICRO_PARTIAL_PATH_HINTS = Set.of(
+            "amethyst", "bars", "chorus", "cloud", "clouds", "cluster", "enchanter",
+            "end_rod", "firefly", "grate", "hedge", "iron_ladder", "ladder", "matrix",
+            "miniature_structure", "pane", "post", "rod", "rope", "scaffolding",
+            "thorns"
+    );
+    private static final Set<String> MICRO_PARTIAL_CLASS_HINTS = Set.of(
+            "chain", "cloud", "corundum", "chorus", "hedge", "ladder", "pane", "post", "rod",
+            "thorns", "rope", "grate", "forcefield", "miniature", "matrix", "light", "firefly",
+            "scaffolding", "campfire", "slider", "wall", "wallpillar", "structurevoid", "cluster", "amethyst"
+    );
+    private static final Set<String> MICRO_PARTIAL_NATURE_PATH_HINTS = Set.of(
+            "chorus", "farmland", "snow", "dirt_path", "moss", "grass", "podzol", "weeds", "twist", "vine"
+    );
+    private static final Set<String> MICRO_PARTIAL_NATURE_CLASS_HINTS = Set.of(
+            "chorus", "hedge", "leaf", "vine", "thorns", "bush", "farm", "snow", "moss", "grass", "twist"
+    );
+    private static final Set<String> MICRO_PARTIAL_TECH_HINTS = Set.of(
+            "cell",
+            "magnetized",
+            "nodule",
+            "portal",
+            "volt"
     );
     private static final Set<String> TEXTILE_TOKENS = Set.of(
             "curtain", "curtains", "blinds", "shutter", "shutters", "pillow",
@@ -105,6 +133,163 @@ public final class PrimaryCategoryResolver {
     private static final Set<String> FOOD_COOKING_STATION_TOKENS = Set.of(
             "skillet", "stove", "cooking_pot"
     );
+    private static final Set<String> CREATE_ENCHANTING_EXPERIENCE_TOKENS = Set.of(
+            "experience", "hyper_experience", "nugget_of_experience", "nugget_of_super_experience"
+    );
+    private static final Set<String> PORTABLE_STORAGE_ARMOR_TOKENS = Set.of(
+            "backpack", "satchel", "pouch"
+    );
+    private static final Set<String> PORTABLE_STORAGE_TECH_TOKENS = Set.of(
+            "upgrade", "stack", "pump", "filter"
+    );
+    private static final Set<String> STORAGE_FAMILY_ROUTE_TOKENS = Set.of(
+            "storage", "chest", "barrel", "drawer", "terminal", "drive", "cell", "disk",
+            "interface", "importer", "exporter", "controller", "cable", "bus", "tank",
+            "grid", "monitor", "manager", "manipulator", "constructor", "destructor",
+            "detector", "relay", "transmitter", "receiver", "network", "silicon",
+            "processor", "binding", "printed", "logic", "calculation", "engineering",
+            "chip", "card", "module", "core", "quartz_enriched_iron", "upgrade",
+            "pattern", "filter", "cover", "remote", "key", "keyring", "template"
+    );
+    private static final Set<String> STORAGE_CIRCUIT_TOKENS = Set.of(
+            "silicon", "processor", "binding", "printed", "logic", "calculation",
+            "engineering", "chip", "card", "module", "core"
+    );
+    private static final Set<String> STORAGE_MEDIA_PART_TOKENS = Set.of(
+            "storage_part", "storage_disk", "fluid_storage_part", "fluid_storage_disk",
+            "storage_housing", "cover"
+    );
+    private static final Set<String> STORAGE_NETWORK_PART_TOKENS = Set.of(
+            "terminal", "interface", "importer", "exporter", "drive", "disk", "cell",
+            "controller", "manager", "manipulator", "constructor", "destructor",
+            "detector", "relay", "transmitter", "receiver", "network", "remote"
+    );
+    private static final Set<String> STORAGE_MACHINE_TOKENS = Set.of(
+            "grid", "monitor", "wireless", "storage", "chest", "barrel", "drawer", "tank"
+    );
+    private static final Set<String> FOOD_FAMILY_INGREDIENT_TOKENS = Set.of(
+            "crumb", "crumbs", "sugar", "butter", "chip", "chips", "flour", "cheese",
+            "diced", "bean", "beans", "wrapper", "dough", "powder", "puree",
+            "frosting", "piping_bag"
+    );
+    private static final Set<String> AUTOMATION_ROUTE_TOKENS = Set.of(
+            "circuit", "transistor", "capacitor", "assembly", "wafer", "etch",
+            "photomask", "tube", "valve", "module", "drone", "charger", "charging",
+            "compressor", "chamber", "keycard", "codebreaker", "monitor", "modifier",
+            "reinforcer", "remover", "changer", "sentry", "taser", "remote", "cable"
+    );
+    private static final Set<String> AUTOMATION_CIRCUIT_TOKENS = Set.of(
+            "circuit", "transistor", "capacitor", "wafer", "etch", "photomask",
+            "assembly", "keycard", "modifier", "reinforcer", "changer", "module"
+    );
+    private static final Set<String> AUTOMATION_PART_TOKENS = Set.of(
+            "valve", "drone"
+    );
+    private static final Set<String> AUTOMATION_MACHINE_TOKENS = Set.of(
+            "charger", "charging", "compressor", "chamber"
+    );
+    private static final Set<String> GREGTECH_CIRCUIT_TOKENS = Set.of(
+            "circuit", "processor", "chip"
+    );
+    private static final Set<String> GREGTECH_MACHINE_TOKENS = Set.of(
+            "machine", "hatch", "bus", "conveyor", "robot_arm", "emitter", "sensor",
+            "regulator", "pump", "motor", "piston", "assembler", "macerator",
+            "centrifuge", "electrolyzer", "compressor", "extractor", "furnace", "mixer",
+            "canner", "lathe", "bender", "wiremill", "polarizer", "smelter", "reactor",
+            "collector", "boiler", "crusher", "autoclave", "bath", "cutter",
+            "distillery", "extruder", "solidifier", "press", "packer", "turbine",
+            "miner", "brewery", "separator", "fermenter", "heater", "engraver",
+            "sifter", "accelerator", "fisher", "scrubber", "breaker", "buffer"
+    );
+    private static final Set<String> GREGTECH_POWER_TOKENS = Set.of(
+            "battery", "capacitor", "cable", "wire", "energy", "power", "generator",
+            "dynamo", "transformer", "converter", "diode", "solar_panel", "voltage_coil"
+    );
+    private static final Set<String> GREGTECH_MATERIAL_TOKENS = Set.of(
+            "ingot", "nugget", "dust", "plate", "rod", "bolt", "screw", "ring", "foil",
+            "wire", "gear", "spring", "rotor", "gem", "ore", "crushed", "purified",
+            "impure", "raw", "tiny", "small", "bucket", "indicator", "blade", "head",
+            "tip", "lens", "wafer", "mold", "casing", "frame", "sheet", "studs", "dye",
+            "can", "boule", "round"
+    );
+    private static final Set<String> APOTHEOSIS_ENCHANTING_TOKENS = Set.of(
+            "shelf", "tome", "library", "ender_lead", "infused"
+    );
+    private static final Set<String> APOTHEOSIS_BOSS_TOKENS = Set.of(
+            "boss"
+    );
+    private static final Set<String> APOTHEOSIS_SPAWNER_TOKENS = Set.of(
+            "spawner", "spawn_egg"
+    );
+    private static final Set<String> APOTHEOSIS_SOCKET_TOKENS = Set.of(
+            "socket", "potion_charm"
+    );
+    private static final Set<String> APOTHEOSIS_GEM_TOKENS = Set.of(
+            "gem"
+    );
+    private static final Set<String> APOTHEOSIS_AFFIX_TOKENS = Set.of(
+            "affix", "reforging", "salvaging", "augmenting", "sigil", "material",
+            "smithing_template"
+    );
+    private static final Set<String> BOTANIA_MANA_TOKENS = Set.of(
+            "mana", "mana_pool", "spreader", "spark", "alfheim_portal", "gaia_pylon",
+            "natura_pylon", "mana_pylon", "mana_tablet", "mana_pearl", "mana_diamond",
+            "mana_string", "manaweave", "pool"
+    );
+    private static final Set<String> BOTANIA_GENERATING_FLOWER_TOKENS = Set.of(
+            "endoflame", "hydroangeas", "thermalily", "gourmaryllis", "munchdew",
+            "rosa_arcana", "entropinnyum", "kekimurus", "narslimmus", "spectrolus",
+            "dandelifeon", "shulk_me_not", "rafflowsia"
+    );
+    private static final Set<String> BOTANIA_FUNCTIONAL_FLOWER_TOKENS = Set.of(
+            "pure_daisy", "agricarnation", "bellethorn", "bergamute", "bubbell",
+            "clayconia", "daffomill", "dreadthorn", "exoflame", "fallen_kanade",
+            "heisei_dream", "hopperhock", "hyacidus", "jaded_amaranthus", "labellia",
+            "loonium", "marimorphosis", "medumone", "pollidisiac", "rannuncarpus",
+            "solegnolia", "spectranthemum", "tangleberrie", "tigerseye", "vinculotus",
+            "orechid", "orechid_ignem"
+    );
+    private static final Set<String> BOTANIA_BAUBLE_TOKENS = Set.of(
+            "ring", "band", "amulet", "pendant", "belt", "sash", "tiara", "cloak",
+            "bauble", "charm", "flugel_eye", "monocle"
+    );
+    private static final Set<String> BOTANIA_TOOL_TOKENS = Set.of(
+            "wand", "rod", "lens", "sword", "bow", "pickaxe", "axe", "shovel", "hoe",
+            "terraformer", "horn", "drum", "magnet", "brewer"
+    );
+    private static final Set<String> BOTANIA_MATERIAL_TOKENS = Set.of(
+            "petal", "mystical_flower", "livingwood", "livingrock", "dreamwood",
+            "manasteel", "terrasteel", "elementium", "gaia", "pixie_dust", "dragonstone",
+            "mana_powder", "mana_dust", "quartz", "shimmerrock", "shimmerwood"
+    );
+    private static final Set<String> WAYSTONES_REAGENT_TOKENS = Set.of(
+            "dust", "shard"
+    );
+    private static final Set<String> WAYSTONES_ARTIFACT_TOKENS = Set.of(
+            "waystone", "portstone", "sharestone", "warp_plate", "warp_stone", "scroll"
+    );
+    private static final Set<String> GEOLOGY_SURFACE_ORGANIC_TOKENS = Set.of(
+            "nylium", "mycelium", "moss", "lichen", "fungi", "fungus", "roots", "stem"
+    );
+    private static final Set<String> GEOLOGY_FUNGI_TOKENS = Set.of(
+            "nylium", "mycelium", "fungi", "fungus"
+    );
+    private static final Set<String> GEOLOGY_DECORATION_TOKENS = Set.of(
+            "window", "desk"
+    );
+    private static final Set<String> GEOLOGY_MASONRY_TOKENS = Set.of(
+            "stairs", "stair", "slab", "wall", "fence", "pane", "door", "trapdoor",
+            "brick", "bricks", "tile", "paver", "paving", "beam", "stripe", "stripes", "square",
+            "pattern", "dented", "weathered", "plank", "board", "pillar", "column",
+            "polished", "chiseled", "carved", "cut", "railing", "banister"
+    );
+    private static final Set<String> GEOLOGY_STONE_DECORATION_TOKENS = Set.of(
+            "brick", "polished", "tile", "glass", "window", "plank", "board", "pillar",
+            "column", "paver", "paving", "chiseled", "carved"
+    );
+    private static final Set<String> GEOLOGY_SOIL_DECORATION_TOKENS = Set.of(
+            "terracotta", "concrete", "nylium", "mycelium", "moss", "fungi", "fungus"
+    );
     private static final Set<String> PORTABLE_STORAGE_FAMILY_MOD_IDS = Set.of(
             "sophisticatedbackpacks"
     );
@@ -132,7 +317,7 @@ public final class PrimaryCategoryResolver {
                     c -> assignment("bestiary", classifyBestiarySubcategory(c.path), c.attributes)),
             rule("saplings",
                     c -> isSapling(c.path, c.attributes),
-                    c -> assignment("nature", "flora", c.attributes)),
+                    c -> assignment("nature", "seeds", c.attributes)),
             rule("leaves",
                     c -> isLeaves(c.path, c.facets, c.attributes),
                     c -> assignment("nature", "flora", c.attributes)),
@@ -159,7 +344,7 @@ public final class PrimaryCategoryResolver {
                     c -> assignment("ingredients", classifyIngredientSubcategory(c.facets), c.attributes)),
             rule("armor and real curios",
                     c -> shouldResolveAsArmorOrCurio(c.facets),
-                    c -> assignment("armor", classifyArmorSubcategory(c.facets), c.attributes)),
+                    c -> assignment("armor", classifyArmorSubcategory(c.facets, c.attributes), c.attributes)),
             rule("throwable ingredients",
                     c -> isThrowableIngredient(c.facets),
                     c -> assignment("ingredients", classifyIngredientSubcategory(c.facets), c.attributes)),
@@ -277,8 +462,20 @@ public final class PrimaryCategoryResolver {
             rule("uncraftable terrain blocks",
                     c -> shouldBiasUncraftableFullBlockToTerrain(c.facets, c.attributes),
                     c -> assignment("geology", classifyUncraftableTerrainSubcategory(c.facets, c.attributes), c.attributes)),
+            rule("partial functional micro placeables",
+                    c -> isLikelyFunctionalPartialPlaceable(c.facets, c.path, c.attributes),
+                    c -> assignment("tech", "machines", c.attributes)),
+            rule("partial nature placeables",
+                    c -> isLikelyNaturePartialPlaceable(c.facets, c.path, c.attributes),
+                    c -> assignment("nature", classifyNatureSubcategory(c.path, c.facets), c.attributes)),
+            rule("micro partial placeables",
+                    c -> isLikelyDecorativeMicroPlaceable(c.facets, c.path, c.attributes),
+                    c -> assignment("decoration", "other_building", c.attributes)),
+            rule("partial placeables",
+                    c -> isLikelyPartialBuildingPlaceable(c.facets, c.path, c.attributes),
+                    c -> assignment("decoration", "other_building", c.attributes)),
             rule("remaining placeables",
-                    c -> c.facets.contains(ItemFacet.PLACEABLE),
+                    c -> c.facets.contains(ItemFacet.PLACEABLE) && isLikelyFullMasonryCandidate(c.facets, c.path, c.attributes),
                     c -> assignment("masonry", classifyMasonrySubcategory(c.facets, c.path, c.attributes), c.attributes))
     );
 
@@ -313,31 +510,36 @@ public final class PrimaryCategoryResolver {
         }
         FacetProfile routedProfile = new FacetProfile(facets, attributes);
         ResolveContext context = new ResolveContext(id, modId, path, facets, attributes, modFamily, categoryPolicy);
-        CategoryRouteTrace route = CategoryRouteTrace.start(id, modFamily.name().toLowerCase(Locale.ROOT), attributes);
+        CategoryRouteTrace route = CategoryRouteTrace.start(id, modFamily.name().toLowerCase(Locale.ROOT), facets, attributes);
 
         Optional<CategoryAssignment> hardIdentity = resolveHardIdentity(context);
         if (hardIdentity.isPresent()) {
             return route.finish("hard_identity", "identity", hardIdentity.get());
         }
+        route.skipped("hard_identity", "no hard identity matched");
 
         Optional<CategoryAssignment> scored = CategoryScorer.resolveStrong(id, routedProfile);
         if (scored.isPresent()) {
             return route.finish("evidence_strong", "category_scorer", scored.get());
         }
+        route.skipped("evidence_strong", "no strong evidence winner");
 
         for (PrimaryRule rule : PRIMARY_RULES) {
             if (rule.matches.test(context)) {
                 return route.finish("primary_rule", rule.id(), rule.assignment().apply(context));
             }
+            route.skipped("primary_rule:" + rule.id(), "predicate false");
         }
         Optional<CategoryAssignment> fallbackScored = CategoryScorer.resolve(id, routedProfile);
         if (fallbackScored.isPresent()) {
             return route.finish("evidence_fallback", "category_scorer", fallbackScored.get());
         }
+        route.skipped("evidence_fallback", "no fallback evidence winner");
         Optional<CategoryAssignment> compatFallback = resolveCompatUnknownFallback(context);
         if (compatFallback.isPresent()) {
             return route.finish("compat_fallback", "recognized_compat_kind", compatFallback.get());
         }
+        route.skipped("compat_fallback", "no recognized compat fallback");
         return route.finish("fallback", "unknown", fallback());
     }
 
@@ -402,6 +604,11 @@ public final class PrimaryCategoryResolver {
             return modularGear;
         }
 
+        Optional<CategoryAssignment> modularGolems = resolveModularGolemsIdentity(context);
+        if (modularGolems.isPresent()) {
+            return modularGolems;
+        }
+
         Optional<CategoryAssignment> waystones = resolveWaystonesIdentity(context);
         if (waystones.isPresent()) {
             return waystones;
@@ -431,7 +638,7 @@ public final class PrimaryCategoryResolver {
         if (shouldResolveAsArmorOrCurio(context.facets)) {
             return Optional.of(identityAssignment(
                     "armor",
-                    classifyArmorSubcategory(context.facets),
+                    classifyArmorSubcategory(context.facets, context.attributes),
                     context.attributes,
                     "identity.armor",
                     "armor, equipment slot, or curio facet"
@@ -458,13 +665,23 @@ public final class PrimaryCategoryResolver {
             ));
         }
 
-        if (isSapling(context.path, context.attributes) || isLeaves(context.path, context.facets, context.attributes)) {
+        if (isSapling(context.path, context.attributes)) {
+            return Optional.of(identityAssignment(
+                    "nature",
+                    "seeds",
+                    context.attributes,
+                    "identity.sapling",
+                    "sapling block identity"
+            ));
+        }
+
+        if (isLeaves(context.path, context.facets, context.attributes)) {
             return Optional.of(identityAssignment(
                     "nature",
                     "flora",
                     context.attributes,
                     "identity.flora",
-                    "sapling or leaves block identity"
+                    "leaves block identity"
             ));
         }
 
@@ -527,8 +744,9 @@ public final class PrimaryCategoryResolver {
                 && !hasMetadataToken(context.attributes, SearchNodeKeys.BLOCK_TAGS, "waystones:is_teleport_target")) {
             return Optional.empty();
         }
+        PathTokens pathTokens = PathTokens.of(context.path);
 
-        if (containsAny(context.path, "dust", "shard")
+        if (pathTokens.containsAny(WAYSTONES_REAGENT_TOKENS)
                 || containsAny(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "ShardItem", "WarpDustItem")) {
             return Optional.of(identityAssignment(
                     "magic",
@@ -540,7 +758,7 @@ public final class PrimaryCategoryResolver {
         }
 
         if (hasMetadataToken(context.attributes, SearchNodeKeys.BLOCK_TAGS, "waystones:is_teleport_target")
-                || containsAny(context.path, "waystone", "portstone", "sharestone", "warp_plate", "warp_stone", "scroll")
+                || pathTokens.containsAny(WAYSTONES_ARTIFACT_TOKENS)
                 || containsAny(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "WarpStoneItem", "ScrollItem")
                 || containsAny(context.attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, ""), "WaystoneBlock", "PortstoneBlock", "SharestoneBlock", "WarpPlateBlock")) {
             return Optional.of(identityAssignment(
@@ -895,7 +1113,7 @@ public final class PrimaryCategoryResolver {
     private static boolean shouldLetGregTechUseObviousSemanticCategory(ResolveContext context) {
         return hasActualFoodIdentity(context.facets, context.attributes)
                 || shouldResolveAsArmorOrCurio(context.facets)
-                || hasHardToolIdentity(context.facets);
+                || hasAny(context.facets, ItemFacet.HARVEST_TOOL, ItemFacet.MELEE_WEAPON, ItemFacet.RANGED_WEAPON);
     }
 
     private static String classifyGregTechSubcategory(ResolveContext context) {
@@ -903,17 +1121,18 @@ public final class PrimaryCategoryResolver {
         if (!kind.isBlank()) {
             return mapGregTechSubcategory(kind);
         }
+        PathTokens pathTokens = PathTokens.of(context.path);
         String itemClass = context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
         String blockClass = context.attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "");
-        if (containsPathToken(context.path, Set.of("multiblock", "multiblocks"))
+        if (pathTokens.containsAny("multiblock", "multiblocks")
                 || containsAny(itemClass, "multiblock")
                 || containsAny(blockClass, "multiblock")) {
             return "multiblocks";
         }
-        if (containsPathToken(context.path, Set.of("cover", "covers"))) {
+        if (pathTokens.containsAny("cover", "covers")) {
             return "covers";
         }
-        if (containsAny(context.path, "circuit", "processor", "chip")) {
+        if (pathTokens.containsAny(GREGTECH_CIRCUIT_TOKENS)) {
             return "circuits";
         }
         if (hasAny(context.facets, ItemFacet.MELEE_WEAPON, ItemFacet.RANGED_WEAPON,
@@ -925,20 +1144,11 @@ public final class PrimaryCategoryResolver {
             return "machines";
         }
         if (hasAny(context.facets, ItemFacet.MACHINE, ItemFacet.WORKSTATION)
-                || containsAny(context.path, "machine", "hatch", "bus", "conveyor", "robot_arm",
-                "emitter", "sensor", "regulator", "pump", "motor", "piston", "assembler",
-                "macerator", "centrifuge", "electrolyzer", "compressor", "extractor", "furnace",
-                "mixer", "canner", "lathe", "bender", "wiremill", "polarizer")
-                || containsPathToken(context.path, Set.of(
-                "smelter", "reactor", "collector", "boiler", "crusher", "autoclave", "bath",
-                "cutter", "distillery", "extruder", "solidifier", "press", "packer", "turbine",
-                "miner", "brewery", "separator", "fermenter", "heater", "engraver", "sifter",
-                "accelerator", "fisher", "scrubber", "breaker", "buffer"))) {
+                || pathTokens.containsAny(GREGTECH_MACHINE_TOKENS)) {
             return "machines";
         }
         if (hasAny(context.facets, ItemFacet.HAS_ENERGY, ItemFacet.CABLE)
-                || containsAny(context.path, "battery", "capacitor", "cable", "wire", "energy", "power",
-                "generator", "dynamo", "transformer", "converter", "diode", "solar_panel", "voltage_coil")) {
+                || pathTokens.containsAny(GREGTECH_POWER_TOKENS)) {
             return "power";
         }
         if (containsAny(itemClass, ".GTBucketItem", ".SurfaceRockBlockItem")) {
@@ -947,12 +1157,7 @@ public final class PrimaryCategoryResolver {
         if (hasAny(context.facets, ItemFacet.INGOT, ItemFacet.NUGGET, ItemFacet.DUST,
                 ItemFacet.GEM, ItemFacet.RAW_MATERIAL, ItemFacet.TECH_COMPONENT,
                 ItemFacet.MECHANICAL_COMPONENT, ItemFacet.INGREDIENT_MINERAL)
-                || containsAny(context.path, "ingot", "nugget", "dust", "plate", "rod", "bolt",
-                "screw", "ring", "foil", "wire", "gear", "spring", "rotor", "gem",
-                "ore", "crushed", "purified", "impure", "raw", "tiny", "small")
-                || containsPathToken(context.path, Set.of(
-                "bucket", "indicator", "blade", "head", "tip", "lens", "wafer", "mold",
-                "casing", "frame", "sheet", "studs", "dye", "can", "boule", "round"))) {
+                || pathTokens.containsAny(GREGTECH_MATERIAL_TOKENS)) {
             return "materials";
         }
         return "misc";
@@ -997,37 +1202,38 @@ public final class PrimaryCategoryResolver {
     }
 
     private static String classifyApotheosisSubcategory(ResolveContext context) {
+        PathTokens pathTokens = PathTokens.of(context.path);
         String itemClass = context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
         String blockClass = context.attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "");
         String tags = context.attributes.getOrDefault(SearchNodeKeys.TAGS, "");
 
         if ("apothic_enchanting".equals(context.modId)
-                || containsAny(context.path, "shelf", "tome", "library", "ender_lead", "infused_")
+                || pathTokens.containsAny(APOTHEOSIS_ENCHANTING_TOKENS)
                 || containsAny(itemClass, "tomeitem", "shelf", "enchlibrary", "enderlead")
                 || containsAny(blockClass, "shelf", "enchlibrary")) {
             return "enchanting";
         }
-        if (containsAny(context.path, "boss")
+        if (pathTokens.containsAny(APOTHEOSIS_BOSS_TOKENS)
                 || containsAny(tags, "boss_music_discs")
                 || containsAny(itemClass, "bosssummoner")) {
             return "bosses";
         }
-        if (containsAny(context.path, "spawner", "spawn_egg")
+        if (pathTokens.containsAny(APOTHEOSIS_SPAWNER_TOKENS)
                 || containsAny(itemClass, "spawner")
                 || containsAny(blockClass, "spawner")) {
             return "spawners";
         }
-        if (containsAny(context.path, "socket", "potion_charm")
+        if (pathTokens.containsAny(APOTHEOSIS_SOCKET_TOKENS)
                 || containsAny(itemClass, "potioncharm")
                 || hasMetadataToken(context.attributes, SearchNodeKeys.TAGS, "curios:charm")) {
             return "sockets";
         }
-        if (containsAny(context.path, "gem")
+        if (pathTokens.containsAny(APOTHEOSIS_GEM_TOKENS)
                 || containsAny(itemClass, "gemitem")
                 || containsAny(blockClass, "gem")) {
             return "gems";
         }
-        if (containsAny(context.path, "affix", "reforging", "salvaging", "augmenting", "sigil", "material", "smithing_template")
+        if (pathTokens.containsAny(APOTHEOSIS_AFFIX_TOKENS)
                 || containsAny(itemClass, "salvageitem", "tooltipitem")
                 || containsAny(blockClass, "reforging", "salvaging", "augmenting")
                 || containsAny(tags, "rarity_materials")) {
@@ -1062,12 +1268,11 @@ public final class PrimaryCategoryResolver {
     }
 
     private static String classifyBotaniaSubcategory(ResolveContext context) {
-        if (containsPathToken(context.path, Set.of("rune", "runes"))) {
+        PathTokens pathTokens = PathTokens.of(context.path);
+        if (pathTokens.containsAny("rune", "runes")) {
             return "runes";
         }
-        if (containsAny(context.path, "mana_", "_mana", "mana_pool", "spreader", "spark", "alfheim_portal",
-                "gaia_pylon", "natura_pylon", "mana_pylon", "mana_tablet", "mana_pearl", "mana_diamond",
-                "mana_string", "manaweave", "pool")
+        if (pathTokens.containsAny(BOTANIA_MANA_TOKENS)
                 || containsAny(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "mana")) {
             return "mana";
         }
@@ -1078,42 +1283,29 @@ public final class PrimaryCategoryResolver {
             return "functional_flowers";
         }
         if (hasAny(context.facets, ItemFacet.CURIO, ItemFacet.EQUIPPABLE)
-                || containsAny(context.path, "ring", "band", "amulet", "pendant", "belt", "sash",
-                "tiara", "cloak", "bauble", "charm", "flugel_eye", "monocle")) {
+                || pathTokens.containsAny(BOTANIA_BAUBLE_TOKENS)) {
             return "baubles";
         }
         if (hasAny(context.facets, ItemFacet.MELEE_WEAPON, ItemFacet.RANGED_WEAPON,
                 ItemFacet.HARVEST_TOOL, ItemFacet.UTILITY_TOOL)
-                || containsAny(context.path, "wand", "rod", "lens", "sword", "bow", "pickaxe",
-                "axe", "shovel", "hoe", "terraformer", "horn", "drum", "magnet", "brewer")) {
+                || pathTokens.containsAny(BOTANIA_TOOL_TOKENS)) {
             return "tools";
         }
         if (hasAny(context.facets, ItemFacet.INGOT, ItemFacet.NUGGET, ItemFacet.DUST,
                 ItemFacet.GEM, ItemFacet.RAW_MATERIAL, ItemFacet.TECH_COMPONENT,
                 ItemFacet.INGREDIENT_ORGANIC, ItemFacet.INGREDIENT_MINERAL)
-                || containsAny(context.path, "petal", "mystical_flower", "livingwood", "livingrock",
-                "dreamwood", "manasteel", "terrasteel", "elementium", "gaia", "pixie_dust",
-                "dragonstone", "mana_powder", "mana_dust", "quartz", "shimmerrock", "shimmerwood")) {
+                || pathTokens.containsAny(BOTANIA_MATERIAL_TOKENS)) {
             return "materials";
         }
         return "misc";
     }
 
     private static boolean isBotaniaGeneratingFlower(String path) {
-        return containsAny(path,
-                "endoflame", "hydroangeas", "thermalily", "gourmaryllis", "munchdew",
-                "rosa_arcana", "entropinnyum", "kekimurus", "narslimmus", "spectrolus",
-                "dandelifeon", "shulk_me_not", "rafflowsia");
+        return containsPathToken(path, BOTANIA_GENERATING_FLOWER_TOKENS);
     }
 
     private static boolean isBotaniaFunctionalFlower(String path) {
-        return containsAny(path,
-                "pure_daisy", "agricarnation", "bellethorn", "bergamute", "bubbell",
-                "clayconia", "daffomill", "dreadthorn", "exoflame", "fallen_kanade",
-                "heisei_dream", "hopperhock", "hyacidus", "jaded_amaranthus", "labellia",
-                "loonium", "marimorphosis", "medumone", "pollidisiac", "rannuncarpus",
-                "solegnolia", "spectranthemum", "tangleberrie", "tigerseye", "vinculotus",
-                "orechid", "orechid_ignem");
+        return containsPathToken(path, BOTANIA_FUNCTIONAL_FLOWER_TOKENS);
     }
 
     private static Optional<CategoryAssignment> resolveSophisticatedIdentity(ResolveContext context) {
@@ -1183,6 +1375,71 @@ public final class PrimaryCategoryResolver {
             case "parts", "modifiers", "stations", "blueprints" -> true;
             default -> false;
         };
+    }
+
+    private static Optional<CategoryAssignment> resolveModularGolemsIdentity(ResolveContext context) {
+        if (!"modulargolems".equals(context.modId)
+                && !CompatFamilyDetector.hasFamily(context.attributes, CompatFamilyDetector.MODULAR_GOLEMS)) {
+            return Optional.empty();
+        }
+        String kind = context.attributes.getOrDefault(SearchNodeKeys.MODULAR_GOLEMS_ITEM_KIND, "");
+        if (kind.isBlank()) {
+            return Optional.empty();
+        }
+        String category;
+        String subcategory;
+        switch (kind) {
+            case "golem_armor" -> {
+                category = "armor";
+                subcategory = "animal";
+            }
+            case "ranged_weapons" -> {
+                category = "tools";
+                subcategory = "ranged";
+            }
+            case "harvest_tools" -> {
+                category = "tools";
+                subcategory = "harvest";
+            }
+            case "weapons" -> {
+                category = "tools";
+                subcategory = "melee";
+            }
+            case "upgrades" -> {
+                category = "tech";
+                subcategory = "upgrades";
+            }
+            case "templates" -> {
+                category = "tech";
+                subcategory = "templates";
+            }
+            case "cards", "route_cards" -> {
+                category = "tech";
+                subcategory = "redstone";
+            }
+            case "parts", "holders", "facades" -> {
+                category = "tech";
+                subcategory = "parts";
+            }
+            case "workstations" -> {
+                category = "tech";
+                subcategory = "machines";
+            }
+            case "wands" -> {
+                category = "magic";
+                subcategory = "artifacts";
+            }
+            default -> {
+                return Optional.empty();
+            }
+        }
+        return Optional.of(identityAssignment(
+                category,
+                subcategory,
+                context.attributes,
+                "identity.modular_golems." + kind,
+                "Modular Golems " + kind + " identity"
+        ));
     }
 
     private static CategoryAssignment identityAssignment(
@@ -1392,7 +1649,8 @@ public final class PrimaryCategoryResolver {
         return "artifacts";
     }
 
-    private static String classifyArmorSubcategory(Set<ItemFacet> facets) {
+    private static String classifyArmorSubcategory(Set<ItemFacet> facets, Map<String, String> attributes) {
+        if (isNonPlayerArmorClass(attributes)) return "animal";
         if (facets.contains(ItemFacet.ARMOR_HEAD)) return "head";
         if (facets.contains(ItemFacet.ARMOR_CHEST)) return "chest";
         if (facets.contains(ItemFacet.ARMOR_LEGS)) return "legs";
@@ -1400,6 +1658,16 @@ public final class PrimaryCategoryResolver {
         if (facets.contains(ItemFacet.ARMOR_ANIMAL)) return "animal";
         if (facets.contains(ItemFacet.CURIO)) return "curios";
         return "curios";
+    }
+
+    private static boolean isNonPlayerArmorClass(Map<String, String> attributes) {
+        String itemClass = attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, "").toLowerCase(Locale.ROOT);
+        return containsAny(itemClass,
+                "animalarmoritem",
+                "horsearmoritem",
+                "wolfarmoritem",
+                "dogarmoritem",
+                "golemarmoritem");
     }
 
     private static String classifyWeaponSubcategory(Set<ItemFacet> facets) {
@@ -1525,10 +1793,18 @@ public final class PrimaryCategoryResolver {
         if (facets.contains(ItemFacet.CROP)) {
             return false;
         }
-        return facets.contains(ItemFacet.LEAVES)
+        if (facets.contains(ItemFacet.LEAVES)
                 || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:leaves")
-                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "minecraft:leaves")
-                || containsPathToken(path, Set.of("leaf", "leaves"));
+                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "minecraft:leaves")) {
+            return true;
+        }
+        // Path-based fallback: only apply when blockShape is not explicitly structural.
+        // A block shaped as "partial" (hedge, post, lattice) is a building element, not leaves.
+        String blockShape = attributes.getOrDefault("blockShape", "");
+        if ("partial".equals(blockShape)) {
+            return false;
+        }
+        return containsPathToken(path, Set.of("leaf", "leaves"));
     }
 
     private static boolean isWoodBlock(String path, Set<ItemFacet> facets, Map<String, String> attributes) {
@@ -1794,10 +2070,7 @@ public final class PrimaryCategoryResolver {
 
     private static boolean shouldBiasCreateEnchantingFamilyToMagic(String modId, String path) {
         return modId.equals("create_enchantment_industry")
-                && (path.contains("experience")
-                || path.contains("hyper_experience")
-                || path.contains("nugget_of_experience")
-                || path.contains("nugget_of_super_experience"));
+                && containsPathToken(path, CREATE_ENCHANTING_EXPERIENCE_TOKENS);
     }
 
     private static boolean shouldBiasDecorFamilyToDecoration(ModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
@@ -1821,6 +2094,7 @@ public final class PrimaryCategoryResolver {
 
     private static boolean shouldBiasArchitecturalPlaceableToBuilding(Set<ItemFacet> facets, String path, Map<String, String> attributes) {
         return facets.contains(ItemFacet.PLACEABLE)
+                && !"partial".equals(attributes.getOrDefault("blockShape", ""))
                 && !hasAny(facets,
                 ItemFacet.MACHINE,
                 ItemFacet.HAS_ENERGY,
@@ -1839,12 +2113,12 @@ public final class PrimaryCategoryResolver {
 
     private static boolean shouldBiasPortableStorageFamilyToArmor(ModFamily modFamily, String path) {
         return modFamily == ModFamily.PORTABLE_STORAGE
-                && (path.contains("backpack") || path.contains("satchel") || path.contains("pouch"));
+                && containsPathToken(path, PORTABLE_STORAGE_ARMOR_TOKENS);
     }
 
     private static boolean shouldBiasPortableStorageFamilyToTech(ModFamily modFamily, String path) {
         return modFamily == ModFamily.PORTABLE_STORAGE
-                && (path.contains("upgrade") || path.contains("stack") || path.contains("pump") || path.contains("filter"));
+                && containsPathToken(path, PORTABLE_STORAGE_TECH_TOKENS);
     }
 
     private static boolean shouldBiasStorageFamilyToTech(ModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
@@ -1869,52 +2143,20 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.SOCIAL_CLAIMS)
                 && (
                 facets.contains(ItemFacet.PLACEABLE)
-                        || path.contains("storage")
-                        || path.contains("chest")
-                        || path.contains("barrel")
-                        || path.contains("drawer")
-                        || path.contains("terminal")
-                        || path.contains("drive")
-                        || path.contains("cell")
-                        || path.contains("disk")
-                        || path.contains("interface")
-                        || path.contains("importer")
-                        || path.contains("exporter")
-                        || path.contains("controller")
-                        || path.contains("cable")
-                        || path.contains("bus")
-                        || path.contains("tank")
-                        || path.contains("grid")
-                        || path.contains("monitor")
-                        || path.contains("manager")
-                        || path.contains("manipulator")
-                        || path.contains("constructor")
-                        || path.contains("destructor")
-                        || path.contains("detector")
-                        || path.contains("relay")
-                        || path.contains("transmitter")
-                        || path.contains("receiver")
-                        || path.contains("network")
-                        || path.contains("silicon")
-                        || path.contains("processor")
-                        || path.contains("binding")
-                        || path.contains("printed")
-                        || path.contains("logic")
-                        || path.contains("calculation")
-                        || path.contains("engineering")
-                        || path.contains("chip")
-                        || path.contains("card")
-                        || path.contains("module")
-                        || path.contains("core")
-                        || path.contains("quartz_enriched_iron")
-                        || path.contains("upgrade")
-                        || path.contains("pattern")
-                        || path.contains("filter")
-                        || path.contains("cover")
-                        || path.contains("remote")
-                        || path.contains("key")
-                        || path.contains("keyring")
-                        || path.contains("template")
+                        || hasAny(facets,
+                        ItemFacet.STORAGE,
+                        ItemFacet.HAS_BLOCK_ENTITY,
+                        ItemFacet.HAS_ENERGY,
+                        ItemFacet.INTERACTIVE_BLOCK,
+                        ItemFacet.REDSTONE_LOGIC,
+                        ItemFacet.REDSTONE_SIGNAL,
+                        ItemFacet.TRANSPORT,
+                        ItemFacet.CABLE,
+                        ItemFacet.UPGRADE,
+                        ItemFacet.TEMPLATE,
+                        ItemFacet.TECH_COMPONENT,
+                        ItemFacet.MECHANICAL_COMPONENT)
+                        || containsPathToken(path, STORAGE_FAMILY_ROUTE_TOKENS)
         )
                 && !shouldBeGeology(facets, path, attributes);
     }
@@ -2009,20 +2251,7 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.MAGIC_ARTIFACT,
                 ItemFacet.MAGIC_REAGENT)
                 && (
-                path.contains("crumb")
-                        || path.contains("sugar")
-                        || path.contains("butter")
-                        || path.contains("chip")
-                        || path.contains("flour")
-                        || path.contains("cheese")
-                        || path.contains("diced")
-                        || path.contains("bean")
-                        || path.contains("wrapper")
-                        || path.contains("dough")
-                        || path.contains("powder")
-                        || path.contains("puree")
-                        || path.contains("frosting")
-                        || path.contains("piping_bag")
+                containsPathToken(path, FOOD_FAMILY_INGREDIENT_TOKENS)
         );
     }
 
@@ -2134,31 +2363,18 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.SOCIAL_CLAIMS)
                 && (
                 facets.contains(ItemFacet.PLACEABLE)
-                        || path.contains("circuit")
-                        || path.contains("transistor")
-                        || path.contains("capacitor")
-                        || path.contains("assembly")
-                        || path.contains("wafer")
-                        || path.contains("etch")
-                        || path.contains("photomask")
-                        || path.contains("tube")
-                        || path.contains("valve")
-                        || path.contains("module")
-                        || path.contains("drone")
-                        || path.contains("charger")
-                        || path.contains("compressor")
-                        || path.contains("chamber")
-                        || path.contains("keycard")
-                        || path.contains("codebreaker")
-                        || path.contains("monitor")
-                        || path.contains("modifier")
-                        || path.contains("reinforcer")
-                        || path.contains("remover")
-                        || path.contains("changer")
-                        || path.contains("module")
-                        || path.contains("sentry")
-                        || path.contains("taser")
-                        || path.contains("remote")
+                        || hasAny(facets,
+                        ItemFacet.STORAGE,
+                        ItemFacet.MACHINE,
+                        ItemFacet.HAS_BLOCK_ENTITY,
+                        ItemFacet.HAS_ENERGY,
+                        ItemFacet.CABLE,
+                        ItemFacet.TECH_COMPONENT,
+                        ItemFacet.MECHANICAL_COMPONENT,
+                        ItemFacet.REDSTONE_LOGIC,
+                        ItemFacet.REDSTONE_SIGNAL,
+                        ItemFacet.TRANSPORT)
+                        || containsPathToken(path, AUTOMATION_ROUTE_TOKENS)
         )
                 && !shouldBeGeology(facets, path, attributes)
                 && !shouldBiasUncraftableFullBlockToTerrain(facets, attributes);
@@ -2166,70 +2382,34 @@ public final class PrimaryCategoryResolver {
 
     private static String classifyStorageSubcategory(String path, Set<ItemFacet> facets) {
         PathTokens tokens = PathTokens.of(path);
-        if (facets.contains(ItemFacet.UPGRADE) || path.contains("upgrade")) {
+        if (facets.contains(ItemFacet.UPGRADE) || tokens.contains("upgrade")) {
             return "upgrades";
         }
-        if (facets.contains(ItemFacet.TEMPLATE) || path.contains("pattern") || path.contains("template")) {
+        if (facets.contains(ItemFacet.TEMPLATE) || tokens.containsAny("pattern", "template")) {
             return "templates";
         }
-        if (facets.contains(ItemFacet.CABLE) || path.contains("cable") || path.contains("bus")) {
+        if (facets.contains(ItemFacet.CABLE) || tokens.containsAny("cable", "bus")) {
             return "cables";
         }
         if (tokens.contains("quartz_enriched_iron")) {
             return "ingots";
         }
-        if (path.contains("silicon")
-                || path.contains("processor")
-                || path.contains("binding")
-                || path.contains("printed_")
-                || path.contains("printed")
-                || path.contains("logic_")
-                || path.contains("logic")
-                || path.contains("calculation")
-                || path.contains("engineering")
-                || path.contains("chip")
-                || path.contains("card")
-                || path.contains("module")
-                || path.contains("core")) {
+        if (tokens.containsAny(STORAGE_CIRCUIT_TOKENS)) {
             return "circuits";
         }
-        if (tokens.containsAny("storage_part", "storage_disk", "fluid_storage_part", "fluid_storage_disk")
-                || tokens.containsAny("storage_housing", "cover")) {
+        if (tokens.containsAny(STORAGE_MEDIA_PART_TOKENS)) {
             return "parts";
         }
-        if (tokens.containsAny("grid", "monitor") || path.contains("wireless")) {
+        if (tokens.containsAny("grid", "monitor", "wireless")) {
             return "machines";
         }
         if (facets.contains(ItemFacet.PLACEABLE) || facets.contains(ItemFacet.HAS_BLOCK_ENTITY)) {
             return "machines";
         }
-        if (facets.contains(ItemFacet.STORAGE)
-                || path.contains("storage")
-                || path.contains("chest")
-                || path.contains("barrel")
-                || path.contains("drawer")
-                || path.contains("tank")) {
+        if (facets.contains(ItemFacet.STORAGE) || tokens.containsAny(STORAGE_MACHINE_TOKENS)) {
             return "machines";
         }
-        if (path.contains("terminal")
-                || path.contains("interface")
-                || path.contains("importer")
-                || path.contains("exporter")
-                || path.contains("drive")
-                || path.contains("disk")
-                || path.contains("cell")
-                || path.contains("controller")
-                || path.contains("grid")
-                || path.contains("monitor")
-                || path.contains("manager")
-                || path.contains("manipulator")
-                || path.contains("constructor")
-                || path.contains("destructor")
-                || path.contains("detector")
-                || path.contains("relay")
-                || path.contains("transmitter")
-                || path.contains("receiver")
-                || path.contains("network")) {
+        if (tokens.containsAny(STORAGE_NETWORK_PART_TOKENS)) {
             return "parts";
         }
         return "machines";
@@ -2250,7 +2430,7 @@ public final class PrimaryCategoryResolver {
             if (containsPathToken(path, CREATE_ADDON_MACHINE_TOKENS)) {
                 return "machines";
             }
-            if (isCablePath(path) || facets.contains(ItemFacet.CABLE)) {
+            if (facets.contains(ItemFacet.CABLE)) {
                 return "cables";
             }
             if (containsPathToken(path, CREATE_ADDON_PART_TOKENS)) {
@@ -2279,13 +2459,13 @@ public final class PrimaryCategoryResolver {
         if (facets.contains(ItemFacet.REDSTONE_LOGIC) || facets.contains(ItemFacet.REDSTONE_SIGNAL)) {
             return "redstone";
         }
-        if (facets.contains(ItemFacet.UPGRADE) || path.contains("upgrade")) {
+        if (facets.contains(ItemFacet.UPGRADE) || containsPathToken(path, Set.of("upgrade"))) {
             return "upgrades";
         }
         if (facets.contains(ItemFacet.TEMPLATE) || isTemplatePath(path)) {
             return "templates";
         }
-        if (facets.contains(ItemFacet.CABLE) || isCablePath(path)) {
+        if (facets.contains(ItemFacet.CABLE)) {
             return "cables";
         }
         if (containsPathToken(path, CREATE_PART_TOKENS)) {
@@ -2308,7 +2488,7 @@ public final class PrimaryCategoryResolver {
                 || hasPreparedMealPath(path)) {
             return "meals";
         }
-        if (facets.contains(ItemFacet.FOOD_DRINK) || path.contains("bottle")) {
+        if (facets.contains(ItemFacet.FOOD_DRINK) || containsPathToken(path, Set.of("bottle"))) {
             return "drinks";
         }
         if (facets.contains(ItemFacet.FOOD_PROTEIN)) {
@@ -2334,33 +2514,19 @@ public final class PrimaryCategoryResolver {
     }
 
     private static String classifyAutomationSubcategory(String path, Set<ItemFacet> facets) {
-        if (facets.contains(ItemFacet.CABLE) || path.contains("tube") || path.contains("cable")) {
+        PathTokens tokens = PathTokens.of(path);
+        if (facets.contains(ItemFacet.CABLE) || tokens.containsAny("tube", "cable")) {
             return "cables";
         }
-        if (path.contains("circuit")
-                || path.contains("transistor")
-                || path.contains("capacitor")
-                || path.contains("wafer")
-                || path.contains("etch")
-                || path.contains("photomask")
-                || path.contains("assembly")
-                || path.contains("keycard")
-                || path.contains("modifier")
-                || path.contains("reinforcer")
-                || path.contains("changer")
-                || path.contains("module")) {
+        if (tokens.containsAny(AUTOMATION_CIRCUIT_TOKENS)) {
             return "circuits";
         }
-        if (path.contains("valve")
-                || path.contains("drone")) {
+        if (tokens.containsAny(AUTOMATION_PART_TOKENS)) {
             return "parts";
         }
         if (facets.contains(ItemFacet.STORAGE)
                 || facets.contains(ItemFacet.MACHINE)
-                || path.contains("charger")
-                || path.contains("charging")
-                || path.contains("compressor")
-                || path.contains("chamber")) {
+                || tokens.containsAny(AUTOMATION_MACHINE_TOKENS)) {
             return "machines";
         }
         return "parts";
@@ -2394,23 +2560,13 @@ public final class PrimaryCategoryResolver {
             return false;
         }
         return facets.contains(ItemFacet.FUNGI)
-                || path.contains("nylium")
-                || path.contains("mycelium")
-                || path.contains("moss")
-                || path.contains("lichen")
-                || path.contains("fungi")
-                || path.contains("fungus")
-                || path.contains("roots")
-                || path.contains("stem")
-                || (blocksMaterial.equals("soil") && path.contains("grass"));
+                || containsPathToken(path, GEOLOGY_SURFACE_ORGANIC_TOKENS)
+                || (blocksMaterial.equals("soil") && containsPathToken(path, Set.of("grass")));
     }
 
     private static String classifyOrganicSurfaceBlockSubcategory(String path, Set<ItemFacet> facets) {
         if (facets.contains(ItemFacet.FUNGI)
-                || path.contains("nylium")
-                || path.contains("mycelium")
-                || path.contains("fungi")
-                || path.contains("fungus")) {
+                || containsPathToken(path, GEOLOGY_FUNGI_TOKENS)) {
             return "fungi";
         }
         return "flora";
@@ -2418,6 +2574,10 @@ public final class PrimaryCategoryResolver {
 
     private static boolean shouldBiasGeologyFamilyToDecoration(Set<ItemFacet> facets, String path, Map<String, String> attributes) {
         if (!facets.contains(ItemFacet.PLACEABLE)) {
+            return false;
+        }
+        String blockShape = attributes.getOrDefault("blockShape", "");
+        if ("partial".equals(blockShape)) {
             return false;
         }
         if (hasAny(facets,
@@ -2437,14 +2597,17 @@ public final class PrimaryCategoryResolver {
             return false;
         }
         String blocksMaterial = attributes.getOrDefault(SearchNodeKeys.BLOCKS_MATERIAL, "");
-        return path.contains("window")
+        return containsPathToken(path, GEOLOGY_DECORATION_TOKENS)
                 || containsPathToken(path, DECOR_TOKENS)
-                || path.contains("desk")
-                || (facets.contains(ItemFacet.PANE) && (blocksMaterial.equals("glass") || path.contains("glass")));
+                || (facets.contains(ItemFacet.PANE) && (blocksMaterial.equals("glass") || containsPathToken(path, Set.of("glass"))));
     }
 
     private static boolean shouldBiasGeologyFamilyToMasonry(Set<ItemFacet> facets, String path, Map<String, String> attributes) {
         if (!facets.contains(ItemFacet.PLACEABLE)) {
+            return false;
+        }
+        String blockShape = attributes.getOrDefault("blockShape", "");
+        if ("partial".equals(blockShape)) {
             return false;
         }
         if (hasAny(facets,
@@ -2459,7 +2622,6 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.TRANSPORT)) {
             return false;
         }
-        String blockShape = attributes.getOrDefault("blockShape", "");
         return hasAny(facets,
                 ItemFacet.STAIRS,
                 ItemFacet.SLAB,
@@ -2477,33 +2639,139 @@ public final class PrimaryCategoryResolver {
                 || blockShape.equals("pane")
                 || blockShape.equals("door")
                 || blockShape.equals("trapdoor")
-                || path.contains("stairs")
-                || path.contains("slab")
-                || path.contains("wall")
-                || path.contains("fence")
-                || path.contains("pane")
-                || path.contains("door")
-                || path.contains("trapdoor")
-                || path.contains("brick")
-                || path.contains("bricks")
-                || path.contains("tile")
-                || path.contains("paver")
-                || path.contains("paving")
-                || path.contains("beam")
-                || path.contains("stripe")
-                || path.contains("square")
-                || path.contains("pattern")
-                || path.contains("dented")
-                || path.contains("weathered")
-                || path.contains("plank")
-                || path.contains("board")
-                || path.contains("pillar")
-                || path.contains("column")
-                || path.contains("polished")
-                || path.contains("chiseled")
-                || path.contains("carved")
-                || path.contains("cut_")
-                || path.endsWith("_cut");
+                || containsPathToken(path, GEOLOGY_MASONRY_TOKENS);
+    }
+
+    private static boolean isLikelyPartialBuildingPlaceable(Set<ItemFacet> facets, String path, Map<String, String> attributes) {
+        if (!facets.contains(ItemFacet.PLACEABLE)) {
+            return false;
+        }
+        String blockShape = attributes.getOrDefault("blockShape", "");
+        return "partial".equals(blockShape);
+    }
+
+    private static boolean isLikelyDecorativeMicroPlaceable(Set<ItemFacet> facets, String path, Map<String, String> attributes) {
+        if (!facets.contains(ItemFacet.PLACEABLE)) {
+            return false;
+        }
+        if (hasAny(facets,
+                ItemFacet.INTERACTIVE_BLOCK,
+                ItemFacet.MACHINE,
+                ItemFacet.WORKSTATION,
+                ItemFacet.STORAGE,
+                ItemFacet.HAS_ENERGY,
+                ItemFacet.REDSTONE_LOGIC,
+                ItemFacet.REDSTONE_SIGNAL,
+                ItemFacet.TRANSPORT,
+                ItemFacet.CABLE,
+                ItemFacet.TECH_COMPONENT,
+                ItemFacet.MECHANICAL_COMPONENT)) {
+            return false;
+        }
+        String blockShape = attributes.getOrDefault("blockShape", "");
+        if (!"partial".equals(blockShape)) {
+            return false;
+        }
+        if (facets.contains(ItemFacet.LIGHT_SOURCE)) {
+            return true;
+        }
+        String properties = attributes.getOrDefault(SearchNodeKeys.BLOCK_STATE_PROPERTIES, "");
+        if (hasMicroPartialStateHints(properties)) {
+            return true;
+        }
+        return hasMicroPartialPathOrClassSignals(path, attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, ""));
+    }
+
+    private static boolean isLikelyFunctionalPartialPlaceable(Set<ItemFacet> facets, String path, Map<String, String> attributes) {
+        if (!facets.contains(ItemFacet.PLACEABLE)) {
+            return false;
+        }
+        String blockShape = attributes.getOrDefault("blockShape", "");
+        if (!"partial".equals(blockShape)) {
+            return false;
+        }
+        if (isLikelyDecorativeMicroPlaceable(facets, path, attributes)) {
+            return false;
+        }
+        return hasMicroPartialTechSignals(path, attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, ""));
+    }
+
+    private static boolean isLikelyNaturePartialPlaceable(Set<ItemFacet> facets, String path, Map<String, String> attributes) {
+        if (!facets.contains(ItemFacet.PLACEABLE)) {
+            return false;
+        }
+        String blockShape = attributes.getOrDefault("blockShape", "");
+        if (!"partial".equals(blockShape)) {
+            return false;
+        }
+        if (hasAny(facets, ItemFacet.NATURE_MISC, ItemFacet.LEAVES, ItemFacet.FLOWER, ItemFacet.FUNGI)) {
+            return true;
+        }
+        if (hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:leaves")
+                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "minecraft:leaves")) {
+            return true;
+        }
+        String encodedProperties = attributes.getOrDefault(SearchNodeKeys.BLOCK_STATE_PROPERTIES, "");
+        if (hasCsvToken(encodedProperties, "moisture") || hasCsvToken(encodedProperties, "layers")) {
+            return true;
+        }
+        String normalizedClass = attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "").toLowerCase(Locale.ROOT);
+        return containsPathToken(path, MICRO_PARTIAL_NATURE_PATH_HINTS)
+                || hasMicroPartialNatureClassSignals(normalizedClass);
+    }
+
+    private static boolean hasMicroPartialStateHints(String encodedProperties) {
+        if (encodedProperties == null || encodedProperties.isBlank()) {
+            return false;
+        }
+        String[] properties = encodedProperties.split(",");
+        int meaningfulHints = 0;
+        for (String rawProperty : properties) {
+            String property = rawProperty.trim();
+            if (property.isBlank()) {
+                continue;
+            }
+            if (property.startsWith("connect_")) {
+                return true;
+            }
+            if (MICRO_PARTIAL_STATE_HINTS.contains(property)) {
+                meaningfulHints++;
+            }
+        }
+        // Single-property partials like facing-only or axis-only are often edge cases.
+        // Keep them masonry unless they also provide stronger class/path hints.
+        return meaningfulHints >= 2;
+    }
+
+    private static boolean hasMicroPartialNatureClassSignals(String normalizedClass) {
+        if (normalizedClass == null || normalizedClass.isBlank()) {
+            return false;
+        }
+        return MICRO_PARTIAL_NATURE_CLASS_HINTS.stream().anyMatch(normalizedClass::contains);
+    }
+
+    private static boolean hasMicroPartialPathOrClassSignals(String path, String blockClass) {
+        if (containsPathToken(path, MICRO_PARTIAL_PATH_HINTS)) {
+            return true;
+        }
+        String normalizedClass = blockClass.toLowerCase(Locale.ROOT);
+        return MICRO_PARTIAL_CLASS_HINTS.stream().anyMatch(normalizedClass::contains);
+    }
+
+    private static boolean hasMicroPartialTechSignals(String path, String blockClass) {
+        if (containsPathToken(path, MICRO_PARTIAL_TECH_HINTS)) {
+            return true;
+        }
+        String normalizedClass = blockClass.toLowerCase(Locale.ROOT);
+        return MICRO_PARTIAL_TECH_HINTS.stream().anyMatch(normalizedClass::contains);
+    }
+
+    private static boolean isLikelyFullMasonryCandidate(Set<ItemFacet> facets, String path, Map<String, String> attributes) {
+        if (!facets.contains(ItemFacet.PLACEABLE)) {
+            return false;
+        }
+        String blockShape = attributes.getOrDefault("blockShape", "");
+        return !"partial".equals(blockShape);
     }
 
     private static boolean containsPathToken(String path, Set<String> expectedTokens) {
@@ -2565,28 +2833,10 @@ public final class PrimaryCategoryResolver {
                     ItemFacet.PANE,
                     ItemFacet.DOOR,
                     ItemFacet.TRAPDOOR)
-                    && !path.contains("brick")
-                    && !path.contains("polished")
-                    && !path.contains("tile")
-                    && !path.contains("glass")
-                    && !path.contains("window")
-                    && !path.contains("plank")
-                    && !path.contains("board")
-                    && !path.contains("pillar")
-                    && !path.contains("column")
-                    && !path.contains("paver")
-                    && !path.contains("paving")
-                    && !path.contains("chiseled")
-                    && !path.contains("carved");
+                    && !containsPathToken(path, GEOLOGY_STONE_DECORATION_TOKENS);
         }
         if (facets.contains(ItemFacet.SOIL_BLOCK)) {
-            return !path.contains("terracotta")
-                    && !path.contains("concrete")
-                    && !path.contains("nylium")
-                    && !path.contains("mycelium")
-                    && !path.contains("moss")
-                    && !path.contains("fungi")
-                    && !path.contains("fungus");
+            return !containsPathToken(path, GEOLOGY_SOIL_DECORATION_TOKENS);
         }
         return false;
     }
@@ -2598,8 +2848,50 @@ public final class PrimaryCategoryResolver {
         if (!"no_recipe".equals(attributes.getOrDefault(SearchNodeKeys.OBTAINABILITY, ""))) {
             return false;
         }
+        if (hasAny(facets,
+                ItemFacet.HAS_BLOCK_ENTITY,
+                ItemFacet.INTERACTIVE_BLOCK,
+                ItemFacet.LIGHT_SOURCE,
+                ItemFacet.DECORATIVE_BLOCK,
+                ItemFacet.MACHINE,
+                ItemFacet.WORKSTATION,
+                ItemFacet.STORAGE,
+                ItemFacet.HAS_ENERGY,
+                ItemFacet.ACTIVE_REDSTONE_LOGIC,
+                ItemFacet.PASSIVE_COMPARATOR_OUTPUT,
+                ItemFacet.REDSTONE_LOGIC,
+                ItemFacet.REDSTONE_SIGNAL,
+                ItemFacet.TRANSPORT,
+                ItemFacet.CABLE,
+                ItemFacet.UPGRADE,
+                ItemFacet.TEMPLATE,
+                ItemFacet.TECH_COMPONENT,
+                ItemFacet.MECHANICAL_COMPONENT,
+                ItemFacet.MAGIC_ARTIFACT,
+                ItemFacet.MAGIC_REAGENT,
+                ItemFacet.UTILITY_NAVIGATION,
+                ItemFacet.UTILITY_MEDICAL,
+                ItemFacet.UTILITY_CURRENCY,
+                ItemFacet.UTILITY_MISC,
+                ItemFacet.SEED,
+                ItemFacet.CROP,
+                ItemFacet.NATURE_MISC,
+                ItemFacet.FUNGI,
+                ItemFacet.LOG,
+                ItemFacet.LEAVES,
+                ItemFacet.FLOWER,
+                ItemFacet.GLASS_BLOCK)) {
+            return false;
+        }
         String blockShape = attributes.getOrDefault("blockShape", "");
-        return blockShape.isBlank() || "full_block".equals(blockShape);
+        if (!blockShape.isBlank() && !"full_block".equals(blockShape)) {
+            return false;
+        }
+        String blocksMaterial = attributes.getOrDefault(SearchNodeKeys.BLOCKS_MATERIAL, "");
+        return facets.contains(ItemFacet.SOIL_BLOCK)
+                || facets.contains(ItemFacet.STONE_BLOCK)
+                || "soil".equals(blocksMaterial)
+                || "stone".equals(blocksMaterial);
     }
 
     private static String classifyUncraftableTerrainSubcategory(Set<ItemFacet> facets, Map<String, String> attributes) {
@@ -2625,18 +2917,20 @@ public final class PrimaryCategoryResolver {
         if (facets.contains(ItemFacet.WALL)) return "wall";
         if (facets.contains(ItemFacet.FENCE) || facets.contains(ItemFacet.FENCE_GATE)) return "fence";
         if (facets.contains(ItemFacet.PANE)) return "pane";
-        if (path.contains("stairs") || path.endsWith("_stair")) return "stairs";
-        if (path.contains("slab")) return "slab";
-        if (path.contains("wall")) return "wall";
-        if (path.contains("fence") || containsPathToken(path, Set.of("railing", "banister"))) return "fence";
-        if (path.contains("pane") || containsPathToken(path, Set.of("window"))) return "pane";
-        if (path.contains("door") || path.contains("trapdoor")) return "functional";
+        PathTokens tokens = PathTokens.of(path);
+        if (tokens.containsAny("stairs", "stair")) return "stairs";
+        if (tokens.contains("slab")) return "slab";
+        if (tokens.contains("wall")) return "wall";
+        if (tokens.containsAny("fence", "railing", "banister")) return "fence";
+        if (tokens.containsAny("pane", "window")) return "pane";
+        if (tokens.containsAny("door", "trapdoor")) return "functional";
 
         String blockShape = attributes.getOrDefault("blockShape", "");
         if (!blockShape.isBlank()) {
             return switch (blockShape) {
                 case "stairs", "slab", "wall", "fence", "pane", "door", "trapdoor", "fence_gate" ->
                         blockShape.equals("fence_gate") ? "fence" : blockShape;
+                case "partial" -> "other_building";
                 default -> "full_block";
             };
         }
