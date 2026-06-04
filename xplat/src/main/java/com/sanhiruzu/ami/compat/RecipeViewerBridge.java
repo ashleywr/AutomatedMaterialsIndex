@@ -31,15 +31,27 @@ public class RecipeViewerBridge {
     }
 
     public static boolean isAvailable() {
-        return Services.PLATFORM.isModLoaded("emi") || Services.PLATFORM.isModLoaded("jei");
+        return isEmiSelectedExternalViewer() || isJeiSelectedExternalViewer();
+    }
+
+    public static boolean shouldUseNativeViewer() {
+        return RecipeViewerBridgeCommon.shouldUseNativeViewer(isAvailable());
+    }
+
+    public static boolean isEmiSelectedExternalViewer() {
+        return Services.PLATFORM.isModLoaded("emi");
+    }
+
+    public static boolean isJeiSelectedExternalViewer() {
+        return !isEmiSelectedExternalViewer() && Services.PLATFORM.isModLoaded("jei");
     }
 
     public static boolean hasRecipes(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
-        if (Services.PLATFORM.isModLoaded("emi")) {
+        if (isEmiSelectedExternalViewer()) {
             return EmiRecipeBridge.hasRecipes(stack);
         }
-        if (Services.PLATFORM.isModLoaded("jei")) {
+        if (isJeiSelectedExternalViewer()) {
             return JeiRecipeBridge.hasRecipes(stack);
         }
         return false;
@@ -47,18 +59,18 @@ public class RecipeViewerBridge {
 
     public static boolean hasUses(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
-        if (Services.PLATFORM.isModLoaded("emi")) {
+        if (isEmiSelectedExternalViewer()) {
             return EmiRecipeBridge.hasUses(stack);
         }
-        if (Services.PLATFORM.isModLoaded("jei")) {
+        if (isJeiSelectedExternalViewer()) {
             return JeiRecipeBridge.hasUses(stack);
         }
         return false;
     }
 
     public static boolean supportsSearchSync() {
-        if (Services.PLATFORM.isModLoaded("emi")) return EmiSearchSyncBridge.isAvailable();
-        if (Services.PLATFORM.isModLoaded("jei")) return JeiSearchSyncBridge.isAvailable();
+        if (isEmiSelectedExternalViewer()) return EmiSearchSyncBridge.isAvailable();
+        if (isJeiSelectedExternalViewer()) return JeiSearchSyncBridge.isAvailable();
         return false;
     }
 
@@ -66,9 +78,9 @@ public class RecipeViewerBridge {
      * Returns the current search text from the active recipe viewer, or "" if none loaded.
      */
     public static String getSearchText() {
-        if (Services.PLATFORM.isModLoaded("emi") && EmiSearchSyncBridge.isAvailable())
+        if (isEmiSelectedExternalViewer() && EmiSearchSyncBridge.isAvailable())
             return EmiSearchSyncBridge.getSearchText();
-        if (Services.PLATFORM.isModLoaded("jei") && JeiSearchSyncBridge.isAvailable())
+        if (isJeiSelectedExternalViewer() && JeiSearchSyncBridge.isAvailable())
             return JeiSearchSyncBridge.getSearchText();
         return "";
     }
@@ -77,9 +89,9 @@ public class RecipeViewerBridge {
      * Pushes a search string into the active recipe viewer's search bar.
      */
     public static void setSearchText(String text) {
-        if (Services.PLATFORM.isModLoaded("emi") && EmiSearchSyncBridge.isAvailable())
+        if (isEmiSelectedExternalViewer() && EmiSearchSyncBridge.isAvailable())
             EmiSearchSyncBridge.setSearchText(text);
-        if (Services.PLATFORM.isModLoaded("jei") && JeiSearchSyncBridge.isAvailable())
+        if (isJeiSelectedExternalViewer() && JeiSearchSyncBridge.isAvailable())
             JeiSearchSyncBridge.setSearchText(text);
     }
 
@@ -94,9 +106,9 @@ public class RecipeViewerBridge {
             RecipeViewerBridgeCommon.openNative(stack, true);
             return;
         }
-        if (Services.PLATFORM.isModLoaded("emi")) {
+        if (isEmiSelectedExternalViewer()) {
             EmiRecipeBridge.openRecipes(stack);
-        } else if (Services.PLATFORM.isModLoaded("jei")) {
+        } else if (isJeiSelectedExternalViewer()) {
             JeiRecipeBridge.openRecipes(stack);
         }
         RecipeViewerBridgeCommon.recordLookup(stack);
@@ -113,31 +125,31 @@ public class RecipeViewerBridge {
             RecipeViewerBridgeCommon.openNative(stack, false);
             return;
         }
-        if (Services.PLATFORM.isModLoaded("emi")) {
+        if (isEmiSelectedExternalViewer()) {
             EmiRecipeBridge.openUses(stack);
-        } else if (Services.PLATFORM.isModLoaded("jei")) {
+        } else if (isJeiSelectedExternalViewer()) {
             JeiRecipeBridge.openUses(stack);
         }
         RecipeViewerBridgeCommon.recordLookup(stack);
     }
 
     public static void startDrag(ItemStack stack) {
-        if (Services.PLATFORM.isModLoaded("emi")) {
+        if (isEmiSelectedExternalViewer()) {
             EmiRecipeBridge.startDrag(stack);
-        } else if (Services.PLATFORM.isModLoaded("jei")) {
+        } else if (isJeiSelectedExternalViewer()) {
             JeiRecipeBridge.startDrag(stack);
         }
     }
 
     public static ItemStack getDraggedStack() {
-        if (Services.PLATFORM.isModLoaded("emi")) return EmiRecipeBridge.getDraggedStack();
-        if (Services.PLATFORM.isModLoaded("jei")) return JeiRecipeBridge.getDraggedStack();
+        if (isEmiSelectedExternalViewer()) return EmiRecipeBridge.getDraggedStack();
+        if (isJeiSelectedExternalViewer()) return JeiRecipeBridge.getDraggedStack();
         return ItemStack.EMPTY;
     }
 
     public static boolean isDragging() {
-        if (Services.PLATFORM.isModLoaded("emi")) return EmiRecipeBridge.isDragging();
-        if (Services.PLATFORM.isModLoaded("jei")) return JeiRecipeBridge.isDragging();
+        if (isEmiSelectedExternalViewer()) return EmiRecipeBridge.isDragging();
+        if (isJeiSelectedExternalViewer()) return JeiRecipeBridge.isDragging();
         return false;
     }
 
@@ -147,18 +159,18 @@ public class RecipeViewerBridge {
     }
 
     public static void stopDrag() {
-        if (Services.PLATFORM.isModLoaded("emi")) {
+        if (isEmiSelectedExternalViewer()) {
             EmiRecipeBridge.stopDrag();
-        } else if (Services.PLATFORM.isModLoaded("jei")) {
+        } else if (isJeiSelectedExternalViewer()) {
             JeiRecipeBridge.stopDrag();
         }
     }
 
     public static boolean handleDrop(double mouseX, double mouseY) {
-        if (Services.PLATFORM.isModLoaded("emi")) {
+        if (isEmiSelectedExternalViewer()) {
             return EmiRecipeBridge.handleDrop(net.minecraft.client.Minecraft.getInstance().screen, mouseX, mouseY);
         }
-        if (Services.PLATFORM.isModLoaded("jei")) {
+        if (isJeiSelectedExternalViewer()) {
             return JeiRecipeBridge.handleDrop(net.minecraft.client.Minecraft.getInstance().screen, mouseX, mouseY);
         }
         return false;
@@ -202,9 +214,9 @@ public class RecipeViewerBridge {
         if (tryTransferRecipe(stack, maxTransfer, toCursor)) {
             return;
         }
-        if (Services.PLATFORM.isModLoaded("emi")) {
+        if (isEmiSelectedExternalViewer()) {
             EmiRecipeBridge.handleShiftClick(stack);
-        } else if (Services.PLATFORM.isModLoaded("jei")) {
+        } else if (isJeiSelectedExternalViewer()) {
             JeiRecipeBridge.handleShiftClick(stack);
         }
     }

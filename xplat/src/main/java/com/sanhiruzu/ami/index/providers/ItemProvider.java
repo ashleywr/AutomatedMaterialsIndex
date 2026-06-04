@@ -148,6 +148,66 @@ public class ItemProvider implements IAmiDataProvider {
         meta.put(SearchNodeKeys.FACETS, encoded + "," + facet.id());
     }
 
+    private static boolean namespaceIs(ResourceLocation id, String... namespaces) {
+        if (id == null) {
+            return false;
+        }
+        String namespace = id.getNamespace();
+        for (String candidate : namespaces) {
+            if (namespace.equals(candidate)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean namespaceStartsWith(ResourceLocation id, String prefix) {
+        return id != null && id.getNamespace().startsWith(prefix);
+    }
+
+    private static boolean hasCompatFamily(Map<String, String> meta, String family) {
+        return CompatFamilyDetector.hasFamily(meta, family);
+    }
+
+    private static void runFocusedCompatHooks(ResourceLocation id, ItemStack stack, @Nullable Level level,
+                                              Map<String, String> meta, boolean includePluginHooks) {
+        if (namespaceIs(id, "cobblemon") || hasCompatFamily(meta, CompatFamilyDetector.COBBLEMON)) {
+            ItemProviderCompatHooks.runCompatSafely("CobblemonCompat", () -> CobblemonCompat.enrichItem(id, meta));
+        }
+        if (namespaceStartsWith(id, "create") || hasCompatFamily(meta, CompatFamilyDetector.CREATE)) {
+            ItemProviderCompatHooks.runCompatSafely("CreateCompat", () -> CreateCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "ae2", "appliedenergistics2") || hasCompatFamily(meta, CompatFamilyDetector.AE2)) {
+            ItemProviderCompatHooks.runCompatSafely("AE2Compat", () -> AE2Compat.enrichItem(id, meta));
+        }
+        if (namespaceStartsWith(id, "mekanism") || hasCompatFamily(meta, CompatFamilyDetector.MEKANISM)) {
+            ItemProviderCompatHooks.runCompatSafely("MekanismCompat", () -> MekanismCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "gtceu", "gregtech") || hasCompatFamily(meta, CompatFamilyDetector.GREGTECH)) {
+            ItemProviderCompatHooks.runCompatSafely("GregTechCompat", () -> GregTechCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "sophisticatedbackpacks", "sophisticatedstorage", "sophisticatedcore")
+                || hasCompatFamily(meta, CompatFamilyDetector.SOPHISTICATED)) {
+            ItemProviderCompatHooks.runCompatSafely("SophisticatedCompat", () -> SophisticatedCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "silentgear", "tconstruct") || hasCompatFamily(meta, CompatFamilyDetector.MODULAR_GEAR)
+                || hasCompatFamily(meta, CompatFamilyDetector.TINKERS) || hasCompatFamily(meta, CompatFamilyDetector.SILENT_GEAR)) {
+            ItemProviderCompatHooks.runCompatSafely("ModularGearCompat", () -> ModularGearCompat.enrichItem(id, meta));
+            ItemProviderCompatHooks.runCompatSafely("ModularGearCompatRuntime", () ->
+                    ModularGearCompat.enrichRuntimeStack(id, stack, level, meta));
+        }
+        if (namespaceIs(id, "modulargolems") || hasCompatFamily(meta, CompatFamilyDetector.MODULAR_GOLEMS)) {
+            ItemProviderCompatHooks.runCompatSafely("ModularGolemsCompat", () -> ModularGolemsCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "rechiseled", "rechiseledcreate")) {
+            ItemProviderCompatHooks.runCompatSafely("RechiseledCompat", () -> RechiseledCompat.enrichItem(id, meta));
+        }
+        ItemProviderCompatHooks.runCompatSafely("StorageCompat", () -> StorageCompat.enrichItem(id, meta));
+        if (includePluginHooks) {
+            ItemProviderCompatHooks.runPluginItemCompatHooks(id, stack, level, meta);
+        }
+    }
+
     private static FacetProfile profileWithMetadata(FacetProfile profile, Map<String, String> meta) {
         Map<String, String> attributes = new HashMap<>(profile.attributes());
         attributes.putAll(meta);
@@ -197,6 +257,10 @@ public class ItemProvider implements IAmiDataProvider {
         return GroupingEngine.classifyColorFromPath(id.getPath());
     }
 
+    private static boolean shouldDefaultCollapseExplicitFamily(GroupingEngine.CollapsedFamily family) {
+        return family != null && Set.of("banner_patterns", "banners", "goat_horns", "music_discs").contains(family.key());
+    }
+
     private static Map<String, String> buildSubtypeMeta(ResourceLocation baseId, ItemStack stack, String colorBucket,
                                                         @Nullable ItemFilter.CreativeTabInfo creativeTab,
                                                         @Nullable Level level) {
@@ -210,6 +274,9 @@ public class ItemProvider implements IAmiDataProvider {
         GroupingEngine.classifyCollapsedFamily(baseId).ifPresent(family -> {
             meta.put(SearchNodeKeys.COLLAPSE_FAMILY, family.key());
             meta.put(SearchNodeKeys.COLLAPSE_LABEL, family.label());
+            if (shouldDefaultCollapseExplicitFamily(family)) {
+                meta.put(SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed");
+            }
         });
         addDurability(meta, stack);
 
@@ -236,18 +303,7 @@ public class ItemProvider implements IAmiDataProvider {
         }
 
         ItemProviderCompatHooks.runCompatSafely("CompatFamilyDetector", () -> CompatFamilyDetector.detect(baseId, meta));
-        ItemProviderCompatHooks.runCompatSafely("CobblemonCompat", () -> CobblemonCompat.enrichItem(baseId, meta));
-        ItemProviderCompatHooks.runCompatSafely("CreateCompat", () -> CreateCompat.enrichItem(baseId, meta));
-        ItemProviderCompatHooks.runCompatSafely("AE2Compat", () -> AE2Compat.enrichItem(baseId, meta));
-        ItemProviderCompatHooks.runCompatSafely("MekanismCompat", () -> MekanismCompat.enrichItem(baseId, meta));
-        ItemProviderCompatHooks.runCompatSafely("GregTechCompat", () -> GregTechCompat.enrichItem(baseId, meta));
-        ItemProviderCompatHooks.runCompatSafely("SophisticatedCompat", () -> SophisticatedCompat.enrichItem(baseId, meta));
-        ItemProviderCompatHooks.runCompatSafely("ModularGearCompat", () -> ModularGearCompat.enrichItem(baseId, meta));
-        ItemProviderCompatHooks.runCompatSafely("ModularGearCompatRuntime", () ->
-                ModularGearCompat.enrichRuntimeStack(baseId, stack, level, meta));
-        ItemProviderCompatHooks.runCompatSafely("ModularGolemsCompat", () -> ModularGolemsCompat.enrichItem(baseId, meta));
-        ItemProviderCompatHooks.runCompatSafely("RechiseledCompat", () -> RechiseledCompat.enrichItem(baseId, meta));
-        ItemProviderCompatHooks.runPluginItemCompatHooks(baseId, stack, level, meta);
+        runFocusedCompatHooks(baseId, stack, level, meta, true);
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(baseId, profileWithMetadata(facetProfile, meta));
         if (!assignment.attributes().isEmpty()) {
             meta.putAll(assignment.attributes());
@@ -267,7 +323,6 @@ public class ItemProvider implements IAmiDataProvider {
                 }
             }
         }
-        ItemProviderCompatHooks.runCompatSafely("StorageCompat", () -> StorageCompat.enrichItem(baseId, meta));
         return meta;
     }
 
@@ -281,13 +336,17 @@ public class ItemProvider implements IAmiDataProvider {
 
     @Override
     public void populate(GlobalIndex index, @Nullable Level level) {
+        long started = System.currentTimeMillis();
+        long setupStart = started;
         ItemProviderCompatHooks.clearDisabledCompatHooks();
         GroupingEngine.initialize(level);
         GroupingEngine.rebuildDynamicShapeCandidates(BuiltInRegistries.ITEM);
+        long setupMs = System.currentTimeMillis() - setupStart;
         boolean strictSurvival = AmiConfig.strictSurvivalMode;
         AmiIndexerService progress = AmiIndexerService.getInstance();
 
         progress.beginProgress("Reading creative tabs");
+        long creativeStart = System.currentTimeMillis();
         Map<Item, List<ItemFilter.CreativeStackInfo>> creativeStackMap = ItemFilter.buildCreativeStackMap(level);
         Map<Item, ItemFilter.CreativeTabInfo> creativeTabs = ItemFilter.firstCreativeTabs(creativeStackMap);
         Set<Item> creativeItems = creativeTabs.keySet();
@@ -295,6 +354,7 @@ public class ItemProvider implements IAmiDataProvider {
         Set<Item> recipeOutputs = (strictSurvival || AmiConfig.showHiddenModItems)
                 ? recipeIndex.getAllOutputItems()
                 : Collections.emptySet();
+        long creativeMs = System.currentTimeMillis() - creativeStart;
 
         boolean hasCreativeData = !creativeItems.isEmpty();
         boolean hasRecipeData = !recipeOutputs.isEmpty();
@@ -302,7 +362,15 @@ public class ItemProvider implements IAmiDataProvider {
         RegistryAccess registryAccess = level != null ? level.registryAccess() : null;
         int totalItems = BuiltInRegistries.ITEM.size();
         int scannedItems = 0;
+        int baseItemNodes = 0;
+        int subtypeNodes = 0;
+        long subtypeExpandNs = 0L;
+        long subtypeNodeNs = 0L;
+        long basePreRecipeNs = 0L;
+        long baseRecipeNs = 0L;
+        long basePostRecipeNs = 0L;
         progress.beginProgress("Indexing items", "", totalItems);
+        long itemLoopStart = System.currentTimeMillis();
 
         for (Item item : BuiltInRegistries.ITEM) {
             scannedItems++;
@@ -329,12 +397,15 @@ public class ItemProvider implements IAmiDataProvider {
             if (strictSurvival && !hasRecipe) continue;
 
             // Generated subtypes should not be suppressed just because the dummy base item is dev-only.
+            long subtypeExpandStart = System.nanoTime();
             List<SubtypeExpander.SubtypeEntry> subtypes =
                     SubtypeExpander.expand(id, registryAccess);
             if (subtypes.isEmpty() && ItemFilter.shouldShowAccessLevel(accessLevel)) {
                 subtypes = CreativeStackVariantExpander.expand(id, creativeStackMap.get(item), level);
             }
+            subtypeExpandNs += System.nanoTime() - subtypeExpandStart;
             if (!subtypes.isEmpty()) {
+                long subtypeNodeStart = System.nanoTime();
                 String tags = collectTags(item);
                 for (SubtypeExpander.SubtypeEntry entry : subtypes) {
                     ItemIconRenderer.registerStack(entry.id(), entry.stack());
@@ -351,10 +422,6 @@ public class ItemProvider implements IAmiDataProvider {
                     toolMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addToolStats(meta, stats));
                     armorMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addArmorStats(meta, stats));
                     inferAmmoType(entry.id(), meta);
-                    ItemProviderCompatHooks.runCompatSafely("CompatFamilyDetector", () -> CompatFamilyDetector.detect(entry.id(), meta));
-                    ItemProviderCompatHooks.runCompatSafely("GregTechCompat", () -> GregTechCompat.enrichItem(entry.id(), meta));
-                    ItemProviderCompatHooks.runCompatSafely("RechiseledCompat", () -> RechiseledCompat.enrichItem(entry.id(), meta));
-                    ItemProviderCompatHooks.runPluginItemCompatHooks(entry.id(), entry.stack(), level, meta);
                     markGeneratedModularGearVariantCheatOnly(entry.id(), meta);
                     if (!ItemFilter.shouldShowAccessLevel(meta.getOrDefault(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL))
                             && !isHiddenComponentDuplicateVariant(meta)) {
@@ -362,13 +429,16 @@ public class ItemProvider implements IAmiDataProvider {
                     }
                     index.addNode(new SearchNode(entry.id(), NodeType.ITEM,
                             entry.displayName(), 0xFFFFFF, 0, meta));
+                    subtypeNodes++;
                 }
+                subtypeNodeNs += System.nanoTime() - subtypeNodeStart;
                 // Skip the plain base node — its subtypes represent the full item space.
                 continue;
             }
 
             if (!ItemFilter.shouldShowAccessLevel(accessLevel)) continue;
 
+            long basePreRecipeStart = System.nanoTime();
             String modId = id.getNamespace();
             String displayName = item.getName(new ItemStack(item)).getString();
             ItemStack defaultStack = new ItemStack(item);
@@ -428,6 +498,9 @@ public class ItemProvider implements IAmiDataProvider {
             collapsedFamily.ifPresent(family -> {
                 meta.put(SearchNodeKeys.COLLAPSE_FAMILY, family.key());
                 meta.put(SearchNodeKeys.COLLAPSE_LABEL, family.label());
+                if (shouldDefaultCollapseExplicitFamily(family)) {
+                    meta.put(SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed");
+                }
             });
             if (collapsedFamily.isEmpty()) {
                 GroupingEngine.classifyTintableGeneratedFamily(id, variantGroup, colorBucket, tags)
@@ -451,39 +524,30 @@ public class ItemProvider implements IAmiDataProvider {
             armorStats.ifPresent(stats -> addArmorStats(meta, stats));
             inferAmmoType(id, meta);
             ItemProviderCompatHooks.runCompatSafely("CompatFamilyDetector", () -> CompatFamilyDetector.detect(id, meta));
-            ItemProviderCompatHooks.runCompatSafely("CobblemonCompat", () -> CobblemonCompat.enrichItem(id, meta));
             if (!inCreative) {
                 meta.put(SearchNodeKeys.VISIBILITY, "hidden");
             }
-            String obtainability = computeObtainability(item, recipeIndex);
-            meta.put(SearchNodeKeys.OBTAINABILITY, obtainability);
-            String recipeCategories = computeRecipeCategories(item, recipeIndex);
-            if (!recipeCategories.isEmpty()) {
-                meta.put(SearchNodeKeys.RECIPE_CATEGORIES, recipeCategories);
+            basePreRecipeNs += System.nanoTime() - basePreRecipeStart;
+
+            long baseRecipeStart = System.nanoTime();
+            RecipeMetadata recipeMetadata = computeRecipeMetadata(defaultStack);
+            meta.put(SearchNodeKeys.OBTAINABILITY, recipeMetadata.obtainability());
+            if (!recipeMetadata.recipeCategories().isEmpty()) {
+                meta.put(SearchNodeKeys.RECIPE_CATEGORIES, recipeMetadata.recipeCategories());
             }
-            String recipeUseCategories = computeRecipeUseCategories(item, recipeIndex);
-            if (!recipeUseCategories.isEmpty()) {
-                meta.put(SearchNodeKeys.RECIPE_USE_CATEGORIES, recipeUseCategories);
+            if (!recipeMetadata.recipeUseCategories().isEmpty()) {
+                meta.put(SearchNodeKeys.RECIPE_USE_CATEGORIES, recipeMetadata.recipeUseCategories());
             }
-            int recipeOutputCount = computeRecipeOutputCount(item, recipeIndex);
-            if (recipeOutputCount > 0) {
-                meta.put(SearchNodeKeys.RECIPE_OUTPUT_COUNT, Integer.toString(recipeOutputCount));
+            if (recipeMetadata.recipeOutputCount() > 0) {
+                meta.put(SearchNodeKeys.RECIPE_OUTPUT_COUNT, Integer.toString(recipeMetadata.recipeOutputCount()));
             }
-            int recipeUseCount = computeRecipeUseCount(item, recipeIndex);
-            if (recipeUseCount > 0) {
-                meta.put(SearchNodeKeys.RECIPE_USE_COUNT, Integer.toString(recipeUseCount));
+            if (recipeMetadata.recipeUseCount() > 0) {
+                meta.put(SearchNodeKeys.RECIPE_USE_COUNT, Integer.toString(recipeMetadata.recipeUseCount()));
             }
-            ItemProviderCompatHooks.runCompatSafely("CreateCompat", () -> CreateCompat.enrichItem(id, meta));
-            ItemProviderCompatHooks.runCompatSafely("AE2Compat", () -> AE2Compat.enrichItem(id, meta));
-            ItemProviderCompatHooks.runCompatSafely("MekanismCompat", () -> MekanismCompat.enrichItem(id, meta));
-            ItemProviderCompatHooks.runCompatSafely("GregTechCompat", () -> GregTechCompat.enrichItem(id, meta));
-            ItemProviderCompatHooks.runCompatSafely("SophisticatedCompat", () -> SophisticatedCompat.enrichItem(id, meta));
-            ItemProviderCompatHooks.runCompatSafely("ModularGearCompat", () -> ModularGearCompat.enrichItem(id, meta));
-            ItemProviderCompatHooks.runCompatSafely("ModularGearCompatRuntime", () ->
-                    ModularGearCompat.enrichRuntimeStack(id, defaultStack, level, meta));
-            ItemProviderCompatHooks.runCompatSafely("ModularGolemsCompat", () -> ModularGolemsCompat.enrichItem(id, meta));
-            ItemProviderCompatHooks.runCompatSafely("RechiseledCompat", () -> RechiseledCompat.enrichItem(id, meta));
-            ItemProviderCompatHooks.runPluginItemCompatHooks(id, defaultStack, level, meta);
+            baseRecipeNs += System.nanoTime() - baseRecipeStart;
+
+            long basePostRecipeStart = System.nanoTime();
+            runFocusedCompatHooks(id, defaultStack, level, meta, true);
 
             CategoryAssignment assignment = PrimaryCategoryResolver.resolve(id, profileWithMetadata(facetProfile, meta));
             if (!assignment.attributes().isEmpty()) {
@@ -506,26 +570,40 @@ public class ItemProvider implements IAmiDataProvider {
                     }
                 }
             }
-            ItemProviderCompatHooks.runCompatSafely("StorageCompat", () -> StorageCompat.enrichItem(id, meta));
-
             index.addNode(new SearchNode(id, NodeType.ITEM, displayName, color, 0, meta));
+            baseItemNodes++;
+            basePostRecipeNs += System.nanoTime() - basePostRecipeStart;
         }
+        long itemLoopMs = System.currentTimeMillis() - itemLoopStart;
 
         // Collect hero items from registered plugins (mods with infinite modular variants).
         progress.beginProgress("Indexing plugin variants");
-        indexHeroItems(index, registryAccess, creativeTabs, level);
+        long heroStart = System.currentTimeMillis();
+        int heroNodes = indexHeroItems(index, registryAccess, creativeTabs, level);
+        long heroMs = System.currentTimeMillis() - heroStart;
+        AmiCore.LOGGER.info(
+                "AMI indexing: ItemProvider setup={}ms creativeTabs={}ms items={}ms heroes={}ms total={}ms scanned={} baseNodes={} subtypeNodes={} heroNodes={} breakdown=subtypeExpand:{}ms subtypeNodes:{}ms basePreRecipe:{}ms baseRecipe:{}ms basePostRecipe:{}ms",
+                setupMs, creativeMs, itemLoopMs, heroMs, System.currentTimeMillis() - started,
+                scannedItems, baseItemNodes, subtypeNodes, heroNodes,
+                nanosToMillis(subtypeExpandNs), nanosToMillis(subtypeNodeNs), nanosToMillis(basePreRecipeNs),
+                nanosToMillis(baseRecipeNs), nanosToMillis(basePostRecipeNs));
+    }
+
+    private static long nanosToMillis(long nanos) {
+        return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(nanos);
     }
 
     private static boolean isHiddenComponentDuplicateVariant(Map<String, String> meta) {
         return "hidden_component_duplicate".equals(meta.get("variantAccessReason"));
     }
 
-    private void indexHeroItems(GlobalIndex index, @Nullable RegistryAccess registryAccess,
+    private int indexHeroItems(GlobalIndex index, @Nullable RegistryAccess registryAccess,
                                 Map<Item, ItemFilter.CreativeTabInfo> creativeTabs,
                                 @Nullable Level level) {
         if (!ItemFilter.shouldShowAccessLevel(ItemFilter.ACCESS_CHEAT)) {
-            return;
+            return 0;
         }
+        int emittedTotal = 0;
         for (var plugin : AmiPluginRegistry.getPlugins()) {
             List<ItemStack> heroItems;
             try {
@@ -539,6 +617,8 @@ public class ItemProvider implements IAmiDataProvider {
 
             // Use full class name to avoid collisions between two plugins in the same package.
             String pluginKey = plugin.getClass().getName().replace('.', '_').toLowerCase();
+            Set<String> seenHeroStackKeys = new HashSet<>();
+            Set<ResourceLocation> emittedHeroIds = new HashSet<>();
             int count = 0;
             for (ItemStack stack : heroItems) {
                 if (stack == null || stack.isEmpty()) continue;
@@ -551,7 +631,19 @@ public class ItemProvider implements IAmiDataProvider {
                 ResourceLocation baseId = BuiltInRegistries.ITEM.getKey(stack.getItem());
                 if (baseId == null) continue;
 
-                ResourceLocation syntheticId = Services.PLATFORM.rl("ami", "hero/" + pluginKey + "/" + count);
+                String identityHash = CreativeStackVariantExpander.stackIdentityHash(baseId, stack, level);
+                String stackKey = baseId + "|" + identityHash;
+                if (!seenHeroStackKeys.add(stackKey)) {
+                    continue;
+                }
+                ResourceLocation syntheticId = Services.PLATFORM.rl(
+                        "ami",
+                        "hero/" + pluginKey + "/" + baseId.getNamespace() + "/" + baseId.getPath() + "_" + identityHash
+                );
+                int collisionOrdinal = 1;
+                while (!emittedHeroIds.add(syntheticId)) {
+                    syntheticId = Services.PLATFORM.rl("ami", syntheticId.getPath() + "_" + collisionOrdinal++);
+                }
                 ItemIconRenderer.registerStack(syntheticId, stack);
 
                 Map<String, String> meta = buildSubtypeMeta(baseId, stack, extractColorBucket(baseId), creativeTabs.get(stack.getItem()), level);
@@ -567,8 +659,10 @@ public class ItemProvider implements IAmiDataProvider {
                 index.addNode(new SearchNode(syntheticId, NodeType.ITEM,
                         stack.getHoverName().getString(), 0xFFFFFF, 0, meta));
                 count++;
+                emittedTotal++;
             }
         }
+        return emittedTotal;
     }
 
     private static void markGeneratedModularGearVariantCheatOnly(ResourceLocation syntheticId, Map<String, String> meta) {

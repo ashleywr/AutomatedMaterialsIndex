@@ -76,6 +76,8 @@ public class AmiConfig {
     public static int accentColor = 0xFF5555;
     @ConfigValue("ui.show-header")
     public static boolean showHeader = true;
+    @ConfigValue("ui.results-expanded-by-default")
+    public static boolean resultsExpandedByDefault = true;
     @ConfigValue("ui.show-tooltip-tags")
     public static boolean showTooltipTags = false;
     @ConfigValue("general.compact-mode")
@@ -300,6 +302,7 @@ public class AmiConfig {
         theme = Theme.MODERN;
         accentColor = 0xFF5555;
         showHeader = true;
+        resultsExpandedByDefault = true;
         showTooltipTags = false;
         compactMode = false;
         disableAutoCompact = false;

@@ -146,7 +146,11 @@ public class ResultsToolbar implements SearchState.Listener {
     }
 
     public void resetCollapseState() {
-        this.collapseAllNext = true;
+        resetCollapseState(true);
+    }
+
+    public void resetCollapseState(boolean expandedByDefault) {
+        this.collapseAllNext = expandedByDefault;
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {

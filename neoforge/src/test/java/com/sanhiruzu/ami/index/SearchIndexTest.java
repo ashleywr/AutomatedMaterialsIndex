@@ -214,6 +214,28 @@ public class SearchIndexTest {
         assertEquals("masonry", index.getNodes(NodeType.ITEM).get(0).meta(SearchNodeKeys.ONTOLOGY_CATEGORY));
     }
 
+    @Test
+    public void globalIndexAddNodeReplacesDuplicateIds() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        var first = new SearchNode(
+                new ResourceLocation("minecraft:stone"),
+                NodeType.ITEM,
+                "Stone",
+                0,
+                0,
+                Map.of(SearchNodeKeys.ONTOLOGY_CATEGORY, "building")
+        );
+        var second = first.withMetadata(Map.of(SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry"));
+
+        index.addNode(first);
+        index.addNode(second);
+
+        assertEquals(1, index.getNodes(NodeType.ITEM).size());
+        assertEquals(second, index.getNode(first.id(), NodeType.ITEM).orElseThrow());
+        assertEquals(List.of(second), index.getNodesByCategory("masonry"));
+        assertTrue(index.getNodesByCategory("building").isEmpty());
+    }
+
     private static SearchNode item(String namespace, String path, String displayName, Map<String, String> metadata) {
         return new SearchNode(new ResourceLocation(namespace, path), NodeType.ITEM, displayName, 0, 0, metadata);
     }

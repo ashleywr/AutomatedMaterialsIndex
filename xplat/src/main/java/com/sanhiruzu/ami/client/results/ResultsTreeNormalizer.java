@@ -49,7 +49,10 @@ public final class ResultsTreeNormalizer {
         List<TreeNode> flattened = new ArrayList<>();
         boolean changed = false;
         for (TreeNode child : parent.getChildren()) {
-            if (shouldFlattenMatchingChildGroup(parent, child)) {
+            if (shouldUnwrapRedundantKindWrapper(child)) {
+                flattened.add(child.getChildren().get(0));
+                changed = true;
+            } else if (shouldFlattenMatchingChildGroup(parent, child)) {
                 flattened.addAll(child.getChildren());
                 changed = true;
             } else {
@@ -98,6 +101,29 @@ public final class ResultsTreeNormalizer {
                     || shouldFlattenCoveredSemanticGroup(parent, child);
         }
         return normalizedLabel(parent).equals(normalizedLabel(child));
+    }
+
+    private static boolean shouldUnwrapRedundantKindWrapper(TreeNode node) {
+        if (node == null || node.isLeaf() || !node.isExpanded() || node.getChildren().size() != 1) {
+            return false;
+        }
+        if (!isCategoryKindKey(node.getKey())) {
+            return false;
+        }
+
+        TreeNode onlyChild = node.getChildren().get(0);
+        return !onlyChild.isLeaf()
+                && onlyChild.isExpanded()
+                && isRepresentativeVariantGroup(onlyChild)
+                && normalizedLabel(node).equals(normalizedLabel(onlyChild));
+    }
+
+    private static boolean isCategoryKindKey(String key) {
+        if (key == null) {
+            return false;
+        }
+        int firstSlash = key.indexOf('/');
+        return firstSlash >= 0 && key.indexOf('/', firstSlash + 1) >= 0;
     }
 
     private static boolean isRepresentativeVariantGroup(TreeNode node) {
