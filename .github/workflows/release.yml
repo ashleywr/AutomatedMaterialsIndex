@@ -102,9 +102,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "v${{ steps.version.outputs.mod_version }}" \
-            --target "$GITHUB_SHA" \
-            --title "AMI ${{ steps.version.outputs.mod_version }}" \
-            --notes-file release-notes.md \
-            "neoforge/build/libs/ami-neoforge-1.21.1-${{ steps.version.outputs.mod_version }}.jar" \
-            "forge/build/release/ami-forge-1.20.1-${{ steps.version.outputs.mod_version }}.jar"
+          tag="v${{ steps.version.outputs.mod_version }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" \
+              --target "$GITHUB_SHA" \
+              --title "AMI ${{ steps.version.outputs.mod_version }}" \
+              --notes-file release-notes.md
+            gh release upload "$tag" --clobber \
+              "neoforge/build/libs/ami-neoforge-1.21.1-${{ steps.version.outputs.mod_version }}.jar" \
+              "forge/build/release/ami-forge-1.20.1-${{ steps.version.outputs.mod_version }}.jar"
+          else
+            gh release create "$tag" \
+              --target "$GITHUB_SHA" \
+              --title "AMI ${{ steps.version.outputs.mod_version }}" \
+              --notes-file release-notes.md \
+              "neoforge/build/libs/ami-neoforge-1.21.1-${{ steps.version.outputs.mod_version }}.jar" \
+              "forge/build/release/ami-forge-1.20.1-${{ steps.version.outputs.mod_version }}.jar"
+          fi

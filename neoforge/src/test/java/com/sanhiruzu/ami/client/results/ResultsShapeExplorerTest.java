@@ -30,7 +30,7 @@ public class ResultsShapeExplorerTest {
     private static Path repoRoot() {
         Path current = Path.of("").toAbsolutePath();
         while (current != null) {
-            if (Files.exists(current.resolve("AGENTS.md"))) {
+            if ((Files.exists(current.resolve("settings.gradle")) && Files.exists(current.resolve("gradle.properties")))) {
                 return current;
             }
             current = current.getParent();
