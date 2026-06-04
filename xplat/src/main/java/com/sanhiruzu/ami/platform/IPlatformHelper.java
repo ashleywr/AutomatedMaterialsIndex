@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.platform;
 
 import com.sanhiruzu.ami.index.metrics.FoodStats;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -143,6 +144,20 @@ public interface IPlatformHelper {
 
     default List<String> getLoadedModFingerprintEntries() {
         return getLoadedModIds();
+    }
+
+    /**
+     * The currently selected Minecraft language code, normalized for cache key derivation.
+     */
+    default String getClientLanguageCode() {
+        try {
+            String language = Minecraft.getInstance().getLanguageManager().getSelected();
+            if (language != null && !language.isBlank()) {
+                return language;
+            }
+        } catch (RuntimeException ignored) {
+        }
+        return "en_us";
     }
 
     Path getConfigDir();
