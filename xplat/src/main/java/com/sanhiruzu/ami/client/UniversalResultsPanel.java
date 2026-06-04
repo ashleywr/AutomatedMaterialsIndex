@@ -59,6 +59,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private static final int EMBEDDED_SEARCH_MIN_W = 76;
     private static final int EMBEDDED_SEARCH_MAX_W = 190;
     private static final int EMBEDDED_TOOLBAR_MIN_W = 170;
+    private static final int MIN_FULL_HEADER_TOOLBAR_W = 64;
     private final SearchState state = new SearchState();
     private int x, y, width, height;
     // Toggle button position — recomputed on every layout update
@@ -140,6 +141,11 @@ public class UniversalResultsPanel implements SearchState.Listener {
         return innerW >= embeddedHeaderMinW();
     }
 
+    private static boolean supportsMinimumFullHeader(WidgetBounds panelBounds) {
+        int innerW = panelBounds.width() - AMITheme.GLOBAL_PADDING * 2;
+        return innerW >= TOGGLE_W + AMITheme.ELEMENT_GAP + MIN_FULL_HEADER_TOOLBAR_W;
+    }
+
     private static int embeddedHeaderMinW() {
         return TOGGLE_W + AMITheme.ELEMENT_GAP + EMBEDDED_SEARCH_MIN_W
                 + AMITheme.ELEMENT_GAP + EMBEDDED_TOOLBAR_MIN_W;
@@ -170,13 +176,13 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (compactMode) return true;
         if (isFavoritesPanel) return false;
         if (AmiConfig.disableAutoCompact) return false;
-        if (supportsEmbeddedSearch(new WidgetBounds(x, y, width, height))) return false;
+        if (supportsMinimumFullHeader(new WidgetBounds(x, y, width, height))) return false;
         return !compactAutoBypass || compactAutoBypassW != width || compactAutoBypassH != height;
     }
 
     private boolean isForcedCompactByScreenSize() {
         return !compactMode && !isFavoritesPanel && !AmiConfig.disableAutoCompact
-                && !supportsEmbeddedSearch(new WidgetBounds(x, y, width, height));
+                && !supportsMinimumFullHeader(new WidgetBounds(x, y, width, height));
     }
 
     private boolean isForcedCompactActive() {
@@ -262,8 +268,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (TreeNodeShape.sameVisibleContent(treeView.getRootNodes(), normalized)) {
             return;
         }
+        ResultsExpansionDefaults.apply(normalized, AmiConfig.resultsExpandedByDefault);
         treeView.setRootNodes(normalized);
         gridView.setRootNodes(normalized);
+        compactCollapseAllNext = AmiConfig.resultsExpandedByDefault;
         currentGuideRows = List.of();
         currentQuestRows = List.of();
         this.displayedItemCount = countLeaves(normalized);
@@ -555,47 +563,103 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private void renderCompactIndexingProgress(GuiGraphics g, int contentY) {
         var font = Minecraft.getInstance().font;
         AmiIndexProgress progress = AmiIndexerService.getInstance().progress();
-        String text = progress.message();
-        if (text == null || text.isBlank() || "Ready".equals(text)) {
-            text = Component.translatable("ami.gui.background_indexing").getString();
-        }
         int maxW = Math.max(0, width - (AMITheme.GLOBAL_PADDING * 2));
+        String text = progressTitle(progress);
+        String stats = progressStats(progress);
+        if (!stats.isBlank()) {
+            text = text + "  " + stats;
+        }
         g.drawString(font, truncate(font, text, maxW), x + AMITheme.GLOBAL_PADDING, contentY, AMITheme.TEXT_SUBTLE, false);
+        renderIndexProgressBar(g, x + AMITheme.GLOBAL_PADDING, contentY + font.lineHeight + 3, maxW, 6, progress.percent());
     }
 
     private void renderIndexingProgress(GuiGraphics g, int contentY) {
         var font = Minecraft.getInstance().font;
         AmiIndexProgress progress = AmiIndexerService.getInstance().progress();
-        String text = progress.message();
-        if (text == null || text.isBlank() || "Ready".equals(text)) {
-            text = Component.translatable("ami.gui.background_indexing").getString();
-        }
-
         int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
         int textMaxWidth = Math.max(32, width - (AMITheme.GLOBAL_PADDING * 4));
-        List<net.minecraft.util.FormattedCharSequence> lines = font.split(Component.literal(text).withStyle(net.minecraft.ChatFormatting.GOLD), textMaxWidth);
-        int barH = progress.percent() >= 0 ? 8 : 0;
-        int blockH = lines.size() * font.lineHeight + (barH > 0 ? barH + 7 : 0);
+        String title = progressTitle(progress);
+        String detail = progress.detail();
+        String stats = progressStats(progress);
+        int barH = progress.percent() >= 0 ? 10 : 0;
+        int detailH = detail == null || detail.isBlank() ? 0 : font.lineHeight + 4;
+        int statsH = stats.isBlank() ? 0 : font.lineHeight + 5;
+        int blockH = font.lineHeight + detailH + statsH + (barH > 0 ? barH + 8 : 0);
         int drawY = contentY + Math.max(0, (contentH - blockH) / 2);
-        for (net.minecraft.util.FormattedCharSequence line : lines) {
-            int lineW = font.width(line);
-            g.drawString(font, line, x + (width - lineW) / 2, drawY, AMITheme.WHITE, false);
-            drawY += font.lineHeight;
+        drawCenteredTruncated(g, font, title, x + width / 2, drawY, textMaxWidth, AMITheme.WHITE);
+        drawY += font.lineHeight + 4;
+
+        if (detail != null && !detail.isBlank()) {
+            drawCenteredTruncated(g, font, detail, x + width / 2, drawY, textMaxWidth, AMITheme.TEXT_SUBTLE);
+            drawY += font.lineHeight + 4;
+        }
+
+        if (!stats.isBlank()) {
+            drawCenteredTruncated(g, font, stats, x + width / 2, drawY, textMaxWidth, AMITheme.TEXT_SUBTLE);
+            drawY += font.lineHeight + 5;
         }
 
         int percent = progress.percent();
         if (percent >= 0) {
             int barW = Math.min(Math.max(72, width - AMITheme.GLOBAL_PADDING * 6), 180);
             int barX = x + (width - barW) / 2;
-            int barY = drawY + 5;
-            int fillW = Math.max(0, Math.min(barW, Math.round(barW * (percent / 100.0F))));
-            g.fill(barX, barY, barX + barW, barY + barH, AMITheme.DROPDOWN_BG);
-            g.fill(barX, barY, barX + fillW, barY + barH, AMITheme.ACCENT_BLUE);
-            g.fill(barX, barY, barX + barW, barY + 1, AMITheme.SECTION_SEP);
-            g.fill(barX, barY + barH - 1, barX + barW, barY + barH, AMITheme.SECTION_SEP);
-            g.fill(barX, barY, barX + 1, barY + barH, AMITheme.SECTION_SEP);
-            g.fill(barX + barW - 1, barY, barX + barW, barY + barH, AMITheme.SECTION_SEP);
+            renderIndexProgressBar(g, barX, drawY, barW, barH, percent);
         }
+    }
+
+    private static String progressTitle(AmiIndexProgress progress) {
+        String phase = progress.phase();
+        if (phase == null || phase.isBlank() || "Ready".equals(phase)) {
+            return Component.translatable("ami.gui.background_indexing").getString();
+        }
+        return phase;
+    }
+
+    private static String progressStats(AmiIndexProgress progress) {
+        int percent = progress.percent();
+        long elapsed = progress.elapsedMs();
+        String elapsedText = formatElapsed(elapsed);
+        if (percent >= 0) {
+            String count = progress.total() > 0
+                    ? " (" + Math.max(0, Math.min(progress.current(), progress.total())) + "/" + progress.total() + ")"
+                    : "";
+            return percent + "%" + count + (elapsedText.isBlank() ? "" : " - " + elapsedText);
+        }
+        return elapsedText;
+    }
+
+    private static String formatElapsed(long elapsedMs) {
+        if (elapsedMs < 1000L) {
+            return "";
+        }
+        long seconds = elapsedMs / 1000L;
+        long minutes = seconds / 60L;
+        long remainingSeconds = seconds % 60L;
+        if (minutes <= 0L) {
+            return seconds + "s";
+        }
+        return minutes + "m " + remainingSeconds + "s";
+    }
+
+    private static void renderIndexProgressBar(GuiGraphics g, int barX, int barY, int barW, int barH, int percent) {
+        if (percent < 0 || barW <= 0 || barH <= 0) {
+            return;
+        }
+        int fillW = Math.max(0, Math.min(barW - 2, Math.round((barW - 2) * (percent / 100.0F))));
+        int fillColor = progressFillColor();
+        g.fill(barX, barY, barX + barW, barY + barH, AMITheme.SECTION_SEP);
+        g.fill(barX + 1, barY + 1, barX + barW - 1, barY + barH - 1, AMITheme.DROPDOWN_BG);
+        if (fillW > 0) {
+            g.fill(barX + 1, barY + 1, barX + 1 + fillW, barY + barH - 1, fillColor);
+        }
+        if (barH >= 5 && fillW > 0) {
+            g.fill(barX + 1, barY + 1, barX + 1 + fillW, barY + 2, 0x55FFFFFF);
+            g.fill(barX + 1, barY + barH - 2, barX + 1 + fillW, barY + barH - 1, 0x33000000);
+        }
+    }
+
+    private static int progressFillColor() {
+        return (AMITheme.ACCENT_BLUE & 0xFF000000) == 0 ? 0xFF4FA3FF : AMITheme.ACCENT_BLUE;
     }
 
     private void renderFavoritesSurfaces(GuiGraphics g) {
@@ -1075,9 +1139,11 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     private void setViewRoots(List<TreeNode> roots) {
         List<TreeNode> normalized = ResultsTreeNormalizer.normalize(roots);
+        ResultsExpansionDefaults.apply(normalized, AmiConfig.resultsExpandedByDefault);
         treeView.setRootNodes(normalized);
         gridView.setRootNodes(normalized);
-        toolbar.resetCollapseState();
+        toolbar.resetCollapseState(AmiConfig.resultsExpandedByDefault);
+        compactCollapseAllNext = AmiConfig.resultsExpandedByDefault;
     }
 
     private void updateResultViewLayouts() {

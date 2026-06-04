@@ -14,6 +14,7 @@ import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -65,6 +66,44 @@ public class RecipeProvider implements IAmiDataProvider {
 
     public static int computeRecipeUseCount(Item item, AmiRecipeIndex recipeIndex) {
         return Services.PLATFORM.getUsesFor(new ItemStack(item)).size();
+    }
+
+    public static RecipeMetadata computeRecipeMetadata(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return RecipeMetadata.EMPTY;
+        }
+        List<AmiRecipeHolder<?>> recipes = Services.PLATFORM.getRecipesFor(stack);
+        List<AmiRecipeHolder<?>> uses = Services.PLATFORM.getUsesFor(stack);
+        String recipeCategories = categoryNames(recipes);
+        return new RecipeMetadata(
+                recipes.isEmpty() ? "no_recipe" : recipeCategories.isEmpty() ? "no_recipe" : recipeCategories,
+                recipeCategories,
+                categoryNames(uses),
+                recipes.size(),
+                uses.size()
+        );
+    }
+
+    private static String categoryNames(List<AmiRecipeHolder<?>> recipes) {
+        if (recipes == null || recipes.isEmpty()) {
+            return "";
+        }
+        Set<String> categories = new LinkedHashSet<>();
+        for (AmiRecipeHolder<?> entry : recipes) {
+            String name = getCategoryName(entry.value().getType());
+            if (!name.isEmpty()) categories.add(name);
+        }
+        return String.join(",", categories);
+    }
+
+    public record RecipeMetadata(
+            String obtainability,
+            String recipeCategories,
+            String recipeUseCategories,
+            int recipeOutputCount,
+            int recipeUseCount
+    ) {
+        public static final RecipeMetadata EMPTY = new RecipeMetadata("no_recipe", "", "", 0, 0);
     }
 
     private static String getCategoryName(RecipeType<?> type) {

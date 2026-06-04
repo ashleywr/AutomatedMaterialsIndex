@@ -421,8 +421,8 @@ public class ItemGridView {
             }
 
             // Group styling
-            if (node.isHighCardinality() && !node.isExpanded()) {
-                // Gold border for collapsed groups
+            if (node.isHighCardinality()) {
+                // Gold border for family cards, including the expanded collapse target.
                 g.fill(cellX, cellY, cellX + CELL_SIZE, cellY + 1, AMITheme.GRID_GOLD_BORDER);
                 g.fill(cellX, cellY + CELL_SIZE - 1, cellX + CELL_SIZE, cellY + CELL_SIZE, AMITheme.GRID_GOLD_BORDER);
                 g.fill(cellX, cellY, cellX + 1, cellY + CELL_SIZE, AMITheme.GRID_GOLD_BORDER);
@@ -671,30 +671,17 @@ public class ItemGridView {
         if (node.isLeaf()) {
             linearItems.add(node);
         } else if (node.isHighCardinality()) {
+            linearItems.add(node);
             if (node.isExpanded()) {
-                packIntoRows(linearItems, cols, out, depth, alternateBand);
-                linearItems.clear();
-
-                out.add(new HeaderRow(node, depth, countItemsRecursive(node), true, alternateBand));
-
-                List<TreeNode> groupItems = new ArrayList<>();
-                List<TreeNode> nestedGroups = new ArrayList<>();
                 for (TreeNode child : node.getChildren()) {
-                    if (child.isLeaf()) {
-                        groupItems.add(child);
+                    if (child.isLeaf() || child.isHighCardinality()) {
+                        linearItems.add(child);
                     } else {
-                        nestedGroups.add(child);
+                        packIntoRows(linearItems, cols, out, depth, alternateBand);
+                        linearItems.clear();
+                        processNode(child, depth + 1, cols, out, linearItems, bands, alternateBand);
                     }
                 }
-                packIntoRows(groupItems, cols, out, depth + 1, alternateBand);
-                groupItems.clear();
-                for (TreeNode childGroup : nestedGroups) {
-                    processNode(childGroup, depth + 1, cols, out, linearItems, bands, alternateBand);
-                }
-                packIntoRows(linearItems, cols, out, depth + 1, alternateBand);
-                linearItems.clear();
-            } else {
-                linearItems.add(node);
             }
         } else {
             packIntoRows(linearItems, cols, out, depth, alternateBand);

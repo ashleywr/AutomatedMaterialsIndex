@@ -20,7 +20,14 @@ final class ResultsGroupingPostProcessor {
     private static final int DUPLICATE_LABEL_THRESHOLD = 4;
     private static final Set<String> CATEGORY_CARDINALITY_BASE_PATHS = Set.of(
             "candle",
-            "mushroom"
+            "mushroom",
+            "pottery_sherd"
+    );
+    private static final Set<String> CATEGORY_CARDINALITY_FAMILY_KEYS = Set.of(
+            "banner_patterns",
+            "banners",
+            "goat_horns",
+            "music_discs"
     );
 
     private ResultsGroupingPostProcessor() {
@@ -244,13 +251,25 @@ final class ResultsGroupingPostProcessor {
 
         Map<String, List<TreeNode>> familyMembers = new LinkedHashMap<>();
         Map<String, String> familyLabels = new HashMap<>();
+        Set<String> categoryCollapsedFamilyKeys = new HashSet<>();
         for (TreeNode node : recursive) {
             if (!node.isLeaf()) continue;
-            String familyKey = node.getEntry().meta(SearchNodeKeys.COLLAPSE_FAMILY, "");
+            String familyKey = explicitFamilyKey(node);
             if (familyKey.isEmpty()) continue;
             if (requireDefaultCollapsed && !isDefaultCollapsedFamilyMember(node)) continue;
             familyMembers.computeIfAbsent(familyKey, ignored -> new ArrayList<>()).add(node);
-            familyLabels.putIfAbsent(familyKey, node.getEntry().meta(SearchNodeKeys.COLLAPSE_LABEL, ""));
+            familyLabels.putIfAbsent(familyKey, explicitFamilyLabel(node, familyKey));
+            categoryCollapsedFamilyKeys.add(familyKey);
+        }
+
+        if (requireDefaultCollapsed && !categoryCollapsedFamilyKeys.isEmpty()) {
+            for (TreeNode node : recursive) {
+                if (!node.isLeaf()) continue;
+                String nodeId = node.getEntry().id().toString();
+                if (!categoryCollapsedFamilyKeys.contains(nodeId)) continue;
+                if (!explicitFamilyKey(node).isEmpty()) continue;
+                familyMembers.computeIfAbsent(nodeId, ignored -> new ArrayList<>()).add(node);
+            }
         }
 
         Map<TreeNode, TreeNode> replacementGroups = new IdentityHashMap<>();
@@ -262,7 +281,7 @@ final class ResultsGroupingPostProcessor {
             TreeNode group = new TreeNode("cardinality:family:" + familyKey, Component.literal(label));
             group.setHighCardinality(compactCards);
             group.setExpanded(true);
-            group.getChildren().addAll(entry.getValue());
+            group.getChildren().addAll(sortedFamilyMembers(familyKey, entry.getValue()));
             for (TreeNode member : entry.getValue()) {
                 replacementGroups.put(member, group);
             }
@@ -287,9 +306,51 @@ final class ResultsGroupingPostProcessor {
         return result;
     }
 
+    private static List<TreeNode> sortedFamilyMembers(String familyKey, List<TreeNode> members) {
+        List<TreeNode> sorted = new ArrayList<>(members);
+        sorted.sort(Comparator
+                .comparing((TreeNode node) -> !node.getEntry().id().toString().equals(familyKey))
+                .thenComparing(node -> node.getLabel().getString(), String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(node -> node.getEntry().id().toString()));
+        return sorted;
+    }
+
     private static boolean isDefaultCollapsedFamilyMember(TreeNode node) {
         String mode = node.getEntry().meta(SearchNodeKeys.VARIANT_COLLAPSE_MODE, "");
-        return "default_collapsed".equals(mode);
+        if ("default_collapsed".equals(mode)) {
+            return true;
+        }
+        return CATEGORY_CARDINALITY_FAMILY_KEYS.contains(explicitFamilyKey(node));
+    }
+
+    private static String explicitFamilyKey(TreeNode node) {
+        if (!node.isLeaf()) {
+            return "";
+        }
+        String familyKey = node.getEntry().meta(SearchNodeKeys.COLLAPSE_FAMILY, "");
+        if (!familyKey.isEmpty()) {
+            return familyKey;
+        }
+        String path = node.getEntry().id().getPath();
+        if (path.endsWith("_banner_pattern")) {
+            return "banner_patterns";
+        }
+        if (path.startsWith("music_disc_")) {
+            return "music_discs";
+        }
+        return "";
+    }
+
+    private static String explicitFamilyLabel(TreeNode node, String familyKey) {
+        String label = node.getEntry().meta(SearchNodeKeys.COLLAPSE_LABEL, "");
+        if (!label.isEmpty()) {
+            return label;
+        }
+        return switch (familyKey) {
+            case "banner_patterns" -> "Banner Patterns";
+            case "music_discs" -> "Music Discs";
+            default -> "";
+        };
     }
 
     private static List<TreeNode> applyDuplicateLabelGrouping(List<TreeNode> nodes, boolean compactCards) {
