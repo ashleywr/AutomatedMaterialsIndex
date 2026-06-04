@@ -28,6 +28,8 @@ public final class AmiIndexerService {
     private volatile int indexedItemCount;
     private volatile Throwable lastRebuildFailure;
     private volatile AmiIndexProgress progress = AmiIndexProgress.idle();
+    private volatile String indexedLanguageCode = "";
+    private volatile String pendingLanguageRebuildCode = "";
 
     private AmiIndexerService() {
     }
@@ -82,6 +84,7 @@ public final class AmiIndexerService {
                 performRebuild(level, forceProviderRebuild);
             } catch (Throwable t) {
                 lastRebuildFailure = t;
+                pendingLanguageRebuildCode = "";
                 beginProgress("Indexing failed");
                 AmiCore.LOGGER.error("AMI: Index rebuild failed", t);
             } finally {
@@ -89,6 +92,24 @@ public final class AmiIndexerService {
             }
         }), Util.backgroundExecutor());
         return true;
+    }
+
+    public boolean ensureCurrentLanguageIndex(Level level) {
+        if (level == null || searchService == null || isRebuilding.get()) return false;
+
+        String currentLanguageCode = GlobalIndexCache.currentClientLanguageCacheKey();
+        if (currentLanguageCode.equals(indexedLanguageCode)
+                || currentLanguageCode.equals(pendingLanguageRebuildCode)) {
+            return false;
+        }
+
+        if (rebuild(level, false)) {
+            pendingLanguageRebuildCode = currentLanguageCode;
+            AmiCore.LOGGER.info("AMI: Client language changed to {}; loading or rebuilding localized index.",
+                    currentLanguageCode);
+            return true;
+        }
+        return false;
     }
 
     private static Runnable withIndexerClassLoader(Runnable task) {
@@ -107,6 +128,7 @@ public final class AmiIndexerService {
 
     private void performRebuild(Level level, boolean forceProviderRebuild) {
         long started = System.currentTimeMillis();
+        String buildLanguageCode = GlobalIndexCache.currentClientLanguageCacheKey();
         GlobalIndex index = GlobalIndex.getInstance();
 
         // 1. Core indexing of all standard types
@@ -145,6 +167,8 @@ public final class AmiIndexerService {
         guideSearchIndex = AmiGuideSearchIndex.fromConfig(AmiGuideRegistry.getDocuments());
 
         index.markIndexReady();
+        indexedLanguageCode = buildLanguageCode;
+        pendingLanguageRebuildCode = "";
         indexedItemCount = index.getNodes(NodeType.ITEM).size();
 
         // Build search service from the new index

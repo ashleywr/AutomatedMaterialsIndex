@@ -20,6 +20,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.Locale;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -115,8 +116,13 @@ public final class GlobalIndexCache {
 
     private static Path resolveCacheFile() {
         String hash = computeModListHash();
+        String language = currentClientLanguageCacheKey();
         Path gameDir = Services.PLATFORM.getGameDir();
-        return gameDir.resolve(CACHE_DIR).resolve(hash + ".json.gz");
+        return gameDir.resolve(CACHE_DIR).resolve(language).resolve(hash + ".json.gz");
+    }
+
+    public static String currentClientLanguageCacheKey() {
+        return normalizeLanguageCodeForCache(Services.PLATFORM.getClientLanguageCode());
     }
 
     static String computeModListHash() {
@@ -125,6 +131,7 @@ public final class GlobalIndexCache {
                     .sorted(Comparator.naturalOrder())
                     .reduce("", (a, b) -> a + "|" + b)
                     + "_v" + CACHE_VERSION
+                    + "_lang=" + currentClientLanguageCacheKey()
                     + "_spawnEggs=" + AmiConfig.showSpawnEggs
                     + "_hidden=" + AmiConfig.showHiddenModItems
                     + "_strictSurvival=" + AmiConfig.strictSurvivalMode
@@ -140,6 +147,18 @@ public final class GlobalIndexCache {
             AmiCore.LOGGER.warn("AMI: Hash computation failed, using fallback key");
             return "fallback";
         }
+    }
+
+    static String normalizeLanguageCodeForCache(String rawLanguageCode) {
+        String language = rawLanguageCode == null ? "" : rawLanguageCode.trim().toLowerCase(Locale.ROOT);
+        if (language.isEmpty()) {
+            return "en_us";
+        }
+
+        language = language.replace('-', '_');
+        String normalized = language.replaceAll("[^a-z0-9_]", "_");
+        normalized = normalized.replaceAll("_+", "_");
+        return normalized.isBlank() ? "en_us" : normalized;
     }
 
     private static void serializeFrom(GlobalIndex index, OutputStreamWriter writer) throws IOException {
