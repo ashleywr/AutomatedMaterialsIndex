@@ -739,6 +739,8 @@
   "ami.config.tooltip.ui.accent-color": "用于整个UI中的高亮显示、活跃元素和主要操作的通用强调色。",
   "ami.config.value.ui.show-header": "显示标题栏",
   "ami.config.tooltip.ui.show-header": "是否渲染顶部面板的标题栏。",
+  "ami.config.value.ui.results-expanded-by-default": "默认展开结果",
+  "ami.config.tooltip.ui.results-expanded-by-default": "加载新结果时展开结果分组。禁用此选项可使分组默认折叠。",
   "ami.config.value.ui.show-tooltip-tags": "显示提示框标签",
   "ami.config.tooltip.ui.show-tooltip-tags": "在AMI和物品提示框中显示物品、方块和实体标签ID，无需启用开发者模式。",
   "ami.config.value.ui.block-subgroup": "方块分组",
