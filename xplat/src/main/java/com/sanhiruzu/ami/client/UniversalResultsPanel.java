@@ -341,6 +341,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     public void updateLayout(int x, int y, int width, int height) {
+        boolean oldCompactLayout = isCompactLayout();
         if (compactAutoBypass && (width != compactAutoBypassW || height != compactAutoBypassH)) {
             compactAutoBypass = false;
         }
@@ -381,6 +382,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 toolbar.updateLayout(toolbarX, y + AMITheme.GLOBAL_PADDING, toolbarW);
                 updateResultViewLayouts(innerX, contentY, innerW, contentH);
             }
+        }
+
+        if (oldCompactLayout != isCompactLayout()) {
+            refreshTree();
         }
     }
 
