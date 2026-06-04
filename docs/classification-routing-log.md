@@ -383,6 +383,22 @@ path-only cable/wire/tube words can still participate in evidence scoring, but
 compat-owned subcategory shortcuts should not reintroduce raw cable-name
 decisions.
 
+### 2026-06-04: Remaining Family Priors Use Exact Tokens
+
+The remaining high-risk family-prior helpers in `PrimaryCategoryResolver` now
+use facts first and exact `PathTokens` fallback instead of raw
+`path.contains(...)` checks. This specifically covers GregTech, Apotheosis,
+Botania, storage or automation families, portable-storage upgrades, food-family
+ingredient intermediates, Create Enchantment Industry experience items, and the
+geology or masonry fallback blocks.
+
+The practical guardrail is partial-word false positives. `powerless_ore` should
+not become GregTech power, `socketed_tablet` should not become Apotheosis
+sockets, `bandolier` should not become a Botania bauble, `keyboard` should not
+become storage tech because it contains `key`, and stone names like
+`keyboardite` or `windowseat_basalt` should still be allowed to route through
+their actual geology facts.
+
 ### 2026-06-04: Reactive Bottles Expose Overbroad Terrain Fallback
 
 The Reactive dump showed `reactive:soul_bottle` and related power bottles
@@ -432,6 +448,33 @@ equipment to existing semantic AMI categories, and supplies collapse metadata
 for generated `/variant/` part, holder, and facade families. Twilight Forest armor
 compatibility classes now also resolve to confirmed golem-armor identities when
 their compat-material armor classes and slot paths match the expected pattern.
+
+### 2026-06-04: Partial Placeables Are Decorative Building Elements
+
+Partial-shape placeables such as hedges, posts, ladders, panes, rods, and
+similar micro blocks should not fall through to full masonry block routing, and
+their exact path tokens should not be reused as generic furniture categories.
+The partial-placeable resolver now keeps confirmed functional partials in tech
+and nature partials in nature, while plain decorative/micro partials route to
+`decoration/other_building`.
+
+### 2026-06-04: Rechiseled Blocks Collapse By Mod-Owned Material Tags
+
+The Rechiseled runtime dump contained 3,628 item nodes, almost all generated
+decorative block variants. Primary categories were mostly already semantic
+(`masonry`, `nature/wood`, `geology`, `decoration`, and related buckets), but
+3,463 rows had no `collapseFamily`, leaving large category branches noisy.
+Rechiseled exposes stable mod-owned material tags such as
+`rechiseled:acacia_planks`, `rechiseled:cobblestone`, and
+`rechiseled:stone`; shape tags such as `_stairs` and `_slabs` are incidental.
+
+A reusable generated-palette collapse helper now writes default-collapsed UI
+families while preserving existing semantic routing. Rechiseled feeds it
+mod-owned base material tags; Rechiseled: Create feeds it path roots for
+connected generated sets such as window families. This is intentionally
+compat-scoped because the evidence comes from generator vocabulary and repeated
+classes, not a universal Minecraft API fact. The lone `rechiseled:chisel` is
+also tagged as a utility tool instead of falling through to unknown.
 
 ## Open Work
 
