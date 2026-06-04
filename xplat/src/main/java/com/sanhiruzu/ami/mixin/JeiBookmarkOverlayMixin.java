@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.mixin;
 
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import mezz.jei.gui.overlay.bookmarks.BookmarkOverlay;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -15,7 +16,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class JeiBookmarkOverlayMixin {
 
     private static boolean shouldSuppressJeiRendering() {
-        return InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
+        return RecipeViewerBridge.isJeiSelectedExternalViewer()
+                && InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
     }
 
     @Inject(method = "drawScreen", at = @At("HEAD"), cancellable = true, remap = false)

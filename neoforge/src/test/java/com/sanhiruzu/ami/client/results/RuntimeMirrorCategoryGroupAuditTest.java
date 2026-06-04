@@ -30,7 +30,7 @@ public class RuntimeMirrorCategoryGroupAuditTest {
             Path.of("C:", "Users", "ashle", "AppData", "Roaming", "PrismLauncher", "instances", "DeceasedCraft - Urban Zombie Apocalypse", "minecraft", "ami_dumps", "search_nodes.jsonl")
     );
 
-    private static final Set<String> CATEGORY_CARDINALITY_ALLOWLIST = Set.of("candle", "mushroom");
+    private static final Set<String> CATEGORY_CARDINALITY_ALLOWLIST = Set.of("candle", "mushroom", "pottery_sherd");
     private static final Set<String> MATERIAL_OR_VARIANT_LABEL_TOKENS = Set.of(
             "acacia", "birch", "dark", "jungle", "mangrove", "oak", "spruce", "crimson", "warped",
             "pine", "palm", "maple", "cherry", "willow", "mahogany", "runewood",

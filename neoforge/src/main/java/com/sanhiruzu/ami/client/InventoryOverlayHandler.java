@@ -215,7 +215,7 @@ public class InventoryOverlayHandler {
 
     public static boolean shouldSuppressRecipeViewerChrome() {
         Minecraft mc = Minecraft.getInstance();
-        return isAmiAvailable() && mc.screen != null && isAmiScreen(mc.screen);
+        return isAmiAvailable() && amiEnabled && mc.screen != null && isAmiScreen(mc.screen);
     }
 
     public static boolean isMouseOverAmiOverlay(double mouseX, double mouseY) {

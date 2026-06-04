@@ -346,8 +346,10 @@ public class GroupingEngine {
     public static Optional<CollapsedFamily> classifyCollapsedFamily(ResourceLocation id) {
         String path = id.getPath();
         if (path.endsWith("_banner")) return Optional.of(new CollapsedFamily("banners", "Banners"));
+        if (path.endsWith("_banner_pattern")) return Optional.of(new CollapsedFamily("banner_patterns", "Banner Patterns"));
         // goat_horn: SubtypeExpander uses synthetic IDs without item tags, so it needs explicit handling
         if (path.equals("goat_horn")) return Optional.of(new CollapsedFamily("goat_horns", "Goat Horns"));
+        if (path.startsWith("music_disc_")) return Optional.of(new CollapsedFamily("music_discs", "Music Discs"));
         return Optional.empty();
     }
 

@@ -139,6 +139,19 @@ public class ResultsProcessorTest {
         ));
     }
 
+    private static SearchNode collapsedDye(String path, String displayName, String color) {
+        return item(path, displayName, Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "ingredients",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "dyes",
+                SearchNodeKeys.SUBTYPE_OF, "minecraft:dye",
+                SearchNodeKeys.MATERIAL_GROUP, "minecraft:dye",
+                SearchNodeKeys.COLOR_BUCKET, color,
+                SearchNodeKeys.COLLAPSE_FAMILY, "minecraft:dye",
+                SearchNodeKeys.COLLAPSE_LABEL, "Dyes",
+                SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed"
+        ));
+    }
+
     private static SearchNode banner(String path, String displayName) {
         String color = path.endsWith("_banner") ? path.substring(0, path.length() - "_banner".length()) : "";
         return item(path, displayName, Map.of(
@@ -148,6 +161,28 @@ public class ResultsProcessorTest {
                 SearchNodeKeys.COLLAPSE_LABEL, "Banners",
                 SearchNodeKeys.MATERIAL_GROUP, "minecraft:banner",
                 SearchNodeKeys.COLOR_BUCKET, color
+        ));
+    }
+
+    private static SearchNode textileBanner(String path, String displayName) {
+        String color = path.endsWith("_banner") ? path.substring(0, path.length() - "_banner".length()) : "";
+        return item(path, displayName, Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "decoration",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "textiles",
+                SearchNodeKeys.COLLAPSE_FAMILY, "banners",
+                SearchNodeKeys.COLLAPSE_LABEL, "Banners",
+                SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed",
+                SearchNodeKeys.MATERIAL_GROUP, "minecraft:banner",
+                SearchNodeKeys.COLOR_BUCKET, color
+        ));
+    }
+
+    private static SearchNode potterySherd(String path, String displayName) {
+        return item(path, displayName, Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "ingredients",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "mineral",
+                SearchNodeKeys.SUBTYPE_OF, "minecraft:pottery_sherd",
+                SearchNodeKeys.MATERIAL_GROUP, "minecraft:pottery_sherd"
         ));
     }
 
@@ -199,7 +234,7 @@ public class ResultsProcessorTest {
     }
 
     @Test
-    void categoryGroupingDoesNotCollapseExplicitFamilies() {
+    void categoryGroupingCollapsesCollectibleExplicitFamilies() {
         ResultsProcessor processor = new ResultsProcessor(
                 ResultsProcessor.SortField.ALPHABETICAL,
                 true,
@@ -245,14 +280,20 @@ public class ResultsProcessorTest {
         assertEquals(1, categoryGroup.getChildren().size());
 
         TreeNode miscGroup = categoryGroup.getChildren().get(0);
-        assertEquals(5, miscGroup.getChildren().size());
-        assertTrue(miscGroup.getChildren().stream().allMatch(TreeNode::isLeaf));
-        assertEquals(List.of("Music Disc 13", "Music Disc Blocks", "Music Disc Cat", "Music Disc Chirp", "Stone"),
-                miscGroup.getChildren().stream().map(node -> node.getLabel().getString()).toList());
+        assertEquals(2, miscGroup.getChildren().size());
+
+        TreeNode discsGroup = miscGroup.getChildren().stream()
+                .filter(node -> "cardinality:family:music_discs".equals(node.getKey()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("Music Discs", discsGroup.getLabel().getString());
+        assertTrue(discsGroup.isHighCardinality());
+        assertEquals(List.of("Music Disc 13", "Music Disc Blocks", "Music Disc Cat", "Music Disc Chirp"),
+                leafLabels(List.of(discsGroup)));
     }
 
     @Test
-    void categoryGroupingDoesNotCollapseDuplicateLeafLabels() {
+    void categoryGroupingCollapsesBannerPatternCollectibles() {
         ResultsProcessor processor = new ResultsProcessor(
                 ResultsProcessor.SortField.ALPHABETICAL,
                 true,
@@ -281,14 +322,17 @@ public class ResultsProcessorTest {
         ));
 
         TreeNode miscGroup = root.get(0).getChildren().get(0);
-        assertEquals(4, miscGroup.getChildren().size());
-        assertTrue(miscGroup.getChildren().stream().allMatch(TreeNode::isLeaf));
-        assertTrue(miscGroup.getChildren().stream()
-                .allMatch(node -> node.getLabel().getString().equals("Banner Pattern")));
+        assertEquals(1, miscGroup.getChildren().size());
+        TreeNode patternsGroup = miscGroup.getChildren().get(0);
+        assertEquals("cardinality:family:banner_patterns", patternsGroup.getKey());
+        assertEquals("Banner Patterns", patternsGroup.getLabel().getString());
+        assertTrue(patternsGroup.isHighCardinality());
+        assertEquals(List.of("Banner Pattern", "Banner Pattern", "Banner Pattern", "Banner Pattern"),
+                leafLabels(List.of(patternsGroup)));
     }
 
     @Test
-    void subtypeFamiliesCanCollapseBelowSubtypeCardinalityThreshold() {
+    void collectibleSubtypeFamiliesCollapseBelowSubtypeCardinalityThreshold() {
         ResultsProcessor processor = new ResultsProcessor(
                 ResultsProcessor.SortField.ALPHABETICAL,
                 true,
@@ -333,8 +377,13 @@ public class ResultsProcessorTest {
         assertEquals(1, categoryGroup.getChildren().size());
 
         TreeNode miscGroup = categoryGroup.getChildren().get(0);
-        assertEquals(4, miscGroup.getChildren().size());
-        assertTrue(miscGroup.getChildren().stream().allMatch(TreeNode::isLeaf));
+        assertEquals(1, miscGroup.getChildren().size());
+        TreeNode hornsGroup = miscGroup.getChildren().get(0);
+        assertEquals("cardinality:family:goat_horns", hornsGroup.getKey());
+        assertEquals("Goat Horns", hornsGroup.getLabel().getString());
+        assertTrue(hornsGroup.isHighCardinality());
+        assertEquals(List.of("Goat Horn Admire", "Goat Horn Seek", "Goat Horn Sing", "Goat Horn Yearn"),
+                leafLabels(List.of(hornsGroup)));
     }
 
     @Test
@@ -774,6 +823,68 @@ public class ResultsProcessorTest {
     }
 
     @Test
+    void explodedDyeKindSetUsesSingleFamilyCardUnderDyesSubcategory() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.REGISTRY,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        List<TreeNode> root = processor.process(List.of(
+                collapsedDye("white_dye", "White Dye", "white"),
+                collapsedDye("orange_dye", "Orange Dye", "orange"),
+                collapsedDye("magenta_dye", "Magenta Dye", "magenta"),
+                collapsedDye("light_blue_dye", "Light Blue Dye", "light_blue"),
+                collapsedDye("yellow_dye", "Yellow Dye", "yellow"),
+                collapsedDye("lime_dye", "Lime Dye", "lime"),
+                collapsedDye("pink_dye", "Pink Dye", "pink"),
+                collapsedDye("gray_dye", "Gray Dye", "gray"),
+                collapsedDye("light_gray_dye", "Light Gray Dye", "light_gray"),
+                collapsedDye("cyan_dye", "Cyan Dye", "cyan"),
+                collapsedDye("purple_dye", "Purple Dye", "purple"),
+                collapsedDye("blue_dye", "Blue Dye", "blue"),
+                collapsedDye("brown_dye", "Brown Dye", "brown"),
+                collapsedDye("green_dye", "Green Dye", "green"),
+                collapsedDye("red_dye", "Red Dye", "red"),
+                collapsedDye("black_dye", "Black Dye", "black"),
+                item("ink_sac", "Ink Sac", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "ingredients",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "dyes"
+                )),
+                item("glow_ink_sac", "Glow Ink Sac", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "ingredients",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "dyes"
+                ))
+        ));
+
+        assertEquals("""
+                Ingredients [expanded]
+                  Dyes & Pigments [expanded]
+                    Dyes [expanded] [cardinality]
+                      Black Dye
+                      Blue Dye
+                      Brown Dye
+                      Cyan Dye
+                      Gray Dye
+                      Green Dye
+                      Light Blue Dye
+                      Light Gray Dye
+                      Lime Dye
+                      Magenta Dye
+                      Orange Dye
+                      Pink Dye
+                      Purple Dye
+                      Red Dye
+                      White Dye
+                      Yellow Dye
+                    Glow Ink Sac
+                    Ink Sac
+                """, ResultsTreeDump.dump(root));
+    }
+
+    @Test
     void materialRootCollapseKeepsNonDyeSubgroupExpandedByDefault() {
         ResultsProcessor processor = new ResultsProcessor(
                 ResultsProcessor.SortField.REGISTRY,
@@ -854,6 +965,101 @@ public class ResultsProcessorTest {
         assertTrue(candleGroup.isHighCardinality());
         assertEquals(4, candleGroup.getChildren().size());
         assertEquals("Candle", candleGroup.getChildren().get(0).getLabel().getString());
+    }
+
+    @Test
+    void explicitColoredFamilyIncludesUncoloredBaseItem() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.ALPHABETICAL,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        List<TreeNode> root = processor.process(List.of(
+                item("candle", "Candle", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "decoration",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "lighting"
+                )),
+                item("white_candle", "White Candle", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "decoration",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "lighting",
+                        SearchNodeKeys.COLLAPSE_FAMILY, "minecraft:candle",
+                        SearchNodeKeys.COLLAPSE_LABEL, "Candles",
+                        SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed"
+                )),
+                item("black_candle", "Black Candle", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "decoration",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "lighting",
+                        SearchNodeKeys.COLLAPSE_FAMILY, "minecraft:candle",
+                        SearchNodeKeys.COLLAPSE_LABEL, "Candles",
+                        SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed"
+                )),
+                item("red_candle", "Red Candle", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "decoration",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "lighting",
+                        SearchNodeKeys.COLLAPSE_FAMILY, "minecraft:candle",
+                        SearchNodeKeys.COLLAPSE_LABEL, "Candles",
+                        SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed"
+                )),
+                item("blue_candle", "Blue Candle", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "decoration",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "lighting",
+                        SearchNodeKeys.COLLAPSE_FAMILY, "minecraft:candle",
+                        SearchNodeKeys.COLLAPSE_LABEL, "Candles",
+                        SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed"
+                ))
+        ));
+
+        TreeNode candlesGroup = root.get(0).getChildren().get(0).getChildren().get(0);
+        assertEquals("cardinality:family:minecraft:candle", candlesGroup.getKey());
+        assertEquals(List.of("Candle", "Black Candle", "Blue Candle", "Red Candle", "White Candle"),
+                leafLabels(List.of(candlesGroup)));
+    }
+
+    @Test
+    void potterySherdsCollapseUnderMineralIngredientsSubcategory() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.ALPHABETICAL,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        List<TreeNode> root = processor.process(List.of(
+                item("amethyst_shard", "Amethyst Shard", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "ingredients",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "mineral"
+                )),
+                potterySherd("angler_pottery_sherd", "Angler Pottery Sherd"),
+                potterySherd("archer_pottery_sherd", "Archer Pottery Sherd"),
+                potterySherd("brewer_pottery_sherd", "Brewer Pottery Sherd"),
+                potterySherd("explorer_pottery_sherd", "Explorer Pottery Sherd"),
+                item("breeze_rod", "Breeze Rod", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "ingredients",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "mineral"
+                ))
+        ));
+
+        TreeNode mineralGroup = root.get(0).getChildren().get(0);
+        assertEquals("ingredients/mineral", mineralGroup.getKey());
+        assertEquals(3, mineralGroup.getChildren().size());
+
+        TreeNode potteryGroup = mineralGroup.getChildren().stream()
+                .filter(node -> "cardinality:minecraft:pottery_sherd".equals(node.getKey()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("Pottery Sherd", potteryGroup.getLabel().getString());
+        assertTrue(potteryGroup.isHighCardinality());
+        assertTrue(potteryGroup.isExpanded());
+        assertEquals(List.of(
+                "Angler Pottery Sherd",
+                "Archer Pottery Sherd",
+                "Brewer Pottery Sherd",
+                "Explorer Pottery Sherd"
+        ), leafLabels(List.of(potteryGroup)));
     }
 
     @Test
@@ -1100,10 +1306,38 @@ public class ResultsProcessorTest {
                 Banners [expanded]
                   Black Banner
                   Blue Banner
-                  Flower Banner Pattern
                   Red Banner
                   White Banner
+                  Flower Banner Pattern
                 """, ResultsTreeDump.dump(List.of(bannersGroup)));
+    }
+
+    @Test
+    void textileBannersCollapseUnderTextilesSubcategory() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.ALPHABETICAL,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        List<TreeNode> root = processor.process(List.of(
+                textileBanner("white_banner", "White Banner"),
+                textileBanner("black_banner", "Black Banner"),
+                textileBanner("red_banner", "Red Banner"),
+                textileBanner("blue_banner", "Blue Banner")
+        ));
+
+        assertEquals("""
+                Decoration [expanded]
+                  Textiles [expanded]
+                    Banners [expanded] [cardinality]
+                      Black Banner
+                      Blue Banner
+                      Red Banner
+                      White Banner
+                """, ResultsTreeDump.dump(root));
     }
 
     @Test
