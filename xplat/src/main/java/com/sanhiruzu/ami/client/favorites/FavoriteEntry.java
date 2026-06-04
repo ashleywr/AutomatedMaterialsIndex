@@ -127,4 +127,18 @@ public record FavoriteEntry(String key, ResourceLocation itemId, ItemStack stack
         ResourceLocation id = ResourceLocation.tryParse("ami:" + path);
         return id == null ? itemId : id;
     }
+
+    /**
+     * Returns the real underlying item ID for a node that may be a favorite entry,
+     * falling back to node.id() for non-favorite nodes.
+     */
+    public static ResourceLocation resolvedId(SearchNode node) {
+        if (node == null) return null;
+        String baseId = node.meta(META_BASE_ID, "");
+        if (!baseId.isBlank()) {
+            ResourceLocation resolved = ResourceLocation.tryParse(baseId);
+            if (resolved != null) return resolved;
+        }
+        return node.id();
+    }
 }
