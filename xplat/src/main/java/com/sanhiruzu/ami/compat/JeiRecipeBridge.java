@@ -31,22 +31,30 @@ class JeiRecipeBridge {
 
     static void openRecipes(ItemStack stack) {
         JeiRuntimeAccessor.withRuntime(runtime -> {
-            IIngredientType<ItemStack> itemType = mezz.jei.api.constants.VanillaTypes.ITEM_STACK;
-            if (itemType == null) return;
-            IFocusFactory focusFactory = runtime.getJeiHelpers().getFocusFactory();
-            IFocus<ItemStack> focus = focusFactory.createFocus(RecipeIngredientRole.OUTPUT, itemType, stack);
-            runtime.getRecipesGui().show(focus);
+            ItemStack lookup = firstFocusStack(runtime, stack, RecipeIngredientRole.OUTPUT);
+            show(runtime, lookup, RecipeIngredientRole.OUTPUT);
         });
     }
 
     static void openUses(ItemStack stack) {
         JeiRuntimeAccessor.withRuntime(runtime -> {
-            IIngredientType<ItemStack> itemType = mezz.jei.api.constants.VanillaTypes.ITEM_STACK;
-            if (itemType == null) return;
-            IFocusFactory focusFactory = runtime.getJeiHelpers().getFocusFactory();
-            IFocus<ItemStack> focus = focusFactory.createFocus(RecipeIngredientRole.INPUT, itemType, stack);
-            runtime.getRecipesGui().show(focus);
+            ItemStack lookup = firstFocusStack(runtime, stack, RecipeIngredientRole.INPUT);
+            show(runtime, lookup, RecipeIngredientRole.INPUT);
         });
+    }
+
+    static boolean hasRecipes(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return false;
+        }
+        return JeiRuntimeAccessor.withRuntime(runtime -> hasFocus(runtime, stack, RecipeIngredientRole.OUTPUT), false);
+    }
+
+    static boolean hasUses(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return false;
+        }
+        return JeiRuntimeAccessor.withRuntime(runtime -> hasFocus(runtime, stack, RecipeIngredientRole.INPUT), false);
     }
 
     static void startDrag(ItemStack stack) {
@@ -75,6 +83,48 @@ class JeiRecipeBridge {
 
     static void handleShiftClick(ItemStack stack) {
         openRecipes(stack);
+    }
+
+    private static void show(IJeiRuntime runtime, ItemStack stack, RecipeIngredientRole role) {
+        IIngredientType<ItemStack> itemType = mezz.jei.api.constants.VanillaTypes.ITEM_STACK;
+        if (itemType == null) return;
+        IFocusFactory focusFactory = runtime.getJeiHelpers().getFocusFactory();
+        IFocus<ItemStack> focus = focusFactory.createFocus(role, itemType, stack);
+        runtime.getRecipesGui().show(focus);
+    }
+
+    private static ItemStack firstFocusStack(IJeiRuntime runtime, ItemStack requested, RecipeIngredientRole role) {
+        for (ItemStack candidate : RecipeLookupStackResolver.candidates(requested)) {
+            if (hasDirectFocus(runtime, candidate, role)) {
+                return candidate;
+            }
+        }
+        return requested;
+    }
+
+    private static boolean hasFocus(IJeiRuntime runtime, ItemStack requested, RecipeIngredientRole role) {
+        for (ItemStack candidate : RecipeLookupStackResolver.candidates(requested)) {
+            if (hasDirectFocus(runtime, candidate, role)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasDirectFocus(IJeiRuntime runtime, ItemStack stack, RecipeIngredientRole role) {
+        IIngredientType<ItemStack> itemType = mezz.jei.api.constants.VanillaTypes.ITEM_STACK;
+        if (itemType == null) {
+            return false;
+        }
+        IFocusFactory focusFactory = runtime.getJeiHelpers().getFocusFactory();
+        IFocus<ItemStack> focus = focusFactory.createFocus(role, itemType, stack);
+        IFocusGroup focusGroup = focusFactory.createFocusGroup(List.of(focus));
+        return runtime.getRecipeManager()
+                .createRecipeCategoryLookup()
+                .limitFocus(focusGroup.getAllFocuses())
+                .get()
+                .findAny()
+                .isPresent();
     }
 
     static boolean transferStack(ItemStack stack, Screen screen, boolean maxTransfer) {

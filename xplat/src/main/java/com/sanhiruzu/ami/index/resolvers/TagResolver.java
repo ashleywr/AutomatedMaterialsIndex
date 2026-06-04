@@ -18,7 +18,7 @@ public class TagResolver implements IQueryResolver {
     private void addTags(String tagsStr, SearchNode node) {
         if (tagsStr == null || tagsStr.isBlank()) return;
         for (String tag : tagsStr.split(",")) {
-            tag = tag.trim().toLowerCase();
+            tag = tag.trim().toLowerCase(Locale.ROOT);
             if (!tag.isEmpty()) {
                 tagIndex.computeIfAbsent(tag, k -> new ArrayList<>()).add(node);
             }
@@ -30,7 +30,7 @@ public class TagResolver implements IQueryResolver {
         Map<NodeType, List<SearchNode>> result = new LinkedHashMap<>();
 
         // Find all tags that contain the query string (case-insensitive substring match)
-        String lowerQuery = query.toLowerCase();
+        String lowerQuery = query.toLowerCase(Locale.ROOT);
         Set<SearchNode> matchedNodes = new LinkedHashSet<>();
 
         for (var entry : tagIndex.entrySet()) {

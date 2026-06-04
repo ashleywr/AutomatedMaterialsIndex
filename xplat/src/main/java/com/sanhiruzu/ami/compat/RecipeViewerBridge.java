@@ -39,6 +39,9 @@ public class RecipeViewerBridge {
         if (Services.PLATFORM.isModLoaded("emi")) {
             return EmiRecipeBridge.hasRecipes(stack);
         }
+        if (Services.PLATFORM.isModLoaded("jei")) {
+            return JeiRecipeBridge.hasRecipes(stack);
+        }
         return false;
     }
 
@@ -46,6 +49,9 @@ public class RecipeViewerBridge {
         if (stack == null || stack.isEmpty()) return false;
         if (Services.PLATFORM.isModLoaded("emi")) {
             return EmiRecipeBridge.hasUses(stack);
+        }
+        if (Services.PLATFORM.isModLoaded("jei")) {
+            return JeiRecipeBridge.hasUses(stack);
         }
         return false;
     }

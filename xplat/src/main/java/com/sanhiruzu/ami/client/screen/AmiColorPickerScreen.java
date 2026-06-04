@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.client.screen;
 
+import com.sanhiruzu.ami.client.input.TextInputFilter;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
@@ -48,6 +49,7 @@ public class AmiColorPickerScreen extends Screen {
         aSlider = addRenderableWidget(new Slider(centerX - 100, centerY + 15, 200, 20, Component.literal("Alpha"), a / 255.0, v -> updateFromSliders()));
 
         hexInput = new EditBox(font, centerX - 40, centerY + 45, 80, 20, Component.literal("Hex"));
+        hexInput.setFilter(TextInputFilter::isAllowedInput);
         hexInput.setValue(String.format("%08X", currentColor));
         hexInput.setResponder(this::updateFromHex);
         addRenderableWidget(hexInput);

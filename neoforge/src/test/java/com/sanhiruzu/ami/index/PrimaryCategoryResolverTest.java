@@ -45,7 +45,7 @@ class PrimaryCategoryResolverTest {
     }
 
     @Test
-    void saplingsResolveToFloraBeforeGenericPlaceableOrMagic() {
+    void saplingsResolveToSeedsBeforeGenericPlaceableOrMagic() {
         CategoryAssignment placeableOnlyAssignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("quark:blue_blossom_sapling"),
                 new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE), Map.of())
@@ -66,11 +66,88 @@ class PrimaryCategoryResolverTest {
         );
 
         assertEquals("nature", placeableOnlyAssignment.categoryId());
-        assertEquals("flora", placeableOnlyAssignment.subcategoryId());
+        assertEquals("seeds", placeableOnlyAssignment.subcategoryId());
         assertEquals("nature", magicSaplingAssignment.categoryId());
-        assertEquals("flora", magicSaplingAssignment.subcategoryId());
+        assertEquals("seeds", magicSaplingAssignment.subcategoryId());
         assertEquals("nature", taggedSaplingAssignment.categoryId());
-        assertEquals("flora", taggedSaplingAssignment.subcategoryId());
+        assertEquals("seeds", taggedSaplingAssignment.subcategoryId());
+    }
+
+    @Test
+    void vanillaConduitDoesNotResolveAsTechCable() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:conduit"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.CABLE, ItemFacet.TECH_COMPONENT, ItemFacet.LIGHT_SOURCE),
+                        Map.of(SearchNodeKeys.BLOCK_CLASS, "net.minecraft.world.level.block.ConduitBlock")
+                )
+        );
+
+        assertEquals("utility", assignment.categoryId());
+        assertEquals("misc", assignment.subcategoryId());
+    }
+
+    @Test
+    void reactivePowerBottleDumpMetadataDoesNotRouteToTerrain() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("reactive:soul_bottle"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE),
+                        Map.of(
+                                SearchNodeKeys.OBTAINABILITY, "no_recipe",
+                                SearchNodeKeys.TAGS, "reactive:power_bottles",
+                                SearchNodeKeys.ITEM_CLASS, "dev.hyperlynx.reactive.items.PowerBottleItem",
+                                SearchNodeKeys.BLOCK_CLASS, "dev.hyperlynx.reactive.blocks.PowerBottleBlock",
+                                SearchNodeKeys.BLOCK_STATE_PROPERTIES, "axis,bottles,waterlogged",
+                                SearchNodeKeys.BLOCKS_MATERIAL, "other_building"
+                        )
+                )
+        );
+
+        assertEquals("magic", assignment.categoryId());
+        assertEquals("artifacts", assignment.subcategoryId());
+    }
+
+    @Test
+    void uncraftableCustomBlockEntitiesAndLightSourcesDoNotBecomeTerrain() {
+        CategoryAssignment crucible = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("reactive:crucible"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY),
+                        Map.of(
+                                SearchNodeKeys.OBTAINABILITY, "no_recipe",
+                                SearchNodeKeys.BLOCK_CLASS, "dev.hyperlynx.reactive.blocks.CrucibleBlock",
+                                SearchNodeKeys.BLOCKS_MATERIAL, "other_building"
+                        )
+                )
+        );
+        CategoryAssignment lightBlock = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("reactive:light_bottle"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.LIGHT_SOURCE),
+                        Map.of(
+                                SearchNodeKeys.OBTAINABILITY, "no_recipe",
+                                SearchNodeKeys.BLOCKS_MATERIAL, "other_building"
+                        )
+                )
+        );
+        CategoryAssignment dirtLike = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("example:loose_soil"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.SOIL_BLOCK),
+                        Map.of(
+                                SearchNodeKeys.OBTAINABILITY, "no_recipe",
+                                SearchNodeKeys.BLOCKS_MATERIAL, "soil"
+                        )
+                )
+        );
+
+        assertEquals("tech", crucible.categoryId());
+        assertEquals("machines", crucible.subcategoryId());
+        assertEquals("utility", lightBlock.categoryId());
+        assertEquals("misc", lightBlock.subcategoryId());
+        assertEquals("geology", dirtLike.categoryId());
+        assertEquals("terrain", dirtLike.subcategoryId());
     }
 
     @Test
@@ -338,6 +415,16 @@ class PrimaryCategoryResolverTest {
                 new ResourceLocation("minecraft:diamond_horse_armor"),
                 new FacetProfile(EnumSet.of(ItemFacet.ARMOR_ANIMAL), Map.of())
         );
+        CategoryAssignment entityChestSlotArmorAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("modulargolems:iron_dog_golem_armor"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.EQUIPPABLE, ItemFacet.ARMOR_CHEST),
+                        Map.of(
+                                SearchNodeKeys.EQUIPMENT_SLOT, "chest",
+                                SearchNodeKeys.ITEM_CLASS, "dev.xkmc.modulargolems.content.item.equipments.DogGolemArmorItem"
+                        )
+                )
+        );
         CategoryAssignment weaponAssignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("minecraft:mace"),
                 new FacetProfile(EnumSet.of(ItemFacet.MELEE_WEAPON), Map.of())
@@ -347,6 +434,8 @@ class PrimaryCategoryResolverTest {
         assertEquals("chest", armorAssignment.subcategoryId());
         assertEquals("armor", animalArmorAssignment.categoryId());
         assertEquals("animal", animalArmorAssignment.subcategoryId());
+        assertEquals("armor", entityChestSlotArmorAssignment.categoryId());
+        assertEquals("animal", entityChestSlotArmorAssignment.subcategoryId());
         assertEquals("tools", weaponAssignment.categoryId());
         assertEquals("melee", weaponAssignment.subcategoryId());
     }
@@ -464,6 +553,52 @@ class PrimaryCategoryResolverTest {
         assertEquals("slab", slab.subcategoryId());
         assertEquals("masonry", door.categoryId());
         assertEquals("functional", door.subcategoryId());
+    }
+
+    @Test
+    void partialPlaceableBlocksNoLongerResolveAsFullBuildingBlocks() {
+        CategoryAssignment hedge = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("quark:oak_hedge/variant/oak_leaf_hedge_0"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE),
+                        Map.of("blockShape", "partial")
+                )
+        );
+        CategoryAssignment post = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("quark:oak_post"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE),
+                        Map.of("blockShape", "partial")
+                )
+        );
+        CategoryAssignment ladder = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("quark:oak_ladder"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE),
+                        Map.of("blockShape", "partial")
+                )
+        );
+
+        assertEquals("decoration", hedge.categoryId());
+        assertEquals("other_building", hedge.subcategoryId());
+        assertEquals("decoration", post.categoryId());
+        assertEquals("other_building", post.subcategoryId());
+        assertEquals("decoration", ladder.categoryId());
+        assertEquals("other_building", ladder.subcategoryId());
+    }
+
+    @Test
+    void matrixEnchanterStillRoutesToFullMasonryWhenPlacedAsFullBlock() {
+        CategoryAssignment matrixEnchanter = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("quark:matrix_enchanter"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.LIGHT_SOURCE),
+                        Map.of("blockShape", "full_block")
+                )
+        );
+
+        assertEquals("masonry", matrixEnchanter.categoryId());
+        assertEquals("full_block", matrixEnchanter.subcategoryId());
     }
 
     @Test
@@ -736,14 +871,24 @@ class PrimaryCategoryResolverTest {
     }
 
     @Test
-    void uncraftableLowSignalFullBlocksBiasToTerrainInsteadOfBuilding() {
-        CategoryAssignment terrainAssignment = PrimaryCategoryResolver.resolve(
+    void uncraftableLowSignalFullBlocksNeedTerrainLikeMaterialToBiasToTerrain() {
+        CategoryAssignment otherBuildingAssignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("minecraft:sculk"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.PLACEABLE),
                         Map.of(
                                 SearchNodeKeys.OBTAINABILITY, "no_recipe",
                                 SearchNodeKeys.BLOCKS_MATERIAL, "other_building"
+                        )
+                )
+        );
+        CategoryAssignment terrainAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:dirt"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.SOIL_BLOCK),
+                        Map.of(
+                                SearchNodeKeys.OBTAINABILITY, "no_recipe",
+                                SearchNodeKeys.BLOCKS_MATERIAL, "soil"
                         )
                 )
         );
@@ -758,6 +903,8 @@ class PrimaryCategoryResolverTest {
                 )
         );
 
+        assertEquals("masonry", otherBuildingAssignment.categoryId());
+        assertEquals("full_block", otherBuildingAssignment.subcategoryId());
         assertEquals("geology", terrainAssignment.categoryId());
         assertEquals("terrain", terrainAssignment.subcategoryId());
         assertEquals("geology", stoneAssignment.categoryId());
@@ -1044,6 +1191,63 @@ class PrimaryCategoryResolverTest {
     }
 
     @Test
+    void familyTokenFallbacksDoNotMatchPartialWords() {
+        CategoryAssignment storageKeySubstringAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("storagedrawers:keyboard"),
+                new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
+        );
+        CategoryAssignment backpackStackSubstringAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("sophisticatedbackpacks:stacked_canvas_patch"),
+                new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
+        );
+        CategoryAssignment automationModuleSubstringAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("securitycraft:modulement"),
+                new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
+        );
+        CategoryAssignment foodIngredientSubstringAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("createfood:beanstalk_banner"),
+                new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
+        );
+        CategoryAssignment enchantingExperienceSubstringAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("create_enchantment_industry:experienceometer"),
+                new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
+        );
+        CategoryAssignment gregTechPowerSubstringAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("gtceu:powerless_ore"),
+                new FacetProfile(
+                        EnumSet.noneOf(ItemFacet.class),
+                        Map.of(SearchNodeKeys.COMPAT_CATEGORY_POLICY, "focused")
+                )
+        );
+        CategoryAssignment apotheosisSocketSubstringAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("apotheosis:socketed_tablet"),
+                new FacetProfile(
+                        EnumSet.noneOf(ItemFacet.class),
+                        Map.of(SearchNodeKeys.COMPAT_CATEGORY_POLICY, "focused")
+                )
+        );
+        CategoryAssignment botaniaBaubleSubstringAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("botania:bandolier"),
+                new FacetProfile(
+                        EnumSet.noneOf(ItemFacet.class),
+                        Map.of(SearchNodeKeys.COMPAT_CATEGORY_POLICY, "focused")
+                )
+        );
+
+        assertNotEquals("tech", storageKeySubstringAssignment.categoryId());
+        assertNotEquals("tech", backpackStackSubstringAssignment.categoryId());
+        assertNotEquals("tech", automationModuleSubstringAssignment.categoryId());
+        assertNotEquals("ingredients", foodIngredientSubstringAssignment.categoryId());
+        assertNotEquals("magic", enchantingExperienceSubstringAssignment.categoryId());
+        assertEquals("gregtech", gregTechPowerSubstringAssignment.categoryId());
+        assertEquals("materials", gregTechPowerSubstringAssignment.subcategoryId());
+        assertEquals("apotheosis", apotheosisSocketSubstringAssignment.categoryId());
+        assertEquals("misc", apotheosisSocketSubstringAssignment.subcategoryId());
+        assertEquals("botania", botaniaBaubleSubstringAssignment.categoryId());
+        assertEquals("misc", botaniaBaubleSubstringAssignment.subcategoryId());
+    }
+
+    @Test
     void refinedStorageAndAutomationFamiliesResolveTechnicalIntermediates() {
         CategoryAssignment rsProcessorAssignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("refinedstorage:raw_basic_processor"),
@@ -1076,6 +1280,26 @@ class PrimaryCategoryResolverTest {
         assertEquals("machines", pneumaticMachineAssignment.subcategoryId());
         assertEquals("tech", securityModuleAssignment.categoryId());
         assertEquals("circuits", securityModuleAssignment.subcategoryId());
+    }
+
+    @Test
+    void geologyFallbacksUseExactTokensInsteadOfPartialWords() {
+        CategoryAssignment keyboarditeAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("example:keyboardite"),
+                new FacetProfile(EnumSet.of(ItemFacet.STONE_BLOCK), Map.of())
+        );
+        CategoryAssignment windowseatAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("example:windowseat_basalt"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.STONE_BLOCK),
+                        Map.of(SearchNodeKeys.BLOCKS_MATERIAL, "stone")
+                )
+        );
+
+        assertEquals("geology", keyboarditeAssignment.categoryId());
+        assertEquals("stone", keyboarditeAssignment.subcategoryId());
+        assertEquals("geology", windowseatAssignment.categoryId());
+        assertEquals("stone", windowseatAssignment.subcategoryId());
     }
 
     @Test
@@ -1146,7 +1370,7 @@ class PrimaryCategoryResolverTest {
         CategoryAssignment wireAssignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("createaddition:copper_wire"),
                 new FacetProfile(
-                        EnumSet.of(ItemFacet.PLACEABLE),
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.CABLE, ItemFacet.TECH_COMPONENT),
                         Map.of(SearchNodeKeys.BLOCKS_MATERIAL, "other_building")
                 )
         );

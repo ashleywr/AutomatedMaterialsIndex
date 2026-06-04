@@ -4,6 +4,11 @@ User-facing changes are recorded here.
 
 ## Unreleased
 
+### Fixed
+
+- [#3] Added universal Cyrillic/Chinese/Japanese search input acceptance (including Japanese width variants) by using a centralized input filter and locale-safe Unicode normalization for search indexing and matching.
+- Fixed JEI/EMI recipe lookups for generic AMI item entries by falling back to AMI-known subtype and creative-tab stacks when the base stack itself does not expose the modded recipe output.
+
 ## 1.1.3 - 2026-06-03
 
 AMI 1.1.3 is a Forge compatibility hotfix.

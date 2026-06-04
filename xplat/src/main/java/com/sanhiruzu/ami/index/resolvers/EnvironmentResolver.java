@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 
 public class EnvironmentResolver implements IQueryResolver {
     private final List<SearchNode> dimensionNodes = new ArrayList<>();
@@ -24,12 +25,12 @@ public class EnvironmentResolver implements IQueryResolver {
     @Override
     public Map<NodeType, List<SearchNode>> resolve(String query) {
         Map<NodeType, List<SearchNode>> result = new LinkedHashMap<>();
-        String lowerQuery = query.toLowerCase();
+        String lowerQuery = query.toLowerCase(Locale.ROOT);
 
         // Match dimensions
         List<SearchNode> matchedDimensions = new ArrayList<>();
         for (SearchNode node : dimensionNodes) {
-            if (node.displayName().toLowerCase().contains(lowerQuery)) {
+            if (node.displayName().toLowerCase(Locale.ROOT).contains(lowerQuery)) {
                 matchedDimensions.add(node);
             }
         }
@@ -37,7 +38,7 @@ public class EnvironmentResolver implements IQueryResolver {
         // Match biomes in the queried dimension
         List<SearchNode> matchedBiomes = new ArrayList<>();
         for (SearchNode node : biomeNodes) {
-            if (node.displayName().toLowerCase().contains(lowerQuery)) {
+            if (node.displayName().toLowerCase(Locale.ROOT).contains(lowerQuery)) {
                 matchedBiomes.add(node);
             }
         }

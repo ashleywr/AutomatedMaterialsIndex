@@ -33,11 +33,11 @@ final class LexicalEvidenceDictionary {
             entry("wood_block", "nature", "wood", 80,
                     tokens("log", "logs", "planks", "stem", "stems", "hyphae")),
             entry("flora", "nature", "flora", 75,
-                    tokens("sapling", "saplings", "leaves", "flower", "flowers", "bush", "shrub", "sprouts", "roots", "vine", "vines", "moss", "coral", "seagrass", "kelp", "cactus", "fern", "clover")),
+                    tokens("leaves", "flower", "flowers", "bush", "shrub", "sprouts", "roots", "vine", "vines", "moss", "coral", "seagrass", "kelp", "cactus", "fern", "clover")),
             entry("flora_leaf_weak", "nature", "flora", 40,
                     tokens("leaf")),
             entry("seeds", "nature", "seeds", 70,
-                    tokens("seed", "seeds"),
+                    tokens("seed", "seeds", "sapling", "saplings"),
                     tokens("pouch", "bucket", "oil", "crystal", "machine", "maker")),
             entry("crops", "nature", "crops", 65,
                     tokens("crop", "crops", "wheat", "carrot", "potato", "beetroot", "tomato", "cabbage", "onion", "pepper", "cucumber", "grape", "berry", "berries", "rice")),
@@ -54,9 +54,9 @@ final class LexicalEvidenceDictionary {
             entry("food_protein", "nature", "proteins", 75,
                     tokens("beef", "chicken", "pork", "porkchop", "cod", "salmon", "rabbit", "mutton", "fish", "meat", "bacon", "ham", "sausage", "ribs", "venison")),
             entry("organic_ingredient", "ingredients", "organic", 65,
-                    tokens("string", "feather", "feathers", "bone", "bones", "leather", "hide", "scute", "honeycomb", "wool", "egg", "eggs", "crumb", "crumbs")),
+                    tokens("string", "feather", "feathers", "bone", "bones", "leather", "hide", "scute", "honeycomb", "wool", "egg", "eggs", "crumb", "crumbs", "scale", "scales", "sprig", "thread")),
             entry("mineral_ingredient", "ingredients", "mineral", 55,
-                    tokens("flint", "clay", "prismarine", "pottery", "sherd")),
+                    tokens("flint", "clay", "shard", "shards", "prismarine", "pottery", "sherd", "quartz", "crystal", "crystals", "salt", "salts", "rock")),
             entry("dyes", "ingredients", "dyes", 80,
                     tokens("dye", "dyes", "pigment", "pigments", "ink")),
             entry("melee_weapon", "tools", "melee", 75,
@@ -68,9 +68,9 @@ final class LexicalEvidenceDictionary {
             entry("harvest_tool", "tools", "harvest", 85,
                     tokens("pickaxe", "pickaxes", "shovel", "shovels", "axe", "axes", "hoe", "hoes", "sickle", "scythe", "shears")),
             entry("utility_tool", "tools", "utility", 85,
-                    tokens("wrench", "hammer", "brush", "toolbox")),
+                    tokens("wrench", "hammer", "mallet", "brush", "toolbox")),
             entry("utility_container", "utility", "misc", 85,
-                    tokens("pouch", "satchel", "dish")),
+                    tokens("pouch", "satchel", "dish", "bottle", "bottles", "flask")),
             entry("armor", "armor", "", 75,
                     tokens("helmet", "helmets", "chestplate", "chestplates", "leggings", "boots", "armor", "elytra")),
             entry("navigation", "utility", "navigation", 85,
@@ -82,7 +82,7 @@ final class LexicalEvidenceDictionary {
             entry("magic_artifact", "magic", "artifacts", 65,
                     tokens("spell", "wand", "staff", "scroll", "totem", "charm", "relic")),
             entry("magic_reagent", "magic", "reagents", 60,
-                    tokens("rune", "runes", "essence", "pearl", "blaze", "ghast", "phantom", "membrane", "wart", "slime"))
+                    tokens("rune", "runes", "essence", "pearl", "blaze", "ghast", "phantom", "membrane", "wart", "slime", "stardust"))
     );
 
     private LexicalEvidenceDictionary() {

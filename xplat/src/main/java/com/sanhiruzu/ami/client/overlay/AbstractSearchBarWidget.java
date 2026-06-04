@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.client.overlay;
 
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.AmiGuiIcons;
+import com.sanhiruzu.ami.client.input.TextInputFilter;
 import com.sanhiruzu.ami.client.results.SearchQueryHistory;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.GlobalIndex;
@@ -17,9 +18,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
 
+import java.text.Normalizer;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import java.util.Locale;
 
 public abstract class AbstractSearchBarWidget extends EditBox {
     private static final Component PLACEHOLDER_HINT = Component.translatable("ami.gui.search.placeholder_hint");
@@ -36,6 +39,9 @@ public abstract class AbstractSearchBarWidget extends EditBox {
     private static final int HELP_MIN_W = 300;
     private static final int HELP_MAX_W = 360;
     private static final int HELP_GAP = 6;
+    private static final String STONE_EASTER_EGG_QUERY = "stone";
+    private static final String STONE_EASTER_EGG_QUERY_RU = "камень";
+    private static final String THANKS_FOR_RUSSIAN_SUPPORT = "Спасибо, Kotemorte!";
     private final Listener listener;
     private final Deque<String> undoStack = new ArrayDeque<>();
     private final SearchQueryHistory queryHistory = new SearchQueryHistory();
@@ -59,7 +65,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         setMaxLength(256);
         setResponder(this::onTextChanged);
         setBordered(false);
-        setFilter(s -> s.chars().allMatch(c -> c >= 32 && c < 127));
+        setFilter(TextInputFilter::isAllowedInput);
     }
 
     protected abstract void doMoveCursorTo(int pos, boolean select);
@@ -157,6 +163,10 @@ public abstract class AbstractSearchBarWidget extends EditBox {
             int cursorInVisible = Math.max(0, Math.min(getCursorPosition() - displayStart, value.length() - displayStart));
             int cursorX = textX + font.width(value.substring(displayStart, displayStart + cursorInVisible)) + 1;
             g.fill(cursorX, textY - 1, cursorX + 1, textY + font.lineHeight, AMITheme.SEARCH_CURSOR);
+        }
+
+        if (shouldRenderKoteEasterEgg()) {
+            drawKoteEasterEgg(g, font);
         }
 
         if (helpOpen) {
@@ -652,6 +662,41 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         } finally {
             g.disableScissor();
         }
+    }
+
+    private boolean shouldRenderKoteEasterEgg() {
+        if (isFocused() || !getValue().isBlank()) {
+            String normalized = normalizeForEasterEgg(getValue());
+            return normalized.contains(STONE_EASTER_EGG_QUERY) || normalized.contains(STONE_EASTER_EGG_QUERY_RU);
+        }
+        return false;
+    }
+
+    private void drawKoteEasterEgg(GuiGraphics g, Font font) {
+        if (!shouldRenderKoteEasterEgg()) {
+            return;
+        }
+
+        int noteY = getY() + height + 2;
+        int noteX = getX();
+        Screen screen = Minecraft.getInstance().screen;
+        int screenH = screen == null ? Integer.MAX_VALUE : screen.height;
+
+        if (noteY + font.lineHeight > screenH - 1) {
+            noteY = getY() - font.lineHeight - 2;
+        }
+        if (noteY < 0) {
+            return;
+        }
+
+        g.drawString(font, Component.literal(THANKS_FOR_RUSSIAN_SUPPORT), noteX, noteY, AMITheme.TEXT_SUBTLE, false);
+    }
+
+    private static String normalizeForEasterEgg(String value) {
+        if (value == null) return "";
+        return Normalizer.normalize(value, Normalizer.Form.NFKC)
+                .toLowerCase(Locale.ROOT)
+                .trim();
     }
 
     private void renderSuggestions(GuiGraphics g, Font font, int mouseX, int mouseY) {

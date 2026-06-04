@@ -205,6 +205,10 @@ public class AmiConfig {
     public static int elementGap = 4;
     @ConfigValue("layout.list-scroll-rows")
     public static int listScrollRows = 10;
+    // Panel position pinning (JSON map: {"search_bar": {"x": 100, "y": 200}, ...})
+    @ConfigHidden
+    @ConfigValue("layout.pinned-positions")
+    public static String pinnedPositionsJson = "{}";
     // --- Palette Group ---
     @ConfigGroup(value = "palette", icon = "palette", order = 6)
     @ConfigHidden
@@ -356,6 +360,7 @@ public class AmiConfig {
         iconSize = 16;
         elementGap = 4;
         listScrollRows = 10;
+        pinnedPositionsJson = "{}";
 
         overlayBg = 0x66000000;
         panelBg = 0x66000000;

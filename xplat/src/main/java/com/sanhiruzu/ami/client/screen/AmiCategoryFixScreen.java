@@ -6,6 +6,7 @@ import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.client.input.TextInputFilter;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -48,11 +49,13 @@ public class AmiCategoryFixScreen extends Screen {
         String subcategory = node.meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "");
 
         categoryBox = new EditBox(font, left + 12, top + 44, fieldWidth, 20, Component.translatable("ami.fix_category.category"));
+        categoryBox.setFilter(TextInputFilter::isAllowedInput);
         categoryBox.setValue(category);
         categoryBox.setResponder(ignored -> {});
         addRenderableWidget(categoryBox);
 
         subcategoryBox = new EditBox(font, left + 12, top + 82, fieldWidth, 20, Component.translatable("ami.fix_category.subcategory"));
+        subcategoryBox.setFilter(TextInputFilter::isAllowedInput);
         subcategoryBox.setValue(subcategory);
         subcategoryBox.setResponder(ignored -> {});
         addRenderableWidget(subcategoryBox);
@@ -224,7 +227,7 @@ public class AmiCategoryFixScreen extends Screen {
 
     private List<Suggestion> categorySuggestions(String filter) {
         List<Suggestion> suggestions = new ArrayList<>();
-        for (AmiOntology.Category category : AmiOntology.CATEGORIES) {
+        for (AmiOntology.Category category : AmiOntology.knownCategories()) {
             if (matches(category.id, category.shortName, filter)) {
                 suggestions.add(new Suggestion(category.id, category.shortName + " (" + category.id + ")"));
             }

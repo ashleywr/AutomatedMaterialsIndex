@@ -51,10 +51,10 @@ public final class FacetIndexer {
             facets.add(ItemFacet.COMPOSTABLE);
         }
         applyComponentFacts(stack, facets, attributes);
-
+        applyItemClassFacts(item, facets);
         applyPathFacts(path, facets);
         applyTypeFacts(item, path, facets);
-        applyEquipmentFacts(stack, path, facets, attributes);
+        applyEquipmentFacts(item, stack, path, facets, attributes);
         applyComponentPromotions(attributes, facets);
         applyTagFacts(tags, facets);
 
@@ -110,21 +110,29 @@ public final class FacetIndexer {
         }
     }
 
+    private static void applyItemClassFacts(Item item, EnumSet<ItemFacet> facets) {
+        String itemClass = item.getClass().getName().toLowerCase(Locale.ROOT);
+        if (containsAny(itemClass, "bottleitem", "flaskitem")) {
+            facets.add(ItemFacet.UTILITY_MISC);
+        }
+        if (containsAny(itemClass, "malletitem", "displaceritem")) {
+            facets.add(ItemFacet.UTILITY_TOOL);
+        }
+        if (containsAny(itemClass, "crystalitem", "stardustitem")) {
+            facets.add(ItemFacet.MAGIC_REAGENT);
+        }
+    }
+
     private static void applyPathFacts(String path, EnumSet<ItemFacet> facets) {
         if (path.contains("spell") || path.contains("wand") || path.contains("staff") || path.contains("scroll")) {
             facets.add(ItemFacet.MAGIC_ARTIFACT);
         }
         if (containsPathToken(path, "rune", "runes")
-                || path.contains("essence")
-                || containsPathToken(path, "shard", "shards")) {
+                || path.contains("essence")) {
             facets.add(ItemFacet.MAGIC_REAGENT);
         }
         if (path.contains("minecart") || path.contains("boat") || path.contains("raft")) {
             facets.add(ItemFacet.TRANSPORT);
-        }
-        if (isCablePath(path)) {
-            facets.add(ItemFacet.CABLE);
-            facets.add(ItemFacet.TECH_COMPONENT);
         }
         if (isMechanicalComponentPath(path)) {
             facets.add(ItemFacet.MECHANICAL_COMPONENT);
@@ -278,7 +286,9 @@ public final class FacetIndexer {
                 || item instanceof FoodOnAStickItem) {
             facets.add(ItemFacet.UTILITY_TOOL);
         }
-        if (item instanceof ArmorItem armorItem) {
+        if (isNonPlayerArmorItem(item, path)) {
+            facets.add(ItemFacet.ARMOR_ANIMAL);
+        } else if (item instanceof ArmorItem armorItem) {
             EquipmentSlot slot = armorItem.getEquipmentSlot();
             switch (slot) {
                 case HEAD -> facets.add(ItemFacet.ARMOR_HEAD);
@@ -306,10 +316,14 @@ public final class FacetIndexer {
         }
     }
 
-    private static void applyEquipmentFacts(ItemStack stack, String path, EnumSet<ItemFacet> facets, Map<String, String> attributes) {
+    private static void applyEquipmentFacts(Item item, ItemStack stack, String path, EnumSet<ItemFacet> facets, Map<String, String> attributes) {
         Services.PLATFORM.getEquipmentSlotName(stack).ifPresent(slot -> {
             attributes.put(SearchNodeKeys.EQUIPMENT_SLOT, slot);
             facets.add(ItemFacet.EQUIPPABLE);
+            if (isNonPlayerArmorItem(item, path)) {
+                facets.add(ItemFacet.ARMOR_ANIMAL);
+                return;
+            }
             switch (slot) {
                 case "head" -> facets.add(ItemFacet.ARMOR_HEAD);
                 case "chest" -> facets.add(ItemFacet.ARMOR_CHEST);
@@ -333,6 +347,22 @@ public final class FacetIndexer {
                 || path.endsWith("_hamster_armor")
                 || path.endsWith("_dragonfly_armor")
                 || path.contains("_animal_armor");
+    }
+
+    private static boolean isNonPlayerArmorItem(Item item, String path) {
+        if (Services.PLATFORM.isInstanceOf(item, "net.minecraft.world.item.AnimalArmorItem")) {
+            return true;
+        }
+        String itemClass = item.getClass().getName().toLowerCase(Locale.ROOT);
+        if (containsAny(itemClass,
+                "animalarmoritem",
+                "horsearmoritem",
+                "wolfarmoritem",
+                "dogarmoritem",
+                "golemarmoritem")) {
+            return true;
+        }
+        return isAnimalArmorPath(path);
     }
 
     private static void applyComponentPromotions(Map<String, String> attributes, EnumSet<ItemFacet> facets) {
@@ -386,6 +416,9 @@ public final class FacetIndexer {
                     || tag.endsWith("/spools")) {
                 facets.add(ItemFacet.CABLE);
                 facets.add(ItemFacet.TECH_COMPONENT);
+            }
+            if (tag.endsWith(":power_bottles") || tag.endsWith("/power_bottles")) {
+                facets.add(ItemFacet.MAGIC_ARTIFACT);
             }
             if (tag.endsWith(":upgrades")
                     || tag.endsWith("/upgrades")
@@ -499,9 +532,34 @@ public final class FacetIndexer {
         return false;
     }
 
+    private static boolean hasBlockStateProperty(String encoded, String expected) {
+        if (encoded == null || encoded.isBlank()) {
+            return false;
+        }
+        for (String property : encoded.split(",")) {
+            if (expected.equals(property.trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean hasAny(EnumSet<ItemFacet> facets, ItemFacet... expected) {
         for (ItemFacet facet : expected) {
             if (facets.contains(facet)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsAny(String value, String... needles) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        String normalized = value.toLowerCase(Locale.ROOT);
+        for (String needle : needles) {
+            if (normalized.contains(needle.toLowerCase(Locale.ROOT))) {
                 return true;
             }
         }
@@ -724,6 +782,17 @@ public final class FacetIndexer {
         facets.add(ItemFacet.PLACEABLE);
         String blockClass = blockItem.getBlock().getClass().getName();
         attributes.put(SearchNodeKeys.BLOCK_CLASS, blockClass);
+        String normalizedBlockClass = blockClass.toLowerCase(Locale.ROOT);
+        if ("net.minecraft.world.level.block.ConduitBlock".equals(blockClass)) {
+            facets.add(ItemFacet.UTILITY_MISC);
+        }
+        if (containsAny(normalizedBlockClass, "powerbottleblock", "symbolblock", "staffblock")) {
+            facets.add(ItemFacet.MAGIC_ARTIFACT);
+        }
+        if (containsAny(normalizedBlockClass, "crucibleblock", "plinthblock")) {
+            facets.add(ItemFacet.WORKSTATION);
+            facets.add(ItemFacet.MACHINE);
+        }
 
         String blockTags = state.getTags()
                 .map(tag -> tag.location().toString().toLowerCase(Locale.ROOT))
@@ -739,6 +808,27 @@ public final class FacetIndexer {
                 .collect(Collectors.joining(","));
         if (!blockProperties.isBlank()) {
             attributes.put(SearchNodeKeys.BLOCK_STATE_PROPERTIES, blockProperties);
+        }
+        if (hasBlockStateProperty(blockProperties, "powered")
+                || hasBlockStateProperty(blockProperties, "power")
+                || hasBlockStateProperty(blockProperties, "active")
+                || hasBlockStateProperty(blockProperties, "charged")
+                || hasBlockStateProperty(blockProperties, "enabled")) {
+            facets.add(ItemFacet.ACTIVE_REDSTONE_LOGIC);
+            facets.add(ItemFacet.REDSTONE_LOGIC);
+            facets.add(ItemFacet.REDSTONE_SIGNAL);
+        }
+
+        if (!attributes.containsKey("blockShape")) {
+            try {
+                if (state.isCollisionShapeFullBlock(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, net.minecraft.core.BlockPos.ZERO)) {
+                    attributes.put("blockShape", "full_block");
+                } else {
+                    attributes.put("blockShape", "partial");
+                }
+            } catch (Throwable ignored) {
+                // Shape probing can fail for dynamic modded blocks and must not block indexing.
+            }
         }
 
         if (blockItem.getBlock() instanceof EntityBlock) {

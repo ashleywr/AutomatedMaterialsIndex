@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Reflection-friendly runtime hooks for local smoke automation.
@@ -202,11 +203,19 @@ public final class AmiRuntimeDebugApi {
         out.addProperty("category", node.meta(SearchNodeKeys.ONTOLOGY_CATEGORY, ""));
         out.addProperty("subcategory", node.meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, ""));
         out.addProperty("family", node.meta(SearchNodeKeys.COMPAT_FAMILY, ""));
-        out.addProperty("modularGearKind", node.meta(SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, ""));
-        out.addProperty("modularGearMaterial", node.meta(SearchNodeKeys.MODULAR_GEAR_MATERIAL, ""));
-        out.addProperty("modularGearMaterialTraits", node.meta(SearchNodeKeys.MODULAR_GEAR_MATERIAL_TRAITS, ""));
-        out.addProperty("modularGearRuntimeTraits", node.meta(SearchNodeKeys.MODULAR_GEAR_RUNTIME_TRAITS, ""));
         out.addProperty("accessLevel", node.meta(SearchNodeKeys.ACCESS_LEVEL, ""));
+        out.add("metadata", metadataSummary(node.metadata()));
+        return out;
+    }
+
+    private static JsonObject metadataSummary(Map<String, String> metadata) {
+        JsonObject out = new JsonObject();
+        for (var entry : new TreeMap<>(metadata).entrySet()) {
+            String value = entry.getValue();
+            if (value != null && !value.isBlank()) {
+                out.addProperty(entry.getKey(), value);
+            }
+        }
         return out;
     }
 

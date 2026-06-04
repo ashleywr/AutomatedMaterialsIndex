@@ -18,11 +18,12 @@ import java.util.Map;
 
 /**
  * Builds an AMI-internal debug tooltip shown when Left Control is held while hovering an entry.
- * Reveals: registry ID, ontology classification (precomputed vs runtime), metadata keys, and tags.
+ * Reveals: registry ID, ontology classification, classification routing, curated metadata, and tags.
  */
 public final class DebugTooltip {
 
     private static final int MAX_TAGS_SHOWN = 12;
+    private static final int MAX_TRACE_LINES_SHOWN = 44;
 
     private DebugTooltip() {
     }
@@ -73,11 +74,11 @@ public final class DebugTooltip {
                     .append(Component.translatable("ami.debug.runtime_only").withStyle(ChatFormatting.RED)));
         }
 
-        // Other metadata (sorted, excludes ontology + tags shown separately)
+        appendRouting(lines, entry, precat, presub);
+
+        // Other metadata (sorted, excludes ontology/routing/facets/tags shown separately)
         List<Map.Entry<String, String>> otherMeta = entry.metadata().entrySet().stream()
-                .filter(e -> !e.getKey().equals(SearchNodeKeys.TAGS)
-                        && !e.getKey().equals(SearchNodeKeys.ONTOLOGY_CATEGORY)
-                        && !e.getKey().equals(SearchNodeKeys.ONTOLOGY_SUBCATEGORY))
+                .filter(e -> !isRenderedElsewhere(e.getKey()))
                 .sorted(Map.Entry.comparingByKey())
                 .toList();
 
@@ -151,7 +152,146 @@ public final class DebugTooltip {
         return lines;
     }
 
+    private static void appendRouting(List<Component> lines, SearchNode entry, String category, String subcategory) {
+        String trace = entry.meta(SearchNodeKeys.CLASSIFICATION_TRACE, "");
+        String route = entry.meta(SearchNodeKeys.CLASSIFICATION_ROUTE, "");
+        String phase = entry.meta(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE, "");
+        String rule = entry.meta(SearchNodeKeys.CLASSIFICATION_ROUTE_RULE, "");
+        String mode = entry.meta("classificationMode", "");
+        String score = entry.meta("classificationScore", "");
+        String evidence = entry.meta("classificationEvidence", "");
+        String scores = entry.meta("classificationScores", "");
+        String winnerLabel = phase.isBlank() || rule.isBlank()
+                ? ""
+                : phase + ":" + rule;
+
+        if (trace.isBlank() && route.isBlank() && phase.isBlank() && rule.isBlank()
+                && mode.isBlank() && score.isBlank() && evidence.isBlank() && scores.isBlank()) {
+            return;
+        }
+
+        lines.add(Component.empty());
+        lines.add(Component.translatable("ami.debug.routing").withStyle(ChatFormatting.GOLD));
+        String destination = category.isBlank() ? subcategory : category + (subcategory.isBlank() ? "" : " / " + subcategory);
+        if (!destination.isBlank()) {
+            appendDebugLine(lines, "result", destination, ChatFormatting.GREEN);
+        }
+        if (!winnerLabel.isBlank()) {
+            appendDebugLine(lines, "winner", phase + (rule.isBlank() ? "" : ":" + rule), ChatFormatting.WHITE);
+        }
+        if (!mode.isBlank()) {
+            appendDebugLine(lines, "mode", mode, ChatFormatting.WHITE);
+        }
+        if (!score.isBlank()) {
+            appendDebugLine(lines, "score", score, ChatFormatting.WHITE);
+        }
+        if (!evidence.isBlank()) {
+            appendDebugLine(lines, "evidence", evidence, ChatFormatting.WHITE);
+        }
+        if (!scores.isBlank()) {
+            appendDebugLine(lines, "scores", scores, ChatFormatting.WHITE);
+        }
+
+        List<String> rawSteps = traceSteps(trace, route);
+        rawSteps = dedupeAndCompactTrace(rawSteps, winnerLabel);
+        if (rawSteps.isEmpty() && !winnerLabel.isBlank()) {
+            rawSteps = List.of("winner:" + winnerLabel);
+        }
+        int shown = Math.min(rawSteps.size(), MAX_TRACE_LINES_SHOWN);
+        for (int i = 0; i < shown; i++) {
+            String step = rawSteps.get(i);
+            if (!step.isBlank()) {
+                lines.add(Component.empty()
+                        .append(Component.literal("  "))
+                        .append(Component.literal(step).withStyle(traceStyle(step))));
+            }
+        }
+        if (rawSteps.size() > MAX_TRACE_LINES_SHOWN) {
+            lines.add(Component.literal("  ")
+                            .append(Component.translatable("ami.debug.more", rawSteps.size() - MAX_TRACE_LINES_SHOWN)
+                                    .withStyle(ChatFormatting.DARK_GRAY)));
+        }
+    }
+
+    private static List<String> dedupeAndCompactTrace(List<String> rawSteps, String winnerLabel) {
+        if (rawSteps == null || rawSteps.isEmpty()) {
+            return List.of();
+        }
+        String winnerRulePrefix = (winnerLabel == null || winnerLabel.isBlank()) ? "" : winnerLabel;
+        List<String> compacted = new java.util.ArrayList<>();
+        String previous = null;
+        for (String step : rawSteps) {
+            if (step == null || step.isBlank()) {
+                continue;
+            }
+            String normalized = step.trim();
+            if (!winnerRulePrefix.isBlank()
+                    && normalized.startsWith(winnerRulePrefix) && normalized.contains(": matched")) {
+                continue;
+            }
+            if (!normalized.equals(previous)) {
+                compacted.add(normalized);
+                previous = normalized;
+            }
+        }
+        return compacted;
+    }
+
+    static List<String> traceSteps(String trace, String route) {
+        String renderedTrace = trace == null || trace.isBlank() ? route : trace;
+        if (renderedTrace == null || renderedTrace.isBlank()) {
+            return List.of();
+        }
+        String separator = trace == null || trace.isBlank() ? " -> " : "\\|";
+        return java.util.Arrays.stream(renderedTrace.split(separator))
+                .map(String::trim)
+                .filter(step -> !step.isBlank())
+                .toList();
+    }
+
+    private static void appendDebugLine(List<Component> lines, String label, String value, ChatFormatting valueStyle) {
+        lines.add(Component.empty()
+                .append(Component.literal("  ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(label).withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(" "))
+                .append(Component.literal(value).withStyle(valueStyle)));
+    }
+
+    private static ChatFormatting traceStyle(String step) {
+        if (step.contains(": matched")) {
+            return ChatFormatting.GREEN;
+        }
+        if (step.contains(": skip")) {
+            return ChatFormatting.DARK_GRAY;
+        }
+        if (step.startsWith("facts[")) {
+            return ChatFormatting.AQUA;
+        }
+        return ChatFormatting.GRAY;
+    }
+
+    static boolean isRenderedElsewhere(String key) {
+        return key.equals(SearchNodeKeys.TAGS)
+                || key.equals(SearchNodeKeys.BLOCK_TAGS)
+                || key.equals(SearchNodeKeys.FACETS)
+                || key.equals(SearchNodeKeys.ONTOLOGY_CATEGORY)
+                || key.equals(SearchNodeKeys.ONTOLOGY_SUBCATEGORY)
+                || key.equals(SearchNodeKeys.CLASSIFICATION_ROUTE)
+                || key.equals(SearchNodeKeys.CLASSIFICATION_TRACE)
+                || key.equals(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE)
+                || key.equals(SearchNodeKeys.CLASSIFICATION_ROUTE_RULE)
+                || key.equals("classificationMode")
+                || key.equals("classificationScore")
+                || key.equals("classificationEvidence")
+                || key.equals("classificationScores");
+    }
+
     private static List<String> collectBlockTags(SearchNode entry) {
+        String indexedBlockTags = entry.meta(SearchNodeKeys.BLOCK_TAGS, "");
+        if (!indexedBlockTags.isBlank()) {
+            return parseCsvTags(indexedBlockTags);
+        }
+
         Item item = BuiltInRegistries.ITEM.get(entry.id());
         if (!(item instanceof BlockItem blockItem)) {
             return List.of();
@@ -164,6 +304,19 @@ public final class DebugTooltip {
                     ResourceLocation loc = tagKey.location();
                     return "#" + loc.getNamespace() + ":" + loc.getPath();
                 })
+                .sorted()
+                .toList();
+    }
+
+    private static List<String> parseCsvTags(String tags) {
+        if (tags == null || tags.isBlank()) {
+            return List.of();
+        }
+        return java.util.Arrays.stream(tags.split(","))
+                .map(String::trim)
+                .filter(tag -> !tag.isBlank())
+                .map(tag -> tag.startsWith("#") ? tag : "#" + tag)
+                .distinct()
                 .sorted()
                 .toList();
     }

@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class WaystonesCompatTest {
     @Test
@@ -44,6 +45,18 @@ class WaystonesCompatTest {
 
         assertEquals("magic", assignment.categoryId());
         assertEquals("reagents", assignment.subcategoryId());
+    }
+
+    @Test
+    void partialWordPathsDoNotRouteAsWaystonesArtifactsOrReagents() {
+        Map<String, String> sharded = meta();
+        Map<String, String> scrollwork = meta();
+
+        CategoryAssignment shardedAssignment = resolve("waystones:sharded_tablet", sharded);
+        CategoryAssignment scrollworkAssignment = resolve("waystones:scrollwork_banner", scrollwork);
+
+        assertNotEquals("magic", shardedAssignment.categoryId());
+        assertNotEquals("magic", scrollworkAssignment.categoryId());
     }
 
     private static Map<String, String> meta() {

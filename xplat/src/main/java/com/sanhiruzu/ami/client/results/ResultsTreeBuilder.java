@@ -224,7 +224,7 @@ final class ResultsTreeBuilder {
         List<TreeNode> result = new ArrayList<>();
         boolean blocksMaterial = false;
 
-        List<AmiOntology.Category> categoriesToDisplay = new ArrayList<>(AmiOntology.CATEGORIES);
+        List<AmiOntology.Category> categoriesToDisplay = new ArrayList<>(AmiOntology.knownCategories());
         Set<String> knownCategoryIds = categoriesToDisplay.stream().map(category -> category.id).collect(Collectors.toSet());
         for (String categoryId : catMap.keySet()) {
             if (!knownCategoryIds.contains(categoryId)) {
@@ -374,7 +374,7 @@ final class ResultsTreeBuilder {
 
         for (var catEntry : byCategory.entrySet()) {
             String catId = catEntry.getKey();
-            Component label = AmiOntology.CATEGORIES.stream()
+            Component label = AmiOntology.knownCategories().stream()
                     .filter(c -> c.id.equals(catId))
                     .map(AmiOntology.Category::displayName)
                     .findFirst()

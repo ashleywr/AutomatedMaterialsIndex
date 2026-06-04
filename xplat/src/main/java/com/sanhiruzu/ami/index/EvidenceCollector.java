@@ -17,14 +17,22 @@ final class EvidenceCollector {
         List<ClassificationEvidence> evidence = new ArrayList<>();
         String path = id.getPath().toLowerCase(Locale.ROOT);
         Set<String> tokens = LexicalEvidenceDictionary.tokenize(path);
-        evidence.addAll(LexicalEvidenceDictionary.match(tokens));
 
         EnumSet<ItemFacet> facets = profile.facets();
         Map<String, String> attributes = profile.attributes();
+        List<ClassificationEvidence> lexical = LexicalEvidenceDictionary.match(tokens);
+        if (isVanillaConduitBlock(attributes)) {
+            lexical = lexical.stream()
+                    .filter(item -> !"tech_cables".equals(item.id()))
+                    .toList();
+        }
+        evidence.addAll(lexical);
+
         addComponentEvidence(attributes, evidence);
         addClassEvidence(attributes, evidence);
         addCreativeTabEvidence(attributes, evidence);
         addTrustedTagEvidence(attributes, evidence);
+        addRecipeEvidence(attributes, evidence);
 
         if (hasAny(facets, ItemFacet.SPAWN_EGG, ItemFacet.MOB_BUCKET)) {
             evidence.add(e("facet.spawn_egg", "facet", "bestiary", "", 110, "spawn egg or mob bucket facet"));
@@ -108,7 +116,7 @@ final class EvidenceCollector {
         if (facets.contains(ItemFacet.SOIL_BLOCK) || "soil".equals(attributes.get(SearchNodeKeys.BLOCKS_MATERIAL))) {
             evidence.add(e("facet.soil", "facet", "geology", "terrain", 55, "soil material facet"));
         }
-        if (facets.contains(ItemFacet.PLACEABLE)) {
+        if (facets.contains(ItemFacet.PLACEABLE) && !isPartialPlacement(attributes)) {
             evidence.add(e("facet.placeable", "facet", "masonry", "full_block", 25, "placeable fallback"));
         }
 
@@ -196,6 +204,26 @@ final class EvidenceCollector {
                 "datadial")) {
             evidence.add(e("class.tech_block", "class", "tech", "machines", 75, "tech-like block class"));
         }
+        if (isVanillaConduitBlock(attributes)) {
+            evidence.add(e("class.vanilla_conduit", "class", "utility", "misc", 130, "vanilla ConduitBlock class"));
+        }
+        if (containsAny(combined, "powerbottleitem", "powerbottleblock")) {
+            evidence.add(e("class.power_bottle", "class", "magic", "artifacts", 105, "power bottle class"));
+        }
+        if (containsAny(combined, "flaskitem", "bottleitem")) {
+            evidence.add(e("class.bottle_container", "class", "utility", "misc", 75, "bottle/flask item class"));
+        }
+        if (containsAny(combined, "crucibleblock", "plinthblock")) {
+            evidence.add(e("class.workstation_block", "class", "tech", "machines", 85, "workstation-like block class"));
+        }
+        if (containsAny(combined, "symbolblock", "symbolitem")) {
+            evidence.add(e("class.symbol", "class", "magic", "artifacts", 85, "symbol class"));
+        }
+    }
+
+    private static boolean isVanillaConduitBlock(Map<String, String> attributes) {
+        return "net.minecraft.world.level.block.ConduitBlock"
+                .equals(attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, ""));
     }
 
     private static void addCreativeTabEvidence(Map<String, String> attributes, List<ClassificationEvidence> evidence) {
@@ -232,6 +260,9 @@ final class EvidenceCollector {
         if (containsAny(combined, "magic", "spell", "occult", "arcane")) {
             evidence.add(e("creative_tab.magic", "creative_tab", "magic", "artifacts", 40, "creative tab=" + tabLabel));
         }
+        if (containsAny(combined, "ingredient", "ingredients")) {
+            evidence.add(e("creative_tab.ingredients", "creative_tab", "ingredients", "mineral", 35, "creative tab=" + tabLabel));
+        }
     }
 
     private static void addTrustedTagEvidence(Map<String, String> attributes, List<ClassificationEvidence> evidence) {
@@ -267,7 +298,7 @@ final class EvidenceCollector {
             evidence.add(e("tag.doors", "trusted_tag", "masonry", "functional", 90, "minecraft doors tag"));
         }
         if (hasTrustedTag(tags, "minecraft:saplings") || hasTrustedTag(blockTags, "minecraft:saplings")) {
-            evidence.add(e("tag.saplings", "trusted_tag", "nature", "flora", 90, "minecraft saplings tag"));
+            evidence.add(e("tag.saplings", "trusted_tag", "nature", "seeds", 90, "minecraft saplings tag"));
         }
         if (hasTrustedTag(tags, "minecraft:leaves") || hasTrustedTag(blockTags, "minecraft:leaves")) {
             evidence.add(e("tag.leaves", "trusted_tag", "nature", "flora", 90, "minecraft leaves tag"));
@@ -278,6 +309,19 @@ final class EvidenceCollector {
         }
         if (hasTrustedTag(tags, "minecraft:arrows")) {
             evidence.add(e("tag.arrows", "trusted_tag", "tools", "ammo", 95, "minecraft arrows tag"));
+        }
+        if (hasTagEnding(tags, "power_bottles")) {
+            evidence.add(e("tag.power_bottles", "trusted_tag", "magic", "artifacts", 110, "power bottles tag"));
+        }
+    }
+
+    private static void addRecipeEvidence(Map<String, String> attributes, List<ClassificationEvidence> evidence) {
+        String categories = attributes.getOrDefault(SearchNodeKeys.RECIPE_CATEGORIES, "");
+        if (hasRecipeToken(categories, "transmutation") || hasRecipeToken(categories, "dissolve")) {
+            evidence.add(e("recipe.alchemy_output", "recipe", "magic", "reagents", 65, "alchemy/transmutation recipe output"));
+        }
+        if (hasRecipeToken(categories, "brewing") || hasRecipeToken(categories, "ami:brewing")) {
+            evidence.add(e("recipe.brewing_output", "recipe", "magic", "potions", 65, "brewing recipe output"));
         }
     }
 
@@ -345,6 +389,34 @@ final class EvidenceCollector {
         for (String token : encoded.split(",")) {
             String tag = token.trim();
             if (tag.equals(expectedPrefix) || tag.startsWith(expectedPrefix + "/")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasTagEnding(String encoded, String expectedSuffix) {
+        if (encoded == null || encoded.isBlank()) {
+            return false;
+        }
+        String suffix = expectedSuffix.toLowerCase(Locale.ROOT);
+        for (String token : encoded.split(",")) {
+            String tag = token.trim().toLowerCase(Locale.ROOT);
+            if (tag.endsWith(":" + suffix) || tag.endsWith("/" + suffix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasRecipeToken(String encoded, String expected) {
+        if (encoded == null || encoded.isBlank()) {
+            return false;
+        }
+        String normalizedExpected = expected.toLowerCase(Locale.ROOT);
+        for (String token : encoded.split(",")) {
+            String recipe = token.trim().toLowerCase(Locale.ROOT);
+            if (recipe.equals(normalizedExpected) || recipe.endsWith(":" + normalizedExpected)) {
                 return true;
             }
         }
@@ -447,6 +519,10 @@ final class EvidenceCollector {
         if (facets.contains(ItemFacet.ENCHANTED_BOOK)) return "books";
         if (facets.contains(ItemFacet.MAGIC_ARTIFACT)) return "artifacts";
         return "reagents";
+    }
+
+    private static boolean isPartialPlacement(Map<String, String> attributes) {
+        return "partial".equals(attributes.getOrDefault("blockShape", ""));
     }
 
     private static boolean hasPrimaryLightingToken(Set<String> tokens) {

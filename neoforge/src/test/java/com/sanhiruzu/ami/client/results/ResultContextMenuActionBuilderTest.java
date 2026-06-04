@@ -18,8 +18,12 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.lang.reflect.Method;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -820,7 +824,10 @@ class ResultContextMenuActionBuilderTest {
                 })
         );
 
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.CREATE_PACK_FILES));
         assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.COPY_FTB_QUEST_SKELETON));
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.COPY_TAXONOMY_TEMPLATE));
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.COPY_KUBEJS_RECIPE_REMOVAL_SCRIPT));
         assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.COPY_PACK_AUTHOR_REPORT));
 
         String skeleton = ResultContextMenuActionBuilder.ftbQuestSkeleton(
@@ -831,6 +838,103 @@ class ResultContextMenuActionBuilderTest {
         assertTrue(skeleton.contains("title:\"Food\""));
         assertTrue(skeleton.contains("item:\"minecraft:apple\""));
         assertTrue(skeleton.contains("item:\"minecraft:bread\""));
+
+        String taxonomy = ResultContextMenuActionBuilder.customTaxonomyTemplate(
+                group,
+                List.of(item("apple", "Apple"), item("bread", "Bread")),
+                false
+        );
+        assertTrue(taxonomy.contains("\"ids\""));
+        assertTrue(taxonomy.contains("\"category\": \"food\""));
+        assertTrue(taxonomy.contains("\"label\": \"Food\""));
+    }
+
+    @Test
+    void taxonomyTemplateCarriesCommonGroupingMetadata() {
+        TreeNode group = new TreeNode("cardinality:family:colors:tintable/yellow/buttons", Component.literal("Yellow Buttons"));
+        SearchNode first = item("yellow_stone_button", "Yellow Stone Button", Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "redstone",
+                SearchNodeKeys.COLLAPSE_FAMILY, "colors:tintable/yellow/buttons",
+                SearchNodeKeys.COLLAPSE_LABEL, "Yellow Buttons",
+                SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed"
+        ));
+        SearchNode second = item("yellow_calcite_button", "Yellow Calcite Button", Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "redstone",
+                SearchNodeKeys.COLLAPSE_FAMILY, "colors:tintable/yellow/buttons",
+                SearchNodeKeys.COLLAPSE_LABEL, "Yellow Buttons",
+                SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed"
+        ));
+
+        String taxonomy = ResultContextMenuActionBuilder.customTaxonomyTemplate(group, List.of(first, second), false);
+
+        assertTrue(taxonomy.contains("\"category\": \"masonry\""));
+        assertTrue(taxonomy.contains("\"subcategory\": \"redstone\""));
+        assertTrue(taxonomy.contains("\"collapseFamily\": \"colors:tintable/yellow/buttons\""));
+        assertTrue(taxonomy.contains("\"collapseLabel\": \"Yellow Buttons\""));
+        assertTrue(taxonomy.contains("\"variantCollapseMode\": \"default_collapsed\""));
+    }
+
+    @Test
+    void kubeJsRecipeRemovalScriptListsGroupOutputs() {
+        String script = ResultContextMenuActionBuilder.kubeJsRecipeRemovalScript(
+                "Food",
+                List.of(item("apple", "Apple"), item("bread", "Bread")),
+                false
+        );
+
+        assertTrue(script.contains("// AMI export: remove recipes for Food"));
+        assertTrue(script.contains("event.remove({ output: 'minecraft:apple' })"));
+        assertTrue(script.contains("event.remove({ output: 'minecraft:bread' })"));
+    }
+
+    @Test
+    void writePackAuthorGroupFilesCreatesReadyToDropFiles(@TempDir Path tempDir) throws Exception {
+        TreeNode group = new TreeNode("food", Component.literal("Food"));
+        SearchNode apple = item("apple", "Apple");
+        SearchNode bread = item("bread", "Bread");
+
+        List<Path> written = ResultContextMenuActionBuilder.writePackAuthorGroupFiles(
+                group,
+                List.of(apple, bread),
+                false,
+                tempDir
+        );
+
+        assertEquals(3, written.size());
+        assertTrue(Files.exists(tempDir.resolve(Path.of("ami", "ami-export-food-README.md"))));
+        assertTrue(Files.exists(tempDir.resolve(Path.of("ami", "taxonomy", "ami-export-food.json"))));
+        assertTrue(Files.exists(tempDir.resolve(Path.of("kubejs", "server_scripts", "ami", "ami-export-food.js"))));
+
+        String readme = Files.readString(tempDir.resolve(Path.of("ami", "ami-export-food-README.md")));
+        assertTrue(readme.contains("# AMI Pack Export: Food"));
+        assertTrue(readme.contains("ami/taxonomy/ami-export-food.json"));
+        assertTrue(readme.contains("kubejs/server_scripts/ami/ami-export-food.js"));
+        assertTrue(readme.contains("`minecraft:apple`"));
+
+        String taxonomy = Files.readString(tempDir.resolve(Path.of("ami", "taxonomy", "ami-export-food.json")));
+        assertTrue(taxonomy.contains("\"category\": \"food\""));
+        assertTrue(taxonomy.contains("\"ids\""));
+
+        String script = Files.readString(tempDir.resolve(Path.of("kubejs", "server_scripts", "ami", "ami-export-food.js")));
+        assertTrue(script.contains("event.remove({ output: 'minecraft:apple' })"));
+        assertTrue(script.contains("event.remove({ output: 'minecraft:bread' })"));
+
+        Method read = Class.forName("com.sanhiruzu.ami.config.AmiCustomTaxonomy")
+                .getDeclaredMethod("read", Path.class, String.class);
+        read.setAccessible(true);
+        Object profile = read.invoke(null, tempDir.resolve(Path.of("ami", "taxonomy", "ami-export-food.json")), "test");
+
+        Method categoriesAccessor = profile.getClass().getDeclaredMethod("categories");
+        categoriesAccessor.setAccessible(true);
+        Map<?, ?> categories = (Map<?, ?>) categoriesAccessor.invoke(profile);
+        assertTrue(categories.containsKey("food"));
+
+        Method rulesAccessor = profile.getClass().getDeclaredMethod("rules");
+        rulesAccessor.setAccessible(true);
+        List<?> rules = (List<?>) rulesAccessor.invoke(profile);
+        assertEquals(1, rules.size());
     }
 
     @Test

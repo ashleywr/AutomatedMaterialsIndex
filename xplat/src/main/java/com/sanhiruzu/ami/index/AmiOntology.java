@@ -1,9 +1,11 @@
 package com.sanhiruzu.ami.index;
 
+import com.sanhiruzu.ami.config.AmiCustomTaxonomy;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 /**
  * Static 2-level ontology for AMI.
@@ -472,10 +474,7 @@ public final class AmiOntology {
             precomputed = "tools";
         }
         if (!precomputed.isEmpty()) {
-            for (Category cat : CATEGORIES) {
-                if (cat.id.equals(precomputed)) return cat;
-            }
-            return dynamicCategory(precomputed);
+            return categoryForId(precomputed);
         }
 
         return switch (node.type()) {
@@ -510,7 +509,37 @@ public final class AmiOntology {
         for (Category category : CATEGORIES) {
             if (category.id.equals(normalized)) return category;
         }
+        Optional<Category> custom = AmiCustomTaxonomy.definedCategory(normalized);
+        if (custom.isPresent()) {
+            return custom.get();
+        }
         return dynamicCategory(normalized);
+    }
+
+    public static boolean isDefinedCategoryId(String categoryId) {
+        if (categoryId == null || categoryId.isBlank()) {
+            return false;
+        }
+        String normalized = categoryId.trim().toLowerCase(Locale.ROOT);
+        for (Category category : CATEGORIES) {
+            if (category.id.equals(normalized)) {
+                return true;
+            }
+        }
+        return AmiCustomTaxonomy.definedCategory(normalized).isPresent();
+    }
+
+    public static List<Category> knownCategories() {
+        List<Category> categories = new java.util.ArrayList<>(CATEGORIES);
+        java.util.Set<String> seen = categories.stream()
+                .map(category -> category.id)
+                .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
+        for (Category custom : AmiCustomTaxonomy.definedCategories()) {
+            if (seen.add(custom.id)) {
+                categories.add(custom);
+            }
+        }
+        return List.copyOf(categories);
     }
 
     private static Category dynamicCategory(String id) {
@@ -542,6 +571,12 @@ public final class AmiOntology {
 
     public record SubCategory(String id, String translationKey) {
         public Component displayName() {
+            if (translationKey == null || translationKey.isBlank()) {
+                return Component.literal(titleCase(id));
+            }
+            if (!translationKey.contains(".")) {
+                return Component.literal(translationKey);
+            }
             return Component.translatable(translationKey);
         }
     }

@@ -391,7 +391,10 @@ public class GroupingEngine {
             return Optional.empty();
         }
         String familyKey = "";
-        if (materialGroup != null && !materialGroup.isBlank() && !materialGroup.equals(id.toString())) {
+        if (materialGroup != null
+                && !materialGroup.isBlank()
+                && !materialGroup.equals(id.toString())
+                && !isColorOnlyMaterialGroup(id, colorBucket, materialGroup)) {
             familyKey = materialGroup;
         } else {
             familyKey = matchingColorStrippedTag(id, colorBucket, tags);
@@ -406,6 +409,14 @@ public class GroupingEngine {
             label = familyId == null ? familyKey : title(familyId.getPath());
         }
         return Optional.of(new CollapsedFamily(familyKey, pluralize(label)));
+    }
+
+    private static boolean isColorOnlyMaterialGroup(ResourceLocation id, String colorBucket, String materialGroup) {
+        ResourceLocation familyId = ResourceLocation.tryParse(materialGroup);
+        if (familyId == null || !familyId.getNamespace().equals(id.getNamespace())) {
+            return false;
+        }
+        return familyId.getPath().equals(colorBucket.toLowerCase(Locale.ROOT));
     }
 
     public static Optional<CollapsedFamily> classifyCompressedBlockFamily(ResourceLocation id) {
@@ -432,9 +443,10 @@ public class GroupingEngine {
             return "";
         }
         String expected = id.getNamespace() + ":" + strippedPath;
+        String pluralExpected = expected.endsWith("s") ? expected : expected + "s";
         for (String rawTag : tags.split(",")) {
             String tag = rawTag.trim().toLowerCase(Locale.ROOT);
-            if (tag.equals(expected)) {
+            if (tag.equals(expected) || tag.equals(pluralExpected)) {
                 return tag;
             }
         }

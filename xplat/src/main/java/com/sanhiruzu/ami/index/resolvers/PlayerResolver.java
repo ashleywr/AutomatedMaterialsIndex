@@ -10,6 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -34,12 +35,12 @@ public final class PlayerResolver implements IQueryResolver {
             var conn = mc.getConnection();
             if (conn == null) return Map.of();
 
-            String lower = query.toLowerCase();
+            String lower = query.toLowerCase(Locale.ROOT);
             List<SearchNode> matches = new ArrayList<>();
 
             for (var info : conn.getOnlinePlayers()) {
                 String name = info.getProfile().getName();
-                if (name.toLowerCase().contains(lower)) {
+                if (name.toLowerCase(Locale.ROOT).contains(lower)) {
                     // Transient node: use player UUID as ResourceLocation path
                     String uuidStr = info.getProfile().getId().toString().replace("-", "");
                     ResourceLocation id = Services.PLATFORM.rl("ami", "player/" + uuidStr);

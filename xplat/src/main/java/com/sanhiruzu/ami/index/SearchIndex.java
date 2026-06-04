@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import it.unimi.dsi.fastutil.chars.Char2ObjectOpenHashMap;
 
+import java.text.Normalizer;
 import java.util.*;
 
 /**
@@ -107,6 +108,10 @@ public final class SearchIndex {
             SearchNodeKeys.MODULAR_GEAR_RUNTIME_MATERIALS,
             SearchNodeKeys.MODULAR_GEAR_RUNTIME_TRAITS,
             SearchNodeKeys.MODULAR_GEAR_RUNTIME_STATS,
+            SearchNodeKeys.MODULAR_GOLEMS_ITEM_KIND,
+            SearchNodeKeys.MODULAR_GOLEMS_FACTS,
+            SearchNodeKeys.MODULAR_GOLEMS_GOLEM_TYPE,
+            SearchNodeKeys.MODULAR_GOLEMS_PART,
             SearchNodeKeys.REQUIRED_TOOL,
             SearchNodeKeys.ACCESS_LEVEL,
             SearchNodeKeys.OBTAINABILITY,
@@ -133,6 +138,7 @@ public final class SearchIndex {
         keys.add(node.id().toString());
         keys.add(node.id().getNamespace());
         keys.add(node.id().getPath());
+        addMetadataAliases(keys, node.meta(SearchNodeKeys.COLLAPSE_LABEL, ""));
 
         if (includeMetadata) {
             for (var entry : node.metadata().entrySet()) {
@@ -172,7 +178,11 @@ public final class SearchIndex {
     }
 
     private static String normalizeSearchText(String text) {
-        return text.toLowerCase(Locale.ROOT)
+        if (text == null) {
+            return "";
+        }
+        return Normalizer.normalize(text, Normalizer.Form.NFKC)
+                .toLowerCase(Locale.ROOT)
                 .replace('_', ' ')
                 .replace('-', ' ')
                 .replace(':', ' ')
