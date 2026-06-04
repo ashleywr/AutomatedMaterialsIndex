@@ -8,6 +8,7 @@ import com.sanhiruzu.ami.api.AmiQuestItemMatch;
 import com.sanhiruzu.ami.api.AmiQuestsApi;
 import com.sanhiruzu.ami.api.IAmiPlugin;
 import com.sanhiruzu.ami.author.PackAuthorDiagnostics;
+import com.sanhiruzu.ami.client.favorites.FavoriteEntry;
 import com.sanhiruzu.ami.client.screen.AmiCategoryFixScreen;
 import com.sanhiruzu.ami.compat.CobblemonPokedexOpener;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
@@ -169,6 +170,10 @@ public class ResultContextMenuActionBuilder {
         pendingCategoryFixNode = null;
     }
 
+    static SearchNode pendingCategoryFixNodeForTests() {
+        return pendingCategoryFixNode;
+    }
+
     private final BooleanSupplier cheatEnabled;
     private final Predicate<ItemStack> craftable;
     private final Supplier<List<IAmiPlugin>> pluginSupplier;
@@ -210,7 +215,7 @@ public class ResultContextMenuActionBuilder {
         ResultContextMenuActionPolicy policy = ResultContextMenuActionPolicy.fromConfig();
 
         SearchNode node = context.node();
-        ResourceLocation id = node.id();
+        ResourceLocation id = resolvedItemId(node);
         ItemStack stack = context.stack() == null ? ItemStack.EMPTY : context.stack().copy();
         boolean hasStack = !stack.isEmpty();
         List<AmiQuestItemMatch> questMatches = node.type() == NodeType.ITEM
@@ -939,7 +944,9 @@ public class ResultContextMenuActionBuilder {
                         metadata.put(SearchNodeKeys.ONTOLOGY_CATEGORY, categoryTarget.categoryId());
                         metadata.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, categoryTarget.subcategoryId());
                         AmiDataFixes.putUserMetadataFix(pending.id(), pending.type(), metadata);
-                        SearchNode updated = pending.withMetadata(AmiDataFixes.apply(pending.id(), pending.type(), pending.metadata()));
+                        SearchNode baseNode = GlobalIndex.getInstance()
+                                .getNode(pending.id(), pending.type()).orElse(pending);
+                        SearchNode updated = baseNode.withMetadata(AmiDataFixes.apply(pending.id(), pending.type(), baseNode.metadata()));
                         GlobalIndex.getInstance().replaceNode(pending.id(), pending.type(), updated);
                         pendingCategoryFixNode = null;
                         AmiIndexerService.getInstance().rebuild();
@@ -965,9 +972,9 @@ public class ResultContextMenuActionBuilder {
     }
 
     private static void startCategoryFix(SearchNode node) {
-        pendingCategoryFixNode = node;
-        if (node != null) {
-            showClientStatus(Component.translatable("ami.context.category_fix_selected", node.displayName()));
+        pendingCategoryFixNode = resolvedNodeForFix(node);
+        if (pendingCategoryFixNode != null) {
+            showClientStatus(Component.translatable("ami.context.category_fix_selected", pendingCategoryFixNode.displayName()));
         }
     }
 
@@ -1134,11 +1141,23 @@ public class ResultContextMenuActionBuilder {
         }
     }
 
-    private static String chatText(SearchNode node) {
+    static String chatText(SearchNode node) {
         if (node == null) return "";
-        if (node.id() != null) return node.id().toString();
+        ResourceLocation resolved = resolvedItemId(node);
+        if (resolved != null) return resolved.toString();
         String name = node.displayName();
         return name == null ? "" : name;
+    }
+
+    private static ResourceLocation resolvedItemId(SearchNode node) {
+        return FavoriteEntry.resolvedId(node);
+    }
+
+    private static SearchNode resolvedNodeForFix(SearchNode node) {
+        if (node == null) return null;
+        ResourceLocation resolved = resolvedItemId(node);
+        if (resolved == null || resolved.equals(node.id())) return node;
+        return new SearchNode(resolved, node.type(), node.displayName(), node.color(), node.searchWeight(), node.metadata());
     }
 
     private static void openChatDraft(String text) {
@@ -1382,7 +1401,7 @@ public class ResultContextMenuActionBuilder {
             return new DocumentationTarget(DocumentationKind.WEB_SEARCH, Component.translatable("ami.context.search_web"), null, null);
         }
 
-        ResourceLocation id = node.id();
+        ResourceLocation id = resolvedItemId(node);
         String query = wikiQueryText(node);
         if (isPokemonSpecies(node)) {
             return new DocumentationTarget(
@@ -1495,7 +1514,7 @@ public class ResultContextMenuActionBuilder {
     }
 
     private static String modSearchText(SearchNode node) {
-        ResourceLocation id = node == null ? null : node.id();
+        ResourceLocation id = resolvedItemId(node);
         String namespace = id == null ? "" : id.getNamespace();
         if (namespace.isBlank()) return "";
 
@@ -1668,9 +1687,10 @@ public class ResultContextMenuActionBuilder {
 
     private static void openCategoryFixScreenLater(SearchNode node) {
         if (node == null) return;
+        SearchNode resolved = resolvedNodeForFix(node);
         runOnClient(() -> {
             Minecraft minecraft = Minecraft.getInstance();
-            minecraft.setScreen(new AmiCategoryFixScreen(minecraft.screen, node));
+            minecraft.setScreen(new AmiCategoryFixScreen(minecraft.screen, resolved));
         });
     }
 

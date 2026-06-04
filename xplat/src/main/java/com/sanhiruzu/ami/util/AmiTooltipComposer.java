@@ -3,7 +3,9 @@ package com.sanhiruzu.ami.util;
 import com.sanhiruzu.ami.client.AMICheatMode;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.AmiKeybindHandler;
+import com.sanhiruzu.ami.client.favorites.FavoriteEntry;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
+import net.minecraft.resources.ResourceLocation;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.client.results.DebugTooltip;
 import com.sanhiruzu.ami.client.results.QuestItemEvidence;
@@ -45,6 +47,7 @@ public final class AmiTooltipComposer {
             } else {
                 lines.add(Component.literal(entry.displayName()));
             }
+            appendModNameIfMissing(lines, entry);
         } else {
             // Header: Name and Type Label
             // Entity type label is omitted — the renderer body provides richer context (Category: X).
@@ -94,6 +97,18 @@ public final class AmiTooltipComposer {
         appendHints(lines, entry);
 
         return lines;
+    }
+
+    private static void appendModNameIfMissing(List<Component> lines, SearchNode entry) {
+        ResourceLocation resolvedId = FavoriteEntry.resolvedId(entry);
+        String namespace = resolvedId != null ? resolvedId.getNamespace() : "";
+        String modId = entry.meta(SearchNodeKeys.MOD_ID, namespace);
+        String modName = RegistryUtils.modDisplayName(modId).trim();
+        if (modName.isEmpty() || TooltipLineMatcher.containsLine(lines, modName)) {
+            return;
+        }
+
+        lines.add(Component.literal(modName).withStyle(ChatFormatting.BLUE, ChatFormatting.ITALIC));
     }
 
     private static List<Component> safeRendererTooltip(

@@ -6,6 +6,7 @@ import com.sanhiruzu.ami.api.AmiQuestDocument;
 import com.sanhiruzu.ami.api.AmiQuestTaskDocument;
 import com.sanhiruzu.ami.api.AmiQuestsApi;
 import com.sanhiruzu.ami.api.IAmiPlugin;
+import com.sanhiruzu.ami.client.favorites.FavoriteEntry;
 import com.sanhiruzu.ami.compat.GregTechCompat;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
@@ -830,6 +831,86 @@ class ResultContextMenuActionBuilderTest {
         assertTrue(skeleton.contains("title:\"Food\""));
         assertTrue(skeleton.contains("item:\"minecraft:apple\""));
         assertTrue(skeleton.contains("item:\"minecraft:bread\""));
+    }
+
+    @Test
+    void documentationTargetForFavoriteMinecraftItemUsesMinecraftWiki() {
+        SearchNode favoriteNode = new SearchNode(
+                ResourceLocation.tryParse("ami:favorite/item/abc123"),
+                NodeType.ITEM,
+                "Stone",
+                0, 0,
+                Map.of(FavoriteEntry.META_BASE_ID, "minecraft:stone", FavoriteEntry.META_KIND, "item")
+        );
+
+        ResultContextMenuActionBuilder.DocumentationTarget target =
+                ResultContextMenuActionBuilder.documentationTargetFor(favoriteNode);
+
+        assertEquals(ResultContextMenuActionBuilder.DocumentationKind.MINECRAFT_WIKI, target.kind());
+    }
+
+    @Test
+    void documentationTargetForFavoriteModItemUsesRealModNamespace() {
+        SearchNode favoriteNode = new SearchNode(
+                ResourceLocation.tryParse("ami:favorite/item/abc123"),
+                NodeType.ITEM,
+                "Iron Tail TM",
+                0, 0,
+                Map.of(FavoriteEntry.META_BASE_ID, "simpletms:tr_irontail", FavoriteEntry.META_KIND, "item")
+        );
+
+        ResultContextMenuActionBuilder.DocumentationTarget target =
+                ResultContextMenuActionBuilder.documentationTargetFor(favoriteNode);
+
+        assertEquals(ResultContextMenuActionBuilder.DocumentationKind.WEB_SEARCH, target.kind());
+        assertEquals("https://duckduckgo.com/?q=Iron+Tail+TM+simpletms", target.uri().toString());
+    }
+
+    @Test
+    void categoryFixOnFavoriteNodeResolvesToRealItemId() {
+        ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder();
+        SearchNode favoriteNode = new SearchNode(
+                ResourceLocation.tryParse("ami:favorite/item/abc123"),
+                NodeType.ITEM,
+                "Diamond",
+                0, 0,
+                Map.of(
+                        FavoriteEntry.META_BASE_ID, "minecraft:diamond",
+                        FavoriteEntry.META_KIND, "item"
+                )
+        );
+
+        List<ResultContextMenu.Action> actions = builder.forItem(
+                new ResultContextMenuActionBuilder.ItemContext(favoriteNode, ItemStack.EMPTY, null, ignored -> {})
+        );
+
+        firstAction(actions, ResultContextMenuActionBuilder.START_CATEGORY_FIX).onClick().run();
+
+        assertEquals(ResourceLocation.tryParse("minecraft:diamond"),
+                ResultContextMenuActionBuilder.pendingCategoryFixNodeForTests().id());
+    }
+
+    @Test
+    void chatTextOnFavoriteNodeUsesRealItemId() {
+        SearchNode favoriteNode = new SearchNode(
+                ResourceLocation.tryParse("ami:favorite/item/abc123"),
+                NodeType.ITEM,
+                "Diamond",
+                0, 0,
+                Map.of(
+                        FavoriteEntry.META_BASE_ID, "minecraft:diamond",
+                        FavoriteEntry.META_KIND, "item"
+                )
+        );
+
+        assertEquals("minecraft:diamond", ResultContextMenuActionBuilder.chatText(favoriteNode));
+    }
+
+    @Test
+    void chatTextOnRegularNodeUsesNodeId() {
+        SearchNode node = item("stone", "Stone");
+
+        assertEquals("minecraft:stone", ResultContextMenuActionBuilder.chatText(node));
     }
 
     @Test
