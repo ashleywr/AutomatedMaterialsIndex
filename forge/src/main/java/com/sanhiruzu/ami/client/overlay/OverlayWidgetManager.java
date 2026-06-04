@@ -30,6 +30,7 @@ public class OverlayWidgetManager {
     private static final int BOTTOM_BAR_H = 32;
     private static final int SEARCH_H = 24;
     private static final int MIN_PANEL_WIDTH = 64;
+    private static final int MIN_SIDE_PANEL_HEIGHT = 24;
     private static final int MAX_PANEL_WIDTH = 420;
     private static final int PANEL_MARGIN = 6;
     private static final int PANEL_MARGIN_V = 6;
@@ -38,6 +39,7 @@ public class OverlayWidgetManager {
     private static final int MAX_MARGIN_CONTROL_H = 32;
     private static final int TOP_MARGIN_CONTROL_MAX_Y = 96;
     public static final int AMI_BTN_NEXT_X = AMI_BTN_X + AMI_BTN_W + AMI_BTN_MARGIN;
+    private static final int PANEL_HANDLE_HITBOX = 8;
 
     private final List<PanelSlot> leftSlotPool = new ArrayList<>();
     private final List<PanelSlot> rightSlotPool = new ArrayList<>();
@@ -60,7 +62,38 @@ public class OverlayWidgetManager {
     private boolean layoutDirty = true;
     private int lastThirdPartyMarginSignature = 0;
 
+    // Layout mode & dragging
+    private boolean inLayoutMode = false;
+    private String draggedWidgetId = null;
+    private double dragStartMouseX, dragStartMouseY;
+    private int dragOriginX, dragOriginY, dragOriginW, dragOriginH;
+    private PanelDragHandle panelDragHandle = PanelDragHandle.NONE;
+    private PinnedWidgetPositions pinnedPositions = new PinnedWidgetPositions();
+    private String layoutModePositionSnapshot;
+    private boolean panelVisibleBeforeLayoutMode;
+    private net.minecraft.client.gui.components.Button layoutDoneButton;
+    private net.minecraft.client.gui.components.Button layoutResetButton;
+    private int lastLayoutButtonScreenW = -1;
+    private int lastLayoutButtonScreenH = -1;
+    private final java.util.List<PanelDragLayout> panelDragLayout = new java.util.ArrayList<>();
+
     public OverlayWidgetManager() {
+    }
+
+    private enum PanelDragHandle {
+        NONE,
+        MOVE,
+        RESIZE_LEFT,
+        RESIZE_RIGHT,
+        RESIZE_TOP,
+        RESIZE_BOTTOM,
+        RESIZE_TOP_LEFT,
+        RESIZE_TOP_RIGHT,
+        RESIZE_BOTTOM_LEFT,
+        RESIZE_BOTTOM_RIGHT
+    }
+
+    private record PanelDragLayout(PanelSlot slot, float relX, float relY, float relW, float relH) {
     }
 
     private void ensureWidgets() {
@@ -73,6 +106,7 @@ public class OverlayWidgetManager {
 
         com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().setOnChange(this::refreshSidebarsAndLayout);
 
+        pinnedPositions = PinnedWidgetPositions.load();
         widgetsReady = true;
     }
 
@@ -215,11 +249,12 @@ public class OverlayWidgetManager {
         if (!leftContents.isEmpty()) {
             int leftW = Math.min(AmiConfig.leftPanelWidth, containerLeftEdge - PANEL_MARGIN * 2);
             if (leftW >= 40) {
+                int leftBaseY = pinnedPanelY("left_panel", leftY, panelBottom);
                 int thirdPartyBottom = thirdPartyWidgetBottomInStrip(containerScreen, 0, containerLeftEdge, panelY, panelBottom);
-                int slotY = thirdPartyBottom > leftY ? thirdPartyBottom + PANEL_MARGIN : leftY;
+                int slotY = thirdPartyBottom > leftBaseY ? thirdPartyBottom + PANEL_MARGIN : leftBaseY;
                 int slotH = Math.min(leftH, Math.max(0, panelBottom - slotY));
                 if (slotH > 0) {
-                    Rect leftSlot = Rect.of(PANEL_MARGIN, slotY, leftW, slotH);
+                    Rect leftSlot = pinnedPanelSlot("left_panel", Rect.of(PANEL_MARGIN, slotY, leftW, slotH), screenW, screenH);
                     placeSideSlots(leftSlot, leftContents, leftSlotPool);
                     // Claim full left vertical strip to screen bottom so JEI can't use the corner
                     leftStripBounds = new WidgetBounds(0, 0, leftSlot.x() + leftSlot.w(), screenH - BOTTOM_BAR_H);
@@ -235,16 +270,18 @@ public class OverlayWidgetManager {
                     : net.minecraft.util.Mth.clamp((int) (screenW * 0.35f), MIN_PANEL_WIDTH, MAX_PANEL_WIDTH);
             int rw = net.minecraft.util.Mth.clamp(configuredRightWidth, MIN_PANEL_WIDTH, Math.min(safeWidth, MAX_PANEL_WIDTH));
             panelStartX = screenW - rw - PANEL_MARGIN;
+            int rightBaseY = pinnedPanelY("right_panel", panelY, panelBottom);
             // Extend right panel to screen bottom so JEI's config button has no
             // empty space to draw in below the panel.
             int thirdPartyBottom = thirdPartyWidgetBottomInStrip(containerScreen, containerRightEdge, screenW, panelY, panelBottom);
-            int rightY = thirdPartyBottom > panelY ? thirdPartyBottom + PANEL_MARGIN : panelY;
+            int rightY = thirdPartyBottom > rightBaseY ? thirdPartyBottom + PANEL_MARGIN : rightBaseY;
             int rightH = screenH - BOTTOM_BAR_H - PANEL_MARGIN_V - rightY;
             if (rightH <= 0) {
                 lastResultsBounds = null;
                 rightStripBounds = null;
             } else {
-                Rect rightSlot = Rect.of(panelStartX, rightY, rw, rightH);
+                Rect rightSlot = pinnedPanelSlot("right_panel", Rect.of(panelStartX, rightY, rw, rightH), screenW, screenH);
+                panelStartX = rightSlot.x();
 
                 List<AmiConfig.PanelContent> rightContents = rightContents();
                 placeSideSlots(rightSlot, rightContents, rightSlotPool);
@@ -254,7 +291,7 @@ public class OverlayWidgetManager {
                     searchBarEmbedded = true;
                 }
                 // Claim full right vertical strip to screen bottom so JEI can't use the corner
-                rightStripBounds = new WidgetBounds(panelStartX, 0, screenW - panelStartX, screenH - BOTTOM_BAR_H);
+                rightStripBounds = new WidgetBounds(rightSlot.x(), 0, screenW - rightSlot.x(), screenH - BOTTOM_BAR_H);
             }
         } else {
             lastResultsBounds = null;
@@ -265,11 +302,16 @@ public class OverlayWidgetManager {
             int maxBarRight = (safeWidth >= MIN_PANEL_WIDTH) ? (panelStartX - PANEL_MARGIN) : (screenW - 4);
             int barW = Math.min(AmiConfig.searchBarWidth, screenW - 8);
             int barX = Math.max(4, (screenW - barW) / 2);
+            int barY = screenH - BOTTOM_BAR_H + 2;
             if (barX + barW > maxBarRight) {
                 barX = Math.max(4, maxBarRight - barW);
                 barW = Math.max(60, Math.min(barW, maxBarRight - barX));
             }
-            searchBar.updateBounds(new WidgetBounds(barX, screenH - BOTTOM_BAR_H + 2, barW, SEARCH_H));
+            // Apply pinned position if set
+            PinnedWidgetPositions.Position pinnedPos = pinnedPositions.get("search_bar", barX, barY);
+            barX = pinnedPos.getX(barX);
+            barY = pinnedPos.getY(barY);
+            searchBar.updateBounds(new WidgetBounds(barX, barY, barW, SEARCH_H));
         }
 
         lastThirdPartyMarginSignature = thirdPartyMarginSignature(containerScreen);
@@ -356,11 +398,12 @@ public class OverlayWidgetManager {
         if (!leftContents.isEmpty()) {
             int leftW = Math.min(AmiConfig.leftPanelWidth, centerLeft - PANEL_MARGIN * 2);
             if (leftW >= 40) {
+                int leftBaseY = pinnedPanelY("left_panel", leftY, panelBottom);
                 int thirdPartyBottom = thirdPartyWidgetBottomInStrip(screen, 0, centerLeft, panelY, panelBottom);
-                int slotY = thirdPartyBottom > leftY ? thirdPartyBottom + PANEL_MARGIN : leftY;
+                int slotY = thirdPartyBottom > leftBaseY ? thirdPartyBottom + PANEL_MARGIN : leftBaseY;
                 int slotH = Math.min(leftH, Math.max(0, panelBottom - slotY));
                 if (slotH > 0) {
-                    Rect leftSlot = Rect.of(PANEL_MARGIN, slotY, leftW, slotH);
+                    Rect leftSlot = pinnedPanelSlot("left_panel", Rect.of(PANEL_MARGIN, slotY, leftW, slotH), screenW, screenH);
                     placeSideSlots(leftSlot, leftContents, leftSlotPool);
                     leftStripBounds = new WidgetBounds(0, 0, leftSlot.x() + leftSlot.w(), screenH - BOTTOM_BAR_H);
                 }
@@ -375,14 +418,16 @@ public class OverlayWidgetManager {
                     : net.minecraft.util.Mth.clamp((int) (screenW * 0.35f), MIN_PANEL_WIDTH, MAX_PANEL_WIDTH);
             int rw = net.minecraft.util.Mth.clamp(configuredRightWidth, MIN_PANEL_WIDTH, Math.min(safeWidth, MAX_PANEL_WIDTH));
             panelStartX = screenW - rw - PANEL_MARGIN;
+            int rightBaseY = pinnedPanelY("right_panel", panelY, panelBottom);
             int thirdPartyBottom = thirdPartyWidgetBottomInStrip(screen, centerRight, screenW, panelY, panelBottom);
-            int rightY = thirdPartyBottom > panelY ? thirdPartyBottom + PANEL_MARGIN : panelY;
+            int rightY = thirdPartyBottom > rightBaseY ? thirdPartyBottom + PANEL_MARGIN : rightBaseY;
             int rightH = screenH - BOTTOM_BAR_H - PANEL_MARGIN_V - rightY;
             if (rightH <= 0) {
                 lastResultsBounds = null;
                 rightStripBounds = null;
             } else {
-                Rect rightSlot = Rect.of(panelStartX, rightY, rw, rightH);
+                Rect rightSlot = pinnedPanelSlot("right_panel", Rect.of(panelStartX, rightY, rw, rightH), screenW, screenH);
+                panelStartX = rightSlot.x();
 
                 List<AmiConfig.PanelContent> rightContents = rightContents();
                 placeSideSlots(rightSlot, rightContents, rightSlotPool);
@@ -391,7 +436,7 @@ public class OverlayWidgetManager {
                     searchBar.updateBounds(UniversalResultsPanel.embeddedSearchBounds(lastResultsBounds));
                     searchBarEmbedded = true;
                 }
-                rightStripBounds = new WidgetBounds(panelStartX, 0, screenW - panelStartX, screenH - BOTTOM_BAR_H);
+                rightStripBounds = new WidgetBounds(rightSlot.x(), 0, screenW - rightSlot.x(), screenH - BOTTOM_BAR_H);
             }
         } else {
             lastResultsBounds = null;
@@ -402,11 +447,16 @@ public class OverlayWidgetManager {
             int maxBarRight = (safeWidth >= MIN_PANEL_WIDTH) ? (panelStartX - PANEL_MARGIN) : (screenW - 4);
             int barW = Math.min(AmiConfig.searchBarWidth, screenW - 8);
             int barX = Math.max(4, (screenW - barW) / 2);
+            int barY = screenH - BOTTOM_BAR_H + 2;
             if (barX + barW > maxBarRight) {
                 barX = Math.max(4, maxBarRight - barW);
                 barW = Math.max(60, Math.min(barW, maxBarRight - barX));
             }
-            searchBar.updateBounds(new WidgetBounds(barX, screenH - BOTTOM_BAR_H + 2, barW, SEARCH_H));
+            // Apply pinned position if set
+            PinnedWidgetPositions.Position pinnedPos = pinnedPositions.get("search_bar", barX, barY);
+            barX = pinnedPos.getX(barX);
+            barY = pinnedPos.getY(barY);
+            searchBar.updateBounds(new WidgetBounds(barX, barY, barW, SEARCH_H));
         }
 
         lastThirdPartyMarginSignature = thirdPartyMarginSignature(screen);
@@ -458,6 +508,7 @@ public class OverlayWidgetManager {
                 leftAlternateActive,
                 rightAlternateActive,
                 panelVisible,
+                AmiConfig.pinnedPositionsJson,
                 thirdPartyMarginSignature(screen),
                 lastThirdPartyMarginSignature
         );
@@ -568,6 +619,13 @@ public class OverlayWidgetManager {
                 if (panelVisible) {
                     renderPanels(g, mx, my, pt);
                     renderSearchBar(g, mx, my, pt);
+                }
+
+                if (inLayoutMode) {
+                    g.pose().pushPose();
+                    g.pose().translate(0, 0, OverlayLayers.PANEL + 10);
+                    renderLayoutMode(g, mx, my, pt);
+                    g.pose().popPose();
                 }
 
                 g.pose().popPose();
@@ -714,6 +772,7 @@ public class OverlayWidgetManager {
 
 
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
+        if (inLayoutMode) return false;
         for (PanelSlot slot : activeSlots) {
             if (slot.mouseScrolled(mouseX, mouseY, scrollY)) return true;
         }
@@ -725,6 +784,13 @@ public class OverlayWidgetManager {
     }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (inLayoutMode) {
+            Minecraft mc = Minecraft.getInstance();
+            ensureLayoutButtons(mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight());
+            if (layoutDoneButton != null && layoutDoneButton.mouseClicked(mouseX, mouseY, button)) return true;
+            if (layoutResetButton != null && layoutResetButton.mouseClicked(mouseX, mouseY, button)) return true;
+            return tryStartDrag(mouseX, mouseY, button);
+        }
         for (PanelSlot slot : activeSlots) {
             if (slot.mouseClicked(mouseX, mouseY, button)) return true;
         }
@@ -732,6 +798,10 @@ public class OverlayWidgetManager {
     }
 
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (inLayoutMode) {
+            return updateDrag(mouseX, mouseY);
+        }
+        if (updateDrag(mouseX, mouseY)) return true;
         for (PanelSlot slot : activeSlots) {
             if (slot.mouseDragged(mouseX, mouseY, button, dragX, dragY)) return true;
         }
@@ -739,12 +809,24 @@ public class OverlayWidgetManager {
     }
 
     public void mouseReleased(double mouseX, double mouseY, int button) {
+        Screen screen = Minecraft.getInstance().screen;
+        if (screen != null) {
+            finalizeDrag(screen);
+        }
+        if (inLayoutMode) {
+            return;
+        }
         for (PanelSlot slot : activeSlots) {
             slot.mouseReleased(mouseX, mouseY, button);
         }
     }
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (inLayoutMode && keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
+            cancelLayout();
+            return true;
+        }
+        if (inLayoutMode) return true;
         for (PanelSlot slot : activeSlots) {
             if (slot.keyPressed(keyCode, scanCode, modifiers)) return true;
         }
@@ -825,6 +907,449 @@ public class OverlayWidgetManager {
             }
         }
         return panels;
+    }
+
+    private int pinnedPanelY(String panelId, int defaultY, int panelBottom) {
+        PinnedWidgetPositions.Position pos = pinnedPositions.get(panelId, Integer.MIN_VALUE, Integer.MIN_VALUE);
+        if (!pos.isPinned()) return defaultY;
+        return net.minecraft.util.Mth.clamp(pos.y, defaultY, Math.max(defaultY, panelBottom - 40));
+    }
+
+    private WidgetBounds pinnedPanelWindowBounds(String panelId, WidgetBounds fallback, int screenW, int screenH) {
+        PinnedWidgetPositions.Position pos = pinnedPositions.get(panelId, fallback.x(), fallback.y(), fallback.width(), fallback.height());
+        int minW = Math.max(MIN_PANEL_WIDTH, 1);
+        int minH = Math.max(MIN_SIDE_PANEL_HEIGHT, 1);
+        int maxW = Math.max(minW, screenW - 4);
+        int maxH = Math.max(minH, screenH - 4);
+        int width = net.minecraft.util.Mth.clamp(pos.getW(fallback.width()), minW, maxW);
+        int height = net.minecraft.util.Mth.clamp(pos.getH(fallback.height()), minH, maxH);
+        int x = net.minecraft.util.Mth.clamp(pos.getX(fallback.x()), 0, Math.max(0, screenW - width));
+        int y = net.minecraft.util.Mth.clamp(pos.getY(fallback.y()), 0, Math.max(0, screenH - height));
+        return new WidgetBounds(x, y, width, height);
+    }
+
+    private Rect pinnedPanelSlot(String panelId, Rect fallback, int screenW, int screenH) {
+        WidgetBounds pinned = pinnedPanelWindowBounds(panelId,
+                new WidgetBounds(fallback.x(), fallback.y(), fallback.w(), fallback.h()), screenW, screenH);
+        return Rect.of(pinned.x(), pinned.y(), pinned.width(), pinned.height());
+    }
+
+    private List<PanelSlot> panelSlotsFor(String panelId) {
+        return "left_panel".equals(panelId) ? leftSlotPool : rightSlotPool;
+    }
+
+    private WidgetBounds panelWindowBounds(String panelId) {
+        return panelWindowBounds(panelSlotsFor(panelId));
+    }
+
+    private WidgetBounds panelWindowBounds(List<PanelSlot> pool) {
+        WidgetBounds bounds = null;
+        for (PanelSlot slot : pool) {
+            AbstractWidget w = slot.visibleWidget();
+            if (w == null || !w.visible) continue;
+            if (bounds == null) {
+                bounds = new WidgetBounds(w.getX(), w.getY(), w.getWidth(), w.getHeight());
+            } else {
+                int x1 = Math.min(bounds.x(), w.getX());
+                int y1 = Math.min(bounds.y(), w.getY());
+                int x2 = Math.max(bounds.x() + bounds.width(), w.getX() + w.getWidth());
+                int y2 = Math.max(bounds.y() + bounds.height(), w.getY() + w.getHeight());
+                bounds = new WidgetBounds(x1, y1, x2 - x1, y2 - y1);
+            }
+        }
+        return bounds;
+    }
+
+    private PanelDragHandle resolvePanelDragHandle(WidgetBounds bounds, double mouseX, double mouseY) {
+        if (bounds == null || !bounds.contains(mouseX, mouseY)) {
+            return PanelDragHandle.NONE;
+        }
+
+        int x1 = bounds.x();
+        int y1 = bounds.y();
+        int x2 = bounds.x() + bounds.width();
+        int y2 = bounds.y() + bounds.height();
+        int leftEdge = x1 + PANEL_HANDLE_HITBOX;
+        int rightEdge = x2 - PANEL_HANDLE_HITBOX;
+        int topEdge = y1 + PANEL_HANDLE_HITBOX;
+        int bottomEdge = y2 - PANEL_HANDLE_HITBOX;
+        boolean onLeft = mouseX >= x1 && mouseX < Math.min(leftEdge, x2);
+        boolean onRight = mouseX >= Math.max(rightEdge, x1) && mouseX < x2;
+        boolean onTop = mouseY >= y1 && mouseY < Math.min(topEdge, y2);
+        boolean onBottom = mouseY >= Math.max(bottomEdge, y1) && mouseY < y2;
+
+        if (onLeft && onTop) return PanelDragHandle.RESIZE_TOP_LEFT;
+        if (onRight && onTop) return PanelDragHandle.RESIZE_TOP_RIGHT;
+        if (onLeft && onBottom) return PanelDragHandle.RESIZE_BOTTOM_LEFT;
+        if (onRight && onBottom) return PanelDragHandle.RESIZE_BOTTOM_RIGHT;
+        if (onLeft) return PanelDragHandle.RESIZE_LEFT;
+        if (onRight) return PanelDragHandle.RESIZE_RIGHT;
+        if (onTop) return PanelDragHandle.RESIZE_TOP;
+        if (onBottom) return PanelDragHandle.RESIZE_BOTTOM;
+        return PanelDragHandle.MOVE;
+    }
+
+    private void capturePanelDragLayout(String panelId, WidgetBounds startBounds) {
+        panelDragLayout.clear();
+        if (startBounds == null || startBounds.width() <= 0 || startBounds.height() <= 0) return;
+
+        for (PanelSlot slot : panelSlotsFor(panelId)) {
+            AbstractWidget w = slot.visibleWidget();
+            if (w == null || !w.visible) continue;
+            float relX = (w.getX() - (float) startBounds.x()) / startBounds.width();
+            float relY = (w.getY() - (float) startBounds.y()) / startBounds.height();
+            float relW = (float) w.getWidth() / (float) startBounds.width();
+            float relH = (float) w.getHeight() / (float) startBounds.height();
+            panelDragLayout.add(new PanelDragLayout(slot, relX, relY, relW, relH));
+        }
+    }
+
+    private void applyPanelWindowLayout(String panelId, WidgetBounds windowBounds) {
+        if (windowBounds == null || windowBounds.width() <= 0 || windowBounds.height() <= 0) return;
+        if (panelDragLayout.isEmpty()) {
+            capturePanelDragLayout(panelId, panelWindowBounds(panelId));
+        }
+        if (panelDragLayout.isEmpty()) return;
+
+        for (PanelDragLayout layout : panelDragLayout) {
+            int x = windowBounds.x() + Math.round(layout.relX() * windowBounds.width());
+            int y = windowBounds.y() + Math.round(layout.relY() * windowBounds.height());
+            int w = Math.max(1, Math.round(layout.relW() * windowBounds.width()));
+            int h = Math.max(1, Math.round(layout.relH() * windowBounds.height()));
+            setPanelSlotBounds(layout.slot(), x, y, w, h);
+        }
+    }
+
+    private void setPanelSlotBounds(PanelSlot slot, int x, int y, int width, int height) {
+        if (slot.results.visible) {
+            slot.results.updateBounds(new WidgetBounds(x, y, width, height));
+        } else if (slot.sidebar.visible) {
+            slot.sidebar.updateLayout(Rect.of(x, y, width, height));
+        }
+    }
+
+    private boolean beginPanelDrag(String panelId, double mouseX, double mouseY) {
+        WidgetBounds bounds = panelWindowBounds(panelId);
+        PanelDragHandle handle = resolvePanelDragHandle(bounds, mouseX, mouseY);
+        if (handle == PanelDragHandle.NONE) return false;
+
+        draggedWidgetId = panelId;
+        panelDragHandle = handle;
+        dragStartMouseX = mouseX;
+        dragStartMouseY = mouseY;
+        dragOriginX = bounds.x();
+        dragOriginY = bounds.y();
+        dragOriginW = bounds.width();
+        dragOriginH = bounds.height();
+        capturePanelDragLayout(panelId, bounds);
+        return true;
+    }
+
+    private void clearPanelDragState() {
+        draggedWidgetId = null;
+        panelDragHandle = PanelDragHandle.NONE;
+        dragOriginX = 0;
+        dragOriginY = 0;
+        dragOriginW = 0;
+        dragOriginH = 0;
+        panelDragLayout.clear();
+    }
+
+    // ── Layout Mode & Panel Dragging ───────────────────────────────────
+
+    public void setLayoutMode(boolean enabled) {
+        if (enabled && !inLayoutMode) {
+            layoutModePositionSnapshot = AmiConfig.pinnedPositionsJson;
+            panelVisibleBeforeLayoutMode = panelVisible;
+            setPanelVisible(true);
+            if (searchBar != null) {
+                searchBar.setFocused(false);
+            }
+        } else if (!enabled && inLayoutMode) {
+            setPanelVisible(panelVisibleBeforeLayoutMode);
+            layoutDoneButton = null;
+            layoutResetButton = null;
+            lastLayoutButtonScreenW = -1;
+            lastLayoutButtonScreenH = -1;
+        }
+        inLayoutMode = enabled;
+        if (!enabled) {
+            clearPanelDragState();
+        }
+    }
+
+    public boolean isInLayoutMode() {
+        return inLayoutMode;
+    }
+
+    private void finalizeLayout() {
+        Screen screen = Minecraft.getInstance().screen;
+        if (draggedWidgetId != null && screen != null) finalizeDrag(screen);
+        pinnedPositions.save();
+        layoutModePositionSnapshot = null;
+        setLayoutMode(false);
+    }
+
+    public void cancelLayout() {
+        if (layoutModePositionSnapshot != null) {
+            AmiConfig.pinnedPositionsJson = layoutModePositionSnapshot;
+            pinnedPositions = PinnedWidgetPositions.load();
+        }
+        clearPanelDragState();
+        layoutModePositionSnapshot = null;
+        setLayoutMode(false);
+        layoutDirty = true;
+    }
+
+    private void ensureLayoutButtons(int screenW, int screenH) {
+        if (layoutDoneButton != null && screenW == lastLayoutButtonScreenW && screenH == lastLayoutButtonScreenH) return;
+        lastLayoutButtonScreenW = screenW;
+        lastLayoutButtonScreenH = screenH;
+        int btnW = 100;
+        int btnH = 20;
+        int btnY = screenH - BOTTOM_BAR_H - btnH - 6;
+        layoutDoneButton = net.minecraft.client.gui.components.Button.builder(
+                net.minecraft.network.chat.Component.translatable("ami.layout.done"),
+                b -> finalizeLayout()
+        ).bounds(screenW / 2 - btnW - 4, btnY, btnW, btnH).build();
+        layoutResetButton = net.minecraft.client.gui.components.Button.builder(
+                net.minecraft.network.chat.Component.translatable("ami.layout.reset"),
+                b -> resetLayout()
+        ).bounds(screenW / 2 + 4, btnY, btnW, btnH).build();
+    }
+
+    public boolean tryStartDrag(double mouseX, double mouseY, int button) {
+        if (!inLayoutMode || button != 0) return false;
+
+        if (searchBar != null && isSearchBarDragHandle(mouseX, mouseY)) {
+            draggedWidgetId = "search_bar";
+            dragStartMouseX = mouseX;
+            dragStartMouseY = mouseY;
+            dragOriginX = searchBar.getX();
+            dragOriginY = searchBar.getY();
+            dragOriginW = searchBar.getBounds().width();
+            dragOriginH = searchBar.getBounds().height();
+            return true;
+        }
+        if (beginPanelDrag("left_panel", mouseX, mouseY)) return true;
+        if (beginPanelDrag("right_panel", mouseX, mouseY)) return true;
+
+        return false;
+    }
+
+    private boolean isSearchBarDragHandle(double mouseX, double mouseY) {
+        if (searchBar == null || !searchBar.visible) return false;
+        WidgetBounds b = searchBar.getBounds();
+        return mouseX >= b.x() && mouseX < b.x() + 14 && mouseY >= b.y() && mouseY < b.y() + b.height();
+    }
+
+    public boolean updateDrag(double mouseX, double mouseY) {
+        if (draggedWidgetId == null) return false;
+        int dx = (int) (mouseX - dragStartMouseX);
+        int dy = (int) (mouseY - dragStartMouseY);
+
+        if ("search_bar".equals(draggedWidgetId) && searchBar != null) {
+            int newX = dragOriginX + dx;
+            int newY = dragOriginY + dy;
+            searchBar.updateBounds(new WidgetBounds(newX, newY, searchBar.getBounds().width(), searchBar.getBounds().height()));
+            pinnedPositions.set("search_bar", newX, newY);
+        } else {
+            int nextX = dragOriginX;
+            int nextY = dragOriginY;
+            int nextW = dragOriginW;
+            int nextH = dragOriginH;
+            switch (panelDragHandle) {
+                case MOVE:
+                    nextX += dx;
+                    nextY += dy;
+                    break;
+                case RESIZE_LEFT:
+                    nextX += dx;
+                    nextW -= dx;
+                    break;
+                case RESIZE_RIGHT:
+                    nextW += dx;
+                    break;
+                case RESIZE_TOP:
+                    nextY += dy;
+                    nextH -= dy;
+                    break;
+                case RESIZE_BOTTOM:
+                    nextH += dy;
+                    break;
+                case RESIZE_TOP_LEFT:
+                    nextX += dx;
+                    nextW -= dx;
+                    nextY += dy;
+                    nextH -= dy;
+                    break;
+                case RESIZE_TOP_RIGHT:
+                    nextW += dx;
+                    nextY += dy;
+                    nextH -= dy;
+                    break;
+                case RESIZE_BOTTOM_LEFT:
+                    nextX += dx;
+                    nextW -= dx;
+                    nextH += dy;
+                    break;
+                case RESIZE_BOTTOM_RIGHT:
+                    nextW += dx;
+                    nextH += dy;
+                    break;
+                case NONE:
+                default:
+                    break;
+            }
+
+            Minecraft mc = Minecraft.getInstance();
+            int screenW = mc.getWindow().getGuiScaledWidth();
+            int screenH = mc.getWindow().getGuiScaledHeight();
+            int minW = Math.max(MIN_PANEL_WIDTH, 1);
+            int minH = Math.max(MIN_SIDE_PANEL_HEIGHT, 1);
+            int maxW = Math.max(minW, screenW - 4);
+            int maxH = Math.max(minH, screenH - 4);
+
+            if (panelDragHandle == PanelDragHandle.RESIZE_LEFT || panelDragHandle == PanelDragHandle.RESIZE_TOP_LEFT
+                    || panelDragHandle == PanelDragHandle.RESIZE_BOTTOM_LEFT) {
+                nextW = net.minecraft.util.Mth.clamp(nextW, minW, maxW);
+                nextX = dragOriginX + dragOriginW - nextW;
+            } else {
+                nextW = net.minecraft.util.Mth.clamp(nextW, minW, maxW);
+            }
+
+            if (panelDragHandle == PanelDragHandle.RESIZE_TOP || panelDragHandle == PanelDragHandle.RESIZE_TOP_LEFT
+                    || panelDragHandle == PanelDragHandle.RESIZE_TOP_RIGHT) {
+                nextH = net.minecraft.util.Mth.clamp(nextH, minH, maxH);
+                nextY = dragOriginY + dragOriginH - nextH;
+            } else {
+                nextH = net.minecraft.util.Mth.clamp(nextH, minH, maxH);
+            }
+
+            nextX = net.minecraft.util.Mth.clamp(nextX, 0, Math.max(0, screenW - nextW));
+            nextY = net.minecraft.util.Mth.clamp(nextY, 0, Math.max(0, screenH - nextH));
+
+            WidgetBounds next = new WidgetBounds(nextX, nextY, nextW, nextH);
+            applyPanelWindowLayout(draggedWidgetId, next);
+            pinnedPositions.set(draggedWidgetId, nextX, nextY, nextW, nextH);
+            layoutDirty = true;
+        }
+
+        return true;
+    }
+
+    public void finalizeDrag(Screen screen) {
+        if (draggedWidgetId == null) return;
+
+        int screenW = screen.width;
+        int screenH = screen.height;
+
+        if ("search_bar".equals(draggedWidgetId) && searchBar != null) {
+            int x = net.minecraft.util.Mth.clamp(searchBar.getX(), 2, screenW - searchBar.getBounds().width() - 2);
+            int y = net.minecraft.util.Mth.clamp(searchBar.getY(), 2, screenH - SEARCH_H - 2);
+            pinnedPositions.set("search_bar", x, y);
+            pinnedPositions.set("search_bar", x, y, searchBar.getBounds().width(), SEARCH_H);
+        } else {
+            WidgetBounds bounds = panelWindowBounds(draggedWidgetId);
+            if (bounds == null) {
+                clearPanelDragState();
+                return;
+            }
+            int width = net.minecraft.util.Mth.clamp(bounds.width(), MIN_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, screenW - 4));
+            int height = net.minecraft.util.Mth.clamp(bounds.height(), MIN_SIDE_PANEL_HEIGHT, Math.max(MIN_SIDE_PANEL_HEIGHT, screenH - 4));
+            int x = net.minecraft.util.Mth.clamp(bounds.x(), 0, Math.max(0, screenW - width));
+            int y = net.minecraft.util.Mth.clamp(bounds.y(), 0, Math.max(0, screenH - height));
+            WidgetBounds clamped = new WidgetBounds(x, y, width, height);
+            applyPanelWindowLayout(draggedWidgetId, clamped);
+            pinnedPositions.set(draggedWidgetId, x, y, width, height);
+        }
+
+        if (!inLayoutMode) pinnedPositions.save();
+        clearPanelDragState();
+        layoutDirty = true;
+    }
+
+    public void resetLayout() {
+        pinnedPositions.clearAll();
+        pinnedPositions.save();
+        draggedWidgetId = null;
+        layoutModePositionSnapshot = null;
+        setLayoutMode(false);
+        layoutDirty = true;
+    }
+
+    private void renderLayoutMode(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
+        Minecraft mc = Minecraft.getInstance();
+        int sw = mc.getWindow().getGuiScaledWidth();
+        int sh = mc.getWindow().getGuiScaledHeight();
+        ensureLayoutButtons(sw, sh);
+
+        var font = mc.font;
+        net.minecraft.network.chat.Component hint = net.minecraft.network.chat.Component.translatable("ami.layout.hint");
+        int hintW = font.width(hint);
+        int hintX = sw / 2 - hintW / 2;
+        int hintY = 4;
+        g.fill(hintX - 4, hintY - 2, hintX + hintW + 4, hintY + font.lineHeight + 2, 0xCC000000);
+        g.drawString(font, hint, hintX, hintY, 0xFFFFFFFF, false);
+
+        renderLayoutDragHandles(g);
+
+        layoutDoneButton.render(g, mx, my, pt);
+        layoutResetButton.render(g, mx, my, pt);
+    }
+
+    private void renderLayoutDragHandles(net.minecraft.client.gui.GuiGraphics g) {
+        int accent = com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE;
+        int accentDim = 0x88_4A90D9;
+
+        if (searchBar != null && searchBar.visible) {
+            WidgetBounds b = searchBar.getBounds();
+            boolean dragging = "search_bar".equals(draggedWidgetId);
+            int gripColor = dragging ? accent : accentDim;
+            int cx = b.x() + 4;
+            int cy = b.y() + b.height() / 2 - 3;
+            for (int row = 0; row < 3; row++) {
+                int dy = row * 4;
+                g.fill(cx, cy + dy, cx + 2, cy + dy + 2, gripColor);
+                g.fill(cx + 4, cy + dy, cx + 6, cy + dy + 2, gripColor);
+            }
+            if (dragging) g.renderOutline(b.x(), b.y(), b.width(), b.height(), accent);
+        }
+
+        renderPanelDragStrip(g, leftSlotPool, "left_panel", accent, accentDim);
+        renderPanelDragStrip(g, rightSlotPool, "right_panel", accent, accentDim);
+    }
+
+    private void renderPanelDragStrip(net.minecraft.client.gui.GuiGraphics g, List<PanelSlot> pool,
+                                      String panelId, int accent, int accentDim) {
+        WidgetBounds panelBounds = panelWindowBounds(pool);
+        if (panelBounds == null) return;
+
+        boolean dragging = panelId.equals(draggedWidgetId);
+        int fillColor = dragging ? accent : accentDim;
+        g.renderOutline(panelBounds.x(), panelBounds.y(), panelBounds.width(), panelBounds.height(), fillColor);
+        int h = PANEL_HANDLE_HITBOX;
+        int x1 = panelBounds.x();
+        int y1 = panelBounds.y();
+        int x2 = panelBounds.x() + panelBounds.width();
+        int y2 = panelBounds.y() + panelBounds.height();
+        int hx = Math.min(h, panelBounds.width() / 2);
+        int hy = Math.min(h, panelBounds.height() / 2);
+        g.fill(x1, y1, x1 + panelBounds.width(), y1 + 2, fillColor);
+        g.fill(x1, y1, x1 + 2, y1 + panelBounds.height(), fillColor);
+        g.fill(x2 - 2, y1, x2, y1 + panelBounds.height(), fillColor);
+        g.fill(x1, y2 - 2, x1 + panelBounds.width(), y2, fillColor);
+        g.fill(x1, y1, x1 + hx, y1 + hy, fillColor);
+        g.fill(x2 - hx, y1, x2, y1 + hy, fillColor);
+        g.fill(x1, y2 - hy, x1 + hx, y2, fillColor);
+        g.fill(x2 - hx, y2 - hy, x2, y2, fillColor);
+        if (dragging) {
+            for (PanelSlot slot : pool) {
+                AbstractWidget w = slot.visibleWidget();
+                if (w == null || !w.visible) continue;
+                g.renderOutline(w.getX(), w.getY(), w.getWidth(), w.getHeight(), accent);
+            }
+        }
     }
 
     private List<SidebarPanelWidget> getSidebarPanels() {
@@ -1040,6 +1565,10 @@ public class OverlayWidgetManager {
             if (results.visible) return results;
             if (sidebar.visible) return sidebar;
             return null;
+        }
+
+        AbstractWidget visibleWidget() {
+            return activeWidget();
         }
     }
 }

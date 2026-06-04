@@ -18,6 +18,9 @@ public final class OverlayInputController {
     public static boolean mouseScrolled(Screen screen, OverlayWidgetManager manager, boolean amiEnabled,
                                         double mouseX, double mouseY, double scrollX, double scrollY) {
         if (!panelInputAllowed(screen, manager, amiEnabled)) return false;
+        if (manager.isInLayoutMode()) {
+            return false;
+        }
         var searchBar = manager.getSearchBar();
         if (searchBar.isFocused() && searchBar.isSearchOverlayMouseOver(mouseX, mouseY)) {
             searchBar.handleSuggestionScroll(scrollY);
@@ -31,12 +34,13 @@ public final class OverlayInputController {
         if (AmiApi.shouldSuppressAmi(screen)) return false;
 
         var searchBar = manager.getSearchBar();
+        boolean inLayoutMode = manager.isInLayoutMode();
 
-        if (searchBar.isFocused() && searchBar.isSearchOverlayMouseOver(mouseX, mouseY)) {
+        if (!inLayoutMode && searchBar.isFocused() && searchBar.isSearchOverlayMouseOver(mouseX, mouseY)) {
             return searchBar.mouseClicked(mouseX, mouseY, button);
         }
 
-        if (searchBar.isFocused() && !searchBar.isMouseOver(mouseX, mouseY)) {
+        if (!inLayoutMode && searchBar.isFocused() && !searchBar.isMouseOver(mouseX, mouseY)) {
             // AMI search is live-filtered; click-away records history and only changes focus.
             searchBar.submitAndUnfocus();
         }
@@ -48,7 +52,7 @@ public final class OverlayInputController {
 
         if (!amiEnabled || !manager.isPanelVisible()) return false;
 
-        if (searchBar.isMouseOver(mouseX, mouseY)) {
+        if (!inLayoutMode && searchBar.isMouseOver(mouseX, mouseY)) {
             searchBar.focusForInput();
             searchBar.mouseClicked(mouseX, mouseY, button);
             return true;
@@ -76,8 +80,13 @@ public final class OverlayInputController {
     public static boolean mouseButtonReleased(Screen screen, OverlayWidgetManager manager, boolean amiEnabled,
                                               double mouseX, double mouseY, int button) {
         if (!panelInputAllowed(screen, manager, amiEnabled)) return false;
+        boolean inLayoutMode = manager.isInLayoutMode();
 
         manager.mouseReleased(mouseX, mouseY, button);
+
+        if (inLayoutMode) {
+            return false;
+        }
 
         var searchBar = manager.getSearchBar();
         return searchBar.isFocused() && searchBar.mouseReleased(mouseX, mouseY, button);
@@ -86,6 +95,7 @@ public final class OverlayInputController {
     public static boolean charTyped(Screen screen, OverlayWidgetManager manager, boolean amiEnabled,
                                     char codePoint, int modifiers) {
         if (!panelInputAllowed(screen, manager, amiEnabled)) return false;
+        if (manager.isInLayoutMode()) return false;
 
         if (manager.hasOpenContextMenu()) {
             return manager.charTyped(codePoint, modifiers);
@@ -103,6 +113,10 @@ public final class OverlayInputController {
         var searchBar = manager.getSearchBar();
 
         if (amiEnabled && manager.isPanelVisible() && manager.hasOpenContextMenu()) {
+            return manager.keyPressed(keyCode, scanCode, modifiers);
+        }
+
+        if (amiEnabled && manager.isPanelVisible() && manager.isInLayoutMode()) {
             return manager.keyPressed(keyCode, scanCode, modifiers);
         }
 
