@@ -75,7 +75,7 @@ public class ItemGridViewTest {
     }
 
     @Test
-    void expandAllExpandsHighCardinalityCardsAsCleanSections() throws Exception {
+    void expandAllKeepsHighCardinalityCardsInlineAsCollapseTargets() throws Exception {
         ItemGridView gridView = new ItemGridView(0, 0, 61, 100);
 
         TreeNode collapsed = new TreeNode("cardinality:family:music_discs", Component.literal("Music Discs"));
@@ -91,14 +91,16 @@ public class ItemGridViewTest {
         @SuppressWarnings("unchecked")
         List<Object> rows = (List<Object>) buildVirtualRows.invoke(gridView, 3);
 
-        assertEquals(2, rows.size());
-        assertEquals("Music Discs", headerLabel(rows.get(0)));
-        assertEquals(2, itemCount(rows.get(1)));
-        assertEquals(1, itemRowDepth(rows.get(1)));
+        assertEquals(1, rows.size());
+        assertEquals(3, itemCount(rows.get(0)));
+        assertEquals("Music Discs", itemLabel(rows.get(0), 0));
+        assertEquals("Music Disc 13", itemLabel(rows.get(0), 1));
+        assertEquals("Music Disc Cat", itemLabel(rows.get(0), 2));
+        assertEquals(0, itemRowDepth(rows.get(0)));
     }
 
     @Test
-    void expandedGroupItemsInsertAsSectionBeforeFollowingItems() throws Exception {
+    void expandedHighCardinalityItemsInsertInlineBeforeFollowingItems() throws Exception {
         ItemGridView gridView = new ItemGridView(0, 0, 61, 100);
 
         TreeNode group = new TreeNode("cardinality:minecraft:mushroom", Component.literal("Mushrooms"));
@@ -115,16 +117,18 @@ public class ItemGridViewTest {
         @SuppressWarnings("unchecked")
         List<Object> rows = (List<Object>) buildVirtualRows.invoke(gridView, 3);
 
-        assertEquals(3, rows.size());
-        assertEquals("Mushrooms", headerLabel(rows.get(0)));
-        assertEquals(2, itemCount(rows.get(1)));
-        assertEquals(1, itemRowDepth(rows.get(1)));
-        assertEquals(1, itemCount(rows.get(2)));
-        assertEquals("Apple", itemLabel(rows.get(2), 0));
+        assertEquals(2, rows.size());
+        assertEquals(3, itemCount(rows.get(0)));
+        assertEquals("Mushrooms", itemLabel(rows.get(0), 0));
+        assertEquals("Red Mushroom", itemLabel(rows.get(0), 1));
+        assertEquals("Brown Mushroom", itemLabel(rows.get(0), 2));
+        assertEquals(0, itemRowDepth(rows.get(0)));
+        assertEquals(1, itemCount(rows.get(1)));
+        assertEquals("Apple", itemLabel(rows.get(1), 0));
     }
 
     @Test
-    void expandedHighCardinalityGroupDoesNotShareRowWithFollowingLooseItems() throws Exception {
+    void expandedHighCardinalityGroupCanShareRowWithFollowingLooseItems() throws Exception {
         ItemGridView gridView = new ItemGridView(0, 0, 81, 100);
 
         TreeNode group = new TreeNode("cardinality:minecraft:dragon_scale", Component.literal("Dragon Scales"));
@@ -141,13 +145,12 @@ public class ItemGridViewTest {
         @SuppressWarnings("unchecked")
         List<Object> rows = (List<Object>) buildVirtualRows.invoke(gridView, 4);
 
-        assertEquals(3, rows.size());
-        assertEquals("Dragon Scales", headerLabel(rows.get(0)));
-        assertEquals(2, itemCount(rows.get(1)));
-        assertEquals("Red Dragon Scale", itemLabel(rows.get(1), 0));
-        assertEquals("Blue Dragon Scale", itemLabel(rows.get(1), 1));
-        assertEquals(1, itemCount(rows.get(2)));
-        assertEquals("Apple", itemLabel(rows.get(2), 0));
+        assertEquals(1, rows.size());
+        assertEquals(4, itemCount(rows.get(0)));
+        assertEquals("Dragon Scales", itemLabel(rows.get(0), 0));
+        assertEquals("Red Dragon Scale", itemLabel(rows.get(0), 1));
+        assertEquals("Blue Dragon Scale", itemLabel(rows.get(0), 2));
+        assertEquals("Apple", itemLabel(rows.get(0), 3));
     }
 
     @Test

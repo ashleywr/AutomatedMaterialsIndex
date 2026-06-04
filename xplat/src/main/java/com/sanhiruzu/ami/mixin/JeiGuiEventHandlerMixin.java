@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.mixin;
 
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import mezz.jei.gui.events.GuiEventHandler;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -23,7 +24,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class JeiGuiEventHandlerMixin {
 
     private static boolean shouldSuppressJeiChrome() {
-        return InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
+        return RecipeViewerBridge.isJeiSelectedExternalViewer()
+                && InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
     }
 
     @Inject(method = "onGuiInit", at = @At("HEAD"), cancellable = true, remap = false)

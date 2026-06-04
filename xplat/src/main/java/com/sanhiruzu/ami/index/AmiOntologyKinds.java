@@ -238,7 +238,7 @@ public final class AmiOntologyKinds {
 
         boolean pathToken(String... tokens) {
             for (String token : tokens) {
-                if (pathTokens.contains(token) || tagTokens.contains(token) || blockTagTokens.contains(token)) {
+                if (pathTokens.contains(token)) {
                     return true;
                 }
             }

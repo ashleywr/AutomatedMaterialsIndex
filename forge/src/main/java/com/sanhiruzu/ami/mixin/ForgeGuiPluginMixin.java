@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.mixin;
 
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import mezz.jei.api.registration.IRuntimeRegistration;
 import mezz.jei.forge.plugins.forge.ForgeGuiPlugin;
 import org.spongepowered.asm.mixin.Mixin;
@@ -14,7 +15,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class ForgeGuiPluginMixin {
 
     private static boolean shouldSuppressJeiGui() {
-        return InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
+        return RecipeViewerBridge.isJeiSelectedExternalViewer()
+                && InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
     }
 
     @Inject(method = "registerRuntime", at = @At("HEAD"), cancellable = true, remap = false)

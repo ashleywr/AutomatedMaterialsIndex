@@ -35,6 +35,11 @@ public class AmiKeybindHandler {
      * Called from InventoryOverlayHandler.onKeyPressed.
      */
     public static boolean onKeyPressed(int keyCode, int scanCode, int modifiers, int action) {
+        return onKeyPressed(keyCode, scanCode, modifiers, action, true, true);
+    }
+
+    public static boolean onKeyPressed(int keyCode, int scanCode, int modifiers, int action,
+                                       boolean allowAmiResultLookup, boolean allowRecipeSlotFallback) {
         // Only handle on actual key press (action == 1), not repeat (2) or release (0)
         if (action != GLFW.GLFW_PRESS) return false;
 
@@ -49,17 +54,17 @@ public class AmiKeybindHandler {
             return true;
         }
 
-        if (keys.toggleViewer().isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+        if (isToggleViewerKey(keyCode, scanCode)) {
             InventoryOverlayHandler.toggleAmi();
             return true;
         }
 
         if (keys.showRecipes().isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
-            return handleRecipeLookup(true);
+            return handleRecipeLookup(true, allowAmiResultLookup, allowRecipeSlotFallback);
         }
 
         if (keys.showUses().isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
-            return handleRecipeLookup(false);
+            return handleRecipeLookup(false, allowAmiResultLookup, allowRecipeSlotFallback);
         }
 
         if (keys.cheatGiveStack().isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
@@ -73,8 +78,13 @@ public class AmiKeybindHandler {
         return false;
     }
 
-    private static boolean handleRecipeLookup(boolean showRecipes) {
-        return RecipeLookupKeyHandler.openHoveredLookup(showRecipes);
+    public static boolean isToggleViewerKey(int keyCode, int scanCode) {
+        return Services.PLATFORM.keyMappings().toggleViewer()
+                .isActiveAndMatches(InputConstants.getKey(keyCode, scanCode));
+    }
+
+    private static boolean handleRecipeLookup(boolean showRecipes, boolean allowAmiResultLookup, boolean allowSlotFallback) {
+        return RecipeLookupKeyHandler.openHoveredLookup(showRecipes, allowAmiResultLookup, allowSlotFallback);
     }
 
     private static boolean handleGive(boolean fullStack) {

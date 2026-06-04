@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.mixin;
 
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+import com.sanhiruzu.ami.client.AmiKeybindHandler;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import dev.emi.emi.runtime.EmiDrawContext;
 import dev.emi.emi.screen.EmiScreenManager;
@@ -15,12 +16,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * Blocks EMI's chrome (item list, search bar, config/recipe-tree buttons) when AMI
  * is active, so EMI cannot draw or interact inside the inventory screen. The
  * suppression lifts for input when a recipe view is triggered through AMI, allowing the
- * player to interact with the recipe, then re-engages when the recipe is
- * dismissed.
+ * player to interact with the recipe, then re-engages when the recipe is dismissed.
  * <p>
  * Two-tier suppression:
  * - Chrome (render, widgets, backgrounds): suppressed while browsing AMI results,
- * but restored for EMI's own RecipeScreen after AMI opens a recipe/uses view.
+ * and also suppressed for EMI's sidebar/search manager calls from RecipeScreen.
  * - Input (mouse, keyboard): suppressed only when no recipe view is active,
  * so the player can interact with recipe tabs, widgets, and pages.
  */
@@ -98,6 +98,13 @@ public class EmiScreenManagerMixin {
 
     @Inject(method = "keyPressed", at = @At("HEAD"), remap = false, cancellable = true)
     private static void suppressKeyPressedWhenAmiActive(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
+        if (InventoryOverlayHandler.isAmiEnabled()
+                && RecipeViewerBridge.isEmiRecipeScreenActive()
+                && AmiKeybindHandler.isToggleViewerKey(keyCode, scanCode)) {
+            InventoryOverlayHandler.toggleAmi();
+            cir.setReturnValue(true);
+            return;
+        }
         if (shouldSuppressEmiInput()) {
             cir.setReturnValue(false);
         }
@@ -120,12 +127,11 @@ public class EmiScreenManagerMixin {
     // Gates
 
     /**
-     * Suppress EMI chrome while browsing AMI results, but let EMI render and tick its
-     * own recipe screen after AMI hands control to it.
+     * Suppress EMI chrome/sidebar manager rendering. EMI's RecipeScreen draws the
+     * recipe content itself before delegating to EmiScreenManager, so cancelling
+     * these manager calls hides sidebars/search without hiding the recipe page.
      */
     private static boolean shouldSuppressEmiChrome() {
-        if (RecipeViewerBridge.isRecipeViewActive()) return false;
-        if (isEmiRecipeScreenActive()) return false;
         return InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
     }
 

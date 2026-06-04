@@ -16,10 +16,14 @@ public final class RecipeLookupKeyHandler {
     }
 
     public static boolean openHoveredLookup(boolean showRecipes) {
+        return openHoveredLookup(showRecipes, true, true);
+    }
+
+    public static boolean openHoveredLookup(boolean showRecipes, boolean allowAmiResultLookup, boolean allowSlotFallback) {
         Minecraft mc = Minecraft.getInstance();
         ItemStack hoveredSlotStack = ItemStack.EMPTY;
 
-        if (mc.screen instanceof AbstractContainerScreen<?> containerScreen) {
+        if (allowSlotFallback && mc.screen instanceof AbstractContainerScreen<?> containerScreen) {
             var slot = containerScreen.getSlotUnderMouse();
             if (slot != null && slot.hasItem()) {
                 hoveredSlotStack = slot.getItem();
@@ -27,17 +31,20 @@ public final class RecipeLookupKeyHandler {
         }
 
         return openHoveredLookup(
-                InventoryOverlayHandler.getManager().getHoveredNode(),
+                allowAmiResultLookup ? InventoryOverlayHandler.getManager().getHoveredNode() : null,
                 hoveredSlotStack,
-                showRecipes
+                showRecipes,
+                allowSlotFallback
         );
     }
 
     public static boolean openHoveredLookup(SearchNode hoveredNode, ItemStack hoveredSlotStack, boolean showRecipes) {
-        ItemStack stack = stackFromNode(hoveredNode);
-        if (stack.isEmpty() && hoveredSlotStack != null) {
-            stack = hoveredSlotStack;
-        }
+        return openHoveredLookup(hoveredNode, hoveredSlotStack, showRecipes, true);
+    }
+
+    public static boolean openHoveredLookup(SearchNode hoveredNode, ItemStack hoveredSlotStack, boolean showRecipes,
+                                           boolean allowSlotFallback) {
+        ItemStack stack = lookupStack(hoveredNode, hoveredSlotStack, allowSlotFallback);
         if (stack.isEmpty()) return false;
 
         if (showRecipes) {
@@ -46,6 +53,14 @@ public final class RecipeLookupKeyHandler {
             RecipeViewerBridge.openUses(stack);
         }
         return true;
+    }
+
+    static ItemStack lookupStack(SearchNode hoveredNode, ItemStack hoveredSlotStack, boolean allowSlotFallback) {
+        ItemStack stack = stackFromNode(hoveredNode);
+        if (stack.isEmpty() && allowSlotFallback && hoveredSlotStack != null) {
+            stack = hoveredSlotStack;
+        }
+        return stack;
     }
 
     private static ItemStack stackFromNode(SearchNode node) {
