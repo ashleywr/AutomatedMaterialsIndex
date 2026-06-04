@@ -1,13 +1,16 @@
 package com.sanhiruzu.ami.client.widget;
 
 import com.sanhiruzu.ami.config.ConfigColor;
+import com.sanhiruzu.ami.client.input.TextInputFilter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.Field;
+import java.util.function.Predicate;
 import java.util.function.Consumer;
 
 /**
@@ -23,6 +26,7 @@ public class AmiWidgetFactory {
             if (field.isAnnotationPresent(ConfigColor.class)) {
                 int color = field.getInt(null) & 0xFFFFFF;
                 EditBox eb = new EditBox(mc.font, 0, 0, 72, 18, Component.empty());
+                configureEditBoxFilter(eb);
                 eb.setValue(String.format("#%06X", color));
                 eb.setResponder(s -> {
                     if (s.matches("^#[0-9A-Fa-f]{6}$")) {
@@ -48,6 +52,7 @@ public class AmiWidgetFactory {
                 }).bounds(0, 0, 72, 18).build();
             } else if (type == int.class) {
                 EditBox eb = new EditBox(mc.font, 0, 0, 72, 18, Component.empty());
+                configureEditBoxFilter(eb);
                 eb.setValue(String.valueOf(field.getInt(null)));
                 eb.setResponder(s -> {
                     try {
@@ -78,6 +83,7 @@ public class AmiWidgetFactory {
                 }).bounds(0, 0, 72, 18).build();
             } else {
                 EditBox eb = new EditBox(mc.font, 0, 0, 72, 18, Component.empty());
+                configureEditBoxFilter(eb);
                 Object val = field.get(null);
                 eb.setValue(val != null ? val.toString() : "");
                 eb.setResponder(s -> {
@@ -91,6 +97,17 @@ public class AmiWidgetFactory {
             }
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    private static void configureEditBoxFilter(EditBox editBox) {
+        try {
+            Method setFilter = EditBox.class.getMethod("setFilter", Predicate.class);
+            setFilter.invoke(editBox, (Predicate<String>) TextInputFilter::isAllowedInput);
+        } catch (NoSuchMethodException ignored) {
+            // Some Minecraft versions/configurations do not expose EditBox#setFilter.
+        } catch (Exception ignored) {
+            // If reflection fails, fail open. UI should still remain usable.
         }
     }
 
