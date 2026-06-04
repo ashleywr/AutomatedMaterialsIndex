@@ -163,7 +163,7 @@ public final class GregTechCompat {
             facts.add("machine");
         }
         if (containsAny(path, "wrench", "screwdriver", "soft_mallet", "hard_hammer", "prospector", "scanner",
-                "drill", "saw", "chainsaw", "buzzsaw", "plunger", "wire_cutter")) {
+                "drill", "saw", "chainsaw", "buzzsaw", "plunger", "wire_cutter", "wire_cutters", "mortar")) {
             facts.add("tool");
         }
         if (containsAny(path, "ingot", "nugget", "dust", "plate", "rod", "bolt", "screw", "ring", "foil",

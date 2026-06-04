@@ -22,24 +22,58 @@ import java.util.List;
  */
 class EmiRecipeBridge {
     static void openRecipes(ItemStack stack) {
-        EmiApi.displayRecipes(EmiStack.of(stack));
+        EmiApi.displayRecipes(EmiStack.of(firstRecipeStack(stack)));
     }
 
     static void openUses(ItemStack stack) {
-        EmiApi.displayUses(EmiStack.of(stack));
+        EmiApi.displayUses(EmiStack.of(firstUseStack(stack)));
     }
 
     static boolean hasRecipes(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
+        for (ItemStack candidate : RecipeLookupStackResolver.candidates(stack)) {
+            if (hasRecipesDirect(candidate)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
+    static boolean hasUses(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        for (ItemStack candidate : RecipeLookupStackResolver.candidates(stack)) {
+            if (hasUsesDirect(candidate)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static ItemStack firstRecipeStack(ItemStack stack) {
+        for (ItemStack candidate : RecipeLookupStackResolver.candidates(stack)) {
+            if (hasRecipesDirect(candidate)) {
+                return candidate;
+            }
+        }
+        return stack;
+    }
+
+    private static ItemStack firstUseStack(ItemStack stack) {
+        for (ItemStack candidate : RecipeLookupStackResolver.candidates(stack)) {
+            if (hasUsesDirect(candidate)) {
+                return candidate;
+            }
+        }
+        return stack;
+    }
+
+    private static boolean hasRecipesDirect(ItemStack stack) {
         EmiStack output = EmiStack.of(stack);
         return EmiApi.getRecipeManager().getRecipesByOutput(output).stream()
                 .anyMatch(recipe -> recipe.getOutputs().stream().anyMatch(recipeOutput -> recipeOutput.isEqual(output)));
     }
 
-    static boolean hasUses(ItemStack stack) {
-        if (stack == null || stack.isEmpty()) return false;
-
+    private static boolean hasUsesDirect(ItemStack stack) {
         EmiStack input = EmiStack.of(stack);
         boolean recipeUse = EmiApi.getRecipeManager().getRecipesByInput(input).stream()
                 .anyMatch(recipe -> recipe.getInputs().stream().anyMatch(ingredient -> containsAll(ingredient, input))

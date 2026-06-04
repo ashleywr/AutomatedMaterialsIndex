@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ClassificationGoldSetEvaluationTest {
     private static final String GOLD_SET_RESOURCE = "ami/classification_gold_set.jsonl";
+    private static final String VANILLA_GOLD_SET_RESOURCE = "ami/vanilla_classification_gold_set.jsonl";
 
     private static Evaluation evaluate(List<GoldLabel> labels, List<SearchNode> nodes) {
         Map<ResourceLocation, SearchNode> byId = nodes.stream()
@@ -61,10 +62,10 @@ class ClassificationGoldSetEvaluationTest {
         return new Evaluation(labels.size(), matches, mismatches, missing, confusion, statsByExpected);
     }
 
-    private static List<GoldLabel> readGoldLabels() throws IOException {
-        var stream = ClassificationGoldSetEvaluationTest.class.getClassLoader().getResourceAsStream(GOLD_SET_RESOURCE);
+    private static List<GoldLabel> readGoldLabels(String resource) throws IOException {
+        var stream = ClassificationGoldSetEvaluationTest.class.getClassLoader().getResourceAsStream(resource);
         if (stream == null) {
-            throw new IOException("Missing test resource: " + GOLD_SET_RESOURCE);
+            throw new IOException("Missing test resource: " + resource);
         }
 
         List<GoldLabel> labels = new ArrayList<>();
@@ -137,11 +138,20 @@ class ClassificationGoldSetEvaluationTest {
 
     @Test
     void writesClassificationGoldSetReportWhenSearchNodeDumpExists() throws IOException {
+        writeClassificationGoldSetReport(GOLD_SET_RESOURCE, "gold-set.md");
+    }
+
+    @Test
+    void writesVanillaClassificationGoldSetReportWhenSearchNodeDumpExists() throws IOException {
+        writeClassificationGoldSetReport(VANILLA_GOLD_SET_RESOURCE, "vanilla-gold-set.md");
+    }
+
+    private static void writeClassificationGoldSetReport(String resource, String reportName) throws IOException {
         Path reportPath = repoRoot().resolve(Path.of(
-                "neoforge", "build", "reports", "ami-classification", "gold-set.md"));
+                "neoforge", "build", "reports", "ami-classification", reportName));
         Files.createDirectories(reportPath.getParent());
 
-        List<GoldLabel> labels = readGoldLabels();
+        List<GoldLabel> labels = readGoldLabels(resource);
         Path dumpPath = locateDump();
         if (!Files.exists(dumpPath)) {
             Files.writeString(reportPath, "# AMI Classification Gold Set\n\n"
@@ -212,10 +222,23 @@ class ClassificationGoldSetEvaluationTest {
             addEvidence(parts, "facets", node.meta(SearchNodeKeys.FACETS, ""));
             addEvidence(parts, "tags", node.meta(SearchNodeKeys.TAGS, ""));
             addEvidence(parts, "blockTags", node.meta(SearchNodeKeys.BLOCK_TAGS, ""));
+            addEvidence(parts, "blockShape", node.meta("blockShape", ""));
+            addEvidence(parts, "blockClass", node.meta(SearchNodeKeys.BLOCK_CLASS, ""));
+            addEvidence(parts, "stateProps", node.meta(SearchNodeKeys.BLOCK_STATE_PROPERTIES, ""));
+            addEvidence(parts, "route", winningRoute(node));
             addEvidence(parts, "recipes", node.meta(SearchNodeKeys.RECIPE_CATEGORIES, ""));
             addEvidence(parts, "uses", node.meta(SearchNodeKeys.RECIPE_USE_CATEGORIES, ""));
             if (parts.isEmpty()) return "";
             return " [" + String.join("; ", parts) + "]";
+        }
+
+        private static String winningRoute(SearchNode node) {
+            String phase = node.meta(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE, "");
+            String rule = node.meta(SearchNodeKeys.CLASSIFICATION_ROUTE_RULE, "");
+            if (phase.isBlank()) {
+                return rule;
+            }
+            return rule.isBlank() ? phase : phase + ":" + rule;
         }
 
         private static void addEvidence(List<String> parts, String label, String value) {
@@ -290,8 +313,47 @@ class ClassificationGoldSetEvaluationTest {
                 if (!expected.notes().isBlank()) {
                     out.append("  - notes: ").append(expected.notes()).append("\n");
                 }
+                appendTrace(out, actual);
             }
             out.append("\n");
+        }
+
+        private static void appendTrace(StringBuilder out, SearchNode node) {
+            List<String> steps = traceSteps(node);
+            if (steps.isEmpty()) {
+                return;
+            }
+            out.append("  - trace:\n");
+            int maxSteps = Math.min(steps.size(), 80);
+            for (int i = 0; i < maxSteps; i++) {
+                out.append("    - ").append(escapeMarkdownListText(steps.get(i))).append("\n");
+            }
+            if (steps.size() > maxSteps) {
+                out.append("    - +").append(steps.size() - maxSteps).append(" more trace steps\n");
+            }
+        }
+
+        private static List<String> traceSteps(SearchNode node) {
+            String trace = node.meta(SearchNodeKeys.CLASSIFICATION_TRACE, "");
+            if (!trace.isBlank()) {
+                return splitTrace(trace, "\\|");
+            }
+            String route = node.meta(SearchNodeKeys.CLASSIFICATION_ROUTE, "");
+            if (!route.isBlank()) {
+                return splitTrace(route, " -> ");
+            }
+            return List.of();
+        }
+
+        private static List<String> splitTrace(String value, String separatorRegex) {
+            return Arrays.stream(value.split(separatorRegex))
+                    .map(String::trim)
+                    .filter(step -> !step.isBlank())
+                    .toList();
+        }
+
+        private static String escapeMarkdownListText(String value) {
+            return value.replace("\\", "\\\\");
         }
 
         private void appendMissing(StringBuilder out) {

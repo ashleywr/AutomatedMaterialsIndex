@@ -1594,11 +1594,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
         String key = node.getKey();
         if (key == null) return;
 
-        boolean isOntologyCategory = com.sanhiruzu.ami.index.AmiOntology.CATEGORIES.stream()
-                .anyMatch(c -> c.id.equals(key));
+        boolean isOntologyCategory = com.sanhiruzu.ami.index.AmiOntology.isDefinedCategoryId(key);
         String[] subcategoryKey = com.sanhiruzu.ami.client.results.DashboardBrowse.splitSubcategoryKey(key);
         boolean isOntologySubcategory = subcategoryKey != null
-                && com.sanhiruzu.ami.index.AmiOntology.CATEGORIES.stream().anyMatch(c -> c.id.equals(subcategoryKey[0]));
+                && com.sanhiruzu.ami.index.AmiOntology.isDefinedCategoryId(subcategoryKey[0]);
 
         List<SearchNode> nodes;
         if (isOntologySubcategory) {

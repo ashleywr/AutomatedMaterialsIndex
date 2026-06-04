@@ -47,4 +47,20 @@ public class DebugTooltipTest {
         assertFalse(tooltip.contains(SearchNodeKeys.DPS));
         assertFalse(tooltip.contains("create:cardboard_sword"));
     }
+
+    @Test
+    void debugTooltipRendersClassificationTraceOutsideRawMetadata() {
+        var steps = DebugTooltip.traceSteps(
+                "input[quark:ancient_hedge modFamily=generic] | facts[facets=placeable shape=partial blockClass=HedgeBlock] | primary_rule:leaves: skip - predicate false | primary_rule:partial placeables[masonry/other_building]: matched",
+                ""
+        );
+
+        assertTrue(steps.contains("primary_rule:leaves: skip - predicate false"));
+        assertTrue(steps.contains("primary_rule:partial placeables[masonry/other_building]: matched"));
+        assertTrue(DebugTooltip.isRenderedElsewhere(SearchNodeKeys.CLASSIFICATION_TRACE));
+        assertTrue(DebugTooltip.isRenderedElsewhere(SearchNodeKeys.CLASSIFICATION_ROUTE_RULE));
+        assertTrue(DebugTooltip.isRenderedElsewhere(SearchNodeKeys.FACETS));
+        assertTrue(DebugTooltip.isRenderedElsewhere(SearchNodeKeys.BLOCK_TAGS));
+        assertFalse(DebugTooltip.isRenderedElsewhere(SearchNodeKeys.DPS));
+    }
 }

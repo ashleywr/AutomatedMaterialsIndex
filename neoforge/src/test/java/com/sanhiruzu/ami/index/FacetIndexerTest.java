@@ -85,6 +85,34 @@ class FacetIndexerTest {
     }
 
     @Test
+    void reactiveStyleClassesTagsAndStatePropertiesProduceConcreteFacets() {
+        Item powerBottle = register("reactive_power_bottle", new PowerBottleItem(
+                "Reactive Power Bottle",
+                new PowerBottleBlock(new BlockState().withProperty(new Property<>("bottles")))
+        ).withTag(TagKey.create(null, new ResourceLocation("reactive", "power_bottles"))));
+        Item crucible = register("reactive_crucible", new BlockItem(
+                "Reactive Crucible",
+                new CrucibleBlock(new BlockState())
+        ));
+        Item poweredBlock = register("reactive_powered_state", new BlockItem(
+                "Reactive Powered State",
+                new Block(new BlockState().withProperty(new Property<>("powered")))
+        ));
+
+        FacetProfile bottleProfile = index(powerBottle);
+        FacetProfile crucibleProfile = index(crucible);
+        FacetProfile poweredProfile = index(poweredBlock);
+
+        assertTrue(bottleProfile.facets().contains(ItemFacet.MAGIC_ARTIFACT));
+        assertTrue(bottleProfile.facets().contains(ItemFacet.UTILITY_MISC));
+        assertTrue(crucibleProfile.facets().contains(ItemFacet.HAS_BLOCK_ENTITY));
+        assertTrue(crucibleProfile.facets().contains(ItemFacet.WORKSTATION));
+        assertTrue(crucibleProfile.facets().contains(ItemFacet.MACHINE));
+        assertTrue(poweredProfile.facets().contains(ItemFacet.REDSTONE_LOGIC));
+        assertTrue(poweredProfile.facets().contains(ItemFacet.REDSTONE_SIGNAL));
+    }
+
+    @Test
     void redstoneDustHasRedstoneFacet() {
         FacetProfile profile = index(Items.REDSTONE);
 
@@ -146,12 +174,15 @@ class FacetIndexerTest {
     void paperAndNetherStarGetLegacyCoverageFacets() {
         Item paper = register("paper", new Item("Paper"));
         Item netherStar = register("nether_star", new Item("Nether Star"));
+        Item glassShard = register("magenta_shard", new Item("Magenta Glass Shard"));
 
         FacetProfile paperProfile = index(paper);
         FacetProfile starProfile = index(netherStar);
+        FacetProfile shardProfile = index(glassShard);
 
         assertTrue(paperProfile.facets().contains(ItemFacet.INGREDIENT_ORGANIC));
         assertTrue(starProfile.facets().contains(ItemFacet.MAGIC_ARTIFACT));
+        assertFalse(shardProfile.facets().contains(ItemFacet.MAGIC_REAGENT));
     }
 
     @Test
@@ -459,7 +490,7 @@ class FacetIndexerTest {
     @Test
     void componentAndToolTagsProduceConcreteFacets() {
         Item wire = register("wire_copper", new Item("Copper Wire")
-                .withTag(TagKey.create(null, new ResourceLocation("forge", "wires/copper"))));
+                .withTag(TagKey.create(null, new ResourceLocation("c", "wires/copper"))));
         Item circuit = register("integrated_circuit", new Item("Integrated Circuit")
                 .withTag(TagKey.create(null, new ResourceLocation("ccbr", "integrated_circuits"))));
         Item cogwheel = register("small_cogwheel", new Item("Small Cogwheel"));
@@ -523,6 +554,18 @@ class FacetIndexerTest {
         assertEquals("net.minecraft.world.item.ArmorItem", profile.attributes().get(SearchNodeKeys.ITEM_CLASS));
     }
 
+    @Test
+    void entityArmorClassDoesNotBecomePlayerChestArmor() {
+        Item golemArmor = register("iron_dog_golem_armor", new DogGolemArmorItem("Iron Dog Golem Armor"));
+
+        FacetProfile profile = index(golemArmor);
+
+        assertTrue(profile.facets().contains(ItemFacet.EQUIPPABLE));
+        assertTrue(profile.facets().contains(ItemFacet.ARMOR_ANIMAL));
+        assertFalse(profile.facets().contains(ItemFacet.ARMOR_CHEST));
+        assertEquals("chest", profile.attributes().get(SearchNodeKeys.EQUIPMENT_SLOT));
+    }
+
     private static final class TestEntityBlock extends Block implements EntityBlock {
         private TestEntityBlock(BlockState defaultState) {
             super(defaultState);
@@ -555,6 +598,30 @@ class FacetIndexerTest {
     private static final class TestFishingRodItem extends FishingRodItem {
         private TestFishingRodItem(String name) {
             super(name);
+        }
+    }
+
+    private static final class PowerBottleBlock extends Block {
+        private PowerBottleBlock(BlockState defaultState) {
+            super(defaultState);
+        }
+    }
+
+    private static final class PowerBottleItem extends BlockItem {
+        private PowerBottleItem(String name, Block block) {
+            super(name, block);
+        }
+    }
+
+    private static final class DogGolemArmorItem extends ArmorItem {
+        private DogGolemArmorItem(String name) {
+            super(name, EquipmentSlot.CHEST);
+        }
+    }
+
+    private static final class CrucibleBlock extends Block implements EntityBlock {
+        private CrucibleBlock(BlockState defaultState) {
+            super(defaultState);
         }
     }
 }

@@ -95,6 +95,20 @@ class GroupingEngineTest {
     }
 
     @Test
+    void colorOnlyMaterialRootDoesNotSplitSharedShardFamily() {
+        GroupingEngine.CollapsedFamily family = GroupingEngine.classifyColorizedGeneratedFamily(
+                new ResourceLocation("quark:magenta_shard"),
+                "Magenta Glass Shard",
+                "magenta",
+                "quark:shards",
+                "quark:magenta"
+        ).orElseThrow();
+
+        assertEquals("quark:shards", family.key());
+        assertEquals("Glass Shards", family.label());
+    }
+
+    @Test
     void classifiesCompressedBlockLaddersByBaseBlock() {
         GroupingEngine.CollapsedFamily family = GroupingEngine.classifyCompressedBlockFamily(
                 new ResourceLocation("compressedblocks:c9_stripped_oak_log")

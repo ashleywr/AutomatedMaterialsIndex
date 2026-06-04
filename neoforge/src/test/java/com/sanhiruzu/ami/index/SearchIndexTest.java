@@ -7,8 +7,10 @@ import org.junit.jupiter.api.Test;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SearchIndexTest {
@@ -67,6 +69,107 @@ public class SearchIndexTest {
     }
 
     @Test
+    public void visibleCollapseLabelsArePlainSearchableAliases() {
+        SearchIndex idx = new SearchIndex(false);
+
+        var magentaShard = new SearchNode(
+                new ResourceLocation("quark:magenta_shard"),
+                NodeType.ITEM,
+                "Magenta Glass Shard",
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.COLLAPSE_FAMILY, "quark:shards",
+                        SearchNodeKeys.COLLAPSE_LABEL, "Glass Shards"
+                )
+        );
+
+        idx.addNode(magentaShard);
+
+        assertTrue(idx.prefixSearch("shard").contains(magentaShard));
+        assertTrue(idx.prefixSearch("shards").contains(magentaShard));
+    }
+
+    @Test
+    public void prefixAndSubstringSearchWorkForUnicodeItemNames() {
+        SearchIndex idx = new SearchIndex();
+
+        SearchNode russianItem = item("ami", "russian_brick", "кирпич", new HashMap<>());
+        SearchNode chineseItem = item("ami", "diamond", "钻石", new HashMap<>());
+        SearchNode japaneseItem = item("ami", "diamond_block", "木工台", new HashMap<>());
+
+        idx.addNode(russianItem);
+        idx.addNode(chineseItem);
+        idx.addNode(japaneseItem);
+
+        assertTrue(idx.prefixSearch("кир").contains(russianItem));
+        assertTrue(idx.substringSearch("кирп").contains(russianItem));
+
+        assertTrue(idx.prefixSearch("钻").contains(chineseItem));
+        assertTrue(idx.substringSearch("石").contains(chineseItem));
+
+        assertTrue(idx.prefixSearch("木").contains(japaneseItem));
+        assertTrue(idx.substringSearch("工台").contains(japaneseItem));
+    }
+
+    @Test
+    public void japaneseWidthVariantsMatchInSearchIndex() {
+        SearchIndex idx = new SearchIndex();
+
+        SearchNode fullWidthJapanese = item("ami", "katakana", "カタカナ", new HashMap<>());
+        idx.addNode(fullWidthJapanese);
+
+        assertTrue(idx.prefixSearch("カタ").contains(fullWidthJapanese));
+        assertTrue(idx.substringSearch("タカ").contains(fullWidthJapanese));
+        assertTrue(idx.prefixSearch("\uFF76\uFF80\uFF76\uFF85").contains(fullWidthJapanese));
+        assertTrue(idx.substringSearch("\uFF76\uFF80\uFF76\uFF85").contains(fullWidthJapanese));
+    }
+
+    @Test
+    public void searchServiceCanResolveUnicodeQueriesAcrossLanguages() {
+        GlobalIndex index = GlobalIndex.getInstance();
+
+        SearchNode russianItem = item("ami", "russian_brick", "кирпич", new HashMap<>());
+        SearchNode chineseItem = item("ami", "jade_stone", "钻石", new HashMap<>());
+        SearchNode japaneseItem = item("ami", "workbench", "木工台", new HashMap<>());
+        SearchNode katakanaItem = item("ami", "katakana", "カタカナ", new HashMap<>());
+
+        index.addNode(russianItem);
+        index.addNode(chineseItem);
+        index.addNode(japaneseItem);
+        index.addNode(katakanaItem);
+
+        SearchService service = SearchService.buildFrom(index, false);
+
+        assertTrue(service.query("кир").get(NodeType.ITEM).contains(russianItem));
+        assertTrue(service.query("钻").get(NodeType.ITEM).contains(chineseItem));
+        assertTrue(service.query("木工").get(NodeType.ITEM).contains(japaneseItem));
+        assertTrue(service.query("\uFF76\uFF80\uFF76\uFF85").get(NodeType.ITEM).contains(katakanaItem));
+
+        assertFalse(service.query("diamond").getOrDefault(NodeType.ITEM, List.of()).contains(russianItem));
+        assertFalse(service.query("diamond").getOrDefault(NodeType.ITEM, List.of()).contains(chineseItem));
+        assertFalse(service.query("diamond").getOrDefault(NodeType.ITEM, List.of()).contains(japaneseItem));
+    }
+
+    @Test
+    public void localeIndependentCaseNormalizationInSearchService() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        Locale original = Locale.getDefault();
+
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr"));
+
+            SearchNode item = item("ami", "ingot", "Ingot", new HashMap<>());
+            index.addNode(item);
+
+            SearchService service = SearchService.buildFrom(index, false);
+            assertTrue(service.query("IN").get(NodeType.ITEM).contains(item));
+        } finally {
+            Locale.setDefault(original);
+        }
+    }
+
+    @Test
     public void colonDelimitedSearchWorks() {
         SearchIndex idx = new SearchIndex();
 
@@ -109,5 +212,9 @@ public class SearchIndexTest {
         assertEquals(1, snapshot.size());
         assertEquals("food", snapshot.get(0).meta(SearchNodeKeys.ONTOLOGY_CATEGORY));
         assertEquals("masonry", index.getNodes(NodeType.ITEM).get(0).meta(SearchNodeKeys.ONTOLOGY_CATEGORY));
+    }
+
+    private static SearchNode item(String namespace, String path, String displayName, Map<String, String> metadata) {
+        return new SearchNode(new ResourceLocation(namespace, path), NodeType.ITEM, displayName, 0, 0, metadata);
     }
 }

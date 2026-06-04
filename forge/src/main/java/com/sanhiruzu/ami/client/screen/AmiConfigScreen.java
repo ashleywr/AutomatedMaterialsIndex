@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.client.screen;
 
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.AmiGuiIcons;
+import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.widget.AmiWidgetFactory;
 import com.sanhiruzu.ami.config.*;
 import com.sanhiruzu.ami.platform.Services;
@@ -274,6 +275,8 @@ public class AmiConfigScreen extends Screen {
 
                     if ("sidepanels".equals(currentGroup)) {
                         addSidePanelEditorEntries();
+                    } else if ("layout".equals(currentGroup)) {
+                        addCustomizeLayoutEntry();
                     }
                 }
             }
@@ -322,6 +325,10 @@ public class AmiConfigScreen extends Screen {
         if (AmiConfig.recipeViewerMode == AmiConfig.RecipeViewerMode.NATIVE) return true;
         if (AmiConfig.recipeViewerMode == AmiConfig.RecipeViewerMode.EMI_JEI) return false;
         return !Services.PLATFORM.isModLoaded("emi") && !Services.PLATFORM.isModLoaded("jei");
+    }
+
+    private void addCustomizeLayoutEntry() {
+        list.publicAddEntry(list.new CustomizeLayoutEntry());
     }
 
     private void addSidePanelEditorEntries() {
@@ -874,6 +881,40 @@ public class AmiConfigScreen extends Screen {
             @Override
             public Component getNarration() {
                 return label;
+            }
+        }
+
+        class CustomizeLayoutEntry extends ConfigEntry {
+            private final Button button;
+
+            CustomizeLayoutEntry() {
+                this.button = Button.builder(
+                        Component.translatable("ami.config.value.layout.customize-layout"),
+                        b -> {
+                            InventoryOverlayHandler.getManager().setLayoutMode(true);
+                            AmiConfigScreen.this.onClose();
+                        }
+                ).bounds(0, 0, 120, 18).build();
+            }
+
+            @Override
+            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
+                renderCard(g, x, y, width, height);
+                int btnW = Math.min(140, width - 20);
+                button.setX(x + 10);
+                button.setY(y + 3);
+                button.setWidth(btnW);
+                button.render(g, mouseX, mouseY, partialTick);
+            }
+
+            @Override
+            public boolean mouseClicked(double mouseX, double mouseY, int button) {
+                return this.button.mouseClicked(mouseX, mouseY, button);
+            }
+
+            @Override
+            public Component getNarration() {
+                return button.getMessage();
             }
         }
 

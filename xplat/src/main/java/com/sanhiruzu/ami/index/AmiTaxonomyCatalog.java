@@ -23,7 +23,7 @@ public final class AmiTaxonomyCatalog {
 
     public static List<CategoryEntry> categories() {
         List<CategoryEntry> result = new ArrayList<>();
-        for (AmiOntology.Category category : AmiOntology.CATEGORIES) {
+        for (AmiOntology.Category category : AmiOntology.knownCategories()) {
             List<SubcategoryEntry> subcategories = new ArrayList<>();
             for (AmiOntology.SubCategory subcategory : category.subCategories) {
                 subcategories.add(new SubcategoryEntry(

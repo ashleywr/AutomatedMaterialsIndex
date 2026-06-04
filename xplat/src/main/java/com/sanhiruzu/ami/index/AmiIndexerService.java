@@ -7,6 +7,7 @@ import com.sanhiruzu.ami.compat.ApotheosisGuideSource;
 import com.sanhiruzu.ami.compat.SilentGearMaterialTraitIndex;
 import com.sanhiruzu.ami.compat.SilentGearTraitGuideSource;
 import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.config.AmiCustomTaxonomy;
 import com.sanhiruzu.ami.config.AmiDataFixes;
 import com.sanhiruzu.ami.index.query.SearchSuggestions;
 import com.sanhiruzu.ami.platform.Services;
@@ -134,6 +135,7 @@ public final class AmiIndexerService {
         // 1. Core indexing of all standard types
         beginProgress("Preparing index");
         GroupingEngine.initialize(level);
+        AmiCustomTaxonomy.reload();
         AmiDataFixes.reload();
         beginProgress("Checking index cache");
         if (!forceProviderRebuild && Services.PLATFORM.tryLoadGlobalIndexCache()) {
@@ -151,6 +153,8 @@ public final class AmiIndexerService {
         ProviderRegistry.indexStructuresDeferred(level);
 
         // 3. Post-indexing tasks
+        beginProgress("Applying custom taxonomy");
+        AmiCustomTaxonomy.applyToIndex(index);
         beginProgress("Applying data fixes");
         AmiDataFixes.applyToIndex(index);
         beginProgress("Applying compatibility metadata");

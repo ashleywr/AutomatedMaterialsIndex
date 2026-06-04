@@ -12,6 +12,7 @@ import com.sanhiruzu.ami.compat.GregTechCompat;
 import com.sanhiruzu.ami.compat.MekanismCompat;
 import com.sanhiruzu.ami.compat.ModularGearCompat;
 import com.sanhiruzu.ami.compat.ModularGolemsCompat;
+import com.sanhiruzu.ami.compat.RechiseledCompat;
 import com.sanhiruzu.ami.compat.SophisticatedCompat;
 import com.sanhiruzu.ami.compat.StorageCompat;
 import com.sanhiruzu.ami.config.AmiConfig;
@@ -245,6 +246,7 @@ public class ItemProvider implements IAmiDataProvider {
         ItemProviderCompatHooks.runCompatSafely("ModularGearCompatRuntime", () ->
                 ModularGearCompat.enrichRuntimeStack(baseId, stack, level, meta));
         ItemProviderCompatHooks.runCompatSafely("ModularGolemsCompat", () -> ModularGolemsCompat.enrichItem(baseId, meta));
+        ItemProviderCompatHooks.runCompatSafely("RechiseledCompat", () -> RechiseledCompat.enrichItem(baseId, meta));
         ItemProviderCompatHooks.runPluginItemCompatHooks(baseId, stack, level, meta);
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(baseId, profileWithMetadata(facetProfile, meta));
         if (!assignment.attributes().isEmpty()) {
@@ -351,6 +353,7 @@ public class ItemProvider implements IAmiDataProvider {
                     inferAmmoType(entry.id(), meta);
                     ItemProviderCompatHooks.runCompatSafely("CompatFamilyDetector", () -> CompatFamilyDetector.detect(entry.id(), meta));
                     ItemProviderCompatHooks.runCompatSafely("GregTechCompat", () -> GregTechCompat.enrichItem(entry.id(), meta));
+                    ItemProviderCompatHooks.runCompatSafely("RechiseledCompat", () -> RechiseledCompat.enrichItem(entry.id(), meta));
                     ItemProviderCompatHooks.runPluginItemCompatHooks(entry.id(), entry.stack(), level, meta);
                     markGeneratedModularGearVariantCheatOnly(entry.id(), meta);
                     if (!ItemFilter.shouldShowAccessLevel(meta.getOrDefault(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL))
@@ -479,6 +482,7 @@ public class ItemProvider implements IAmiDataProvider {
             ItemProviderCompatHooks.runCompatSafely("ModularGearCompatRuntime", () ->
                     ModularGearCompat.enrichRuntimeStack(id, defaultStack, level, meta));
             ItemProviderCompatHooks.runCompatSafely("ModularGolemsCompat", () -> ModularGolemsCompat.enrichItem(id, meta));
+            ItemProviderCompatHooks.runCompatSafely("RechiseledCompat", () -> RechiseledCompat.enrichItem(id, meta));
             ItemProviderCompatHooks.runPluginItemCompatHooks(id, defaultStack, level, meta);
 
             CategoryAssignment assignment = PrimaryCategoryResolver.resolve(id, profileWithMetadata(facetProfile, meta));
