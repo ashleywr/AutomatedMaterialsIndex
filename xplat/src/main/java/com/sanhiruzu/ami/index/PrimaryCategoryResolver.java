@@ -76,7 +76,8 @@ public final class PrimaryCategoryResolver {
     );
     private static final Set<String> TEXTILE_TOKENS = Set.of(
             "curtain", "curtains", "blinds", "shutter", "shutters", "pillow",
-            "cushion", "rug", "carpet", "blanket", "sheet"
+            "cushion", "rug", "carpet", "blanket", "sheet", "banner", "banners",
+            "tapestry", "canvas", "streamer", "streamers"
     );
     private static final Set<String> DISPLAY_TOKENS = Set.of(
             "bookcase", "bookshelf", "shelf", "rack", "sign", "plaque"

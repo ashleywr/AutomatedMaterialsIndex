@@ -137,11 +137,14 @@ public final class OverlayInputController {
             return true;
         }
 
-        if (AmiKeybindHandler.onKeyPressed(keyCode, scanCode, modifiers, GLFW.GLFW_PRESS)) {
+        boolean amiPanelVisible = amiEnabled && manager.isPanelVisible();
+        boolean allowRecipeSlotFallback = amiPanelVisible || RecipeViewerBridge.shouldUseNativeViewer();
+        if (AmiKeybindHandler.onKeyPressed(keyCode, scanCode, modifiers, GLFW.GLFW_PRESS,
+                amiPanelVisible, allowRecipeSlotFallback)) {
             return true;
         }
 
-        return amiEnabled && manager.isPanelVisible()
+        return amiPanelVisible
                 && manager.keyPressed(keyCode, scanCode, modifiers);
     }
 

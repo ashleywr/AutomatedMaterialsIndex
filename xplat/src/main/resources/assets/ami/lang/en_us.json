@@ -739,6 +739,8 @@
   "ami.config.tooltip.ui.accent-color": "General accent used for highlights, active elements, and primary actions throughout the UI.",
   "ami.config.value.ui.show-header": "Show Header",
   "ami.config.tooltip.ui.show-header": "Whether to render the top panel header.",
+  "ami.config.value.ui.results-expanded-by-default": "Expand Results by Default",
+  "ami.config.tooltip.ui.results-expanded-by-default": "Open result groups expanded when new results are loaded. Disable to start groups collapsed.",
   "ami.config.value.ui.show-tooltip-tags": "Show Tooltip Tags",
   "ami.config.tooltip.ui.show-tooltip-tags": "Show item, block, and entity tag IDs in AMI and item tooltips without enabling developer mode.",
   "ami.config.value.ui.block-subgroup": "Block Grouping",

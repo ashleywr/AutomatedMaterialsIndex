@@ -35,10 +35,10 @@ class GroupingEngineTest {
     @Test
     void classifiesExplicitVanillaFamiliesThatNeedStableMetadata() {
         assertEquals("Banners", GroupingEngine.classifyCollapsedFamily(new ResourceLocation("minecraft:white_banner")).orElseThrow().label());
+        assertEquals("Banner Patterns", GroupingEngine.classifyCollapsedFamily(new ResourceLocation("minecraft:creeper_banner_pattern")).orElseThrow().label());
         assertEquals("Goat Horns", GroupingEngine.classifyCollapsedFamily(new ResourceLocation("minecraft:goat_horn")).orElseThrow().label());
-        assertTrue(GroupingEngine.classifyCollapsedFamily(new ResourceLocation("minecraft:music_disc_cat")).isEmpty());
+        assertEquals("Music Discs", GroupingEngine.classifyCollapsedFamily(new ResourceLocation("minecraft:music_disc_cat")).orElseThrow().label());
         assertTrue(GroupingEngine.classifyCollapsedFamily(new ResourceLocation("minecraft:sentry_armor_trim_smithing_template")).isEmpty());
-        assertTrue(GroupingEngine.classifyCollapsedFamily(new ResourceLocation("minecraft:creeper_banner_pattern")).isEmpty());
         assertTrue(GroupingEngine.classifyCollapsedFamily(new ResourceLocation("minecraft:stone")).isEmpty());
     }
 

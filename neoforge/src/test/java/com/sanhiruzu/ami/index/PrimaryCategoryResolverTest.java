@@ -714,6 +714,10 @@ class PrimaryCategoryResolverTest {
                 new ResourceLocation("minecraft:light_gray_bed"),
                 new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.DECORATIVE_BLOCK), Map.of())
         );
+        CategoryAssignment bannerAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:red_banner"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.DECORATIVE_BLOCK), Map.of())
+        );
         CategoryAssignment workstationAssignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("minecraft:composter"),
                 new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.MACHINE), Map.of())
@@ -721,6 +725,8 @@ class PrimaryCategoryResolverTest {
 
         assertEquals("decoration", bedAssignment.categoryId());
         assertEquals("furniture", bedAssignment.subcategoryId());
+        assertEquals("decoration", bannerAssignment.categoryId());
+        assertEquals("textiles", bannerAssignment.subcategoryId());
         assertEquals("tech", workstationAssignment.categoryId());
         assertEquals("machines", workstationAssignment.subcategoryId());
     }

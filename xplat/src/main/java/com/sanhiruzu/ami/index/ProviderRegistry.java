@@ -53,16 +53,20 @@ public final class ProviderRegistry {
 
         for (int i = 0; i < PROVIDERS.size(); i++) {
             IAmiDataProvider provider = PROVIDERS.get(i);
+            long providerStart = System.currentTimeMillis();
             progress.beginProgress("Indexing " + providerName(provider), (i + 1) + "/" + PROVIDERS.size(), 0);
             try {
                 provider.populate(index, level);
             } catch (Exception e) {
                 AmiCore.LOGGER.error("Provider {} failed", provider.getClass().getSimpleName(), e);
+            } finally {
+                AmiCore.LOGGER.info("AMI indexing: {} provider finished in {}ms",
+                        providerName(provider), System.currentTimeMillis() - providerStart);
             }
         }
 
         index.setIndexBuildTime(System.currentTimeMillis() - start);
-        AmiCore.LOGGER.debug("GlobalIndex populated in {}ms", index.getIndexBuildTimeMs());
+        AmiCore.LOGGER.info("AMI indexing: GlobalIndex populated in {}ms", index.getIndexBuildTimeMs());
     }
 
     /**
@@ -72,14 +76,18 @@ public final class ProviderRegistry {
      * ItemStack.EMPTY and render as fallback icons.
      */
     public static void rehydrateSubtypeStacks(@Nullable Level level) {
+        long start = System.currentTimeMillis();
         ItemIconRenderer.clearPersistent();
         RegistryAccess registryAccess = level != null ? level.registryAccess() : null;
         AmiIndexerService progress = AmiIndexerService.getInstance();
         progress.beginProgress("Reading creative tabs");
+        long creativeStart = System.currentTimeMillis();
         var creativeStackMap = com.sanhiruzu.ami.index.ItemFilter.buildCreativeStackMap(level);
+        long creativeMs = System.currentTimeMillis() - creativeStart;
         int total = BuiltInRegistries.ITEM.size();
         progress.beginProgress("Restoring cached item icons", "", total);
         int current = 0;
+        int registered = 0;
         for (Item item : BuiltInRegistries.ITEM) {
             current++;
             if ((current & 31) == 0 || current == total) {
@@ -98,8 +106,11 @@ public final class ProviderRegistry {
             }
             for (SubtypeExpander.SubtypeEntry entry : entries) {
                 ItemIconRenderer.registerStack(entry.id(), entry.stack());
+                registered++;
             }
         }
+        AmiCore.LOGGER.info("AMI indexing: restored cached item icons in {}ms (creativeTabs={}ms, subtypeStacks={})",
+                System.currentTimeMillis() - start, creativeMs, registered);
     }
 
     /**
