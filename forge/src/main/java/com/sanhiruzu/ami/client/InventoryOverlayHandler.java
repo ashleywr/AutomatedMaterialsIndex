@@ -110,6 +110,7 @@ public class InventoryOverlayHandler {
     @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
     static void onRenderPost(ScreenEvent.Render.Post event) {
         if (!isAmiScreen(event.getScreen())) return;
+        ensureIndexingStarted();
 
         if (pendingScreenReinit) {
             pendingScreenReinit = false;
@@ -242,10 +243,15 @@ public class InventoryOverlayHandler {
 
     private static void ensureIndexingStarted() {
         if (!AmiConfig.enableAutoIndexing) return;
-        if (indexingRequested) return;
 
         var level = Minecraft.getInstance().level;
         if (level == null) return;
+
+        if (AmiIndexerService.getInstance().ensureCurrentLanguageIndex(level)) {
+            indexingRequested = true;
+            return;
+        }
+        if (indexingRequested) return;
 
         indexingRequested = true;
         AMI.LOGGER.debug("AMI: starting background index rebuild");
