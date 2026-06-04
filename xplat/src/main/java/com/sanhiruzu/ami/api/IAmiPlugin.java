@@ -2,10 +2,13 @@ package com.sanhiruzu.ami.api;
 
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.Rect2i;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.Map;
 
 /**
  * Interface for mods to provide AMI with layout-specific data.
@@ -36,6 +39,21 @@ public interface IAmiPlugin {
      */
     default List<ItemStack> getHeroItems() {
         return List.of();
+    }
+
+    /**
+     * Allows a mod to add indexing metadata for the given item stack.
+     * <p>
+     * This hook is called during item-index builds. Implementations must be defensive:
+     * failures are isolated per-plugin, but throwing code can still prevent useful
+     * metadata for the current item. Keep logic cheap and avoid blocking work.
+     *
+     * @param id       item id for the base registry entry
+     * @param stack    concrete stack (including variant context if available)
+     * @param level    world/level context (optional, may be null)
+     * @param metadata mutable metadata map to enrich in-place
+     */
+    default void enrichItemMeta(ResourceLocation id, ItemStack stack, Level level, Map<String, String> metadata) {
     }
 
     /**
