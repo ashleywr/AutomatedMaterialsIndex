@@ -11,6 +11,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -46,8 +48,9 @@ public class CreativeStackVariantExpanderTest {
     }
 
     @Test
-    void cheatModeMarksVisiblyIdenticalCreativeStacksWithDifferentHiddenComponents() {
+    void cheatModeSkipsVisiblyIdenticalCreativeStacksWithDifferentHiddenComponents() {
         AmiConfig.cheatMode = true;
+        AmiConfig.devMode = true;
         Item charm = new Item("Charm of Shrinking");
         ItemFilter.CreativeTabInfo relics = new ItemFilter.CreativeTabInfo("relics:relics", "Relics");
 
@@ -60,9 +63,8 @@ public class CreativeStackVariantExpanderTest {
                 null
         );
 
-        assertEquals(2, entries.size());
-        assertEquals(ItemFilter.ACCESS_CHEAT, entries.get(1).extraMeta().get(SearchNodeKeys.ACCESS_LEVEL));
-        assertEquals("hidden_component_duplicate", entries.get(1).extraMeta().get("variantAccessReason"));
+        assertEquals(1, entries.size());
+        assertFalse(entries.get(0).extraMeta().containsKey(SearchNodeKeys.ACCESS_LEVEL));
     }
 
     @Test
@@ -79,6 +81,81 @@ public class CreativeStackVariantExpanderTest {
                         new ItemFilter.CreativeStackInfo(new ItemStack(barrel)
                                 .withComponentSignature("spruce")
                                 .withHoverName("Spruce Barrel"), storage)
+                ),
+                null
+        );
+
+        assertEquals(2, entries.size());
+    }
+
+    @Test
+    void creativeVariantIdsAreStableWhenSourceOrderChanges() {
+        Item barrel = new Item("Barrel");
+        ItemFilter.CreativeTabInfo storage = new ItemFilter.CreativeTabInfo("test:storage", "Storage");
+        ItemFilter.CreativeStackInfo oak = new ItemFilter.CreativeStackInfo(new ItemStack(barrel)
+                .withComponentSignature("oak")
+                .withHoverName("Oak Barrel"), storage);
+        ItemFilter.CreativeStackInfo spruce = new ItemFilter.CreativeStackInfo(new ItemStack(barrel)
+                .withComponentSignature("spruce")
+                .withHoverName("Spruce Barrel"), storage);
+
+        Set<ResourceLocation> firstOrder = CreativeStackVariantExpander.expand(
+                        new ResourceLocation("test", "barrel"),
+                        List.of(oak, spruce),
+                        null
+                )
+                .stream()
+                .map(SubtypeExpander.SubtypeEntry::id)
+                .collect(Collectors.toSet());
+        Set<ResourceLocation> secondOrder = CreativeStackVariantExpander.expand(
+                        new ResourceLocation("test", "barrel"),
+                        List.of(spruce, oak),
+                        null
+                )
+                .stream()
+                .map(SubtypeExpander.SubtypeEntry::id)
+                .collect(Collectors.toSet());
+
+        assertEquals(firstOrder, secondOrder);
+        assertTrue(firstOrder.stream().allMatch(id -> id.getPath().matches("barrel/variant/[a-z_]+_[0-9a-f]{12}")));
+    }
+
+    @Test
+    void ae2FacadesDoNotExpandCreativeTabVariantsByDefault() {
+        Item facade = new Item("Cable Facade");
+        ItemFilter.CreativeTabInfo facades = new ItemFilter.CreativeTabInfo("ae2:facades", "AE2 Facades");
+
+        List<SubtypeExpander.SubtypeEntry> entries = CreativeStackVariantExpander.expand(
+                new ResourceLocation("ae2", "facade"),
+                List.of(
+                        new ItemFilter.CreativeStackInfo(new ItemStack(facade)
+                                .withComponentSignature("minecraft:oak_log")
+                                .withHoverName("Cable Facade - Oak Log"), facades),
+                        new ItemFilter.CreativeStackInfo(new ItemStack(facade)
+                                .withComponentSignature("minecraft:stone")
+                                .withHoverName("Cable Facade - Stone"), facades)
+                ),
+                null
+        );
+
+        assertEquals(0, entries.size());
+    }
+
+    @Test
+    void devModeCanInspectAe2FacadeCreativeTabVariants() {
+        AmiConfig.devMode = true;
+        Item facade = new Item("Cable Facade");
+        ItemFilter.CreativeTabInfo facades = new ItemFilter.CreativeTabInfo("ae2:facades", "AE2 Facades");
+
+        List<SubtypeExpander.SubtypeEntry> entries = CreativeStackVariantExpander.expand(
+                new ResourceLocation("ae2", "facade"),
+                List.of(
+                        new ItemFilter.CreativeStackInfo(new ItemStack(facade)
+                                .withComponentSignature("minecraft:oak_log")
+                                .withHoverName("Cable Facade - Oak Log"), facades),
+                        new ItemFilter.CreativeStackInfo(new ItemStack(facade)
+                                .withComponentSignature("minecraft:stone")
+                                .withHoverName("Cable Facade - Stone"), facades)
                 ),
                 null
         );

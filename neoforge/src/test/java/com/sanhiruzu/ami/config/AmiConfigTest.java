@@ -34,6 +34,7 @@ public class AmiConfigTest {
         assertFalse(AmiConfig.showTooltipTags);
         assertFalse(AmiConfig.startHidden);
         assertFalse(AmiConfig.disableAutoCompact);
+        assertTrue(AmiConfig.resultsExpandedByDefault);
     }
 
     @Test

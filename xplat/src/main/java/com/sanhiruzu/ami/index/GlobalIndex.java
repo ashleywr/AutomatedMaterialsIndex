@@ -35,16 +35,38 @@ public class GlobalIndex {
     }
 
     public synchronized void addNode(SearchNode node) {
-        nodes.get(node.type()).add(node);
-        idIndex.put(new NodeKey(node.id(), node.type()), node);
+        NodeKey key = new NodeKey(node.id(), node.type());
+        SearchNode existing = idIndex.get(key);
+        if (existing != null) {
+            removeNodeFromCollections(existing);
+        }
 
+        nodes.get(node.type()).add(node);
+        idIndex.put(key, node);
+        addNodeToCategoryIndex(node);
+        revision.incrementAndGet();
+    }
+
+    private void addNodeToCategoryIndex(SearchNode node) {
         // Index by ontology category
         String category = node.meta(SearchNodeKeys.ONTOLOGY_CATEGORY, "");
         if (category.isEmpty()) {
             category = AmiOntology.classifyNode(node).id;
         }
         categoryIndex.computeIfAbsent(category, k -> Collections.synchronizedList(new ArrayList<>())).add(node);
-        revision.incrementAndGet();
+    }
+
+    private void removeNodeFromCollections(SearchNode node) {
+        nodes.get(node.type()).remove(node);
+        String category = node.meta(SearchNodeKeys.ONTOLOGY_CATEGORY, "");
+        if (category.isEmpty()) category = AmiOntology.classifyNode(node).id;
+        List<SearchNode> categoryNodes = categoryIndex.get(category);
+        if (categoryNodes != null) {
+            categoryNodes.remove(node);
+            if (categoryNodes.isEmpty()) {
+                categoryIndex.remove(category);
+            }
+        }
     }
 
     public Optional<SearchNode> getNode(ResourceLocation id) {

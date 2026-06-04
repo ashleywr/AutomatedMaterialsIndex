@@ -1,16 +1,20 @@
 package com.sanhiruzu.ami.index.providers;
 
 import com.sanhiruzu.ami.AmiCore;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.GroupingEngine;
 import com.sanhiruzu.ami.index.ItemFilter;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -41,23 +45,26 @@ public final class CreativeStackVariantExpander {
         if (baseId == null || creativeStacks == null || creativeStacks.isEmpty()) {
             return List.of();
         }
+        if (isSuppressedComponentBackedFamily(baseId)) {
+            return List.of();
+        }
 
-        List<ItemStack> distinct = distinctStacks(creativeStacks);
+        List<CreativeStackCandidate> distinct = distinctStacks(creativeStacks);
         if (distinct.size() < 2) {
             return List.of();
         }
 
         List<VisibleStack> visibleStacks = distinct.stream()
-                .map(stack -> new VisibleStack(stack, level))
+                .map(candidate -> new VisibleStack(candidate.stack(), level, candidate.tabId()))
                 .toList();
         Map<String, Integer> displayNameCounts = displayNameCounts(visibleStacks);
         Map<String, Integer> emittedByDisplayName = new HashMap<>();
         Map<String, List<VisibleStack>> emittedByVisibleName = new HashMap<>();
-        boolean includeDiagnosticVariants = ItemFilter.shouldShowAccessLevel(ItemFilter.ACCESS_CHEAT);
+        boolean includeDiagnosticVariants = AmiConfig.devMode;
+        int hiddenDuplicateSkips = 0;
 
         List<SubtypeExpander.SubtypeEntry> result = new ArrayList<>();
         Set<ResourceLocation> emittedIds = new HashSet<>();
-        int ordinal = 0;
         for (VisibleStack visibleStack : visibleStacks) {
             if (result.size() >= SubtypeExpander.HARD_CAP) {
                 AmiCore.LOGGER.debug("CreativeStackVariantExpander: hit HARD_CAP for {}; truncating expansion to {} entries.",
@@ -67,10 +74,6 @@ public final class CreativeStackVariantExpander {
 
             ItemStack stack = visibleStack.stack;
             String displayName = visibleStack.displayName;
-            ResourceLocation syntheticId = syntheticId(baseId, displayName, ordinal++);
-            while (!emittedIds.add(syntheticId)) {
-                syntheticId = Services.PLATFORM.rl(baseId.getNamespace(), syntheticId.getPath() + "_" + ordinal++);
-            }
 
             Map<String, String> extra = new LinkedHashMap<>();
             extra.put(SearchNodeKeys.VARIANT_SOURCE, "creative_tab");
@@ -80,11 +83,11 @@ public final class CreativeStackVariantExpander {
             String displayKey = visibleStack.displayKey;
             int displayOrdinal = emittedByDisplayName.merge(displayKey, 1, Integer::sum) - 1;
             if (hiddenDuplicate) {
-                if (!includeDiagnosticVariants) {
-                    continue;
+                hiddenDuplicateSkips++;
+                if (isHiddenDuplicateDiagnosticsEnabled()) {
+                    logHiddenDuplicateSkip(baseId, sameNameStacks, visibleStack);
                 }
-                extra.put(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_CHEAT);
-                extra.put("variantAccessReason", "hidden_component_duplicate");
+                continue;
             } else if (displayNameCounts.getOrDefault(displayKey, 0) > 1
                     && displayOrdinal > 0
                     && visibleStack.hasPositiveStoredResource()) {
@@ -94,6 +97,13 @@ public final class CreativeStackVariantExpander {
                 extra.put(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_CHEAT);
                 extra.put("variantAccessReason", "prefilled_creative_stack");
             }
+
+            ResourceLocation syntheticId = syntheticId(baseId, displayName, visibleStack.identityHash(baseId));
+            int collisionOrdinal = 1;
+            while (!emittedIds.add(syntheticId)) {
+                syntheticId = Services.PLATFORM.rl(baseId.getNamespace(), syntheticId.getPath() + "_" + collisionOrdinal++);
+            }
+
             String axes = variantAxes(baseId, displayName);
             if (!axes.isBlank()) {
                 extra.put(SearchNodeKeys.VARIANT_AXES, axes);
@@ -110,6 +120,14 @@ public final class CreativeStackVariantExpander {
         return result;
     }
 
+    private static boolean isSuppressedComponentBackedFamily(ResourceLocation baseId) {
+        if (AmiConfig.devMode) {
+            return false;
+        }
+        return ("ae2".equals(baseId.getNamespace()) || "appliedenergistics2".equals(baseId.getNamespace()))
+                && "facade".equals(baseId.getPath());
+    }
+
     private static Map<String, Integer> displayNameCounts(List<VisibleStack> stacks) {
         Map<String, Integer> counts = new HashMap<>();
         for (VisibleStack stack : stacks) {
@@ -118,8 +136,8 @@ public final class CreativeStackVariantExpander {
         return counts;
     }
 
-    private static List<ItemStack> distinctStacks(List<ItemFilter.CreativeStackInfo> creativeStacks) {
-        List<ItemStack> result = new ArrayList<>();
+    private static List<CreativeStackCandidate> distinctStacks(List<ItemFilter.CreativeStackInfo> creativeStacks) {
+        List<CreativeStackCandidate> result = new ArrayList<>();
         for (ItemFilter.CreativeStackInfo info : creativeStacks) {
             if (info == null || info.stack() == null || info.stack().isEmpty()) {
                 continue;
@@ -127,17 +145,21 @@ public final class CreativeStackVariantExpander {
             ItemStack stack = info.stack().copy();
             stack.setCount(1);
             boolean seen = false;
-            for (ItemStack existing : result) {
-                if (Services.PLATFORM.sameItemSameComponents(existing, stack)) {
+            for (CreativeStackCandidate existing : result) {
+                if (Services.PLATFORM.sameItemSameComponents(existing.stack(), stack)) {
                     seen = true;
                     break;
                 }
             }
             if (!seen) {
-                result.add(stack);
+                ItemFilter.CreativeTabInfo tab = info.tab();
+                result.add(new CreativeStackCandidate(stack, tab == null ? "" : tab.id()));
             }
         }
         return result;
+    }
+
+    private record CreativeStackCandidate(ItemStack stack, String tabId) {
     }
 
     private static boolean visiblyEquivalentToAny(List<VisibleStack> existingStacks, VisibleStack candidate) {
@@ -147,6 +169,36 @@ public final class CreativeStackVariantExpander {
             }
         }
         return false;
+    }
+
+    private static void logHiddenDuplicateSkip(ResourceLocation baseId, List<VisibleStack> existingStacks, VisibleStack candidate) {
+        if (!AmiConfig.devMode) {
+            return;
+        }
+        VisibleStack matching = null;
+        for (VisibleStack existing : existingStacks) {
+            if (visiblyEquivalentCreativeStack(existing, candidate)) {
+                matching = existing;
+                break;
+            }
+        }
+        AmiCore.LOGGER.trace(
+                "CreativeStackVariantExpander: hidden duplicate skipped for {} display='{}' candidateTab={} candidateHash={} existingTab={} existingHash={} tooltipHash={}",
+                baseId,
+                candidate.displayName,
+                candidate.tabId,
+                candidate.identityHash(baseId),
+                matching != null ? matching.tabId : "?",
+                matching != null ? matching.identityHash(baseId) : "?",
+                shortHash(String.join("\n", candidate.tooltipSignature()))
+        );
+    }
+
+    private static boolean isHiddenDuplicateDiagnosticsEnabled() {
+        if (!AmiConfig.devMode) {
+            return false;
+        }
+        return Boolean.getBoolean("sanhiruzu.ami.debugHiddenDuplicateVariants");
     }
 
     private static boolean visiblyEquivalentCreativeStack(VisibleStack first, VisibleStack second) {
@@ -178,12 +230,75 @@ public final class CreativeStackVariantExpander {
         }
     }
 
-    private static ResourceLocation syntheticId(ResourceLocation baseId, String displayName, int ordinal) {
+    static String stackIdentityHash(ResourceLocation baseId, ItemStack stack, @Nullable Level level) {
+        if (stack == null || stack.isEmpty()) {
+            return shortHash(String.valueOf(baseId));
+        }
+        return stackIdentityHash(
+                baseId,
+                stack,
+                normalizedDisplayName(stack.getHoverName().getString()),
+                hasPositiveStoredResource(stack, level),
+                tooltipSignature(stack, level)
+        );
+    }
+
+    private static String stackIdentityHash(ResourceLocation baseId, ItemStack stack, String displayKey,
+                                            boolean positiveStoredResource, List<String> tooltipSignature) {
+        StringBuilder key = new StringBuilder();
+        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        key.append(baseId).append('\n');
+        key.append(itemId == null ? "unknown" : itemId).append('\n');
+        key.append(displayKey).append('\n');
+        key.append(positiveStoredResource).append('\n');
+        for (String line : tooltipSignature) {
+            key.append(line).append('\n');
+        }
+
+        // Include the platform's component/tag string where available. This keeps
+        // diagnostic hidden-component variants stable without depending on loader APIs.
+        String componentKey = reflectedStackDetail(stack, "getComponentsPatch");
+        if (componentKey.isBlank()) {
+            componentKey = reflectedStackDetail(stack, "getTag");
+        }
+        if (componentKey.isBlank()) {
+            componentKey = reflectedStackDetail(stack, "getShareTag");
+        }
+        if (!componentKey.isBlank()) {
+            key.append(componentKey);
+        }
+        return shortHash(key.toString());
+    }
+
+    private static String reflectedStackDetail(ItemStack stack, String methodName) {
+        try {
+            Object detail = stack.getClass().getMethod(methodName).invoke(stack);
+            return detail == null ? "" : detail.toString();
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+            return "";
+        }
+    }
+
+    private static String shortHash(String input) {
+        try {
+            MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
+            byte[] digest = sha1.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (int i = 0; i < 6 && i < digest.length; i++) {
+                hex.append(String.format("%02x", digest[i]));
+            }
+            return hex.toString();
+        } catch (RuntimeException | java.security.NoSuchAlgorithmException e) {
+            return Integer.toHexString(Objects.hashCode(input));
+        }
+    }
+
+    private static ResourceLocation syntheticId(ResourceLocation baseId, String displayName, String identityHash) {
         String slug = slug(displayName);
         if (slug.isBlank()) {
-            slug = "variant_" + ordinal;
+            slug = "variant";
         }
-        return Services.PLATFORM.rl(baseId.getNamespace(), baseId.getPath() + "/variant/" + slug + "_" + ordinal);
+        return Services.PLATFORM.rl(baseId.getNamespace(), baseId.getPath() + "/variant/" + slug + "_" + identityHash);
     }
 
     private static String variantAxes(ResourceLocation baseId, String displayName) {
@@ -354,14 +469,21 @@ public final class CreativeStackVariantExpander {
         final Level level;
         final String displayName;
         final String displayKey;
+        final String tabId;
         private Boolean positiveStoredResource;
         private List<String> tooltipSignature;
+        private String identityHash;
 
         VisibleStack(ItemStack stack, @Nullable Level level) {
+            this(stack, level, "");
+        }
+
+        VisibleStack(ItemStack stack, @Nullable Level level, String tabId) {
             this.stack = stack;
             this.level = level;
             this.displayName = stack.getHoverName().getString();
             this.displayKey = normalizedDisplayName(displayName);
+            this.tabId = tabId == null ? "" : tabId;
         }
 
         boolean hasPositiveStoredResource() {
@@ -376,6 +498,19 @@ public final class CreativeStackVariantExpander {
                 tooltipSignature = CreativeStackVariantExpander.tooltipSignature(stack, level);
             }
             return tooltipSignature;
+        }
+
+        String identityHash(ResourceLocation baseId) {
+            if (identityHash == null) {
+                identityHash = CreativeStackVariantExpander.stackIdentityHash(
+                        baseId,
+                        stack,
+                        displayKey,
+                        hasPositiveStoredResource(),
+                        tooltipSignature()
+                );
+            }
+            return identityHash;
         }
     }
 }

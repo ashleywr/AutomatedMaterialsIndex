@@ -15,9 +15,12 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 public final class PowerMetricSniffer {
+    private static final Pattern ENERGY_UNIT_TOKEN = Pattern.compile("(^|[^a-z0-9])(fe|rf)($|[^a-z0-9])");
     private final EnergyCapacitySniffer capacitySniffer = new EnergyCapacitySniffer();
 
     private static PowerStats sniffStaticBlockDefault(ItemStack stack) {
@@ -51,11 +54,28 @@ public final class PowerMetricSniffer {
     }
 
     private static boolean shouldScanTooltip(ItemStack stack, ResourceLocation id, PowerStats stats) {
-        return true;
+        if (stats.hasAny()) {
+            return true;
+        }
+        String identity = identity(stack, id).toLowerCase(Locale.ROOT);
+        return ENERGY_UNIT_TOKEN.matcher(identity).find()
+                || containsAny(identity,
+                "energy", "battery", "capacitor", "cell", "charge", "charged",
+                "generator", "dynamo", "alternator", "reactor", "solar",
+                "flux", "joule", "power", "wire", "cable");
     }
 
     private static String identity(ItemStack stack, ResourceLocation id) {
         return id + " " + stack.getHoverName().getString();
+    }
+
+    private static boolean containsAny(String value, String... needles) {
+        for (String needle : needles) {
+            if (value.contains(needle)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static Integer positiveInt(int value) {
