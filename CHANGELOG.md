@@ -2,12 +2,19 @@
 
 User-facing changes are recorded here.
 
-## Unreleased
+## 1.2.0 - 2026-06-04
 
 ### Fixed
 
 - [#3] Added universal Cyrillic/Chinese/Japanese search input acceptance (including Japanese width variants) by using a centralized input filter and locale-safe Unicode normalization for search indexing and matching.
 - Fixed JEI/EMI recipe lookups for generic AMI item entries by falling back to AMI-known subtype and creative-tab stacks when the base stack itself does not expose the modded recipe output.
+- Fixed AMI's compact result layout switching too aggressively when recipe viewers temporarily reduce available screen space.
+- Fixed Forge recipe book / Not Enough Recipe Book interactions so AMI does not fight external recipe-book managers.
+- Fixed mixed EMI+JEI installs by selecting EMI consistently and suppressing JEI chrome only when JEI is the selected viewer.
+- Fixed EMI recipe screens opened from AMI so EMI recipe content remains usable while sidebars/search stay hidden until AMI is toggled off.
+- Fixed Alt+V toggling from EMI recipe screens so EMI items/search return when AMI is disabled.
+- Fixed duplicate creative-stack item variants caused by hidden component-only differences.
+- Reduced indexing time in large packs by avoiding broad compat enrichment and no-op tooltip metric scans for unrelated items.
 
 ## 1.1.3 - 2026-06-03
 
