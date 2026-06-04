@@ -476,6 +476,23 @@ compat-scoped because the evidence comes from generator vocabulary and repeated
 classes, not a universal Minecraft API fact. The lone `rechiseled:chisel` is
 also tagged as a utility tool instead of falling through to unknown.
 
+### 2026-06-04: Chipped Blocks Collapse By Mod-Owned Material Tags
+
+The Chipped AMICompat dump contained 6,973 item nodes. Nearly all are generated
+placeable block variants, and the repeated evidence is Chipped-owned family tags
+such as `chipped:andesite`, `chipped:mud`, `chipped:oak_planks`, and
+`chipped:white_wool`. These variants may route to different semantic buckets
+(`masonry`, `geology`, `nature/wood`, `decoration`, and related categories),
+but they still share a stable generated-palette family.
+
+Chipped now uses the generated-palette collapse helper to write
+default-collapsed `collapseFamily` and `collapseLabel` metadata from those
+mod-owned base tags while preserving semantic category routing. Shape-only tags
+such as `_stairs`, `_slab`, `_wall`, `_pane`, `_button`, and
+`_pressure_plate` are ignored as family roots. The five Chipped workbench items
+that were previously falling through to unknown can now route to `utility/misc`
+from `WorkbenchItem` class metadata.
+
 ## Open Work
 
 - Split Cobblemon identity routing into strong Pokemon gameplay identities

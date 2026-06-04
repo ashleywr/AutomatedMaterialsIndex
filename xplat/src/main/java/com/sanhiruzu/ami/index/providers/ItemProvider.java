@@ -5,6 +5,7 @@ import com.sanhiruzu.ami.api.AmiPluginRegistry;
 import com.sanhiruzu.ami.api.ItemProviderCompatHooks;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.compat.AE2Compat;
+import com.sanhiruzu.ami.compat.ChippedCompat;
 import com.sanhiruzu.ami.compat.CobblemonCompat;
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
 import com.sanhiruzu.ami.compat.CreateCompat;
@@ -201,6 +202,9 @@ public class ItemProvider implements IAmiDataProvider {
         }
         if (namespaceIs(id, "rechiseled", "rechiseledcreate")) {
             ItemProviderCompatHooks.runCompatSafely("RechiseledCompat", () -> RechiseledCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "chipped")) {
+            ItemProviderCompatHooks.runCompatSafely("ChippedCompat", () -> ChippedCompat.enrichItem(id, meta));
         }
         ItemProviderCompatHooks.runCompatSafely("StorageCompat", () -> StorageCompat.enrichItem(id, meta));
         if (includePluginHooks) {
