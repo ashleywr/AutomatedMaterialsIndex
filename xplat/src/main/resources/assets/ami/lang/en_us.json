@@ -597,6 +597,8 @@
   "ami.config.tooltip.general.highlight-exclusion-areas": "Draw colored rectangles over exclusion zones for debugging.",
   "ami.config.value.general.compact-mode": "Compact UI",
   "ami.config.tooltip.general.compact-mode": "Forces the UI into a minimal grid view.",
+  "ami.config.value.general.disable-auto-compact": "Always Use Full View",
+  "ami.config.tooltip.general.disable-auto-compact": "Prevents the UI from automatically switching to compact view at small screen sizes.",
   "ami.config.value.sidepanels.left.content": "Left Sidebar Content",
   "ami.config.tooltip.sidepanels.left.content": "Content shown in the left panel.",
   "ami.config.value.sidepanels.left.slots": "Left Panel Slots",
