@@ -214,6 +214,13 @@ public class ResultsProcessorTest {
     }
 
     @Test
+    void disabledAutoIndexingPlaceholderDoesNotClaimBackgroundIndexing() {
+        AmiConfig.enableAutoIndexing = false;
+
+        assertEquals("ami.gui.indexing_disabled", ResultsProcessor.indexingPlaceholderKey());
+    }
+
+    @Test
     void defaultRegistrySortKeepsMixedPokemonAndVirtualEntitiesComparatorTransitive() {
         ResultsProcessor processor = new ResultsProcessor(
                 ResultsProcessor.SortField.REGISTRY,

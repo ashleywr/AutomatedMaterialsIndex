@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.client.results;
 
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.network.chat.Component;
 
@@ -52,10 +53,16 @@ public class ResultsProcessor {
     private TreeNode createIndexingNode() {
         String message = com.sanhiruzu.ami.index.AmiIndexerService.getInstance().progress().message();
         if (message == null || message.isBlank() || "Ready".equals(message)) {
-            message = Component.translatable("ami.gui.background_indexing").getString();
+            message = Component.translatable(indexingPlaceholderKey()).getString();
         }
         return new TreeNode("indexing", Component.literal(message)
                 .withStyle(s -> s.withColor(com.sanhiruzu.ami.client.AMITheme.CHEAT_INDICATOR)));
+    }
+
+    static String indexingPlaceholderKey() {
+        return AmiConfig.enableAutoIndexing
+                ? "ami.gui.background_indexing"
+                : "ami.gui.indexing_disabled";
     }
 
     private List<SearchNode> filterAndSort(List<SearchNode> results) {
