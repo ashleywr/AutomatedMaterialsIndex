@@ -3,7 +3,6 @@ package com.sanhiruzu.ami.client;
 import com.sanhiruzu.ami.api.AmiApi;
 import com.sanhiruzu.ami.client.overlay.OverlayWidgetManager;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
-import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.client.gui.screens.Screen;
 import org.lwjgl.glfw.GLFW;
 
@@ -107,7 +106,6 @@ public final class OverlayInputController {
 
     public static boolean keyPressed(Screen screen, OverlayWidgetManager manager, boolean amiEnabled,
                                      int keyCode, int scanCode, int modifiers) {
-        if (!AmiConfig.enableAutoIndexing) return false;
         if (AmiApi.shouldSuppressAmi(screen)) return false;
 
         var searchBar = manager.getSearchBar();
@@ -149,8 +147,7 @@ public final class OverlayInputController {
     }
 
     private static boolean panelInputAllowed(Screen screen, OverlayWidgetManager manager, boolean amiEnabled) {
-        return AmiConfig.enableAutoIndexing
-                && amiEnabled
+        return amiEnabled
                 && manager.isPanelVisible()
                 && !AmiApi.shouldSuppressAmi(screen);
     }
