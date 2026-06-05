@@ -19,6 +19,8 @@ import net.minecraftforge.client.event.ScreenEvent;
 public class InventoryOverlayHandler {
     public static final boolean RECIPE_VIEWER_PRESENT =
             ModList.get().isLoaded("emi") || ModList.get().isLoaded("jei");
+    private static final boolean EAGER_WORLD_JOIN_INDEXING =
+            Boolean.getBoolean("ami.debug.indexOnWorldJoin");
 
     private static final OverlayWidgetManager manager = new OverlayWidgetManager();
     private static boolean amiEnabled = false;
@@ -233,6 +235,13 @@ public class InventoryOverlayHandler {
         initializedScreen = null;
         sessionInitialized = false;
         indexingRequested = false;
+    }
+
+    public static void tickAutoIndexBootstrap() {
+        if (!EAGER_WORLD_JOIN_INDEXING || !AmiConfig.enableAutoIndexing || indexingRequested) {
+            return;
+        }
+        ensureIndexingStarted();
     }
 
     private static void ensureIndexingStarted() {

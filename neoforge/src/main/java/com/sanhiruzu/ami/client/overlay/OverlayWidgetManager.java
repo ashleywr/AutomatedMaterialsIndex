@@ -47,6 +47,7 @@ public class OverlayWidgetManager {
     private final List<PanelSlot> leftSlotPool = new ArrayList<>();
     private final List<PanelSlot> rightSlotPool = new ArrayList<>();
     private final List<PanelSlot> activeSlots = new ArrayList<>();
+    private final InventorySearchHighlighter inventorySearchHighlighter = new InventorySearchHighlighter();
     private SearchBarWidget searchBar;
     private AmiButtonWidget amiButton;
     private boolean widgetsReady = false;
@@ -103,7 +104,24 @@ public class OverlayWidgetManager {
 
     private void ensureWidgets() {
         if (widgetsReady) return;
-        this.searchBar = new SearchBarWidget(this::triggerSearch);
+        this.searchBar = new SearchBarWidget(new AbstractSearchBarWidget.Listener() {
+            @Override
+            public void onQueryChanged(String query) {
+                triggerSearch(query);
+            }
+
+            @Override
+            public void onSearchBarDoubleClicked(String query) {
+                inventorySearchHighlighter.toggle(query);
+                searchBar.setInventoryVisualFilterActive(inventorySearchHighlighter.isActive());
+            }
+
+            @Override
+            public void onSearchBarCleared() {
+                inventorySearchHighlighter.updateQuery("");
+                searchBar.setInventoryVisualFilterActive(inventorySearchHighlighter.isActive());
+            }
+        });
         this.amiButton = new AmiButtonWidget(() -> {
             var mc = Minecraft.getInstance();
             mc.setScreen(new com.sanhiruzu.ami.client.screen.AmiConfigScreen(mc.screen));
@@ -786,6 +804,10 @@ public class OverlayWidgetManager {
                 amiButton.render(g, mx, my, pt);
 
                 if (panelVisible) {
+                    Screen screen = Minecraft.getInstance().screen;
+                    if (screen instanceof AbstractContainerScreen<?> containerScreen) {
+                        inventorySearchHighlighter.render(containerScreen, g);
+                    }
                     renderPanels(g, mx, my, pt);
                     renderSearchBar(g, mx, my, pt);
                 }
@@ -918,6 +940,10 @@ public class OverlayWidgetManager {
     }
 
     private void triggerSearch(String query) {
+        inventorySearchHighlighter.updateQuery(query);
+        if (searchBar != null) {
+            searchBar.setInventoryVisualFilterActive(inventorySearchHighlighter.isActive());
+        }
         for (ResultsPanelWidget panel : getResultPanels()) {
             if (panel.getInnerPanel() != null) panel.getInnerPanel().getState().setQuery(query);
         }

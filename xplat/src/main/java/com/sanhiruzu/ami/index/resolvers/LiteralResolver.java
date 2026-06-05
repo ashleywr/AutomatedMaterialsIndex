@@ -12,6 +12,7 @@ import java.util.*;
  * Delegates to SearchIndex which is concurrency-friendly and pluggable.
  */
 public final class LiteralResolver implements IQueryResolver {
+    private static final int SHORT_QUERY_MAX_RESULTS_PER_TYPE = 200;
 
     private final SearchIndex index;
 
@@ -55,11 +56,14 @@ public final class LiteralResolver implements IQueryResolver {
             result.get(node.type()).add(node);
         }
 
-        // Remove empty types and cap results per type
+        // Remove empty types. Keep the old cap only for one/two-character
+        // probes; longer queries must not drop valid tooltip/token matches.
         result.entrySet().removeIf(entry -> entry.getValue().isEmpty());
-        for (List<SearchNode> list : result.values()) {
-            if (list.size() > 200) {
-                list.subList(200, list.size()).clear();
+        if (shouldCapShortQuery(lower)) {
+            for (List<SearchNode> list : result.values()) {
+                if (list.size() > SHORT_QUERY_MAX_RESULTS_PER_TYPE) {
+                    list.subList(SHORT_QUERY_MAX_RESULTS_PER_TYPE, list.size()).clear();
+                }
             }
         }
 
@@ -68,5 +72,9 @@ public final class LiteralResolver implements IQueryResolver {
 
     private static boolean shouldUseSubstringFallback(String query) {
         return query.trim().length() >= 3;
+    }
+
+    private static boolean shouldCapShortQuery(String query) {
+        return query.trim().length() < 3;
     }
 }

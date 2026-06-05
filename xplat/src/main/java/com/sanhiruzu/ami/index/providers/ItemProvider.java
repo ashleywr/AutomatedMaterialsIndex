@@ -135,6 +135,26 @@ public class ItemProvider implements IAmiDataProvider {
                 existing.contains(added) ? existing : existing + " " + added);
     }
 
+    private static void addTooltipSearchTokens(Map<String, String> meta, ItemStack stack, @Nullable Level level,
+                                               ResourceLocation id, String displayName,
+                                               Map<String, String> modNameCache) {
+        try {
+            String modName = modNameCache.computeIfAbsent(id.getNamespace(), namespace ->
+                    Services.PLATFORM.getModName(namespace).orElse(namespace));
+            String tokens = TooltipSearchTokens.extract(
+                    Services.PLATFORM.getTooltipLines(stack, level),
+                    displayName,
+                    id,
+                    modName
+            );
+            if (!tokens.isBlank()) {
+                meta.put(SearchNodeKeys.TOOLTIP_SEARCH_TOKENS, tokens);
+            }
+        } catch (RuntimeException e) {
+            AmiCore.LOGGER.debug("Unable to inspect search tooltip for {}", id, e);
+        }
+    }
+
     private static void addFacet(Map<String, String> meta, ItemFacet facet) {
         String encoded = meta.getOrDefault(SearchNodeKeys.FACETS, "");
         if (encoded.isBlank()) {
@@ -353,6 +373,7 @@ public class ItemProvider implements IAmiDataProvider {
         long creativeStart = System.currentTimeMillis();
         Map<Item, List<ItemFilter.CreativeStackInfo>> creativeStackMap = ItemFilter.buildCreativeStackMap(level);
         Map<Item, ItemFilter.CreativeTabInfo> creativeTabs = ItemFilter.firstCreativeTabs(creativeStackMap);
+        Map<String, String> modNameCache = new HashMap<>();
         Set<Item> creativeItems = creativeTabs.keySet();
         AmiRecipeIndex recipeIndex = AmiRecipeIndex.getInstance();
         Set<Item> recipeOutputs = (strictSurvival || AmiConfig.showHiddenModItems)
@@ -368,6 +389,7 @@ public class ItemProvider implements IAmiDataProvider {
         int scannedItems = 0;
         int baseItemNodes = 0;
         int subtypeNodes = 0;
+        int fastFacadeNodes = 0;
         long subtypeExpandNs = 0L;
         long subtypeNodeNs = 0L;
         long basePreRecipeNs = 0L;
@@ -376,7 +398,7 @@ public class ItemProvider implements IAmiDataProvider {
         progress.beginProgress("Indexing items", "", totalItems);
         long itemLoopStart = System.currentTimeMillis();
 
-        for (Item item : BuiltInRegistries.ITEM) {
+        for (Item item : orderedItemsForIndexing()) {
             scannedItems++;
             ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
             if ((scannedItems & 31) == 0 || scannedItems == totalItems) {
@@ -399,6 +421,14 @@ public class ItemProvider implements IAmiDataProvider {
             }
             // For strict survival mode, only include items with recipes
             if (strictSurvival && !hasRecipe) continue;
+
+            if (IndexingHotItemPolicy.shouldUseFastFacadeIndex(id)) {
+                if (!ItemFilter.shouldShowAccessLevel(accessLevel)) continue;
+                indexFastFacadeItem(index, item, id, creativeStackMap, creativeTabs.get(item), accessLevel, inCreative);
+                baseItemNodes++;
+                fastFacadeNodes++;
+                continue;
+            }
 
             // Generated subtypes should not be suppressed just because the dummy base item is dev-only.
             long subtypeExpandStart = System.nanoTime();
@@ -425,6 +455,7 @@ public class ItemProvider implements IAmiDataProvider {
                     fluidMetricSniffer.sniff(entry.stack(), entry.id(), level).ifPresent(stats -> addFluidStats(meta, stats));
                     toolMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addToolStats(meta, stats));
                     armorMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addArmorStats(meta, stats));
+                    addTooltipSearchTokens(meta, entry.stack(), level, entry.id(), entry.displayName(), modNameCache);
                     inferAmmoType(entry.id(), meta);
                     markGeneratedModularGearVariantCheatOnly(entry.id(), meta);
                     if (!ItemFilter.shouldShowAccessLevel(meta.getOrDefault(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL))
@@ -526,6 +557,7 @@ public class ItemProvider implements IAmiDataProvider {
             fluidStats.ifPresent(stats -> addFluidStats(meta, stats));
             toolStats.ifPresent(stats -> addToolStats(meta, stats));
             armorStats.ifPresent(stats -> addArmorStats(meta, stats));
+            addTooltipSearchTokens(meta, defaultStack, level, id, displayName, modNameCache);
             inferAmmoType(id, meta);
             ItemProviderCompatHooks.runCompatSafely("CompatFamilyDetector", () -> CompatFamilyDetector.detect(id, meta));
             if (!inCreative) {
@@ -586,15 +618,64 @@ public class ItemProvider implements IAmiDataProvider {
         int heroNodes = indexHeroItems(index, registryAccess, creativeTabs, level);
         long heroMs = System.currentTimeMillis() - heroStart;
         AmiCore.LOGGER.info(
-                "AMI indexing: ItemProvider setup={}ms creativeTabs={}ms items={}ms heroes={}ms total={}ms scanned={} baseNodes={} subtypeNodes={} heroNodes={} breakdown=subtypeExpand:{}ms subtypeNodes:{}ms basePreRecipe:{}ms baseRecipe:{}ms basePostRecipe:{}ms",
+                "AMI indexing: ItemProvider setup={}ms creativeTabs={}ms items={}ms heroes={}ms total={}ms scanned={} baseNodes={} subtypeNodes={} fastFacadeNodes={} heroNodes={} breakdown=subtypeExpand:{}ms subtypeNodes:{}ms basePreRecipe:{}ms baseRecipe:{}ms basePostRecipe:{}ms",
                 setupMs, creativeMs, itemLoopMs, heroMs, System.currentTimeMillis() - started,
-                scannedItems, baseItemNodes, subtypeNodes, heroNodes,
+                scannedItems, baseItemNodes, subtypeNodes, fastFacadeNodes, heroNodes,
                 nanosToMillis(subtypeExpandNs), nanosToMillis(subtypeNodeNs), nanosToMillis(basePreRecipeNs),
                 nanosToMillis(baseRecipeNs), nanosToMillis(basePostRecipeNs));
     }
 
     private static long nanosToMillis(long nanos) {
         return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(nanos);
+    }
+
+    private static List<Item> orderedItemsForIndexing() {
+        List<Item> regular = new ArrayList<>();
+        List<Item> deferred = new ArrayList<>();
+        for (Item item : BuiltInRegistries.ITEM) {
+            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+            if (IndexingHotItemPolicy.shouldDeferUntilTail(id)) {
+                deferred.add(item);
+            } else {
+                regular.add(item);
+            }
+        }
+        regular.addAll(deferred);
+        return regular;
+    }
+
+    private void indexFastFacadeItem(GlobalIndex index, Item item, ResourceLocation id,
+                                     Map<Item, List<ItemFilter.CreativeStackInfo>> creativeStackMap,
+                                     @Nullable ItemFilter.CreativeTabInfo creativeTab,
+                                     String accessLevel, boolean inCreative) {
+        ItemStack defaultStack = new ItemStack(item);
+        ItemStack iconStack = ItemFilter.firstCreativeStack(item, creativeStackMap).orElse(defaultStack);
+        if (!iconStack.isEmpty()) {
+            ItemIconRenderer.registerStack(id, iconStack);
+        }
+
+        Map<String, String> meta = new HashMap<>();
+        meta.put(SearchNodeKeys.MOD_ID, id.getNamespace());
+        meta.put(SearchNodeKeys.ACCESS_LEVEL, accessLevel);
+        meta.put(SearchNodeKeys.VARIANT_GROUP, "facade");
+        meta.put(SearchNodeKeys.MATERIAL_GROUP, id.toString());
+        meta.put(SearchNodeKeys.SEARCH_TOKENS, "facade facades cover covers");
+        meta.put(SearchNodeKeys.OBTAINABILITY, "no_recipe");
+        meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, "tech");
+        meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "components");
+        applyCreativeTabMeta(meta, creativeTab);
+        if (!inCreative) {
+            meta.put(SearchNodeKeys.VISIBILITY, "hidden");
+        }
+        if ("ae2".equals(id.getNamespace()) || "appliedenergistics2".equals(id.getNamespace())) {
+            meta.put(SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "ae2");
+            meta.put(SearchNodeKeys.COMPAT_FAMILIES, "ae2");
+            meta.put(SearchNodeKeys.AE2_ITEM_KIND, "facade");
+            meta.put(SearchNodeKeys.AE2_FACTS, "facade");
+        }
+
+        String displayName = item.getName(defaultStack).getString();
+        index.addNode(new SearchNode(id, NodeType.ITEM, displayName, 0xFFFFFF, 0, meta));
     }
 
     private static boolean isHiddenComponentDuplicateVariant(Map<String, String> meta) {
@@ -608,6 +689,7 @@ public class ItemProvider implements IAmiDataProvider {
             return 0;
         }
         int emittedTotal = 0;
+        Map<String, String> modNameCache = new HashMap<>();
         for (var plugin : AmiPluginRegistry.getPlugins()) {
             List<ItemStack> heroItems;
             try {
@@ -659,6 +741,7 @@ public class ItemProvider implements IAmiDataProvider {
                 fluidMetricSniffer.sniff(stack, syntheticId, level).ifPresent(stats -> addFluidStats(meta, stats));
                 toolMetricSniffer.sniff(stack).ifPresent(stats -> addToolStats(meta, stats));
                 armorMetricSniffer.sniff(stack).ifPresent(stats -> addArmorStats(meta, stats));
+                addTooltipSearchTokens(meta, stack, level, syntheticId, stack.getHoverName().getString(), modNameCache);
                 inferAmmoType(baseId, meta);
                 index.addNode(new SearchNode(syntheticId, NodeType.ITEM,
                         stack.getHoverName().getString(), 0xFFFFFF, 0, meta));
