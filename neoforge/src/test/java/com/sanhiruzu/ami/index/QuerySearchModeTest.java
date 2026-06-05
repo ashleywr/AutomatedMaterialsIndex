@@ -59,6 +59,68 @@ public class QuerySearchModeTest {
     }
 
     @Test
+    public void plainTextSearchMatchesTooltipTokensButNotOtherMetadata() {
+        GlobalIndex index = GlobalIndex.getInstance();
+
+        SearchNode tooltipMatch = new SearchNode(
+                new ResourceLocation("example:medicine_capsule"),
+                NodeType.ITEM,
+                "Medicine Capsule",
+                0,
+                0,
+                Map.of(SearchNodeKeys.TOOLTIP_SEARCH_TOKENS, "pokemon battle")
+        );
+        SearchNode metadataOnly = new SearchNode(
+                new ResourceLocation("example:metadata_capsule"),
+                NodeType.ITEM,
+                "Metadata Capsule",
+                0,
+                0,
+                Map.of(SearchNodeKeys.MATERIAL_GROUP, "example:pokemon")
+        );
+
+        index.addNode(tooltipMatch);
+        index.addNode(metadataOnly);
+
+        SearchService service = SearchService.buildFrom(index, false);
+        List<SearchNode> hits = service.query("poke").get(NodeType.ITEM);
+
+        assertTrue(hits.contains(tooltipMatch));
+        assertFalse(hits.contains(metadataOnly));
+    }
+
+    @Test
+    public void plainTextSearchDoesNotCapLongTooltipTokenMatches() {
+        GlobalIndex index = GlobalIndex.getInstance();
+
+        for (int i = 0; i < 225; i++) {
+            index.addNode(new SearchNode(
+                    new ResourceLocation("example", "pokemon_tooltip_" + i),
+                    NodeType.ITEM,
+                    "Tooltip Match " + i,
+                    0,
+                    0,
+                    Map.of(SearchNodeKeys.TOOLTIP_SEARCH_TOKENS, "pokemon")
+            ));
+        }
+        SearchNode lateMatch = new SearchNode(
+                new ResourceLocation("mega_showdown:rotom_mow"),
+                NodeType.ITEM,
+                "Mow Unit",
+                0,
+                0,
+                Map.of(SearchNodeKeys.TOOLTIP_SEARCH_TOKENS, "special mower specific pokemon enter")
+        );
+        index.addNode(lateMatch);
+
+        SearchService service = SearchService.buildFrom(index, false);
+        List<SearchNode> hits = service.query("poke").get(NodeType.ITEM);
+
+        assertTrue(hits.size() > 200);
+        assertTrue(hits.contains(lateMatch));
+    }
+
+    @Test
     public void broadMetadataSearchUsesTildePrefix() {
         GlobalIndex index = GlobalIndex.getInstance();
 

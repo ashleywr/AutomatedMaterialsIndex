@@ -31,6 +31,9 @@ public abstract class AbstractSearchBarWidget extends EditBox {
     private static final int MAX_VISIBLE_SUGGESTIONS = 8;
     private static final int SUGGESTION_ROW_HEIGHT = 14;
     private static final int SUGGESTION_MARGIN = 2;
+    private static final int LEFT_MOUSE_BUTTON = 0;
+    private static final int RIGHT_MOUSE_BUTTON = 1;
+    private static final long INVENTORY_FILTER_DOUBLE_CLICK_MS = 500L;
     private static final int CLEAR_BUTTON_W = 14;
     private static final int SEARCH_ICON_BUTTON_W = 16;
     private static final int HELP_MARGIN = 9;
@@ -46,7 +49,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
     private final Deque<String> undoStack = new ArrayDeque<>();
     private final SearchQueryHistory queryHistory = new SearchQueryHistory();
     private String lastValue = "";
-    private long lastClickTime = 0;
+    private long lastSearchBarClickTimeMs = 0;
     private boolean silentUpdate = false;
     private boolean undoing = false;
     private int cursorPos = 0;
@@ -58,6 +61,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
     private int selectedSuggestion = 0;
     private int suggestionScrollOffset = 0;
     private boolean helpOpen = false;
+    private boolean inventoryVisualFilterActive = false;
 
     protected AbstractSearchBarWidget(Listener listener) {
         super(Minecraft.getInstance().font, 0, 0, 160, 14, Component.empty());
@@ -105,7 +109,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
     public void setFocused(boolean focused) {
         super.setFocused(focused);
         if (!focused) {
-            lastClickTime = 0;
+            resetInventoryFilterDoubleClick();
             suggestions = List.of();
             suggestionScrollOffset = 0;
         } else if (!getValue().isBlank()) {
@@ -174,56 +178,116 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         } else {
             renderSuggestions(g, font, mouseX, mouseY);
         }
+
+        if (inventoryVisualFilterActive) {
+            int activeBorder = 0xFFEEEE00;
+            g.fill(x - 1, y - 1, x + w + 1, y, activeBorder);
+            g.fill(x - 1, y + h, x + w + 1, y + h + 1, activeBorder);
+            g.fill(x - 1, y - 1, x, y + h + 1, activeBorder);
+            g.fill(x + w, y - 1, x + w + 1, y + h + 1, activeBorder);
+        }
     }
 
     // ── Rendering ─────────────────────────────────────────────────────────────
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && isSuggestionPopupMouseOver(mouseX, mouseY)) {
-            int row = suggestionRowAt(mouseY);
-            if (row >= 0 && row < suggestions.size()) {
-                selectedSuggestion = row;
-                acceptSelectedSuggestion();
-                return true;
-            }
-        }
-        if (button == 0 && isHelpPopupMouseOver(mouseX, mouseY)) {
+        if (handleSearchOverlayClick(mouseX, mouseY, button)) {
             return true;
         }
         if (!isMouseOver(mouseX, mouseY)) return false;
 
-        String value = getValue();
-        if (button == 0) {
-            if (isSearchIconMouseOver(mouseX, mouseY)) {
-                helpOpen = !helpOpen;
-                suggestions = List.of();
-                suggestionScrollOffset = 0;
-                focusForInput();
-                return true;
-            }
-            if (!value.isEmpty()) {
-                int clearX = clearButtonX();
-                int clearY = getY() + (height - 10) / 2;
-                if (mouseX >= clearX && mouseX < clearX + 12 && mouseY >= clearY && mouseY < clearY + 10) {
-                    clearAndFocus();
-                    return true;
-                }
-            }
+        if (button == LEFT_MOUSE_BUTTON) return handleSearchBarLeftClick(mouseX, mouseY);
+        if (button == RIGHT_MOUSE_BUTTON) return handleSearchBarRightClick();
 
-            long now = System.currentTimeMillis();
-            int clickedPos = cursorPositionFromMouse(mouseX);
-            if (now - lastClickTime < 500) {
-                selectTokenAt(clickedPos);
-                lastClickTime = 0;
-                return true;
-            }
-            lastClickTime = now;
-        } else if (button == 1) {
-            clearAndFocus();
+        resetInventoryFilterDoubleClick();
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    private boolean handleSearchOverlayClick(double mouseX, double mouseY, int button) {
+        if (button != LEFT_MOUSE_BUTTON) {
+            return false;
+        }
+        if (isSuggestionPopupMouseOver(mouseX, mouseY)) {
+            resetInventoryFilterDoubleClick();
+            return acceptSuggestionAt(mouseY);
+        }
+        if (isHelpPopupMouseOver(mouseX, mouseY)) {
+            resetInventoryFilterDoubleClick();
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return false;
+    }
+
+    private boolean handleSearchBarLeftClick(double mouseX, double mouseY) {
+        long now = System.currentTimeMillis();
+        if (isInventoryFilterDoubleClick(now)) {
+            focusForInput();
+            listener.onSearchBarDoubleClicked(getValue());
+            resetInventoryFilterDoubleClick();
+            return true;
+        }
+
+        if (isSearchIconMouseOver(mouseX, mouseY)) {
+            toggleSearchHelp();
+            focusForInput();
+            rememberInventoryFilterClick(now);
+            return true;
+        }
+        if (isClearButtonMouseOver(mouseX, mouseY)) {
+            clearAndFocus();
+            rememberInventoryFilterClick(now);
+            return true;
+        }
+
+        super.mouseClicked(mouseX, mouseY, LEFT_MOUSE_BUTTON);
+        focusForInput();
+        rememberInventoryFilterClick(now);
+        return true;
+    }
+
+    private boolean handleSearchBarRightClick() {
+        resetInventoryFilterDoubleClick();
+        clearAndFocus();
+        return true;
+    }
+
+    private boolean acceptSuggestionAt(double mouseY) {
+        int row = suggestionRowAt(mouseY);
+        if (row < 0 || row >= suggestions.size()) {
+            return true;
+        }
+        selectedSuggestion = row;
+        acceptSelectedSuggestion();
+        return true;
+    }
+
+    private void toggleSearchHelp() {
+        helpOpen = !helpOpen;
+        suggestions = List.of();
+        suggestionScrollOffset = 0;
+    }
+
+    private boolean isClearButtonMouseOver(double mouseX, double mouseY) {
+        if (getValue().isEmpty()) {
+            return false;
+        }
+        int clearX = clearButtonX();
+        int clearY = getY() + (height - 10) / 2;
+        return mouseX >= clearX && mouseX < clearX + 12 && mouseY >= clearY && mouseY < clearY + 10;
+    }
+
+    private boolean isInventoryFilterDoubleClick(long now) {
+        return lastSearchBarClickTimeMs > 0
+                && now - lastSearchBarClickTimeMs < INVENTORY_FILTER_DOUBLE_CLICK_MS;
+    }
+
+    private void rememberInventoryFilterClick(long now) {
+        lastSearchBarClickTimeMs = now;
+    }
+
+    private void resetInventoryFilterDoubleClick() {
+        lastSearchBarClickTimeMs = 0;
     }
 
     // ── Mouse ─────────────────────────────────────────────────────────────────
@@ -357,6 +421,11 @@ public abstract class AbstractSearchBarWidget extends EditBox {
     public void clear() {
         setValue("");
         unfocus();
+        listener.onSearchBarCleared();
+    }
+
+    public void setInventoryVisualFilterActive(boolean active) {
+        inventoryVisualFilterActive = active;
     }
 
     public void submitAndUnfocus() {
@@ -411,7 +480,9 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         }
         lastValue = newValue;
 
-        if (!silentUpdate && listener != null) listener.onQueryChanged(newValue);
+        if (!silentUpdate && listener != null) {
+            listener.onQueryChanged(newValue);
+        }
     }
 
     // ── Internal ──────────────────────────────────────────────────────────────
@@ -930,5 +1001,11 @@ public abstract class AbstractSearchBarWidget extends EditBox {
 
     public interface Listener {
         void onQueryChanged(String query);
+
+        default void onSearchBarDoubleClicked(String query) {
+        }
+
+        default void onSearchBarCleared() {
+        }
     }
 }

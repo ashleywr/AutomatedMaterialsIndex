@@ -92,6 +92,7 @@ public class AMIClient {
         public static void onClientTick(TickEvent.ClientTickEvent event) {
             if (event.phase == TickEvent.Phase.END) {
                 FtbQuestsRuntimeCompat.clientTick();
+                InventoryOverlayHandler.tickAutoIndexBootstrap();
             }
         }
 
