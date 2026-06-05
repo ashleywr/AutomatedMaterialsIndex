@@ -26,7 +26,10 @@ public class InventoryOverlayHandler {
     private static boolean amiEnabled = false;
     private static boolean pendingScreenReinit = false;
     private static net.minecraft.client.gui.screens.Screen initializedScreen = null;
+    private static boolean recipeTransitionRestoreQueued = false;
+    private static boolean recipeTransitionRestoreEnabledState = false;
     private static boolean sessionInitialized = false;
+    private static boolean recipeViewerLockedHidden = false;
     private static boolean indexingRequested = false;
 
     /**
@@ -55,10 +58,27 @@ public class InventoryOverlayHandler {
         if (!isAmiScreen(mc.screen)) return;
 
         amiEnabled = !amiEnabled;
+        recipeViewerLockedHidden = !amiEnabled;
 
         // Toggling AMI dismisses any active recipe view
         com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
 
+        if (amiEnabled && !manager.isPanelVisible()) {
+            manager.setPanelVisible(true);
+        } else if (!amiEnabled && manager.isPanelVisible()) {
+            manager.setPanelVisible(false);
+            AmiKeybindHandler.resetDebugTooltips();
+        }
+
+        pendingScreenReinit = true;
+    }
+
+    public static void setAmiEnabled(boolean enabled) {
+        if (amiEnabled == enabled) {
+            return;
+        }
+
+        amiEnabled = enabled;
         if (amiEnabled && !manager.isPanelVisible()) {
             manager.setPanelVisible(true);
         } else if (!amiEnabled && manager.isPanelVisible()) {
@@ -76,17 +96,42 @@ public class InventoryOverlayHandler {
         // Screen reinit dismisses any active recipe view
         com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
 
+        net.minecraft.client.gui.screens.Screen previousScreen = initializedScreen;
+        Minecraft mc = Minecraft.getInstance();
+        boolean shouldStartHidden = AmiConfig.startHidden;
+        boolean leavingRecipeScreen = previousScreen != null && isRecipeScreen(previousScreen);
+        boolean enteringRecipeScreen = isRecipeScreen(event.getScreen());
+        boolean enteringContainerScreen = isContainerScreen(event.getScreen());
+        boolean restoredFromRecipeTransition = recipeTransitionRestoreQueued
+                && leavingRecipeScreen
+                && enteringContainerScreen
+                && !enteringRecipeScreen;
+
+        if (restoredFromRecipeTransition) {
+            setAmiEnabled(recipeTransitionRestoreEnabledState);
+            recipeTransitionRestoreQueued = false;
+        }
+
+        if (!enteringRecipeScreen) {
+            recipeTransitionRestoreQueued = false;
+        } else if (!leavingRecipeScreen) {
+            recipeTransitionRestoreEnabledState = amiEnabled;
+            recipeTransitionRestoreQueued = true;
+        }
+
         boolean newScreenInstance = event.getScreen() != initializedScreen;
         if (newScreenInstance) {
             initializedScreen = event.getScreen();
-            if (AmiConfig.startHidden) {
-                sessionInitialized = true;
-                amiEnabled = false;
-                manager.setPanelVisible(amiEnabled);
-            } else if (!sessionInitialized) {
-                sessionInitialized = true;
-                amiEnabled = true;
-                manager.setPanelVisible(true);
+            if (!restoredFromRecipeTransition) {
+                if (shouldStartHidden) {
+                    sessionInitialized = true;
+                    amiEnabled = false;
+                    manager.setPanelVisible(amiEnabled);
+                } else if (!sessionInitialized) {
+                    sessionInitialized = true;
+                    amiEnabled = true;
+                    manager.setPanelVisible(true);
+                }
             }
         }
 
@@ -211,7 +256,7 @@ public class InventoryOverlayHandler {
 
     public static boolean shouldSuppressRecipeViewerChrome() {
         Minecraft mc = Minecraft.getInstance();
-        return amiEnabled && mc.screen != null && isAmiScreen(mc.screen);
+        return (amiEnabled || AmiConfig.startHidden || recipeViewerLockedHidden) && mc.screen != null && isAmiScreen(mc.screen);
     }
 
     public static boolean isMouseOverAmiOverlay(double mouseX, double mouseY) {
@@ -233,6 +278,9 @@ public class InventoryOverlayHandler {
         amiEnabled = false;
         pendingScreenReinit = false;
         initializedScreen = null;
+        recipeTransitionRestoreQueued = false;
+        recipeTransitionRestoreEnabledState = false;
+        recipeViewerLockedHidden = false;
         sessionInitialized = false;
         indexingRequested = false;
     }
