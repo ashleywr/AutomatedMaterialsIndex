@@ -132,6 +132,27 @@ public final class ProviderRegistry {
         }
     }
 
+    public static int indexDeferredItems(Level level) {
+        if (!IndexingHotItemPolicy.hasDeferredIndexNamespaces()) {
+            return 0;
+        }
+        GlobalIndex index = GlobalIndex.getInstance();
+        int before = index.getNodes(NodeType.ITEM).size();
+        long started = System.currentTimeMillis();
+        AmiIndexerService.getInstance().beginProgress(
+                "Indexing deferred items",
+                IndexingHotItemPolicy.deferredIndexNamespacesForLog(),
+                BuiltInRegistries.ITEM.size()
+        );
+        new ItemProvider().populateDeferredNamespaces(index, level);
+        int added = Math.max(0, index.getNodes(NodeType.ITEM).size() - before);
+        AmiCore.LOGGER.info("AMI indexing: Deferred item provider finished in {}ms; added {} nodes from namespaces={}",
+                System.currentTimeMillis() - started,
+                added,
+                IndexingHotItemPolicy.deferredIndexNamespacesForLog());
+        return added;
+    }
+
     private static String providerName(IAmiDataProvider provider) {
         String name = provider.getClass().getSimpleName();
         return name.endsWith("Provider") ? name.substring(0, name.length() - "Provider".length()) : name;

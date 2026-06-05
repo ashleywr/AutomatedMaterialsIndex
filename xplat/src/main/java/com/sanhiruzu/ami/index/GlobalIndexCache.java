@@ -30,12 +30,13 @@ import java.util.zip.GZIPOutputStream;
  * STRUCTURE and DIMENSION are always live-loaded (world/datapack-specific).
  */
 public final class GlobalIndexCache {
-    private static final int CACHE_VERSION = 46; // Bump this when index data format changes
+    private static final int CACHE_VERSION = 50; // Bump this when index data format changes
 
     private static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
             .create();
     private static final String CACHE_DIR = "config/ami/cache";
+    private static final boolean DISABLE_INDEX_CACHE = Boolean.getBoolean("ami.debug.disableIndexCache");
 
     private GlobalIndexCache() {
     }
@@ -44,6 +45,11 @@ public final class GlobalIndexCache {
      * Try to load cache. Returns true if successful, false if cache miss or error.
      */
     public static boolean tryLoad() {
+        if (DISABLE_INDEX_CACHE) {
+            AmiCore.LOGGER.info("AMI: Index cache disabled by -Dami.debug.disableIndexCache=true; rebuilding.");
+            return false;
+        }
+
         Path cacheFile = resolveCacheFile();
         if (!Files.exists(cacheFile)) return false;
         AmiIndexerService.getInstance().beginProgress("Loading index cache");
@@ -62,6 +68,11 @@ public final class GlobalIndexCache {
      * Serialize the current GlobalIndex to the cache file.
      */
     public static void save() {
+        if (DISABLE_INDEX_CACHE) {
+            AmiCore.LOGGER.info("AMI: Index cache disabled by -Dami.debug.disableIndexCache=true; skipping cache save.");
+            return;
+        }
+
         Path cacheFile = resolveCacheFile();
         try {
             Files.createDirectories(cacheFile.getParent());

@@ -42,6 +42,29 @@ class AmiGuideSearchIndexTest {
     }
 
     @Test
+    void guidebooksTokenReturnsAllIndexedDocuments() {
+        AmiGuideDocument documentOne = AmiGuideDocument.builder(
+                        new ResourceLocation("ami", "guide/book_one"),
+                        "patchouli",
+                        "example",
+                        "Guide One"
+                )
+                .build();
+        AmiGuideDocument documentTwo = AmiGuideDocument.builder(
+                        new ResourceLocation("ami", "guide/book_two"),
+                        "patchouli",
+                        "example",
+                        "Guide Two"
+                )
+                .build();
+        AmiGuideSearchIndex index = new AmiGuideSearchIndex(List.of(documentOne, documentTwo),
+                AmiGuideSearchIndex.GuideIndexingMode.TITLES);
+
+        assertEquals(List.of(documentOne, documentTwo), index.search("guidebooks"));
+        assertEquals(List.of(documentOne, documentTwo), index.search("mana guidebooks"));
+    }
+
+    @Test
     void titleMatchesRankAboveSummaryOnlyMatches() {
         AmiGuideDocument titleMatch = AmiGuideDocument.builder(
                         new ResourceLocation("ami", "guide/title"),

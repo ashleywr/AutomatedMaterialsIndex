@@ -484,6 +484,13 @@ public final class PrimaryCategoryResolver {
     }
 
     public static CategoryAssignment resolve(ResourceLocation id, FacetProfile profile) {
+        return resolve(id,
+                profile == null ? Set.of() : profile.facets(),
+                profile == null ? Map.of() : profile.attributes());
+    }
+
+    public static CategoryAssignment resolve(ResourceLocation id, Set<ItemFacet> profileFacets,
+                                             Map<String, String> profileAttributes) {
         /*
          * Classification routing rule:
          * - compat family ownership, semantic ontology, and family enrichment are separate decisions.
@@ -502,8 +509,10 @@ public final class PrimaryCategoryResolver {
 
         String modId = id.getNamespace().toLowerCase(Locale.ROOT);
         String path = id.getPath().toLowerCase(Locale.ROOT);
-        var facets = profile.facets();
-        var attributes = new HashMap<>(profile.attributes());
+        var facets = profileFacets == null || profileFacets.isEmpty()
+                ? EnumSet.noneOf(ItemFacet.class)
+                : EnumSet.copyOf(profileFacets);
+        var attributes = new HashMap<>(profileAttributes == null ? Map.of() : profileAttributes);
         ModFamily modFamily = classifyModFamily(modId);
         AmiConfig.CompatCategoryPolicy categoryPolicy = CompatCategoryPolicyResolver.resolve(attributes);
         if (hasCompatFamily(attributes)) {

@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.sanhiruzu.ami.api.AmiGuideDocument;
+import com.sanhiruzu.ami.api.AmiGuideOpeners;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -26,6 +27,13 @@ public final class ApotheosisGuideSource {
     private static final String ENCHANTING_STATS_RESOURCE_PATH = "enchanting_stats";
     private static final String ENCHANTMENT_RESOURCE_PATH = "enchantment";
     private static final String SOURCE_TYPE = "apotheosis_data";
+    private static final List<ResourceLocation> BOOK_IDS = List.of(
+            ResourceLocation.fromNamespaceAndPath("apotheosis", "apoth_chronicle"),
+            ResourceLocation.fromNamespaceAndPath("apotheosis", "guide"),
+            ResourceLocation.fromNamespaceAndPath("apothic_enchanting", "guide"),
+            ResourceLocation.fromNamespaceAndPath("apothic_enchanting", "apothic_enchanting"),
+            ResourceLocation.fromNamespaceAndPath("apotheosis", "apothic_enchanting")
+    );
 
     private ApotheosisGuideSource() {
     }
@@ -64,6 +72,7 @@ public final class ApotheosisGuideSource {
                 )
                 .chapter("Affixes")
                 .pageId("affix/" + affixPath)
+                .bookId(BOOK_IDS.get(0))
                 .tag("apotheosis")
                 .tag("affix")
                 .tag("apotheosis_affix")
@@ -75,6 +84,7 @@ public final class ApotheosisGuideSource {
                 .tag(affixType)
                 .tag(attribute)
                 .summaryText(String.join("\n", details))
+                .openAction(AmiGuideOpeners.patchouli(BOOK_IDS, "affix/" + affixPath))
                 .build();
     }
 
@@ -99,6 +109,7 @@ public final class ApotheosisGuideSource {
                 )
                 .chapter("Enchanting Stats")
                 .pageId("enchanting_stats/" + statsPath)
+                .bookId(BOOK_IDS.get(0))
                 .tag("apotheosis")
                 .tag("apothic_enchanting")
                 .tag("enchanting")
@@ -107,7 +118,8 @@ public final class ApotheosisGuideSource {
                 .tag("quanta")
                 .tag("arcana")
                 .tags(pathTags(statsPath))
-                .summaryText(String.join("\n", details));
+                .summaryText(String.join("\n", details))
+                .openAction(AmiGuideOpeners.patchouli(BOOK_IDS, "enchanting_stats/" + statsPath));
         if (block != null) {
             builder.referencedItem(block);
         }
@@ -136,6 +148,7 @@ public final class ApotheosisGuideSource {
                 )
                 .chapter("Enchantments")
                 .pageId("enchantment/" + enchantmentPath)
+                .bookId(BOOK_IDS.get(0))
                 .tag("apotheosis")
                 .tag("apothic_enchanting")
                 .tag("enchantment")
@@ -143,6 +156,7 @@ public final class ApotheosisGuideSource {
                 .tag("enchantment_" + enchantmentPath)
                 .tags(pathTags(enchantmentPath))
                 .summaryText(String.join("\n", details))
+                .openAction(AmiGuideOpeners.patchouli(BOOK_IDS, "enchantment/" + enchantmentPath))
                 .build();
     }
 

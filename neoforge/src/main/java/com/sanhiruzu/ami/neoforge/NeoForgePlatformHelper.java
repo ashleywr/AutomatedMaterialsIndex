@@ -9,8 +9,6 @@ import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -31,10 +29,7 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.SuspiciousEffectHolder;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLLoader;
 import net.neoforged.fml.loading.FMLPaths;
@@ -258,31 +253,10 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
 
     @Override
     public OptionalLong getBlockItemHandlerCapacity(ItemStack stack, Level level) {
-        if (stack == null || stack.isEmpty() || level == null || !(stack.getItem() instanceof BlockItem blockItem)) {
-            return OptionalLong.empty();
-        }
-        Block block = blockItem.getBlock();
-        if (!(block instanceof EntityBlock entityBlock)) {
-            return OptionalLong.empty();
-        }
-        try {
-            BlockPos pos = BlockPos.ZERO;
-            BlockState state = block.defaultBlockState();
-            BlockEntity blockEntity = entityBlock.newBlockEntity(pos, state);
-            if (blockEntity == null) return OptionalLong.empty();
-            blockEntity.setLevel(level);
-
-            long capacity = 0L;
-            IItemHandler unsided = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, state, blockEntity, null);
-            capacity = Math.max(capacity, itemHandlerCapacity(unsided));
-            for (Direction direction : Direction.values()) {
-                IItemHandler sided = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, state, blockEntity, direction);
-                capacity = Math.max(capacity, itemHandlerCapacity(sided));
-            }
-            return capacity > 0 ? OptionalLong.of(capacity) : OptionalLong.empty();
-        } catch (RuntimeException | LinkageError ignored) {
-            return OptionalLong.empty();
-        }
+        // Avoid constructing arbitrary modded BlockEntity instances during background indexing.
+        // Item/component capabilities are still probed above; block capability capacity can be
+        // added back through focused compat where it is known to be cheap and side-effect-free.
+        return OptionalLong.empty();
     }
 
     private static long itemHandlerCapacity(IItemHandler handler) {

@@ -20,6 +20,7 @@ import java.util.Map;
  * larger and lower-priority than normal item metadata.
  */
 public final class AmiGuideSearchIndex {
+    public static final String GUIDEBOOKS_FILTER_TOKEN = "guidebooks";
     public static final int DEFAULT_SUMMARY_TEXT_CAP = 4096;
 
     private final GuideIndexingMode mode;
@@ -63,6 +64,10 @@ public final class AmiGuideSearchIndex {
         List<String> tokens = tokens(query);
         if (tokens.isEmpty()) {
             return List.of();
+        }
+
+        if (tokens.stream().anyMatch(token -> GUIDEBOOKS_FILTER_TOKEN.equals(token))) {
+            return List.copyOf(documents);
         }
 
         List<ScoredDocument> scored = new ArrayList<>();
