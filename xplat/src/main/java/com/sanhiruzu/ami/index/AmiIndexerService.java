@@ -179,14 +179,25 @@ public final class AmiIndexerService {
         long searchServiceStart = System.currentTimeMillis();
         beginProgress("Building search cache");
         searchService = SearchService.buildFrom(index, true);
-        beginProgress("Warming suggestions");
-        SearchSuggestions.warm(index);
         long searchServiceMs = System.currentTimeMillis() - searchServiceStart;
+        warmSuggestionsAsync(index);
 
         index.setIndexBuildTime(System.currentTimeMillis() - started);
         progress = AmiIndexProgress.idle();
         AmiCore.LOGGER.info("AMI: Index rebuild complete in {}ms (search service: {}ms). Indexed {} items and {} guide docs.",
                 index.getIndexBuildTimeMs(), searchServiceMs, indexedItemCount, guideSearchIndex.allDocuments().size());
+    }
+
+    private void warmSuggestionsAsync(GlobalIndex index) {
+        CompletableFuture.runAsync(withIndexerClassLoader(() -> {
+            long started = System.currentTimeMillis();
+            try {
+                SearchSuggestions.warm(index);
+                AmiCore.LOGGER.info("AMI: Suggestion vocabulary warmed in {}ms.", System.currentTimeMillis() - started);
+            } catch (Throwable t) {
+                AmiCore.LOGGER.warn("AMI: Suggestion vocabulary warm-up failed: {}", t.getMessage(), t);
+            }
+        }), Util.backgroundExecutor());
     }
 
     public void beginProgress(String phase) {

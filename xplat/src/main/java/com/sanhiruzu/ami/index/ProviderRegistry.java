@@ -88,7 +88,7 @@ public final class ProviderRegistry {
         progress.beginProgress("Restoring cached item icons", "", total);
         int current = 0;
         int registered = 0;
-        for (Item item : BuiltInRegistries.ITEM) {
+        for (Item item : orderedItemsForIndexing()) {
             current++;
             if ((current & 31) == 0 || current == total) {
                 ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(item);
@@ -139,5 +139,20 @@ public final class ProviderRegistry {
 
     private static boolean hasMultipleCreativeStacks(@Nullable List<ItemFilter.CreativeStackInfo> stacks) {
         return stacks != null && stacks.size() > 1;
+    }
+
+    private static List<Item> orderedItemsForIndexing() {
+        List<Item> regular = new java.util.ArrayList<>();
+        List<Item> deferred = new java.util.ArrayList<>();
+        for (Item item : BuiltInRegistries.ITEM) {
+            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+            if (IndexingHotItemPolicy.shouldDeferUntilTail(id)) {
+                deferred.add(item);
+            } else {
+                regular.add(item);
+            }
+        }
+        regular.addAll(deferred);
+        return regular;
     }
 }

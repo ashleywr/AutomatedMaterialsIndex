@@ -10,6 +10,9 @@ import java.util.*;
  * Fast for prefix searches and has a simple substring fallback.
  */
 public final class SearchIndex {
+    private static final Set<String> PLAIN_SEARCHABLE_METADATA_KEYS = Set.of(
+            SearchNodeKeys.TOOLTIP_SEARCH_TOKENS
+    );
     private static final Set<String> SEARCHABLE_METADATA_KEYS = Set.of(
             SearchNodeKeys.MOD_ID,
             SearchNodeKeys.COMPAT_FAMILY,
@@ -118,7 +121,8 @@ public final class SearchIndex {
             SearchNodeKeys.VARIANT_SOURCE,
             SearchNodeKeys.VARIANT_AXES,
             SearchNodeKeys.VARIANT_COLLAPSE_MODE,
-            SearchNodeKeys.SEARCH_TOKENS
+            SearchNodeKeys.SEARCH_TOKENS,
+            SearchNodeKeys.TOOLTIP_SEARCH_TOKENS
     );
     private final TrieNode root = new TrieNode();
     private final Set<SearchNode> allNodes = new LinkedHashSet<>();
@@ -139,6 +143,7 @@ public final class SearchIndex {
         keys.add(node.id().getNamespace());
         keys.add(node.id().getPath());
         addMetadataAliases(keys, node.meta(SearchNodeKeys.COLLAPSE_LABEL, ""));
+        addPlainMetadataAliases(keys, node);
 
         if (includeMetadata) {
             for (var entry : node.metadata().entrySet()) {
@@ -147,6 +152,12 @@ public final class SearchIndex {
             }
         }
         return new ArrayList<>(keys);
+    }
+
+    private static void addPlainMetadataAliases(Set<String> keys, SearchNode node) {
+        for (String key : PLAIN_SEARCHABLE_METADATA_KEYS) {
+            addMetadataAliases(keys, node.meta(key, ""));
+        }
     }
 
     private static boolean isSearchableMetadataKey(String key) {

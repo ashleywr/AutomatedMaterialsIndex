@@ -88,6 +88,7 @@ public class AMIClient {
     @SubscribeEvent
     static void onClientTick(ClientTickEvent.Post event) {
         FtbQuestsRuntimeCompat.clientTick();
+        InventoryOverlayHandler.tickAutoIndexBootstrap();
     }
 
     @SubscribeEvent

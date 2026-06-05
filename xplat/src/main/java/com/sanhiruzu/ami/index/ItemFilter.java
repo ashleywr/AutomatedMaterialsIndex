@@ -172,6 +172,10 @@ public final class ItemFilter {
                 return Collections.emptyMap();
             }
             Map<Item, List<CreativeStackInfo>> items = new LinkedHashMap<>();
+            long started = System.currentTimeMillis();
+            int displayStacks = 0;
+            int copiedStacks = 0;
+            int collapsedHotStacks = 0;
             try {
                 var params = new CreativeModeTab.ItemDisplayParameters(
                         clientLevel.enabledFeatures(), false, clientLevel.registryAccess()
@@ -188,14 +192,26 @@ public final class ItemFilter {
                     String tabLabel = tab.getDisplayName().getString();
                     for (ItemStack stack : tab.getDisplayItems()) {
                         if (!stack.isEmpty()) {
+                            displayStacks++;
                             CreativeTabInfo tabInfo = new CreativeTabInfo(tabKey, tabLabel);
-                            items.computeIfAbsent(stack.getItem(), ignored -> new ArrayList<>())
-                                    .add(new CreativeStackInfo(stack.copy(), tabInfo));
+                            Item item = stack.getItem();
+                            ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(item);
+                            List<CreativeStackInfo> itemStacks = items.computeIfAbsent(item, ignored -> new ArrayList<>());
+                            if (IndexingHotItemPolicy.shouldCollapseCreativeStacks(itemId) && !itemStacks.isEmpty()) {
+                                collapsedHotStacks++;
+                                continue;
+                            }
+                            itemStacks.add(new CreativeStackInfo(stack.copy(), tabInfo));
+                            copiedStacks++;
                         }
                     }
                 }
             } catch (Exception e) {
                 AmiCore.LOGGER.warn("AMI: Failed to build creative tab map: {}", e.getMessage());
+            }
+            if (collapsedHotStacks > 0) {
+                AmiCore.LOGGER.info("AMI indexing: creative tabs built in {}ms (items={} displayStacks={} copiedStacks={} collapsedHotStacks={})",
+                        System.currentTimeMillis() - started, items.size(), displayStacks, copiedStacks, collapsedHotStacks);
             }
             return items;
         }
