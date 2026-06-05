@@ -40,6 +40,7 @@
   "ami.gui.indexing": "インデックス作成中",
   "ami.gui.loading": "読み込み中",
   "ami.gui.background_indexing": "バックグラウンドでインデックス作成中",
+  "ami.gui.indexing_disabled": "インデックス未読み込み（自動インデックスはオフ）",
   "ami.gui.items_count": "(%s個のアイテム)",
   "ami.gui.search_results": "検索結果",
   "ami.gui.debug_hint_active": "[デバッグ] %sで終了",
