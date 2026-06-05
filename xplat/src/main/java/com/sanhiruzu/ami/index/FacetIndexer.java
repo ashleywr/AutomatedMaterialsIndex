@@ -30,6 +30,21 @@ public final class FacetIndexer {
             "rat", "cockroach", "flesh", "duck", "venison",
             "lizard", "catfish", "bass", "koi"
     );
+    private static final List<String> DEFAULT_COMPONENT_FACT_FIELDS = List.of(
+            "POTION_CONTENTS",
+            "TOOL",
+            "MAX_DAMAGE",
+            "CONTAINER",
+            "BUNDLE_CONTENTS",
+            "CUSTOM_DATA",
+            "ENTITY_DATA",
+            "BUCKET_ENTITY_DATA",
+            "BLOCK_ENTITY_DATA"
+    );
+    private static final List<String> STACK_COMPONENT_FACT_FIELDS = List.of(
+            "TOOL",
+            "DAMAGE"
+    );
 
     private FacetIndexer() {
     }
@@ -41,7 +56,8 @@ public final class FacetIndexer {
         List<String> tags = collectTags(item);
         attributes.put(SearchNodeKeys.ITEM_CLASS, item.getClass().getName());
 
-        if (Services.PLATFORM.hasFood(stack)) {
+        boolean hasFood = Services.PLATFORM.hasFood(stack);
+        if (hasFood) {
             facets.add(ItemFacet.EDIBLE);
         }
         if (stack.getUseAnimation() == UseAnim.DRINK) {
@@ -50,7 +66,7 @@ public final class FacetIndexer {
         if (ComposterBlock.COMPOSTABLES.containsKey(item)) {
             facets.add(ItemFacet.COMPOSTABLE);
         }
-        applyComponentFacts(stack, facets, attributes);
+        applyComponentFacts(stack, hasFood, facets, attributes);
         applyItemClassFacts(item, facets);
         applyPathFacts(path, facets);
         applyTypeFacts(item, path, facets);
@@ -65,44 +81,47 @@ public final class FacetIndexer {
         return new FacetProfile(facets, attributes);
     }
 
-    private static void applyComponentFacts(ItemStack stack, EnumSet<ItemFacet> facets, Map<String, String> attributes) {
+    private static void applyComponentFacts(ItemStack stack, boolean hasFood,
+                                            EnumSet<ItemFacet> facets, Map<String, String> attributes) {
         List<String> facts = new ArrayList<>();
         Item item = stack.getItem();
-        if (Services.PLATFORM.hasFood(stack)) {
+        Set<String> defaultComponents = Services.PLATFORM.getDefaultItemComponentNames(item, DEFAULT_COMPONENT_FACT_FIELDS);
+        Set<String> stackComponents = Services.PLATFORM.getStackComponentNames(stack, STACK_COMPONENT_FACT_FIELDS);
+        if (hasFood) {
             facts.add("food");
             facets.add(ItemFacet.EDIBLE);
         }
-        if (Services.PLATFORM.hasDefaultItemComponent(item, "POTION_CONTENTS")) {
+        if (defaultComponents.contains("POTION_CONTENTS")) {
             facts.add("potion_contents");
             facets.add(ItemFacet.POTION);
         }
-        if (Services.PLATFORM.hasDefaultItemComponent(item, "TOOL") || Services.PLATFORM.hasStackComponent(stack, "TOOL")) {
+        if (defaultComponents.contains("TOOL") || stackComponents.contains("TOOL")) {
             facts.add("tool");
         }
-        if (Services.PLATFORM.hasDefaultItemComponent(item, "MAX_DAMAGE")) {
+        if (defaultComponents.contains("MAX_DAMAGE")) {
             facts.add("max_damage");
         }
-        if (Services.PLATFORM.hasStackComponent(stack, "DAMAGE")) {
+        if (stackComponents.contains("DAMAGE")) {
             facts.add("damage");
         }
-        if (Services.PLATFORM.hasDefaultItemComponent(item, "CONTAINER")) {
+        if (defaultComponents.contains("CONTAINER")) {
             facts.add("container");
             facets.add(ItemFacet.STORAGE);
         }
-        if (Services.PLATFORM.hasDefaultItemComponent(item, "BUNDLE_CONTENTS")) {
+        if (defaultComponents.contains("BUNDLE_CONTENTS")) {
             facts.add("bundle_contents");
             facets.add(ItemFacet.STORAGE);
         }
-        if (Services.PLATFORM.hasDefaultItemComponent(item, "CUSTOM_DATA")) {
+        if (defaultComponents.contains("CUSTOM_DATA")) {
             facts.add("custom_data");
         }
-        if (Services.PLATFORM.hasDefaultItemComponent(item, "ENTITY_DATA")) {
+        if (defaultComponents.contains("ENTITY_DATA")) {
             facts.add("entity_data");
         }
-        if (Services.PLATFORM.hasDefaultItemComponent(item, "BUCKET_ENTITY_DATA")) {
+        if (defaultComponents.contains("BUCKET_ENTITY_DATA")) {
             facts.add("bucket_entity_data");
         }
-        if (Services.PLATFORM.hasDefaultItemComponent(item, "BLOCK_ENTITY_DATA")) {
+        if (defaultComponents.contains("BLOCK_ENTITY_DATA")) {
             facts.add("block_entity_data");
         }
         if (!facts.isEmpty()) {

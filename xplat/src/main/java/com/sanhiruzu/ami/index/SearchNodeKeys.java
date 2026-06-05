@@ -45,6 +45,7 @@ public final class SearchNodeKeys {
     public static final String ATTACK_DAMAGE = "attackDamage";
     public static final String DPS = "dps";          // Damage per second (Assembly Lab)
     public static final String SEARCH_TOKENS = "searchTokens";  // Space-separated synthetic search tokens
+    public static final String PLAIN_SEARCH_TOKENS = "plainSearchTokens"; // Small curated aliases for normal text search
     public static final String TOOLTIP_SEARCH_TOKENS = "tooltipSearchTokens"; // Filtered native tooltip words for plain search
     public static final String ACCESS_LEVEL = "accessLevel";  // "survival", "creative", "cheat", or "dev"
     public static final String VISIBILITY = "visibility";    // "hidden" = not in any creative tab

@@ -3,7 +3,9 @@ package com.sanhiruzu.ami.api;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.Collection;
 import java.lang.reflect.Method;
+import java.util.LinkedHashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -45,12 +47,24 @@ public final class AmiGuideOpeners {
     }
 
     /**
+     * Opens a Patchouli book by trying each candidate book ID until one opens.
+     * This handles module split/version drift where the book ID changes (for example,
+     * {@code apotheosis:apoth_chronicle} vs potential legacy values).
+     *
+     * @param bookIds candidate book IDs to try in order
+     * @param pageId the entry path within the book namespace (e.g. {@code basics/mana_spreader})
+     */
+    public static Runnable patchouli(Collection<ResourceLocation> bookIds, String pageId) {
+        return () -> openPatchouliBook(bookIds, pageId);
+    }
+
+    /**
      * Opens a Patchouli-based guidebook to its cover or last-visited page.
      *
      * @param bookId the book's ResourceLocation
      */
     public static Runnable patchouli(ResourceLocation bookId) {
-        return () -> openPatchouliBook(bookId, null);
+        return () -> openPatchouliBook(bookId);
     }
 
     // ── GuideME ───────────────────────────────────────────────────────────────
@@ -77,32 +91,163 @@ public final class AmiGuideOpeners {
 
     // ── Internal ──────────────────────────────────────────────────────────────
 
+    private static void openPatchouliBook(Iterable<ResourceLocation> bookIds, String pageId) {
+        if (bookIds == null) {
+            return;
+        }
+        LinkedHashSet<ResourceLocation> deduped = new LinkedHashSet<>();
+        for (ResourceLocation bookId : bookIds) {
+            if (bookId == null) {
+                continue;
+            }
+            deduped.add(bookId);
+        }
+
+        if (pageId != null && !pageId.isBlank()) {
+            for (ResourceLocation bookId : deduped) {
+                if (openPatchouliBookEntry(bookId, pageId)) {
+                    return;
+                }
+            }
+            for (ResourceLocation bookId : deduped) {
+                if (openPatchouliBook(bookId)) {
+                    return;
+                }
+            }
+            return;
+        }
+
+        for (ResourceLocation bookId : deduped) {
+            if (openPatchouliBook(bookId)) {
+                return;
+            }
+        }
+    }
+
     private static void openPatchouliBook(ResourceLocation bookId, String pageId) {
+        if (bookId == null) {
+            return;
+        }
+        if (pageId == null || pageId.isBlank()) {
+            openPatchouliBook(bookId);
+            return;
+        }
+        if (openPatchouliBookEntry(bookId, pageId)) {
+            return;
+        }
+        openPatchouliBook(bookId);
+    }
+
+    private static boolean openPatchouliBook(ResourceLocation bookId) {
+        if (bookId == null) {
+            return false;
+        }
         try {
             Class<?> apiClass = Class.forName("vazkii.patchouli.api.PatchouliAPI");
             Object api = apiClass.getMethod("get").invoke(null);
             Minecraft mc = Minecraft.getInstance();
-            if (mc.player == null) return;
+            if (mc.player == null) return false;
 
-            if (pageId != null && !pageId.isBlank()) {
-                ResourceLocation entryId = ResourceLocation.fromNamespaceAndPath(bookId.getNamespace(), pageId);
-                for (Method m : api.getClass().getMethods()) {
-                    if ("openBookGui".equals(m.getName()) && m.getParameterCount() == 4) {
-                        m.invoke(api, mc.player, bookId, entryId, 0);
-                        return;
-                    }
-                }
+            if (tryInvokePatchouli(api, "openBookGUI", bookId)) {
+                return true;
             }
-
-            for (Method m : api.getClass().getMethods()) {
-                if ("openBookGui".equals(m.getName()) && m.getParameterCount() == 2) {
-                    m.invoke(api, mc.player, bookId);
-                    return;
-                }
+            if (tryInvokePatchouli(api, "openBookGUI", mc.player, bookId)) {
+                return true;
+            }
+            if (tryInvokePatchouli(api, "openBookGui", mc.player, bookId)) {
+                return true;
             }
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
             LOGGER.log(Level.FINE, "AMI: Patchouli unavailable for guide open: " + bookId, e);
         }
+        return false;
+    }
+
+    private static boolean openPatchouliBookEntry(ResourceLocation bookId, String pageId) {
+        if (bookId == null || pageId == null || pageId.isBlank()) {
+            return false;
+        }
+        try {
+            Class<?> apiClass = Class.forName("vazkii.patchouli.api.PatchouliAPI");
+            Object api = apiClass.getMethod("get").invoke(null);
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player == null) {
+                return false;
+            }
+            ResourceLocation entryId = ResourceLocation.tryParse(pageId);
+            if (entryId == null) {
+                entryId = ResourceLocation.fromNamespaceAndPath(bookId.getNamespace(), pageId);
+            }
+            return tryInvokePatchouli(api, "openBookEntry", mc.player, bookId, entryId, 0) ||
+                    tryInvokePatchouli(api, "openBookEntry", bookId, entryId, 0) ||
+                    tryInvokePatchouli(api, "openBookGui", mc.player, bookId, entryId, 0) ||
+                    tryInvokePatchouli(api, "openBookGUI", mc.player, bookId, entryId, 0) ||
+                    tryInvokePatchouli(api, "openBookGui", bookId, entryId, 0) ||
+                    tryInvokePatchouli(api, "openBookGUI", bookId, entryId, 0);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Patchouli unavailable for guide entry open: " + bookId, e);
+        }
+        return false;
+    }
+
+    private static boolean tryInvokePatchouli(Object api, String methodName, Object... args) {
+        outer:
+        for (Method method : api.getClass().getMethods()) {
+            if (!methodName.equals(method.getName())) {
+                continue;
+            }
+            if (method.getParameterCount() != args.length) {
+                continue;
+            }
+            Class<?>[] parameterTypes = method.getParameterTypes();
+            for (int i = 0; i < args.length; i++) {
+                Object arg = args[i];
+                if (!isPatchouliArgAssignable(parameterTypes[i], arg)) {
+                    continue outer;
+                }
+            }
+            try {
+                method.invoke(api, args);
+                return true;
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
+                LOGGER.log(Level.FINE, "AMI: Patchouli method invocation failed for " + methodName, ignored);
+            }
+        }
+        return false;
+    }
+
+    private static boolean isPatchouliArgAssignable(Class<?> parameterType, Object arg) {
+        if (arg == null) {
+            return !parameterType.isPrimitive();
+        }
+        if (!parameterType.isPrimitive()) {
+            return parameterType.isInstance(arg);
+        }
+        if (parameterType == boolean.class && arg instanceof Boolean) {
+            return true;
+        }
+        if (parameterType == byte.class && arg instanceof Byte) {
+            return true;
+        }
+        if (parameterType == short.class && arg instanceof Short) {
+            return true;
+        }
+        if (parameterType == int.class && arg instanceof Integer) {
+            return true;
+        }
+        if (parameterType == long.class && arg instanceof Long) {
+            return true;
+        }
+        if (parameterType == float.class && arg instanceof Float) {
+            return true;
+        }
+        if (parameterType == double.class && arg instanceof Double) {
+            return true;
+        }
+        if (parameterType == char.class && arg instanceof Character) {
+            return true;
+        }
+        return false;
     }
 
     private static void openGuideMEBook(ResourceLocation bookId, String pageId) {

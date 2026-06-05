@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.index.providers;
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.GroupingEngine;
+import com.sanhiruzu.ami.index.IndexingHotItemPolicy;
 import com.sanhiruzu.ami.index.ItemFilter;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
@@ -43,6 +44,9 @@ public final class CreativeStackVariantExpander {
             @Nullable Level level
     ) {
         if (baseId == null || creativeStacks == null || creativeStacks.isEmpty()) {
+            return List.of();
+        }
+        if (creativeStacks.size() < 2) {
             return List.of();
         }
         if (isSuppressedComponentBackedFamily(baseId)) {
@@ -121,11 +125,7 @@ public final class CreativeStackVariantExpander {
     }
 
     private static boolean isSuppressedComponentBackedFamily(ResourceLocation baseId) {
-        if (AmiConfig.devMode) {
-            return false;
-        }
-        return ("ae2".equals(baseId.getNamespace()) || "appliedenergistics2".equals(baseId.getNamespace()))
-                && "facade".equals(baseId.getPath());
+        return IndexingHotItemPolicy.shouldSuppressCreativeVariantExpansion(baseId);
     }
 
     private static Map<String, Integer> displayNameCounts(List<VisibleStack> stacks) {
@@ -138,6 +138,7 @@ public final class CreativeStackVariantExpander {
 
     private static List<CreativeStackCandidate> distinctStacks(List<ItemFilter.CreativeStackInfo> creativeStacks) {
         List<CreativeStackCandidate> result = new ArrayList<>();
+        Map<String, List<CreativeStackCandidate>> seenByIdentity = new HashMap<>();
         for (ItemFilter.CreativeStackInfo info : creativeStacks) {
             if (info == null || info.stack() == null || info.stack().isEmpty()) {
                 continue;
@@ -145,7 +146,9 @@ public final class CreativeStackVariantExpander {
             ItemStack stack = info.stack().copy();
             stack.setCount(1);
             boolean seen = false;
-            for (CreativeStackCandidate existing : result) {
+            String identity = distinctStackIdentity(stack);
+            List<CreativeStackCandidate> candidates = seenByIdentity.computeIfAbsent(identity, ignored -> new ArrayList<>());
+            for (CreativeStackCandidate existing : candidates) {
                 if (Services.PLATFORM.sameItemSameComponents(existing.stack(), stack)) {
                     seen = true;
                     break;
@@ -153,10 +156,24 @@ public final class CreativeStackVariantExpander {
             }
             if (!seen) {
                 ItemFilter.CreativeTabInfo tab = info.tab();
-                result.add(new CreativeStackCandidate(stack, tab == null ? "" : tab.id()));
+                CreativeStackCandidate candidate = new CreativeStackCandidate(stack, tab == null ? "" : tab.id());
+                candidates.add(candidate);
+                result.add(candidate);
             }
         }
         return result;
+    }
+
+    private static String distinctStackIdentity(ItemStack stack) {
+        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        String componentKey = reflectedStackDetail(stack, "getComponentsPatch");
+        if (componentKey.isBlank()) {
+            componentKey = reflectedStackDetail(stack, "getTag");
+        }
+        if (componentKey.isBlank()) {
+            componentKey = reflectedStackDetail(stack, "getShareTag");
+        }
+        return (itemId == null ? stack.getItem().getClass().getName() : itemId.toString()) + "|" + componentKey;
     }
 
     private record CreativeStackCandidate(ItemStack stack, String tabId) {

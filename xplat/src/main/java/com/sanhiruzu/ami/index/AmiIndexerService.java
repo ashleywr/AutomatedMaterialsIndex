@@ -6,7 +6,6 @@ import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.compat.ApotheosisGuideSource;
 import com.sanhiruzu.ami.compat.SilentGearMaterialTraitIndex;
 import com.sanhiruzu.ami.compat.SilentGearTraitGuideSource;
-import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.config.AmiCustomTaxonomy;
 import com.sanhiruzu.ami.config.AmiDataFixes;
 import com.sanhiruzu.ami.index.query.SearchSuggestions;
@@ -24,7 +23,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class AmiIndexerService {
     private static final AmiIndexerService INSTANCE = new AmiIndexerService();
     private final AtomicBoolean isRebuilding = new AtomicBoolean(false);
+    private final AtomicBoolean isDeferredIndexing = new AtomicBoolean(false);
     private volatile SearchService searchService;
+    private volatile long searchServiceRevision = -1L;
     private volatile AmiGuideSearchIndex guideSearchIndex = new AmiGuideSearchIndex(null, AmiGuideSearchIndex.GuideIndexingMode.OFF);
     private volatile int indexedItemCount;
     private volatile Throwable lastRebuildFailure;
@@ -138,14 +139,24 @@ public final class AmiIndexerService {
         AmiCustomTaxonomy.reload();
         AmiDataFixes.reload();
         beginProgress("Checking index cache");
-        if (!forceProviderRebuild && Services.PLATFORM.tryLoadGlobalIndexCache()) {
+        boolean deferredNamespaceMode = IndexingHotItemPolicy.hasDeferredIndexNamespaces();
+        if (deferredNamespaceMode) {
+            AmiCore.LOGGER.info(
+                    "AMI: Deferred namespace indexing enabled for {}; bypassing index cache for this experimental run.",
+                    IndexingHotItemPolicy.deferredIndexNamespacesForLog());
+        }
+        if (!deferredNamespaceMode && !forceProviderRebuild && Services.PLATFORM.tryLoadGlobalIndexCache()) {
             beginProgress("Restoring cached item icons", "Rebuilding runtime stacks", estimatedItemTotal());
             ProviderRegistry.rehydrateSubtypeStacks(level);
         } else {
             beginProgress("Building item index");
             ProviderRegistry.indexAll(level);
-            beginProgress("Saving index cache");
-            Services.PLATFORM.saveGlobalIndexCache();
+            if (deferredNamespaceMode) {
+                AmiCore.LOGGER.info("AMI: Deferred namespace indexing active; skipping index cache save until the experiment is disabled.");
+            } else {
+                beginProgress("Saving index cache");
+                Services.PLATFORM.saveGlobalIndexCache();
+            }
         }
 
         // 2. Populate world/datapack-backed atlas types before we snapshot the search service.
@@ -159,9 +170,6 @@ public final class AmiIndexerService {
         AmiDataFixes.applyToIndex(index);
         beginProgress("Applying compatibility metadata");
         SilentGearMaterialTraitIndex.applyToIndex(index);
-        if (AmiConfig.devMode) {
-            ItemIconRenderer.auditMissingIcons();
-        }
 
         beginProgress("Indexing guides");
         AmiGuideRegistry.clear();
@@ -178,14 +186,85 @@ public final class AmiIndexerService {
         // Build search service from the new index
         long searchServiceStart = System.currentTimeMillis();
         beginProgress("Building search cache");
-        searchService = SearchService.buildFrom(index, true);
+        publishSearchService(index, SearchService.buildFrom(index, true));
         long searchServiceMs = System.currentTimeMillis() - searchServiceStart;
-        warmSuggestionsAsync(index);
+        if (!deferredNamespaceMode) {
+            warmSuggestionsAsync(index);
+        }
 
         index.setIndexBuildTime(System.currentTimeMillis() - started);
         progress = AmiIndexProgress.idle();
         AmiCore.LOGGER.info("AMI: Index rebuild complete in {}ms (search service: {}ms). Indexed {} items and {} guide docs.",
                 index.getIndexBuildTimeMs(), searchServiceMs, indexedItemCount, guideSearchIndex.allDocuments().size());
+        if (deferredNamespaceMode) {
+            scheduleDeferredNamespaceIndex(level);
+        } else {
+            scheduleIconAuditIfEnabled();
+        }
+    }
+
+    private void scheduleDeferredNamespaceIndex(Level level) {
+        if (!isDeferredIndexing.compareAndSet(false, true)) {
+            return;
+        }
+        CompletableFuture.runAsync(withIndexerClassLoader(() -> {
+            long started = System.currentTimeMillis();
+            long searchServiceMs = 0L;
+            int added = 0;
+            try {
+                GlobalIndex index = GlobalIndex.getInstance();
+                AmiCore.LOGGER.info("AMI: Deferred namespace indexing started for {}.",
+                        IndexingHotItemPolicy.deferredIndexNamespacesForLog());
+                added = ProviderRegistry.indexDeferredItems(level);
+                if (added > 0) {
+                    beginProgress("Applying deferred taxonomy");
+                    AmiCustomTaxonomy.applyToIndex(index);
+                    beginProgress("Applying deferred data fixes");
+                    AmiDataFixes.applyToIndex(index);
+                    beginProgress("Applying deferred compatibility metadata");
+                    SilentGearMaterialTraitIndex.applyToIndex(index);
+                    indexedItemCount = index.getNodes(NodeType.ITEM).size();
+
+                    long searchServiceStart = System.currentTimeMillis();
+                    beginProgress("Building deferred search cache");
+                    publishSearchService(index, SearchService.buildFrom(index, true));
+                    searchServiceMs = System.currentTimeMillis() - searchServiceStart;
+                }
+                warmSuggestionsAsync(index);
+                scheduleIconAuditIfEnabled();
+                AmiCore.LOGGER.info(
+                        "AMI: Deferred namespace indexing complete in {}ms (added {} item nodes, search service: {}ms). Indexed {} items.",
+                        System.currentTimeMillis() - started,
+                        added,
+                        searchServiceMs,
+                        indexedItemCount);
+            } catch (Throwable t) {
+                AmiCore.LOGGER.warn("AMI: Deferred namespace indexing failed: {}", t.getMessage(), t);
+            } finally {
+                isDeferredIndexing.set(false);
+                progress = AmiIndexProgress.idle();
+            }
+        }), Util.backgroundExecutor());
+    }
+
+    private void publishSearchService(GlobalIndex index, SearchService service) {
+        searchService = service;
+        searchServiceRevision = index.revision();
+    }
+
+    private void scheduleIconAuditIfEnabled() {
+        if (!IndexingHotItemPolicy.shouldAuditIcons()) {
+            return;
+        }
+        CompletableFuture.runAsync(withIndexerClassLoader(() -> {
+            long started = System.currentTimeMillis();
+            try {
+                ItemIconRenderer.auditMissingIcons();
+                AmiCore.LOGGER.info("AMI IconAudit: completed in {}ms.", System.currentTimeMillis() - started);
+            } catch (Throwable t) {
+                AmiCore.LOGGER.warn("AMI IconAudit: failed: {}", t.getMessage(), t);
+            }
+        }), Util.backgroundExecutor());
     }
 
     private void warmSuggestionsAsync(GlobalIndex index) {
@@ -226,5 +305,13 @@ public final class AmiIndexerService {
 
     public int indexedItemCount() {
         return indexedItemCount;
+    }
+
+    public long searchServiceRevision() {
+        return searchServiceRevision;
+    }
+
+    public boolean isDeferredIndexing() {
+        return isDeferredIndexing.get();
     }
 }

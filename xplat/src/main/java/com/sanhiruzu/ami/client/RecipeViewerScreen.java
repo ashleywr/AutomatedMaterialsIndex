@@ -54,6 +54,7 @@ public class RecipeViewerScreen extends Screen {
     private final Screen parentScreen;
     private final List<HistoryEntry> history = new java.util.ArrayList<>();
     private final java.util.Map<String, Integer> slotOffsets = new java.util.HashMap<>();
+    private final boolean shouldRestoreAmiEnabled;
     private int guiHeight = 180;
     private int recipesPerPage = 1;
     // ── State ────────────────────────────────────────────────────────────────
@@ -73,6 +74,7 @@ public class RecipeViewerScreen extends Screen {
                 : Component.translatable("ami.recipe_viewer.uses_title", target.getHoverName()));
         this.target = target;
         this.showRecipes = showRecipes;
+        this.shouldRestoreAmiEnabled = InventoryOverlayHandler.isAmiEnabled();
 
         if (parentScreen instanceof RecipeViewerScreen rvs) {
             this.parentScreen = rvs.parentScreen;
@@ -865,6 +867,8 @@ public class RecipeViewerScreen extends Screen {
 
     @Override
     public void onClose() {
+        RecipeViewerBridge.clearRecipeView();
+        InventoryOverlayHandler.setAmiEnabled(shouldRestoreAmiEnabled);
         if (minecraft != null) minecraft.setScreen(parentScreen);
     }
 

@@ -202,6 +202,7 @@
   "ami.context.open_guide_page": "Open Guide Page",
   "ami.context.copy_guide_title": "Copy Page Title",
   "ami.context.copy_guide_id": "Copy Guide ID",
+  "ami.context.filter_guide_book": "Filter Guide Books",
   "ami.context.copy_quest_title": "Copy Quest Title",
   "ami.context.copy_quest_id": "Copy Quest ID",
   "ami.context.quests_for_item": "Show Quests for Item",

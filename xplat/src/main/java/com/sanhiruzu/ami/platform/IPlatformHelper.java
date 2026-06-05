@@ -17,9 +17,14 @@ import net.minecraft.world.level.Level;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public interface IPlatformHelper {
     private static Object unwrapRecipe(Object recipeOrHolder) {
@@ -49,13 +54,7 @@ public interface IPlatformHelper {
     }
 
     private static Object getDataComponentType(String fieldName) {
-        try {
-            Class<?> dataComponentsClass = Class.forName("net.minecraft.core.component.DataComponents");
-            Field field = dataComponentsClass.getField(fieldName);
-            return field.get(null);
-        } catch (ReflectiveOperationException | RuntimeException ignored) {
-            return null;
-        }
+        return DataComponentTypeCache.get(fieldName);
     }
 
     private static Boolean invokeStaticItemStackComparison(String methodName, ItemStack first, ItemStack second) {
@@ -296,6 +295,42 @@ public interface IPlatformHelper {
         return hasComponent instanceof Boolean bool && bool;
     }
 
+    default Set<String> getDefaultItemComponentNames(Object item, Collection<String> componentFieldNames) {
+        if (item == null || componentFieldNames == null || componentFieldNames.isEmpty()) {
+            return Set.of();
+        }
+        Object itemComponents = invokeNoArg(item, "components");
+        if (itemComponents == null) {
+            return Set.of();
+        }
+        Set<String> result = new HashSet<>();
+        for (String componentFieldName : componentFieldNames) {
+            Object componentType = getDataComponentType(componentFieldName);
+            if (componentType == null) continue;
+            Object hasComponent = invokeOneArg(itemComponents, "has", componentType);
+            if (hasComponent instanceof Boolean bool && bool) {
+                result.add(componentFieldName);
+            }
+        }
+        return result;
+    }
+
+    default Set<String> getStackComponentNames(ItemStack stack, Collection<String> componentFieldNames) {
+        if (stack == null || stack.isEmpty() || componentFieldNames == null || componentFieldNames.isEmpty()) {
+            return Set.of();
+        }
+        Set<String> result = new HashSet<>();
+        for (String componentFieldName : componentFieldNames) {
+            Object componentType = getDataComponentType(componentFieldName);
+            if (componentType == null) continue;
+            Object hasComponent = invokeOneArg(stack, "has", componentType);
+            if (hasComponent instanceof Boolean bool && bool) {
+                result.add(componentFieldName);
+            }
+        }
+        return result;
+    }
+
     default Optional<String> getEquipmentSlotName(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return Optional.empty();
         Object slot = invokeNoArg(stack, "getEquipmentSlot");
@@ -413,5 +448,31 @@ public interface IPlatformHelper {
     }
 
     record SubtypeStack(ResourceLocation subtypeId, ItemStack stack) {
+    }
+
+    final class DataComponentTypeCache {
+        private static final Object MISSING = new Object();
+        private static final ConcurrentMap<String, Object> VALUES = new ConcurrentHashMap<>();
+
+        private DataComponentTypeCache() {
+        }
+
+        static Object get(String fieldName) {
+            if (fieldName == null || fieldName.isBlank()) {
+                return null;
+            }
+            Object value = VALUES.computeIfAbsent(fieldName, DataComponentTypeCache::lookup);
+            return value == MISSING ? null : value;
+        }
+
+        private static Object lookup(String fieldName) {
+            try {
+                Class<?> dataComponentsClass = Class.forName("net.minecraft.core.component.DataComponents");
+                Field field = dataComponentsClass.getField(fieldName);
+                return field.get(null);
+            } catch (ReflectiveOperationException | RuntimeException ignored) {
+                return MISSING;
+            }
+        }
     }
 }

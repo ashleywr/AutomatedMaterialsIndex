@@ -139,7 +139,7 @@ public class EmiScreenManagerMixin {
      * Suppress EMI input only when no recipe view is active — lifted so the player can interact with recipe tabs and widgets.
      */
     private static boolean shouldSuppressEmiInput() {
-        if (!InventoryOverlayHandler.isAmiEnabled()) return false;
+        if (!InventoryOverlayHandler.shouldSuppressRecipeViewerChrome()) return false;
         if (RecipeViewerBridge.isRecipeViewActive()) return false;
         if (isEmiRecipeScreenActive()) return false;
         return true;

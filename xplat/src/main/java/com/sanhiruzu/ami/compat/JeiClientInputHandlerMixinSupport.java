@@ -15,7 +15,7 @@ public final class JeiClientInputHandlerMixinSupport {
 
     public static boolean shouldSuppressJeiInput() {
         if (!RecipeViewerBridge.isJeiLoaded()) return false;
-        if (!InventoryOverlayHandler.isAmiEnabled()) return false;
+        if (!InventoryOverlayHandler.shouldSuppressRecipeViewerChrome()) return false;
         if (RecipeViewerBridge.isRecipeViewActive()) return false;
         if (isJeiRecipeScreenActive()) return false;
         return true;

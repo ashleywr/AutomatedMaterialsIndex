@@ -11,10 +11,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 final class CategoryRouteTrace {
+    private final boolean includeTrace;
     private final StringJoiner steps = new StringJoiner(" -> ");
     private final StringJoiner trace = new StringJoiner(" | ");
 
     private CategoryRouteTrace(ResourceLocation id, String modFamily, Set<ItemFacet> facets, Map<String, String> attributes) {
+        includeTrace = IndexingHotItemPolicy.shouldRecordClassificationTrace();
         StringBuilder input = new StringBuilder("input[")
                 .append(id == null ? "null" : id)
                 .append(" modFamily=")
@@ -27,8 +29,10 @@ final class CategoryRouteTrace {
         appendAttribute(input, "kind", attributes.get(SearchNodeKeys.COBBLEMON_ITEM_KIND));
         input.append("]");
         steps.add(input.toString());
-        trace.add(input.toString());
-        appendFactSummary(facets == null ? Set.of() : facets, attributes);
+        if (includeTrace) {
+            trace.add(input.toString());
+            appendFactSummary(facets == null ? Set.of() : facets, attributes);
+        }
     }
 
     static CategoryRouteTrace start(ResourceLocation id, String modFamily, Set<ItemFacet> facets, Map<String, String> attributes) {
@@ -36,6 +40,9 @@ final class CategoryRouteTrace {
     }
 
     void skipped(String phase, String reason) {
+        if (!includeTrace) {
+            return;
+        }
         trace.add(normalizeStep(phase) + ": skip - " + normalizeStep(reason));
     }
 
@@ -47,13 +54,17 @@ final class CategoryRouteTrace {
                 assignment.subcategoryId()
         );
         steps.add(decision.label());
-        trace.add(decision.label() + ": matched");
+        if (includeTrace) {
+            trace.add(decision.label() + ": matched");
+        }
 
         Map<String, String> attributes = new LinkedHashMap<>(assignment.attributes());
         attributes.put(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE, decision.phase());
         attributes.put(SearchNodeKeys.CLASSIFICATION_ROUTE_RULE, decision.ruleId());
         attributes.put(SearchNodeKeys.CLASSIFICATION_ROUTE, steps.toString());
-        attributes.put(SearchNodeKeys.CLASSIFICATION_TRACE, trace.toString());
+        if (includeTrace) {
+            attributes.put(SearchNodeKeys.CLASSIFICATION_TRACE, trace.toString());
+        }
         return new CategoryAssignment(assignment.categoryId(), assignment.subcategoryId(), attributes);
     }
 
