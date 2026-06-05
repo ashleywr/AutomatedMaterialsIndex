@@ -9,12 +9,12 @@ public final class JeiClientInputHandlerMixinSupport {
     }
 
     public static boolean shouldSuppressJeiChrome() {
-        if (!RecipeViewerBridge.isJeiSelectedExternalViewer()) return false;
+        if (!RecipeViewerBridge.isJeiLoaded()) return false;
         return InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
     }
 
     public static boolean shouldSuppressJeiInput() {
-        if (!RecipeViewerBridge.isJeiSelectedExternalViewer()) return false;
+        if (!RecipeViewerBridge.isJeiLoaded()) return false;
         if (!InventoryOverlayHandler.isAmiEnabled()) return false;
         if (RecipeViewerBridge.isRecipeViewActive()) return false;
         if (isJeiRecipeScreenActive()) return false;
