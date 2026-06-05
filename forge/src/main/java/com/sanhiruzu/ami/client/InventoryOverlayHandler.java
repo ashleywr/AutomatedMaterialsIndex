@@ -27,10 +27,6 @@ public class InventoryOverlayHandler {
     private static boolean sessionInitialized = false;
     private static boolean indexingRequested = false;
 
-    private static boolean isAmiAvailable() {
-        return AmiConfig.enableAutoIndexing;
-    }
-
     /**
      * Check if screen is a container screen. Matches EMI's check (HandledScreen equivalent).
      */
@@ -125,10 +121,8 @@ public class InventoryOverlayHandler {
             return;
         }
 
-        if (isAmiAvailable() || isRecipeScreen(event.getScreen())) {
-            manager.refreshLayoutIfNeeded(event.getScreen());
-            manager.renderAll(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
-        }
+        manager.refreshLayoutIfNeeded(event.getScreen());
+        manager.renderAll(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
 
         if (amiEnabled) {
             manager.tick(event);
@@ -215,7 +209,7 @@ public class InventoryOverlayHandler {
 
     public static boolean shouldSuppressRecipeViewerChrome() {
         Minecraft mc = Minecraft.getInstance();
-        return isAmiAvailable() && amiEnabled && mc.screen != null && isAmiScreen(mc.screen);
+        return amiEnabled && mc.screen != null && isAmiScreen(mc.screen);
     }
 
     public static boolean isMouseOverAmiOverlay(double mouseX, double mouseY) {
