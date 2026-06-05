@@ -29,7 +29,7 @@ public final class DpsMetricSniffer {
         return estimateStats(stack).map(stats -> OptionalDouble.of(stats.damage())).orElseGet(OptionalDouble::empty);
     }
 
-    private static Optional<AttackStats> estimateStats(ItemStack stack) {
+    public static Optional<DpsStats> estimateStats(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return Optional.empty();
 
         MutableAttribute damage = new MutableAttribute(PLAYER_BASE_DAMAGE);
@@ -55,7 +55,7 @@ public final class DpsMetricSniffer {
         if (!hasMainHandAttackModifier || dps <= 0.0D) {
             return Optional.empty();
         }
-        return Optional.of(new AttackStats(finalDamage, dps));
+        return Optional.of(new DpsStats(finalDamage, dps));
     }
 
     private static final class MutableAttribute {
@@ -82,6 +82,6 @@ public final class DpsMetricSniffer {
         }
     }
 
-    private record AttackStats(double damage, double dps) {
+    public record DpsStats(double damage, double dps) {
     }
 }

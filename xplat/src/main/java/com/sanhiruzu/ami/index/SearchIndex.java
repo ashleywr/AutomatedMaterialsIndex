@@ -11,6 +11,7 @@ import java.util.*;
  */
 public final class SearchIndex {
     private static final Set<String> PLAIN_SEARCHABLE_METADATA_KEYS = Set.of(
+            SearchNodeKeys.PLAIN_SEARCH_TOKENS,
             SearchNodeKeys.TOOLTIP_SEARCH_TOKENS
     );
     private static final Set<String> SEARCHABLE_METADATA_KEYS = Set.of(
@@ -122,6 +123,7 @@ public final class SearchIndex {
             SearchNodeKeys.VARIANT_AXES,
             SearchNodeKeys.VARIANT_COLLAPSE_MODE,
             SearchNodeKeys.SEARCH_TOKENS,
+            SearchNodeKeys.PLAIN_SEARCH_TOKENS,
             SearchNodeKeys.TOOLTIP_SEARCH_TOKENS
     );
     private final TrieNode root = new TrieNode();

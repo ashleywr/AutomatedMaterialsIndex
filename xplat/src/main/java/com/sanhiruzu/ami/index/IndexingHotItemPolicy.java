@@ -3,6 +3,12 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 /**
  * Debug-only policy for experimenting with known hot items without changing
  * default indexing behavior for all users.
@@ -12,6 +18,14 @@ public final class IndexingHotItemPolicy {
             Boolean.getBoolean("ami.debug.deferFacadeItems");
     private static final boolean FAST_FACADE_INDEX =
             Boolean.getBoolean("ami.debug.fastFacadeIndex");
+    private static final boolean TOOLTIP_SEARCH_TOKENS =
+            Boolean.getBoolean("ami.debug.tooltipSearchTokens");
+    private static final boolean CLASSIFICATION_TRACE =
+            Boolean.getBoolean("ami.debug.classificationTrace");
+    private static final boolean ICON_AUDIT =
+            Boolean.getBoolean("ami.debug.iconAudit");
+    private static final Set<String> DEFERRED_INDEX_NAMESPACES =
+            parseNamespaces(System.getProperty("ami.debug.deferredIndexNamespaces", ""));
 
     private IndexingHotItemPolicy() {
     }
@@ -24,13 +38,44 @@ public final class IndexingHotItemPolicy {
         return shouldUseFastFacadeIndex(id);
     }
 
+    public static boolean shouldSuppressCreativeVariantExpansion(ResourceLocation id) {
+        return !AmiConfig.devMode && isFacadeLike(id);
+    }
+
     public static boolean shouldUseFastFacadeIndex(ResourceLocation id) {
         return FAST_FACADE_INDEX && !AmiConfig.devMode && isFacadeLike(id);
     }
 
+    public static boolean hasDeferredIndexNamespaces() {
+        return !DEFERRED_INDEX_NAMESPACES.isEmpty();
+    }
+
+    public static boolean shouldDeferFullIndex(ResourceLocation id) {
+        return id != null && DEFERRED_INDEX_NAMESPACES.contains(id.getNamespace().toLowerCase(Locale.ROOT));
+    }
+
+    public static String deferredIndexNamespacesForLog() {
+        return String.join(",", DEFERRED_INDEX_NAMESPACES);
+    }
+
     public static String cacheKeyFragment() {
         return "_deferFacadeItems=" + DEFER_FACADE_ITEMS
-                + "_fastFacadeIndex=" + FAST_FACADE_INDEX;
+                + "_fastFacadeIndex=" + FAST_FACADE_INDEX
+                + "_tooltipSearchTokens=" + TOOLTIP_SEARCH_TOKENS
+                + "_classificationTrace=" + CLASSIFICATION_TRACE
+                + "_deferredIndexNamespaces=" + deferredIndexNamespacesForLog();
+    }
+
+    public static boolean shouldIndexTooltipSearchTokens() {
+        return TOOLTIP_SEARCH_TOKENS;
+    }
+
+    public static boolean shouldRecordClassificationTrace() {
+        return CLASSIFICATION_TRACE;
+    }
+
+    public static boolean shouldAuditIcons() {
+        return ICON_AUDIT;
     }
 
     public static boolean isFacadeLike(ResourceLocation id) {
@@ -40,5 +85,27 @@ public final class IndexingHotItemPolicy {
         return (("ae2".equals(namespace) || "appliedenergistics2".equals(namespace))
                 && "facade".equals(path))
                 || path.contains("facade");
+    }
+
+    private static Set<String> parseNamespaces(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return Set.of();
+        }
+        return Arrays.stream(raw.split("[,;\\s]+"))
+                .map(IndexingHotItemPolicy::normalizeDeferredNamespace)
+                .filter(value -> !value.isBlank())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private static String normalizeDeferredNamespace(String raw) {
+        String value = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
+        while (value.startsWith("@")) {
+            value = value.substring(1);
+        }
+        value = value.replace('-', '_');
+        return switch (value) {
+            case "everycompat", "every_compat" -> "everycomp";
+            default -> value;
+        };
     }
 }

@@ -6,6 +6,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Exact token/phrase matching for registry paths, tag ids, and normalized metadata.
@@ -13,6 +15,7 @@ import java.util.Set;
  * unless the rule explicitly asks for both.
  */
 public final class PathTokens {
+    private static final ConcurrentMap<String, PathTokens> CACHE = new ConcurrentHashMap<>();
     private final String raw;
     private final List<String> parts;
     private final Set<String> partSet;
@@ -23,8 +26,18 @@ public final class PathTokens {
         this.partSet = new LinkedHashSet<>(this.parts);
     }
 
+    private PathTokens(String normalized, boolean alreadyNormalized) {
+        this.raw = alreadyNormalized ? normalized : normalize(normalized);
+        this.parts = split(this.raw);
+        this.partSet = new LinkedHashSet<>(this.parts);
+    }
+
     public static PathTokens of(String value) {
-        return new PathTokens(value);
+        String normalized = normalize(value);
+        if (normalized.isBlank()) {
+            return new PathTokens("");
+        }
+        return CACHE.computeIfAbsent(normalized, key -> new PathTokens(key, true));
     }
 
     public boolean contains(String tokenOrPhrase) {

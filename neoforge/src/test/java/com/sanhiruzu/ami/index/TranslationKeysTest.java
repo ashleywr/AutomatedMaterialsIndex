@@ -50,6 +50,9 @@ public class TranslationKeysTest {
             String content = Files.readString(file.toPath());
             Matcher matcher = pattern.matcher(content);
             while (matcher.find()) {
+                if (isJvmPropertyLookup(content, matcher.start())) {
+                    continue;
+                }
                 String literal = matcher.group(1);
                 // Check if this literal is exactly a key, or is a prefix of any registered key (for dynamic concats)
                 boolean matched = langKeys.contains(literal);
@@ -148,5 +151,13 @@ public class TranslationKeysTest {
                 accumulator.add(child);
             }
         }
+    }
+
+    private boolean isJvmPropertyLookup(String content, int literalStart) {
+        String prefix = content.substring(Math.max(0, literalStart - 96), literalStart);
+        return prefix.contains("Boolean.getBoolean(")
+                || prefix.contains("Integer.getInteger(")
+                || prefix.contains("Long.getLong(")
+                || prefix.contains("System.getProperty(");
     }
 }

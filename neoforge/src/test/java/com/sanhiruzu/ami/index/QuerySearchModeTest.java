@@ -59,6 +59,37 @@ public class QuerySearchModeTest {
     }
 
     @Test
+    public void plainTextSearchMatchesCuratedPlainSearchTokens() {
+        GlobalIndex index = GlobalIndex.getInstance();
+
+        SearchNode medicine = new SearchNode(
+                new ResourceLocation("cobblemon:super_potion"),
+                NodeType.ITEM,
+                "Super Potion",
+                0,
+                0,
+                Map.of(SearchNodeKeys.PLAIN_SEARCH_TOKENS, "pokemon cobblemon")
+        );
+        SearchNode metadataOnly = new SearchNode(
+                new ResourceLocation("example:metadata_capsule"),
+                NodeType.ITEM,
+                "Metadata Capsule",
+                0,
+                0,
+                Map.of(SearchNodeKeys.SEARCH_TOKENS, "pokemon")
+        );
+
+        index.addNode(medicine);
+        index.addNode(metadataOnly);
+
+        SearchService service = SearchService.buildFrom(index, false);
+        List<SearchNode> hits = service.query("poke").get(NodeType.ITEM);
+
+        assertTrue(hits.contains(medicine));
+        assertFalse(hits.contains(metadataOnly));
+    }
+
+    @Test
     public void plainTextSearchMatchesTooltipTokensButNotOtherMetadata() {
         GlobalIndex index = GlobalIndex.getInstance();
 

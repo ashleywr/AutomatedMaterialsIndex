@@ -68,4 +68,27 @@ class GuideResultsProjectorTest {
         assertTrue(GuideResultsProjector.project(" ", index).isEmpty());
         assertTrue(GuideResultsProjector.project("mana", null).isEmpty());
     }
+
+    @Test
+    void guidebooksTokenReturnsAllRows() {
+        AmiGuideDocument guide = AmiGuideDocument.builder(
+                        new ResourceLocation("ami", "guide/one"),
+                        "patchouli",
+                        "example",
+                        "Guide One"
+                )
+                .build();
+        AmiGuideDocument recipe = AmiGuideDocument.builder(
+                        new ResourceLocation("ami", "guide/two"),
+                        "patchouli",
+                        "example",
+                        "Guide Two"
+                )
+                .build();
+        AmiGuideSearchIndex index = new AmiGuideSearchIndex(List.of(guide, recipe),
+                AmiGuideSearchIndex.GuideIndexingMode.TITLES);
+
+        assertEquals(2, GuideResultsProjector.project("guidebooks", index).size());
+        assertEquals("Guide One", GuideResultsProjector.project("guidebooks", index).get(0).title());
+    }
 }

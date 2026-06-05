@@ -33,6 +33,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
+import java.text.Normalizer;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -47,6 +48,19 @@ public class ItemProvider implements IAmiDataProvider {
     private final FluidMetricSniffer fluidMetricSniffer = new FluidMetricSniffer();
     private final ToolMetricSniffer toolMetricSniffer = new ToolMetricSniffer();
     private final ArmorMetricSniffer armorMetricSniffer = new ArmorMetricSniffer();
+    private static final Set<String> PLAIN_SEARCH_STOP_WORDS = Set.of("and", "for", "mod", "the", "with");
+
+    private enum ItemIndexPass {
+        PRIMARY("primary"),
+        DEFERRED("deferred");
+
+        final String label;
+
+        ItemIndexPass(String label) {
+            this.label = label;
+        }
+    }
+
     private static boolean shouldUseLegacyOntologyFallback(FacetProfile facetProfile) {
         return facetProfile.facets().isEmpty();
     }
@@ -135,9 +149,92 @@ public class ItemProvider implements IAmiDataProvider {
                 existing.contains(added) ? existing : existing + " " + added);
     }
 
+    private static void addPlainSearchToken(Map<String, String> meta, String token) {
+        if (token == null || token.isBlank()) {
+            return;
+        }
+        meta.merge(SearchNodeKeys.PLAIN_SEARCH_TOKENS, token, (existing, added) ->
+                containsToken(existing, added) ? existing : existing + " " + added);
+    }
+
+    private static void addCheapPlainSearchTokens(Map<String, String> meta, ResourceLocation id,
+                                                  Map<String, String> modNameCache) {
+        if (id == null) {
+            return;
+        }
+        LinkedHashSet<String> tokens = new LinkedHashSet<>();
+        String modName = modNameCache.computeIfAbsent(id.getNamespace(), namespace ->
+                Services.PLATFORM.getModName(namespace).orElse(namespace));
+        collectPlainSearchTokens(tokens, modName);
+        collectPlainSearchTokens(tokens, meta.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
+        collectPlainSearchTokens(tokens, meta.get(SearchNodeKeys.COMPAT_FAMILY));
+        collectPlainSearchTokens(tokens, meta.get(SearchNodeKeys.COMPAT_FAMILIES));
+
+        if (isCobblemonFamily(id, meta, modName)) {
+            tokens.add("pokemon");
+            tokens.add("poke");
+            tokens.add("cobblemon");
+        }
+
+        for (String token : tokens) {
+            addPlainSearchToken(meta, token);
+        }
+    }
+
+    private static boolean isCobblemonFamily(ResourceLocation id, Map<String, String> meta, String modName) {
+        return "cobblemon".equals(id.getNamespace())
+                || id.getNamespace().contains("cobblemon")
+                || CompatFamilyDetector.hasFamily(meta, CompatFamilyDetector.COBBLEMON)
+                || normalizedContains(modName, "pokemon")
+                || normalizedContains(modName, "poke");
+    }
+
+    private static boolean normalizedContains(String raw, String needle) {
+        if (raw == null || raw.isBlank()) {
+            return false;
+        }
+        String normalized = Normalizer.normalize(raw, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .toLowerCase(Locale.ROOT);
+        return normalized.contains(needle);
+    }
+
+    private static void collectPlainSearchTokens(Set<String> tokens, @Nullable String raw) {
+        if (raw == null || raw.isBlank()) {
+            return;
+        }
+        String normalized = Normalizer.normalize(raw.replaceAll("([a-z])([A-Z])", "$1 $2"), Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .toLowerCase(Locale.ROOT);
+        for (String part : normalized.split("[^a-z0-9]+")) {
+            if (part.length() >= 3 && !isPlainSearchStopWord(part)) {
+                tokens.add(part);
+            }
+        }
+    }
+
+    private static boolean isPlainSearchStopWord(String token) {
+        return PLAIN_SEARCH_STOP_WORDS.contains(token);
+    }
+
+    private static boolean containsToken(String existing, String added) {
+        if (existing == null || existing.isBlank()) {
+            return false;
+        }
+        for (String part : existing.split("\\s+")) {
+            if (part.equals(added)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static void addTooltipSearchTokens(Map<String, String> meta, ItemStack stack, @Nullable Level level,
                                                ResourceLocation id, String displayName,
                                                Map<String, String> modNameCache) {
+        if (!IndexingHotItemPolicy.shouldIndexTooltipSearchTokens()) {
+            return;
+        }
         try {
             String modName = modNameCache.computeIfAbsent(id.getNamespace(), namespace ->
                     Services.PLATFORM.getModName(namespace).orElse(namespace));
@@ -232,12 +329,6 @@ public class ItemProvider implements IAmiDataProvider {
         }
     }
 
-    private static FacetProfile profileWithMetadata(FacetProfile profile, Map<String, String> meta) {
-        Map<String, String> attributes = new HashMap<>(profile.attributes());
-        attributes.putAll(meta);
-        return new FacetProfile(profile.facets(), attributes);
-    }
-
     private static void inferAmmoType(ResourceLocation id, Map<String, String> meta) {
         if (meta.containsKey(SearchNodeKeys.AMMO_TYPE)) {
             return;
@@ -287,8 +378,9 @@ public class ItemProvider implements IAmiDataProvider {
 
     private static Map<String, String> buildSubtypeMeta(ResourceLocation baseId, ItemStack stack, String colorBucket,
                                                         @Nullable ItemFilter.CreativeTabInfo creativeTab,
-                                                        @Nullable Level level) {
-        Map<String, String> meta = new HashMap<>();
+                                                        @Nullable Level level,
+                                                        Map<String, String> modNameCache) {
+        Map<String, String> meta = new HashMap<>(32);
         meta.put(SearchNodeKeys.MOD_ID, baseId.getNamespace());
         meta.put(SearchNodeKeys.SUBTYPE_OF, baseId.toString());
         meta.put(SearchNodeKeys.COLOR_BUCKET, colorBucket);
@@ -307,10 +399,6 @@ public class ItemProvider implements IAmiDataProvider {
         Item item = stack.getItem();
         FacetProfile facetProfile = FacetIndexer.index(item, baseId, stack);
         OptionalLong esmCapacity = StorageMetricSniffer.estimate(stack, baseId, level);
-        java.util.EnumSet<ItemFacet> resolvedFacets = facetProfile.facets().isEmpty()
-                ? java.util.EnumSet.noneOf(ItemFacet.class)
-                : java.util.EnumSet.copyOf(facetProfile.facets());
-        facetProfile = new FacetProfile(resolvedFacets, facetProfile.attributes());
         esmCapacity.ifPresent(value -> meta.put(SearchNodeKeys.ESM_CAPACITY, Long.toString(value)));
         if (item != null && item != net.minecraft.world.item.Items.ENCHANTED_BOOK
                 && stack.isEnchanted()) {
@@ -328,7 +416,8 @@ public class ItemProvider implements IAmiDataProvider {
 
         ItemProviderCompatHooks.runCompatSafely("CompatFamilyDetector", () -> CompatFamilyDetector.detect(baseId, meta));
         runFocusedCompatHooks(baseId, stack, level, meta, true);
-        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(baseId, profileWithMetadata(facetProfile, meta));
+        addCheapPlainSearchTokens(meta, baseId, modNameCache);
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(baseId, facetProfile.facets(), meta);
         if (!assignment.attributes().isEmpty()) {
             meta.putAll(assignment.attributes());
         }
@@ -360,6 +449,14 @@ public class ItemProvider implements IAmiDataProvider {
 
     @Override
     public void populate(GlobalIndex index, @Nullable Level level) {
+        populateItems(index, level, ItemIndexPass.PRIMARY);
+    }
+
+    public void populateDeferredNamespaces(GlobalIndex index, @Nullable Level level) {
+        populateItems(index, level, ItemIndexPass.DEFERRED);
+    }
+
+    private void populateItems(GlobalIndex index, @Nullable Level level, ItemIndexPass pass) {
         long started = System.currentTimeMillis();
         long setupStart = started;
         ItemProviderCompatHooks.clearDisabledCompatHooks();
@@ -390,12 +487,27 @@ public class ItemProvider implements IAmiDataProvider {
         int baseItemNodes = 0;
         int subtypeNodes = 0;
         int fastFacadeNodes = 0;
+        int creativeVariantCandidates = 0;
+        int suppressedCreativeVariants = 0;
+        int deferredSkipped = 0;
         long subtypeExpandNs = 0L;
         long subtypeNodeNs = 0L;
         long basePreRecipeNs = 0L;
         long baseRecipeNs = 0L;
         long basePostRecipeNs = 0L;
-        progress.beginProgress("Indexing items", "", totalItems);
+        long tooltipSearchNs = 0L;
+        long baseIdentityNs = 0L;
+        long baseGroupingNs = 0L;
+        long baseTagsToolNs = 0L;
+        long baseMetricsNs = 0L;
+        long baseFacetNs = 0L;
+        long basePreMetaNs = 0L;
+        long basePostCompatNs = 0L;
+        long basePostCategoryNs = 0L;
+        long basePostAddNodeNs = 0L;
+        progress.beginProgress(pass == ItemIndexPass.DEFERRED ? "Indexing deferred items" : "Indexing items",
+                pass == ItemIndexPass.DEFERRED ? IndexingHotItemPolicy.deferredIndexNamespacesForLog() : "",
+                totalItems);
         long itemLoopStart = System.currentTimeMillis();
 
         for (Item item : orderedItemsForIndexing()) {
@@ -408,6 +520,14 @@ public class ItemProvider implements IAmiDataProvider {
                 }
             }
             if (id == null || id.getNamespace().equals("air") || id.getPath().equals("air")) continue;
+            boolean deferredNamespace = IndexingHotItemPolicy.shouldDeferFullIndex(id);
+            if (pass == ItemIndexPass.PRIMARY && deferredNamespace) {
+                deferredSkipped++;
+                continue;
+            }
+            if (pass == ItemIndexPass.DEFERRED && !deferredNamespace) {
+                continue;
+            }
 
             // Layer 2: creative-tab membership
             boolean inCreative = !hasCreativeData || creativeItems.contains(item);
@@ -434,8 +554,16 @@ public class ItemProvider implements IAmiDataProvider {
             long subtypeExpandStart = System.nanoTime();
             List<SubtypeExpander.SubtypeEntry> subtypes =
                     SubtypeExpander.expand(id, registryAccess);
-            if (subtypes.isEmpty() && ItemFilter.shouldShowAccessLevel(accessLevel)) {
-                subtypes = CreativeStackVariantExpander.expand(id, creativeStackMap.get(item), level);
+            List<ItemFilter.CreativeStackInfo> creativeStacks = creativeStackMap.get(item);
+            if (subtypes.isEmpty()
+                    && ItemFilter.shouldShowAccessLevel(accessLevel)
+                    && hasMultipleCreativeStacks(creativeStacks)) {
+                creativeVariantCandidates++;
+                if (IndexingHotItemPolicy.shouldSuppressCreativeVariantExpansion(id)) {
+                    suppressedCreativeVariants++;
+                } else {
+                    subtypes = CreativeStackVariantExpander.expand(id, creativeStacks, level);
+                }
             }
             subtypeExpandNs += System.nanoTime() - subtypeExpandStart;
             if (!subtypes.isEmpty()) {
@@ -447,7 +575,7 @@ public class ItemProvider implements IAmiDataProvider {
                             SearchNodeKeys.COLOR_BUCKET,
                             extractColorBucket(entry.id())
                     );
-                    Map<String, String> meta = buildSubtypeMeta(id, entry.stack(), colorBucket, creativeTabs.get(item), level);
+                    Map<String, String> meta = buildSubtypeMeta(id, entry.stack(), colorBucket, creativeTabs.get(item), level, modNameCache);
                     if (!entry.extraMeta().isEmpty()) meta.putAll(entry.extraMeta());
                     if (!tags.isEmpty()) meta.put(SearchNodeKeys.TAGS, tags);
                     foodMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addFoodStats(meta, stats));
@@ -455,7 +583,9 @@ public class ItemProvider implements IAmiDataProvider {
                     fluidMetricSniffer.sniff(entry.stack(), entry.id(), level).ifPresent(stats -> addFluidStats(meta, stats));
                     toolMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addToolStats(meta, stats));
                     armorMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addArmorStats(meta, stats));
+                    long tooltipSearchStart = System.nanoTime();
                     addTooltipSearchTokens(meta, entry.stack(), level, entry.id(), entry.displayName(), modNameCache);
+                    tooltipSearchNs += System.nanoTime() - tooltipSearchStart;
                     inferAmmoType(entry.id(), meta);
                     markGeneratedModularGearVariantCheatOnly(entry.id(), meta);
                     if (!ItemFilter.shouldShowAccessLevel(meta.getOrDefault(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL))
@@ -474,39 +604,55 @@ public class ItemProvider implements IAmiDataProvider {
             if (!ItemFilter.shouldShowAccessLevel(accessLevel)) continue;
 
             long basePreRecipeStart = System.nanoTime();
-            String modId = id.getNamespace();
-            String displayName = item.getName(new ItemStack(item)).getString();
+            long baseStageStart = System.nanoTime();
             ItemStack defaultStack = new ItemStack(item);
+            String modId = id.getNamespace();
+            String displayName = item.getName(defaultStack).getString();
             ItemFilter.firstCreativeStack(item, creativeStackMap).ifPresent(stack -> ItemIconRenderer.registerStack(id, stack));
+            baseIdentityNs += System.nanoTime() - baseStageStart;
+
+            baseStageStart = System.nanoTime();
             String variantGroup = GroupingEngine.classifyShape(item);
             String colorBucket = GroupingEngine.classifyColor(defaultStack);
             String materialGroup = GroupingEngine.classifyMaterialRoot(defaultStack);
+            Optional<GroupingEngine.CollapsedFamily> collapsedFamily = GroupingEngine.classifyCollapsedFamily(id);
+            baseGroupingNs += System.nanoTime() - baseStageStart;
+
+            baseStageStart = System.nanoTime();
             int color = 0xFFFFFF;
             String tags = collectTags(item);
             String requiredTool = determineRequiredTool(item);
-            OptionalDouble attackDamage = DpsMetricSniffer.estimateDamage(defaultStack);
-            OptionalDouble dps = DpsMetricSniffer.estimate(defaultStack);
+            baseTagsToolNs += System.nanoTime() - baseStageStart;
+
+            baseStageStart = System.nanoTime();
+            Optional<DpsMetricSniffer.DpsStats> dpsStats = DpsMetricSniffer.estimateStats(defaultStack);
             OptionalLong esmCapacity = StorageMetricSniffer.estimate(defaultStack, id, level);
             Optional<PowerStats> powerStats = powerMetricSniffer.sniff(defaultStack, id, level);
             Optional<FoodStats> foodStats = foodMetricSniffer.sniff(defaultStack);
             Optional<FluidStats> fluidStats = fluidMetricSniffer.sniff(defaultStack, id, level);
             Optional<ToolStats> toolStats = toolMetricSniffer.sniff(defaultStack);
             Optional<ArmorStats> armorStats = armorMetricSniffer.sniff(defaultStack);
-            Optional<GroupingEngine.CollapsedFamily> collapsedFamily = GroupingEngine.classifyCollapsedFamily(id);
+            baseMetricsNs += System.nanoTime() - baseStageStart;
+
+            baseStageStart = System.nanoTime();
             FacetProfile facetProfile = FacetIndexer.index(item, id, defaultStack);
             java.util.EnumSet<ItemFacet> resolvedFacets = facetProfile.facets().isEmpty()
                     ? java.util.EnumSet.noneOf(ItemFacet.class)
                     : java.util.EnumSet.copyOf(facetProfile.facets());
-            Map<String, String> facetAttributes = new HashMap<>(facetProfile.attributes());
+            boolean metricFacetAdded = false;
             if (powerStats.map(PowerStats::hasAny).orElse(false)) {
-                resolvedFacets.add(ItemFacet.HAS_ENERGY);
+                metricFacetAdded |= resolvedFacets.add(ItemFacet.HAS_ENERGY);
             }
             if (fluidStats.map(FluidStats::hasAny).orElse(false)) {
-                resolvedFacets.add(ItemFacet.FLUID_CONTAINER);
+                metricFacetAdded |= resolvedFacets.add(ItemFacet.FLUID_CONTAINER);
             }
-            facetProfile = new FacetProfile(resolvedFacets, facetAttributes);
+            if (metricFacetAdded) {
+                facetProfile = new FacetProfile(resolvedFacets, facetProfile.attributes());
+            }
+            baseFacetNs += System.nanoTime() - baseStageStart;
 
-            Map<String, String> meta = new HashMap<>();
+            baseStageStart = System.nanoTime();
+            Map<String, String> meta = new HashMap<>(32);
             meta.put(SearchNodeKeys.MOD_ID, modId);
             meta.put(SearchNodeKeys.VARIANT_GROUP, variantGroup);
             meta.put(SearchNodeKeys.COLOR_BUCKET, colorBucket);
@@ -549,20 +695,25 @@ public class ItemProvider implements IAmiDataProvider {
                         });
             }
             addDurability(meta, defaultStack);
-            attackDamage.ifPresent(value -> meta.put(SearchNodeKeys.ATTACK_DAMAGE, formatDps(value)));
-            dps.ifPresent(value -> meta.put(SearchNodeKeys.DPS, formatDps(value)));
+            dpsStats.ifPresent(stats -> {
+                meta.put(SearchNodeKeys.ATTACK_DAMAGE, formatDps(stats.damage()));
+                meta.put(SearchNodeKeys.DPS, formatDps(stats.dps()));
+            });
             esmCapacity.ifPresent(value -> meta.put(SearchNodeKeys.ESM_CAPACITY, Long.toString(value)));
             powerStats.ifPresent(stats -> addPowerStats(meta, stats));
             foodStats.ifPresent(stats -> addFoodStats(meta, stats));
             fluidStats.ifPresent(stats -> addFluidStats(meta, stats));
             toolStats.ifPresent(stats -> addToolStats(meta, stats));
             armorStats.ifPresent(stats -> addArmorStats(meta, stats));
+            long tooltipSearchStart = System.nanoTime();
             addTooltipSearchTokens(meta, defaultStack, level, id, displayName, modNameCache);
+            tooltipSearchNs += System.nanoTime() - tooltipSearchStart;
             inferAmmoType(id, meta);
             ItemProviderCompatHooks.runCompatSafely("CompatFamilyDetector", () -> CompatFamilyDetector.detect(id, meta));
             if (!inCreative) {
                 meta.put(SearchNodeKeys.VISIBILITY, "hidden");
             }
+            basePreMetaNs += System.nanoTime() - baseStageStart;
             basePreRecipeNs += System.nanoTime() - basePreRecipeStart;
 
             long baseRecipeStart = System.nanoTime();
@@ -583,9 +734,13 @@ public class ItemProvider implements IAmiDataProvider {
             baseRecipeNs += System.nanoTime() - baseRecipeStart;
 
             long basePostRecipeStart = System.nanoTime();
+            long basePostStageStart = System.nanoTime();
             runFocusedCompatHooks(id, defaultStack, level, meta, true);
+            addCheapPlainSearchTokens(meta, id, modNameCache);
+            basePostCompatNs += System.nanoTime() - basePostStageStart;
 
-            CategoryAssignment assignment = PrimaryCategoryResolver.resolve(id, profileWithMetadata(facetProfile, meta));
+            basePostStageStart = System.nanoTime();
+            CategoryAssignment assignment = PrimaryCategoryResolver.resolve(id, facetProfile.facets(), meta);
             if (!assignment.attributes().isEmpty()) {
                 meta.putAll(assignment.attributes());
             }
@@ -606,27 +761,43 @@ public class ItemProvider implements IAmiDataProvider {
                     }
                 }
             }
+            basePostCategoryNs += System.nanoTime() - basePostStageStart;
+
+            basePostStageStart = System.nanoTime();
             index.addNode(new SearchNode(id, NodeType.ITEM, displayName, color, 0, meta));
             baseItemNodes++;
+            basePostAddNodeNs += System.nanoTime() - basePostStageStart;
             basePostRecipeNs += System.nanoTime() - basePostRecipeStart;
         }
         long itemLoopMs = System.currentTimeMillis() - itemLoopStart;
 
-        // Collect hero items from registered plugins (mods with infinite modular variants).
-        progress.beginProgress("Indexing plugin variants");
-        long heroStart = System.currentTimeMillis();
-        int heroNodes = indexHeroItems(index, registryAccess, creativeTabs, level);
-        long heroMs = System.currentTimeMillis() - heroStart;
+        int heroNodes = 0;
+        long heroMs = 0L;
+        if (pass == ItemIndexPass.PRIMARY) {
+            // Collect hero items from registered plugins (mods with infinite modular variants).
+            progress.beginProgress("Indexing plugin variants");
+            long heroStart = System.currentTimeMillis();
+            heroNodes = indexHeroItems(index, registryAccess, creativeTabs, level);
+            heroMs = System.currentTimeMillis() - heroStart;
+        }
         AmiCore.LOGGER.info(
-                "AMI indexing: ItemProvider setup={}ms creativeTabs={}ms items={}ms heroes={}ms total={}ms scanned={} baseNodes={} subtypeNodes={} fastFacadeNodes={} heroNodes={} breakdown=subtypeExpand:{}ms subtypeNodes:{}ms basePreRecipe:{}ms baseRecipe:{}ms basePostRecipe:{}ms",
-                setupMs, creativeMs, itemLoopMs, heroMs, System.currentTimeMillis() - started,
-                scannedItems, baseItemNodes, subtypeNodes, fastFacadeNodes, heroNodes,
+                "AMI indexing: ItemProvider pass={} setup={}ms creativeTabs={}ms items={}ms heroes={}ms total={}ms scanned={} deferredSkipped={} baseNodes={} subtypeNodes={} fastFacadeNodes={} creativeVariantCandidates={} suppressedCreativeVariants={} heroNodes={} breakdown=subtypeExpand:{}ms subtypeNodes:{}ms basePreRecipe:{}ms baseRecipe:{}ms basePostRecipe:{}ms tooltipSearch:{}ms detail=baseIdentity:{}ms baseGrouping:{}ms baseTagsTool:{}ms baseMetrics:{}ms baseFacet:{}ms basePreMeta:{}ms basePostCompat:{}ms basePostCategory:{}ms basePostAddNode:{}ms",
+                pass.label, setupMs, creativeMs, itemLoopMs, heroMs, System.currentTimeMillis() - started,
+                scannedItems, deferredSkipped, baseItemNodes, subtypeNodes, fastFacadeNodes, creativeVariantCandidates,
+                suppressedCreativeVariants, heroNodes,
                 nanosToMillis(subtypeExpandNs), nanosToMillis(subtypeNodeNs), nanosToMillis(basePreRecipeNs),
-                nanosToMillis(baseRecipeNs), nanosToMillis(basePostRecipeNs));
+                nanosToMillis(baseRecipeNs), nanosToMillis(basePostRecipeNs), nanosToMillis(tooltipSearchNs),
+                nanosToMillis(baseIdentityNs), nanosToMillis(baseGroupingNs), nanosToMillis(baseTagsToolNs),
+                nanosToMillis(baseMetricsNs), nanosToMillis(baseFacetNs), nanosToMillis(basePreMetaNs),
+                nanosToMillis(basePostCompatNs), nanosToMillis(basePostCategoryNs), nanosToMillis(basePostAddNodeNs));
     }
 
     private static long nanosToMillis(long nanos) {
         return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(nanos);
+    }
+
+    private static boolean hasMultipleCreativeStacks(@Nullable List<ItemFilter.CreativeStackInfo> stacks) {
+        return stacks != null && stacks.size() > 1;
     }
 
     private static List<Item> orderedItemsForIndexing() {
@@ -654,7 +825,7 @@ public class ItemProvider implements IAmiDataProvider {
             ItemIconRenderer.registerStack(id, iconStack);
         }
 
-        Map<String, String> meta = new HashMap<>();
+        Map<String, String> meta = new HashMap<>(16);
         meta.put(SearchNodeKeys.MOD_ID, id.getNamespace());
         meta.put(SearchNodeKeys.ACCESS_LEVEL, accessLevel);
         meta.put(SearchNodeKeys.VARIANT_GROUP, "facade");
@@ -732,7 +903,7 @@ public class ItemProvider implements IAmiDataProvider {
                 }
                 ItemIconRenderer.registerStack(syntheticId, stack);
 
-                Map<String, String> meta = buildSubtypeMeta(baseId, stack, extractColorBucket(baseId), creativeTabs.get(stack.getItem()), level);
+                Map<String, String> meta = buildSubtypeMeta(baseId, stack, extractColorBucket(baseId), creativeTabs.get(stack.getItem()), level, modNameCache);
                 meta.put(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_CHEAT);
                 meta.put(SearchNodeKeys.VARIANT_SOURCE, "plugin_hero_stack");
                 meta.put("variantAccessReason", "modular_generated_stack");

@@ -773,11 +773,12 @@ public class OverlayWidgetManager {
         var indexer = AmiIndexerService.getInstance();
         if (indexer.isReady()) {
             var service = indexer.getOrBuildSearchService();
+            long revision = indexer.searchServiceRevision();
             boolean needsRefresh = false;
             for (ResultsPanelWidget panel : getResultPanels()) {
                 var inner = panel.getInnerPanel();
-                if (inner != null && inner.getEntryCount() == 0 && indexer.indexedItemCount() > 0) {
-                    inner.setSearchService(service);
+                if (inner != null && indexer.indexedItemCount() > 0
+                        && inner.setSearchServiceIfChanged(service, revision)) {
                     needsRefresh = true;
                 }
             }

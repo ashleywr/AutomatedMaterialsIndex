@@ -13,6 +13,7 @@ import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.config.AmiDataFixes;
 import com.sanhiruzu.ami.index.AmiIndexProgress;
 import com.sanhiruzu.ami.index.AmiIndexerService;
+import com.sanhiruzu.ami.index.AmiGuideSearchIndex;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
@@ -74,6 +75,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private List<SearchNode> currentResults = new ArrayList<>();
     private String currentQuery = "";
     private SearchService searchService;
+    private long searchServiceRevision = Long.MIN_VALUE;
     private ResultsViewProjector.Projection emptyQueryProjectionCache = null;
     private String emptyQueryProjectionCacheKey = "";
     private List<GuideResultRow> currentGuideRows = List.of();
@@ -304,7 +306,23 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     public void setSearchService(SearchService service) {
+        setSearchService(service, Long.MIN_VALUE);
+    }
+
+    public boolean setSearchServiceIfChanged(SearchService service, long revision) {
+        if (service == null) {
+            return false;
+        }
+        if (this.searchService == service && this.searchServiceRevision == revision) {
+            return false;
+        }
+        setSearchService(service, revision);
+        return true;
+    }
+
+    private void setSearchService(SearchService service, long revision) {
         this.searchService = service;
+        this.searchServiceRevision = revision;
         invalidateProjectionCache();
         refreshTree();
     }
@@ -964,13 +982,13 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (row == null) return;
 
         List<Component> lines = new ArrayList<>();
-        lines.add(Component.literal(row.title()));
-        lines.add(Component.literal(row.sourceLine()));
-        lines.add(Component.literal(row.provenanceLine()));
+        lines.add(Component.literal(sanitizeTooltipText(row.title())));
+        lines.add(Component.literal(sanitizeTooltipText(row.sourceLine())));
+        lines.add(Component.literal(sanitizeTooltipText(row.provenanceLine())));
         row.evidence().stream()
                 .filter(evidence -> !evidence.snippet().isBlank())
                 .findFirst()
-                .ifPresent(evidence -> lines.add(Component.literal(evidence.snippet())));
+                .ifPresent(evidence -> lines.add(Component.literal(sanitizeTooltipText(evidence.snippet()))));
         AmiTooltipRenderer.render(g, Minecraft.getInstance().font, lines, Optional.empty(), mouseX, mouseY);
     }
 
@@ -979,14 +997,46 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (row == null) return;
 
         List<Component> lines = new ArrayList<>();
-        lines.add(Component.literal(row.title()));
-        lines.add(Component.literal(row.sourceLine()));
-        lines.add(Component.literal(row.provenanceLine()));
+        lines.add(Component.literal(sanitizeTooltipText(row.title())));
+        lines.add(Component.literal(sanitizeTooltipText(row.sourceLine())));
+        lines.add(Component.literal(sanitizeTooltipText(row.provenanceLine())));
         row.evidence().stream()
                 .filter(evidence -> !evidence.snippet().isBlank())
                 .findFirst()
-                .ifPresent(evidence -> lines.add(Component.literal(evidence.snippet())));
+                .ifPresent(evidence -> lines.add(Component.literal(sanitizeTooltipText(evidence.snippet()))));
         AmiTooltipRenderer.render(g, Minecraft.getInstance().font, lines, Optional.empty(), mouseX, mouseY);
+    }
+
+    private static String sanitizeTooltipText(String value) {
+        if (value == null || value.isEmpty()) {
+            return "";
+        }
+        String cleaned = value
+                .replace("\r\n", "\n")
+                .replace("\\r", " ")
+                .replace("\\n", " ")
+                .replace("\\t", " ")
+                .replace("\u00A0", " ")
+                .replace('\n', ' ')
+                .replace('\r', ' ')
+                .replace('\t', ' ');
+        StringBuilder out = new StringBuilder(cleaned.length());
+        for (int i = 0; i < cleaned.length(); i++) {
+            char ch = cleaned.charAt(i);
+            int type = Character.getType(ch);
+            if (Character.isISOControl(ch)
+                    || type == Character.LINE_SEPARATOR
+                    || type == Character.PARAGRAPH_SEPARATOR
+                    || type == Character.FORMAT
+                    || ch == 0x00AD
+                    || ch == 0x200B
+                    || ch == 0xFEFF) {
+                out.append(' ');
+            } else {
+                out.append(ch);
+            }
+        }
+        return out.toString().trim();
     }
 
     // ── Tree refresh ──────────────────────────────────────────────────────────
@@ -1358,6 +1408,14 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 'i',
                 () -> AmiClipboardHelper.copyToClipboard(row.document().id().toString())
         ));
+        if (onTokenInject != null) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    "ami:filter_guide_book",
+                    Component.translatable("ami.context.filter_guide_book"),
+                    'b',
+                    () -> onTokenInject.accept(AmiGuideSearchIndex.GUIDEBOOKS_FILTER_TOKEN)
+            ));
+        }
         if (onTokenInject != null && !row.document().modId().isBlank()) {
             actions.add(ResultContextMenu.Action.enabled(
                     "ami:filter_guide_mod",
