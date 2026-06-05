@@ -610,7 +610,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private static String progressTitle(AmiIndexProgress progress) {
         String phase = progress.phase();
         if (phase == null || phase.isBlank() || "Ready".equals(phase)) {
-            return Component.translatable("ami.gui.background_indexing").getString();
+            String key = com.sanhiruzu.ami.config.AmiConfig.enableAutoIndexing
+                    ? "ami.gui.background_indexing"
+                    : "ami.gui.indexing_disabled";
+            return Component.translatable(key).getString();
         }
         return phase;
     }

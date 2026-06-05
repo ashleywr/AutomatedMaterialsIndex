@@ -24,7 +24,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class JeiGuiEventHandlerMixin {
 
     private static boolean shouldSuppressJeiChrome() {
-        return RecipeViewerBridge.isJeiSelectedExternalViewer()
+        return RecipeViewerBridge.isJeiLoaded()
                 && InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
     }
 

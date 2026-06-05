@@ -46,6 +46,10 @@ public class RecipeViewerBridge {
         return !isEmiSelectedExternalViewer() && Services.PLATFORM.isModLoaded("jei");
     }
 
+    public static boolean isJeiLoaded() {
+        return Services.PLATFORM.isModLoaded("jei");
+    }
+
     public static boolean hasRecipes(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
         if (isEmiSelectedExternalViewer()) {

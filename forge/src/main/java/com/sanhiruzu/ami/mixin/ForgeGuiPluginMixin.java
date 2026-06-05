@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class ForgeGuiPluginMixin {
 
     private static boolean shouldSuppressJeiGui() {
-        return RecipeViewerBridge.isJeiSelectedExternalViewer()
+        return RecipeViewerBridge.isJeiLoaded()
                 && InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
     }
 
