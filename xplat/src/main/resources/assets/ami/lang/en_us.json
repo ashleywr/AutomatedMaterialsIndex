@@ -144,6 +144,7 @@
   "ami.gui.indexing": "Indexing",
   "ami.gui.loading": "Loading",
   "ami.gui.background_indexing": "Indexing in background",
+  "ami.gui.indexing_disabled": "Index not loaded; auto-indexing is off",
   "ami.gui.items_count": "(%s items)",
   "ami.gui.search_results": "Search Results",
   "ami.gui.debug_hint_active": "[debug] %s to exit",
