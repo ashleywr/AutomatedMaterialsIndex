@@ -577,7 +577,6 @@
   "ami.config.group.binds": "Keybinds",
   "ami.config.group.sidepanels": "Panels",
   "ami.config.group.compat": "Compat",
-  "ami.config.group.cheat": "Cheats",
   "ami.config.group.subtitles": "Data & Subtitles",
   "ami.config.panel.left": "Left Panel",
   "ami.config.panel.right": "Right Panel",
