@@ -5,7 +5,10 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.util.Collection;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -64,7 +67,7 @@ public final class AmiGuideOpeners {
      * @param bookId the book's ResourceLocation
      */
     public static Runnable patchouli(ResourceLocation bookId) {
-        return () -> openPatchouliBook(bookId);
+        return () -> openPatchouliBook(bookId == null ? List.of() : List.of(bookId), null);
     }
 
     // ── GuideME ───────────────────────────────────────────────────────────────
@@ -102,14 +105,15 @@ public final class AmiGuideOpeners {
             }
             deduped.add(bookId);
         }
+        List<ResourceLocation> candidates = patchouliBookCandidates(deduped);
 
         if (pageId != null && !pageId.isBlank()) {
-            for (ResourceLocation bookId : deduped) {
+            for (ResourceLocation bookId : candidates) {
                 if (openPatchouliBookEntry(bookId, pageId)) {
                     return;
                 }
             }
-            for (ResourceLocation bookId : deduped) {
+            for (ResourceLocation bookId : candidates) {
                 if (openPatchouliBook(bookId)) {
                     return;
                 }
@@ -117,7 +121,7 @@ public final class AmiGuideOpeners {
             return;
         }
 
-        for (ResourceLocation bookId : deduped) {
+        for (ResourceLocation bookId : candidates) {
             if (openPatchouliBook(bookId)) {
                 return;
             }
@@ -132,10 +136,7 @@ public final class AmiGuideOpeners {
             openPatchouliBook(bookId);
             return;
         }
-        if (openPatchouliBookEntry(bookId, pageId)) {
-            return;
-        }
-        openPatchouliBook(bookId);
+        openPatchouliBook(List.of(bookId), pageId);
     }
 
     private static boolean openPatchouliBook(ResourceLocation bookId) {
@@ -148,13 +149,13 @@ public final class AmiGuideOpeners {
             Minecraft mc = Minecraft.getInstance();
             if (mc.player == null) return false;
 
-            if (tryInvokePatchouli(api, "openBookGUI", bookId)) {
+            if (tryInvokePatchouliOpen(api, "openBookGUI", bookId, bookId)) {
                 return true;
             }
-            if (tryInvokePatchouli(api, "openBookGUI", mc.player, bookId)) {
+            if (tryInvokePatchouliOpen(api, "openBookGUI", bookId, mc.player, bookId)) {
                 return true;
             }
-            if (tryInvokePatchouli(api, "openBookGui", mc.player, bookId)) {
+            if (tryInvokePatchouliOpen(api, "openBookGui", bookId, mc.player, bookId)) {
                 return true;
             }
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
@@ -174,20 +175,200 @@ public final class AmiGuideOpeners {
             if (mc.player == null) {
                 return false;
             }
-            ResourceLocation entryId = ResourceLocation.tryParse(pageId);
-            if (entryId == null) {
-                entryId = ResourceLocation.fromNamespaceAndPath(bookId.getNamespace(), pageId);
+            for (ResourceLocation entryId : patchouliEntryCandidates(bookId, pageId)) {
+                if (tryInvokePatchouliOpen(api, "openBookEntry", bookId, mc.player, bookId, entryId, 0) ||
+                        tryInvokePatchouliOpen(api, "openBookEntry", bookId, bookId, entryId, 0) ||
+                        tryInvokePatchouliOpen(api, "openBookGui", bookId, mc.player, bookId, entryId, 0) ||
+                        tryInvokePatchouliOpen(api, "openBookGUI", bookId, mc.player, bookId, entryId, 0) ||
+                        tryInvokePatchouliOpen(api, "openBookGui", bookId, bookId, entryId, 0) ||
+                        tryInvokePatchouliOpen(api, "openBookGUI", bookId, bookId, entryId, 0)) {
+                    return true;
+                }
             }
-            return tryInvokePatchouli(api, "openBookEntry", mc.player, bookId, entryId, 0) ||
-                    tryInvokePatchouli(api, "openBookEntry", bookId, entryId, 0) ||
-                    tryInvokePatchouli(api, "openBookGui", mc.player, bookId, entryId, 0) ||
-                    tryInvokePatchouli(api, "openBookGUI", mc.player, bookId, entryId, 0) ||
-                    tryInvokePatchouli(api, "openBookGui", bookId, entryId, 0) ||
-                    tryInvokePatchouli(api, "openBookGUI", bookId, entryId, 0);
+            return false;
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
             LOGGER.log(Level.FINE, "AMI: Patchouli unavailable for guide entry open: " + bookId, e);
         }
         return false;
+    }
+
+    static ResourceLocation patchouliEntryId(ResourceLocation bookId, String pageId) {
+        if (pageId != null && pageId.contains(":")) {
+            ResourceLocation parsed = ResourceLocation.tryParse(pageId);
+            if (parsed != null) {
+                return parsed;
+            }
+        }
+        return ResourceLocation.fromNamespaceAndPath(bookId.getNamespace(), pageId == null ? "" : pageId);
+    }
+
+    static List<ResourceLocation> patchouliEntryCandidates(ResourceLocation bookId, String pageId) {
+        if (bookId == null || pageId == null || pageId.isBlank()) {
+            return List.of();
+        }
+
+        ResourceLocation requested = patchouliEntryId(bookId, pageId);
+        LinkedHashSet<ResourceLocation> candidates = new LinkedHashSet<>();
+        candidates.add(requested);
+
+        Map<?, ?> entries = patchouliBookEntries(bookId);
+        if (entries.isEmpty() || entries.containsKey(requested)) {
+            return List.copyOf(candidates);
+        }
+
+        String requestedPath = requested.getPath();
+        entries.keySet().stream()
+                .filter(ResourceLocation.class::isInstance)
+                .map(ResourceLocation.class::cast)
+                .map(entryId -> new ScoredEntryCandidate(entryId, scorePatchouliEntryCandidate(requestedPath, entryId.getPath())))
+                .filter(candidate -> candidate.score() > 0)
+                .sorted((a, b) -> {
+                    int byScore = Integer.compare(b.score(), a.score());
+                    return byScore != 0 ? byScore : a.entryId().toString().compareTo(b.entryId().toString());
+                })
+                .map(ScoredEntryCandidate::entryId)
+                .forEach(candidates::add);
+
+        return List.copyOf(candidates);
+    }
+
+    static int scorePatchouliEntryCandidate(String requestedPath, String entryPath) {
+        if (requestedPath == null || requestedPath.isBlank() || entryPath == null || entryPath.isBlank()) {
+            return 0;
+        }
+        String requested = requestedPath.toLowerCase(java.util.Locale.ROOT);
+        String entry = entryPath.toLowerCase(java.util.Locale.ROOT);
+        if (entry.equals(requested)) return 1000;
+        if (entry.endsWith("/" + requested)) return 900;
+        if (requested.endsWith("/" + entry)) return 850;
+
+        String requestedLeaf = leafPathSegment(requested);
+        String entryLeaf = leafPathSegment(entry);
+        if (!requestedLeaf.isBlank() && entryLeaf.equals(requestedLeaf)) return 700;
+        if (!requestedLeaf.isBlank() && entry.contains(requestedLeaf)) return 300;
+
+        int score = 0;
+        for (String token : requested.split("[_/.-]+")) {
+            if (token.length() < 4 || "guide".equals(token) || "page".equals(token)) {
+                continue;
+            }
+            if (entry.contains(token)) {
+                score += 25;
+            }
+        }
+        return score;
+    }
+
+    private static String leafPathSegment(String path) {
+        int idx = path.lastIndexOf('/');
+        return idx >= 0 ? path.substring(idx + 1) : path;
+    }
+
+    private static List<ResourceLocation> patchouliBookCandidates(Iterable<ResourceLocation> requestedBooks) {
+        LinkedHashSet<ResourceLocation> candidates = new LinkedHashSet<>();
+        if (requestedBooks != null) {
+            for (ResourceLocation requestedBook : requestedBooks) {
+                if (requestedBook == null) {
+                    continue;
+                }
+                candidates.add(requestedBook);
+                candidates.addAll(installedPatchouliBookCandidates(requestedBook));
+            }
+        }
+        return List.copyOf(candidates);
+    }
+
+    private static List<ResourceLocation> installedPatchouliBookCandidates(ResourceLocation requestedBook) {
+        if (requestedBook == null) {
+            return List.of();
+        }
+        Map<?, ?> books = patchouliBookRegistryBooks();
+        if (books.isEmpty()) {
+            return List.of();
+        }
+
+        List<ResourceLocation> exactNamespace = new ArrayList<>();
+        List<ResourceLocation> guideLike = new ArrayList<>();
+        for (Object key : books.keySet()) {
+            if (!(key instanceof ResourceLocation bookId)) {
+                continue;
+            }
+            if (!bookId.getNamespace().equals(requestedBook.getNamespace())) {
+                continue;
+            }
+            if (bookId.equals(requestedBook)) {
+                exactNamespace.add(bookId);
+                continue;
+            }
+            String path = bookId.getPath();
+            if (path.contains("guide") || path.contains("book") || path.contains("chronicle")) {
+                guideLike.add(bookId);
+            }
+        }
+
+        exactNamespace.addAll(guideLike);
+        return exactNamespace;
+    }
+
+    private static Map<?, ?> patchouliBookRegistryBooks() {
+        try {
+            Class<?> registryClass = Class.forName("vazkii.patchouli.common.book.BookRegistry");
+            Object registry = registryClass.getField("INSTANCE").get(null);
+            Object books = registryClass.getField("books").get(registry);
+            if (books instanceof Map<?, ?> map) {
+                return map;
+            }
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Patchouli book registry unavailable", e);
+        }
+        return Map.of();
+    }
+
+    private static Map<?, ?> patchouliBookEntries(ResourceLocation bookId) {
+        Object book = patchouliBookRegistryBooks().get(bookId);
+        if (book == null) {
+            return Map.of();
+        }
+        try {
+            Object contents = book.getClass().getMethod("getContents").invoke(book);
+            Object entries = contents.getClass().getField("entries").get(contents);
+            if (entries instanceof Map<?, ?> map) {
+                return map;
+            }
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Patchouli book entries unavailable for " + bookId, e);
+        }
+        return Map.of();
+    }
+
+    private static boolean tryInvokePatchouliOpen(Object api, String methodName, ResourceLocation expectedBook, Object... args) {
+        if (!tryInvokePatchouli(api, methodName, args)) {
+            return false;
+        }
+        Boolean open = isPatchouliBookOpen(api, expectedBook);
+        return open == null || open;
+    }
+
+    private record ScoredEntryCandidate(ResourceLocation entryId, int score) {
+    }
+
+    private static Boolean isPatchouliBookOpen(Object api, ResourceLocation expectedBook) {
+        if (api == null || expectedBook == null) {
+            return null;
+        }
+        try {
+            Method method = api.getClass().getMethod("getOpenBookGui");
+            Object result = method.invoke(api);
+            if (result instanceof ResourceLocation openBook) {
+                return expectedBook.equals(openBook);
+            }
+            return false;
+        } catch (NoSuchMethodException e) {
+            return null;
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Patchouli open book check failed", e);
+            return null;
+        }
     }
 
     private static boolean tryInvokePatchouli(Object api, String methodName, Object... args) {

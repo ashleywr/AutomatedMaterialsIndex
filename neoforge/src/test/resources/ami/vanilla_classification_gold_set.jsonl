@@ -1381,7 +1381,7 @@
 {"id":"minecraft:rooted_dirt","category":"geology","subcategory":"terrain","confidence":"snapshot","notes":"Vanilla classification snapshot; review/update deliberately if current routing improves."}
 {"id":"minecraft:rose_bush","category":"nature","subcategory":"crops","confidence":"snapshot","notes":"Vanilla classification snapshot; review/update deliberately if current routing improves."}
 {"id":"minecraft:rotten_flesh","category":"nature","subcategory":"flora","confidence":"snapshot","notes":"Vanilla classification snapshot; review/update deliberately if current routing improves."}
-{"id":"minecraft:saddle","category":"utility","subcategory":"misc","confidence":"snapshot","notes":"Vanilla classification snapshot; review/update deliberately if current routing improves."}
+{"id":"minecraft:saddle","category":"armor","subcategory":"animal","confidence":"snapshot","notes":"Vanilla classification snapshot; SaddleItem is animal equipment."}
 {"id":"minecraft:salmon","category":"nature","subcategory":"proteins","confidence":"snapshot","notes":"Vanilla classification snapshot; review/update deliberately if current routing improves."}
 {"id":"minecraft:salmon_bucket","category":"bestiary","subcategory":"passive","confidence":"snapshot","notes":"Vanilla classification snapshot; review/update deliberately if current routing improves."}
 {"id":"minecraft:salmon_spawn_egg","category":"bestiary","subcategory":"passive","confidence":"snapshot","notes":"Vanilla classification snapshot; review/update deliberately if current routing improves."}
@@ -1774,3 +1774,4 @@
 {"id":"minecraft:zombie_spawn_egg","category":"bestiary","subcategory":"hostile","confidence":"snapshot","notes":"Vanilla classification snapshot; review/update deliberately if current routing improves."}
 {"id":"minecraft:zombie_villager_spawn_egg","category":"bestiary","subcategory":"hostile","confidence":"snapshot","notes":"Vanilla classification snapshot; review/update deliberately if current routing improves."}
 {"id":"minecraft:zombified_piglin_spawn_egg","category":"bestiary","subcategory":"neutral","confidence":"snapshot","notes":"Vanilla classification snapshot; review/update deliberately if current routing improves."}
+{"id":"minecraft:spider_eye","category":"magic","subcategory":"reagents","confidence":"snapshot","notes":"Spider Eye is edible, but its brewing reagent role should be the primary bucket; edible remains searchable as a facet."}

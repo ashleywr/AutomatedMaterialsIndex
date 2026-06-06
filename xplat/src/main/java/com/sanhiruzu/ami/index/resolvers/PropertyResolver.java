@@ -31,6 +31,7 @@ public final class PropertyResolver implements IQueryResolver {
                     FieldConvention.FACTS,
                     FieldConvention.FACETS,
                     FieldConvention.SEARCH_TOKENS);
+            case "guidebook", "guidebooks" -> matchesGuideBook(node, value);
             case "kind", "itemkind" -> containsConventionToken(node, value, FieldConvention.KIND);
             case "tier" -> containsConventionToken(node, value, FieldConvention.TIER);
             case "gregtech", "gtceu" -> value.isEmpty()
@@ -123,7 +124,10 @@ public final class PropertyResolver implements IQueryResolver {
             case "berry", "pokemonberry" -> containsKind(node, "berry", value);
             case "apricorn", "pokemonapricorn" -> containsKind(node, "apricorn", value)
                     || containsKind(node, "apricorn_seed", value);
-            case "type", "pokemontype" -> containsToken(node, SearchNodeKeys.POKEMON_TYPE, value);
+            case "type" -> isGuideBookValue(value)
+                    ? matchesGuideBook(node, "")
+                    : containsToken(node, SearchNodeKeys.POKEMON_TYPE, value);
+            case "pokemontype" -> containsToken(node, SearchNodeKeys.POKEMON_TYPE, value);
             case "species", "pokemon", "pokemonspecies" -> containsValue(node, SearchNodeKeys.POKEMON_SPECIES, value);
             case "generation", "gen", "pokemongeneration" -> containsValue(node, SearchNodeKeys.POKEMON_GENERATION, value);
             case "ability", "pokemonability" -> containsToken(node, SearchNodeKeys.POKEMON_ABILITIES, value);
@@ -315,6 +319,25 @@ public final class PropertyResolver implements IQueryResolver {
 
     private static boolean hasMetadata(SearchNode node, String key) {
         return !node.meta(key, "").isBlank();
+    }
+
+    private static boolean matchesGuideBook(SearchNode node, String value) {
+        boolean guideBookCandidate = isGuideBookCandidate(node);
+        if (value != null && !value.isBlank() && !isGuideBookValue(value)) {
+            return guideBookCandidate && containsValue(node, SearchNodeKeys.GUIDE_BOOK_SYSTEM, value);
+        }
+        return guideBookCandidate;
+    }
+
+    private static boolean isGuideBookCandidate(SearchNode node) {
+        return "true".equalsIgnoreCase(node.meta(SearchNodeKeys.GUIDE_BOOK_CANDIDATE, ""))
+                || containsToken(node, SearchNodeKeys.FACETS, "guide_book")
+                || containsToken(node, SearchNodeKeys.SEARCH_TOKENS, "guidebook")
+                || containsToken(node, SearchNodeKeys.SEARCH_TOKENS, "guidebooks");
+    }
+
+    private static boolean isGuideBookValue(String value) {
+        return Set.of("guidebook", "guidebooks").contains(normalize(value));
     }
 
     private static boolean hasGregTechEnergyMetadata(SearchNode node) {

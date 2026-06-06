@@ -67,8 +67,8 @@ public final class FacetIndexer {
             facets.add(ItemFacet.COMPOSTABLE);
         }
         applyComponentFacts(stack, hasFood, facets, attributes);
-        applyItemClassFacts(item, facets);
-        applyPathFacts(path, facets);
+        applyItemClassFacts(item, facets, attributes);
+        applyPathFacts(path, facets, attributes);
         applyTypeFacts(item, path, facets);
         applyEquipmentFacts(item, stack, path, facets, attributes);
         applyComponentPromotions(attributes, facets);
@@ -129,7 +129,7 @@ public final class FacetIndexer {
         }
     }
 
-    private static void applyItemClassFacts(Item item, EnumSet<ItemFacet> facets) {
+    private static void applyItemClassFacts(Item item, EnumSet<ItemFacet> facets, Map<String, String> attributes) {
         String itemClass = item.getClass().getName().toLowerCase(Locale.ROOT);
         if (containsAny(itemClass, "bottleitem", "flaskitem")) {
             facets.add(ItemFacet.UTILITY_MISC);
@@ -140,9 +140,19 @@ public final class FacetIndexer {
         if (containsAny(itemClass, "crystalitem", "stardustitem")) {
             facets.add(ItemFacet.MAGIC_REAGENT);
         }
+        if (containsAny(itemClass, "itemmodbook", "guidebookitem", "guide_book", "manualitem", "lexiconitem", "codexitem")) {
+            facets.add(ItemFacet.BOOK);
+            facets.add(ItemFacet.GUIDE_BOOK);
+            attributes.put(SearchNodeKeys.GUIDE_BOOK_CANDIDATE, "true");
+            if (itemClass.contains("patchouli")) {
+                attributes.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "patchouli");
+            } else if (itemClass.contains("guideme")) {
+                attributes.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "guideme");
+            }
+        }
     }
 
-    private static void applyPathFacts(String path, EnumSet<ItemFacet> facets) {
+    private static void applyPathFacts(String path, EnumSet<ItemFacet> facets, Map<String, String> attributes) {
         if (path.contains("spell") || path.contains("wand") || path.contains("staff") || path.contains("scroll")) {
             facets.add(ItemFacet.MAGIC_ARTIFACT);
         }
@@ -178,10 +188,18 @@ public final class FacetIndexer {
         if (containsPathToken(path, "compass", "map", "maps", "clock", "spyglass")) {
             facets.add(ItemFacet.UTILITY_NAVIGATION);
         }
+        if (containsPathToken(path, "book", "books") || path.endsWith("_book")) {
+            facets.add(ItemFacet.BOOK);
+        }
+        if (isGuideBookPath(path)) {
+            facets.add(ItemFacet.BOOK);
+            facets.add(ItemFacet.GUIDE_BOOK);
+            attributes.put(SearchNodeKeys.GUIDE_BOOK_CANDIDATE, "true");
+        }
         if (path.contains("bucket") || path.contains("saddle") || path.contains("name_tag")
                 || path.contains("debug_stick") || path.contains("firework") || path.contains("music_disc")
                 || path.contains("disc_fragment") || path.contains("echo_shard")
-                || path.contains("book") || path.contains("banner_pattern")
+                || path.contains("banner_pattern")
                 || path.contains("smithing_template") || path.contains("trial_key")
                 || path.equals("bowl") || path.equals("glass_bottle")
                 || path.equals("bundle") || path.equals("shield")
@@ -323,6 +341,7 @@ public final class FacetIndexer {
         }
         if (item instanceof EnchantedBookItem) {
             facets.add(ItemFacet.ENCHANTED_BOOK);
+            facets.add(ItemFacet.BOOK);
         }
         if (item instanceof SpawnEggItem) {
             facets.add(ItemFacet.SPAWN_EGG);
@@ -378,7 +397,8 @@ public final class FacetIndexer {
                 "horsearmoritem",
                 "wolfarmoritem",
                 "dogarmoritem",
-                "golemarmoritem")) {
+                "golemarmoritem",
+                "saddleitem")) {
             return true;
         }
         return isAnimalArmorPath(path);
@@ -505,13 +525,15 @@ public final class FacetIndexer {
             if (tag.startsWith("c:armors/leggings")) facets.add(ItemFacet.ARMOR_LEGS);
             if (tag.startsWith("c:armors/boots")) facets.add(ItemFacet.ARMOR_FEET);
             if (tag.equals("minecraft:music_discs")
-                    || tag.equals("minecraft:bookshelf_books")
-                    || tag.equals("minecraft:lectern_books")
                     || tag.endsWith(":film_rolls")
                     || tag.endsWith(":developed_film_rolls")
                     || tag.endsWith("/film_rolls")
                     || tag.endsWith("/developed_film_rolls")) {
                 facets.add(ItemFacet.UTILITY_MISC);
+            }
+            if (tag.equals("minecraft:bookshelf_books")
+                    || tag.equals("minecraft:lectern_books")) {
+                facets.add(ItemFacet.BOOK);
             }
             if (isFurnitureTag(tag)) {
                 facets.add(ItemFacet.DECORATIVE_BLOCK);
@@ -771,13 +793,9 @@ public final class FacetIndexer {
     }
 
     private static boolean isMedicalPath(String path) {
-        return path.contains("syringe")
-                || path.contains("bandage")
-                || path.contains("medkit")
+        return containsPathToken(path, "syringe", "bandage", "medkit", "morphine", "adrenaline", "splint")
                 || path.contains("first_aid")
-                || path.contains("morphine")
-                || path.contains("adrenaline")
-                || path.contains("splint");
+                || path.contains("firstaid");
     }
 
     private static boolean isCurrencyPath(String path) {
@@ -788,6 +806,28 @@ public final class FacetIndexer {
                 || path.contains("cash")
                 || path.contains("money")
                 || path.contains("credit_card");
+    }
+
+    private static boolean isGuideBookPath(String path) {
+        return containsPathToken(path,
+                "guidebook",
+                "manual",
+                "handbook",
+                "lexicon",
+                "codex",
+                "journal",
+                "compendium",
+                "chronicle",
+                "tome")
+                || path.equals("guide")
+                || path.equals("guides")
+                || path.endsWith("_guide")
+                || path.endsWith("_guides")
+                || path.endsWith("/guide")
+                || path.endsWith("/guides")
+                || path.endsWith("_guide_book")
+                || path.endsWith("_guidebook")
+                || path.contains("field_guide");
     }
 
     private static void applyBlockFacts(
@@ -1078,7 +1118,8 @@ public final class FacetIndexer {
                 || path.equals("flower_pot")
                 || path.contains("candle")
                 || containsPathToken(path, "jar")
-                || containsPathToken(path, "banner", "sign", "head", "skull");
+                || containsPathToken(path, "banner", "sign", "head", "skull")
+                || containsPathToken(path, "bookcase", "bookshelf", "bookshelves", "shelf", "shelves", "rack", "racks");
     }
 
     private static boolean isDecorativeNaturePlaceable(String path) {

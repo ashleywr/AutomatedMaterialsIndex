@@ -16,7 +16,7 @@ Machine-readable draft: `neoforge/src/test/resources/ami/lexical_evidence_dictio
 
 | Evidence | Tokens | Suggested facets | Category hint | Confidence | Notes |
 | --- | --- | --- | --- | --- | --- |
-| decorative_furniture | chair, table, desk, couch, sofa, bench, stool, cabinet, cabinetry, shelf, rack, counter, nightstand, wardrobe, dresser, bookcase, bookshelves, postbox | decorative_block | decoration/furniture | strong | Useful as primary evidence when not a machine/storage block. |
+| decorative_furniture | chair, table, desk, couch, sofa, bench, stool, cabinet, cabinetry, shelf, shelves, rack, counter, nightstand, wardrobe, dresser, bookcase, bookshelf, bookshelves, postbox | decorative_block | decoration/furniture | strong | Useful as primary evidence when not a machine/storage block. |
 | decorative_lighting | lamp, lantern, chandelier, sconce, brazier, candelabra, candle, torch, glowstone, shroomlight, froglight, beacon | decorative_block, light_source | decoration/lighting | strong | `light_source` alone should not be enough; these tokens make lighting primary. |
 | decorative_textiles | curtain, curtains, blinds, shutter, shutters, rug, carpet, pillow, cushion, blanket, sheet, banner, tapestry, canvas | decorative_block | decoration/textiles | medium | `banner` and `canvas` may also be utility/template depending on tags. |
 | rail_transport | rail, rails, track, tracks, train, tram, monorail, coupler, conductor, semaphore, handcar, locomotive | rail, transport | tech/transport | strong | Fixes Railways items without relying on Create-family bias alone. |
@@ -48,7 +48,7 @@ Machine-readable draft: `neoforge/src/test/resources/ami/lexical_evidence_dictio
 | utility_tool | wrench, hammer, mallet, brush, fishing, rod, flint, steel | utility_tool | tools/utility | medium | `hammer`, `mallet`, `flint`, and `steel` are ambiguous without tag/item-type evidence. |
 | utility_container | pouch, satchel, dish, bottle, bottles, flask | utility_misc | utility/misc | medium | Non-food bottles/flasks are generic utility unless stronger potion, food, or magic evidence exists. |
 | armor | helmet, helmets, chestplate, chestplates, leggings, boots, armor, elytra | armor_head/chest/legs/feet | armor/* | strong | Should not imply organic ingredient due to `egg` inside `leggings`. |
-| animal_armor | horse, harness, saddle | armor_animal | armor/animal | medium | `saddle` may be utility unless wearable/entity equipment facts exist. |
+| animal_armor | horse, harness, saddle | armor_animal | armor/animal | medium | `SaddleItem` class metadata is animal equipment; bare `saddle` tokens still need equipment context. |
 | navigation | compass, map, maps, clock, spyglass | utility_navigation | utility/navigation | strong | Exact token only. |
 | medical | bandage, medkit, syringe, morphine, adrenaline, splint | utility_medical | utility/medical | strong | Good lexical evidence. |
 | currency | coin, coins, cash, money, credit, card | utility_currency | utility/currency | medium | `card` can be tech/card/module. |

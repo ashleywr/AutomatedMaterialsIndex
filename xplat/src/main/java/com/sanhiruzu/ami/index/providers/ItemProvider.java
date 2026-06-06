@@ -157,6 +157,48 @@ public class ItemProvider implements IAmiDataProvider {
                 containsToken(existing, added) ? existing : existing + " " + added);
     }
 
+    private static void addGuideBookSearchTokens(Map<String, String> meta, ResourceLocation id, ItemStack stack, FacetProfile facetProfile) {
+        if (facetProfile == null || !facetProfile.facets().contains(ItemFacet.GUIDE_BOOK)) {
+            return;
+        }
+        meta.put(SearchNodeKeys.GUIDE_BOOK_CANDIDATE, "true");
+        if (id != null) {
+            meta.put(SearchNodeKeys.GUIDE_BOOK_ID, id.toString());
+        }
+        readPatchouliBookId(stack).ifPresent(bookId -> {
+            meta.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "patchouli");
+            meta.put(SearchNodeKeys.GUIDE_BOOK_ID, bookId.toString());
+            addSearchToken(meta, bookId.getNamespace());
+            addSearchToken(meta, bookId.getPath());
+            addPlainSearchToken(meta, bookId.getNamespace());
+            addPlainSearchToken(meta, bookId.getPath());
+        });
+        for (String token : List.of("guidebook", "guidebooks", "guide", "manual", "handbook", "codex", "lexicon")) {
+            addSearchToken(meta, token);
+            addPlainSearchToken(meta, token);
+        }
+    }
+
+    private static Optional<ResourceLocation> readPatchouliBookId(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return Optional.empty();
+        }
+        try {
+            Class<?> itemModBookClass = Class.forName("vazkii.patchouli.common.item.ItemModBook");
+            if (!itemModBookClass.isInstance(stack.getItem())) {
+                return Optional.empty();
+            }
+            Object book = itemModBookClass.getMethod("getBook", ItemStack.class).invoke(null, stack);
+            if (book == null) {
+                return Optional.empty();
+            }
+            Object id = book.getClass().getField("id").get(book);
+            return id instanceof ResourceLocation location ? Optional.of(location) : Optional.empty();
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
+            return Optional.empty();
+        }
+    }
+
     private static void addCheapPlainSearchTokens(Map<String, String> meta, ResourceLocation id,
                                                   Map<String, String> modNameCache) {
         if (id == null) {
@@ -413,6 +455,7 @@ public class ItemProvider implements IAmiDataProvider {
         if (!facetProfile.attributes().isEmpty()) {
             meta.putAll(facetProfile.attributes());
         }
+        addGuideBookSearchTokens(meta, baseId, stack, facetProfile);
 
         ItemProviderCompatHooks.runCompatSafely("CompatFamilyDetector", () -> CompatFamilyDetector.detect(baseId, meta));
         runFocusedCompatHooks(baseId, stack, level, meta, true);
@@ -673,6 +716,7 @@ public class ItemProvider implements IAmiDataProvider {
             if (!tags.isEmpty()) {
                 meta.put(SearchNodeKeys.TAGS, tags);
             }
+            addGuideBookSearchTokens(meta, id, defaultStack, facetProfile);
             if (requiredTool != null) {
                 meta.put(SearchNodeKeys.REQUIRED_TOOL, requiredTool);
             }

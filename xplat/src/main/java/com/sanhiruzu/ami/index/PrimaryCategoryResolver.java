@@ -338,7 +338,8 @@ public final class PrimaryCategoryResolver {
                     c -> hasAny(c.facets, ItemFacet.POTION, ItemFacet.ENCHANTED_BOOK, ItemFacet.MAGIC_ARTIFACT, ItemFacet.MAGIC_REAGENT),
                     c -> assignment("magic", classifyMagicSubcategory(c.facets), c.attributes)),
             rule("utility facets",
-                    c -> hasAny(c.facets, ItemFacet.UTILITY_NAVIGATION, ItemFacet.UTILITY_MEDICAL, ItemFacet.UTILITY_CURRENCY, ItemFacet.UTILITY_MISC),
+                    c -> hasAny(c.facets, ItemFacet.UTILITY_NAVIGATION, ItemFacet.UTILITY_MEDICAL, ItemFacet.UTILITY_CURRENCY,
+                            ItemFacet.BOOK, ItemFacet.GUIDE_BOOK, ItemFacet.UTILITY_MISC),
                     c -> assignment("utility", classifyUtilitySubcategory(c.facets), c.attributes)),
             rule("clear ingredients before incidental equipment or tech",
                     c -> shouldResolveIngredientBeforeEquipmentTech(c.facets),
@@ -645,7 +646,7 @@ public final class PrimaryCategoryResolver {
             ));
         }
 
-        if (shouldResolveAsArmorOrCurio(context.facets)) {
+        if (shouldResolveAsArmorOrCurio(context.facets) || isNonPlayerArmorClass(context.attributes)) {
             return Optional.of(identityAssignment(
                     "armor",
                     classifyArmorSubcategory(context.facets, context.attributes),
@@ -662,6 +663,16 @@ public final class PrimaryCategoryResolver {
                     context.attributes,
                     "identity.tool",
                     "non-projectile tool or weapon facet"
+            ));
+        }
+
+        if (shouldResolveEdibleMagicReagentBeforeFood(context)) {
+            return Optional.of(identityAssignment(
+                    "magic",
+                    "reagents",
+                    context.attributes,
+                    "identity.edible_magic_reagent",
+                    "edible brewing reagent identity"
             ));
         }
 
@@ -1504,6 +1515,17 @@ public final class PrimaryCategoryResolver {
                 || containsAny(blockClass, "SkilletBlock", "CookingPotBlock", "StoveBlock");
     }
 
+    private static boolean shouldResolveEdibleMagicReagentBeforeFood(ResolveContext context) {
+        if (!context.facets.contains(ItemFacet.EDIBLE)
+                || !context.facets.contains(ItemFacet.MAGIC_REAGENT)) {
+            return false;
+        }
+        return "spider_eye".equals(context.path)
+                || containsPathToken(context.path, Set.of("spider_eye"))
+                || hasMetadataToken(context.attributes, SearchNodeKeys.RECIPE_USE_CATEGORIES, "ami:brewing")
+                || hasMetadataToken(context.attributes, SearchNodeKeys.RECIPE_USE_CATEGORIES, "potion_workshop_brewing");
+    }
+
     private static boolean hasProjectileToolContext(String path, Map<String, String> attributes) {
         return containsPathToken(path, Set.of(
                 "arrow", "arrows", "bolt", "bolts", "bullet", "bullets", "round", "rounds",
@@ -1648,6 +1670,7 @@ public final class PrimaryCategoryResolver {
         if (facets.contains(ItemFacet.UTILITY_NAVIGATION)) return "navigation";
         if (facets.contains(ItemFacet.UTILITY_MEDICAL)) return "medical";
         if (facets.contains(ItemFacet.UTILITY_CURRENCY)) return "currency";
+        if (facets.contains(ItemFacet.GUIDE_BOOK) || facets.contains(ItemFacet.BOOK)) return "books";
         return "misc";
     }
 
@@ -1677,7 +1700,8 @@ public final class PrimaryCategoryResolver {
                 "horsearmoritem",
                 "wolfarmoritem",
                 "dogarmoritem",
-                "golemarmoritem");
+                "golemarmoritem",
+                "saddleitem");
     }
 
     private static String classifyWeaponSubcategory(Set<ItemFacet> facets) {

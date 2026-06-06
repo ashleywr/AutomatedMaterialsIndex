@@ -14,6 +14,7 @@ public final class AmiTooltipFacts {
             new EnergyTooltipFact(),
             new DurabilityTooltipFact(),
             new ToolSpeedTooltipFact(),
+            new GuideBookTooltipFact(),
             new CombatTooltipFact(),
             new PokemonTooltipFact(),
             new ModularGearTooltipFact(),

@@ -165,6 +165,34 @@ class StructuredCompatSearchTest {
     }
 
     @Test
+    void guidebookPropertyQueriesMatchOnlyGuideBookCandidates() {
+        GlobalIndex index = GlobalIndex.getInstance();
+
+        SearchNode fieldGuide = item("example", "field_guide", "Field Guide", Map.of(
+                SearchNodeKeys.GUIDE_BOOK_CANDIDATE, "true",
+                SearchNodeKeys.FACETS, "book,guide_book"
+        ));
+        SearchNode patchouliManual = item("example", "manual", "Manual", Map.of(
+                SearchNodeKeys.GUIDE_BOOK_CANDIDATE, "true",
+                SearchNodeKeys.GUIDE_BOOK_SYSTEM, "patchouli"
+        ));
+        SearchNode plainBook = item("minecraft", "book", "Book", Map.of(
+                SearchNodeKeys.FACETS, "book"
+        ));
+
+        index.addNode(fieldGuide);
+        index.addNode(patchouliManual);
+        index.addNode(plainBook);
+        SearchService service = SearchService.buildFrom(index, false);
+
+        assertTrue(service.query("?guidebook").get(NodeType.ITEM).contains(fieldGuide));
+        assertTrue(service.query("?type:guidebook").get(NodeType.ITEM).contains(fieldGuide));
+        assertTrue(service.query("?type:guidebook").get(NodeType.ITEM).contains(patchouliManual));
+        assertTrue(service.query("?guidebook:patchouli").get(NodeType.ITEM).contains(patchouliManual));
+        assertFalse(service.query("?type:guidebook").get(NodeType.ITEM).contains(plainBook));
+    }
+
+    @Test
     void gregTechEnrichedMetadataIsIndexedForPlainStructuredAndNumericSearch() {
         GlobalIndex index = GlobalIndex.getInstance();
 

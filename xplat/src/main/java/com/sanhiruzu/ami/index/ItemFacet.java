@@ -30,6 +30,8 @@ public enum ItemFacet {
     ARMOR_FEET("armor_feet"),
     ARMOR_ANIMAL("armor_animal"),
     CURIO("curio"),
+    BOOK("book"),
+    GUIDE_BOOK("guide_book"),
     POTION("potion"),
     ENCHANTED_BOOK("enchanted_book"),
     MAGIC_REAGENT("magic_reagent"),

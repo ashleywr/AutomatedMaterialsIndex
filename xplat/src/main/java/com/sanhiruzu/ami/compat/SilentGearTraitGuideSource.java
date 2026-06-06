@@ -5,7 +5,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.sanhiruzu.ami.api.AmiGuideDocument;
-import com.sanhiruzu.ami.api.AmiGuideOpeners;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -55,7 +54,6 @@ public final class SilentGearTraitGuideSource {
             summary.append("\nEffects: ").append(String.join("; ", effects));
         }
 
-        ResourceLocation bookId = ResourceLocation.fromNamespaceAndPath("silentgear", "guide_book");
         String pageId = "trait/" + traitPath;
         return AmiGuideDocument.builder(
                         ResourceLocation.fromNamespaceAndPath("ami", "guide/silentgear/trait/" + traitPath),
@@ -63,7 +61,6 @@ public final class SilentGearTraitGuideSource {
                         "silentgear",
                         name + " Trait"
                 )
-                .bookId(bookId)
                 .pageId(pageId)
                 .chapter("Traits")
                 .tag("trait")
@@ -73,7 +70,6 @@ public final class SilentGearTraitGuideSource {
                 .tag("gear_trait_" + traitPath)
                 .tags(levelTags(traitPath, maxLevel))
                 .summaryText(summary.toString())
-                .openAction(AmiGuideOpeners.patchouli(bookId, pageId))
                 .build();
     }
 
