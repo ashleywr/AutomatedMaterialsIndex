@@ -141,7 +141,8 @@ public final class FacetIndexer {
             facets.add(ItemFacet.MAGIC_REAGENT);
         }
         if (containsAny(itemClass, "itemmodbook", "modonomiconitem", "guidebookitem", "guideitem", "guide_book",
-                "manualitem", "lexiconitem", "codexitem", "cookbookitem")) {
+                "manualitem", "lexiconitem", "codexitem", "cookbookitem", "materialbookitem",
+                "tinkerbookitem", "animaldictionary", "codexarcana", "hexereibookitem")) {
             facets.add(ItemFacet.BOOK);
             facets.add(ItemFacet.GUIDE_BOOK);
             attributes.put(SearchNodeKeys.GUIDE_BOOK_CANDIDATE, "true");
@@ -151,6 +152,16 @@ public final class FacetIndexer {
                 attributes.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "guideme");
             } else if (itemClass.contains("modonomicon") || itemClass.contains("spectrum")) {
                 attributes.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "modonomicon");
+            } else if (itemClass.contains("materialbookitem") && itemClass.contains("silentgear")) {
+                attributes.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "silentgear_materials");
+            } else if (itemClass.contains("tinkerbookitem") || itemClass.contains("tinkers_reforged")) {
+                attributes.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "mantle_book");
+            } else if (itemClass.contains("animaldictionary") || itemClass.contains("alexscaves")) {
+                attributes.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "resource_book");
+            } else if (itemClass.contains("codexarcana")) {
+                attributes.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "mna_guide_json");
+            } else if (itemClass.contains("hexereibookitem")) {
+                attributes.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "hexerei_book");
             }
         }
     }
@@ -430,6 +441,10 @@ public final class FacetIndexer {
 
     private static void applyTagFacts(List<String> tags, EnumSet<ItemFacet> facets) {
         for (String tag : tags) {
+            if (tag.equals("forge:books/guide") || tag.equals("c:books/guide") || tag.endsWith(":guides")) {
+                facets.add(ItemFacet.BOOK);
+                facets.add(ItemFacet.GUIDE_BOOK);
+            }
             if (isCommonTagFamily(tag, "ingots")) facets.add(ItemFacet.INGOT);
             if (isCommonTagFamily(tag, "gems")) facets.add(ItemFacet.GEM);
             if (isCommonTagFamily(tag, "nuggets")) facets.add(ItemFacet.NUGGET);

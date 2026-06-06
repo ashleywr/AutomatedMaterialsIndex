@@ -12,6 +12,10 @@ import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.searchableitems.api.SearchableItemAction;
+import com.sanhiruzu.searchableitems.api.SearchableItemActionContext;
+import com.sanhiruzu.searchableitems.api.SearchableItemActionProvider;
+import com.sanhiruzu.searchableitems.api.SearchableItemActionProviders;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -40,6 +44,7 @@ class ResultContextMenuActionBuilderTest {
     void resetConfig() {
         AmiConfig.resetToDefaults();
         AmiQuestsApi.clearQuestGroups();
+        SearchableItemActionProviders.clearForTests();
         ResultContextMenuActionBuilder.clearPendingCategoryFixForTests();
     }
 
@@ -250,6 +255,54 @@ class ResultContextMenuActionBuilderTest {
         assertTrue(seenContext.get().cheatEnabled());
 
         pluginAction.onClick().run();
+        assertTrue(ran.get());
+    }
+
+    @Test
+    void sharedItemActionProvidersCanAppendItemContextMenuActionsWithoutAmiPlugin() {
+        AtomicReference<SearchableItemActionContext> seenContext = new AtomicReference<>();
+        AtomicBoolean ran = new AtomicBoolean();
+        SearchableItemActionProviders.register(new SearchableItemActionProvider() {
+            @Override
+            public String id() {
+                return "example:actions";
+            }
+
+            @Override
+            public void addItemActions(SearchableItemActionContext context, Consumer<SearchableItemAction> actions) {
+                seenContext.set(context);
+                actions.accept(SearchableItemAction.enabled(
+                        "example:shared_action",
+                        Component.literal("Shared Action"),
+                        's',
+                        () -> ran.set(true)
+                ));
+            }
+        });
+        ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder(
+                () -> true,
+                stack -> false,
+                List::of
+        );
+
+        List<ResultContextMenu.Action> actions = builder.forItem(
+                new ResultContextMenuActionBuilder.ItemContext(
+                        item("diamond", "Diamond", Map.of(SearchNodeKeys.ONTOLOGY_CATEGORY, "ingredients")),
+                        stack("diamond"),
+                        null,
+                        ignored -> {
+                        }
+                )
+        );
+
+        ResultContextMenu.Action sharedAction = actions.stream()
+                .filter(action -> action.id().equals("example:shared_action"))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("ITEM", seenContext.get().type());
+        assertTrue(seenContext.get().cheatEnabled());
+
+        sharedAction.onClick().run();
         assertTrue(ran.get());
     }
 

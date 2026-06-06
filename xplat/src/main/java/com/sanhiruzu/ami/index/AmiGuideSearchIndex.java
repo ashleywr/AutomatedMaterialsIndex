@@ -75,7 +75,7 @@ public final class AmiGuideSearchIndex {
         }
 
         if (isGuideBooksFilterQuery(query, tokens)) {
-            return List.copyOf(documents);
+            return visibleDocuments();
         }
         if (hasIncompletePropertyToken(query)) {
             return List.of();
@@ -83,6 +83,9 @@ public final class AmiGuideSearchIndex {
 
         List<ScoredDocument> scored = new ArrayList<>();
         for (AmiGuideDocument document : documents) {
+            if (!document.isVisible()) {
+                continue;
+            }
             String haystack = searchableText.getOrDefault(document, "");
             boolean matched = true;
             int score = 0;
@@ -109,6 +112,16 @@ public final class AmiGuideSearchIndex {
 
     public List<AmiGuideDocument> allDocuments() {
         return List.copyOf(documents);
+    }
+
+    private List<AmiGuideDocument> visibleDocuments() {
+        List<AmiGuideDocument> visible = new ArrayList<>();
+        for (AmiGuideDocument document : documents) {
+            if (document.isVisible()) {
+                visible.add(document);
+            }
+        }
+        return List.copyOf(visible);
     }
 
     public int indexedPageCountForBook(ResourceLocation bookId) {

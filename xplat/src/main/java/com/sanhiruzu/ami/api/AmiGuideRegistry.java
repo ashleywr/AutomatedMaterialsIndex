@@ -1,5 +1,8 @@
 package com.sanhiruzu.ami.api;
 
+import com.sanhiruzu.searchableguides.api.SearchableGuideDocument;
+import com.sanhiruzu.searchableguides.api.SearchableGuideProvider;
+import com.sanhiruzu.searchableguides.api.SearchableGuideProviders;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
@@ -49,6 +52,16 @@ public final class AmiGuideRegistry {
         }
     }
 
+    public static synchronized void registerSearchableGuideProviders() {
+        for (SearchableGuideProvider provider : SearchableGuideProviders.getProviders()) {
+            try {
+                provider.addGuideDocuments(document -> register(fromSearchableGuideDocument(document)));
+            } catch (RuntimeException | LinkageError e) {
+                LOGGER.log(Level.WARNING, "AMI: Shared guide provider failed: " + providerId(provider), e);
+            }
+        }
+    }
+
     public static synchronized List<AmiGuideDocument> getDocuments() {
         List<AmiGuideDocument> documents = new ArrayList<>(DOCUMENTS.values());
         documents.sort(Comparator.comparing(document -> document.id().toString()));
@@ -70,5 +83,31 @@ public final class AmiGuideRegistry {
         } catch (RuntimeException | LinkageError ignored) {
             return source.getClass().getName();
         }
+    }
+
+    private static String providerId(SearchableGuideProvider provider) {
+        try {
+            String id = provider.id();
+            return id == null || id.isBlank() ? provider.getClass().getName() : id;
+        } catch (RuntimeException | LinkageError ignored) {
+            return provider.getClass().getName();
+        }
+    }
+
+    private static AmiGuideDocument fromSearchableGuideDocument(SearchableGuideDocument document) {
+        if (document == null) {
+            return null;
+        }
+        return AmiGuideDocument.builder(document.id(), document.sourceType(), document.modId(), document.title())
+                .bookId(document.bookId())
+                .iconItemId(document.iconItemId())
+                .pageId(document.pageId())
+                .chapter(document.chapter())
+                .referencedItems(document.referencedItems())
+                .tags(document.tags())
+                .summaryText(document.summaryText())
+                .visibility(document.visibility())
+                .openAction(document.openAction())
+                .build();
     }
 }

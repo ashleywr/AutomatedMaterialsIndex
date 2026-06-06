@@ -38,13 +38,22 @@ public final class PatchouliGuideFixtureAdapter {
                                                String bookJson,
                                                Map<String, String> categoryJsonById,
                                                Map<String, String> entryJsonById) {
+        return parse(bookId, bookJson, categoryJsonById, entryJsonById, Map.of());
+    }
+
+    public static List<AmiGuideDocument> parse(ResourceLocation bookId,
+                                               String bookJson,
+                                               Map<String, String> categoryJsonById,
+                                               Map<String, String> entryJsonById,
+                                               Map<String, String> translations) {
         if (bookId == null || entryJsonById == null || entryJsonById.isEmpty()) {
             return List.of();
         }
 
-        Map<String, String> categoryLabels = parseCategoryLabels(bookId, categoryJsonById);
+        Map<String, String> safeTranslations = translations == null ? Map.of() : translations;
+        Map<String, String> categoryLabels = parseCategoryLabels(bookId, categoryJsonById, safeTranslations);
         String bookTitle = parseObject(bookJson)
-                .flatMap(object -> firstString(object, "name", "title"))
+                .flatMap(object -> firstString(object, safeTranslations, "name", "title"))
                 .orElse(bookId.toString());
 
         List<AmiGuideDocument> documents = new ArrayList<>();
@@ -56,8 +65,8 @@ public final class PatchouliGuideFixtureAdapter {
 
             JsonObject object = maybeObject.get();
             String pageId = normalizeEntryKey(entry.getKey());
-            String title = firstString(object, "name", "title").orElse(pageId);
-            String categoryKey = firstString(object, "category")
+            String title = firstString(object, safeTranslations, "name", "title").orElse(humanize(pageId));
+            String categoryKey = firstString(object, safeTranslations, "category")
                     .map(value -> normalizeCategoryReference(bookId, value))
                     .orElse("");
             String chapter = categoryLabels.getOrDefault(categoryKey, categoryKey);
@@ -67,7 +76,7 @@ public final class PatchouliGuideFixtureAdapter {
             add(summaryParts, bookTitle);
             add(summaryParts, chapter);
             add(summaryParts, title);
-            collectEntrySummary(object, summaryParts);
+            collectEntrySummary(object, safeTranslations, summaryParts);
             collectReferencedItems(object, referencedItems);
 
             AmiGuideDocument document = AmiGuideDocument.builder(documentId(bookId, pageId),
@@ -87,7 +96,8 @@ public final class PatchouliGuideFixtureAdapter {
     }
 
     private static Map<String, String> parseCategoryLabels(ResourceLocation bookId,
-                                                           Map<String, String> categoryJsonById) {
+                                                           Map<String, String> categoryJsonById,
+                                                           Map<String, String> translations) {
         if (categoryJsonById == null || categoryJsonById.isEmpty()) {
             return Map.of();
         }
@@ -95,14 +105,14 @@ public final class PatchouliGuideFixtureAdapter {
         for (Map.Entry<String, String> entry : categoryJsonById.entrySet()) {
             String key = normalizeCategoryReference(bookId, entry.getKey());
             parseObject(entry.getValue())
-                    .flatMap(object -> firstString(object, "name", "title"))
+                    .flatMap(object -> firstString(object, translations, "name", "title"))
                     .ifPresent(label -> labels.put(key, label));
         }
         return Map.copyOf(labels);
     }
 
-    private static void collectEntrySummary(JsonObject object, List<String> summaryParts) {
-        firstString(object, "description", "landing_text").ifPresent(value -> add(summaryParts, value));
+    private static void collectEntrySummary(JsonObject object, Map<String, String> translations, List<String> summaryParts) {
+        firstString(object, translations, "description", "landing_text").ifPresent(value -> add(summaryParts, value));
         JsonElement pages = object.get("pages");
         if (pages instanceof JsonArray array) {
             for (JsonElement page : array) {
@@ -110,10 +120,10 @@ public final class PatchouliGuideFixtureAdapter {
                     continue;
                 }
                 JsonObject pageObject = page.getAsJsonObject();
-                firstString(pageObject, "title").ifPresent(value -> add(summaryParts, value));
-                firstString(pageObject, "text").ifPresent(value -> add(summaryParts, value));
-                firstString(pageObject, "body").ifPresent(value -> add(summaryParts, value));
-                firstString(pageObject, "description").ifPresent(value -> add(summaryParts, value));
+                firstString(pageObject, translations, "title").ifPresent(value -> add(summaryParts, value));
+                firstString(pageObject, translations, "text").ifPresent(value -> add(summaryParts, value));
+                firstString(pageObject, translations, "body").ifPresent(value -> add(summaryParts, value));
+                firstString(pageObject, translations, "description").ifPresent(value -> add(summaryParts, value));
             }
         }
     }
@@ -189,16 +199,69 @@ public final class PatchouliGuideFixtureAdapter {
     }
 
     private static Optional<String> firstString(JsonObject object, String... keys) {
+        return firstString(object, Map.of(), keys);
+    }
+
+    private static Optional<String> firstString(JsonObject object, Map<String, String> translations, String... keys) {
         for (String key : keys) {
             JsonElement element = object.get(key);
             if (element != null && element.isJsonPrimitive()) {
-                String value = cleanText(element.getAsString());
+                String raw = element.getAsString();
+                String value = cleanText(resolveText(raw, translations));
                 if (!value.isEmpty()) {
                     return Optional.of(value);
                 }
             }
         }
         return Optional.empty();
+    }
+
+    private static String resolveText(String raw, Map<String, String> translations) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        String translated = translations.get(raw);
+        if (translated != null && !translated.isBlank()) {
+            return translated;
+        }
+        if (!looksLikeTranslationKey(raw)) {
+            return raw;
+        }
+        return readableTranslationFallback(raw);
+    }
+
+    private static boolean looksLikeTranslationKey(String raw) {
+        return raw.startsWith("item.")
+                || raw.startsWith("block.")
+                || raw.startsWith("book.")
+                || raw.startsWith("entity.")
+                || raw.startsWith("advancements.");
+    }
+
+    private static String readableTranslationFallback(String raw) {
+        String[] parts = raw.split("\\.");
+        if (parts.length == 0) {
+            return humanize(raw);
+        }
+        int index = parts.length - 1;
+        String last = parts[index];
+        if (isGenericTranslationLeaf(last) && index > 0) {
+            index--;
+        }
+        if (("item".equals(parts[0]) || "block".equals(parts[0]) || "entity".equals(parts[0])) && parts.length > 2) {
+            index = parts.length - 1;
+        }
+        while (index > 0 && isGenericTranslationLeaf(parts[index])) {
+            index--;
+        }
+        return humanize(parts[Math.max(0, index)]);
+    }
+
+    private static boolean isGenericTranslationLeaf(String value) {
+        return switch (value) {
+            case "name", "title", "text", "description", "landing", "landing_text", "entries", "categories", "pages" -> true;
+            default -> false;
+        };
     }
 
     private static List<String> tags(String categoryKey) {
@@ -261,6 +324,28 @@ public final class PatchouliGuideFixtureAdapter {
                 .replace('\r', ' ')
                 .replaceAll("\\s+", " ")
                 .trim();
+    }
+
+    private static String humanize(String raw) {
+        String value = normalizePathKey(raw);
+        int slash = value.lastIndexOf('/');
+        if (slash >= 0) {
+            value = value.substring(slash + 1);
+        }
+        StringBuilder out = new StringBuilder();
+        for (String part : value.split("[_\\-]+")) {
+            if (part.isBlank()) {
+                continue;
+            }
+            if (!out.isEmpty()) {
+                out.append(' ');
+            }
+            out.append(part.substring(0, 1).toUpperCase(Locale.ROOT));
+            if (part.length() > 1) {
+                out.append(part.substring(1).toLowerCase(Locale.ROOT));
+            }
+        }
+        return out.isEmpty() ? "Entry" : out.toString();
     }
 
     private static String safePath(String raw) {

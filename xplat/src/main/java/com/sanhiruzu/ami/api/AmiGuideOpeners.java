@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 /**
  * Factory methods for common guidebook open actions.
@@ -114,6 +115,40 @@ public final class AmiGuideOpeners {
      */
     public static Runnable modonomicon(ResourceLocation bookId) {
         return () -> openModonomiconBook(bookId, null, null, 0);
+    }
+
+    // ── Silent Gear ──────────────────────────────────────────────────────────
+
+    /**
+     * Opens Silent Gear's material book to a specific material detail page.
+     *
+     * @param materialId the Silent Gear material id, or {@code null} for the material book home
+     */
+    public static Runnable silentGearMaterialBook(ResourceLocation materialId) {
+        return () -> openSilentGearMaterialBook(materialId);
+    }
+
+    // ── Resource-backed custom books ─────────────────────────────────────────
+
+    /**
+     * Opens a Mantle/Tinkers-style book to a named page when the book data is available.
+     */
+    public static Runnable mantleBook(ResourceLocation bookId, String pageId) {
+        return () -> openMantleBook(bookId, pageId);
+    }
+
+    /**
+     * Opens Alex's Mobs' animal dictionary to the requested page JSON.
+     */
+    public static Runnable alexsMobsAnimalDictionary(String pageJson) {
+        return () -> openAlexsMobsAnimalDictionary(pageJson);
+    }
+
+    /**
+     * Opens Alex's Caves' cave book to the requested entry JSON.
+     */
+    public static Runnable alexsCavesBook(ResourceLocation pageJson) {
+        return () -> openAlexsCavesBook(pageJson);
     }
 
     // ── Internal ──────────────────────────────────────────────────────────────
@@ -254,6 +289,57 @@ public final class AmiGuideOpeners {
                 .forEach(candidates::add);
 
         return List.copyOf(candidates);
+    }
+
+    public static boolean patchouliEntryVisible(ResourceLocation bookId, String pageId) {
+        if (bookId == null || pageId == null || pageId.isBlank()) {
+            return true;
+        }
+        try {
+            Map<?, ?> entries = patchouliBookEntries(bookId);
+            if (entries.isEmpty()) {
+                return true;
+            }
+            for (ResourceLocation entryId : patchouliEntryCandidates(bookId, pageId)) {
+                Object entry = entries.get(entryId);
+                if (entry != null) {
+                    return patchouliEntryVisible(entry);
+                }
+            }
+        } catch (RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Patchouli entry visibility unavailable for " + bookId + " / " + pageId, e);
+        }
+        return true;
+    }
+
+    private static boolean patchouliEntryVisible(Object entry) {
+        try {
+            tryInvokeNoArg(entry, "updateLockStatus");
+            Boolean hidden = booleanNoArg(entry, "shouldHide");
+            if (Boolean.TRUE.equals(hidden)) {
+                return false;
+            }
+            Boolean locked = booleanNoArg(entry, "isLocked");
+            if (Boolean.TRUE.equals(locked)) {
+                return false;
+            }
+            Boolean canAdd = booleanNoArg(entry, "canAdd");
+            return !Boolean.FALSE.equals(canAdd);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Patchouli entry visibility check failed", e);
+            return true;
+        }
+    }
+
+    private static void tryInvokeNoArg(Object target, String methodName) throws ReflectiveOperationException {
+        Method method = target.getClass().getMethod(methodName);
+        method.invoke(target);
+    }
+
+    private static Boolean booleanNoArg(Object target, String methodName) throws ReflectiveOperationException {
+        Method method = target.getClass().getMethod(methodName);
+        Object value = method.invoke(target);
+        return value instanceof Boolean bool ? bool : null;
     }
 
     static int scorePatchouliEntryCandidate(String requestedPath, String entryPath) {
@@ -463,7 +549,7 @@ public final class AmiGuideOpeners {
             Class<?> guidesCommon = Class.forName("guideme.GuidesCommon");
 
             if (pageId != null && !pageId.isBlank()) {
-                ResourceLocation pageLocation = ResourceLocation.fromNamespaceAndPath(bookId.getNamespace(), pageId);
+                ResourceLocation pageLocation = guideMEPageLocation(bookId, pageId);
                 Object pageAnchor = guideMEPageAnchor(pageLocation);
                 for (Method m : guidesCommon.getMethods()) {
                     if ("openGuide".equals(m.getName()) && m.getParameterCount() == 3) {
@@ -498,6 +584,60 @@ public final class AmiGuideOpeners {
             LOGGER.log(Level.FINE, "AMI: GuideME page anchor unavailable for " + pageLocation, e);
             return null;
         }
+    }
+
+    static ResourceLocation guideMEPageLocation(ResourceLocation bookId, String pageId) {
+        ResourceLocation requested = ResourceLocation.fromNamespaceAndPath(bookId.getNamespace(), pageId);
+        ResourceLocation runtimeMatch = guideMERuntimePageLocation(bookId, pageId);
+        return runtimeMatch == null ? requested : runtimeMatch;
+    }
+
+    private static ResourceLocation guideMERuntimePageLocation(ResourceLocation bookId, String pageId) {
+        if (bookId == null || pageId == null || pageId.isBlank()) {
+            return null;
+        }
+        try {
+            Class<?> proxyClass = Class.forName("guideme.internal.GuideMEProxy");
+            Object proxy = proxyClass.getMethod("instance").invoke(null);
+            Method method = proxyClass.getMethod("getAvailablePages", ResourceLocation.class);
+            Object result = method.invoke(proxy, bookId);
+            if (!(result instanceof Stream<?> stream)) {
+                return null;
+            }
+            try (stream) {
+                String normalizedPageId = normalizeGuideMEPagePath(pageId);
+                return stream
+                        .filter(ResourceLocation.class::isInstance)
+                        .map(ResourceLocation.class::cast)
+                        .filter(candidate -> isGuideMEPageMatch(candidate, normalizedPageId))
+                        .findFirst()
+                        .orElse(null);
+            }
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: GuideME available-page lookup failed for " + bookId + " / " + pageId, e);
+            return null;
+        }
+    }
+
+    static boolean isGuideMEPageMatch(ResourceLocation candidate, String normalizedPageId) {
+        if (candidate == null || normalizedPageId == null || normalizedPageId.isBlank()) {
+            return false;
+        }
+        String candidatePath = normalizeGuideMEPagePath(candidate.getPath());
+        return candidatePath.equals(normalizedPageId)
+                || candidatePath.equals("ae2guide/" + normalizedPageId)
+                || candidatePath.endsWith("/" + normalizedPageId);
+    }
+
+    private static String normalizeGuideMEPagePath(String raw) {
+        String value = raw == null ? "" : raw.replace('\\', '/').trim();
+        if (value.endsWith(".md")) {
+            value = value.substring(0, value.length() - ".md".length());
+        }
+        while (value.startsWith("/")) {
+            value = value.substring(1);
+        }
+        return value;
     }
 
     private static Object guideMEPageArgument(Class<?> parameterType, ResourceLocation pageLocation, Object pageAnchor) {
@@ -539,6 +679,134 @@ public final class AmiGuideOpeners {
             managerClass.getMethod("openBook", addressClass).invoke(manager, address);
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
             LOGGER.log(Level.FINE, "AMI: Modonomicon unavailable for guide open: " + bookId, e);
+        }
+    }
+
+    private static void openSilentGearMaterialBook(ResourceLocation materialId) {
+        try {
+            Minecraft mc = Minecraft.getInstance();
+            Object screen;
+            if (materialId != null) {
+                Class<?> registriesClass = Class.forName("net.silentchaos512.gear.setup.SgRegistries");
+                Object materialManager = registriesClass.getField("MATERIAL").get(null);
+                Object material = materialManager.getClass().getMethod("get", ResourceLocation.class).invoke(materialManager, materialId);
+                if (material == null) {
+                    screen = newSilentGearMaterialBookScreen();
+                } else {
+                    Class<?> materialClass = Class.forName("net.silentchaos512.gear.api.material.Material");
+                    Class<?> detailsScreenClass = Class.forName("net.silentchaos512.gear.client.gui.book.MaterialDetailsBookScreen");
+                    screen = detailsScreenClass
+                            .getConstructor(net.minecraft.client.gui.screens.Screen.class, materialClass)
+                            .newInstance(null, material);
+                }
+            } else {
+                screen = newSilentGearMaterialBookScreen();
+            }
+            mc.execute(() -> mc.setScreen((net.minecraft.client.gui.screens.Screen) screen));
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Silent Gear material book unavailable for guide open: " + materialId, e);
+        }
+    }
+
+    private static Object newSilentGearMaterialBookScreen() throws ReflectiveOperationException {
+        Class<?> screenClass = Class.forName("net.silentchaos512.gear.client.gui.book.MaterialBookScreen");
+        return screenClass.getConstructor().newInstance();
+    }
+
+    private static void openMantleBook(ResourceLocation bookId, String pageId) {
+        if (bookId == null) {
+            return;
+        }
+        try {
+            Object book = mantleBookData(bookId);
+            if (book == null) {
+                return;
+            }
+            Class<?> componentClass = Class.forName("net.minecraft.network.chat.Component");
+            Object title = componentClass.getMethod("literal", String.class).invoke(null, bookId.toString());
+            for (Method method : book.getClass().getMethods()) {
+                if (!"openGui".equals(method.getName()) || method.getParameterCount() != 3) {
+                    continue;
+                }
+                Class<?>[] types = method.getParameterTypes();
+                if (componentClass.isAssignableFrom(types[0]) && types[1] == String.class) {
+                    method.invoke(book, title, pageId == null ? "" : pageId, (java.util.function.Consumer<String>) ignored -> {
+                    });
+                    return;
+                }
+            }
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Mantle book unavailable for guide open: " + bookId, e);
+        }
+    }
+
+    private static Object mantleBookData(ResourceLocation bookId) throws ReflectiveOperationException {
+        String path = bookId.getPath();
+        if ("tconstruct".equals(bookId.getNamespace())) {
+            String fieldName = switch (path) {
+                case "materials_and_you" -> "MATERIALS_AND_YOU";
+                case "puny_smelting" -> "PUNY_SMELTING";
+                case "mighty_smelting" -> "MIGHTY_SMELTING";
+                case "tinkers_gadgetry" -> "TINKERS_GADGETRY";
+                case "fantastic_foundry" -> "FANTASTIC_FOUNDRY";
+                case "encyclopedia" -> "ENCYCLOPEDIA";
+                default -> "";
+            };
+            if (!fieldName.isBlank()) {
+                Class<?> tinkerBookClass = Class.forName("slimeknights.tconstruct.library.client.book.TinkerBook");
+                tryInvokeStaticNoArg(tinkerBookClass, "initBook");
+                return tinkerBookClass.getField(fieldName).get(null);
+            }
+        }
+        if ("tinkers_reforged".equals(bookId.getNamespace()) && "reforging_guide".equals(path)) {
+            Class<?> bookClass = Class.forName("mrthomas20121.tinkers_reforged.client.TinkersReforgedBook");
+            tryInvokeStaticNoArg(bookClass, "initBook");
+            return bookClass.getField("BOOK").get(null);
+        }
+        return null;
+    }
+
+    private static void tryInvokeStaticNoArg(Class<?> target, String methodName) {
+        try {
+            target.getMethod(methodName).invoke(null);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
+            LOGGER.log(Level.FINE, "AMI: Optional static guide init failed for " + target.getName(), ignored);
+        }
+    }
+
+    private static void openAlexsMobsAnimalDictionary(String pageJson) {
+        try {
+            Minecraft mc = Minecraft.getInstance();
+            Class<?> screenClass = Class.forName("com.github.alexthe666.alexsmobs.client.gui.GUIAnimalDictionary");
+            net.minecraft.world.item.Item item = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(
+                    ResourceLocation.fromNamespaceAndPath("alexsmobs", "animal_dictionary")
+            );
+            net.minecraft.world.item.ItemStack stack = new net.minecraft.world.item.ItemStack(item);
+            Object screen = pageJson == null || pageJson.isBlank()
+                    ? screenClass.getConstructor(net.minecraft.world.item.ItemStack.class).newInstance(stack)
+                    : screenClass.getConstructor(net.minecraft.world.item.ItemStack.class, String.class).newInstance(stack, pageJson);
+            mc.execute(() -> mc.setScreen((net.minecraft.client.gui.screens.Screen) screen));
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Alex's Mobs dictionary unavailable for guide open: " + pageJson, e);
+        }
+    }
+
+    private static void openAlexsCavesBook(ResourceLocation pageJson) {
+        try {
+            Minecraft mc = Minecraft.getInstance();
+            Class<?> screenClass = Class.forName("com.github.alexmodguy.alexscaves.client.gui.book.CaveBookScreen");
+            Object screen = screenClass.getConstructor().newInstance();
+            if (pageJson != null) {
+                try {
+                    screenClass.getMethod("attemptChangePage", ResourceLocation.class, boolean.class)
+                            .invoke(screen, pageJson, false);
+                } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
+                    LOGGER.log(Level.FINE, "AMI: Alex's Caves exact page selection failed for " + pageJson, ignored);
+                }
+            }
+            mc.execute(() -> mc.setScreen((net.minecraft.client.gui.screens.Screen) screen));
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Alex's Caves book unavailable for guide open: " + pageJson, e);
         }
     }
 }

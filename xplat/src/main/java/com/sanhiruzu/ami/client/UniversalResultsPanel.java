@@ -1031,10 +1031,16 @@ public class UniversalResultsPanel implements SearchState.Listener {
         lines.add(Component.literal(sanitizeTooltipText(row.title())));
         lines.add(Component.literal(sanitizeTooltipText(row.sourceLine())));
         lines.add(Component.literal(sanitizeTooltipText(row.provenanceLine())));
-        row.evidence().stream()
-                .filter(evidence -> !evidence.snippet().isBlank())
-                .findFirst()
-                .ifPresent(evidence -> lines.add(Component.literal(sanitizeTooltipText(evidence.snippet()))));
+        if ("silentgear_materials".equals(row.document().sourceType())) {
+            for (String line : materialSummaryTooltipLines(row.document().summaryText())) {
+                lines.add(Component.literal(line));
+            }
+        } else {
+            row.evidence().stream()
+                    .filter(evidence -> !evidence.snippet().isBlank())
+                    .findFirst()
+                    .ifPresent(evidence -> lines.add(Component.literal(sanitizeTooltipText(evidence.snippet()))));
+        }
         AmiTooltipRenderer.render(g, Minecraft.getInstance().font, lines, Optional.empty(), mouseX, mouseY);
     }
 
@@ -1083,6 +1089,29 @@ public class UniversalResultsPanel implements SearchState.Listener {
             }
         }
         return out.toString().trim();
+    }
+
+    private static List<String> materialSummaryTooltipLines(String summary) {
+        if (summary == null || summary.isBlank()) {
+            return List.of();
+        }
+        List<String> lines = new ArrayList<>();
+        for (String paragraph : summary.replace('\r', '\n').split("\\n+")) {
+            String clean = sanitizeTooltipText(paragraph);
+            if (clean.isBlank()) {
+                continue;
+            }
+            for (String part : clean.split(";\\s*")) {
+                String line = sanitizeTooltipText(part);
+                if (!line.isBlank() && !lines.contains(line)) {
+                    lines.add(line);
+                }
+                if (lines.size() >= 8) {
+                    return lines;
+                }
+            }
+        }
+        return lines;
     }
 
     // ── Tree refresh ──────────────────────────────────────────────────────────

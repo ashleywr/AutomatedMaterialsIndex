@@ -78,4 +78,97 @@ class PatchouliRuntimeGuideSourceTest {
         assertEquals(1, documents.size());
         assertEquals("Working", documents.getFirst().title());
     }
+
+    @Test
+    void cobblepediaStyleRootBookAndLangKeysAreIndexed() {
+        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
+        resources.put(new ResourceLocation("cobblepedia", "patchouli_books/cobblepedia/book.json"), """
+                { "name": "book.cobblepedia" }
+                """);
+        resources.put(new ResourceLocation("cobblepedia", "patchouli_books/cobblepedia/en_us/categories/getting_started.json"), """
+                { "name": "book.cobblepedia.categories.getting_started" }
+                """);
+        resources.put(new ResourceLocation("cobblepedia", "patchouli_books/cobblepedia/en_us/entries/pokedex.json"), """
+                {
+                  "name": "book.cobblepedia.entries.pokedex.name",
+                  "category": "cobblepedia:getting_started",
+                  "icon": "cobblemon:pokedex_red",
+                  "pages": [
+                    {
+                      "type": "patchouli:spotlight",
+                      "item": "tag:cobblemon:pokedex",
+                      "text": "book.cobblepedia.entries.pokedex.text"
+                    }
+                  ]
+                }
+                """);
+        Map<ResourceLocation, String> lang = new LinkedHashMap<>();
+        lang.put(new ResourceLocation("cobblepedia", "lang/en_us.json"), """
+                {
+                  "book.cobblepedia": "Cobblepedia",
+                  "book.cobblepedia.categories.getting_started": "Getting Started",
+                  "book.cobblepedia.entries.pokedex.name": "Pokedex",
+                  "book.cobblepedia.entries.pokedex.text": "The Pokedex records Pokemon information."
+                }
+                """);
+
+        List<AmiGuideDocument> documents = PatchouliRuntimeGuideSource.documentsFromResources(resources, lang, "en_us");
+
+        assertEquals(1, documents.size());
+        AmiGuideDocument document = documents.getFirst();
+        assertEquals(new ResourceLocation("cobblepedia", "cobblepedia"), document.bookId());
+        assertEquals("pokedex", document.pageId());
+        assertEquals("Pokedex", document.title());
+        assertEquals("Getting Started", document.chapter());
+        assertTrue(document.summaryText().contains("Cobblepedia"));
+        assertTrue(document.summaryText().contains("The Pokedex records Pokemon information."));
+        assertTrue(document.canOpen());
+    }
+
+    @Test
+    void naturesAuraStyleRootBookAndAssetEntriesAreIndexed() {
+        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
+        resources.put(new ResourceLocation("naturesaura", "patchouli_books/book/book.json"), """
+                {
+                  "name": "Book of Natural Aura",
+                  "use_resource_pack": true
+                }
+                """);
+        resources.put(new ResourceLocation("naturesaura", "patchouli_books/book/en_us/categories/using.json"), """
+                {
+                  "name": "Using Aura",
+                  "description": "Ways to collect and spend aura."
+                }
+                """);
+        resources.put(new ResourceLocation("naturesaura", "patchouli_books/book/en_us/entries/using/altar.json"), """
+                {
+                  "name": "The Natural Altar",
+                  "icon": "naturesaura:nature_altar",
+                  "category": "naturesaura:using",
+                  "pages": [
+                    {
+                      "type": "text",
+                      "text": "The Natural Altar collects aura and infuses items."
+                    },
+                    {
+                      "type": "naturesaura:altar",
+                      "recipe": "naturesaura:infused_iron",
+                      "text": "Creating Infused Iron using aura."
+                    }
+                  ]
+                }
+                """);
+
+        List<AmiGuideDocument> documents = PatchouliRuntimeGuideSource.documentsFromResources(resources, "en_us");
+
+        assertEquals(1, documents.size());
+        AmiGuideDocument document = documents.getFirst();
+        assertEquals(new ResourceLocation("naturesaura", "book"), document.bookId());
+        assertEquals("using/altar", document.pageId());
+        assertEquals("The Natural Altar", document.title());
+        assertEquals("Using Aura", document.chapter());
+        assertEquals(List.of(new ResourceLocation("naturesaura", "nature_altar")), document.referencedItems());
+        assertTrue(document.summaryText().contains("The Natural Altar collects aura"));
+        assertTrue(document.canOpen());
+    }
 }

@@ -7,7 +7,9 @@ import com.sanhiruzu.ami.compat.ApotheosisGuideSource;
 import com.sanhiruzu.ami.compat.GuideMeRuntimeGuideSource;
 import com.sanhiruzu.ami.compat.ModonomiconRuntimeGuideSource;
 import com.sanhiruzu.ami.compat.PatchouliRuntimeGuideSource;
+import com.sanhiruzu.ami.compat.ResourceBookRuntimeGuideSource;
 import com.sanhiruzu.ami.compat.SilentGearMaterialTraitIndex;
+import com.sanhiruzu.ami.compat.SilentGearMaterialBookGuideSource;
 import com.sanhiruzu.ami.compat.SilentGearTraitGuideSource;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.config.AmiCustomTaxonomy;
@@ -265,9 +267,12 @@ public final class AmiIndexerService {
                 PatchouliRuntimeGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
                 GuideMeRuntimeGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
                 ModonomiconRuntimeGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
+                ResourceBookRuntimeGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
                 ApotheosisGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
+                SilentGearMaterialBookGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
                 SilentGearTraitGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
                 AmiGuideRegistry.registerPluginGuides();
+                AmiGuideRegistry.registerSearchableGuideProviders();
                 guideSearchIndex = AmiGuideSearchIndex.fromConfig(AmiGuideRegistry.getDocuments());
                 AmiCore.LOGGER.info("AMI: Deferred guide indexing complete in {}ms ({} guide docs).",
                         System.currentTimeMillis() - started,

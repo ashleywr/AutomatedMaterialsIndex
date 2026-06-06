@@ -336,12 +336,7 @@ public final class GuideMeRuntimeGuideSource {
     }
 
     private static ResourceManager resourceManager() {
-        var minecraft = net.minecraft.client.Minecraft.getInstance();
-        var server = minecraft.getSingleplayerServer();
-        if (server != null) {
-            return server.getResourceManager();
-        }
-        return minecraft.getResourceManager();
+        return net.minecraft.client.Minecraft.getInstance().getResourceManager();
     }
 
     private record GuideMeResource(String namespace, String pageId) {
