@@ -62,8 +62,10 @@ class AmiGuideSearchIndexTest {
 
         assertEquals(List.of(documentOne, documentTwo), index.search("guidebooks"));
         assertEquals(List.of(documentOne, documentTwo), index.search("mana guidebooks"));
+        assertEquals(List.of(documentOne, documentTwo), index.search("?guide"));
         assertEquals(List.of(documentOne, documentTwo), index.search("?guidebook"));
         assertEquals(List.of(documentOne, documentTwo), index.search("?type:guidebook"));
+        assertTrue(index.search("?gui").isEmpty());
     }
 
     @Test

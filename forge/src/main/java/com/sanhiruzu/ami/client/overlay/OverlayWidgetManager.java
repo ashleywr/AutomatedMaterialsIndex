@@ -40,6 +40,7 @@ public class OverlayWidgetManager {
     private static final int TOP_MARGIN_CONTROL_MAX_Y = 96;
     public static final int AMI_BTN_NEXT_X = AMI_BTN_X + AMI_BTN_W + AMI_BTN_MARGIN;
     private static final int PANEL_HANDLE_HITBOX = 8;
+    private static final long SEARCH_DEBOUNCE_MS = Math.max(0L, Long.getLong("ami.searchDebounceMs", 120L));
 
     private final List<PanelSlot> leftSlotPool = new ArrayList<>();
     private final List<PanelSlot> rightSlotPool = new ArrayList<>();
@@ -51,6 +52,8 @@ public class OverlayWidgetManager {
 
     private boolean panelVisible = false;
     private String lastSyncedQuery = "";
+    private String pendingSearchQuery = null;
+    private long pendingSearchDeadlineMs = -1L;
     private WidgetBounds lastResultsBounds = null;
     private int lastScreenH = 0;
     private boolean pendingEmiReinit = false;
@@ -597,10 +600,12 @@ public class OverlayWidgetManager {
     }
 
     public void tick(ScreenEvent.Render.Post event) {
-        if (!AmiConfig.enableAutoIndexing) return;
         if (!panelVisible) return;
 
         ensureWidgets();
+        flushPendingSearch(false);
+        if (!AmiConfig.enableAutoIndexing) return;
+
         var indexer = AmiIndexerService.getInstance();
         if (indexer.isReady()) {
             var service = indexer.getOrBuildSearchService();
@@ -773,6 +778,31 @@ public class OverlayWidgetManager {
         if (searchBar != null) {
             searchBar.setInventoryVisualFilterActive(inventorySearchHighlighter.isActive());
         }
+        if (SEARCH_DEBOUNCE_MS <= 0L || query == null || query.isBlank()) {
+            pendingSearchQuery = null;
+            pendingSearchDeadlineMs = -1L;
+            applySearchQuery(query == null ? "" : query);
+            return;
+        }
+        pendingSearchQuery = query;
+        pendingSearchDeadlineMs = System.currentTimeMillis() + SEARCH_DEBOUNCE_MS;
+    }
+
+    private void flushPendingSearch(boolean force) {
+        if (pendingSearchQuery == null) {
+            return;
+        }
+        if (!force && System.currentTimeMillis() < pendingSearchDeadlineMs) {
+            return;
+        }
+        String query = pendingSearchQuery;
+        pendingSearchQuery = null;
+        pendingSearchDeadlineMs = -1L;
+        applySearchQuery(query);
+    }
+
+    private void applySearchQuery(String query) {
+        query = query == null ? "" : query;
         for (ResultsPanelWidget panel : getResultPanels()) {
             if (panel.getInnerPanel() != null) panel.getInnerPanel().getState().setQuery(query);
         }
@@ -790,6 +820,8 @@ public class OverlayWidgetManager {
         String rvQuery = RecipeViewerBridge.getSearchText();
         if (!rvQuery.equals(lastSyncedQuery)) {
             lastSyncedQuery = rvQuery;
+            pendingSearchQuery = null;
+            pendingSearchDeadlineMs = -1L;
             searchBar.setQuery(rvQuery);
             for (ResultsPanelWidget panel : getResultPanels()) {
                 if (panel.getInnerPanel() != null) panel.getInnerPanel().getState().setQuery(rvQuery);

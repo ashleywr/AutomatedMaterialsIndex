@@ -56,6 +56,74 @@ class SearchSuggestionsTest {
     }
 
     @Test
+    void suggestsGuidebookFieldForGuidePrefixes() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("patchouli", "guide_book", "Guide Book", Map.of(
+                SearchNodeKeys.GUIDE_BOOK_CANDIDATE, "true",
+                SearchNodeKeys.GUIDE_BOOK_SYSTEM, "patchouli",
+                SearchNodeKeys.FACETS, "guide_book"
+        )));
+
+        assertSuggests(index, "?gui", "?guidebook:");
+        assertSuggests(index, "?guidebook:patch", "?guidebook:patchouli");
+        assertTrue(helpExamples(index).contains("?guidebook:"));
+    }
+
+    @Test
+    void guidebookAliasesDoNotRepeatAsSimplePropertySuggestions() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("patchouli", "guide_book", "Guide Book", Map.of(
+                SearchNodeKeys.GUIDE_BOOK_CANDIDATE, "true",
+                SearchNodeKeys.FACETS, "guide_book",
+                SearchNodeKeys.SEARCH_TOKENS, "guide guide_book guidebook guidebooks"
+        )));
+        index.addNode(item("example", "manual", "Manual", Map.of(
+                SearchNodeKeys.GUIDE_BOOK_CANDIDATE, "true",
+                SearchNodeKeys.FACETS, "guide_book",
+                SearchNodeKeys.SEARCH_TOKENS, "guidebook"
+        )));
+
+        List<String> displays = suggestionDisplays(index, "?guide");
+
+        assertEquals(List.of("?guidebook:"), displays.stream()
+                .filter(display -> display.startsWith("?guide"))
+                .toList());
+        assertFalse(displays.contains("?guide_book"));
+        assertFalse(displays.contains("?guidebook"));
+        assertFalse(displays.contains("?guidebooks"));
+        assertFalse(displays.contains("?guide"));
+    }
+
+    @Test
+    void propertyFieldAliasesDoNotRepeatAsSimplePropertySuggestions() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("powah", "starter_cell", "Starter Cell", Map.of(
+                "powahFacts", "energy,power,rf,portable_power",
+                SearchNodeKeys.ENERGY_CAPACITY, "10000"
+        )));
+        index.addNode(item("silentgear", "material", "Material", Map.of(
+                SearchNodeKeys.MODULAR_GEAR_MATERIAL_TRAITS, "trait,traits,modifier,modifiers,malleable"
+        )));
+
+        List<String> energyDisplays = suggestionDisplays(index, "?energy");
+        assertTrue(energyDisplays.contains("?energy:"));
+        assertFalse(energyDisplays.contains("?energy"));
+        assertFalse(energyDisplays.contains("?power"));
+        assertFalse(energyDisplays.contains("?rf"));
+
+        List<String> powerDisplays = suggestionDisplays(index, "?power");
+        assertEquals(List.of("?energy:"), powerDisplays);
+
+        List<String> traitDisplays = suggestionDisplays(index, "?trait");
+        assertTrue(traitDisplays.contains("?trait:"));
+        assertFalse(traitDisplays.contains("?traits"));
+        assertFalse(traitDisplays.contains("?modifier"));
+        assertFalse(traitDisplays.contains("?modifiers"));
+
+        assertSuggests(index, "?portable", "?portable_power");
+    }
+
+    @Test
     void suggestsGregTechPropertyFieldsAndValuesFromGregTechMetadataOnly() {
         GlobalIndex index = GlobalIndex.getInstance();
         index.addNode(item("powah", "starter_cell", "Starter Cell", Map.of(
@@ -107,6 +175,50 @@ class SearchSuggestionsTest {
         assertSuggests(index, "@gt", "@GregTech");
         assertSuggestion(index, "@gt", "@GregTech", "@gregtech ");
         assertDoesNotSuggest(index, "@gt", "@gtceu");
+    }
+
+    @Test
+    void modPropertyFieldIsSupportedButNotDiscoverable() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("create", "shaft", "Shaft", Map.of(
+                SearchNodeKeys.MOD_ID, "create"
+        )));
+
+        assertDoesNotSuggest(index, "?", "?mod:");
+        assertDoesNotSuggest(index, "?m", "?mod:");
+        assertSuggests(index, "@cr", "@create");
+        assertFalse(helpExamples(index).contains("?mod:"));
+    }
+
+    @Test
+    void helpOnlyListsPropertyFieldsBackedByIndexedValues() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("powah", "starter_cell", "Starter Cell", Map.of(
+                "powahItemKind", "energy_cell",
+                SearchNodeKeys.ENERGY_CAPACITY, "10000"
+        )));
+
+        List<String> examples = helpExamples(index);
+
+        assertTrue(examples.contains("?energy:"));
+        assertTrue(examples.contains("?kind:"));
+        assertFalse(examples.contains("?guidebook:"));
+        assertFalse(examples.contains("?gregtechCircuit:"));
+    }
+
+    @Test
+    void amiSemanticBucketFieldIsSupportedButNotDiscoverable() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("minecraft", "coal", "Coal", Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "ingredients",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "fuel",
+                SearchNodeKeys.RECIPE_USE_CATEGORIES, "ami:fuel,fuel",
+                SearchNodeKeys.TAGS, "ami:fuel"
+        )));
+
+        assertDoesNotSuggest(index, "?a", "?ami:");
+        assertSuggests(index, "?ami:f", "?ami:fuel");
+        assertFalse(helpExamples(index).contains("?ami:"));
     }
 
     @Test
@@ -290,6 +402,12 @@ class SearchSuggestionsTest {
         List<SearchSuggestions.Suggestion> suggestions = SearchSuggestions.suggest(index, query, query.length(), 16);
         assertFalse(suggestions.stream().anyMatch(s -> rejectedDisplay.equals(s.display())),
                 () -> "Did not expect " + rejectedDisplay + " in " + suggestions);
+    }
+
+    private static List<String> suggestionDisplays(GlobalIndex index, String query) {
+        return SearchSuggestions.suggest(index, query, query.length(), 16).stream()
+                .map(SearchSuggestions.Suggestion::display)
+                .toList();
     }
 
     private static List<String> helpExamples(GlobalIndex index) {
