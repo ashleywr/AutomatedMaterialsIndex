@@ -590,6 +590,27 @@ single base item `patchouli:guide_book`; when four or more books are present
 they used to trip the generic high-cardinality variant collapse even though each
 variant is a distinct guide, not a color/material variant.
 
+### 2026-06-06: Guidebook Facets Beat Generic Tool Identity
+
+The AMICompatForge dump showed Immersive Engineering's `ManualItem` carrying
+`book` and `guide_book` facets but routing to `tools/utility` because the same
+item also had a generic `utility_tool` facet. Guide-book facts now hard-route
+to `utility/books` before the generic tool hard identity. Enchanted books still
+route to `magic/books`, and functional non-guide tomes/grimoires keep their
+stronger mod or curio identities.
+
+### 2026-06-06: Guide Content Search Defaults To Summaries
+
+Guide documents were indexed separately from normal item nodes, and the default
+guide indexing mode only searched document titles, chapters, tags, book ids, and
+referenced items. The default and reset config now use `SUMMARY` mode so capped
+page text participates in guide searches by default. `TITLES` remains available
+as a lower-memory option. Immersive Engineering manual items now also report
+`guideBookSystem=immersiveengineering_manual`, matching the existing IE manual
+text parser. Hexerei's `Book of Shadows` pages are now parsed from
+`data/hexerei/book/book_entries.json`, `book_pages`, and lang-backed
+`passage_text` keys as `hexerei_book` guide documents.
+
 ## Open Work
 
 - Split Cobblemon identity routing into strong Pokemon gameplay identities

@@ -63,6 +63,7 @@ public final class ResourceBookRuntimeGuideSource {
         documents.addAll(alexStyleDocuments(resourceTextById, translations, language));
         documents.addAll(mnaGuideDocuments(resourceTextById, language));
         documents.addAll(immersiveEngineeringDocuments(resourceTextById, language));
+        documents.addAll(hexereiDocuments(resourceTextById, translations));
         documents.sort(Comparator.comparing(document -> document.id().toString()));
         return List.copyOf(documents);
     }
@@ -281,6 +282,92 @@ public final class ResourceBookRuntimeGuideSource {
                 .tag("manual")
                 .tag("engineering")
                 .summaryText(cleanBookText(summary))
+                .build());
+    }
+
+    private static List<AmiGuideDocument> hexereiDocuments(Map<ResourceLocation, String> resources,
+                                                           Map<String, String> translations) {
+        String entriesText = resources.get(ResourceLocation.fromNamespaceAndPath("hexerei", "book/book_entries.json"));
+        JsonObject entries = parseObject(entriesText);
+        if (entries == null || !(entries.get("chapters") instanceof JsonArray chapters)) {
+            return List.of();
+        }
+        List<AmiGuideDocument> out = new ArrayList<>();
+        for (JsonElement chapterElement : chapters) {
+            if (!chapterElement.isJsonObject()) {
+                continue;
+            }
+            JsonObject chapterObject = chapterElement.getAsJsonObject();
+            String chapter = humanize(string(chapterObject, "name"));
+            if (!(chapterObject.get("pages") instanceof JsonArray pages)) {
+                continue;
+            }
+            for (JsonElement pageElement : pages) {
+                if (!pageElement.isJsonObject()) {
+                    continue;
+                }
+                String pageLocation = string(pageElement.getAsJsonObject(), "page_location");
+                ResourceLocation pageId = ResourceLocation.tryParse(pageLocation);
+                if (pageId == null) {
+                    continue;
+                }
+                String pageJson = resources.get(ResourceLocation.fromNamespaceAndPath(
+                        pageId.getNamespace(),
+                        "book/" + pageId.getPath() + ".json"
+                ));
+                hexereiDocument(pageId, pageJson, chapter, translations).ifPresent(out::add);
+            }
+        }
+        return out;
+    }
+
+    private static Optional<AmiGuideDocument> hexereiDocument(ResourceLocation pageId,
+                                                             String pageJson,
+                                                             String chapter,
+                                                             Map<String, String> translations) {
+        JsonObject page = parseObject(pageJson);
+        if (page == null) {
+            return Optional.empty();
+        }
+        List<String> passages = new ArrayList<>();
+        String showTitle = string(page, "showTitle");
+        if (!showTitle.isBlank()) {
+            passages.add(translated(showTitle, translations, showTitle));
+        }
+        if (page.get("paragraphs") instanceof JsonArray paragraphs) {
+            for (JsonElement element : paragraphs) {
+                if (!element.isJsonObject()) {
+                    continue;
+                }
+                String passageKey = string(element.getAsJsonObject(), "passage_text");
+                String passage = translated(passageKey, translations, passageKey);
+                if (!passage.isBlank()) {
+                    passages.add(passage);
+                }
+            }
+        }
+        String summary = cleanBookText(String.join("\n", passages));
+        if (summary.isBlank()) {
+            return Optional.empty();
+        }
+        Set<ResourceLocation> referencedItems = new LinkedHashSet<>();
+        collectItems(page, referencedItems);
+        String title = firstNonBlankLine(summary).orElse(humanize(leaf(pageId.getPath())));
+        ResourceLocation bookId = ResourceLocation.fromNamespaceAndPath("hexerei", "book_of_shadows");
+        ResourceLocation documentId = ResourceLocation.fromNamespaceAndPath(
+                "ami",
+                "guide/hexerei/" + safePath(stripJsonExtension(pageId.getPath()))
+        );
+        return Optional.of(AmiGuideDocument.builder(documentId, "hexerei_book", "hexerei", title)
+                .bookId(bookId)
+                .iconItemId(bookId)
+                .pageId(pageId.toString())
+                .chapter(chapter)
+                .referencedItems(List.copyOf(referencedItems))
+                .tag("hexerei")
+                .tag("guide")
+                .tag("book_of_shadows")
+                .summaryText(summary)
                 .build());
     }
 
@@ -633,6 +720,16 @@ public final class ResourceBookRuntimeGuideSource {
             }
         }
         return out;
+    }
+
+    private static Optional<String> firstNonBlankLine(String text) {
+        for (String line : cleanBookText(text).split("\\R+")) {
+            String clean = line.trim();
+            if (!clean.isBlank()) {
+                return Optional.of(clean);
+            }
+        }
+        return Optional.empty();
     }
 
     private static String cleanBookText(String text) {

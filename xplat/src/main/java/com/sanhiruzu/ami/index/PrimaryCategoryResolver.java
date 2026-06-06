@@ -656,6 +656,15 @@ public final class PrimaryCategoryResolver {
             ));
         }
 
+        if (context.facets.contains(ItemFacet.GUIDE_BOOK)) {
+            return Optional.of(identityAssignment(
+                    "utility",
+                    "books",
+                    context.attributes,
+                    "identity.guide_book",
+                    "guide book facet"
+            ));
+        }
         if (hasHardToolIdentity(context.facets)) {
             return Optional.of(identityAssignment(
                     "tools",

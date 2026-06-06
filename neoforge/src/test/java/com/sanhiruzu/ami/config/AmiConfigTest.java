@@ -29,7 +29,7 @@ public class AmiConfigTest {
         assertEquals(140, AmiConfig.leftPanelWidth);
         assertEquals("LIST", AmiConfig.rightPanelAlternateSlots);
         assertEquals(10, AmiConfig.listScrollRows);
-        assertEquals(AmiConfig.GuideIndexingMode.TITLES, AmiConfig.guideIndexingMode);
+        assertEquals(AmiConfig.GuideIndexingMode.SUMMARY, AmiConfig.guideIndexingMode);
         assertEquals(4096, AmiConfig.guideSummaryTextCap);
         assertFalse(AmiConfig.showTooltipTags);
         assertFalse(AmiConfig.startHidden);

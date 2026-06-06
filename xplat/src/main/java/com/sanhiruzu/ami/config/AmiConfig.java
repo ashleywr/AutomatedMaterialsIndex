@@ -105,7 +105,7 @@ public class AmiConfig {
     public static boolean enableGhostCrafting = true;
 
     @ConfigValue("features.guide-indexing-mode")
-    public static GuideIndexingMode guideIndexingMode = GuideIndexingMode.TITLES;
+    public static GuideIndexingMode guideIndexingMode = GuideIndexingMode.SUMMARY;
 
     @ConfigValue("features.pack-author-mode")
     public static boolean packAuthorMode = false;
@@ -300,7 +300,7 @@ public class AmiConfig {
         itemClickAction = ItemClickAction.RECIPES;
         recipeViewerMode = RecipeViewerMode.AUTO;
         enableGhostCrafting = true;
-        guideIndexingMode = GuideIndexingMode.TITLES;
+        guideIndexingMode = GuideIndexingMode.SUMMARY;
         packAuthorMode = false;
         confirmExternalLinks = true;
         guideSummaryTextCap = 4096;
