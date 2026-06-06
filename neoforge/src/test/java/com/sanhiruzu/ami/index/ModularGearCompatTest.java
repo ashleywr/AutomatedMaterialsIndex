@@ -129,6 +129,19 @@ class ModularGearCompatTest {
     }
 
     @Test
+    void tinkersCreativeSlotsRouteToModifiers() {
+        Map<String, String> meta = meta("tconstruct", "Tinkers' General Items",
+                "slimeknights.tconstruct.tools.item.CreativeSlotItem", "");
+
+        ModularGearCompat.enrichItem(new ResourceLocation("tconstruct", "creative_slot"), meta);
+        CategoryAssignment assignment = resolve("tconstruct:creative_slot", meta);
+
+        assertEquals("modifiers", meta.get(SearchNodeKeys.MODULAR_GEAR_ITEM_KIND));
+        assertEquals("modular_gear", assignment.categoryId());
+        assertEquals("modifiers", assignment.subcategoryId());
+    }
+
+    @Test
     void tinkersCopperCanDoesNotBecomeFocusedModularGear() {
         Map<String, String> meta = meta("tconstruct", "Tinkers' Smeltery",
                 "slimeknights.tconstruct.smeltery.item.CopperCanItem", "");

@@ -89,39 +89,57 @@ public final class ResourceBookRuntimeGuideSource {
 
     private static List<AmiGuideDocument> mantleBookDocuments(ResourceLocation bookId, MantleBookResources book) {
         List<AmiGuideDocument> out = new ArrayList<>();
+        Set<String> emittedPages = new LinkedHashSet<>();
         List<MantleSectionRef> sectionRefs = parseMantleSectionRefs(book.indexJson());
         for (MantleSectionRef sectionRef : sectionRefs) {
-                String sectionJson = book.sections().get(mantleResourceKey(sectionRef.data()));
+            String sectionJson = book.sections().get(mantleResourceKey(sectionRef.data()));
             String chapter = humanize(sectionRef.name());
             for (MantlePageRef pageRef : parseMantlePageRefs(sectionJson)) {
-                String pageJson = book.pages().get(mantleResourceKey(pageRef.data()));
-                if (pageJson == null || pageJson.isBlank()) {
-                    continue;
-                }
-                MantlePage page = parseMantlePage(pageJson, pageRef.name());
-                if (page.summary().isBlank()) {
-                    continue;
-                }
-                String pageId = pageRef.name().isBlank() ? stripJsonExtension(pageRef.data()) : pageRef.name();
-                ResourceLocation documentId = ResourceLocation.fromNamespaceAndPath(
-                        "ami",
-                        "guide/mantle/" + bookId.getNamespace() + "/" + safePath(bookId.getPath()) + "/" + safePath(pageId)
-                );
-                out.add(AmiGuideDocument.builder(documentId, "mantle_book", bookId.getNamespace(), page.title())
-                        .bookId(bookId)
-                        .iconItemId(bookId)
-                        .pageId(pageId)
-                        .chapter(chapter)
-                        .referencedItems(page.referencedItems())
-                        .tag("mantle")
-                        .tag("guide")
-                        .tag(bookId.getPath())
-                        .summaryText(page.summary())
-                        .openAction(AmiGuideOpeners.mantleBook(bookId, pageId))
-                        .build());
+                String pageKey = mantleResourceKey(pageRef.data());
+                String pageId = pageRef.name().isBlank() ? pageKey : pageRef.name();
+                mantleDocument(bookId, pageId, chapter, book.pages().get(pageKey))
+                        .ifPresent(document -> {
+                            out.add(document);
+                            emittedPages.add(pageKey);
+                        });
             }
         }
+        for (Map.Entry<String, String> pageEntry : book.pages().entrySet()) {
+            String pageKey = pageEntry.getKey();
+            if (emittedPages.contains(pageKey) || book.sections().containsKey(pageKey)) {
+                continue;
+            }
+            mantleDocument(bookId, pageKey, humanize(parentPath(pageKey)), pageEntry.getValue())
+                    .ifPresent(out::add);
+        }
         return out;
+    }
+
+    private static Optional<AmiGuideDocument> mantleDocument(ResourceLocation bookId, String pageId,
+                                                            String chapter, String pageJson) {
+        if (pageJson == null || pageJson.isBlank()) {
+            return Optional.empty();
+        }
+        MantlePage page = parseMantlePage(pageJson, leaf(pageId));
+        if (page.summary().isBlank()) {
+            return Optional.empty();
+        }
+        ResourceLocation documentId = ResourceLocation.fromNamespaceAndPath(
+                "ami",
+                "guide/mantle/" + bookId.getNamespace() + "/" + safePath(bookId.getPath()) + "/" + safePath(pageId)
+        );
+        return Optional.of(AmiGuideDocument.builder(documentId, "mantle_book", bookId.getNamespace(), page.title())
+                .bookId(bookId)
+                .iconItemId(bookId)
+                .pageId(pageId)
+                .chapter(chapter)
+                .referencedItems(page.referencedItems())
+                .tag("mantle")
+                .tag("guide")
+                .tag(bookId.getPath())
+                .summaryText(page.summary())
+                .openAction(AmiGuideOpeners.mantleBook(bookId, pageId))
+                .build());
     }
 
     private static List<AmiGuideDocument> alexStyleDocuments(Map<ResourceLocation, String> resources,
@@ -451,6 +469,10 @@ public final class ResourceBookRuntimeGuideSource {
         if (!effects.isBlank()) {
             summary = summary.isBlank() ? effects : summary + "\n" + effects;
         }
+        String properties = cleanWhitespace(textFromJson(object.get("properties")));
+        if (!properties.isBlank()) {
+            summary = summary.isBlank() ? properties : summary + "\n" + properties;
+        }
         return new MantlePage(title, summary, List.copyOf(referencedItems));
     }
 
@@ -603,7 +625,7 @@ public final class ResourceBookRuntimeGuideSource {
             return;
         }
         JsonObject object = element.getAsJsonObject();
-        for (String key : List.of("item", "name", "entity", "recipe", "recipe_id", "location", "modifier_id")) {
+        for (String key : List.of("item", "name", "entity", "recipe", "recipe_id", "location", "modifier_id", "tool", "fluid")) {
             String value = string(object, key);
             if (value.isBlank()) {
                 continue;
