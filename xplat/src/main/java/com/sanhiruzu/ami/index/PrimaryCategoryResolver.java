@@ -620,6 +620,26 @@ public final class PrimaryCategoryResolver {
             return modularGolems;
         }
 
+        Optional<CategoryAssignment> mna = resolveMnaIdentity(context);
+        if (mna.isPresent()) {
+            return mna;
+        }
+
+        Optional<CategoryAssignment> alexsMobs = resolveAlexsMobsIdentity(context);
+        if (alexsMobs.isPresent()) {
+            return alexsMobs;
+        }
+
+        Optional<CategoryAssignment> alexsCaves = resolveAlexsCavesIdentity(context);
+        if (alexsCaves.isPresent()) {
+            return alexsCaves;
+        }
+
+        Optional<CategoryAssignment> tacz = resolveTaczIdentity(context);
+        if (tacz.isPresent()) {
+            return tacz;
+        }
+
         Optional<CategoryAssignment> waystones = resolveWaystonesIdentity(context);
         if (waystones.isPresent()) {
             return waystones;
@@ -665,6 +685,7 @@ public final class PrimaryCategoryResolver {
                     "guide book facet"
             ));
         }
+
         if (hasHardToolIdentity(context.facets)) {
             return Optional.of(identityAssignment(
                     "tools",
@@ -1469,6 +1490,217 @@ public final class PrimaryCategoryResolver {
                 context.attributes,
                 "identity.modular_golems." + kind,
                 "Modular Golems " + kind + " identity"
+        ));
+    }
+
+    private static Optional<CategoryAssignment> resolveTaczIdentity(ResolveContext context) {
+        if (!"tacz".equals(context.modId)
+                && !CompatFamilyDetector.hasFamily(context.attributes, CompatFamilyDetector.TACZ)) {
+            return Optional.empty();
+        }
+        String kind = context.attributes.getOrDefault(SearchNodeKeys.TACZ_ITEM_KIND, "");
+        String subcategory = switch (kind) {
+            case "guns" -> "guns";
+            case "ammo" -> "ammo";
+            case "attachments" -> "attachments";
+            case "workstations" -> "workstations";
+            default -> "";
+        };
+        if (subcategory.isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.of(identityAssignment(
+                "tacz",
+                subcategory,
+                context.attributes,
+                "identity.tacz." + kind,
+                "TacZ " + kind + " identity"
+        ));
+    }
+
+    private static Optional<CategoryAssignment> resolveMnaIdentity(ResolveContext context) {
+        if (!"mna".equals(context.modId)
+                && !CompatFamilyDetector.hasFamily(context.attributes, CompatFamilyDetector.MNA)) {
+            return Optional.empty();
+        }
+        String kind = context.attributes.getOrDefault(SearchNodeKeys.MNA_ITEM_KIND, "");
+        String category;
+        String subcategory;
+        switch (kind) {
+            case "construct_parts" -> {
+                category = "tech";
+                subcategory = "parts";
+            }
+            case "ritual_patches" -> {
+                category = "magic";
+                subcategory = "artifacts";
+            }
+            case "motes", "runes" -> {
+                category = "magic";
+                subcategory = "reagents";
+            }
+            case "reagents" -> {
+                category = "magic";
+                subcategory = "reagents";
+            }
+            case "artifacts" -> {
+                category = "magic";
+                subcategory = "artifacts";
+            }
+            case "materials" -> {
+                category = "ingredients";
+                subcategory = "mineral";
+            }
+            case "tools" -> {
+                category = "tools";
+                subcategory = "utility";
+            }
+            case "weapons" -> {
+                category = "tools";
+                subcategory = "melee";
+            }
+            case "transport" -> {
+                category = "tech";
+                subcategory = "transport";
+            }
+            default -> {
+                return Optional.empty();
+            }
+        }
+        return Optional.of(identityAssignment(
+                category,
+                subcategory,
+                context.attributes,
+                "identity.mna." + kind,
+                "Mana and Artifice " + kind + " identity"
+        ));
+    }
+
+    private static Optional<CategoryAssignment> resolveAlexsMobsIdentity(ResolveContext context) {
+        if (!"alexsmobs".equals(context.modId)
+                && !CompatFamilyDetector.hasFamily(context.attributes, CompatFamilyDetector.ALEXS_MOBS)) {
+            return Optional.empty();
+        }
+        String kind = context.attributes.getOrDefault(SearchNodeKeys.ALEXS_MOBS_ITEM_KIND, "");
+        String category;
+        String subcategory;
+        switch (kind) {
+            case "organic_drops" -> {
+                category = "ingredients";
+                subcategory = "organic";
+            }
+            case "protein_foods" -> {
+                category = "nature";
+                subcategory = "proteins";
+            }
+            case "navigation_tools" -> {
+                category = "utility";
+                subcategory = "navigation";
+            }
+            case "utility_items", "internal_items" -> {
+                category = "utility";
+                subcategory = "misc";
+            }
+            case "ranged_weapons" -> {
+                category = "tools";
+                subcategory = "ranged";
+            }
+            case "projectiles" -> {
+                category = "tools";
+                subcategory = "ammo";
+            }
+            case "transport" -> {
+                category = "tech";
+                subcategory = "transport";
+            }
+            case "feet_armor" -> {
+                category = "armor";
+                subcategory = "feet";
+            }
+            default -> {
+                return Optional.empty();
+            }
+        }
+        return Optional.of(identityAssignment(
+                category,
+                subcategory,
+                context.attributes,
+                "identity.alexsmobs." + kind,
+                "Alex's Mobs " + kind + " identity"
+        ));
+    }
+
+    private static Optional<CategoryAssignment> resolveAlexsCavesIdentity(ResolveContext context) {
+        if (!"alexscaves".equals(context.modId)
+                && !CompatFamilyDetector.hasFamily(context.attributes, CompatFamilyDetector.ALEXS_CAVES)) {
+            return Optional.empty();
+        }
+        String kind = context.attributes.getOrDefault(SearchNodeKeys.ALEXS_CAVES_ITEM_KIND, "");
+        String category;
+        String subcategory;
+        switch (kind) {
+            case "guide_items" -> {
+                category = "utility";
+                subcategory = "books";
+            }
+            case "materials" -> {
+                category = "tech";
+                subcategory = "ingots";
+            }
+            case "tech_parts" -> {
+                category = "tech";
+                subcategory = "parts";
+            }
+            case "magic_reagents" -> {
+                category = "magic";
+                subcategory = "reagents";
+            }
+            case "protein_foods" -> {
+                category = "nature";
+                subcategory = "proteins";
+            }
+            case "snacks" -> {
+                category = "nature";
+                subcategory = "snacks";
+            }
+            case "organic_drops", "ingredients" -> {
+                category = "ingredients";
+                subcategory = "organic";
+            }
+            case "utility_items", "internal_items" -> {
+                category = "utility";
+                subcategory = "misc";
+            }
+            case "ranged_weapons" -> {
+                category = "tools";
+                subcategory = "ranged";
+            }
+            case "weapons" -> {
+                category = "tools";
+                subcategory = "melee";
+            }
+            case "harvest_tools" -> {
+                category = "tools";
+                subcategory = "harvest";
+            }
+            case "projectiles" -> {
+                category = "tools";
+                subcategory = "ammo";
+            }
+            case "transport" -> {
+                category = "tech";
+                subcategory = "transport";
+            }
+            default -> {
+                return Optional.empty();
+            }
+        }
+        return Optional.of(identityAssignment(
+                category,
+                subcategory,
+                context.attributes,
+                "identity.alexscaves." + kind,
+                "Alex's Caves " + kind + " identity"
         ));
     }
 

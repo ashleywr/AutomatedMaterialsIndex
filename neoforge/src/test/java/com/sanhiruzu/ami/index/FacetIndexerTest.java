@@ -30,6 +30,11 @@ class FacetIndexerTest {
         return item;
     }
 
+    private static Item register(String namespace, String path, Item item) {
+        BuiltInRegistries.itemRegistry().register(new ResourceLocation(namespace, path), item);
+        return item;
+    }
+
     @Test
     void appleHasEdibleAndCompostable() {
         FacetProfile profile = index(Items.APPLE);
@@ -156,11 +161,13 @@ class FacetIndexerTest {
         Item plainBook = register("plain_reference_book", new Item("Plain Reference Book"));
         Item fieldGuide = register("ami_field_guide", new Item("AMI Field Guide"));
         Item classGuide = register("class_named_manual", new TestGuideBookItem("Class Named Manual"));
-        Item ieManual = register("engineers_manual", new TestImmersiveEngineeringManualItem("Engineers Manual"));
+        Item tinkerBook = register("materials_and_you", new TestTinkerBookItem("Materials and You"));
+        Item ieManual = register("engineers_manual", new TestImmersiveEngineeringManualItem("Engineer's Manual"));
 
         FacetProfile plainProfile = index(plainBook);
         FacetProfile fieldProfile = index(fieldGuide);
         FacetProfile classProfile = index(classGuide);
+        FacetProfile tinkerProfile = index(tinkerBook);
         FacetProfile ieProfile = index(ieManual);
 
         assertTrue(plainProfile.facets().contains(ItemFacet.BOOK));
@@ -172,6 +179,10 @@ class FacetIndexerTest {
         assertTrue(classProfile.facets().contains(ItemFacet.GUIDE_BOOK));
         assertFalse(classProfile.facets().contains(ItemFacet.UTILITY_MISC));
         assertEquals("true", classProfile.attributes().get(SearchNodeKeys.GUIDE_BOOK_CANDIDATE));
+        assertTrue(tinkerProfile.facets().contains(ItemFacet.BOOK));
+        assertTrue(tinkerProfile.facets().contains(ItemFacet.GUIDE_BOOK));
+        assertEquals("true", tinkerProfile.attributes().get(SearchNodeKeys.GUIDE_BOOK_CANDIDATE));
+        assertEquals("mantle_book", tinkerProfile.attributes().get(SearchNodeKeys.GUIDE_BOOK_SYSTEM));
         assertTrue(ieProfile.facets().contains(ItemFacet.GUIDE_BOOK));
         assertEquals("true", ieProfile.attributes().get(SearchNodeKeys.GUIDE_BOOK_CANDIDATE));
         assertEquals("immersiveengineering_manual", ieProfile.attributes().get(SearchNodeKeys.GUIDE_BOOK_SYSTEM));
@@ -600,6 +611,24 @@ class FacetIndexerTest {
     }
 
     @Test
+    void tinkersUtilityClassesAndTagsProduceConcreteFacets() {
+        Item copperCan = register("tconstruct", "copper_can", new TestCopperCanItem("Copper Can"));
+        Item piggyBackpack = register("tconstruct", "piggy_backpack", new TestPiggyBackPackItem("Piggybackpack"));
+        Item glowBall = register("tconstruct", "glow_ball", new TestGlowBallItem("Glowball")
+                .withTag(TagKey.create(null, new ResourceLocation("tconstruct", "throwable"))));
+        Item crystalshot = register("tconstruct", "crystalshot", new TestCrystalshotItem("Crystalshot"));
+        Item venombone = register("tconstruct", "venombone", new Item("Venombone"));
+
+        assertTrue(index(copperCan).facets().contains(ItemFacet.FLUID_CONTAINER));
+        assertTrue(index(piggyBackpack).facets().contains(ItemFacet.UTILITY_MISC));
+        assertTrue(index(glowBall).facets().contains(ItemFacet.UTILITY_MISC));
+        assertTrue(index(glowBall).facets().contains(ItemFacet.PROJECTILE));
+        assertTrue(index(crystalshot).facets().contains(ItemFacet.RANGED_WEAPON));
+        assertTrue(index(crystalshot).facets().contains(ItemFacet.PROJECTILE));
+        assertTrue(index(venombone).facets().contains(ItemFacet.INGREDIENT_ORGANIC));
+    }
+
+    @Test
     void splinterspawnPathDoesNotLookMedical() {
         Item splinterspawn = register("splinterspawn_infested_pyrite",
                 new BlockItem("Splinterspawn Infested Pyrite", new Block(new BlockState())));
@@ -675,8 +704,38 @@ class FacetIndexerTest {
         }
     }
 
+    private static final class TestTinkerBookItem extends Item {
+        private TestTinkerBookItem(String name) {
+            super(name);
+        }
+    }
+
     private static final class TestImmersiveEngineeringManualItem extends Item {
         private TestImmersiveEngineeringManualItem(String name) {
+            super(name);
+        }
+    }
+
+    private static final class TestCopperCanItem extends Item {
+        private TestCopperCanItem(String name) {
+            super(name);
+        }
+    }
+
+    private static final class TestPiggyBackPackItem extends Item {
+        private TestPiggyBackPackItem(String name) {
+            super(name);
+        }
+    }
+
+    private static final class TestGlowBallItem extends Item {
+        private TestGlowBallItem(String name) {
+            super(name);
+        }
+    }
+
+    private static final class TestCrystalshotItem extends Item {
+        private TestCrystalshotItem(String name) {
             super(name);
         }
     }

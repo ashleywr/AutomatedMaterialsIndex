@@ -65,6 +65,33 @@ public class TooltipSearchTokensTest {
         assertFalse(parts.contains("default"));
     }
 
+    @Test
+    public void extractsGuideBookSubtitleAndAuthorTerms() {
+        String tokens = TooltipSearchTokens.extract(
+                List.of(
+                        Component.literal("Encyclopedia of Tinkering"),
+                        Component.literal("The reference book every tinker needs"),
+                        Component.literal("by Selena"),
+                        Component.literal("Tinkers' Construct")
+                ),
+                "Encyclopedia of Tinkering",
+                new ResourceLocation("tconstruct:encyclopedia"),
+                "Tinkers' Construct"
+        );
+
+        Set<String> parts = split(tokens);
+        assertTrue(parts.contains("reference"));
+        assertTrue(parts.contains("book"));
+        assertTrue(parts.contains("every"));
+        assertTrue(parts.contains("tinker"));
+        assertTrue(parts.contains("needs"));
+        assertTrue(parts.contains("selena"));
+        assertFalse(parts.contains("encyclopedia"));
+        assertFalse(parts.contains("tinkering"));
+        assertFalse(parts.contains("tconstruct"));
+    }
+
+
     private static Set<String> split(String tokens) {
         return Arrays.stream(tokens.split("\\s+"))
                 .filter(part -> !part.isBlank())
