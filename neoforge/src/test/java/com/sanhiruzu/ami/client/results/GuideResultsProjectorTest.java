@@ -70,7 +70,7 @@ class GuideResultsProjectorTest {
     }
 
     @Test
-    void guidebooksTokenReturnsAllRows() {
+    void guidebookFilterQueryReturnsAllRows() {
         AmiGuideDocument guide = AmiGuideDocument.builder(
                         new ResourceLocation("ami", "guide/one"),
                         "patchouli",
@@ -90,5 +90,7 @@ class GuideResultsProjectorTest {
 
         assertEquals(2, GuideResultsProjector.project("guidebooks", index).size());
         assertEquals("Guide One", GuideResultsProjector.project("guidebooks", index).get(0).title());
+        assertEquals(2, GuideResultsProjector.project("?type:guidebook", index).size());
+        assertEquals("Guide One", GuideResultsProjector.project("?type:guidebook", index).get(0).title());
     }
 }

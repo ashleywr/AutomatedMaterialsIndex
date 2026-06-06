@@ -13,7 +13,7 @@
   "entries": [
     {
       "id": "decorative_furniture",
-      "tokens": ["chair", "table", "desk", "couch", "sofa", "bench", "stool", "cabinet", "cabinetry", "shelf", "rack", "counter", "nightstand", "wardrobe", "dresser", "bookcase", "bookshelves", "postbox"],
+      "tokens": ["chair", "table", "desk", "couch", "sofa", "bench", "stool", "cabinet", "cabinetry", "shelf", "shelves", "rack", "counter", "nightstand", "wardrobe", "dresser", "bookcase", "bookshelf", "bookshelves", "postbox"],
       "facets": ["decorative_block"],
       "categoryHint": "decoration/furniture",
       "confidence": "strong",

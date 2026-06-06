@@ -74,9 +74,7 @@ public final class AMICheatMode {
         if (mc.player == null || stack.isEmpty()) return;
 
         if (mc.player.getAbilities().instabuild) {
-            // Creative: always set cursor client-side regardless of give-mode setting
-            // (server trusts creative clients; same approach as EMI).
-            mc.player.containerMenu.setCarried(stack.copy());
+            giveCursorStack(stack.copy());
         } else if (AmiNetworkState.onServer) {
             // Survival OP with AMI on server: use the give-mode preference.
             if (AmiConfig.cheatGiveMode == CheatGiveMode.CURSOR) {
@@ -120,7 +118,7 @@ public final class AMICheatMode {
         if (mc.player == null || stack.isEmpty()) return;
 
         if (mc.player.getAbilities().instabuild) {
-            mc.player.containerMenu.setCarried(stack.copy());
+            giveCursorStack(stack.copy());
         } else if (AmiNetworkState.onServer) {
             if (AmiConfig.cheatGiveMode == CheatGiveMode.CURSOR) {
                 com.sanhiruzu.ami.forge.network.AmiPacketHandler.INSTANCE.sendToServer(new AmiCheatGivePacket(stack.copy()));
@@ -140,10 +138,8 @@ public final class AMICheatMode {
         var mc = Minecraft.getInstance();
         if (mc.player == null) return;
 
-        if (mc.player.getAbilities().instabuild) {
-            mc.player.containerMenu.setCarried(ItemStack.EMPTY);
-        } else if (AmiNetworkState.onServer) {
-            com.sanhiruzu.ami.forge.network.AmiPacketHandler.INSTANCE.sendToServer(new AmiCheatGivePacket(ItemStack.EMPTY));
+        if (mc.player.getAbilities().instabuild || AmiNetworkState.onServer) {
+            giveCursorStack(ItemStack.EMPTY);
         }
     }
 
@@ -233,6 +229,15 @@ public final class AMICheatMode {
     private static String extractSpeciesName(ResourceLocation entityId) {
         String path = entityId.getPath();
         return path.startsWith("species/") ? path.substring("species/".length()) : path;
+    }
+
+    private static void giveCursorStack(ItemStack stack) {
+        var mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+        mc.player.containerMenu.setCarried(stack.copy());
+        if (AmiNetworkState.onServer || mc.hasSingleplayerServer()) {
+            com.sanhiruzu.ami.forge.network.AmiPacketHandler.INSTANCE.sendToServer(new AmiCheatGivePacket(stack.copy()));
+        }
     }
 
     private static void sendCommand(String command) {

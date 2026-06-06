@@ -152,6 +152,44 @@ class FacetIndexerTest {
     }
 
     @Test
+    void guideBookPathsAndClassesProduceGuideBookCandidateFacet() {
+        Item plainBook = register("plain_reference_book", new Item("Plain Reference Book"));
+        Item fieldGuide = register("ami_field_guide", new Item("AMI Field Guide"));
+        Item classGuide = register("class_named_manual", new TestGuideBookItem("Class Named Manual"));
+
+        FacetProfile plainProfile = index(plainBook);
+        FacetProfile fieldProfile = index(fieldGuide);
+        FacetProfile classProfile = index(classGuide);
+
+        assertTrue(plainProfile.facets().contains(ItemFacet.BOOK));
+        assertFalse(plainProfile.facets().contains(ItemFacet.GUIDE_BOOK));
+        assertFalse(plainProfile.facets().contains(ItemFacet.UTILITY_MISC));
+        assertTrue(fieldProfile.facets().contains(ItemFacet.GUIDE_BOOK));
+        assertFalse(fieldProfile.facets().contains(ItemFacet.UTILITY_MISC));
+        assertEquals("true", fieldProfile.attributes().get(SearchNodeKeys.GUIDE_BOOK_CANDIDATE));
+        assertTrue(classProfile.facets().contains(ItemFacet.GUIDE_BOOK));
+        assertFalse(classProfile.facets().contains(ItemFacet.UTILITY_MISC));
+        assertEquals("true", classProfile.attributes().get(SearchNodeKeys.GUIDE_BOOK_CANDIDATE));
+    }
+
+    @Test
+    void bookshelvesAreDecorativePlaceablesNotUtilityMisc() {
+        Item bookshelf = register("oak_bookshelf", new BlockItem("Oak Bookshelf", new Block(new BlockState())));
+
+        FacetProfile profile = index(bookshelf);
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("ami_test:oak_bookshelf"),
+                profile
+        );
+
+        assertTrue(profile.facets().contains(ItemFacet.PLACEABLE));
+        assertTrue(profile.facets().contains(ItemFacet.DECORATIVE_BLOCK));
+        assertFalse(profile.facets().contains(ItemFacet.UTILITY_MISC));
+        assertEquals("decoration", assignment.categoryId());
+        assertEquals("furniture", assignment.subcategoryId());
+    }
+
+    @Test
     void taggedBoneGetsOrganicIngredientFacet() {
         Item boneMeal = register("test_bone", new Item("Test Bone")
                 .withTag(TagKey.create(null, new ResourceLocation("c", "bones"))));
@@ -243,16 +281,19 @@ class FacetIndexerTest {
         Item elytra = register("elytra", new Item("Elytra"));
         Item wolfArmor = register("wolf_armor", new Item("Wolf Armor"));
         Item horseArmor = register("diamond_horse_armor", new Item("Diamond Horse Armor"));
+        Item saddle = register("saddle", new TestSaddleItem("Saddle"));
         Item mace = register("mace", new Item("Mace"));
 
         FacetProfile elytraProfile = index(elytra);
         FacetProfile wolfArmorProfile = index(wolfArmor);
         FacetProfile horseArmorProfile = index(horseArmor);
+        FacetProfile saddleProfile = index(saddle);
         FacetProfile maceProfile = index(mace);
 
         assertTrue(elytraProfile.facets().contains(ItemFacet.ARMOR_CHEST));
         assertTrue(wolfArmorProfile.facets().contains(ItemFacet.ARMOR_ANIMAL));
         assertTrue(horseArmorProfile.facets().contains(ItemFacet.ARMOR_ANIMAL));
+        assertTrue(saddleProfile.facets().contains(ItemFacet.ARMOR_ANIMAL));
         assertTrue(maceProfile.facets().contains(ItemFacet.MELEE_WEAPON));
     }
 
@@ -543,6 +584,17 @@ class FacetIndexerTest {
     }
 
     @Test
+    void splinterspawnPathDoesNotLookMedical() {
+        Item splinterspawn = register("splinterspawn_infested_pyrite",
+                new BlockItem("Splinterspawn Infested Pyrite", new Block(new BlockState())));
+
+        FacetProfile profile = index(splinterspawn);
+
+        assertTrue(profile.facets().contains(ItemFacet.PLACEABLE));
+        assertFalse(profile.facets().contains(ItemFacet.UTILITY_MEDICAL));
+    }
+
+    @Test
     void equipmentSlotFactsProduceEquippableAndArmorFacets() {
         Item helmet = register("test_helmet", new ArmorItem("Test Helmet", EquipmentSlot.HEAD));
 
@@ -597,6 +649,18 @@ class FacetIndexerTest {
 
     private static final class TestFishingRodItem extends FishingRodItem {
         private TestFishingRodItem(String name) {
+            super(name);
+        }
+    }
+
+    private static final class TestGuideBookItem extends Item {
+        private TestGuideBookItem(String name) {
+            super(name);
+        }
+    }
+
+    private static final class TestSaddleItem extends Item {
+        private TestSaddleItem(String name) {
             super(name);
         }
     }

@@ -9,7 +9,7 @@ import java.util.Set;
 final class LexicalEvidenceDictionary {
     private static final List<Entry> ENTRIES = List.of(
             entry("decorative_furniture", "decoration", "furniture", 85,
-                    tokens("chair", "table", "desk", "couch", "sofa", "bench", "stool", "cabinet", "cabinetry", "shelf", "rack", "counter", "nightstand", "wardrobe", "dresser", "bookcase", "bookshelves", "postbox", "toilet")),
+                    tokens("chair", "table", "desk", "couch", "sofa", "bench", "stool", "cabinet", "cabinetry", "shelf", "shelves", "rack", "counter", "nightstand", "wardrobe", "dresser", "bookcase", "bookshelf", "bookshelves", "postbox", "toilet")),
             entry("decorative_lighting", "decoration", "lighting", 85,
                     tokens("lamp", "lantern", "chandelier", "sconce", "brazier", "candelabra", "candle", "torch", "glowstone", "shroomlight", "froglight", "beacon")),
             entry("decorative_textiles", "decoration", "textiles", 65,

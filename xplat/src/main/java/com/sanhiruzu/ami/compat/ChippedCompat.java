@@ -31,8 +31,8 @@ public final class ChippedCompat {
         }
 
         if (isWorkbenchItem(meta)) {
-            meta.putIfAbsent(SearchNodeKeys.ONTOLOGY_CATEGORY, "utility");
-            meta.putIfAbsent(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "misc");
+            meta.putIfAbsent(SearchNodeKeys.ONTOLOGY_CATEGORY, "tools");
+            meta.putIfAbsent(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "utility");
             addSearchToken(meta, "chipped_workbench");
             return;
         }

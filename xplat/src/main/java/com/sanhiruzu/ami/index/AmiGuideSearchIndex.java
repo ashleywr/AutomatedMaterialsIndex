@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.index.query.QueryParser;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
@@ -12,6 +13,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Lightweight lexical index for guide documents.
@@ -21,12 +23,14 @@ import java.util.Map;
  */
 public final class AmiGuideSearchIndex {
     public static final String GUIDEBOOKS_FILTER_TOKEN = "guidebooks";
+    public static final String GUIDEBOOKS_FILTER_QUERY = "?type:guidebook";
     public static final int DEFAULT_SUMMARY_TEXT_CAP = 4096;
 
     private final GuideIndexingMode mode;
     private final int summaryTextCap;
     private final List<AmiGuideDocument> documents = new ArrayList<>();
     private final Map<AmiGuideDocument, String> searchableText = new LinkedHashMap<>();
+    private final Map<ResourceLocation, Integer> indexedPageCountsByBook = new LinkedHashMap<>();
 
     public AmiGuideSearchIndex(Collection<AmiGuideDocument> documents, GuideIndexingMode mode) {
         this(documents, mode, DEFAULT_SUMMARY_TEXT_CAP);
@@ -44,6 +48,9 @@ public final class AmiGuideSearchIndex {
             }
             this.documents.add(document);
             searchableText.put(document, buildSearchableText(document));
+            if (document.bookId() != null) {
+                indexedPageCountsByBook.merge(document.bookId(), 1, Integer::sum);
+            }
         }
         this.documents.sort(Comparator.comparing(document -> document.id().toString()));
     }
@@ -66,7 +73,7 @@ public final class AmiGuideSearchIndex {
             return List.of();
         }
 
-        if (tokens.stream().anyMatch(token -> GUIDEBOOKS_FILTER_TOKEN.equals(token))) {
+        if (isGuideBooksFilterQuery(query, tokens)) {
             return List.copyOf(documents);
         }
 
@@ -98,6 +105,17 @@ public final class AmiGuideSearchIndex {
 
     public List<AmiGuideDocument> allDocuments() {
         return List.copyOf(documents);
+    }
+
+    public int indexedPageCountForBook(ResourceLocation bookId) {
+        if (bookId == null || mode == GuideIndexingMode.OFF) {
+            return 0;
+        }
+        return indexedPageCountsByBook.getOrDefault(bookId, 0);
+    }
+
+    public Map<ResourceLocation, Integer> indexedPageCountsByBook() {
+        return Map.copyOf(indexedPageCountsByBook);
     }
 
     private String buildSearchableText(AmiGuideDocument document) {
@@ -174,6 +192,43 @@ public final class AmiGuideSearchIndex {
             }
         }
         return tokens;
+    }
+
+    private static boolean isGuideBooksFilterQuery(String query, List<String> tokens) {
+        if (tokens.stream().anyMatch(token -> GUIDEBOOKS_FILTER_TOKEN.equals(token))) {
+            return true;
+        }
+        for (QueryParser.QueryToken token : QueryParser.parse(query).tokens()) {
+            if (token.type() == QueryParser.TokenType.PROP && isGuideBookPropertyToken(token.value())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isGuideBookPropertyToken(String rawValue) {
+        String value = normalizePropertyToken(rawValue);
+        if (value.equals("guidebook") || value.equals("guidebooks")) {
+            return true;
+        }
+        int separator = value.indexOf(':');
+        if (separator < 0) {
+            return false;
+        }
+        String key = value.substring(0, separator);
+        String propertyValue = value.substring(separator + 1);
+        return Set.of("type", "kind", "fact", "facts").contains(key)
+                && Set.of("guidebook", "guidebooks").contains(propertyValue);
+    }
+
+    private static String normalizePropertyToken(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        return value.toLowerCase(Locale.ROOT)
+                .replace("_", "")
+                .replace("-", "")
+                .trim();
     }
 
     private static String stripQuerySyntax(String rawToken) {

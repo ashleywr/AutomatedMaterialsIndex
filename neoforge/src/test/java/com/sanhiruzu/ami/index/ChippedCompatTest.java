@@ -40,14 +40,14 @@ class ChippedCompatTest {
     }
 
     @Test
-    void workbenchItemsGetUtilityCategory() {
+    void workbenchItemsGetUtilityToolCategory() {
         Map<String, String> meta = new HashMap<>();
         meta.put(SearchNodeKeys.ITEM_CLASS, "earth.terrarium.chipped.common.items.WorkbenchItem");
 
         ChippedCompat.enrichItem(new ResourceLocation("chipped:saw"), meta);
 
-        assertEquals("utility", meta.get(SearchNodeKeys.ONTOLOGY_CATEGORY));
-        assertEquals("misc", meta.get(SearchNodeKeys.ONTOLOGY_SUBCATEGORY));
+        assertEquals("tools", meta.get(SearchNodeKeys.ONTOLOGY_CATEGORY));
+        assertEquals("utility", meta.get(SearchNodeKeys.ONTOLOGY_SUBCATEGORY));
     }
 
     @Test

@@ -34,6 +34,43 @@ class PrimaryCategoryResolverTest {
     }
 
     @Test
+    void booksAndGuideBooksResolveToUtilityBooks() {
+        CategoryAssignment plainBook = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:written_book"),
+                new FacetProfile(EnumSet.of(ItemFacet.BOOK, ItemFacet.UTILITY_MISC), Map.of())
+        );
+        CategoryAssignment guideBook = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("patchouli:guide_book"),
+                new FacetProfile(EnumSet.of(ItemFacet.BOOK, ItemFacet.GUIDE_BOOK, ItemFacet.UTILITY_MISC), Map.of())
+        );
+        CategoryAssignment enchantedBook = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:enchanted_book"),
+                new FacetProfile(EnumSet.of(ItemFacet.BOOK, ItemFacet.ENCHANTED_BOOK, ItemFacet.UTILITY_MISC), Map.of())
+        );
+
+        assertEquals("utility", plainBook.categoryId());
+        assertEquals("books", plainBook.subcategoryId());
+        assertEquals("utility", guideBook.categoryId());
+        assertEquals("books", guideBook.subcategoryId());
+        assertEquals("magic", enchantedBook.categoryId());
+        assertEquals("books", enchantedBook.subcategoryId());
+    }
+
+    @Test
+    void edibleBrewingReagentsResolveToMagicButKeepEdibleFacet() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:spider_eye"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.EDIBLE, ItemFacet.MAGIC_REAGENT),
+                        Map.of(SearchNodeKeys.RECIPE_USE_CATEGORIES, "potion_workshop_brewing,ami:brewing")
+                )
+        );
+
+        assertEquals("magic", assignment.categoryId());
+        assertEquals("reagents", assignment.subcategoryId());
+    }
+
+    @Test
     void flowerResolvesToNatureBeforeDecorationOrMasonry() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("minecraft:dandelion"),
@@ -415,6 +452,13 @@ class PrimaryCategoryResolverTest {
                 new ResourceLocation("minecraft:diamond_horse_armor"),
                 new FacetProfile(EnumSet.of(ItemFacet.ARMOR_ANIMAL), Map.of())
         );
+        CategoryAssignment saddleAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:saddle"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.UTILITY_MISC),
+                        Map.of(SearchNodeKeys.ITEM_CLASS, "net.minecraft.world.item.SaddleItem")
+                )
+        );
         CategoryAssignment entityChestSlotArmorAssignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("modulargolems:iron_dog_golem_armor"),
                 new FacetProfile(
@@ -434,6 +478,8 @@ class PrimaryCategoryResolverTest {
         assertEquals("chest", armorAssignment.subcategoryId());
         assertEquals("armor", animalArmorAssignment.categoryId());
         assertEquals("animal", animalArmorAssignment.subcategoryId());
+        assertEquals("armor", saddleAssignment.categoryId());
+        assertEquals("animal", saddleAssignment.subcategoryId());
         assertEquals("armor", entityChestSlotArmorAssignment.categoryId());
         assertEquals("animal", entityChestSlotArmorAssignment.subcategoryId());
         assertEquals("tools", weaponAssignment.categoryId());

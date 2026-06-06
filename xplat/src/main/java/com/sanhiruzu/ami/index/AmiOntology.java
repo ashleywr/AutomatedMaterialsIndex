@@ -57,11 +57,12 @@ public final class AmiOntology {
                         new SubCategory("navigation", "ami.subcategory.utility.navigation"),
                         new SubCategory("medical", "ami.subcategory.utility.medical"),
                         new SubCategory("currency", "ami.subcategory.utility.currency"),
+                        new SubCategory("books", "ami.subcategory.utility.books"),
                         new SubCategory("tools", "ami.subcategory.utility.tools"),
                         new SubCategory("misc", "ami.subcategory.utility.misc")
                 ),
                 List.of("compass", "recovery_compass", "spyglass", "clock", ":map",
-                        "saddle", "bucket", "name_tag", "lead", "debug_stick", "firework", "music_disc", "disc_fragment", "echo_shard")
+                        "bucket", "name_tag", "lead", "debug_stick", "firework", "music_disc", "disc_fragment", "echo_shard")
         );
 
         SOCIAL = new Category(
@@ -298,7 +299,7 @@ public final class AmiOntology {
                 ),
                 List.of("head_armor", "chest_armor", "leg_armor", "foot_armor",
                         "helmet", "chestplate", "leggings", "boots", "elytra",
-                        "turtle_helmet", ":armor", "horse_armor")
+                        "turtle_helmet", ":armor", "horse_armor", "saddle")
         );
 
         TOOLS = new Category(

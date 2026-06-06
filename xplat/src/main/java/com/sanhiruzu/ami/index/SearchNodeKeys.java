@@ -69,6 +69,9 @@ public final class SearchNodeKeys {
     public static final String BLOCK_STATE_PROPERTIES = "blockStateProperties"; // comma-separated state property names
     public static final String COMPONENT_FACTS = "componentFacts"; // comma-separated normalized DataComponent facts
     public static final String EQUIPMENT_SLOT = "equipmentSlot"; // normalized EquipmentSlot name when known
+    public static final String GUIDE_BOOK_CANDIDATE = "guideBookCandidate"; // "true" when item looks like a guide/manual/book UI.
+    public static final String GUIDE_BOOK_SYSTEM = "guideBookSystem"; // patchouli, guideme, or blank when only inferred.
+    public static final String GUIDE_BOOK_ID = "guideBookId"; // concrete book id when the item stack exposes one.
     // Cobblemon / Pokemon-specific optional metadata. These are plain strings so
     // AMI can index datapack-backed Cobblemon content without a hard dependency.
     public static final String COBBLEMON_ITEM_KIND = "cobblemonItemKind";

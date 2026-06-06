@@ -69,6 +69,51 @@ class CategoryScorerTest {
     }
 
     @Test
+    void foodDrinkFacetBeatsGenericBottleContainerEvidence() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("farmersdelight:milk_bottle"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.FOOD_DRINK, ItemFacet.UTILITY_MISC),
+                        Map.of(SearchNodeKeys.ITEM_CLASS, "vectorwing.farmersdelight.common.item.MilkBottleItem")
+                )
+        );
+
+        assertEquals("nature", assignment.categoryId());
+        assertEquals("drinks", assignment.subcategoryId());
+        assertTrue(!assignment.attributes().getOrDefault("classificationEvidence", "").contains("utility_container"));
+        assertTrue(!assignment.attributes().getOrDefault("classificationEvidence", "").contains("class.bottle_container"));
+    }
+
+    @Test
+    void magicBottleFacetBeatsGenericBottleContainerEvidence() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:experience_bottle"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.MAGIC_REAGENT, ItemFacet.UTILITY_MISC),
+                        Map.of(SearchNodeKeys.ITEM_CLASS, "net.minecraft.world.item.ExperienceBottleItem")
+                )
+        );
+
+        assertEquals("magic", assignment.categoryId());
+        assertEquals("reagents", assignment.subcategoryId());
+    }
+
+    @Test
+    void plainBottleStillRoutesToUtilityContainer() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:glass_bottle"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.UTILITY_MISC, ItemFacet.FLUID_CONTAINER),
+                        Map.of(SearchNodeKeys.ITEM_CLASS, "net.minecraft.world.item.BottleItem")
+                )
+        );
+
+        assertEquals("utility", assignment.categoryId());
+        assertEquals("misc", assignment.subcategoryId());
+        assertTrue(assignment.attributes().getOrDefault("classificationEvidence", "").contains("class.bottle_container"));
+    }
+
+    @Test
     void equipmentArmorEvidenceBeatsStaleUtilityToolFacet() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("ami_test:copper_chestplate"),

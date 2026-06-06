@@ -185,9 +185,7 @@ public final class SearchSuggestions {
         if (separator < 0) {
             List<Suggestion> suggestions = new ArrayList<>();
             addSuggestions(suggestions, fieldSuggestions(vocabulary, query, token, body, limit), limit);
-            if (suggestions.isEmpty()) {
-                addSuggestions(suggestions, simplePropertySuggestions(vocabulary, query, token, body, limit), limit);
-            }
+            addSuggestions(suggestions, simplePropertySuggestions(vocabulary, query, token, body, limit), limit);
             return suggestions;
         }
 

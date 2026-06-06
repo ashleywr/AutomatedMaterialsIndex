@@ -4,8 +4,10 @@ import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.api.AmiGuideRegistry;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.compat.ApotheosisGuideSource;
+import com.sanhiruzu.ami.compat.PatchouliRuntimeGuideSource;
 import com.sanhiruzu.ami.compat.SilentGearMaterialTraitIndex;
 import com.sanhiruzu.ami.compat.SilentGearTraitGuideSource;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.config.AmiCustomTaxonomy;
 import com.sanhiruzu.ami.config.AmiDataFixes;
 import com.sanhiruzu.ami.index.query.SearchSuggestions;
@@ -24,6 +26,7 @@ public final class AmiIndexerService {
     private static final AmiIndexerService INSTANCE = new AmiIndexerService();
     private final AtomicBoolean isRebuilding = new AtomicBoolean(false);
     private final AtomicBoolean isDeferredIndexing = new AtomicBoolean(false);
+    private final AtomicBoolean isDeferredGuideIndexing = new AtomicBoolean(false);
     private volatile SearchService searchService;
     private volatile long searchServiceRevision = -1L;
     private volatile AmiGuideSearchIndex guideSearchIndex = new AmiGuideSearchIndex(null, AmiGuideSearchIndex.GuideIndexingMode.OFF);
@@ -171,12 +174,9 @@ public final class AmiIndexerService {
         beginProgress("Applying compatibility metadata");
         SilentGearMaterialTraitIndex.applyToIndex(index);
 
-        beginProgress("Indexing guides");
+        beginProgress("Preparing guide index");
         AmiGuideRegistry.clear();
-        ApotheosisGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
-        SilentGearTraitGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
-        AmiGuideRegistry.registerPluginGuides();
-        guideSearchIndex = AmiGuideSearchIndex.fromConfig(AmiGuideRegistry.getDocuments());
+        guideSearchIndex = AmiGuideSearchIndex.fromConfig(java.util.List.of());
 
         index.markIndexReady();
         indexedLanguageCode = buildLanguageCode;
@@ -201,6 +201,7 @@ public final class AmiIndexerService {
         } else {
             scheduleIconAuditIfEnabled();
         }
+        scheduleDeferredGuideIndex();
     }
 
     private void scheduleDeferredNamespaceIndex(Level level) {
@@ -242,6 +243,35 @@ public final class AmiIndexerService {
                 AmiCore.LOGGER.warn("AMI: Deferred namespace indexing failed: {}", t.getMessage(), t);
             } finally {
                 isDeferredIndexing.set(false);
+                progress = AmiIndexProgress.idle();
+            }
+        }), Util.backgroundExecutor());
+    }
+
+    private void scheduleDeferredGuideIndex() {
+        if (AmiConfig.guideIndexingMode == AmiConfig.GuideIndexingMode.OFF) {
+            return;
+        }
+        if (!isDeferredGuideIndexing.compareAndSet(false, true)) {
+            return;
+        }
+        CompletableFuture.runAsync(withIndexerClassLoader(() -> {
+            long started = System.currentTimeMillis();
+            try {
+                beginProgress("Indexing guide books");
+                AmiGuideRegistry.clear();
+                PatchouliRuntimeGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
+                ApotheosisGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
+                SilentGearTraitGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
+                AmiGuideRegistry.registerPluginGuides();
+                guideSearchIndex = AmiGuideSearchIndex.fromConfig(AmiGuideRegistry.getDocuments());
+                AmiCore.LOGGER.info("AMI: Deferred guide indexing complete in {}ms ({} guide docs).",
+                        System.currentTimeMillis() - started,
+                        guideSearchIndex.allDocuments().size());
+            } catch (Throwable t) {
+                AmiCore.LOGGER.warn("AMI: Deferred guide indexing failed: {}", t.getMessage(), t);
+            } finally {
+                isDeferredGuideIndexing.set(false);
                 progress = AmiIndexProgress.idle();
             }
         }), Util.backgroundExecutor());

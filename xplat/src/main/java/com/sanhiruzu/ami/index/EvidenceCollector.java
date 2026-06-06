@@ -26,10 +26,15 @@ final class EvidenceCollector {
                     .filter(item -> !"tech_cables".equals(item.id()))
                     .toList();
         }
+        if (hasStrongerContainerContext(facets)) {
+            lexical = lexical.stream()
+                    .filter(item -> !"utility_container".equals(item.id()))
+                    .toList();
+        }
         evidence.addAll(lexical);
 
         addComponentEvidence(attributes, evidence);
-        addClassEvidence(attributes, evidence);
+        addClassEvidence(attributes, facets, evidence);
         addCreativeTabEvidence(attributes, evidence);
         addTrustedTagEvidence(attributes, evidence);
         addRecipeEvidence(attributes, evidence);
@@ -139,7 +144,8 @@ final class EvidenceCollector {
         if (hasAny(facets, ItemFacet.INGREDIENT_DYE, ItemFacet.INGREDIENT_MINERAL, ItemFacet.INGREDIENT_ORGANIC)) {
             evidence.add(e("facet.ingredient", "facet", "ingredients", ingredientSubcategory(facets), 70, "ingredient facet"));
         }
-        if (hasAny(facets, ItemFacet.UTILITY_NAVIGATION, ItemFacet.UTILITY_MEDICAL, ItemFacet.UTILITY_CURRENCY, ItemFacet.UTILITY_MISC)) {
+        if (hasAny(facets, ItemFacet.UTILITY_NAVIGATION, ItemFacet.UTILITY_MEDICAL, ItemFacet.UTILITY_CURRENCY,
+                ItemFacet.BOOK, ItemFacet.GUIDE_BOOK, ItemFacet.UTILITY_MISC)) {
             evidence.add(e("facet.utility", "facet", "utility", utilitySubcategory(facets), 65, "utility facet"));
         }
         if (hasAny(facets, ItemFacet.POTION, ItemFacet.ENCHANTED_BOOK, ItemFacet.MAGIC_ARTIFACT, ItemFacet.MAGIC_REAGENT)) {
@@ -177,7 +183,7 @@ final class EvidenceCollector {
         }
     }
 
-    private static void addClassEvidence(Map<String, String> attributes, List<ClassificationEvidence> evidence) {
+    private static void addClassEvidence(Map<String, String> attributes, EnumSet<ItemFacet> facets, List<ClassificationEvidence> evidence) {
         String itemClass = attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, "").toLowerCase(Locale.ROOT);
         String blockClass = attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "").toLowerCase(Locale.ROOT);
         String combined = itemClass + " " + blockClass;
@@ -210,7 +216,10 @@ final class EvidenceCollector {
         if (containsAny(combined, "powerbottleitem", "powerbottleblock")) {
             evidence.add(e("class.power_bottle", "class", "magic", "artifacts", 105, "power bottle class"));
         }
-        if (containsAny(combined, "flaskitem", "bottleitem")) {
+        if (containsAny(combined, "saddleitem")) {
+            evidence.add(e("class.saddle_item", "class", "armor", "animal", 100, "saddle item class"));
+        }
+        if (containsAny(combined, "flaskitem", "bottleitem") && !hasStrongerContainerContext(facets)) {
             evidence.add(e("class.bottle_container", "class", "utility", "misc", 75, "bottle/flask item class"));
         }
         if (containsAny(combined, "crucibleblock", "plinthblock")) {
@@ -224,6 +233,17 @@ final class EvidenceCollector {
     private static boolean isVanillaConduitBlock(Map<String, String> attributes) {
         return "net.minecraft.world.level.block.ConduitBlock"
                 .equals(attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, ""));
+    }
+
+    private static boolean hasStrongerContainerContext(EnumSet<ItemFacet> facets) {
+        return hasAny(facets,
+                ItemFacet.EDIBLE,
+                ItemFacet.FOOD_MEAL,
+                ItemFacet.FOOD_DRINK,
+                ItemFacet.FOOD_PROTEIN,
+                ItemFacet.POTION,
+                ItemFacet.MAGIC_ARTIFACT,
+                ItemFacet.MAGIC_REAGENT);
     }
 
     private static void addCreativeTabEvidence(Map<String, String> attributes, List<ClassificationEvidence> evidence) {
@@ -511,6 +531,7 @@ final class EvidenceCollector {
         if (facets.contains(ItemFacet.UTILITY_NAVIGATION)) return "navigation";
         if (facets.contains(ItemFacet.UTILITY_MEDICAL)) return "medical";
         if (facets.contains(ItemFacet.UTILITY_CURRENCY)) return "currency";
+        if (facets.contains(ItemFacet.GUIDE_BOOK) || facets.contains(ItemFacet.BOOK)) return "books";
         return "misc";
     }
 

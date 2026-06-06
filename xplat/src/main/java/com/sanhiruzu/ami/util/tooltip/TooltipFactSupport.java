@@ -30,6 +30,13 @@ public final class TooltipFactSupport {
                 .withStyle(s -> s.withColor(AMITheme.TEXT_SUBTLE)));
     }
 
+    public static List<Component> line(String key, Component value, ChatFormatting formatting) {
+        if (value == null) return List.of();
+
+        return List.of(Component.translatable(key, value.copy().withStyle(formatting))
+                .withStyle(s -> s.withColor(AMITheme.TEXT_SUBTLE)));
+    }
+
     public static List<Component> message(String key) {
         return List.of(Component.translatable(key).withStyle(s -> s.withColor(AMITheme.TEXT_SUBTLE)));
     }

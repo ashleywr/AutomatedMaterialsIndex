@@ -2,6 +2,7 @@
 {"id":"bigreactors:inanite_ingot","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"Material item identified by forge:ingots/inanite tag."}
 {"id":"minecraft:target","category":"tech","subcategory":"redstone","confidence":"certain","notes":"Active redstone behavior block."}
 {"id":"minecraft:conduit","category":"utility","subcategory":"misc","confidence":"certain","notes":"Vanilla ConduitBlock should not be treated as a tech cable from the path token."}
+{"id":"minecraft:saddle","category":"armor","subcategory":"animal","confidence":"certain","notes":"SaddleItem is animal equipment and should not remain generic utility misc."}
 {"id":"reactive:soul_bottle","category":"magic","subcategory":"artifacts","confidence":"certain","notes":"Reactive power bottle tag/class should beat the uncraftable terrain fallback."}
 {"id":"farmersdelight:stove","category":"tech","subcategory":"machines","confidence":"certain","notes":"Cooking workstation/block entity, not prepared food."}
 {"id":"farmersdelight:skillet","category":"tech","subcategory":"machines","confidence":"certain","notes":"Placeable cooking vessel/block entity; combat stats should not make it primarily a melee weapon."}
@@ -21,3 +22,4 @@
 {"id":"createfood:potato_chip_bowl_block","category":"nature","subcategory":"meals","confidence":"certain","notes":"Food chip token should not become a tech circuit."}
 {"id":"dndesires:roll_table","category":"decoration","subcategory":"furniture","confidence":"certain","notes":"Furniture table; roll token should not classify as food."}
 {"id":"quark:magenta_shard","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"Glass shard in the Ingredients tab; generic shard material evidence should not create or preserve magic reagent routing."}
+{"id":"minecraft:spider_eye","category":"magic","subcategory":"reagents","confidence":"certain","notes":"Spider Eye is edible, but its brewing reagent role should be the primary bucket; edible remains searchable as a facet."}

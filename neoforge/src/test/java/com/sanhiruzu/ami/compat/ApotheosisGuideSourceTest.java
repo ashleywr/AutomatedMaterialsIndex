@@ -39,6 +39,7 @@ class ApotheosisGuideSourceTest {
         assertTrue(document.tags().contains("melee_weapon"));
         assertTrue(document.tags().contains("life_steal"));
         assertTrue(document.canOpen());
+        assertEquals("adventure/affix_loot/affixes", document.pageId());
         assertTrue(document.summaryText().contains("Attribute: Life Steal"));
         assertTrue(document.summaryText().contains("Mythic 0.1-0.15"));
     }
@@ -65,6 +66,7 @@ class ApotheosisGuideSourceTest {
         assertEquals(ResourceLocation.fromNamespaceAndPath("apothic_enchanting", "hellshelf"),
                 document.referencedItems().get(0));
         assertTrue(document.canOpen());
+        assertEquals("enchanting/table/stats", document.pageId());
         assertTrue(document.tags().contains("eterna"));
         assertTrue(document.summaryText().contains("Max Eterna: 45"));
         assertTrue(document.summaryText().contains("Arcana: 0"));
@@ -90,6 +92,7 @@ class ApotheosisGuideSourceTest {
         assertTrue(document.tags().contains("life_mending"));
         assertTrue(document.tags().contains("enchantment_life_mending"));
         assertTrue(document.canOpen());
+        assertEquals("enchanting/enchantments/life_mending", document.pageId());
         assertTrue(document.summaryText().contains("Max level: 3"));
         assertTrue(document.summaryText().contains("#minecraft:enchantable/durability"));
     }
