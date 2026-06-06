@@ -26,6 +26,10 @@ import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.util.AmiClipboardHelper;
+import com.sanhiruzu.searchableitems.api.SearchableItemAction;
+import com.sanhiruzu.searchableitems.api.SearchableItemActionContext;
+import com.sanhiruzu.searchableitems.api.SearchableItemActionProvider;
+import com.sanhiruzu.searchableitems.api.SearchableItemActionProviders;
 import net.minecraft.client.Minecraft;
 import net.minecraft.Util;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
@@ -961,9 +965,11 @@ public class ResultContextMenuActionBuilder {
             plugins = pluginSupplier.get();
         } catch (RuntimeException | LinkageError e) {
             LOGGER.log(Level.WARNING, "AMI: Failed to obtain plugins for context menu", e);
-            return;
+            plugins = List.of();
         }
-        if (plugins == null || plugins.isEmpty()) return;
+        if (plugins == null) {
+            plugins = List.of();
+        }
 
         AmiItemContext apiContext = new AmiItemContext(
                 node.id(),
@@ -983,6 +989,24 @@ public class ResultContextMenuActionBuilder {
                         "AMI: Context menu plugin failed: " + plugin.getClass().getName(), e);
             }
         }
+
+        SearchableItemActionContext sharedContext = new SearchableItemActionContext(
+                apiContext.id(),
+                apiContext.type(),
+                apiContext.displayName(),
+                apiContext.stack(),
+                apiContext.metadata(),
+                apiContext.cheatEnabled(),
+                apiContext.tokenInject()
+        );
+        for (SearchableItemActionProvider provider : SearchableItemActionProviders.getProviders()) {
+            try {
+                provider.addItemActions(sharedContext, action -> addSharedItemAction(actions, action));
+            } catch (RuntimeException | LinkageError e) {
+                LOGGER.log(Level.WARNING,
+                        "AMI: Shared item action provider failed: " + sharedActionProviderId(provider), e);
+            }
+        }
     }
 
     private static void addPluginAction(List<ResultContextMenu.Action> actions, AmiContextMenuAction action) {
@@ -994,6 +1018,26 @@ public class ResultContextMenuActionBuilder {
                 action.enabled(),
                 action.onClick()
         ));
+    }
+
+    private static void addSharedItemAction(List<ResultContextMenu.Action> actions, SearchableItemAction action) {
+        if (actions == null || action == null || action.label() == null) return;
+        actions.add(new ResultContextMenu.Action(
+                action.id(),
+                action.label(),
+                action.mnemonic(),
+                action.enabled(),
+                action.onClick()
+        ));
+    }
+
+    private static String sharedActionProviderId(SearchableItemActionProvider provider) {
+        try {
+            String id = provider.id();
+            return id == null || id.isBlank() ? provider.getClass().getName() : id;
+        } catch (RuntimeException | LinkageError ignored) {
+            return provider.getClass().getName();
+        }
     }
 
     private static boolean allowsEditCategoryFix(ResultContextMenuActionPolicy policy, SearchNode node) {

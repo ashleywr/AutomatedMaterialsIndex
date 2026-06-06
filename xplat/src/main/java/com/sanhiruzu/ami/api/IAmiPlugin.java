@@ -13,6 +13,12 @@ import java.util.Map;
 /**
  * Interface for mods to provide AMI with layout-specific data.
  * <p>
+ * Prefer the viewer-neutral provider APIs in {@code com.sanhiruzu.searchableguides.api}
+ * and {@code com.sanhiruzu.searchableitems.api} for guide docs, searchable item
+ * metadata, representative stacks, and portable item actions. Use this interface
+ * for AMI-specific behavior such as overlay exclusion zones or migration
+ * compatibility with older AMI integrations.
+ * <p>
  * Mods that generate infinite modular item variants (Silent Gear, Apotheosis, etc.)
  * should NOT be enumerated by AMI — instead implement {@link #getHeroItems()} to
  * hand back a curated list of representative stacks (e.g. all-diamond pick, all-wood

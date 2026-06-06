@@ -556,6 +556,40 @@ entry screen contract. Modonomicon item stacks and Spectrum cookbook-style items
 now carry `guideBookSystem=modonomicon`, a concrete `guideBookId`, and a native
 `guideBookPageId` when the item exposes a `BookAddress`.
 
+### 2026-06-06: GuideME Client Assets And Silent Gear Material Book
+
+GuideME pages such as AE2's guide live under client assets
+`assets/<mod>/ae2guide`, not server datapack resources. AMI now reads GuideME
+markdown from the client resource manager so AE2 pages like Processors index
+front-matter item references such as `ae2:silicon` and open to the GuideME page.
+
+Silent Gear's `guide_book` item is not a page-backed in-game guide in
+Silent Gear 4.2.1.1; it sends a wiki link and uses `guide_book.unimplemented`
+tooltip text. AMI now treats the actual in-game `material_book` as the
+page-backed Silent Gear guide source by indexing `silentgear_materials` as
+openable material-book documents with `guideBookSystem=silentgear_materials`.
+
+GuideME open actions now resolve the requested markdown-derived page id against
+GuideME's runtime page list before opening. This handles AE2's rooted page ids
+such as `ae2:ae2guide/items-blocks-machines/fluix_crystal` when AMI's indexed
+page id is `items-blocks-machines/fluix_crystal`.
+
+Patchouli guide indexing now merges server datapack resources with client asset
+resources and resolves client lang keys. This covers Cobblepedia's mixed layout:
+`data/cobblepedia/patchouli_books/cobblepedia/book.json` plus localized entries
+and categories under `assets/cobblepedia/patchouli_books/cobblepedia/en_us/`.
+Patchouli guide documents are still indexed for diagnostics/page counts, but
+guide search results now ask Patchouli's live `BookEntry` whether the entry is
+locked, hidden, or addable before showing it. This lets advancement-gated books
+such as Nature's Aura sync search/openability with the player's current unlock
+state. Untranslated Patchouli keys now fall back to readable labels instead of
+leaking raw keys such as `item.cobblemon.master_ball`.
+Guidebook item variants now set `variantCollapseMode=never` after creative
+variant metadata is merged. Patchouli guide items are runtime variants of the
+single base item `patchouli:guide_book`; when four or more books are present
+they used to trip the generic high-cardinality variant collapse even though each
+variant is a distinct guide, not a color/material variant.
+
 ## Open Work
 
 - Split Cobblemon identity routing into strong Pokemon gameplay identities

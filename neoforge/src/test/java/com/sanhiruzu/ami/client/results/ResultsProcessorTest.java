@@ -72,6 +72,31 @@ public class ResultsProcessorTest {
         );
     }
 
+    private static SearchNode patchouliGuide(String namespace, String bookPath, String displayName) {
+        String slug = displayName.toLowerCase(java.util.Locale.ROOT)
+                .replace("é", "e")
+                .replaceAll("[^a-z0-9]+", "_")
+                .replaceAll("^_+|_+$", "");
+        return new SearchNode(
+                new ResourceLocation("patchouli", "guide_book/variant/" + slug),
+                NodeType.ITEM,
+                displayName,
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "utility",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "books",
+                        SearchNodeKeys.FACETS, "book,guide_book",
+                        SearchNodeKeys.GUIDE_BOOK_CANDIDATE, "true",
+                        SearchNodeKeys.GUIDE_BOOK_SYSTEM, "patchouli",
+                        SearchNodeKeys.GUIDE_BOOK_ID, namespace + ":" + bookPath,
+                        SearchNodeKeys.SUBTYPE_OF, "patchouli:guide_book",
+                        SearchNodeKeys.MATERIAL_GROUP, "patchouli:guide_book",
+                        SearchNodeKeys.VARIANT_COLLAPSE_MODE, "never"
+                )
+        );
+    }
+
     private static SearchNode pokemon(String species, String displayName, int dexNumber) {
         return new SearchNode(
                 new ResourceLocation("cobblemon", "species/" + species),
@@ -1053,6 +1078,31 @@ public class ResultsProcessorTest {
         assertEquals("cardinality:family:minecraft:candle", candlesGroup.getKey());
         assertEquals(List.of("Candle", "Black Candle", "Blue Candle", "Red Candle", "White Candle"),
                 leafLabels(List.of(candlesGroup)));
+    }
+
+    @Test
+    void guideBookVariantsDoNotCollapseAsHighCardinalityFamily() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.ALPHABETICAL,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        List<TreeNode> root = processor.process(List.of(
+                patchouliGuide("apotheosis", "apoth_chronicle", "Chronicle of Shadows"),
+                patchouliGuide("cobblepedia", "cobblepedia", "Poképedia"),
+                patchouliGuide("reactive", "journal", "Journal of Alchemy"),
+                patchouliGuide("modulargolems", "golem_guide", "Modular Golem Guide")
+        ));
+
+        TreeNode booksGroup = root.get(0).getChildren().get(0);
+        assertEquals("utility/books", booksGroup.getKey());
+        assertTrue(booksGroup.getChildren().stream().allMatch(TreeNode::isLeaf),
+                ResultsTreeDump.dump(List.of(booksGroup)));
+        assertEquals(List.of("Chronicle of Shadows", "Journal of Alchemy", "Modular Golem Guide", "Poképedia"),
+                leafLabels(List.of(booksGroup)));
     }
 
     @Test

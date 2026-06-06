@@ -22,6 +22,8 @@ import com.sanhiruzu.ami.index.metrics.*;
 import com.sanhiruzu.ami.index.sniffers.*;
 import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.recipe.AmiRecipeIndex;
+import com.sanhiruzu.searchableitems.api.SearchableItemProvider;
+import com.sanhiruzu.searchableitems.api.SearchableItemProviders;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -162,6 +164,7 @@ public class ItemProvider implements IAmiDataProvider {
             return;
         }
         meta.put(SearchNodeKeys.GUIDE_BOOK_CANDIDATE, "true");
+        meta.put(SearchNodeKeys.VARIANT_COLLAPSE_MODE, "never");
         if (id != null) {
             meta.put(SearchNodeKeys.GUIDE_BOOK_ID, id.toString());
         }
@@ -195,6 +198,12 @@ public class ItemProvider implements IAmiDataProvider {
         for (String token : List.of("guidebook", "guidebooks", "guide", "manual", "handbook", "codex", "lexicon")) {
             addSearchToken(meta, token);
             addPlainSearchToken(meta, token);
+        }
+    }
+
+    private static void preventGuideBookAutoCollapse(Map<String, String> meta) {
+        if (meta != null && "true".equals(meta.get(SearchNodeKeys.GUIDE_BOOK_CANDIDATE))) {
+            meta.put(SearchNodeKeys.VARIANT_COLLAPSE_MODE, "never");
         }
     }
 
@@ -688,6 +697,7 @@ public class ItemProvider implements IAmiDataProvider {
                     );
                     Map<String, String> meta = buildSubtypeMeta(id, entry.stack(), colorBucket, creativeTabs.get(item), level, modNameCache);
                     if (!entry.extraMeta().isEmpty()) meta.putAll(entry.extraMeta());
+                    preventGuideBookAutoCollapse(meta);
                     if (!tags.isEmpty()) meta.put(SearchNodeKeys.TAGS, tags);
                     foodMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addFoodStats(meta, stats));
                     powerMetricSniffer.sniff(entry.stack(), entry.id(), level).ifPresent(stats -> addPowerStats(meta, stats));
@@ -785,6 +795,7 @@ public class ItemProvider implements IAmiDataProvider {
                 meta.put(SearchNodeKeys.TAGS, tags);
             }
             addGuideBookSearchTokens(meta, id, defaultStack, facetProfile);
+            preventGuideBookAutoCollapse(meta);
             if (requiredTool != null) {
                 meta.put(SearchNodeKeys.REQUIRED_TOOL, requiredTool);
             }
@@ -1032,7 +1043,74 @@ public class ItemProvider implements IAmiDataProvider {
                 emittedTotal++;
             }
         }
+        for (SearchableItemProvider provider : SearchableItemProviders.getProviders()) {
+            List<ItemStack> representativeItems;
+            try {
+                representativeItems = provider.getRepresentativeItems(level);
+            } catch (Exception e) {
+                AmiCore.LOGGER.warn(
+                        "SearchableItemProvider.getRepresentativeItems() threw from {}", providerId(provider), e);
+                continue;
+            }
+            if (representativeItems.isEmpty()) continue;
+
+            String providerKey = providerId(provider).replace('.', '_').replace(':', '_').toLowerCase(Locale.ROOT);
+            Set<String> seenHeroStackKeys = new HashSet<>();
+            Set<ResourceLocation> emittedHeroIds = new HashSet<>();
+            int count = 0;
+            for (ItemStack stack : representativeItems) {
+                if (stack == null || stack.isEmpty()) continue;
+                if (count >= SubtypeExpander.HARD_CAP) {
+                    AmiCore.LOGGER.warn(
+                            "SearchableItemProvider.getRepresentativeItems() from {} exceeded HARD_CAP; truncating",
+                            providerId(provider));
+                    break;
+                }
+                ResourceLocation baseId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                if (baseId == null) continue;
+
+                String identityHash = CreativeStackVariantExpander.stackIdentityHash(baseId, stack, level);
+                String stackKey = baseId + "|" + identityHash;
+                if (!seenHeroStackKeys.add(stackKey)) {
+                    continue;
+                }
+                ResourceLocation syntheticId = Services.PLATFORM.rl(
+                        "ami",
+                        "hero/" + providerKey + "/" + baseId.getNamespace() + "/" + baseId.getPath() + "_" + identityHash
+                );
+                int collisionOrdinal = 1;
+                while (!emittedHeroIds.add(syntheticId)) {
+                    syntheticId = Services.PLATFORM.rl("ami", syntheticId.getPath() + "_" + collisionOrdinal++);
+                }
+                ItemIconRenderer.registerStack(syntheticId, stack);
+
+                Map<String, String> meta = buildSubtypeMeta(baseId, stack, extractColorBucket(baseId), creativeTabs.get(stack.getItem()), level, modNameCache);
+                meta.put(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_CHEAT);
+                meta.put(SearchNodeKeys.VARIANT_SOURCE, "provider_representative_stack");
+                meta.put("variantAccessReason", "modular_generated_stack");
+                foodMetricSniffer.sniff(stack).ifPresent(stats -> addFoodStats(meta, stats));
+                powerMetricSniffer.sniff(stack, syntheticId, level).ifPresent(stats -> addPowerStats(meta, stats));
+                fluidMetricSniffer.sniff(stack, syntheticId, level).ifPresent(stats -> addFluidStats(meta, stats));
+                toolMetricSniffer.sniff(stack).ifPresent(stats -> addToolStats(meta, stats));
+                armorMetricSniffer.sniff(stack).ifPresent(stats -> addArmorStats(meta, stats));
+                addTooltipSearchTokens(meta, stack, level, syntheticId, stack.getHoverName().getString(), modNameCache);
+                inferAmmoType(baseId, meta);
+                index.addNode(new SearchNode(syntheticId, NodeType.ITEM,
+                        stack.getHoverName().getString(), 0xFFFFFF, 0, meta));
+                count++;
+                emittedTotal++;
+            }
+        }
         return emittedTotal;
+    }
+
+    private static String providerId(SearchableItemProvider provider) {
+        try {
+            String id = provider.id();
+            return id == null || id.isBlank() ? provider.getClass().getName() : id;
+        } catch (RuntimeException | LinkageError ignored) {
+            return provider.getClass().getName();
+        }
     }
 
     private static void markGeneratedModularGearVariantCheatOnly(ResourceLocation syntheticId, Map<String, String> meta) {

@@ -1,5 +1,7 @@
 package com.sanhiruzu.ami.api;
 
+import com.sanhiruzu.searchableitems.api.SearchableItemProvider;
+import com.sanhiruzu.searchableitems.api.SearchableItemProviders;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -21,6 +23,7 @@ class ItemProviderCompatHookTest {
     @AfterEach
     void resetState() {
         AmiPluginRegistry.clearForTests();
+        SearchableItemProviders.clearForTests();
         ItemProviderCompatHooks.clearDisabledCompatHooks();
     }
 
@@ -139,5 +142,53 @@ class ItemProviderCompatHookTest {
                 "expected plugin hook to run for subtype paths");
         assertEquals("base", baseMetadata.get("ami"));
         assertEquals("subtype", subtypeMetadata.get("ami"));
+    }
+
+    @Test
+    void sharedItemProviderMetadataHooksAreApplied() {
+        SearchableItemProviders.register(new SearchableItemProvider() {
+            @Override
+            public String id() {
+                return "example:items";
+            }
+
+            @Override
+            public void enrichItemMetadata(ResourceLocation id, ItemStack stack, Level level, Map<String, String> metadata) {
+                if ("stone".equals(id.getPath())) {
+                    metadata.put("shared", "provider");
+                }
+            }
+        });
+
+        Map<String, String> metadata = new HashMap<>();
+        ItemProviderCompatHooks.runPluginItemCompatHooks(new ResourceLocation("minecraft", "stone"),
+                ItemStack.EMPTY, null, metadata);
+
+        assertEquals("provider", metadata.get("shared"));
+    }
+
+    @Test
+    void failingSharedItemProviderIsDisabledAfterFirstFailure() {
+        AtomicInteger failingProviderCalls = new AtomicInteger();
+        SearchableItemProviders.register(new SearchableItemProvider() {
+            @Override
+            public String id() {
+                return "example:failing";
+            }
+
+            @Override
+            public void enrichItemMetadata(ResourceLocation id, ItemStack stack, Level level, Map<String, String> metadata) {
+                failingProviderCalls.incrementAndGet();
+                throw new RuntimeException("expected failure");
+            }
+        });
+
+        ItemProviderCompatHooks.runPluginItemCompatHooks(new ResourceLocation("minecraft", "stone"),
+                ItemStack.EMPTY, null, new HashMap<>());
+        ItemProviderCompatHooks.runPluginItemCompatHooks(new ResourceLocation("minecraft", "stone"),
+                ItemStack.EMPTY, null, new HashMap<>());
+
+        assertEquals(1, failingProviderCalls.get());
+        assertTrue(ItemProviderCompatHooks.getDisabledCompatHooks().contains("SearchableItemProvider.example:failing"));
     }
 }

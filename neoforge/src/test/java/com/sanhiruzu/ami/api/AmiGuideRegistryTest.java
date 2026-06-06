@@ -1,9 +1,13 @@
 package com.sanhiruzu.ami.api;
 
+import com.sanhiruzu.searchableguides.api.SearchableGuideDocument;
+import com.sanhiruzu.searchableguides.api.SearchableGuideProvider;
+import com.sanhiruzu.searchableguides.api.SearchableGuideProviders;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -16,6 +20,7 @@ class AmiGuideRegistryTest {
     void cleanup() {
         AmiGuideRegistry.clear();
         AmiPluginRegistry.clearForTests();
+        SearchableGuideProviders.clearForTests();
     }
 
     @Test
@@ -138,6 +143,80 @@ class AmiGuideRegistryTest {
         assertEquals(2, AmiGuideRegistry.size());
     }
 
+    @Test
+    void sharedSearchableGuideProvidersAreAdaptedIntoAmiDocuments() {
+        SearchableGuideProviders.register(searchableProvider("shared", documents -> documents.accept(
+                SearchableGuideDocument.builder(
+                                new ResourceLocation("example", "guides/shared_doc"),
+                                "example_manual",
+                                "example",
+                                "Shared Guide")
+                        .bookId(new ResourceLocation("example", "manual"))
+                        .iconItemId(new ResourceLocation("example", "manual"))
+                        .pageId("machines/press")
+                        .chapter("Machines")
+                        .referencedItem(new ResourceLocation("example", "press"))
+                        .tag("machine")
+                        .summaryText("A viewer-neutral guide document.")
+                        .build()
+        )));
+
+        AmiGuideRegistry.registerSearchableGuideProviders();
+
+        assertEquals(1, AmiGuideRegistry.size());
+        AmiGuideDocument document = AmiGuideRegistry.getDocuments().getFirst();
+        assertEquals("Shared Guide", document.title());
+        assertEquals("example_manual", document.sourceType());
+        assertEquals(new ResourceLocation("example", "manual"), document.iconItemId());
+        assertEquals(List.of(new ResourceLocation("example", "press")), document.referencedItems());
+        assertTrue(document.summaryText().contains("viewer-neutral"));
+    }
+
+    @Test
+    void sharedSearchableGuideProviderFailureDoesNotBlockOtherProviders() {
+        SearchableGuideProviders.register(new SearchableGuideProvider() {
+            @Override
+            public String id() {
+                return "bad_shared";
+            }
+
+            @Override
+            public void addGuideDocuments(Consumer<SearchableGuideDocument> documents) {
+                throw new IllegalStateException("bad shared provider");
+            }
+        });
+        SearchableGuideProviders.register(searchableProvider("good_shared", documents -> documents.accept(
+                SearchableGuideDocument.builder(
+                        new ResourceLocation("example", "guides/good_shared_doc"),
+                        "example_manual",
+                        "example",
+                        "Good Shared Guide"
+                ).build()
+        )));
+
+        AmiGuideRegistry.registerSearchableGuideProviders();
+
+        assertEquals(1, AmiGuideRegistry.size());
+        assertEquals("Good Shared Guide", AmiGuideRegistry.getDocuments().getFirst().title());
+    }
+
+    @Test
+    void amiApiRegistersSharedSearchableGuideProviders() {
+        AmiApi.registerSearchableGuideProvider(searchableProvider("api_shared", documents -> documents.accept(
+                SearchableGuideDocument.builder(
+                        new ResourceLocation("example", "guides/api_shared_doc"),
+                        "example_manual",
+                        "example",
+                        "API Shared Guide"
+                ).build()
+        )));
+
+        AmiGuideRegistry.registerSearchableGuideProviders();
+
+        assertEquals(1, AmiGuideRegistry.size());
+        assertEquals("API Shared Guide", AmiGuideRegistry.getDocuments().getFirst().title());
+    }
+
     private static AmiGuideSource source(String id, Consumer<Consumer<AmiGuideDocument>> registrar) {
         return new AmiGuideSource() {
             @Override
@@ -147,6 +226,21 @@ class AmiGuideRegistryTest {
 
             @Override
             public void registerGuideDocuments(Consumer<AmiGuideDocument> documents) {
+                registrar.accept(documents);
+            }
+        };
+    }
+
+    private static SearchableGuideProvider searchableProvider(String id,
+                                                             Consumer<Consumer<SearchableGuideDocument>> registrar) {
+        return new SearchableGuideProvider() {
+            @Override
+            public String id() {
+                return id;
+            }
+
+            @Override
+            public void addGuideDocuments(Consumer<SearchableGuideDocument> documents) {
                 registrar.accept(documents);
             }
         };
