@@ -243,6 +243,10 @@ public final class ModularGearCompat {
         if (itemClass.containsAny("part", "material", "ingredient")) facts.add("part");
         if (itemClass.containsAny("blueprint", "template", "pattern", "stencil")) facts.add("blueprint");
         if (itemClass.containsAny("modifier", "trait", "upgrade")) facts.add("modifier");
+        if (CompatFamilyDetector.TINKERS.equals(context.family)
+                && context.itemClass.toLowerCase(Locale.ROOT).contains("creativeslotitem")) {
+            facts.add("modifier");
+        }
         if (blockClass.containsAny("station", "table", "anvil", "melter", "grader")) {
             facts.add("station");
         }

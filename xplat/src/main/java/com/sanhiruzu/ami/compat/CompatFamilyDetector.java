@@ -28,6 +28,10 @@ public final class CompatFamilyDetector {
     public static final String MODULAR_GOLEMS = "modular_golems";
     public static final String TINKERS = "tinkers";
     public static final String SILENT_GEAR = "silent_gear";
+    public static final String MNA = "mna";
+    public static final String ALEXS_MOBS = "alexsmobs";
+    public static final String ALEXS_CAVES = "alexscaves";
+    public static final String TACZ = "tacz";
     private static final int FAMILY_THRESHOLD = 25;
     private static final Map<String, String> MOD_METADATA_CACHE = new ConcurrentHashMap<>();
 
@@ -86,7 +90,11 @@ public final class CompatFamilyDetector {
             Map.entry("extrabotany", BOTANIA),
             Map.entry("modulargolems", MODULAR_GOLEMS),
             Map.entry("tconstruct", TINKERS),
-            Map.entry("silentgear", SILENT_GEAR)
+            Map.entry("silentgear", SILENT_GEAR),
+            Map.entry("mna", MNA),
+            Map.entry("alexsmobs", ALEXS_MOBS),
+            Map.entry("alexscaves", ALEXS_CAVES),
+            Map.entry("tacz", TACZ)
     );
 
     private static final Set<String> CREATE_OWNERSHIP_TERMS = Set.of(
@@ -143,6 +151,7 @@ public final class CompatFamilyDetector {
         score(context, COBBLEMON, scoreCobblemon(context), scores);
         score(context, CREATE, scoreCreate(context), scores);
         score(context, MAPPING, scoreMapping(context), scores);
+        score(context, TACZ, scoreTacz(context), scores);
 
         if (scores.isEmpty()) {
             return;
@@ -218,6 +227,15 @@ public final class CompatFamilyDetector {
         if (containsOwnershipTerm(context.modMetadata, MAPPING_OWNERSHIP_TERMS)) score += 50;
         if (containsOwnershipTerm(context.creativeTab, MAPPING_OWNERSHIP_TERMS)) score += 40;
         if (containsOwnershipTerm(context.itemClass, MAPPING_OWNERSHIP_TERMS)) score += 35;
+        return score;
+    }
+
+    private static int scoreTacz(Context context) {
+        int score = 0;
+        if (TACZ.equals(context.namespace)) score += 100;
+        if (context.namespace.contains("tacz")) score += 80;
+        if (context.itemClass.startsWith("com.tacz.guns.")) score += 90;
+        if (containsAny(context.itemClass, Set.of("tacz", "timeless and classics"))) score += 35;
         return score;
     }
 

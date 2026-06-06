@@ -67,8 +67,8 @@ public final class FacetIndexer {
             facets.add(ItemFacet.COMPOSTABLE);
         }
         applyComponentFacts(stack, hasFood, facets, attributes);
-        applyItemClassFacts(item, facets, attributes);
-        applyPathFacts(path, facets, attributes);
+        applyItemClassFacts(item, id, facets, attributes);
+        applyPathFacts(id, path, facets, attributes);
         applyTypeFacts(item, path, facets);
         applyEquipmentFacts(item, stack, path, facets, attributes);
         applyComponentPromotions(attributes, facets);
@@ -129,10 +129,22 @@ public final class FacetIndexer {
         }
     }
 
-    private static void applyItemClassFacts(Item item, EnumSet<ItemFacet> facets, Map<String, String> attributes) {
+    private static void applyItemClassFacts(Item item, ResourceLocation id, EnumSet<ItemFacet> facets, Map<String, String> attributes) {
         String itemClass = item.getClass().getName().toLowerCase(Locale.ROOT);
         if (containsAny(itemClass, "bottleitem", "flaskitem")) {
             facets.add(ItemFacet.UTILITY_MISC);
+        }
+        if ("tconstruct".equals(id.getNamespace())) {
+            if (containsAny(itemClass, "coppercanitem")) {
+                facets.add(ItemFacet.FLUID_CONTAINER);
+            }
+            if (containsAny(itemClass, "piggybackpackitem", "glowballitem", "eflnitem")) {
+                facets.add(ItemFacet.UTILITY_MISC);
+            }
+            if (containsAny(itemClass, "crystalshotitem")) {
+                facets.add(ItemFacet.RANGED_WEAPON);
+                facets.add(ItemFacet.PROJECTILE);
+            }
         }
         if (containsAny(itemClass, "malletitem", "displaceritem")) {
             facets.add(ItemFacet.UTILITY_TOOL);
@@ -168,7 +180,7 @@ public final class FacetIndexer {
         }
     }
 
-    private static void applyPathFacts(String path, EnumSet<ItemFacet> facets, Map<String, String> attributes) {
+    private static void applyPathFacts(ResourceLocation id, String path, EnumSet<ItemFacet> facets, Map<String, String> attributes) {
         if (path.contains("spell") || path.contains("wand") || path.contains("staff") || path.contains("scroll")) {
             facets.add(ItemFacet.MAGIC_ARTIFACT);
         }
@@ -206,6 +218,9 @@ public final class FacetIndexer {
         }
         if (containsPathToken(path, "book", "books") || path.endsWith("_book")) {
             facets.add(ItemFacet.BOOK);
+        }
+        if ("tconstruct".equals(id.getNamespace()) && path.equals("venombone")) {
+            facets.add(ItemFacet.INGREDIENT_ORGANIC);
         }
         if (containsPathToken(path, "tome")) {
             facets.add(ItemFacet.BOOK);
@@ -490,6 +505,10 @@ public final class FacetIndexer {
             }
             if (isAmmoTag(tag)) {
                 facets.add(ItemFacet.PROJECTILE);
+            }
+            if (tag.equals("tconstruct:throwable")) {
+                facets.add(ItemFacet.PROJECTILE);
+                facets.add(ItemFacet.UTILITY_MISC);
             }
             if (isCommonTagFamily(tag, "dusts/redstone")) {
                 facets.add(ItemFacet.ACTIVE_REDSTONE_LOGIC);

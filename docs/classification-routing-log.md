@@ -590,6 +590,29 @@ single base item `patchouli:guide_book`; when four or more books are present
 they used to trip the generic high-cardinality variant collapse even though each
 variant is a distinct guide, not a color/material variant.
 
+### 2026-06-06: TConstruct Utility And Book Compat Triage
+
+The AMICompatForge TConstruct dump had 3,362 item nodes with only ten
+`fallback:unknown` rows. The existing modular gear compat remains the right
+owner for TConstruct tools, parts, modifiers, stations, and generated gear
+variants. Creative-slot variants now use the TConstruct `CreativeSlotItem`
+class as focused modifier evidence, while TConstruct gadget/fluid classes and
+the `tconstruct:throwable` tag emit concrete utility, projectile, ranged, or
+fluid-container facets instead of falling through. The one-off `venombone`
+material gets an organic-ingredient facet under the TConstruct namespace rather
+than broadening global bone-name matching. TConstruct guide items were
+already indexing under `utility/books` with `guideBookSystem=mantle_book`,
+concrete `guideBookId`s, and `variantCollapseMode=never`; regression coverage
+now locks that book contract. Guidebook item tooltips are also opted into the
+bounded tooltip-search token index even when general tooltip indexing is
+disabled so localized subtitles/authors such as TConstruct's "reference book"
+and "Selena" text can find the book item.
+TConstruct Mantle books also use language-scoped generated page files loaded by
+book-specific `extraData` processors rather than direct section references. The
+Mantle guide source now indexes unreferenced language-scoped page JSON under a
+book after the explicit section pass, preserving referenced section pages while
+making generated TConstruct tool/material/modifier pages searchable.
+
 ### 2026-06-06: Guidebook Facets Beat Generic Tool Identity
 
 The AMICompatForge dump showed Immersive Engineering's `ManualItem` carrying
@@ -610,6 +633,103 @@ as a lower-memory option. Immersive Engineering manual items now also report
 text parser. Hexerei's `Book of Shadows` pages are now parsed from
 `data/hexerei/book/book_entries.json`, `book_pages`, and lang-backed
 `passage_text` keys as `hexerei_book` guide documents.
+
+### 2026-06-06: TacZ Attachments Are Focused Weapon Upgrades
+
+The AMICompatForge dump showed `tacz` had 186 item nodes and 95
+`fallback:unknown` rows. Every repeated fallback row was a generated
+`com.tacz.guns.item.AttachmentItem` variant under `tacz:attachment/variant/...`.
+TacZ guns (`ModernKineticGunItem`) already routed to `tools/ranged`, and ammo
+already routed to `tools/ammo`, so the missing evidence was specific to TacZ's
+attachment API rather than a global ranged-weapon rule.
+
+AMI first treated TacZ `AttachmentItem` rows as `taczItemKind=attachments` with
+an `upgrade` facet and a hard identity route to `tech/upgrades`. Generated
+attachment variants shared `collapseFamily=tacz:attachment`,
+`collapseLabel=Attachments`, and `variantCollapseMode=default_collapsed`.
+
+TacZ then moved to a focused top-level category. The mod's guns, ammo,
+attachments, and workstations are self-contained gun-system content and are not
+meaningfully consumed by vanilla or unrelated mod items. AMI now routes
+`taczItemKind=guns|ammo|attachments|workstations` to
+`tacz/guns`, `tacz/ammo`, `tacz/attachments`, and `tacz/workstations`. Addon
+namespaces using `com.tacz.guns.*` item classes are treated as TacZ-family
+content by the family detector.
+
+### 2026-06-06: MNA Construct Parts, Motes, Patches, And Runes
+
+The AMICompatForge MNA dump showed 1,028 item nodes with hundreds of
+`fallback:unknown` rows. The largest repeated fallback patterns were MNA-owned
+classes and tags: `com.mna.items.constructs.parts.*`, `com.mna.items.ritual.Mote`,
+`com.mna.items.ritual.PractitionersPatch`, rune classes, and `mna:lesser_motes`,
+`mna:greater_motes`, `mna:runes`, and `mna:stone_runes`. These are focused
+Mana and Artifice API facts, not global lexical evidence.
+
+AMI now records `mnaItemKind` and `mnaFacts` for those families. Construct
+parts route by hard identity to `tech/parts` and default-collapse under
+`Construct Parts`. Practitioner patches route to `magic/artifacts` and
+default-collapse under `Practitioner Patches`. Motes and runes route to
+`magic/reagents`. This first pass deliberately avoids a broad
+`manaweaving-recipe-type` rule because MNA uses those recipes for heterogeneous
+items including tools and equipment.
+
+The next MNA slice keeps the same constraint and adds class/path-owned facts for
+known artifice and sorcery items. MNA mana gems, vellum, animus dust, and sight
+unguents route to `magic/reagents`; faction horns, patterning prism, ender disk,
+ledger/manifest, healing poultice, thaumaturgic link, transitory tunnel, and
+similar artifice/relic classes route to `magic/artifacts`; exact MNA material
+paths such as Vinteum ingots/coated iron, runic/infused silk, witherbone, and
+ironbark route to `ingredients/mineral`; runesmith tools route to
+`tools/utility`; MNA weapon classes route to `tools/melee`; and magic brooms
+route to `tech/transport`.
+
+### 2026-06-06: Alex's Mobs Drops, Food Tags, And Custom Tools
+
+The AMICompatForge Alex's Mobs dump had 278 mod-owned item nodes and 73
+`fallback:unknown` rows. The repeated wrong families were mod-owned facts:
+plain `net.minecraft.world.item.Item` drops marked with
+`alexsmobs:animal_dictionary_ingredient`, food/taming tags such as
+`*_foodstuffs`, `*_breedables`, `*_tameables`, `*_offerings`, custom item
+classes including `ItemEcholocator`, `ItemHemolymphBlaster`, `ItemStraddleboard`,
+`ItemPigshoes`, and hidden `ItemInventoryOnly` render variants. These should
+not become global lexical rules because their meaning comes from Alex's Mobs
+tags/classes.
+
+AMI now records `alexsMobsItemKind` and `alexsMobsFacts`. Animal dictionary
+drops and exact untagged body-part drops route to `ingredients/organic`; mod
+food/taming tags and fish tags route to `nature/proteins`; echolocators route
+to `utility/navigation`; custom ranged items route to `tools/ranged`; darts and
+pocket sand route to `tools/ammo`; straddleboards route to `tech/transport`;
+pigshoes route to `armor/feet`; and hidden inventory-only/debug variants keep
+their existing `dev`/`hidden` access metadata while resolving to
+`utility/misc`.
+
+### 2026-06-06: Alex's Caves Materials, Cave Gear, And Codex Pages
+
+The AMICompatForge Alex's Caves dump had 639 nodes, 555 mod-owned item nodes,
+and 61 `fallback:unknown` item rows. The repeated unresolved patterns were
+mod-owned cave resource paths, custom classes such as `CaveInfoItem`,
+`QuarrySmasherItem`, `HolocoderItem`, `ThrownProjectileItem`, `SubmarineItem`,
+`RadioactiveItem`, `RadiationRemovingFoodItem`, `OccultGemItem`, and hidden
+inventory-only bow/lance rows. These are Alex's Caves facts rather than general
+Minecraft API facts, so AMI handles them in focused compat.
+
+AMI now records `alexsCavesItemKind` and `alexsCavesFacts`. Cave info tablet
+and codex variants route to `utility/books` and collapse under `Cave Info`;
+neodymium raw/ingot resources route to `tech/ingots`; cave components such as
+telecore, polymer plate, fissile core, and charred remnant route to
+`tech/parts`; quarry smashers route to `tools/harvest`; submarines route to
+`tech/transport`; thrown cave projectiles route to `tools/ammo`; occult/dark
+reagents route to `magic/reagents`; fish and gelatin/candy foods route to
+`nature/proteins` or `nature/snacks`; organic cave drops route to
+`ingredients/organic`; and hidden weapon inventory variants keep their existing
+`dev`/`hidden` access metadata while resolving to their weapon bucket.
+
+Alex's Caves `books/...` resources already use the shared Alex-style guide
+adapter. A focused fixture now covers Cave Codex JSON pages plus localized text
+files so page body text is searchable through guide `summaryText`, with
+referenced items and an `Open Guide Page` action when the runtime screen opener
+is available.
 
 ## Open Work
 

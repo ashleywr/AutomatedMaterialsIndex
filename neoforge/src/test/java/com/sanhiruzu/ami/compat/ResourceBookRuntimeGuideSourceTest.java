@@ -49,6 +49,66 @@ class ResourceBookRuntimeGuideSourceTest {
     }
 
     @Test
+    void indexesMantleLanguageScopedPagesNotExplicitlyReferencedBySections() {
+        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
+        resources.put(new ResourceLocation("tconstruct", "book/encyclopedia/index.json"), """
+                [
+                  { "name": "tools", "data": "sections/tools.json" },
+                  { "name": "materials_harvest", "data": "no-load" }
+                ]
+                """);
+        resources.put(new ResourceLocation("tconstruct", "book/encyclopedia/sections/tools.json"), """
+                [
+                  {
+                    "name": "group_small",
+                    "type": "mantle:text",
+                    "data": "tools/small.json",
+                    "extraData": {
+                      "tconstruct:load_tools": {
+                        "tag": "tconstruct:modifiable/small",
+                        "path": "tools/small"
+                      }
+                    }
+                  }
+                ]
+                """);
+        resources.put(new ResourceLocation("tconstruct", "book/encyclopedia/en_us/tools/small.json"), """
+                {
+                  "title": "Small Tools",
+                  "text": [
+                    { "text": "All small tools can be created in the Tinker Station." }
+                  ]
+                }
+                """);
+        resources.put(new ResourceLocation("tconstruct", "book/encyclopedia/en_us/tools/small/tconstruct_pickaxe.json"), """
+                {
+                  "tool": "tconstruct:pickaxe",
+                  "text": [
+                    { "text": "The Pickaxe is a precise mining tool, effective on stone, metal, and ores." }
+                  ],
+                  "properties": [
+                    "+0.5 Attack Damage",
+                    "1.2 Attack Speed"
+                  ]
+                }
+                """);
+
+        List<AmiGuideDocument> documents = ResourceBookRuntimeGuideSource.documentsFromResources(resources, Map.of(), "en_us");
+
+        assertEquals(2, documents.size());
+        AmiGuideDocument generatedTool = documents.stream()
+                .filter(document -> "tools/small/tconstruct_pickaxe".equals(document.pageId()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(new ResourceLocation("tconstruct", "encyclopedia"), generatedTool.bookId());
+        assertEquals("Tools Small", generatedTool.chapter());
+        assertTrue(generatedTool.summaryText().contains("precise mining tool"));
+        assertTrue(generatedTool.summaryText().contains("Attack Damage"));
+        assertEquals(List.of(new ResourceLocation("tconstruct", "pickaxe")), generatedTool.referencedItems());
+        assertTrue(generatedTool.canOpen());
+    }
+
+    @Test
     void indexesAlexStyleJsonBooksWithLocalizedTitlesAndTextFiles() {
         Map<ResourceLocation, String> resources = new LinkedHashMap<>();
         resources.put(new ResourceLocation("alexsmobs", "book/animal_dictionary/alligator_snapping_turtle.json"), """
@@ -78,6 +138,40 @@ class ResourceBookRuntimeGuideSourceTest {
         assertEquals("alligator_snapping_turtle", document.pageId());
         assertEquals(List.of(new ResourceLocation("alexsmobs", "spiked_turtle_shell")), document.referencedItems());
         assertTrue(document.summaryText().contains("massive reptile"));
+        assertTrue(document.canOpen());
+    }
+
+    @Test
+    void indexesAlexsCavesCodexPagesWithLocalizedTextFiles() {
+        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
+        resources.put(new ResourceLocation("alexscaves", "books/primordial/limestone.json"), """
+                {
+                  "parent": "root.json",
+                  "text": "limestone.txt",
+                  "title": "item.alexscaves.cave_codex",
+                  "items": [ { "item": "alexscaves:limestone" } ]
+                }
+                """);
+        resources.put(new ResourceLocation("alexscaves", "books/en_us/primordial/limestone.txt"), """
+                <NEWLINE>
+                Limestone is common in Primordial Caves.
+                It can be carved into many building blocks.
+                """);
+        Map<ResourceLocation, String> lang = Map.of(
+                new ResourceLocation("alexscaves", "lang/en_us.json"),
+                "{ \"item.alexscaves.cave_codex\": \"Cave Codex\" }"
+        );
+
+        List<AmiGuideDocument> documents = ResourceBookRuntimeGuideSource.documentsFromResources(resources, lang, "en_us");
+
+        assertEquals(1, documents.size());
+        AmiGuideDocument document = documents.getFirst();
+        assertEquals("Cave Codex", document.title());
+        assertEquals("alexscaves_book", document.sourceType());
+        assertEquals(new ResourceLocation("alexscaves", "cave_codex"), document.bookId());
+        assertEquals("primordial/limestone", document.pageId());
+        assertEquals(List.of(new ResourceLocation("alexscaves", "limestone")), document.referencedItems());
+        assertTrue(document.summaryText().contains("Primordial Caves"));
         assertTrue(document.canOpen());
     }
 

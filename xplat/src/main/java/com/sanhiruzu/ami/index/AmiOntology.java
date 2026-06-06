@@ -27,6 +27,7 @@ public final class AmiOntology {
     public static final Category SOPHISTICATED;
     public static final Category MAPPING;
     public static final Category MODULAR_GEAR;
+    public static final Category TACZ;
 
     // ── Singleton category constants ──────────────────────────────────────────
     public static final Category BESTIARY;
@@ -259,6 +260,19 @@ public final class AmiOntology {
                 List.of()
         );
 
+        TACZ = new Category(
+                "tacz", "ami.category.tacz", "TacZ",
+                "tacz:modern_kinetic_gun", 0xFF6E7A82,
+                List.of(
+                        new SubCategory("guns", "ami.subcategory.tacz.guns"),
+                        new SubCategory("ammo", "ami.subcategory.tacz.ammo"),
+                        new SubCategory("attachments", "ami.subcategory.tacz.attachments"),
+                        new SubCategory("workstations", "ami.subcategory.tacz.workstations"),
+                        new SubCategory("misc", "ami.subcategory.tacz.misc")
+                ),
+                List.of()
+        );
+
         BESTIARY = new Category(
                 "bestiary", "ami.category.bestiary", "Bestiary",
                 "minecraft:zombie_head", 0xFFAA3322,
@@ -453,7 +467,7 @@ public final class AmiOntology {
         // Priority order: most-specific first, GEOLOGY/MASONRY second-to-last, MISC as terminal fallback.
         CATEGORIES = List.of(
                 COBBLEMON, CREATE, AE2, MEKANISM, GREGTECH, MINECOLONIES, APOTHEOSIS, BOTANIA, SOPHISTICATED, MAPPING,
-                MODULAR_GEAR, UTILITY, BESTIARY, MAGIC, ARMOR, TOOLS, TECH, NATURE, INGREDIENTS, DECORATION, ENVIRONMENT, SOCIAL,
+                MODULAR_GEAR, TACZ, UTILITY, BESTIARY, MAGIC, ARMOR, TOOLS, TECH, NATURE, INGREDIENTS, DECORATION, ENVIRONMENT, SOCIAL,
                 GEOLOGY, MASONRY, MISC
         );
     }

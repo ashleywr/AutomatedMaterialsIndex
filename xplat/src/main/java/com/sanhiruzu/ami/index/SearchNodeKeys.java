@@ -163,6 +163,18 @@ public final class SearchNodeKeys {
     public static final String MODULAR_GOLEMS_FACTS = "modularGolemsFacts";
     public static final String MODULAR_GOLEMS_GOLEM_TYPE = "modularGolemsGolemType";
     public static final String MODULAR_GOLEMS_PART = "modularGolemsPart";
+    // Mana and Artifice-specific optional metadata.
+    public static final String MNA_ITEM_KIND = "mnaItemKind";
+    public static final String MNA_FACTS = "mnaFacts";
+    // Alex's Mobs-specific optional metadata.
+    public static final String ALEXS_MOBS_ITEM_KIND = "alexsMobsItemKind";
+    public static final String ALEXS_MOBS_FACTS = "alexsMobsFacts";
+    // Alex's Caves-specific optional metadata.
+    public static final String ALEXS_CAVES_ITEM_KIND = "alexsCavesItemKind";
+    public static final String ALEXS_CAVES_FACTS = "alexsCavesFacts";
+    // Timeless and Classics Guns-specific optional metadata.
+    public static final String TACZ_ITEM_KIND = "taczItemKind";
+    public static final String TACZ_FACTS = "taczFacts";
     // Atlas-specific
     public static final String DIMENSION = "dimension";
     public static final String ENTITY_CATEGORY = "entityCategory";

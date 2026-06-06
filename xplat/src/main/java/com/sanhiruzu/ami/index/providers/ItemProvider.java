@@ -5,17 +5,21 @@ import com.sanhiruzu.ami.api.AmiPluginRegistry;
 import com.sanhiruzu.ami.api.ItemProviderCompatHooks;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.compat.AE2Compat;
+import com.sanhiruzu.ami.compat.AlexsCavesCompat;
+import com.sanhiruzu.ami.compat.AlexsMobsCompat;
 import com.sanhiruzu.ami.compat.ChippedCompat;
 import com.sanhiruzu.ami.compat.CobblemonCompat;
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
 import com.sanhiruzu.ami.compat.CreateCompat;
 import com.sanhiruzu.ami.compat.GregTechCompat;
 import com.sanhiruzu.ami.compat.MekanismCompat;
+import com.sanhiruzu.ami.compat.MnaCompat;
 import com.sanhiruzu.ami.compat.ModularGearCompat;
 import com.sanhiruzu.ami.compat.ModularGolemsCompat;
 import com.sanhiruzu.ami.compat.RechiseledCompat;
 import com.sanhiruzu.ami.compat.SophisticatedCompat;
 import com.sanhiruzu.ami.compat.StorageCompat;
+import com.sanhiruzu.ami.compat.TaczCompat;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.index.metrics.*;
@@ -351,7 +355,8 @@ public class ItemProvider implements IAmiDataProvider {
     private static void addTooltipSearchTokens(Map<String, String> meta, ItemStack stack, @Nullable Level level,
                                                ResourceLocation id, String displayName,
                                                Map<String, String> modNameCache) {
-        if (!IndexingHotItemPolicy.shouldIndexTooltipSearchTokens()) {
+        if (!IndexingHotItemPolicy.shouldIndexTooltipSearchTokens()
+                && !"true".equals(meta.get(SearchNodeKeys.GUIDE_BOOK_CANDIDATE))) {
             return;
         }
         try {
@@ -435,6 +440,18 @@ public class ItemProvider implements IAmiDataProvider {
         }
         if (namespaceIs(id, "modulargolems") || hasCompatFamily(meta, CompatFamilyDetector.MODULAR_GOLEMS)) {
             ItemProviderCompatHooks.runCompatSafely("ModularGolemsCompat", () -> ModularGolemsCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "mna") || hasCompatFamily(meta, CompatFamilyDetector.MNA)) {
+            ItemProviderCompatHooks.runCompatSafely("MnaCompat", () -> MnaCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "alexsmobs") || hasCompatFamily(meta, CompatFamilyDetector.ALEXS_MOBS)) {
+            ItemProviderCompatHooks.runCompatSafely("AlexsMobsCompat", () -> AlexsMobsCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "alexscaves") || hasCompatFamily(meta, CompatFamilyDetector.ALEXS_CAVES)) {
+            ItemProviderCompatHooks.runCompatSafely("AlexsCavesCompat", () -> AlexsCavesCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "tacz") || hasCompatFamily(meta, CompatFamilyDetector.TACZ)) {
+            ItemProviderCompatHooks.runCompatSafely("TaczCompat", () -> TaczCompat.enrichItem(id, meta));
         }
         if (namespaceIs(id, "rechiseled", "rechiseledcreate")) {
             ItemProviderCompatHooks.runCompatSafely("RechiseledCompat", () -> RechiseledCompat.enrichItem(id, meta));
