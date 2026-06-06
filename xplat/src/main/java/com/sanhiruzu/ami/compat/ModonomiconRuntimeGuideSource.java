@@ -47,7 +47,7 @@ public final class ModonomiconRuntimeGuideSource {
         }
         for (AmiGuideDocument document : documentsFromResources(
                 readJsonResources(resourceManager),
-                readLangResources(resourceManager),
+                readLangResources(clientResourceManager()),
                 GlobalIndexCache.currentClientLanguageCacheKey())) {
             documents.accept(document);
         }
@@ -259,7 +259,17 @@ public final class ModonomiconRuntimeGuideSource {
         if (clean.isBlank()) {
             return "";
         }
-        return translations.getOrDefault(clean, clean);
+        String translated = translations.get(clean);
+        if (translated != null) {
+            return translated;
+        }
+        return looksLikeTranslationKey(clean) ? "" : clean;
+    }
+
+    private static boolean looksLikeTranslationKey(String value) {
+        return value.indexOf(':') < 0
+                && value.contains(".")
+                && value.matches("[a-z0-9_.-]+");
     }
 
     private static Map<String, String> translations(Map<ResourceLocation, String> langJsonById, String selectedLanguage) {
@@ -487,6 +497,10 @@ public final class ModonomiconRuntimeGuideSource {
             return server.getResourceManager();
         }
         return minecraft.getResourceManager();
+    }
+
+    private static ResourceManager clientResourceManager() {
+        return net.minecraft.client.Minecraft.getInstance().getResourceManager();
     }
 
     private enum ResourceKind {
