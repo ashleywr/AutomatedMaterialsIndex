@@ -1,0 +1,24 @@
+# AMI Feature Map
+
+Use this map before broad repository searches for recurring features.
+
+Workflow:
+
+1. Find the closest feature row.
+2. Open the listed main files and tests first.
+3. Use targeted `rg` from those packages/classes.
+4. Fall back to broad repository search only when the map is missing or stale.
+5. Update the row when a change establishes a stable implementation entry point, state contract, or regression test.
+
+Keep rows short. This is an index, not an architecture document; link to state matrices or focused docs for details.
+
+| Feature | User surface | Main files | Tests / docs | Notes |
+| --- | --- | --- | --- | --- |
+| Inventory overlay ownership | Inventory/container screens, AMI side panel | `forge/src/main/java/com/sanhiruzu/ami/client/InventoryOverlayHandler.java`, `neoforge/src/main/java/com/sanhiruzu/ami/client/InventoryOverlayHandler.java`, `xplat/src/main/java/com/sanhiruzu/ami/client/overlay/OverlayWidgetManager.java` | `neoforge/src/test/java/com/sanhiruzu/ami/client/RecipeViewerSuppressionPolicyTest.java`, `docs/recipe-viewer-visibility-matrix.md` | Owns whether AMI or the external recipe viewer should be visible on AMI-capable screens. |
+| AMI toggle keybind | Alt-V | `xplat/src/main/java/com/sanhiruzu/ami/client/AmiKeybindHandler.java`, `xplat/src/main/java/com/sanhiruzu/ami/client/OverlayInputController.java`, platform `InventoryOverlayHandler.java` files | `RecipeViewerSuppressionPolicyTest.screenVisibilityMatrixStaysConsistent` | Alt-V should always flip AMI visibility on AMI-capable screens; creative mode does not change the toggle contract. |
+| Vanilla recipe book toggle | Recipe book button on supported container screens | `xplat/src/main/java/com/sanhiruzu/ami/mixin/RecipeBookComponentMixin.java`, `forge/src/main/java/com/sanhiruzu/ami/mixin/ForgeRecipeBookComponentMixin.java`, platform `InventoryOverlayHandler.java` files | `neoforge/src/test/java/com/sanhiruzu/ami/mixin/MixinConfigTest.java`, `docs/recipe-viewer-visibility-matrix.md` | Mirrors the Alt-V toggle where the screen has a recipe book; creative screens may not expose this path. |
+| Start AMI Hidden | Config option named "Start AMI Hidden" | `xplat/src/main/java/com/sanhiruzu/ami/config/AmiConfig.java`, platform `InventoryOverlayHandler.java` files, `xplat/src/main/resources/assets/ami/lang/en_us.json` | `RecipeViewerSuppressionPolicyTest.screenVisibilityMatrixStaysConsistent`, `docs/recipe-viewer-visibility-matrix.md` | Selects AMI's initial inventory-session visibility only; it must not suppress EMI/JEI while AMI is hidden. |
+| EMI/JEI chrome suppression | External recipe viewer item/bookmark panels | `xplat/src/main/java/com/sanhiruzu/ami/client/RecipeViewerSuppressionPolicy.java`, `xplat/src/main/java/com/sanhiruzu/ami/mixin/EmiScreenManagerMixin.java`, JEI mixins under `xplat/src/main/java/com/sanhiruzu/ami/mixin/`, `xplat/src/main/java/com/sanhiruzu/ami/compat/JeiClientInputHandlerMixinSupport.java` | `RecipeViewerSuppressionPolicyTest`, `docs/recipe-viewer-visibility-matrix.md` | Suppress external chrome only while AMI is visible on an AMI-capable screen. |
+| Recipe viewer bridge | Recipe/uses lookup, drag/drop, recipe transfer, native fallback | `xplat/src/main/java/com/sanhiruzu/ami/compat/RecipeViewerBridge.java`, `xplat/src/main/java/com/sanhiruzu/ami/compat/RecipeViewerBridgeCommon.java`, `xplat/src/main/java/com/sanhiruzu/ami/client/RecipeViewerScreen.java` | `neoforge/src/test/java/com/sanhiruzu/ami/client/results/ResultContextMenuActionBuilderTest.java` | Central compatibility facade for EMI/JEI/native recipe viewer behavior. Refresh recipe viewer sources before changing external integration contracts. |
+| Result grouping and tree shape | AMI search results tree/grid | `xplat/src/main/java/com/sanhiruzu/ami/client/results/ResultsProcessor.java`, `xplat/src/main/java/com/sanhiruzu/ami/client/results/ResultsGroupingPostProcessor.java`, `xplat/src/main/java/com/sanhiruzu/ami/client/results/ResultsTreeNormalizer.java`, `xplat/src/main/java/com/sanhiruzu/ami/client/results/ResultsViewProjector.java` | `neoforge/src/test/java/com/sanhiruzu/ami/client/results/`, `RuntimeMirrorResultsShapeExplorerTest` | Prefer deterministic JVM fixtures and `ResultsTreeDump` snapshots before runtime screenshots. |
+| Item visibility filters | Hidden mod items, strict survival, creative/survival content differences | `xplat/src/main/java/com/sanhiruzu/ami/config/AmiConfig.java`, result indexing/filtering code under `xplat/src/main/java/com/sanhiruzu/ami/` | `docs/recipe-viewer-visibility-matrix.md` for overlay ownership; result tests under `neoforge/src/test/java/com/sanhiruzu/ami/client/results/` for content shape | These settings filter AMI content or item access semantics; they should not decide AMI vs EMI/JEI overlay ownership. |
