@@ -5,6 +5,8 @@ import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.ItemFilter;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,13 +43,8 @@ final class ResultsFilter {
         if (ItemFilter.ACCESS_CHEAT.equals(level)) return AmiConfig.cheatMode || AmiConfig.devMode;
 
         if (ItemFilter.ACCESS_CREATIVE.equals(level)) {
-            if (AmiConfig.cheatMode || AmiConfig.devMode) {
-                return true;
-            }
-            net.minecraft.client.multiplayer.MultiPlayerGameMode gameMode = net.minecraft.client.Minecraft.getInstance().gameMode;
-            if (gameMode != null && gameMode.getPlayerMode() == net.minecraft.world.level.GameType.SURVIVAL) {
-                return false;
-            }
+            MultiPlayerGameMode gameMode = Minecraft.getInstance().gameMode;
+            return AmiConfig.shouldShowCreativeItems(gameMode == null ? null : gameMode.getPlayerMode());
         }
 
         return true;

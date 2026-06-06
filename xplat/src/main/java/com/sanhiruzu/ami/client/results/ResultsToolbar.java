@@ -156,46 +156,48 @@ public class ResultsToolbar implements SearchState.Listener {
     public void render(GuiGraphics g, int mouseX, int mouseY) {
         updateLensOptions();
         updateGroupOptions();
-        var font = Minecraft.getInstance().font;
         boolean anyOpen = isAnyDropdownOpen();
-        int effectiveMouseX = anyOpen ? -1 : mouseX;
+        int renderMouseX = anyOpen ? -1 : mouseX + scrollOffset;
 
         g.enableScissor(x, y, x + width, y + TOOLBAR_HEIGHT);
         g.pose().pushPose();
-        g.pose().translate(-scrollOffset, 0, 0);
+        try {
+            g.pose().translate(-scrollOffset, 0, 0);
 
-        // ── Row 1 ──────────────────────────────────────────────────────────
-        if (state.getViewMode() == ViewMode.LIST) {
-            lensDropdown.render(g, effectiveMouseX, mouseY);
-            sortFieldDropdown.render(g, effectiveMouseX, mouseY);
+            // ── Row 1 ──────────────────────────────────────────────────────────
+            if (state.getViewMode() == ViewMode.LIST) {
+                lensDropdown.render(g, renderMouseX, mouseY);
+                sortFieldDropdown.render(g, renderMouseX, mouseY);
+            }
+
+            // Sort Direction
+            boolean sortDirHov = Dropdown.contains(renderMouseX, mouseY, sortDirX, sortDirY, SORT_DIR_W, BUTTON_H);
+            drawButton(g, sortDirX, sortDirY, SORT_DIR_W, BUTTON_H, sortDirHov);
+            int sortIconColor = sortDirHov ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_HEADER;
+            AmiGuiIcons.sortDirection(g, sortDirX + SORT_DIR_W / 2, sortDirY + BUTTON_H / 2, sortIconColor, state.isAscending());
+
+            if (state.getViewMode() != ViewMode.LIST) {
+                groupByDropdown.render(g, renderMouseX, mouseY);
+            }
+
+            // Collapse/Expand Toggle
+            boolean colHov = Dropdown.contains(renderMouseX, mouseY, collapseToggleX, collapseToggleY, COLLAPSE_TOGGLE_W, BUTTON_H);
+            drawButton(g, collapseToggleX, collapseToggleY, COLLAPSE_TOGGLE_W, BUTTON_H, colHov);
+            int collapseIconColor = colHov ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_HEADER;
+            int collapseCx = collapseToggleX + COLLAPSE_TOGGLE_W / 2;
+            int collapseCy = collapseToggleY + BUTTON_H / 2;
+            if (collapseAllNext) {
+                AmiGuiIcons.collapseAll(g, collapseCx, collapseCy, collapseIconColor);
+            } else {
+                AmiGuiIcons.expandAll(g, collapseCx, collapseCy, collapseIconColor);
+            }
+        } finally {
+            g.pose().popPose();
+            g.disableScissor();
         }
 
-        // Sort Direction
-        boolean sortDirHov = Dropdown.contains(effectiveMouseX, mouseY, sortDirX, sortDirY, SORT_DIR_W, BUTTON_H);
-        drawButton(g, sortDirX, sortDirY, SORT_DIR_W, BUTTON_H, sortDirHov);
-        int sortIconColor = sortDirHov ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_HEADER;
-        AmiGuiIcons.sortDirection(g, sortDirX + SORT_DIR_W / 2, sortDirY + BUTTON_H / 2, sortIconColor, state.isAscending());
-
-        if (state.getViewMode() != ViewMode.LIST) {
-            groupByDropdown.render(g, effectiveMouseX, mouseY);
-        }
-
-        // Collapse/Expand Toggle
-        boolean colHov = Dropdown.contains(effectiveMouseX, mouseY, collapseToggleX, collapseToggleY, COLLAPSE_TOGGLE_W, BUTTON_H);
-        drawButton(g, collapseToggleX, collapseToggleY, COLLAPSE_TOGGLE_W, BUTTON_H, colHov);
-        int collapseIconColor = colHov ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_HEADER;
-        int collapseCx = collapseToggleX + COLLAPSE_TOGGLE_W / 2;
-        int collapseCy = collapseToggleY + BUTTON_H / 2;
-        if (collapseAllNext) {
-            AmiGuiIcons.collapseAll(g, collapseCx, collapseCy, collapseIconColor);
-        } else {
-            AmiGuiIcons.expandAll(g, collapseCx, collapseCy, collapseIconColor);
-        }
-
-        g.pose().popPose();
-        g.disableScissor();
         renderScrollIndicators(g);
-        renderHoveredTooltip(g, effectiveMouseX, mouseY);
+        renderHoveredTooltip(g, anyOpen ? -1 : mouseX, mouseY);
     }
 
     private void renderHoveredTooltip(GuiGraphics g, int mouseX, int mouseY) {
@@ -285,16 +287,19 @@ public class ResultsToolbar implements SearchState.Listener {
     public void renderOpenDropdownLists(GuiGraphics g, int mouseX, int mouseY) {
         g.flush();
         g.pose().pushPose();
-        g.pose().translate(0, 0, OverlayLayers.DROPDOWN);
-        g.pose().translate(-scrollOffset, 0, 0);
-        if (state.getViewMode() == ViewMode.LIST) {
-            lensDropdown.renderList(g, mouseX, mouseY);
-            sortFieldDropdown.renderList(g, mouseX, mouseY);
-        } else {
-            groupByDropdown.renderList(g, mouseX, mouseY);
+        try {
+            g.pose().translate(0, 0, OverlayLayers.DROPDOWN);
+            g.pose().translate(-scrollOffset, 0, 0);
+            if (state.getViewMode() == ViewMode.LIST) {
+                lensDropdown.renderList(g, mouseX + scrollOffset, mouseY);
+                sortFieldDropdown.renderList(g, mouseX + scrollOffset, mouseY);
+            } else {
+                groupByDropdown.renderList(g, mouseX + scrollOffset, mouseY);
+            }
+        } finally {
+            g.pose().popPose();
+            g.flush();
         }
-        g.pose().popPose();
-        g.flush();
     }
 
     public void closeAllDropdowns() {

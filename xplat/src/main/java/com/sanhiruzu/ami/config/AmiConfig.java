@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.config;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.GameType;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -48,10 +49,10 @@ public class AmiConfig {
     // Legacy key kept so existing configs migrate without losing the preference.
     @ConfigValue("general.recipe-book-toggles-ami")
     public static boolean startHidden = false;
-    @ConfigValue("features.show-spawn-eggs")
-    public static boolean showSpawnEggs = false;
+    @ConfigValue("features.show-creative-items")
+    public static boolean showCreativeItems = false;
     @ConfigValue("features.show-hidden-mod-items")
-    public static boolean showHiddenModItems = true;
+    public static boolean showHiddenModItems = false;
     @ConfigValue("features.strict-survival-mode")
     public static boolean strictSurvivalMode = false;
     @ConfigValue("features.enable-material-root-ui")
@@ -67,10 +68,13 @@ public class AmiConfig {
     @ConfigHidden
     @ConfigValue("features.dynamic-shape-min-mod-spread")
     public static int dynamicShapeMinModSpread = 3;
-    // --- Display & Appearance ---
+    // --- Theme & Appearance ---
     @ConfigGroup(value = "display", icon = "display", order = 1)
     @ConfigValue("ui.theme")
     public static Theme theme = Theme.MODERN;
+    @ConfigSlider(min = 0, max = 100, step = 1)
+    @ConfigValue("ui.theme-transparency")
+    public static int themeTransparency = 0;
     @ConfigColor
     @ConfigValue("ui.accent-color")
     public static int accentColor = 0xFF5555;
@@ -88,7 +92,7 @@ public class AmiConfig {
     @ConfigValue("subtitles.fields")
     public static String subtitleFields = "MOD_NAME";
     public static int subtitleFieldsChecksum = 0;
-    // --- Interaction & Search ---
+    // --- Search ---
     @ConfigGroup(value = "interaction", icon = "interaction", order = 2)
     @ConfigValue("ui.item-click-action")
     public static ItemClickAction itemClickAction = ItemClickAction.RECIPES;
@@ -192,7 +196,7 @@ public class AmiConfig {
     @ConfigValue("general.highlight-exclusion-areas")
     public static boolean highlightExclusionAreas = false;
     // --- Layout & Sizing ---
-    @ConfigGroup(value = "layout", icon = "layout", order = 2)
+    @ConfigGroup(value = "layout", icon = "sidepanels", order = 2)
     @ConfigValue("layout.search-bar-width")
     public static int searchBarWidth = 240;
     @ConfigValue("layout.grid-columns")
@@ -213,68 +217,51 @@ public class AmiConfig {
     public static String pinnedPositionsJson = "{}";
     // --- Palette Group ---
     @ConfigGroup(value = "palette", icon = "palette", order = 6)
-    @ConfigHidden
     @ConfigColor
-    @ConfigDependsOn(value = "theme", expected = "TRANSPARENT")
     @ConfigValue("palette.overlay-bg")
     public static int overlayBg = 0x66000000;
-    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.panel-bg")
     public static int panelBg = 0x66000000;
-    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.search-bar-bg")
     public static int searchBarBg = 0x33000000;
-    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.search-bar-border")
     public static int searchBarBorder = 0x884488FF;
-    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.search-text")
     public static int searchText = 0xFFFFFFFF;
-    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.search-placeholder")
     public static int searchPlaceholder = 0xFFAAAAAA;
-    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.card-bg")
     public static int cardBg = 0x22FFFFFF;
-    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.card-bg-hover")
     public static int cardBgHover = 0x44FFFFFF;
-    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.card-text-name")
     public static int cardTextName = 0xFFFFFFFF;
-    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.card-text-subtitle")
     public static int cardTextSubtitle = 0xFFAAAAAA;
-    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.card-action-hint")
     public static int cardActionHint = 0xFF555555;
-    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.group-header-bg")
     public static int groupHeaderBg = 0xFFB0B0B0;
-    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.group-header-text")
     public static int groupHeaderText = 0xFF333333;
-    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.scrollbar-bg")
     public static int scrollbarBg = 0xFFAAAAAA;
-    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.scrollbar-thumb")
     public static int scrollbarThumb = 0xFF777777;
-    @ConfigHidden
     @ConfigColor
     @ConfigValue("palette.scrollbar-thumb-hover")
     public static int scrollbarThumbHover = 0xFF555555;
@@ -290,8 +277,8 @@ public class AmiConfig {
         mode = AmiMode.FULL;
         enableAutoIndexing = true;
         startHidden = false;
-        showSpawnEggs = false;
-        showHiddenModItems = true;
+        showCreativeItems = false;
+        showHiddenModItems = false;
         strictSurvivalMode = false;
         enableMaterialRootUI = true;
         enableProgressionGraph = true;
@@ -300,6 +287,7 @@ public class AmiConfig {
         dynamicShapeMinModSpread = 3;
 
         theme = Theme.MODERN;
+        themeTransparency = 0;
         accentColor = 0xFF5555;
         showHeader = true;
         resultsExpandedByDefault = true;
@@ -384,6 +372,13 @@ public class AmiConfig {
 
     }
 
+    public static boolean shouldShowCreativeItems(GameType gameType) {
+        if (cheatMode || devMode || showCreativeItems) {
+            return true;
+        }
+        return gameType == null || gameType != GameType.SURVIVAL;
+    }
+
     public static List<PanelContent> parsePanelSlots(String raw) {
         List<PanelContent> contents = new ArrayList<>();
         if (raw == null || raw.isBlank()) {
@@ -436,7 +431,8 @@ public class AmiConfig {
     public enum Theme {
         TRANSPARENT("ami.config.value.ui.theme.transparent"),
         VANILLA("ami.config.value.ui.theme.vanilla"),
-        MODERN("ami.config.value.ui.theme.modern");
+        MODERN("ami.config.value.ui.theme.modern"),
+        CUSTOM("ami.config.value.ui.theme.custom");
 
         public final Component displayName;
 

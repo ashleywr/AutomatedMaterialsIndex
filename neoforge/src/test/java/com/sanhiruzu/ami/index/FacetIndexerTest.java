@@ -173,6 +173,17 @@ class FacetIndexerTest {
     }
 
     @Test
+    void tomesAreBooksButNotGuideBookCandidatesByDefault() {
+        Item tome = register("weapon_tome", new Item("Weapon Tome"));
+
+        FacetProfile profile = index(tome);
+
+        assertTrue(profile.facets().contains(ItemFacet.BOOK));
+        assertFalse(profile.facets().contains(ItemFacet.GUIDE_BOOK));
+        assertFalse(profile.attributes().containsKey(SearchNodeKeys.GUIDE_BOOK_CANDIDATE));
+    }
+
+    @Test
     void bookshelvesAreDecorativePlaceablesNotUtilityMisc() {
         Item bookshelf = register("oak_bookshelf", new BlockItem("Oak Bookshelf", new Block(new BlockState())));
 

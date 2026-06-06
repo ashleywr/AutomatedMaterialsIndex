@@ -4,6 +4,8 @@ import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.api.AmiGuideRegistry;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.compat.ApotheosisGuideSource;
+import com.sanhiruzu.ami.compat.GuideMeRuntimeGuideSource;
+import com.sanhiruzu.ami.compat.ModonomiconRuntimeGuideSource;
 import com.sanhiruzu.ami.compat.PatchouliRuntimeGuideSource;
 import com.sanhiruzu.ami.compat.SilentGearMaterialTraitIndex;
 import com.sanhiruzu.ami.compat.SilentGearTraitGuideSource;
@@ -261,6 +263,8 @@ public final class AmiIndexerService {
                 beginProgress("Indexing guide books");
                 AmiGuideRegistry.clear();
                 PatchouliRuntimeGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
+                GuideMeRuntimeGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
+                ModonomiconRuntimeGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
                 ApotheosisGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
                 SilentGearTraitGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
                 AmiGuideRegistry.registerPluginGuides();

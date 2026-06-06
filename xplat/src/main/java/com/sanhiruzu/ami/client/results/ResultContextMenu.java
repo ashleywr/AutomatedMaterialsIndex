@@ -100,12 +100,8 @@ public class ResultContextMenu {
         g.flush();
         g.pose().pushPose();
         g.pose().translate(0, 0, OverlayLayers.CONTEXT_MENU);
-        g.fill(x + 2, y + 2, x + width + 2, y + height + 2, AMITheme.GRADIENT_SHADOW);
-        g.fill(x, y, x + width, y + height, AMITheme.DROPDOWN_LIST_BG);
-        g.fill(x, y, x + width, y + 1, AMITheme.SECTION_SEP);
-        g.fill(x, y + height - 1, x + width, y + height, AMITheme.SECTION_SEP);
-        g.fill(x, y, x + 1, y + height, AMITheme.SECTION_SEP);
-        g.fill(x + width - 1, y, x + width, y + height, AMITheme.SECTION_SEP);
+        AMITheme.fillPixelPopup(g, x, y, width, height,
+                AMITheme.DROPDOWN_LIST_BG, AMITheme.SECTION_SEP, AMITheme.GRADIENT_SHADOW, 0);
 
         for (int i = 0; i < actions.size(); i++) {
             int rowY = y + PADDING_Y + i * ROW_HEIGHT;

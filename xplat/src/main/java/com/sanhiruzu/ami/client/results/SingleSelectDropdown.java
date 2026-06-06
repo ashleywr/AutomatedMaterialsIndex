@@ -3,10 +3,13 @@ package com.sanhiruzu.ami.client.results;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.AmiGuiIcons;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class SingleSelectDropdown<T> implements Dropdown {
     private static final int HEIGHT = 14;
@@ -16,13 +19,18 @@ public class SingleSelectDropdown<T> implements Dropdown {
     private final java.util.function.Consumer<T> onSelect;
     private List<T> options;
     private T selected;
+    private List<Component> optionLabels = List.of();
     private int x, y, width;
+    private int cachedListWidth;
+    private int cachedBaseWidth = -1;
+    private Font cachedFont;
+    private boolean optionCacheDirty = true;
     private boolean open = false;
 
     public SingleSelectDropdown(Component label, List<T> options, java.util.function.Function<T, Component> displayName,
                                 T selected, java.util.function.Consumer<T> onSelect) {
         this.label = label;
-        this.options = options;
+        this.options = copyOptions(options);
         this.displayName = displayName;
         this.selected = selected;
         this.onSelect = onSelect;
@@ -31,7 +39,10 @@ public class SingleSelectDropdown<T> implements Dropdown {
     public void updatePosition(int x, int y, int width) {
         this.x = x;
         this.y = y;
-        this.width = width;
+        if (this.width != width) {
+            this.width = width;
+            this.optionCacheDirty = true;
+        }
     }
 
     public boolean isMouseOverButton(int mouseX, int mouseY) {
@@ -39,9 +50,13 @@ public class SingleSelectDropdown<T> implements Dropdown {
     }
 
     public void setOptions(List<T> options) {
-        this.options = options;
-        if (selected != null && options != null && !options.contains(selected) && !options.isEmpty()) {
-            selected = options.get(0);
+        List<T> next = copyOptions(options);
+        if (!Objects.equals(this.options, next)) {
+            this.options = next;
+            this.optionCacheDirty = true;
+        }
+        if (selected != null && !this.options.contains(selected) && !this.options.isEmpty()) {
+            selected = this.options.get(0);
         }
     }
 
@@ -51,7 +66,7 @@ public class SingleSelectDropdown<T> implements Dropdown {
         int bgColor = (open || hovered) ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
 
         AMITheme.fillControlChrome(g, x, y, width, HEIGHT, bgColor, open);
-        Component textComp = displayName.apply(selected);
+        Component textComp = selectedLabel();
         String text = textComp.getString();
         var font = Minecraft.getInstance().font;
 
@@ -59,10 +74,16 @@ public class SingleSelectDropdown<T> implements Dropdown {
             AmiGuiIcons.dropdownChevron(g, x + width - 7, y + HEIGHT / 2, AMITheme.TEXT_SUBTLE, open);
         }
 
-        int maxTextW = width - (canOpen ? 12 : 6);
+        int maxTextW = Math.max(0, width - (canOpen ? 12 : 6));
         String displayText = text;
-        if (font.width(text) > maxTextW) {
-            displayText = font.plainSubstrByWidth(text, maxTextW - 6) + Component.translatable("ami.gui.dropdown_ellipsis").getString();
+        if (maxTextW == 0) {
+            displayText = "";
+        } else if (font.width(text) > maxTextW) {
+            String ellipsis = Component.translatable("ami.gui.dropdown_ellipsis").getString();
+            displayText = font.plainSubstrByWidth(text, Math.max(0, maxTextW - font.width(ellipsis))) + ellipsis;
+            if (font.width(displayText) > maxTextW) {
+                displayText = font.plainSubstrByWidth(displayText, maxTextW);
+            }
         }
         g.drawString(font, displayText, x + 3, y + 2, canOpen ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
     }
@@ -73,20 +94,18 @@ public class SingleSelectDropdown<T> implements Dropdown {
 
     private void renderDropdown(GuiGraphics g, int mouseX, int mouseY) {
         var font = Minecraft.getInstance().font;
-
-        // Calculate required width to fit all options
-        int listWidth = width;
-        for (T option : options) {
-            listWidth = Math.max(listWidth, font.width(displayName.apply(option).getString()) + 20);
-        }
+        ensureOptionCache(font);
+        int listWidth = cachedListWidth;
 
         int dropH = options.size() * ITEM_HEIGHT + 2;
-        AMITheme.fillInsetRect(g, x, y + HEIGHT + 2, listWidth, dropH, AMITheme.DROPDOWN_LIST_BG, false);
+        AMITheme.fillPixelPopup(g, x, y + HEIGHT + 2, listWidth, dropH,
+                AMITheme.DROPDOWN_LIST_BG, AMITheme.SECTION_SEP, AMITheme.CONTROL_SHADOW, 0);
 
         int itemY = y + HEIGHT + 3;
-        for (T option : options) {
+        for (int i = 0; i < options.size(); i++) {
+            T option = options.get(i);
             boolean hovered = Dropdown.contains(mouseX, mouseY, x, itemY, listWidth, ITEM_HEIGHT);
-            if (hovered) g.fill(x, itemY, x + listWidth, itemY + ITEM_HEIGHT, AMITheme.DROPDOWN_BG);
+            if (hovered) g.fill(x + 1, itemY, x + listWidth - 1, itemY + ITEM_HEIGHT, AMITheme.DROPDOWN_BG);
 
             boolean isSelected = option.equals(selected);
             if (isSelected) {
@@ -94,7 +113,7 @@ public class SingleSelectDropdown<T> implements Dropdown {
                 g.fill(x + 2, itemY + 2, x + 4, itemY + ITEM_HEIGHT - 2, com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE);
             }
 
-            Component labelComp = displayName.apply(option);
+            Component labelComp = optionLabels.get(i);
             g.drawString(font, labelComp, x + 8, itemY + 1, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
             itemY += ITEM_HEIGHT;
         }
@@ -120,11 +139,8 @@ public class SingleSelectDropdown<T> implements Dropdown {
                 return false;
             }
 
-            var font = Minecraft.getInstance().font;
-            int listWidth = width;
-            for (T option : options) {
-                listWidth = Math.max(listWidth, font.width(displayName.apply(option).getString()) + 20);
-            }
+            ensureOptionCache(Minecraft.getInstance().font);
+            int listWidth = cachedListWidth;
 
             int listY = y + HEIGHT + 2;
             int dropH = options.size() * ITEM_HEIGHT + 2;
@@ -163,6 +179,34 @@ public class SingleSelectDropdown<T> implements Dropdown {
 
     public void setSelected(T selected) {
         this.selected = selected;
+    }
+
+    private Component selectedLabel() {
+        if (selected == null) return Component.empty();
+        Component component = displayName.apply(selected);
+        return component == null ? Component.empty() : component;
+    }
+
+    private void ensureOptionCache(Font font) {
+        if (!optionCacheDirty && cachedBaseWidth == width && cachedFont == font) return;
+
+        List<Component> labels = new ArrayList<>(options.size());
+        int listWidth = width;
+        for (T option : options) {
+            Component component = displayName.apply(option);
+            if (component == null) component = Component.empty();
+            labels.add(component);
+            listWidth = Math.max(listWidth, font.width(component.getString()) + 20);
+        }
+        this.optionLabels = List.copyOf(labels);
+        this.cachedListWidth = listWidth;
+        this.cachedBaseWidth = width;
+        this.cachedFont = font;
+        this.optionCacheDirty = false;
+    }
+
+    private static <T> List<T> copyOptions(List<T> options) {
+        return options == null ? List.of() : List.copyOf(options);
     }
 
 }

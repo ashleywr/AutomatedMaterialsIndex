@@ -528,6 +528,34 @@ Spider Eye keeps the cross-cutting `edible` facet for `?edible` and
 spider-eye context. This keeps food search useful without forcing a potion
 ingredient into `nature/snacks`.
 
+### 2026-06-06: GuideME Guidebook Metadata
+
+The AMICompat dump showed `ae2:guide` and `guideme:guide` as guide-book
+candidates without a concrete GuideME book/open contract. `GuideItem` classes
+now participate in guide-book facet detection, and AE2 compat writes
+`guideBookSystem=guideme` plus `guideBookId=ae2:guide` for the AE2 guide item.
+GuideME markdown pages are indexed as deferred guide documents and use the
+installed GuideME `PageAnchor` opener contract for page-exact opening.
+
+### 2026-06-06: Tomes Are Not Inferred Guidebooks
+
+Apothic Enchanting tomes are enchantment-storage/apply items, not guidebooks.
+The global path rule no longer treats `tome` as a guidebook token. Tomes still
+receive the normal `book` facet for search/grouping, while actual guide terms
+such as guide, manual, handbook, lexicon, codex, journal, compendium, and
+chronicle remain guidebook candidates.
+
+### 2026-06-06: Modonomicon Guide Documents
+
+Spectrum's guidebook and handbook/cookbook items are backed by Modonomicon
+resources under `data/<mod>/modonomicon/books`. AMI now indexes Modonomicon
+entries as deferred guide documents, resolves normal `lang/<locale>.json`
+translation keys for titles and body text, records referenced item icons/page
+items, and opens guide hits through Modonomicon's `BookAddress`/`BookGuiManager`
+entry screen contract. Modonomicon item stacks and Spectrum cookbook-style items
+now carry `guideBookSystem=modonomicon`, a concrete `guideBookId`, and a native
+`guideBookPageId` when the item exposes a `BookAddress`.
+
 ## Open Work
 
 - Split Cobblemon identity routing into strong Pokemon gameplay identities

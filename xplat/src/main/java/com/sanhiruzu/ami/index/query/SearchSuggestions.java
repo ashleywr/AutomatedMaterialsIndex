@@ -30,23 +30,27 @@ public final class SearchSuggestions {
             "trait", "kind", "material", "role", "capability", "energy", "gregtechTier",
             "gregtechCircuit", "gregtechEnergy", "storage", "fluid", "color"
     );
-    private static volatile Cache cache = new Cache(-1L, false, false, false, Vocabulary.empty());
+    private static volatile Cache cache = new Cache(-1L, false, false, false, false, Vocabulary.empty());
 
     private SearchSuggestions() {
     }
 
     public static List<Suggestion> suggest(GlobalIndex index, String query, int cursorPosition) {
-        return suggest(index, query, cursorPosition, DEFAULT_LIMIT);
+        return suggest(index, query, cursorPosition, DEFAULT_LIMIT, shouldShowCreativeItemsForSuggestions());
     }
 
     public static List<Suggestion> suggest(GlobalIndex index, String query, int cursorPosition, int limit) {
+        return suggest(index, query, cursorPosition, limit, shouldShowCreativeItemsForSuggestions());
+    }
+
+    public static List<Suggestion> suggest(GlobalIndex index, String query, int cursorPosition, int limit, boolean showCreativeItems) {
         if (index == null || limit <= 0) {
             return List.of();
         }
         String text = query == null ? "" : query;
         int cursor = Math.max(0, Math.min(cursorPosition, text.length()));
         ActiveToken token = activeToken(text, cursor);
-        Vocabulary vocabulary = vocabulary(index);
+        Vocabulary vocabulary = vocabulary(index, showCreativeItems);
 
         if (token.raw().isBlank()) {
             return defaultSuggestions(vocabulary, token, limit);
@@ -72,7 +76,11 @@ public final class SearchSuggestions {
     }
 
     public static SearchSyntax.HelpLayout helpLayout(GlobalIndex index) {
-        Vocabulary vocabulary = index == null ? Vocabulary.empty() : vocabulary(index);
+        return helpLayout(index, shouldShowCreativeItemsForSuggestions());
+    }
+
+    public static SearchSyntax.HelpLayout helpLayout(GlobalIndex index, boolean showCreativeItems) {
+        Vocabulary vocabulary = index == null ? Vocabulary.empty() : vocabulary(index, showCreativeItems);
         List<SearchSyntax.Example> commonExamples = new ArrayList<>(SearchSyntax.HELP_LEFT_SECTIONS.get(0).examples());
         vocabulary.mods.firstValue().ifPresent(mod ->
                 commonExamples.add(new SearchSyntax.Example("@" + mod,
@@ -124,7 +132,7 @@ public final class SearchSuggestions {
 
     public static void warm(GlobalIndex index) {
         if (index != null) {
-            vocabulary(index);
+            vocabulary(index, shouldShowCreativeItemsForSuggestions());
         }
     }
 
@@ -141,7 +149,11 @@ public final class SearchSuggestions {
         return text.substring(0, start) + suggestion.replacement() + text.substring(end);
     }
 
-    private static Vocabulary vocabulary(GlobalIndex index) {
+    private static boolean shouldShowCreativeItemsForSuggestions() {
+        return AmiConfig.showCreativeItems;
+    }
+
+    private static Vocabulary vocabulary(GlobalIndex index, boolean showCreativeItems) {
         long revision = index.revision();
         boolean cheatMode = AmiConfig.cheatMode;
         boolean devMode = AmiConfig.devMode;
@@ -150,11 +162,12 @@ public final class SearchSuggestions {
         if (cached.revision == revision
                 && cached.cheatMode == cheatMode
                 && cached.devMode == devMode
-                && cached.showHidden == showHidden) {
+                && cached.showHidden == showHidden
+                && cached.showCreativeItems == showCreativeItems) {
             return cached.vocabulary;
         }
-        Vocabulary built = Vocabulary.build(index, cheatMode, devMode, showHidden);
-        cache = new Cache(revision, cheatMode, devMode, showHidden, built);
+        Vocabulary built = Vocabulary.build(index, cheatMode, devMode, showHidden, showCreativeItems);
+        cache = new Cache(revision, cheatMode, devMode, showHidden, showCreativeItems, built);
         return built;
     }
 
@@ -424,7 +437,8 @@ public final class SearchSuggestions {
         return Integer.toString(count);
     }
 
-    private record Cache(long revision, boolean cheatMode, boolean devMode, boolean showHidden, Vocabulary vocabulary) {
+    private record Cache(long revision, boolean cheatMode, boolean devMode, boolean showHidden, boolean showCreativeItems,
+                        Vocabulary vocabulary) {
     }
 
     private record ActiveToken(int start, int end, String raw, String body, boolean negated) {
@@ -490,11 +504,11 @@ public final class SearchSuggestions {
             return new Vocabulary();
         }
 
-        static Vocabulary build(GlobalIndex index, boolean cheatMode, boolean devMode, boolean showHidden) {
+        static Vocabulary build(GlobalIndex index, boolean cheatMode, boolean devMode, boolean showHidden, boolean showCreativeItems) {
             Vocabulary vocabulary = new Vocabulary();
             for (NodeType type : NodeType.values()) {
                 for (SearchNode node : index.getNodes(type)) {
-                    if (isSuggestionVisible(node, cheatMode, devMode, showHidden)) {
+                    if (isSuggestionVisible(node, cheatMode, devMode, showHidden, showCreativeItems)) {
                         vocabulary.add(node, cheatMode || devMode);
                     }
                 }
@@ -502,7 +516,7 @@ public final class SearchSuggestions {
             return vocabulary;
         }
 
-        private static boolean isSuggestionVisible(SearchNode node, boolean cheatMode, boolean devMode, boolean showHidden) {
+        private static boolean isSuggestionVisible(SearchNode node, boolean cheatMode, boolean devMode, boolean showHidden, boolean showCreativeItems) {
             if (!devMode && !showHidden && "hidden".equals(node.meta(SearchNodeKeys.VISIBILITY, ""))) {
                 return false;
             }
@@ -512,6 +526,9 @@ public final class SearchSuggestions {
             }
             if (ItemFilter.ACCESS_CHEAT.equals(level)) {
                 return cheatMode || devMode;
+            }
+            if (ItemFilter.ACCESS_CREATIVE.equals(level)) {
+                return showCreativeItems;
             }
             return true;
         }

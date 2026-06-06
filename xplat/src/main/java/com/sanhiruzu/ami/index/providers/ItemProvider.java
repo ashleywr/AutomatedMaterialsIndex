@@ -173,6 +173,25 @@ public class ItemProvider implements IAmiDataProvider {
             addPlainSearchToken(meta, bookId.getNamespace());
             addPlainSearchToken(meta, bookId.getPath());
         });
+        readModonomiconBookId(stack).ifPresent(bookId -> {
+            meta.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "modonomicon");
+            meta.put(SearchNodeKeys.GUIDE_BOOK_ID, bookId.toString());
+            addSearchToken(meta, bookId.getNamespace());
+            addSearchToken(meta, bookId.getPath());
+            addPlainSearchToken(meta, bookId.getNamespace());
+            addPlainSearchToken(meta, bookId.getPath());
+        });
+        readModonomiconBookAddress(stack.getItem()).ifPresent(address -> {
+            meta.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "modonomicon");
+            meta.put(SearchNodeKeys.GUIDE_BOOK_ID, address.bookId().toString());
+            if (address.entryId() != null) {
+                meta.put(SearchNodeKeys.GUIDE_BOOK_PAGE_ID, address.entryId().toString());
+            }
+            addSearchToken(meta, address.bookId().getNamespace());
+            addSearchToken(meta, address.bookId().getPath());
+            addPlainSearchToken(meta, address.bookId().getNamespace());
+            addPlainSearchToken(meta, address.bookId().getPath());
+        });
         for (String token : List.of("guidebook", "guidebooks", "guide", "manual", "handbook", "codex", "lexicon")) {
             addSearchToken(meta, token);
             addPlainSearchToken(meta, token);
@@ -197,6 +216,55 @@ public class ItemProvider implements IAmiDataProvider {
         } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
             return Optional.empty();
         }
+    }
+
+    private static Optional<ResourceLocation> readModonomiconBookId(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return Optional.empty();
+        }
+        try {
+            Class<?> itemClass = Class.forName("com.klikli_dev.modonomicon.item.ModonomiconItem");
+            if (!itemClass.isInstance(stack.getItem())) {
+                return Optional.empty();
+            }
+            Object id = itemClass.getMethod("getBookId", ItemStack.class).invoke(null, stack);
+            return id instanceof ResourceLocation location ? Optional.of(location) : Optional.empty();
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
+            return Optional.empty();
+        }
+    }
+
+    private static Optional<ModonomiconBookAddress> readModonomiconBookAddress(Item item) {
+        if (item == null) {
+            return Optional.empty();
+        }
+        try {
+            java.lang.reflect.Field field = item.getClass().getField("bookAddress");
+            Object address = field.get(item);
+            if (address == null) {
+                return Optional.empty();
+            }
+            ResourceLocation bookId = invokeResourceLocation(address, "bookId").orElse(null);
+            ResourceLocation entryId = invokeResourceLocation(address, "entryId").orElse(null);
+            if (bookId == null) {
+                return Optional.empty();
+            }
+            return Optional.of(new ModonomiconBookAddress(bookId, entryId));
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
+            return Optional.empty();
+        }
+    }
+
+    private static Optional<ResourceLocation> invokeResourceLocation(Object target, String methodName) {
+        try {
+            Object value = target.getClass().getMethod(methodName).invoke(target);
+            return value instanceof ResourceLocation location ? Optional.of(location) : Optional.empty();
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
+            return Optional.empty();
+        }
+    }
+
+    private record ModonomiconBookAddress(ResourceLocation bookId, ResourceLocation entryId) {
     }
 
     private static void addCheapPlainSearchTokens(Map<String, String> meta, ResourceLocation id,

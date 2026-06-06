@@ -83,7 +83,7 @@ public final class ResultsTreeNormalizer {
     private static boolean shouldFlattenMatchingChildGroup(TreeNode parent, TreeNode child) {
         return !child.isLeaf()
                 && child.isExpanded()
-                && !isRepresentativeVariantGroup(child)
+                && (!isRepresentativeVariantGroup(child) || canFlattenRepresentativeVariantGroup(parent, child))
                 && (normalizedLabel(parent).equals(normalizedLabel(child))
                 || shouldFlattenCoveredSemanticGroup(parent, child));
     }
@@ -118,12 +118,22 @@ public final class ResultsTreeNormalizer {
                 && normalizedLabel(node).equals(normalizedLabel(onlyChild));
     }
 
+    private static boolean canFlattenRepresentativeVariantGroup(TreeNode parent, TreeNode child) {
+        return isCategoryKindNode(parent)
+                && parent.getChildren().size() > 1
+                && normalizedLabel(parent).equals(normalizedLabel(child));
+    }
+
     private static boolean isCategoryKindKey(String key) {
         if (key == null) {
             return false;
         }
         int firstSlash = key.indexOf('/');
         return firstSlash >= 0 && key.indexOf('/', firstSlash + 1) >= 0;
+    }
+
+    private static boolean isCategoryKindNode(TreeNode node) {
+        return isCategoryKindKey(node == null ? null : node.getKey());
     }
 
     private static boolean isRepresentativeVariantGroup(TreeNode node) {

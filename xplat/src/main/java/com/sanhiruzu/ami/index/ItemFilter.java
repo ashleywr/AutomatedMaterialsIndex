@@ -9,6 +9,7 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
+import net.minecraft.world.level.GameType;
 
 import java.util.*;
 
@@ -142,11 +143,13 @@ public final class ItemFilter {
     }
 
     public static boolean shouldShowAccessLevel(String accessLevel) {
+        return shouldShowAccessLevel(accessLevel, null);
+    }
+
+    public static boolean shouldShowAccessLevel(String accessLevel, GameType gameMode) {
         return switch (accessLevel) {
             case ACCESS_SURVIVAL -> true;
-            case ACCESS_CREATIVE -> AmiConfig.showSpawnEggs
-                    || AmiConfig.devMode
-                    || AmiConfig.cheatMode;
+            case ACCESS_CREATIVE -> AmiConfig.shouldShowCreativeItems(gameMode);
             case ACCESS_CHEAT -> AmiConfig.cheatMode || AmiConfig.devMode;
             case ACCESS_DEV -> AmiConfig.devMode || AmiConfig.showHiddenModItems;
             default -> false;
