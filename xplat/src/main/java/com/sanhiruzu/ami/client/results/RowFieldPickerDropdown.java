@@ -21,8 +21,12 @@ public class RowFieldPickerDropdown {
     private static final int BTN_H = 14;
     private static final int ITEM_H = 12;
     private static final int CHECK_SIZE = 6;
+    private static final RowField[] FIELDS = RowField.values();
 
     private int x, y, width;
+    private int cachedListWidth;
+    private int cachedBaseWidth = -1;
+    private Font cachedFont;
     private boolean open = false;
 
     public void updatePosition(int x, int y, int width) {
@@ -49,22 +53,22 @@ public class RowFieldPickerDropdown {
     public void renderList(GuiGraphics g, int mouseX, int mouseY) {
         if (!open) return;
 
-        RowField[] fields = RowField.values();
         List<RowField> active = RowFieldConfig.getSubtitleFields();
         var font = Minecraft.getInstance().font;
 
-        int listWidth = listWidth(font, fields);
+        int listWidth = listWidth(font);
 
-        int dropH = fields.length * ITEM_H + 4;
+        int dropH = FIELDS.length * ITEM_H + 4;
         int dy = y + BTN_H + 2;
 
-        AMITheme.fillInsetRect(g, x, dy, listWidth, dropH, AMITheme.DROPDOWN_LIST_BG, false);
+        AMITheme.fillPixelPopup(g, x, dy, listWidth, dropH,
+                AMITheme.DROPDOWN_LIST_BG, AMITheme.SECTION_SEP, AMITheme.CONTROL_SHADOW, 0);
 
         int iy = dy + 2;
-        for (RowField field : fields) {
+        for (RowField field : FIELDS) {
             boolean hovered = Dropdown.contains(mouseX, mouseY, x, iy, listWidth, ITEM_H);
             if (hovered) {
-                g.fill(x, iy, x + listWidth, iy + ITEM_H, AMITheme.DROPDOWN_BG);
+                g.fill(x + 1, iy, x + listWidth - 1, iy + ITEM_H, AMITheme.DROPDOWN_BG);
             }
 
             boolean isSelected = active.contains(field);
@@ -96,16 +100,15 @@ public class RowFieldPickerDropdown {
 
         if (!open) return false;
 
-        RowField[] fields = RowField.values();
         var font = Minecraft.getInstance().font;
-        int listWidth = listWidth(font, fields);
+        int listWidth = listWidth(font);
 
-        int dropH = fields.length * ITEM_H + 4;
+        int dropH = FIELDS.length * ITEM_H + 4;
         int dy = y + BTN_H + 2;
 
         if (Dropdown.contains((int) mouseX, (int) mouseY, x, dy, listWidth, dropH)) {
             int iy = dy + 2;
-            for (RowField field : fields) {
+            for (RowField field : FIELDS) {
                 if (Dropdown.contains((int) mouseX, (int) mouseY, x, iy, listWidth, ITEM_H)) {
                     List<RowField> current = RowFieldConfig.getSubtitleFields();
                     EnumSet<RowField> next = current.isEmpty()
@@ -137,11 +140,17 @@ public class RowFieldPickerDropdown {
         return open;
     }
 
-    private int listWidth(Font font, RowField[] fields) {
+    private int listWidth(Font font) {
+        if (cachedBaseWidth == width && cachedFont == font) {
+            return cachedListWidth;
+        }
         int listWidth = width;
-        for (RowField field : fields) {
+        for (RowField field : FIELDS) {
             listWidth = Math.max(listWidth, font.width(field.displayName.getString()) + 20);
         }
-        return listWidth;
+        cachedListWidth = listWidth;
+        cachedBaseWidth = width;
+        cachedFont = font;
+        return cachedListWidth;
     }
 }

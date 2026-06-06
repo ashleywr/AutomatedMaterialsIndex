@@ -532,6 +532,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         long revision = index.revision();
         String value = getValue();
         int cursor = getCursorPosition();
+        boolean showCreativeItems = shouldShowCreativeItems();
         if (!isFocused()) {
             suggestions = List.of();
             selectedSuggestion = 0;
@@ -545,12 +546,19 @@ public abstract class AbstractSearchBarWidget extends EditBox {
             suggestionScrollOffset = 0;
             return;
         }
-        if (suggestionCache.matches(revision, value, cursor, AmiConfig.cheatMode, AmiConfig.devMode, AmiConfig.showHiddenModItems)) {
+        if (suggestionCache.matches(
+                revision,
+                value,
+                cursor,
+                AmiConfig.cheatMode,
+                AmiConfig.devMode,
+                AmiConfig.showHiddenModItems,
+                showCreativeItems)) {
             suggestions = suggestionCache.suggestions();
         } else {
-            suggestions = SearchSuggestions.suggest(index, value, cursor, MAX_SUGGESTIONS);
+            suggestions = SearchSuggestions.suggest(index, value, cursor, MAX_SUGGESTIONS, showCreativeItems);
             suggestionCache = new SuggestionCache(revision, value, cursor,
-                    AmiConfig.cheatMode, AmiConfig.devMode, AmiConfig.showHiddenModItems, suggestions);
+                    AmiConfig.cheatMode, AmiConfig.devMode, AmiConfig.showHiddenModItems, showCreativeItems, suggestions);
         }
         selectedSuggestion = Mth.clamp(selectedSuggestion, 0, Math.max(0, suggestions.size() - 1));
         suggestionScrollOffset = Mth.clamp(suggestionScrollOffset, 0, maxSuggestionScrollOffset());
@@ -818,11 +826,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
             int visibleRows = visibleSuggestionRows();
             int popupH = visibleRows * SUGGESTION_ROW_HEIGHT + SUGGESTION_MARGIN * 2;
 
-            g.fill(popupX, popupY, popupX + popupW, popupY + popupH, solidPopupColor(AMITheme.DROPDOWN_LIST_BG));
-            g.fill(popupX, popupY, popupX + popupW, popupY + 1, AMITheme.BORDER_LIGHT);
-            g.fill(popupX, popupY + popupH - 1, popupX + popupW, popupY + popupH, AMITheme.BORDER_DARK);
-            g.fill(popupX, popupY, popupX + 1, popupY + popupH, AMITheme.BORDER_LIGHT);
-            g.fill(popupX + popupW - 1, popupY, popupX + popupW, popupY + popupH, AMITheme.BORDER_DARK);
+            AMITheme.fillSuggestionPopup(g, popupX, popupY, popupW, popupH);
 
             int hoveredRow = isSuggestionPopupMouseOver(mouseX, mouseY) ? suggestionRowAt(mouseY) : -1;
             for (int visibleIndex = 0; visibleIndex < visibleRows; visibleIndex++) {
@@ -888,9 +892,8 @@ public abstract class AbstractSearchBarWidget extends EditBox {
 
         g.pose().pushPose();
         g.pose().translate(0, 0, OverlayLayers.DROPDOWN);
-        g.fill(popupX + 2, popupY + 3, popupX + popupW + 2, popupY + popupH + 3, AMITheme.SEARCH_HELP_SHADOW);
-        AMITheme.fillBorderedRect(g, popupX, popupY, popupW, popupH, AMITheme.SEARCH_HELP_BG, AMITheme.SEARCH_HELP_BORDER);
-        g.fill(popupX + 2, popupY + 2, popupX + popupW - 2, popupY + 3, AMITheme.ACCENT_BLUE);
+        AMITheme.fillPixelPopup(g, popupX, popupY, popupW, popupH,
+                AMITheme.SEARCH_HELP_BG, AMITheme.SEARCH_HELP_BORDER, AMITheme.SEARCH_HELP_SHADOW, AMITheme.ACCENT_BLUE);
 
         int innerX = popupX + HELP_MARGIN;
         int innerY = popupY + HELP_MARGIN;
@@ -1049,16 +1052,23 @@ public abstract class AbstractSearchBarWidget extends EditBox {
     private HelpLayoutCache helpLayoutCache() {
         GlobalIndex index = GlobalIndex.getInstance();
         long revision = index.revision();
+        boolean showCreativeItems = shouldShowCreativeItems();
         HelpLayoutCache cached = helpLayoutCache;
-        if (cached.matches(revision, AmiConfig.cheatMode, AmiConfig.devMode, AmiConfig.showHiddenModItems)) {
+        if (cached.matches(
+                revision,
+                AmiConfig.cheatMode,
+                AmiConfig.devMode,
+                AmiConfig.showHiddenModItems,
+                showCreativeItems)) {
             return cached;
         }
-        SearchSyntax.HelpLayout layout = SearchSuggestions.helpLayout(index);
+        SearchSyntax.HelpLayout layout = SearchSuggestions.helpLayout(index, showCreativeItems);
         HelpLayoutCache updated = new HelpLayoutCache(
                 revision,
                 AmiConfig.cheatMode,
                 AmiConfig.devMode,
                 AmiConfig.showHiddenModItems,
+                showCreativeItems,
                 layout,
                 helpColumnHeight(layout.leftSections()),
                 helpColumnHeight(layout.rightSections()),
@@ -1154,11 +1164,6 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         };
     }
 
-    private static int solidPopupColor(int argb) {
-        int alpha = (argb >>> 24) & 0xFF;
-        return (Math.max(alpha, 0xF0) << 24) | (argb & 0x00FFFFFF);
-    }
-
     public interface Listener {
         void onQueryChanged(String query);
 
@@ -1176,38 +1181,47 @@ public abstract class AbstractSearchBarWidget extends EditBox {
     }
 
     private record HelpLayoutCache(long revision, boolean cheatMode, boolean devMode, boolean showHidden,
+                                   boolean showCreativeItems,
                                    SearchSyntax.HelpLayout layout,
                                    int leftHeight, int rightHeight, int combinedHeight,
                                    int leftExampleWidth, int rightExampleWidth, int combinedExampleWidth) {
         static HelpLayoutCache empty() {
             return new HelpLayoutCache(Long.MIN_VALUE,
-                    false, false, false,
+                    false, false, false, false,
                     new SearchSyntax.HelpLayout(List.of(), List.of()),
                     0, 0, 0,
                     70, 70, 70);
         }
 
-        boolean matches(long revision, boolean cheatMode, boolean devMode, boolean showHidden) {
+        boolean matches(long revision, boolean cheatMode, boolean devMode, boolean showHidden, boolean showCreativeItems) {
             return this.revision == revision
                     && this.cheatMode == cheatMode
                     && this.devMode == devMode
-                    && this.showHidden == showHidden;
+                    && this.showHidden == showHidden
+                    && this.showCreativeItems == showCreativeItems;
         }
     }
 
     private record SuggestionCache(long revision, String value, int cursor, boolean cheatMode, boolean devMode,
-                                   boolean showHidden, List<SearchSuggestions.Suggestion> suggestions) {
+                                   boolean showHidden, boolean showCreativeItems, List<SearchSuggestions.Suggestion> suggestions) {
         static SuggestionCache empty() {
-            return new SuggestionCache(Long.MIN_VALUE, "", -1, false, false, false, List.of());
+            return new SuggestionCache(Long.MIN_VALUE, "", -1, false, false, false, false, List.of());
         }
 
-        boolean matches(long revision, String value, int cursor, boolean cheatMode, boolean devMode, boolean showHidden) {
+        boolean matches(long revision, String value, int cursor, boolean cheatMode, boolean devMode, boolean showHidden, boolean showCreativeItems) {
             return this.revision == revision
                     && this.cursor == cursor
                     && this.cheatMode == cheatMode
                     && this.devMode == devMode
                     && this.showHidden == showHidden
+                    && this.showCreativeItems == showCreativeItems
                     && this.value.equals(value);
         }
+    }
+
+    private static boolean shouldShowCreativeItems() {
+        var gameMode = Minecraft.getInstance().gameMode;
+        net.minecraft.world.level.GameType playerMode = gameMode == null ? null : gameMode.getPlayerMode();
+        return AmiConfig.shouldShowCreativeItems(playerMode);
     }
 }

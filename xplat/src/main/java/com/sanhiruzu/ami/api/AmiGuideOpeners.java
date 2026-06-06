@@ -92,6 +92,30 @@ public final class AmiGuideOpeners {
         return () -> openGuideMEBook(bookId, pageId);
     }
 
+    // ── Modonomicon ──────────────────────────────────────────────────────────
+
+    /**
+     * Opens a Modonomicon book to a specific category/entry page.
+     *
+     * @param bookId the book's ResourceLocation (e.g. {@code spectrum:guidebook})
+     * @param categoryId the category id within the book namespace
+     * @param entryId the entry id within the book namespace
+     * @param page zero-based page number
+     */
+    public static Runnable modonomicon(ResourceLocation bookId, ResourceLocation categoryId,
+                                       ResourceLocation entryId, int page) {
+        return () -> openModonomiconBook(bookId, categoryId, entryId, page);
+    }
+
+    /**
+     * Opens a Modonomicon book to its default screen.
+     *
+     * @param bookId the book's ResourceLocation
+     */
+    public static Runnable modonomicon(ResourceLocation bookId) {
+        return () -> openModonomiconBook(bookId, null, null, 0);
+    }
+
     // ── Internal ──────────────────────────────────────────────────────────────
 
     private static void openPatchouliBook(Iterable<ResourceLocation> bookIds, String pageId) {
@@ -440,10 +464,14 @@ public final class AmiGuideOpeners {
 
             if (pageId != null && !pageId.isBlank()) {
                 ResourceLocation pageLocation = ResourceLocation.fromNamespaceAndPath(bookId.getNamespace(), pageId);
+                Object pageAnchor = guideMEPageAnchor(pageLocation);
                 for (Method m : guidesCommon.getMethods()) {
                     if ("openGuide".equals(m.getName()) && m.getParameterCount() == 3) {
-                        m.invoke(null, mc.player, bookId, pageLocation);
-                        return;
+                        Object pageArg = guideMEPageArgument(m.getParameterTypes()[2], pageLocation, pageAnchor);
+                        if (pageArg != null) {
+                            m.invoke(null, mc.player, bookId, pageArg);
+                            return;
+                        }
                     }
                 }
             }
@@ -456,6 +484,61 @@ public final class AmiGuideOpeners {
             }
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
             LOGGER.log(Level.FINE, "AMI: GuideME unavailable for guide open: " + bookId, e);
+        }
+    }
+
+    private static Object guideMEPageAnchor(ResourceLocation pageLocation) {
+        if (pageLocation == null) {
+            return null;
+        }
+        try {
+            Class<?> pageAnchorClass = Class.forName("guideme.PageAnchor");
+            return pageAnchorClass.getMethod("page", ResourceLocation.class).invoke(null, pageLocation);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: GuideME page anchor unavailable for " + pageLocation, e);
+            return null;
+        }
+    }
+
+    private static Object guideMEPageArgument(Class<?> parameterType, ResourceLocation pageLocation, Object pageAnchor) {
+        if (parameterType == null) {
+            return null;
+        }
+        if (pageAnchor != null && parameterType.isInstance(pageAnchor)) {
+            return pageAnchor;
+        }
+        if (pageLocation != null && parameterType.isInstance(pageLocation)) {
+            return pageLocation;
+        }
+        return null;
+    }
+
+    private static void openModonomiconBook(ResourceLocation bookId, ResourceLocation categoryId,
+                                            ResourceLocation entryId, int page) {
+        if (bookId == null) {
+            return;
+        }
+        try {
+            Class<?> addressClass = Class.forName("com.klikli_dev.modonomicon.client.gui.book.BookAddress");
+            Object address;
+            if (categoryId != null && entryId != null) {
+                address = addressClass.getMethod(
+                                "ignoreSaved",
+                                ResourceLocation.class,
+                                ResourceLocation.class,
+                                ResourceLocation.class,
+                                int.class
+                        )
+                        .invoke(null, bookId, categoryId, entryId, Math.max(0, page));
+            } else {
+                address = addressClass.getMethod("defaultFor", ResourceLocation.class).invoke(null, bookId);
+            }
+
+            Class<?> managerClass = Class.forName("com.klikli_dev.modonomicon.client.gui.BookGuiManager");
+            Object manager = managerClass.getMethod("get").invoke(null);
+            managerClass.getMethod("openBook", addressClass).invoke(manager, address);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Modonomicon unavailable for guide open: " + bookId, e);
         }
     }
 }

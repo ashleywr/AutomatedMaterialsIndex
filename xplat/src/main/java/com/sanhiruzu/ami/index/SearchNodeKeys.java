@@ -72,6 +72,7 @@ public final class SearchNodeKeys {
     public static final String GUIDE_BOOK_CANDIDATE = "guideBookCandidate"; // "true" when item looks like a guide/manual/book UI.
     public static final String GUIDE_BOOK_SYSTEM = "guideBookSystem"; // patchouli, guideme, or blank when only inferred.
     public static final String GUIDE_BOOK_ID = "guideBookId"; // concrete book id when the item stack exposes one.
+    public static final String GUIDE_BOOK_PAGE_ID = "guideBookPageId"; // concrete native page/entry id when the item exposes one.
     // Cobblemon / Pokemon-specific optional metadata. These are plain strings so
     // AMI can index datapack-backed Cobblemon content without a hard dependency.
     public static final String COBBLEMON_ITEM_KIND = "cobblemonItemKind";

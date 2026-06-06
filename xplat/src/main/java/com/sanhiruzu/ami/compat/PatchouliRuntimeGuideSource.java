@@ -115,6 +115,7 @@ public final class PatchouliRuntimeGuideSource {
     private static AmiGuideDocument openable(AmiGuideDocument document) {
         return AmiGuideDocument.builder(document.id(), document.sourceType(), document.modId(), document.title())
                 .bookId(document.bookId())
+                .iconItemId(document.iconItemId())
                 .pageId(document.pageId())
                 .chapter(document.chapter())
                 .referencedItems(document.referencedItems())

@@ -2,6 +2,17 @@
 
 User-facing changes are recorded here.
 
+## 1.3.0 - 2026-06-06
+
+### Changed
+
+- Replaced the spawn-egg-only setting with `Show Creative Items`, a display-time toggle for creative-only results such as spawn eggs and spawners.
+
+### Fixed
+
+- Creative-only items are now indexed regardless of the toggle, so changing `Show Creative Items` applies immediately without a restart.
+- Entity results now inherit localized spawn egg names as plain search aliases, so searching for a localized spawn egg name can still find AMI's entity model result.
+
 ## 1.2.0 - 2026-06-04
 
 ### Fixed

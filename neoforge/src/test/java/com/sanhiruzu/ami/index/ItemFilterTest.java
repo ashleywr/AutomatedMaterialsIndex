@@ -45,6 +45,9 @@ public class ItemFilterTest {
         // Cheat mode off - shouldn't show cheat items
         assertFalse(ItemFilter.shouldShowAccessLevel(ItemFilter.ACCESS_CHEAT));
 
+        // Creative-only items are indexed so the result UI can filter them instantly.
+        assertTrue(ItemFilter.shouldShowAccessLevel(ItemFilter.ACCESS_CREATIVE));
+
         // Cheat mode on
         AmiConfig.cheatMode = true;
         assertTrue(ItemFilter.shouldShowAccessLevel(ItemFilter.ACCESS_CHEAT));

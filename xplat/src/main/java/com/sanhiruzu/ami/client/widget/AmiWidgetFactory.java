@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client.widget;
 
 import com.sanhiruzu.ami.config.ConfigColor;
+import com.sanhiruzu.ami.config.ConfigSlider;
 import com.sanhiruzu.ami.client.input.TextInputFilter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -10,6 +11,7 @@ import net.minecraft.network.chat.Component;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Field;
+import java.lang.reflect.Constructor;
 import java.util.function.Predicate;
 import java.util.function.Consumer;
 
@@ -19,21 +21,26 @@ import java.util.function.Consumer;
 public class AmiWidgetFactory {
 
     public static AbstractWidget createWidget(Field field, Consumer<Object> onChange) {
+        return createWidget(field, onChange, dropdown -> {
+        });
+    }
+
+    public static AbstractWidget createWidget(Field field, Consumer<Object> onChange, Consumer<AmiDropdownPopup> onDropdownOpen) {
         Class<?> type = field.getType();
         Minecraft mc = Minecraft.getInstance();
 
         try {
             if (field.isAnnotationPresent(ConfigColor.class)) {
-                int color = field.getInt(null) & 0xFFFFFF;
+                int color = field.getInt(null);
                 EditBox eb = new EditBox(mc.font, 0, 0, 72, 18, Component.empty());
                 configureEditBoxFilter(eb);
-                eb.setValue(String.format("#%06X", color));
+                eb.setValue(formatColor(field, color));
                 eb.setResponder(s -> {
-                    if (s.matches("^#[0-9A-Fa-f]{6}$")) {
+                    Integer parsed = parseColor(s);
+                    if (parsed != null) {
                         try {
-                            int newColor = 0xFF000000 | Integer.parseInt(s.substring(1), 16);
-                            field.set(null, newColor);
-                            onChange.accept(newColor);
+                            field.set(null, parsed);
+                            onChange.accept(parsed);
                         } catch (Exception ignored) {
                         }
                     }
@@ -50,37 +57,14 @@ public class AmiWidgetFactory {
                     } catch (Exception ignored) {
                     }
                 }).bounds(0, 0, 72, 18).build();
+            } else if (type == int.class && field.isAnnotationPresent(ConfigSlider.class)) {
+                AbstractWidget slider = createSliderWidget(field, onChange);
+                if (slider != null) return slider;
+                return createIntEditBox(mc, field, onChange);
             } else if (type == int.class) {
-                EditBox eb = new EditBox(mc.font, 0, 0, 72, 18, Component.empty());
-                configureEditBoxFilter(eb);
-                eb.setValue(String.valueOf(field.getInt(null)));
-                eb.setResponder(s -> {
-                    try {
-                        int val = Integer.parseInt(s);
-                        field.setInt(null, val);
-                        onChange.accept(val);
-                    } catch (Exception ignored) {
-                    }
-                });
-                return eb;
+                return createIntEditBox(mc, field, onChange);
             } else if (type.isEnum()) {
-                return Button.builder(enumLabel(field), b -> {
-                    try {
-                        Object[] constants = type.getEnumConstants();
-                        int idx = 0;
-                        for (int i = 0; i < constants.length; i++) {
-                            if (constants[i].equals(field.get(null))) {
-                                idx = (i + 1) % constants.length;
-                                break;
-                            }
-                        }
-                        Object next = constants[idx];
-                        field.set(null, next);
-                        b.setMessage(enumConstantLabel(next));
-                        onChange.accept(next);
-                    } catch (Exception ignored) {
-                    }
-                }).bounds(0, 0, 72, 18).build();
+                return new AmiEnumDropdownWidget(field, onChange, onDropdownOpen);
             } else {
                 EditBox eb = new EditBox(mc.font, 0, 0, 72, 18, Component.empty());
                 configureEditBoxFilter(eb);
@@ -100,6 +84,64 @@ public class AmiWidgetFactory {
         }
     }
 
+    private static AbstractWidget createSliderWidget(Field field, Consumer<Object> onChange) {
+        try {
+            Class<?> sliderClass = Class.forName("com.sanhiruzu.ami.client.widget.AmiSliderWidget");
+            Constructor<?> constructor = sliderClass.getConstructor(Field.class, Consumer.class);
+            return (AbstractWidget) constructor.newInstance(field, onChange);
+        } catch (ReflectiveOperationException | LinkageError ignored) {
+            return null;
+        }
+    }
+
+    private static EditBox createIntEditBox(Minecraft mc, Field field, Consumer<Object> onChange) throws IllegalAccessException {
+        EditBox eb = new EditBox(mc.font, 0, 0, 72, 18, Component.empty());
+        configureEditBoxFilter(eb);
+        eb.setValue(String.valueOf(field.getInt(null)));
+        eb.setResponder(s -> {
+            try {
+                int val = Integer.parseInt(s);
+                field.setInt(null, val);
+                onChange.accept(val);
+            } catch (Exception ignored) {
+            }
+        });
+        return eb;
+    }
+
+    private static String formatColor(Field field, int color) {
+        int alpha = (color >>> 24) & 0xFF;
+        if (!isAlphaColorField(field) && (alpha == 0xFF || color <= 0x00FFFFFF)) {
+            return String.format("#%06X", color & 0x00FFFFFF);
+        }
+        return String.format("#%08X", color);
+    }
+
+    private static boolean isAlphaColorField(Field field) {
+        com.sanhiruzu.ami.config.ConfigValue value = field.getAnnotation(com.sanhiruzu.ami.config.ConfigValue.class);
+        return value != null && value.value().startsWith("palette.");
+    }
+
+    private static Integer parseColor(String raw) {
+        if (raw == null) return null;
+        String hex = raw.trim();
+        if (hex.startsWith("#")) {
+            hex = hex.substring(1);
+        } else if (hex.regionMatches(true, 0, "0x", 0, 2)) {
+            hex = hex.substring(2);
+        }
+        try {
+            if (hex.matches("[0-9A-Fa-f]{6}")) {
+                return 0xFF000000 | Integer.parseInt(hex, 16);
+            }
+            if (hex.matches("[0-9A-Fa-f]{8}")) {
+                return (int) Long.parseLong(hex, 16);
+            }
+        } catch (NumberFormatException ignored) {
+        }
+        return null;
+    }
+
     private static void configureEditBoxFilter(EditBox editBox) {
         try {
             Method setFilter = EditBox.class.getMethod("setFilter", Predicate.class);
@@ -115,7 +157,7 @@ public class AmiWidgetFactory {
         return Component.translatable(val ? "ami.config.value.boolean.true" : "ami.config.value.boolean.false");
     }
 
-    private static Component enumLabel(Field field) {
+    static Component enumLabel(Field field) {
         try {
             return enumConstantLabel(field.get(null));
         } catch (Exception e) {
@@ -123,7 +165,7 @@ public class AmiWidgetFactory {
         }
     }
 
-    private static Component enumConstantLabel(Object constant) {
+    static Component enumConstantLabel(Object constant) {
         try {
             Field dn = constant.getClass().getField("displayName");
             return (Component) dn.get(constant);

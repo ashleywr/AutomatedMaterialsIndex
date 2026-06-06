@@ -394,8 +394,7 @@ public final class OntologyClassifier {
                  "turtle", "sniffer", "allay" -> "passive";
             case "wolf", "bee", "polar_bear", "dolphin", "panda",
                  "llama", "trader_llama", "goat", "iron_golem",
-                 "piglin", "zombified_piglin", "enderman",
-                 "spider", "cave_spider" -> "neutral";
+                 "piglin", "zombified_piglin", "enderman" -> "neutral";
             default -> "hostile";
         };
     }

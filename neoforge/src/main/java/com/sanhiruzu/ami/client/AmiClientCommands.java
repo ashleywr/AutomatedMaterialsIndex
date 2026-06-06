@@ -33,6 +33,12 @@ public class AmiClientCommands {
                             exportSearchNodes(context.getSource());
                             return 1;
                         })
+                )
+                .then(Commands.literal("dump-guide-docs")
+                        .executes(context -> {
+                            exportGuideDocs(context.getSource());
+                            return 1;
+                        })
                 );
 
         if (AmiDebugSettings.debugCommandsEnabled()) {
@@ -78,12 +84,33 @@ public class AmiClientCommands {
         try {
             Files.createDirectories(dumpDir);
             Path out = dumpDir.resolve("search_nodes.jsonl");
-            int count = SearchNodeMirrorDump.writeJsonl(out, SearchNodeMirrorDump.runtimeAtlasNodes());
-            source.sendSystemMessage(Component.literal("AMI search node mirror written to " + out.toAbsolutePath() + " (" + count + " nodes)")
+            Path meta = dumpDir.resolve("search_nodes.meta.json");
+            List<SearchNode> nodes = SearchNodeMirrorDump.runtimeAtlasNodes();
+            int count = SearchNodeMirrorDump.writeJsonl(out, nodes);
+            SearchNodeMirrorDump.writeMeta(meta);
+            source.sendSystemMessage(Component.literal(
+                            "AMI search node mirror written to " + out.toAbsolutePath() +
+                                    " (" + count + " nodes) + metadata at " + meta.toAbsolutePath())
                     .withStyle(ChatFormatting.GREEN));
         } catch (Exception e) {
             AMI.LOGGER.error("Failed to export search node mirror", e);
             source.sendSystemMessage(Component.literal("Failed to export AMI search node mirror: " + e.getMessage())
+                    .withStyle(ChatFormatting.RED));
+        }
+    }
+
+    private static void exportGuideDocs(CommandSourceStack source) {
+        Path dumpDir = FMLPaths.GAMEDIR.get().resolve("ami_dumps");
+        try {
+            Files.createDirectories(dumpDir);
+            Path out = dumpDir.resolve("guide_docs.jsonl");
+            int count = GuideDocumentMirrorDump.writeJsonl(out,
+                    AmiIndexerService.getInstance().getGuideSearchIndex().allDocuments());
+            source.sendSystemMessage(Component.literal("AMI guide docs mirror written to " + out.toAbsolutePath() + " (" + count + " docs)")
+                    .withStyle(ChatFormatting.GREEN));
+        } catch (Exception e) {
+            AMI.LOGGER.error("Failed to export AMI guide docs mirror", e);
+            source.sendSystemMessage(Component.literal("Failed to export AMI guide docs mirror: " + e.getMessage())
                     .withStyle(ChatFormatting.RED));
         }
     }
@@ -106,6 +133,7 @@ public class AmiClientCommands {
         report.append("AMI version: ").append(AmiDebugSettings.versionLabel()).append("\n");
         report.append("Debug build: ").append(AmiDebugSettings.debugBuild()).append("\n");
         report.append("Index ready: ").append(GlobalIndex.getInstance().isIndexReady()).append("\n\n");
+        report.append("Guide docs: ").append(AmiIndexerService.getInstance().getGuideSearchIndex().allDocuments().size()).append("\n\n");
 
         List<SearchNode> all = new ArrayList<>();
         for (NodeType type : NodeType.atlasValues()) {
@@ -147,10 +175,37 @@ public class AmiClientCommands {
         SearchState state = new SearchState();
         state.setQuery(query);
         state.setViewMode(viewMode);
-        ResultsViewProjector.Projection projection = ResultsViewProjector.project(nodes, state, searchService, compact, false);
+        ResultsViewProjector.Projection projection = ResultsViewProjector.project(
+                nodes,
+                state,
+                searchService,
+                AmiIndexerService.getInstance().getGuideSearchIndex(),
+                compact,
+                false
+        );
         report.append("## ").append(label).append("\n\n");
         report.append(projection.summary()).append("\n\n");
+        appendGuideRows(report, projection.guideRows());
         appendTreeAndGrid(report, projection.roots());
+    }
+
+    private static void appendGuideRows(StringBuilder report, List<GuideResultRow> guideRows) {
+        report.append("Guide rows:\n\n```text\n");
+        if (guideRows.isEmpty()) {
+            report.append("none\n");
+        } else {
+            for (GuideResultRow row : guideRows) {
+                report.append(row.document().id())
+                        .append(" | ")
+                        .append(row.title())
+                        .append(" | ")
+                        .append(row.sourceLine())
+                        .append(" | open=")
+                        .append(row.document().canOpen())
+                        .append("\n");
+            }
+        }
+        report.append("```\n\n");
     }
 
     private static void appendTreeAndGrid(StringBuilder report, List<TreeNode> roots) {

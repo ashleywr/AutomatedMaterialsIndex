@@ -149,6 +149,54 @@ public class ResultsTreeNormalizerTest {
     }
 
     @Test
+    void normalizeChildrenFlattensDuplicateRepresentativeSubgroupInsideCategoryKind() {
+        TreeNode parent = group("decoration/lighting/candles", "Candles");
+        TreeNode vanillaCandles = group("cardinality:family:minecraft:candle", "Candles");
+        vanillaCandles.setHighCardinality(true);
+        vanillaCandles.addChild(leaf("minecraft:candle", "Candle"));
+        vanillaCandles.addChild(variantLeaf("minecraft", "white_candle", "White Candle", "minecraft:candle"));
+        vanillaCandles.addChild(variantLeaf("minecraft", "black_candle", "Black Candle", "minecraft:candle"));
+
+        TreeNode dyenamicsCandles = group("cardinality:family:dyenamics:candle", "Candles");
+        dyenamicsCandles.setHighCardinality(true);
+        dyenamicsCandles.addChild(leaf("dyenamics:candle", "Candle"));
+        dyenamicsCandles.addChild(variantLeaf("dyenamics", "red_candle", "Red Candle", "dyenamics:candle"));
+        dyenamicsCandles.addChild(variantLeaf("dyenamics", "blue_candle", "Blue Candle", "dyenamics:candle"));
+
+        parent.addChild(vanillaCandles);
+        parent.addChild(dyenamicsCandles);
+
+        ResultsTreeNormalizer.normalizeChildren(parent);
+
+        assertEquals(6, parent.getChildren().size());
+        assertEquals("Candle", parent.getChildren().get(0).getLabel().getString());
+        assertEquals("White Candle", parent.getChildren().get(1).getLabel().getString());
+        assertEquals("Black Candle", parent.getChildren().get(2).getLabel().getString());
+        assertEquals("Candle", parent.getChildren().get(3).getLabel().getString());
+        assertEquals("Red Candle", parent.getChildren().get(4).getLabel().getString());
+        assertEquals("Blue Candle", parent.getChildren().get(5).getLabel().getString());
+    }
+
+    @Test
+    void normalizeChildrenUnwrapsSingleCategoryKindWrapperToCollapsedCard() {
+        TreeNode parent = group("ingredients/dyes", "Dyes & Pigments");
+        TreeNode kindWrapper = group("ingredients/dyes/dyes", "Dyes");
+        TreeNode dyes = group("cardinality:family:minecraft:dye", "Dyes");
+        dyes.setHighCardinality(true);
+        dyes.addChild(variantLeaf("minecraft", "white_dye", "White Dye", "minecraft:dye"));
+        dyes.addChild(variantLeaf("minecraft", "black_dye", "Black Dye", "minecraft:dye"));
+
+        kindWrapper.addChild(dyes);
+        parent.addChild(kindWrapper);
+
+        ResultsTreeNormalizer.normalizeChildren(parent);
+
+        assertEquals(1, parent.getChildren().size());
+        assertEquals("cardinality:family:minecraft:dye", parent.getChildren().get(0).getKey());
+        assertEquals("Dyes", parent.getChildren().get(0).getLabel().getString());
+    }
+
+    @Test
     void normalizeChildrenPreservesDuplicateNamedRepresentativeVariantSubgroup() {
         TreeNode parent = group("sophisticated/backpacks", "Backpacks");
         TreeNode child = group("cardinality:sophisticatedbackpacks:backpack", "Backpacks");

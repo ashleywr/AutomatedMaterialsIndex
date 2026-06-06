@@ -32,6 +32,7 @@ public final class AE2Compat {
         Context context = new Context(id, meta);
         LinkedHashSet<String> facts = new LinkedHashSet<>();
 
+        addGuideBookFacts(id, meta, context, facts);
         addClassFacts(context, facts);
         addPathFacts(context, facts);
         addTagFacts(context, facts);
@@ -92,6 +93,19 @@ public final class AE2Compat {
         if (containsAny(context.itemClass, "AxeItem", "HoeItem", "SpadeItem", "PickaxeItem", "SwordItem", "WrenchItem", "CuttingKnifeItem", "NetworkToolItem")) {
             facts.add("tool");
         }
+    }
+
+    private static void addGuideBookFacts(ResourceLocation id, Map<String, String> meta, Context context, Set<String> facts) {
+        if (!"guide".equals(context.path) && !containsAny(context.itemClass, "GuideItem")) {
+            return;
+        }
+        meta.put(SearchNodeKeys.GUIDE_BOOK_CANDIDATE, "true");
+        meta.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "guideme");
+        meta.put(SearchNodeKeys.GUIDE_BOOK_ID, id.getNamespace() + ":guide");
+        addSearchToken(meta, "guideme");
+        addSearchToken(meta, "guide");
+        facts.add("guide");
+        facts.add("utility");
     }
 
     private static void addPathFacts(Context context, Set<String> facts) {

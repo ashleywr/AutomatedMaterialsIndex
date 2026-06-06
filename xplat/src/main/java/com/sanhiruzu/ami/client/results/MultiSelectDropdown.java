@@ -3,33 +3,44 @@ package com.sanhiruzu.ami.client.results;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.AmiGuiIcons;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 public class MultiSelectDropdown<T> implements Dropdown {
     private static final int HEIGHT = 14;
     private static final int ITEM_HEIGHT = 12;
     private static final int MAX_DROPDOWN_HEIGHT = 150;
-    private final List<T> options;
+    private List<T> options;
     private final java.util.function.Function<T, String> displayName;
     private final Set<T> selected;
+    private List<String> optionLabels = List.of();
     private int x, y, width;
+    private int cachedListWidth;
+    private int cachedBaseWidth = -1;
+    private Font cachedFont;
+    private boolean optionCacheDirty = true;
     private boolean open = false;
 
     public MultiSelectDropdown(List<T> options, java.util.function.Function<T, String> displayName) {
-        this.options = options;
+        this.options = copyOptions(options);
         this.displayName = displayName;
-        this.selected = new HashSet<>(options); // Select all by default
+        this.selected = new HashSet<>(this.options); // Select all by default
     }
 
     public void updatePosition(int x, int y, int width) {
         this.x = x;
         this.y = y;
-        this.width = width;
+        if (this.width != width) {
+            this.width = width;
+            this.optionCacheDirty = true;
+        }
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
@@ -44,6 +55,16 @@ public class MultiSelectDropdown<T> implements Dropdown {
         }
 
         String countLabel = Component.translatable("ami.gui.dropdown_count", selected.size(), options.size()).getString();
+        int maxTextW = Math.max(0, width - (canOpen ? 12 : 6));
+        if (maxTextW == 0) {
+            countLabel = "";
+        } else if (font.width(countLabel) > maxTextW) {
+            String ellipsis = Component.translatable("ami.gui.dropdown_ellipsis").getString();
+            countLabel = font.plainSubstrByWidth(countLabel, Math.max(0, maxTextW - font.width(ellipsis))) + ellipsis;
+            if (font.width(countLabel) > maxTextW) {
+                countLabel = font.plainSubstrByWidth(countLabel, maxTextW);
+            }
+        }
         g.drawString(font, countLabel, x + 3, y + 2, canOpen ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
     }
 
@@ -53,23 +74,21 @@ public class MultiSelectDropdown<T> implements Dropdown {
 
     private void renderDropdown(GuiGraphics g, int mouseX, int mouseY) {
         var font = Minecraft.getInstance().font;
-
-        // Calculate required width
-        int listWidth = width;
-        for (T option : options) {
-            listWidth = Math.max(listWidth, font.width(displayName.apply(option)) + 20);
-        }
+        ensureOptionCache(font);
+        int listWidth = cachedListWidth;
 
         int dropH = Math.min(MAX_DROPDOWN_HEIGHT, options.size() * ITEM_HEIGHT + 2);
-        AMITheme.fillInsetRect(g, x, y + HEIGHT + 2, listWidth, dropH, AMITheme.DROPDOWN_LIST_BG, false);
+        AMITheme.fillPixelPopup(g, x, y + HEIGHT + 2, listWidth, dropH,
+                AMITheme.DROPDOWN_LIST_BG, AMITheme.SECTION_SEP, AMITheme.CONTROL_SHADOW, 0);
 
         int itemY = y + HEIGHT + 3;
-        for (T option : options) {
+        for (int i = 0; i < options.size(); i++) {
             if (itemY >= y + HEIGHT + 2 + dropH - ITEM_HEIGHT) break;
+            T option = options.get(i);
 
             boolean hovered = Dropdown.contains(mouseX, mouseY, x, itemY, listWidth, ITEM_HEIGHT);
             if (hovered) {
-                g.fill(x, itemY, x + listWidth, itemY + ITEM_HEIGHT, AMITheme.DROPDOWN_BG);
+                g.fill(x + 1, itemY, x + listWidth - 1, itemY + ITEM_HEIGHT, AMITheme.DROPDOWN_BG);
             }
 
             boolean isSelected = selected.contains(option);
@@ -78,7 +97,7 @@ public class MultiSelectDropdown<T> implements Dropdown {
                 g.fill(x + 2, itemY + 2, x + 4, itemY + ITEM_HEIGHT - 2, com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE);
             }
 
-            g.drawString(font, displayName.apply(option), x + 8, itemY + 1, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
+            g.drawString(font, optionLabels.get(i), x + 8, itemY + 1, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
             itemY += ITEM_HEIGHT;
         }
     }
@@ -103,11 +122,8 @@ public class MultiSelectDropdown<T> implements Dropdown {
                 return false;
             }
 
-            var font = Minecraft.getInstance().font;
-            int listWidth = width;
-            for (T option : options) {
-                listWidth = Math.max(listWidth, font.width(displayName.apply(option)) + 20);
-            }
+            ensureOptionCache(Minecraft.getInstance().font);
+            int listWidth = cachedListWidth;
 
             int itemY = y + HEIGHT + 3;
             int dropH = Math.min(MAX_DROPDOWN_HEIGHT, options.size() * ITEM_HEIGHT + 2);
@@ -148,17 +164,44 @@ public class MultiSelectDropdown<T> implements Dropdown {
     }
 
     public void setOptions(List<T> newOptions) {
+        List<T> next = copyOptions(newOptions);
         // Keep previously selected items that are still in the new list
         Set<T> kept = new HashSet<>();
         for (T item : selected) {
-            if (newOptions.contains(item)) {
+            if (next.contains(item)) {
                 kept.add(item);
             }
         }
         // Add all new items by default
-        kept.addAll(newOptions);
+        kept.addAll(next);
+        if (!Objects.equals(this.options, next)) {
+            this.options = next;
+            this.optionCacheDirty = true;
+        }
         selected.clear();
         selected.addAll(kept);
+    }
+
+    private void ensureOptionCache(Font font) {
+        if (!optionCacheDirty && cachedBaseWidth == width && cachedFont == font) return;
+
+        List<String> labels = new ArrayList<>(options.size());
+        int listWidth = width;
+        for (T option : options) {
+            String label = displayName.apply(option);
+            if (label == null) label = "";
+            labels.add(label);
+            listWidth = Math.max(listWidth, font.width(label) + 20);
+        }
+        this.optionLabels = List.copyOf(labels);
+        this.cachedListWidth = listWidth;
+        this.cachedBaseWidth = width;
+        this.cachedFont = font;
+        this.optionCacheDirty = false;
+    }
+
+    private static <T> List<T> copyOptions(List<T> options) {
+        return options == null ? List.of() : List.copyOf(options);
     }
 
 }
