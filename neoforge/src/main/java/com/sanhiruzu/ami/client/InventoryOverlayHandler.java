@@ -29,7 +29,6 @@ public class InventoryOverlayHandler {
     private static boolean recipeTransitionRestoreQueued = false;
     private static boolean recipeTransitionRestoreEnabledState = false;
     private static boolean sessionInitialized = false;
-    private static boolean recipeViewerLockedHidden = false;
     private static boolean indexingRequested = false;
 
     /**
@@ -58,7 +57,6 @@ public class InventoryOverlayHandler {
         if (!isAmiScreen(mc.screen)) return;
 
         amiEnabled = !amiEnabled;
-        recipeViewerLockedHidden = !amiEnabled;
 
         // Toggling AMI dismisses any active recipe view
         com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
@@ -256,7 +254,9 @@ public class InventoryOverlayHandler {
 
     public static boolean shouldSuppressRecipeViewerChrome() {
         Minecraft mc = Minecraft.getInstance();
-        return (amiEnabled || AmiConfig.startHidden || recipeViewerLockedHidden) && mc.screen != null && isAmiScreen(mc.screen);
+        return RecipeViewerSuppressionPolicy.shouldSuppressRecipeViewerChrome(
+                amiEnabled,
+                mc.screen != null && isAmiScreen(mc.screen));
     }
 
     public static boolean isMouseOverAmiOverlay(double mouseX, double mouseY) {
@@ -280,7 +280,6 @@ public class InventoryOverlayHandler {
         initializedScreen = null;
         recipeTransitionRestoreQueued = false;
         recipeTransitionRestoreEnabledState = false;
-        recipeViewerLockedHidden = false;
         sessionInitialized = false;
         indexingRequested = false;
     }
