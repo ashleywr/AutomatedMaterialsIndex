@@ -4,14 +4,31 @@ User-facing changes are recorded here.
 
 ## 1.3.0 - 2026-06-06
 
+AMI 1.3.0 improves guidebook search, mod compatibility routing, recipe viewer coexistence, and creative-item visibility.
+
+### Added
+
+- Added shared searchable compat provider APIs so mods can expose guide, item, and action data through viewer-neutral hooks while AMI keeps its own overlay-specific behavior.
+- Added guidebook content indexing by default, including improved guide opening paths and guide-result filtering.
+- Added focused compatibility routing for AMI mod dump families so generated/runtime dump content lands in more useful result buckets.
+- Added Chipped generated-block collapse compatibility to reduce noisy variant groups.
+- Added Chinese localization.
+
 ### Changed
 
 - Replaced the spawn-egg-only setting with `Show Creative Items`, a display-time toggle for creative-only results such as spawn eggs and spawners.
+- Improved search help and guide filters.
+- Improved indexing startup and guide integration behavior.
 
 ### Fixed
 
 - Creative-only items are now indexed regardless of the toggle, so changing `Show Creative Items` applies immediately without a restart.
 - Entity results now inherit localized spawn egg names as plain search aliases, so searching for a localized spawn egg name can still find AMI's entity model result.
+- Fixed unresolved Modonomicon guide translations in indexed guide content.
+- Fixed recipe book and recipe viewer visibility interactions, including AMI toggle lock behavior in start-hidden mode.
+- Fixed JEI chrome suppression so JEI hides consistently when AMI owns the screen.
+- Fixed AMI overlay behavior when auto-indexing is disabled.
+- Fixed inventory visual filtering and tooltip search coverage.
 
 ## 1.2.0 - 2026-06-04
 
