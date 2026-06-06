@@ -156,10 +156,12 @@ class FacetIndexerTest {
         Item plainBook = register("plain_reference_book", new Item("Plain Reference Book"));
         Item fieldGuide = register("ami_field_guide", new Item("AMI Field Guide"));
         Item classGuide = register("class_named_manual", new TestGuideBookItem("Class Named Manual"));
+        Item ieManual = register("engineers_manual", new TestImmersiveEngineeringManualItem("Engineers Manual"));
 
         FacetProfile plainProfile = index(plainBook);
         FacetProfile fieldProfile = index(fieldGuide);
         FacetProfile classProfile = index(classGuide);
+        FacetProfile ieProfile = index(ieManual);
 
         assertTrue(plainProfile.facets().contains(ItemFacet.BOOK));
         assertFalse(plainProfile.facets().contains(ItemFacet.GUIDE_BOOK));
@@ -170,6 +172,9 @@ class FacetIndexerTest {
         assertTrue(classProfile.facets().contains(ItemFacet.GUIDE_BOOK));
         assertFalse(classProfile.facets().contains(ItemFacet.UTILITY_MISC));
         assertEquals("true", classProfile.attributes().get(SearchNodeKeys.GUIDE_BOOK_CANDIDATE));
+        assertTrue(ieProfile.facets().contains(ItemFacet.GUIDE_BOOK));
+        assertEquals("true", ieProfile.attributes().get(SearchNodeKeys.GUIDE_BOOK_CANDIDATE));
+        assertEquals("immersiveengineering_manual", ieProfile.attributes().get(SearchNodeKeys.GUIDE_BOOK_SYSTEM));
     }
 
     @Test
@@ -666,6 +671,12 @@ class FacetIndexerTest {
 
     private static final class TestGuideBookItem extends Item {
         private TestGuideBookItem(String name) {
+            super(name);
+        }
+    }
+
+    private static final class TestImmersiveEngineeringManualItem extends Item {
+        private TestImmersiveEngineeringManualItem(String name) {
             super(name);
         }
     }

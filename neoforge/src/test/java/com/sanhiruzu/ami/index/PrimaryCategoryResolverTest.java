@@ -43,6 +43,10 @@ class PrimaryCategoryResolverTest {
                 new ResourceLocation("patchouli:guide_book"),
                 new FacetProfile(EnumSet.of(ItemFacet.BOOK, ItemFacet.GUIDE_BOOK, ItemFacet.UTILITY_MISC), Map.of())
         );
+        CategoryAssignment toolManual = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("immersiveengineering:manual"),
+                new FacetProfile(EnumSet.of(ItemFacet.BOOK, ItemFacet.GUIDE_BOOK, ItemFacet.UTILITY_TOOL), Map.of())
+        );
         CategoryAssignment enchantedBook = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("minecraft:enchanted_book"),
                 new FacetProfile(EnumSet.of(ItemFacet.BOOK, ItemFacet.ENCHANTED_BOOK, ItemFacet.UTILITY_MISC), Map.of())
@@ -52,6 +56,8 @@ class PrimaryCategoryResolverTest {
         assertEquals("books", plainBook.subcategoryId());
         assertEquals("utility", guideBook.categoryId());
         assertEquals("books", guideBook.subcategoryId());
+        assertEquals("utility", toolManual.categoryId());
+        assertEquals("books", toolManual.subcategoryId());
         assertEquals("magic", enchantedBook.categoryId());
         assertEquals("books", enchantedBook.subcategoryId());
     }

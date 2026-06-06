@@ -23,3 +23,4 @@
 {"id":"dndesires:roll_table","category":"decoration","subcategory":"furniture","confidence":"certain","notes":"Furniture table; roll token should not classify as food."}
 {"id":"quark:magenta_shard","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"Glass shard in the Ingredients tab; generic shard material evidence should not create or preserve magic reagent routing."}
 {"id":"minecraft:spider_eye","category":"magic","subcategory":"reagents","confidence":"certain","notes":"Spider Eye is edible, but its brewing reagent role should be the primary bucket; edible remains searchable as a facet."}
+{"id":"immersiveengineering:manual","category":"utility","subcategory":"books","confidence":"certain","notes":"Guide manual should beat generic utility_tool identity"}

@@ -131,4 +131,54 @@ class ResourceBookRuntimeGuideSourceTest {
         assertEquals("Getting into Engineering", document.chapter());
         assertTrue(document.summaryText().contains("Wires connect"));
     }
+
+    @Test
+    void indexesHexereiBookOfShadowsPagesFromEntriesAndLangKeys() {
+        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
+        resources.put(new ResourceLocation("hexerei", "book/book_entries.json"), """
+                {
+                  "chapters": [
+                    {
+                      "name": "Items",
+                      "pages": [
+                        { "page_location": "hexerei:book_pages/items/items_mixing_cauldron_1" }
+                      ]
+                    }
+                  ]
+                }
+                """);
+        resources.put(new ResourceLocation("hexerei", "book/book_pages/items/items_mixing_cauldron_1.json"), """
+                {
+                  "paragraphs": [
+                    { "passage_text": "book.hexerei.items_mixing_cauldron_1.passage_1" },
+                    { "passage_text": "book.hexerei.items_mixing_cauldron_1.passage_2" }
+                  ],
+                  "item_hyperlink": "hexerei:mixing_cauldron",
+                  "items_and_fluids": [
+                    { "type": "item", "name": "hexerei:mixing_cauldron" }
+                  ]
+                }
+                """);
+        Map<ResourceLocation, String> lang = Map.of(
+                new ResourceLocation("hexerei", "lang/en_us.json"),
+                """
+                {
+                  "book.hexerei.items_mixing_cauldron_1.passage_1": "Mixing Cauldron",
+                  "book.hexerei.items_mixing_cauldron_1.passage_2": "The Mixing Cauldron makes potions and crafts."
+                }
+                """
+        );
+
+        List<AmiGuideDocument> documents = ResourceBookRuntimeGuideSource.documentsFromResources(resources, lang, "en_us");
+
+        assertEquals(1, documents.size());
+        AmiGuideDocument document = documents.getFirst();
+        assertEquals(new ResourceLocation("hexerei", "book_of_shadows"), document.bookId());
+        assertEquals("hexerei_book", document.sourceType());
+        assertEquals("hexerei:book_pages/items/items_mixing_cauldron_1", document.pageId());
+        assertEquals("Items", document.chapter());
+        assertEquals("Mixing Cauldron", document.title());
+        assertTrue(document.summaryText().contains("potions and crafts"));
+        assertEquals(List.of(new ResourceLocation("hexerei", "mixing_cauldron")), document.referencedItems());
+    }
 }
