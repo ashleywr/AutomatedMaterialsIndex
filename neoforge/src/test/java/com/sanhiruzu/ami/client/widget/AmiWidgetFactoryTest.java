@@ -32,7 +32,7 @@ public class AmiWidgetFactoryTest {
         Field field = AmiConfig.class.getField("mode");
         var widget = AmiWidgetFactory.createWidget(field, o -> {
         });
-        assertTrue(widget instanceof Button, "Enum field should create a Button widget");
+        assertTrue(widget instanceof AmiEnumDropdownWidget, "Enum field should create a dropdown widget");
     }
 
     @Test

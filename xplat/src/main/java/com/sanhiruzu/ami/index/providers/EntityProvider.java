@@ -2,8 +2,13 @@ package com.sanhiruzu.ami.index.providers;
 
 import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.index.sniffers.EntityDataSniffer;
+import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,8 +24,7 @@ public class EntityProvider implements IAmiDataProvider {
     private static final Set<String> NEUTRAL_MOBS = Set.of(
             "wolf", "bee", "polar_bear", "dolphin", "panda",
             "llama", "trader_llama", "goat", "iron_golem",
-            "piglin", "zombified_piglin", "enderman",
-            "spider", "cave_spider"
+            "piglin", "zombified_piglin", "enderman"
     );
 
     private static String classifyMobSubcategory(String path, MobCategory category) {
@@ -48,10 +52,51 @@ public class EntityProvider implements IAmiDataProvider {
         return tags.stream().distinct().collect(Collectors.joining(","));
     }
 
+    static Map<ResourceLocation, Set<String>> collectSpawnEggSearchAliases() {
+        Map<ResourceLocation, Set<String>> aliases = new HashMap<>();
+        for (Item item : BuiltInRegistries.ITEM) {
+            if (!(item instanceof SpawnEggItem egg)) {
+                continue;
+            }
+
+            ItemStack stack = new ItemStack(egg);
+            ResourceLocation entityId = Services.PLATFORM.getSpawnEggEntityTypeId(egg, stack);
+            if (entityId == null) {
+                continue;
+            }
+
+            String eggName = stack.getHoverName().getString();
+            if (eggName == null || eggName.isBlank()) {
+                continue;
+            }
+            aliases.computeIfAbsent(entityId, ignored -> new LinkedHashSet<>()).add(eggName);
+        }
+        return aliases;
+    }
+
+    private static void addPlainSearchTokens(Map<String, String> meta, Collection<String> tokens) {
+        if (tokens == null || tokens.isEmpty()) {
+            return;
+        }
+
+        LinkedHashSet<String> merged = new LinkedHashSet<>();
+        String existing = meta.get(SearchNodeKeys.PLAIN_SEARCH_TOKENS);
+        if (existing != null && !existing.isBlank()) {
+            merged.addAll(Arrays.asList(existing.split("\\s+")));
+        }
+        tokens.stream()
+                .filter(token -> token != null && !token.isBlank())
+                .forEach(merged::add);
+        if (!merged.isEmpty()) {
+            meta.put(SearchNodeKeys.PLAIN_SEARCH_TOKENS, String.join(" ", merged));
+        }
+    }
+
     @Override
     public void populate(GlobalIndex index, @Nullable Level level) {
         List<SearchNode> nodes = new ArrayList<>();
         EntityDataSniffer entityDataSniffer = new EntityDataSniffer();
+        Map<ResourceLocation, Set<String>> spawnEggAliases = collectSpawnEggSearchAliases();
 
         BuiltInRegistries.ENTITY_TYPE.entrySet().forEach(e -> {
             var id = e.getKey().location();
@@ -81,6 +126,7 @@ public class EntityProvider implements IAmiDataProvider {
             if (!tags.isEmpty()) {
                 meta.put(SearchNodeKeys.TAGS, tags);
             }
+            addPlainSearchTokens(meta, spawnEggAliases.get(id));
 
             // ── Classification ──────────────────────────────────────────────────
             // Default everything to bestiary category

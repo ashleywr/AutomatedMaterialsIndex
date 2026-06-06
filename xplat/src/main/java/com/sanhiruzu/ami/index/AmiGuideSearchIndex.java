@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.query.QueryParser;
+import com.sanhiruzu.ami.index.query.SearchSyntax;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
@@ -76,7 +77,7 @@ public final class AmiGuideSearchIndex {
         if (isGuideBooksFilterQuery(query, tokens)) {
             return List.copyOf(documents);
         }
-        if (hasPropertyToken(query)) {
+        if (hasIncompletePropertyToken(query)) {
             return List.of();
         }
 
@@ -209,13 +210,22 @@ public final class AmiGuideSearchIndex {
         return false;
     }
 
-    private static boolean hasPropertyToken(String query) {
+    private static boolean hasIncompletePropertyToken(String query) {
         for (QueryParser.QueryToken token : QueryParser.parse(query).tokens()) {
-            if (token.type() == QueryParser.TokenType.PROP) {
+            if (token.type() == QueryParser.TokenType.PROP
+                    && SearchSyntax.isIncompletePropertyFieldPrefix(propertyField(token.value()))) {
                 return true;
             }
         }
         return false;
+    }
+
+    private static String propertyField(String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
+            return "";
+        }
+        int separator = rawValue.indexOf(':');
+        return separator >= 0 ? rawValue.substring(0, separator) : rawValue;
     }
 
     private static boolean isGuideBookPropertyToken(String rawValue) {

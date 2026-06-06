@@ -4,6 +4,9 @@ import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.AmiGuiIcons;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.input.TextInputFilter;
+import com.sanhiruzu.ami.client.widget.AmiDropdownPopup;
+import com.sanhiruzu.ami.client.widget.AmiEnumDropdownWidget;
+import com.sanhiruzu.ami.client.widget.AmiPanelContentDropdownWidget;
 import com.sanhiruzu.ami.client.widget.AmiWidgetFactory;
 import com.sanhiruzu.ami.config.*;
 import com.sanhiruzu.ami.platform.Services;
@@ -25,8 +28,10 @@ public class AmiConfigScreen extends Screen {
     private CategoryList categories;
     private ConfigList list;
     private ConfigList.ConfigEntry focusedConfigEntry;
+    private AmiDropdownPopup openDropdown;
     private Button revertBtn;
     private Button defaultsBtn;
+    private boolean resetConfigScrollOnNextBuild;
 
     private String activeCategory = "general";
     private String searchQuery = "";
@@ -180,13 +185,16 @@ public class AmiConfigScreen extends Screen {
         Set<String> visibleGroups = new LinkedHashSet<>();
         seen.values().stream()
                 .sorted(Comparator.comparingInt(ConfigGroup::order))
+                .filter(g -> !"sidepanels".equals(g.value()))
                 .filter(g -> groupHasVisibleEntries(g.value()))
                 .forEach(g -> visibleGroups.add(g.value()));
         if (!visibleGroups.contains(activeCategory) && !visibleGroups.isEmpty()) {
             activeCategory = visibleGroups.iterator().next();
+            resetConfigScrollOnNextBuild = true;
         }
         seen.values().stream()
                 .sorted(Comparator.comparingInt(ConfigGroup::order))
+                .filter(g -> !"sidepanels".equals(g.value()))
                 .filter(g -> visibleGroups.contains(g.value()))
                 .forEach(g -> categories.publicAddEntry(categories.new CategoryEntry(g.value(), g.icon())));
     }
@@ -221,8 +229,22 @@ public class AmiConfigScreen extends Screen {
         updateButtonStates();
     }
 
+    private void onConfigDropdownOpened(AmiDropdownPopup dropdown) {
+        if (openDropdown != null && openDropdown != dropdown) {
+            openDropdown.close();
+        }
+        openDropdown = dropdown;
+    }
+
+    private void renderOpenDropdown(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        if (openDropdown != null && openDropdown.isOpen()) {
+            openDropdown.renderDropdownList(g, mouseX, mouseY, partialTick);
+        }
+    }
+
     private void onSearchChanged(String query) {
         this.searchQuery = query.toLowerCase();
+        resetConfigScrollOnNextBuild = true;
         buildConfigUI();
     }
 
@@ -231,6 +253,7 @@ public class AmiConfigScreen extends Screen {
         AMITheme.sync();
         AmiConfigStore.save();
         captureOriginalValues();
+        resetConfigScrollOnNextBuild = true;
         buildConfigUI();
         updateButtonStates();
     }
@@ -245,12 +268,14 @@ public class AmiConfigScreen extends Screen {
         AMITheme.sync();
         AmiConfigStore.save();
         captureOriginalValues();
+        resetConfigScrollOnNextBuild = true;
         buildConfigUI();
         updateButtonStates();
     }
 
     private void buildConfigUI() {
         focusedConfigEntry = null;
+        openDropdown = null;
         list.publicClearEntries();
         String currentGroup = null;
         String currentCompatSection = null;
@@ -261,16 +286,15 @@ public class AmiConfigScreen extends Screen {
             if (group != null) {
                 currentGroup = group.value();
                 currentCompatSection = null;
-                groupVisible = (searchQuery.isEmpty() ? currentGroup.equals(activeCategory) : true)
+                groupVisible = !"sidepanels".equals(currentGroup)
+                        && (searchQuery.isEmpty() ? currentGroup.equals(activeCategory) : true)
                         && groupHasRenderableEntries(currentGroup);
 
                 if (groupVisible) {
                     Component groupText = Component.translatable("ami.config.group." + currentGroup);
                     list.publicAddEntry(list.new HeaderEntry(groupText));
 
-                    if ("sidepanels".equals(currentGroup)) {
-                        addSidePanelEditorEntries();
-                    } else if ("layout".equals(currentGroup)) {
+                    if ("layout".equals(currentGroup)) {
                         addCustomizeLayoutEntry();
                     }
                 }
@@ -298,6 +322,13 @@ public class AmiConfigScreen extends Screen {
             if (field.isAnnotationPresent(ConfigGroupEnd.class) && "binds".equals(currentGroup) && groupVisible) {
                 addKeyMappingEntries();
             }
+            if (field.isAnnotationPresent(ConfigGroupEnd.class) && "layout".equals(currentGroup) && groupVisible) {
+                addLayoutPanelSectionEntries();
+            }
+        }
+        if (resetConfigScrollOnNextBuild) {
+            list.setScrollAmount(0.0);
+            resetConfigScrollOnNextBuild = false;
         }
     }
 
@@ -342,6 +373,14 @@ public class AmiConfigScreen extends Screen {
         addSlotListEntries(field("rightPanelAlternateSlots"));
     }
 
+    private void addLayoutPanelSectionEntries() {
+        if (!panelEditorMatchesSearch(true)) {
+            return;
+        }
+        list.publicAddEntry(list.new CompatSectionEntry(Component.translatable("ami.config.panel.section")));
+        addSidePanelEditorEntries();
+    }
+
     private void addSlotListEntries(Field slotsField) {
         List<AmiConfig.PanelContent> slots = readSlots(slotsField);
         if (slots.isEmpty()) {
@@ -380,17 +419,23 @@ public class AmiConfigScreen extends Screen {
     }
 
     private boolean groupHasVisibleEntries(String groupId) {
-        if ("sidepanels".equals(groupId) || "binds".equals(groupId)) {
+        if ("sidepanels".equals(groupId)) {
+            return false;
+        }
+        if ("binds".equals(groupId)) {
             return true;
         }
-        return groupHasMatchingConfigValue(groupId, false);
+        return groupHasMatchingConfigValue(groupId, false) || ("layout".equals(groupId) && panelEditorMatchesSearch(false));
     }
 
     private boolean groupHasRenderableEntries(String groupId) {
-        if ("sidepanels".equals(groupId) || "binds".equals(groupId)) {
+        if ("sidepanels".equals(groupId)) {
+            return false;
+        }
+        if ("binds".equals(groupId)) {
             return true;
         }
-        return groupHasMatchingConfigValue(groupId, true);
+        return groupHasMatchingConfigValue(groupId, true) || ("layout".equals(groupId) && panelEditorMatchesSearch(true));
     }
 
     private boolean groupHasMatchingConfigValue(String groupId, boolean applySearch) {
@@ -406,6 +451,34 @@ public class AmiConfigScreen extends Screen {
             ConfigValue value = field.getAnnotation(ConfigValue.class);
             Component valueText = Component.translatable("ami.config.value." + value.value());
             if (!applySearch || searchQuery.isEmpty() || valueText.getString().toLowerCase().contains(searchQuery)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean panelEditorMatchesSearch(boolean applySearch) {
+        if (!applySearch || searchQuery.isEmpty()) {
+            return true;
+        }
+        String[] keys = {
+                "ami.config.panel.section",
+                "ami.config.panel.left",
+                "ami.config.panel.right",
+                "ami.config.panel.width",
+                "ami.config.panel.normal_view",
+                "ami.config.panel.toggled_view",
+                "ami.config.panel.slot",
+                "ami.config.panel.add_slot",
+                "ami.config.panel.no_slots"
+        };
+        for (String key : keys) {
+            if (Component.translatable(key, "1").getString().toLowerCase().contains(searchQuery)) {
+                return true;
+            }
+        }
+        for (AmiConfig.PanelContent content : selectablePanelContents()) {
+            if (panelContentLabel(content).toLowerCase().contains(searchQuery)) {
                 return true;
             }
         }
@@ -446,8 +519,35 @@ public class AmiConfigScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (openDropdown != null && openDropdown.isOpen()) {
+            if (openDropdown.mouseClicked(mouseX, mouseY, button)) {
+                if (!openDropdown.isOpen()) {
+                    openDropdown = null;
+                }
+                return true;
+            }
+            openDropdown.close();
+            openDropdown = null;
+        }
         focusedConfigEntry = null;
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (focusedConfigEntry != null && focusedConfigEntry.mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (focusedConfigEntry != null && focusedConfigEntry.mouseReleased(mouseX, mouseY, button)) {
+            focusedConfigEntry = null;
+            return true;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override
@@ -481,6 +581,7 @@ public class AmiConfigScreen extends Screen {
         // Brand text rendered after widgets so it's not clipped by lists.
         g.drawString(this.font, Component.translatable("ami.config.brand_top"), 8, 8, AMITheme.CONFIG_BRAND_GOLD);
         g.drawString(this.font, Component.translatable("ami.config.brand_bottom"), 8, 18, AMITheme.CONFIG_TEXT_PRIMARY);
+        renderOpenDropdown(g, mouseX, mouseY, partialTick);
     }
 
     @Override
@@ -569,6 +670,9 @@ public class AmiConfigScreen extends Screen {
 
             @Override
             public boolean mouseClicked(double mouseX, double mouseY, int button) {
+                if (!activeCategory.equals(id)) {
+                    resetConfigScrollOnNextBuild = true;
+                }
                 activeCategory = id;
                 buildConfigUI();
                 return true;
@@ -645,7 +749,7 @@ public class AmiConfigScreen extends Screen {
                 this.field = field;
                 String tooltipKey = "ami.config.tooltip." + field.getAnnotation(ConfigValue.class).value();
                 this.tooltip = Tooltip.create(Component.translatable(tooltipKey));
-                this.widget = AmiWidgetFactory.createWidget(field, o -> onSettingChanged(field, o));
+                this.widget = AmiWidgetFactory.createWidget(field, o -> onSettingChanged(field, o), AmiConfigScreen.this::onConfigDropdownOpened);
             }
 
             @Override
@@ -654,7 +758,7 @@ public class AmiConfigScreen extends Screen {
                 boolean enabled = checkDependency(field);
                 int textColor = enabled ? AMITheme.CONFIG_TEXT_PRIMARY : AMITheme.CONFIG_TEXT_MUTED;
 
-                int widgetW = Math.min(75, width / 3);
+                int widgetW = Math.min(widget instanceof AmiEnumDropdownWidget || field.isAnnotationPresent(ConfigSlider.class) ? 110 : 75, width / 3);
                 int widgetX = x + width - (field.isAnnotationPresent(ConfigColor.class) ? widgetW + 28 : widgetW + 8);
 
                 String labelStr = label.getString();
@@ -677,7 +781,7 @@ public class AmiConfigScreen extends Screen {
                             color = field.getInt(null);
                         } catch (Exception ignored) {
                         }
-                        g.fill(x + width - 22, y + 4, x + width - 5, y + 20, 0xFF000000 | color);
+                        renderColorSwatch(g, x + width - 22, y + 4, color);
                         g.renderOutline(x + width - 23, y + 3, 19, 18, 0xFFFFFFFF);
                     }
                 }
@@ -701,6 +805,21 @@ public class AmiConfigScreen extends Screen {
                 return false;
             }
 
+            @Override
+            public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+                return widget != null && widget.active && widget.isFocused()
+                        && widget.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+            }
+
+            @Override
+            public boolean mouseReleased(double mouseX, double mouseY, int button) {
+                if (widget != null && widget.mouseReleased(mouseX, mouseY, button)) {
+                    widget.setFocused(false);
+                    return true;
+                }
+                return false;
+            }
+
             private boolean isColorSwatchMouseOver(double mouseX, double mouseY) {
                 int swatchX = widget.getX() + widget.getWidth() + 5;
                 return mouseX >= swatchX && mouseX <= swatchX + 19
@@ -716,6 +835,19 @@ public class AmiConfigScreen extends Screen {
                     }));
                 } catch (Exception ignored) {
                 }
+            }
+
+            private void renderColorSwatch(GuiGraphics g, int x, int y, int color) {
+                int preview = isAlphaColorField() || (color >>> 24) != 0 ? color : 0xFF000000 | color;
+                g.fill(x, y, x + 17, y + 16, 0xFFE6E6E6);
+                g.fill(x, y, x + 8, y + 8, 0xFF9A9A9A);
+                g.fill(x + 8, y + 8, x + 17, y + 16, 0xFF9A9A9A);
+                g.fill(x, y, x + 17, y + 16, preview);
+            }
+
+            private boolean isAlphaColorField() {
+                ConfigValue value = field.getAnnotation(ConfigValue.class);
+                return value != null && value.value().startsWith("palette.");
             }
 
             @Override
@@ -812,36 +944,32 @@ public class AmiConfigScreen extends Screen {
             private final Component label;
             private final Field field;
             private final int slotIndex;
-            private final Button button;
+            private final AmiPanelContentDropdownWidget dropdown;
             private final Button removeButton;
 
             PanelSlotEntry(Component label, Field field, int slotIndex) {
                 this.label = label;
                 this.field = field;
                 this.slotIndex = slotIndex;
-                this.button = Button.builder(currentMessage(), b -> cycle()).bounds(0, 0, 80, 18).build();
+                this.dropdown = new AmiPanelContentDropdownWidget(
+                        currentContent(),
+                        selectablePanelContents(),
+                        this::setSlot,
+                        AmiConfigScreen.this::onConfigDropdownOpened
+                );
                 this.removeButton = Button.builder(Component.literal("-"), b -> remove()).bounds(0, 0, 20, 18).build();
             }
 
-            private Component currentMessage() {
+            private AmiConfig.PanelContent currentContent() {
                 List<AmiConfig.PanelContent> slots = readSlots(field);
-                if (slotIndex < 0 || slotIndex >= slots.size()) return Component.literal("?");
-                return Component.literal(panelContentLabel(slots.get(slotIndex)));
+                if (slotIndex < 0 || slotIndex >= slots.size()) return AmiConfig.PanelContent.EMPTY;
+                return slots.get(slotIndex);
             }
 
-            private void cycle() {
+            private void setSlot(AmiConfig.PanelContent content) {
                 List<AmiConfig.PanelContent> slots = readSlots(field);
                 if (slotIndex < 0 || slotIndex >= slots.size()) return;
-                AmiConfig.PanelContent current = slots.get(slotIndex);
-                AmiConfig.PanelContent[] values = selectablePanelContents();
-                int next = 0;
-                for (int i = 0; i < values.length; i++) {
-                    if (values[i] == current) {
-                        next = (i + 1) % values.length;
-                        break;
-                    }
-                }
-                slots.set(slotIndex, values[next]);
+                slots.set(slotIndex, content);
                 writeSlots(field, slots);
                 AmiConfigScreen.this.buildConfigUI();
                 AmiConfigScreen.this.updateButtonStates();
@@ -867,21 +995,18 @@ public class AmiConfigScreen extends Screen {
                 removeButton.setY(y + 3);
                 removeButton.render(g, mouseX, mouseY, partialTick);
 
-                int btnW = Math.max(24, Math.min(80, width - 60));
-                int btnX = Math.max(x + 28, x + width - 26 - btnW);
-                if (btnX + btnW > removeX - 4) {
-                    btnX = x + 28;
-                }
-                button.setX(btnX);
-                button.setY(y + 3);
-                button.setWidth(btnW);
-                button.render(g, mouseX, mouseY, partialTick);
+                int dropdownW = Math.max(72, Math.min(118, width - 110));
+                int dropdownX = removeX - dropdownW - 4;
+                dropdown.setX(dropdownX);
+                dropdown.setY(y + 3);
+                dropdown.setWidth(dropdownW);
+                dropdown.render(g, mouseX, mouseY, partialTick);
             }
 
             @Override
             public boolean mouseClicked(double mouseX, double mouseY, int button) {
                 if (this.removeButton.mouseClicked(mouseX, mouseY, button)) return true;
-                if (this.button.mouseClicked(mouseX, mouseY, button)) return true;
+                if (this.dropdown.mouseClicked(mouseX, mouseY, button)) return true;
                 return false;
             }
 

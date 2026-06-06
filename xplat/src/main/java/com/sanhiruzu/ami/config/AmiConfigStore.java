@@ -33,6 +33,7 @@ public final class AmiConfigStore {
         }
         try {
             JsonObject root = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonObject();
+            migrateLegacyKeys(root);
             for (Field field : AmiConfig.class.getFields()) {
                 ConfigValue annotation = field.getAnnotation(ConfigValue.class);
                 if (annotation == null || !Modifier.isStatic(field.getModifiers())) {
@@ -46,6 +47,12 @@ public final class AmiConfigStore {
             }
         } catch (IOException | RuntimeException e) {
             System.err.println("AMI: failed to load config " + file + ": " + e.getMessage());
+        }
+    }
+
+    private static void migrateLegacyKeys(JsonObject root) {
+        if (!root.has("features.show-creative-items") && root.has("features.show-spawn-eggs")) {
+            root.add("features.show-creative-items", root.get("features.show-spawn-eggs"));
         }
     }
 

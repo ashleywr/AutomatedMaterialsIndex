@@ -17,6 +17,7 @@ import com.sanhiruzu.ami.index.AmiGuideSearchIndex;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.SearchService;
 import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.util.AmiClipboardHelper;
@@ -47,6 +48,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
     // Sidebar header height
     private static final int FAV_HEADER_H = 18;
     private static final int FAV_CONTENT_TOP_PAD = 3;
+    private static final int SIDEBAR_HEADER_TEXT_PAD_X = 6;
+    private static final int SIDEBAR_HEADER_TEXT_PAD_TOP = 5;
     private static final int SIDEBAR_RAIL_MAX_W = 64;
     private static final int SIDEBAR_RAIL_MAX_H = 44;
     private static final int SIDEBAR_SWAP_W = 18;
@@ -100,6 +103,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     // State tracking to trigger auto-refreshes when player context changes
     private net.minecraft.world.level.GameType lastPlayerMode = null;
     private boolean lastDevMode = false;
+    private boolean lastShowCreativeItems = false;
     private long lastIndexProgressRefreshMs = 0L;
 
     public UniversalResultsPanel(int x, int y, int width, int height) {
@@ -463,11 +467,13 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 }
                 var font = Minecraft.getInstance().font;
                 Component title = panelTitle != null ? panelTitle : Component.translatable("ami.gui.favorites");
+                int titleX = x + 3 + SIDEBAR_HEADER_TEXT_PAD_X;
+                int titleY = y + SIDEBAR_HEADER_TEXT_PAD_TOP;
                 int titleRight = hasSidebarAlternate()
                         ? sidebarSwapX() - AMITheme.ELEMENT_GAP
-                        : x + width - AMITheme.GLOBAL_PADDING;
-                String titleText = truncate(font, title.getString(), Math.max(0, titleRight - x - AMITheme.GLOBAL_PADDING));
-                g.drawString(font, titleText, x + AMITheme.GLOBAL_PADDING, y + (FAV_HEADER_H - font.lineHeight) / 2, AMITheme.TEXT_HEADER, false);
+                        : x + width - 3 - SIDEBAR_HEADER_TEXT_PAD_X;
+                String titleText = truncate(font, title.getString(), Math.max(0, titleRight - titleX));
+                g.drawString(font, titleText, titleX, titleY, AMITheme.TEXT_HEADER, false);
 
                 if (hasSidebarAlternate()) {
                     renderSidebarToggle(g, mouseX, mouseY);
@@ -744,14 +750,55 @@ public class UniversalResultsPanel implements SearchState.Listener {
         Component title = Component.translatable("ami.gui.sidebar.empty_state.title");
         Component hint = Component.translatable("ami.gui.sidebar.empty_state.hint");
         int titleY = ghostY + ghostH + 8;
-        drawCenteredTruncated(g, font, title.getString(), centerX, titleY, width - AMITheme.GLOBAL_PADDING * 2, AMITheme.TEXT_HEADER);
-        drawCenteredTruncated(g, font, hint.getString(), centerX, titleY + font.lineHeight + 2, width - AMITheme.GLOBAL_PADDING * 2, AMITheme.TEXT_SUBTLE);
+        int textMaxW = Math.max(20, width - AMITheme.GLOBAL_PADDING * 2);
+        int nextY = drawCenteredWrapped(g, font, title.getString(), centerX, titleY, textMaxW, AMITheme.TEXT_HEADER, 2);
+        int remainingHintLines = Math.max(1, (contentBottom - nextY) / (font.lineHeight + 2));
+        drawCenteredWrapped(g, font, hint.getString(), centerX, nextY + 2, textMaxW, AMITheme.TEXT_SUBTLE,
+                Math.min(3, remainingHintLines));
     }
 
     private static void drawCenteredTruncated(GuiGraphics g, net.minecraft.client.gui.Font font, String text,
                                               int centerX, int y, int maxWidth, int color) {
         String clipped = truncate(font, text, maxWidth);
         g.drawString(font, clipped, centerX - font.width(clipped) / 2, y, color, false);
+    }
+
+    private static int drawCenteredWrapped(GuiGraphics g, net.minecraft.client.gui.Font font, String text,
+                                           int centerX, int y, int maxWidth, int color, int maxLines) {
+        int lineY = y;
+        for (String line : wrapText(font, text, maxWidth, maxLines)) {
+            g.drawString(font, line, centerX - font.width(line) / 2, lineY, color, false);
+            lineY += font.lineHeight + 2;
+        }
+        return lineY;
+    }
+
+    private static List<String> wrapText(net.minecraft.client.gui.Font font, String text, int maxWidth, int maxLines) {
+        if (text == null || text.isBlank() || maxWidth <= 0 || maxLines <= 0) return List.of();
+
+        List<String> lines = new ArrayList<>();
+        String remaining = text.trim();
+        while (!remaining.isEmpty() && lines.size() < maxLines) {
+            String line = font.plainSubstrByWidth(remaining, maxWidth);
+            if (line.length() < remaining.length()) {
+                int wordBreak = line.lastIndexOf(' ');
+                if (wordBreak > 0) {
+                    line = line.substring(0, wordBreak);
+                }
+            }
+            line = line.trim();
+            if (line.isEmpty()) {
+                line = font.plainSubstrByWidth(remaining, maxWidth).trim();
+            }
+            if (line.isEmpty()) break;
+
+            remaining = remaining.substring(Math.min(line.length(), remaining.length())).trim();
+            if (!remaining.isEmpty() && lines.size() == maxLines - 1) {
+                line = truncate(font, line + "...", maxWidth);
+            }
+            lines.add(line);
+        }
+        return List.copyOf(lines);
     }
 
     private boolean hasSidebarAlternate() {
@@ -903,8 +950,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
             int iconX = innerX + 2;
             int iconY = rowY + 2;
-            ResourceLocation bookId = row.document().bookId();
-            ItemStack bookStack = bookId != null ? new ItemStack(BuiltInRegistries.ITEM.get(bookId)) : ItemStack.EMPTY;
+            ItemStack bookStack = guideBookStack(row.document());
             if (!bookStack.isEmpty()) {
                 g.pose().pushPose();
                 g.renderItem(bookStack, iconX, iconY);
@@ -1045,10 +1091,12 @@ public class UniversalResultsPanel implements SearchState.Listener {
         var mc = Minecraft.getInstance();
         var gameMode = mc.gameMode != null ? mc.gameMode.getPlayerMode() : null;
         boolean devMode = AmiConfig.devMode;
+        boolean showCreativeItems = AmiConfig.shouldShowCreativeItems(gameMode);
 
-        if (gameMode != lastPlayerMode || devMode != lastDevMode) {
+        if (gameMode != lastPlayerMode || devMode != lastDevMode || showCreativeItems != lastShowCreativeItems) {
             lastPlayerMode = gameMode;
             lastDevMode = devMode;
+            lastShowCreativeItems = showCreativeItems;
             refreshTree();
         }
     }
@@ -1107,7 +1155,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 + "|favorites=" + isFavoritesPanel
                 + "|dev=" + AmiConfig.devMode
                 + "|cheat=" + AmiConfig.cheatMode
-                + "|hidden=" + AmiConfig.showHiddenModItems;
+                + "|hidden=" + AmiConfig.showHiddenModItems
+                + "|creative=" + AmiConfig.shouldShowCreativeItems(lastPlayerMode);
     }
 
     private void invalidateProjectionCache() {
@@ -1300,6 +1349,59 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (bookId != null) {
             AmiGuideOpeners.patchouli(bookId, document.pageId()).run();
         }
+    }
+
+    private static ItemStack guideBookStack(AmiGuideDocument document) {
+        if (document == null || document.bookId() == null) {
+            return ItemStack.EMPTY;
+        }
+
+        ItemStack iconStack = guideIconStack(document);
+        if (!iconStack.isEmpty()) {
+            return iconStack;
+        }
+
+        ItemStack directBook = new ItemStack(BuiltInRegistries.ITEM.get(document.bookId()));
+        if (!directBook.isEmpty()) {
+            return directBook;
+        }
+
+        for (SearchNode node : GlobalIndex.getInstance().getNodes(NodeType.ITEM)) {
+            if (!document.bookId().toString().equals(node.meta(SearchNodeKeys.GUIDE_BOOK_ID, ""))) {
+                continue;
+            }
+            try {
+                ItemStack stack = com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node);
+                if (!stack.isEmpty()) {
+                    return stack;
+                }
+            } catch (RuntimeException ignored) {
+                // Keep trying other guidebook candidates.
+            }
+        }
+        return ItemStack.EMPTY;
+    }
+
+    private static ItemStack guideIconStack(AmiGuideDocument document) {
+        ResourceLocation iconItemId = document.iconItemId();
+        if (iconItemId == null) {
+            return ItemStack.EMPTY;
+        }
+        for (SearchNode node : GlobalIndex.getInstance().getNodes(NodeType.ITEM)) {
+            if (!iconItemId.equals(node.id())) {
+                continue;
+            }
+            if (!document.bookId().toString().equals(node.meta(SearchNodeKeys.GUIDE_BOOK_ID, ""))) {
+                return ItemStack.EMPTY;
+            }
+            try {
+                ItemStack stack = com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node);
+                return stack.isEmpty() ? new ItemStack(BuiltInRegistries.ITEM.get(iconItemId)) : stack;
+            } catch (RuntimeException ignored) {
+                return new ItemStack(BuiltInRegistries.ITEM.get(iconItemId));
+            }
+        }
+        return ItemStack.EMPTY;
     }
 
     private static String truncate(net.minecraft.client.gui.Font font, String text, int maxWidth) {

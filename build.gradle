@@ -225,3 +225,76 @@ tasks.register('writeVanillaFtbQuestFixture', Exec) {
             '-RunName', 'neoforge-emi',
             '-CleanGenerated'
 }
+
+def prismInstancesDir = providers.gradleProperty('amiPrismInstancesDir')
+        .orElse(providers.environmentVariable('PRISM_INSTANCES_DIR'))
+        .orElse(providers.environmentVariable('APPDATA').map { "${it}/PrismLauncher/instances" })
+
+def registerPrismCompatJarDeploy = { String taskName,
+                                    String description,
+                                    String jarTaskPath,
+                                    Object jarFileSource,
+                                    String instanceName,
+                                    String staleJarPrefix ->
+    def modsDir = prismInstancesDir.map { instancesDir ->
+        layout.projectDirectory.file("${instancesDir}/${instanceName}/minecraft/mods").asFile
+    }
+    def cleanTask = tasks.register("${taskName}Clean", Delete) {
+        notCompatibleWithConfigurationCache('Local Prism deployment deletes files from a user-specific directory.')
+        delete modsDir.map { target ->
+            if (!target.directory) {
+                return []
+            }
+            target.listFiles()
+                    ?.findAll { file -> file.name.startsWith(staleJarPrefix) && file.name.endsWith('.jar') }
+                    ?: []
+        }
+    }
+
+    tasks.register(taskName, Copy) {
+        notCompatibleWithConfigurationCache('Local Prism deployment copies files into a user-specific directory.')
+        group = 'deployment'
+        description = description
+
+        dependsOn jarTaskPath
+        dependsOn cleanTask
+        from(jarFileSource)
+        into(modsDir)
+    }
+}
+
+def amiDebugBuild = providers.gradleProperty('ami_debug_build').map { it.toBoolean() }.getOrElse(false)
+def amiEffectiveModVersion = amiDebugBuild ? "${mod_version}-debug" : mod_version
+def neoForgePrismJarFile = project(':neoforge').layout.buildDirectory.file(
+        amiDebugBuild
+                ? "libs/${mod_id}-neoforge-${neoforge_minecraft_version}-${mod_version}-debug.jar"
+                : "libs/${mod_id}-neoforge-${neoforge_minecraft_version}-${mod_version}.jar"
+)
+def forgePrismJarFile = project(':forge').layout.buildDirectory.file(
+        "release/${mod_id}-forge-${forge_minecraft_version}-${amiEffectiveModVersion}.jar"
+)
+
+def deployNeoForgePrismCompatJar = registerPrismCompatJarDeploy(
+        'deployNeoForgePrismCompatJar',
+        'Builds and copies the NeoForge AMI jar into the Prism AMICompat instance.',
+        ':neoforge:jar',
+        neoForgePrismJarFile,
+        'AMICompat',
+        'ami-neoforge-'
+)
+
+def deployForgePrismCompatJar = registerPrismCompatJarDeploy(
+        'deployForgePrismCompatJar',
+        'Builds and copies the reobfuscated Forge AMI jar into the Prism AMICompatForge instance.',
+        ':forge:forgeReleaseJar',
+        forgePrismJarFile,
+        'AMICompatForge',
+        'ami-forge-'
+)
+
+tasks.register('deployPrismCompatJars') {
+    group = 'deployment'
+    description = 'Builds AMI and updates the AMICompat and AMICompatForge Prism Launcher instances.'
+    dependsOn deployNeoForgePrismCompatJar
+    dependsOn deployForgePrismCompatJar
+}

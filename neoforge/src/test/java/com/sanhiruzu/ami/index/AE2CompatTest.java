@@ -138,6 +138,19 @@ class AE2CompatTest {
     }
 
     @Test
+    void guideItemLinksToGuideMeBook() {
+        Map<String, String> meta = meta("ae2", "Applied Energistics 2",
+                "appeng.items.tools.GuideItem", "");
+
+        AE2Compat.enrichItem(new ResourceLocation("ae2", "guide"), meta);
+
+        assertEquals("true", meta.get(SearchNodeKeys.GUIDE_BOOK_CANDIDATE));
+        assertEquals("guideme", meta.get(SearchNodeKeys.GUIDE_BOOK_SYSTEM));
+        assertEquals("ae2:guide", meta.get(SearchNodeKeys.GUIDE_BOOK_ID));
+        assertTrue(meta.getOrDefault(SearchNodeKeys.AE2_FACTS, "").contains("guide"));
+    }
+
+    @Test
     void semanticAe2PolicyKeepsTerminalInNormalOntology() {
         AmiConfig.CompatCategoryPolicy oldPolicy = AmiConfig.ae2CategoryPolicy;
         try {

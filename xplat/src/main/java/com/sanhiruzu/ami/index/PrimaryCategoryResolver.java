@@ -26,13 +26,13 @@ public final class PrimaryCategoryResolver {
             "blaze", "bogged", "breeze", "creeper", "drowned", "elder_guardian",
             "ender_dragon", "endermite", "evoker", "ghast", "guardian", "hoglin",
             "husk", "magma_cube", "phantom", "piglin_brute", "pillager", "ravager",
-            "shulker", "silverfish", "skeleton", "slime", "spider", "stray",
+            "shulker", "silverfish", "skeleton", "slime", "spider", "cave_spider", "stray",
             "vex", "vindicator", "warden", "witch", "wither", "wither_skeleton",
             "zoglin", "zombie", "zombie_villager"
     );
     private static final Set<String> NEUTRAL_SPAWN_EGGS = Set.of(
-            "bee", "cave_spider", "dolphin", "enderman", "goat", "iron_golem",
-            "llama", "panda", "piglin", "polar_bear", "spider", "trader_llama",
+            "bee", "dolphin", "enderman", "goat", "iron_golem",
+            "llama", "panda", "piglin", "polar_bear", "trader_llama",
             "wolf", "zombified_piglin"
     );
     private static final Set<String> DECOR_TOKENS = Set.of(

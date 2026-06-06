@@ -17,6 +17,7 @@ public record AmiGuideDocument(
         String sourceType,
         String modId,
         ResourceLocation bookId,
+        ResourceLocation iconItemId,
         String pageId,
         String title,
         String chapter,
@@ -77,6 +78,7 @@ public record AmiGuideDocument(
         private final String modId;
         private final String title;
         private ResourceLocation bookId;
+        private ResourceLocation iconItemId;
         private String pageId = "";
         private String chapter = "";
         private final List<ResourceLocation> referencedItems = new ArrayList<>();
@@ -93,6 +95,11 @@ public record AmiGuideDocument(
 
         public Builder bookId(ResourceLocation bookId) {
             this.bookId = bookId;
+            return this;
+        }
+
+        public Builder iconItemId(ResourceLocation iconItemId) {
+            this.iconItemId = iconItemId;
             return this;
         }
 
@@ -155,6 +162,7 @@ public record AmiGuideDocument(
                     sourceType,
                     modId,
                     bookId,
+                    iconItemId,
                     pageId,
                     title,
                     chapter,

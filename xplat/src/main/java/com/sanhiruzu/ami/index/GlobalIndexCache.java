@@ -30,7 +30,7 @@ import java.util.zip.GZIPOutputStream;
  * STRUCTURE and DIMENSION are always live-loaded (world/datapack-specific).
  */
 public final class GlobalIndexCache {
-    private static final int CACHE_VERSION = 50; // Bump this when index data format changes
+    private static final int CACHE_VERSION = 51; // Bump this when index data format changes
 
     private static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
@@ -143,7 +143,6 @@ public final class GlobalIndexCache {
                     .reduce("", (a, b) -> a + "|" + b)
                     + "_v" + CACHE_VERSION
                     + "_lang=" + currentClientLanguageCacheKey()
-                    + "_spawnEggs=" + AmiConfig.showSpawnEggs
                     + "_hidden=" + AmiConfig.showHiddenModItems
                     + "_strictSurvival=" + AmiConfig.strictSurvivalMode
                     + "_cheat=" + AmiConfig.cheatMode

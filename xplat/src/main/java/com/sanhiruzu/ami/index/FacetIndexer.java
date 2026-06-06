@@ -140,7 +140,8 @@ public final class FacetIndexer {
         if (containsAny(itemClass, "crystalitem", "stardustitem")) {
             facets.add(ItemFacet.MAGIC_REAGENT);
         }
-        if (containsAny(itemClass, "itemmodbook", "guidebookitem", "guide_book", "manualitem", "lexiconitem", "codexitem")) {
+        if (containsAny(itemClass, "itemmodbook", "modonomiconitem", "guidebookitem", "guideitem", "guide_book",
+                "manualitem", "lexiconitem", "codexitem", "cookbookitem")) {
             facets.add(ItemFacet.BOOK);
             facets.add(ItemFacet.GUIDE_BOOK);
             attributes.put(SearchNodeKeys.GUIDE_BOOK_CANDIDATE, "true");
@@ -148,6 +149,8 @@ public final class FacetIndexer {
                 attributes.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "patchouli");
             } else if (itemClass.contains("guideme")) {
                 attributes.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "guideme");
+            } else if (itemClass.contains("modonomicon") || itemClass.contains("spectrum")) {
+                attributes.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "modonomicon");
             }
         }
     }
@@ -189,6 +192,9 @@ public final class FacetIndexer {
             facets.add(ItemFacet.UTILITY_NAVIGATION);
         }
         if (containsPathToken(path, "book", "books") || path.endsWith("_book")) {
+            facets.add(ItemFacet.BOOK);
+        }
+        if (containsPathToken(path, "tome")) {
             facets.add(ItemFacet.BOOK);
         }
         if (isGuideBookPath(path)) {
@@ -817,8 +823,7 @@ public final class FacetIndexer {
                 "codex",
                 "journal",
                 "compendium",
-                "chronicle",
-                "tome")
+                "chronicle")
                 || path.equals("guide")
                 || path.equals("guides")
                 || path.endsWith("_guide")

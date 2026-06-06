@@ -246,6 +246,7 @@ public final class AMITheme {
     // ── Rendering helpers ─────────────────────────────────────────────────────
 
     public static int getSwatchColor(String colorName) {
+        if (colorName == null) return SWATCH_DEFAULT;
         return SWATCH_COLORS.getOrDefault(colorName.toLowerCase(java.util.Locale.ROOT), SWATCH_DEFAULT);
     }
 
@@ -253,8 +254,7 @@ public final class AMITheme {
      * Draws a 1px border around a 2px-radius rounded rectangle.
      */
     public static void drawRoundedBorder(GuiGraphics g, int x, int y, int w, int h, int backgroundColor, int borderColor) {
-        fillRounded(g, x, y, w, h, borderColor);
-        fillRounded(g, x + 1, y + 1, w - 2, h - 2, backgroundColor);
+        fillPixelCornerBorder(g, x, y, w, h, backgroundColor, borderColor);
     }
 
     /**
@@ -262,6 +262,7 @@ public final class AMITheme {
      * Falls back to a plain fill when the rectangle is too small to round.
      */
     public static void fillRounded(GuiGraphics g, int x, int y, int w, int h, int color) {
+        if (w <= 0 || h <= 0 || (color >>> 24) == 0) return;
         if (w < 5 || h < 5) {
             g.fill(x, y, x + w, y + h, color);
             return;
@@ -274,6 +275,50 @@ public final class AMITheme {
         g.fill(x + w - 1, y + 2, x + w, y + h - 2, color); // Right edge
     }
 
+    public static void fillPixelPopup(GuiGraphics g, int x, int y, int w, int h, int fill, int border, int shadow, int accent) {
+        if (w <= 0 || h <= 0) return;
+        if ((shadow >>> 24) != 0) {
+            fillPixelCorner(g, x + 2, y + 2, w, h, shadow);
+        }
+        fillPixelCornerBorder(g, x, y, w, h, fill, border);
+        if ((accent >>> 24) != 0 && w > 4 && h > 4) {
+            fillVisible(g, x + 2, y + 2, x + w - 2, y + 3, accent);
+        }
+    }
+
+    public static void fillSuggestionPopup(GuiGraphics g, int x, int y, int w, int h) {
+        if (w <= 0 || h <= 0) return;
+        fillPixelCorner(g, x, y, w, h, solidPopupColor(DROPDOWN_LIST_BG));
+        fillVisible(g, x + 1, y, x + w - 1, y + 1, BORDER_LIGHT);
+        fillVisible(g, x + 1, y + h - 1, x + w - 1, y + h, BORDER_DARK);
+        fillVisible(g, x, y + 1, x + 1, y + h - 1, BORDER_LIGHT);
+        fillVisible(g, x + w - 1, y + 1, x + w, y + h - 1, BORDER_DARK);
+    }
+
+    public static void fillPixelCornerBorder(GuiGraphics g, int x, int y, int w, int h, int fill, int border) {
+        if (w <= 0 || h <= 0) return;
+        if (w < 4 || h < 4) {
+            fillBorderedRect(g, x, y, w, h, fill, border);
+            return;
+        }
+        fillPixelCorner(g, x, y, w, h, fill);
+        fillVisible(g, x + 1, y, x + w - 1, y + 1, border);
+        fillVisible(g, x + 1, y + h - 1, x + w - 1, y + h, border);
+        fillVisible(g, x, y + 1, x + 1, y + h - 1, border);
+        fillVisible(g, x + w - 1, y + 1, x + w, y + h - 1, border);
+    }
+
+    public static void fillPixelCorner(GuiGraphics g, int x, int y, int w, int h, int color) {
+        if (w <= 0 || h <= 0) return;
+        if (w < 3 || h < 3) {
+            fillVisible(g, x, y, x + w, y + h, color);
+            return;
+        }
+        fillVisible(g, x + 1, y, x + w - 1, y + h, color);
+        fillVisible(g, x, y + 1, x + 1, y + h - 1, color);
+        fillVisible(g, x + w - 1, y + 1, x + w, y + h - 1, color);
+    }
+
     public static void fillPanelChrome(GuiGraphics g, int x, int y, int w, int h) {
         if (w <= 0 || h <= 0) return;
         fillVisible(g, x, y, x + w, y + h, PANEL_BG);
@@ -284,33 +329,35 @@ public final class AMITheme {
     }
 
     public static void fillInsetRect(GuiGraphics g, int x, int y, int w, int h, int fill, boolean pressed) {
-        g.fill(x, y, x + w, y + h, fill);
+        if (w <= 0 || h <= 0) return;
+        fillVisible(g, x, y, x + w, y + h, fill);
         fillPixelTexture(g, x + 1, y + 1, w - 2, h - 2);
 
         int top = pressed ? CONTROL_EDGE_DARK : CONTROL_EDGE_LIGHT;
         int bottom = pressed ? CONTROL_EDGE_LIGHT : CONTROL_EDGE_DARK;
-        g.fill(x, y, x + w, y + 1, top);
-        g.fill(x, y, x + 1, y + h, top);
-        g.fill(x, y + h - 1, x + w, y + h, bottom);
-        g.fill(x + w - 1, y, x + w, y + h, bottom);
+        fillVisible(g, x, y, x + w, y + 1, top);
+        fillVisible(g, x, y, x + 1, y + h, top);
+        fillVisible(g, x, y + h - 1, x + w, y + h, bottom);
+        fillVisible(g, x + w - 1, y, x + w, y + h, bottom);
     }
 
     public static void fillBorderedRect(GuiGraphics g, int x, int y, int w, int h, int fill, int border) {
         if (w <= 0 || h <= 0) return;
-        g.fill(x, y, x + w, y + h, fill);
-        g.fill(x, y, x + w, y + 1, border);
-        g.fill(x, y + h - 1, x + w, y + h, border);
-        g.fill(x, y, x + 1, y + h, border);
-        g.fill(x + w - 1, y, x + w, y + h, border);
+        fillVisible(g, x, y, x + w, y + h, fill);
+        fillVisible(g, x, y, x + w, y + 1, border);
+        fillVisible(g, x, y + h - 1, x + w, y + h, border);
+        fillVisible(g, x, y, x + 1, y + h, border);
+        fillVisible(g, x + w - 1, y, x + w, y + h, border);
     }
 
     public static void fillControlChrome(GuiGraphics g, int x, int y, int w, int h, int fill, boolean pressed) {
-        if (!pressed && CONTROL_SHADOW != 0) {
-            g.fill(x + 1, y + 1, x + w + 1, y + h + 1, CONTROL_SHADOW);
+        if (w <= 0 || h <= 0) return;
+        if (!pressed && (CONTROL_SHADOW >>> 24) != 0) {
+            fillVisible(g, x + 1, y + 1, x + w + 1, y + h + 1, CONTROL_SHADOW);
         }
         fillInsetRect(g, x, y, w, h, fill, pressed);
         if (!pressed) {
-            g.fill(x + 1, y + h - 2, x + w - 1, y + h - 1, 0x22000000);
+            fillVisible(g, x + 1, y + h - 2, x + w - 1, y + h - 1, 0x22000000);
         }
     }
 
@@ -344,25 +391,224 @@ public final class AMITheme {
         g.fill(x1, y1, x2, y2, color);
     }
 
+    private static int solidPopupColor(int argb) {
+        int alpha = (argb >>> 24) & 0xFF;
+        return (Math.max(alpha, 0xF0) << 24) | (argb & 0x00FFFFFF);
+    }
+
+    private static int visibleColor(int color) {
+        return (color >>> 24) == 0 ? 0xFF000000 | color : color;
+    }
+
+    private static int transparencyAdjusted(int color, int percent) {
+        return transparencyAdjusted(color, percent, 0);
+    }
+
+    private static int transparencyAdjusted(int color, int percent, int minAlphaAtFull) {
+        int alpha = (color >>> 24) & 0xFF;
+        if (alpha == 0 || percent <= 0) return color;
+        int nextAlpha = Math.max(0, Math.min(255, alpha * (100 - percent) / 100));
+        if (percent >= 100 && minAlphaAtFull > 0) {
+            nextAlpha = Math.max(nextAlpha, Math.min(alpha, minAlphaAtFull));
+        }
+        return (nextAlpha << 24) | (color & 0x00FFFFFF);
+    }
+
+    private static void applyThemeTransparency() {
+        int percent = Math.max(0, Math.min(99, AmiConfig.themeTransparency));
+        if (percent <= 0) return;
+
+        PANEL_BG = transparencyAdjusted(PANEL_BG, percent);
+        PANEL_INNER = transparencyAdjusted(PANEL_INNER, percent);
+        PANEL_TEXTURE_LIGHT = transparencyAdjusted(PANEL_TEXTURE_LIGHT, percent);
+        PANEL_TEXTURE_DARK = transparencyAdjusted(PANEL_TEXTURE_DARK, percent);
+        PANEL_HEADER_BG = transparencyAdjusted(PANEL_HEADER_BG, percent);
+        PANEL_CONTENT_BG = transparencyAdjusted(PANEL_CONTENT_BG, percent);
+        PANEL_CONTENT_BORDER = transparencyAdjusted(PANEL_CONTENT_BORDER, percent, 0x20);
+
+        HEADER_BG = transparencyAdjusted(HEADER_BG, percent);
+        HEADER_SEP = transparencyAdjusted(HEADER_SEP, percent);
+        GROUP_BG = transparencyAdjusted(GROUP_BG, percent);
+        GROUP_BG_HOVER = transparencyAdjusted(GROUP_BG_HOVER, percent);
+        GROUP_HEADER_BG = transparencyAdjusted(GROUP_HEADER_BG, percent);
+
+        SIDEBAR_BG = transparencyAdjusted(SIDEBAR_BG, percent);
+        SIDEBAR_SELECTION = transparencyAdjusted(SIDEBAR_SELECTION, percent, 0x20);
+        ENTRY_HOVER = transparencyAdjusted(ENTRY_HOVER, percent, 0x20);
+
+        SECTION_SEP = transparencyAdjusted(SECTION_SEP, percent);
+        ROW_SEPARATOR = transparencyAdjusted(ROW_SEPARATOR, percent);
+        SLOT_BG = transparencyAdjusted(SLOT_BG, percent);
+        SLOT_EDGE_LIGHT = transparencyAdjusted(SLOT_EDGE_LIGHT, percent, 0x20);
+        SLOT_EDGE_DARK = transparencyAdjusted(SLOT_EDGE_DARK, percent, 0x20);
+        SLOT_HOVER = transparencyAdjusted(SLOT_HOVER, percent, 0x20);
+
+        DROPDOWN_BG = transparencyAdjusted(DROPDOWN_BG, percent, 0x20);
+        DROPDOWN_BG_ACTIVE = transparencyAdjusted(DROPDOWN_BG_ACTIVE, percent, 0x28);
+        DROPDOWN_LIST_BG = transparencyAdjusted(DROPDOWN_LIST_BG, percent, 0x28);
+        CONTROL_EDGE_LIGHT = transparencyAdjusted(CONTROL_EDGE_LIGHT, percent, 0x20);
+        CONTROL_EDGE_DARK = transparencyAdjusted(CONTROL_EDGE_DARK, percent, 0x20);
+        CONTROL_SHADOW = transparencyAdjusted(CONTROL_SHADOW, percent);
+
+        SCROLL_TRACK = transparencyAdjusted(SCROLL_TRACK, percent);
+        SCROLL_THUMB = transparencyAdjusted(SCROLL_THUMB, percent, 0x20);
+        SCROLL_THUMB_ACTIVE = transparencyAdjusted(SCROLL_THUMB_ACTIVE, percent, 0x28);
+        SCROLL_INDICATOR_BG = transparencyAdjusted(SCROLL_INDICATOR_BG, percent);
+
+        GRID_GOLD_TINT = transparencyAdjusted(GRID_GOLD_TINT, percent);
+        GRID_HEADER_DARKEN = transparencyAdjusted(GRID_HEADER_DARKEN, percent);
+        GRID_ROW_TINT_EVEN = transparencyAdjusted(GRID_ROW_TINT_EVEN, percent);
+        GRID_ROW_TINT_ODD = transparencyAdjusted(GRID_ROW_TINT_ODD, percent);
+        GRID_GROUP_BAND = transparencyAdjusted(GRID_GROUP_BAND, percent);
+        GRID_GROUP_BAND_ALT = transparencyAdjusted(GRID_GROUP_BAND_ALT, percent);
+        GRID_GROUP_RAIL = transparencyAdjusted(GRID_GROUP_RAIL, percent);
+        GRID_GROUP_ROOT_BG = transparencyAdjusted(GRID_GROUP_ROOT_BG, percent);
+        GRID_GROUP_CHILD_BG = transparencyAdjusted(GRID_GROUP_CHILD_BG, percent);
+
+        SEARCH_BAR_BG = transparencyAdjusted(SEARCH_BAR_BG, percent, 0x20);
+        SEARCH_BAR_BORDER = transparencyAdjusted(SEARCH_BAR_BORDER, percent, 0x28);
+        SEARCH_SELECTION = transparencyAdjusted(SEARCH_SELECTION, percent, 0x30);
+        SEARCH_HELP_BG = transparencyAdjusted(SEARCH_HELP_BG, percent, 0x28);
+        SEARCH_HELP_BORDER = transparencyAdjusted(SEARCH_HELP_BORDER, percent, 0x28);
+        SEARCH_HELP_SHADOW = transparencyAdjusted(SEARCH_HELP_SHADOW, percent);
+        SEARCH_HELP_CHIP_BG = transparencyAdjusted(SEARCH_HELP_CHIP_BG, percent, 0x18);
+        SEARCH_HELP_CHIP_BORDER = transparencyAdjusted(SEARCH_HELP_CHIP_BORDER, percent, 0x20);
+        SEARCH_HELP_SECTION_LINE = transparencyAdjusted(SEARCH_HELP_SECTION_LINE, percent, 0x18);
+
+        BORDER_LIGHT = transparencyAdjusted(BORDER_LIGHT, percent, 0x20);
+        BORDER_DARK = transparencyAdjusted(BORDER_DARK, percent, 0x20);
+        GRADIENT_SHADOW = transparencyAdjusted(GRADIENT_SHADOW, percent);
+        CONFIG_CARD_BG = transparencyAdjusted(CONFIG_CARD_BG, percent, 0x18);
+        CONFIG_SEP = transparencyAdjusted(CONFIG_SEP, percent, 0x20);
+
+        RECIPE_BG_OVERLAY = transparencyAdjusted(RECIPE_BG_OVERLAY, percent);
+        RECIPE_PANEL = transparencyAdjusted(RECIPE_PANEL, percent, 0x20);
+        RECIPE_PANEL_INNER = transparencyAdjusted(RECIPE_PANEL_INNER, percent, 0x18);
+        RECIPE_BORDER = transparencyAdjusted(RECIPE_BORDER, percent, 0x20);
+        RECIPE_HEADER_LINE = transparencyAdjusted(RECIPE_HEADER_LINE, percent, 0x18);
+        RECIPE_TAB_HOVER = transparencyAdjusted(RECIPE_TAB_HOVER, percent, 0x20);
+        RECIPE_TAB_IDLE = transparencyAdjusted(RECIPE_TAB_IDLE, percent, 0x18);
+        RECIPE_SLOT_BORDER = transparencyAdjusted(RECIPE_SLOT_BORDER, percent, 0x20);
+        RECIPE_SLOT_BG = transparencyAdjusted(RECIPE_SLOT_BG, percent, 0x18);
+        RECIPE_ARROW_ANIM = transparencyAdjusted(RECIPE_ARROW_ANIM, percent);
+        RECIPE_BTN_IDLE = transparencyAdjusted(RECIPE_BTN_IDLE, percent, 0x20);
+        RECIPE_BTN_HOVER = transparencyAdjusted(RECIPE_BTN_HOVER, percent, 0x28);
+    }
+
     public static void sync() {
         GLOBAL_PADDING = AmiConfig.globalPadding;
         ROW_HEIGHT = AmiConfig.rowHeight;
         ICON_SIZE = AmiConfig.iconSize;
         ELEMENT_GAP = AmiConfig.elementGap;
 
+        int accent = visibleColor(AmiConfig.accentColor);
         PANEL_BG = AmiConfig.panelBg;
         PANEL_INNER = AmiConfig.searchBarBg;
+        PANEL_TEXTURE_LIGHT = 0x08FFFFFF;
+        PANEL_TEXTURE_DARK = 0x12000000;
+        PANEL_HEADER_BG = AmiConfig.cardBg;
+        PANEL_CONTENT_BG = AmiConfig.cardBg;
+        PANEL_CONTENT_BORDER = AmiConfig.searchBarBorder;
+
+        HEADER_BG = AmiConfig.groupHeaderBg;
+        HEADER_SEP = AmiConfig.searchBarBorder;
+        HEADER_TEXT = visibleColor(AmiConfig.groupHeaderText);
+
+        GROUP_BG = AmiConfig.groupHeaderBg;
+        GROUP_BG_HOVER = AmiConfig.cardBgHover;
+        GROUP_TEXT = visibleColor(AmiConfig.groupHeaderText);
+        GROUP_HEADER_BG = AmiConfig.groupHeaderBg;
+        GROUP_HEADER_TEXT = visibleColor(AmiConfig.groupHeaderText);
+
+        SIDEBAR_BG = AmiConfig.panelBg;
+        SIDEBAR_TEXT = visibleColor(AmiConfig.cardTextSubtitle);
+        SIDEBAR_TEXT_ACTIVE = visibleColor(AmiConfig.cardTextName);
+        SIDEBAR_SELECTION = AmiConfig.cardBgHover;
+
         SEARCH_BAR_BG = AmiConfig.searchBarBg;
         SEARCH_BAR_BORDER = AmiConfig.searchBarBorder;
         ENTRY_HOVER = AmiConfig.cardBgHover;
-        ENTRY_TEXT = AmiConfig.cardTextName;
-        ENTRY_SUBTITLE = AmiConfig.cardTextSubtitle;
-        TEXT_PRIMARY = AmiConfig.cardTextName;
-        TEXT_SUBTLE = AmiConfig.cardTextSubtitle;
-        SLOT_BG = 0; // default transparent
+        ENTRY_TEXT = visibleColor(AmiConfig.cardTextName);
+        ENTRY_SUBTITLE = visibleColor(AmiConfig.cardTextSubtitle);
+
+        SECTION_SEP = AmiConfig.searchBarBorder;
+        ROW_SEPARATOR = AmiConfig.searchBarBorder;
+        TEXT_HEADER = visibleColor(AmiConfig.groupHeaderText);
+        TEXT_PRIMARY = visibleColor(AmiConfig.cardTextName);
+        TEXT_SUBTLE = visibleColor(AmiConfig.cardTextSubtitle);
+        TEXT_HIGHLIGHT = accent;
+        MOD_NAME = accent;
+
+        SLOT_BG = AmiConfig.cardBg;
+        SLOT_EDGE_LIGHT = AmiConfig.searchBarBorder;
+        SLOT_EDGE_DARK = 0x66000000;
         SLOT_HOVER = AmiConfig.cardBgHover;
 
-        ACCENT_BLUE = AmiConfig.accentColor;
+        DROPDOWN_BG = AmiConfig.cardBg;
+        DROPDOWN_BG_ACTIVE = AmiConfig.cardBgHover;
+        DROPDOWN_LIST_BG = AmiConfig.panelBg;
+        CONTROL_EDGE_LIGHT = AmiConfig.searchBarBorder;
+        CONTROL_EDGE_DARK = 0x66000000;
+        CONTROL_SHADOW = AmiConfig.overlayBg;
+
+        SCROLL_TRACK = AmiConfig.scrollbarBg;
+        SCROLL_THUMB = AmiConfig.scrollbarThumb;
+        SCROLL_THUMB_ACTIVE = AmiConfig.scrollbarThumbHover;
+        SCROLL_INDICATOR_BG = AmiConfig.overlayBg;
+
+        GRID_NO_RESULTS_TEXT = visibleColor(AmiConfig.cardTextSubtitle);
+        GRID_GOLD_BORDER = accent;
+        GRID_GOLD_TINT = AmiConfig.cardBgHover;
+        GRID_GROUP_BAND = AmiConfig.cardBg;
+        GRID_GROUP_BAND_ALT = AmiConfig.cardBgHover;
+        GRID_GROUP_RAIL = AmiConfig.searchBarBorder;
+        GRID_GROUP_ROOT_BG = AmiConfig.groupHeaderBg;
+        GRID_GROUP_CHILD_BG = AmiConfig.cardBg;
+
+        SEARCH_PLACEHOLDER = visibleColor(AmiConfig.searchPlaceholder);
+        SEARCH_DEFAULT_TEXT = visibleColor(AmiConfig.searchText);
+        SEARCH_CURSOR = visibleColor(AmiConfig.searchText);
+        SEARCH_HELP_BG = AmiConfig.panelBg;
+        SEARCH_HELP_BORDER = AmiConfig.searchBarBorder;
+        SEARCH_HELP_SHADOW = AmiConfig.overlayBg;
+        SEARCH_HELP_CHIP_BG = AmiConfig.cardBg;
+        SEARCH_HELP_CHIP_BORDER = AmiConfig.searchBarBorder;
+        SEARCH_HELP_SECTION_LINE = AmiConfig.searchBarBorder;
+        SEARCH_HELP_TITLE = accent;
+        SEARCH_HELP_TEXT = visibleColor(AmiConfig.cardTextName);
+
+        BORDER_LIGHT = AmiConfig.searchBarBorder;
+        BORDER_DARK = 0x66000000;
+        GRADIENT_SHADOW = AmiConfig.overlayBg;
+
+        CONFIG_CARD_BG = AmiConfig.cardBg;
+        CONFIG_SEP = AmiConfig.searchBarBorder;
+
+        PLAYER_NAME_COLOR = accent;
+        ACCENT_BLUE = accent;
+
+        RECIPE_BG_OVERLAY = AmiConfig.overlayBg;
+        RECIPE_PANEL = AmiConfig.panelBg;
+        RECIPE_PANEL_INNER = AmiConfig.cardBg;
+        RECIPE_BORDER = AmiConfig.searchBarBorder;
+        RECIPE_HEADER_LINE = AmiConfig.searchBarBorder;
+        RECIPE_TAB_ACTIVE = accent;
+        RECIPE_TAB_HOVER = AmiConfig.cardBgHover;
+        RECIPE_TAB_IDLE = AmiConfig.cardBg;
+        RECIPE_TAB_TEXT_A = visibleColor(AmiConfig.cardTextName);
+        RECIPE_TAB_TEXT_I = visibleColor(AmiConfig.cardTextSubtitle);
+        RECIPE_SLOT_BORDER = AmiConfig.searchBarBorder;
+        RECIPE_SLOT_BG = AmiConfig.cardBg;
+        RECIPE_ARROW = accent;
+        RECIPE_ARROW_ANIM = AmiConfig.cardBgHover;
+        RECIPE_TEXT_TITLE = visibleColor(AmiConfig.cardTextName);
+        RECIPE_TEXT_ITEM = visibleColor(AmiConfig.cardTextName);
+        RECIPE_TEXT_CAT = visibleColor(AmiConfig.cardTextSubtitle);
+        RECIPE_TEXT_NAV = visibleColor(AmiConfig.cardTextSubtitle);
+        RECIPE_TEXT_FOOTER = visibleColor(AmiConfig.cardActionHint);
+        RECIPE_BTN_IDLE = AmiConfig.cardBg;
+        RECIPE_BTN_HOVER = AmiConfig.cardBgHover;
+        RECIPE_SHAPELESS = accent;
 
         if (AmiConfig.theme == AmiConfig.Theme.MODERN) {
             // "Modern" is now the glassy look the user liked for readability.
@@ -442,14 +688,14 @@ public final class AMITheme {
             RECIPE_PANEL_INNER = 0x88202028;
             RECIPE_BORDER = 0x33FFFFFF;
             RECIPE_HEADER_LINE = 0x22FFFFFF;
-            RECIPE_TAB_ACTIVE = AmiConfig.accentColor;
+            RECIPE_TAB_ACTIVE = accent;
             RECIPE_TAB_HOVER = 0x44FFFFFF;
             RECIPE_TAB_IDLE = 0x15FFFFFF;
             RECIPE_TAB_TEXT_A = 0xFFFFFFFF;
             RECIPE_TAB_TEXT_I = 0xFFAAAAAA;
             RECIPE_SLOT_BORDER = 0x44FFFFFF;
             RECIPE_SLOT_BG = 0x1AFFFFFF;
-            RECIPE_ARROW = AmiConfig.accentColor;
+            RECIPE_ARROW = accent;
             RECIPE_ARROW_ANIM = 0x884488FF;
             RECIPE_TEXT_TITLE = 0xFFFFFFFF;
             RECIPE_TEXT_ITEM = 0xFFCCCCCC;
@@ -533,7 +779,7 @@ public final class AMITheme {
             RECIPE_PANEL_INNER = 0;
             RECIPE_BORDER = 0x22FFFFFF;
             RECIPE_HEADER_LINE = 0x11FFFFFF;
-            RECIPE_TAB_ACTIVE = AmiConfig.accentColor;
+            RECIPE_TAB_ACTIVE = accent;
             RECIPE_TAB_HOVER = 0x33FFFFFF;
             RECIPE_TAB_IDLE = 0;
             RECIPE_TAB_TEXT_A = 0xFFFFFFFF;
@@ -541,7 +787,7 @@ public final class AMITheme {
             RECIPE_SLOT_BORDER = 0x22FFFFFF;
             RECIPE_SLOT_BG = 0x11FFFFFF;
             RECIPE_ARROW = 0xFFCCCCCC;
-            RECIPE_ARROW_ANIM = AmiConfig.accentColor;
+            RECIPE_ARROW_ANIM = accent;
             RECIPE_TEXT_TITLE = 0xFFFFFFFF;
             RECIPE_TEXT_ITEM = 0xFFCCCCCC;
             RECIPE_TEXT_CAT = 0xFF888888;
@@ -550,7 +796,7 @@ public final class AMITheme {
             RECIPE_BTN_IDLE = 0x3344AA44;
             RECIPE_BTN_HOVER = 0x6644AA44;
             RECIPE_SHAPELESS = 0xFF8888FF;
-        } else {
+        } else if (AmiConfig.theme == AmiConfig.Theme.VANILLA) {
             // VANILLA
             PANEL_BG = 0xFFC6C6C6;
             PANEL_INNER = 0xFFD0D0D0;
@@ -621,6 +867,7 @@ public final class AMITheme {
             PLAYER_NAME_COLOR = 0xFF0000AA;
         }
         ThemeResourceLoader.applyCurrentTheme();
+        applyThemeTransparency();
     }
 
     public static void load() {

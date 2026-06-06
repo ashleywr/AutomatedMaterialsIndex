@@ -1,8 +1,12 @@
 package com.sanhiruzu.ami.index;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.sanhiruzu.ami.client.AmiDebugSettings;
+import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.config.ConfigValue;
 import net.minecraft.resources.ResourceLocation;
 
 import java.io.BufferedReader;
@@ -10,10 +14,13 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.lang.reflect.Field;
 import java.util.*;
+import java.time.Instant;
 
 public final class SearchNodeMirrorDump {
     private static final Gson GSON = new Gson();
+    private static final Gson PRETTY_GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private SearchNodeMirrorDump() {
     }
@@ -26,6 +33,11 @@ public final class SearchNodeMirrorDump {
         }
         Files.write(path, lines, StandardCharsets.UTF_8);
         return lines.size();
+    }
+
+    public static void writeMeta(Path path) throws IOException {
+        Files.createDirectories(path.getParent());
+        Files.writeString(path, PRETTY_GSON.toJson(metaSnapshot()), StandardCharsets.UTF_8);
     }
 
     public static List<SearchNode> readJsonl(Path path) throws IOException {
@@ -129,6 +141,59 @@ public final class SearchNodeMirrorDump {
         }
     }
 
+    public static RuntimeDumpMeta metaSnapshot() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        Map<String, Integer> typeCounts = new LinkedHashMap<>();
+        int total = 0;
+        for (NodeType type : NodeType.atlasValues()) {
+            int count = index.getNodes(type).size();
+            typeCounts.put(type.name(), count);
+            total += count;
+        }
+
+        Map<String, String> config = new LinkedHashMap<>();
+        for (Field field : AmiConfig.class.getFields()) {
+            ConfigValue configValue = field.getAnnotation(ConfigValue.class);
+            if (configValue == null) {
+                continue;
+            }
+            try {
+                Object value = field.get(null);
+                if (value != null) {
+                    config.put(configValue.value(), String.valueOf(value));
+                }
+            } catch (IllegalAccessException ignored) {
+                // Metadata capture is best effort only.
+            }
+        }
+
+        return new RuntimeDumpMeta(
+                "search_nodes",
+                Instant.now().toString(),
+                AmiDebugSettings.versionLabel(),
+                AmiDebugSettings.debugBuild(),
+                indexRuntimeState(),
+                index.isIndexReady(),
+                typeCounts,
+                total,
+                GlobalIndexCache.computeModListHash(),
+                config
+        );
+    }
+
+    private static Map<String, String> indexRuntimeState() {
+        Map<String, String> state = new LinkedHashMap<>();
+        state.put("indexReady", String.valueOf(GlobalIndex.getInstance().isIndexReady()));
+        state.put("structureLoading", String.valueOf(GlobalIndex.getInstance().isLoading(NodeType.STRUCTURE)));
+        state.put("dimensionLoading", String.valueOf(GlobalIndex.getInstance().isLoading(NodeType.DIMENSION)));
+        state.put("showCreativeItems", String.valueOf(AmiConfig.showCreativeItems));
+        state.put("showHiddenModItems", String.valueOf(AmiConfig.showHiddenModItems));
+        state.put("cheatMode", String.valueOf(AmiConfig.cheatMode));
+        state.put("devMode", String.valueOf(AmiConfig.devMode));
+        state.put("strictSurvivalMode", String.valueOf(AmiConfig.strictSurvivalMode));
+        return state;
+    }
+
     private record Snapshot(
             String id,
             String type,
@@ -192,5 +257,19 @@ public final class SearchNodeMirrorDump {
             }
             return node;
         }
+    }
+
+    public record RuntimeDumpMeta(
+            String dumpType,
+            String generatedAtUtc,
+            String amiVersion,
+            boolean debugBuild,
+            Map<String, String> runtimeState,
+            boolean indexReady,
+            Map<String, Integer> indexTypeCounts,
+            int totalIndexNodes,
+            String indexFingerprint,
+            Map<String, String> config
+    ) {
     }
 }
