@@ -4,31 +4,45 @@ User-facing changes are recorded here.
 
 ## 1.3.0 - 2026-06-06
 
-AMI 1.3.0 improves guidebook search, mod compatibility routing, recipe viewer coexistence, and creative-item visibility.
+AMI 1.3.0 is a broad modpack compatibility and indexing-speed release. It adds first-class guidebook search, focused routing for several large mod families, faster new index builds in heavy packs, and cleaner coexistence with EMI/JEI and the vanilla recipe book.
 
 ### Added
 
+- Added guidebook content indexing by default. AMI can now search guide titles, chapters, referenced items, and capped page summaries, then show guide-page results separately from normal items.
+- Added guide opening and indexing support for Patchouli, GuideME/AE2, Modonomicon, Mantle/Tinkers Construct books, Silent Gear's material book, Immersive Engineering's manual, Hexerei's Book of Shadows, Resource Book-style guides, Apotheosis guide content, and Alex's Caves codex pages.
 - Added shared searchable compat provider APIs so mods can expose guide, item, and action data through viewer-neutral hooks while AMI keeps its own overlay-specific behavior.
-- Added guidebook content indexing by default, including improved guide opening paths and guide-result filtering.
-- Added focused compatibility routing for AMI mod dump families so generated/runtime dump content lands in more useful result buckets.
-- Added Chipped generated-block collapse compatibility to reduce noisy variant groups.
+- Added focused compatibility routing for:
+  - Alex's Caves cave resources, cave gear, cave codex items, submarines, projectiles, foods, and hidden weapon variants.
+  - Alex's Mobs drops, animal dictionary ingredients, taming foods, echolocators, straddleboards, pigshoes, darts, and custom ranged items.
+  - Mana and Artifice construct parts, motes, runes, patches, mana gems, artifice tools, relics, and magic materials.
+  - Timeless and Classics Zero guns, ammo, attachments, workstations, and addon namespaces using TacZ item classes.
+  - Tinkers Construct / Silent Gear / modular gear-style tools, parts, modifiers, stations, guidebooks, generated variants, and material pages.
+  - Chipped and Rechiseled generated block families, including better default collapse behavior.
+- Added top-level/category routing support for major compat families including Create, AE2, Mekanism, GregTech/GTCEu, MineColonies, Apotheosis, Botania, Sophisticated Storage/Backpacks, Mapping mods, Modular Gear, and TacZ.
+- Added inventory visual filtering and tooltip-search token coverage.
 - Added Chinese localization.
 
 ### Changed
 
 - Replaced the spawn-egg-only setting with `Show Creative Items`, a display-time toggle for creative-only results such as spawn eggs and spawners.
-- Improved search help and guide filters.
-- Improved indexing startup and guide integration behavior.
+- Improved new-index build time in large packs, often by more than 50% in observed heavy-pack rebuilds, by deferring expensive namespace work, reducing broad compat enrichment, avoiding unnecessary tooltip metric scans, and using fast paths for high-cardinality generated items.
+- Improved search help with compat-aware examples and guidebook/property filters.
+- Improved guide result projection so item searches can show useful related guide evidence without letting guide text overpower exact item, registry, recipe, or structured metadata matches.
+- Improved category routing diagnostics with explicit route phase/rule metadata for easier pack-author debugging.
 
 ### Fixed
 
 - Creative-only items are now indexed regardless of the toggle, so changing `Show Creative Items` applies immediately without a restart.
 - Entity results now inherit localized spawn egg names as plain search aliases, so searching for a localized spawn egg name can still find AMI's entity model result.
 - Fixed unresolved Modonomicon guide translations in indexed guide content.
-- Fixed recipe book and recipe viewer visibility interactions, including AMI toggle lock behavior in start-hidden mode.
+- Fixed recipe book and recipe viewer visibility interactions, including AMI toggle lock behavior in start-hidden mode and recipe-book hidden-all screens.
 - Fixed JEI chrome suppression so JEI hides consistently when AMI owns the screen.
 - Fixed AMI overlay behavior when auto-indexing is disabled.
-- Fixed inventory visual filtering and tooltip search coverage.
+- Fixed GuideME page opening for AE2's rooted page ids.
+- Fixed Patchouli guide visibility/openability checks so advancement-gated entries follow the live book state instead of appearing as stale search hits.
+- Fixed Patchouli and Modonomicon language-key leaks by resolving client/server resource translations or falling back to readable labels.
+- Fixed guidebook variants collapsing together when multiple Patchouli/Mantle books share one base item.
+- Fixed several high-cardinality generated/runtime dump families that previously fell into `fallback:unknown` or noisy generic categories.
 
 ## 1.2.0 - 2026-06-04
 
