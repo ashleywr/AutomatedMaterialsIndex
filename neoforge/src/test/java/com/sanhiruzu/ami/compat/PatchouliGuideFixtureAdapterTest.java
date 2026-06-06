@@ -119,6 +119,35 @@ class PatchouliGuideFixtureAdapterTest {
         assertEquals(documents, summary.search("dense cable"));
     }
 
+    @Test
+    void untranslatedKeysFallBackToReadableLabels() {
+        List<AmiGuideDocument> documents = PatchouliGuideFixtureAdapter.parse(
+                new ResourceLocation("cobblepedia", "cobblepedia"),
+                """
+                        { "name": "book.cobblepedia" }
+                        """,
+                Map.of("items.json", """
+                        { "name": "book.cobblepedia.categories.items" }
+                        """),
+                Map.of("master_ball.json", """
+                        {
+                          "name": "item.cobblemon.master_ball",
+                          "category": "cobblepedia:items",
+                          "pages": [
+                            {
+                              "title": "book.cobblepedia.entries.master_ball.name",
+                              "text": "book.cobblepedia.entries.master_ball.text"
+                            }
+                          ]
+                        }
+                        """));
+
+        assertEquals("Master Ball", documents.getFirst().title());
+        assertEquals("Items", documents.getFirst().chapter());
+        assertTrue(documents.getFirst().summaryText().contains("Master Ball"));
+        assertFalse(documents.getFirst().summaryText().contains("item.cobblemon.master_ball"));
+    }
+
     private static String bookJson() {
         return """
                 {

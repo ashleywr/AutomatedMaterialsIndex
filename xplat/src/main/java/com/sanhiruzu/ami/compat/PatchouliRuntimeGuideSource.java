@@ -40,18 +40,32 @@ public final class PatchouliRuntimeGuideSource {
             return;
         }
         Map<ResourceLocation, String> resourceJson = readPatchouliResourceJson(resourceManager);
-        for (AmiGuideDocument document : documentsFromResources(resourceJson, GlobalIndexCache.currentClientLanguageCacheKey())) {
+        ResourceManager clientResources = clientResourceManager();
+        if (clientResources != resourceManager) {
+            resourceJson.putAll(readPatchouliResourceJson(clientResources));
+        }
+        for (AmiGuideDocument document : documentsFromResources(
+                resourceJson,
+                readLangResources(clientResources),
+                GlobalIndexCache.currentClientLanguageCacheKey())) {
             documents.accept(document);
         }
     }
 
     static List<AmiGuideDocument> documentsFromResources(Map<ResourceLocation, String> resourceJsonById,
                                                          String selectedLanguage) {
+        return documentsFromResources(resourceJsonById, Map.of(), selectedLanguage);
+    }
+
+    static List<AmiGuideDocument> documentsFromResources(Map<ResourceLocation, String> resourceJsonById,
+                                                         Map<ResourceLocation, String> langJsonById,
+                                                         String selectedLanguage) {
         if (resourceJsonById == null || resourceJsonById.isEmpty()) {
             return List.of();
         }
 
         String language = normalizeLanguage(selectedLanguage);
+        Map<String, String> translations = translations(langJsonById, language);
         Map<ResourceLocation, BookResources> books = new LinkedHashMap<>();
         resourceJsonById.entrySet().stream()
                 .sorted(Comparator.comparing(entry -> entry.getKey().toString()))
@@ -73,7 +87,8 @@ public final class PatchouliRuntimeGuideSource {
                         bookId,
                         resources.bookJson(),
                         resources.categoryJsonById(),
-                        resources.entryJsonById()
+                        resources.entryJsonById(),
+                        translations
                 );
             } catch (RuntimeException ignored) {
                 continue;
@@ -88,7 +103,23 @@ public final class PatchouliRuntimeGuideSource {
 
     private static Map<ResourceLocation, String> readPatchouliResourceJson(ResourceManager resourceManager) {
         Map<ResourceLocation, String> out = new LinkedHashMap<>();
+        if (resourceManager == null) {
+            return out;
+        }
         resourceManager.listResources(ROOT, id -> id.getPath().endsWith(".json"))
+                .entrySet()
+                .stream()
+                .sorted(Comparator.comparing(entry -> entry.getKey().toString()))
+                .forEach(entry -> readResource(entry.getValue()).ifPresent(json -> out.put(entry.getKey(), json)));
+        return out;
+    }
+
+    private static Map<ResourceLocation, String> readLangResources(ResourceManager resourceManager) {
+        Map<ResourceLocation, String> out = new LinkedHashMap<>();
+        if (resourceManager == null) {
+            return out;
+        }
+        resourceManager.listResources("lang", id -> id.getPath().endsWith(".json"))
                 .entrySet()
                 .stream()
                 .sorted(Comparator.comparing(entry -> entry.getKey().toString()))
@@ -121,6 +152,7 @@ public final class PatchouliRuntimeGuideSource {
                 .referencedItems(document.referencedItems())
                 .tags(document.tags())
                 .summaryText(document.summaryText())
+                .visibility(() -> AmiGuideOpeners.patchouliEntryVisible(document.bookId(), document.pageId()))
                 .openAction(AmiGuideOpeners.patchouli(document.bookId(), document.pageId()))
                 .build();
     }
@@ -136,11 +168,18 @@ public final class PatchouliRuntimeGuideSource {
         }
         String rest = path.substring(prefix.length());
         String[] parts = rest.split("/");
-        if (parts.length < 3) {
+        if (parts.length < 2) {
             return Optional.empty();
         }
 
         String bookPath = parts[0];
+        if (parts.length == 2 && "book.json".equals(parts[1])) {
+            ResourceLocation bookId = ResourceLocation.fromNamespaceAndPath(id.getNamespace(), bookPath);
+            return Optional.of(new PatchouliResource(bookId, DEFAULT_LANGUAGE, ResourceKind.BOOK, ""));
+        }
+        if (parts.length < 3) {
+            return Optional.empty();
+        }
         String language = normalizeLanguage(parts[1]);
         ResourceLocation bookId = ResourceLocation.fromNamespaceAndPath(id.getNamespace(), bookPath);
         if ("book.json".equals(parts[2])) {
@@ -181,6 +220,40 @@ public final class PatchouliRuntimeGuideSource {
         return language.isBlank() ? DEFAULT_LANGUAGE : language;
     }
 
+    private static Map<String, String> translations(Map<ResourceLocation, String> langJsonById, String selectedLanguage) {
+        if (langJsonById == null || langJsonById.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> out = new LinkedHashMap<>();
+        addTranslations(out, langJsonById, DEFAULT_LANGUAGE);
+        addTranslations(out, langJsonById, selectedLanguage);
+        return Map.copyOf(out);
+    }
+
+    private static void addTranslations(Map<String, String> out,
+                                        Map<ResourceLocation, String> langJsonById,
+                                        String language) {
+        String langPath = "lang/" + normalizeLanguage(language) + ".json";
+        langJsonById.entrySet().stream()
+                .filter(entry -> normalizeLanguage(entry.getKey().getPath()).equals(normalizeLanguage(langPath)))
+                .sorted(Comparator.comparing(entry -> entry.getKey().toString()))
+                .forEach(entry -> {
+                    try {
+                        var parsed = com.google.gson.JsonParser.parseString(entry.getValue());
+                        if (!parsed.isJsonObject()) {
+                            return;
+                        }
+                        for (Map.Entry<String, com.google.gson.JsonElement> translation : parsed.getAsJsonObject().entrySet()) {
+                            if (translation.getValue().isJsonPrimitive()) {
+                                out.put(translation.getKey(), translation.getValue().getAsString());
+                            }
+                        }
+                    } catch (RuntimeException ignored) {
+                        // Broken lang files should not block guide indexing.
+                    }
+                });
+    }
+
     private static ResourceManager resourceManager() {
         var minecraft = net.minecraft.client.Minecraft.getInstance();
         var server = minecraft.getSingleplayerServer();
@@ -188,6 +261,10 @@ public final class PatchouliRuntimeGuideSource {
             return server.getResourceManager();
         }
         return minecraft.getResourceManager();
+    }
+
+    private static ResourceManager clientResourceManager() {
+        return net.minecraft.client.Minecraft.getInstance().getResourceManager();
     }
 
     private enum ResourceKind {

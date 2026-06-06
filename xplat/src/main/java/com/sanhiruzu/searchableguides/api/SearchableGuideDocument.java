@@ -1,4 +1,4 @@
-package com.sanhiruzu.ami.api;
+package com.sanhiruzu.searchableguides.api;
 
 import net.minecraft.resources.ResourceLocation;
 
@@ -7,13 +7,12 @@ import java.util.List;
 import java.util.function.BooleanSupplier;
 
 /**
- * Source-agnostic searchable guide page/tutorial document.
+ * UI-agnostic searchable guide page contributed by a mod-owned guide system.
  * <p>
- * AMI indexes these separately from normal {@code SearchNode}s so guide text
- * does not bloat item metadata. The owning mod or compat adapter remains
- * responsible for opening its actual guide UI through {@link #openAction()}.
+ * This contract intentionally does not mention AMI, EMI, JEI, or any viewer UI.
+ * Viewers can adapt these documents into their own search/result surfaces.
  */
-public record AmiGuideDocument(
+public record SearchableGuideDocument(
         ResourceLocation id,
         String sourceType,
         String modId,
@@ -28,7 +27,7 @@ public record AmiGuideDocument(
         BooleanSupplier visibility,
         Runnable openAction
 ) {
-    public AmiGuideDocument {
+    public SearchableGuideDocument {
         if (id == null) {
             throw new IllegalArgumentException("Guide document id must not be null");
         }
@@ -173,8 +172,8 @@ public record AmiGuideDocument(
             return this;
         }
 
-        public AmiGuideDocument build() {
-            return new AmiGuideDocument(
+        public SearchableGuideDocument build() {
+            return new SearchableGuideDocument(
                     id,
                     sourceType,
                     modId,

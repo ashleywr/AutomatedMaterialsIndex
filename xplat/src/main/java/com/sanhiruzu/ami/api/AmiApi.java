@@ -1,5 +1,11 @@
 package com.sanhiruzu.ami.api;
 
+import com.sanhiruzu.searchableguides.api.SearchableGuideProvider;
+import com.sanhiruzu.searchableguides.api.SearchableGuideProviders;
+import com.sanhiruzu.searchableitems.api.SearchableItemActionProvider;
+import com.sanhiruzu.searchableitems.api.SearchableItemActionProviders;
+import com.sanhiruzu.searchableitems.api.SearchableItemProvider;
+import com.sanhiruzu.searchableitems.api.SearchableItemProviders;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.item.ItemStack;
 
@@ -58,6 +64,33 @@ public class AmiApi {
      */
     public static void registerGuideSource(AmiGuideSource source) {
         AmiGuideRegistry.registerSource(source);
+    }
+
+    /**
+     * Register a UI-agnostic searchable guide provider.
+     * <p>
+     * This is the preferred path for mod-owned guide integrations that may also
+     * be consumed by other viewers such as EMI or JEI. AMI adapts the shared
+     * documents into its own guide result rows during deferred guide indexing.
+     */
+    public static void registerSearchableGuideProvider(SearchableGuideProvider provider) {
+        SearchableGuideProviders.register(provider);
+    }
+
+    /**
+     * Register a UI-agnostic searchable item provider for metadata enrichment
+     * and representative generated stacks.
+     */
+    public static void registerSearchableItemProvider(SearchableItemProvider provider) {
+        SearchableItemProviders.register(provider);
+    }
+
+    /**
+     * Register a UI-agnostic item action provider. AMI adapts these actions into
+     * result context menus, while other viewers may present them differently.
+     */
+    public static void registerSearchableItemActionProvider(SearchableItemActionProvider provider) {
+        SearchableItemActionProviders.register(provider);
     }
 
     /**

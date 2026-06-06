@@ -1,6 +1,8 @@
 package com.sanhiruzu.ami.api;
 
 import com.sanhiruzu.ami.AmiCore;
+import com.sanhiruzu.searchableitems.api.SearchableItemProvider;
+import com.sanhiruzu.searchableitems.api.SearchableItemProviders;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -48,6 +50,19 @@ public final class ItemProviderCompatHooks {
         for (IAmiPlugin plugin : AmiPluginRegistry.getPlugins()) {
             String compatName = "IAmiPlugin." + plugin.getClass().getName();
             runCompatSafely(compatName, () -> plugin.enrichItemMeta(id, stack, level, metadata));
+        }
+        for (SearchableItemProvider provider : SearchableItemProviders.getProviders()) {
+            String compatName = "SearchableItemProvider." + providerId(provider);
+            runCompatSafely(compatName, () -> provider.enrichItemMetadata(id, stack, level, metadata));
+        }
+    }
+
+    private static String providerId(SearchableItemProvider provider) {
+        try {
+            String id = provider.id();
+            return id == null || id.isBlank() ? provider.getClass().getName() : id;
+        } catch (RuntimeException | LinkageError ignored) {
+            return provider.getClass().getName();
         }
     }
 }

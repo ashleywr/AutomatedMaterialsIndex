@@ -69,6 +69,32 @@ class AmiGuideSearchIndexTest {
     }
 
     @Test
+    void hiddenDocumentsStayIndexedButDoNotSearch() {
+        AmiGuideDocument visible = AmiGuideDocument.builder(
+                        new ResourceLocation("ami", "guide/visible"),
+                        "patchouli",
+                        "example",
+                        "Visible Aura")
+                .bookId(new ResourceLocation("example", "book"))
+                .build();
+        AmiGuideDocument hidden = AmiGuideDocument.builder(
+                        new ResourceLocation("ami", "guide/hidden"),
+                        "patchouli",
+                        "example",
+                        "Hidden Aura")
+                .bookId(new ResourceLocation("example", "book"))
+                .visibility(() -> false)
+                .build();
+        AmiGuideSearchIndex index = new AmiGuideSearchIndex(List.of(visible, hidden),
+                AmiGuideSearchIndex.GuideIndexingMode.TITLES);
+
+        assertEquals(List.of(visible), index.search("aura"));
+        assertEquals(List.of(visible), index.search("guidebooks"));
+        assertEquals(2, index.indexedPageCountForBook(new ResourceLocation("example", "book")));
+    }
+
+
+    @Test
     void exposesIndexedPageCountsByBookId() {
         ResourceLocation bookId = new ResourceLocation("apotheosis", "apoth_chronicle");
         AmiGuideDocument documentOne = AmiGuideDocument.builder(

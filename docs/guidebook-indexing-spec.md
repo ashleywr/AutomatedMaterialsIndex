@@ -77,6 +77,79 @@ Rules:
 
 The public API owns document registration. AMI owns presentation, result ranking, and filtering.
 
+## Viewer-Neutral Provider Path
+
+The preferred long-term compat path is a mod-provided searchable-guide provider, not an AMI hardcoded adapter.
+AMI consumes this provider, and the same provider contract is small enough for EMI, JEI, or another viewer to consume
+without inheriting AMI UI assumptions.
+
+Mods can expose a `SearchableGuideProvider` implementation through Java's service loader:
+
+```text
+META-INF/services/com.sanhiruzu.searchableguides.api.SearchableGuideProvider
+```
+
+The service file contains the implementation class name:
+
+```text
+com.examplemod.compat.searchableguides.ExampleGuideProvider
+```
+
+The provider contributes guide documents during viewer indexing:
+
+```java
+package com.examplemod.compat.searchableguides;
+
+import com.sanhiruzu.searchableguides.api.SearchableGuideDocument;
+import com.sanhiruzu.searchableguides.api.SearchableGuideProvider;
+import net.minecraft.resources.ResourceLocation;
+
+import java.util.function.Consumer;
+
+public final class ExampleGuideProvider implements SearchableGuideProvider {
+    @Override
+    public String id() {
+        return "examplemod:manual";
+    }
+
+    @Override
+    public void addGuideDocuments(Consumer<SearchableGuideDocument> documents) {
+        ResourceLocation bookId = ResourceLocation.fromNamespaceAndPath("examplemod", "manual");
+        documents.accept(SearchableGuideDocument.builder(
+                        ResourceLocation.fromNamespaceAndPath("examplemod", "ami_guide/manual/steel_press"),
+                        "examplemod_manual",
+                        "examplemod",
+                        "Steel Press")
+                .bookId(bookId)
+                .iconItemId(bookId)
+                .pageId("machines/steel_press")
+                .chapter("Machines")
+                .referencedItem(ResourceLocation.fromNamespaceAndPath("examplemod", "steel_press"))
+                .tag("machine")
+                .tag("automation")
+                .summaryText("The Steel Press forms plates and gears from heated ingots.")
+                .openAction(() -> ExampleManualScreens.open("machines/steel_press"))
+                .build());
+    }
+}
+```
+
+AMI also keeps `IAmiPlugin#addGuideDocuments` and `AmiApi.registerGuideSource` for AMI-specific integrations, but those
+should be treated as compatibility wrappers. A mod author who wants their guide support to be portable should prefer
+`SearchableGuideProvider`, or register one directly with `AmiApi.registerSearchableGuideProvider`.
+
+Authoring rules:
+
+- Keep document ids stable across reloads and mod versions when the guide page is the same concept.
+- Use the source-native page id in `pageId`; viewers can display/copy it, and the provider's opener can use it directly.
+- Put the guidebook item id in `iconItemId` so guide rows show the correct book stack.
+- Prefer concise `summaryText`; viewers may cap text before indexing, and full guide rendering remains the owning mod's job.
+- Make `openAction` client-only and defensive. It should quietly do nothing if the page is locked, unavailable, or the screen cannot open yet.
+- Use `referencedItems` for pages that teach an item. This lets viewers connect item searches to guide matches without duplicating guide text into item metadata.
+
+AMI's built-in adapters should be treated as examples and broad coverage for common book systems. New mods should prefer
+the shared provider route so exact page ids, unlock rules, and custom screen navigation stay owned by the mod that knows them.
+
 ## UX Rules
 
 ### Guide Page Result
@@ -180,4 +253,3 @@ Runtime smoke, after JVM coverage:
 - Search for an AE2 item and verify `Open ME Guide` still works.
 - Search for a Create item with Ponder content and open the Ponder scene.
 - Verify guide result rows and tooltips do not overlap existing AMI panels.
-

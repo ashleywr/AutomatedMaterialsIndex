@@ -56,4 +56,34 @@ class GuideMeRuntimeGuideSourceTest {
 
         assertTrue(GuideMeRuntimeGuideSource.documentsFromResources(resources).isEmpty());
     }
+
+    @Test
+    void ae2ProcessorPageIndexesSiliconFromFrontMatter() {
+        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
+        resources.put(new ResourceLocation("ae2", "ae2guide/items-blocks-machines/processors.md"), """
+                ---
+                navigation:
+                  title: Processors
+                categories:
+                - misc ingredients blocks
+                item_ids:
+                - ae2:logic_processor
+                - ae2:printed_silicon
+                - ae2:silicon
+                ---
+
+                # Processors
+
+                <RecipeFor id="silicon" />
+                """);
+
+        List<AmiGuideDocument> documents = GuideMeRuntimeGuideSource.documentsFromResources(resources);
+
+        assertEquals(1, documents.size());
+        AmiGuideDocument document = documents.getFirst();
+        assertEquals(new ResourceLocation("ae2", "guide"), document.bookId());
+        assertEquals("items-blocks-machines/processors", document.pageId());
+        assertTrue(document.referencedItems().contains(new ResourceLocation("ae2", "silicon")));
+        assertTrue(document.canOpen());
+    }
 }

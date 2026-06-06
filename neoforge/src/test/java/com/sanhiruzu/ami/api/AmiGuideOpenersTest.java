@@ -90,4 +90,17 @@ class AmiGuideOpenersTest {
         assertFalse((Boolean) method.invoke(null, api, "openBookGUI", invalidBook, new Object[]{invalidBook}));
         assertTrue((Boolean) method.invoke(null, api, "openBookGUI", validBook, new Object[]{validBook}));
     }
+
+    @Test
+    void guideMEPageMatchAcceptsRuntimeRootedAe2Paths() {
+        assertTrue(AmiGuideOpeners.isGuideMEPageMatch(
+                ResourceLocation.fromNamespaceAndPath("ae2", "ae2guide/items-blocks-machines/fluix_crystal"),
+                "items-blocks-machines/fluix_crystal"));
+        assertTrue(AmiGuideOpeners.isGuideMEPageMatch(
+                ResourceLocation.fromNamespaceAndPath("ae2", "items-blocks-machines/processors"),
+                "items-blocks-machines/processors"));
+        assertFalse(AmiGuideOpeners.isGuideMEPageMatch(
+                ResourceLocation.fromNamespaceAndPath("ae2", "ae2guide/items-blocks-machines/fluix_crystal"),
+                "items-blocks-machines/fluix"));
+    }
 }
