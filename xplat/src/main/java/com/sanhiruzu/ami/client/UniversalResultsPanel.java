@@ -1413,7 +1413,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                     "ami:filter_guide_book",
                     Component.translatable("ami.context.filter_guide_book"),
                     'b',
-                    () -> onTokenInject.accept(AmiGuideSearchIndex.GUIDEBOOKS_FILTER_TOKEN)
+                    () -> onTokenInject.accept(AmiGuideSearchIndex.GUIDEBOOKS_FILTER_QUERY)
             ));
         }
         if (onTokenInject != null && !row.document().modId().isBlank()) {

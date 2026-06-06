@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SilentGearTraitGuideSourceTest {
@@ -23,6 +25,8 @@ class SilentGearTraitGuideSourceTest {
         assertTrue(document.summaryText().contains("Max level: 5"));
         assertTrue(document.summaryText().contains("Durability"));
         assertTrue(document.tags().contains("gear_trait_malleable_v"));
+        assertFalse(document.canOpen());
+        assertNull(document.bookId());
 
         AmiGuideSearchIndex index = new AmiGuideSearchIndex(List.of(document),
                 AmiGuideSearchIndex.GuideIndexingMode.SUMMARY);

@@ -69,6 +69,31 @@ public class SearchIndexTest {
     }
 
     @Test
+    public void facetFactsCanUseSimplePropertySyntax() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        SearchNode spiderEye = item("minecraft", "spider_eye", "Spider Eye", Map.of(
+                SearchNodeKeys.FACETS, "edible,magic_reagent",
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "magic",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "reagents"
+        ));
+        SearchNode blazePowder = item("minecraft", "blaze_powder", "Blaze Powder", Map.of(
+                SearchNodeKeys.FACETS, "magic_reagent",
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "magic",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "reagents"
+        ));
+        index.addNode(spiderEye);
+        index.addNode(blazePowder);
+
+        SearchService service = SearchService.buildFrom(index, false);
+        List<SearchNode> simpleProperty = service.query("?edible").getOrDefault(NodeType.ITEM, List.of());
+        List<SearchNode> explicitFact = service.query("?fact:edible").getOrDefault(NodeType.ITEM, List.of());
+
+        assertTrue(simpleProperty.contains(spiderEye));
+        assertFalse(simpleProperty.contains(blazePowder));
+        assertTrue(explicitFact.contains(spiderEye));
+    }
+
+    @Test
     public void visibleCollapseLabelsArePlainSearchableAliases() {
         SearchIndex idx = new SearchIndex(false);
 

@@ -42,7 +42,7 @@ class AmiGuideSearchIndexTest {
     }
 
     @Test
-    void guidebooksTokenReturnsAllIndexedDocuments() {
+    void guidebookFilterQueryReturnsAllIndexedDocuments() {
         AmiGuideDocument documentOne = AmiGuideDocument.builder(
                         new ResourceLocation("ami", "guide/book_one"),
                         "patchouli",
@@ -62,6 +62,39 @@ class AmiGuideSearchIndexTest {
 
         assertEquals(List.of(documentOne, documentTwo), index.search("guidebooks"));
         assertEquals(List.of(documentOne, documentTwo), index.search("mana guidebooks"));
+        assertEquals(List.of(documentOne, documentTwo), index.search("?guidebook"));
+        assertEquals(List.of(documentOne, documentTwo), index.search("?type:guidebook"));
+    }
+
+    @Test
+    void exposesIndexedPageCountsByBookId() {
+        ResourceLocation bookId = new ResourceLocation("apotheosis", "apoth_chronicle");
+        AmiGuideDocument documentOne = AmiGuideDocument.builder(
+                        new ResourceLocation("ami", "guide/one"),
+                        "patchouli",
+                        "apotheosis",
+                        "One")
+                .bookId(bookId)
+                .build();
+        AmiGuideDocument documentTwo = AmiGuideDocument.builder(
+                        new ResourceLocation("ami", "guide/two"),
+                        "patchouli",
+                        "apotheosis",
+                        "Two")
+                .bookId(bookId)
+                .build();
+        AmiGuideDocument documentWithoutBook = AmiGuideDocument.builder(
+                        new ResourceLocation("ami", "guide/derived"),
+                        "silentgear_traits",
+                        "silentgear",
+                        "Derived")
+                .build();
+
+        AmiGuideSearchIndex index = new AmiGuideSearchIndex(List.of(documentOne, documentTwo, documentWithoutBook),
+                AmiGuideSearchIndex.GuideIndexingMode.TITLES);
+
+        assertEquals(2, index.indexedPageCountForBook(bookId));
+        assertEquals(0, index.indexedPageCountForBook(new ResourceLocation("silentgear", "guide_book")));
     }
 
     @Test

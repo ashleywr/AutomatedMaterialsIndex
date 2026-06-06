@@ -490,8 +490,43 @@ default-collapsed `collapseFamily` and `collapseLabel` metadata from those
 mod-owned base tags while preserving semantic category routing. Shape-only tags
 such as `_stairs`, `_slab`, `_wall`, `_pane`, `_button`, and
 `_pressure_plate` are ignored as family roots. The five Chipped workbench items
-that were previously falling through to unknown can now route to `utility/misc`
-from `WorkbenchItem` class metadata.
+that were previously falling through to unknown initially routed to
+`utility/misc` from `WorkbenchItem` class metadata; see the 2026-06-06 Utility
+cleanup entry for the later tool-bucket refinement.
+
+### 2026-06-05: Book And Guidebook Utility Header
+
+Book and guidebook facets now route to `utility/books` instead of the generic
+`utility/misc` fallback. This keeps ordinary books, manuals, lexicons, codices,
+and inferred guidebook candidates visible under a specific Utility header while
+leaving enchanted books in `magic/books` through the higher-priority magic rule.
+
+### 2026-06-06: Utility Header Misc Cleanup
+
+The AMICompat runtime dump showed several families entering `utility/misc` from
+stale generic signals. Book and guidebook class/path facts now emit concrete
+book facets without also carrying `utility_misc`, so they route to
+`utility/books`. Bookshelf/bookcase/shelf/rack placeables are decorative display
+blocks, not book items, and now receive decorative facets so generated
+bookshelves route to `decoration/furniture` while preserving their collapse
+families. Generic bottle/flask lexical and class evidence now yields to stronger
+food or magic facets, keeping milk bottles in `nature/drinks` and bottles of
+enchanting in magic while plain glass bottles remain utility containers.
+Otherwise-unclassified Chipped `WorkbenchItem` selectors now fall back to
+`tools/utility`, matching similar chisel compat behavior, while book-shaped
+selectors can still use `utility/books`. Medical path matching now uses exact
+tokens so names such as `splinterspawn` no longer produce the
+`utility_medical` facet. Vanilla and modded `SaddleItem` classes now route to
+`armor/animal` as animal equipment instead of generic Utility misc, and the
+legacy ontology keyword hint moved with them.
+
+### 2026-06-06: Edible Brewing Reagents Stay Searchable
+
+Spider Eye keeps the cross-cutting `edible` facet for `?edible` and
+`?fact:edible` searches, but its primary identity now routes to
+`magic/reagents` when edible magic-reagent facts also have brewing or
+spider-eye context. This keeps food search useful without forcing a potion
+ingredient into `nature/snacks`.
 
 ## Open Work
 

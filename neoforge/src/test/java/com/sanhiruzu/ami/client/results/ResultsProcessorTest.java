@@ -300,6 +300,36 @@ public class ResultsProcessorTest {
     }
 
     @Test
+    void categoryGroupingUsesUtilityBooksHeaderForBooksAndGuides() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.ALPHABETICAL,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        List<TreeNode> root = processor.process(List.of(
+                item("book", "Book", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "utility",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "books"
+                )),
+                item("guide_book", "Guide Book", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "utility",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "books"
+                ))
+        ));
+
+        assertEquals(1, root.size());
+        TreeNode categoryGroup = root.get(0);
+        assertEquals("utility", categoryGroup.getKey());
+        assertEquals(1, categoryGroup.getChildren().size());
+        TreeNode booksGroup = categoryGroup.getChildren().get(0);
+        assertEquals("utility/books", booksGroup.getKey());
+        assertEquals(List.of("Book", "Guide Book"), leafLabels(List.of(booksGroup)));
+    }
+
+    @Test
     void categoryGroupingCollapsesBannerPatternCollectibles() {
         ResultsProcessor processor = new ResultsProcessor(
                 ResultsProcessor.SortField.ALPHABETICAL,

@@ -35,11 +35,16 @@ class SearchSuggestionsTest {
                 SearchNodeKeys.COLOR_BUCKET, "red",
                 SearchNodeKeys.FLUID_CAPACITY, "4"
         )));
+        index.addNode(item("minecraft", "spider_eye", "Spider Eye", Map.of(
+                SearchNodeKeys.FACETS, "edible,magic_reagent"
+        )));
 
         assertSuggests(index, "?", "?kind:");
         assertSuggests(index, "?", "?color:");
         assertSuggests(index, "?fact:stores", "?fact:stores_fe");
         assertSuggests(index, "?stores", "?stores_fe");
+        assertSuggests(index, "?e", "?edible");
+        assertSuggests(index, "?edi", "?edible");
         assertSuggests(index, "?kind:energy", "?kind:energy_cell");
         assertSuggests(index, "?energy", "?energy:");
         assertSuggests(index, "?color:r", "?color:red");
