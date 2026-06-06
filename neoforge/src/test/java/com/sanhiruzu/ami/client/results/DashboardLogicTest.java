@@ -208,13 +208,16 @@ public class DashboardLogicTest {
         // This is implicitly tested by the fact that we don't re-sort in those cases
         assertTrue(original.size() > 0, "Ontology should have categories defined");
 
-        // Verify the hardcoded order is maintained. Focused compat categories
-        // come first, followed by generic ontology groups.
-        assertEquals("cobblemon", original.get(0).id);
-        assertEquals("create", original.get(1).id);
-        assertEquals("mapping", original.get(9).id);
-        assertEquals("modular_gear", original.get(10).id);
-        assertEquals("utility", original.get(11).id);
-        assertEquals("bestiary", original.get(12).id);
+        // Verify the hardcoded priority order is maintained. Focused compat
+        // categories come first, followed by generic ontology groups, then
+        // terminal building/fallback groups.
+        assertEquals(List.of(
+                "cobblemon", "create", "ae2", "mekanism", "gregtech",
+                "minecolonies", "apotheosis", "botania", "sophisticated",
+                "mapping", "modular_gear", "tacz", "utility", "bestiary",
+                "magic", "armor", "tools", "tech", "nature", "ingredients",
+                "decoration", "environment", "social", "geology", "masonry",
+                "misc"
+        ), original.stream().map(category -> category.id).toList());
     }
 }
