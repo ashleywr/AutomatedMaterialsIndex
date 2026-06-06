@@ -76,6 +76,9 @@ public final class AmiGuideSearchIndex {
         if (isGuideBooksFilterQuery(query, tokens)) {
             return List.copyOf(documents);
         }
+        if (hasPropertyToken(query)) {
+            return List.of();
+        }
 
         List<ScoredDocument> scored = new ArrayList<>();
         for (AmiGuideDocument document : documents) {
@@ -206,9 +209,18 @@ public final class AmiGuideSearchIndex {
         return false;
     }
 
+    private static boolean hasPropertyToken(String query) {
+        for (QueryParser.QueryToken token : QueryParser.parse(query).tokens()) {
+            if (token.type() == QueryParser.TokenType.PROP) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean isGuideBookPropertyToken(String rawValue) {
         String value = normalizePropertyToken(rawValue);
-        if (value.equals("guidebook") || value.equals("guidebooks")) {
+        if (Set.of("guidebook", "guidebooks", "guide", "guides", "book", "books").contains(value)) {
             return true;
         }
         int separator = value.indexOf(':');
