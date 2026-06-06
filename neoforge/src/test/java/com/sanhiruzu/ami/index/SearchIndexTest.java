@@ -94,6 +94,50 @@ public class SearchIndexTest {
     }
 
     @Test
+    public void amiPropertySyntaxMatchesAmiSemanticBuckets() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        SearchNode coal = item("minecraft", "coal", "Coal", Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "ingredients",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "fuel",
+                SearchNodeKeys.RECIPE_USE_CATEGORIES, "ami:fuel,fuel",
+                SearchNodeKeys.TAGS, "ami:fuel"
+        ));
+        SearchNode stick = item("minecraft", "stick", "Stick", Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "ingredients",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "organic"
+        ));
+        index.addNode(coal);
+        index.addNode(stick);
+
+        SearchService service = SearchService.buildFrom(index, false);
+
+        assertEquals(List.of(coal), service.query("?ami:fuel").getOrDefault(NodeType.ITEM, List.of()));
+        assertTrue(service.query("?ami:ingredients").getOrDefault(NodeType.ITEM, List.of()).containsAll(List.of(coal, stick)));
+        assertFalse(service.query("?ami:fuel").getOrDefault(NodeType.ITEM, List.of()).contains(stick));
+    }
+
+    @Test
+    public void incompleteKnownPropertyPrefixesDoNotRunSemanticPropertyFallback() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        SearchNode guideBook = item("patchouli", "guide_book", "Guide Book", Map.of(
+                SearchNodeKeys.GUIDE_BOOK_CANDIDATE, "true",
+                SearchNodeKeys.FACETS, "guide_book"
+        ));
+        SearchNode semanticGuideToken = item("example", "guide_token", "Guide Token", Map.of(
+                SearchNodeKeys.FACETS, "guide"
+        ));
+        index.addNode(guideBook);
+        index.addNode(semanticGuideToken);
+
+        SearchService service = SearchService.buildFrom(index, false);
+
+        assertTrue(service.query("?gui").isEmpty());
+        assertTrue(service.query("?guid").isEmpty());
+        assertEquals(List.of(guideBook), service.query("?guide").getOrDefault(NodeType.ITEM, List.of()));
+        assertEquals(List.of(guideBook), service.query("?guidebook").getOrDefault(NodeType.ITEM, List.of()));
+    }
+
+    @Test
     public void visibleCollapseLabelsArePlainSearchableAliases() {
         SearchIndex idx = new SearchIndex(false);
 

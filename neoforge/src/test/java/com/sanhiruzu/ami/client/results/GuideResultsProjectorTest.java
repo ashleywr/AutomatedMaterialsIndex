@@ -90,7 +90,9 @@ class GuideResultsProjectorTest {
 
         assertEquals(2, GuideResultsProjector.project("guidebooks", index).size());
         assertEquals("Guide One", GuideResultsProjector.project("guidebooks", index).get(0).title());
+        assertEquals(2, GuideResultsProjector.project("?guide", index).size());
         assertEquals(2, GuideResultsProjector.project("?type:guidebook", index).size());
         assertEquals("Guide One", GuideResultsProjector.project("?type:guidebook", index).get(0).title());
+        assertTrue(GuideResultsProjector.project("?gui", index).isEmpty());
     }
 }

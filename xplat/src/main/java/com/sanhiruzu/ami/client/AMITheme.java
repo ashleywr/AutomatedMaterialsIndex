@@ -295,6 +295,15 @@ public final class AMITheme {
         g.fill(x + w - 1, y, x + w, y + h, bottom);
     }
 
+    public static void fillBorderedRect(GuiGraphics g, int x, int y, int w, int h, int fill, int border) {
+        if (w <= 0 || h <= 0) return;
+        g.fill(x, y, x + w, y + h, fill);
+        g.fill(x, y, x + w, y + 1, border);
+        g.fill(x, y + h - 1, x + w, y + h, border);
+        g.fill(x, y, x + 1, y + h, border);
+        g.fill(x + w - 1, y, x + w, y + h, border);
+    }
+
     public static void fillControlChrome(GuiGraphics g, int x, int y, int w, int h, int fill, boolean pressed) {
         if (!pressed && CONTROL_SHADOW != 0) {
             g.fill(x + 1, y + 1, x + w + 1, y + h + 1, CONTROL_SHADOW);

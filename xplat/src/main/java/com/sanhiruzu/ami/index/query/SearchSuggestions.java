@@ -100,8 +100,26 @@ public final class SearchSuggestions {
             rightSections.add(new SearchSyntax.HelpSection(SearchSyntax.COMPAT_SECTION_TITLE_KEY,
                     List.copyOf(compatExamples)));
         }
+        SearchSyntax.HelpSection properties = propertyHelpSection(vocabulary);
+        if (!properties.examples().isEmpty()) {
+            rightSections.add(properties);
+        }
 
         return new SearchSyntax.HelpLayout(leftSections, List.copyOf(rightSections));
+    }
+
+    private static SearchSyntax.HelpSection propertyHelpSection(Vocabulary vocabulary) {
+        List<SearchSyntax.Example> examples = new ArrayList<>();
+        for (SearchSyntax.PropertyField field : SearchSyntax.PROPERTY_FIELDS) {
+            if (!SearchSyntax.isDiscoverablePropertyField(field)) {
+                continue;
+            }
+            if (valuesForPropertyField(vocabulary, field.id()).isEmpty()) {
+                continue;
+            }
+            examples.add(new SearchSyntax.Example("?" + field.id() + ":", field.descriptionKey(), field.kind()));
+        }
+        return new SearchSyntax.HelpSection(SearchSyntax.PROPERTIES_SECTION_TITLE_KEY, List.copyOf(examples));
     }
 
     public static void warm(GlobalIndex index) {
@@ -185,6 +203,9 @@ public final class SearchSuggestions {
         if (separator < 0) {
             List<Suggestion> suggestions = new ArrayList<>();
             addSuggestions(suggestions, fieldSuggestions(vocabulary, query, token, body, limit), limit);
+            if (isExactPropertyFieldAlias(body)) {
+                return suggestions;
+            }
             addSuggestions(suggestions, simplePropertySuggestions(vocabulary, query, token, body, limit), limit);
             return suggestions;
         }
@@ -208,13 +229,13 @@ public final class SearchSuggestions {
             if (suggestions.size() >= limit) {
                 break;
             }
+            if (!SearchSyntax.isDiscoverablePropertyField(field)) {
+                continue;
+            }
             if (valuesForPropertyField(vocabulary, field.id()).isEmpty()) {
                 continue;
             }
-            String normalizedField = normalizeValuePrefix(field.id());
-            if (normalizedPrefix.isEmpty()
-                    || normalizedField.startsWith(normalizedPrefix)
-                    || normalizedField.contains(normalizedPrefix)) {
+            if (matchesPropertyFieldPrefix(field, normalizedPrefix)) {
                 String replacement = (token.negated() ? "-?" : "?") + field.id() + ":";
                 suggestions.add(new Suggestion(replacement, replacement, "",
                         token.start(), token.end(), field.kind(), false));
@@ -223,15 +244,47 @@ public final class SearchSuggestions {
         return suggestions;
     }
 
+    private static boolean matchesPropertyFieldPrefix(SearchSyntax.PropertyField field, String normalizedPrefix) {
+        if (normalizedPrefix.isEmpty()) {
+            return true;
+        }
+        if (matchesPropertyFieldToken(field.id(), normalizedPrefix)) {
+            return true;
+        }
+        for (String alias : field.aliases()) {
+            if (matchesPropertyFieldToken(alias, normalizedPrefix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean matchesPropertyFieldToken(String value, String normalizedPrefix) {
+        String normalized = normalizeValuePrefix(value);
+        return normalized.startsWith(normalizedPrefix) || normalized.contains(normalizedPrefix);
+    }
+
     private static List<Suggestion> simplePropertySuggestions(Vocabulary vocabulary, String query, ActiveToken token,
                                                               String prefix, int limit) {
         CountedValues values = new CountedValues();
         values.addAll(vocabulary.capabilities);
         values.addAll(vocabulary.kinds);
-        values.addAll(vocabulary.facts);
+        values.addAll(vocabulary.facts, SearchSuggestions::isPropertyFieldAliasValue);
         values.addAll(vocabulary.tiers);
         values.addAll(vocabulary.roles);
         return valueSuggestions(values, query, token, token.negated() ? "-?" : "?", prefix, limit, Kind.PROPERTY);
+    }
+
+    private static boolean isExactPropertyFieldAlias(String prefix) {
+        String normalized = SearchSyntax.normalizeField(prefix);
+        if (normalized.isBlank()) {
+            return false;
+        }
+        return SearchSyntax.propertyField(prefix).isPresent();
+    }
+
+    private static boolean isPropertyFieldAliasValue(String value) {
+        return SearchSyntax.propertyField(value).isPresent();
     }
 
     private static CountedValues valuesForPropertyField(Vocabulary vocabulary, String field) {
@@ -243,6 +296,8 @@ public final class SearchSuggestions {
             case "kind" -> vocabulary.kinds;
             case "tier" -> vocabulary.tiers;
             case "role" -> vocabulary.roles;
+            case "ami" -> vocabulary.ami;
+            case "guidebook" -> vocabulary.guidebooks;
             case "fact" -> vocabulary.facts;
             case "trait" -> vocabulary.traits;
             case "material" -> vocabulary.materials;
@@ -407,6 +462,8 @@ public final class SearchSuggestions {
         final CountedValues kinds = new CountedValues();
         final CountedValues tiers = new CountedValues();
         final CountedValues roles = new CountedValues();
+        final CountedValues ami = new CountedValues();
+        final CountedValues guidebooks = new CountedValues();
         final CountedValues traits = new CountedValues();
         final CountedValues materials = new CountedValues();
         final CountedValues capabilities = new CountedValues();
@@ -461,9 +518,18 @@ public final class SearchSuggestions {
 
         private void add(SearchNode node, boolean includeDebugTokens) {
             categories.add(AmiOntology.classifyNode(node).id);
+            ami.add(AmiOntology.classifyNode(node).id);
+            addTokens(ami, node.meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, ""));
             if (node.type() == NodeType.DIMENSION || node.type() == NodeType.BIOME) {
                 environments.add(node.id().getPath());
                 environments.add(node.displayName().replace(' ', '_'));
+            }
+            if (isGuideBookCandidate(node)) {
+                guidebooks.add("guidebook");
+                String guideSystem = node.meta(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "");
+                if (!guideSystem.isBlank()) {
+                    guidebooks.add(guideSystem);
+                }
             }
 
             addModToken(node.id().getNamespace());
@@ -514,6 +580,7 @@ public final class SearchSuggestions {
                         || (includeDebugTokens && SearchNodeKeys.SEARCH_TOKENS.equals(key))) {
                     addTokens(facts, value);
                     addTokens(meta, value);
+                    addAmiTokens(value);
                 }
                 if (SearchNodeKeys.PRIMARY_COMPAT_FAMILY.equals(key)
                         || SearchNodeKeys.COMPAT_FAMILY.equals(key)
@@ -546,6 +613,7 @@ public final class SearchSuggestions {
                         || SearchNodeKeys.RECIPE_USE_CATEGORIES.equals(key)) {
                     addTokens(roles, value);
                     addTokens(meta, value);
+                    addAmiTokens(value);
                 }
                 if (SearchNodeKeys.GREGTECH_CIRCUIT_GRADE.equals(key)) {
                     addTokens(gregtechCircuitGrades, value);
@@ -621,6 +689,30 @@ public final class SearchSuggestions {
                 mods.addAlias(original, token);
                 return;
             }
+        }
+
+        private void addAmiTokens(String rawValue) {
+            if (rawValue == null || rawValue.isBlank()) {
+                return;
+            }
+            for (String part : rawValue.split("[,\\s]+")) {
+                String token = cleanToken(part);
+                if (token.isBlank()) {
+                    continue;
+                }
+                ami.add(token);
+                int separator = token.indexOf(':');
+                if (separator > 0 && separator < token.length() - 1 && "ami".equals(token.substring(0, separator))) {
+                    ami.add(token.substring(separator + 1));
+                }
+            }
+        }
+
+        private static boolean isGuideBookCandidate(SearchNode node) {
+            return "true".equalsIgnoreCase(node.meta(SearchNodeKeys.GUIDE_BOOK_CANDIDATE, ""))
+                    || containsToken(node.meta(SearchNodeKeys.FACETS, ""), "guide_book")
+                    || containsToken(node.meta(SearchNodeKeys.SEARCH_TOKENS, ""), "guidebook")
+                    || containsToken(node.meta(SearchNodeKeys.SEARCH_TOKENS, ""), "guidebooks");
         }
     }
 
@@ -700,7 +792,14 @@ public final class SearchSuggestions {
         }
 
         void addAll(CountedValues values) {
+            addAll(values, ignored -> false);
+        }
+
+        void addAll(CountedValues values, java.util.function.Predicate<String> skipValue) {
             for (var entry : values.counts.entrySet()) {
+                if (skipValue.test(entry.getKey())) {
+                    continue;
+                }
                 counts.merge(entry.getKey(), entry.getValue(), Integer::sum);
             }
         }

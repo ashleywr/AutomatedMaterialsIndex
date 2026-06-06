@@ -20,6 +20,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.text.Normalizer;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Locale;
@@ -39,9 +40,12 @@ public abstract class AbstractSearchBarWidget extends EditBox {
     private static final int HELP_MARGIN = 9;
     private static final int HELP_ROW_HEIGHT = 15;
     private static final int HELP_SECTION_GAP = 9;
-    private static final int HELP_MIN_W = 300;
-    private static final int HELP_MAX_W = 360;
+    private static final int HELP_MIN_W = 420;
+    private static final int HELP_MAX_W = 640;
     private static final int HELP_GAP = 6;
+    private static final int HELP_COLUMN_GAP = 12;
+    private static final int HELP_SCROLLBAR_W = 3;
+    private static final int HELP_TWO_COLUMN_MIN_W = 500;
     private static final String STONE_EASTER_EGG_QUERY = "stone";
     private static final String STONE_EASTER_EGG_QUERY_RU = "камень";
     private static final String THANKS_FOR_RUSSIAN_SUPPORT = "Спасибо, Kotemorte!";
@@ -58,8 +62,12 @@ public abstract class AbstractSearchBarWidget extends EditBox {
 
     private List<TokenColorizer.ColorSpan> colorSpans = List.of();
     private List<SearchSuggestions.Suggestion> suggestions = List.of();
+    private List<HelpClickTarget> helpClickTargets = List.of();
+    private HelpLayoutCache helpLayoutCache = HelpLayoutCache.empty();
+    private SuggestionCache suggestionCache = SuggestionCache.empty();
     private int selectedSuggestion = 0;
     private int suggestionScrollOffset = 0;
+    private int helpScrollOffset = 0;
     private boolean helpOpen = false;
     private boolean inventoryVisualFilterActive = false;
 
@@ -112,7 +120,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
             resetInventoryFilterDoubleClick();
             suggestions = List.of();
             suggestionScrollOffset = 0;
-        } else if (!getValue().isBlank()) {
+        } else {
             updateSuggestions();
         }
     }
@@ -214,6 +222,10 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         }
         if (isHelpPopupMouseOver(mouseX, mouseY)) {
             resetInventoryFilterDoubleClick();
+            HelpClickTarget target = helpTargetAt(mouseX, mouseY);
+            if (target != null) {
+                applyHelpExample(target.example());
+            }
             return true;
         }
         return false;
@@ -266,6 +278,20 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         helpOpen = !helpOpen;
         suggestions = List.of();
         suggestionScrollOffset = 0;
+        helpScrollOffset = 0;
+    }
+
+    private void applyHelpExample(String example) {
+        if (example == null || example.isBlank()) {
+            return;
+        }
+        setValue(example);
+        doMoveCursorToEnd();
+        setHighlightPos(getCursorPosition());
+        focusForInput();
+        helpOpen = false;
+        helpClickTargets = List.of();
+        helpScrollOffset = 0;
     }
 
     private boolean isClearButtonMouseOver(double mouseX, double mouseY) {
@@ -502,16 +528,15 @@ public abstract class AbstractSearchBarWidget extends EditBox {
     }
 
     private void updateSuggestions() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        long revision = index.revision();
+        String value = getValue();
+        int cursor = getCursorPosition();
         if (!isFocused()) {
             suggestions = List.of();
             selectedSuggestion = 0;
             suggestionScrollOffset = 0;
-            return;
-        }
-        if (getValue().isBlank()) {
-            suggestions = List.of();
-            selectedSuggestion = 0;
-            suggestionScrollOffset = 0;
+            suggestionCache = SuggestionCache.empty();
             return;
         }
         if (helpOpen) {
@@ -520,7 +545,13 @@ public abstract class AbstractSearchBarWidget extends EditBox {
             suggestionScrollOffset = 0;
             return;
         }
-        suggestions = SearchSuggestions.suggest(GlobalIndex.getInstance(), getValue(), getCursorPosition(), MAX_SUGGESTIONS);
+        if (suggestionCache.matches(revision, value, cursor, AmiConfig.cheatMode, AmiConfig.devMode, AmiConfig.showHiddenModItems)) {
+            suggestions = suggestionCache.suggestions();
+        } else {
+            suggestions = SearchSuggestions.suggest(index, value, cursor, MAX_SUGGESTIONS);
+            suggestionCache = new SuggestionCache(revision, value, cursor,
+                    AmiConfig.cheatMode, AmiConfig.devMode, AmiConfig.showHiddenModItems, suggestions);
+        }
         selectedSuggestion = Mth.clamp(selectedSuggestion, 0, Math.max(0, suggestions.size() - 1));
         suggestionScrollOffset = Mth.clamp(suggestionScrollOffset, 0, maxSuggestionScrollOffset());
         ensureSelectedSuggestionVisible();
@@ -546,6 +577,9 @@ public abstract class AbstractSearchBarWidget extends EditBox {
     }
 
     public boolean handleSuggestionScroll(double scrollDelta) {
+        if (helpOpen) {
+            return handleHelpScroll(scrollDelta);
+        }
         if (!hasVisibleSuggestions() || suggestions.size() <= visibleSuggestionRows()) {
             return false;
         }
@@ -615,7 +649,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
     }
 
     private int maxSuggestionScrollOffset() {
-        return Math.max(0, suggestions.size() - MAX_VISIBLE_SUGGESTIONS);
+        return Math.max(0, suggestions.size() - visibleSuggestionRows());
     }
 
     private void ensureSelectedSuggestionVisible() {
@@ -846,36 +880,80 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         int popupY = helpPopupY();
         int popupW = helpPopupW();
         int popupH = helpPopupH();
+        HelpLayoutCache cache = helpLayoutCache();
+        SearchSyntax.HelpLayout layout = cache.layout();
+        ArrayList<HelpClickTarget> targets = new ArrayList<>();
+        int maxScroll = maxHelpScrollOffset(cache, popupW, popupH);
+        helpScrollOffset = Mth.clamp(helpScrollOffset, 0, maxScroll);
 
         g.pose().pushPose();
         g.pose().translate(0, 0, OverlayLayers.DROPDOWN);
         g.fill(popupX + 2, popupY + 3, popupX + popupW + 2, popupY + popupH + 3, AMITheme.SEARCH_HELP_SHADOW);
-        AMITheme.drawRoundedBorder(g, popupX, popupY, popupW, popupH, AMITheme.SEARCH_HELP_BG, AMITheme.SEARCH_HELP_BORDER);
+        AMITheme.fillBorderedRect(g, popupX, popupY, popupW, popupH, AMITheme.SEARCH_HELP_BG, AMITheme.SEARCH_HELP_BORDER);
         g.fill(popupX + 2, popupY + 2, popupX + popupW - 2, popupY + 3, AMITheme.ACCENT_BLUE);
 
-        drawHelpSections(g, font, allHelpSections(), popupX + HELP_MARGIN, popupY + HELP_MARGIN, popupW - HELP_MARGIN * 2);
+        int innerX = popupX + HELP_MARGIN;
+        int innerY = popupY + HELP_MARGIN;
+        int innerW = popupW - HELP_MARGIN * 2 - (maxScroll > 0 ? HELP_SCROLLBAR_W + 4 : 0);
+        int innerH = Math.max(1, popupH - HELP_MARGIN * 2);
+        boolean twoColumns = useTwoHelpColumns(popupW);
+
+        g.enableScissor(innerX, innerY, innerX + innerW, innerY + innerH);
+        try {
+            int contentY = innerY - helpScrollOffset;
+            if (twoColumns) {
+                int columnW = (innerW - HELP_COLUMN_GAP) / 2;
+                drawHelpSections(g, font, layout.leftSections(), cache.leftExampleWidth(), innerX, contentY, columnW, innerY, innerY + innerH, mouseX, mouseY, targets);
+                drawHelpSections(g, font, layout.rightSections(), cache.rightExampleWidth(), innerX + columnW + HELP_COLUMN_GAP, contentY, columnW, innerY, innerY + innerH, mouseX, mouseY, targets);
+            } else {
+                List<SearchSyntax.HelpSection> sections = combinedHelpSections(layout);
+                drawHelpSections(g, font, sections, cache.combinedExampleWidth(), innerX, contentY, innerW, innerY, innerY + innerH, mouseX, mouseY, targets);
+            }
+        } finally {
+            g.disableScissor();
+        }
+        if (maxScroll > 0) {
+            drawHelpScrollbar(g, popupX, popupY, popupW, popupH, maxScroll);
+        }
+        helpClickTargets = List.copyOf(targets);
         g.pose().popPose();
     }
 
-    private int drawHelpSections(GuiGraphics g, Font font, List<SearchSyntax.HelpSection> sections, int x, int startY, int width) {
+    private void drawHelpScrollbar(GuiGraphics g, int popupX, int popupY, int popupW, int popupH, int maxScroll) {
+        int trackX = popupX + popupW - HELP_MARGIN + 2;
+        int trackY = popupY + HELP_MARGIN;
+        int trackH = Math.max(1, popupH - HELP_MARGIN * 2);
+        int contentH = helpContentH(helpLayoutCache(), popupW);
+        int thumbH = Mth.clamp(trackH * trackH / Math.max(trackH, contentH), 8, trackH);
+        int thumbY = trackY + (trackH - thumbH) * helpScrollOffset / maxScroll;
+        g.fill(trackX, trackY, trackX + 1, trackY + trackH, AMITheme.SCROLL_TRACK);
+        g.fill(trackX, thumbY, trackX + HELP_SCROLLBAR_W, thumbY + thumbH, AMITheme.SCROLL_THUMB_ACTIVE);
+    }
+
+    private int drawHelpSections(GuiGraphics g, Font font, List<SearchSyntax.HelpSection> sections, int exampleW,
+                                 int x, int startY, int width, int visibleTop, int visibleBottom, int mouseX, int mouseY,
+                                 List<HelpClickTarget> targets) {
         int y = startY;
-        int exampleW = 0;
-        for (SearchSyntax.HelpSection section : sections) {
-            for (SearchSyntax.Example example : section.examples()) {
-                exampleW = Math.max(exampleW, font.width(example.text()));
-            }
-        }
-        exampleW = Mth.clamp(exampleW + 13, 70, Math.max(70, width / 2 - 8));
+        exampleW = Mth.clamp(exampleW, 70, Math.max(70, width / 2 - 8));
         for (SearchSyntax.HelpSection section : sections) {
             if (y > startY) {
                 y += HELP_SECTION_GAP;
             }
-            g.drawString(font, Component.translatable(section.titleKey()), x, y,
-                    AMITheme.SEARCH_HELP_TITLE, false);
+            if (y + font.lineHeight >= visibleTop && y <= visibleBottom) {
+                g.drawString(font, Component.translatable(section.titleKey()), x, y,
+                        AMITheme.SEARCH_HELP_TITLE, false);
+            }
             y += font.lineHeight + 3;
-            g.fill(x, y, x + width, y + 1, AMITheme.SEARCH_HELP_SECTION_LINE);
+            if (y >= visibleTop && y <= visibleBottom) {
+                g.fill(x, y, x + width, y + 1, AMITheme.SEARCH_HELP_SECTION_LINE);
+            }
             y += 4;
             for (SearchSyntax.Example helpExample : section.examples()) {
+                boolean visible = y + HELP_ROW_HEIGHT > visibleTop && y < visibleBottom;
+                if (!visible) {
+                    y += HELP_ROW_HEIGHT;
+                    continue;
+                }
                 int exampleColor = suggestionColor(helpExample.kind());
                 String example = font.plainSubstrByWidth(helpExample.text(), Math.max(20, exampleW - 10));
                 int descX = x + exampleW + 8;
@@ -883,10 +961,14 @@ public abstract class AbstractSearchBarWidget extends EditBox {
                 Component description = Component.translatable(helpExample.descriptionKey());
                 String desc = font.plainSubstrByWidth(description.getString(), descW);
                 int textY = y + (HELP_ROW_HEIGHT - font.lineHeight) / 2 + 1;
-                AMITheme.drawRoundedBorder(g, x, y + 1, exampleW, HELP_ROW_HEIGHT - 2,
-                        AMITheme.SEARCH_HELP_CHIP_BG, AMITheme.SEARCH_HELP_CHIP_BORDER);
+                boolean hovered = mouseX >= x && mouseX < x + exampleW
+                        && mouseY >= y + 1 && mouseY < y + HELP_ROW_HEIGHT - 1;
+                AMITheme.fillBorderedRect(g, x, y + 1, exampleW, HELP_ROW_HEIGHT - 2,
+                        hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.SEARCH_HELP_CHIP_BG,
+                        hovered ? AMITheme.ACCENT_BLUE : AMITheme.SEARCH_HELP_CHIP_BORDER);
                 g.drawString(font, example, x + 5, textY, exampleColor, false);
                 g.drawString(font, desc, descX, textY, AMITheme.SEARCH_HELP_TEXT, false);
+                targets.add(new HelpClickTarget(x, y + 1, exampleW, HELP_ROW_HEIGHT - 2, helpExample.text()));
                 y += HELP_ROW_HEIGHT;
             }
         }
@@ -936,7 +1018,24 @@ public abstract class AbstractSearchBarWidget extends EditBox {
     }
 
     private int helpPopupH() {
-        return HELP_MARGIN * 2 + helpColumnHeight(allHelpSections());
+        int popupW = helpPopupW();
+        int naturalH = HELP_MARGIN * 2 + helpContentH(helpLayoutCache(), popupW);
+        Screen screen = Minecraft.getInstance().screen;
+        int screenH = screen == null ? 0 : screen.height;
+        if (screenH <= 0) {
+            return naturalH;
+        }
+        int availableAbove = Math.max(0, getY() - HELP_GAP - 2);
+        int availableBelow = Math.max(0, screenH - (getY() + height + HELP_GAP) - 2);
+        int available = Math.max(availableAbove, availableBelow);
+        return Mth.clamp(naturalH, HELP_MARGIN * 2 + HELP_ROW_HEIGHT * 3, Math.max(HELP_MARGIN * 2 + HELP_ROW_HEIGHT * 3, available));
+    }
+
+    private int helpContentH(HelpLayoutCache cache, int popupW) {
+        if (useTwoHelpColumns(popupW)) {
+            return Math.max(cache.leftHeight(), cache.rightHeight());
+        }
+        return cache.combinedHeight();
     }
 
     private int helpColumnHeight(List<SearchSyntax.HelpSection> sections) {
@@ -947,15 +1046,76 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         return height + Math.max(0, sections.size() - 1) * HELP_SECTION_GAP;
     }
 
-    private SearchSyntax.HelpLayout currentHelpLayout() {
-        return SearchSuggestions.helpLayout(GlobalIndex.getInstance());
+    private HelpLayoutCache helpLayoutCache() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        long revision = index.revision();
+        HelpLayoutCache cached = helpLayoutCache;
+        if (cached.matches(revision, AmiConfig.cheatMode, AmiConfig.devMode, AmiConfig.showHiddenModItems)) {
+            return cached;
+        }
+        SearchSyntax.HelpLayout layout = SearchSuggestions.helpLayout(index);
+        HelpLayoutCache updated = new HelpLayoutCache(
+                revision,
+                AmiConfig.cheatMode,
+                AmiConfig.devMode,
+                AmiConfig.showHiddenModItems,
+                layout,
+                helpColumnHeight(layout.leftSections()),
+                helpColumnHeight(layout.rightSections()),
+                helpColumnHeight(combinedHelpSections(layout)),
+                helpExampleWidth(layout.leftSections()),
+                helpExampleWidth(layout.rightSections()),
+                helpExampleWidth(combinedHelpSections(layout))
+        );
+        helpLayoutCache = updated;
+        return updated;
     }
 
-    private List<SearchSyntax.HelpSection> allHelpSections() {
-        SearchSyntax.HelpLayout layout = currentHelpLayout();
+    private int helpExampleWidth(List<SearchSyntax.HelpSection> sections) {
+        Font font = Minecraft.getInstance().font;
+        int width = 0;
+        for (SearchSyntax.HelpSection section : sections) {
+            for (SearchSyntax.Example example : section.examples()) {
+                width = Math.max(width, font.width(example.text()));
+            }
+        }
+        return width + 13;
+    }
+
+    private List<SearchSyntax.HelpSection> combinedHelpSections(SearchSyntax.HelpLayout layout) {
         java.util.ArrayList<SearchSyntax.HelpSection> sections = new java.util.ArrayList<>(layout.leftSections());
         sections.addAll(layout.rightSections());
         return List.copyOf(sections);
+    }
+
+    private boolean useTwoHelpColumns(int popupW) {
+        return popupW >= HELP_TWO_COLUMN_MIN_W;
+    }
+
+    private int maxHelpScrollOffset(HelpLayoutCache cache, int popupW, int popupH) {
+        return Math.max(0, helpContentH(cache, popupW) - Math.max(1, popupH - HELP_MARGIN * 2));
+    }
+
+    private boolean handleHelpScroll(double scrollDelta) {
+        int popupW = helpPopupW();
+        int popupH = helpPopupH();
+        int maxScroll = maxHelpScrollOffset(helpLayoutCache(), popupW, popupH);
+        if (maxScroll <= 0) {
+            helpScrollOffset = 0;
+            return false;
+        }
+        int direction = scrollDelta > 0 ? -1 : 1;
+        helpScrollOffset = Mth.clamp(helpScrollOffset + direction * HELP_ROW_HEIGHT, 0, maxScroll);
+        return true;
+    }
+
+    private HelpClickTarget helpTargetAt(double mouseX, double mouseY) {
+        for (HelpClickTarget target : helpClickTargets) {
+            if (target.contains(mouseX, mouseY)) {
+                return target;
+            }
+        }
+        return null;
     }
 
     private int helpPopupX() {
@@ -1006,6 +1166,48 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         }
 
         default void onSearchBarCleared() {
+        }
+    }
+
+    private record HelpClickTarget(int x, int y, int width, int height, String example) {
+        boolean contains(double mouseX, double mouseY) {
+            return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
+        }
+    }
+
+    private record HelpLayoutCache(long revision, boolean cheatMode, boolean devMode, boolean showHidden,
+                                   SearchSyntax.HelpLayout layout,
+                                   int leftHeight, int rightHeight, int combinedHeight,
+                                   int leftExampleWidth, int rightExampleWidth, int combinedExampleWidth) {
+        static HelpLayoutCache empty() {
+            return new HelpLayoutCache(Long.MIN_VALUE,
+                    false, false, false,
+                    new SearchSyntax.HelpLayout(List.of(), List.of()),
+                    0, 0, 0,
+                    70, 70, 70);
+        }
+
+        boolean matches(long revision, boolean cheatMode, boolean devMode, boolean showHidden) {
+            return this.revision == revision
+                    && this.cheatMode == cheatMode
+                    && this.devMode == devMode
+                    && this.showHidden == showHidden;
+        }
+    }
+
+    private record SuggestionCache(long revision, String value, int cursor, boolean cheatMode, boolean devMode,
+                                   boolean showHidden, List<SearchSuggestions.Suggestion> suggestions) {
+        static SuggestionCache empty() {
+            return new SuggestionCache(Long.MIN_VALUE, "", -1, false, false, false, List.of());
+        }
+
+        boolean matches(long revision, String value, int cursor, boolean cheatMode, boolean devMode, boolean showHidden) {
+            return this.revision == revision
+                    && this.cursor == cursor
+                    && this.cheatMode == cheatMode
+                    && this.devMode == devMode
+                    && this.showHidden == showHidden
+                    && this.value.equals(value);
         }
     }
 }

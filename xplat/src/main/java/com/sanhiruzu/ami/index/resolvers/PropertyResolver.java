@@ -4,6 +4,7 @@ import com.sanhiruzu.ami.index.IQueryResolver;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.index.query.SearchSyntax;
 
 import java.util.*;
 
@@ -31,7 +32,8 @@ public final class PropertyResolver implements IQueryResolver {
                     FieldConvention.FACTS,
                     FieldConvention.FACETS,
                     FieldConvention.SEARCH_TOKENS);
-            case "guidebook", "guidebooks" -> matchesGuideBook(node, value);
+            case "ami", "amifilter", "amibucket" -> matchesAmiSemanticValue(node, value);
+            case "guidebook", "guidebooks", "guide", "guides", "book", "books" -> matchesGuideBook(node, value);
             case "kind", "itemkind" -> containsConventionToken(node, value, FieldConvention.KIND);
             case "tier" -> containsConventionToken(node, value, FieldConvention.TIER);
             case "gregtech", "gtceu" -> value.isEmpty()
@@ -157,6 +159,44 @@ public final class PropertyResolver implements IQueryResolver {
         String normalizedValue = normalize(value);
         for (String metadataValue : node.metadata().values()) {
             if (normalize(metadataValue).contains(normalizedValue)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean matchesAmiSemanticValue(SearchNode node, String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        return containsValue(node, SearchNodeKeys.ONTOLOGY_CATEGORY, value)
+                || containsToken(node, SearchNodeKeys.ONTOLOGY_SUBCATEGORY, value)
+                || containsConventionToken(node, value,
+                FieldConvention.FACTS,
+                FieldConvention.FACETS,
+                FieldConvention.KIND,
+                FieldConvention.ROLE,
+                FieldConvention.RECIPE)
+                || containsNamespacedToken(node, SearchNodeKeys.TAGS, "ami", value)
+                || containsNamespacedToken(node, SearchNodeKeys.BLOCK_TAGS, "ami", value)
+                || containsNamespacedToken(node, SearchNodeKeys.SEARCH_TOKENS, "ami", value);
+    }
+
+    private static boolean containsNamespacedToken(SearchNode node, String metadataKey, String namespace, String value) {
+        String normalizedNamespace = normalize(namespace);
+        String normalizedValue = normalize(value);
+        if (normalizedNamespace.isEmpty() || normalizedValue.isEmpty()) {
+            return false;
+        }
+        for (String token : splitTokens(node.meta(metadataKey, ""))) {
+            int separator = token.indexOf(':');
+            if (separator <= 0 || separator >= token.length() - 1) {
+                continue;
+            }
+            String tokenNamespace = token.substring(0, separator);
+            String tokenPath = token.substring(separator + 1);
+            if (normalize(tokenNamespace).equals(normalizedNamespace)
+                    && normalize(tokenPath).equals(normalizedValue)) {
                 return true;
             }
         }
@@ -494,6 +534,9 @@ public final class PropertyResolver implements IQueryResolver {
         int separator = normalized.indexOf(':');
         String key = separator >= 0 ? normalized.substring(0, separator) : normalized;
         String value = separator >= 0 ? normalized.substring(separator + 1) : "";
+        if (separator < 0 && SearchSyntax.isIncompletePropertyFieldPrefix(key)) {
+            return new LinkedHashMap<>();
+        }
 
         Map<NodeType, List<SearchNode>> result = new LinkedHashMap<>();
         for (SearchNode node : nodes) {
