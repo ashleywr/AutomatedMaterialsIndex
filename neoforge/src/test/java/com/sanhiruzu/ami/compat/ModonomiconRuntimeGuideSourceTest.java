@@ -102,4 +102,28 @@ class ModonomiconRuntimeGuideSourceTest {
         assertEquals(1, documents.size());
         assertEquals("Working", documents.getFirst().title());
     }
+
+    @Test
+    void unresolvedTranslationKeysDoNotLeakIntoTitles() {
+        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
+        resources.put(new ResourceLocation("spectrum", "modonomicon/books/guidebook/entries/creating_life/bloodstone.json"), """
+                {
+                  "name": "book.spectrum.guidebook.bloodstone.name",
+                  "category": "spectrum:creating_life",
+                  "pages": [
+                    {
+                      "title": "book.spectrum.guidebook.bloodstone.name",
+                      "text": "book.spectrum.guidebook.bloodstone.page0.text"
+                    }
+                  ]
+                }
+                """);
+
+        List<AmiGuideDocument> documents = ModonomiconRuntimeGuideSource.documentsFromResources(resources, Map.of(), "en_us");
+
+        assertEquals(1, documents.size());
+        assertEquals("Bloodstone", documents.getFirst().title());
+        assertTrue(documents.getFirst().summaryText().contains("Bloodstone"));
+        assertTrue(!documents.getFirst().summaryText().contains("book.spectrum"));
+    }
 }
