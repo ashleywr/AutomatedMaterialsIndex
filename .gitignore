@@ -71,5 +71,6 @@ build_errors*.txt
 ### Dot directories (keep only .gitignore) ###
 .*
 !.gitignore
+!.gitattributes
 !.github/
 !.github/**
