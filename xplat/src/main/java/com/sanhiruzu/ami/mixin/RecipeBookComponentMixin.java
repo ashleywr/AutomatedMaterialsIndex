@@ -34,7 +34,7 @@ public abstract class RecipeBookComponentMixin {
     private void toggleAmiInsteadOfVanillaRecipeBook(CallbackInfo ci) {
         if (!shouldToggleAmi()) return;
 
-        InventoryOverlayHandler.toggleAmi();
+        InventoryOverlayHandler.toggleFromRecipeBookButton();
         ci.cancel();
     }
 

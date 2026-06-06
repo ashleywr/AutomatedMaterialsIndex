@@ -13,13 +13,15 @@ public final class RecipeViewerSuppressionPolicy {
     public record ScreenState(
             boolean amiCapableScreen,
             boolean amiEnabled,
+            boolean recipeBookHidesRecipeViewers,
             boolean externalRecipeViewerAvailable
     ) {
     }
 
     /**
      * Contract for inventory overlays:
-     * - Alt-V and the recipe book button both flip amiEnabled on AMI-capable screens.
+     * - Alt-V flips amiEnabled on AMI-capable screens.
+     * - The recipe book button hides AMI and external recipe viewers together.
      * - "Start AMI Hidden" only selects the initial amiEnabled value for a new inventory session.
      * - Item visibility settings such as hidden mod items or strict survival mode only filter AMI results.
      */
@@ -30,6 +32,9 @@ public final class RecipeViewerSuppressionPolicy {
         if (state.amiEnabled()) {
             return VisibleLayer.AMI;
         }
+        if (state.recipeBookHidesRecipeViewers()) {
+            return VisibleLayer.NONE;
+        }
         if (state.externalRecipeViewerAvailable()) {
             return VisibleLayer.EXTERNAL_RECIPE_VIEWER;
         }
@@ -37,6 +42,17 @@ public final class RecipeViewerSuppressionPolicy {
     }
 
     public static boolean shouldSuppressRecipeViewerChrome(boolean amiEnabled, boolean currentScreenSupportsAmi) {
-        return visibleLayer(new ScreenState(currentScreenSupportsAmi, amiEnabled, true)) == VisibleLayer.AMI;
+        return shouldSuppressRecipeViewerChrome(amiEnabled, false, currentScreenSupportsAmi);
+    }
+
+    public static boolean shouldSuppressRecipeViewerChrome(
+            boolean amiEnabled,
+            boolean recipeBookHidesRecipeViewers,
+            boolean currentScreenSupportsAmi
+    ) {
+        if (!currentScreenSupportsAmi) {
+            return false;
+        }
+        return amiEnabled || recipeBookHidesRecipeViewers;
     }
 }
