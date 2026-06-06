@@ -221,4 +221,17 @@ class AmiGuideSearchIndexTest {
         assertEquals(List.of(document), AmiGuideSearchIndex.fromConfig(List.of(document)).search("alpha"));
         assertTrue(AmiGuideSearchIndex.fromConfig(List.of(document)).search("gamma").isEmpty());
     }
+
+    @Test
+    void defaultConfigSearchesSummaryText() {
+        AmiGuideDocument document = AmiGuideDocument.builder(
+                        new ResourceLocation("ami", "guide/default_summary"),
+                        "patchouli",
+                        "example",
+                        "Default Summary")
+                .summaryText("body-only searchable phrase")
+                .build();
+
+        assertEquals(List.of(document), AmiGuideSearchIndex.fromConfig(List.of(document)).search("body-only"));
+    }
 }

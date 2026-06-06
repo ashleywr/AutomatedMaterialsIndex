@@ -156,6 +156,8 @@ public final class FacetIndexer {
                 attributes.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "silentgear_materials");
             } else if (itemClass.contains("tinkerbookitem") || itemClass.contains("tinkers_reforged")) {
                 attributes.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "mantle_book");
+            } else if (itemClass.contains("immersiveengineering") && itemClass.contains("manualitem")) {
+                attributes.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "immersiveengineering_manual");
             } else if (itemClass.contains("animaldictionary") || itemClass.contains("alexscaves")) {
                 attributes.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "resource_book");
             } else if (itemClass.contains("codexarcana")) {
