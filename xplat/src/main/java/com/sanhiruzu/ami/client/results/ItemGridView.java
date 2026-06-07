@@ -404,10 +404,10 @@ public class ItemGridView {
                     lines.add(Component.translatable(node.isExpanded() ? "ami.gui.collapse_hint" : "ami.gui.expand_hint")
                             .withStyle(net.minecraft.ChatFormatting.GRAY));
                     lines.add(Component.translatable("ami.gui.group_filter_hint").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
-                    pendingTextTooltip = lines;
+                    pendingTextTooltip = AmiTooltipComposer.normalizeTooltipLines(lines);
                     pendingTooltipImage = Optional.empty();
                 } else if (com.sanhiruzu.ami.client.AmiKeybindHandler.isDebugTooltipsActive()) {
-                    pendingTextTooltip = com.sanhiruzu.ami.client.results.DebugTooltip.build(entry);
+                    pendingTextTooltip = AmiTooltipComposer.normalizeTooltipLines(DebugTooltip.build(entry));
                     pendingTooltipImage = Optional.empty();
                 } else {
                     pendingTextTooltip = AmiTooltipComposer.buildTooltip(entry);

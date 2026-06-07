@@ -4,7 +4,6 @@ import com.sanhiruzu.ami.client.overlay.OverlayLayers;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 
@@ -31,7 +30,7 @@ public final class AmiTooltipRenderer {
             return;
         }
 
-        renderVisualText(g, font, lines, mouseX, mouseY);
+        renderText(g, font, lines, mouseX, mouseY);
     }
 
     public static void render(GuiGraphics g, Font font, ItemStack stack, List<Component> lines,
@@ -41,14 +40,11 @@ public final class AmiTooltipRenderer {
             return;
         }
 
-        renderVisualText(g, font, lines, mouseX, mouseY);
+        renderText(g, font, lines, mouseX, mouseY);
     }
 
-    private static void renderVisualText(GuiGraphics g, Font font, List<Component> lines, int mouseX, int mouseY) {
-        List<FormattedCharSequence> visualLines = lines.stream()
-                .map(Component::getVisualOrderText)
-                .toList();
-        renderAtTooltipLayer(g, () -> g.renderTooltip(font, visualLines, mouseX, mouseY));
+    private static void renderText(GuiGraphics g, Font font, List<Component> lines, int mouseX, int mouseY) {
+        renderAtTooltipLayer(g, () -> g.renderTooltip(font, lines, Optional.empty(), mouseX, mouseY));
     }
 
     private static void renderAtTooltipLayer(GuiGraphics g, Runnable renderer) {
