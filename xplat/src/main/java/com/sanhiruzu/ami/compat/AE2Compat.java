@@ -52,6 +52,7 @@ public final class AE2Compat {
         if (!storageMedium.isBlank()) {
             meta.put(SearchNodeKeys.AE2_STORAGE_MEDIUM, storageMedium);
             addSearchToken(meta, "ae2_" + storageMedium);
+            addSearchToken(meta, storageMedium);
         }
         if (!facts.isEmpty()) {
             meta.put(SearchNodeKeys.AE2_FACTS, join(facts));
@@ -63,6 +64,7 @@ public final class AE2Compat {
 
     private static boolean isAe2FamilyItem(ResourceLocation id, Map<String, String> meta) {
         return MOD_ID.equals(id.getNamespace())
+                || "appmek".equals(id.getNamespace())
                 || "appliedenergistics2".equals(id.getNamespace())
                 || CompatFamilyDetector.hasFamily(meta, CompatFamilyDetector.AE2);
     }
@@ -75,6 +77,10 @@ public final class AE2Compat {
         if (containsAny(context.itemClass, "PortableCellItem", "StorageCell")
                 || containsAny(context.blockClass, "DriveBlock", "ChestBlock")) {
             facts.add("storage");
+        }
+        if (containsAny(context.itemClass, "ChemicalStorageCell", "ChemicalPortableCellItem")) {
+            facts.add("storage");
+            facts.add("chemical");
         }
         if (containsAny(context.itemClass, "EncodedPatternItem", "Pattern")
                 || containsAny(context.blockClass, ".crafting.", "MolecularAssembler", "Inscriber", "PatternProvider")) {
@@ -111,9 +117,13 @@ public final class AE2Compat {
     private static void addPathFacts(Context context, Set<String> facts) {
         String path = context.path;
         if (hasAnyPathToken(path, "terminal", "wireless_terminal", "wireless_crafting_terminal")) facts.add("terminal");
-        if (containsAny(path, "portable_item_cell", "portable_fluid_cell", "storage_cell", "cell_component", "cell_housing")
+        if (containsAny(path, "portable_item_cell", "portable_fluid_cell", "portable_chemical_cell",
+                "storage_cell", "chemical_storage_cell", "cell_component", "cell_housing", "chemical_cell_housing")
                 || hasAnyPathToken(path, "drive", "chest")) {
             facts.add("storage");
+        }
+        if (containsAny(path, "chemical_storage_cell", "portable_chemical_cell", "chemical_cell_housing", "chemical_p2p_tunnel")) {
+            facts.add("chemical");
         }
         if (containsAny(path, "spatial_cell", "spatial_pylon", "spatial_io", "spatial_anchor")) facts.add("spatial");
         if (containsAny(path, "crafting_unit", "crafting_storage", "crafting_accelerator", "crafting_monitor")
@@ -121,7 +131,7 @@ public final class AE2Compat {
                 || hasAnyPathToken(path, "inscriber", "pattern")) {
             facts.add("crafting");
         }
-        if (containsAny(path, "smart_cable", "covered_cable", "glass_cable", "dense_cable", "p2p_tunnel")
+        if (containsAny(path, "smart_cable", "covered_cable", "glass_cable", "dense_cable", "p2p_tunnel", "chemical_p2p_tunnel")
                 || hasAnyPathToken(path, "bus", "cable", "interface", "annihilation", "formation", "export", "import")) {
             facts.add("channel_network");
         }
@@ -206,6 +216,7 @@ public final class AE2Compat {
 
     private static String storageMedium(String path) {
         if (path.contains("fluid_cell")) return "fluid";
+        if (path.contains("chemical_storage_cell") || path.contains("portable_chemical_cell")) return "chemical";
         if (path.contains("item_cell")) return "item";
         if (path.contains("spatial_cell")) return "spatial";
         return "";

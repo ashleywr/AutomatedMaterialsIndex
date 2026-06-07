@@ -16,6 +16,7 @@ public final class QueryParser {
      * - Tags: "#storage" → TAG
      * - Environment: "&nether" → ENV
      * - Properties: "?precipitation:rain" → PROP
+     * - Players: "^name" → PLAYER
      * - Essential: "!storage" → ESSENTIAL
      * - Numeric metrics: ">storage:100", ">dps:8", "<storage:4096" → ESM
      * <p>
@@ -110,6 +111,7 @@ public final class QueryParser {
         MOD,         // @modid
         ENV,         // &env
         PROP,        // ?property
+        PLAYER,      // ^player
         ESSENTIAL,   // !curated
         ESM,         // >capacity:value
         CATEGORY     // $categoryId  (AMI ontology category)

@@ -1,5 +1,8 @@
 package com.sanhiruzu.ami.forge;
 
+import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.properties.Property;
+import com.mojang.authlib.properties.PropertyMap;
 import com.sanhiruzu.ami.forge.client.AMIKeyMappings;
 import com.sanhiruzu.ami.index.GlobalIndexCache;
 import com.sanhiruzu.ami.platform.IAmiKeyMappings;
@@ -46,6 +49,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.UUID;
 
 public class ForgePlatformHelper implements IPlatformHelper {
     private static final int SHULKER_SLOTS = 27;
@@ -359,6 +363,70 @@ public class ForgePlatformHelper implements IPlatformHelper {
                 .map(key -> key.location().toString())
                 .orElse(""));
         return stack;
+    }
+
+    @Override
+    public ItemStack createPlayerHeadStack(String name) {
+        return createPlayerHeadStack(name, null);
+    }
+
+    @Override
+    public ItemStack createPlayerHeadStack(String name, UUID uuid) {
+        if (name == null || name.isBlank()) return ItemStack.EMPTY;
+        ItemStack stack = new ItemStack(Items.PLAYER_HEAD);
+        if (uuid == null) {
+            stack.getOrCreateTag().putString("SkullOwner", name);
+            return stack;
+        }
+        CompoundTag skullOwner = new CompoundTag();
+        skullOwner.putString("Name", name);
+        skullOwner.putIntArray("Id", uuidToIntArray(uuid));
+        stack.getOrCreateTag().put("SkullOwner", skullOwner);
+        return stack;
+    }
+
+    @Override
+    public ItemStack createPlayerHeadStack(GameProfile profile) {
+        if (profile == null || profile.getName() == null || profile.getName().isBlank()) return ItemStack.EMPTY;
+        ItemStack stack = createPlayerHeadStack(profile.getName(), profile.getId());
+        CompoundTag skullOwner = stack.getOrCreateTag().getCompound("SkullOwner");
+        PropertyMap properties = profile.getProperties();
+        if (!properties.isEmpty()) {
+            CompoundTag propsTag = new CompoundTag();
+            for (String key : properties.keySet()) {
+                ListTag propList = new ListTag();
+                for (Property property : properties.get(key)) {
+                    CompoundTag entry = new CompoundTag();
+                    entry.putString("Value", property.getValue());
+                    if (property.getSignature() != null) {
+                        entry.putString("Signature", property.getSignature());
+                    }
+                    propList.add(entry);
+                }
+                propsTag.put(key, propList);
+            }
+            skullOwner.put("Properties", propsTag);
+            stack.getOrCreateTag().put("SkullOwner", skullOwner);
+        }
+        return stack;
+    }
+
+    @Override
+    public String playerHeadGiveCommand(String name) {
+        if (name == null || name.isBlank()) {
+            return "give @s minecraft:player_head 1";
+        }
+        return "give @s minecraft:player_head{SkullOwner:\"" + escapeCommandString(name) + "\"} 1";
+    }
+
+    private static String escapeCommandString(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private static int[] uuidToIntArray(UUID uuid) {
+        long most = uuid.getMostSignificantBits();
+        long least = uuid.getLeastSignificantBits();
+        return new int[]{(int) (most >> 32), (int) most, (int) (least >> 32), (int) least};
     }
 
     @Override

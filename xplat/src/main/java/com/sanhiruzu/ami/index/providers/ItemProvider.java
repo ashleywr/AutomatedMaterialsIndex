@@ -7,6 +7,7 @@ import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.compat.AE2Compat;
 import com.sanhiruzu.ami.compat.AlexsCavesCompat;
 import com.sanhiruzu.ami.compat.AlexsMobsCompat;
+import com.sanhiruzu.ami.compat.ArsNouveauCompat;
 import com.sanhiruzu.ami.compat.ChippedCompat;
 import com.sanhiruzu.ami.compat.CobblemonCompat;
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
@@ -16,8 +17,10 @@ import com.sanhiruzu.ami.compat.MekanismCompat;
 import com.sanhiruzu.ami.compat.MnaCompat;
 import com.sanhiruzu.ami.compat.ModularGearCompat;
 import com.sanhiruzu.ami.compat.ModularGolemsCompat;
+import com.sanhiruzu.ami.compat.NaturesAuraCompat;
 import com.sanhiruzu.ami.compat.RechiseledCompat;
 import com.sanhiruzu.ami.compat.SophisticatedCompat;
+import com.sanhiruzu.ami.compat.SpectrumCompat;
 import com.sanhiruzu.ami.compat.StorageCompat;
 import com.sanhiruzu.ami.compat.TaczCompat;
 import com.sanhiruzu.ami.config.AmiConfig;
@@ -444,6 +447,15 @@ public class ItemProvider implements IAmiDataProvider {
         if (namespaceIs(id, "mna") || hasCompatFamily(meta, CompatFamilyDetector.MNA)) {
             ItemProviderCompatHooks.runCompatSafely("MnaCompat", () -> MnaCompat.enrichItem(id, meta));
         }
+        if (namespaceIs(id, "ars_nouveau") || hasCompatFamily(meta, CompatFamilyDetector.ARS_NOUVEAU)) {
+            ItemProviderCompatHooks.runCompatSafely("ArsNouveauCompat", () -> ArsNouveauCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "spectrum") || hasCompatFamily(meta, CompatFamilyDetector.SPECTRUM)) {
+            ItemProviderCompatHooks.runCompatSafely("SpectrumCompat", () -> SpectrumCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "naturesaura") || hasCompatFamily(meta, CompatFamilyDetector.NATURES_AURA)) {
+            ItemProviderCompatHooks.runCompatSafely("NaturesAuraCompat", () -> NaturesAuraCompat.enrichItem(id, meta));
+        }
         if (namespaceIs(id, "alexsmobs") || hasCompatFamily(meta, CompatFamilyDetector.ALEXS_MOBS)) {
             ItemProviderCompatHooks.runCompatSafely("AlexsMobsCompat", () -> AlexsMobsCompat.enrichItem(id, meta));
         }
@@ -554,15 +566,29 @@ public class ItemProvider implements IAmiDataProvider {
         ItemProviderCompatHooks.runCompatSafely("CompatFamilyDetector", () -> CompatFamilyDetector.detect(baseId, meta));
         runFocusedCompatHooks(baseId, stack, level, meta, true);
         addCheapPlainSearchTokens(meta, baseId, modNameCache);
-        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(baseId, facetProfile.facets(), meta);
+        applyPrimaryCategoryMeta(baseId, item, facetProfile, meta);
+        return meta;
+    }
+
+    static void applyPrimaryCategoryMeta(ResourceLocation id, Item item, FacetProfile facetProfile, Map<String, String> meta) {
+        if (id == null || meta == null) {
+            return;
+        }
+        EnumSet<ItemFacet> finalFacets = facetProfile == null || facetProfile.facets().isEmpty()
+                ? EnumSet.noneOf(ItemFacet.class)
+                : EnumSet.copyOf(facetProfile.facets());
+        finalFacets.addAll(FacetCodec.decode(meta.get(SearchNodeKeys.FACETS)));
+        FacetProfile routedProfile = new FacetProfile(finalFacets,
+                facetProfile == null ? Map.of() : facetProfile.attributes());
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(id, finalFacets, meta);
         if (!assignment.attributes().isEmpty()) {
             meta.putAll(assignment.attributes());
         }
         if (!"misc".equals(assignment.categoryId())) {
             meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, assignment.categoryId());
             meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, assignment.subcategoryId());
-        } else if (shouldUseLegacyOntologyFallback(facetProfile)) {
-            String[] ontology = OntologyClassifier.classifyItem(item, baseId);
+        } else if (shouldUseLegacyOntologyFallback(routedProfile)) {
+            String[] ontology = OntologyClassifier.classifyItem(item, id);
             if (ontology != null) {
                 meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, ontology[0]);
                 if (ontology.length > 1) {
@@ -573,7 +599,6 @@ public class ItemProvider implements IAmiDataProvider {
                 }
             }
         }
-        return meta;
     }
 
     private static void applyCreativeTabMeta(Map<String, String> meta, @Nullable ItemFilter.CreativeTabInfo creativeTab) {
@@ -730,6 +755,7 @@ public class ItemProvider implements IAmiDataProvider {
                     tooltipSearchNs += System.nanoTime() - tooltipSearchStart;
                     inferAmmoType(entry.id(), meta);
                     markGeneratedModularGearVariantCheatOnly(entry.id(), meta);
+                    applyPrimaryCategoryMeta(id, item, null, meta);
                     if (!ItemFilter.shouldShowAccessLevel(meta.getOrDefault(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL))
                             && !isHiddenComponentDuplicateVariant(meta)) {
                         continue;
@@ -1072,6 +1098,7 @@ public class ItemProvider implements IAmiDataProvider {
                 armorMetricSniffer.sniff(stack).ifPresent(stats -> addArmorStats(meta, stats));
                 addTooltipSearchTokens(meta, stack, level, syntheticId, stack.getHoverName().getString(), modNameCache);
                 inferAmmoType(baseId, meta);
+                applyPrimaryCategoryMeta(baseId, stack.getItem(), null, meta);
                 index.addNode(new SearchNode(syntheticId, NodeType.ITEM,
                         stack.getHoverName().getString(), 0xFFFFFF, 0, meta));
                 count++;

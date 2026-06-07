@@ -29,4 +29,8 @@ public record AmiContextMenuAction(
     public static AmiContextMenuAction disabled(String id, Component label, char mnemonic) {
         return new AmiContextMenuAction(id, label, mnemonic, false, null);
     }
+
+    public static AmiContextMenuAction disabled(String id, Component label) {
+        return new AmiContextMenuAction(id, label, null, false, null);
+    }
 }

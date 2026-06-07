@@ -1,7 +1,9 @@
 package com.sanhiruzu.ami.index.providers;
 
 import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.index.FacetProfile;
 import com.sanhiruzu.ami.index.ItemFilter;
+import com.sanhiruzu.ami.index.ItemFacet;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
@@ -12,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -151,6 +154,24 @@ public class CreativeStackVariantExpanderTest {
 
         assertEquals("facade_variants_hidden_by_default", meta.get(SearchNodeKeys.VARIANT_SUPPRESSION_REASON));
         assertEquals("926", meta.get(SearchNodeKeys.VARIANT_SUPPRESSED_COUNT));
+    }
+
+    @Test
+    void subtypeCategoryAssignmentUsesMetricAddedFacets() {
+        Item copperCan = new Item("Copper Can");
+        Map<String, String> meta = new java.util.HashMap<>();
+        meta.put(SearchNodeKeys.MOD_ID, "tconstruct");
+        meta.put(SearchNodeKeys.FACETS, ItemFacet.FLUID_CONTAINER.id());
+
+        ItemProvider.applyPrimaryCategoryMeta(
+                new ResourceLocation("tconstruct", "copper_can"),
+                copperCan,
+                new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of()),
+                meta
+        );
+
+        assertEquals("utility", meta.get(SearchNodeKeys.ONTOLOGY_CATEGORY));
+        assertEquals("misc", meta.get(SearchNodeKeys.ONTOLOGY_SUBCATEGORY));
     }
 
     @Test

@@ -234,6 +234,14 @@ class SearchSuggestionsTest {
     }
 
     @Test
+    void helpAdvertisesPlayerHeadPrefix() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("minecraft", "stone", "Stone", Map.of()));
+
+        assertTrue(helpExamples(index).contains("^Steve"));
+    }
+
+    @Test
     void sameModTechnicalAliasesCollapseToCanonicalFriendlySuggestions() {
         GlobalIndex index = GlobalIndex.getInstance();
         index.addNode(item("appliedenergistics2", "crafting_unit", "Crafting Unit", Map.of(
@@ -482,3 +490,4 @@ class SearchSuggestionsTest {
         return new SearchNode(new ResourceLocation(namespace, path), type, displayName, 0, 0, metadata);
     }
 }
+

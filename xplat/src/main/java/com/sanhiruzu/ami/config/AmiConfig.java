@@ -119,7 +119,7 @@ public class AmiConfig {
 
     @ConfigHidden
     @ConfigValue("ui.context-menu.enabled-actions")
-    public static String contextMenuEnabledActions = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,ami:open_pokedex,ami:filter_pokemon_type,ami:filter_pokemon_secondary_type,ami:filter_pokemon_generation,ami:filter_pokemon_egg_group,ami:filter_pokemon_ability,ami:search_pokemon_drop_item,ami:recipes_pokemon_drop_item,ami:copy_pokemon_species,ami:copy_pokemon_dex_number,ami:filter_gregtech_tier,ami:filter_gregtech_kind,ami:filter_gregtech_fact,ami:filter_gregtech_circuit_grade,ami:group_toggle,ami:filter_category,ami:copy_group_key,ami:start_category_fix,ami:apply_category_fix,ami:clear_item_fix,ami:quests_for_item,ami:open_quest,ami:copy_quest_matches";
+    public static String contextMenuEnabledActions = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,ami:open_pokedex,ami:filter_pokemon_type,ami:filter_pokemon_secondary_type,ami:filter_pokemon_generation,ami:filter_pokemon_egg_group,ami:filter_pokemon_ability,ami:search_pokemon_drop_item,ami:recipes_pokemon_drop_item,ami:copy_pokemon_species,ami:copy_pokemon_dex_number,ami:filter_gregtech_tier,ami:filter_gregtech_kind,ami:filter_gregtech_fact,ami:filter_gregtech_circuit_grade,ami:copy_player_name,ami:cheat_give_player_head,ami:copy_player_waypoint,ami:teleport_to_player,ami:teleport_player_here,ami:group_toggle,ami:filter_category,ami:copy_group_key,ami:start_category_fix,ami:apply_category_fix,ami:clear_item_fix,ami:quests_for_item,ami:open_quest,ami:copy_quest_matches";
 
     @ConfigHidden
     @ConfigValue("ui.context-menu.disabled-by-mod")
@@ -158,6 +158,8 @@ public class AmiConfig {
     public static CompatCategoryPolicy apotheosisCategoryPolicy = CompatCategoryPolicy.HYBRID;
     @ConfigValue("compat.botania.category-policy")
     public static CompatCategoryPolicy botaniaCategoryPolicy = CompatCategoryPolicy.HYBRID;
+    @ConfigValue("compat.ars-nouveau.category-policy")
+    public static CompatCategoryPolicy arsNouveauCategoryPolicy = CompatCategoryPolicy.FOCUSED;
     @ConfigValue("compat.map-utility.category-policy")
     public static CompatCategoryPolicy mapUtilityCategoryPolicy = CompatCategoryPolicy.HYBRID;
     // --- Side Panels Group ---
@@ -193,6 +195,14 @@ public class AmiConfig {
     public static CheatGiveMode cheatGiveMode = CheatGiveMode.CURSOR;
     @ConfigValue("cheat.drop-to-delete")
     public static boolean cheatDropToDelete = true;
+    @ConfigSlider(min = 1, max = 24, step = 1)
+    @ConfigValue("cheat.player-head-suggestions-limit")
+    public static int playerHeadSuggestionsLimit = 12;
+    @ConfigSlider(min = 1, max = 24, step = 1)
+    @ConfigValue("cheat.player-head-results-limit")
+    public static int playerHeadResultsLimit = 16;
+    @ConfigValue("cheat.player-head-show-full-model")
+    public static boolean playerHeadShowFullModel = false;
     @ConfigValue("general.highlight-exclusion-areas")
     public static boolean highlightExclusionAreas = false;
     // --- Layout & Sizing ---
@@ -304,7 +314,7 @@ public class AmiConfig {
         packAuthorMode = false;
         confirmExternalLinks = true;
         guideSummaryTextCap = 4096;
-        contextMenuEnabledActions = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,ami:open_pokedex,ami:filter_pokemon_type,ami:filter_pokemon_secondary_type,ami:filter_pokemon_generation,ami:filter_pokemon_egg_group,ami:filter_pokemon_ability,ami:search_pokemon_drop_item,ami:recipes_pokemon_drop_item,ami:copy_pokemon_species,ami:copy_pokemon_dex_number,ami:filter_gregtech_tier,ami:filter_gregtech_kind,ami:filter_gregtech_fact,ami:filter_gregtech_circuit_grade,ami:group_toggle,ami:filter_category,ami:copy_group_key,ami:start_category_fix,ami:apply_category_fix,ami:clear_item_fix,ami:quests_for_item,ami:open_quest,ami:copy_quest_matches";
+        contextMenuEnabledActions = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,ami:open_pokedex,ami:filter_pokemon_type,ami:filter_pokemon_secondary_type,ami:filter_pokemon_generation,ami:filter_pokemon_egg_group,ami:filter_pokemon_ability,ami:search_pokemon_drop_item,ami:recipes_pokemon_drop_item,ami:copy_pokemon_species,ami:copy_pokemon_dex_number,ami:filter_gregtech_tier,ami:filter_gregtech_kind,ami:filter_gregtech_fact,ami:filter_gregtech_circuit_grade,ami:copy_player_name,ami:cheat_give_player_head,ami:copy_player_waypoint,ami:teleport_to_player,ami:teleport_player_here,ami:group_toggle,ami:filter_category,ami:copy_group_key,ami:start_category_fix,ami:apply_category_fix,ami:clear_item_fix,ami:quests_for_item,ami:open_quest,ami:copy_quest_matches";
         contextMenuDisabledByMod = "";
         contextMenuDisabledByType = "";
         contextMenuDisabledByCategory = "";
@@ -321,6 +331,7 @@ public class AmiConfig {
         minecoloniesCategoryPolicy = CompatCategoryPolicy.HYBRID;
         apotheosisCategoryPolicy = CompatCategoryPolicy.HYBRID;
         botaniaCategoryPolicy = CompatCategoryPolicy.HYBRID;
+        arsNouveauCategoryPolicy = CompatCategoryPolicy.FOCUSED;
         mapUtilityCategoryPolicy = CompatCategoryPolicy.HYBRID;
 
         leftPanelWidth = 140;
@@ -342,6 +353,9 @@ public class AmiConfig {
         devMode = false;
         cheatGiveMode = CheatGiveMode.CURSOR;
         cheatDropToDelete = true;
+        playerHeadSuggestionsLimit = 12;
+        playerHeadResultsLimit = 16;
+        playerHeadShowFullModel = false;
         highlightExclusionAreas = false;
 
         searchBarWidth = 240;

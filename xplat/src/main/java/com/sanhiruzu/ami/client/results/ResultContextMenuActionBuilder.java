@@ -26,7 +26,12 @@ import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.index.resolvers.PlayerHeadHistory;
 import com.sanhiruzu.ami.platform.Services;
+import com.sanhiruzu.ami.player.PlayerWaypointContext;
+import com.sanhiruzu.ami.player.PlayerWaypointAction;
+import com.sanhiruzu.ami.player.PlayerWaypointExport;
+import com.sanhiruzu.ami.player.PlayerWaypointProviders;
 import com.sanhiruzu.ami.util.AmiClipboardHelper;
 import com.sanhiruzu.searchableitems.api.SearchableItemAction;
 import com.sanhiruzu.searchableitems.api.SearchableItemActionContext;
@@ -103,6 +108,18 @@ public class ResultContextMenuActionBuilder {
     public static final String FILTER_GREGTECH_CIRCUIT_GRADE = "ami:filter_gregtech_circuit_grade";
     public static final String FILTER_MOD = "ami:filter_mod";
     public static final String COPY_ID = "ami:copy_id";
+    public static final String COPY_PLAYER_NAME = "ami:copy_player_name";
+    public static final String CHEAT_GIVE_PLAYER_HEAD = "ami:cheat_give_player_head";
+    public static final String COPY_PLAYER_WAYPOINT = "ami:copy_player_waypoint";
+    public static final String ADD_PLAYER_WAYPOINT = "ami:add_player_waypoint";
+    public static final String PLAYER_WAYPOINTS_MENU = "ami:player_waypoints_menu";
+    public static final String PLAYER_ADMIN_MENU = "ami:player_admin_menu";
+    public static final String TELEPORT_TO_PLAYER = "ami:teleport_to_player";
+    public static final String TELEPORT_PLAYER_HERE = "ami:teleport_player_here";
+    public static final String OPEN_WAYPOINT = "ami:open_waypoint";
+    public static final String COPY_WAYPOINT = "ami:copy_waypoint";
+    public static final String CHAT_WAYPOINT = "ami:chat_waypoint";
+    public static final String TELEPORT_TO_WAYPOINT = "ami:teleport_to_waypoint";
     public static final String GROUP_TOGGLE = "ami:group_toggle";
     public static final String FILTER_CATEGORY = "ami:filter_category";
     public static final String COPY_GROUP_KEY = "ami:copy_group_key";
@@ -121,6 +138,15 @@ public class ResultContextMenuActionBuilder {
     public static final String COPY_PACK_AUTHOR_REPORT = "ami:copy_pack_author_report";
     public static final String COPY_TAXONOMY_TEMPLATE = "ami:copy_taxonomy_template";
     public static final String CREATE_PACK_FILES = "ami:create_pack_files";
+    public static final String MENU_CRAFTING = "ami:menu_crafting";
+    public static final String MENU_RECIPES = "ami:menu_recipes";
+    public static final String MENU_CHEAT = "ami:menu_cheat";
+    public static final String MENU_FILTERS = "ami:menu_filters";
+    public static final String MENU_POKEMON = "ami:menu_pokemon";
+    public static final String MENU_GREGTECH = "ami:menu_gregtech";
+    public static final String MENU_QUESTS = "ami:menu_quests";
+    public static final String MENU_PACK_AUTHOR = "ami:menu_pack_author";
+    public static final String MENU_DEVELOPER = "ami:menu_developer";
     private static final int MAX_GROUP_AUTHORING_ITEMS = 64;
     private static final int MAX_GROUP_REPORT_ITEMS = 512;
     private static final ResourceLocation AE2_GUIDE_BOOK = ResourceLocation.fromNamespaceAndPath("ae2", "guide");
@@ -135,12 +161,17 @@ public class ResultContextMenuActionBuilder {
             SEARCH_POKEMON_DROP_ITEM, RECIPES_POKEMON_DROP_ITEM,
             COPY_POKEMON_SPECIES, COPY_POKEMON_DEX_NUMBER,
             FILTER_GREGTECH_TIER, FILTER_GREGTECH_KIND, FILTER_GREGTECH_FACT, FILTER_GREGTECH_CIRCUIT_GRADE,
-            FILTER_MOD, COPY_ID,
+            FILTER_MOD, COPY_ID, COPY_PLAYER_NAME, CHEAT_GIVE_PLAYER_HEAD, COPY_PLAYER_WAYPOINT, ADD_PLAYER_WAYPOINT,
+            PLAYER_WAYPOINTS_MENU, PLAYER_ADMIN_MENU,
+            TELEPORT_TO_PLAYER, TELEPORT_PLAYER_HERE,
+            OPEN_WAYPOINT, COPY_WAYPOINT, CHAT_WAYPOINT, TELEPORT_TO_WAYPOINT,
             GROUP_TOGGLE, FILTER_CATEGORY, COPY_GROUP_KEY,
             START_CATEGORY_FIX, EDIT_CATEGORY_FIX, APPLY_CATEGORY_FIX, CLEAR_ITEM_FIX,
             QUESTS_FOR_ITEM, OPEN_QUEST, COPY_QUEST_MATCHES,
             COPY_FTB_ITEM_TASK, COPY_FTB_QUEST_SKELETON, COPY_KUBEJS_RECIPE_STUB, COPY_KUBEJS_RECIPE_REMOVAL_SCRIPT, COPY_GAMESTAGE_CONDITION,
-            COPY_PACK_AUTHOR_REPORT, COPY_TAXONOMY_TEMPLATE, CREATE_PACK_FILES
+            COPY_PACK_AUTHOR_REPORT, COPY_TAXONOMY_TEMPLATE, CREATE_PACK_FILES,
+            MENU_CRAFTING, MENU_RECIPES, MENU_CHEAT, MENU_FILTERS, MENU_POKEMON, MENU_GREGTECH, MENU_QUESTS,
+            MENU_PACK_AUTHOR, MENU_DEVELOPER
     );
     public static final String DEFAULT_ACTIONS = String.join(",",
             COPY_TOOLTIP,
@@ -172,6 +203,16 @@ public class ResultContextMenuActionBuilder {
             FILTER_GREGTECH_KIND,
             FILTER_GREGTECH_FACT,
             FILTER_GREGTECH_CIRCUIT_GRADE,
+            COPY_PLAYER_NAME,
+            CHEAT_GIVE_PLAYER_HEAD,
+            ADD_PLAYER_WAYPOINT,
+            COPY_PLAYER_WAYPOINT,
+            TELEPORT_TO_PLAYER,
+            TELEPORT_PLAYER_HERE,
+            OPEN_WAYPOINT,
+            COPY_WAYPOINT,
+            CHAT_WAYPOINT,
+            TELEPORT_TO_WAYPOINT,
             GROUP_TOGGLE,
             FILTER_CATEGORY,
             COPY_GROUP_KEY,
@@ -234,6 +275,14 @@ public class ResultContextMenuActionBuilder {
         ResultContextMenuActionPolicy policy = ResultContextMenuActionPolicy.fromConfig();
 
         SearchNode node = context.node();
+        if (node.type() == NodeType.PLAYER) {
+            addPlayerActions(actions, policy, node, cheatEnabled.getAsBoolean());
+            return actions;
+        }
+        if (node.type() == NodeType.WAYPOINT) {
+            addLiveWaypointActions(actions, node, cheatEnabled.getAsBoolean());
+            return actions;
+        }
         ResourceLocation id = resolvedItemId(node);
         ItemStack stack = context.stack() == null ? ItemStack.EMPTY : context.stack().copy();
         boolean hasStack = !stack.isEmpty();
@@ -504,7 +553,218 @@ public class ResultContextMenuActionBuilder {
             ));
         }
 
-        return actions;
+        return groupItemActions(actions);
+    }
+
+    private static List<ResultContextMenu.Action> groupItemActions(List<ResultContextMenu.Action> actions) {
+        if (actions == null || actions.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, List<ResultContextMenu.Action>> grouped = new LinkedHashMap<>();
+        for (ResultContextMenu.Action action : actions) {
+            String family = menuFamily(action);
+            if (family != null) {
+                grouped.computeIfAbsent(family, ignored -> new ArrayList<>()).add(action);
+            }
+        }
+
+        List<ResultContextMenu.Action> out = new ArrayList<>();
+        Set<String> emitted = new LinkedHashSet<>();
+        for (ResultContextMenu.Action action : actions) {
+            String family = menuFamily(action);
+            if (family == null) {
+                out.add(action);
+                continue;
+            }
+            if (!emitted.add(family)) {
+                continue;
+            }
+            List<ResultContextMenu.Action> children = grouped.getOrDefault(family, List.of());
+            addFlatOrSubmenu(out, family, menuFamilyLabel(family), menuFamilyMnemonic(family), children);
+        }
+        return List.copyOf(out);
+    }
+
+    private static String menuFamily(ResultContextMenu.Action action) {
+        if (action == null || action.isSubmenu()) {
+            return null;
+        }
+        return switch (action.id()) {
+            case CRAFT_ONE, CRAFT_STACK -> MENU_CRAFTING;
+            case RECIPES, USES, RECIPES_POKEMON_DROP_ITEM -> MENU_RECIPES;
+            case CHEAT_GIVE_ONE, CHEAT_GIVE_STACK, CHEAT_SPAWN_EGG, CHEAT_SPAWN_EGG_STACK,
+                 CHEAT_SPAWN_POKEMON, CHEAT_POKEMON_PARTY -> MENU_CHEAT;
+            case FILTER_MOD -> MENU_FILTERS;
+            case OPEN_POKEDEX, FILTER_POKEMON_TYPE, FILTER_POKEMON_SECONDARY_TYPE, FILTER_POKEMON_GENERATION,
+                 FILTER_POKEMON_EGG_GROUP, FILTER_POKEMON_ABILITY, SEARCH_POKEMON_DROP_ITEM,
+                 COPY_POKEMON_SPECIES, COPY_POKEMON_DEX_NUMBER -> MENU_POKEMON;
+            case FILTER_GREGTECH_TIER, FILTER_GREGTECH_KIND, FILTER_GREGTECH_FACT,
+                 FILTER_GREGTECH_CIRCUIT_GRADE -> MENU_GREGTECH;
+            case QUESTS_FOR_ITEM, OPEN_QUEST, COPY_QUEST_MATCHES -> MENU_QUESTS;
+            case COPY_FTB_ITEM_TASK, COPY_FTB_QUEST_SKELETON, COPY_KUBEJS_RECIPE_STUB,
+                 COPY_KUBEJS_RECIPE_REMOVAL_SCRIPT, COPY_GAMESTAGE_CONDITION, COPY_PACK_AUTHOR_REPORT,
+                 COPY_TAXONOMY_TEMPLATE, CREATE_PACK_FILES -> MENU_PACK_AUTHOR;
+            case START_CATEGORY_FIX, EDIT_CATEGORY_FIX, APPLY_CATEGORY_FIX, CLEAR_ITEM_FIX -> MENU_DEVELOPER;
+            default -> null;
+        };
+    }
+
+    private static Component menuFamilyLabel(String family) {
+        return switch (family) {
+            case MENU_CRAFTING -> Component.translatable("ami.context.menu.crafting");
+            case MENU_RECIPES -> Component.translatable("ami.context.menu.recipes");
+            case MENU_CHEAT -> Component.translatable("ami.context.menu.cheat");
+            case MENU_FILTERS -> Component.translatable("ami.context.menu.filters");
+            case MENU_POKEMON -> Component.translatable("ami.context.menu.pokemon");
+            case MENU_GREGTECH -> Component.translatable("ami.context.menu.gregtech");
+            case MENU_QUESTS -> Component.translatable("ami.context.menu.quests");
+            case MENU_PACK_AUTHOR -> Component.translatable("ami.context.menu.pack_author");
+            case MENU_DEVELOPER -> Component.translatable("ami.context.menu.developer");
+            default -> Component.literal("More");
+        };
+    }
+
+    private static char menuFamilyMnemonic(String family) {
+        return switch (family) {
+            case MENU_CRAFTING -> 'c';
+            case MENU_RECIPES -> 'r';
+            case MENU_CHEAT -> 'g';
+            case MENU_FILTERS -> 'f';
+            case MENU_POKEMON -> 'p';
+            case MENU_GREGTECH -> 't';
+            case MENU_QUESTS -> 'q';
+            case MENU_PACK_AUTHOR -> 'a';
+            case MENU_DEVELOPER -> 'd';
+            default -> 'm';
+        };
+    }
+
+    private static void addPlayerActions(List<ResultContextMenu.Action> actions,
+                                         ResultContextMenuActionPolicy policy,
+                                         SearchNode node,
+                                         boolean canCheat) {
+        String playerName = playerName(node);
+        if (playerName.isBlank()) {
+            return;
+        }
+        if (policy.allows(node, COPY_PLAYER_NAME)) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    COPY_PLAYER_NAME,
+                    Component.translatable("ami.context.copy_player_name"),
+                    'c',
+                    () -> AmiClipboardHelper.copyToClipboard(playerName)
+            ));
+        }
+        List<ResultContextMenu.Action> waypointActions = new ArrayList<>();
+        if (policy.allows(node, ADD_PLAYER_WAYPOINT)) {
+            for (PlayerWaypointAction action : PlayerWaypointProviders.waypointActions(playerWaypointContext(node))) {
+                waypointActions.add(ResultContextMenu.Action.enabled(
+                        action.id(),
+                        Component.literal(action.label()),
+                        action.mnemonic(),
+                        action.action()
+                ));
+            }
+        }
+        if (policy.allows(node, COPY_PLAYER_WAYPOINT)) {
+            for (PlayerWaypointExport export : PlayerWaypointProviders.waypointExports(playerWaypointContext(node))) {
+                waypointActions.add(ResultContextMenu.Action.enabled(
+                        COPY_PLAYER_WAYPOINT,
+                        Component.translatable("ami.context.copy_player_waypoint_named", export.label()),
+                        'w',
+                        () -> AmiClipboardHelper.copyToClipboard(export.payload())
+                ));
+            }
+        }
+        addFlatOrSubmenu(actions, PLAYER_WAYPOINTS_MENU, Component.translatable("ami.context.player_waypoints"), 'w',
+                waypointActions);
+
+        List<ResultContextMenu.Action> adminActions = new ArrayList<>();
+        if (canCheat && policy.allows(node, CHEAT_GIVE_PLAYER_HEAD)) {
+            adminActions.add(ResultContextMenu.Action.enabled(
+                    CHEAT_GIVE_PLAYER_HEAD,
+                    Component.translatable("ami.context.cheat_give_player_head"),
+                    'h',
+                    () -> {
+                        AMICheatMode.runCommand(Services.PLATFORM.playerHeadGiveCommand(playerName));
+                        PlayerHeadHistory.record(playerName);
+                    }
+            ));
+        }
+        if (canCheat && policy.allows(node, TELEPORT_TO_PLAYER)) {
+            adminActions.add(ResultContextMenu.Action.enabled(
+                    TELEPORT_TO_PLAYER,
+                    Component.translatable("ami.context.teleport_to_player"),
+                    't',
+                    () -> AMICheatMode.runCommand("tp @s " + playerName)
+            ));
+        }
+        if (canCheat && policy.allows(node, TELEPORT_PLAYER_HERE)) {
+            adminActions.add(ResultContextMenu.Action.enabled(
+                    TELEPORT_PLAYER_HERE,
+                    Component.translatable("ami.context.teleport_player_here"),
+                    'p',
+                    () -> AMICheatMode.runCommand("tp " + playerName + " @s")
+            ));
+        }
+        addFlatOrSubmenu(actions, PLAYER_ADMIN_MENU, Component.translatable("ami.context.player_admin"), 'a',
+                adminActions);
+    }
+
+    private static void addLiveWaypointActions(List<ResultContextMenu.Action> actions, SearchNode node, boolean canCheat) {
+        PlayerWaypointProviders.openLiveWaypointAction(node).ifPresent(action -> actions.add(ResultContextMenu.Action.enabled(
+                OPEN_WAYPOINT,
+                Component.literal(action.label()),
+                action.mnemonic(),
+                action.action()
+        )));
+        for (PlayerWaypointAction action : PlayerWaypointProviders.liveWaypointActions(node)) {
+            String id = action.id() == null || action.id().isBlank() ? "ami:waypoint_action" : action.id();
+            actions.add(ResultContextMenu.Action.enabled(
+                    id,
+                    Component.literal(action.label()),
+                    action.mnemonic(),
+                    action.action()
+            ));
+        }
+
+        String waypointText = waypointChatText(node);
+        if (!waypointText.isBlank()) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    CHAT_WAYPOINT,
+                    Component.literal("Send Waypoint to Chat"),
+                    's',
+                    () -> openChatDraft(waypointText)
+            ));
+        }
+
+        if (canCheat && hasWaypointCoordinates(node)) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    TELEPORT_TO_WAYPOINT,
+                    Component.literal("Teleport to Waypoint"),
+                    't',
+                    () -> AMICheatMode.runCommand("tp @s "
+                            + node.meta(SearchNodeKeys.WAYPOINT_X, "0") + " "
+                            + node.meta(SearchNodeKeys.WAYPOINT_Y, "0") + " "
+                            + node.meta(SearchNodeKeys.WAYPOINT_Z, "0"))
+            ));
+        }
+    }
+
+    private static void addFlatOrSubmenu(List<ResultContextMenu.Action> actions,
+                                         String submenuId,
+                                         Component submenuLabel,
+                                         char mnemonic,
+                                         List<ResultContextMenu.Action> children) {
+        if (actions == null || children == null || children.isEmpty()) {
+            return;
+        }
+        if (children.size() == 1) {
+            actions.add(children.get(0));
+            return;
+        }
+        actions.add(ResultContextMenu.Action.submenu(submenuId, submenuLabel, mnemonic, children));
     }
 
     private static void addGregTechFilterActions(List<ResultContextMenu.Action> actions,
@@ -1062,7 +1322,10 @@ public class ResultContextMenuActionBuilder {
                         CHEAT_GIVE_ONE,
                         Component.translatable("ami.context.cheat_give_one"),
                         'g',
-                        () -> AMICheatMode.giveItem(stack)
+                        () -> {
+                            AMICheatMode.giveItem(stack);
+                            recordPlayerHeadHistory(node);
+                        }
                 ));
             }
             if (policy.allows(node, CHEAT_GIVE_STACK)) {
@@ -1070,7 +1333,10 @@ public class ResultContextMenuActionBuilder {
                         CHEAT_GIVE_STACK,
                         Component.translatable("ami.context.cheat_give_stack"),
                         's',
-                        () -> AMICheatMode.giveStack(stack)
+                        () -> {
+                            AMICheatMode.giveStack(stack);
+                            recordPlayerHeadHistory(node);
+                        }
                 ));
             }
             return;
@@ -1561,14 +1827,56 @@ public class ResultContextMenuActionBuilder {
 
     static String chatText(SearchNode node) {
         if (node == null) return "";
+        if (node.type() == NodeType.WAYPOINT) return waypointChatText(node);
         ResourceLocation resolved = resolvedItemId(node);
         if (resolved != null) return resolved.toString();
         String name = node.displayName();
         return name == null ? "" : name;
     }
 
+    private static String waypointChatText(SearchNode node) {
+        if (node == null) return "";
+        String name = node.meta(SearchNodeKeys.WAYPOINT_NAME, node.displayName());
+        String dimension = node.meta(SearchNodeKeys.WAYPOINT_DIMENSION, "minecraft:overworld");
+        String x = node.meta(SearchNodeKeys.WAYPOINT_X, "");
+        String y = node.meta(SearchNodeKeys.WAYPOINT_Y, "");
+        String z = node.meta(SearchNodeKeys.WAYPOINT_Z, "");
+        String provider = node.meta(SearchNodeKeys.WAYPOINT_PROVIDER_LABEL, "");
+        String suffix = provider.isBlank() ? "" : " [" + provider + "]";
+        return name + " @ " + dimension + " " + x + " " + y + " " + z + suffix;
+    }
+
+    private static boolean hasWaypointCoordinates(SearchNode node) {
+        return node != null
+                && !node.meta(SearchNodeKeys.WAYPOINT_X, "").isBlank()
+                && !node.meta(SearchNodeKeys.WAYPOINT_Y, "").isBlank()
+                && !node.meta(SearchNodeKeys.WAYPOINT_Z, "").isBlank();
+    }
+
     private static ResourceLocation resolvedItemId(SearchNode node) {
         return FavoriteEntry.resolvedId(node);
+    }
+
+    private static String playerName(SearchNode node) {
+        if (node == null) return "";
+        String name = node.meta(SearchNodeKeys.PLAYER_NAME, "");
+        if (!name.isBlank()) return name;
+        return node.displayName() == null ? "" : node.displayName();
+    }
+
+    private static PlayerWaypointContext playerWaypointContext(SearchNode node) {
+        return new PlayerWaypointContext(
+                playerName(node),
+                node == null ? "" : node.meta(SearchNodeKeys.PLAYER_UUID, ""),
+                node == null ? Map.of() : node.metadata()
+        );
+    }
+
+    private static void recordPlayerHeadHistory(SearchNode node) {
+        String playerName = node == null ? "" : node.meta(SearchNodeKeys.PLAYER_HEAD_NAME, "");
+        if (!playerName.isBlank()) {
+            PlayerHeadHistory.record(playerName);
+        }
     }
 
     private static SearchNode resolvedNodeForFix(SearchNode node) {

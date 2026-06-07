@@ -138,6 +138,55 @@ class AE2CompatTest {
     }
 
     @Test
+    void appMekChemicalCellsRouteToAe2Storage() {
+        Map<String, String> meta = meta("appmek", "Applied Mekanistics",
+                "me.ramidzkh.mekae2.item.ChemicalStorageCell", "");
+
+        CompatFamilyDetector.detect(new ResourceLocation("appmek", "chemical_storage_cell_64k"), meta);
+        AE2Compat.enrichItem(new ResourceLocation("appmek", "chemical_storage_cell_64k"), meta);
+        CategoryAssignment assignment = resolve("appmek:chemical_storage_cell_64k", meta);
+
+        assertEquals("ae2", meta.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
+        assertEquals("storage", meta.get(SearchNodeKeys.AE2_ITEM_KIND));
+        assertEquals("64k", meta.get(SearchNodeKeys.AE2_STORAGE_TIER));
+        assertEquals("chemical", meta.get(SearchNodeKeys.AE2_STORAGE_MEDIUM));
+        assertTrue(meta.getOrDefault(SearchNodeKeys.AE2_FACTS, "").contains("chemical"));
+        assertEquals("ae2", assignment.categoryId());
+        assertEquals("storage", assignment.subcategoryId());
+    }
+
+    @Test
+    void appMekPortableChemicalCellsRouteToAe2Storage() {
+        Map<String, String> meta = meta("appmek", "Applied Mekanistics",
+                "me.ramidzkh.mekae2.item.ChemicalPortableCellItem", "");
+
+        CompatFamilyDetector.detect(new ResourceLocation("appmek", "portable_chemical_cell_256k"), meta);
+        AE2Compat.enrichItem(new ResourceLocation("appmek", "portable_chemical_cell_256k"), meta);
+        CategoryAssignment assignment = resolve("appmek:portable_chemical_cell_256k", meta);
+
+        assertEquals("storage", meta.get(SearchNodeKeys.AE2_ITEM_KIND));
+        assertEquals("256k", meta.get(SearchNodeKeys.AE2_STORAGE_TIER));
+        assertEquals("chemical", meta.get(SearchNodeKeys.AE2_STORAGE_MEDIUM));
+        assertEquals("ae2", assignment.categoryId());
+        assertEquals("storage", assignment.subcategoryId());
+    }
+
+    @Test
+    void appMekChemicalP2PTunnelRoutesToAe2Channels() {
+        Map<String, String> meta = meta("appmek", "Applied Mekanistics",
+                "appeng.items.parts.PartItem", "");
+
+        CompatFamilyDetector.detect(new ResourceLocation("appmek", "chemical_p2p_tunnel"), meta);
+        AE2Compat.enrichItem(new ResourceLocation("appmek", "chemical_p2p_tunnel"), meta);
+        CategoryAssignment assignment = resolve("appmek:chemical_p2p_tunnel", meta);
+
+        assertEquals("channels", meta.get(SearchNodeKeys.AE2_ITEM_KIND));
+        assertTrue(meta.getOrDefault(SearchNodeKeys.AE2_FACTS, "").contains("chemical"));
+        assertEquals("ae2", assignment.categoryId());
+        assertEquals("channels", assignment.subcategoryId());
+    }
+
+    @Test
     void guideItemLinksToGuideMeBook() {
         Map<String, String> meta = meta("ae2", "Applied Energistics 2",
                 "appeng.items.tools.GuideItem", "");

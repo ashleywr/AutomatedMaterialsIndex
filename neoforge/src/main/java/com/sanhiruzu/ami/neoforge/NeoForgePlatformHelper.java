@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.neoforge;
 
+import com.mojang.authlib.GameProfile;
 import com.sanhiruzu.ami.index.GlobalIndexCache;
 import com.sanhiruzu.ami.neoforge.client.AMIKeyMappings;
 import com.sanhiruzu.ami.platform.IAmiKeyMappings;
@@ -23,6 +24,7 @@ import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.component.FireworkExplosion;
 import net.minecraft.world.item.component.Fireworks;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
+import net.minecraft.world.item.component.ResolvableProfile;
 import net.minecraft.world.item.component.SuspiciousStewEffects;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -43,6 +45,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.UUID;
 
 public class NeoForgePlatformHelper implements IPlatformHelper {
     private static final IAmiKeyMappings KEY_MAPPINGS = new IAmiKeyMappings() {
@@ -351,6 +354,45 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
         ItemStack stack = new ItemStack(Items.GOAT_HORN);
         stack.set(DataComponents.INSTRUMENT, instrument);
         return stack;
+    }
+
+    @Override
+    public ItemStack createPlayerHeadStack(String name) {
+        return createPlayerHeadStack(name, null);
+    }
+
+    @Override
+    public ItemStack createPlayerHeadStack(String name, UUID uuid) {
+        if (name == null || name.isBlank()) return ItemStack.EMPTY;
+        ItemStack stack = new ItemStack(Items.PLAYER_HEAD);
+        stack.set(DataComponents.PROFILE, new ResolvableProfile(
+                Optional.of(name),
+                uuid == null ? Optional.empty() : Optional.of(uuid),
+                new com.mojang.authlib.properties.PropertyMap()));
+        return stack;
+    }
+
+    @Override
+    public ItemStack createPlayerHeadStack(GameProfile profile) {
+        if (profile == null || profile.getName() == null || profile.getName().isBlank()) return ItemStack.EMPTY;
+        ItemStack stack = new ItemStack(Items.PLAYER_HEAD);
+        stack.set(DataComponents.PROFILE, new ResolvableProfile(
+                Optional.of(profile.getName()),
+                profile.getId() == null ? Optional.empty() : Optional.of(profile.getId()),
+                profile.getProperties()));
+        return stack;
+    }
+
+    @Override
+    public String playerHeadGiveCommand(String name) {
+        if (name == null || name.isBlank()) {
+            return "give @s minecraft:player_head 1";
+        }
+        return "give @s minecraft:player_head[minecraft:profile={name:\"" + escapeCommandString(name) + "\"}] 1";
+    }
+
+    private static String escapeCommandString(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     @Override

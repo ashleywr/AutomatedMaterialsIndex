@@ -27,7 +27,7 @@ public class PlayerFaceRenderer implements IIconRenderer {
 
         UUID uuid;
         try {
-            uuid = UUID.fromString(uuidStr);
+            uuid = UUID.fromString(uuidStr.contains("-") ? uuidStr : dashedUuid(uuidStr));
         } catch (IllegalArgumentException e) {
             return null;
         }
@@ -40,6 +40,17 @@ public class PlayerFaceRenderer implements IIconRenderer {
         if (info == null) return null;
 
         return Services.PLATFORM.getPlayerSkinTexture(info);
+    }
+
+    private static String dashedUuid(String raw) {
+        if (raw == null || raw.length() != 32) {
+            return raw;
+        }
+        return raw.substring(0, 8) + "-"
+                + raw.substring(8, 12) + "-"
+                + raw.substring(12, 16) + "-"
+                + raw.substring(16, 20) + "-"
+                + raw.substring(20);
     }
 
     @Override

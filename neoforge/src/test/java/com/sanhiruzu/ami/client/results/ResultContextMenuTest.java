@@ -113,4 +113,34 @@ class ResultContextMenuTest {
         assertFalse(menu.isOpen());
         assertEquals(1, calls.get());
     }
+
+    @Test
+    void submenuClickOpensChildrenAndBackReturnsToParent() {
+        AtomicInteger calls = new AtomicInteger();
+        ResultContextMenu menu = new ResultContextMenu();
+        menu.open(10, 10, 0, 0, 180, 120, List.of(
+                ResultContextMenu.Action.submenu("ami:more", Component.literal("More"), 'm', List.of(
+                        ResultContextMenu.Action.enabled("ami:child", Component.literal("Child"), 'c', calls::incrementAndGet)
+                ))
+        ));
+
+        assertTrue(menu.mouseClicked(12, 16, 0));
+        assertTrue(menu.isOpen());
+        assertEquals(2, menu.actionCount());
+        assertEquals("ami:context_menu_back", menu.actionForTests(0).id());
+        assertEquals("ami:child", menu.actionForTests(1).id());
+
+        assertTrue(menu.mouseClicked(12, 16, 0));
+        assertTrue(menu.isOpen());
+        assertEquals(1, menu.actionCount());
+        assertEquals("ami:more", menu.actionForTests(0).id());
+
+        assertTrue(menu.mouseClicked(12, 16, 0));
+        assertTrue(menu.isOpen());
+        assertEquals("ami:child", menu.actionForTests(1).id());
+
+        assertTrue(menu.mouseClicked(12, 32, 0));
+        assertFalse(menu.isOpen());
+        assertEquals(1, calls.get());
+    }
 }

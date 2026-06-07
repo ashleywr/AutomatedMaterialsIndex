@@ -907,6 +907,36 @@ public class ResultsProcessorTest {
     }
 
     @Test
+    void compatCategoryHeadersUseResolvedNameOrderButKeepRegistrySortedContents() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.REGISTRY,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        SearchNode cobblemon = item("stick", "Cobblemon Entry", Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "cobblemon",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "misc"
+        ));
+        SearchNode ae2Second = item("oak_planks", "AE2 Later Registry Entry", Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "ae2",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "storage"
+        ));
+        SearchNode ae2First = item("stone", "AE2 Earlier Registry Entry", Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "ae2",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "storage"
+        ));
+
+        List<TreeNode> root = processor.process(List.of(cobblemon, ae2Second, ae2First));
+
+        assertEquals(List.of("ae2", "cobblemon"), root.stream().map(TreeNode::getKey).toList());
+        assertEquals(List.of("AE2 Earlier Registry Entry", "AE2 Later Registry Entry"),
+                leafLabels(root.get(0).getChildren()));
+    }
+
+    @Test
     void smallDyeKindSetStaysDirectlyUnderDyes() {
         ResultsProcessor processor = new ResultsProcessor(
                 ResultsProcessor.SortField.REGISTRY,

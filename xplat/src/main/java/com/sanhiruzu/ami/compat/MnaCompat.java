@@ -72,11 +72,14 @@ public final class MnaCompat {
         if (containsAny(context.itemClass, "PatterningPrism", "EnderDisk", "Manifest", "HealingPoultice",
                 "ItemFactionHorn", "ThaumaturgicLink", "DowsingRod", "ItemTransitoryTunnel",
                 "RunicMalus", "ScrollOfIcarianFlight", "BoundShield", "BellOfBidding",
-                "ConstructRepairKit")) {
+                "ConstructRepairKit", "WizardChalk")) {
             facts.add("magic_artifact");
         }
-        if (containsAny(context.itemClass, "HellfireTrident", "Shuriken")) {
+        if (containsAny(context.itemClass, "HellfireTrident", "Shuriken", "AstroBlade")) {
             facts.add("weapon");
+        }
+        if (containsAny(context.itemClass, "MagicStaff")) {
+            facts.add("ranged_weapon");
         }
         if (containsAny(context.itemClass, "ItemMagicBroom")) {
             facts.add("transport");
@@ -90,6 +93,18 @@ public final class MnaCompat {
         if (hasToken(context.tags, "mna:runes") || hasToken(context.tags, "mna:stone_runes")) {
             facts.add("rune");
         }
+        if (hasToken(context.tags, "mna:staves") || hasToken(context.tags, "mna:wands")) {
+            facts.add("ranged_weapon");
+        }
+        if (hasToken(context.tags, "mna:generated_spell_items")
+                || hasToken(context.tags, "mna:alteration_items")
+                || hasToken(context.tags, "mna:relics")) {
+            facts.add("magic_artifact");
+        }
+        if (containsTagPrefix(context.tags, "mna:dusts/")
+                || hasToken(context.tags, "mna:chimerite_crystals")) {
+            facts.add("magic_reagent");
+        }
     }
 
     private static void addPathFacts(Context context, Set<String> facts) {
@@ -100,11 +115,12 @@ public final class MnaCompat {
             facts.add("mote");
         }
         if (startsWithAny(context.path, "sachet_", "mark_of_", "ritual_focus_")
-                || containsAny(context.path, "eldrin_rift", "mundane_bracelet", "mundane_amulet")) {
+                || containsAny(context.path, "eldrin_rift", "mundane_bracelet", "mundane_amulet",
+                "animated_quill", "wizard_chalk")) {
             facts.add("magic_artifact");
         }
         if (containsAny(context.path, "animus_dust", "vellum", "mana_gem", "sight_unguent",
-                "living_flame")) {
+                "living_flame", "resonating_lump", "resonating_dust")) {
             facts.add("magic_reagent");
         }
         if (containsAny(context.path, "raw_vinteum", "transmuted_silver", "quicksilver",
@@ -116,6 +132,9 @@ public final class MnaCompat {
         if (containsAny(context.path, "runesmith_chisel", "sorcerous_sewing_set", "vinteum_needle")) {
             facts.add("utility_tool");
         }
+        if (context.path.endsWith("_hud_badge_item")) {
+            facts.add("utility");
+        }
     }
 
     private static String classifyKind(Set<String> facts) {
@@ -123,9 +142,11 @@ public final class MnaCompat {
         if (facts.contains("ritual_patch")) return "ritual_patches";
         if (facts.contains("mote")) return "motes";
         if (facts.contains("rune")) return "runes";
+        if (facts.contains("ranged_weapon")) return "ranged_weapons";
         if (facts.contains("weapon")) return "weapons";
         if (facts.contains("transport")) return "transport";
         if (facts.contains("utility_tool")) return "tools";
+        if (facts.contains("utility")) return "utility";
         if (facts.contains("material")) return "materials";
         if (facts.contains("magic_artifact")) return "artifacts";
         if (facts.contains("magic_reagent")) return "reagents";
@@ -152,7 +173,9 @@ public final class MnaCompat {
             case "artifacts" -> addFacet(meta, ItemFacet.MAGIC_ARTIFACT);
             case "materials" -> addFacet(meta, ItemFacet.INGREDIENT_MINERAL);
             case "tools" -> addFacet(meta, ItemFacet.UTILITY_TOOL);
+            case "utility" -> addFacet(meta, ItemFacet.UTILITY_MISC);
             case "weapons" -> addFacet(meta, ItemFacet.MELEE_WEAPON);
+            case "ranged_weapons" -> addFacet(meta, ItemFacet.RANGED_WEAPON);
             case "transport" -> addFacet(meta, ItemFacet.TRANSPORT);
             default -> {
             }
@@ -187,6 +210,19 @@ public final class MnaCompat {
     private static boolean hasToken(String csv, String token) {
         for (String value : splitCsv(csv)) {
             if (value.equals(token)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsTagPrefix(String csv, String prefix) {
+        String normalizedPrefix = prefix == null ? "" : prefix.toLowerCase(Locale.ROOT);
+        if (normalizedPrefix.isBlank()) {
+            return false;
+        }
+        for (String value : splitCsv(csv)) {
+            if (value.startsWith(normalizedPrefix)) {
                 return true;
             }
         }

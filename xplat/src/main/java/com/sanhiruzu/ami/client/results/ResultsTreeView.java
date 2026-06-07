@@ -342,7 +342,8 @@ public class ResultsTreeView {
             }
         }
 
-        RendererRegistry.get(entry.type()).render(g, entry, -8, -8, AMITheme.ICON_SIZE, hovered);
+        var renderer = usesPlayerModelRenderer(entry) ? RendererRegistry.PLAYER_MODEL : RendererRegistry.get(entry.type());
+        renderer.render(g, entry, -8, -8, AMITheme.ICON_SIZE, hovered);
         g.pose().popPose();
 
         int textX = iconX + AMITheme.ICON_SIZE + 4;
@@ -389,6 +390,13 @@ public class ResultsTreeView {
                 pendingItemStack = null;
             }
         }
+    }
+
+    private static boolean usesPlayerModelRenderer(SearchNode entry) {
+        return com.sanhiruzu.ami.config.AmiConfig.playerHeadShowFullModel
+                && entry != null
+                && entry.type() == com.sanhiruzu.ami.index.NodeType.ITEM
+                && !entry.meta(SearchNodeKeys.PLAYER_HEAD_NAME, "").isBlank();
     }
 
     // ── Group header ──────────────────────────────────────────────────────────

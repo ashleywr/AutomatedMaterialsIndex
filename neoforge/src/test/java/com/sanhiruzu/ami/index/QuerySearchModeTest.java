@@ -243,6 +243,8 @@ public class QuerySearchModeTest {
 
         assertEquals(List.of(new QueryParser.QueryToken(QueryParser.TokenType.PROP, "pokemonEggGroup:field")),
                 QueryParser.parse("%egg:field").tokens());
+        assertEquals(List.of(new QueryParser.QueryToken(QueryParser.TokenType.PLAYER, "Alex")),
+                QueryParser.parse("^Alex").tokens());
         assertEquals(List.of(new QueryParser.QueryToken(QueryParser.TokenType.EXCLUDE, "@type:grass")),
                 QueryParser.parse("-@type:grass").tokens());
     }

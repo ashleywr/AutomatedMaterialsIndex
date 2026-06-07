@@ -112,6 +112,42 @@ class ResultContextMenuActionBuilderTest {
     }
 
     @Test
+    void playerNodesUsePlayerSpecificActionsAndGateAdminCommands() {
+        ResultContextMenuActionBuilder regularBuilder = new ResultContextMenuActionBuilder(() -> false);
+        SearchNode player = new SearchNode(
+                new ResourceLocation("ami:player/123456781234123412341234567890ab"),
+                NodeType.PLAYER,
+                "Alex",
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.PLAYER_NAME, "Alex",
+                        SearchNodeKeys.PLAYER_UUID, "12345678-1234-1234-1234-1234567890ab"
+                )
+        );
+
+        List<ResultContextMenu.Action> regularActions = regularBuilder.forItem(
+                new ResultContextMenuActionBuilder.ItemContext(player, ItemStack.EMPTY, null, ignored -> {
+                })
+        );
+
+        assertEquals(List.of(ResultContextMenuActionBuilder.COPY_PLAYER_NAME), ids(regularActions));
+
+        ResultContextMenuActionBuilder adminBuilder = new ResultContextMenuActionBuilder(() -> true);
+        List<ResultContextMenu.Action> adminActions = adminBuilder.forItem(
+                new ResultContextMenuActionBuilder.ItemContext(player, ItemStack.EMPTY, null, ignored -> {
+                })
+        );
+
+        ResultContextMenu.Action adminMenu = firstAction(adminActions, ResultContextMenuActionBuilder.PLAYER_ADMIN_MENU);
+        assertEquals(List.of(
+                ResultContextMenuActionBuilder.CHEAT_GIVE_PLAYER_HEAD,
+                ResultContextMenuActionBuilder.TELEPORT_TO_PLAYER,
+                ResultContextMenuActionBuilder.TELEPORT_PLAYER_HERE
+        ), ids(adminMenu.children()));
+    }
+
+    @Test
     void devModeShowsAdvancedCategoryFixEditor() {
         AmiConfig.devMode = true;
         ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder();
@@ -373,18 +409,8 @@ class ResultContextMenuActionBuilderTest {
         assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.OPEN_QUEST));
         assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.COPY_QUEST_MATCHES));
 
-        actions.stream()
-                .filter(action -> action.id().equals(ResultContextMenuActionBuilder.QUESTS_FOR_ITEM))
-                .findFirst()
-                .orElseThrow()
-                .onClick()
-                .run();
-        actions.stream()
-                .filter(action -> action.id().equals(ResultContextMenuActionBuilder.OPEN_QUEST))
-                .findFirst()
-                .orElseThrow()
-                .onClick()
-                .run();
+        firstAction(actions, ResultContextMenuActionBuilder.QUESTS_FOR_ITEM).onClick().run();
+        firstAction(actions, ResultContextMenuActionBuilder.OPEN_QUEST).onClick().run();
 
         assertEquals("quest redstone", token.get());
         assertTrue(opened.get());
@@ -655,11 +681,11 @@ class ResultContextMenuActionBuilderTest {
                 new ResultContextMenuActionBuilder.ItemContext(node, ItemStack.EMPTY, null, token::set)
         );
 
-        assertEquals(1, actions.stream()
-                .filter(action -> action.id().equals(ResultContextMenuActionBuilder.SEARCH_POKEMON_DROP_ITEM))
+        assertEquals(1, ids(actions).stream()
+                .filter(id -> id.equals(ResultContextMenuActionBuilder.SEARCH_POKEMON_DROP_ITEM))
                 .count());
-        assertEquals(1, actions.stream()
-                .filter(action -> action.id().equals(ResultContextMenuActionBuilder.RECIPES_POKEMON_DROP_ITEM))
+        assertEquals(1, ids(actions).stream()
+                .filter(id -> id.equals(ResultContextMenuActionBuilder.RECIPES_POKEMON_DROP_ITEM))
                 .count());
 
         firstAction(actions, ResultContextMenuActionBuilder.SEARCH_POKEMON_DROP_ITEM).onClick().run();
@@ -1156,14 +1182,38 @@ class ResultContextMenuActionBuilderTest {
     }
 
     private static List<String> ids(List<ResultContextMenu.Action> actions) {
-        return actions.stream().map(ResultContextMenu.Action::id).toList();
+        return actions.stream().flatMap(ResultContextMenuActionBuilderTest::flatten).map(ResultContextMenu.Action::id).toList();
     }
 
     private static ResultContextMenu.Action firstAction(List<ResultContextMenu.Action> actions, String id) {
         return actions.stream()
+                .flatMap(ResultContextMenuActionBuilderTest::flattenIncludingSubmenus)
                 .filter(action -> action.id().equals(id))
                 .findFirst()
                 .orElseThrow();
+    }
+
+    private static java.util.stream.Stream<ResultContextMenu.Action> flattenIncludingSubmenus(ResultContextMenu.Action action) {
+        if (action == null) {
+            return java.util.stream.Stream.empty();
+        }
+        if (!action.isSubmenu()) {
+            return java.util.stream.Stream.of(action);
+        }
+        return java.util.stream.Stream.concat(
+                java.util.stream.Stream.of(action),
+                action.children().stream().flatMap(ResultContextMenuActionBuilderTest::flattenIncludingSubmenus)
+        );
+    }
+
+    private static java.util.stream.Stream<ResultContextMenu.Action> flatten(ResultContextMenu.Action action) {
+        if (action == null) {
+            return java.util.stream.Stream.empty();
+        }
+        if (!action.isSubmenu()) {
+            return java.util.stream.Stream.of(action);
+        }
+        return action.children().stream().flatMap(ResultContextMenuActionBuilderTest::flatten);
     }
 
     private static SearchNode item(String path, String name) {

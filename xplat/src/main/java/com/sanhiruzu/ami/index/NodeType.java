@@ -8,7 +8,8 @@ public enum NodeType {
     STRUCTURE("ami.gui.structures"),
     ENTITY("ami.gui.entities"),
     DIMENSION("ami.gui.dimensions"),
-    PLAYER("ami.gui.players");
+    PLAYER("ami.gui.players"),
+    WAYPOINT("ami.gui.waypoints");
 
     private final String translationKey;
 

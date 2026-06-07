@@ -158,6 +158,11 @@ public final class AMICheatMode {
         sendCommand("locate structure " + structureId);
     }
 
+    public static void runCommand(String command) {
+        if (command == null || command.isBlank()) return;
+        sendCommand(command.startsWith("/") ? command.substring(1) : command);
+    }
+
     /**
      * Give one spawn egg for the specified entity type to the local player.
      * If the entity has a spawn egg, gives the spawn egg; otherwise does nothing.

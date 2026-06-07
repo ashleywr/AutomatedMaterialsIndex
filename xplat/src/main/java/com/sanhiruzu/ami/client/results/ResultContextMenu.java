@@ -17,6 +17,7 @@ import java.util.logging.Logger;
  * callers decide which actions are available for the clicked result.
  */
 public class ResultContextMenu {
+    private static final String BACK_ACTION_ID = "ami:context_menu_back";
     private static final int MIN_WIDTH = 104;
     private static final int MAX_WIDTH = 190;
     private static final int PADDING_X = 8;
@@ -25,11 +26,16 @@ public class ResultContextMenu {
     private static final Logger LOGGER = Logger.getLogger(ResultContextMenu.class.getName());
 
     private final List<Action> actions = new ArrayList<>();
+    private final List<List<Action>> actionStack = new ArrayList<>();
     private boolean open;
     private int x;
     private int y;
     private int width;
     private int height;
+    private int boundsX;
+    private int boundsY;
+    private int boundsWidth;
+    private int boundsHeight;
 
     public void open(int mouseX, int mouseY, int boundsX, int boundsY, int boundsWidth, int boundsHeight,
                      List<Action> requestedActions) {
@@ -44,6 +50,7 @@ public class ResultContextMenu {
     public void close() {
         open = false;
         actions.clear();
+        actionStack.clear();
     }
 
     public boolean contains(double mouseX, double mouseY) {
@@ -58,8 +65,7 @@ public class ResultContextMenu {
         int row = ((int) mouseY - y - PADDING_Y) / ROW_HEIGHT;
         if (row >= 0 && row < actions.size()) {
             Action action = actions.get(row);
-            close();
-            runAction(action);
+            dispatch(action);
             return true;
         }
 
@@ -86,7 +92,7 @@ public class ResultContextMenu {
             if (!action.enabled() || action.mnemonic() == null) continue;
             if (Character.toLowerCase(action.mnemonic()) == normalized) {
                 close();
-                runAction(action);
+                dispatch(action);
                 return true;
             }
         }
@@ -118,6 +124,10 @@ public class ResultContextMenu {
             int textY = rowY + (ROW_HEIGHT - font.lineHeight) / 2;
             g.drawString(font, label, textX, textY, color, false);
             underlineMnemonic(g, font, label, action.mnemonic(), textX, textY, color);
+            if (action.isSubmenu()) {
+                String arrow = ">";
+                g.drawString(font, arrow, x + width - PADDING_X - font.width(arrow), textY, color, false);
+            }
         }
         g.pose().popPose();
         g.flush();
@@ -143,13 +153,18 @@ public class ResultContextMenu {
         return actions.size();
     }
 
+    Action actionForTests(int index) {
+        return index >= 0 && index < actions.size() ? actions.get(index) : null;
+    }
+
     private void replaceActions(List<Action> requestedActions) {
         actions.clear();
+        actionStack.clear();
         if (requestedActions == null) return;
 
         for (Action action : requestedActions) {
             if (isUsable(action)) {
-                actions.add(action);
+                actions.add(sanitize(action));
             }
         }
     }
@@ -166,6 +181,10 @@ public class ResultContextMenu {
             return;
         }
 
+        this.boundsX = boundsX;
+        this.boundsY = boundsY;
+        this.boundsWidth = boundsWidth;
+        this.boundsHeight = boundsHeight;
         this.width = Math.min(boundsWidth, measureWidth(actions));
         this.height = Math.min(boundsHeight, PADDING_Y * 2 + actions.size() * ROW_HEIGHT);
         int maxX = boundsX + Math.max(0, boundsWidth - width);
@@ -173,6 +192,54 @@ public class ResultContextMenu {
         this.x = clamp(mouseX, boundsX, maxX);
         this.y = clamp(mouseY, boundsY, maxY);
         this.open = true;
+    }
+
+    private void dispatch(Action action) {
+        if (action == null || !action.enabled()) {
+            close();
+            return;
+        }
+        if (BACK_ACTION_ID.equals(action.id())) {
+            openParentMenu();
+            return;
+        }
+        if (action.isSubmenu()) {
+            openSubmenu(action.children());
+            return;
+        }
+        close();
+        runAction(action);
+    }
+
+    private void openSubmenu(List<Action> children) {
+        if (children == null || children.isEmpty()) {
+            return;
+        }
+        actionStack.add(List.copyOf(actions));
+        actions.clear();
+        actions.add(Action.enabled(BACK_ACTION_ID, Component.translatable("ami.context.back"), 'b', this::openParentMenu));
+        actions.addAll(children);
+        resizeForCurrentActions();
+    }
+
+    private void openParentMenu() {
+        if (actionStack.isEmpty()) {
+            close();
+            return;
+        }
+        List<Action> parent = actionStack.remove(actionStack.size() - 1);
+        actions.clear();
+        actions.addAll(parent);
+        resizeForCurrentActions();
+    }
+
+    private void resizeForCurrentActions() {
+        this.width = Math.min(boundsWidth, measureWidth(actions));
+        this.height = Math.min(boundsHeight, PADDING_Y * 2 + actions.size() * ROW_HEIGHT);
+        int maxX = boundsX + Math.max(0, boundsWidth - width);
+        int maxY = boundsY + Math.max(0, boundsHeight - height);
+        this.x = clamp(x, boundsX, maxX);
+        this.y = clamp(y, boundsY, maxY);
     }
 
     private static void runAction(Action action) {
@@ -188,7 +255,29 @@ public class ResultContextMenu {
     private static boolean isUsable(Action action) {
         return action != null
                 && action.label() != null
-                && action.label().getString() != null;
+                && action.label().getString() != null
+                && (!action.isSubmenu() || !sanitizeChildren(action.children()).isEmpty());
+    }
+
+    private static Action sanitize(Action action) {
+        if (action == null || !action.isSubmenu()) {
+            return action;
+        }
+        return new Action(action.id(), action.label(), action.mnemonic(), action.enabled(), action.onClick(),
+                sanitizeChildren(action.children()));
+    }
+
+    private static List<Action> sanitizeChildren(List<Action> children) {
+        if (children == null || children.isEmpty()) {
+            return List.of();
+        }
+        List<Action> usable = new ArrayList<>();
+        for (Action child : children) {
+            if (isUsable(child)) {
+                usable.add(sanitize(child));
+            }
+        }
+        return List.copyOf(usable);
     }
 
     private static int measureWidth(List<Action> actions) {
@@ -197,7 +286,8 @@ public class ResultContextMenu {
         var font = Minecraft.getInstance().font;
         int measured = MIN_WIDTH;
         for (Action action : actions) {
-            measured = Math.max(measured, font.width(action.label().getString()) + PADDING_X * 2);
+            int submenuPadding = action.isSubmenu() ? font.width(">") + PADDING_X : 0;
+            measured = Math.max(measured, font.width(action.label().getString()) + PADDING_X * 2 + submenuPadding);
         }
         return Math.min(MAX_WIDTH, measured);
     }
@@ -243,9 +333,22 @@ public class ResultContextMenu {
         return -1;
     }
 
-    public record Action(String id, Component label, Character mnemonic, boolean enabled, Runnable onClick) {
+    public record Action(String id, Component label, Character mnemonic, boolean enabled, Runnable onClick,
+                         List<Action> children) {
+        public Action {
+            children = children == null ? List.of() : List.copyOf(children);
+        }
+
+        public Action(String id, Component label, Character mnemonic, boolean enabled, Runnable onClick) {
+            this(id, label, mnemonic, enabled, onClick, List.of());
+        }
+
         public Action(Component label, boolean enabled, Runnable onClick) {
             this("", label, null, enabled, onClick);
+        }
+
+        public boolean isSubmenu() {
+            return !children.isEmpty();
         }
 
         public static Action enabled(Component label, Runnable onClick) {
@@ -258,6 +361,10 @@ public class ResultContextMenu {
 
         public static Action disabled(String id, Component label, char mnemonic) {
             return new Action(id, label, mnemonic, false, null);
+        }
+
+        public static Action submenu(String id, Component label, char mnemonic, List<Action> children) {
+            return new Action(id, label, mnemonic, true, null, children);
         }
     }
 }
