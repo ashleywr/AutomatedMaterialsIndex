@@ -34,7 +34,7 @@ public final class AmiTooltipComposer {
 
     public static List<Component> buildTooltip(SearchNode entry) {
         if (AmiConfig.devMode && AmiKeybindHandler.isDebugTooltipsActive()) {
-            return DebugTooltip.build(entry);
+            return normalizeTooltipLines(DebugTooltip.build(entry));
         }
 
         List<Component> lines = new ArrayList<>();
@@ -96,7 +96,41 @@ public final class AmiTooltipComposer {
         // 5. Interaction Hints (Footer)
         appendHints(lines, entry);
 
-        return lines;
+        return normalizeTooltipLines(lines);
+    }
+
+    public static List<Component> normalizeTooltipLines(List<Component> lines) {
+        if (lines == null || lines.isEmpty()) {
+            return List.of();
+        }
+
+        List<Component> normalized = new ArrayList<>(lines.size());
+        for (Component line : lines) {
+            if (line == null) {
+                continue;
+            }
+            String text = normalizeNewlineEscapes(line.getString());
+            if (text.indexOf('\n') < 0) {
+                normalized.add(line);
+                continue;
+            }
+
+            String[] split = text.split("\n", -1);
+            for (String part : split) {
+                normalized.add(Component.literal(part));
+            }
+        }
+        return normalized;
+    }
+
+    private static String normalizeNewlineEscapes(String text) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+
+        return text.replace("\r\n", "\n")
+                .replace('\r', '\n')
+                .replace("\\n", "\n");
     }
 
     private static void appendModNameIfMissing(List<Component> lines, SearchNode entry) {
