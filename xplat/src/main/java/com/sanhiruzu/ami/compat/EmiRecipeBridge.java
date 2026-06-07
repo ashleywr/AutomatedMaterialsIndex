@@ -122,6 +122,26 @@ class EmiRecipeBridge {
         return handled;
     }
 
+    static boolean canStartDrag(Screen screen, ItemStack stack) {
+        if (stack == null || stack.isEmpty() || screen == null) {
+            return false;
+        }
+        try {
+            for (var entry : dev.emi.emi.registry.EmiDragDropHandlers.fromClass.entrySet()) {
+                List<dev.emi.emi.api.EmiDragDropHandler<?>> handlers = entry.getValue();
+                if (handlers == null || handlers.isEmpty()) continue;
+                Class<?> handledScreen = entry.getKey();
+                if (handledScreen != null && handledScreen.isAssignableFrom(screen.getClass())) {
+                    return true;
+                }
+            }
+
+            return !dev.emi.emi.registry.EmiDragDropHandlers.generic.isEmpty();
+        } catch (RuntimeException | LinkageError ignored) {
+            return screen instanceof AbstractContainerScreen<?>;
+        }
+    }
+
     static java.util.List<ItemStack> getCraftables() {
         return dev.emi.emi.runtime.EmiSidebars.craftables.stream()
                 .map(EmiRecipeBridge::toItemStack)
