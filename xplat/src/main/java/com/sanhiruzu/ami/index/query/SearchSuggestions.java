@@ -13,10 +13,12 @@ import com.sanhiruzu.ami.index.resolvers.PropertyResolver;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Builds search completions from the active AMI index instead of from a fixed
@@ -549,11 +551,12 @@ public final class SearchSuggestions {
                 }
             }
 
-            addModToken(node.id().getNamespace());
-            addModTokens(node.meta(SearchNodeKeys.MOD_ID, ""));
-            addModTokens(node.meta(SearchNodeKeys.COMPAT_FAMILY, ""));
-            addModTokens(node.meta(SearchNodeKeys.COMPAT_FAMILIES, ""));
-            addModTokens(node.meta(SearchNodeKeys.PRIMARY_COMPAT_FAMILY, ""));
+            Set<String> countedModTokens = new LinkedHashSet<>();
+            addModToken(node.id().getNamespace(), countedModTokens);
+            addModTokens(node.meta(SearchNodeKeys.MOD_ID, ""), countedModTokens);
+            addModTokens(node.meta(SearchNodeKeys.COMPAT_FAMILY, ""), countedModTokens);
+            addModTokens(node.meta(SearchNodeKeys.COMPAT_FAMILIES, ""), countedModTokens);
+            addModTokens(node.meta(SearchNodeKeys.PRIMARY_COMPAT_FAMILY, ""), countedModTokens);
 
             addTokens(tags, node.meta(SearchNodeKeys.TAGS, ""));
             addTokens(tags, node.meta(SearchNodeKeys.BLOCK_TAGS, ""));
@@ -686,21 +689,26 @@ public final class SearchSuggestions {
             }
         }
 
-        private void addModTokens(String rawValue) {
+        private void addModTokens(String rawValue, Set<String> countedModTokens) {
             if (rawValue == null || rawValue.isBlank()) {
                 return;
             }
             for (String part : rawValue.split("[,\\s]+")) {
-                addModToken(part);
+                addModToken(part, countedModTokens);
             }
         }
 
-        private void addModToken(String value) {
+        private void addModToken(String value, Set<String> countedModTokens) {
             String token = CompatDisplayNames.canonicalModSuggestionToken(value);
             if (token.isBlank()) {
                 return;
             }
-            mods.add(token);
+            if (countedModTokens == null || countedModTokens.add(token)) {
+                mods.add(token);
+            }
+            for (String alias : CompatDisplayNames.modSuggestionAliases(token)) {
+                mods.addAlias(alias, token);
+            }
             String original = cleanToken(value);
             if (CompatDisplayNames.isModSuggestionAlias(original, token)) {
                 mods.addAlias(original, token);

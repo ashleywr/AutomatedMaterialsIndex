@@ -39,6 +39,12 @@ public class AmiClientCommands {
                             exportGuideDocs(context.getSource());
                             return 1;
                         })
+                )
+                .then(Commands.literal("reindex")
+                        .executes(context -> {
+                            invalidateAndRebuildIndex(context.getSource());
+                            return 1;
+                        })
                 );
 
         if (AmiDebugSettings.debugCommandsEnabled()) {
@@ -119,6 +125,28 @@ public class AmiClientCommands {
         } else {
             source.sendSystemMessage(Component.literal("AMI index rebuild is already running")
                     .withStyle(ChatFormatting.YELLOW));
+        }
+    }
+
+    private static void invalidateAndRebuildIndex(CommandSourceStack source) {
+        try {
+            boolean deleted = GlobalIndexCache.invalidateCurrent();
+            boolean accepted = AmiIndexerService.getInstance().rebuild(true);
+            if (accepted) {
+                source.sendSystemMessage(Component.literal("AMI index cache "
+                                + (deleted ? "deleted" : "was already absent")
+                                + "; forced reindex started")
+                        .withStyle(ChatFormatting.GREEN));
+            } else {
+                source.sendSystemMessage(Component.literal("AMI index cache "
+                                + (deleted ? "deleted" : "was already absent")
+                                + ", but a reindex is already running")
+                        .withStyle(ChatFormatting.YELLOW));
+            }
+        } catch (Exception e) {
+            AMI.LOGGER.error("Failed to invalidate AMI index cache", e);
+            source.sendSystemMessage(Component.literal("Failed to invalidate AMI index cache: " + e.getMessage())
+                    .withStyle(ChatFormatting.RED));
         }
     }
 

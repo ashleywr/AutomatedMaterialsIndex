@@ -545,6 +545,55 @@ public class ResultsProcessorTest {
     }
 
     @Test
+    void hiddenNodesFollowShowHiddenModItemsConfig() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.ALPHABETICAL,
+                true,
+                ResultsProcessor.GroupBy.NONE,
+                Set.of(),
+                Set.of()
+        );
+
+        SearchNode visible = item("controller", "ME Controller", Map.of());
+        SearchNode hidden = item("missing_content", "Missing Content", Map.of(
+                SearchNodeKeys.VISIBILITY, "hidden",
+                SearchNodeKeys.ACCESS_LEVEL, "dev"
+        ));
+
+        assertEquals(List.of("ME Controller"), leafLabels(processor.processFlat(List.of(visible, hidden))));
+
+        AmiConfig.showHiddenModItems = true;
+        assertEquals(List.of("ME Controller"), leafLabels(processor.processFlat(List.of(visible, hidden))));
+
+        AmiConfig.devMode = true;
+        assertEquals(List.of("ME Controller", "Missing Content"),
+                leafLabels(processor.processFlat(List.of(visible, hidden))));
+    }
+
+    @Test
+    void hiddenSurvivalNodesShowWhenHiddenModItemsAreEnabled() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.ALPHABETICAL,
+                true,
+                ResultsProcessor.GroupBy.NONE,
+                Set.of(),
+                Set.of()
+        );
+
+        SearchNode visible = item("controller", "ME Controller", Map.of());
+        SearchNode hidden = item("facade", "Cable Facade", Map.of(
+                SearchNodeKeys.VISIBILITY, "hidden",
+                SearchNodeKeys.ACCESS_LEVEL, "survival"
+        ));
+
+        assertEquals(List.of("ME Controller"), leafLabels(processor.processFlat(List.of(visible, hidden))));
+
+        AmiConfig.showHiddenModItems = true;
+        assertEquals(List.of("Cable Facade", "ME Controller"),
+                leafLabels(processor.processFlat(List.of(visible, hidden))));
+    }
+
+    @Test
     void processFlatWithCardGroupingKeepsFlatResultsButCollapsesFamiliesAsCards() {
         ResultsProcessor processor = new ResultsProcessor(
                 ResultsProcessor.SortField.ALPHABETICAL,

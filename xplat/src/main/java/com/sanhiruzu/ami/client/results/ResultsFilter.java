@@ -28,7 +28,7 @@ final class ResultsFilter {
     }
 
     private boolean matchesVisibility(SearchNode node) {
-        if (AmiConfig.devMode) return true;
+        if (AmiConfig.devMode || AmiConfig.showHiddenModItems) return true;
         return !"hidden".equals(node.meta(SearchNodeKeys.VISIBILITY, ""));
     }
 
