@@ -3,18 +3,12 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.api.AmiGuideRegistry;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
-import com.sanhiruzu.ami.compat.ApotheosisGuideSource;
-import com.sanhiruzu.ami.compat.GuideMeRuntimeGuideSource;
-import com.sanhiruzu.ami.compat.ModonomiconRuntimeGuideSource;
-import com.sanhiruzu.ami.compat.PatchouliRuntimeGuideSource;
-import com.sanhiruzu.ami.compat.ResourceBookRuntimeGuideSource;
-import com.sanhiruzu.ami.compat.SilentGearMaterialTraitIndex;
-import com.sanhiruzu.ami.compat.SilentGearMaterialBookGuideSource;
-import com.sanhiruzu.ami.compat.SilentGearTraitGuideSource;
+import com.sanhiruzu.ami.compat.CompatIndexRegistry;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.config.AmiCustomTaxonomy;
 import com.sanhiruzu.ami.config.AmiDataFixes;
 import com.sanhiruzu.ami.index.query.SearchSuggestions;
+import com.sanhiruzu.ami.index.runtime.RuntimeSearchProviders;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.Util;
 import net.minecraft.world.level.Level;
@@ -176,7 +170,7 @@ public final class AmiIndexerService {
         beginProgress("Applying data fixes");
         AmiDataFixes.applyToIndex(index);
         beginProgress("Applying compatibility metadata");
-        SilentGearMaterialTraitIndex.applyToIndex(index);
+        CompatIndexRegistry.applyAll(index);
 
         beginProgress("Preparing guide index");
         AmiGuideRegistry.clear();
@@ -227,7 +221,7 @@ public final class AmiIndexerService {
                     beginProgress("Applying deferred data fixes");
                     AmiDataFixes.applyToIndex(index);
                     beginProgress("Applying deferred compatibility metadata");
-                    SilentGearMaterialTraitIndex.applyToIndex(index);
+                    CompatIndexRegistry.applyAll(index);
                     indexedItemCount = index.getNodes(NodeType.ITEM).size();
 
                     long searchServiceStart = System.currentTimeMillis();
@@ -264,13 +258,7 @@ public final class AmiIndexerService {
             try {
                 beginProgress("Indexing guide books");
                 AmiGuideRegistry.clear();
-                PatchouliRuntimeGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
-                GuideMeRuntimeGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
-                ModonomiconRuntimeGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
-                ResourceBookRuntimeGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
-                ApotheosisGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
-                SilentGearMaterialBookGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
-                SilentGearTraitGuideSource.registerGuideDocuments(AmiGuideRegistry::register);
+                CompatIndexRegistry.registerAllGuideDocuments(AmiGuideRegistry::register);
                 AmiGuideRegistry.registerPluginGuides();
                 AmiGuideRegistry.registerSearchableGuideProviders();
                 guideSearchIndex = AmiGuideSearchIndex.fromConfig(AmiGuideRegistry.getDocuments());
@@ -347,7 +335,7 @@ public final class AmiIndexerService {
     }
 
     public long searchServiceRevision() {
-        return searchServiceRevision;
+        return 31L * searchServiceRevision + RuntimeSearchProviders.revision();
     }
 
     public boolean isDeferredIndexing() {

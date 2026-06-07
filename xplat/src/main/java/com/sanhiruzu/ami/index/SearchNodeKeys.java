@@ -168,6 +168,15 @@ public final class SearchNodeKeys {
     // Mana and Artifice-specific optional metadata.
     public static final String MNA_ITEM_KIND = "mnaItemKind";
     public static final String MNA_FACTS = "mnaFacts";
+    // Ars Nouveau-specific optional metadata.
+    public static final String ARS_NOUVEAU_ITEM_KIND = "arsNouveauItemKind";
+    public static final String ARS_NOUVEAU_FACTS = "arsNouveauFacts";
+    // Spectrum-specific optional metadata.
+    public static final String SPECTRUM_ITEM_KIND = "spectrumItemKind";
+    public static final String SPECTRUM_FACTS = "spectrumFacts";
+    // Nature's Aura-specific optional metadata.
+    public static final String NATURES_AURA_ITEM_KIND = "naturesAuraItemKind";
+    public static final String NATURES_AURA_FACTS = "naturesAuraFacts";
     // Alex's Mobs-specific optional metadata.
     public static final String ALEXS_MOBS_ITEM_KIND = "alexsMobsItemKind";
     public static final String ALEXS_MOBS_FACTS = "alexsMobsFacts";
@@ -192,6 +201,29 @@ public final class SearchNodeKeys {
     public static final String TEMPERATURE_MODIFIER = "temperatureModifier"; // "frozen" or empty
     // Player-specific (transient, never persisted)
     public static final String PLAYER_UUID = "playerUuid";
+    public static final String PLAYER_NAME = "playerName";
+    public static final String PLAYER_HEAD_NAME = "playerHeadName";
+    public static final String PLAYER_HEAD_SOURCE = "playerHeadSource";
+    public static final String PLAYER_ONLINE = "playerOnline";
+    public static final String PLAYER_DIMENSION = "playerDimension";
+    public static final String PLAYER_X = "playerX";
+    public static final String PLAYER_Y = "playerY";
+    public static final String PLAYER_Z = "playerZ";
+    public static final String PLAYER_COORD_SOURCE = "playerCoordSource";
+    public static final String PLAYER_WAYPOINT_PROVIDERS = "playerWaypointProviders";
+    public static final String PLAYER_WAYPOINT_PROVIDER_LABELS = "playerWaypointProviderLabels";
+    // Waypoint-specific (transient, never persisted)
+    public static final String WAYPOINT_PROVIDER = "waypointProvider";
+    public static final String WAYPOINT_PROVIDER_LABEL = "waypointProviderLabel";
+    public static final String WAYPOINT_ID = "waypointId";
+    public static final String WAYPOINT_NAME = "waypointName";
+    public static final String WAYPOINT_DIMENSION = "waypointDimension";
+    public static final String WAYPOINT_X = "waypointX";
+    public static final String WAYPOINT_Y = "waypointY";
+    public static final String WAYPOINT_Z = "waypointZ";
+    public static final String WAYPOINT_COLOR = "waypointColor";
+    public static final String WAYPOINT_OWNER = "waypointOwner";
+    public static final String WAYPOINT_VISIBLE = "waypointVisible";
 
     private SearchNodeKeys() {
     }

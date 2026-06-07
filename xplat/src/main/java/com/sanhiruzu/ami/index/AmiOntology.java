@@ -24,6 +24,7 @@ public final class AmiOntology {
     public static final Category MINECOLONIES;
     public static final Category APOTHEOSIS;
     public static final Category BOTANIA;
+    public static final Category ARS_NOUVEAU;
     public static final Category SOPHISTICATED;
     public static final Category MAPPING;
     public static final Category MODULAR_GEAR;
@@ -210,6 +211,24 @@ public final class AmiOntology {
                         new SubCategory("tools", "ami.subcategory.botania.tools"),
                         new SubCategory("materials", "ami.subcategory.botania.materials"),
                         new SubCategory("misc", "ami.subcategory.botania.misc")
+                ),
+                List.of()
+        );
+
+        ARS_NOUVEAU = new Category(
+                "ars_nouveau", "ami.category.ars_nouveau", "Ars Nouveau",
+                "ars_nouveau:novice_spell_book", 0xFF8C6EE8,
+                List.of(
+                        new SubCategory("glyphs", "ami.subcategory.ars_nouveau.glyphs"),
+                        new SubCategory("rituals", "ami.subcategory.ars_nouveau.rituals"),
+                        new SubCategory("spellcasting", "ami.subcategory.ars_nouveau.spellcasting"),
+                        new SubCategory("source", "ami.subcategory.ars_nouveau.source"),
+                        new SubCategory("automation", "ami.subcategory.ars_nouveau.automation"),
+                        new SubCategory("familiars", "ami.subcategory.ars_nouveau.familiars"),
+                        new SubCategory("equipment", "ami.subcategory.ars_nouveau.equipment"),
+                        new SubCategory("materials", "ami.subcategory.ars_nouveau.materials"),
+                        new SubCategory("building", "ami.subcategory.ars_nouveau.building"),
+                        new SubCategory("misc", "ami.subcategory.ars_nouveau.misc")
                 ),
                 List.of()
         );
@@ -466,7 +485,7 @@ public final class AmiOntology {
 
         // Priority order: most-specific first, GEOLOGY/MASONRY second-to-last, MISC as terminal fallback.
         CATEGORIES = List.of(
-                COBBLEMON, CREATE, AE2, MEKANISM, GREGTECH, MINECOLONIES, APOTHEOSIS, BOTANIA, SOPHISTICATED, MAPPING,
+                COBBLEMON, CREATE, AE2, MEKANISM, GREGTECH, MINECOLONIES, APOTHEOSIS, BOTANIA, ARS_NOUVEAU, SOPHISTICATED, MAPPING,
                 MODULAR_GEAR, TACZ, UTILITY, BESTIARY, MAGIC, ARMOR, TOOLS, TECH, NATURE, INGREDIENTS, DECORATION, ENVIRONMENT, SOCIAL,
                 GEOLOGY, MASONRY, MISC
         );
@@ -496,6 +515,7 @@ public final class AmiOntology {
             case BIOME, STRUCTURE, DIMENSION -> ENVIRONMENT;
             case ENTITY -> BESTIARY;
             case PLAYER -> SOCIAL;
+            case WAYPOINT -> MAPPING;
             case ITEM -> classifyItem(node);
         };
     }

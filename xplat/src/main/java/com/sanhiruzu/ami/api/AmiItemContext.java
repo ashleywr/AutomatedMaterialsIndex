@@ -9,6 +9,17 @@ import java.util.function.Consumer;
 
 /**
  * Stable item-result context passed to AMI plugin menu contributors.
+ *
+ * <p>Most fields are self-explanatory. Two deserve special attention:
+ * <ul>
+ *   <li>{@link #cheatEnabled()} — gate cheat/give actions behind this so they
+ *       appear and disappear consistently with AMI's own cheat-mode actions.</li>
+ *   <li>{@link #tokenInject()} — use this to build "filter by X" actions that
+ *       narrow the search results in place. Call {@code tokenInject().accept("@mymod")}
+ *       or {@code tokenInject().accept("?type:fire")} and AMI will rewrite the
+ *       search bar and rerun the query. May be {@code null} if the current panel
+ *       does not support search injection; always null-check before using.</li>
+ * </ul>
  */
 public record AmiItemContext(
         ResourceLocation id,

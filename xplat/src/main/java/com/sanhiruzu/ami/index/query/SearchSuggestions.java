@@ -9,6 +9,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.resolvers.NumericMetadataResolver;
+import com.sanhiruzu.ami.index.resolvers.PlayerResolver;
 import com.sanhiruzu.ami.index.resolvers.PropertyResolver;
 
 import java.util.ArrayList;
@@ -71,10 +72,31 @@ public final class SearchSuggestions {
             case '~' -> valueSuggestions(vocabulary.meta, text, token, "~", body.substring(1), limit, Kind.META);
             case '$' -> valueSuggestions(vocabulary.categories, text, token, "$", body.substring(1), limit, Kind.CATEGORY);
             case '&' -> valueSuggestions(vocabulary.environments, text, token, "&", body.substring(1), limit, Kind.ENVIRONMENT);
+            case '^' -> playerSuggestions(text, token, limit);
             case '%' -> prefixShortcutSuggestions(vocabulary, text, token, limit);
             case '>', '<', '=' -> numericSuggestions(vocabulary, text, token, prefix, limit);
             default -> List.of();
         };
+    }
+
+    private static List<Suggestion> playerSuggestions(String query, ActiveToken token, int limit) {
+        String body = token.body();
+        String name = body.length() <= 1 ? "" : body.substring(1);
+        if (name.isBlank()) {
+            return List.of();
+        }
+        List<String> names = PlayerResolver.suggestNames(name, limit);
+        if (names.isEmpty()) {
+            String replacement = "^" + name + " ";
+            return List.of(new Suggestion(replacement, "^" + name, "player head", token.start(), token.end(), Kind.PLAYER, false));
+        }
+        List<Suggestion> suggestions = new ArrayList<>();
+        for (String candidate : names) {
+            if (suggestions.size() >= limit) break;
+            String replacement = "^" + candidate + " ";
+            suggestions.add(new Suggestion(replacement, "^" + candidate, "player head", token.start(), token.end(), Kind.PLAYER, false));
+        }
+        return suggestions;
     }
 
     public static SearchSyntax.HelpLayout helpLayout(GlobalIndex index) {
@@ -483,7 +505,8 @@ public final class SearchSuggestions {
         META,
         NUMERIC,
         CATEGORY,
-        ENVIRONMENT
+        ENVIRONMENT,
+        PLAYER
     }
 
     public record Suggestion(String replacement, String display, String detail, int replaceStart, int replaceEnd,

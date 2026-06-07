@@ -134,6 +134,73 @@ class MnaCompatTest {
         assertEquals("artifacts", assignment.subcategoryId());
     }
 
+    @Test
+    void stavesAndWandsRouteToRangedToolsFromClassAndTags() {
+        Map<String, String> meta = meta("com.mna.items.sorcery.MagicStaff");
+        meta.put(SearchNodeKeys.TAGS, "mna:staves,mna:generated_spell_items");
+
+        MnaCompat.enrichItem(new ResourceLocation("mna", "eldrin_staff"), meta);
+        CategoryAssignment assignment = resolve("mna:eldrin_staff", meta);
+
+        assertEquals("ranged_weapons", meta.get(SearchNodeKeys.MNA_ITEM_KIND));
+        assertTrue(meta.getOrDefault(SearchNodeKeys.MNA_FACTS, "").contains("ranged_weapon"));
+        assertTrue(meta.getOrDefault(SearchNodeKeys.FACETS, "").contains(ItemFacet.RANGED_WEAPON.id()));
+        assertEquals("tools", assignment.categoryId());
+        assertEquals("ranged", assignment.subcategoryId());
+    }
+
+    @Test
+    void relicMeleeWeaponsRouteToMeleeBeforeArtifactFallback() {
+        Map<String, String> meta = meta("com.mna.items.relic.AstroBlade");
+        meta.put(SearchNodeKeys.TAGS, "mna:relics");
+
+        MnaCompat.enrichItem(new ResourceLocation("mna", "astro_blade"), meta);
+        CategoryAssignment assignment = resolve("mna:astro_blade", meta);
+
+        assertEquals("weapons", meta.get(SearchNodeKeys.MNA_ITEM_KIND));
+        assertTrue(meta.getOrDefault(SearchNodeKeys.MNA_FACTS, "").contains("weapon"));
+        assertEquals("tools", assignment.categoryId());
+        assertEquals("melee", assignment.subcategoryId());
+    }
+
+    @Test
+    void ritualUtilityItemsRouteToMagicArtifacts() {
+        Map<String, String> meta = meta("net.minecraft.world.item.Item");
+
+        MnaCompat.enrichItem(new ResourceLocation("mna", "animated_quill"), meta);
+        CategoryAssignment assignment = resolve("mna:animated_quill", meta);
+
+        assertEquals("artifacts", meta.get(SearchNodeKeys.MNA_ITEM_KIND));
+        assertEquals("magic", assignment.categoryId());
+        assertEquals("artifacts", assignment.subcategoryId());
+    }
+
+    @Test
+    void hudBadgesRouteToUtilityMiscInsteadOfUnknown() {
+        Map<String, String> meta = meta("net.minecraft.world.item.Item");
+
+        MnaCompat.enrichItem(new ResourceLocation("mna", "council_hud_badge_item"), meta);
+        CategoryAssignment assignment = resolve("mna:council_hud_badge_item", meta);
+
+        assertEquals("utility", meta.get(SearchNodeKeys.MNA_ITEM_KIND));
+        assertTrue(meta.getOrDefault(SearchNodeKeys.FACETS, "").contains(ItemFacet.UTILITY_MISC.id()));
+        assertEquals("utility", assignment.categoryId());
+        assertEquals("misc", assignment.subcategoryId());
+    }
+
+    @Test
+    void mnaDustTagsRouteToMagicReagents() {
+        Map<String, String> meta = meta("net.minecraft.world.item.Item");
+        meta.put(SearchNodeKeys.TAGS, "mna:dusts/arcane_compound");
+
+        MnaCompat.enrichItem(new ResourceLocation("mna", "arcane_compound"), meta);
+        CategoryAssignment assignment = resolve("mna:arcane_compound", meta);
+
+        assertEquals("reagents", meta.get(SearchNodeKeys.MNA_ITEM_KIND));
+        assertEquals("magic", assignment.categoryId());
+        assertEquals("reagents", assignment.subcategoryId());
+    }
+
     private static Map<String, String> meta(String itemClass) {
         Map<String, String> meta = new HashMap<>();
         meta.put(SearchNodeKeys.MOD_ID, "mna");

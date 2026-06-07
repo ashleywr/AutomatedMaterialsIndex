@@ -43,6 +43,17 @@ public final class AmiTaxonomyCatalog {
                 .toList();
     }
 
+    public static String label(AmiOntology.Category category) {
+        if (category == null) {
+            return "";
+        }
+        if (category.translationKey == null || category.translationKey.isBlank()) {
+            return category.shortName;
+        }
+        String resolved = label(category.translationKey);
+        return resolved.equals(category.translationKey) ? category.shortName : resolved;
+    }
+
     public static String toMarkdown() {
         StringBuilder out = new StringBuilder();
         out.append("# AMI Taxonomy\n\n");

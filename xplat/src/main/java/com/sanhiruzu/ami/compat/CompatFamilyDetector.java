@@ -29,6 +29,9 @@ public final class CompatFamilyDetector {
     public static final String TINKERS = "tinkers";
     public static final String SILENT_GEAR = "silent_gear";
     public static final String MNA = "mna";
+    public static final String ARS_NOUVEAU = "ars_nouveau";
+    public static final String SPECTRUM = "spectrum";
+    public static final String NATURES_AURA = "naturesaura";
     public static final String ALEXS_MOBS = "alexsmobs";
     public static final String ALEXS_CAVES = "alexscaves";
     public static final String TACZ = "tacz";
@@ -66,8 +69,23 @@ public final class CompatFamilyDetector {
             "ftbchunks"
     );
 
+    private static final Set<String> ARS_NOUVEAU_ADDON_NAMESPACES = Set.of(
+            "ars_additions",
+            "ars_artifice",
+            "ars_creo",
+            "ars_elemental",
+            "ars_instrumentum",
+            "ars_ocultas",
+            "ars_scalaes",
+            "arseng",
+            "arseng_mekanism",
+            "arsomega",
+            "ars_trinkets"
+    );
+
     private static final Map<String, String> EXACT_NAMESPACE_FAMILIES = Map.ofEntries(
             Map.entry("ae2", AE2),
+            Map.entry("appmek", AE2),
             Map.entry("appliedenergistics2", AE2),
             Map.entry("mekanism", MEKANISM),
             Map.entry("mekanismgenerators", MEKANISM),
@@ -92,6 +110,10 @@ public final class CompatFamilyDetector {
             Map.entry("tconstruct", TINKERS),
             Map.entry("silentgear", SILENT_GEAR),
             Map.entry("mna", MNA),
+            Map.entry("ars_nouveau", ARS_NOUVEAU),
+            Map.entry("arsnouveau", ARS_NOUVEAU),
+            Map.entry("spectrum", SPECTRUM),
+            Map.entry("naturesaura", NATURES_AURA),
             Map.entry("alexsmobs", ALEXS_MOBS),
             Map.entry("alexscaves", ALEXS_CAVES),
             Map.entry("tacz", TACZ)
@@ -123,6 +145,16 @@ public final class CompatFamilyDetector {
             "minimap", "worldmap", "mapping"
     );
 
+    private static final Set<String> ARS_NOUVEAU_OWNERSHIP_TERMS = Set.of(
+            "ars nouveau",
+            "ars_nouveau",
+            "arsnouveau",
+            "ars addon",
+            "addon for ars",
+            "requires ars nouveau",
+            "depends on ars nouveau"
+    );
+
     private static final Set<String> AMBIGUOUS_FAMILY_TERMS = Set.of(
             "press", "casing", "cell", "drive", "gear", "plate", "core", "module",
             "terminal", "controller", "cable", "pipe", "tank", "berry", "gem",
@@ -151,6 +183,7 @@ public final class CompatFamilyDetector {
         score(context, COBBLEMON, scoreCobblemon(context), scores);
         score(context, CREATE, scoreCreate(context), scores);
         score(context, MAPPING, scoreMapping(context), scores);
+        score(context, ARS_NOUVEAU, scoreArsNouveau(context), scores);
         score(context, TACZ, scoreTacz(context), scores);
 
         if (scores.isEmpty()) {
@@ -227,6 +260,18 @@ public final class CompatFamilyDetector {
         if (containsOwnershipTerm(context.modMetadata, MAPPING_OWNERSHIP_TERMS)) score += 50;
         if (containsOwnershipTerm(context.creativeTab, MAPPING_OWNERSHIP_TERMS)) score += 40;
         if (containsOwnershipTerm(context.itemClass, MAPPING_OWNERSHIP_TERMS)) score += 35;
+        return score;
+    }
+
+    private static int scoreArsNouveau(Context context) {
+        int score = 0;
+        if (ARS_NOUVEAU.equals(context.namespace) || "arsnouveau".equals(context.namespace)) score += 100;
+        if (context.namespace.startsWith("ars_") || ARS_NOUVEAU_ADDON_NAMESPACES.contains(context.namespace)) score += 80;
+        if (containsOwnershipTerm(context.namespace, ARS_NOUVEAU_OWNERSHIP_TERMS)) score += 70;
+        if (containsOwnershipTerm(context.modMetadata, ARS_NOUVEAU_OWNERSHIP_TERMS)) score += 50;
+        if (containsOwnershipTerm(context.creativeTab, ARS_NOUVEAU_OWNERSHIP_TERMS)) score += 40;
+        if (containsOwnershipTerm(context.itemClass, ARS_NOUVEAU_OWNERSHIP_TERMS)) score += 35;
+        if (context.itemClass.startsWith("com.hollingsworth.arsnouveau.")) score += 90;
         return score;
     }
 

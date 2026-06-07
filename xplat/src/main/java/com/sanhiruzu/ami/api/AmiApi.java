@@ -15,18 +15,29 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Public API for interacting with AMI from other mods.
- * Currently provides screen suppression for mods that want to hide AMI's overlay.
+ * Static façade for registering integrations with AMI.
+ *
+ * <p>See the {@link com.sanhiruzu.ami.api package overview} for a guide on which
+ * entry point to use. The short version:
+ * <ul>
+ *   <li>For item metadata, actions, and guide docs that should also work in other
+ *       viewers — use the {@code registerSearchable*} methods below.</li>
+ *   <li>For AMI-specific behaviour (exclusion zones, hero items, context menus) —
+ *       implement {@link IAmiPlugin} and register via {@link AmiPluginRegistry} or
+ *       the ServiceLoader.</li>
+ * </ul>
  */
 public class AmiApi {
     private static final Logger LOGGER = Logger.getLogger(AmiApi.class.getName());
     private static final List<AmiScreenSuppressor> SUPPRESSORS = new ArrayList<>();
 
+    // -------------------------------------------------------------------------
+    // Overlay suppression
+    // -------------------------------------------------------------------------
+
     /**
      * Register a screen suppressor. When the suppressor's predicate returns true,
      * AMI will hide its overlay and ignore input for that screen.
-     *
-     * @param suppressor the predicate that determines if AMI should be suppressed
      */
     public static void registerScreenSuppressor(AmiScreenSuppressor suppressor) {
         SUPPRESSORS.add(suppressor);
@@ -47,35 +58,9 @@ public class AmiApi {
         return false;
     }
 
-    /**
-     * Register a searchable guide/tutorial document.
-     * <p>
-     * AMI indexes guide documents separately from normal item results. Large
-     * page bodies should be summarized or capped by the contributor.
-     */
-    public static void registerGuideDocument(AmiGuideDocument document) {
-        AmiGuideRegistry.register(document);
-    }
-
-    /**
-     * Register a guide source that can contribute multiple documents at once.
-     * Source failures are isolated so one broken guide provider does not break
-     * AMI indexing.
-     */
-    public static void registerGuideSource(AmiGuideSource source) {
-        AmiGuideRegistry.registerSource(source);
-    }
-
-    /**
-     * Register a UI-agnostic searchable guide provider.
-     * <p>
-     * This is the preferred path for mod-owned guide integrations that may also
-     * be consumed by other viewers such as EMI or JEI. AMI adapts the shared
-     * documents into its own guide result rows during deferred guide indexing.
-     */
-    public static void registerSearchableGuideProvider(SearchableGuideProvider provider) {
-        SearchableGuideProviders.register(provider);
-    }
+    // -------------------------------------------------------------------------
+    // Viewer-neutral item providers (also work in EMI, JEI, etc.)
+    // -------------------------------------------------------------------------
 
     /**
      * Register a UI-agnostic searchable item provider for metadata enrichment
@@ -93,6 +78,43 @@ public class AmiApi {
         SearchableItemActionProviders.register(provider);
     }
 
+    // -------------------------------------------------------------------------
+    // Guide documents
+    // -------------------------------------------------------------------------
+
+    /**
+     * Register a searchable guide/tutorial document.
+     * <p>
+     * AMI indexes guide documents separately from normal item results. Large
+     * page bodies should be summarized or capped by the contributor.
+     */
+    public static void registerGuideDocument(AmiGuideDocument document) {
+        AmiGuideRegistry.register(document);
+    }
+
+    /**
+     * Register a guide source that can contribute multiple documents at once.
+     * Source failures are isolated so one broken guide provider does not block
+     * AMI indexing.
+     */
+    public static void registerGuideSource(AmiGuideSource source) {
+        AmiGuideRegistry.registerSource(source);
+    }
+
+    /**
+     * Register a UI-agnostic searchable guide provider.
+     * <p>
+     * Preferred over {@link #registerGuideSource} when your guide integration
+     * may also be consumed by other viewers such as EMI or JEI.
+     */
+    public static void registerSearchableGuideProvider(SearchableGuideProvider provider) {
+        SearchableGuideProviders.register(provider);
+    }
+
+    // -------------------------------------------------------------------------
+    // Quest / task data
+    // -------------------------------------------------------------------------
+
     /**
      * Register or replace a quest requirement group.
      */
@@ -108,7 +130,7 @@ public class AmiApi {
     }
 
     /**
-     * Replace all rich searchable quest documents from one source.
+     * Replace all rich searchable quest documents from one source at once.
      */
     public static void replaceQuestDocumentsFromSource(String sourceId, List<AmiQuestDocument> documents) {
         AmiQuestsApi.replaceQuestDocumentsFromSource(sourceId, documents);
@@ -134,6 +156,10 @@ public class AmiApi {
     public static void removeQuestGroupsFromMod(String namespace) {
         AmiQuestsApi.removeAllFromMod(namespace);
     }
+
+    // -------------------------------------------------------------------------
+    // Cheat / give
+    // -------------------------------------------------------------------------
 
     /**
      * Gives a plugin-created item through AMI's cheat-give path.

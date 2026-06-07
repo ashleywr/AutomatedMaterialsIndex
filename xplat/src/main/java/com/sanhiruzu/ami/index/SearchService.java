@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.index.query.QueryParser;
 import com.sanhiruzu.ami.index.query.SearchSyntax;
 import com.sanhiruzu.ami.index.resolvers.*;
+import com.sanhiruzu.ami.index.runtime.RuntimeSearchProviders;
 
 import java.util.*;
 
@@ -19,11 +20,14 @@ public final class SearchService {
     private final NumericMetadataResolver numericResolver;
     private final PropertyResolver propertyResolver;
     private final CategoryResolver categoryResolver;
+    private final IQueryResolver playerResolver;
+    private final IQueryResolver runtimeResolver;
 
     private SearchService(List<IQueryResolver> resolvers, List<IQueryResolver> broadResolvers,
                           TagResolver tagResolver, ModResolver modResolver,
                           EnvironmentResolver envResolver, NumericMetadataResolver numericResolver,
-                          PropertyResolver propertyResolver, CategoryResolver categoryResolver) {
+                          PropertyResolver propertyResolver, CategoryResolver categoryResolver,
+                          IQueryResolver playerResolver, IQueryResolver runtimeResolver) {
         this.resolvers = List.copyOf(resolvers);
         this.broadResolvers = List.copyOf(broadResolvers);
         this.tagResolver = tagResolver;
@@ -32,6 +36,8 @@ public final class SearchService {
         this.numericResolver = numericResolver;
         this.propertyResolver = propertyResolver;
         this.categoryResolver = categoryResolver;
+        this.playerResolver = playerResolver == null ? query -> Map.of() : playerResolver;
+        this.runtimeResolver = runtimeResolver == null ? query -> Map.of() : runtimeResolver;
     }
 
     /**
@@ -71,12 +77,23 @@ public final class SearchService {
         resolvers.add(literal);
         List<IQueryResolver> broadResolvers = new ArrayList<>();
         broadResolvers.add(broadLiteral);
+        IQueryResolver playerResolver = query -> Map.of();
+        IQueryResolver runtimeResolver = query -> Map.of();
         if (includePlayers) {
-            resolvers.add(new PlayerResolver());
-            broadResolvers.add(new PlayerResolver());
+            playerResolver = new PlayerResolver();
+            runtimeResolver = new RuntimeSearchResolver();
         }
 
-        return new SearchService(resolvers, broadResolvers, tagResolver, modResolver, envResolver, numericResolver, propertyResolver, categoryResolver);
+        return new SearchService(resolvers, broadResolvers, tagResolver, modResolver, envResolver, numericResolver,
+                propertyResolver, categoryResolver, playerResolver, runtimeResolver);
+    }
+
+    public List<SearchNode> defaultResults() {
+        return RuntimeSearchProviders.nodes();
+    }
+
+    public long runtimeRevision() {
+        return RuntimeSearchProviders.revision();
     }
 
     private static void record(QueryTrace trace, String operation, String value, Map<NodeType, List<SearchNode>> results) {
@@ -147,6 +164,7 @@ public final class SearchService {
         List<String> propertyParts = new ArrayList<>();
         List<String> numericParts = new ArrayList<>();
         List<String> categoryParts = new ArrayList<>();
+        List<String> playerParts = new ArrayList<>();
 
         for (QueryParser.QueryToken token : parsed.tokens()) {
             String value = token.value();
@@ -166,6 +184,7 @@ public final class SearchService {
                 }
                 case ENV -> envParts.add(value);
                 case PROP -> propertyParts.add(value);
+                case PLAYER -> playerParts.add(value);
                 case EXCLUDE -> excludeParts.add(value);
                 case ESM -> numericParts.add(value);
                 case CATEGORY -> {
@@ -189,6 +208,9 @@ public final class SearchService {
                     record(trace, "include:" + resolver.getClass().getSimpleName(), part, partial);
                     mergeResults(wordResults, partial);
                 }
+                Map<NodeType, List<SearchNode>> runtimePartial = runtimeResolver.resolve(part);
+                record(trace, "include:" + runtimeResolver.getClass().getSimpleName(), part, runtimePartial);
+                mergeResults(wordResults, runtimePartial);
                 if (includeResults == null) {
                     includeResults = wordResults;
                 } else {
@@ -254,6 +276,12 @@ public final class SearchService {
             hasActiveResultSet = applyPositiveFilter(results, filter, hasActiveResultSet);
             record(trace, "after-category", categoryPart, results);
         }
+        for (String playerPart : playerParts) {
+            Map<NodeType, List<SearchNode>> filter = playerResolver.resolve(playerPart);
+            record(trace, "player", playerPart, filter);
+            hasActiveResultSet = applyPositiveFilter(results, filter, hasActiveResultSet);
+            record(trace, "after-player", playerPart, results);
+        }
 
         for (String excludePart : excludeParts) {
             Map<NodeType, List<SearchNode>> partial = resolveExclude(excludePart);
@@ -294,6 +322,7 @@ public final class SearchService {
                 case MOD -> modResolver.resolve(value);
                 case ENV -> envResolver.resolve(value);
                 case PROP -> propertyResolver.resolve(value);
+                case PLAYER -> playerResolver.resolve(value);
                 default -> resolvePlainExclude(excludePart);
             };
         }

@@ -16,6 +16,7 @@ public final class SearchSyntax {
             new PrefixRule('@', QueryParser.TokenType.MOD, false),
             new PrefixRule('&', QueryParser.TokenType.ENV, false),
             new PrefixRule('?', QueryParser.TokenType.PROP, false),
+            new PrefixRule('^', QueryParser.TokenType.PLAYER, false),
             new PrefixRule('!', QueryParser.TokenType.ESSENTIAL, false),
             new PrefixRule('>', QueryParser.TokenType.ESM, true),
             new PrefixRule('<', QueryParser.TokenType.ESM, true),
@@ -70,6 +71,7 @@ public final class SearchSyntax {
                     new Example("?energy", "ami.gui.search.help.property_simple", SearchSuggestions.Kind.PROPERTY),
                     new Example("?kind:machines", "ami.gui.search.help.property_field", SearchSuggestions.Kind.PROPERTY),
                     new Example("?color:red", "ami.gui.search.help.property_color", SearchSuggestions.Kind.PROPERTY),
+                    new Example("^Steve", "ami.gui.search.help.player", SearchSuggestions.Kind.PLAYER),
                     new Example("$tech", "ami.gui.search.help.category", SearchSuggestions.Kind.CATEGORY),
                     new Example(">energy:10000", "ami.gui.search.help.greater", SearchSuggestions.Kind.NUMERIC),
                     new Example("<durability:500", "ami.gui.search.help.less", SearchSuggestions.Kind.NUMERIC),
@@ -202,6 +204,7 @@ public final class SearchSyntax {
             case '>', '<', '=' -> SearchSuggestions.Kind.NUMERIC;
             case '$' -> SearchSuggestions.Kind.CATEGORY;
             case '&' -> SearchSuggestions.Kind.ENVIRONMENT;
+            case '^' -> SearchSuggestions.Kind.PLAYER;
             case '%' -> SearchSuggestions.Kind.PROPERTY;
             default -> SearchSuggestions.Kind.PLAIN;
         };

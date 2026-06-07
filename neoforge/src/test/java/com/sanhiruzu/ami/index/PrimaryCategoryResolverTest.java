@@ -252,6 +252,40 @@ class PrimaryCategoryResolverTest {
     }
 
     @Test
+    void standaloneFluidContainersResolveToUtilityMisc() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("tconstruct:copper_can"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.FLUID_CONTAINER),
+                        Map.of(
+                                SearchNodeKeys.MOD_ID, "tconstruct",
+                                SearchNodeKeys.ITEM_CLASS, "slimeknights.tconstruct.smeltery.item.CopperCanItem"
+                        )
+                )
+        );
+
+        assertEquals("utility", assignment.categoryId());
+        assertEquals("misc", assignment.subcategoryId());
+    }
+
+    @Test
+    void fuelRecipeUsesResolveToIngredientsFuel() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("silentgear:netherwood_charcoal"),
+                new FacetProfile(
+                        EnumSet.noneOf(ItemFacet.class),
+                        Map.of(
+                                SearchNodeKeys.RECIPE_USE_CATEGORIES, "crafting,ami:fuel",
+                                SearchNodeKeys.TAGS, "silents_mechanisms:coal_generator_fuels"
+                        )
+                )
+        );
+
+        assertEquals("ingredients", assignment.categoryId());
+        assertEquals("fuel", assignment.subcategoryId());
+    }
+
+    @Test
     void integratedCircuitsResolveToTechCircuits() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("ccbr:integrated_circuit"),

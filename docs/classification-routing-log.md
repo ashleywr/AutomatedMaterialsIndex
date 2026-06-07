@@ -694,6 +694,120 @@ ironbark route to `ingredients/mineral`; runesmith tools route to
 `tools/utility`; MNA weapon classes route to `tools/melee`; and magic brooms
 route to `tech/transport`.
 
+### 2026-06-07: MNA Staves, Relics, Utility Badges, And Dusts
+
+The AMICompatForge MNA dump also showed repeated fallback rows for MNA-owned
+spell and relic surfaces: `com.mna.items.sorcery.MagicStaff`, `mna:staves`,
+`mna:wands`, `mna:generated_spell_items`, `mna:relics`,
+`com.mna.items.relic.AstroBlade`, `com.mna.items.ritual.WizardChalk`, HUD badge
+paths, and MNA dust/crystal tags. These are still focused MNA facts rather than
+global lexical rules.
+
+AMI now records MNA ranged weapon facts for staves/wands and routes them to
+`tools/ranged`; relic melee classes such as AstroBlade route to `tools/melee`
+before artifact fallback; ritual utility paths such as animated quill and wizard
+chalk route to `magic/artifacts`; HUD badge paths route to `utility/misc`; and
+MNA dust/crystal tags route to `magic/reagents`.
+
+### 2026-06-07: Player Waypoint Providers Use Registry-Owned Actions
+
+The player utility search/map action work now keeps map integrations behind
+`PlayerWaypointProvider` implementations. Providers may expose copy/export data
+and native add actions; the registry filters unavailable providers and wraps
+provider failures so map mod breakage cannot crash the AMI context menu.
+
+FTB Chunks uses a reflective client waypoint API from the installed NeoForge
+jar. JourneyMap keeps copy/export support and only exposes native add actions
+when its waypoint API classes can load in the running client. Xaero remains a
+detected copy/export provider for now because the available jar exposes internal
+GUI/session classes rather than a stable public add-waypoint API. A manual
+coordinate provider is always registered as a copy-only fallback when exact
+coordinates are known.
+
+### 2026-06-07: Standalone Fluid Containers Get A Semantic Fallback
+
+The AMICompatForge TConstruct dump showed `tconstruct:copper_can/variant/...`
+falling through to `fallback:unknown` even though the facet indexer correctly
+emitted `fluid_container`. AMI deliberately does not treat copper cans as a
+focused Modular Gear item, but a standalone fluid container still needs a stable
+semantic bucket. The generic utility facet route now treats `fluid_container` as
+`utility/misc` when no stronger category rule has already claimed the item.
+Generated subtype nodes now re-run primary category assignment after runtime
+metric sniffers add facets such as `fluid_container`, so generated fluid
+containers inherit the same semantic route as base items.
+
+### 2026-06-07: Fuel Recipe Uses Route Without Mod Branches
+
+The AMICompat NeoForge Silent Gear dump showed `silentgear:netherwood_charcoal`
+as the only Silent Gear `fallback:unknown` row. The stable evidence was not a
+Silent Gear item class or path family; it was recipe-use metadata containing
+`ami:fuel`. AMI now routes exact `ami:fuel` / `fuel` recipe-use metadata to
+`ingredients/fuel`, which also covers future modded fuels without adding
+mod-specific branches.
+
+### 2026-06-07: AppMek Uses AE2 Storage And Channel Identity
+
+The AMICompat NeoForge dump showed all twelve `appmek` rows falling through to
+`fallback:unknown`. The repeated classes were `ChemicalStorageCell`,
+`ChemicalPortableCellItem`, `appeng.items.materials.MaterialItem`, and
+`appeng.items.parts.PartItem`; item paths were chemical storage cells, portable
+chemical cells, a chemical cell housing, and a chemical P2P tunnel. These are
+Applied Energistics network/storage concepts with a Mekanism chemical medium, so
+AMI now treats `appmek` as an AE2-family namespace and records AE2 storage,
+channel, tier, and `chemical` medium/facts from string metadata only.
+
+### 2026-06-07: Ars Nouveau Glyphs And Ritual Tablets
+
+The AMICompat NeoForge dump showed 133 `ars_nouveau` fallback rows. The repeated
+families were mod-owned classes: `com.hollingsworth.arsnouveau.common.items.Glyph`
+for spell glyphs and `RitualTablet` for ritual tablets. Glyphs also expose a
+`glyph` recipe category. AMI now treats `ars_nouveau` as a focused compat family
+for metadata enrichment, routes glyphs to `magic/reagents`, routes ritual tablets
+to `magic/artifacts`, and default-collapses those two large result families using
+only namespace/path/class/recipe metadata.
+
+### 2026-06-07: Spectrum Reagents, Pure Resources, And Structure Placers
+
+The AMICompat NeoForge dump showed repeated Spectrum fallback rows backed by
+mod-owned tags, classes, and recipe categories rather than general Minecraft API
+facts. AMI now records `spectrumItemKind` and `spectrumFacts` for structure
+placers, reagents, pastel-node upgrades, and pure resources. Structure placers
+route to `utility/misc` and default-collapse under `Structure Placers`; reagents
+route to `magic/reagents`; pastel-node upgrades route to `tech/upgrades`; and
+pure resources route to `ingredients/mineral`.
+
+### 2026-06-07: Nature's Aura Generated Powders And Utility Artifacts
+
+The AMICompat NeoForge dump showed 31 `naturesaura` fallback rows. The repeated
+families were mod-owned classes and namespace paths: `ItemEffectPowder`
+generated variants, `ItemStructureFinder`, finder staffs, aura tokens, spirits,
+the mover cart, tainted gold/gold fiber materials, and several utility/artifact
+items. AMI now records `naturesAuraItemKind` and `naturesAuraFacts`, collapses
+effect powders under `Effect Powders`, routes powders/tokens/spirits to
+`magic/reagents`, structure and staff finders to `utility/navigation`, aura
+transport to `tech/transport`, materials to `ingredients/mineral`, templates to
+`tech/parts`, and remaining utility artifacts to either `magic/artifacts` or
+`utility/misc` from class/path/recipe metadata only.
+
+### 2026-06-07: Ars Nouveau Uses A Focused Compat Header
+
+The AMICompat NeoForge dump has 425 Ars Nouveau-owned item nodes: 85 glyphs,
+24 ritual tablets, many Ars workstations/source blocks, familiar scripts,
+equipment, materials, and generated/building variants. Those rows were spread
+across `magic`, `tech`, `masonry`, `decoration`, `nature`, and
+`fallback:unknown`, even though players usually need Ars glyphs, source
+workstations, and ritual pieces together. This is a mod-owned gameplay system,
+not a generic magic-material heuristic.
+
+AMI now exposes an `ars_nouveau` top-level category with subgroups for glyphs,
+rituals, spellcasting, source, automation, familiars, equipment, materials,
+building, and misc. The default Ars category policy is `FOCUSED`, while
+`SEMANTIC` still opts out. `CompatFamilyDetector` also recognizes Ars-addon
+ownership by namespace, metadata, creative tab, and Ars package names so future
+addons can use the same compat path instead of resolver-specific `if` chains.
+Focused tests cover glyph collapse/routing, ritual tablet routing, Ars
+workstations staying under the Ars header, and semantic opt-out behavior.
+
 ### 2026-06-06: Alex's Mobs Drops, Food Tags, And Custom Tools
 
 The AMICompatForge Alex's Mobs dump had 278 mod-owned item nodes and 73

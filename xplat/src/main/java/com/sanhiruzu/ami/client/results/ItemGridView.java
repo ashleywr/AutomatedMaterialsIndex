@@ -432,8 +432,14 @@ public class ItemGridView {
             if (overrideStack != null) {
                 queueItemIcon(overrideId, overrideStack, cellX + 2, cellY + 2, hovered);
             } else if (entry.type() == com.sanhiruzu.ami.index.NodeType.ITEM) {
-                ItemStack stack = resolveStack(entry);
-                if (!stack.isEmpty()) queueItemIcon(entry.id(), stack, cellX + 2, cellY + 2, hovered);
+                if (usesPlayerModelRenderer(entry)) {
+                    AmiRenderProfiler.count("grid.queuedRendererIcons");
+                    AmiRenderProfiler.count("grid.rendererIcon.PLAYER_MODEL");
+                    queueRendererIcon(entry, cellX + 2, cellY + 2, hovered);
+                } else {
+                    ItemStack stack = resolveStack(entry);
+                    if (!stack.isEmpty()) queueItemIcon(entry.id(), stack, cellX + 2, cellY + 2, hovered);
+                }
             } else {
                 AmiRenderProfiler.count("grid.queuedRendererIcons");
                 AmiRenderProfiler.count("grid.rendererIcon." + entry.type().name());
@@ -574,7 +580,8 @@ public class ItemGridView {
     }
 
     private void renderRendererWithWiggle(GuiGraphics g, SearchNode entry, int x, int y, boolean hovered) {
-        boolean needsCellClip = !hovered && needsRendererCellClip(entry.type());
+        boolean playerModelRenderer = usesPlayerModelRenderer(entry);
+        boolean needsCellClip = !hovered && (playerModelRenderer || needsRendererCellClip(entry.type()));
         if (needsCellClip) {
             g.enableScissor(x, y, x + 16, y + 16);
         }
@@ -587,7 +594,10 @@ public class ItemGridView {
             }
         }
         try {
-            com.sanhiruzu.ami.client.icon.RendererRegistry.get(entry.type()).render(g, entry, -8, -8, 16, hovered);
+            var renderer = playerModelRenderer
+                    ? com.sanhiruzu.ami.client.icon.RendererRegistry.PLAYER_MODEL
+                    : com.sanhiruzu.ami.client.icon.RendererRegistry.get(entry.type());
+            renderer.render(g, entry, -8, -8, 16, hovered);
         } finally {
             g.pose().popPose();
             if (needsCellClip) {
@@ -598,6 +608,13 @@ public class ItemGridView {
 
     private static boolean needsRendererCellClip(NodeType type) {
         return type == NodeType.ENTITY || type == NodeType.PLAYER;
+    }
+
+    private static boolean usesPlayerModelRenderer(SearchNode entry) {
+        return com.sanhiruzu.ami.config.AmiConfig.playerHeadShowFullModel
+                && entry != null
+                && entry.type() == NodeType.ITEM
+                && !entry.meta(com.sanhiruzu.ami.index.SearchNodeKeys.PLAYER_HEAD_NAME, "").isBlank();
     }
 
     private void primeIconCache(GuiGraphics g, List<VirtualRow> rows, int contentY) {

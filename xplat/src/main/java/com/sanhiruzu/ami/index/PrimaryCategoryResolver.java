@@ -339,8 +339,11 @@ public final class PrimaryCategoryResolver {
                     c -> assignment("magic", classifyMagicSubcategory(c.facets), c.attributes)),
             rule("utility facets",
                     c -> hasAny(c.facets, ItemFacet.UTILITY_NAVIGATION, ItemFacet.UTILITY_MEDICAL, ItemFacet.UTILITY_CURRENCY,
-                            ItemFacet.BOOK, ItemFacet.GUIDE_BOOK, ItemFacet.UTILITY_MISC),
+                            ItemFacet.BOOK, ItemFacet.GUIDE_BOOK, ItemFacet.UTILITY_MISC, ItemFacet.FLUID_CONTAINER),
                     c -> assignment("utility", classifyUtilitySubcategory(c.facets), c.attributes)),
+            rule("fuel recipe uses",
+                    c -> isFuelRecipeUse(c.attributes),
+                    c -> assignment("ingredients", "fuel", c.attributes)),
             rule("clear ingredients before incidental equipment or tech",
                     c -> shouldResolveIngredientBeforeEquipmentTech(c.facets),
                     c -> assignment("ingredients", classifyIngredientSubcategory(c.facets), c.attributes)),
@@ -623,6 +626,21 @@ public final class PrimaryCategoryResolver {
         Optional<CategoryAssignment> mna = resolveMnaIdentity(context);
         if (mna.isPresent()) {
             return mna;
+        }
+
+        Optional<CategoryAssignment> arsNouveau = resolveArsNouveauIdentity(context);
+        if (arsNouveau.isPresent()) {
+            return arsNouveau;
+        }
+
+        Optional<CategoryAssignment> spectrum = resolveSpectrumIdentity(context);
+        if (spectrum.isPresent()) {
+            return spectrum;
+        }
+
+        Optional<CategoryAssignment> naturesAura = resolveNaturesAuraIdentity(context);
+        if (naturesAura.isPresent()) {
+            return naturesAura;
         }
 
         Optional<CategoryAssignment> alexsMobs = resolveAlexsMobsIdentity(context);
@@ -1555,9 +1573,17 @@ public final class PrimaryCategoryResolver {
                 category = "tools";
                 subcategory = "utility";
             }
+            case "ranged_weapons" -> {
+                category = "tools";
+                subcategory = "ranged";
+            }
             case "weapons" -> {
                 category = "tools";
                 subcategory = "melee";
+            }
+            case "utility" -> {
+                category = "utility";
+                subcategory = "misc";
             }
             case "transport" -> {
                 category = "tech";
@@ -1573,6 +1599,165 @@ public final class PrimaryCategoryResolver {
                 context.attributes,
                 "identity.mna." + kind,
                 "Mana and Artifice " + kind + " identity"
+        ));
+    }
+
+    private static Optional<CategoryAssignment> resolveArsNouveauIdentity(ResolveContext context) {
+        if (!"ars_nouveau".equals(context.modId)
+                && !CompatFamilyDetector.hasFamily(context.attributes, CompatFamilyDetector.ARS_NOUVEAU)) {
+            return Optional.empty();
+        }
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.SEMANTIC) {
+            return Optional.empty();
+        }
+        String kind = context.attributes.getOrDefault(SearchNodeKeys.ARS_NOUVEAU_ITEM_KIND, "");
+        String subcategory = classifyArsNouveauSubcategory(context, kind);
+        return Optional.of(identityAssignment(
+                "ars_nouveau",
+                subcategory,
+                context.attributes,
+                "identity.ars_nouveau." + kind,
+                "Ars Nouveau " + kind + " identity"
+        ));
+    }
+
+    private static String classifyArsNouveauSubcategory(ResolveContext context, String kind) {
+        String mapped = switch (kind) {
+            case "glyphs" -> "glyphs";
+            case "ritual_tablets" -> "rituals";
+            case "spellcasting" -> "spellcasting";
+            case "source" -> "source";
+            case "automation" -> "automation";
+            case "familiars" -> "familiars";
+            case "equipment" -> "equipment";
+            case "materials" -> "materials";
+            case "building" -> "building";
+            default -> "";
+        };
+        if (!mapped.isBlank()) {
+            return mapped;
+        }
+        PathTokens pathTokens = PathTokens.of(context.path);
+        if (pathTokens.containsAny("glyph", "glyphs")) {
+            return "glyphs";
+        }
+        if (pathTokens.containsAny("ritual", "rituals")) {
+            return "rituals";
+        }
+        if (pathTokens.containsAny("spell", "book", "wand", "parchment", "chalk")) {
+            return "spellcasting";
+        }
+        if (pathTokens.containsAny("source", "relay", "jar")) {
+            return "source";
+        }
+        if (pathTokens.containsAny("apparatus", "imbuement", "scribes", "repository", "lectern", "pedestal", "turret", "sensor")) {
+            return "automation";
+        }
+        if (pathTokens.containsAny("familiar", "starbuncle", "drygmy", "wixie", "whirlisprig", "bookwyrm", "charm")) {
+            return "familiars";
+        }
+        if (hasAny(context.facets, ItemFacet.EQUIPPABLE, ItemFacet.CURIO)
+                || pathTokens.containsAny("robe", "hood", "leggings", "boots", "ring", "belt", "amulet", "trinket")) {
+            return "equipment";
+        }
+        if (hasAny(context.facets, ItemFacet.INGOT, ItemFacet.NUGGET, ItemFacet.DUST,
+                ItemFacet.GEM, ItemFacet.RAW_MATERIAL, ItemFacet.INGREDIENT_ORGANIC, ItemFacet.INGREDIENT_MINERAL,
+                ItemFacet.MAGIC_REAGENT)
+                || pathTokens.containsAny("magebloom", "archwood", "wilden", "essence", "gem", "fiber")) {
+            return "materials";
+        }
+        if (hasAny(context.facets, ItemFacet.DECORATIVE_BLOCK, ItemFacet.SLAB, ItemFacet.STAIRS, ItemFacet.WALL, ItemFacet.FENCE)
+                || pathTokens.containsAny("sourcestone", "weave", "decor", "planks", "leaves", "sapling")) {
+            return "building";
+        }
+        return "misc";
+    }
+
+    private static Optional<CategoryAssignment> resolveSpectrumIdentity(ResolveContext context) {
+        if (!"spectrum".equals(context.modId)
+                && !CompatFamilyDetector.hasFamily(context.attributes, CompatFamilyDetector.SPECTRUM)) {
+            return Optional.empty();
+        }
+        String kind = context.attributes.getOrDefault(SearchNodeKeys.SPECTRUM_ITEM_KIND, "");
+        String category;
+        String subcategory;
+        switch (kind) {
+            case "structure_placers" -> {
+                category = "utility";
+                subcategory = "misc";
+            }
+            case "reagents" -> {
+                category = "magic";
+                subcategory = "reagents";
+            }
+            case "upgrades" -> {
+                category = "tech";
+                subcategory = "upgrades";
+            }
+            case "materials" -> {
+                category = "ingredients";
+                subcategory = "mineral";
+            }
+            default -> {
+                return Optional.empty();
+            }
+        }
+        return Optional.of(identityAssignment(
+                category,
+                subcategory,
+                context.attributes,
+                "identity.spectrum." + kind,
+                "Spectrum " + kind + " identity"
+        ));
+    }
+
+    private static Optional<CategoryAssignment> resolveNaturesAuraIdentity(ResolveContext context) {
+        if (!"naturesaura".equals(context.modId)
+                && !CompatFamilyDetector.hasFamily(context.attributes, CompatFamilyDetector.NATURES_AURA)) {
+            return Optional.empty();
+        }
+        String kind = context.attributes.getOrDefault(SearchNodeKeys.NATURES_AURA_ITEM_KIND, "");
+        String category;
+        String subcategory;
+        switch (kind) {
+            case "effect_powders", "tokens", "spirits" -> {
+                category = "magic";
+                subcategory = "reagents";
+            }
+            case "artifacts" -> {
+                category = "magic";
+                subcategory = "artifacts";
+            }
+            case "structure_finders", "staff_finders" -> {
+                category = "utility";
+                subcategory = "navigation";
+            }
+            case "transport" -> {
+                category = "tech";
+                subcategory = "transport";
+            }
+            case "materials" -> {
+                category = "ingredients";
+                subcategory = "mineral";
+            }
+            case "templates" -> {
+                category = "tech";
+                subcategory = "parts";
+            }
+            case "utility" -> {
+                category = "utility";
+                subcategory = "misc";
+            }
+            default -> {
+                return Optional.empty();
+            }
+        }
+        return Optional.of(identityAssignment(
+                category,
+                subcategory,
+                context.attributes,
+                "identity.naturesaura." + kind,
+                "Nature's Aura " + kind + " identity"
         ));
     }
 
@@ -2155,6 +2340,11 @@ public final class PrimaryCategoryResolver {
             }
         }
         return false;
+    }
+
+    private static boolean isFuelRecipeUse(Map<String, String> attributes) {
+        return hasMetadataToken(attributes, SearchNodeKeys.RECIPE_USE_CATEGORIES, "ami:fuel")
+                || hasMetadataToken(attributes, SearchNodeKeys.RECIPE_USE_CATEGORIES, "fuel");
     }
 
     private static boolean hasCsvToken(String encoded, String expected) {

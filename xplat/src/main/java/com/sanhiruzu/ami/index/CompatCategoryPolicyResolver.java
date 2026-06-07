@@ -34,6 +34,7 @@ final class CompatCategoryPolicyResolver {
             case "minecolonies" -> AmiConfig.minecoloniesCategoryPolicy;
             case "apotheosis" -> AmiConfig.apotheosisCategoryPolicy;
             case "botania" -> AmiConfig.botaniaCategoryPolicy;
+            case CompatFamilyDetector.ARS_NOUVEAU, "arsnouveau" -> AmiConfig.arsNouveauCategoryPolicy;
             case CompatFamilyDetector.MAPPING, "map", "maps", "xaero", "journeymap", "ftb" -> AmiConfig.mapUtilityCategoryPolicy;
             default -> AmiConfig.CompatCategoryPolicy.SEMANTIC;
         };

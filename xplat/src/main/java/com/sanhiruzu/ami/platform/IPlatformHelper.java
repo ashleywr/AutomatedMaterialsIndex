@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.platform;
 
+import com.mojang.authlib.GameProfile;
 import com.sanhiruzu.ami.index.metrics.FoodStats;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import net.minecraft.client.Minecraft;
@@ -401,6 +402,23 @@ public interface IPlatformHelper {
 
     default ItemStack createGoatHornSubtypeStack(Object instrumentHolder) {
         return ItemStack.EMPTY;
+    }
+
+    default ItemStack createPlayerHeadStack(String name) {
+        return ItemStack.EMPTY;
+    }
+
+    default ItemStack createPlayerHeadStack(String name, java.util.UUID uuid) {
+        return createPlayerHeadStack(name);
+    }
+
+    default ItemStack createPlayerHeadStack(GameProfile profile) {
+        if (profile == null) return ItemStack.EMPTY;
+        return createPlayerHeadStack(profile.getName(), profile.getId());
+    }
+
+    default String playerHeadGiveCommand(String name) {
+        return "give @s minecraft:player_head 1";
     }
 
     default ResourceLocation getSpawnEggEntityTypeId(SpawnEggItem egg, ItemStack stack) {

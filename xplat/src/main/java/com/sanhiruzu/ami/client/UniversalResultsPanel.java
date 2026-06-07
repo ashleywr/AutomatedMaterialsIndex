@@ -20,6 +20,7 @@ import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.SearchService;
 import com.sanhiruzu.ami.platform.Services;
+import com.sanhiruzu.ami.player.PlayerWaypointProviders;
 import com.sanhiruzu.ami.util.AmiClipboardHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -31,6 +32,7 @@ import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -1152,23 +1154,35 @@ public class UniversalResultsPanel implements SearchState.Listener {
     // ── Tree refresh ──────────────────────────────────────────────────────────
 
     private void checkPlayerStateChanged() {
-        var mc = Minecraft.getInstance();
-        var gameMode = mc.gameMode != null ? mc.gameMode.getPlayerMode() : null;
+        Minecraft mc = Minecraft.getInstance();
+        net.minecraft.world.level.GameType mode = mc.gameMode == null ? null : mc.gameMode.getPlayerMode();
         boolean devMode = AmiConfig.devMode;
-        boolean showCreativeItems = AmiConfig.shouldShowCreativeItems(gameMode);
-
-        if (gameMode != lastPlayerMode || devMode != lastDevMode || showCreativeItems != lastShowCreativeItems) {
-            lastPlayerMode = gameMode;
+        boolean showCreativeItems = AmiConfig.shouldShowCreativeItems(mode);
+        if (mode != lastPlayerMode || devMode != lastDevMode || showCreativeItems != lastShowCreativeItems) {
+            lastPlayerMode = mode;
             lastDevMode = devMode;
             lastShowCreativeItems = showCreativeItems;
+            invalidateProjectionCache();
+            refreshAvailableListLenses();
             refreshTree();
         }
     }
+
+
+
+
+
+
 
     private void refreshTree() {
         // Skip expensive tree rebuilds if we are hidden
         var manager = com.sanhiruzu.ami.client.InventoryOverlayHandler.getManager();
         if (manager != null && !manager.isPanelVisible() && !isFavoritesPanel) return;
+
+        if (!isFavoritesPanel && currentQuery.isEmpty()) {
+            showDashboard();
+            return;
+        }
 
         ResultsViewProjector.Projection projection = projectResults();
         displayedItemCount = projection.displayedItemCount();
@@ -1205,7 +1219,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (!state.getQuery().isBlank()) {
             return null;
         }
-        return GlobalIndex.getInstance().revision()
+        return GlobalIndex.getInstance().revision() + "|searchRevision=" + searchServiceRevision
+                + "|liveWaypoints=" + (!isFavoritesPanel ? PlayerWaypointProviders.liveWaypointRevision() : 0L)
                 + "|source=" + System.identityHashCode(currentResults)
                 + "|size=" + currentResults.size()
                 + "|view=" + state.getViewMode()
@@ -1234,6 +1249,26 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     private void showDashboard() {
         List<TreeNode> dashboard = new ArrayList<>();
+
+        List<SearchNode> liveWaypoints = PlayerWaypointProviders.liveWaypointNodes();
+        if (!liveWaypoints.isEmpty()) {
+            TreeNode waypointsGroup = new TreeNode("waypoints", Component.literal("Waypoints"));
+            waypointsGroup.setExpanded(true);
+            for (SearchNode waypoint : liveWaypoints) {
+                waypointsGroup.addChild(new TreeNode(Component.literal(waypoint.displayName()), waypoint));
+            }
+            dashboard.add(waypointsGroup);
+        }
+
+        List<SearchNode> livePlayers = List.of();
+        if (!livePlayers.isEmpty()) {
+            TreeNode playersGroup = new TreeNode("players", Component.literal("Players"));
+            playersGroup.setExpanded(true);
+            for (SearchNode player : livePlayers) {
+                playersGroup.addChild(new TreeNode(Component.literal(player.displayName()), player));
+            }
+            dashboard.add(playersGroup);
+        }
 
         // 1. Recent History (Most relevant first)
         var history = com.sanhiruzu.ami.client.favorites.AmiHistoryHandler.getInstance().getLookupHistory();
@@ -1477,7 +1512,12 @@ public class UniversalResultsPanel implements SearchState.Listener {
     // ── Item click (grid + list) ──────────────────────────────────────────────
 
     private List<SearchNode> resolveSource() {
-        return currentResults;
+        if (isFavoritesPanel || searchService == null) {
+            return currentResults;
+        }
+        LinkedHashSet<SearchNode> combined = new LinkedHashSet<>(currentResults);
+        combined.addAll(searchService.defaultResults());
+        return new ArrayList<>(combined);
     }
 
     private void onItemClicked(SearchNode node, int button) {
@@ -1487,6 +1527,12 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
 
         if (CompatRegistry.handleResultClick(node, button)) {
+            return;
+        }
+
+        if (node != null && node.type() == NodeType.WAYPOINT) {
+            PlayerWaypointProviders.openLiveWaypointAction(node)
+                    .ifPresent(action -> action.action().run());
             return;
         }
 

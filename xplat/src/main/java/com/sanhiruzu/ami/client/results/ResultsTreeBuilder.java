@@ -231,7 +231,9 @@ final class ResultsTreeBuilder {
                 categoriesToDisplay.add(AmiOntology.categoryForId(categoryId));
             }
         }
-        categoriesToDisplay.sort((a, b) -> a.displayName().getString().compareToIgnoreCase(b.displayName().getString()));
+        categoriesToDisplay.sort(Comparator
+                .comparing(AmiTaxonomyCatalog::label, String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(category -> category.id));
         if (!options.ascending()) {
             Collections.reverse(categoriesToDisplay);
         }

@@ -213,7 +213,7 @@ public class DashboardLogicTest {
         // terminal building/fallback groups.
         assertEquals(List.of(
                 "cobblemon", "create", "ae2", "mekanism", "gregtech",
-                "minecolonies", "apotheosis", "botania", "sophisticated",
+                "minecolonies", "apotheosis", "botania", "ars_nouveau", "sophisticated",
                 "mapping", "modular_gear", "tacz", "utility", "bestiary",
                 "magic", "armor", "tools", "tech", "nature", "ingredients",
                 "decoration", "environment", "social", "geology", "masonry",
