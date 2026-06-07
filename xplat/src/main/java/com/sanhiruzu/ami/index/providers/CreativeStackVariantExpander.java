@@ -125,7 +125,7 @@ public final class CreativeStackVariantExpander {
     }
 
     private static boolean isSuppressedComponentBackedFamily(ResourceLocation baseId) {
-        return IndexingHotItemPolicy.shouldSuppressCreativeVariantExpansion(baseId);
+        return IndexingHotItemPolicy.shouldHideComponentBackedVariantsByDefault(baseId);
     }
 
     private static Map<String, Integer> displayNameCounts(List<VisibleStack> stacks) {

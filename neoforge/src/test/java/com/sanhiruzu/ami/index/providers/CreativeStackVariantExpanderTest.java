@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -139,6 +140,17 @@ public class CreativeStackVariantExpanderTest {
         );
 
         assertEquals(0, entries.size());
+    }
+
+    @Test
+    void suppressedFacadeVariantsCanBeExplainedOnBaseNode() {
+        Map<String, String> meta = new java.util.HashMap<>();
+
+        ItemProvider.applySuppressedCreativeVariantMeta(meta,
+                new ItemProvider.SuppressedCreativeVariants("facade_variants_hidden_by_default", 926));
+
+        assertEquals("facade_variants_hidden_by_default", meta.get(SearchNodeKeys.VARIANT_SUPPRESSION_REASON));
+        assertEquals("926", meta.get(SearchNodeKeys.VARIANT_SUPPRESSED_COUNT));
     }
 
     @Test

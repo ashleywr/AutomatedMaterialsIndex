@@ -80,7 +80,7 @@ public final class AmiGuideOpeners {
      * @param bookId the guide's ResourceLocation (e.g. {@code ae2:guide})
      */
     public static Runnable guideME(ResourceLocation bookId) {
-        return () -> openGuideMEBook(bookId, null);
+        return () -> tryOpenGuideME(bookId, null);
     }
 
     /**
@@ -90,7 +90,16 @@ public final class AmiGuideOpeners {
      * @param pageId the page path within the guide namespace
      */
     public static Runnable guideME(ResourceLocation bookId, String pageId) {
-        return () -> openGuideMEBook(bookId, pageId);
+        return () -> tryOpenGuideME(bookId, pageId);
+    }
+
+    /**
+     * Attempts to open a GuideME book or page immediately.
+     *
+     * @return {@code true} when a compatible GuideME open method was invoked
+     */
+    public static boolean tryOpenGuideME(ResourceLocation bookId, String pageId) {
+        return openGuideMEBook(bookId, pageId);
     }
 
     // ── Modonomicon ──────────────────────────────────────────────────────────
@@ -541,10 +550,10 @@ public final class AmiGuideOpeners {
         return false;
     }
 
-    private static void openGuideMEBook(ResourceLocation bookId, String pageId) {
+    private static boolean openGuideMEBook(ResourceLocation bookId, String pageId) {
         try {
             Minecraft mc = Minecraft.getInstance();
-            if (mc.player == null) return;
+            if (mc.player == null) return false;
 
             Class<?> guidesCommon = Class.forName("guideme.GuidesCommon");
 
@@ -556,7 +565,7 @@ public final class AmiGuideOpeners {
                         Object pageArg = guideMEPageArgument(m.getParameterTypes()[2], pageLocation, pageAnchor);
                         if (pageArg != null) {
                             m.invoke(null, mc.player, bookId, pageArg);
-                            return;
+                            return true;
                         }
                     }
                 }
@@ -565,12 +574,13 @@ public final class AmiGuideOpeners {
             for (Method m : guidesCommon.getMethods()) {
                 if ("openGuide".equals(m.getName()) && m.getParameterCount() == 2) {
                     m.invoke(null, mc.player, bookId);
-                    return;
+                    return true;
                 }
             }
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
             LOGGER.log(Level.FINE, "AMI: GuideME unavailable for guide open: " + bookId, e);
         }
+        return false;
     }
 
     private static Object guideMEPageAnchor(ResourceLocation pageLocation) {
