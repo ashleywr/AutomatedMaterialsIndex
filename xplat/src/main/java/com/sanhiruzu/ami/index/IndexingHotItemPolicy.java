@@ -38,8 +38,14 @@ public final class IndexingHotItemPolicy {
         return shouldUseFastFacadeIndex(id);
     }
 
-    public static boolean shouldSuppressCreativeVariantExpansion(ResourceLocation id) {
+    public static boolean shouldHideComponentBackedVariantsByDefault(ResourceLocation id) {
         return !AmiConfig.devMode && isFacadeLike(id);
+    }
+
+    public static String componentBackedVariantSuppressionReason(ResourceLocation id) {
+        return shouldHideComponentBackedVariantsByDefault(id)
+                ? "facade_variants_hidden_by_default"
+                : "";
     }
 
     public static boolean shouldUseFastFacadeIndex(ResourceLocation id) {

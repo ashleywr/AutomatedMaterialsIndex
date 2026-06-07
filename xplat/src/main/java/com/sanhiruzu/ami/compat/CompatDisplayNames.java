@@ -3,8 +3,12 @@ package com.sanhiruzu.ami.compat;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.providers.RegistryUtils;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public final class CompatDisplayNames {
     private static final Map<String, Alias> MOD_ALIASES = Map.of(
@@ -55,6 +59,32 @@ public final class CompatDisplayNames {
         Alias mapped = MOD_ALIASES.get(normalizedAlias);
         return mapped != null && mapped.canonicalToken().equals(normalizedCanonical)
                 && !normalizedAlias.equals(normalizedCanonical);
+    }
+
+    public static List<String> modSuggestionAliases(String canonicalToken) {
+        String normalizedCanonical = normalize(canonicalToken);
+        if (normalizedCanonical.isBlank()) {
+            return List.of();
+        }
+        Set<String> aliases = new LinkedHashSet<>();
+        addIfAlias(aliases, RegistryUtils.modDisplayName(normalizedCanonical), normalizedCanonical);
+        for (var entry : MOD_ALIASES.entrySet()) {
+            Alias alias = entry.getValue();
+            if (!alias.canonicalToken().equals(normalizedCanonical)) {
+                continue;
+            }
+            addIfAlias(aliases, entry.getKey(), normalizedCanonical);
+            addIfAlias(aliases, alias.displayName(), normalizedCanonical);
+        }
+        return List.copyOf(new ArrayList<>(aliases));
+    }
+
+    private static void addIfAlias(Set<String> aliases, String alias, String normalizedCanonical) {
+        String normalizedAlias = normalize(alias);
+        if (normalizedAlias.isBlank() || normalizedAlias.equals(normalizedCanonical)) {
+            return;
+        }
+        aliases.add(alias);
     }
 
     private static String normalize(String value) {

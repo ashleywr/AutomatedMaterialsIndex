@@ -6,6 +6,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.sanhiruzu.ami.client.AMICheatMode;
 import com.sanhiruzu.ami.api.AmiContextMenuAction;
+import com.sanhiruzu.ami.api.AmiGuideDocument;
+import com.sanhiruzu.ami.api.AmiGuideOpeners;
 import com.sanhiruzu.ami.api.AmiItemContext;
 import com.sanhiruzu.ami.api.AmiPluginRegistry;
 import com.sanhiruzu.ami.api.AmiQuestItemMatch;
@@ -18,6 +20,7 @@ import com.sanhiruzu.ami.compat.CobblemonPokedexOpener;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.config.AmiDataFixes;
+import com.sanhiruzu.ami.index.AmiGuideSearchIndex;
 import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.GlobalIndex;
@@ -121,6 +124,7 @@ public class ResultContextMenuActionBuilder {
     public static final String CREATE_PACK_FILES = "ami:create_pack_files";
     private static final int MAX_GROUP_AUTHORING_ITEMS = 64;
     private static final int MAX_GROUP_REPORT_ITEMS = 512;
+    private static final ResourceLocation AE2_GUIDE_BOOK = ResourceLocation.fromNamespaceAndPath("ae2", "guide");
 
     public static final Set<String> KNOWN_ACTIONS = Set.of(
             COPY_TOOLTIP, CRAFT_ONE, CRAFT_STACK, RECIPES, USES, FAVORITE, CHAT, WIKI, LOCATE,
@@ -1749,7 +1753,7 @@ public class ResultContextMenuActionBuilder {
     private static void openDocumentationTarget(SearchNode node, DocumentationTarget target) {
         if (target == null) return;
         if (target.kind() == DocumentationKind.AE2_GUIDE) {
-            if (openAe2Guide()) {
+            if (openAe2Guide(node)) {
                 return;
             }
             openUri(node, target.fallbackUri());
@@ -1758,21 +1762,79 @@ public class ResultContextMenuActionBuilder {
         openUri(node, target.uri());
     }
 
-    private static boolean openAe2Guide() {
-        try {
-            Minecraft minecraft = Minecraft.getInstance();
-            if (minecraft.player == null) return false;
-
-            Class<?> guidesCommon = Class.forName("guideme.GuidesCommon");
-            for (var method : guidesCommon.getMethods()) {
-                if (!method.getName().equals("openGuide") || method.getParameterCount() != 2) continue;
-                method.invoke(null, minecraft.player, Services.PLATFORM.rl("ae2", "guide"));
-                return true;
-            }
-        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
-            LOGGER.log(Level.FINE, "AMI: GuideME unavailable for AE2 documentation action", e);
+    private static boolean openAe2Guide(SearchNode node) {
+        AmiGuideSearchIndex guideIndex = AmiIndexerService.getInstance().getGuideSearchIndex();
+        Optional<AmiGuideDocument> document = ae2GuideDocumentForNode(node, guideIndex);
+        if (document.isPresent()) {
+            AmiGuideDocument guideDocument = document.get();
+            return AmiGuideOpeners.tryOpenGuideME(guideDocument.bookId(), guideDocument.pageId());
         }
-        return false;
+        return AmiGuideOpeners.tryOpenGuideME(AE2_GUIDE_BOOK, null);
+    }
+
+    static Optional<AmiGuideDocument> ae2GuideDocumentForNode(SearchNode node, AmiGuideSearchIndex guideIndex) {
+        ResourceLocation id = resolvedItemId(node);
+        if (id == null || guideIndex == null || !"ae2".equals(id.getNamespace())) {
+            return Optional.empty();
+        }
+
+        Optional<AmiGuideDocument> exactReference = guideIndex.allDocuments().stream()
+                .filter(ResultContextMenuActionBuilder::isAe2GuideDocument)
+                .filter(AmiGuideDocument::isVisible)
+                .filter(document -> document.referencedItems().contains(id))
+                .min((left, right) -> Integer.compare(ae2GuideDocumentScore(right, id), ae2GuideDocumentScore(left, id)));
+        if (exactReference.isPresent()) {
+            return exactReference;
+        }
+
+        String query = wikiQueryText(node);
+        if (query.isBlank()) {
+            query = id.getPath().replace('_', ' ');
+        }
+        return guideIndex.search(query).stream()
+                .filter(ResultContextMenuActionBuilder::isAe2GuideDocument)
+                .filter(AmiGuideDocument::isVisible)
+                .findFirst();
+    }
+
+    private static boolean isAe2GuideDocument(AmiGuideDocument document) {
+        return document != null && AE2_GUIDE_BOOK.equals(document.bookId()) && !document.pageId().isBlank();
+    }
+
+    private static int ae2GuideDocumentScore(AmiGuideDocument document, ResourceLocation itemId) {
+        if (document == null || itemId == null) {
+            return 0;
+        }
+        String path = itemId.getPath();
+        String pageId = document.pageId();
+        int score = 0;
+        if (pageId.equals(path) || pageId.endsWith("/" + path)) {
+            score += 100;
+        }
+        if (containsWord(document.title(), path)) {
+            score += 40;
+        }
+        if (containsWord(document.chapter(), path)) {
+            score += 10;
+        }
+        return score;
+    }
+
+    private static boolean containsWord(String text, String token) {
+        String normalizedText = normalizeDocumentationText(text);
+        String normalizedToken = normalizeDocumentationText(token);
+        return !normalizedToken.isBlank() && normalizedText.contains(normalizedToken);
+    }
+
+    private static String normalizeDocumentationText(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        return value.toLowerCase(Locale.ROOT)
+                .replace('_', ' ')
+                .replace('-', ' ')
+                .replaceAll("\\s+", " ")
+                .trim();
     }
 
     private static void openUri(SearchNode node, URI uri) {

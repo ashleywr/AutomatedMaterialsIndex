@@ -87,6 +87,22 @@ public final class GlobalIndexCache {
     }
 
     /**
+     * Deletes the cache file for the current mod list/config/language key.
+     *
+     * @return true when an existing cache file was deleted, false when there was no current cache file.
+     */
+    public static boolean invalidateCurrent() throws IOException {
+        Path cacheFile = resolveCacheFile();
+        boolean deleted = Files.deleteIfExists(cacheFile);
+        if (deleted) {
+            AmiCore.LOGGER.info("AMI: Deleted index cache {}", cacheFile.toAbsolutePath());
+        } else {
+            AmiCore.LOGGER.info("AMI: No current index cache to delete at {}", cacheFile.toAbsolutePath());
+        }
+        return deleted;
+    }
+
+    /**
      * Try cache load first; if miss, run full indexing and save to cache.
      * Deferred structure/dimension indexing still runs regardless of cache hit.
      *

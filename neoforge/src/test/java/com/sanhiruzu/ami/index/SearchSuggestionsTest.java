@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.compat.CompatDisplayNames;
 import com.sanhiruzu.ami.index.query.SearchSuggestions;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.AfterEach;
@@ -243,6 +244,49 @@ class SearchSuggestionsTest {
         assertDoesNotSuggest(index, "@applied", "@appliedenergistics2");
         assertDoesNotSuggest(index, "@tc", "@tconstruct");
         assertDoesNotSuggest(index, "@silentg", "@silentgear");
+    }
+
+    @Test
+    void friendlyModSuggestionAliasesMatchWhenIndexAlreadyUsesCanonicalNamespace() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("ae2", "crafting_unit", "Crafting Unit", Map.of(
+                SearchNodeKeys.MOD_ID, "ae2",
+                SearchNodeKeys.COMPAT_FAMILY, "ae2",
+                SearchNodeKeys.COMPAT_FAMILIES, "ae2",
+                SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "ae2"
+        )));
+
+        assertSuggestion(index, "@app", "@Applied Energistics 2", "@ae2 ");
+    }
+
+    @Test
+    void modSuggestionCountDeduplicatesRepeatedModIdentityPerNode() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("ae2", "facade", "Cable Facade", Map.of(
+                SearchNodeKeys.MOD_ID, "ae2",
+                SearchNodeKeys.COMPAT_FAMILY, "ae2",
+                SearchNodeKeys.COMPAT_FAMILIES, "ae2",
+                SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "ae2",
+                SearchNodeKeys.VARIANT_SUPPRESSED_COUNT, "1439"
+        )));
+        index.addNode(item("ae2", "controller", "ME Controller", Map.of(
+                SearchNodeKeys.MOD_ID, "ae2",
+                SearchNodeKeys.COMPAT_FAMILY, "ae2",
+                SearchNodeKeys.COMPAT_FAMILIES, "ae2",
+                SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "ae2"
+        )));
+
+        SearchSuggestions.Suggestion suggestion = SearchSuggestions.suggest(index, "@app", 4, 16).stream()
+                .filter(s -> "@Applied Energistics 2".equals(s.display()))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals("2", suggestion.detail());
+    }
+
+    @Test
+    void modSuggestionAliasesIncludeGenericDisplayNameForAnyModToken() {
+        assertTrue(CompatDisplayNames.modSuggestionAliases("thermal_expansion").contains("Thermal Expansion"));
     }
 
     @Test

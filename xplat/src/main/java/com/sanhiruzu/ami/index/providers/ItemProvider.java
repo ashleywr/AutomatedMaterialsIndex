@@ -626,6 +626,7 @@ public class ItemProvider implements IAmiDataProvider {
         int fastFacadeNodes = 0;
         int creativeVariantCandidates = 0;
         int suppressedCreativeVariants = 0;
+        Map<ResourceLocation, SuppressedCreativeVariants> suppressedCreativeVariantMeta = new HashMap<>();
         int deferredSkipped = 0;
         long subtypeExpandNs = 0L;
         long subtypeNodeNs = 0L;
@@ -696,8 +697,11 @@ public class ItemProvider implements IAmiDataProvider {
                     && ItemFilter.shouldShowAccessLevel(accessLevel)
                     && hasMultipleCreativeStacks(creativeStacks)) {
                 creativeVariantCandidates++;
-                if (IndexingHotItemPolicy.shouldSuppressCreativeVariantExpansion(id)) {
+                String suppressionReason = IndexingHotItemPolicy.componentBackedVariantSuppressionReason(id);
+                if (!suppressionReason.isBlank()) {
                     suppressedCreativeVariants++;
+                    suppressedCreativeVariantMeta.put(id,
+                            new SuppressedCreativeVariants(suppressionReason, creativeStacks.size()));
                 } else {
                     subtypes = CreativeStackVariantExpander.expand(id, creativeStacks, level);
                 }
@@ -796,6 +800,10 @@ public class ItemProvider implements IAmiDataProvider {
             meta.put(SearchNodeKeys.COLOR_BUCKET, colorBucket);
             meta.put(SearchNodeKeys.MATERIAL_GROUP, materialGroup);
             meta.put(SearchNodeKeys.ACCESS_LEVEL, accessLevel);
+            SuppressedCreativeVariants suppressedVariants = suppressedCreativeVariantMeta.get(id);
+            if (suppressedVariants != null) {
+                applySuppressedCreativeVariantMeta(meta, suppressedVariants);
+            }
             if (!facetProfile.attributes().isEmpty()) {
                 meta.putAll(facetProfile.attributes());
             }
@@ -938,6 +946,16 @@ public class ItemProvider implements IAmiDataProvider {
 
     private static boolean hasMultipleCreativeStacks(@Nullable List<ItemFilter.CreativeStackInfo> stacks) {
         return stacks != null && stacks.size() > 1;
+    }
+
+    static void applySuppressedCreativeVariantMeta(Map<String, String> meta, SuppressedCreativeVariants suppressedVariants) {
+        if (meta == null || suppressedVariants == null || suppressedVariants.reason().isBlank()) {
+            return;
+        }
+        meta.put(SearchNodeKeys.VARIANT_SUPPRESSION_REASON, suppressedVariants.reason());
+        if (suppressedVariants.count() > 0) {
+            meta.put(SearchNodeKeys.VARIANT_SUPPRESSED_COUNT, Integer.toString(suppressedVariants.count()));
+        }
     }
 
     private static List<Item> orderedItemsForIndexing() {
@@ -1128,6 +1146,9 @@ public class ItemProvider implements IAmiDataProvider {
         } catch (RuntimeException | LinkageError ignored) {
             return provider.getClass().getName();
         }
+    }
+
+    record SuppressedCreativeVariants(String reason, int count) {
     }
 
     private static void markGeneratedModularGearVariantCheatOnly(ResourceLocation syntheticId, Map<String, String> meta) {

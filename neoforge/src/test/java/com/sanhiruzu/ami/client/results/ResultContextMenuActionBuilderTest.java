@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.api.AmiContextMenuAction;
+import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.api.AmiItemContext;
 import com.sanhiruzu.ami.api.AmiQuestDocument;
 import com.sanhiruzu.ami.api.AmiQuestTaskDocument;
@@ -9,6 +10,7 @@ import com.sanhiruzu.ami.api.IAmiPlugin;
 import com.sanhiruzu.ami.client.favorites.FavoriteEntry;
 import com.sanhiruzu.ami.compat.GregTechCompat;
 import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.index.AmiGuideSearchIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.SearchNode;
@@ -503,6 +505,47 @@ class ResultContextMenuActionBuilderTest {
         assertEquals(ResultContextMenuActionBuilder.DocumentationKind.MEKANISM_WIKI, target.kind());
         assertEquals("ami.context.open_mekanism_wiki", target.label().getString());
         assertEquals(URI.create("https://wiki.aidancbrady.com/wiki/Jetpack"), target.uri());
+    }
+
+    @Test
+    void ae2GuideDocumentForNodePrefersExactReferencedItemPage() {
+        SearchNode node = modItem("ae2", "singularity", "Singularity");
+        AmiGuideSearchIndex guideIndex = new AmiGuideSearchIndex(List.of(
+                guideMeDocument("guide/guideme/ae2/searchable_singularity", "appendix/searchable_singularity",
+                        "Searching for Singularity", List.of()),
+                guideMeDocument("guide/guideme/ae2/singularity", "items-blocks-machines/singularity",
+                        "Singularity", List.of(new ResourceLocation("ae2", "singularity")))
+        ), AmiGuideSearchIndex.GuideIndexingMode.TITLES);
+
+        AmiGuideDocument document = ResultContextMenuActionBuilder.ae2GuideDocumentForNode(node, guideIndex)
+                .orElseThrow();
+
+        assertEquals("items-blocks-machines/singularity", document.pageId());
+    }
+
+    @Test
+    void ae2GuideDocumentForNodeFallsBackToAe2GuideSearch() {
+        SearchNode node = modItem("ae2", "annihilation_plane", "Annihilation Plane");
+        AmiGuideSearchIndex guideIndex = new AmiGuideSearchIndex(List.of(
+                guideMeDocument("guide/guideme/ae2/annihilation_plane", "items-blocks-machines/annihilation_plane",
+                        "Annihilation Plane", List.of())
+        ), AmiGuideSearchIndex.GuideIndexingMode.TITLES);
+
+        AmiGuideDocument document = ResultContextMenuActionBuilder.ae2GuideDocumentForNode(node, guideIndex)
+                .orElseThrow();
+
+        assertEquals("items-blocks-machines/annihilation_plane", document.pageId());
+    }
+
+    @Test
+    void ae2GuideDocumentForNodeIgnoresNonAe2Items() {
+        SearchNode node = modItem("mekanism", "jetpack", "Jetpack");
+        AmiGuideSearchIndex guideIndex = new AmiGuideSearchIndex(List.of(
+                guideMeDocument("guide/guideme/ae2/jetpack", "items-blocks-machines/jetpack",
+                        "Jetpack", List.of(new ResourceLocation("ae2", "jetpack")))
+        ), AmiGuideSearchIndex.GuideIndexingMode.TITLES);
+
+        assertTrue(ResultContextMenuActionBuilder.ae2GuideDocumentForNode(node, guideIndex).isEmpty());
     }
 
     @Test
@@ -1126,6 +1169,15 @@ class ResultContextMenuActionBuilderTest {
                 0,
                 Map.of()
         );
+    }
+
+    private static AmiGuideDocument guideMeDocument(String idPath, String pageId, String title,
+                                                    List<ResourceLocation> referencedItems) {
+        return AmiGuideDocument.builder(new ResourceLocation("ami", idPath), "guideme", "ae2", title)
+                .bookId(new ResourceLocation("ae2", "guide"))
+                .pageId(pageId)
+                .referencedItems(referencedItems)
+                .build();
     }
 
     private static ItemStack stack(String path) {
