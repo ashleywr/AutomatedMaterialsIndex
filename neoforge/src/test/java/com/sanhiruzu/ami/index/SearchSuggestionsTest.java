@@ -208,18 +208,29 @@ class SearchSuggestionsTest {
     }
 
     @Test
-    void amiSemanticBucketFieldIsSupportedButNotDiscoverable() {
+    void amiSemanticBucketSuggestionsOnlyShowInDevMode() {
         GlobalIndex index = GlobalIndex.getInstance();
         index.addNode(item("minecraft", "coal", "Coal", Map.of(
                 SearchNodeKeys.ONTOLOGY_CATEGORY, "ingredients",
                 SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "fuel",
                 SearchNodeKeys.RECIPE_USE_CATEGORIES, "ami:fuel,fuel",
-                SearchNodeKeys.TAGS, "ami:fuel"
+                SearchNodeKeys.TAGS, "ami:fuel",
+                SearchNodeKeys.FACETS, "amifuel"
         )));
 
         assertDoesNotSuggest(index, "?a", "?ami:");
-        assertSuggests(index, "?ami:f", "?ami:fuel");
+        assertDoesNotSuggest(index, "?ami:f", "?ami:fuel");
+        assertDoesNotSuggest(index, "?amif", "?amifuel");
+        assertDoesNotSuggest(index, "-?ami:f", "-?ami:fuel");
         assertFalse(helpExamples(index).contains("?ami:"));
+
+        AmiConfig.devMode = true;
+
+        assertSuggests(index, "?a", "?ami:");
+        assertSuggests(index, "?ami:f", "?ami:fuel");
+        assertSuggests(index, "?amif", "?amifuel");
+        assertSuggests(index, "-?ami:f", "-?ami:fuel");
+        assertTrue(helpExamples(index).contains("?ami:"));
     }
 
     @Test
