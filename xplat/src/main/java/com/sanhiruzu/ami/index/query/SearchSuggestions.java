@@ -121,7 +121,7 @@ public final class SearchSuggestions {
     private static SearchSyntax.HelpSection propertyHelpSection(Vocabulary vocabulary) {
         List<SearchSyntax.Example> examples = new ArrayList<>();
         for (SearchSyntax.PropertyField field : SearchSyntax.PROPERTY_FIELDS) {
-            if (!SearchSyntax.isDiscoverablePropertyField(field)) {
+            if (!isDiscoverablePropertyField(vocabulary, field)) {
                 continue;
             }
             if (valuesForPropertyField(vocabulary, field.id()).isEmpty()) {
@@ -130,6 +130,13 @@ public final class SearchSuggestions {
             examples.add(new SearchSyntax.Example("?" + field.id() + ":", field.descriptionKey(), field.kind()));
         }
         return new SearchSyntax.HelpSection(SearchSyntax.PROPERTIES_SECTION_TITLE_KEY, List.copyOf(examples));
+    }
+
+    private static boolean isDiscoverablePropertyField(Vocabulary vocabulary, SearchSyntax.PropertyField field) {
+        if (SearchSyntax.isDiscoverablePropertyField(field)) {
+            return true;
+        }
+        return vocabulary.devMode && field != null && "ami".equals(field.id());
     }
 
     public static void warm(GlobalIndex index) {
@@ -219,10 +226,10 @@ public final class SearchSuggestions {
             List<Suggestion> suggestions = new ArrayList<>();
             addSuggestions(suggestions, fieldSuggestions(vocabulary, query, token, body, limit), limit);
             if (isExactPropertyFieldAlias(body)) {
-                return suggestions;
+                return filterAmiPropertySuggestions(vocabulary, suggestions);
             }
             addSuggestions(suggestions, simplePropertySuggestions(vocabulary, query, token, body, limit), limit);
-            return suggestions;
+            return filterAmiPropertySuggestions(vocabulary, suggestions);
         }
 
         String rawField = body.substring(0, separator);
@@ -233,7 +240,29 @@ public final class SearchSuggestions {
         CountedValues values = valuesForPropertyField(vocabulary, field);
         String propertyPrefix = token.negated() ? "-?" + rawField + ":" : "?" + rawField + ":";
         Kind kind = SearchSyntax.propertyField(rawField).map(SearchSyntax.PropertyField::kind).orElse(Kind.PROPERTY);
-        return valueSuggestions(values, query, token, propertyPrefix, prefix, limit, kind);
+        return filterAmiPropertySuggestions(vocabulary,
+                valueSuggestions(values, query, token, propertyPrefix, prefix, limit, kind));
+    }
+
+    private static List<Suggestion> filterAmiPropertySuggestions(Vocabulary vocabulary, List<Suggestion> suggestions) {
+        if (vocabulary.devMode || suggestions.isEmpty()) {
+            return suggestions;
+        }
+        List<Suggestion> filtered = suggestions.stream()
+                .filter(suggestion -> !isAmiPropertySuggestion(suggestion.display()))
+                .toList();
+        return filtered.size() == suggestions.size() ? suggestions : filtered;
+    }
+
+    private static boolean isAmiPropertySuggestion(String display) {
+        if (display == null) {
+            return false;
+        }
+        String normalized = display.toLowerCase(Locale.ROOT);
+        if (normalized.startsWith("-")) {
+            normalized = normalized.substring(1);
+        }
+        return normalized.startsWith("?ami");
     }
 
     private static List<Suggestion> fieldSuggestions(Vocabulary vocabulary, String query, ActiveToken token,
@@ -244,7 +273,7 @@ public final class SearchSuggestions {
             if (suggestions.size() >= limit) {
                 break;
             }
-            if (!SearchSyntax.isDiscoverablePropertyField(field)) {
+            if (!isDiscoverablePropertyField(vocabulary, field)) {
                 continue;
             }
             if (valuesForPropertyField(vocabulary, field.id()).isEmpty()) {
@@ -311,7 +340,7 @@ public final class SearchSuggestions {
             case "kind" -> vocabulary.kinds;
             case "tier" -> vocabulary.tiers;
             case "role" -> vocabulary.roles;
-            case "ami" -> vocabulary.ami;
+            case "ami" -> vocabulary.devMode ? vocabulary.ami : CountedValues.empty();
             case "guidebook" -> vocabulary.guidebooks;
             case "fact" -> vocabulary.facts;
             case "trait" -> vocabulary.traits;
@@ -501,13 +530,22 @@ public final class SearchSuggestions {
         final CountedValues pokemonEggGroups = new CountedValues();
         final CountedValues meta = new CountedValues();
         final CountedValues numericFields = new CountedValues();
+        final boolean devMode;
+
+        Vocabulary() {
+            this(false);
+        }
+
+        Vocabulary(boolean devMode) {
+            this.devMode = devMode;
+        }
 
         static Vocabulary empty() {
             return new Vocabulary();
         }
 
         static Vocabulary build(GlobalIndex index, boolean cheatMode, boolean devMode, boolean showHidden, boolean showCreativeItems) {
-            Vocabulary vocabulary = new Vocabulary();
+            Vocabulary vocabulary = new Vocabulary(devMode);
             for (NodeType type : NodeType.values()) {
                 for (SearchNode node : index.getNodes(type)) {
                     if (isSuggestionVisible(node, cheatMode, devMode, showHidden, showCreativeItems)) {
