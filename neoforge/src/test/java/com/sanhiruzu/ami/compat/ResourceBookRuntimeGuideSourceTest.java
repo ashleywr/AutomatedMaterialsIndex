@@ -275,4 +275,16 @@ class ResourceBookRuntimeGuideSourceTest {
         assertTrue(document.summaryText().contains("potions and crafts"));
         assertEquals(List.of(new ResourceLocation("hexerei", "mixing_cauldron")), document.referencedItems());
     }
+
+    @Test
+    void safeResourceListingReturnsEmptyWhenEnumerationThrows() {
+        Map<String, String> resources = ResourceBookRuntimeGuideSource.safeResourceListing(
+                "",
+                () -> {
+                    throw new ArrayIndexOutOfBoundsException("Index 1 out of bounds for length 1");
+                }
+        );
+
+        assertTrue(resources.isEmpty());
+    }
 }

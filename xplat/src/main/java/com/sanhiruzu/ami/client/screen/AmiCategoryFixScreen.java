@@ -1,8 +1,8 @@
 package com.sanhiruzu.ami.client.screen;
 
 import com.sanhiruzu.ami.client.AMITheme;
+import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.config.AmiDataFixes;
-import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
@@ -124,17 +124,17 @@ public class AmiCategoryFixScreen extends Screen {
         if (category.isBlank()) return;
 
         String subcategory = normalizePart(subcategoryBox.getValue(), true);
-        AmiDataFixes.putUserMetadataFix(node.id(), node.type(), Map.of(
+        AmiDataFixes.applyUserMetadataFixToRuntimeIndex(node.id(), node.type(), Map.of(
                 SearchNodeKeys.ONTOLOGY_CATEGORY, category,
                 SearchNodeKeys.ONTOLOGY_SUBCATEGORY, subcategory
         ));
-        AmiIndexerService.getInstance().rebuild();
+        InventoryOverlayHandler.getManager().refreshEntriesForRuntimeIndexUpdate();
         onClose();
     }
 
     private void clear() {
-        AmiDataFixes.removeUserFix(node.id(), node.type());
-        AmiIndexerService.getInstance().rebuild();
+        AmiDataFixes.clearUserFixFromRuntimeIndex(node.id(), node.type());
+        InventoryOverlayHandler.getManager().refreshEntriesForRuntimeIndexUpdate();
         onClose();
     }
 

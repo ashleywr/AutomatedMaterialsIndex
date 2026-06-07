@@ -1,7 +1,9 @@
 package com.sanhiruzu.ami.config;
 
+import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -60,5 +62,29 @@ class AmiDataFixesTest {
         AmiDataFixes.FixEntry fix = fixes.get(new AmiDataFixes.NodeKey("example:portable_tank", NodeType.ITEM));
         assertEquals("16", fix.metadata().get(SearchNodeKeys.FLUID_CAPACITY));
         assertEquals("utility", fix.metadata().get(SearchNodeKeys.ONTOLOGY_CATEGORY));
+    }
+
+    @Test
+    void runtimeNodeWithoutUserCategoryFixStripsCategoryFields() {
+        SearchNode node = new SearchNode(
+                new ResourceLocation("minecraft", "lever"),
+                NodeType.ITEM,
+                "Lever",
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "redstone",
+                        SearchNodeKeys.DATA_FIX_SOURCE, "user",
+                        SearchNodeKeys.FACETS, "redstone_component"
+                )
+        );
+
+        SearchNode restored = AmiDataFixes.runtimeNodeWithoutUserCategoryFix(node);
+
+        assertEquals("", restored.meta(SearchNodeKeys.ONTOLOGY_CATEGORY, ""));
+        assertEquals("", restored.meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, ""));
+        assertEquals("", restored.meta(SearchNodeKeys.DATA_FIX_SOURCE, ""));
+        assertEquals("redstone_component", restored.meta(SearchNodeKeys.FACETS, ""));
     }
 }
