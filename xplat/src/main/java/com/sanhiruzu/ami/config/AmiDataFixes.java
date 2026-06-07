@@ -107,6 +107,25 @@ public final class AmiDataFixes {
         }
     }
 
+    public static Optional<SearchNode> applyUserMetadataFixToRuntimeIndex(ResourceLocation id, NodeType type,
+                                                                          Map<String, String> metadata) {
+        if (id == null || type == null || metadata == null || metadata.isEmpty()) {
+            return Optional.empty();
+        }
+
+        putUserMetadataFix(id, type, metadata);
+        return updateRuntimeNode(id, type, node -> node.withMetadata(apply(id, type, node.metadata())));
+    }
+
+    public static Optional<SearchNode> clearUserFixFromRuntimeIndex(ResourceLocation id, NodeType type) {
+        if (id == null || type == null) {
+            return Optional.empty();
+        }
+
+        removeUserFix(id, type);
+        return updateRuntimeNode(id, type, AmiDataFixes::runtimeNodeWithoutUserCategoryFix);
+    }
+
     public static Map<String, String> apply(ResourceLocation id, NodeType type, Map<String, String> metadata) {
         if (id == null || type == null || metadata == null) return metadata;
         synchronized (LOCK) {
@@ -135,6 +154,18 @@ public final class AmiDataFixes {
                 }
             }
         }
+    }
+
+    static SearchNode runtimeNodeWithoutUserCategoryFix(SearchNode node) {
+        if (node == null) {
+            return null;
+        }
+
+        Map<String, String> metadata = new LinkedHashMap<>(node.metadata());
+        metadata.remove(SearchNodeKeys.ONTOLOGY_CATEGORY);
+        metadata.remove(SearchNodeKeys.ONTOLOGY_SUBCATEGORY);
+        metadata.remove(SearchNodeKeys.DATA_FIX_SOURCE);
+        return node.withMetadata(apply(node.id(), node.type(), metadata));
     }
 
     static Map<NodeKey, FixEntry> read(Path path, String source) {
@@ -236,6 +267,26 @@ public final class AmiDataFixes {
         if (pack != null) merged.putAll(pack);
         if (user != null) merged.putAll(user);
         return Map.copyOf(merged);
+    }
+
+    private static Optional<SearchNode> updateRuntimeNode(ResourceLocation id, NodeType type,
+                                                          java.util.function.Function<SearchNode, SearchNode> updater) {
+        if (id == null || type == null || updater == null) {
+            return Optional.empty();
+        }
+
+        GlobalIndex index = GlobalIndex.getInstance();
+        Optional<SearchNode> existing = index.getNode(id, type);
+        if (existing.isEmpty()) {
+            return Optional.empty();
+        }
+
+        SearchNode updated = updater.apply(existing.get());
+        if (updated == null) {
+            return Optional.empty();
+        }
+        index.replaceNode(id, type, updated);
+        return Optional.of(updated);
     }
 
     private static void writeUserFile(Map<NodeKey, FixEntry> fixes) {

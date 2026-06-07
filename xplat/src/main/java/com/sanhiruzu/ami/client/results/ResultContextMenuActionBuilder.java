@@ -23,7 +23,6 @@ import com.sanhiruzu.ami.config.AmiDataFixes;
 import com.sanhiruzu.ami.index.AmiGuideSearchIndex;
 import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.index.AmiOntology;
-import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
@@ -463,8 +462,10 @@ public class ResultContextMenuActionBuilder {
                     Component.translatable("ami.context.clear_item_fix"),
                     'l',
                     () -> {
-                        AmiDataFixes.removeUserFix(id, node.type());
-                        AmiIndexerService.getInstance().rebuild();
+                        AmiDataFixes.clearUserFixFromRuntimeIndex(id, node.type());
+                        if (context.onDataFixApplied() != null) {
+                            context.onDataFixApplied().run();
+                        }
                     }
             ));
         }
@@ -1215,13 +1216,8 @@ public class ResultContextMenuActionBuilder {
                         Map<String, String> metadata = new LinkedHashMap<>();
                         metadata.put(SearchNodeKeys.ONTOLOGY_CATEGORY, categoryTarget.categoryId());
                         metadata.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, categoryTarget.subcategoryId());
-                        AmiDataFixes.putUserMetadataFix(pending.id(), pending.type(), metadata);
-                        SearchNode baseNode = GlobalIndex.getInstance()
-                                .getNode(pending.id(), pending.type()).orElse(pending);
-                        SearchNode updated = baseNode.withMetadata(AmiDataFixes.apply(pending.id(), pending.type(), baseNode.metadata()));
-                        GlobalIndex.getInstance().replaceNode(pending.id(), pending.type(), updated);
+                        AmiDataFixes.applyUserMetadataFixToRuntimeIndex(pending.id(), pending.type(), metadata);
                         pendingCategoryFixNode = null;
-                        AmiIndexerService.getInstance().rebuild();
                         showClientStatus(Component.translatable(
                                 "ami.context.category_fix_applied",
                                 pending.displayName(),
@@ -2248,8 +2244,15 @@ public class ResultContextMenuActionBuilder {
             SearchNode node,
             ItemStack stack,
             com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler favorites,
-            Consumer<String> tokenInject
+            Consumer<String> tokenInject,
+            Runnable onDataFixApplied
     ) {
+        public ItemContext(SearchNode node,
+                           ItemStack stack,
+                           com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler favorites,
+                           Consumer<String> tokenInject) {
+            this(node, stack, favorites, tokenInject, null);
+        }
     }
 
     public record GroupContext(

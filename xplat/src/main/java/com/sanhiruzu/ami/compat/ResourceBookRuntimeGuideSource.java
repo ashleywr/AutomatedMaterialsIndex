@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.api.AmiGuideOpeners;
 import com.sanhiruzu.ami.index.GlobalIndexCache;
@@ -557,12 +558,23 @@ public final class ResourceBookRuntimeGuideSource {
         if (resourceManager == null) {
             return out;
         }
-        resourceManager.listResources(root, filter)
-                .entrySet()
+        Map<ResourceLocation, Resource> listed = safeResourceListing(root, () -> resourceManager.listResources(root, filter));
+        listed.entrySet()
                 .stream()
                 .sorted(Comparator.comparing(entry -> entry.getKey().toString()))
                 .forEach(entry -> readResource(entry.getValue()).ifPresent(text -> out.put(entry.getKey(), text)));
         return out;
+    }
+
+    static <K, V> Map<K, V> safeResourceListing(String root,
+                                                java.util.function.Supplier<Map<K, V>> supplier) {
+        try {
+            return supplier.get();
+        } catch (RuntimeException e) {
+            AmiCore.LOGGER.warn("AMI: Skipping resource-backed guide scan for root '{}' after resource enumeration failed: {}",
+                    root, e.getMessage());
+            return Map.of();
+        }
     }
 
     private static Optional<String> readResource(Resource resource) {
