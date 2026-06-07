@@ -282,6 +282,7 @@ public final class ModularGearCompat {
     }
 
     private static String classifyKind(Context context, Set<String> facts) {
+        if (facts.contains("guide") && hasAnyToken(context.facets, "guide_book")) return "";
         if (facts.contains("blueprint")) return "blueprints";
         if (facts.contains("station") || hasAnyToken(context.facets, "workstation")) return "stations";
         if (facts.contains("modifier")) return "modifiers";

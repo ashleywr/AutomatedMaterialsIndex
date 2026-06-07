@@ -202,6 +202,7 @@
   "ami.context.filter_category": "Filter Category",
   "ami.context.copy_group_key": "Copy Group Key",
   "ami.context.open_ae2_guide": "Open ME Guide",
+  "ami.context.open_silentgear_material_book": "Open Material Book",
   "ami.context.open_guide_page": "Open Guide Page",
   "ami.context.copy_guide_title": "Copy Page Title",
   "ami.context.copy_guide_id": "Copy Guide ID",

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -135,6 +136,15 @@ public final class AmiGuideOpeners {
      */
     public static Runnable silentGearMaterialBook(ResourceLocation materialId) {
         return () -> openSilentGearMaterialBook(materialId);
+    }
+
+    /**
+     * Attempts to open Silent Gear's material book immediately.
+     *
+     * @return {@code true} when a compatible Silent Gear material-book screen was created
+     */
+    public static boolean tryOpenSilentGearMaterialBook(ResourceLocation materialId) {
+        return openSilentGearMaterialBook(materialId);
     }
 
     // ── Resource-backed custom books ─────────────────────────────────────────
@@ -692,14 +702,14 @@ public final class AmiGuideOpeners {
         }
     }
 
-    private static void openSilentGearMaterialBook(ResourceLocation materialId) {
+    private static boolean openSilentGearMaterialBook(ResourceLocation materialId) {
         try {
             Minecraft mc = Minecraft.getInstance();
             Object screen;
             if (materialId != null) {
                 Class<?> registriesClass = Class.forName("net.silentchaos512.gear.setup.SgRegistries");
                 Object materialManager = registriesClass.getField("MATERIAL").get(null);
-                Object material = materialManager.getClass().getMethod("get", ResourceLocation.class).invoke(materialManager, materialId);
+                Object material = resolveSilentGearMaterial(materialManager, materialId);
                 if (material == null) {
                     screen = newSilentGearMaterialBookScreen();
                 } else {
@@ -713,9 +723,23 @@ public final class AmiGuideOpeners {
                 screen = newSilentGearMaterialBookScreen();
             }
             mc.execute(() -> mc.setScreen((net.minecraft.client.gui.screens.Screen) screen));
+            return true;
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
             LOGGER.log(Level.FINE, "AMI: Silent Gear material book unavailable for guide open: " + materialId, e);
+            return false;
         }
+    }
+
+    private static Object resolveSilentGearMaterial(Object materialManager, ResourceLocation materialId) throws ReflectiveOperationException {
+        if (materialManager == null || materialId == null) {
+            return null;
+        }
+        Method get = materialManager.getClass().getMethod("get", ResourceLocation.class);
+        Object result = get.invoke(materialManager, materialId);
+        if (result instanceof Optional<?> optional) {
+            return optional.orElse(null);
+        }
+        return result;
     }
 
     private static Object newSilentGearMaterialBookScreen() throws ReflectiveOperationException {

@@ -176,6 +176,23 @@ class ModularGearCompatTest {
     }
 
     @Test
+    void silentGearMaterialBookStaysUtilityGuideBook() {
+        Map<String, String> meta = meta("silentgear", "Silent Gear: Main",
+                "net.silentchaos512.gear.item.MaterialBookItem", "");
+        meta.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.BOOK, ItemFacet.GUIDE_BOOK)));
+        meta.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "silentgear_materials");
+
+        ModularGearCompat.enrichItem(new ResourceLocation("silentgear", "material_book"), meta);
+        CategoryAssignment assignment = resolve("silentgear:material_book", meta, ItemFacet.BOOK, ItemFacet.GUIDE_BOOK);
+
+        assertEquals("silent_gear", meta.get(SearchNodeKeys.MODULAR_GEAR_FAMILY));
+        assertEquals("", meta.getOrDefault(SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, ""));
+        assertTrue(meta.getOrDefault(SearchNodeKeys.MODULAR_GEAR_FACTS, "").contains("guide"));
+        assertEquals("utility", assignment.categoryId());
+        assertEquals("books", assignment.subcategoryId());
+    }
+
+    @Test
     void focusedPolicyKeepsGearToolsTogether() {
         AmiConfig.CompatCategoryPolicy oldPolicy = AmiConfig.modularGearCategoryPolicy;
         try {

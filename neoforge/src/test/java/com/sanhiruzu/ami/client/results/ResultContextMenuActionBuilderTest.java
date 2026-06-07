@@ -798,6 +798,27 @@ class ResultContextMenuActionBuilderTest {
     }
 
     @Test
+    void silentGearMaterialBookUsesNativeDocumentationTarget() {
+        SearchNode node = new SearchNode(
+                new ResourceLocation("silentgear", "material_book"),
+                NodeType.ITEM,
+                "Material Book",
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.ITEM_CLASS, "net.silentchaos512.gear.item.MaterialBookItem",
+                        SearchNodeKeys.FACETS, "book,guide_book"
+                )
+        );
+
+        ResultContextMenuActionBuilder.DocumentationTarget target =
+                ResultContextMenuActionBuilder.documentationTargetFor(node);
+
+        assertEquals(ResultContextMenuActionBuilder.DocumentationKind.SILENT_GEAR_MATERIAL_BOOK, target.kind());
+        assertEquals("ami.context.open_silentgear_material_book", target.label().getString());
+    }
+
+    @Test
     void malformedConfigFallsBackToDefaultActions() {
         assertEquals(ResultContextMenuActionBuilder.KNOWN_ACTIONS,
                 ResultContextMenuActionPolicy.parseEnabledActionIds("missing nonsense"));

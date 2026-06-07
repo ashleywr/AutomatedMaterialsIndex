@@ -202,6 +202,7 @@
   "ami.context.filter_category": "筛选类别(F)",
   "ami.context.copy_group_key": "复制分组键名(K)",
   "ami.context.open_ae2_guide": "打开ME指南(W)",
+  "ami.context.open_silentgear_material_book": "打开材料手册(W)",
   "ami.context.open_guide_page": "打开指南页面(O)",
   "ami.context.copy_guide_title": "复制页面标题(T)",
   "ami.context.copy_guide_id": "复制指南ID(I)",
