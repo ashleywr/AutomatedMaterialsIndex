@@ -106,6 +106,7 @@
   "ami.context.unfavorite": "お気に入りから削除",
   "ami.context.chat": "チャットに送信",
   "ami.context.wiki": "Wikiページを開く",
+  "ami.context.open_silentgear_material_book": "材料の本を開く",
   "ami.context.locate_biome": "最寄りのバイオームを検索",
   "ami.context.locate_structure": "最寄りの構造物を検索",
   "ami.context.cheat_give_one": "1個入手",

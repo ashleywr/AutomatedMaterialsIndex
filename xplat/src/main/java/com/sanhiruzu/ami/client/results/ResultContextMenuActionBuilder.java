@@ -125,6 +125,7 @@ public class ResultContextMenuActionBuilder {
     private static final int MAX_GROUP_AUTHORING_ITEMS = 64;
     private static final int MAX_GROUP_REPORT_ITEMS = 512;
     private static final ResourceLocation AE2_GUIDE_BOOK = ResourceLocation.fromNamespaceAndPath("ae2", "guide");
+    private static final ResourceLocation SILENT_GEAR_MATERIAL_BOOK = ResourceLocation.fromNamespaceAndPath("silentgear", "material_book");
 
     public static final Set<String> KNOWN_ACTIONS = Set.of(
             COPY_TOOLTIP, CRAFT_ONE, CRAFT_STACK, RECIPES, USES, FAVORITE, CHAT, WIKI, LOCATE,
@@ -1759,6 +1760,12 @@ public class ResultContextMenuActionBuilder {
             openUri(node, target.fallbackUri());
             return;
         }
+        if (target.kind() == DocumentationKind.SILENT_GEAR_MATERIAL_BOOK) {
+            if (!AmiGuideOpeners.tryOpenSilentGearMaterialBook(null)) {
+                openUri(node, target.fallbackUri());
+            }
+            return;
+        }
         openUri(node, target.uri());
     }
 
@@ -1913,6 +1920,15 @@ public class ResultContextMenuActionBuilder {
             );
         }
 
+        if (isSilentGearMaterialBookNode(node, id)) {
+            return new DocumentationTarget(
+                    DocumentationKind.SILENT_GEAR_MATERIAL_BOOK,
+                    Component.translatable("ami.context.open_silentgear_material_book"),
+                    null,
+                    silentGearMaterialBookWikiUri()
+            );
+        }
+
         if (id != null && "mekanism".equals(id.getNamespace())) {
             return new DocumentationTarget(
                     DocumentationKind.MEKANISM_WIKI,
@@ -1933,6 +1949,20 @@ public class ResultContextMenuActionBuilder {
     private static URI ae2WebGuideUri(SearchNode node, String query) {
         return URI.create("https://guide.appliedenergistics.org/1.21.1/?search="
                 + URLEncoder.encode(query, StandardCharsets.UTF_8));
+    }
+
+    private static boolean isSilentGearMaterialBookNode(SearchNode node, ResourceLocation id) {
+        return SILENT_GEAR_MATERIAL_BOOK.equals(id)
+                || (node != null
+                && node.meta(SearchNodeKeys.ITEM_CLASS, "").toLowerCase(Locale.ROOT)
+                .contains("net.silentchaos512.gear.item.materialbookitem"))
+                || (node != null
+                && "silentgear_materials".equals(node.meta(SearchNodeKeys.GUIDE_BOOK_SYSTEM, ""))
+                && containsMetadataToken(node.meta(SearchNodeKeys.FACETS, ""), "guide_book"));
+    }
+
+    private static URI silentGearMaterialBookWikiUri() {
+        return URI.create("https://github.com/SilentChaos512/Silent-Gear/wiki");
     }
 
     private static URI cobblemonPokemonToolsUri(SearchNode node) {
@@ -2255,6 +2285,7 @@ public class ResultContextMenuActionBuilder {
     enum DocumentationKind {
         MINECRAFT_WIKI,
         AE2_GUIDE,
+        SILENT_GEAR_MATERIAL_BOOK,
         MEKANISM_WIKI,
         COBBLEMON_TOOLS,
         WEB_SEARCH

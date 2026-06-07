@@ -622,6 +622,17 @@ to `utility/books` before the generic tool hard identity. Enchanted books still
 route to `magic/books`, and functional non-guide tomes/grimoires keep their
 stronger mod or curio identities.
 
+### 2026-06-07: Silent Gear Material Book Native Opening
+
+The ATM10 dump showed `silentgear:material_book` carrying `book,guide_book` and
+`guideBookSystem=silentgear_materials`, but modular-gear compat also marked it
+as a focused `parts` item. Silent Gear guide-book facts now avoid assigning a
+modular-gear item kind, so the material book routes through the normal
+`utility/books` guide-book identity. The item context-menu documentation action
+also recognizes Silent Gear's material-book system and opens the native
+material-book screen, while material search-result tooltips split categories,
+stats, and traits into colored scan lines.
+
 ### 2026-06-06: Guide Content Search Defaults To Summaries
 
 Guide documents were indexed separately from normal item nodes, and the default
