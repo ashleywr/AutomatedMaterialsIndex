@@ -284,6 +284,9 @@ public class AmiConfigScreen extends Screen {
         for (Field field : AmiConfig.class.getFields()) {
             ConfigGroup group = field.getAnnotation(ConfigGroup.class);
             if (group != null) {
+                if ("layout".equals(currentGroup) && groupVisible) {
+                    addLayoutPanelSectionEntries();
+                }
                 currentGroup = group.value();
                 currentCompatSection = null;
                 groupVisible = !"sidepanels".equals(currentGroup)
@@ -322,9 +325,9 @@ public class AmiConfigScreen extends Screen {
             if (field.isAnnotationPresent(ConfigGroupEnd.class) && "binds".equals(currentGroup) && groupVisible) {
                 addKeyMappingEntries();
             }
-            if (field.isAnnotationPresent(ConfigGroupEnd.class) && "layout".equals(currentGroup) && groupVisible) {
-                addLayoutPanelSectionEntries();
-            }
+        }
+        if ("layout".equals(currentGroup) && groupVisible) {
+            addLayoutPanelSectionEntries();
         }
         if (resetConfigScrollOnNextBuild) {
             list.setScrollAmount(0.0);
@@ -358,18 +361,18 @@ public class AmiConfigScreen extends Screen {
     }
 
     private void addSidePanelEditorEntries() {
-        list.publicAddEntry(list.new PanelTitleEntry(Component.translatable("ami.config.panel.left")));
+        list.publicAddEntry(list.new PanelTitleEntry(Component.translatable("ami.config.panel.left"), Tooltip.create(Component.translatable("ami.config.tooltip.panel.left"))));
         list.publicAddEntry(list.new SidePanelWidthEntry(Component.translatable("ami.config.panel.width"), field("leftPanelWidth")));
-        list.publicAddEntry(list.new PanelSubheaderEntry(Component.translatable("ami.config.panel.normal_view")));
+        list.publicAddEntry(list.new PanelSubheaderEntry(Component.translatable("ami.config.panel.normal_view"), Tooltip.create(Component.translatable("ami.config.tooltip.panel.normal_view"))));
         addSlotListEntries(field("leftPanelSlots"));
-        list.publicAddEntry(list.new PanelSubheaderEntry(Component.translatable("ami.config.panel.toggled_view")));
+        list.publicAddEntry(list.new PanelSubheaderEntry(Component.translatable("ami.config.panel.toggled_view"), Tooltip.create(Component.translatable("ami.config.tooltip.panel.toggled_view"))));
         addSlotListEntries(field("leftPanelAlternateSlots"));
 
-        list.publicAddEntry(list.new PanelTitleEntry(Component.translatable("ami.config.panel.right")));
+        list.publicAddEntry(list.new PanelTitleEntry(Component.translatable("ami.config.panel.right"), Tooltip.create(Component.translatable("ami.config.tooltip.panel.right"))));
         list.publicAddEntry(list.new SidePanelWidthEntry(Component.translatable("ami.config.panel.width"), field("rightPanelWidth")));
-        list.publicAddEntry(list.new PanelSubheaderEntry(Component.translatable("ami.config.panel.normal_view")));
+        list.publicAddEntry(list.new PanelSubheaderEntry(Component.translatable("ami.config.panel.normal_view"), Tooltip.create(Component.translatable("ami.config.tooltip.panel.normal_view"))));
         addSlotListEntries(field("rightPanelSlots"));
-        list.publicAddEntry(list.new PanelSubheaderEntry(Component.translatable("ami.config.panel.toggled_view")));
+        list.publicAddEntry(list.new PanelSubheaderEntry(Component.translatable("ami.config.panel.toggled_view"), Tooltip.create(Component.translatable("ami.config.tooltip.panel.toggled_view"))));
         addSlotListEntries(field("rightPanelAlternateSlots"));
     }
 
@@ -383,13 +386,14 @@ public class AmiConfigScreen extends Screen {
 
     private void addSlotListEntries(Field slotsField) {
         List<AmiConfig.PanelContent> slots = readSlots(slotsField);
+        Tooltip tooltip = tooltipForConfigField(slotsField);
         if (slots.isEmpty()) {
-            list.publicAddEntry(list.new PanelEmptySlotsEntry(Component.translatable("ami.config.panel.no_slots")));
+            list.publicAddEntry(list.new PanelEmptySlotsEntry(Component.translatable("ami.config.panel.no_slots"), tooltip));
         }
         for (int i = 0; i < slots.size(); i++) {
-            list.publicAddEntry(list.new PanelSlotEntry(Component.translatable("ami.config.panel.slot", i + 1), slotsField, i));
+            list.publicAddEntry(list.new PanelSlotEntry(Component.translatable("ami.config.panel.slot", i + 1), slotsField, i, tooltip));
         }
-        list.publicAddEntry(list.new PanelAddSlotEntry(Component.translatable("ami.config.panel.add_slot"), slotsField));
+        list.publicAddEntry(list.new PanelAddSlotEntry(Component.translatable("ami.config.panel.add_slot"), slotsField, Tooltip.create(Component.translatable("ami.config.tooltip.panel.add_slot"))));
     }
 
     private Field field(String name) {
@@ -494,6 +498,17 @@ public class AmiConfigScreen extends Screen {
             return String.valueOf(val).equalsIgnoreCase(dep.expected());
         } catch (Exception e) {
             return true;
+        }
+    }
+
+    private Tooltip tooltipForConfigField(Field field) {
+        ConfigValue value = field.getAnnotation(ConfigValue.class);
+        return value == null ? null : Tooltip.create(Component.translatable("ami.config.tooltip." + value.value()));
+    }
+
+    private void showTooltipIfHovered(Tooltip tooltip, int x, int y, int width, int height, int mouseX, int mouseY) {
+        if (tooltip != null && mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height) {
+            this.setTooltipForNextRenderPass(tooltip, net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner.INSTANCE, true);
         }
     }
 
@@ -868,14 +883,17 @@ public class AmiConfigScreen extends Screen {
 
         class PanelTitleEntry extends ConfigEntry {
             private final Component text;
+            private final Tooltip tooltip;
 
-            PanelTitleEntry(Component text) {
+            PanelTitleEntry(Component text, Tooltip tooltip) {
                 this.text = text;
+                this.tooltip = tooltip;
             }
 
             @Override
             public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
                 g.drawString(font, text, x + 5, y + 6, AMITheme.CONFIG_PANEL_TITLE, false);
+                showTooltipIfHovered(tooltip, x, y, width, height, mouseX, mouseY);
             }
 
             @Override
@@ -886,14 +904,17 @@ public class AmiConfigScreen extends Screen {
 
         class PanelSubheaderEntry extends ConfigEntry {
             private final Component text;
+            private final Tooltip tooltip;
 
-            PanelSubheaderEntry(Component text) {
+            PanelSubheaderEntry(Component text, Tooltip tooltip) {
                 this.text = text;
+                this.tooltip = tooltip;
             }
 
             @Override
             public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
                 g.drawString(font, text, x + 15, y + 6, AMITheme.CONFIG_TEXT_SECONDARY, false);
+                showTooltipIfHovered(tooltip, x, y, width, height, mouseX, mouseY);
             }
 
             @Override
@@ -924,14 +945,17 @@ public class AmiConfigScreen extends Screen {
 
         class PanelEmptySlotsEntry extends ConfigEntry {
             private final Component label;
+            private final Tooltip tooltip;
 
-            PanelEmptySlotsEntry(Component label) {
+            PanelEmptySlotsEntry(Component label, Tooltip tooltip) {
                 this.label = label;
+                this.tooltip = tooltip;
             }
 
             @Override
             public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
                 g.drawString(font, label, x + 30, y + 6, AMITheme.CONFIG_TEXT_MUTED, false);
+                showTooltipIfHovered(tooltip, x, y, width, height, mouseX, mouseY);
             }
 
             @Override
@@ -946,11 +970,13 @@ public class AmiConfigScreen extends Screen {
             private final int slotIndex;
             private final AmiPanelContentDropdownWidget dropdown;
             private final Button removeButton;
+            private final Tooltip tooltip;
 
-            PanelSlotEntry(Component label, Field field, int slotIndex) {
+            PanelSlotEntry(Component label, Field field, int slotIndex, Tooltip tooltip) {
                 this.label = label;
                 this.field = field;
                 this.slotIndex = slotIndex;
+                this.tooltip = tooltip;
                 this.dropdown = new AmiPanelContentDropdownWidget(
                         currentContent(),
                         selectablePanelContents(),
@@ -1001,6 +1027,7 @@ public class AmiConfigScreen extends Screen {
                 dropdown.setY(y + 3);
                 dropdown.setWidth(dropdownW);
                 dropdown.render(g, mouseX, mouseY, partialTick);
+                showTooltipIfHovered(tooltip, x, y, width, height, mouseX, mouseY);
             }
 
             @Override
@@ -1052,8 +1079,10 @@ public class AmiConfigScreen extends Screen {
 
         class PanelAddSlotEntry extends ConfigEntry {
             private final Button button;
+            private final Tooltip tooltip;
 
-            PanelAddSlotEntry(Component label, Field field) {
+            PanelAddSlotEntry(Component label, Field field, Tooltip tooltip) {
+                this.tooltip = tooltip;
                 this.button = Button.builder(label, b -> {
                     List<AmiConfig.PanelContent> slots = readSlots(field);
                     slots.add(AmiConfig.PanelContent.EMPTY);
@@ -1070,6 +1099,7 @@ public class AmiConfigScreen extends Screen {
                 button.setY(y + 3);
                 button.setWidth(btnW);
                 button.render(g, mouseX, mouseY, partialTick);
+                showTooltipIfHovered(tooltip, x, y, width, height, mouseX, mouseY);
             }
 
             @Override
@@ -1086,9 +1116,11 @@ public class AmiConfigScreen extends Screen {
         class SidePanelWidthEntry extends ConfigEntry {
             private final Component label;
             private final AbstractWidget widget;
+            private final Tooltip tooltip;
 
             SidePanelWidthEntry(Component label, Field field) {
                 this.label = label;
+                this.tooltip = tooltipForConfigField(field);
                 this.widget = AmiWidgetFactory.createWidget(field, o -> onSettingChanged(field, o));
             }
 
@@ -1103,6 +1135,7 @@ public class AmiConfigScreen extends Screen {
                     widget.setWidth(btnW);
                     widget.render(g, mouseX, mouseY, partialTick);
                 }
+                showTooltipIfHovered(tooltip, x, y, width, height, mouseX, mouseY);
             }
 
             @Override
