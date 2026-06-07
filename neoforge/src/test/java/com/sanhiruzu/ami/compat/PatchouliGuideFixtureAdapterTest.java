@@ -148,6 +148,51 @@ class PatchouliGuideFixtureAdapterTest {
         assertFalse(documents.getFirst().summaryText().contains("item.cobblemon.master_ball"));
     }
 
+    @Test
+    void unresolvedModScopedPageKeysDoNotLeakIntoSummaryText() {
+        List<AmiGuideDocument> documents = PatchouliGuideFixtureAdapter.parse(
+                new ResourceLocation("ars_nouveau", "worn_notebook"),
+                """
+                        { "name": "item.ars_nouveau.worn_notebook" }
+                        """,
+                Map.of("source.json", """
+                        { "name": "ars_nouveau.category.source" }
+                        """),
+                Map.of("source/volcanic_sourcelink.json", """
+                        {
+                          "name": "block.ars_nouveau.volcanic_sourcelink",
+                          "category": "ars_nouveau:source",
+                          "pages": [
+                            {
+                              "title": "ars_nouveau.active_generation",
+                              "text": "ars_nouveau.page1.volcanic_sourcelink"
+                            },
+                            {
+                              "title": "ars_nouveau.heat",
+                              "text": "ars_nouveau.page3.volcanic_sourcelink"
+                            }
+                          ]
+                        }
+                        """),
+                Map.of(
+                        "item.ars_nouveau.worn_notebook", "Worn Notebook",
+                        "ars_nouveau.category.source", "Source",
+                        "block.ars_nouveau.volcanic_sourcelink", "Volcanic Sourcelink",
+                        "ars_nouveau.active_generation", "Active Generation",
+                        "ars_nouveau.heat", "Heat",
+                        "ars_nouveau.page1.volcanic_sourcelink", "Generates Source by consuming burnable items."
+                ));
+
+        AmiGuideDocument document = documents.getFirst();
+        assertEquals("Volcanic Sourcelink", document.title());
+        assertEquals("Source", document.chapter());
+        assertTrue(document.summaryText().contains("Generates Source by consuming burnable items."));
+        assertTrue(document.summaryText().contains("Heat"));
+        assertTrue(document.summaryText().contains("Volcanic Sourcelink"));
+        assertFalse(document.summaryText().contains("ars_nouveau.page1.volcanic_sourcelink"));
+        assertFalse(document.summaryText().contains("ars_nouveau.page3.volcanic_sourcelink"));
+    }
+
     private static String bookJson() {
         return """
                 {
