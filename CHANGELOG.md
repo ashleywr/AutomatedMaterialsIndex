@@ -2,6 +2,23 @@
 
 User-facing changes are recorded here.
 
+## 1.3.1 - 2026-06-07
+
+AMI 1.3.1 is a hotfix for guide search/opening edge cases, JEI search sync stability, and tooltip rendering polish after the 1.3.0 compatibility release.
+
+### Changed
+
+- Improved AMI tooltip rendering so long localized tooltip lines use the normal Minecraft/NeoForge wrapping and visual-order handling.
+- Improved debug and grouped grid tooltip handling so escaped or embedded newline text is normalized consistently across result views.
+
+### Fixed
+
+- Fixed AE2 guide indexing and ME Guide context actions so GuideME pages resolve and open more reliably from AMI results.
+- Fixed stale guide/search cache behavior by tracking guide index revisions in the global index cache.
+- Fixed guide translation-key leakage by sanitizing unresolved guide title, chapter, and summary keys before they appear in indexed guide content.
+- Fixed JEI search sync crashes when a very long search string is pasted or pushed into JEI from AMI.
+- Fixed AMI result tooltips that displayed literal escaped newline text, including multiline modded item tooltips such as Occultism's Divination Rod.
+
 ## 1.3.0 - 2026-06-06
 
 AMI 1.3.0 is a broad modpack compatibility and indexing-speed release. It adds first-class guidebook search, focused routing for several large mod families, faster new index builds in heavy packs, and cleaner coexistence with EMI/JEI and the vanilla recipe book.
