@@ -231,11 +231,15 @@ public final class PatchouliGuideFixtureAdapter {
     }
 
     private static boolean looksLikeTranslationKey(String raw) {
-        return raw.startsWith("item.")
-                || raw.startsWith("block.")
-                || raw.startsWith("book.")
-                || raw.startsWith("entity.")
-                || raw.startsWith("advancements.");
+        String value = raw.trim();
+        return value.startsWith("item.")
+                || value.startsWith("block.")
+                || value.startsWith("book.")
+                || value.startsWith("entity.")
+                || value.startsWith("advancements.")
+                || (value.indexOf(':') < 0
+                && value.contains(".")
+                && value.matches("[a-z0-9_.-]+"));
     }
 
     private static String readableTranslationFallback(String raw) {

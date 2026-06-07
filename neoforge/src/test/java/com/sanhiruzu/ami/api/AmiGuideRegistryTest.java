@@ -173,6 +173,47 @@ class AmiGuideRegistryTest {
     }
 
     @Test
+    void guideDocumentsDoNotExposeRawTranslationKeys() {
+        AmiGuideRegistry.register(AmiGuideDocument.builder(
+                        new ResourceLocation("example", "guides/raw_keys"),
+                        "plugin",
+                        "example",
+                        "example_mod.entries.volcanic_sourcelink.name")
+                .chapter("example_mod.source")
+                .summaryText("Intro example_mod.page3.volcanic_sourcelink and book.example.entries.widgets.text")
+                .build());
+
+        AmiGuideDocument document = AmiGuideRegistry.getDocuments().getFirst();
+        assertEquals("Volcanic Sourcelink", document.title());
+        assertEquals("Source", document.chapter());
+        assertTrue(document.summaryText().contains("Volcanic Sourcelink"));
+        assertTrue(document.summaryText().contains("Widgets"));
+        assertFalse(document.summaryText().contains("example_mod.page3.volcanic_sourcelink"));
+        assertFalse(document.summaryText().contains("book.example.entries.widgets.text"));
+    }
+
+    @Test
+    void sharedSearchableGuideProviderRawKeysAreSanitizedForAmi() {
+        SearchableGuideProviders.register(searchableProvider("shared_raw_keys", documents -> documents.accept(
+                SearchableGuideDocument.builder(
+                                new ResourceLocation("example", "guides/shared_raw_keys"),
+                                "example_manual",
+                                "example",
+                                "example_mod.entries.machine_press.title")
+                        .chapter("example_mod.machines")
+                        .summaryText("example_mod.page1.machine_press")
+                        .build()
+        )));
+
+        AmiGuideRegistry.registerSearchableGuideProviders();
+
+        AmiGuideDocument document = AmiGuideRegistry.getDocuments().getFirst();
+        assertEquals("Machine Press", document.title());
+        assertEquals("Machines", document.chapter());
+        assertEquals("Machine Press", document.summaryText());
+    }
+
+    @Test
     void sharedSearchableGuideProviderFailureDoesNotBlockOtherProviders() {
         SearchableGuideProviders.register(new SearchableGuideProvider() {
             @Override
