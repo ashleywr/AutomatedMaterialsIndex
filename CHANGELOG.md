@@ -2,6 +2,19 @@
 
 User-facing changes are recorded here.
 
+## 1.3.2 - 2026-06-07
+
+AMI 1.3.2 is a hotfix release for recent runtime, UI, and guide-integration regressions.
+
+### Fixed
+
+- Fixed AMI runtime category indexing updates to avoid extra full rebuilds in normal operation.
+- Fixed AMI panel behavior so the panel configuration editor reliably re-opens and stays usable.
+- Fixed guide integration for Silent Gear's material book metadata path.
+- Fixed drag-start initiation from result icons to prevent false starts while interacting with result items.
+- Fixed an AMI concurrency regression during release flows that could trigger duplicate result processing.
+- Fixed AMI-prefixed command suggestion visibility so those entries are now gated behind dev-mode when appropriate.
+
 ## 1.3.1 - 2026-06-07
 
 AMI 1.3.1 is a hotfix for guide search/opening edge cases, JEI search sync stability, and tooltip rendering polish after the 1.3.0 compatibility release.
