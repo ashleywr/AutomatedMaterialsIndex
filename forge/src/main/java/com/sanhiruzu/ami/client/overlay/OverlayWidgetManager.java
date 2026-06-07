@@ -767,6 +767,10 @@ public class OverlayWidgetManager {
         refreshSidebars();
     }
 
+    public void refreshEntriesForRuntimeIndexUpdate() {
+        refreshEntries();
+    }
+
     public void refreshSidebars() {
         for (SidebarPanelWidget panel : getSidebarPanels()) {
             panel.refresh();
@@ -832,7 +836,7 @@ public class OverlayWidgetManager {
 
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
         if (inLayoutMode) return false;
-        for (PanelSlot slot : activeSlots) {
+        for (PanelSlot slot : activeSlotsSnapshot()) {
             if (slot.mouseScrolled(mouseX, mouseY, scrollY)) return true;
         }
         return false;
@@ -850,7 +854,7 @@ public class OverlayWidgetManager {
             if (layoutResetButton != null && layoutResetButton.mouseClicked(mouseX, mouseY, button)) return true;
             return tryStartDrag(mouseX, mouseY, button);
         }
-        for (PanelSlot slot : activeSlots) {
+        for (PanelSlot slot : activeSlotsSnapshot()) {
             if (slot.mouseClicked(mouseX, mouseY, button)) return true;
         }
         return false;
@@ -861,7 +865,7 @@ public class OverlayWidgetManager {
             return updateDrag(mouseX, mouseY);
         }
         if (updateDrag(mouseX, mouseY)) return true;
-        for (PanelSlot slot : activeSlots) {
+        for (PanelSlot slot : activeSlotsSnapshot()) {
             if (slot.mouseDragged(mouseX, mouseY, button, dragX, dragY)) return true;
         }
         return false;
@@ -875,7 +879,7 @@ public class OverlayWidgetManager {
         if (inLayoutMode) {
             return;
         }
-        for (PanelSlot slot : activeSlots) {
+        for (PanelSlot slot : activeSlotsSnapshot()) {
             slot.mouseReleased(mouseX, mouseY, button);
         }
     }
@@ -886,35 +890,35 @@ public class OverlayWidgetManager {
             return true;
         }
         if (inLayoutMode) return true;
-        for (PanelSlot slot : activeSlots) {
+        for (PanelSlot slot : activeSlotsSnapshot()) {
             if (slot.keyPressed(keyCode, scanCode, modifiers)) return true;
         }
         return false;
     }
 
     public boolean charTyped(char codePoint, int modifiers) {
-        for (PanelSlot slot : activeSlots) {
+        for (PanelSlot slot : activeSlotsSnapshot()) {
             if (slot.charTyped(codePoint, modifiers)) return true;
         }
         return false;
     }
 
     public boolean hasOpenContextMenu() {
-        for (PanelSlot slot : activeSlots) {
+        for (PanelSlot slot : activeSlotsSnapshot()) {
             if (slot.hasOpenContextMenu()) return true;
         }
         return false;
     }
 
     public boolean isMouseOverPanel(double mouseX, double mouseY) {
-        for (PanelSlot slot : activeSlots) {
+        for (PanelSlot slot : activeSlotsSnapshot()) {
             if (slot.isMouseOver(mouseX, mouseY)) return true;
         }
         return false;
     }
 
     public SearchNode getHoveredNode() {
-        for (PanelSlot slot : activeSlots) {
+        for (PanelSlot slot : activeSlotsSnapshot()) {
             SearchNode node = slot.getHoveredNode();
             if (node != null) return node;
         }
@@ -922,7 +926,7 @@ public class OverlayWidgetManager {
     }
 
     public SidebarPanelWidget getFavoritesPanelAt(double mouseX, double mouseY) {
-        for (PanelSlot slot : activeSlots) {
+        for (PanelSlot slot : activeSlotsSnapshot()) {
             if (slot.sidebar.visible
                     && slot.sidebar.getContentType() == AmiConfig.PanelContent.FAVORITES
                     && slot.sidebar.isMouseOver(mouseX, mouseY)) {
@@ -930,6 +934,15 @@ public class OverlayWidgetManager {
             }
         }
         return null;
+    }
+
+    public boolean hasVisibleFavoritesPanel() {
+        for (PanelSlot slot : activeSlotsSnapshot()) {
+            if (slot.sidebar.visible && slot.sidebar.getContentType() == AmiConfig.PanelContent.FAVORITES) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private List<PanelSlot> allSlots() {
@@ -957,7 +970,7 @@ public class OverlayWidgetManager {
 
     public List<UniversalResultsPanel> getDebugVisibleResultPanels() {
         List<UniversalResultsPanel> panels = new ArrayList<>();
-        for (PanelSlot slot : activeSlots) {
+        for (PanelSlot slot : activeSlotsSnapshot()) {
             if (slot.results.visible && slot.results.getInnerPanel() != null) {
                 panels.add(slot.results.getInnerPanel());
             }
@@ -1450,7 +1463,7 @@ public class OverlayWidgetManager {
             bounds.addAll(thirdPartyMarginWidgetBounds(mc.screen));
             bounds.addAll(thirdPartyExclusionBounds(mc.screen));
         }
-        for (PanelSlot slot : activeSlots) {
+        for (PanelSlot slot : activeSlotsSnapshot()) {
             if (slot.results.visible) bounds.add(slot.results.getBounds());
             if (slot.sidebar.visible) bounds.add(slot.sidebar.getBounds());
         }

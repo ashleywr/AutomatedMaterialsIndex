@@ -145,6 +145,21 @@ public class RecipeViewerBridge {
         }
     }
 
+    public static boolean canStartDrag(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+
+        Screen screen = Minecraft.getInstance().screen;
+        if (isEmiSelectedExternalViewer() && EmiRecipeBridge.canStartDrag(screen, stack)) return true;
+        if (isJeiSelectedExternalViewer() && JeiRecipeBridge.canStartDrag(screen, stack)) return true;
+
+        try {
+            var manager = com.sanhiruzu.ami.client.InventoryOverlayHandler.getManager();
+            return manager != null && manager.hasVisibleFavoritesPanel();
+        } catch (RuntimeException | LinkageError ignored) {
+            return false;
+        }
+    }
+
     public static ItemStack getDraggedStack() {
         if (isEmiSelectedExternalViewer()) return EmiRecipeBridge.getDraggedStack();
         if (isJeiSelectedExternalViewer()) return JeiRecipeBridge.getDraggedStack();

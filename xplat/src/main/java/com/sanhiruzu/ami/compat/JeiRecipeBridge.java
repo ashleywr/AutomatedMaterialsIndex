@@ -81,6 +81,12 @@ class JeiRecipeBridge {
         return false;
     }
 
+    static boolean canStartDrag(Screen screen, ItemStack stack) {
+        if (screen == null) return false;
+        if (stack == null || stack.isEmpty()) return false;
+        return false;
+    }
+
     static void handleShiftClick(ItemStack stack) {
         openRecipes(stack);
     }

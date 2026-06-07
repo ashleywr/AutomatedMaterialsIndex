@@ -21,6 +21,7 @@ import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.SearchService;
 import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.util.AmiClipboardHelper;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -1028,18 +1029,19 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (row == null) return;
 
         List<Component> lines = new ArrayList<>();
-        lines.add(Component.literal(sanitizeTooltipText(row.title())));
-        lines.add(Component.literal(sanitizeTooltipText(row.sourceLine())));
-        lines.add(Component.literal(sanitizeTooltipText(row.provenanceLine())));
+        lines.add(Component.literal(sanitizeTooltipText(row.title())).withStyle(ChatFormatting.WHITE));
+        lines.add(Component.literal(sanitizeTooltipText(row.sourceLine())).withStyle(ChatFormatting.GRAY));
+        lines.add(Component.literal(sanitizeTooltipText(row.provenanceLine())).withStyle(ChatFormatting.DARK_GRAY));
         if ("silentgear_materials".equals(row.document().sourceType())) {
-            for (String line : materialSummaryTooltipLines(row.document().summaryText())) {
-                lines.add(Component.literal(line));
+            for (MaterialTooltipLine line : materialSummaryTooltipLines(row.document().summaryText())) {
+                lines.add(Component.literal(line.text()).withStyle(line.color()));
             }
         } else {
             row.evidence().stream()
                     .filter(evidence -> !evidence.snippet().isBlank())
                     .findFirst()
-                    .ifPresent(evidence -> lines.add(Component.literal(sanitizeTooltipText(evidence.snippet()))));
+                    .ifPresent(evidence -> lines.add(Component.literal(sanitizeTooltipText(evidence.snippet()))
+                            .withStyle(ChatFormatting.GRAY)));
         }
         AmiTooltipRenderer.render(g, Minecraft.getInstance().font, lines, Optional.empty(), mouseX, mouseY);
     }
@@ -1091,20 +1093,20 @@ public class UniversalResultsPanel implements SearchState.Listener {
         return out.toString().trim();
     }
 
-    private static List<String> materialSummaryTooltipLines(String summary) {
+    private static List<MaterialTooltipLine> materialSummaryTooltipLines(String summary) {
         if (summary == null || summary.isBlank()) {
             return List.of();
         }
-        List<String> lines = new ArrayList<>();
+        List<MaterialTooltipLine> lines = new ArrayList<>();
         for (String paragraph : summary.replace('\r', '\n').split("\\n+")) {
             String clean = sanitizeTooltipText(paragraph);
             if (clean.isBlank()) {
                 continue;
             }
-            for (String part : clean.split(";\\s*")) {
-                String line = sanitizeTooltipText(part);
-                if (!line.isBlank() && !lines.contains(line)) {
-                    lines.add(line);
+            for (String part : splitMaterialSummaryParagraph(clean)) {
+                String text = sanitizeTooltipText(part);
+                if (!text.isBlank()) {
+                    lines.add(new MaterialTooltipLine(text, materialTooltipColor(text)));
                 }
                 if (lines.size() >= 8) {
                     return lines;
@@ -1112,6 +1114,39 @@ public class UniversalResultsPanel implements SearchState.Listener {
             }
         }
         return lines;
+    }
+
+    private static List<String> splitMaterialSummaryParagraph(String paragraph) {
+        String withBreaks = paragraph
+                .replaceAll("\\s+(Categories:)", "\n$1")
+                .replaceAll("\\s+(Durability|Armor toughness|Armor|Attack damage|Harvest speed|Enchantment)\\s+([-+]?\\d)", "\n$1 $2")
+                .replaceAll("\\s+(Traits:)\\s+", "\n$1 ");
+        List<String> lines = new ArrayList<>();
+        for (String line : withBreaks.split("\\n+|;\\s*")) {
+            String clean = sanitizeTooltipText(line);
+            if (!clean.isBlank()) {
+                lines.add(clean);
+            }
+        }
+        return lines;
+    }
+
+    private static ChatFormatting materialTooltipColor(String line) {
+        String lower = line.toLowerCase(java.util.Locale.ROOT);
+        if (lower.startsWith("categories:")) {
+            return ChatFormatting.AQUA;
+        }
+        if (lower.startsWith("traits:")) {
+            return ChatFormatting.LIGHT_PURPLE;
+        }
+        if (lower.startsWith("durability") || lower.startsWith("armor") || lower.startsWith("attack damage")
+                || lower.startsWith("harvest speed") || lower.startsWith("enchantment")) {
+            return ChatFormatting.GREEN;
+        }
+        return ChatFormatting.GRAY;
+    }
+
+    private record MaterialTooltipLine(String text, ChatFormatting color) {
     }
 
     // ── Tree refresh ──────────────────────────────────────────────────────────
@@ -1476,7 +1511,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
                         node,
                         resolveStackForContextMenu(node),
                         com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance(),
-                        onTokenInject
+                        onTokenInject,
+                        this::refreshAfterDataFixApplied
                 )
         ));
     }
@@ -1502,7 +1538,6 @@ public class UniversalResultsPanel implements SearchState.Listener {
             updated.add(metadata.equals(node.metadata()) ? node : node.withMetadata(metadata));
         }
         currentResults = updated;
-        searchService = SearchService.buildFrom(GlobalIndex.getInstance(), true);
         invalidateProjectionCache();
         refreshAvailableListLenses();
         refreshTree();
@@ -1978,7 +2013,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             double dy = mouseY - pressedY;
             if (dx * dx + dy * dy > DRAG_THRESHOLD * DRAG_THRESHOLD) {
                 ItemStack stack = com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(pressedNode);
-                if (!stack.isEmpty()) {
+                if (!stack.isEmpty() && com.sanhiruzu.ami.compat.RecipeViewerBridge.canStartDrag(stack)) {
                     com.sanhiruzu.ami.compat.RecipeViewerBridge.startDrag(stack);
                     pressedNode = null;
                 }
