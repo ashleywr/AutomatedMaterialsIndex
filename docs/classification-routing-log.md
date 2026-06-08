@@ -208,6 +208,20 @@ renders as `World > Waypoints`. This keeps runtime waypoints out of the generic
 mapping bucket while leaving other map-style compat items free to use mapping
 ownership and subcategories where appropriate.
 
+### 2026-06-08: Runtime Waypoints Normalize To Waypoints And Lodestones Stop Pretending To Be Claims
+
+Runtime waypoint providers now normalize every live waypoint node to
+`environment/waypoints` at the node-construction boundary, even when a provider
+forgets to stamp ontology metadata or tries to use a provider-specific
+subcategory like `waystones`. This keeps the result tree stable at
+`World > Waypoints` for Xaero, JourneyMap, FTB Chunks, Waystones, and manual
+runtime waypoint nodes.
+
+Vanilla `minecraft:lodestone` no longer emits the `social_claims` facet or
+routes to `social/claims`. Its stable semantic role is navigation, so it now
+uses the existing utility navigation path instead of creating a one-item
+`Public Server Claims` subgroup under Social.
+
 ### 2026-05-31: Ownership Terms Must Be Family Names
 
 Tightened Create ownership to the family name itself, known namespaces, or known
