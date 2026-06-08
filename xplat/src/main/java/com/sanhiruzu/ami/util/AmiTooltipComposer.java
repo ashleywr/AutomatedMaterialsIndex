@@ -50,10 +50,9 @@ public final class AmiTooltipComposer {
             appendModNameIfMissing(lines, entry);
         } else {
             // Header: Name and Type Label
-            // Entity type label is omitted — the renderer body provides richer context (Category: X).
-            // All other node types (Biome, Structure, Dimension) keep their label.
+            // Entity/player type labels are omitted when the renderer body already provides that subtitle.
             lines.add(Component.literal(entry.displayName()));
-            if (entry.type() != NodeType.ENTITY) {
+            if (shouldShowTypeLabel(entry.type())) {
                 lines.add(Component.translatable(entry.type().tooltipKey())
                         .withStyle(s -> s.withColor(AMITheme.TEXT_SUBTLE)));
             }
@@ -161,6 +160,10 @@ public final class AmiTooltipComposer {
      */
     public static List<Component> buildItemTooltip(SearchNode entry, ItemStack stack) {
         return buildTooltip(entry);
+    }
+
+    static boolean shouldShowTypeLabel(NodeType type) {
+        return type != NodeType.ENTITY && type != NodeType.PLAYER;
     }
 
     public static Optional<TooltipComponent> getTooltipImage(SearchNode node) {

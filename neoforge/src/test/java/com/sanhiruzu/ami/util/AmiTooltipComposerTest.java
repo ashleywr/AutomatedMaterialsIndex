@@ -93,4 +93,11 @@ class AmiTooltipComposerTest {
 
         assertTrue(tooltip.isEmpty());
     }
+
+    @Test
+    void playerTypeLabelIsSuppressedBecauseRendererProvidesSubtitle() {
+        assertFalse(AmiTooltipComposer.shouldShowTypeLabel(NodeType.PLAYER));
+        assertFalse(AmiTooltipComposer.shouldShowTypeLabel(NodeType.ENTITY));
+        assertTrue(AmiTooltipComposer.shouldShowTypeLabel(NodeType.WAYPOINT));
+    }
 }
