@@ -100,6 +100,7 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
                 () -> {
                     markWaypointAsDeleted(target);
                     deleteWaypoint(waypoint);
+                    refreshOverlayResults();
                 }
         )));
         return List.copyOf(actions);
@@ -285,6 +286,18 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
             }
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
             LOGGER.log(Level.FINE, "AMI: Failed to open JourneyMap waypoint manager", e);
+        }
+    }
+
+    private static void refreshOverlayResults() {
+        try {
+            Class<?> handlerClass = Class.forName("com.sanhiruzu.ami.client.InventoryOverlayHandler");
+            Object manager = handlerClass.getMethod("getManager").invoke(null);
+            if (manager != null) {
+                manager.getClass().getMethod("refreshEntriesForRuntimeIndexUpdate").invoke(manager);
+            }
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Failed to refresh overlay results after deletion", e);
         }
     }
 
