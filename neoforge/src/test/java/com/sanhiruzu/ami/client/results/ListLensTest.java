@@ -579,6 +579,44 @@ class ListLensTest {
     }
 
     @Test
+    void newNodeTypeAfterIncrementalUpdateUnlocksLens() {
+        List<SearchNode> itemsOnly = List.of(
+                item("stone", "Stone", Map.of(SearchNodeKeys.FACETS, "placeable"))
+        );
+        assertFalse(ListLens.availableFor(itemsOnly).contains(ListLens.ENTITIES));
+        assertFalse(ListLens.availableFor(itemsOnly).contains(ListLens.POWER));
+
+        List<SearchNode> withEntity = List.of(
+                item("stone", "Stone", Map.of(SearchNodeKeys.FACETS, "placeable")),
+                entity("zombie", "Zombie", Map.of(SearchNodeKeys.ENTITY_HEALTH, "20"))
+        );
+        assertTrue(ListLens.availableFor(withEntity).contains(ListLens.ENTITIES));
+        assertFalse(ListLens.availableFor(withEntity).contains(ListLens.POWER));
+
+        List<SearchNode> withPower = List.of(
+                item("stone", "Stone", Map.of(SearchNodeKeys.FACETS, "placeable")),
+                entity("zombie", "Zombie", Map.of(SearchNodeKeys.ENTITY_HEALTH, "20")),
+                item("battery", "Battery", Map.of(SearchNodeKeys.ENERGY_CAPACITY, "100000"))
+        );
+        assertTrue(ListLens.availableFor(withPower).contains(ListLens.ENTITIES));
+        assertTrue(ListLens.availableFor(withPower).contains(ListLens.POWER));
+    }
+
+    @Test
+    void removingLastNodeOfTypeMakesLensUnavailable() {
+        List<SearchNode> withEntity = List.of(
+                item("stone", "Stone", Map.of(SearchNodeKeys.FACETS, "placeable")),
+                entity("zombie", "Zombie", Map.of(SearchNodeKeys.ENTITY_HEALTH, "20"))
+        );
+        assertTrue(ListLens.availableFor(withEntity).contains(ListLens.ENTITIES));
+
+        List<SearchNode> entityDeleted = List.of(
+                item("stone", "Stone", Map.of(SearchNodeKeys.FACETS, "placeable"))
+        );
+        assertFalse(ListLens.availableFor(entityDeleted).contains(ListLens.ENTITIES));
+    }
+
+    @Test
     void switchingViewModesResetsPresentationState() {
         SearchState state = new SearchState();
         state.setViewMode(ResultsToolbar.ViewMode.LIST);
