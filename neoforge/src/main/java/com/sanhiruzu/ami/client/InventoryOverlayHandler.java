@@ -305,6 +305,17 @@ public class InventoryOverlayHandler {
     }
 
     /**
+     * Refresh the overlay results display (search results, favorites, sidebars).
+     * Called when data changes (e.g., waypoint deletion, runtime index updates).
+     * Safe to call from any context; only refreshes if the overlay is visible.
+     */
+    public static void refreshOverlayResults() {
+        if (currentLayer == VisibleLayer.AMI) {
+            manager.refreshEntriesForRuntimeIndexUpdate();
+        }
+    }
+
+    /**
      * Returns true when external recipe viewers (EMI, JEI) should not render their chrome
      * (search bar, item list, buttons). True whenever AMI is active OR the NONE layer is in
      * effect — only EXTERNAL_RECIPE_VIEWER lets external viewers show.
