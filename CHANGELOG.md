@@ -2,6 +2,15 @@
 
 User-facing changes are recorded here.
 
+## 1.4.2 - 2026-06-08
+
+AMI 1.4.2 is a hotfix release for result-panel refresh lag triggered by recipe lookups.
+
+### Fixed
+
+- Fixed recipe clicks and lookup-history runtime updates so they no longer force a full AMI result entry rebuild on the render thread.
+- Fixed AMI result panels to treat runtime-only search revisions separately from indexed search-service revisions, avoiding repeated list-lens rescans during normal recipe browsing.
+
 ## 1.4.1 - 2026-06-08
 
 AMI 1.4.1 is a hotfix release for the Forge 1.20.1 packaged build published in 1.4.0.
