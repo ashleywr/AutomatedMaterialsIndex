@@ -21,6 +21,7 @@ public final class ResultsViewProjector {
     private static List<SearchNode> applyUniversalFilters(List<SearchNode> nodes) {
         return nodes.stream()
                 .filter(n -> !DeletedSearchNodesTracker.isDeleted(n.id()))
+                .filter(n -> !SoftDeleteTracker.isFullyFaded(n.id()))
                 .collect(Collectors.toList());
     }
 

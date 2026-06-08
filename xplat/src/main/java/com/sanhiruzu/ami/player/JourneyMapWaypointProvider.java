@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.player;
 
 import com.sanhiruzu.ami.client.results.DeletedSearchNodesTracker;
+import com.sanhiruzu.ami.client.results.SoftDeleteTracker;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.Minecraft;
@@ -98,7 +99,7 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
                 "Delete " + LABEL + " Waypoint",
                 'd',
                 () -> {
-                    markWaypointAsDeleted(target);
+                    softDeleteWaypoint(target);
                     deleteWaypoint(waypoint);
                 }
         )));
@@ -261,13 +262,13 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
         }, JourneyMapWaypointProvider::openWaypointManager);
     }
 
-    private static void markWaypointAsDeleted(LiveWaypoint waypoint) {
+    private static void softDeleteWaypoint(LiveWaypoint waypoint) {
         try {
-            DeletedSearchNodesTracker.markDeleted(
-                    Services.PLATFORM.rl("ami", "waypoint/" + safePath(waypoint.providerId()) + "/" + safePath(waypoint.id()))
-            );
+            net.minecraft.resources.ResourceLocation nodeId = Services.PLATFORM.rl("ami", "waypoint/" + safePath(waypoint.providerId()) + "/" + safePath(waypoint.id()));
+            SoftDeleteTracker.markSoftDeleted(nodeId);
+            LOGGER.log(Level.FINE, "AMI: Waypoint marked for soft deletion: " + nodeId);
         } catch (RuntimeException | LinkageError e) {
-            LOGGER.log(Level.FINE, "AMI: Failed to mark waypoint as deleted in tracker", e);
+            LOGGER.log(Level.FINE, "AMI: Failed to soft-delete waypoint", e);
         }
     }
 
