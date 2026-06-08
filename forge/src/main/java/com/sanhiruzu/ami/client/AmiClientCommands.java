@@ -59,12 +59,6 @@ public class AmiClientCommands {
                                 return 1;
                             }))
             );
-            cmd.then(Commands.literal("rebuild-index")
-                    .executes(context -> {
-                        rebuildIndex(context.getSource(), true);
-                        return 1;
-                    })
-            );
         }
 
         dispatcher.register(cmd);
@@ -113,18 +107,6 @@ public class AmiClientCommands {
             AMI.LOGGER.error("Failed to export AMI guide docs mirror", e);
             source.sendSystemMessage(Component.literal("Failed to export AMI guide docs mirror: " + e.getMessage())
                     .withStyle(ChatFormatting.RED));
-        }
-    }
-
-    private static void rebuildIndex(CommandSourceStack source, boolean forceProviderRebuild) {
-        boolean accepted = AmiIndexerService.getInstance().rebuild(forceProviderRebuild);
-        if (accepted) {
-            source.sendSystemMessage(Component.literal("AMI index rebuild started"
-                            + (forceProviderRebuild ? " (provider cache bypassed)" : ""))
-                    .withStyle(ChatFormatting.GREEN));
-        } else {
-            source.sendSystemMessage(Component.literal("AMI index rebuild is already running")
-                    .withStyle(ChatFormatting.YELLOW));
         }
     }
 
