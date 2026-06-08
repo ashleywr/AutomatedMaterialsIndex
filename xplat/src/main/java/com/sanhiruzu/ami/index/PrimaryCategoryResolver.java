@@ -1953,13 +1953,15 @@ public final class PrimaryCategoryResolver {
     }
 
     private static boolean hasProjectileToolContext(String path, Map<String, String> attributes) {
+        String itemClass = attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
         return containsPathToken(path, Set.of(
                 "arrow", "arrows", "bolt", "bolts", "bullet", "bullets", "round", "rounds",
                 "cartridge", "cartridges", "rocket", "ammo", "gun", "shotgun", "cannon",
                 "autocannon", "artillery", "mortar", "munition", "munitions"))
                 || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:arrows")
                 || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "createbigcannons:big_cannon_projectiles")
-                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "createbigcannons:big_cannon_projectiles");
+                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "createbigcannons:big_cannon_projectiles")
+                || containsAny(itemClass, "SnowballItem");
     }
 
     private static boolean hasActualFoodIdentity(Set<ItemFacet> facets, Map<String, String> attributes) {

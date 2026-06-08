@@ -221,9 +221,17 @@ public final class SearchNodeKeys {
     public static final String WAYPOINT_X = "waypointX";
     public static final String WAYPOINT_Y = "waypointY";
     public static final String WAYPOINT_Z = "waypointZ";
+    public static final String WAYPOINT_BIOME = "waypointBiome";
     public static final String WAYPOINT_COLOR = "waypointColor";
     public static final String WAYPOINT_OWNER = "waypointOwner";
     public static final String WAYPOINT_VISIBLE = "waypointVisible";
+    public static final String WAYPOINT_VISUAL_THEME = "waypointVisualTheme";
+    public static final String WAYPOINT_VISUAL_SEED = "waypointVisualSeed";
+    public static final String WAYPOINT_VISUAL_GLYPH = "waypointVisualGlyph";
+    public static final String WAYPOINT_VISUAL_ITEM = "waypointVisualItem";
+    public static final String WAYPOINT_VISUAL_BG_COLOR = "waypointVisualBgColor";
+    public static final String WAYPOINT_VISUAL_ACCENT_COLOR = "waypointVisualAccentColor";
+    public static final String WAYPOINT_TYPE = "waystonesWaystoneType";
 
     private SearchNodeKeys() {
     }

@@ -27,7 +27,7 @@ public final class PropertyResolver implements IQueryResolver {
                     containsToken(node, SearchNodeKeys.COMPAT_FAMILIES, value)
                             || containsValue(node, SearchNodeKeys.PRIMARY_COMPAT_FAMILY, value)
                             || containsValue(node, SearchNodeKeys.COMPAT_FAMILY, value)
-                    || containsValue(node, SearchNodeKeys.MOD_ID, value);
+                            || containsValue(node, SearchNodeKeys.MOD_ID, value);
             case "fact", "facts", "behavior", "behaviour" -> containsConventionToken(node, value,
                     FieldConvention.FACTS,
                     FieldConvention.FACETS,
@@ -38,14 +38,14 @@ public final class PropertyResolver implements IQueryResolver {
             case "tier" -> containsConventionToken(node, value, FieldConvention.TIER);
             case "gregtech", "gtceu" -> value.isEmpty()
                     ? containsToken(node, SearchNodeKeys.COMPAT_FAMILIES, "gregtech")
-                            || containsValue(node, SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "gregtech")
-                            || containsValue(node, SearchNodeKeys.MOD_ID, "gtceu")
-                            || containsValue(node, SearchNodeKeys.MOD_ID, "gregtech")
+                      || containsValue(node, SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "gregtech")
+                      || containsValue(node, SearchNodeKeys.MOD_ID, "gtceu")
+                      || containsValue(node, SearchNodeKeys.MOD_ID, "gregtech")
                     : containsValue(node, SearchNodeKeys.GREGTECH_ITEM_KIND, value)
-                            || containsToken(node, SearchNodeKeys.GREGTECH_FACTS, value)
-                            || containsToken(node, SearchNodeKeys.GREGTECH_TIER, value)
-                            || containsToken(node, SearchNodeKeys.GREGTECH_CIRCUIT_GRADE, value)
-                            || containsGregTechEnergyValue(node, value);
+                      || containsToken(node, SearchNodeKeys.GREGTECH_FACTS, value)
+                      || containsToken(node, SearchNodeKeys.GREGTECH_TIER, value)
+                      || containsToken(node, SearchNodeKeys.GREGTECH_CIRCUIT_GRADE, value)
+                      || containsGregTechEnergyValue(node, value);
             case "gregtechtier", "gtceutier", "voltage", "voltagetier" ->
                     containsToken(node, SearchNodeKeys.GREGTECH_TIER, value);
             case "gregtechkind", "gtceukind" -> containsToken(node, SearchNodeKeys.GREGTECH_ITEM_KIND, value);
@@ -59,25 +59,25 @@ public final class PropertyResolver implements IQueryResolver {
                     containsToken(node, SearchNodeKeys.GREGTECH_ENERGY_ROLE, value);
             case "gear", "modulargear" -> value.isEmpty()
                     ? containsToken(node, SearchNodeKeys.COMPAT_FAMILIES, "modular_gear")
-                            || containsValue(node, SearchNodeKeys.MODULAR_GEAR_FAMILY, "")
+                      || containsValue(node, SearchNodeKeys.MODULAR_GEAR_FAMILY, "")
                     : containsModularGearValue(node, value);
-            case "material", "materials", "gearmaterial" -> containsValue(node, SearchNodeKeys.MODULAR_GEAR_MATERIAL, value)
-                    || containsToken(node, SearchNodeKeys.MODULAR_GEAR_RUNTIME_MATERIALS, value)
-                    || containsValue(node, SearchNodeKeys.MATERIAL_GROUP, value)
-                    || containsValue(node, SearchNodeKeys.BLOCKS_MATERIAL, value);
+            case "material", "materials", "gearmaterial" ->
+                    containsValue(node, SearchNodeKeys.MODULAR_GEAR_MATERIAL, value)
+                            || containsToken(node, SearchNodeKeys.MODULAR_GEAR_RUNTIME_MATERIALS, value)
+                            || containsValue(node, SearchNodeKeys.MATERIAL_GROUP, value)
+                            || containsValue(node, SearchNodeKeys.BLOCKS_MATERIAL, value);
             case "part", "parts", "gearpart" -> containsModularGearPart(node, value);
             case "trait", "traits", "modifier", "modifiers" -> value.isEmpty()
                     ? containsToken(node, SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, "modifiers")
-                            || containsValue(node, SearchNodeKeys.MODULAR_GEAR_MATERIAL_TRAITS, "")
+                      || containsValue(node, SearchNodeKeys.MODULAR_GEAR_MATERIAL_TRAITS, "")
                     : containsToken(node, SearchNodeKeys.MODULAR_GEAR_MATERIAL_TRAITS, value)
-                            || containsToken(node, SearchNodeKeys.MODULAR_GEAR_FACTS, value)
-                            || containsToken(node, SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, value)
-                            || containsConventionToken(node, value, FieldConvention.FACTS, FieldConvention.KIND);
+                      || containsToken(node, SearchNodeKeys.MODULAR_GEAR_FACTS, value)
+                      || containsToken(node, SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, value)
+                      || containsConventionToken(node, value, FieldConvention.FACTS, FieldConvention.KIND);
             case "runtimetrait", "runtimetraits", "runtime_trait", "runtime_traits", "geartrait", "geartraits",
-                    "gear_trait", "gear_traits" ->
-                    value.isEmpty()
-                            ? containsValue(node, SearchNodeKeys.MODULAR_GEAR_RUNTIME_TRAITS, "")
-                            : containsToken(node, SearchNodeKeys.MODULAR_GEAR_RUNTIME_TRAITS, value);
+                 "gear_trait", "gear_traits" -> value.isEmpty()
+                    ? containsValue(node, SearchNodeKeys.MODULAR_GEAR_RUNTIME_TRAITS, "")
+                    : containsToken(node, SearchNodeKeys.MODULAR_GEAR_RUNTIME_TRAITS, value);
             case "role", "recipe", "processing", "process" -> containsConventionToken(node, value,
                     FieldConvention.ROLE,
                     FieldConvention.RECIPE);
@@ -94,7 +94,8 @@ public final class PropertyResolver implements IQueryResolver {
             case "storage", "inventory", "slots" -> value.isEmpty()
                     ? containsCapability(node, "storage")
                     : containsResourceMetadata(node, "storage", value);
-            case "color", "colour", "colorbucket", "colourbucket" -> containsValue(node, SearchNodeKeys.COLOR_BUCKET, value);
+            case "color", "colour", "colorbucket", "colourbucket" ->
+                    containsValue(node, SearchNodeKeys.COLOR_BUCKET, value);
             case "machine", "machines" -> value.isEmpty()
                     ? containsSemanticToken(node, "machine", "machines", "interactive_block")
                     : containsConventionToken(node, value,
@@ -131,7 +132,8 @@ public final class PropertyResolver implements IQueryResolver {
                     : containsToken(node, SearchNodeKeys.POKEMON_TYPE, value);
             case "pokemontype" -> containsToken(node, SearchNodeKeys.POKEMON_TYPE, value);
             case "species", "pokemon", "pokemonspecies" -> containsValue(node, SearchNodeKeys.POKEMON_SPECIES, value);
-            case "generation", "gen", "pokemongeneration" -> containsValue(node, SearchNodeKeys.POKEMON_GENERATION, value);
+            case "generation", "gen", "pokemongeneration" ->
+                    containsValue(node, SearchNodeKeys.POKEMON_GENERATION, value);
             case "ability", "pokemonability" -> containsToken(node, SearchNodeKeys.POKEMON_ABILITIES, value);
             case "status", "statuscure", "pokemonstatus", "pokemonstatuscure" ->
                     containsToken(node, SearchNodeKeys.POKEMON_STATUS_CURE, value);
@@ -492,34 +494,6 @@ public final class PropertyResolver implements IQueryResolver {
         return false;
     }
 
-    private enum FieldConvention {
-        FACTS,
-        FACETS,
-        SEARCH_TOKENS,
-        KIND,
-        TIER,
-        ROLE,
-        RECIPE;
-
-        boolean matches(String key) {
-            return switch (this) {
-                case FACTS -> normalize(key).endsWith("facts");
-                case FACETS -> SearchNodeKeys.FACETS.equals(key) || SearchNodeKeys.COMPONENT_FACTS.equals(key);
-                case SEARCH_TOKENS -> SearchNodeKeys.SEARCH_TOKENS.equals(key);
-                case KIND -> {
-                    String normalized = normalize(key);
-                    yield normalized.endsWith("itemkind") || SearchNodeKeys.ONTOLOGY_SUBCATEGORY.equals(key);
-                }
-                case TIER -> normalize(key).endsWith("tier");
-                case ROLE -> {
-                    String normalized = normalize(key);
-                    yield normalized.endsWith("role") || normalized.endsWith("roles");
-                }
-                case RECIPE -> key.equals(SearchNodeKeys.RECIPE_CATEGORIES) || key.equals(SearchNodeKeys.RECIPE_USE_CATEGORIES);
-            };
-        }
-    }
-
     public void addNode(SearchNode node) {
         nodes.add(node);
     }
@@ -545,5 +519,34 @@ public final class PropertyResolver implements IQueryResolver {
             }
         }
         return result;
+    }
+
+    private enum FieldConvention {
+        FACTS,
+        FACETS,
+        SEARCH_TOKENS,
+        KIND,
+        TIER,
+        ROLE,
+        RECIPE;
+
+        boolean matches(String key) {
+            return switch (this) {
+                case FACTS -> normalize(key).endsWith("facts");
+                case FACETS -> SearchNodeKeys.FACETS.equals(key) || SearchNodeKeys.COMPONENT_FACTS.equals(key);
+                case SEARCH_TOKENS -> SearchNodeKeys.SEARCH_TOKENS.equals(key);
+                case KIND -> {
+                    String normalized = normalize(key);
+                    yield normalized.endsWith("itemkind") || SearchNodeKeys.ONTOLOGY_SUBCATEGORY.equals(key);
+                }
+                case TIER -> normalize(key).endsWith("tier");
+                case ROLE -> {
+                    String normalized = normalize(key);
+                    yield normalized.endsWith("role") || normalized.endsWith("roles");
+                }
+                case RECIPE ->
+                        key.equals(SearchNodeKeys.RECIPE_CATEGORIES) || key.equals(SearchNodeKeys.RECIPE_USE_CATEGORIES);
+            };
+        }
     }
 }

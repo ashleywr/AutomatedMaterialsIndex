@@ -33,6 +33,14 @@ public record AmiQuestDocument(
         tasks = tasks == null ? List.of() : List.copyOf(tasks);
     }
 
+    public static Builder builder(String id, String sourceType, String title) {
+        return new Builder(id, sourceType, title);
+    }
+
+    private static String clean(String value) {
+        return value == null ? "" : value.trim();
+    }
+
     public boolean canOpen() {
         return openAction != null;
     }
@@ -41,14 +49,6 @@ public record AmiQuestDocument(
         if (openAction != null) {
             openAction.run();
         }
-    }
-
-    public static Builder builder(String id, String sourceType, String title) {
-        return new Builder(id, sourceType, title);
-    }
-
-    private static String clean(String value) {
-        return value == null ? "" : value.trim();
     }
 
     public enum Status {
@@ -63,12 +63,12 @@ public record AmiQuestDocument(
         private final String id;
         private final String sourceType;
         private final String title;
+        private final List<AmiQuestTaskDocument> tasks = new ArrayList<>();
         private String sourceId = "";
         private String chapterId = "";
         private String chapterTitle = "";
         private String description = "";
         private Status status = Status.UNKNOWN;
-        private final List<AmiQuestTaskDocument> tasks = new ArrayList<>();
         private Runnable openAction;
 
         private Builder(String id, String sourceType, String title) {

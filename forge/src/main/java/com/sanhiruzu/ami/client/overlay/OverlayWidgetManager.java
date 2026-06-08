@@ -1,9 +1,9 @@
 package com.sanhiruzu.ami.client.overlay;
 
-import com.sanhiruzu.ami.client.InventoryOverlayHandler;
-import com.sanhiruzu.ami.client.AmiRenderProfiler;
-import com.sanhiruzu.ami.client.UniversalResultsPanel;
 import com.sanhiruzu.ami.api.AmiPluginRegistry;
+import com.sanhiruzu.ami.client.AmiRenderProfiler;
+import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+import com.sanhiruzu.ami.client.UniversalResultsPanel;
 import com.sanhiruzu.ami.compat.FtbLibrarySidebarCompat;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.config.AmiConfig;
@@ -36,9 +36,9 @@ public class OverlayWidgetManager {
     private static final int PANEL_MARGIN_V = 6;
     private static final int AMI_BTN_H = 22;
     private static final int AMI_BTN_MARGIN = 4;
+    public static final int AMI_BTN_NEXT_X = AMI_BTN_X + AMI_BTN_W + AMI_BTN_MARGIN;
     private static final int MAX_MARGIN_CONTROL_H = 32;
     private static final int TOP_MARGIN_CONTROL_MAX_Y = 96;
-    public static final int AMI_BTN_NEXT_X = AMI_BTN_X + AMI_BTN_W + AMI_BTN_MARGIN;
     private static final int PANEL_HANDLE_HITBOX = 8;
     private static final long SEARCH_DEBOUNCE_MS = Math.max(0L, Long.getLong("ami.searchDebounceMs", 120L));
 
@@ -46,10 +46,10 @@ public class OverlayWidgetManager {
     private final List<PanelSlot> rightSlotPool = new ArrayList<>();
     private final List<PanelSlot> activeSlots = new ArrayList<>();
     private final InventorySearchHighlighter inventorySearchHighlighter = new InventorySearchHighlighter();
+    private final java.util.List<PanelDragLayout> panelDragLayout = new java.util.ArrayList<>();
     private SearchBarWidget searchBar;
     private AmiButtonWidget amiButton;
     private boolean widgetsReady = false;
-
     private boolean panelVisible = false;
     private String lastSyncedQuery = "";
     private String pendingSearchQuery = null;
@@ -65,7 +65,6 @@ public class OverlayWidgetManager {
     private int lastLayoutSignature = Integer.MIN_VALUE;
     private boolean layoutDirty = true;
     private int lastThirdPartyMarginSignature = 0;
-
     // Layout mode & dragging
     private boolean inLayoutMode = false;
     private String draggedWidgetId = null;
@@ -79,25 +78,8 @@ public class OverlayWidgetManager {
     private net.minecraft.client.gui.components.Button layoutResetButton;
     private int lastLayoutButtonScreenW = -1;
     private int lastLayoutButtonScreenH = -1;
-    private final java.util.List<PanelDragLayout> panelDragLayout = new java.util.ArrayList<>();
 
     public OverlayWidgetManager() {
-    }
-
-    private enum PanelDragHandle {
-        NONE,
-        MOVE,
-        RESIZE_LEFT,
-        RESIZE_RIGHT,
-        RESIZE_TOP,
-        RESIZE_BOTTOM,
-        RESIZE_TOP_LEFT,
-        RESIZE_TOP_RIGHT,
-        RESIZE_BOTTOM_LEFT,
-        RESIZE_BOTTOM_RIGHT
-    }
-
-    private record PanelDragLayout(PanelSlot slot, float relX, float relY, float relW, float relH) {
     }
 
     private void ensureWidgets() {
@@ -715,7 +697,6 @@ public class OverlayWidgetManager {
         }
     }
 
-
     private List<PanelSlot> activeSlotsSnapshot() {
         return new ArrayList<>(activeSlots);
     }
@@ -832,7 +813,6 @@ public class OverlayWidgetManager {
             }
         }
     }
-
 
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
         if (inLayoutMode) return false;
@@ -1127,8 +1107,6 @@ public class OverlayWidgetManager {
         panelDragLayout.clear();
     }
 
-    // ── Layout Mode & Panel Dragging ───────────────────────────────────
-
     public void setLayoutMode(boolean enabled) {
         if (enabled && !inLayoutMode) {
             layoutModePositionSnapshot = AmiConfig.pinnedPositionsJson;
@@ -1154,6 +1132,8 @@ public class OverlayWidgetManager {
         return inLayoutMode;
     }
 
+    // ── Layout Mode & Panel Dragging ───────────────────────────────────
+
     private void finalizeLayout() {
         Screen screen = Minecraft.getInstance().screen;
         if (draggedWidgetId != null && screen != null) finalizeDrag(screen);
@@ -1174,7 +1154,8 @@ public class OverlayWidgetManager {
     }
 
     private void ensureLayoutButtons(int screenW, int screenH) {
-        if (layoutDoneButton != null && screenW == lastLayoutButtonScreenW && screenH == lastLayoutButtonScreenH) return;
+        if (layoutDoneButton != null && screenW == lastLayoutButtonScreenW && screenH == lastLayoutButtonScreenH)
+            return;
         lastLayoutButtonScreenW = screenW;
         lastLayoutButtonScreenH = screenH;
         int btnW = 100;
@@ -1526,6 +1507,22 @@ public class OverlayWidgetManager {
     public SidebarPanelWidget getRightPanelSecondary() {
         ensureWidgets();
         return getSlot(rightSlotPool, 1, false).sidebar;
+    }
+
+    private enum PanelDragHandle {
+        NONE,
+        MOVE,
+        RESIZE_LEFT,
+        RESIZE_RIGHT,
+        RESIZE_TOP,
+        RESIZE_BOTTOM,
+        RESIZE_TOP_LEFT,
+        RESIZE_TOP_RIGHT,
+        RESIZE_BOTTOM_LEFT,
+        RESIZE_BOTTOM_RIGHT
+    }
+
+    private record PanelDragLayout(PanelSlot slot, float relX, float relY, float relW, float relH) {
     }
 
     private static final class PanelSlot {

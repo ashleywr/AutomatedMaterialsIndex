@@ -656,6 +656,14 @@ public class ResultContextMenuActionBuilder {
                     () -> AmiClipboardHelper.copyToClipboard(playerName)
             ));
         }
+        if (policy.allows(node, CHAT)) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    CHAT,
+                    Component.translatable("ami.context.chat"),
+                    '@',
+                    () -> openChatDraft("@" + playerName + " ")
+            ));
+        }
         List<ResultContextMenu.Action> waypointActions = new ArrayList<>();
         if (policy.allows(node, ADD_PLAYER_WAYPOINT)) {
             for (PlayerWaypointAction action : PlayerWaypointProviders.waypointActions(playerWaypointContext(node))) {

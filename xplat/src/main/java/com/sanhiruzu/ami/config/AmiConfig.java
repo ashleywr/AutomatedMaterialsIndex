@@ -46,9 +46,10 @@ public class AmiConfig {
     public static AmiMode mode = AmiMode.FULL;
     @ConfigValue("general.enable-auto-indexing")
     public static boolean enableAutoIndexing = true;
-    // Legacy key kept so existing configs migrate without losing the preference.
-    @ConfigValue("general.recipe-book-toggles-ami")
+    @ConfigValue("general.start-hidden")
     public static boolean startHidden = false;
+    @ConfigValue("general.recipe-book-action")
+    public static RecipeBookAction recipeBookAction = RecipeBookAction.TOGGLE_EXTERNAL_VIEWER;
     @ConfigValue("features.show-creative-items")
     public static boolean showCreativeItems = false;
     @ConfigValue("features.show-hidden-mod-items")
@@ -118,6 +119,10 @@ public class AmiConfig {
     public static int guideSummaryTextCap = 4096;
 
     @ConfigHidden
+    @ConfigValue("features.default-waypoint-map-handler")
+    public static String defaultWaypointMapHandler = "auto";
+
+    @ConfigHidden
     @ConfigValue("ui.context-menu.enabled-actions")
     public static String contextMenuEnabledActions = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,ami:open_pokedex,ami:filter_pokemon_type,ami:filter_pokemon_secondary_type,ami:filter_pokemon_generation,ami:filter_pokemon_egg_group,ami:filter_pokemon_ability,ami:search_pokemon_drop_item,ami:recipes_pokemon_drop_item,ami:copy_pokemon_species,ami:copy_pokemon_dex_number,ami:filter_gregtech_tier,ami:filter_gregtech_kind,ami:filter_gregtech_fact,ami:filter_gregtech_circuit_grade,ami:copy_player_name,ami:cheat_give_player_head,ami:copy_player_waypoint,ami:teleport_to_player,ami:teleport_player_here,ami:group_toggle,ami:filter_category,ami:copy_group_key,ami:start_category_fix,ami:apply_category_fix,ami:clear_item_fix,ami:quests_for_item,ami:open_quest,ami:copy_quest_matches";
 
@@ -162,6 +167,8 @@ public class AmiConfig {
     public static CompatCategoryPolicy arsNouveauCategoryPolicy = CompatCategoryPolicy.FOCUSED;
     @ConfigValue("compat.map-utility.category-policy")
     public static CompatCategoryPolicy mapUtilityCategoryPolicy = CompatCategoryPolicy.HYBRID;
+    @ConfigValue("compat.waystones.open-screen-from-anywhere")
+    public static boolean waystonesOpenScreenFromAnywhere = false;
     // --- Side Panels Group ---
     @ConfigGroup(value = "sidepanels", icon = "sidepanels", order = 3)
     @ConfigValue("sidepanels.left.width")
@@ -201,6 +208,9 @@ public class AmiConfig {
     @ConfigSlider(min = 1, max = 24, step = 1)
     @ConfigValue("cheat.player-head-results-limit")
     public static int playerHeadResultsLimit = 16;
+    @ConfigSlider(min = 8, max = 512, step = 1)
+    @ConfigValue("cheat.live-player-results-limit")
+    public static int livePlayerResultsLimit = 128;
     @ConfigValue("cheat.player-head-show-full-model")
     public static boolean playerHeadShowFullModel = false;
     @ConfigValue("general.highlight-exclusion-areas")
@@ -287,6 +297,7 @@ public class AmiConfig {
         mode = AmiMode.FULL;
         enableAutoIndexing = true;
         startHidden = false;
+        recipeBookAction = RecipeBookAction.TOGGLE_EXTERNAL_VIEWER;
         showCreativeItems = false;
         showHiddenModItems = false;
         strictSurvivalMode = false;
@@ -314,6 +325,7 @@ public class AmiConfig {
         packAuthorMode = false;
         confirmExternalLinks = true;
         guideSummaryTextCap = 4096;
+        defaultWaypointMapHandler = "auto";
         contextMenuEnabledActions = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,ami:open_pokedex,ami:filter_pokemon_type,ami:filter_pokemon_secondary_type,ami:filter_pokemon_generation,ami:filter_pokemon_egg_group,ami:filter_pokemon_ability,ami:search_pokemon_drop_item,ami:recipes_pokemon_drop_item,ami:copy_pokemon_species,ami:copy_pokemon_dex_number,ami:filter_gregtech_tier,ami:filter_gregtech_kind,ami:filter_gregtech_fact,ami:filter_gregtech_circuit_grade,ami:copy_player_name,ami:cheat_give_player_head,ami:copy_player_waypoint,ami:teleport_to_player,ami:teleport_player_here,ami:group_toggle,ami:filter_category,ami:copy_group_key,ami:start_category_fix,ami:apply_category_fix,ami:clear_item_fix,ami:quests_for_item,ami:open_quest,ami:copy_quest_matches";
         contextMenuDisabledByMod = "";
         contextMenuDisabledByType = "";
@@ -333,6 +345,7 @@ public class AmiConfig {
         botaniaCategoryPolicy = CompatCategoryPolicy.HYBRID;
         arsNouveauCategoryPolicy = CompatCategoryPolicy.FOCUSED;
         mapUtilityCategoryPolicy = CompatCategoryPolicy.HYBRID;
+        waystonesOpenScreenFromAnywhere = false;
 
         leftPanelWidth = 140;
         rightPanelWidth = 0;
@@ -355,6 +368,7 @@ public class AmiConfig {
         cheatDropToDelete = true;
         playerHeadSuggestionsLimit = 12;
         playerHeadResultsLimit = 16;
+        livePlayerResultsLimit = 128;
         playerHeadShowFullModel = false;
         highlightExclusionAreas = false;
 
@@ -521,6 +535,18 @@ public class AmiConfig {
         public final Component displayName;
 
         CheatGiveMode(String key) {
+            this.displayName = Component.translatable(key);
+        }
+    }
+
+    public enum RecipeBookAction {
+        TOGGLE_AMI("ami.config.value.general.recipe-book-action.toggle_ami"),
+        OPEN_VANILLA_BOOK("ami.config.value.general.recipe-book-action.open_vanilla_book"),
+        TOGGLE_EXTERNAL_VIEWER("ami.config.value.general.recipe-book-action.toggle_external_viewer");
+
+        public final Component displayName;
+
+        RecipeBookAction(String key) {
             this.displayName = Component.translatable(key);
         }
     }

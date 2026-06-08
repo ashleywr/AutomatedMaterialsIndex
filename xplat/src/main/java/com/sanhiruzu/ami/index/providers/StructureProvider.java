@@ -56,6 +56,16 @@ public class StructureProvider implements IAmiDataProvider {
             "village_taiga"
     );
 
+    static SearchNode createStructureNode(ResourceLocation id) {
+        Map<String, String> meta = new HashMap<>();
+        meta.put(SearchNodeKeys.MOD_ID, id.getNamespace());
+        meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, AmiOntology.ENVIRONMENT.id);
+        meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "structures");
+        return new SearchNode(id, NodeType.STRUCTURE,
+                RegistryUtils.formatPathWithSuffix(id.getPath(), "Structure"),
+                0xFF888888, 0, meta);
+    }
+
     @Override
     public void populate(GlobalIndex index, @Nullable Level level) {
         if (level == null) {
@@ -106,15 +116,5 @@ public class StructureProvider implements IAmiDataProvider {
         nodes.sort(RegistryUtils.ENTRY_ORDER);
         index.replaceNodes(NodeType.STRUCTURE, nodes);
         index.setLoading(NodeType.STRUCTURE, false);
-    }
-
-    static SearchNode createStructureNode(ResourceLocation id) {
-        Map<String, String> meta = new HashMap<>();
-        meta.put(SearchNodeKeys.MOD_ID, id.getNamespace());
-        meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, AmiOntology.ENVIRONMENT.id);
-        meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "structures");
-        return new SearchNode(id, NodeType.STRUCTURE,
-                RegistryUtils.formatPathWithSuffix(id.getPath(), "Structure"),
-                0xFF888888, 0, meta);
     }
 }

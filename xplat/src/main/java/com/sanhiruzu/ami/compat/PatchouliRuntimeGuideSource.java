@@ -39,6 +39,7 @@ public final class PatchouliRuntimeGuideSource {
         if (resourceManager == null) {
             return;
         }
+        String language = GlobalIndexCache.currentClientLanguageCacheKey();
         Map<ResourceLocation, String> resourceJson = readPatchouliResourceJson(resourceManager);
         ResourceManager clientResources = clientResourceManager();
         if (clientResources != resourceManager) {
@@ -46,8 +47,8 @@ public final class PatchouliRuntimeGuideSource {
         }
         for (AmiGuideDocument document : documentsFromResources(
                 resourceJson,
-                readLangResources(clientResources),
-                GlobalIndexCache.currentClientLanguageCacheKey())) {
+                readLangResources(clientResources, language),
+                language)) {
             documents.accept(document);
         }
     }
@@ -114,16 +115,28 @@ public final class PatchouliRuntimeGuideSource {
         return out;
     }
 
-    private static Map<ResourceLocation, String> readLangResources(ResourceManager resourceManager) {
+    private static Map<ResourceLocation, String> readLangResources(ResourceManager resourceManager, String selectedLanguage) {
         Map<ResourceLocation, String> out = new LinkedHashMap<>();
         if (resourceManager == null) {
             return out;
         }
-        resourceManager.listResources("lang", id -> id.getPath().endsWith(".json"))
-                .entrySet()
-                .stream()
-                .sorted(Comparator.comparing(entry -> entry.getKey().toString()))
-                .forEach(entry -> readResource(entry.getValue()).ifPresent(json -> out.put(entry.getKey(), json)));
+        for (String languagePath : languageRoots(selectedLanguage)) {
+            resourceManager.listResources(languagePath, id -> id.getPath().endsWith(".json"))
+                    .entrySet()
+                    .stream()
+                    .sorted(Comparator.comparing(entry -> entry.getKey().toString()))
+                    .forEach(entry -> readResource(entry.getValue()).ifPresent(json -> out.put(entry.getKey(), json)));
+        }
+        return out;
+    }
+
+    private static List<String> languageRoots(String selectedLanguage) {
+        List<String> out = new ArrayList<>();
+        out.add("lang/" + DEFAULT_LANGUAGE);
+        String normalized = normalizeLanguage(selectedLanguage);
+        if (!DEFAULT_LANGUAGE.equals(normalized)) {
+            out.add("lang/" + normalized);
+        }
         return out;
     }
 

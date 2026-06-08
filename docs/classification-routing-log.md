@@ -47,6 +47,14 @@ Use ordered gates instead of open-ended scoring whenever possible:
 
 Every gate should write enough debug evidence to explain why it won.
 
+### 2026-06-08: Snowballs Route as Thrown Ammo
+
+`minecraft:snowball` was the only `projectile` item that still reached
+`fallback:unknown` when no lexical ammo context existed. It now matches the
+projectile context by `SnowballItem` class and resolves to `tools/ammo` through the
+existing `tools and weapons` primary rule, preserving the existing projectile
+family behavior.
+
 `PrimaryCategoryResolver.resolve` is the entry point for final item routing.
 Each assignment now writes:
 
@@ -118,9 +126,10 @@ Recommended defaults:
 - Sophisticated Storage/Backpacks: likely `focused` for backpacks and upgrades,
   semantic for any generic materials or ordinary blocks.
 - Map mods use one general `mapping` family/category rather than separate
-  Xaero/JourneyMap/FTB categories. Future indexing should target waypoints,
+  Xaero/JourneyMap/FTB categories. Future indexing should target map items,
   markers, claims, death points, dimensions, and sharing/state rather than
-  ordinary vanilla map items.
+  ordinary vanilla map items. Runtime waypoint nodes are a separate semantic
+  case and should route to `World > Waypoints`, not `Mapping > Waypoints`.
 
 ## Known Bad Patterns
 
@@ -191,6 +200,13 @@ GregTech, MineColonies, Apotheosis, Botania, Sophisticated Storage/Backpacks,
 and a general Mapping category. These categories intentionally start with empty
 match patterns; routing into them should happen through explicit compat identity
 rules and policy, not broad lexical matching.
+
+### 2026-06-08: Runtime Waypoints Route To World
+
+Live waypoint result nodes are now classified as `environment/waypoints`, which
+renders as `World > Waypoints`. This keeps runtime waypoints out of the generic
+mapping bucket while leaving other map-style compat items free to use mapping
+ownership and subcategories where appropriate.
 
 ### 2026-05-31: Ownership Terms Must Be Family Names
 

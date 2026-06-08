@@ -32,4 +32,8 @@ public final class AmiDropdownPopupController {
         }
         return false;
     }
+
+    public static boolean blocksUnderlyingHover(AmiDropdownPopup dropdown, double mouseX, double mouseY) {
+        return dropdown != null && dropdown.isOpen() && dropdown.isMouseOverPopup(mouseX, mouseY);
+    }
 }

@@ -215,7 +215,7 @@ public class DashboardLogicTest {
                 "cobblemon", "create", "ae2", "mekanism", "gregtech",
                 "minecolonies", "apotheosis", "botania", "ars_nouveau", "sophisticated",
                 "mapping", "modular_gear", "tacz", "utility", "bestiary",
-                "magic", "armor", "tools", "tech", "nature", "ingredients",
+                "magic", "armor", "tools", "tech", "lookup_history", "nature", "ingredients",
                 "decoration", "environment", "social", "geology", "masonry",
                 "misc"
         ), original.stream().map(category -> category.id).toList());

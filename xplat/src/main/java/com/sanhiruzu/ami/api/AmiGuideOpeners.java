@@ -3,13 +3,8 @@ package com.sanhiruzu.ami.api;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 
-import java.util.Collection;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -57,7 +52,7 @@ public final class AmiGuideOpeners {
      * {@code apotheosis:apoth_chronicle} vs potential legacy values).
      *
      * @param bookIds candidate book IDs to try in order
-     * @param pageId the entry path within the book namespace (e.g. {@code basics/mana_spreader})
+     * @param pageId  the entry path within the book namespace (e.g. {@code basics/mana_spreader})
      */
     public static Runnable patchouli(Collection<ResourceLocation> bookIds, String pageId) {
         return () -> openPatchouliBook(bookIds, pageId);
@@ -108,10 +103,10 @@ public final class AmiGuideOpeners {
     /**
      * Opens a Modonomicon book to a specific category/entry page.
      *
-     * @param bookId the book's ResourceLocation (e.g. {@code spectrum:guidebook})
+     * @param bookId     the book's ResourceLocation (e.g. {@code spectrum:guidebook})
      * @param categoryId the category id within the book namespace
-     * @param entryId the entry id within the book namespace
-     * @param page zero-based page number
+     * @param entryId    the entry id within the book namespace
+     * @param page       zero-based page number
      */
     public static Runnable modonomicon(ResourceLocation bookId, ResourceLocation categoryId,
                                        ResourceLocation entryId, int page) {
@@ -478,9 +473,6 @@ public final class AmiGuideOpeners {
         return open == null || open;
     }
 
-    private record ScoredEntryCandidate(ResourceLocation entryId, int score) {
-    }
-
     private static Boolean isPatchouliBookOpen(Object api, ResourceLocation expectedBook) {
         if (api == null || expectedBook == null) {
             return null;
@@ -842,5 +834,8 @@ public final class AmiGuideOpeners {
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
             LOGGER.log(Level.FINE, "AMI: Alex's Caves book unavailable for guide open: " + pageJson, e);
         }
+    }
+
+    private record ScoredEntryCandidate(ResourceLocation entryId, int score) {
     }
 }

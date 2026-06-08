@@ -94,7 +94,7 @@ public class AmiPanelContentDropdownWidget extends AbstractWidget implements Ami
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (!active || button != 0) return false;
 
-        if (open && isMouseOverDropdown(mouseX, mouseY)) {
+        if (open && isMouseOverPopup(mouseX, mouseY)) {
             int index = (int) ((mouseY - (dropdownY(options.length * OPTION_HEIGHT + 2) + 1)) / OPTION_HEIGHT);
             if (index >= 0 && index < options.length) {
                 setValue(options[index]);
@@ -114,7 +114,8 @@ public class AmiPanelContentDropdownWidget extends AbstractWidget implements Ami
         return false;
     }
 
-    private boolean isMouseOverDropdown(double mouseX, double mouseY) {
+    @Override
+    public boolean isMouseOverPopup(double mouseX, double mouseY) {
         int listX = getX();
         int listH = options.length * OPTION_HEIGHT + 2;
         int listY = dropdownY(listH);

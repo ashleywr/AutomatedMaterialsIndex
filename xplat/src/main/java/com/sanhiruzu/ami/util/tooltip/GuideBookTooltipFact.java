@@ -1,10 +1,6 @@
 package com.sanhiruzu.ami.util.tooltip;
 
-import com.sanhiruzu.ami.index.AmiGuideSearchIndex;
-import com.sanhiruzu.ami.index.AmiIndexerService;
-import com.sanhiruzu.ami.index.NodeType;
-import com.sanhiruzu.ami.index.SearchNode;
-import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.index.*;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -23,20 +19,6 @@ public final class GuideBookTooltipFact implements AmiTooltipFact {
         this.guideIndexSupplier = guideIndexSupplier;
     }
 
-    @Override
-    public List<Component> build(SearchNode entry) {
-        if (entry.type() != NodeType.ITEM || !isGuideBookCandidate(entry)) {
-            return List.of();
-        }
-
-        int indexedPages = indexedPageCount(entry);
-        Component value = indexedPages > 0
-                ? Component.translatable("ami.tooltip.guide_index.indexed", indexedPages)
-                : Component.translatable("ami.tooltip.guide_index.not_indexed");
-        ChatFormatting formatting = indexedPages > 0 ? ChatFormatting.GREEN : ChatFormatting.GRAY;
-        return TooltipFactSupport.line("ami.tooltip.guide_index", value, formatting);
-    }
-
     private static boolean isGuideBookCandidate(SearchNode entry) {
         return "true".equalsIgnoreCase(entry.meta(SearchNodeKeys.GUIDE_BOOK_CANDIDATE, ""))
                 || containsFacet(entry, "guide_book");
@@ -53,6 +35,20 @@ public final class GuideBookTooltipFact implements AmiTooltipFact {
             }
         }
         return false;
+    }
+
+    @Override
+    public List<Component> build(SearchNode entry) {
+        if (entry.type() != NodeType.ITEM || !isGuideBookCandidate(entry)) {
+            return List.of();
+        }
+
+        int indexedPages = indexedPageCount(entry);
+        Component value = indexedPages > 0
+                ? Component.translatable("ami.tooltip.guide_index.indexed", indexedPages)
+                : Component.translatable("ami.tooltip.guide_index.not_indexed");
+        ChatFormatting formatting = indexedPages > 0 ? ChatFormatting.GREEN : ChatFormatting.GRAY;
+        return TooltipFactSupport.line("ami.tooltip.guide_index", value, formatting);
     }
 
     int indexedPageCount(SearchNode entry) {

@@ -14,8 +14,8 @@ import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -96,16 +96,6 @@ public class RecipeProvider implements IAmiDataProvider {
         return String.join(",", categories);
     }
 
-    public record RecipeMetadata(
-            String obtainability,
-            String recipeCategories,
-            String recipeUseCategories,
-            int recipeOutputCount,
-            int recipeUseCount
-    ) {
-        public static final RecipeMetadata EMPTY = new RecipeMetadata("no_recipe", "", "", 0, 0);
-    }
-
     private static String getCategoryName(RecipeType<?> type) {
         ResourceLocation key = BuiltInRegistries.RECIPE_TYPE.getKey(type);
         if (key == null) return type.toString().toLowerCase();
@@ -117,5 +107,15 @@ public class RecipeProvider implements IAmiDataProvider {
         AmiRecipeIndex recipeIndex = AmiRecipeIndex.getInstance();
         recipeIndex.rebuild(level);
         AmiCore.LOGGER.debug("AmiRecipeIndex rebuilt: {} recipes indexed", recipeIndex.recipeCount());
+    }
+
+    public record RecipeMetadata(
+            String obtainability,
+            String recipeCategories,
+            String recipeUseCategories,
+            int recipeOutputCount,
+            int recipeUseCount
+    ) {
+        public static final RecipeMetadata EMPTY = new RecipeMetadata("no_recipe", "", "", 0, 0);
     }
 }

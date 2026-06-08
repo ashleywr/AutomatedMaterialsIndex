@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client.overlay;
 
-import com.sanhiruzu.ami.client.UniversalResultsPanel;
 import com.sanhiruzu.ami.api.AmiQuestsApi;
+import com.sanhiruzu.ami.client.UniversalResultsPanel;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.SearchNode;
@@ -18,8 +18,8 @@ import java.util.List;
  */
 public class SidebarPanelWidget extends AbstractWidget {
     private final UniversalResultsPanel panel;
-    private final Runnable questRefreshListener = this::refresh;
     private AmiConfig.PanelContent contentType;
+    private final Runnable questRefreshListener = this::refresh;
     private boolean questListenerRegistered;
 
     public SidebarPanelWidget(int x, int y, int width, int height, AmiConfig.PanelContent contentType) {

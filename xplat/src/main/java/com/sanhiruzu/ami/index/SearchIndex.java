@@ -130,6 +130,7 @@ public final class SearchIndex {
     private final Set<SearchNode> allNodes = new LinkedHashSet<>();
     private final Map<SearchNode, String> searchableText = new LinkedHashMap<>();
     private final boolean includeMetadata;
+
     public SearchIndex() {
         this(true);
     }

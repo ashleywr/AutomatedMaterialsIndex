@@ -17,6 +17,23 @@ import java.util.Optional;
 import java.util.OptionalLong;
 
 public final class FluidMetricSniffer {
+    private static boolean shouldScanTooltip(ItemStack stack, ResourceLocation id) {
+        String identity = (id + " " + stack.getHoverName().getString()).toLowerCase(Locale.ROOT);
+        return containsAny(identity,
+                "fluid", "liquid", "water", "lava", "milk", "oil", "fuel",
+                "tank", "bucket", "bottle", "vial", "flask", "capsule",
+                "cell", "can", "canister", "drum", "reservoir");
+    }
+
+    private static boolean containsAny(String value, String... needles) {
+        for (String needle : needles) {
+            if (value.contains(needle)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public Optional<FluidStats> sniff(ItemStack stack, ResourceLocation id, @Nullable Level level) {
         if (stack == null || stack.isEmpty()) {
             return Optional.empty();
@@ -44,22 +61,5 @@ public final class FluidMetricSniffer {
             AmiCore.LOGGER.debug("Unable to inspect fluid tooltip for {}", id, e);
             return Optional.empty();
         }
-    }
-
-    private static boolean shouldScanTooltip(ItemStack stack, ResourceLocation id) {
-        String identity = (id + " " + stack.getHoverName().getString()).toLowerCase(Locale.ROOT);
-        return containsAny(identity,
-                "fluid", "liquid", "water", "lava", "milk", "oil", "fuel",
-                "tank", "bucket", "bottle", "vial", "flask", "capsule",
-                "cell", "can", "canister", "drum", "reservoir");
-    }
-
-    private static boolean containsAny(String value, String... needles) {
-        for (String needle : needles) {
-            if (value.contains(needle)) {
-                return true;
-            }
-        }
-        return false;
     }
 }

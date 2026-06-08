@@ -5,7 +5,6 @@ import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.AmiKeybindHandler;
 import com.sanhiruzu.ami.client.favorites.FavoriteEntry;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
-import net.minecraft.resources.ResourceLocation;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.client.results.DebugTooltip;
 import com.sanhiruzu.ami.client.results.QuestItemEvidence;
@@ -21,6 +20,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 
@@ -228,19 +228,19 @@ public final class AmiTooltipComposer {
     private static void appendCheatGiveHints(List<Component> lines, SearchNode entry) {
         if (!AMICheatMode.isEnabled()) return;
         var keys = Services.PLATFORM.keyMappings();
-        String giveOne   = keys.cheatGiveOne().getTranslatedKeyMessage().getString();
+        String giveOne = keys.cheatGiveOne().getTranslatedKeyMessage().getString();
         String giveStack = keys.cheatGiveStack().getTranslatedKeyMessage().getString();
 
         if (entry.type() == NodeType.ITEM) {
-            lines.add(cheatHintLine(giveOne,   "ami.tooltip.cheat_give_one"));
+            lines.add(cheatHintLine(giveOne, "ami.tooltip.cheat_give_one"));
             lines.add(cheatHintLine(giveStack, "ami.tooltip.cheat_give_stack"));
         } else if (entry.type() == NodeType.ENTITY) {
             boolean isPokemon = "pokemon_species".equals(entry.meta(com.sanhiruzu.ami.index.SearchNodeKeys.ENTITY_CATEGORY, ""));
             if (isPokemon) {
-                lines.add(cheatHintLine(giveOne,   "ami.tooltip.cheat_pokemon_spawn"));
+                lines.add(cheatHintLine(giveOne, "ami.tooltip.cheat_pokemon_spawn"));
                 lines.add(cheatHintLine(giveStack, "ami.tooltip.cheat_pokemon_party"));
             } else {
-                lines.add(cheatHintLine(giveOne,   "ami.tooltip.cheat_spawn_egg"));
+                lines.add(cheatHintLine(giveOne, "ami.tooltip.cheat_spawn_egg"));
                 lines.add(cheatHintLine(giveStack, "ami.tooltip.cheat_spawn_egg_stack"));
             }
         }

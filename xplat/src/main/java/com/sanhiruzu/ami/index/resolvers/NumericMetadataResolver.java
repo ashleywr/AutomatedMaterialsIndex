@@ -31,10 +31,6 @@ public final class NumericMetadataResolver {
         }
     }
 
-    public void addNode(SearchNode node) {
-        nodes.add(node);
-    }
-
     public static List<String> aliasesForMetadataKey(String metadataKey) {
         return switch (metadataKey) {
             case SearchNodeKeys.DPS -> List.of("dps");
@@ -66,6 +62,10 @@ public final class NumericMetadataResolver {
             case SearchNodeKeys.ENTITY_HEALTH -> List.of("health");
             default -> List.of();
         };
+    }
+
+    public void addNode(SearchNode node) {
+        nodes.add(node);
     }
 
     public Map<NodeType, List<SearchNode>> resolve(String token) {
@@ -119,7 +119,8 @@ public final class NumericMetadataResolver {
                 case "dps", "damagepersecond" -> SearchNodeKeys.DPS;
                 case "damage", "attack", "attackdamage", "entityattack", "entitydamage" -> SearchNodeKeys.ATTACK_DAMAGE;
                 case "heal", "healing", "hprestore", "pokemonhealing" -> SearchNodeKeys.POKEMON_HEALING;
-                case "dex", "pokedex", "dexnumber", "pokemondex", "pokemondexnumber" -> SearchNodeKeys.POKEMON_DEX_NUMBER;
+                case "dex", "pokedex", "dexnumber", "pokemondex", "pokemondexnumber" ->
+                        SearchNodeKeys.POKEMON_DEX_NUMBER;
                 case "pokemonhp", "pokemonbasehp", "basehp" -> SearchNodeKeys.POKEMON_BASE_HP;
                 case "pokemonattack", "pokemonatk", "pokemonbaseattack", "pokemonbaseatk", "baseattack", "baseatk" ->
                         SearchNodeKeys.POKEMON_BASE_ATTACK;

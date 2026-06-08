@@ -3,11 +3,7 @@ package com.sanhiruzu.ami.index.resolvers;
 import com.mojang.authlib.GameProfile;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.config.AmiConfig;
-import com.sanhiruzu.ami.index.IQueryResolver;
-import com.sanhiruzu.ami.index.ItemFilter;
-import com.sanhiruzu.ami.index.NodeType;
-import com.sanhiruzu.ami.index.SearchNode;
-import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.player.PlayerWaypointContext;
 import com.sanhiruzu.ami.player.PlayerWaypointProviders;
@@ -15,15 +11,7 @@ import com.sanhiruzu.ami.util.AmiColors;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Side-safe resolver for online player names.
@@ -32,15 +20,16 @@ import java.util.UUID;
 public final class PlayerResolver implements IQueryResolver {
     private static final long LIVE_STATE_POLL_INTERVAL_MS = 5_000L;
 
-    @Override
-    public Map<NodeType, List<SearchNode>> resolve(String query) {
-        if (!Services.PLATFORM.isClient()) return Map.of();
-
-        return ClientPlayerResolver.resolve(query);
+    private static boolean isClientRuntimeAvailable() {
+        try {
+            return Services.PLATFORM.isClient();
+        } catch (RuntimeException | LinkageError e) {
+            return false;
+        }
     }
 
     public static List<String> suggestNames(String query, int limit) {
-        if (!Services.PLATFORM.isClient()) return List.of();
+        if (!isClientRuntimeAvailable()) return List.of();
         try {
             return ClientPlayerResolver.suggestNames(query, limit);
         } catch (RuntimeException | LinkageError e) {
@@ -49,7 +38,7 @@ public final class PlayerResolver implements IQueryResolver {
     }
 
     public static List<SearchNode> livePlayerNodes() {
-        if (!Services.PLATFORM.isClient()) return List.of();
+        if (!isClientRuntimeAvailable()) return List.of();
         try {
             return ClientPlayerResolver.livePlayerNodes("");
         } catch (RuntimeException | LinkageError e) {
@@ -58,7 +47,7 @@ public final class PlayerResolver implements IQueryResolver {
     }
 
     public static long liveStateRevision() {
-        if (!Services.PLATFORM.isClient()) return 0L;
+        if (!isClientRuntimeAvailable()) return 0L;
         try {
             return ClientPlayerResolver.liveStateRevision();
         } catch (RuntimeException | LinkageError e) {
@@ -66,10 +55,27 @@ public final class PlayerResolver implements IQueryResolver {
         }
     }
 
+    public static boolean livePlayerNodesTruncated() {
+        if (!isClientRuntimeAvailable()) return false;
+        try {
+            return ClientPlayerResolver.livePlayerNodesTruncated();
+        } catch (RuntimeException | LinkageError e) {
+            return false;
+        }
+    }
+
+    @Override
+    public Map<NodeType, List<SearchNode>> resolve(String query) {
+        if (!isClientRuntimeAvailable()) return Map.of();
+
+        return ClientPlayerResolver.resolve(query);
+    }
+
     private static class ClientPlayerResolver {
         private static long lastLiveStatePollMs = Long.MIN_VALUE;
         private static long liveStateRevision = 0L;
         private static String lastLiveStateSnapshot = "";
+        private static boolean lastLivePlayerNodesTruncated = false;
 
         private static long liveStateRevision() {
             long now = System.currentTimeMillis();
@@ -158,7 +164,10 @@ public final class PlayerResolver implements IQueryResolver {
         private static List<SearchNode> livePlayerNodes(String lower) {
             var mc = net.minecraft.client.Minecraft.getInstance();
             var conn = mc.getConnection();
+            lastLivePlayerNodesTruncated = false;
             if (conn == null) return List.of();
+
+            int maxResults = Math.max(1, AmiConfig.livePlayerResultsLimit);
 
             List<SearchNode> matches = new ArrayList<>();
             for (var info : conn.getOnlinePlayers()) {
@@ -182,12 +191,20 @@ public final class PlayerResolver implements IQueryResolver {
                         name.toLowerCase(Locale.ROOT).startsWith(lower) ? 120 : 100,
                         playerMeta(name, uuidStr)
                 ));
+                if (matches.size() >= maxResults) {
+                    lastLivePlayerNodesTruncated = true;
+                    break;
+                }
             }
 
             matches.sort(Comparator
                     .comparingInt((SearchNode node) -> -node.searchWeight())
                     .thenComparing(SearchNode::displayName, String.CASE_INSENSITIVE_ORDER));
             return matches;
+        }
+
+        private static boolean livePlayerNodesTruncated() {
+            return lastLivePlayerNodesTruncated;
         }
 
         private static Map<String, GameProfile> playerHeadCandidates(String typed, String lower, int limit) {
@@ -257,6 +274,8 @@ public final class PlayerResolver implements IQueryResolver {
             meta.put(SearchNodeKeys.PLAYER_HEAD_SOURCE, profile == null ? "typed_or_history" : "online_player");
             if (profile != null && profile.getId() != null) {
                 meta.put(SearchNodeKeys.PLAYER_UUID, profile.getId().toString());
+                meta.put(SearchNodeKeys.PLAYER_ONLINE, "true");
+                enrichPlayerMeta(meta, name, profile.getId().toString());
             }
             String lowerName = name.toLowerCase(Locale.ROOT);
             int weight = lowerName.equals(query) ? 160 : lowerName.startsWith(query) ? 145 : 125;
@@ -273,6 +292,16 @@ public final class PlayerResolver implements IQueryResolver {
             meta.put(SearchNodeKeys.PLAYER_UUID, uuidStr);
             meta.put(SearchNodeKeys.PLAYER_NAME, name);
             meta.put(SearchNodeKeys.PLAYER_ONLINE, "true");
+            meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, "social");
+            meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "players");
+            enrichPlayerMeta(meta, name, uuidStr);
+            return meta;
+        }
+
+        private static void enrichPlayerMeta(Map<String, String> meta, String playerName, String uuidStr) {
+            if (uuidStr == null || uuidStr.isBlank()) {
+                return;
+            }
             nearbyPlayer(uuidStr).ifPresent(player -> {
                 meta.put(SearchNodeKeys.PLAYER_X, Integer.toString(player.blockPosition().getX()));
                 meta.put(SearchNodeKeys.PLAYER_Y, Integer.toString(player.blockPosition().getY()));
@@ -280,8 +309,7 @@ public final class PlayerResolver implements IQueryResolver {
                 meta.put(SearchNodeKeys.PLAYER_DIMENSION, player.level().dimension().location().toString());
                 meta.put(SearchNodeKeys.PLAYER_COORD_SOURCE, "client_entity");
             });
-            PlayerWaypointProviders.enrich(new PlayerWaypointContext(name, uuidStr, meta), meta);
-            return meta;
+            PlayerWaypointProviders.enrich(new PlayerWaypointContext(playerName, uuidStr, meta), meta);
         }
 
         private static Optional<Player> nearbyPlayer(String uuidStr) {

@@ -176,9 +176,6 @@ public final class CreativeStackVariantExpander {
         return (itemId == null ? stack.getItem().getClass().getName() : itemId.toString()) + "|" + componentKey;
     }
 
-    private record CreativeStackCandidate(ItemStack stack, String tabId) {
-    }
-
     private static boolean visiblyEquivalentToAny(List<VisibleStack> existingStacks, VisibleStack candidate) {
         for (VisibleStack existing : existingStacks) {
             if (visiblyEquivalentCreativeStack(existing, candidate)) {
@@ -387,9 +384,9 @@ public final class CreativeStackVariantExpander {
 
     private static String normalizeTooltipLine(String line) {
         return line == null ? "" : line.toLowerCase(Locale.ROOT)
-                .replace(",", "")
-                .replace('_', ' ')
-                .trim();
+                                   .replace(",", "")
+                                   .replace('_', ' ')
+                                   .trim();
     }
 
     private static boolean isCapacityOnlyLine(String line) {
@@ -479,6 +476,9 @@ public final class CreativeStackVariantExpander {
             normalized = normalized.substring(0, normalized.length() - 1);
         }
         return normalized;
+    }
+
+    private record CreativeStackCandidate(ItemStack stack, String tabId) {
     }
 
     private static final class VisibleStack {

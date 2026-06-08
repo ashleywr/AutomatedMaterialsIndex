@@ -11,8 +11,6 @@ import com.sanhiruzu.ami.recipe.AmiRecipeIndex;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -32,24 +30,18 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.SuspiciousEffectHolder;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.fml.loading.FMLLoader;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.items.IItemHandler;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.OptionalLong;
-import java.util.UUID;
+import java.util.*;
 
 public class ForgePlatformHelper implements IPlatformHelper {
     private static final int SHULKER_SLOTS = 27;
@@ -118,9 +110,28 @@ public class ForgePlatformHelper implements IPlatformHelper {
         return null;
     }
 
+    private static long itemHandlerCapacity(IItemHandler handler) {
+        if (handler == null || handler.getSlots() <= 0) return 0L;
+        long capacity = 0L;
+        for (int slot = 0; slot < handler.getSlots(); slot++) {
+            capacity += Math.max(0, handler.getSlotLimit(slot));
+        }
+        return capacity;
+    }
+
+    private static String escapeCommandString(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private static int[] uuidToIntArray(UUID uuid) {
+        long most = uuid.getMostSignificantBits();
+        long least = uuid.getLeastSignificantBits();
+        return new int[]{(int) (most >> 32), (int) most, (int) (least >> 32), (int) least};
+    }
+
     @Override
     public boolean isClient() {
-        return FMLLoader.getDist().isClient();
+        return FMLEnvironment.dist.isClient();
     }
 
     @Override
@@ -261,15 +272,6 @@ public class ForgePlatformHelper implements IPlatformHelper {
         // Several Forge mods lazily transform capability classes from a thread context where
         // Forge's eventbus class hierarchy scanner cannot resolve their parent chain.
         return OptionalLong.empty();
-    }
-
-    private static long itemHandlerCapacity(IItemHandler handler) {
-        if (handler == null || handler.getSlots() <= 0) return 0L;
-        long capacity = 0L;
-        for (int slot = 0; slot < handler.getSlots(); slot++) {
-            capacity += Math.max(0, handler.getSlotLimit(slot));
-        }
-        return capacity;
     }
 
     @Override
@@ -417,16 +419,6 @@ public class ForgePlatformHelper implements IPlatformHelper {
             return "give @s minecraft:player_head 1";
         }
         return "give @s minecraft:player_head{SkullOwner:\"" + escapeCommandString(name) + "\"} 1";
-    }
-
-    private static String escapeCommandString(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
-
-    private static int[] uuidToIntArray(UUID uuid) {
-        long most = uuid.getMostSignificantBits();
-        long least = uuid.getLeastSignificantBits();
-        return new int[]{(int) (most >> 32), (int) most, (int) (least >> 32), (int) least};
     }
 
     @Override

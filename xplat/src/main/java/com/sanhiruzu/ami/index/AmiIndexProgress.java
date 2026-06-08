@@ -22,6 +22,10 @@ public record AmiIndexProgress(
         return new AmiIndexProgress(true, clean(phase), clean(detail), 0, Math.max(0, total), System.currentTimeMillis());
     }
 
+    private static String clean(String value) {
+        return value == null ? "" : value.trim();
+    }
+
     public AmiIndexProgress withProgress(int current) {
         if (!active) return this;
         return new AmiIndexProgress(true, phase, detail, Math.max(0, current), total, startedAtMs);
@@ -60,9 +64,5 @@ public record AmiIndexProgress(
             out.append(" - ").append(elapsed / 1000L).append('s');
         }
         return out.toString();
-    }
-
-    private static String clean(String value) {
-        return value == null ? "" : value.trim();
     }
 }

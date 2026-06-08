@@ -28,47 +28,6 @@ public class PlayerModelRenderer implements IIconRenderer {
     private static final Map<String, RemotePlayer> PLAYER_CACHE = new HashMap<>();
     private static final Map<String, CompletableFuture<GameProfile>> PENDING_PROFILES = new HashMap<>();
 
-    private static final class RenderOnlyPlayer extends RemotePlayer {
-        private final Supplier<PlayerSkin> skinSupplier;
-
-        private RenderOnlyPlayer(ClientLevel level, GameProfile profile) {
-            super(level, profile);
-            this.skinSupplier = Minecraft.getInstance().getSkinManager().lookupInsecure(profile);
-        }
-
-        @Override
-        public PlayerSkin getSkin() {
-            return skinSupplier.get();
-        }
-    }
-
-    @Override
-    public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
-        if (size < 12) {
-            FallbackTextRenderer.renderFallback(g, node, x, y, size);
-            return;
-        }
-        String name = node == null ? "" : node.meta(SearchNodeKeys.PLAYER_HEAD_NAME, "");
-        if (name.isBlank()) {
-            FallbackTextRenderer.renderFallback(g, node, x, y, size);
-            return;
-        }
-        RemotePlayer player = resolvePlayer(name);
-        if (player == null) {
-            FallbackTextRenderer.renderFallback(g, node, x, y, size);
-            return;
-        }
-        float yRot = 180.0f;
-        if (hovered) {
-            yRot += (System.currentTimeMillis() % 3000L) / 3000.0f * 360.0f;
-        }
-        try {
-            renderPlayer(g, x, y, size, player, yRot);
-        } catch (RuntimeException e) {
-            FallbackTextRenderer.renderFallback(g, node, x, y, size);
-        }
-    }
-
     private static RemotePlayer resolvePlayer(String name) {
         RemotePlayer cached = PLAYER_CACHE.get(name);
         if (cached != null) {
@@ -140,6 +99,33 @@ public class PlayerModelRenderer implements IIconRenderer {
     }
 
     @Override
+    public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
+        if (size < 12) {
+            FallbackTextRenderer.renderFallback(g, node, x, y, size);
+            return;
+        }
+        String name = node == null ? "" : node.meta(SearchNodeKeys.PLAYER_HEAD_NAME, "");
+        if (name.isBlank()) {
+            FallbackTextRenderer.renderFallback(g, node, x, y, size);
+            return;
+        }
+        RemotePlayer player = resolvePlayer(name);
+        if (player == null) {
+            FallbackTextRenderer.renderFallback(g, node, x, y, size);
+            return;
+        }
+        float yRot = 180.0f;
+        if (hovered) {
+            yRot += (System.currentTimeMillis() % 3000L) / 3000.0f * 360.0f;
+        }
+        try {
+            renderPlayer(g, x, y, size, player, yRot);
+        } catch (RuntimeException e) {
+            FallbackTextRenderer.renderFallback(g, node, x, y, size);
+        }
+    }
+
+    @Override
     public List<Component> getTooltip(SearchNode node) {
         return List.of();
     }
@@ -153,5 +139,19 @@ public class PlayerModelRenderer implements IIconRenderer {
     public void invalidate() {
         PLAYER_CACHE.clear();
         PENDING_PROFILES.clear();
+    }
+
+    private static final class RenderOnlyPlayer extends RemotePlayer {
+        private final Supplier<PlayerSkin> skinSupplier;
+
+        private RenderOnlyPlayer(ClientLevel level, GameProfile profile) {
+            super(level, profile);
+            this.skinSupplier = Minecraft.getInstance().getSkinManager().lookupInsecure(profile);
+        }
+
+        @Override
+        public PlayerSkin getSkin() {
+            return skinSupplier.get();
+        }
     }
 }

@@ -9,20 +9,6 @@ import java.util.Optional;
  * and token kinds here so the search UI does not drift from parser behavior.
  */
 public final class SearchSyntax {
-    private static final List<PrefixRule> PREFIX_RULES = List.of(
-            new PrefixRule('$', QueryParser.TokenType.CATEGORY, false),
-            new PrefixRule('~', QueryParser.TokenType.META, false),
-            new PrefixRule('#', QueryParser.TokenType.TAG, false),
-            new PrefixRule('@', QueryParser.TokenType.MOD, false),
-            new PrefixRule('&', QueryParser.TokenType.ENV, false),
-            new PrefixRule('?', QueryParser.TokenType.PROP, false),
-            new PrefixRule('^', QueryParser.TokenType.PLAYER, false),
-            new PrefixRule('!', QueryParser.TokenType.ESSENTIAL, false),
-            new PrefixRule('>', QueryParser.TokenType.ESM, true),
-            new PrefixRule('<', QueryParser.TokenType.ESM, true),
-            new PrefixRule('=', QueryParser.TokenType.ESM, true)
-    );
-
     public static final List<PropertyField> PROPERTY_FIELDS = List.of(
             new PropertyField("energy", List.of("power", "fe", "rf"), "ami.gui.search.help.property_energy", SearchSuggestions.Kind.PROPERTY),
             new PropertyField("fluid", List.of("fluids", "liquid", "tank"), "ami.gui.search.help.property_fluid", SearchSuggestions.Kind.PROPERTY),
@@ -48,12 +34,10 @@ public final class SearchSyntax {
             new PropertyField("mod", List.of("modid", "compat", "family", "ecosystem", "compatfamily", "compatfamilies"),
                     "ami.gui.search.help.property_mod", SearchSuggestions.Kind.MOD)
     );
-
     public static final List<PrefixShortcut> PREFIX_SHORTCUTS = List.of(
             new PrefixShortcut("egg", "%egg:", "%egg:", "pokemonEggGroup", "ami.gui.search.help.pokemon_egg",
                     SearchSuggestions.Kind.PROPERTY, Feature.POKEMON_EGG_GROUPS)
     );
-
     public static final List<HelpSection> HELP_LEFT_SECTIONS = List.of(
             new HelpSection("ami.gui.search.help.common", List.of(
                     new Example("diamond", "ami.gui.search.help.plain", SearchSuggestions.Kind.PLAIN),
@@ -64,7 +48,6 @@ public final class SearchSyntax {
                     new Example("~energy", "ami.gui.search.help.meta", SearchSuggestions.Kind.META)
             ))
     );
-
     public static final String COMMON_SECTION_TITLE_KEY = "ami.gui.search.help.common";
     public static final List<HelpSection> HELP_RIGHT_SECTIONS = List.of(
             new HelpSection("ami.gui.search.help.advanced", List.of(
@@ -79,9 +62,21 @@ public final class SearchSyntax {
                     new Example("&nether", "ami.gui.search.help.environment", SearchSuggestions.Kind.ENVIRONMENT)
             ))
     );
-
     public static final String COMPAT_SECTION_TITLE_KEY = "ami.gui.search.help.compat";
     public static final String PROPERTIES_SECTION_TITLE_KEY = "ami.gui.search.help.properties";
+    private static final List<PrefixRule> PREFIX_RULES = List.of(
+            new PrefixRule('$', QueryParser.TokenType.CATEGORY, false),
+            new PrefixRule('~', QueryParser.TokenType.META, false),
+            new PrefixRule('#', QueryParser.TokenType.TAG, false),
+            new PrefixRule('@', QueryParser.TokenType.MOD, false),
+            new PrefixRule('&', QueryParser.TokenType.ENV, false),
+            new PrefixRule('?', QueryParser.TokenType.PROP, false),
+            new PrefixRule('^', QueryParser.TokenType.PLAYER, false),
+            new PrefixRule('!', QueryParser.TokenType.ESSENTIAL, false),
+            new PrefixRule('>', QueryParser.TokenType.ESM, true),
+            new PrefixRule('<', QueryParser.TokenType.ESM, true),
+            new PrefixRule('=', QueryParser.TokenType.ESM, true)
+    );
 
     private SearchSyntax() {
     }
@@ -227,6 +222,12 @@ public final class SearchSyntax {
         return value == null ? "" : value.toLowerCase(Locale.ROOT).replace("_", "").replace("-", "").trim();
     }
 
+    public enum Feature {
+        POKEMON_TYPES,
+        POKEMON_MOVES,
+        POKEMON_EGG_GROUPS
+    }
+
     public record PropertyField(String id, List<String> aliases, String descriptionKey, SearchSuggestions.Kind kind) {
         boolean matches(String normalized) {
             if (SearchSyntax.normalizeField(id).equals(normalized)) {
@@ -236,19 +237,14 @@ public final class SearchSyntax {
         }
     }
 
-    public enum Feature {
-        POKEMON_TYPES,
-        POKEMON_MOVES,
-        POKEMON_EGG_GROUPS
-    }
-
     private record PrefixRule(char prefix, QueryParser.TokenType type, boolean keepPrefix) {
     }
 
     public record ParsedPrefix(QueryParser.TokenType type, String value) {
     }
 
-    public record PrefixShortcut(String id, String replacement, String display, String propertyKey, String descriptionKey,
+    public record PrefixShortcut(String id, String replacement, String display, String propertyKey,
+                                 String descriptionKey,
                                  SearchSuggestions.Kind kind, Feature feature) {
     }
 

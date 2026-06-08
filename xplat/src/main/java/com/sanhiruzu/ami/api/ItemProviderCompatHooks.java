@@ -43,7 +43,7 @@ public final class ItemProviderCompatHooks {
     }
 
     public static void runPluginItemCompatHooks(ResourceLocation id, ItemStack stack, @Nullable Level level,
-                                         Map<String, String> metadata) {
+                                                Map<String, String> metadata) {
         if (id == null || stack == null || metadata == null) {
             return;
         }

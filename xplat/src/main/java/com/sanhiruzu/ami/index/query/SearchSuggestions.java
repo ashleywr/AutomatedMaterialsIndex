@@ -1,25 +1,13 @@
 package com.sanhiruzu.ami.index.query;
 
-import com.sanhiruzu.ami.index.GlobalIndex;
-import com.sanhiruzu.ami.index.AmiOntology;
-import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.compat.CompatDisplayNames;
-import com.sanhiruzu.ami.index.ItemFilter;
-import com.sanhiruzu.ami.index.NodeType;
-import com.sanhiruzu.ami.index.SearchNode;
-import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.index.resolvers.NumericMetadataResolver;
 import com.sanhiruzu.ami.index.resolvers.PlayerResolver;
 import com.sanhiruzu.ami.index.resolvers.PropertyResolver;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Builds search completions from the active AMI index instead of from a fixed
@@ -70,8 +58,10 @@ public final class SearchSuggestions {
             case '@' -> valueSuggestions(vocabulary.mods, text, token, "@", body.substring(1), limit, Kind.MOD);
             case '#' -> valueSuggestions(vocabulary.tags, text, token, "#", body.substring(1), limit, Kind.TAG);
             case '~' -> valueSuggestions(vocabulary.meta, text, token, "~", body.substring(1), limit, Kind.META);
-            case '$' -> valueSuggestions(vocabulary.categories, text, token, "$", body.substring(1), limit, Kind.CATEGORY);
-            case '&' -> valueSuggestions(vocabulary.environments, text, token, "&", body.substring(1), limit, Kind.ENVIRONMENT);
+            case '$' ->
+                    valueSuggestions(vocabulary.categories, text, token, "$", body.substring(1), limit, Kind.CATEGORY);
+            case '&' ->
+                    valueSuggestions(vocabulary.environments, text, token, "&", body.substring(1), limit, Kind.ENVIRONMENT);
             case '^' -> playerSuggestions(text, token, limit);
             case '%' -> prefixShortcutSuggestions(vocabulary, text, token, limit);
             case '>', '<', '=' -> numericSuggestions(vocabulary, text, token, prefix, limit);
@@ -490,11 +480,47 @@ public final class SearchSuggestions {
         return Integer.toString(count);
     }
 
-    private record Cache(long revision, boolean cheatMode, boolean devMode, boolean showHidden, boolean showCreativeItems,
-                        Vocabulary vocabulary) {
+    private static void addTokens(CountedValues values, String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
+            return;
+        }
+        for (String part : rawValue.split("[,\\s]+")) {
+            String token = cleanToken(part);
+            if (!token.isBlank()) {
+                values.add(token);
+            }
+        }
     }
 
-    private record ActiveToken(int start, int end, String raw, String body, boolean negated) {
+    private static boolean containsToken(String rawValue, String expected) {
+        if (rawValue == null || rawValue.isBlank()) {
+            return false;
+        }
+        String normalizedExpected = cleanToken(expected);
+        for (String part : rawValue.split("[,\\s]+")) {
+            if (cleanToken(part).equals(normalizedExpected)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String cleanToken(String raw) {
+        String token = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
+        while (token.startsWith("#")) {
+            token = token.substring(1);
+        }
+        return token;
+    }
+
+    private static boolean matchesConvention(String key, FieldConvention convention) {
+        String normalized = normalizeField(key);
+        return switch (convention) {
+            case FACTS -> normalized.endsWith("facts");
+            case KIND -> normalized.endsWith("itemkind");
+            case TIER -> normalized.endsWith("tier");
+            case ROLE -> normalized.endsWith("role") || normalized.endsWith("roles");
+        };
     }
 
     public enum Kind {
@@ -507,6 +533,21 @@ public final class SearchSuggestions {
         CATEGORY,
         ENVIRONMENT,
         PLAYER
+    }
+
+    private enum FieldConvention {
+        FACTS,
+        KIND,
+        TIER,
+        ROLE
+    }
+
+    private record Cache(long revision, boolean cheatMode, boolean devMode, boolean showHidden,
+                         boolean showCreativeItems,
+                         Vocabulary vocabulary) {
+    }
+
+    private record ActiveToken(int start, int end, String raw, String body, boolean negated) {
     }
 
     public record Suggestion(String replacement, String display, String detail, int replaceStart, int replaceEnd,
@@ -594,6 +635,13 @@ public final class SearchSuggestions {
                 return showCreativeItems;
             }
             return true;
+        }
+
+        private static boolean isGuideBookCandidate(SearchNode node) {
+            return "true".equalsIgnoreCase(node.meta(SearchNodeKeys.GUIDE_BOOK_CANDIDATE, ""))
+                    || containsToken(node.meta(SearchNodeKeys.FACETS, ""), "guide_book")
+                    || containsToken(node.meta(SearchNodeKeys.SEARCH_TOKENS, ""), "guidebook")
+                    || containsToken(node.meta(SearchNodeKeys.SEARCH_TOKENS, ""), "guidebooks");
         }
 
         private void add(SearchNode node, boolean includeDebugTokens) {
@@ -793,63 +841,6 @@ public final class SearchSuggestions {
                 }
             }
         }
-
-        private static boolean isGuideBookCandidate(SearchNode node) {
-            return "true".equalsIgnoreCase(node.meta(SearchNodeKeys.GUIDE_BOOK_CANDIDATE, ""))
-                    || containsToken(node.meta(SearchNodeKeys.FACETS, ""), "guide_book")
-                    || containsToken(node.meta(SearchNodeKeys.SEARCH_TOKENS, ""), "guidebook")
-                    || containsToken(node.meta(SearchNodeKeys.SEARCH_TOKENS, ""), "guidebooks");
-        }
-    }
-
-    private static void addTokens(CountedValues values, String rawValue) {
-        if (rawValue == null || rawValue.isBlank()) {
-            return;
-        }
-        for (String part : rawValue.split("[,\\s]+")) {
-            String token = cleanToken(part);
-            if (!token.isBlank()) {
-                values.add(token);
-            }
-        }
-    }
-
-    private static boolean containsToken(String rawValue, String expected) {
-        if (rawValue == null || rawValue.isBlank()) {
-            return false;
-        }
-        String normalizedExpected = cleanToken(expected);
-        for (String part : rawValue.split("[,\\s]+")) {
-            if (cleanToken(part).equals(normalizedExpected)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static String cleanToken(String raw) {
-        String token = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
-        while (token.startsWith("#")) {
-            token = token.substring(1);
-        }
-        return token;
-    }
-
-    private static boolean matchesConvention(String key, FieldConvention convention) {
-        String normalized = normalizeField(key);
-        return switch (convention) {
-            case FACTS -> normalized.endsWith("facts");
-            case KIND -> normalized.endsWith("itemkind");
-            case TIER -> normalized.endsWith("tier");
-            case ROLE -> normalized.endsWith("role") || normalized.endsWith("roles");
-        };
-    }
-
-    private enum FieldConvention {
-        FACTS,
-        KIND,
-        TIER,
-        ROLE
     }
 
     private static final class CountedValues {
@@ -858,6 +849,15 @@ public final class SearchSuggestions {
 
         static CountedValues empty() {
             return new CountedValues();
+        }
+
+        private static boolean tokenMatches(String value, String prefix) {
+            String normalized = normalizeValuePrefix(value);
+            return normalized.startsWith(prefix) || normalized.contains(prefix);
+        }
+
+        private static boolean startsWithToken(String value, String prefix) {
+            return normalizeValuePrefix(value).startsWith(prefix);
         }
 
         void add(String value) {
@@ -940,15 +940,6 @@ public final class SearchSuggestions {
                 }
             }
             return 1;
-        }
-
-        private static boolean tokenMatches(String value, String prefix) {
-            String normalized = normalizeValuePrefix(value);
-            return normalized.startsWith(prefix) || normalized.contains(prefix);
-        }
-
-        private static boolean startsWithToken(String value, String prefix) {
-            return normalizeValuePrefix(value).startsWith(prefix);
         }
     }
 }

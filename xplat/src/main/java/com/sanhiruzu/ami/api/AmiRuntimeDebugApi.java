@@ -4,27 +4,10 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.sanhiruzu.ami.client.results.GuideResultRow;
-import com.sanhiruzu.ami.client.results.ListLens;
-import com.sanhiruzu.ami.client.results.QuestResultRow;
-import com.sanhiruzu.ami.client.results.ResultsToolbar;
-import com.sanhiruzu.ami.client.results.ResultsTreeShapeDump;
-import com.sanhiruzu.ami.client.results.ResultsViewProjector;
-import com.sanhiruzu.ami.client.results.SearchState;
-import com.sanhiruzu.ami.client.results.TreeNode;
-import com.sanhiruzu.ami.index.AmiIndexerService;
-import com.sanhiruzu.ami.index.AmiIndexProgress;
-import com.sanhiruzu.ami.index.GlobalIndex;
-import com.sanhiruzu.ami.index.NodeType;
-import com.sanhiruzu.ami.index.SearchNode;
-import com.sanhiruzu.ami.index.SearchNodeKeys;
-import com.sanhiruzu.ami.index.SearchService;
+import com.sanhiruzu.ami.client.results.*;
+import com.sanhiruzu.ami.index.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * Reflection-friendly runtime hooks for local smoke automation.

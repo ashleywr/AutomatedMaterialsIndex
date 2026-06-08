@@ -88,15 +88,15 @@ public record AmiQuestTaskDocument(
         private final String id;
         private final String questId;
         private final Role role;
+        private final List<ResourceLocation> itemIds = new ArrayList<>();
+        private final List<String> tags = new ArrayList<>();
         private String taskType = "";
         private String title = "";
-        private final List<ResourceLocation> itemIds = new ArrayList<>();
         private long requiredCount;
         private long progress;
         private boolean consumesItems;
         private boolean craftingOnly;
         private boolean highCardinality;
-        private final List<String> tags = new ArrayList<>();
 
         private Builder(String id, String questId, Role role) {
             this.id = id;

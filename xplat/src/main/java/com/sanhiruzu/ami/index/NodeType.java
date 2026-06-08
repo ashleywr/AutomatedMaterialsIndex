@@ -38,6 +38,7 @@ public enum NodeType {
             case STRUCTURE -> "ami.tooltip.structure";
             case DIMENSION -> "ami.tooltip.dimension";
             case ENTITY -> "ami.tooltip.entity";
+            case PLAYER -> "ami.tooltip.player_subtitle";
             default -> "ami.tooltip.generic";
         };
     }

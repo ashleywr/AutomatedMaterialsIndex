@@ -17,7 +17,7 @@ public final class TooltipFactSupport {
 
     public static List<Component> line(String key, String value, int valueColorArgb) {
         if (value == null || value.isBlank()) return List.of();
-        
+
         // Formats the injected %s value with the bright color, while the base translation string remains subtle
         return List.of(Component.translatable(key, Component.literal(value).withStyle(s -> s.withColor(valueColorArgb)))
                 .withStyle(s -> s.withColor(AMITheme.TEXT_SUBTLE)));
@@ -25,7 +25,7 @@ public final class TooltipFactSupport {
 
     public static List<Component> line(String key, String value, ChatFormatting formatting) {
         if (value == null || value.isBlank()) return List.of();
-        
+
         return List.of(Component.translatable(key, Component.literal(value).withStyle(formatting))
                 .withStyle(s -> s.withColor(AMITheme.TEXT_SUBTLE)));
     }

@@ -4,11 +4,7 @@ import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.network.chat.Component;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Shows Create mod recipe roles ("Used in: Mixer, Press") and a ponder badge
@@ -16,13 +12,37 @@ import java.util.Set;
  */
 public final class CreateTooltipFact implements AmiTooltipFact {
 
+    private static String machineName(String role) {
+        return switch (role.toLowerCase(Locale.ROOT)) {
+            case "pressing" -> "Press";
+            case "crushing" -> "Crusher";
+            case "mixing", "basin" -> "Mixer";
+            case "milling" -> "Millstone";
+            case "cutting", "sawing" -> "Saw";
+            case "compacting" -> "Compactor";
+            case "deploying" -> "Deployer";
+            case "item_application" -> "Deployer";
+            case "fan_washing",
+                 "washing" -> "Fan Washing";
+            case "fan_blasting",
+                 "blasting" -> "Fan Blasting";
+            case "fan_smoking",
+                 "smoking" -> "Fan Smoking";
+            case "fan_haunting",
+                 "haunting" -> "Fan Haunting";
+            case "mechanical_crafting" -> "Mech. Crafting";
+            case "sequenced_assembly" -> "Sequenced Assembly";
+            default -> "";
+        };
+    }
+
     @Override
     public List<Component> build(SearchNode entry) {
         List<Component> lines = new ArrayList<>();
 
         String rolesRaw = entry.meta(SearchNodeKeys.CREATE_RECIPE_ROLES, "");
         if (!rolesRaw.isBlank()) {
-            Set<String> inputs  = new LinkedHashSet<>();
+            Set<String> inputs = new LinkedHashSet<>();
             Set<String> outputs = new LinkedHashSet<>();
 
             for (String token : rolesRaw.split(",")) {
@@ -51,29 +71,5 @@ public final class CreateTooltipFact implements AmiTooltipFact {
         }
 
         return lines;
-    }
-
-    private static String machineName(String role) {
-        return switch (role.toLowerCase(Locale.ROOT)) {
-            case "pressing"             -> "Press";
-            case "crushing"             -> "Crusher";
-            case "mixing", "basin"      -> "Mixer";
-            case "milling"              -> "Millstone";
-            case "cutting", "sawing"    -> "Saw";
-            case "compacting"           -> "Compactor";
-            case "deploying"            -> "Deployer";
-            case "item_application"     -> "Deployer";
-            case "fan_washing",
-                 "washing"             -> "Fan Washing";
-            case "fan_blasting",
-                 "blasting"            -> "Fan Blasting";
-            case "fan_smoking",
-                 "smoking"             -> "Fan Smoking";
-            case "fan_haunting",
-                 "haunting"            -> "Fan Haunting";
-            case "mechanical_crafting"  -> "Mech. Crafting";
-            case "sequenced_assembly"   -> "Sequenced Assembly";
-            default                     -> "";
-        };
     }
 }

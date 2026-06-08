@@ -266,8 +266,6 @@ public final class PlayerWaypointProviders {
     private static SearchNode toNode(PlayerWaypointProvider provider, LiveWaypoint waypoint) {
         Map<String, String> meta = new HashMap<>(waypoint.metadata());
         meta.put(SearchNodeKeys.MOD_ID, provider.id());
-        meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, "world");
-        meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "waypoints");
         meta.put(SearchNodeKeys.WAYPOINT_PROVIDER, provider.id());
         meta.put(SearchNodeKeys.WAYPOINT_PROVIDER_LABEL, provider.label());
         meta.put(SearchNodeKeys.WAYPOINT_ID, waypoint.id());

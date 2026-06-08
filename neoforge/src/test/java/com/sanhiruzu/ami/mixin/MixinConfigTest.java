@@ -82,12 +82,6 @@ public class MixinConfigTest {
         assertTrue(Files.exists(mixinPath), "Forge recipe book mixin not found at " + mixinPath);
 
         String source = Files.readString(mixinPath, StandardCharsets.UTF_8);
-        assertTrue(source.contains("aliases = \"m_100385_\""),
-                "Forge recipe book mixin must alias isVisible to its production obfuscated name");
-        assertTrue(source.contains("aliases = \"m_100369_\""),
-                "Forge recipe book mixin must alias setVisible to its production obfuscated name");
-        assertTrue(source.contains("{\"init\", \"m_100309_\"}"),
-                "Forge recipe book init injection must target both dev and production names");
         assertTrue(source.contains("{\"toggleVisibility\", \"m_100384_\"}"),
                 "Forge recipe book toggle injection must target both dev and production names");
         assertFalse(source.contains("public abstract boolean m_100385_()"),

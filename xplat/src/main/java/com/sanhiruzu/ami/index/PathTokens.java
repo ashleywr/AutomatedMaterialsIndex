@@ -1,11 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -38,6 +33,30 @@ public final class PathTokens {
             return new PathTokens("");
         }
         return CACHE.computeIfAbsent(normalized, key -> new PathTokens(key, true));
+    }
+
+    private static String normalize(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        return value.replaceAll("([a-z])([A-Z])", "$1 $2")
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", " ")
+                .trim()
+                .replaceAll("\\s+", " ");
+    }
+
+    private static List<String> split(String normalized) {
+        if (normalized == null || normalized.isBlank()) {
+            return List.of();
+        }
+        List<String> result = new ArrayList<>();
+        for (String part : normalized.split(" ")) {
+            if (!part.isBlank()) {
+                result.add(part);
+            }
+        }
+        return result;
     }
 
     public boolean contains(String tokenOrPhrase) {
@@ -126,29 +145,5 @@ public final class PathTokens {
             }
         }
         return false;
-    }
-
-    private static String normalize(String value) {
-        if (value == null || value.isBlank()) {
-            return "";
-        }
-        return value.replaceAll("([a-z])([A-Z])", "$1 $2")
-                .toLowerCase(Locale.ROOT)
-                .replaceAll("[^a-z0-9]+", " ")
-                .trim()
-                .replaceAll("\\s+", " ");
-    }
-
-    private static List<String> split(String normalized) {
-        if (normalized == null || normalized.isBlank()) {
-            return List.of();
-        }
-        List<String> result = new ArrayList<>();
-        for (String part : normalized.split(" ")) {
-            if (!part.isBlank()) {
-                result.add(part);
-            }
-        }
-        return result;
     }
 }
