@@ -85,6 +85,12 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
     @Override
     public List<PlayerWaypointAction> liveWaypointActions(LiveWaypointContext context) {
         if (context == null || context.waypoint() == null) return List.of();
+
+        // Waystones-synced waypoints are read-only - no edit/delete
+        if ("true".equals(context.waypoint().metadata().get("waystone_sync"))) {
+            return List.of();
+        }
+
         List<PlayerWaypointAction> actions = new ArrayList<>();
         actions.add(new PlayerWaypointAction(
                 "ami:edit_journeymap_waypoint",
