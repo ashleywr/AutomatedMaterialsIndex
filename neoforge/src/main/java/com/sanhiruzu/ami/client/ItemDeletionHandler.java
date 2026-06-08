@@ -24,17 +24,21 @@ final class ItemDeletionHandler {
     static void handleItemDeleted(ResourceLocation nodeId) {
         if (nodeId == null) return;
 
+        LOGGER.log(Level.INFO, "ItemDeletionHandler.handleItemDeleted: " + nodeId);
         try {
             // Mark for soft and hard deletion
+            LOGGER.log(Level.INFO, "  - Marking soft deleted");
             SoftDeleteTracker.markSoftDeleted(nodeId);
+            LOGGER.log(Level.INFO, "  - Marking hard deleted");
             DeletedSearchNodesTracker.markDeleted(nodeId);
+            LOGGER.log(Level.INFO, "  - Calling refreshOverlayResults");
 
             // Refresh with state preservation
             InventoryOverlayHandler.refreshOverlayResults();
 
-            LOGGER.log(Level.FINE, "AMI: Item deleted: " + nodeId);
+            LOGGER.log(Level.INFO, "ItemDeletionHandler: Item deleted successfully: " + nodeId);
         } catch (RuntimeException | LinkageError e) {
-            LOGGER.log(Level.FINE, "AMI: Failed to handle item deletion", e);
+            LOGGER.log(Level.WARNING, "ItemDeletionHandler: Failed to handle item deletion: " + nodeId, e);
         }
     }
 }

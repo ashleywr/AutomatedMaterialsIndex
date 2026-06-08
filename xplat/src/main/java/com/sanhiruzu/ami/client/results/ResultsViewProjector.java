@@ -19,10 +19,30 @@ public final class ResultsViewProjector {
      * context-specific processing, so deletions are consistently applied everywhere.
      */
     private static List<SearchNode> applyUniversalFilters(List<SearchNode> nodes) {
-        return nodes.stream()
-                .filter(n -> !DeletedSearchNodesTracker.isDeleted(n.id()))
-                .filter(n -> !SoftDeleteTracker.isFullyFaded(n.id()))
+        int originalSize = nodes.size();
+        List<SearchNode> filtered = nodes.stream()
+                .filter(n -> {
+                    boolean isDeleted = DeletedSearchNodesTracker.isDeleted(n.id());
+                    if (isDeleted) {
+                        java.util.logging.Logger.getLogger(ResultsViewProjector.class.getName())
+                                .log(java.util.logging.Level.INFO, "Filtering out deleted node: " + n.id());
+                    }
+                    return !isDeleted;
+                })
+                .filter(n -> {
+                    boolean isFaded = SoftDeleteTracker.isFullyFaded(n.id());
+                    if (isFaded) {
+                        java.util.logging.Logger.getLogger(ResultsViewProjector.class.getName())
+                                .log(java.util.logging.Level.INFO, "Filtering out faded node: " + n.id());
+                    }
+                    return !isFaded;
+                })
                 .collect(Collectors.toList());
+        if (originalSize != filtered.size()) {
+            java.util.logging.Logger.getLogger(ResultsViewProjector.class.getName())
+                    .log(java.util.logging.Level.INFO, "applyUniversalFilters: " + originalSize + " -> " + filtered.size());
+        }
+        return filtered;
     }
 
     public static Projection project(List<SearchNode> source,
