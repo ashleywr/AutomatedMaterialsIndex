@@ -145,8 +145,12 @@ public class ResultsTreeView {
     }
 
     public void setRootNodes(List<TreeNode> nodes) {
+        setRootNodes(nodes, true);
+    }
+
+    public void setRootNodes(List<TreeNode> nodes, boolean resetScroll) {
         this.rootNodes = nodes;
-        this.pixelScrollOffset = 0;
+        if (resetScroll) this.pixelScrollOffset = 0;
         this.representativeCache.clear();
     }
 

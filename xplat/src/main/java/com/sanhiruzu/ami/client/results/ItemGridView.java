@@ -125,8 +125,12 @@ public class ItemGridView {
     }
 
     public void setRootNodes(List<TreeNode> nodes) {
+        setRootNodes(nodes, true);
+    }
+
+    public void setRootNodes(List<TreeNode> nodes, boolean resetScroll) {
         this.rootNodes = copyNodesForGrid(nodes);
-        this.pixelScrollOffset = 0;
+        if (resetScroll) this.pixelScrollOffset = 0;
         this.cachedRows = null;
     }
 
