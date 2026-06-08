@@ -2,6 +2,37 @@
 
 User-facing changes are recorded here.
 
+## 1.4.0 - 2026-06-08
+
+AMI 1.4.0 expands mod compatibility, adds runtime player and waypoint search utilities, and tightens AMI's overlay/favorites behavior when sharing inventory screens with EMI, JEI, and the vanilla recipe book.
+
+### Added
+
+- Added runtime `^player` search utilities for player heads, online-player entries, lookup history, and provider-backed waypoint/player actions without requiring those volatile entries to live in the static global index.
+- Added player utility actions for copying names, giving player heads, copying waypoint data, creating native JourneyMap and FTB Chunks waypoints when available, and admin-gated teleport actions where the client can determine that the action is valid.
+- Added optional full 3D player model rendering for player-search results, including async offline skin/profile lookup and hover-driven model spin, with fallback rendering when the richer path is unavailable.
+- Added persistent AMI-owned favorites storage for runtime-only favorites such as player and waypoint entries, including offline/unavailable fallback rows so those favorites remain visible after the live source disappears.
+- Added favorite reordering for the favorites sidebar and runtime-favorite tooltip states so stale entries explain why the live target is unavailable.
+- Added a provider registry and compat facade for player/waypoint integrations, including detected support for JourneyMap, FTB Chunks, Waystones, Xaero map/minimap detection, and manual coordinate export fallbacks.
+- Added focused compat routing for Ars Nouveau, Spectrum, Nature's Aura, additional Mana and Artifice slices, AE2/AppMek-related items, Waystones, and more generated/runtime item families that previously fell into generic buckets.
+- Added Russian localization and refreshed Chinese localization coverage.
+
+### Changed
+
+- Reworked AMI/EMI/JEI inventory-screen ownership around a shared visibility-layer model so Alt+V, the recipe-book button, and start-hidden behavior consistently switch between AMI, external viewers, and fully hidden states.
+- Improved the favorites sidebar with header controls, a collapsible sidebar rail, better drag/drop behavior, and cleaner interaction between AMI favorites and external viewer favorites.
+- Improved player-search suggestions so online players rank first, then local history, with bounded suggestion/result counts and synchronized `^` help text/config descriptions.
+- Expanded the config surface for player utility search and recipe-book behavior, including the recipe-book action selector and updated option tooltips.
+- Refined several search/routing heuristics to prefer compat facts, runtime providers, and exact token matches over broader fallback path matching.
+
+### Fixed
+
+- Fixed a config dropdown interaction crash and the shared enum-dropdown tooltip path so config option descriptions render without depending on protected screen internals.
+- Fixed recipe-book interception ordering so AMI's mixins win cleanly against EMI/Forge recipe-book hooks when AMI is configured to own the button behavior.
+- Fixed overlay suppression and sidebar sync edge cases that could leave AMI, EMI, JEI, or the vanilla recipe book in the wrong visible state after toggles or screen transitions.
+- Fixed player-head search/history coverage gaps with deterministic tests that keep live/history suggestion ordering aligned with the current search document contract.
+- Fixed several runtime and generated-item classification gaps, including additional mod families and utility items that previously landed in noisy fallback categories.
+
 ## 1.3.2 - 2026-06-07
 
 AMI 1.3.2 is a hotfix release for recent runtime, UI, and guide-integration regressions.
