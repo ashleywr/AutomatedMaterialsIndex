@@ -150,10 +150,22 @@ public final class AmiRecipeIndex {
         return list == null ? List.of() : List.copyOf(list);
     }
 
+    public boolean hasRecipesFor(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        List<AmiRecipeHolder<?>> list = recipesByOutput.get(stack.getItem());
+        return list != null && !list.isEmpty();
+    }
+
     public List<AmiRecipeHolder<?>> getUsesFor(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return List.of();
         List<AmiRecipeHolder<?>> list = recipesByInput.get(stack.getItem());
         return list == null ? List.of() : List.copyOf(list);
+    }
+
+    public boolean hasUsesFor(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        List<AmiRecipeHolder<?>> list = recipesByInput.get(stack.getItem());
+        return list != null && !list.isEmpty();
     }
 
     public int recipeCount() {

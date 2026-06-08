@@ -448,8 +448,18 @@ public class ForgePlatformHelper implements IPlatformHelper {
     }
 
     @Override
+    public boolean hasRecipesFor(ItemStack target) {
+        return AmiRecipeIndex.getInstance().hasRecipesFor(target);
+    }
+
+    @Override
     public List<AmiRecipeHolder<?>> getUsesFor(ItemStack target) {
         return AmiRecipeIndex.getInstance().getUsesFor(target);
+    }
+
+    @Override
+    public boolean hasUsesFor(ItemStack target) {
+        return AmiRecipeIndex.getInstance().hasUsesFor(target);
     }
 
     @Override
