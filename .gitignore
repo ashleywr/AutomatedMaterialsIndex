@@ -55,12 +55,6 @@ anomaly_report.md
 vendor-sources/
 internal/
 
-### Claude Code / AI Agent Files ###
-.claude/
-CLAUDE.md
-.geminiignore
-AGENTS.md
-
 ### Local Development ###
 dev/
 font_issue.png
