@@ -134,6 +134,9 @@ public final class AmiIndexerService {
         String buildLanguageCode = GlobalIndexCache.currentClientLanguageCacheKey();
         GlobalIndex index = GlobalIndex.getInstance();
 
+        // Clear deletion tracker since we're rebuilding the index
+        com.sanhiruzu.ami.client.results.DeletedSearchNodesTracker.clear();
+
         // 1. Core indexing of all standard types
         beginProgress("Preparing index");
         GroupingEngine.initialize(level);
