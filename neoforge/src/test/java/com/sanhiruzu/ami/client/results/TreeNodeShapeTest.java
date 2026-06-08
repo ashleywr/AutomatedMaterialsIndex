@@ -35,6 +35,27 @@ class TreeNodeShapeTest {
     }
 
     @Test
+    void waypointDeletionIsDetectedAsDifferentShape() {
+        TreeNode waypoint = leaf("waystones:waystone_oak", "Oak Waystone");
+        TreeNode item = leaf("minecraft:stone", "Stone");
+
+        List<TreeNode> withWaypoint = List.of(waypoint, item);
+        List<TreeNode> withoutWaypoint = List.of(item);
+
+        assertFalse(TreeNodeShape.sameVisibleContent(withWaypoint, withoutWaypoint));
+        assertFalse(TreeNodeShape.sameVisibleContent(withoutWaypoint, withWaypoint));
+    }
+
+    @Test
+    void sameNodesAfterIncrementalUpdateAreStillEquivalent() {
+        TreeNode item = leaf("minecraft:stone", "Stone");
+        List<TreeNode> before = List.of(item);
+        List<TreeNode> after = List.of(leaf("minecraft:stone", "Stone"));
+
+        assertTrue(TreeNodeShape.sameVisibleContent(before, after));
+    }
+
+    @Test
     void resolvedNodeMetadataChangesInvalidateShape() {
         TreeNode fallback = leaf("example:missing_machine", "example:missing_machine", Map.of(
                 SearchNodeKeys.MOD_ID, "example",

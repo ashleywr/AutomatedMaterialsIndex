@@ -10,7 +10,10 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 
+import java.lang.reflect.Field;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ItemGridViewTest {
 
@@ -214,5 +217,42 @@ public class ItemGridViewTest {
         assertEquals("Iron Chest", itemLabel(rows.get(1), 0));
         assertEquals("Barrels", itemLabel(rows.get(1), 1));
         assertEquals("Storage Terminal", itemLabel(rows.get(1), 2));
+    }
+
+    @Test
+    void setRootNodesWithResetScrollClearsOffset() throws Exception {
+        ItemGridView gridView = new ItemGridView(0, 0, 61, 400);
+        List<TreeNode> nodes = List.of(leaf("stone", "Stone"), leaf("dirt", "Dirt"), leaf("sand", "Sand"));
+        gridView.setRootNodes(nodes);
+        setScrollOffset(gridView, 99);
+
+        gridView.setRootNodes(nodes, true);
+
+        assertEquals(0, getScrollOffset(gridView));
+    }
+
+    @Test
+    void setRootNodesWithoutResetScrollPreservesOffset() throws Exception {
+        ItemGridView gridView = new ItemGridView(0, 0, 61, 400);
+        List<TreeNode> before = List.of(leaf("stone", "Stone"), leaf("dirt", "Dirt"), leaf("sand", "Sand"));
+        gridView.setRootNodes(before);
+        setScrollOffset(gridView, 99);
+
+        List<TreeNode> after = List.of(leaf("stone", "Stone"), leaf("dirt", "Dirt"));
+        gridView.setRootNodes(after, false);
+
+        assertEquals(99, getScrollOffset(gridView));
+    }
+
+    private static int getScrollOffset(ItemGridView gridView) throws Exception {
+        Field f = ItemGridView.class.getDeclaredField("pixelScrollOffset");
+        f.setAccessible(true);
+        return (int) f.get(gridView);
+    }
+
+    private static void setScrollOffset(ItemGridView gridView, int offset) throws Exception {
+        Field f = ItemGridView.class.getDeclaredField("pixelScrollOffset");
+        f.setAccessible(true);
+        f.set(gridView, offset);
     }
 }

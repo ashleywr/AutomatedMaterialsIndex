@@ -80,6 +80,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private ItemGridView gridView;
     private final ResultContextMenu contextMenu = new ResultContextMenu();
     private final ResultContextMenuActionBuilder contextMenuActions = new ResultContextMenuActionBuilder();
+    private static final long LENS_DEBOUNCE_MS = 2000;
     private List<SearchNode> currentResults = new ArrayList<>();
     private String currentQuery = "";
     private SearchService searchService;
@@ -87,6 +88,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private ResultsViewProjector.Projection emptyQueryProjectionCache = null;
     private String emptyQueryProjectionCacheKey = "";
     private List<ListLens> cachedAvailableLenses = null;
+    private long lensesLastComputedMs = 0;
+    private boolean lensesDirty = true;
     private List<GuideResultRow> currentGuideRows = List.of();
     private List<QuestResultRow> currentQuestRows = List.of();
     private Runnable externalResetCallback;
@@ -273,16 +276,13 @@ public class UniversalResultsPanel implements SearchState.Listener {
     public void setEntries(List<SearchNode> entries, boolean incrementalUpdate) {
         this.currentResults = entries;
         invalidateProjectionCache();
-        if (!incrementalUpdate) {
-            cachedAvailableLenses = null;
-            refreshAvailableListLenses();
+        if (incrementalUpdate) {
+            lensesDirty = true;
+        } else {
+            forceLensRecompute();
         }
-        isIncrementalUpdate = incrementalUpdate;
-        try {
-            refreshTree();
-        } finally {
-            isIncrementalUpdate = false;
-        }
+        refreshAvailableListLenses();
+        refreshTree(incrementalUpdate);
     }
 
     /**
@@ -320,7 +320,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         for (List<SearchNode> list : results.values()) flat.addAll(list);
         this.currentResults = flat;
         invalidateProjectionCache();
-        cachedAvailableLenses = null;
+        forceLensRecompute();
         refreshAvailableListLenses();
         String normalizedQuery = query == null ? "" : query.trim();
         if (state.getQuery().equals(normalizedQuery)) {
@@ -1247,7 +1247,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             lastDevMode = devMode;
             lastShowCreativeItems = showCreativeItems;
             invalidateProjectionCache();
-            cachedAvailableLenses = null;
+            forceLensRecompute();
             refreshAvailableListLenses();
             refreshTree();
         }
@@ -1260,6 +1260,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
 
     private void refreshTree() {
+        refreshTree(false);
+    }
+
+    private void refreshTree(boolean incrementalUpdate) {
         // Skip expensive tree rebuilds if we are hidden
         var manager = com.sanhiruzu.ami.client.InventoryOverlayHandler.getManager();
         if (manager != null && !manager.isPanelVisible() && !isFavoritesPanel) return;
@@ -1269,7 +1273,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         currentGuideRows = projection.guideRows();
         currentQuestRows = projection.questRows();
         updateResultViewLayouts();
-        setViewRoots(projection.roots());
+        setViewRoots(projection.roots(), incrementalUpdate);
     }
 
     private ResultsViewProjector.Projection projectResults() {
@@ -1323,21 +1327,30 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     private void refreshAvailableListLenses() {
-        if (cachedAvailableLenses != null) {
-            return;
-        }
+        if (!lensesDirty) return;
+        long now = System.currentTimeMillis();
+        if (cachedAvailableLenses != null && now - lensesLastComputedMs < LENS_DEBOUNCE_MS) return;
         cachedAvailableLenses = ListLens.availableFor(resolveSource());
+        lensesLastComputedMs = now;
+        lensesDirty = false;
         state.setAvailableListLenses(cachedAvailableLenses);
     }
 
-    private boolean isIncrementalUpdate = false;
+    private void forceLensRecompute() {
+        lensesLastComputedMs = 0;
+        lensesDirty = true;
+    }
 
     private void setViewRoots(List<TreeNode> roots) {
+        setViewRoots(roots, false);
+    }
+
+    private void setViewRoots(List<TreeNode> roots, boolean incrementalUpdate) {
         List<TreeNode> normalized = ResultsTreeNormalizer.normalize(roots);
         if (TreeNodeShape.sameVisibleContent(treeView.getRootNodes(), normalized)) {
             return;
         }
-        boolean resetScroll = !isIncrementalUpdate;
+        boolean resetScroll = !incrementalUpdate;
         ResultsExpansionDefaults.apply(normalized, AmiConfig.resultsExpandedByDefault);
         treeView.setRootNodes(normalized, resetScroll);
         gridView.setRootNodes(normalized, resetScroll);
@@ -1585,6 +1598,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
         currentResults = updated;
         invalidateProjectionCache();
+        forceLensRecompute();
         refreshAvailableListLenses();
         refreshTree();
         gridView.invalidateCache();
