@@ -161,6 +161,47 @@ class PlayerWaypointProvidersTest {
         org.junit.jupiter.api.Assertions.assertTrue(export.get().payload().contains("/tp @s 10 64 -20"));
     }
 
+    @Test
+    void liveWaypointNodesNormalizeEnvironmentWaypointsMetadata() {
+        PlayerWaypointProvider provider = new PlayerWaypointProvider() {
+            @Override
+            public String id() {
+                return "test_provider";
+            }
+
+            @Override
+            public String label() {
+                return "Test Provider";
+            }
+
+            @Override
+            public boolean isAvailable() {
+                return true;
+            }
+
+            @Override
+            public List<LiveWaypoint> liveWaypoints() {
+                return List.of(new LiveWaypoint(
+                        id(),
+                        label(),
+                        "demo",
+                        "Demo",
+                        "minecraft:overworld",
+                        10,
+                        64,
+                        -5,
+                        Map.of(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "provider_specific")
+                ));
+            }
+        };
+
+        var nodes = PlayerWaypointProviders.liveWaypointNodesForTests(List.of(provider));
+
+        assertEquals(1, nodes.size());
+        assertEquals("environment", nodes.get(0).meta(SearchNodeKeys.ONTOLOGY_CATEGORY, ""));
+        assertEquals("waypoints", nodes.get(0).meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, ""));
+    }
+
     private static PlayerWaypointProvider provider(String id, boolean available) {
         return new PlayerWaypointProvider() {
             @Override

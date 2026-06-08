@@ -169,7 +169,7 @@ final class WaystonesWaypointProvider implements PlayerWaypointProvider {
         Map<String, String> meta = new HashMap<>();
         meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, AmiOntology.ENVIRONMENT.id);
         meta.put(SearchNodeKeys.WAYPOINT_OWNER, ownerUid);
-        meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "waystones");
+        meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "waypoints");
         meta.put("waystonesWaystoneType", stringValue(invoke(waystone, "getWaystoneType"), "unknown"));
 
         return Optional.of(new LiveWaypoint(ID, LABEL, id, name, dimension, pos.getX(), pos.getY(), pos.getZ(), meta));

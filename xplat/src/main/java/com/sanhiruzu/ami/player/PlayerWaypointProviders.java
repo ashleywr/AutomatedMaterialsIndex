@@ -61,8 +61,16 @@ public final class PlayerWaypointProviders {
     }
 
     public static List<SearchNode> liveWaypointNodes() {
+        return liveWaypointNodes(providers());
+    }
+
+    static List<SearchNode> liveWaypointNodesForTests(List<PlayerWaypointProvider> providers) {
+        return liveWaypointNodes(providers);
+    }
+
+    private static List<SearchNode> liveWaypointNodes(List<PlayerWaypointProvider> providers) {
         List<SearchNode> nodes = new ArrayList<>();
-        for (PlayerWaypointProvider provider : providers()) {
+        for (PlayerWaypointProvider provider : providers) {
             if (!available(provider)) {
                 continue;
             }
@@ -266,6 +274,8 @@ public final class PlayerWaypointProviders {
     private static SearchNode toNode(PlayerWaypointProvider provider, LiveWaypoint waypoint) {
         Map<String, String> meta = new HashMap<>(waypoint.metadata());
         meta.put(SearchNodeKeys.MOD_ID, provider.id());
+        meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, "environment");
+        meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "waypoints");
         meta.put(SearchNodeKeys.WAYPOINT_PROVIDER, provider.id());
         meta.put(SearchNodeKeys.WAYPOINT_PROVIDER_LABEL, provider.label());
         meta.put(SearchNodeKeys.WAYPOINT_ID, waypoint.id());
