@@ -85,6 +85,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private String currentQuery = "";
     private SearchService searchService;
     private long searchServiceRevision = Long.MIN_VALUE;
+    private long runtimeSearchRevision = Long.MIN_VALUE;
     private ResultsViewProjector.Projection emptyQueryProjectionCache = null;
     private String emptyQueryProjectionCacheKey = "";
     private List<ListLens> cachedAvailableLenses = null;
@@ -342,6 +343,16 @@ public class UniversalResultsPanel implements SearchState.Listener {
             return false;
         }
         setSearchService(service, revision);
+        return true;
+    }
+
+    public boolean setRuntimeSearchRevisionIfChanged(long revision) {
+        if (this.runtimeSearchRevision == revision) {
+            return false;
+        }
+        this.runtimeSearchRevision = revision;
+        invalidateProjectionCache();
+        refreshTree(true);
         return true;
     }
 
@@ -1304,6 +1315,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             return null;
         }
         return GlobalIndex.getInstance().revision() + "|searchRevision=" + searchServiceRevision
+                + "|runtimeRevision=" + runtimeSearchRevision
                 + "|source=" + System.identityHashCode(currentResults)
                 + "|size=" + currentResults.size()
                 + "|view=" + state.getViewMode()
