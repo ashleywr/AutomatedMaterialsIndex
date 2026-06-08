@@ -86,10 +86,10 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
         if (context == null || context.waypoint() == null) return List.of();
         List<PlayerWaypointAction> actions = new ArrayList<>();
         actions.add(new PlayerWaypointAction(
-                "ami:open_journeymap_waypoint",
-                "Open " + LABEL + " Waypoint",
-                'o',
-                () -> openWaypoint(context.waypoint())
+                "ami:edit_journeymap_waypoint",
+                "Edit " + LABEL + " Waypoint",
+                'e',
+                () -> editWaypoint(context.waypoint())
         ));
         findLiveWaypoint(context.waypoint()).ifPresent(waypoint -> actions.add(new PlayerWaypointAction(
                 "ami:delete_journeymap_waypoint",
@@ -105,9 +105,9 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
         if (context == null || context.waypoint() == null) return Optional.empty();
         return Optional.of(new PlayerWaypointAction(
                 "ami:open_journeymap_waypoint",
-                "Open " + LABEL + " Waypoint",
+                "Open " + LABEL + " Map",
                 'o',
-                () -> openWaypoint(context.waypoint())
+                () -> openMapCenteredOn(context.waypoint())
         ));
     }
 
@@ -214,7 +214,33 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
         return Optional.empty();
     }
 
-    private static void openWaypoint(LiveWaypoint target) {
+    private static void openMapCenteredOn(LiveWaypoint target) {
+        try {
+            Class<?> fullscreenClass = Class.forName("journeymap.client.ui.fullscreen.Fullscreen");
+            Object screen = fullscreenClass.getConstructor().newInstance();
+            if (screen instanceof Screen minecraftScreen) {
+                Minecraft.getInstance().setScreen(minecraftScreen);
+                return;
+            }
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Failed to open JourneyMap fullscreen map", e);
+        }
+
+        try {
+            Class<?> apiClass = Class.forName("journeymap.api.JourneyMapAPI");
+            Object api = apiClass.getMethod("getInstance").invoke(null);
+            if (api != null) {
+                apiClass.getMethod("showMapping").invoke(api);
+                return;
+            }
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Failed to use JourneyMap API to open map", e);
+        }
+
+        openWaypointManager();
+    }
+
+    private static void editWaypoint(LiveWaypoint target) {
         findLiveWaypoint(target).ifPresentOrElse(waypoint -> {
             try {
                 Class<?> waypointClass = Class.forName("journeymap.client.waypoint.ClientWaypointImpl");
@@ -225,7 +251,7 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
                     Minecraft.getInstance().setScreen(minecraftScreen);
                 }
             } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
-                LOGGER.log(Level.FINE, "AMI: Failed to open JourneyMap waypoint " + target.id(), e);
+                LOGGER.log(Level.FINE, "AMI: Failed to edit JourneyMap waypoint " + target.id(), e);
             }
         }, JourneyMapWaypointProvider::openWaypointManager);
     }
@@ -245,7 +271,10 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
 
     private static void deleteWaypoint(Object waypoint) {
         Object store = waypointStore().orElse(null);
-        if (store == null) return;
+        if (store == null) {
+            LOGGER.log(Level.FINE, "AMI: Cannot delete JourneyMap waypoint - store unavailable");
+            return;
+        }
         try {
             Class<?> waypointClass = Class.forName("journeymap.client.waypoint.ClientWaypointImpl");
             Object selfScope = Class.forName("journeymap.common.waypoint.WaypointScope")
@@ -253,7 +282,8 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
                     .invoke(null);
             Class<?> waypointScopeClass = Class.forName("journeymap.common.waypoint.WaypointScope");
             store.getClass().getMethod("remove", waypointClass, boolean.class, waypointScopeClass)
-                    .invoke(store, waypoint, false, selfScope);
+                    .invoke(store, waypoint, true, selfScope);
+            LOGGER.log(Level.FINE, "AMI: JourneyMap waypoint deleted successfully");
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
             LOGGER.log(Level.WARNING, "AMI: Failed to delete JourneyMap waypoint", e);
         }
