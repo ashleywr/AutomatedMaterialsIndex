@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.player;
 
+import com.sanhiruzu.ami.client.results.DeletedSearchNodesTracker;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.Minecraft;
@@ -91,11 +92,15 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
                 'e',
                 () -> editWaypoint(context.waypoint())
         ));
-        findLiveWaypoint(context.waypoint()).ifPresent(waypoint -> actions.add(new PlayerWaypointAction(
+        LiveWaypoint target = context.waypoint();
+        findLiveWaypoint(target).ifPresent(waypoint -> actions.add(new PlayerWaypointAction(
                 "ami:delete_journeymap_waypoint",
                 "Delete " + LABEL + " Waypoint",
                 'd',
-                () -> deleteWaypoint(waypoint)
+                () -> {
+                    markWaypointAsDeleted(target);
+                    deleteWaypoint(waypoint);
+                }
         )));
         return List.copyOf(actions);
     }
@@ -254,6 +259,20 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
                 LOGGER.log(Level.FINE, "AMI: Failed to edit JourneyMap waypoint " + target.id(), e);
             }
         }, JourneyMapWaypointProvider::openWaypointManager);
+    }
+
+    private static void markWaypointAsDeleted(LiveWaypoint waypoint) {
+        try {
+            DeletedSearchNodesTracker.markDeleted(
+                    Services.PLATFORM.rl("ami", "waypoint/" + safePath(waypoint.providerId()) + "/" + safePath(waypoint.id()))
+            );
+        } catch (RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Failed to mark waypoint as deleted in tracker", e);
+        }
+    }
+
+    private static String safePath(String value) {
+        return value == null ? "unknown" : value.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9_.-]", "_");
     }
 
     private static void openWaypointManager() {

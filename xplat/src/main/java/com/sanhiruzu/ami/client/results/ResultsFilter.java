@@ -20,6 +20,7 @@ final class ResultsFilter {
 
     List<SearchNode> filter(List<SearchNode> results) {
         return results.stream()
+                .filter(n -> !DeletedSearchNodesTracker.isDeleted(n.id()))
                 .filter(n -> options.selectedMods().isEmpty() || options.selectedMods().contains(n.id().getNamespace()))
                 .filter(this::matchesFacets)
                 .filter(this::matchesAccessLevel)
