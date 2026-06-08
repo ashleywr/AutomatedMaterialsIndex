@@ -31,6 +31,7 @@ public final class PlayerWaypointProviders {
         register(new JourneyMapWaypointProvider());
         register(new FtbChunksWaypointProvider());
         register(new ManualWaypointProvider());
+        JourneyMapEventListener.registerIfAvailable();
     }
 
     private PlayerWaypointProviders() {
@@ -103,6 +104,15 @@ public final class PlayerWaypointProviders {
             liveWaypointRevision++;
         }
         return liveWaypointRevision;
+    }
+
+    /**
+     * Invalidate the live waypoint cache immediately. Called when external changes
+     * (e.g., edits in JourneyMap directly) are detected via event listeners.
+     */
+    public static void invalidateLiveWaypointCache() {
+        lastLiveWaypointPollMs = Long.MIN_VALUE;
+        lastLiveWaypointSnapshot = "";
     }
 
     public static List<PlayerWaypointAction> liveWaypointActions(SearchNode node) {
