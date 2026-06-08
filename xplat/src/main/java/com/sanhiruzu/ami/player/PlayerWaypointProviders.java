@@ -71,26 +71,6 @@ public final class PlayerWaypointProviders {
 
     private static List<SearchNode> liveWaypointNodes(List<PlayerWaypointProvider> providers) {
         List<SearchNode> nodes = new ArrayList<>();
-
-        // First collect all Waystones waypoints by location for deduplication
-        Map<String, LiveWaypoint> waystonesByLocation = new HashMap<>();
-        Optional<PlayerWaypointProvider> waystonesProvider = providers.stream()
-                .filter(p -> "waystones".equals(p.id()))
-                .findFirst();
-
-        if (waystonesProvider.isPresent() && available(waystonesProvider.get())) {
-            try {
-                for (LiveWaypoint waypoint : waystonesProvider.get().liveWaypoints()) {
-                    if (waypoint != null && !waypoint.id().isBlank()) {
-                        waystonesByLocation.put(locationKey(waypoint), waypoint);
-                    }
-                }
-            } catch (RuntimeException | LinkageError e) {
-                LOGGER.log(Level.FINE, "AMI: Waystones provider failed during consolidation", e);
-            }
-        }
-
-        // Collect waypoints, skipping JourneyMap duplicates of Waystones
         for (PlayerWaypointProvider provider : providers) {
             if (!available(provider)) {
                 continue;
@@ -101,8 +81,9 @@ public final class PlayerWaypointProviders {
                         continue;
                     }
 
-                    // Skip JourneyMap waypoints that duplicate Waystones waypoints
-                    if ("journeymap".equals(provider.id()) && waystonesByLocation.containsKey(locationKey(waypoint))) {
+                    // Skip JourneyMap waypoints that are synced from Waystones
+                    // The metadata will be set by JourneyMapWaypointProvider.toLiveWaypoint()
+                    if ("journeymap".equals(provider.id()) && "true".equals(waypoint.metadata().get("waystone_sync"))) {
                         LOGGER.log(Level.FINE, "AMI: Skipping JourneyMap waypoint synced from Waystones: " + waypoint.id());
                         continue;
                     }
@@ -113,19 +94,10 @@ public final class PlayerWaypointProviders {
                 LOGGER.log(Level.FINE, "AMI: Player waypoint provider failed while enumerating waypoints: " + provider.id(), e);
             }
         }
-
         nodes.sort(Comparator
                 .comparing((SearchNode node) -> node.meta(SearchNodeKeys.WAYPOINT_PROVIDER_LABEL, ""), String.CASE_INSENSITIVE_ORDER)
                 .thenComparing(SearchNode::displayName, String.CASE_INSENSITIVE_ORDER));
         return List.copyOf(nodes);
-    }
-
-    /**
-     * Generate a location key for deduplicating waypoints across providers.
-     * Format: "dimension:x:y:z"
-     */
-    private static String locationKey(LiveWaypoint waypoint) {
-        return waypoint.dimension() + ":" + waypoint.x() + ":" + waypoint.y() + ":" + waypoint.z();
     }
 
     public static long liveWaypointRevision() {

@@ -183,9 +183,21 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
             String dimension = stringValue(invokeFirst(waypoint, "getPrimaryDimension"), "minecraft:overworld");
             int color = intValue(invokeFirst(waypoint, "getColor", "getIconColor"), 0);
             boolean visible = booleanValue(invokeFirst(waypoint, "isEnabled", "showOnMap"), true);
+
             Map<String, String> meta = new HashMap<>();
             meta.put(SearchNodeKeys.WAYPOINT_COLOR, Integer.toString(color));
             meta.put(SearchNodeKeys.WAYPOINT_VISIBLE, Boolean.toString(visible));
+
+            // Check for Waystones-specific metadata
+            Object origin = invokeFirst(waypoint, "getOrigin", "getSource", "getOwner");
+            if (origin != null) {
+                String originStr = stringValue(origin, "");
+                if (!originStr.isBlank() && originStr.toLowerCase().contains("waystone")) {
+                    meta.put("waystone_sync", "true");
+                    LOGGER.log(Level.INFO, "Found Waystones-synced waypoint: " + name + " (origin: " + originStr + ")");
+                }
+            }
+
             if (id.isBlank()) {
                 id = dimension + ":" + x + ":" + y + ":" + z + ":" + name;
             }
