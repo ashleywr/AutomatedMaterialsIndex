@@ -280,22 +280,30 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
      */
     private static void deleteMatchingWaystonesWaypoint(LiveWaypoint journeyMapWaypoint) {
         try {
+            LOGGER.log(Level.INFO, "Checking for matching Waystones waypoint...");
             // Find Waystones provider
             Optional<PlayerWaypointProvider> waystonesProvider = PlayerWaypointProviders.providers().stream()
                     .filter(p -> "waystones".equals(p.id()))
                     .findFirst();
-            if (waystonesProvider.isEmpty()) return;
+            if (waystonesProvider.isEmpty()) {
+                LOGGER.log(Level.INFO, "Waystones provider not available");
+                return;
+            }
+            LOGGER.log(Level.INFO, "Checking for matching Waystones waypoint at " + journeyMapWaypoint.dimension() + " " + journeyMapWaypoint.x() + " " + journeyMapWaypoint.y() + " " + journeyMapWaypoint.z());
 
             // Get Waystones waypoints at the same location
             for (LiveWaypoint ws : waystonesProvider.get().liveWaypoints()) {
+                LOGGER.log(Level.INFO, "Checking Waystones waypoint at " + ws.dimension() + " " + ws.x() + " " + ws.y() + " " + ws.z());
                 if (isSameLocation(journeyMapWaypoint, ws)) {
                     // Found matching Waystones waypoint - delete it
+                    LOGGER.log(Level.INFO, "Found matching Waystones waypoint, deleting: " + ws.id());
                     deleteWaystonesWaypoint(ws);
                     return;
                 }
             }
+            LOGGER.log(Level.INFO, "No matching Waystones waypoint found");
         } catch (RuntimeException | LinkageError e) {
-            LOGGER.log(Level.FINE, "AMI: Failed to delete matching Waystones waypoint", e);
+            LOGGER.log(Level.WARNING, "Failed to delete matching Waystones waypoint", e);
         }
     }
 
