@@ -85,9 +85,10 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
 
     @Override
     public String getTooltipLabel(SearchNode node) {
-        // If this waypoint is synced from Waystones, show "Waystones" instead of "JourneyMap"
-        if (node != null && "true".equals(node.meta("waystone_sync", ""))) {
-            return "Waystones";
+        // If this waypoint is synced from another mod, show the source mod instead of "JourneyMap"
+        String origin = node != null ? node.meta("waypoint_origin", "") : "";
+        if (!origin.isBlank()) {
+            return origin;
         }
         return null; // Use default label
     }
@@ -96,8 +97,9 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
     public List<PlayerWaypointAction> liveWaypointActions(LiveWaypointContext context) {
         if (context == null || context.waypoint() == null) return List.of();
 
-        // Waystones-synced waypoints are read-only - no edit/delete
-        if ("true".equals(context.waypoint().metadata().get("waystone_sync"))) {
+        // Synced waypoints from other mods are read-only - no edit/delete
+        String origin = context.waypoint().metadata().get("waypoint_origin");
+        if (origin != null && !origin.isBlank()) {
             return List.of();
         }
 
@@ -204,13 +206,13 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
             meta.put(SearchNodeKeys.WAYPOINT_COLOR, Integer.toString(color));
             meta.put(SearchNodeKeys.WAYPOINT_VISIBLE, Boolean.toString(visible));
 
-            // Check for Waystones-specific metadata
+            // Check for waypoint origin/source (indicates synced from another mod)
             Object origin = invokeFirst(waypoint, "getOrigin", "getSource", "getOwner");
             if (origin != null) {
                 String originStr = stringValue(origin, "");
-                if (!originStr.isBlank() && originStr.toLowerCase().contains("waystone")) {
-                    meta.put("waystone_sync", "true");
-                    LOGGER.log(Level.INFO, "Found Waystones-synced waypoint: " + name + " (origin: " + originStr + ")");
+                if (!originStr.isBlank()) {
+                    meta.put("waypoint_origin", originStr);
+                    LOGGER.log(Level.INFO, "Found synced waypoint: " + name + " (origin: " + originStr + ")");
                 }
             }
 
