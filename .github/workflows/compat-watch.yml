@@ -1,0 +1,31 @@
+name: Compat Watch
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 9 * * *'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  compat-watch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run compat watch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/check_compat_updates.py
+
+      - name: Publish summary
+        run: cat compat-watch-summary.md >> "$GITHUB_STEP_SUMMARY"

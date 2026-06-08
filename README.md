@@ -14,6 +14,24 @@ AMI targets NeoForge 1.21.1 and Forge 1.20.1.
 - **Recipe viewer support**: Works with AMI's built-in viewer, JEI, or EMI. AMI panels support lookup history, favorites, cheat actions, and recipe transfer when the current screen supports it.
 - **Large pack support**: Keeps search and browsing responsive across large registries.
 
+## Compat Notes
+
+AMI includes both broad family-level compat heuristics and narrower runtime integrations. Those are not the same thing.
+
+If you need to know whether a specific third-party mod version was actually tested for this branch, check
+[`docs/compat-support-matrix.md`](docs/compat-support-matrix.md). It separates exact tested versions from broader
+family-level support and from best-effort reflective integrations that are meant to fail closed when upstream mods
+change.
+
+Release and support statements should use that matrix, not memory. If a compat mod updates and AMI is retested against a
+new upstream build, update the exact tested version in the matrix in the same change set as the release notes.
+
+AMI-owned compat is a practical short-term path, not the ideal long-term ownership model for every mod ecosystem. Mod
+authors and maintainers are welcome to report gaps, contribute fixes, expose shared providers from their own mod, or
+move the compat surface into their own project when that makes more sense. When a mod can own its own searchable guides,
+metadata enrichment, representative items, or result actions, that is usually a better long-term fit than leaving AMI to
+carry fragile downstream heuristics forever.
+
 ## Performance and Benchmarks
 
 We use a headless NeoForge GameTest suite to keep track of how the search index performs.
