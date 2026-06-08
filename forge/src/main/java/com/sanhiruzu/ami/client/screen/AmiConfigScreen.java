@@ -4,6 +4,7 @@ import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.AmiGuiIcons;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.widget.AmiDropdownPopup;
+import com.sanhiruzu.ami.client.widget.AmiDropdownPopupController;
 import com.sanhiruzu.ami.client.widget.AmiEnumDropdownWidget;
 import com.sanhiruzu.ami.client.widget.AmiPanelContentDropdownWidget;
 import com.sanhiruzu.ami.client.widget.AmiWidgetFactory;
@@ -539,15 +540,14 @@ public class AmiConfigScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (openDropdown != null && openDropdown.isOpen()) {
-            if (openDropdown.mouseClicked(mouseX, mouseY, button)) {
-                if (!openDropdown.isOpen()) {
-                    openDropdown = null;
-                }
-                return true;
-            }
-            openDropdown.close();
-            openDropdown = null;
+        if (AmiDropdownPopupController.mouseClicked(
+                () -> openDropdown,
+                dropdown -> openDropdown = dropdown,
+                mouseX,
+                mouseY,
+                button
+        )) {
+            return true;
         }
         focusedConfigEntry = null;
         return super.mouseClicked(mouseX, mouseY, button);
