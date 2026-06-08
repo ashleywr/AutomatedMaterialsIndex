@@ -57,6 +57,7 @@ internal/
 
 ### Claude Code / AI Agent Files ###
 .claude/
+CLAUDE.md
 .geminiignore
 AGENTS.md
 
