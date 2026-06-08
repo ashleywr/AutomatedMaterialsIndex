@@ -266,7 +266,8 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
         try {
             net.minecraft.resources.ResourceLocation nodeId = Services.PLATFORM.rl("ami", "waypoint/" + safePath(waypoint.providerId()) + "/" + safePath(waypoint.id()));
             SoftDeleteTracker.markSoftDeleted(nodeId);
-            LOGGER.log(Level.FINE, "AMI: Waypoint marked for soft deletion: " + nodeId);
+            DeletedSearchNodesTracker.markDeleted(nodeId);
+            LOGGER.log(Level.FINE, "AMI: Waypoint marked for deletion: " + nodeId);
         } catch (RuntimeException | LinkageError e) {
             LOGGER.log(Level.FINE, "AMI: Failed to soft-delete waypoint", e);
         }
