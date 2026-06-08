@@ -2,6 +2,8 @@ package com.sanhiruzu.ami.client;
 
 import com.sanhiruzu.ami.client.results.DeletedSearchNodesTracker;
 import com.sanhiruzu.ami.client.results.SoftDeleteTracker;
+import com.sanhiruzu.ami.index.GlobalIndex;
+import com.sanhiruzu.ami.index.NodeType;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.logging.Level;
@@ -31,8 +33,15 @@ public final class ItemDeletionHandler {
             SoftDeleteTracker.markSoftDeleted(nodeId);
             LOGGER.log(Level.INFO, "  - Marking hard deleted");
             DeletedSearchNodesTracker.markDeleted(nodeId);
-            LOGGER.log(Level.INFO, "  - Calling refreshOverlayResults");
 
+            // Remove from global index permanently
+            LOGGER.log(Level.INFO, "  - Removing from global index");
+            GlobalIndex index = GlobalIndex.getInstance();
+            for (NodeType type : NodeType.values()) {
+                index.removeNode(nodeId, type);
+            }
+
+            LOGGER.log(Level.INFO, "  - Calling refreshOverlayResults");
             // Refresh with state preservation
             InventoryOverlayHandler.refreshOverlayResults();
 
