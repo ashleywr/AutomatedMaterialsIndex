@@ -11,13 +11,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 // Forge production jars run this 1.20.1 class with SRG method names and no AMI refmap.
 // Priority 500 ensures AMI fires before EMI's RecipeBookWidgetMixin (default priority 1000).
 // See RecipeBookComponentMixin for the full explanation of the priority contract.
-// Shadow method names use official (Mojang) names, not SRG names — consistent with the
-// injection target convention verified by MixinConfigTest.forgeRecipeBookMixinTargetsDevAndProductionNames.
+// Unlike the injection target list, @Shadow members still need explicit aliases when Forge
+// production jars run without an AMI refmap. The production SRG names are m_100385_ and
+// m_100369_ for isVisible/setVisible on 1.20.1 RecipeBookComponent.
 @Mixin(value = RecipeBookComponent.class, priority = 500, remap = false)
 public abstract class ForgeRecipeBookComponentMixin {
 
-    @Shadow public abstract boolean isVisible();
-    @Shadow protected abstract void setVisible(boolean visible);
+    @Shadow(aliases = "m_100385_") public abstract boolean isVisible();
+    @Shadow(aliases = "m_100369_") protected abstract void setVisible(boolean visible);
 
     @Inject(method = {"toggleVisibility", "m_100384_"}, at = @At("HEAD"), cancellable = true, remap = false, require = 1)
     private void onRecipeBookButtonClicked(CallbackInfo ci) {
