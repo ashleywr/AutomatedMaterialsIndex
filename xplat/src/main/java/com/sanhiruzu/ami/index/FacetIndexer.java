@@ -261,7 +261,7 @@ public final class FacetIndexer {
             facets.add(ItemFacet.DECORATIVE_BLOCK);
         }
         if (path.equals("lodestone")) {
-            facets.add(ItemFacet.SOCIAL_CLAIMS);
+            facets.add(ItemFacet.UTILITY_NAVIGATION);
         }
         if (path.contains("mushroom") || path.contains("fungus")) {
             facets.add(ItemFacet.FUNGI);

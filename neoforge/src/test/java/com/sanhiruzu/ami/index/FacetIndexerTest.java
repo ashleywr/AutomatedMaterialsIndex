@@ -157,6 +157,16 @@ class FacetIndexerTest {
     }
 
     @Test
+    void lodestoneGetsNavigationFacetNotClaimsFacet() {
+        Item lodestone = register("lodestone", new BlockItem("Lodestone", new Block(new BlockState())));
+
+        FacetProfile profile = index(lodestone);
+
+        assertTrue(profile.facets().contains(ItemFacet.UTILITY_NAVIGATION));
+        assertFalse(profile.facets().contains(ItemFacet.SOCIAL_CLAIMS));
+    }
+
+    @Test
     void guideBookPathsAndClassesProduceGuideBookCandidateFacet() {
         Item plainBook = register("plain_reference_book", new Item("Plain Reference Book"));
         Item fieldGuide = register("ami_field_guide", new Item("AMI Field Guide"));
