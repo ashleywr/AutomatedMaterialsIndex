@@ -4,6 +4,8 @@ plugins {
 }
 
 ext.minecraftRunDirectory = { String name -> rootProject.file("run/${name}") }
+def amiDebugBuild = providers.gradleProperty('ami_debug_build').map { it.toBoolean() }.getOrElse(false)
+def amiEffectiveModVersion = amiDebugBuild ? "${mod_version}-debug" : mod_version
 
 allprojects {
     group = mod_group_id
@@ -36,8 +38,8 @@ sourceSets {
         resources.setSrcDirs([])
     }
     test {
-        java.setSrcDirs([])
-        resources.setSrcDirs([])
+        java.srcDir 'src/test/java'
+        resources.srcDir 'src/test/resources'
     }
 }
 
@@ -192,7 +194,14 @@ tasks.named('compileJava', JavaCompile).configure {
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
+    dependsOn ':forge:forgeReleaseJar'
     dependsOn ':neoforge:test'
+    systemProperty 'ami.forge.releaseJar',
+            project(':forge').layout.buildDirectory.file(
+                    "release/${mod_id}-forge-${forge_minecraft_version}-${amiEffectiveModVersion}.jar"
+            ).get().asFile.absolutePath
+    systemProperty 'ami.forge.namedToIntermediateTsrg',
+            project(':forge').layout.buildDirectory.file('moddev/artifacts/namedToIntermediate.tsrg').get().asFile.absolutePath
 }
 
 tasks.register('cleanLocalRuntime', Delete) {
@@ -263,8 +272,6 @@ def registerPrismCompatJarDeploy = { String taskName,
     }
 }
 
-def amiDebugBuild = providers.gradleProperty('ami_debug_build').map { it.toBoolean() }.getOrElse(false)
-def amiEffectiveModVersion = amiDebugBuild ? "${mod_version}-debug" : mod_version
 def neoForgePrismJarFile = project(':neoforge').layout.buildDirectory.file(
         amiDebugBuild
                 ? "libs/${mod_id}-neoforge-${neoforge_minecraft_version}-${mod_version}-debug.jar"
@@ -297,4 +304,11 @@ tasks.register('deployPrismCompatJars') {
     description = 'Builds AMI and updates the AMICompat and AMICompatForge Prism Launcher instances.'
     dependsOn deployNeoForgePrismCompatJar
     dependsOn deployForgePrismCompatJar
+}
+
+tasks.register('verifyReleaseArtifacts') {
+    group = 'verification'
+    description = 'Builds and verifies release artifacts before publishing.'
+    dependsOn ':forge:verifyForgeReleaseJarReobfuscated'
+    dependsOn 'test'
 }

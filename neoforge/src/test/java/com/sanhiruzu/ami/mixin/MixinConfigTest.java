@@ -84,8 +84,12 @@ public class MixinConfigTest {
         String source = Files.readString(mixinPath, StandardCharsets.UTF_8);
         assertTrue(source.contains("{\"toggleVisibility\", \"m_100384_\"}"),
                 "Forge recipe book toggle injection must target both dev and production names");
+        assertTrue(source.contains("@Shadow(aliases = \"m_100385_\") public abstract boolean isVisible();"),
+                "Forge recipe book mixin must alias RecipeBookComponent.isVisible() to SRG name m_100385_");
+        assertTrue(source.contains("@Shadow(aliases = \"m_100369_\") protected abstract void setVisible(boolean visible);"),
+                "Forge recipe book mixin must alias RecipeBookComponent.setVisible(boolean) to SRG name m_100369_");
         assertFalse(source.contains("public abstract boolean m_100385_()"),
-                "Forge recipe book mixin should call named shadows in source so Forge dev runs can apply it");
+                "Forge recipe book mixin should keep readable shadow names in source for dev runs");
     }
 
     @Test

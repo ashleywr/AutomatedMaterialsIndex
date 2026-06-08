@@ -2,6 +2,15 @@
 
 User-facing changes are recorded here.
 
+## 1.4.1 - 2026-06-08
+
+AMI 1.4.1 is a hotfix release for the Forge 1.20.1 packaged build published in 1.4.0.
+
+### Fixed
+
+- Fixed Forge recipe-book mixin shadows so the packaged production jar targets the correct obfuscated `RecipeBookComponent` method names instead of crashing during mixin application.
+- Fixed the Forge release process to verify packaged mixin shadow names against production mappings before Modrinth, CurseForge, or GitHub release assets are published.
+
 ## 1.4.0 - 2026-06-08
 
 AMI 1.4.0 expands mod compatibility, adds runtime player and waypoint search utilities, and tightens AMI's overlay/favorites behavior when sharing inventory screens with EMI, JEI, and the vanilla recipe book.
