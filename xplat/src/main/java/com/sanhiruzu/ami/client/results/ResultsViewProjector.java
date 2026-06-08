@@ -13,6 +13,17 @@ public final class ResultsViewProjector {
     private ResultsViewProjector() {
     }
 
+    /**
+     * Apply universal filters that should work across all display contexts
+     * (search results, favorites, sidebars, etc). Called first, before any
+     * context-specific processing, so deletions are consistently applied everywhere.
+     */
+    private static List<SearchNode> applyUniversalFilters(List<SearchNode> nodes) {
+        return nodes.stream()
+                .filter(n -> !DeletedSearchNodesTracker.isDeleted(n.id()))
+                .collect(Collectors.toList());
+    }
+
     public static Projection project(List<SearchNode> source,
                                      SearchState state,
                                      SearchService searchService,
@@ -37,11 +48,11 @@ public final class ResultsViewProjector {
                                      AmiQuestSearchIndex questSearchIndex,
                                      boolean compactMainPanel,
                                      boolean favoritesPanel) {
-        List<SearchNode> effectiveSource = source;
+        List<SearchNode> effectiveSource = applyUniversalFilters(source);
         String query = state.getQuery();
 
         if (!query.isEmpty() && searchService != null) {
-            effectiveSource = SearchScope.resolveQueriedSource(searchService, source, query, favoritesPanel);
+            effectiveSource = SearchScope.resolveQueriedSource(searchService, effectiveSource, query, favoritesPanel);
         }
 
         if (state.getViewMode() == ResultsToolbar.ViewMode.LIST && !compactMainPanel && !favoritesPanel) {
