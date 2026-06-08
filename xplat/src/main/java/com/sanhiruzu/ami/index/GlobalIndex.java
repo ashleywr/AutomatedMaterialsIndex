@@ -56,6 +56,16 @@ public class GlobalIndex {
         categoryIndex.computeIfAbsent(category, k -> Collections.synchronizedList(new ArrayList<>())).add(node);
     }
 
+    /**
+     * Remove a node by id and type. Used for permanent deletion (e.g., deleted waypoints).
+     */
+    public synchronized void removeNode(ResourceLocation id, NodeType type) {
+        SearchNode node = idIndex.remove(new NodeKey(id, type));
+        if (node != null) {
+            removeNodeFromCollections(node);
+        }
+    }
+
     private void removeNodeFromCollections(SearchNode node) {
         nodes.get(node.type()).remove(node);
         String category = node.meta(SearchNodeKeys.ONTOLOGY_CATEGORY, "");
