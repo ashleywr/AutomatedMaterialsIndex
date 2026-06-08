@@ -16,6 +16,7 @@ public final class PlayerHeadHistory {
     private static final String FILE_NAME = "player_head_history.json";
     private static final Pattern VALID_NAME = Pattern.compile("[A-Za-z0-9_]{1,16}");
     private static final Gson GSON = new GsonBuilder().create();
+    private static volatile Path historyFileOverrideForTests;
 
     private PlayerHeadHistory() {
     }
@@ -73,7 +74,19 @@ public final class PlayerHeadHistory {
         }
     }
 
+    public static void setHistoryFileOverrideForTests(Path file) {
+        historyFileOverrideForTests = file;
+    }
+
+    public static void clearHistoryFileOverrideForTests() {
+        historyFileOverrideForTests = null;
+    }
+
     private static Path resolveFile() {
+        Path override = historyFileOverrideForTests;
+        if (override != null) {
+            return override;
+        }
         try {
             return Services.PLATFORM.getConfigDir().resolve("ami").resolve(FILE_NAME);
         } catch (RuntimeException | LinkageError e) {

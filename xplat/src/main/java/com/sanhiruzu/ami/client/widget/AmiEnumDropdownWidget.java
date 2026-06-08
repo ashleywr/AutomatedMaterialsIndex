@@ -73,6 +73,13 @@ public class AmiEnumDropdownWidget extends AbstractWidget implements AmiDropdown
             }
             g.drawString(font, text, listX + 4, optionY + 5,
                     active ? AMITheme.TEXT_HIGHLIGHT : AMITheme.TEXT_PRIMARY, false);
+
+            if (hovered) {
+                Component optionTooltip = AmiWidgetFactory.enumConstantOptionTooltip(constants[i]);
+                if (optionTooltip != null) {
+                    g.renderTooltip(font, optionTooltip, mouseX, mouseY);
+                }
+            }
         }
         g.pose().popPose();
     }

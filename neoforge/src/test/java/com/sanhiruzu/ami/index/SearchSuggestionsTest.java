@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.compat.CompatDisplayNames;
 import com.sanhiruzu.ami.index.query.SearchSuggestions;
+import com.sanhiruzu.ami.index.resolvers.PlayerResolver;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ class SearchSuggestionsTest {
     void cleanup() {
         GlobalIndex.getInstance().clear();
         AmiConfig.resetToDefaults();
+        PlayerResolver.clearTestHooksForTests();
     }
 
     @Test
@@ -239,6 +241,35 @@ class SearchSuggestionsTest {
         index.addNode(item("minecraft", "stone", "Stone", Map.of()));
 
         assertTrue(helpExamples(index).contains("^Steve"));
+    }
+
+    @Test
+    void playerHeadSuggestionsPreferOnlineMatchesBeforeHistoryAndTypedFallback() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        PlayerResolver.installTestHooksForTests(
+                List.of("Steve", "Stevie", "xste_online"),
+                List.of("Stefan", "stevie", "xste_history")
+        );
+
+        List<SearchSuggestions.Suggestion> suggestions = SearchSuggestions.suggest(index, "^ste", 4, 8);
+
+        assertEquals(List.of("^Steve", "^Stevie", "^xste_online", "^Stefan", "^xste_history", "^ste"),
+                suggestions.stream().map(SearchSuggestions.Suggestion::display).toList());
+        assertTrue(suggestions.stream().allMatch(s -> s.kind() == SearchSuggestions.Kind.PLAYER));
+    }
+
+    @Test
+    void playerHeadSuggestionsIgnoreInvalidNamesAndRespectConfiguredLimit() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        AmiConfig.playerHeadSuggestionsLimit = 2;
+        PlayerResolver.installTestHooksForTests(
+                List.of("Alex", "Alexa", "Alexis"),
+                List.of("Alexander")
+        );
+
+        List<SearchSuggestions.Suggestion> suggestions = SearchSuggestions.suggest(index, "^Alex", "^Alex".length(), 8);
+        assertEquals(List.of("^Alex", "^Alexa"),
+                suggestions.stream().map(SearchSuggestions.Suggestion::display).toList());
     }
 
     @Test
@@ -490,4 +521,3 @@ class SearchSuggestionsTest {
         return new SearchNode(new ResourceLocation(namespace, path), type, displayName, 0, 0, metadata);
     }
 }
-
