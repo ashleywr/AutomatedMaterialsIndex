@@ -70,6 +70,12 @@ public final class PlayerTooltipFact implements AmiTooltipFact {
         List<String> providers = splitCsv(rawProviders);
         if (providers.isEmpty()) return;
 
+        // Check if this is a Waystones-synced waypoint
+        if ("true".equals(entry.meta("waystone_sync", ""))) {
+            lines.addAll(TooltipFactSupport.line("ami.tooltip.player_waypoint_providers", "Waystones Location (Read-only)"));
+            return;
+        }
+
         String providerValue = formatProviderList(providers);
         lines.addAll(TooltipFactSupport.line("ami.tooltip.player_waypoint_providers", providerValue));
     }
