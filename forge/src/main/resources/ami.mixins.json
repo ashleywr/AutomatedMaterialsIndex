@@ -7,17 +7,17 @@
   "mixins": [],
   "client": [
     "ContainerTooltipMixin",
-    "EmiScreenManagerMixin",
     "EmiRecipeScreenFavoriteMixin",
+    "EmiScreenManagerMixin",
     "ForgeEmiAgnosForgeMixin",
     "ForgeEmiBoMMixin",
     "ForgeEmiRecipeDefaultLoaderMixin",
     "ForgeGuiPluginMixin",
+    "ForgeRecipeBookComponentMixin",
     "JeiBookmarkListMixin",
     "JeiBookmarkOverlayMixin",
     "JeiClientInputHandlerMixin",
     "JeiGuiEventHandlerMixin",
-    "JeiIngredientListOverlayMixin",
-    "ForgeRecipeBookComponentMixin"
+    "JeiIngredientListOverlayMixin"
   ]
 }

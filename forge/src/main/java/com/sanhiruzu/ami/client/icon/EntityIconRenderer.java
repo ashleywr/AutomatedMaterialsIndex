@@ -39,15 +39,15 @@ public class EntityIconRenderer implements IIconRenderer {
 
     private static void renderEntity(GuiGraphics g, int x, int y, int scale, float angleX, float angleY, LivingEntity entity) {
         IconRenderState.render3dIcon(g, () ->
-            InventoryScreen.renderEntityInInventory(
-                    g,
-                    x,
-                    y,
-                    scale,
-                    new Quaternionf().rotateZ((float) Math.PI),
-                    new Quaternionf(),
-                    entity
-            )
+                InventoryScreen.renderEntityInInventory(
+                        g,
+                        x,
+                        y,
+                        scale,
+                        new Quaternionf().rotateZ((float) Math.PI),
+                        new Quaternionf(),
+                        entity
+                )
         );
     }
 

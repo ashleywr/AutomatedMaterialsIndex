@@ -93,6 +93,11 @@ class AmiDropdownPopupControllerTest {
         }
 
         @Override
+        public boolean isMouseOverPopup(double mouseX, double mouseY) {
+            return false;
+        }
+
+        @Override
         public boolean mouseClicked(double mouseX, double mouseY, int button) {
             if (!handlesClick) {
                 return false;

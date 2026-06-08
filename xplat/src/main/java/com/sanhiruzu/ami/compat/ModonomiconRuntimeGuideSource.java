@@ -45,10 +45,11 @@ public final class ModonomiconRuntimeGuideSource {
         if (resourceManager == null) {
             return;
         }
+        String language = GlobalIndexCache.currentClientLanguageCacheKey();
         for (AmiGuideDocument document : documentsFromResources(
                 readJsonResources(resourceManager),
-                readLangResources(clientResourceManager()),
-                GlobalIndexCache.currentClientLanguageCacheKey())) {
+                readLangResources(clientResourceManager(), language),
+                language)) {
             documents.accept(document);
         }
     }
@@ -308,13 +309,28 @@ public final class ModonomiconRuntimeGuideSource {
         return out;
     }
 
-    private static Map<ResourceLocation, String> readLangResources(ResourceManager resourceManager) {
+    private static Map<ResourceLocation, String> readLangResources(ResourceManager resourceManager, String selectedLanguage) {
         Map<ResourceLocation, String> out = new LinkedHashMap<>();
-        resourceManager.listResources(LANG_ROOT, id -> id.getPath().endsWith(".json"))
-                .entrySet()
-                .stream()
-                .sorted(Comparator.comparing(entry -> entry.getKey().toString()))
-                .forEach(entry -> readResource(entry.getValue()).ifPresent(json -> out.put(entry.getKey(), json)));
+        if (resourceManager == null) {
+            return out;
+        }
+        for (String languagePath : languageRoots(selectedLanguage)) {
+            resourceManager.listResources(languagePath, id -> id.getPath().endsWith(".json"))
+                    .entrySet()
+                    .stream()
+                    .sorted(Comparator.comparing(entry -> entry.getKey().toString()))
+                    .forEach(entry -> readResource(entry.getValue()).ifPresent(json -> out.put(entry.getKey(), json)));
+        }
+        return out;
+    }
+
+    private static List<String> languageRoots(String selectedLanguage) {
+        List<String> out = new ArrayList<>();
+        out.add(LANG_ROOT + "/" + DEFAULT_LANGUAGE);
+        String normalized = normalizeLanguage(selectedLanguage);
+        if (!DEFAULT_LANGUAGE.equals(normalized)) {
+            out.add(LANG_ROOT + "/" + normalized);
+        }
         return out;
     }
 

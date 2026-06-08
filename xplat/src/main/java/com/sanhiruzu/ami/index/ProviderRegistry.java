@@ -3,7 +3,6 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.compat.CobblemonSpeciesProvider;
-import com.sanhiruzu.ami.index.providers.CreativeStackVariantExpander;
 import com.sanhiruzu.ami.index.providers.*;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;

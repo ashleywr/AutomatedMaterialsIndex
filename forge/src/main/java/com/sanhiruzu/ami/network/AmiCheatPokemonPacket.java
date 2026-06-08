@@ -11,14 +11,8 @@ import net.minecraftforge.network.NetworkEvent;
 import java.util.function.Supplier;
 
 public class AmiCheatPokemonPacket {
-    public enum Action {
-        SPAWN,
-        PARTY
-    }
-
     private final ResourceLocation speciesId;
     private final Action action;
-
     public AmiCheatPokemonPacket(ResourceLocation speciesId, Action action) {
         this.speciesId = speciesId;
         this.action = action;
@@ -59,5 +53,10 @@ public class AmiCheatPokemonPacket {
     private static String extractSpeciesName(ResourceLocation entityId) {
         String path = entityId.getPath();
         return path.startsWith("species/") ? path.substring("species/".length()) : path;
+    }
+
+    public enum Action {
+        SPAWN,
+        PARTY
     }
 }

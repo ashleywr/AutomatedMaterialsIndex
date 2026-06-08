@@ -16,20 +16,6 @@ public final class TagTooltipFact implements AmiTooltipFact {
     private static final int PREVIEW_TAGS_SHOWN = 5;
     private static final int MAX_EXPANDED_TAGS_SHOWN = 32;
 
-    @Override
-    public List<Component> build(SearchNode entry) {
-        if (!AmiConfig.showTooltipTags) {
-            return List.of();
-        }
-
-        List<Component> lines = new ArrayList<>();
-        appendTags(lines, sectionKey(entry), entry.meta(SearchNodeKeys.TAGS, ""));
-        if (entry.type() == NodeType.ITEM) {
-            appendTags(lines, "ami.tooltip.block_tags", entry.meta(SearchNodeKeys.BLOCK_TAGS, ""));
-        }
-        return lines;
-    }
-
     private static String sectionKey(SearchNode entry) {
         return entry.type() == NodeType.ENTITY ? "ami.tooltip.entity_tags" : "ami.tooltip.item_tags";
     }
@@ -69,5 +55,19 @@ public final class TagTooltipFact implements AmiTooltipFact {
                 .distinct()
                 .sorted()
                 .toList();
+    }
+
+    @Override
+    public List<Component> build(SearchNode entry) {
+        if (!AmiConfig.showTooltipTags) {
+            return List.of();
+        }
+
+        List<Component> lines = new ArrayList<>();
+        appendTags(lines, sectionKey(entry), entry.meta(SearchNodeKeys.TAGS, ""));
+        if (entry.type() == NodeType.ITEM) {
+            appendTags(lines, "ami.tooltip.block_tags", entry.meta(SearchNodeKeys.BLOCK_TAGS, ""));
+        }
+        return lines;
     }
 }

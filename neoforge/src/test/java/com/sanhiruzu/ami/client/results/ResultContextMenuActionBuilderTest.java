@@ -131,7 +131,10 @@ class ResultContextMenuActionBuilderTest {
                 })
         );
 
-        assertEquals(List.of(ResultContextMenuActionBuilder.COPY_PLAYER_NAME), ids(regularActions));
+        assertEquals(List.of(
+                ResultContextMenuActionBuilder.COPY_PLAYER_NAME,
+                ResultContextMenuActionBuilder.CHAT
+        ), ids(regularActions));
 
         ResultContextMenuActionBuilder adminBuilder = new ResultContextMenuActionBuilder(() -> true);
         List<ResultContextMenu.Action> adminActions = adminBuilder.forItem(

@@ -5,6 +5,7 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Handles tracking of item lookup history within AMI.
@@ -16,6 +17,7 @@ public class AmiHistoryHandler {
 
     private final List<ItemStack> lookupHistory = new ArrayList<>();
     private final List<ItemStack> craftHistory = new ArrayList<>();
+    private final AtomicLong revision = new AtomicLong();
     private Runnable onChange;
 
     private AmiHistoryHandler() {
@@ -48,6 +50,7 @@ public class AmiHistoryHandler {
         if (history.size() > MAX_HISTORY) {
             history.remove(history.size() - 1);
         }
+        revision.incrementAndGet();
 
         if (onChange != null) {
             onChange.run();
@@ -60,5 +63,9 @@ public class AmiHistoryHandler {
 
     public List<ItemStack> getCraftHistory() {
         return List.copyOf(craftHistory);
+    }
+
+    public long revision() {
+        return revision.get();
     }
 }

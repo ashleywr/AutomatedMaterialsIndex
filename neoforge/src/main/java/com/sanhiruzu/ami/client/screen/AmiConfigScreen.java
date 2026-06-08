@@ -4,11 +4,7 @@ import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.AmiGuiIcons;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.input.TextInputFilter;
-import com.sanhiruzu.ami.client.widget.AmiDropdownPopup;
-import com.sanhiruzu.ami.client.widget.AmiDropdownPopupController;
-import com.sanhiruzu.ami.client.widget.AmiEnumDropdownWidget;
-import com.sanhiruzu.ami.client.widget.AmiPanelContentDropdownWidget;
-import com.sanhiruzu.ami.client.widget.AmiWidgetFactory;
+import com.sanhiruzu.ami.client.widget.*;
 import com.sanhiruzu.ami.config.*;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.gui.GuiGraphics;
@@ -507,8 +503,14 @@ public class AmiConfigScreen extends Screen {
         return value == null ? null : Tooltip.create(Component.translatable("ami.config.tooltip." + value.value()));
     }
 
+    private boolean isHoverBlockedByOpenDropdown(double mouseX, double mouseY) {
+        return AmiDropdownPopupController.blocksUnderlyingHover(openDropdown, mouseX, mouseY);
+    }
+
     private void showTooltipIfHovered(Tooltip tooltip, int x, int y, int width, int height, int mouseX, int mouseY) {
-        if (tooltip != null && mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height) {
+        if (tooltip != null
+                && !isHoverBlockedByOpenDropdown(mouseX, mouseY)
+                && mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height) {
             this.setTooltipForNextRenderPass(tooltip, net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner.INSTANCE, true);
         }
     }
@@ -801,7 +803,9 @@ public class AmiConfigScreen extends Screen {
                     }
                 }
 
-                if (enabled && mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height) {
+                if (enabled
+                        && !isHoverBlockedByOpenDropdown(mouseX, mouseY)
+                        && mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height) {
                     AmiConfigScreen.this.setTooltipForNextRenderPass(this.tooltip, net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner.INSTANCE, true);
                 }
             }

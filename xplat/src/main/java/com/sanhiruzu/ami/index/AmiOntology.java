@@ -16,6 +16,7 @@ public final class AmiOntology {
 
     public static final Category UTILITY;
     public static final Category SOCIAL;
+    public static final Category LOOKUP_HISTORY;
     public static final Category COBBLEMON;
     public static final Category CREATE;
     public static final Category AE2;
@@ -76,6 +77,15 @@ public final class AmiOntology {
                         new SubCategory("claims", "ami.subcategory.social.claims")
                 ),
                 List.of("player_head")
+        );
+
+        LOOKUP_HISTORY = new Category(
+                "lookup_history", "ami.category.lookup_history", "Lookup History",
+                "minecraft:clock", 0xFFB4A57A,
+                List.of(
+                        new SubCategory("items", "ami.subcategory.lookup_history.items")
+                ),
+                List.of()
         );
 
         COBBLEMON = new Category(
@@ -251,7 +261,6 @@ public final class AmiOntology {
                 "mapping", "ami.category.mapping", "Mapping",
                 "minecraft:filled_map", 0xFF5FA8A6,
                 List.of(
-                        new SubCategory("waypoints", "ami.subcategory.mapping.waypoints"),
                         new SubCategory("markers", "ami.subcategory.mapping.markers"),
                         new SubCategory("claims", "ami.subcategory.mapping.claims"),
                         new SubCategory("death_points", "ami.subcategory.mapping.death_points"),
@@ -433,6 +442,7 @@ public final class AmiOntology {
                 "environment", "ami.category.environment", "World",
                 "minecraft:grass_block", 0xFF339966,
                 List.of(
+                        new SubCategory("waypoints", "ami.subcategory.environment.waypoints"),
                         new SubCategory("biomes", "ami.subcategory.environment.biomes"),
                         new SubCategory("dimensions", "ami.subcategory.environment.dimensions"),
                         new SubCategory("structures", "ami.subcategory.environment.structures")
@@ -486,7 +496,7 @@ public final class AmiOntology {
         // Priority order: most-specific first, GEOLOGY/MASONRY second-to-last, MISC as terminal fallback.
         CATEGORIES = List.of(
                 COBBLEMON, CREATE, AE2, MEKANISM, GREGTECH, MINECOLONIES, APOTHEOSIS, BOTANIA, ARS_NOUVEAU, SOPHISTICATED, MAPPING,
-                MODULAR_GEAR, TACZ, UTILITY, BESTIARY, MAGIC, ARMOR, TOOLS, TECH, NATURE, INGREDIENTS, DECORATION, ENVIRONMENT, SOCIAL,
+                MODULAR_GEAR, TACZ, UTILITY, BESTIARY, MAGIC, ARMOR, TOOLS, TECH, LOOKUP_HISTORY, NATURE, INGREDIENTS, DECORATION, ENVIRONMENT, SOCIAL,
                 GEOLOGY, MASONRY, MISC
         );
     }
@@ -499,7 +509,7 @@ public final class AmiOntology {
      * <p>
      * Priority:
      * 1. Pre-computed ONTOLOGY_CATEGORY metadata (set by OntologyClassifier during indexing)
-     * 2. NodeType mapping for atlas nodes (BIOME → ENVIRONMENT, ENTITY → ENTITIES, PLAYER → SOCIAL)
+     * 2. NodeType mapping for atlas nodes (BIOME/STRUCTURE/DIMENSION → ENVIRONMENT, ENTITY → BESTIARY, PLAYER → SOCIAL, WAYPOINT → ENVIRONMENT)
      * 3. Runtime tag/path heuristics for ITEM nodes without pre-computed data
      */
     public static Category classifyNode(SearchNode node) {
@@ -515,7 +525,7 @@ public final class AmiOntology {
             case BIOME, STRUCTURE, DIMENSION -> ENVIRONMENT;
             case ENTITY -> BESTIARY;
             case PLAYER -> SOCIAL;
-            case WAYPOINT -> MAPPING;
+            case WAYPOINT -> ENVIRONMENT;
             case ITEM -> classifyItem(node);
         };
     }

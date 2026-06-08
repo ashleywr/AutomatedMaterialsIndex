@@ -1179,11 +1179,6 @@ public class UniversalResultsPanel implements SearchState.Listener {
         var manager = com.sanhiruzu.ami.client.InventoryOverlayHandler.getManager();
         if (manager != null && !manager.isPanelVisible() && !isFavoritesPanel) return;
 
-        if (!isFavoritesPanel && currentQuery.isEmpty()) {
-            showDashboard();
-            return;
-        }
-
         ResultsViewProjector.Projection projection = projectResults();
         displayedItemCount = projection.displayedItemCount();
         currentGuideRows = projection.guideRows();
@@ -1220,7 +1215,6 @@ public class UniversalResultsPanel implements SearchState.Listener {
             return null;
         }
         return GlobalIndex.getInstance().revision() + "|searchRevision=" + searchServiceRevision
-                + "|liveWaypoints=" + (!isFavoritesPanel ? PlayerWaypointProviders.liveWaypointRevision() : 0L)
                 + "|source=" + System.identityHashCode(currentResults)
                 + "|size=" + currentResults.size()
                 + "|view=" + state.getViewMode()
@@ -1245,97 +1239,6 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     private void refreshAvailableListLenses() {
         state.setAvailableListLenses(ListLens.availableFor(resolveSource()));
-    }
-
-    private void showDashboard() {
-        List<TreeNode> dashboard = new ArrayList<>();
-
-        List<SearchNode> liveWaypoints = PlayerWaypointProviders.liveWaypointNodes();
-        if (!liveWaypoints.isEmpty()) {
-            TreeNode waypointsGroup = new TreeNode("waypoints", Component.literal("Waypoints"));
-            waypointsGroup.setExpanded(true);
-            for (SearchNode waypoint : liveWaypoints) {
-                waypointsGroup.addChild(new TreeNode(Component.literal(waypoint.displayName()), waypoint));
-            }
-            dashboard.add(waypointsGroup);
-        }
-
-        List<SearchNode> livePlayers = List.of();
-        if (!livePlayers.isEmpty()) {
-            TreeNode playersGroup = new TreeNode("players", Component.literal("Players"));
-            playersGroup.setExpanded(true);
-            for (SearchNode player : livePlayers) {
-                playersGroup.addChild(new TreeNode(Component.literal(player.displayName()), player));
-            }
-            dashboard.add(playersGroup);
-        }
-
-        // 1. Recent History (Most relevant first)
-        var history = com.sanhiruzu.ami.client.favorites.AmiHistoryHandler.getInstance().getLookupHistory();
-        if (!history.isEmpty()) {
-            TreeNode historyGroup = new TreeNode("history", Component.translatable("ami.gui.sidebar.lookup_history"));
-            historyGroup.setExpanded(true);
-            for (int i = 0; i < Math.min(history.size(), 12); i++) {
-                ItemStack stack = history.get(i);
-                var id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-                com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNode(id).ifPresent(node -> {
-                    historyGroup.addChild(new TreeNode(Component.literal(node.displayName()), node));
-                });
-            }
-            dashboard.add(historyGroup);
-        }
-
-        // 2. Browse by Category (Ontology) - category with subcategory placeholders
-        List<com.sanhiruzu.ami.index.AmiOntology.Category> categories = new ArrayList<>(com.sanhiruzu.ami.index.AmiOntology.CATEGORIES);
-        if (!state.isAscending()) {
-            java.util.Collections.reverse(categories);
-        }
-
-        ResultsProcessor processor = state.createProcessor();
-        List<TreeNode> categoryNodes = com.sanhiruzu.ami.client.results.DashboardBrowse.buildCategoryNodes(
-                categories,
-                categoryId -> {
-                    List<SearchNode> raw = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodesByCategory(categoryId);
-                    return processor.processFlat(raw).stream()
-                            .filter(TreeNode::isLeaf)
-                            .map(TreeNode::getEntry)
-                            .collect(java.util.stream.Collectors.toList());
-                }
-        );
-
-        // Populate expanded placeholders eagerly
-        for (TreeNode catNode : categoryNodes) {
-            if (catNode.isExpanded()) {
-                List<SearchNode> catRaw = com.sanhiruzu.ami.index.GlobalIndex.getInstance().getNodesByCategory(catNode.getKey());
-                if (catRaw.isEmpty()) continue;
-
-                Map<String, List<SearchNode>> subMap = new java.util.HashMap<>();
-                for (SearchNode sn : catRaw) {
-                    String subId = sn.meta(com.sanhiruzu.ami.index.SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "");
-                    subMap.computeIfAbsent(subId, k -> new java.util.ArrayList<>()).add(sn);
-                }
-
-                for (TreeNode subNode : catNode.getChildren()) {
-                    if (subNode.isExpanded() && subNode.getChildren().isEmpty()) {
-                        String[] keys = com.sanhiruzu.ami.client.results.DashboardBrowse.splitSubcategoryKey(subNode.getKey());
-                        if (keys != null) {
-                            String subId = "none".equals(keys[1]) ? "" : keys[1];
-                            List<SearchNode> members = subMap.getOrDefault(subId, java.util.Collections.emptyList());
-                            if (!members.isEmpty()) {
-                                SearchState tempState = new SearchState();
-                                tempState.setSortField(state.getSortField());
-                                tempState.setAscending(state.isAscending());
-                                subNode.getChildren().addAll(createLeafNodesWithCollapseGrouping(members, tempState));
-                                ResultsTreeNormalizer.normalizeChildren(subNode);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        dashboard.addAll(categoryNodes);
-
-        setViewRoots(dashboard);
     }
 
     private void setViewRoots(List<TreeNode> roots) {

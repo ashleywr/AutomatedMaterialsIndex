@@ -2,13 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import net.minecraft.resources.ResourceLocation;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.StringJoiner;
+import java.util.*;
 
 final class CategoryScorer {
     private static final int MIN_FALLBACK_SCORE = 40;

@@ -78,7 +78,6 @@ public class PlayerFaceRenderer implements IIconRenderer {
     @Override
     public List<Component> getTooltip(SearchNode node) {
         return List.of(
-                Component.literal(node.displayName()),
                 Component.translatable("ami.tooltip.player_subtitle").withStyle(s -> s.withColor(AMITheme.ENTITY_PLAYER_TEXT))
         );
     }

@@ -4,25 +4,7 @@ import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.api.AmiPluginRegistry;
 import com.sanhiruzu.ami.api.ItemProviderCompatHooks;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
-import com.sanhiruzu.ami.compat.AE2Compat;
-import com.sanhiruzu.ami.compat.AlexsCavesCompat;
-import com.sanhiruzu.ami.compat.AlexsMobsCompat;
-import com.sanhiruzu.ami.compat.ArsNouveauCompat;
-import com.sanhiruzu.ami.compat.ChippedCompat;
-import com.sanhiruzu.ami.compat.CobblemonCompat;
-import com.sanhiruzu.ami.compat.CompatFamilyDetector;
-import com.sanhiruzu.ami.compat.CreateCompat;
-import com.sanhiruzu.ami.compat.GregTechCompat;
-import com.sanhiruzu.ami.compat.MekanismCompat;
-import com.sanhiruzu.ami.compat.MnaCompat;
-import com.sanhiruzu.ami.compat.ModularGearCompat;
-import com.sanhiruzu.ami.compat.ModularGolemsCompat;
-import com.sanhiruzu.ami.compat.NaturesAuraCompat;
-import com.sanhiruzu.ami.compat.RechiseledCompat;
-import com.sanhiruzu.ami.compat.SophisticatedCompat;
-import com.sanhiruzu.ami.compat.SpectrumCompat;
-import com.sanhiruzu.ami.compat.StorageCompat;
-import com.sanhiruzu.ami.compat.TaczCompat;
+import com.sanhiruzu.ami.compat.*;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.index.metrics.*;
@@ -46,29 +28,19 @@ import java.text.Normalizer;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.sanhiruzu.ami.index.providers.RecipeProvider.*;
+import static com.sanhiruzu.ami.index.providers.RecipeProvider.RecipeMetadata;
+import static com.sanhiruzu.ami.index.providers.RecipeProvider.computeRecipeMetadata;
 
 /**
  * Populates the GlobalIndex with all items from BuiltInRegistries.ITEM.
  */
 public class ItemProvider implements IAmiDataProvider {
+    private static final Set<String> PLAIN_SEARCH_STOP_WORDS = Set.of("and", "for", "mod", "the", "with");
     private final PowerMetricSniffer powerMetricSniffer = new PowerMetricSniffer();
     private final FoodMetricSniffer foodMetricSniffer = new FoodMetricSniffer();
     private final FluidMetricSniffer fluidMetricSniffer = new FluidMetricSniffer();
     private final ToolMetricSniffer toolMetricSniffer = new ToolMetricSniffer();
     private final ArmorMetricSniffer armorMetricSniffer = new ArmorMetricSniffer();
-    private static final Set<String> PLAIN_SEARCH_STOP_WORDS = Set.of("and", "for", "mod", "the", "with");
-
-    private enum ItemIndexPass {
-        PRIMARY("primary"),
-        DEFERRED("deferred");
-
-        final String label;
-
-        ItemIndexPass(String label) {
-            this.label = label;
-        }
-    }
 
     private static boolean shouldUseLegacyOntologyFallback(FacetProfile facetProfile) {
         return facetProfile.facets().isEmpty();
@@ -278,9 +250,6 @@ public class ItemProvider implements IAmiDataProvider {
         } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
             return Optional.empty();
         }
-    }
-
-    private record ModonomiconBookAddress(ResourceLocation bookId, ResourceLocation entryId) {
     }
 
     private static void addCheapPlainSearchTokens(Map<String, String> meta, ResourceLocation id,
@@ -607,6 +576,67 @@ public class ItemProvider implements IAmiDataProvider {
         }
         meta.put(SearchNodeKeys.CREATIVE_TAB_ID, creativeTab.id());
         meta.put(SearchNodeKeys.CREATIVE_TAB_LABEL, creativeTab.label());
+    }
+
+    private static long nanosToMillis(long nanos) {
+        return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(nanos);
+    }
+
+    private static boolean hasMultipleCreativeStacks(@Nullable List<ItemFilter.CreativeStackInfo> stacks) {
+        return stacks != null && stacks.size() > 1;
+    }
+
+    static void applySuppressedCreativeVariantMeta(Map<String, String> meta, SuppressedCreativeVariants suppressedVariants) {
+        if (meta == null || suppressedVariants == null || suppressedVariants.reason().isBlank()) {
+            return;
+        }
+        meta.put(SearchNodeKeys.VARIANT_SUPPRESSION_REASON, suppressedVariants.reason());
+        if (suppressedVariants.count() > 0) {
+            meta.put(SearchNodeKeys.VARIANT_SUPPRESSED_COUNT, Integer.toString(suppressedVariants.count()));
+        }
+    }
+
+    private static List<Item> orderedItemsForIndexing() {
+        List<Item> regular = new ArrayList<>();
+        List<Item> deferred = new ArrayList<>();
+        for (Item item : BuiltInRegistries.ITEM) {
+            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+            if (IndexingHotItemPolicy.shouldDeferUntilTail(id)) {
+                deferred.add(item);
+            } else {
+                regular.add(item);
+            }
+        }
+        regular.addAll(deferred);
+        return regular;
+    }
+
+    private static boolean isHiddenComponentDuplicateVariant(Map<String, String> meta) {
+        return "hidden_component_duplicate".equals(meta.get("variantAccessReason"));
+    }
+
+    private static String providerId(SearchableItemProvider provider) {
+        try {
+            String id = provider.id();
+            return id == null || id.isBlank() ? provider.getClass().getName() : id;
+        } catch (RuntimeException | LinkageError ignored) {
+            return provider.getClass().getName();
+        }
+    }
+
+    private static void markGeneratedModularGearVariantCheatOnly(ResourceLocation syntheticId, Map<String, String> meta) {
+        if (syntheticId == null || meta == null || !syntheticId.getPath().contains("/variant/")) {
+            return;
+        }
+        boolean modularGear = meta.getOrDefault(SearchNodeKeys.COMPAT_FAMILIES, "").contains(CompatFamilyDetector.MODULAR_GEAR)
+                || !meta.getOrDefault(SearchNodeKeys.MODULAR_GEAR_FAMILY, "").isBlank();
+        boolean assembledVariant = !meta.getOrDefault(SearchNodeKeys.MODULAR_GEAR_RUNTIME_TRAITS, "").isBlank()
+                || !meta.getOrDefault(SearchNodeKeys.MODULAR_GEAR_RUNTIME_MATERIALS, "").isBlank();
+        if (!modularGear || !assembledVariant) {
+            return;
+        }
+        meta.put(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_CHEAT);
+        meta.put("variantAccessReason", "modular_generated_stack");
     }
 
     @Override
@@ -966,39 +996,6 @@ public class ItemProvider implements IAmiDataProvider {
                 nanosToMillis(basePostCompatNs), nanosToMillis(basePostCategoryNs), nanosToMillis(basePostAddNodeNs));
     }
 
-    private static long nanosToMillis(long nanos) {
-        return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(nanos);
-    }
-
-    private static boolean hasMultipleCreativeStacks(@Nullable List<ItemFilter.CreativeStackInfo> stacks) {
-        return stacks != null && stacks.size() > 1;
-    }
-
-    static void applySuppressedCreativeVariantMeta(Map<String, String> meta, SuppressedCreativeVariants suppressedVariants) {
-        if (meta == null || suppressedVariants == null || suppressedVariants.reason().isBlank()) {
-            return;
-        }
-        meta.put(SearchNodeKeys.VARIANT_SUPPRESSION_REASON, suppressedVariants.reason());
-        if (suppressedVariants.count() > 0) {
-            meta.put(SearchNodeKeys.VARIANT_SUPPRESSED_COUNT, Integer.toString(suppressedVariants.count()));
-        }
-    }
-
-    private static List<Item> orderedItemsForIndexing() {
-        List<Item> regular = new ArrayList<>();
-        List<Item> deferred = new ArrayList<>();
-        for (Item item : BuiltInRegistries.ITEM) {
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
-            if (IndexingHotItemPolicy.shouldDeferUntilTail(id)) {
-                deferred.add(item);
-            } else {
-                regular.add(item);
-            }
-        }
-        regular.addAll(deferred);
-        return regular;
-    }
-
     private void indexFastFacadeItem(GlobalIndex index, Item item, ResourceLocation id,
                                      Map<Item, List<ItemFilter.CreativeStackInfo>> creativeStackMap,
                                      @Nullable ItemFilter.CreativeTabInfo creativeTab,
@@ -1033,13 +1030,9 @@ public class ItemProvider implements IAmiDataProvider {
         index.addNode(new SearchNode(id, NodeType.ITEM, displayName, 0xFFFFFF, 0, meta));
     }
 
-    private static boolean isHiddenComponentDuplicateVariant(Map<String, String> meta) {
-        return "hidden_component_duplicate".equals(meta.get("variantAccessReason"));
-    }
-
     private int indexHeroItems(GlobalIndex index, @Nullable RegistryAccess registryAccess,
-                                Map<Item, ItemFilter.CreativeTabInfo> creativeTabs,
-                                @Nullable Level level) {
+                               Map<Item, ItemFilter.CreativeTabInfo> creativeTabs,
+                               @Nullable Level level) {
         if (!ItemFilter.shouldShowAccessLevel(ItemFilter.ACCESS_CHEAT)) {
             return 0;
         }
@@ -1166,33 +1159,6 @@ public class ItemProvider implements IAmiDataProvider {
         return emittedTotal;
     }
 
-    private static String providerId(SearchableItemProvider provider) {
-        try {
-            String id = provider.id();
-            return id == null || id.isBlank() ? provider.getClass().getName() : id;
-        } catch (RuntimeException | LinkageError ignored) {
-            return provider.getClass().getName();
-        }
-    }
-
-    record SuppressedCreativeVariants(String reason, int count) {
-    }
-
-    private static void markGeneratedModularGearVariantCheatOnly(ResourceLocation syntheticId, Map<String, String> meta) {
-        if (syntheticId == null || meta == null || !syntheticId.getPath().contains("/variant/")) {
-            return;
-        }
-        boolean modularGear = meta.getOrDefault(SearchNodeKeys.COMPAT_FAMILIES, "").contains(CompatFamilyDetector.MODULAR_GEAR)
-                || !meta.getOrDefault(SearchNodeKeys.MODULAR_GEAR_FAMILY, "").isBlank();
-        boolean assembledVariant = !meta.getOrDefault(SearchNodeKeys.MODULAR_GEAR_RUNTIME_TRAITS, "").isBlank()
-                || !meta.getOrDefault(SearchNodeKeys.MODULAR_GEAR_RUNTIME_MATERIALS, "").isBlank();
-        if (!modularGear || !assembledVariant) {
-            return;
-        }
-        meta.put(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_CHEAT);
-        meta.put("variantAccessReason", "modular_generated_stack");
-    }
-
     @Nullable
     private String determineRequiredTool(Item item) {
         if (!(item instanceof BlockItem blockItem)) {
@@ -1232,5 +1198,22 @@ public class ItemProvider implements IAmiDataProvider {
         return holder.tags()
                 .map(tag -> tag.location().toString().toLowerCase())
                 .collect(Collectors.joining(","));
+    }
+
+    private enum ItemIndexPass {
+        PRIMARY("primary"),
+        DEFERRED("deferred");
+
+        final String label;
+
+        ItemIndexPass(String label) {
+            this.label = label;
+        }
+    }
+
+    private record ModonomiconBookAddress(ResourceLocation bookId, ResourceLocation entryId) {
+    }
+
+    record SuppressedCreativeVariants(String reason, int count) {
     }
 }

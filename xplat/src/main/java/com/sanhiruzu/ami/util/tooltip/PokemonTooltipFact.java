@@ -13,7 +13,7 @@ public final class PokemonTooltipFact implements AmiTooltipFact {
     public List<Component> build(SearchNode entry) {
         List<Component> lines = new ArrayList<>();
 
-        String ballTier   = EntityIconTooltipSupport.formatToken(entry.meta(SearchNodeKeys.POKEMON_BALL_TIER, ""));
+        String ballTier = EntityIconTooltipSupport.formatToken(entry.meta(SearchNodeKeys.POKEMON_BALL_TIER, ""));
         String ballFamily = EntityIconTooltipSupport.formatToken(entry.meta(SearchNodeKeys.POKEMON_BALL_FAMILY, ""));
         if (!ballTier.isBlank()) {
             String detail = ballFamily.isBlank() ? ballTier : ballFamily + " / " + ballTier;

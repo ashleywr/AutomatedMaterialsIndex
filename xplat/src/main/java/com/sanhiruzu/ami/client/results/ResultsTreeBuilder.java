@@ -1,7 +1,9 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.*;
+import com.sanhiruzu.ami.index.resolvers.PlayerResolver;
 import com.sanhiruzu.ami.index.providers.RegistryUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -232,7 +234,7 @@ final class ResultsTreeBuilder {
             }
         }
         categoriesToDisplay.sort(Comparator
-                .comparing(AmiTaxonomyCatalog::label, String.CASE_INSENSITIVE_ORDER)
+                .comparing((AmiOntology.Category cat) -> cat.displayName().getString(), String.CASE_INSENSITIVE_ORDER)
                 .thenComparing(category -> category.id));
         if (!options.ascending()) {
             Collections.reverse(categoriesToDisplay);
@@ -275,6 +277,13 @@ final class ResultsTreeBuilder {
                 }
 
                 TreeNode subNode = new TreeNode(subKey, subLabel);
+                if ("social".equals(cat.id)
+                        && "players".equals(subId)
+                        && (subEntry.getValue().size() >= Math.max(1, AmiConfig.livePlayerResultsLimit)
+                        || PlayerResolver.livePlayerNodesTruncated())) {
+                    subNode.setHighCardinality(true);
+                    subNode.setItemCountOverride(subEntry.getValue().size());
+                }
                 subNode.setExpanded(true);
                 addCategoryLeaves(cat.id, subId, subNode, subEntry.getValue());
                 catNode.addChild(subNode);

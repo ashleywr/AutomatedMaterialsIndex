@@ -32,9 +32,9 @@ public final class DurabilityTooltipFact implements AmiTooltipFact {
         String durKey = low ? "ami.tooltip.durability_low" : "ami.tooltip.durability";
 
         return List.of(
-            Component.translatable(durKey,
-                Component.literal(formatted).withStyle(valueColor))
-            .withStyle(s -> s.withColor(AMITheme.TEXT_SUBTLE))
+                Component.translatable(durKey,
+                                Component.literal(formatted).withStyle(valueColor))
+                        .withStyle(s -> s.withColor(AMITheme.TEXT_SUBTLE))
         );
     }
 }

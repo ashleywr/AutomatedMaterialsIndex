@@ -3,12 +3,12 @@ package com.sanhiruzu.ami.api;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * AMI-specific plugin interface. Implement this for features that only AMI provides.

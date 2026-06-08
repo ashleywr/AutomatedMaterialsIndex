@@ -17,6 +17,25 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Pseudo
 @Mixin(ClientInputHandler.class)
 public class JeiClientInputHandlerMixin {
+    private static boolean ami$shouldSuppressJeiChrome() {
+        return ami$invokeBooleanSupport("shouldSuppressJeiChrome");
+    }
+
+    private static boolean ami$shouldSuppressJeiInput() {
+        return ami$invokeBooleanSupport("shouldSuppressJeiInput");
+    }
+
+    private static boolean ami$invokeBooleanSupport(String method) {
+        try {
+            Object value = Class.forName("com.sanhiruzu.ami.compat.JeiClientInputHandlerMixinSupport")
+                    .getMethod(method)
+                    .invoke(null);
+            return value instanceof Boolean result && result;
+        } catch (ReflectiveOperationException ignored) {
+            return false;
+        }
+    }
+
     @Inject(method = "onInitGui", at = @At("HEAD"), cancellable = true, remap = false)
     private void suppressOnInitGui(CallbackInfo ci) {
         if (ami$shouldSuppressJeiChrome()) {
@@ -70,25 +89,6 @@ public class JeiClientInputHandlerMixin {
     private void suppressMouseScroll(double mouseX, double mouseY, double scrollDelta, CallbackInfoReturnable<Boolean> cir) {
         if (ami$shouldSuppressJeiInput()) {
             cir.setReturnValue(false);
-        }
-    }
-
-    private static boolean ami$shouldSuppressJeiChrome() {
-        return ami$invokeBooleanSupport("shouldSuppressJeiChrome");
-    }
-
-    private static boolean ami$shouldSuppressJeiInput() {
-        return ami$invokeBooleanSupport("shouldSuppressJeiInput");
-    }
-
-    private static boolean ami$invokeBooleanSupport(String method) {
-        try {
-            Object value = Class.forName("com.sanhiruzu.ami.compat.JeiClientInputHandlerMixinSupport")
-                    .getMethod(method)
-                    .invoke(null);
-            return value instanceof Boolean result && result;
-        } catch (ReflectiveOperationException ignored) {
-            return false;
         }
     }
 }

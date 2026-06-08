@@ -1,18 +1,18 @@
 package com.sanhiruzu.ami.client;
 
-import com.sanhiruzu.ami.neoforge.AMI;
 import com.sanhiruzu.ami.api.AmiApi;
 import com.sanhiruzu.ami.client.overlay.OverlayWidgetManager;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.AmiIndexerService;
+import com.sanhiruzu.ami.neoforge.AMI;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderTooltipEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.RenderTooltipEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
@@ -29,6 +29,7 @@ public class InventoryOverlayHandler {
     private static net.minecraft.client.gui.screens.Screen initializedScreen = null;
     private static boolean recipeTransitionRestoreQueued = false;
     private static boolean recipeTransitionRestoreEnabledState = false;
+    private static boolean vanillaRecipeBookVisible = false;
     private static boolean sessionInitialized = false;
     private static boolean indexingRequested = false;
 
@@ -40,6 +41,9 @@ public class InventoryOverlayHandler {
     }
 
     private static boolean isRecipeScreen(net.minecraft.client.gui.screens.Screen screen) {
+        if (screen == null) {
+            return false;
+        }
         if (screen instanceof com.sanhiruzu.ami.client.RecipeViewerScreen) return true;
         String name = screen.getClass().getName();
         return name.equals("dev.emi.emi.screen.RecipeScreen")
@@ -73,45 +77,61 @@ public class InventoryOverlayHandler {
         pendingScreenReinit = true;
     }
 
-    public static void setAmiEnabled(boolean enabled) {
-        if (amiEnabled == enabled) {
-            return;
-        }
-
-        amiEnabled = enabled;
-        recipeBookHidesRecipeViewers = false;
+    public static void toggleAmiSuppressAll() {
+        Minecraft mc = Minecraft.getInstance();
+        if (!isAmiScreen(mc.screen)) return;
+        amiEnabled = !amiEnabled;
+        recipeBookHidesRecipeViewers = !amiEnabled;
+        com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
         if (amiEnabled && !manager.isPanelVisible()) {
             manager.setPanelVisible(true);
         } else if (!amiEnabled && manager.isPanelVisible()) {
             manager.setPanelVisible(false);
             AmiKeybindHandler.resetDebugTooltips();
         }
-
         pendingScreenReinit = true;
     }
 
-    public static void toggleFromRecipeBookButton() {
-        Minecraft mc = Minecraft.getInstance();
-        if (!isAmiScreen(mc.screen)) return;
+    public static boolean shouldInterceptRecipeBook() {
+        if (!AmiConfig.enableAutoIndexing) return false;
+        if (AmiConfig.recipeBookAction == AmiConfig.RecipeBookAction.OPEN_VANILLA_BOOK) return false;
+        net.minecraft.client.gui.screens.Screen screen = Minecraft.getInstance().screen;
+        return screen instanceof AbstractContainerScreen<?>
+                && screen instanceof net.minecraft.client.gui.screens.recipebook.RecipeUpdateListener;
+    }
 
-        if (amiEnabled) {
-            amiEnabled = false;
-            recipeBookHidesRecipeViewers = true;
-        } else {
-            amiEnabled = true;
-            recipeBookHidesRecipeViewers = false;
+    public static void handleRecipeBookToggle() {
+        switch (AmiConfig.recipeBookAction) {
+            case TOGGLE_AMI -> toggleAmiSuppressAll();
+            case TOGGLE_EXTERNAL_VIEWER -> toggleAmi();
+            case OPEN_VANILLA_BOOK -> {
+            }
         }
+    }
 
+    private static boolean isVanillaRecipeBookVisible(net.minecraft.client.gui.screens.Screen screen) {
+        if (screen instanceof net.minecraft.client.gui.screens.recipebook.RecipeUpdateListener listener) {
+            return listener.getRecipeBookComponent().isVisible();
+        }
+        return false;
+    }
+
+    private static void syncVanillaRecipeBookVisibility(net.minecraft.client.gui.screens.Screen screen) {
+        if (!isAmiScreen(screen)) return;
+        boolean visible = isVanillaRecipeBookVisible(screen);
+        if (visible && AmiConfig.recipeBookAction != AmiConfig.RecipeBookAction.OPEN_VANILLA_BOOK
+                && screen instanceof net.minecraft.client.gui.screens.recipebook.RecipeUpdateListener listener) {
+            listener.getRecipeBookComponent().toggleVisibility();
+            return;
+        }
+        if (visible == vanillaRecipeBookVisible) return;
+        vanillaRecipeBookVisible = visible;
+        recipeBookHidesRecipeViewers = visible;
         com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
-
-        if (amiEnabled && !manager.isPanelVisible()) {
-            manager.setPanelVisible(true);
-        } else if (!amiEnabled && manager.isPanelVisible()) {
+        if (amiEnabled) {
             manager.setPanelVisible(false);
-            AmiKeybindHandler.resetDebugTooltips();
+            pendingScreenReinit = true;
         }
-
-        pendingScreenReinit = true;
     }
 
     @SubscribeEvent
@@ -169,6 +189,11 @@ public class InventoryOverlayHandler {
             manager.getSearchBar().unfocus();
             manager.invalidateLayout();
         }
+
+        syncVanillaRecipeBookVisibility(event.getScreen());
+        if (amiEnabled && !manager.isPanelVisible() && !pendingScreenReinit) {
+            manager.setPanelVisible(true);
+        }
     }
 
     @SubscribeEvent
@@ -181,6 +206,7 @@ public class InventoryOverlayHandler {
     static void onRenderPost(ScreenEvent.Render.Post event) {
         if (!isAmiScreen(event.getScreen())) return;
         ensureIndexingStarted();
+        syncVanillaRecipeBookVisibility(event.getScreen());
 
         if (pendingScreenReinit) {
             pendingScreenReinit = false;
@@ -196,10 +222,10 @@ public class InventoryOverlayHandler {
         }
 
         manager.refreshLayoutIfNeeded(event.getScreen());
-        manager.renderAll(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
 
         if (amiEnabled) {
             manager.tick(event);
+            manager.renderAll(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
         }
     }
 
@@ -281,6 +307,23 @@ public class InventoryOverlayHandler {
         return amiEnabled;
     }
 
+    public static void setAmiEnabled(boolean enabled) {
+        if (amiEnabled == enabled) {
+            return;
+        }
+
+        amiEnabled = enabled;
+        recipeBookHidesRecipeViewers = false;
+        if (amiEnabled && !manager.isPanelVisible()) {
+            manager.setPanelVisible(true);
+        } else if (!amiEnabled && manager.isPanelVisible()) {
+            manager.setPanelVisible(false);
+            AmiKeybindHandler.resetDebugTooltips();
+        }
+
+        pendingScreenReinit = true;
+    }
+
     public static boolean shouldSuppressRecipeViewerChrome() {
         Minecraft mc = Minecraft.getInstance();
         return RecipeViewerSuppressionPolicy.shouldSuppressRecipeViewerChrome(
@@ -307,6 +350,7 @@ public class InventoryOverlayHandler {
     public static void resetSessionState() {
         amiEnabled = false;
         recipeBookHidesRecipeViewers = false;
+        vanillaRecipeBookVisible = false;
         pendingScreenReinit = false;
         initializedScreen = null;
         recipeTransitionRestoreQueued = false;

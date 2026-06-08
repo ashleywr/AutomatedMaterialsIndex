@@ -22,13 +22,7 @@ import net.minecraftforge.common.brewing.VanillaBrewingRecipe;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -93,6 +87,25 @@ public final class AmiRecipeIndex {
 
     public static AmiRecipeIndex getInstance() {
         return INSTANCE;
+    }
+
+    private static String brewingStackKey(ItemStack stack) {
+        ResourceLocation itemId = ForgeRegistries.ITEMS.getKey(stack.getItem());
+        if (stack.getItem() instanceof PotionItem) {
+            ResourceLocation potionId = ForgeRegistries.POTIONS.getKey(PotionUtils.getPotion(stack));
+            return itemId + "@" + potionId;
+        }
+        return String.valueOf(itemId);
+    }
+
+    private static boolean isValidRepairItem(Item item, ItemStack stack, ItemStack materialStack) {
+        if (materialStack.isEmpty()) return false;
+        try {
+            return item.isValidRepairItem(stack, materialStack);
+        } catch (RuntimeException | LinkageError ignored) {
+            // Some modded armor materials return a null repair ingredient; skip those invalid probes.
+            return false;
+        }
     }
 
     public boolean isBuilt() {
@@ -184,25 +197,6 @@ public final class AmiRecipeIndex {
             unique.putIfAbsent(holder.value().getType(), holder);
         }
         return new ArrayList<>(unique.values());
-    }
-
-    private static String brewingStackKey(ItemStack stack) {
-        ResourceLocation itemId = ForgeRegistries.ITEMS.getKey(stack.getItem());
-        if (stack.getItem() instanceof PotionItem) {
-            ResourceLocation potionId = ForgeRegistries.POTIONS.getKey(PotionUtils.getPotion(stack));
-            return itemId + "@" + potionId;
-        }
-        return String.valueOf(itemId);
-    }
-
-    private static boolean isValidRepairItem(Item item, ItemStack stack, ItemStack materialStack) {
-        if (materialStack.isEmpty()) return false;
-        try {
-            return item.isValidRepairItem(stack, materialStack);
-        } catch (RuntimeException | LinkageError ignored) {
-            // Some modded armor materials return a null repair ingredient; skip those invalid probes.
-            return false;
-        }
     }
 
     public void rebuild(@Nullable Level level) {

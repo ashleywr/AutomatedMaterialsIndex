@@ -75,7 +75,8 @@ class AmiTaxonomyCatalogTest {
             assertFalse(categories.get(id).subcategories().isEmpty(), "Missing subcategories for " + id);
         }
 
-        assertTrue(hasSubcategory(categories, "mapping", "waypoints"));
+        assertTrue(hasSubcategory(categories, "environment", "waypoints"));
+        assertFalse(hasSubcategory(categories, "mapping", "waypoints"));
         assertTrue(hasSubcategory(categories, "mapping", "claims"));
         assertTrue(hasSubcategory(categories, "create", "kinetics"));
         assertTrue(hasSubcategory(categories, "ae2", "storage"));

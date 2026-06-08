@@ -30,6 +30,7 @@ import java.util.function.Consumer;
  */
 public final class ResourceBookRuntimeGuideSource {
     private static final String DEFAULT_LANGUAGE = "en_us";
+    private static final List<String> GUIDE_TEXT_ROOTS = List.of("book", "books", "guide", "manual");
 
     private ResourceBookRuntimeGuideSource() {
     }
@@ -40,15 +41,60 @@ public final class ResourceBookRuntimeGuideSource {
         }
         ResourceManager resourceManager = resourceManager();
         ResourceManager clientResources = clientResourceManager();
-        Map<ResourceLocation, String> textById = readResources(resourceManager, "", ResourceBookRuntimeGuideSource::isRelevantResource);
-        if (clientResources != resourceManager) {
-            textById.putAll(readResources(clientResources, "", ResourceBookRuntimeGuideSource::isRelevantResource));
-        }
-        Map<ResourceLocation, String> langById = readResources(clientResources, "lang", id -> id.getPath().endsWith(".json"));
         String language = GlobalIndexCache.currentClientLanguageCacheKey();
+        Map<ResourceLocation, String> textById = readGuideTextResources(resourceManager, clientResources);
+        Map<ResourceLocation, String> langById = readGuideLanguageResources(clientResources, language);
         for (AmiGuideDocument document : documentsFromResources(textById, langById, language)) {
             documents.accept(document);
         }
+    }
+
+    private static Map<ResourceLocation, String> readGuideTextResources(ResourceManager resourceManager, ResourceManager clientResources) {
+        Map<ResourceLocation, String> out = new LinkedHashMap<>();
+        if (resourceManager != null) {
+            readGuideTextResourcesInto(out, resourceManager);
+        }
+        if (clientResources != null && clientResources != resourceManager) {
+            readGuideTextResourcesInto(out, clientResources);
+        }
+        return out;
+    }
+
+    private static void readGuideTextResourcesInto(Map<ResourceLocation, String> target, ResourceManager resourceManager) {
+        for (String root : GUIDE_TEXT_ROOTS) {
+            target.putAll(readResources(resourceManager, root, ResourceBookRuntimeGuideSource::isRelevantResource));
+        }
+    }
+
+    private static Map<ResourceLocation, String> readGuideLanguageResources(ResourceManager resourceManager, String selectedLanguage) {
+        Map<ResourceLocation, String> out = new LinkedHashMap<>();
+        if (resourceManager == null) {
+            return out;
+        }
+        for (String languagePath : languageRoots(selectedLanguage)) {
+            targetLanguageResources(resourceManager, out, languagePath);
+        }
+        return out;
+    }
+
+    private static void targetLanguageResources(ResourceManager resourceManager,
+                                               Map<ResourceLocation, String> out,
+                                               String languagePath) {
+        readResources(resourceManager, languagePath, id -> id.getPath().endsWith(".json"))
+                .entrySet()
+                .stream()
+                .sorted(Comparator.comparing(entry -> entry.getKey().toString()))
+                .forEach(entry -> out.put(entry.getKey(), entry.getValue()));
+    }
+
+    private static List<String> languageRoots(String selectedLanguage) {
+        List<String> out = new ArrayList<>();
+        out.add("lang/" + DEFAULT_LANGUAGE);
+        String normalized = normalizeLanguage(selectedLanguage);
+        if (!DEFAULT_LANGUAGE.equals(normalized)) {
+            out.add("lang/" + normalized);
+        }
+        return out;
     }
 
     static List<AmiGuideDocument> documentsFromResources(Map<ResourceLocation, String> resourceTextById,

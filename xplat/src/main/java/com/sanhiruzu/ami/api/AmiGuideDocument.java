@@ -44,24 +44,6 @@ public record AmiGuideDocument(
         visibility = visibility == null ? () -> true : visibility;
     }
 
-    public boolean isVisible() {
-        try {
-            return visibility.getAsBoolean();
-        } catch (RuntimeException ignored) {
-            return true;
-        }
-    }
-
-    public boolean canOpen() {
-        return openAction != null;
-    }
-
-    public void open() {
-        if (openAction != null) {
-            openAction.run();
-        }
-    }
-
     public static Builder builder(ResourceLocation id, String sourceType, String modId, String title) {
         return new Builder(id, sourceType, modId, title);
     }
@@ -163,7 +145,8 @@ public record AmiGuideDocument(
 
     private static boolean isGenericTranslationLeaf(String value) {
         return switch (value) {
-            case "name", "title", "text", "description", "landing", "landing_text", "entries", "categories", "pages" -> true;
+            case "name", "title", "text", "description", "landing", "landing_text", "entries", "categories", "pages" ->
+                    true;
             default -> false;
         };
     }
@@ -204,17 +187,35 @@ public record AmiGuideDocument(
         return List.copyOf(cleaned);
     }
 
+    public boolean isVisible() {
+        try {
+            return visibility.getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return true;
+        }
+    }
+
+    public boolean canOpen() {
+        return openAction != null;
+    }
+
+    public void open() {
+        if (openAction != null) {
+            openAction.run();
+        }
+    }
+
     public static final class Builder {
         private final ResourceLocation id;
         private final String sourceType;
         private final String modId;
         private final String title;
+        private final List<ResourceLocation> referencedItems = new ArrayList<>();
+        private final List<String> tags = new ArrayList<>();
         private ResourceLocation bookId;
         private ResourceLocation iconItemId;
         private String pageId = "";
         private String chapter = "";
-        private final List<ResourceLocation> referencedItems = new ArrayList<>();
-        private final List<String> tags = new ArrayList<>();
         private String summaryText = "";
         private BooleanSupplier visibility;
         private Runnable openAction;

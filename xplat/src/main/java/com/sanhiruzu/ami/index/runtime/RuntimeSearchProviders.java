@@ -46,6 +46,7 @@ public final class RuntimeSearchProviders {
                 return PlayerWaypointProviders.liveWaypointNodes();
             }
         });
+        register(new LookupHistorySearchProvider());
     }
 
     private RuntimeSearchProviders() {

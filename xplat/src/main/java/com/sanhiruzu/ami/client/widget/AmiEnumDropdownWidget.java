@@ -99,7 +99,7 @@ public class AmiEnumDropdownWidget extends AbstractWidget implements AmiDropdown
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (!active || button != 0) return false;
 
-        if (open && isMouseOverDropdown(mouseX, mouseY)) {
+        if (open && isMouseOverPopup(mouseX, mouseY)) {
             int listH = Math.min(constants.length, MAX_VISIBLE_OPTIONS) * OPTION_HEIGHT + 2;
             int index = (int) ((mouseY - (dropdownY(listH) + 1)) / OPTION_HEIGHT);
             if (index >= 0 && index < constants.length && index < MAX_VISIBLE_OPTIONS) {
@@ -120,7 +120,8 @@ public class AmiEnumDropdownWidget extends AbstractWidget implements AmiDropdown
         return false;
     }
 
-    private boolean isMouseOverDropdown(double mouseX, double mouseY) {
+    @Override
+    public boolean isMouseOverPopup(double mouseX, double mouseY) {
         int visible = Math.min(constants.length, MAX_VISIBLE_OPTIONS);
         int listX = getX();
         int listH = visible * OPTION_HEIGHT + 2;

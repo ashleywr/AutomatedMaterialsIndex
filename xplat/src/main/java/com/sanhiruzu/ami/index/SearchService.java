@@ -88,14 +88,6 @@ public final class SearchService {
                 propertyResolver, categoryResolver, playerResolver, runtimeResolver);
     }
 
-    public List<SearchNode> defaultResults() {
-        return RuntimeSearchProviders.nodes();
-    }
-
-    public long runtimeRevision() {
-        return RuntimeSearchProviders.revision();
-    }
-
     private static void record(QueryTrace trace, String operation, String value, Map<NodeType, List<SearchNode>> results) {
         if (trace == null) return;
         trace.steps.add(new QueryStep(operation, value, countsByType(results)));
@@ -107,6 +99,14 @@ public final class SearchService {
             counts.put(entry.getKey(), entry.getValue().size());
         }
         return counts;
+    }
+
+    public List<SearchNode> defaultResults() {
+        return RuntimeSearchProviders.nodes();
+    }
+
+    public long runtimeRevision() {
+        return RuntimeSearchProviders.revision();
     }
 
     /**

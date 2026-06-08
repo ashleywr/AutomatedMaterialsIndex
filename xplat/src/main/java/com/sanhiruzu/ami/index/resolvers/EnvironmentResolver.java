@@ -4,11 +4,7 @@ import com.sanhiruzu.ami.index.IQueryResolver;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Locale;
+import java.util.*;
 
 public class EnvironmentResolver implements IQueryResolver {
     private final List<SearchNode> dimensionNodes = new ArrayList<>();

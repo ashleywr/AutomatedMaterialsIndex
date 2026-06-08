@@ -88,5 +88,13 @@ public class AmiOntologyTest {
                 0, 0, Map.of()
         );
         assertEquals(AmiOntology.ENVIRONMENT, AmiOntology.classifyNode(structure));
+
+        SearchNode waypoint = new SearchNode(
+                new ResourceLocation("ami:waypoint/waystones/demo"),
+                NodeType.WAYPOINT,
+                "Demo Waypoint",
+                0, 0, Map.of()
+        );
+        assertEquals(AmiOntology.ENVIRONMENT, AmiOntology.classifyNode(waypoint));
     }
 }

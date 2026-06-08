@@ -21,19 +21,15 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.*;
 import net.minecraft.world.item.alchemy.PotionContents;
-import net.minecraft.world.item.component.FireworkExplosion;
-import net.minecraft.world.item.component.Fireworks;
-import net.minecraft.world.item.component.ItemAttributeModifiers;
-import net.minecraft.world.item.component.ResolvableProfile;
-import net.minecraft.world.item.component.SuspiciousStewEffects;
+import net.minecraft.world.item.component.*;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SuspiciousEffectHolder;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.fml.ModList;
-import net.neoforged.fml.loading.FMLLoader;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.energy.IEnergyStorage;
@@ -41,11 +37,7 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
 import net.neoforged.neoforge.items.IItemHandler;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.OptionalLong;
-import java.util.UUID;
+import java.util.*;
 
 public class NeoForgePlatformHelper implements IPlatformHelper {
     private static final IAmiKeyMappings KEY_MAPPINGS = new IAmiKeyMappings() {
@@ -118,9 +110,22 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
         return null;
     }
 
+    private static long itemHandlerCapacity(IItemHandler handler) {
+        if (handler == null || handler.getSlots() <= 0) return 0L;
+        long capacity = 0L;
+        for (int slot = 0; slot < handler.getSlots(); slot++) {
+            capacity += Math.max(0, handler.getSlotLimit(slot));
+        }
+        return capacity;
+    }
+
+    private static String escapeCommandString(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
     @Override
     public boolean isClient() {
-        return FMLLoader.getDist().isClient();
+        return FMLEnvironment.dist.isClient();
     }
 
     @Override
@@ -262,15 +267,6 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
         return OptionalLong.empty();
     }
 
-    private static long itemHandlerCapacity(IItemHandler handler) {
-        if (handler == null || handler.getSlots() <= 0) return 0L;
-        long capacity = 0L;
-        for (int slot = 0; slot < handler.getSlots(); slot++) {
-            capacity += Math.max(0, handler.getSlotLimit(slot));
-        }
-        return capacity;
-    }
-
     @Override
     public List<ItemAttributeModifier> getMainHandAttackModifiers(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return List.of();
@@ -389,10 +385,6 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
             return "give @s minecraft:player_head 1";
         }
         return "give @s minecraft:player_head[minecraft:profile={name:\"" + escapeCommandString(name) + "\"}] 1";
-    }
-
-    private static String escapeCommandString(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     @Override

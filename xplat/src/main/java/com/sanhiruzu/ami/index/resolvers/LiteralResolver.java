@@ -24,6 +24,14 @@ public final class LiteralResolver implements IQueryResolver {
         this.index = new SearchIndex(includeMetadata);
     }
 
+    private static boolean shouldUseSubstringFallback(String query) {
+        return query.trim().length() >= 3;
+    }
+
+    private static boolean shouldCapShortQuery(String query) {
+        return query.trim().length() < 3;
+    }
+
     /**
      * Called during SearchService.buildFrom() to pre-load the trie.
      */
@@ -68,13 +76,5 @@ public final class LiteralResolver implements IQueryResolver {
         }
 
         return result;
-    }
-
-    private static boolean shouldUseSubstringFallback(String query) {
-        return query.trim().length() >= 3;
-    }
-
-    private static boolean shouldCapShortQuery(String query) {
-        return query.trim().length() < 3;
     }
 }

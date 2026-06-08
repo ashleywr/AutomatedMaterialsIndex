@@ -22,6 +22,7 @@ public final class ItemFilter {
     public static final String ACCESS_CREATIVE = "creative";
     public static final String ACCESS_CHEAT = "cheat";
     public static final String ACCESS_DEV = "dev";
+
     private ItemFilter() {
     }
 
