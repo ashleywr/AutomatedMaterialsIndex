@@ -68,6 +68,24 @@ test.java
 build_error*.log
 build_errors*.txt
 
+### Local extracted reference sources / artifacts ###
+/META-INF/
+/assets/
+/com/
+/data/
+/mcp/
+/net/
+/forge.exc
+/forge.sas
+/forge.srg
+/neoforge.mixins.json
+/pack.mcmeta
+/mcplogo.png
+/neoforged_logo.png
+/url.png
+/reports/
+/skills/
+
 ### Dot directories (keep only .gitignore) ###
 .*
 !.gitignore

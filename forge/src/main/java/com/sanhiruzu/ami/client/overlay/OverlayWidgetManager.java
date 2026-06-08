@@ -40,6 +40,11 @@ public class OverlayWidgetManager {
     private static final int MAX_MARGIN_CONTROL_H = 32;
     private static final int TOP_MARGIN_CONTROL_MAX_Y = 96;
     private static final int PANEL_HANDLE_HITBOX = 8;
+    private static final int LEFT_PANEL_BAR_H = 20;
+    private static final int BAR_EXPAND_BTN_W = 20;
+    private static final int BAR_EXPAND_BTN_H = 14;
+    private static final int MIN_BAR_W = 40;
+    private static final int BAR_ICON_CELL = 18;
     private static final long SEARCH_DEBOUNCE_MS = Math.max(0L, Long.getLong("ami.searchDebounceMs", 120L));
 
     private final List<PanelSlot> leftSlotPool = new ArrayList<>();
@@ -59,6 +64,9 @@ public class OverlayWidgetManager {
     private boolean pendingEmiReinit = false;
     private boolean leftAlternateActive = false;
     private boolean rightAlternateActive = false;
+    private boolean leftPanelCollapsed = false;
+    private WidgetBounds leftPanelBarBounds = null;
+    private WidgetBounds leftPanelExpandBtnBounds = null;
     private WidgetBounds leftStripBounds = null;
     private WidgetBounds rightStripBounds = null;
     private boolean searchBarEmbedded = false;
@@ -125,6 +133,9 @@ public class OverlayWidgetManager {
         configureResultsCallbacks(slot.results);
         Runnable refreshSidebars = this::refreshSidebars;
         slot.sidebar.getInnerPanel().setOnReset(refreshSidebars);
+        if (leftSide) {
+            slot.sidebar.setOnCollapse(this::toggleLeftPanelCollapsed);
+        }
         if (hasAlternateContent(leftSide)) {
             slot.setOnModeToggle(leftSide ? this::toggleLeftAlternate : this::toggleRightAlternate,
                     leftSide ? () -> leftAlternateActive : () -> rightAlternateActive);
@@ -232,6 +243,8 @@ public class OverlayWidgetManager {
         leftStripBounds = null;
         rightStripBounds = null;
         lastResultsBounds = null;
+        leftPanelBarBounds = null;
+        leftPanelExpandBtnBounds = null;
         lastScreenH = screenH;
 
         amiButton.updateBounds(new WidgetBounds(AMI_BTN_X, screenH - AMI_BTN_H - AMI_BTN_MARGIN, AMI_BTN_W, AMI_BTN_H));
@@ -250,10 +263,13 @@ public class OverlayWidgetManager {
 
         List<AmiConfig.PanelContent> leftContents = leftContents();
         if (!leftContents.isEmpty()) {
-            int leftW = Math.min(AmiConfig.leftPanelWidth, containerLeftEdge - PANEL_MARGIN * 2);
-            if (leftW >= 40) {
-                int leftBaseY = pinnedPanelY("left_panel", leftY, panelBottom);
-                int thirdPartyBottom = thirdPartyWidgetBottomInStrip(containerScreen, 0, containerLeftEdge, panelY, panelBottom);
+            int recipeBookW = computeRecipeBookWidth(containerScreen, screenW);
+            int adjustedContainerLeftEdge = containerLeftEdge - recipeBookW;
+            int leftBaseY = pinnedPanelY("left_panel", leftY, panelBottom);
+            int leftW = Math.min(AmiConfig.leftPanelWidth, adjustedContainerLeftEdge - PANEL_MARGIN * 2);
+            boolean placed = false;
+            if (!leftPanelCollapsed && leftW >= 40) {
+                int thirdPartyBottom = thirdPartyWidgetBottomInStrip(containerScreen, 0, adjustedContainerLeftEdge, panelY, panelBottom);
                 int slotY = thirdPartyBottom > leftBaseY ? thirdPartyBottom + PANEL_MARGIN : leftBaseY;
                 int slotH = Math.min(leftH, Math.max(0, panelBottom - slotY));
                 if (slotH > 0) {
@@ -261,6 +277,19 @@ public class OverlayWidgetManager {
                     placeSideSlots(leftSlot, leftContents, leftSlotPool);
                     // Claim full left vertical strip to screen bottom so JEI can't use the corner
                     leftStripBounds = new WidgetBounds(0, 0, leftSlot.x() + leftSlot.w(), screenH - BOTTOM_BAR_H);
+                    placed = true;
+                }
+            }
+            if (!placed) {
+                int barW = adjustedContainerLeftEdge - PANEL_MARGIN * 2;
+                if (barW >= MIN_BAR_W) {
+                    int barX = PANEL_MARGIN;
+                    int barY = leftBaseY;
+                    leftPanelBarBounds = new WidgetBounds(barX, barY, barW, LEFT_PANEL_BAR_H);
+                    int btnX = barX + barW - BAR_EXPAND_BTN_W - 2;
+                    int btnY = barY + (LEFT_PANEL_BAR_H - BAR_EXPAND_BTN_H) / 2;
+                    leftPanelExpandBtnBounds = new WidgetBounds(btnX, btnY, BAR_EXPAND_BTN_W, BAR_EXPAND_BTN_H);
+                    leftStripBounds = new WidgetBounds(0, 0, barX + barW, screenH - BOTTOM_BAR_H);
                 }
             }
         }
@@ -511,6 +540,7 @@ public class OverlayWidgetManager {
                 leftAlternateActive,
                 rightAlternateActive,
                 panelVisible,
+                leftPanelCollapsed,
                 AmiConfig.pinnedPositionsJson,
                 thirdPartyMarginSignature(screen),
                 lastThirdPartyMarginSignature
@@ -566,6 +596,19 @@ public class OverlayWidgetManager {
     private void toggleRightAlternate() {
         rightAlternateActive = !rightAlternateActive;
         refreshCurrentLayout();
+    }
+
+    private void toggleLeftPanelCollapsed() {
+        leftPanelCollapsed = !leftPanelCollapsed;
+        invalidateLayout();
+    }
+
+    private int computeRecipeBookWidth(AbstractContainerScreen<?> screen, int screenW) {
+        if (AmiConfig.recipeBookAction != AmiConfig.RecipeBookAction.OPEN_VANILLA_BOOK) return 0;
+        if (!(screen instanceof net.minecraft.client.gui.screens.recipebook.RecipeUpdateListener rl)) return 0;
+        if (!rl.getRecipeBookComponent().isVisible()) return 0;
+        int naturalLeft = (screenW - screen.getXSize()) / 2;
+        return Math.max(0, screen.getGuiLeft() - naturalLeft);
     }
 
     private void refreshCurrentLayout() {
@@ -671,6 +714,9 @@ public class OverlayWidgetManager {
                 slot.renderOverlay(g, mx, my);
             }
             renderCheatDeleteHint(g, mx, my, renderingSlots);
+            if (leftPanelBarBounds != null) {
+                renderLeftPanelBar(g, mx, my);
+            }
 
             if (AmiConfig.highlightExclusionAreas) {
                 g.pose().pushPose();
@@ -714,6 +760,43 @@ public class OverlayWidgetManager {
                 g.pose().popPose();
                 break;
             }
+        }
+    }
+
+    private void renderLeftPanelBar(net.minecraft.client.gui.GuiGraphics g, int mx, int my) {
+        int bx = leftPanelBarBounds.x(), by = leftPanelBarBounds.y();
+        int bw = leftPanelBarBounds.width(), bh = leftPanelBarBounds.height();
+        com.sanhiruzu.ami.client.AMITheme.fillPanelChrome(g, bx, by, bw, bh);
+
+        List<AmiConfig.PanelContent> conts = leftContents();
+        if (!conts.isEmpty()) {
+            List<com.sanhiruzu.ami.index.SearchNode> nodes =
+                    com.sanhiruzu.ami.client.overlay.AmiSidebarSyncHandler.getNodesForContent(conts.get(0));
+            int btnRight = leftPanelExpandBtnBounds != null ? leftPanelExpandBtnBounds.x() : bx + bw;
+            int iconAreaW = btnRight - bx - 4;
+            int maxIcons = Math.max(0, iconAreaW / BAR_ICON_CELL);
+            int count = Math.min(nodes.size(), maxIcons);
+            int iconX = bx + 4;
+            int iconY = by + (bh - com.sanhiruzu.ami.client.AMITheme.ICON_SIZE) / 2;
+            for (int i = 0; i < count; i++) {
+                net.minecraft.world.item.ItemStack stack =
+                        com.sanhiruzu.ami.client.icon.ItemIconRenderer.resolveStack(nodes.get(i).id());
+                if (!stack.isEmpty()) {
+                    g.renderItem(stack, iconX + i * BAR_ICON_CELL, iconY);
+                }
+            }
+        }
+
+        if (leftPanelExpandBtnBounds != null) {
+            int ebx = leftPanelExpandBtnBounds.x(), eby = leftPanelExpandBtnBounds.y();
+            int ebw = leftPanelExpandBtnBounds.width(), ebh = leftPanelExpandBtnBounds.height();
+            boolean hov = mx >= ebx && mx < ebx + ebw && my >= eby && my < eby + ebh;
+            int bg = hov ? com.sanhiruzu.ami.client.AMITheme.DROPDOWN_BG_ACTIVE
+                         : com.sanhiruzu.ami.client.AMITheme.DROPDOWN_BG;
+            com.sanhiruzu.ami.client.AMITheme.fillControlChrome(g, ebx, eby, ebw, ebh, bg, false);
+            int ic = hov ? com.sanhiruzu.ami.client.AMITheme.TEXT_HEADER
+                         : com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE;
+            com.sanhiruzu.ami.client.AmiGuiIcons.sidebarExpand(g, ebx + ebw / 2, eby + ebh / 2, ic);
         }
     }
 
@@ -827,6 +910,15 @@ public class OverlayWidgetManager {
     }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (leftPanelBarBounds != null && leftPanelExpandBtnBounds != null && button == 0) {
+            var btn = leftPanelExpandBtnBounds;
+            if (mouseX >= btn.x() && mouseX < btn.x() + btn.width()
+                    && mouseY >= btn.y() && mouseY < btn.y() + btn.height()) {
+                leftPanelCollapsed = false;
+                invalidateLayout();
+                return true;
+            }
+        }
         if (inLayoutMode) {
             Minecraft mc = Minecraft.getInstance();
             ensureLayoutButtons(mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight());
@@ -891,6 +983,7 @@ public class OverlayWidgetManager {
     }
 
     public boolean isMouseOverPanel(double mouseX, double mouseY) {
+        if (leftPanelBarBounds != null && leftPanelBarBounds.contains(mouseX, mouseY)) return true;
         for (PanelSlot slot : activeSlotsSnapshot()) {
             if (slot.isMouseOver(mouseX, mouseY)) return true;
         }
@@ -1448,6 +1541,7 @@ public class OverlayWidgetManager {
             if (slot.results.visible) bounds.add(slot.results.getBounds());
             if (slot.sidebar.visible) bounds.add(slot.sidebar.getBounds());
         }
+        if (leftPanelBarBounds != null) bounds.add(leftPanelBarBounds);
         // Filler strips claim the full vertical column on sides with panels,
         // preventing JEI from drawing its config button in the bottom corners.
         if (leftStripBounds != null) bounds.add(leftStripBounds);

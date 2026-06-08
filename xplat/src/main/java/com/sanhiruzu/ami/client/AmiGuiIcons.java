@@ -246,6 +246,56 @@ public final class AmiGuiIcons {
     }
 
     /**
+     * Left-pointing chevron (◀) — used on the collapse button in a sidebar panel header.
+     * Draws a 5×5 area centred on (cx, cy).
+     */
+    public static void chevronLeft(GuiGraphics g, int cx, int cy, int color) {
+        g.fill(cx + 1, cy - 2, cx + 3, cy - 1, color);
+        g.fill(cx,     cy - 1, cx + 2, cy,     color);
+        g.fill(cx - 1, cy,     cx + 1, cy + 1, color);
+        g.fill(cx,     cy + 1, cx + 2, cy + 2, color);
+        g.fill(cx + 1, cy + 2, cx + 3, cy + 3, color);
+    }
+
+    /**
+     * Right-pointing chevron (►) — used on the expand button in the left-panel bar.
+     * Draws a 5×5 area centred on (cx, cy).
+     */
+    public static void chevronRight(GuiGraphics g, int cx, int cy, int color) {
+        g.fill(cx - 2, cy - 2, cx,     cy - 1, color);
+        g.fill(cx - 1, cy - 1, cx + 1, cy,     color);
+        g.fill(cx,     cy,     cx + 2, cy + 1, color);
+        g.fill(cx - 1, cy + 1, cx + 1, cy + 2, color);
+        g.fill(cx - 2, cy + 2, cx,     cy + 3, color);
+    }
+
+    /**
+     * Header roll-up glyph for collapsing the favorites sidebar into its compact bar state.
+     * The top band stays wide while lower rows taper inward to suggest the panel folding up
+     * into a single header row.
+     */
+    public static void sidebarCollapse(GuiGraphics g, int cx, int cy, int color) {
+        int sx = cx - 5;
+        int sy = cy - 4;
+
+        g.fill(sx, sy, sx + 10, sy + 1, color);
+        g.fill(sx + 1, sy + 3, sx + 9, sy + 4, color);
+        g.fill(sx + 3, sy + 6, sx + 7, sy + 7, color);
+    }
+
+    /**
+     * Reverse of {@link #sidebarCollapse}: suggests restoring the full sidebar from the compact bar.
+     */
+    public static void sidebarExpand(GuiGraphics g, int cx, int cy, int color) {
+        int sx = cx - 5;
+        int sy = cy - 4;
+
+        g.fill(sx + 3, sy, sx + 7, sy + 1, color);
+        g.fill(sx + 1, sy + 3, sx + 9, sy + 4, color);
+        g.fill(sx, sy + 6, sx + 10, sy + 7, color);
+    }
+
+    /**
      * Warning/Skull icon - for Cheat settings.
      */
     public static void cheat(GuiGraphics g, int cx, int cy, int color) {

@@ -108,6 +108,23 @@ public class MixinConfigTest {
     }
 
     @Test
+    void recipeBookMixinPriorityIsLowerThanEmi() throws Exception {
+        // EMI's RecipeBookWidgetMixin uses the default Mixin priority of 1000.
+        // AMI must declare priority = 500 so its injection fires first and can cancel
+        // the method before EMI's handler runs. If the priority ever drifts above 1000,
+        // EMI will intercept the button regardless of AMI's recipeBookAction config.
+        for (Path mixinPath : new Path[]{
+                Paths.get("../xplat/src/main/java/com/sanhiruzu/ami/mixin/RecipeBookComponentMixin.java"),
+                Paths.get("../forge/src/main/java/com/sanhiruzu/ami/mixin/ForgeRecipeBookComponentMixin.java")
+        }) {
+            String source = Files.readString(mixinPath, StandardCharsets.UTF_8);
+            assertTrue(source.contains("priority = 500"),
+                    "Recipe book mixin in " + mixinPath + " must declare priority = 500 to preempt EMI's " +
+                            "RecipeBookWidgetMixin (default priority 1000). Without this, EMI handles the button first.");
+        }
+    }
+
+    @Test
     void privateGuiGraphicsInvokerIsNotRegistered() throws Exception {
         for (Path mixinConfigPath : new Path[] {
                 Paths.get("../forge/src/main/resources/ami.mixins.json"),

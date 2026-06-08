@@ -7,7 +7,7 @@ package com.sanhiruzu.ami.client.overlay;
  * Do not fix z-order bugs with ad hoc literals in individual widgets.
  */
 public final class OverlayLayers {
-    public static final int PANEL = 100;
+    public static final int PANEL = 200;
     public static final int DROPDOWN = 400;
     public static final int CONTEXT_MENU = 500;
     public static final int TRANSIENT_TOOLTIP = 600;

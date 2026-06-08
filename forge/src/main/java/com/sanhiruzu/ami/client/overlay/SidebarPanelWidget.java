@@ -49,6 +49,10 @@ public class SidebarPanelWidget extends AbstractWidget {
         this.panel.setOnModeToggle(callback, activeSupplier);
     }
 
+    public void setOnCollapse(Runnable callback) {
+        this.panel.setOnCollapseSidebar(callback);
+    }
+
     public void refresh() {
         if (contentType == null || contentType == AmiConfig.PanelContent.NONE) {
             panel.setEntries(List.of());

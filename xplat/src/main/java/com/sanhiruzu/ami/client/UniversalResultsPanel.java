@@ -55,8 +55,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private static final int SIDEBAR_HEADER_TEXT_PAD_TOP = 5;
     private static final int SIDEBAR_RAIL_MAX_W = 64;
     private static final int SIDEBAR_RAIL_MAX_H = 44;
-    private static final int SIDEBAR_SWAP_W = 18;
-    private static final int SIDEBAR_SWAP_H = ResultsToolbar.BUTTON_H;
+    private static final int SIDEBAR_HEADER_CONTROL_W = 20;
+    private static final int SIDEBAR_HEADER_CONTROL_H = 14;
+    private static final int SIDEBAR_HEADER_CONTROL_GAP = 2;
+    private static final int SIDEBAR_HEADER_EDGE_PAD = 2;
     private static final double DRAG_THRESHOLD = 5.0;
     private static final int GUIDE_HEADER_H = 12;
     private static final int GUIDE_ROW_H = 20;
@@ -98,9 +100,11 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private boolean compactCollapseAllNext = true;
     private boolean chromeOnly = false;
     private Component panelTitle = null;
+    private Runnable onCollapseSidebarCallback;
     // Displayed item count shown in the compact header (updated in refreshTree)
     private int displayedItemCount = 0;
     private SearchNode pressedNode = null;
+    private SearchNode draggedFavoriteNode = null;
     private double pressedX, pressedY;
     private int lastClickX, lastClickY;
     // State tracking to trigger auto-refreshes when player context changes
@@ -432,6 +436,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
             try (AmiRenderProfiler.Section chrome = AmiRenderProfiler.section("panel.chrome")) {
                 com.mojang.blaze3d.systems.RenderSystem.enableBlend();
                 com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
+                if (isFavoritesPanel && (AMITheme.PANEL_BG & 0xFF000000) != 0xFF000000) {
+                    g.fill(x, y, x + width, y + height, (AMITheme.PANEL_BG & 0x00FFFFFF) | 0xFF000000);
+                }
                 AMITheme.fillPanelChrome(g, x, y, width, height);
 
                 // Add subtle borders, only if defined by the theme.
@@ -472,22 +479,21 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 Component title = panelTitle != null ? panelTitle : Component.translatable("ami.gui.favorites");
                 int titleX = x + 3 + SIDEBAR_HEADER_TEXT_PAD_X;
                 int titleY = y + SIDEBAR_HEADER_TEXT_PAD_TOP;
-                int titleRight = hasSidebarAlternate()
-                        ? sidebarSwapX() - AMITheme.ELEMENT_GAP
-                        : x + width - 3 - SIDEBAR_HEADER_TEXT_PAD_X;
+                int titleRight = x + width - 3 - SIDEBAR_HEADER_TEXT_PAD_X;
+                if (hasCollapseButton()) titleRight = Math.min(titleRight, collapseBtnX() - AMITheme.ELEMENT_GAP);
+                if (hasSidebarAlternate()) titleRight = Math.min(titleRight, sidebarSwapX() - AMITheme.ELEMENT_GAP);
                 String titleText = truncate(font, title.getString(), Math.max(0, titleRight - titleX));
                 g.drawString(font, titleText, titleX, titleY, AMITheme.TEXT_HEADER, false);
 
                 if (hasSidebarAlternate()) {
                     renderSidebarToggle(g, mouseX, mouseY);
                 }
+                if (hasCollapseButton()) {
+                    renderSidebarCollapseBtn(g, mouseX, mouseY);
+                }
+                renderSidebarHeaderDivider(g);
 
                 g.fill(x + 3, y + FAV_HEADER_H - 1, x + width - 3, y + FAV_HEADER_H, AMITheme.SECTION_SEP);
-
-                if (displayedItemCount == 0) {
-                    renderSidebarEmptyState(g);
-                    return;
-                }
 
                 if (isGridActive()) {
                     gridView.render(g, mouseX, mouseY, contextMenu.isOpen());
@@ -728,10 +734,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
         boolean hovered = isOverSidebarSwap(mouseX, mouseY);
 
         int bgColor = hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
-        AMITheme.fillControlChrome(g, tx, ty, SIDEBAR_SWAP_W, SIDEBAR_SWAP_H, bgColor, false);
+        AMITheme.fillControlChrome(g, tx, ty, SIDEBAR_HEADER_CONTROL_W, SIDEBAR_HEADER_CONTROL_H, bgColor, false);
 
         int color = hovered ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_HEADER;
-        AmiGuiIcons.swap(g, tx + SIDEBAR_SWAP_W / 2, ty + SIDEBAR_SWAP_H / 2, color);
+        AmiGuiIcons.swap(g, tx + SIDEBAR_HEADER_CONTROL_W / 2, ty + SIDEBAR_HEADER_CONTROL_H / 2, color);
     }
 
     private void renderSidebarEmptyState(GuiGraphics g) {
@@ -808,19 +814,83 @@ public class UniversalResultsPanel implements SearchState.Listener {
         return externalModeToggleCallback != null;
     }
 
+    private boolean hasCollapseButton() {
+        return onCollapseSidebarCallback != null;
+    }
+
     private int sidebarSwapX() {
-        return x + width - AMITheme.GLOBAL_PADDING - SIDEBAR_SWAP_W;
+        return sidebarHeaderControlRightEdge() - sidebarHeaderControlGroupWidth();
     }
 
     private int sidebarSwapY() {
-        return y + (FAV_HEADER_H - SIDEBAR_SWAP_H) / 2;
+        return sidebarHeaderControlY();
+    }
+
+    private int collapseBtnX() {
+        return sidebarHeaderControlRightEdge() - SIDEBAR_HEADER_CONTROL_W;
+    }
+
+    private int sidebarHeaderControlRightEdge() {
+        return x + width - 3 - SIDEBAR_HEADER_EDGE_PAD;
+    }
+
+    private int sidebarHeaderControlY() {
+        int headerSurfaceY = y + 3;
+        int headerSurfaceH = Math.max(0, FAV_HEADER_H - 3);
+        return headerSurfaceY + Math.max(0, (headerSurfaceH - SIDEBAR_HEADER_CONTROL_H) / 2);
+    }
+
+    private int sidebarHeaderControlGroupWidth() {
+        int width = hasCollapseButton() ? SIDEBAR_HEADER_CONTROL_W : 0;
+        if (hasSidebarAlternate()) {
+            if (width > 0) {
+                width += SIDEBAR_HEADER_CONTROL_GAP;
+            }
+            width += SIDEBAR_HEADER_CONTROL_W;
+        }
+        return width;
+    }
+
+    private void renderSidebarHeaderDivider(GuiGraphics g) {
+        int controlWidth = sidebarHeaderControlGroupWidth();
+        if (controlWidth <= 0) {
+            return;
+        }
+        int dividerX = sidebarHeaderControlRightEdge() - controlWidth - SIDEBAR_HEADER_CONTROL_GAP;
+        int dividerTop = y + 5;
+        int dividerBottom = y + FAV_HEADER_H - 3;
+        if (dividerBottom > dividerTop) {
+            g.fill(dividerX, dividerTop, dividerX + 1, dividerBottom, AMITheme.SECTION_SEP);
+        }
     }
 
     private boolean isOverSidebarSwap(double mouseX, double mouseY) {
         int tx = sidebarSwapX();
         int ty = sidebarSwapY();
-        return mouseX >= tx && mouseX < tx + SIDEBAR_SWAP_W
-                && mouseY >= ty && mouseY < ty + SIDEBAR_SWAP_H;
+        return mouseX >= tx && mouseX < tx + SIDEBAR_HEADER_CONTROL_W
+                && mouseY >= ty && mouseY < ty + SIDEBAR_HEADER_CONTROL_H;
+    }
+
+    private boolean isOverCollapseBtn(double mouseX, double mouseY) {
+        if (!hasCollapseButton()) return false;
+        int bx = collapseBtnX();
+        int by = sidebarSwapY();
+        return mouseX >= bx && mouseX < bx + SIDEBAR_HEADER_CONTROL_W
+                && mouseY >= by && mouseY < by + SIDEBAR_HEADER_CONTROL_H;
+    }
+
+    private void renderSidebarCollapseBtn(GuiGraphics g, int mouseX, int mouseY) {
+        int bx = collapseBtnX();
+        int by = sidebarSwapY();
+        boolean hovered = isOverCollapseBtn(mouseX, mouseY);
+        int bgColor = hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
+        AMITheme.fillControlChrome(g, bx, by, SIDEBAR_HEADER_CONTROL_W, SIDEBAR_HEADER_CONTROL_H, bgColor, false);
+        int iconColor = hovered ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE;
+        AmiGuiIcons.sidebarCollapse(g, bx + SIDEBAR_HEADER_CONTROL_W / 2, by + SIDEBAR_HEADER_CONTROL_H / 2, iconColor);
+    }
+
+    public void setOnCollapseSidebar(Runnable callback) {
+        this.onCollapseSidebarCallback = callback;
     }
 
     private void updateCompactControlPositions(int innerX, int innerW) {
@@ -1713,6 +1783,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         // Sidebar panel clicks and optional content swap.
         if (isFavoritesPanel) {
+            if (hasCollapseButton() && button == 0 && isOverCollapseBtn(mouseX, mouseY)) {
+                onCollapseSidebarCallback.run();
+                return true;
+            }
             if (hasSidebarAlternate() && button == 0 && isOverSidebarSwap(mouseX, mouseY)) {
                 externalModeToggleCallback.run();
                 updateLayout(x, y, width, height);
@@ -1961,11 +2035,15 @@ public class UniversalResultsPanel implements SearchState.Listener {
             double dx = mouseX - pressedX;
             double dy = mouseY - pressedY;
             if (dx * dx + dy * dy > DRAG_THRESHOLD * DRAG_THRESHOLD) {
+                if (isFavoritesPanel
+                        && com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().isFavorite(pressedNode)) {
+                    draggedFavoriteNode = pressedNode;
+                }
                 ItemStack stack = com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(pressedNode);
                 if (!stack.isEmpty() && com.sanhiruzu.ami.compat.RecipeViewerBridge.canStartDrag(stack)) {
                     com.sanhiruzu.ami.compat.RecipeViewerBridge.startDrag(stack);
-                    pressedNode = null;
                 }
+                pressedNode = null;
             }
         }
 
@@ -1991,7 +2069,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     public void mouseReleased(double mouseX, double mouseY, int button) {
         if (button == 0) {
-            if (com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging()) {
+            if (draggedFavoriteNode != null || com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging()) {
                 boolean handled = false;
 
                 // Check if dropped into a favorites panel using inner grid bounds
@@ -2001,20 +2079,30 @@ public class UniversalResultsPanel implements SearchState.Listener {
                     var innerPanel = favPanel.getInnerPanel();
                     if (innerPanel.isMouseOver(mouseX, mouseY)) {
                         int dropIndex = innerPanel.getDropIndex(mouseX, mouseY);
-                        ItemStack stack = com.sanhiruzu.ami.compat.RecipeViewerBridge.getDraggedStack();
-                        if (!stack.isEmpty()) {
-                            com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().addFavoriteAt(stack, dropIndex);
-                            com.sanhiruzu.ami.compat.RecipeViewerBridge.stopDrag();
+                        if (draggedFavoriteNode != null) {
+                            com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance()
+                                    .moveFavorite(draggedFavoriteNode, dropIndex);
+                            if (com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging()) {
+                                com.sanhiruzu.ami.compat.RecipeViewerBridge.stopDrag();
+                            }
                             handled = true;
+                        } else {
+                            ItemStack stack = com.sanhiruzu.ami.compat.RecipeViewerBridge.getDraggedStack();
+                            if (!stack.isEmpty()) {
+                                com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().addFavoriteAt(stack, dropIndex);
+                                com.sanhiruzu.ami.compat.RecipeViewerBridge.stopDrag();
+                                handled = true;
+                            }
                         }
                     }
                 }
 
-                if (!handled) {
+                if (!handled && com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging()) {
                     com.sanhiruzu.ami.compat.RecipeViewerBridge.handleDrop(mouseX, mouseY);
                 }
             }
             pressedNode = null;
+            draggedFavoriteNode = null;
         }
         stopScrollbarDrag();
     }

@@ -276,11 +276,11 @@ public class ResultContextMenuActionBuilder {
 
         SearchNode node = context.node();
         if (node.type() == NodeType.PLAYER) {
-            addPlayerActions(actions, policy, node, cheatEnabled.getAsBoolean());
+            addPlayerActions(actions, policy, context, node, cheatEnabled.getAsBoolean());
             return actions;
         }
         if (node.type() == NodeType.WAYPOINT) {
-            addLiveWaypointActions(actions, node, cheatEnabled.getAsBoolean());
+            addLiveWaypointActions(actions, policy, context, node, cheatEnabled.getAsBoolean());
             return actions;
         }
         ResourceLocation id = resolvedItemId(node);
@@ -642,12 +642,14 @@ public class ResultContextMenuActionBuilder {
 
     private static void addPlayerActions(List<ResultContextMenu.Action> actions,
                                          ResultContextMenuActionPolicy policy,
+                                         ItemContext context,
                                          SearchNode node,
                                          boolean canCheat) {
         String playerName = playerName(node);
         if (playerName.isBlank()) {
             return;
         }
+        addFavoriteAction(actions, policy, context, node);
         if (policy.allows(node, COPY_PLAYER_NAME)) {
             actions.add(ResultContextMenu.Action.enabled(
                     COPY_PLAYER_NAME,
@@ -720,7 +722,12 @@ public class ResultContextMenuActionBuilder {
                 adminActions);
     }
 
-    private static void addLiveWaypointActions(List<ResultContextMenu.Action> actions, SearchNode node, boolean canCheat) {
+    private static void addLiveWaypointActions(List<ResultContextMenu.Action> actions,
+                                               ResultContextMenuActionPolicy policy,
+                                               ItemContext context,
+                                               SearchNode node,
+                                               boolean canCheat) {
+        addFavoriteAction(actions, policy, context, node);
         PlayerWaypointProviders.openLiveWaypointAction(node).ifPresent(action -> actions.add(ResultContextMenu.Action.enabled(
                 OPEN_WAYPOINT,
                 Component.literal(action.label()),
@@ -758,6 +765,22 @@ public class ResultContextMenuActionBuilder {
                             + node.meta(SearchNodeKeys.WAYPOINT_Z, "0"))
             ));
         }
+    }
+
+    private static void addFavoriteAction(List<ResultContextMenu.Action> actions,
+                                          ResultContextMenuActionPolicy policy,
+                                          ItemContext context,
+                                          SearchNode node) {
+        if (actions == null || policy == null || context == null || node == null
+                || !policy.allows(node, FAVORITE) || context.favorites() == null) {
+            return;
+        }
+        actions.add(ResultContextMenu.Action.enabled(
+                FAVORITE,
+                Component.translatable(isFavorite(context.favorites(), node) ? "ami.context.unfavorite" : "ami.context.favorite"),
+                'f',
+                () -> context.favorites().toggleFavorite(node)
+        ));
     }
 
     private static void addFlatOrSubmenu(List<ResultContextMenu.Action> actions,
@@ -1811,7 +1834,7 @@ public class ResultContextMenuActionBuilder {
         }
     }
 
-    private boolean isFavorite(com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler favorites, SearchNode node) {
+    private static boolean isFavorite(com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler favorites, SearchNode node) {
         if (favorites == null || node == null) return false;
 
         try {

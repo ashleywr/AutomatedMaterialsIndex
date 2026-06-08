@@ -1,9 +1,14 @@
 package com.sanhiruzu.ami.util;
 
+import com.sanhiruzu.ami.client.icon.FallbackTextRenderer;
+import com.sanhiruzu.ami.index.NodeType;
+import com.sanhiruzu.ami.index.SearchNode;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -71,5 +76,21 @@ class AmiTooltipComposerTest {
                 "classificationRoute input[a]",
                 "-> evidence_fallback"
         ), normalized.stream().map(Component::getString).toList());
+    }
+
+    @Test
+    void fallbackRendererDoesNotReenterTooltipComposer() {
+        SearchNode waypoint = new SearchNode(
+                new ResourceLocation("ami:waypoint/test/home"),
+                NodeType.WAYPOINT,
+                "Home",
+                0,
+                0,
+                Map.of()
+        );
+
+        List<Component> tooltip = new FallbackTextRenderer().getTooltip(waypoint);
+
+        assertTrue(tooltip.isEmpty());
     }
 }
