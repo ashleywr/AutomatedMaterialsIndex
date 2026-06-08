@@ -164,7 +164,13 @@ public final class AmiIndexerService {
         beginProgress("Indexing world data");
         ProviderRegistry.indexStructuresDeferred(level);
 
-        // 3. Post-indexing tasks
+        // 3. Add runtime providers (waypoints, players) to index so they're available to all resolvers
+        beginProgress("Loading runtime data");
+        for (SearchNode node : RuntimeSearchProviders.nodes()) {
+            index.addNode(node);
+        }
+
+        // 4. Post-indexing tasks
         beginProgress("Applying custom taxonomy");
         AmiCustomTaxonomy.applyToIndex(index);
         beginProgress("Applying data fixes");
