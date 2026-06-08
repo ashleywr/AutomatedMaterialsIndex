@@ -127,7 +127,7 @@ public final class SearchNodeMirrorDump {
     public static List<SearchNode> runtimeAtlasNodes() {
         List<SearchNode> nodes = new ArrayList<>();
         GlobalIndex index = GlobalIndex.getInstance();
-        for (NodeType type : NodeType.atlasValues()) {
+        for (NodeType type : NodeType.values()) {
             nodes.addAll(index.getNodes(type));
         }
         return nodes;
@@ -145,7 +145,7 @@ public final class SearchNodeMirrorDump {
         GlobalIndex index = GlobalIndex.getInstance();
         Map<String, Integer> typeCounts = new LinkedHashMap<>();
         int total = 0;
-        for (NodeType type : NodeType.atlasValues()) {
+        for (NodeType type : NodeType.values()) {
             int count = index.getNodes(type).size();
             typeCounts.put(type.name(), count);
             total += count;
