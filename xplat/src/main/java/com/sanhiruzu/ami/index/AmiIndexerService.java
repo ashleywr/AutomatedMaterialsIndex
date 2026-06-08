@@ -344,7 +344,11 @@ public final class AmiIndexerService {
     }
 
     public long searchServiceRevision() {
-        return 31L * searchServiceRevision + RuntimeSearchProviders.revision();
+        return searchServiceRevision;
+    }
+
+    public long runtimeSearchRevision() {
+        return RuntimeSearchProviders.revision();
     }
 
     public boolean isDeferredIndexing() {
