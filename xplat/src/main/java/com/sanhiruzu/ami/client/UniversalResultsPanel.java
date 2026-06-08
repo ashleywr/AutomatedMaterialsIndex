@@ -1673,16 +1673,16 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
 
         if ((shiftDown || controlDown) && button == 0) {
-            return !Services.PLATFORM.getRecipesFor(stack).isEmpty();
+            return Services.PLATFORM.hasRecipesFor(stack);
         }
 
         if (button == 1) {
-            return !Services.PLATFORM.getUsesFor(stack).isEmpty();
+            return Services.PLATFORM.hasUsesFor(stack);
         }
 
         return switch (AmiConfig.itemClickAction) {
-            case RECIPES -> !Services.PLATFORM.getRecipesFor(stack).isEmpty();
-            case USES -> !Services.PLATFORM.getUsesFor(stack).isEmpty();
+            case RECIPES -> Services.PLATFORM.hasRecipesFor(stack);
+            case USES -> Services.PLATFORM.hasUsesFor(stack);
             case NONE -> false;
         };
     }

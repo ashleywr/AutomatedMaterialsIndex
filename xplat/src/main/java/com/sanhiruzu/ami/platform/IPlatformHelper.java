@@ -440,7 +440,11 @@ public interface IPlatformHelper {
 
     List<AmiRecipeHolder<?>> getRecipesFor(ItemStack target);
 
+    boolean hasRecipesFor(ItemStack target);
+
     List<AmiRecipeHolder<?>> getUsesFor(ItemStack target);
+
+    boolean hasUsesFor(ItemStack target);
 
     List<AmiRecipeHolder<?>> getAllRecipesOfType(RecipeType<?> type);
 
