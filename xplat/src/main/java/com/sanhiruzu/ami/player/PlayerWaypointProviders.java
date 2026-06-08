@@ -81,13 +81,6 @@ public final class PlayerWaypointProviders {
                         continue;
                     }
 
-                    // Skip JourneyMap waypoints that are synced from Waystones
-                    // The metadata will be set by JourneyMapWaypointProvider.toLiveWaypoint()
-                    if ("journeymap".equals(provider.id()) && "true".equals(waypoint.metadata().get("waystone_sync"))) {
-                        LOGGER.log(Level.FINE, "AMI: Skipping JourneyMap waypoint synced from Waystones: " + waypoint.id());
-                        continue;
-                    }
-
                     nodes.add(toNode(provider, waypoint));
                 }
             } catch (RuntimeException | LinkageError e) {
