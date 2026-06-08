@@ -196,11 +196,13 @@ public class AmiApi {
     public static void notifyItemDeleted(ResourceLocation nodeId) {
         if (nodeId == null) return;
 
+        LOGGER.log(Level.INFO, "AMI: notifyItemDeleted called for " + nodeId);
         try {
-            Class<?> handler = Class.forName("com.sanhiruzu.ami.client.overlay.ItemDeletionHandler");
+            Class<?> handler = Class.forName("com.sanhiruzu.ami.client.ItemDeletionHandler");
             handler.getMethod("handleItemDeleted", ResourceLocation.class).invoke(null, nodeId);
+            LOGGER.log(Level.INFO, "AMI: notifyItemDeleted completed for " + nodeId);
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
-            LOGGER.log(Level.FINE, "AMI: Failed to notify item deletion", e);
+            LOGGER.log(Level.WARNING, "AMI: Failed to notify item deletion for " + nodeId, e);
         }
     }
 }
