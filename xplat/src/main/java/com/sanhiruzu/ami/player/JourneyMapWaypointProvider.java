@@ -265,8 +265,62 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
         try {
             net.minecraft.resources.ResourceLocation nodeId = Services.PLATFORM.rl("ami", "waypoint/" + safePath(waypoint.providerId()) + "/" + safePath(waypoint.id()));
             AmiApi.notifyItemDeleted(nodeId);
+
+            // If there's a matching Waystones waypoint at the same location, delete it too
+            // This prevents JourneyMap from re-syncing it on next reload
+            deleteMatchingWaystonesWaypoint(waypoint);
         } catch (RuntimeException | LinkageError e) {
             LOGGER.log(Level.FINE, "AMI: Failed to delete waypoint", e);
+        }
+    }
+
+    /**
+     * If a Waystones waypoint exists at the same location, delete it too.
+     * This prevents JourneyMap from re-syncing it.
+     */
+    private static void deleteMatchingWaystonesWaypoint(LiveWaypoint journeyMapWaypoint) {
+        try {
+            // Find Waystones provider
+            Optional<PlayerWaypointProvider> waystonesProvider = PlayerWaypointProviders.providers().stream()
+                    .filter(p -> "waystones".equals(p.id()))
+                    .findFirst();
+            if (waystonesProvider.isEmpty()) return;
+
+            // Get Waystones waypoints at the same location
+            for (LiveWaypoint ws : waystonesProvider.get().liveWaypoints()) {
+                if (isSameLocation(journeyMapWaypoint, ws)) {
+                    // Found matching Waystones waypoint - delete it
+                    deleteWaystonesWaypoint(ws);
+                    return;
+                }
+            }
+        } catch (RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Failed to delete matching Waystones waypoint", e);
+        }
+    }
+
+    private static boolean isSameLocation(LiveWaypoint w1, LiveWaypoint w2) {
+        return w1.dimension().equals(w2.dimension())
+                && w1.x() == w2.x()
+                && w1.y() == w2.y()
+                && w1.z() == w2.z();
+    }
+
+    private static void deleteWaystonesWaypoint(LiveWaypoint waystone) {
+        try {
+            Class<?> apiClass = Class.forName("net.blay09.mods.waystones.api.WaystonesAPI");
+            Object api = apiClass.getMethod("getInstance").invoke(null);
+            if (api == null) return;
+
+            // Get the waystone object and delete it
+            Object manager = apiClass.getMethod("getWaystoneManager").invoke(api);
+            if (manager == null) return;
+
+            // Try to delete by UID
+            manager.getClass().getMethod("removeWaystone", String.class).invoke(manager, waystone.id());
+            LOGGER.log(Level.FINE, "AMI: Deleted matching Waystones waypoint: " + waystone.id());
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Failed to delete Waystones waypoint via API", e);
         }
     }
 
