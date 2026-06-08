@@ -11,7 +11,7 @@ import java.util.logging.Logger;
  * Internal handler for item deletion notifications from plugins.
  * Handles the full flow: mark deleted, save UI state, refresh, restore state.
  */
-final class ItemDeletionHandler {
+public final class ItemDeletionHandler {
     private static final Logger LOGGER = Logger.getLogger(ItemDeletionHandler.class.getName());
 
     private ItemDeletionHandler() {
@@ -21,7 +21,7 @@ final class ItemDeletionHandler {
      * Handle a deleted item. Called by AmiApi.notifyItemDeleted().
      * Marks the item as deleted, refreshes results while preserving UI state.
      */
-    static void handleItemDeleted(ResourceLocation nodeId) {
+    public static void handleItemDeleted(ResourceLocation nodeId) {
         if (nodeId == null) return;
 
         LOGGER.log(Level.INFO, "ItemDeletionHandler.handleItemDeleted: " + nodeId);
