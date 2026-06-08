@@ -86,6 +86,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private long searchServiceRevision = Long.MIN_VALUE;
     private ResultsViewProjector.Projection emptyQueryProjectionCache = null;
     private String emptyQueryProjectionCacheKey = "";
+    private List<ListLens> cachedAvailableLenses = null;
     private List<GuideResultRow> currentGuideRows = List.of();
     private List<QuestResultRow> currentQuestRows = List.of();
     private Runnable externalResetCallback;
@@ -266,10 +267,22 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     public void setEntries(List<SearchNode> entries) {
+        setEntries(entries, false);
+    }
+
+    public void setEntries(List<SearchNode> entries, boolean incrementalUpdate) {
         this.currentResults = entries;
         invalidateProjectionCache();
-        refreshAvailableListLenses();
-        refreshTree();
+        if (!incrementalUpdate) {
+            cachedAvailableLenses = null;
+            refreshAvailableListLenses();
+        }
+        isIncrementalUpdate = incrementalUpdate;
+        try {
+            refreshTree();
+        } finally {
+            isIncrementalUpdate = false;
+        }
     }
 
     /**
@@ -307,6 +320,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         for (List<SearchNode> list : results.values()) flat.addAll(list);
         this.currentResults = flat;
         invalidateProjectionCache();
+        cachedAvailableLenses = null;
         refreshAvailableListLenses();
         String normalizedQuery = query == null ? "" : query.trim();
         if (state.getQuery().equals(normalizedQuery)) {
@@ -1233,6 +1247,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             lastDevMode = devMode;
             lastShowCreativeItems = showCreativeItems;
             invalidateProjectionCache();
+            cachedAvailableLenses = null;
             refreshAvailableListLenses();
             refreshTree();
         }
@@ -1308,16 +1323,28 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     private void refreshAvailableListLenses() {
-        state.setAvailableListLenses(ListLens.availableFor(resolveSource()));
+        if (cachedAvailableLenses != null) {
+            return;
+        }
+        cachedAvailableLenses = ListLens.availableFor(resolveSource());
+        state.setAvailableListLenses(cachedAvailableLenses);
     }
+
+    private boolean isIncrementalUpdate = false;
 
     private void setViewRoots(List<TreeNode> roots) {
         List<TreeNode> normalized = ResultsTreeNormalizer.normalize(roots);
+        if (TreeNodeShape.sameVisibleContent(treeView.getRootNodes(), normalized)) {
+            return;
+        }
+        boolean resetScroll = !isIncrementalUpdate;
         ResultsExpansionDefaults.apply(normalized, AmiConfig.resultsExpandedByDefault);
-        treeView.setRootNodes(normalized);
-        gridView.setRootNodes(normalized);
-        toolbar.resetCollapseState(AmiConfig.resultsExpandedByDefault);
-        compactCollapseAllNext = AmiConfig.resultsExpandedByDefault;
+        treeView.setRootNodes(normalized, resetScroll);
+        gridView.setRootNodes(normalized, resetScroll);
+        if (resetScroll) {
+            toolbar.resetCollapseState(AmiConfig.resultsExpandedByDefault);
+            compactCollapseAllNext = AmiConfig.resultsExpandedByDefault;
+        }
     }
 
     private void updateResultViewLayouts() {

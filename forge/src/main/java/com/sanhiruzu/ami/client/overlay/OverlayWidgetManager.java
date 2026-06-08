@@ -832,7 +832,12 @@ public class OverlayWidgetManager {
     }
 
     public void refreshEntriesForRuntimeIndexUpdate() {
-        refreshEntries();
+        List<SearchNode> all = new ArrayList<>();
+        for (NodeType t : NodeType.atlasValues()) all.addAll(GlobalIndex.getInstance().getNodes(t));
+        for (ResultsPanelWidget panel : getResultPanels()) {
+            if (panel.getInnerPanel() != null) panel.getInnerPanel().setEntries(all, true);
+        }
+        refreshSidebars();
     }
 
     public void refreshSidebars() {
