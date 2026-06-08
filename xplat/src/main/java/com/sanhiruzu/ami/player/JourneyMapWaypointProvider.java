@@ -292,10 +292,7 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
     private static void refreshOverlayResults() {
         try {
             Class<?> handlerClass = Class.forName("com.sanhiruzu.ami.client.InventoryOverlayHandler");
-            Object manager = handlerClass.getMethod("getManager").invoke(null);
-            if (manager != null) {
-                manager.getClass().getMethod("refreshEntriesForRuntimeIndexUpdate").invoke(manager);
-            }
+            handlerClass.getMethod("refreshOverlayResults").invoke(null);
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
             LOGGER.log(Level.FINE, "AMI: Failed to refresh overlay results after deletion", e);
         }
