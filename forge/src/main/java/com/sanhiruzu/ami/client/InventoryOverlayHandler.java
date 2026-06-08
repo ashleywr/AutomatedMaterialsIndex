@@ -305,11 +305,17 @@ public class InventoryOverlayHandler {
     /**
      * Refresh the overlay results display (search results, favorites, sidebars).
      * Called when data changes (e.g., waypoint deletion, runtime index updates).
+     * Saves and restores display state to preserve UI (expansion, selection, scroll, mode, filters).
      * Safe to call from any context; only refreshes if the overlay is visible.
      */
     public static void refreshOverlayResults() {
         if (currentLayer == VisibleLayer.AMI) {
-            manager.refreshEntriesForRuntimeIndexUpdate();
+            com.sanhiruzu.ami.client.overlay.DisplayStateManager.saveState(manager);
+            try {
+                manager.refreshEntriesForRuntimeIndexUpdate();
+            } finally {
+                com.sanhiruzu.ami.client.overlay.DisplayStateManager.restoreState(manager);
+            }
         }
     }
 

@@ -7,6 +7,7 @@ import com.sanhiruzu.searchableitems.api.SearchableItemActionProviders;
 import com.sanhiruzu.searchableitems.api.SearchableItemProvider;
 import com.sanhiruzu.searchableitems.api.SearchableItemProviders;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
@@ -175,6 +176,31 @@ public class AmiApi {
             cheatMode.getMethod("giveItem", ItemStack.class).invoke(null, stack.copy());
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
             LOGGER.log(Level.WARNING, "AMI: Failed to run cheat-give plugin action", e);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Item deletion
+    // -------------------------------------------------------------------------
+
+    /**
+     * Notify AMI that an item (waypoint, etc.) has been deleted from a third-party system.
+     * AMI will immediately hide the item from search results and favorites while preserving
+     * UI state (expanded categories, scroll position, etc.).
+     * <p>
+     * This is the proper way for plugins to notify AMI of deletions without knowing
+     * anything about AMI's internal state or refresh mechanisms.
+     *
+     * @param nodeId the ResourceLocation ID of the deleted search node
+     */
+    public static void notifyItemDeleted(ResourceLocation nodeId) {
+        if (nodeId == null) return;
+
+        try {
+            Class<?> handler = Class.forName("com.sanhiruzu.ami.client.overlay.ItemDeletionHandler");
+            handler.getMethod("handleItemDeleted", ResourceLocation.class).invoke(null, nodeId);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Failed to notify item deletion", e);
         }
     }
 }
