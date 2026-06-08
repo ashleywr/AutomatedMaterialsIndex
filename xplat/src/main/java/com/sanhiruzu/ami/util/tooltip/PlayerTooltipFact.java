@@ -4,6 +4,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.providers.RegistryUtils;
+import com.sanhiruzu.ami.player.PlayerWaypointProviders;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -12,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 public final class PlayerTooltipFact implements AmiTooltipFact {
     private static final int MAX_PROVIDER_PREVIEW = 3;
@@ -70,10 +72,19 @@ public final class PlayerTooltipFact implements AmiTooltipFact {
         List<String> providers = splitCsv(rawProviders);
         if (providers.isEmpty()) return;
 
-        // Check if this is a Waystones-synced waypoint - show just the mod name
-        if ("true".equals(entry.meta("waystone_sync", ""))) {
-            lines.add(Component.literal("Waystones"));
-            return;
+        // Ask the provider for a custom tooltip label
+        String providerId = entry.meta(SearchNodeKeys.WAYPOINT_PROVIDER, "");
+        if (!providerId.isBlank()) {
+            Optional<com.sanhiruzu.ami.player.PlayerWaypointProvider> provider = PlayerWaypointProviders.providers().stream()
+                    .filter(p -> providerId.equals(p.id()))
+                    .findFirst();
+            if (provider.isPresent()) {
+                String customLabel = provider.get().getTooltipLabel(entry);
+                if (customLabel != null) {
+                    lines.add(Component.literal(customLabel));
+                    return;
+                }
+            }
         }
 
         String providerValue = formatProviderList(providers);

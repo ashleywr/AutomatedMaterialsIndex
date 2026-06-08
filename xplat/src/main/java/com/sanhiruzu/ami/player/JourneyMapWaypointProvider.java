@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.player;
 
 import com.sanhiruzu.ami.api.AmiApi;
+import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.Minecraft;
@@ -80,6 +81,15 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
             LOGGER.log(Level.FINE, "AMI: Failed to enumerate JourneyMap waypoints", e);
             return List.of();
         }
+    }
+
+    @Override
+    public String getTooltipLabel(SearchNode node) {
+        // If this waypoint is synced from Waystones, show "Waystones" instead of "JourneyMap"
+        if (node != null && "true".equals(node.meta("waystone_sync", ""))) {
+            return "Waystones";
+        }
+        return null; // Use default label
     }
 
     @Override
