@@ -5,12 +5,12 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Tracks search nodes that have been marked for deletion/hiding, allowing instant
- * removal from search results without waiting for index updates. Entries automatically
- * expire after 10 seconds to prevent memory leaks.
+ * Tracks search nodes that have been marked for deletion, allowing instant
+ * removal from search results without waiting for index updates.
+ * Deletions persist until the next index rebuild (when GlobalIndex is cleared).
  */
 public final class DeletedSearchNodesTracker {
-    private static final long EXPIRY_MS = 10_000L;
+    private static final long EXPIRY_MS = Long.MAX_VALUE;
     private static final CopyOnWriteArrayList<DeletedNodeEntry> deletedNodes = new CopyOnWriteArrayList<>();
 
     private DeletedSearchNodesTracker() {
