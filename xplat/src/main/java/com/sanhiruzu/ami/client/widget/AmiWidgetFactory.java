@@ -174,6 +174,15 @@ public class AmiWidgetFactory {
         }
     }
 
+    static Component enumConstantOptionTooltip(Object constant) {
+        try {
+            Field f = constant.getClass().getField("optionTooltip");
+            return (Component) f.get(constant);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private static String formatEnumName(String name) {
         StringBuilder out = new StringBuilder(name.length());
         boolean cap = true;

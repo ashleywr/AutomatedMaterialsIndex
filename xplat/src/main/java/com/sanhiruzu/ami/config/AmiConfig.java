@@ -541,13 +541,21 @@ public class AmiConfig {
 
     public enum RecipeBookAction {
         TOGGLE_AMI("ami.config.value.general.recipe-book-action.toggle_ami"),
-        OPEN_VANILLA_BOOK("ami.config.value.general.recipe-book-action.open_vanilla_book"),
+        OPEN_VANILLA_BOOK("ami.config.value.general.recipe-book-action.open_vanilla_book",
+                "ami.config.option-tooltip.general.recipe-book-action.open_vanilla_book"),
         TOGGLE_EXTERNAL_VIEWER("ami.config.value.general.recipe-book-action.toggle_external_viewer");
 
         public final Component displayName;
+        public final Component optionTooltip;
 
         RecipeBookAction(String key) {
             this.displayName = Component.translatable(key);
+            this.optionTooltip = null;
+        }
+
+        RecipeBookAction(String key, String tooltipKey) {
+            this.displayName = Component.translatable(key);
+            this.optionTooltip = Component.translatable(tooltipKey);
         }
     }
 }

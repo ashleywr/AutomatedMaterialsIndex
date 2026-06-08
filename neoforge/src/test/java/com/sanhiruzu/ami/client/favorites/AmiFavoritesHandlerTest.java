@@ -2,18 +2,27 @@ package com.sanhiruzu.ami.client.favorites;
 
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AmiFavoritesHandlerTest {
+
+    @BeforeEach
+    void resetHandler() {
+        AmiFavoritesHandler.disablePersistenceForTests();
+        AmiFavoritesHandler.clearForTests();
+    }
 
     @Test
     void testLocalFavoritesPersistence() {
@@ -91,5 +100,94 @@ public class AmiFavoritesHandlerTest {
 
         handler.removeRecipeFavorite(recipeId, stack);
         assertFalse(handler.isRecipeFavorite(recipeId, stack));
+    }
+
+    @Test
+    void runtimeWaypointFavoriteSurvivesOutsideGlobalIndex() {
+        AmiFavoritesHandler handler = AmiFavoritesHandler.getInstance();
+        SearchNode waypoint = new SearchNode(
+                new ResourceLocation("ami:waypoint/manual/home"),
+                NodeType.WAYPOINT,
+                "Home",
+                0,
+                0,
+                Map.of("waypointDimension", "minecraft:overworld")
+        );
+
+        handler.removeFavorite(waypoint);
+        assertFalse(handler.isFavorite(waypoint));
+
+        handler.addFavorite(waypoint);
+
+        assertTrue(handler.isFavorite(waypoint));
+        SearchNode favorite = handler.getFavorites().stream()
+                .filter(node -> node.id().equals(waypoint.id()) && node.type() == NodeType.WAYPOINT)
+                .findFirst()
+                .orElseThrow();
+        assertEquals("stale", favorite.meta(SearchNodeKeys.RUNTIME_FAVORITE_STATE, ""));
+        assertTrue(favorite.displayName().endsWith("(Unavailable)"));
+
+        handler.removeFavorite(waypoint);
+        assertFalse(handler.isFavorite(waypoint));
+    }
+
+    @Test
+    void offlinePlayerFavoriteIsMarkedStale() {
+        AmiFavoritesHandler handler = AmiFavoritesHandler.getInstance();
+        SearchNode player = new SearchNode(
+                new ResourceLocation("ami:player/123456781234123412341234567890ab"),
+                NodeType.PLAYER,
+                "Alex",
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.PLAYER_NAME, "Alex",
+                        SearchNodeKeys.PLAYER_UUID, "12345678-1234-1234-1234-1234567890ab",
+                        SearchNodeKeys.PLAYER_ONLINE, "true"
+                )
+        );
+
+        handler.removeFavorite(player);
+        handler.addFavorite(player);
+
+        SearchNode favorite = handler.getFavorites().stream()
+                .filter(node -> node.id().equals(player.id()) && node.type() == NodeType.PLAYER)
+                .findFirst()
+                .orElseThrow();
+        assertEquals("stale", favorite.meta(SearchNodeKeys.RUNTIME_FAVORITE_STATE, ""));
+        assertEquals("false", favorite.meta(SearchNodeKeys.PLAYER_ONLINE, ""));
+        assertTrue(favorite.displayName().endsWith("(Offline)"));
+
+        handler.removeFavorite(player);
+    }
+
+    @Test
+    void moveFavoriteReordersMixedFavorites() {
+        AmiFavoritesHandler handler = AmiFavoritesHandler.getInstance();
+        SearchNode player = new SearchNode(
+                new ResourceLocation("ami:player/123456781234123412341234567890ab"),
+                NodeType.PLAYER,
+                "Alex",
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.PLAYER_NAME, "Alex",
+                        SearchNodeKeys.PLAYER_UUID, "12345678-1234-1234-1234-1234567890ab"
+                )
+        );
+        ItemStack apple = new ItemStack(Items.APPLE);
+
+        handler.addFavorite(player);
+        handler.addFavorite(apple);
+        SearchNode itemFavorite = handler.getFavorites().stream()
+                .filter(node -> "item".equals(node.meta(FavoriteEntry.META_KIND, "")))
+                .findFirst()
+                .orElseThrow();
+
+        handler.moveFavorite(itemFavorite, 0);
+
+        List<SearchNode> favorites = handler.getFavorites();
+        assertEquals(itemFavorite.id(), favorites.get(0).id());
+        assertEquals(player.id(), favorites.get(1).id());
     }
 }

@@ -1,13 +1,28 @@
 package com.sanhiruzu.ami.client;
 
+import com.sanhiruzu.ami.client.RecipeViewerSuppressionPolicy.VisibleLayer;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static com.sanhiruzu.ami.client.RecipeViewerSuppressionPolicy.VisibleLayer.AMI;
+import static com.sanhiruzu.ami.client.RecipeViewerSuppressionPolicy.VisibleLayer.EXTERNAL_RECIPE_VIEWER;
+import static com.sanhiruzu.ami.client.RecipeViewerSuppressionPolicy.VisibleLayer.NONE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Specification for the recipe-viewer visibility model.
+ *
+ * The three layers are mutually exclusive display states:
+ *   AMI                   — AMI renders; external viewers (EMI, JEI) are suppressed.
+ *   EXTERNAL_RECIPE_VIEWER — AMI hidden; external viewers render normally.
+ *   NONE                  — Both hidden (recipe book TOGGLE_AMI pressed, or vanilla book open).
+ *
+ * InventoryOverlayHandler holds the live currentLayer and transitions it via setLayer().
+ * This class provides the pure decision functions tested here.
+ */
 class RecipeViewerSuppressionPolicyTest {
     @Test
     void hiddenAmiDoesNotSuppressExternalRecipeViewerChrome() {
@@ -86,5 +101,41 @@ class RecipeViewerSuppressionPolicyTest {
                             + " showHidden=" + row.showHiddenModItems()
                             + " strictSurvival=" + row.strictSurvivalMode());
         }
+    }
+
+    // --- Toggle transition semantics ---
+    // These mirror InventoryOverlayHandler.toggleAmi() and toggleAmiSuppressAll().
+    // Documented here so the intended transitions are testable without Minecraft running.
+
+    @Test
+    void toggleExternalViewerCyclesAmiAndExternalViewer() {
+        // Alt-V / TOGGLE_EXTERNAL_VIEWER: AMI → external viewer → AMI → ...
+        // When no external viewer is present, AMI off falls to NONE.
+        assertEquals(EXTERNAL_RECIPE_VIEWER, nextLayerToggleAmi(AMI, true));
+        assertEquals(AMI, nextLayerToggleAmi(EXTERNAL_RECIPE_VIEWER, true));
+        assertEquals(AMI, nextLayerToggleAmi(NONE, true));
+
+        assertEquals(NONE, nextLayerToggleAmi(AMI, false));
+        assertEquals(AMI, nextLayerToggleAmi(NONE, false));
+    }
+
+    @Test
+    void toggleAmiModeCyclesBetweenAmiAndNone() {
+        // TOGGLE_AMI recipe book: AMI ↔ NONE, suppressing external viewers in both states.
+        assertEquals(NONE, nextLayerToggleAmiSuppressAll(AMI));
+        assertEquals(AMI, nextLayerToggleAmiSuppressAll(NONE));
+        assertEquals(AMI, nextLayerToggleAmiSuppressAll(EXTERNAL_RECIPE_VIEWER));
+    }
+
+    /** Mirrors InventoryOverlayHandler.toggleAmi() without Minecraft state. */
+    private static VisibleLayer nextLayerToggleAmi(VisibleLayer current, boolean recipeViewerPresent) {
+        return current == AMI
+                ? (recipeViewerPresent ? EXTERNAL_RECIPE_VIEWER : NONE)
+                : AMI;
+    }
+
+    /** Mirrors InventoryOverlayHandler.toggleAmiSuppressAll() without Minecraft state. */
+    private static VisibleLayer nextLayerToggleAmiSuppressAll(VisibleLayer current) {
+        return current == AMI ? NONE : AMI;
     }
 }

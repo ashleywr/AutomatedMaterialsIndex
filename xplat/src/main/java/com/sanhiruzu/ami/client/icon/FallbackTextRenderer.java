@@ -54,6 +54,9 @@ public class FallbackTextRenderer implements IIconRenderer {
 
     @Override
     public List<Component> getTooltip(SearchNode node) {
-        return com.sanhiruzu.ami.util.AmiTooltipComposer.buildTooltip(node);
+        // The shared tooltip composer already adds the fallback header and then asks the
+        // renderer for type-specific body lines. Returning an empty body here avoids
+        // recursive tooltip composition for fallback-rendered nodes like WAYPOINT.
+        return List.of();
     }
 }

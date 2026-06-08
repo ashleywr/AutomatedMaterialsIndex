@@ -48,6 +48,8 @@ class ResultContextMenuActionBuilderTest {
         AmiQuestsApi.clearQuestGroups();
         SearchableItemActionProviders.clearForTests();
         ResultContextMenuActionBuilder.clearPendingCategoryFixForTests();
+        com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.disablePersistenceForTests();
+        com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.clearForTests();
     }
 
     @Test
@@ -114,6 +116,8 @@ class ResultContextMenuActionBuilderTest {
     @Test
     void playerNodesUsePlayerSpecificActionsAndGateAdminCommands() {
         ResultContextMenuActionBuilder regularBuilder = new ResultContextMenuActionBuilder(() -> false);
+        com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler favorites =
+                com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance();
         SearchNode player = new SearchNode(
                 new ResourceLocation("ami:player/123456781234123412341234567890ab"),
                 NodeType.PLAYER,
@@ -127,18 +131,19 @@ class ResultContextMenuActionBuilderTest {
         );
 
         List<ResultContextMenu.Action> regularActions = regularBuilder.forItem(
-                new ResultContextMenuActionBuilder.ItemContext(player, ItemStack.EMPTY, null, ignored -> {
+                new ResultContextMenuActionBuilder.ItemContext(player, ItemStack.EMPTY, favorites, ignored -> {
                 })
         );
 
         assertEquals(List.of(
+                ResultContextMenuActionBuilder.FAVORITE,
                 ResultContextMenuActionBuilder.COPY_PLAYER_NAME,
                 ResultContextMenuActionBuilder.CHAT
         ), ids(regularActions));
 
         ResultContextMenuActionBuilder adminBuilder = new ResultContextMenuActionBuilder(() -> true);
         List<ResultContextMenu.Action> adminActions = adminBuilder.forItem(
-                new ResultContextMenuActionBuilder.ItemContext(player, ItemStack.EMPTY, null, ignored -> {
+                new ResultContextMenuActionBuilder.ItemContext(player, ItemStack.EMPTY, favorites, ignored -> {
                 })
         );
 
@@ -148,6 +153,38 @@ class ResultContextMenuActionBuilderTest {
                 ResultContextMenuActionBuilder.TELEPORT_TO_PLAYER,
                 ResultContextMenuActionBuilder.TELEPORT_PLAYER_HERE
         ), ids(adminMenu.children()));
+
+        favorites.removeFavorite(player);
+    }
+
+    @Test
+    void waypointNodesExposeFavoriteAction() {
+        ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder(() -> false);
+        com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler favorites =
+                com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance();
+        SearchNode waypoint = new SearchNode(
+                new ResourceLocation("ami:waypoint/waystones/home"),
+                NodeType.WAYPOINT,
+                "Home",
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.WAYPOINT_PROVIDER, "waystones",
+                        SearchNodeKeys.WAYPOINT_DIMENSION, "minecraft:overworld",
+                        SearchNodeKeys.WAYPOINT_X, "10",
+                        SearchNodeKeys.WAYPOINT_Y, "64",
+                        SearchNodeKeys.WAYPOINT_Z, "-20"
+                )
+        );
+
+        List<ResultContextMenu.Action> actions = builder.forItem(
+                new ResultContextMenuActionBuilder.ItemContext(waypoint, ItemStack.EMPTY, favorites, ignored -> {
+                })
+        );
+
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.FAVORITE));
+
+        favorites.removeFavorite(waypoint);
     }
 
     @Test

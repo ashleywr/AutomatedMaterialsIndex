@@ -9,6 +9,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 import java.io.IOException;
@@ -45,8 +46,10 @@ public class ItemIconRenderer implements IIconRenderer {
         ItemStack persistent = persistentStacks.get(id);
         if (persistent != null) return persistent;
 
-        return lazyCache.computeIfAbsent(id,
-                k -> BuiltInRegistries.ITEM.getOptional(k).map(ItemStack::new).orElse(ItemStack.EMPTY));
+        return lazyCache.computeIfAbsent(id, k -> {
+            Item item = BuiltInRegistries.ITEM.getOptional(k).orElse(null);
+            return item == null ? ItemStack.EMPTY : new ItemStack(item);
+        });
     }
 
     /**

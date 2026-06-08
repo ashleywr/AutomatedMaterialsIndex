@@ -212,6 +212,8 @@ public final class SearchNodeKeys {
     public static final String PLAYER_COORD_SOURCE = "playerCoordSource";
     public static final String PLAYER_WAYPOINT_PROVIDERS = "playerWaypointProviders";
     public static final String PLAYER_WAYPOINT_PROVIDER_LABELS = "playerWaypointProviderLabels";
+    public static final String RUNTIME_FAVORITE_STATE = "runtimeFavoriteState";
+    public static final String RUNTIME_FAVORITE_REASON = "runtimeFavoriteReason";
     // Waypoint-specific (transient, never persisted)
     public static final String WAYPOINT_PROVIDER = "waypointProvider";
     public static final String WAYPOINT_PROVIDER_LABEL = "waypointProviderLabel";

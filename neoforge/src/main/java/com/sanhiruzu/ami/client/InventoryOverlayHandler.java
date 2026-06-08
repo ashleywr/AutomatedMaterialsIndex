@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client;
 
 import com.sanhiruzu.ami.api.AmiApi;
+import com.sanhiruzu.ami.client.RecipeViewerSuppressionPolicy.VisibleLayer;
 import com.sanhiruzu.ami.client.overlay.OverlayWidgetManager;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.AmiIndexerService;
@@ -23,19 +24,36 @@ public class InventoryOverlayHandler {
             Boolean.getBoolean("ami.debug.indexOnWorldJoin");
 
     private static final OverlayWidgetManager manager = new OverlayWidgetManager();
-    private static boolean amiEnabled = false;
-    private static boolean recipeBookHidesRecipeViewers = false;
+
+    public enum RecipeBookIntercept { VANILLA, AMI_TOGGLE, PASS }
+
+    // Single source of truth for what is visible. All transitions go through setLayer().
+    private static VisibleLayer currentLayer = VisibleLayer.NONE;
+
     private static boolean pendingScreenReinit = false;
     private static net.minecraft.client.gui.screens.Screen initializedScreen = null;
     private static boolean recipeTransitionRestoreQueued = false;
-    private static boolean recipeTransitionRestoreEnabledState = false;
-    private static boolean vanillaRecipeBookVisible = false;
+    private static VisibleLayer recipeTransitionRestoreLayer = VisibleLayer.AMI;
     private static boolean sessionInitialized = false;
     private static boolean indexingRequested = false;
 
     /**
-     * Check if screen is a container screen. Matches EMI's check (HandledScreen equivalent).
+     * The single choke point for all visibility state changes. Updates the panel and schedules
+     * a screen reinit so widget layouts (AMI's and external viewers') stay consistent with the new layer.
      */
+    private static void setLayer(VisibleLayer layer) {
+        if (currentLayer == layer) return;
+        currentLayer = layer;
+        com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
+        if (layer == VisibleLayer.AMI && !manager.isPanelVisible()) {
+            manager.setPanelVisible(true);
+        } else if (layer != VisibleLayer.AMI && manager.isPanelVisible()) {
+            manager.setPanelVisible(false);
+            AmiKeybindHandler.resetDebugTooltips();
+        }
+        pendingScreenReinit = true;
+    }
+
     private static boolean isContainerScreen(net.minecraft.client.gui.screens.Screen screen) {
         return screen instanceof AbstractContainerScreen<?>;
     }
@@ -50,62 +68,46 @@ public class InventoryOverlayHandler {
                 || name.equals("mezz.jei.gui.recipes.RecipesGui");
     }
 
-    /**
-     * Screens where AMI renders and handles input.
-     */
     private static boolean isAmiScreen(net.minecraft.client.gui.screens.Screen screen) {
         return isContainerScreen(screen) || isRecipeScreen(screen);
     }
 
+    /**
+     * Keybind toggle (Alt-V): cycle between AMI and external viewers. If no external viewer is
+     * present, AMI off means NONE. Does not suppress external viewers when AMI is off.
+     */
     public static void toggleAmi() {
         Minecraft mc = Minecraft.getInstance();
         if (!isAmiScreen(mc.screen)) return;
-
-        amiEnabled = !amiEnabled;
-        recipeBookHidesRecipeViewers = false;
-
-        // Toggling AMI dismisses any active recipe view
-        com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
-
-        if (amiEnabled && !manager.isPanelVisible()) {
-            manager.setPanelVisible(true);
-        } else if (!amiEnabled && manager.isPanelVisible()) {
-            manager.setPanelVisible(false);
-            AmiKeybindHandler.resetDebugTooltips();
-        }
-
-        pendingScreenReinit = true;
+        VisibleLayer next = currentLayer == VisibleLayer.AMI
+                ? (RECIPE_VIEWER_PRESENT ? VisibleLayer.EXTERNAL_RECIPE_VIEWER : VisibleLayer.NONE)
+                : VisibleLayer.AMI;
+        setLayer(next);
     }
 
+    /**
+     * Recipe-book TOGGLE_AMI mode: toggle between AMI and NONE. Suppresses external viewers
+     * even when AMI is off — the recipe book acts as "hide everything".
+     */
     public static void toggleAmiSuppressAll() {
         Minecraft mc = Minecraft.getInstance();
         if (!isAmiScreen(mc.screen)) return;
-        amiEnabled = !amiEnabled;
-        recipeBookHidesRecipeViewers = !amiEnabled;
-        com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
-        if (amiEnabled && !manager.isPanelVisible()) {
-            manager.setPanelVisible(true);
-        } else if (!amiEnabled && manager.isPanelVisible()) {
-            manager.setPanelVisible(false);
-            AmiKeybindHandler.resetDebugTooltips();
-        }
-        pendingScreenReinit = true;
+        setLayer(currentLayer == VisibleLayer.AMI ? VisibleLayer.NONE : VisibleLayer.AMI);
     }
 
-    public static boolean shouldInterceptRecipeBook() {
-        if (!AmiConfig.enableAutoIndexing) return false;
-        if (AmiConfig.recipeBookAction == AmiConfig.RecipeBookAction.OPEN_VANILLA_BOOK) return false;
+    public static RecipeBookIntercept recipeBookIntercept() {
+        if (AmiConfig.recipeBookAction == AmiConfig.RecipeBookAction.OPEN_VANILLA_BOOK) return RecipeBookIntercept.VANILLA;
+        if (!AmiConfig.enableAutoIndexing) return RecipeBookIntercept.PASS;
         net.minecraft.client.gui.screens.Screen screen = Minecraft.getInstance().screen;
-        return screen instanceof AbstractContainerScreen<?>
-                && screen instanceof net.minecraft.client.gui.screens.recipebook.RecipeUpdateListener;
+        if (!(screen instanceof AbstractContainerScreen<?>)
+                || !(screen instanceof net.minecraft.client.gui.screens.recipebook.RecipeUpdateListener)) return RecipeBookIntercept.PASS;
+        return RecipeBookIntercept.AMI_TOGGLE;
     }
 
     public static void handleRecipeBookToggle() {
         switch (AmiConfig.recipeBookAction) {
             case TOGGLE_AMI -> toggleAmiSuppressAll();
             case TOGGLE_EXTERNAL_VIEWER -> toggleAmi();
-            case OPEN_VANILLA_BOOK -> {
-            }
         }
     }
 
@@ -116,21 +118,14 @@ public class InventoryOverlayHandler {
         return false;
     }
 
+    // Force-closes the vanilla recipe book if it opens outside of OPEN_VANILLA_BOOK mode.
+    // In OPEN_VANILLA_BOOK mode we let it coexist with AMI rather than suppressing either side.
     private static void syncVanillaRecipeBookVisibility(net.minecraft.client.gui.screens.Screen screen) {
         if (!isAmiScreen(screen)) return;
+        if (AmiConfig.recipeBookAction == AmiConfig.RecipeBookAction.OPEN_VANILLA_BOOK) return;
         boolean visible = isVanillaRecipeBookVisible(screen);
-        if (visible && AmiConfig.recipeBookAction != AmiConfig.RecipeBookAction.OPEN_VANILLA_BOOK
-                && screen instanceof net.minecraft.client.gui.screens.recipebook.RecipeUpdateListener listener) {
+        if (visible && screen instanceof net.minecraft.client.gui.screens.recipebook.RecipeUpdateListener listener) {
             listener.getRecipeBookComponent().toggleVisibility();
-            return;
-        }
-        if (visible == vanillaRecipeBookVisible) return;
-        vanillaRecipeBookVisible = visible;
-        recipeBookHidesRecipeViewers = visible;
-        com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
-        if (amiEnabled) {
-            manager.setPanelVisible(false);
-            pendingScreenReinit = true;
         }
     }
 
@@ -138,11 +133,9 @@ public class InventoryOverlayHandler {
     static void onScreenInit(ScreenEvent.Init.Post event) {
         if (!isAmiScreen(event.getScreen())) return;
 
-        // Screen reinit dismisses any active recipe view
         com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
 
         net.minecraft.client.gui.screens.Screen previousScreen = initializedScreen;
-        Minecraft mc = Minecraft.getInstance();
         boolean shouldStartHidden = AmiConfig.startHidden;
         boolean leavingRecipeScreen = previousScreen != null && isRecipeScreen(previousScreen);
         boolean enteringRecipeScreen = isRecipeScreen(event.getScreen());
@@ -153,14 +146,14 @@ public class InventoryOverlayHandler {
                 && !enteringRecipeScreen;
 
         if (restoredFromRecipeTransition) {
-            setAmiEnabled(recipeTransitionRestoreEnabledState);
+            setLayer(recipeTransitionRestoreLayer);
             recipeTransitionRestoreQueued = false;
         }
 
         if (!enteringRecipeScreen) {
             recipeTransitionRestoreQueued = false;
         } else if (!leavingRecipeScreen) {
-            recipeTransitionRestoreEnabledState = amiEnabled;
+            recipeTransitionRestoreLayer = currentLayer;
             recipeTransitionRestoreQueued = true;
         }
 
@@ -170,13 +163,12 @@ public class InventoryOverlayHandler {
             if (!restoredFromRecipeTransition) {
                 if (shouldStartHidden) {
                     sessionInitialized = true;
-                    amiEnabled = false;
-                    recipeBookHidesRecipeViewers = false;
-                    manager.setPanelVisible(amiEnabled);
+                    // Direct assignment during init — setLayer() would schedule a redundant reinit.
+                    currentLayer = VisibleLayer.NONE;
+                    manager.setPanelVisible(false);
                 } else if (!sessionInitialized) {
                     sessionInitialized = true;
-                    amiEnabled = true;
-                    recipeBookHidesRecipeViewers = false;
+                    currentLayer = VisibleLayer.AMI;
                     manager.setPanelVisible(true);
                 }
             }
@@ -191,7 +183,7 @@ public class InventoryOverlayHandler {
         }
 
         syncVanillaRecipeBookVisibility(event.getScreen());
-        if (amiEnabled && !manager.isPanelVisible() && !pendingScreenReinit) {
+        if (currentLayer == VisibleLayer.AMI && !manager.isPanelVisible() && !pendingScreenReinit) {
             manager.setPanelVisible(true);
         }
     }
@@ -223,7 +215,7 @@ public class InventoryOverlayHandler {
 
         manager.refreshLayoutIfNeeded(event.getScreen());
 
-        if (amiEnabled) {
+        if (currentLayer == VisibleLayer.AMI) {
             manager.tick(event);
             manager.renderAll(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
         }
@@ -233,7 +225,7 @@ public class InventoryOverlayHandler {
     static void onMouseScroll(ScreenEvent.MouseScrolled.Pre event) {
         if (!isAmiScreen(event.getScreen())) return;
 
-        if (OverlayInputController.mouseScrolled(event.getScreen(), manager, amiEnabled,
+        if (OverlayInputController.mouseScrolled(event.getScreen(), manager, currentLayer == VisibleLayer.AMI,
                 event.getMouseX(), event.getMouseY(), event.getScrollDeltaX(), event.getScrollDeltaY())) {
             event.setCanceled(true);
         }
@@ -243,7 +235,7 @@ public class InventoryOverlayHandler {
     static void onMouseButtonPressed(ScreenEvent.MouseButtonPressed.Pre event) {
         if (!isAmiScreen(event.getScreen())) return;
 
-        if (OverlayInputController.mouseButtonPressed(event.getScreen(), manager, amiEnabled,
+        if (OverlayInputController.mouseButtonPressed(event.getScreen(), manager, currentLayer == VisibleLayer.AMI,
                 event.getMouseX(), event.getMouseY(), event.getButton())) {
             event.setCanceled(true);
         }
@@ -253,7 +245,7 @@ public class InventoryOverlayHandler {
     static void onMouseDragged(ScreenEvent.MouseDragged.Pre event) {
         if (!isAmiScreen(event.getScreen())) return;
 
-        if (OverlayInputController.mouseDragged(event.getScreen(), manager, amiEnabled,
+        if (OverlayInputController.mouseDragged(event.getScreen(), manager, currentLayer == VisibleLayer.AMI,
                 event.getMouseX(), event.getMouseY(), event.getMouseButton(), event.getDragX(), event.getDragY())) {
             event.setCanceled(true);
         }
@@ -263,7 +255,7 @@ public class InventoryOverlayHandler {
     static void onMouseButtonReleased(ScreenEvent.MouseButtonReleased.Pre event) {
         if (!isAmiScreen(event.getScreen())) return;
 
-        if (OverlayInputController.mouseButtonReleased(event.getScreen(), manager, amiEnabled,
+        if (OverlayInputController.mouseButtonReleased(event.getScreen(), manager, currentLayer == VisibleLayer.AMI,
                 event.getMouseX(), event.getMouseY(), event.getButton())) {
             event.setCanceled(true);
         }
@@ -273,7 +265,7 @@ public class InventoryOverlayHandler {
     static void onCharTyped(ScreenEvent.CharacterTyped.Pre event) {
         if (!isAmiScreen(event.getScreen())) return;
 
-        if (OverlayInputController.charTyped(event.getScreen(), manager, amiEnabled,
+        if (OverlayInputController.charTyped(event.getScreen(), manager, currentLayer == VisibleLayer.AMI,
                 event.getCodePoint(), event.getModifiers())) {
             event.setCanceled(true);
         }
@@ -283,7 +275,7 @@ public class InventoryOverlayHandler {
     static void onKeyPressed(ScreenEvent.KeyPressed.Pre event) {
         if (!isAmiScreen(event.getScreen())) return;
 
-        if (OverlayInputController.keyPressed(event.getScreen(), manager, amiEnabled,
+        if (OverlayInputController.keyPressed(event.getScreen(), manager, currentLayer == VisibleLayer.AMI,
                 event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
             event.setCanceled(true);
         }
@@ -304,36 +296,27 @@ public class InventoryOverlayHandler {
     }
 
     public static boolean isAmiEnabled() {
-        return amiEnabled;
+        return currentLayer == VisibleLayer.AMI;
     }
 
     public static void setAmiEnabled(boolean enabled) {
-        if (amiEnabled == enabled) {
-            return;
-        }
-
-        amiEnabled = enabled;
-        recipeBookHidesRecipeViewers = false;
-        if (amiEnabled && !manager.isPanelVisible()) {
-            manager.setPanelVisible(true);
-        } else if (!amiEnabled && manager.isPanelVisible()) {
-            manager.setPanelVisible(false);
-            AmiKeybindHandler.resetDebugTooltips();
-        }
-
-        pendingScreenReinit = true;
+        setLayer(enabled ? VisibleLayer.AMI
+                : (RECIPE_VIEWER_PRESENT ? VisibleLayer.EXTERNAL_RECIPE_VIEWER : VisibleLayer.NONE));
     }
 
+    /**
+     * Returns true when external recipe viewers (EMI, JEI) should not render their chrome
+     * (search bar, item list, buttons). True whenever AMI is active OR the NONE layer is in
+     * effect — only EXTERNAL_RECIPE_VIEWER lets external viewers show.
+     */
     public static boolean shouldSuppressRecipeViewerChrome() {
         Minecraft mc = Minecraft.getInstance();
-        return RecipeViewerSuppressionPolicy.shouldSuppressRecipeViewerChrome(
-                amiEnabled,
-                recipeBookHidesRecipeViewers,
-                mc.screen != null && isAmiScreen(mc.screen));
+        if (mc.screen == null || !isAmiScreen(mc.screen)) return false;
+        return currentLayer != VisibleLayer.EXTERNAL_RECIPE_VIEWER;
     }
 
     public static boolean isMouseOverAmiOverlay(double mouseX, double mouseY) {
-        if (!amiEnabled || !manager.isPanelVisible()) return false;
+        if (currentLayer != VisibleLayer.AMI || !manager.isPanelVisible()) return false;
 
         var searchBar = manager.getSearchBar();
         if (searchBar != null && searchBar.visible
@@ -348,13 +331,11 @@ public class InventoryOverlayHandler {
     }
 
     public static void resetSessionState() {
-        amiEnabled = false;
-        recipeBookHidesRecipeViewers = false;
-        vanillaRecipeBookVisible = false;
+        currentLayer = VisibleLayer.NONE;
         pendingScreenReinit = false;
         initializedScreen = null;
         recipeTransitionRestoreQueued = false;
-        recipeTransitionRestoreEnabledState = false;
+        recipeTransitionRestoreLayer = VisibleLayer.AMI;
         sessionInitialized = false;
         indexingRequested = false;
     }
