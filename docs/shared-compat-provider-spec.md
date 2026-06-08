@@ -3,6 +3,14 @@
 AMI's preferred long-term compat path is mod-authored, viewer-neutral providers. AMI consumes these providers, but the
 contracts avoid AMI result-row, tree, and context-menu types so other viewers can consume the same integration data.
 
+This is also the ownership model AMI wants mod authors to use when possible. AMI can carry downstream compat code for a
+while, but that is a staging path, not the ideal permanent arrangement. Mod authors are welcome to ship shared
+providers from their own mod, move AMI-specific behavior upstream into their own project, or simply let AMI consume the
+provider contract instead of owning mod-specific heuristics forever.
+
+If a mod wants AMI to remain the main compat owner for now, that is fine. The goal is to make mod-owned compat easy
+when the mod author is ready, not to block short-term AMI-side fixes.
+
 ## Provider Types
 
 ### Searchable Guides

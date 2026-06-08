@@ -1,0 +1,435 @@
+{
+  "issue_title": "Compat Watch: upstream mod updates detected",
+  "issue_label": "compat-watch",
+  "entries": [
+    {
+      "name": "Cobblemon",
+      "source": "modrinth",
+      "project_id": "MdwFAVRL",
+      "project_slug": "cobblemon",
+      "support_level": "family_tested",
+      "channels": [
+        {
+          "key": "neoforge-1.21.1",
+          "loader": "neoforge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "1.7.3",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "GregTech CEu Modern",
+      "source": "modrinth",
+      "project_id": "7tG215v7",
+      "project_slug": "gregtechceu-modern",
+      "support_level": "family_tested",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "mc1.20.1-7.5.3",
+          "exact_tested_version": null
+        },
+        {
+          "key": "neoforge-1.21.1",
+          "loader": "neoforge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "mc1.21.1-7.0.2",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "Waystones",
+      "source": "modrinth",
+      "project_id": "LOpKHB2A",
+      "project_slug": "waystones",
+      "support_level": "exact_tested",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "14.1.20+forge-1.20.1",
+          "exact_tested_version": null
+        },
+        {
+          "key": "neoforge-1.21.1",
+          "loader": "neoforge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "21.1.34+neoforge-1.21.1",
+          "exact_tested_version": "21.1.34"
+        }
+      ]
+    },
+    {
+      "name": "JourneyMap",
+      "source": "modrinth",
+      "project_id": "lfHFW1mp",
+      "project_slug": "journeymap",
+      "support_level": "best_effort",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "1.20.1-5.10.3-forge",
+          "exact_tested_version": null
+        },
+        {
+          "key": "neoforge-1.21.1",
+          "loader": "neoforge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "1.21.1-6.0.0-beta.82+neoforge",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "Xaero's Minimap",
+      "source": "modrinth",
+      "project_id": "1bokaNcj",
+      "project_slug": "xaeros-minimap",
+      "support_level": "best_effort",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "forge-1.20.1-25.3.13",
+          "exact_tested_version": null
+        },
+        {
+          "key": "neoforge-1.21.1",
+          "loader": "neoforge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "neoforge-1.21.1-25.3.13",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "Xaero's World Map",
+      "source": "modrinth",
+      "project_id": "NcUtCpym",
+      "project_slug": "xaeros-world-map",
+      "support_level": "best_effort",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "forge-1.20.1-1.40.16",
+          "exact_tested_version": null
+        },
+        {
+          "key": "neoforge-1.21.1",
+          "loader": "neoforge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "neoforge-1.21.1-1.40.16",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "Ars Nouveau",
+      "source": "modrinth",
+      "project_id": "TKB6INcv",
+      "project_slug": "ars-nouveau",
+      "support_level": "family_tested",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "4.12.7",
+          "exact_tested_version": null
+        },
+        {
+          "key": "neoforge-1.21.1",
+          "loader": "neoforge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "5.11.7",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "Spectrum",
+      "source": "modrinth",
+      "project_id": "3rc31Hgo",
+      "project_slug": "spectrum",
+      "support_level": "family_tested",
+      "channels": [
+        {
+          "key": "neoforge-1.21.1",
+          "loader": "neoforge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "1.11.8-1.21.1-neo",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "Nature's Aura",
+      "source": "modrinth",
+      "project_id": "4cJkN3aF",
+      "project_slug": "natures-aura",
+      "support_level": "family_tested",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "39.4",
+          "exact_tested_version": null
+        },
+        {
+          "key": "neoforge-1.21.1",
+          "loader": "neoforge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "41.9",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "Mana and Artifice",
+      "source": "modrinth",
+      "project_id": "zaRGNexp",
+      "project_slug": "mana-and-artifice",
+      "support_level": "family_tested",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "3.1.11",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "Alex's Caves",
+      "source": "modrinth",
+      "project_id": "U6GY0xp0",
+      "project_slug": "alexs-caves",
+      "support_level": "family_tested",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "2.0.2",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "Alex's Mobs",
+      "source": "modrinth",
+      "project_id": "2cMuAZAp",
+      "project_slug": "alexs-mobs",
+      "support_level": "family_tested",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "1.22.9",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "Timeless and Classics Zero",
+      "source": "modrinth",
+      "project_id": "SzzJttH8",
+      "project_slug": "timeless-and-classics-zero",
+      "support_level": "family_tested",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "1.1.8-hotfix",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "Silent Gear",
+      "source": "modrinth",
+      "project_id": "73mSSnCf",
+      "project_slug": "silent-gear",
+      "support_level": "family_tested",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "3.6.7",
+          "exact_tested_version": null
+        },
+        {
+          "key": "neoforge-1.21.1",
+          "loader": "neoforge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "4.2.1.1",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "Tinkers' Construct",
+      "source": "modrinth",
+      "project_id": "rxIIYO6c",
+      "project_slug": "tinkers-construct",
+      "support_level": "family_tested",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "3.11.2.166",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "EMI",
+      "source": "modrinth",
+      "project_id": "fRiHVvU7",
+      "project_slug": "emi",
+      "support_level": "exact_tested",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "1.1.24+1.20.1+forge",
+          "exact_tested_version": "1.1.24"
+        },
+        {
+          "key": "neoforge-1.21.1",
+          "loader": "neoforge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "1.1.24+1.21.1+neoforge",
+          "exact_tested_version": "1.1.24"
+        }
+      ]
+    },
+    {
+      "name": "Just Enough Items (JEI)",
+      "source": "modrinth",
+      "project_id": "u6dRKJwZ",
+      "project_slug": "jei",
+      "support_level": "exact_tested",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "15.20.0.130",
+          "exact_tested_version": "15.20.0.130"
+        },
+        {
+          "key": "neoforge-1.21.1",
+          "loader": "neoforge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "19.27.0.340",
+          "exact_tested_version": "19.27.0.340"
+        }
+      ]
+    },
+    {
+      "name": "Applied Energistics 2",
+      "source": "modrinth",
+      "project_id": "XxWD5pD3",
+      "project_slug": "ae2",
+      "support_level": "family_tested",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "15.4.10",
+          "exact_tested_version": null
+        },
+        {
+          "key": "neoforge-1.21.1",
+          "loader": "neoforge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "19.2.17",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "Botania",
+      "source": "modrinth",
+      "project_id": "pfjLUfGv",
+      "project_slug": "botania",
+      "support_level": "family_tested",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "1.20.1-453-forge",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "MythicBotany",
+      "source": "modrinth",
+      "project_id": "7tl2Pt3c",
+      "project_slug": "mythicbotany",
+      "support_level": "family_tested",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "1.20.1-4.0.4",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "Botanical Machinery",
+      "source": "modrinth",
+      "project_id": "CTJzhcfH",
+      "project_slug": "botanical-machinery",
+      "support_level": "family_tested",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "1.20.1-3.0.10",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "ExtraBotany",
+      "source": "modrinth",
+      "project_id": "zG0IqeQj",
+      "project_slug": "extrabotany",
+      "support_level": "family_tested",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "1.20.1-1.9.2-forge",
+          "exact_tested_version": null
+        }
+      ]
+    }
+  ]
+}

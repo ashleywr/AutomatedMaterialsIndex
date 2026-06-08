@@ -99,3 +99,7 @@ AMI reads what it can from registries, tags, recipes, item data, and compatible 
 ## Current Status
 
 AMI 1.0 is the first public release. Large modpacks vary widely, so edge cases can happen with unusual items, generated variants, or custom recipe systems. Reports with the modpack name, loader, Minecraft version, and a short reproduction path are the most useful.
+
+AMI also welcomes mod authors who want to own more of their integration story. If a mod wants to expose searchable
+guides, enriched item metadata, representative generated stacks, or item actions from its own codebase, AMI is built to
+consume shared compat providers instead of forcing every long-term integration to live downstream in AMI.
