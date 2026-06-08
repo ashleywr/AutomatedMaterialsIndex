@@ -34,6 +34,17 @@ class PrimaryCategoryResolverTest {
     }
 
     @Test
+    void lodestoneResolvesToUtilityNavigationInsteadOfSocialClaims() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:lodestone"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.UTILITY_NAVIGATION), Map.of())
+        );
+
+        assertEquals("utility", assignment.categoryId());
+        assertEquals("navigation", assignment.subcategoryId());
+    }
+
+    @Test
     void booksAndGuideBooksResolveToUtilityBooks() {
         CategoryAssignment plainBook = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("minecraft:written_book"),

@@ -130,6 +130,7 @@ public final class OntologyClassifier {
             return null;
         }
         if (isNaturePath(path)) return null;
+        if (item == Items.LODESTONE) return utility("navigation");
 
         // ── 3. Furniture (most specific) ──────────────────────────────────────
         // Beds: any block that implements bed behavior
@@ -316,9 +317,6 @@ public final class OntologyClassifier {
         if (item == Items.GOAT_HORN) {
             return utility("misc");
         }
-
-        // ── Social ────────────────────────────────────────────────────────────
-        if (item == Items.LODESTONE) return social("claims");
 
         // ── Entities (spawn eggs & creatures) ─────────────────────────────────
         if (item instanceof SpawnEggItem || path.endsWith("_spawn_egg")) return bestiary(classifySpawnEgg(path));
