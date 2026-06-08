@@ -12,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * Side-safe resolver for online player names.
@@ -19,8 +20,13 @@ import java.util.*;
  */
 public final class PlayerResolver implements IQueryResolver {
     private static final long LIVE_STATE_POLL_INTERVAL_MS = 5_000L;
+    private static final Pattern VALID_PLAYER_NAME = Pattern.compile("[A-Za-z0-9_]{1,16}");
+    private static volatile TestHooks testHooks;
 
     private static boolean isClientRuntimeAvailable() {
+        if (testHooks != null) {
+            return true;
+        }
         try {
             return Services.PLATFORM.isClient();
         } catch (RuntimeException | LinkageError e) {
@@ -29,6 +35,10 @@ public final class PlayerResolver implements IQueryResolver {
     }
 
     public static List<String> suggestNames(String query, int limit) {
+        TestHooks hooks = testHooks;
+        if (hooks != null) {
+            return suggestNamesForTests(query, limit, hooks);
+        }
         if (!isClientRuntimeAvailable()) return List.of();
         try {
             return ClientPlayerResolver.suggestNames(query, limit);
@@ -64,11 +74,70 @@ public final class PlayerResolver implements IQueryResolver {
         }
     }
 
+    public static void installTestHooksForTests(List<String> onlineNames, List<String> historyNames) {
+        testHooks = new TestHooks(
+                onlineNames == null ? List.of() : List.copyOf(onlineNames),
+                historyNames == null ? List.of() : List.copyOf(historyNames)
+        );
+    }
+
+    public static void clearTestHooksForTests() {
+        testHooks = null;
+    }
+
     @Override
     public Map<NodeType, List<SearchNode>> resolve(String query) {
         if (!isClientRuntimeAvailable()) return Map.of();
 
         return ClientPlayerResolver.resolve(query);
+    }
+
+    private static boolean isValidPlayerName(String name) {
+        return name != null && VALID_PLAYER_NAME.matcher(name).matches();
+    }
+
+    private static List<String> suggestNamesForTests(String query, int limit, TestHooks hooks) {
+        String typed = query == null ? "" : query.trim();
+        String lower = typed.toLowerCase(Locale.ROOT);
+        if (typed.isBlank() || limit <= 0 || hooks == null) {
+            return List.of();
+        }
+        if (!isValidPlayerName(typed)) {
+            return List.of();
+        }
+        int cappedLimit = Math.max(1, Math.min(Math.min(limit, AmiConfig.playerHeadSuggestionsLimit), 24));
+        LinkedHashMap<String, Boolean> candidates = new LinkedHashMap<>();
+        collectNames(candidates, hooks.onlineNames(), lower, cappedLimit);
+        collectNames(candidates, hooks.historyNames(), lower, cappedLimit);
+        if (candidates.size() < cappedLimit
+                && candidates.keySet().stream().noneMatch(name -> name.equalsIgnoreCase(typed))) {
+            candidates.put(typed, Boolean.TRUE);
+        }
+        return List.copyOf(candidates.keySet());
+    }
+
+    private static void collectNames(Map<String, Boolean> out, List<String> names, String lower, int limit) {
+        for (boolean prefixPass : List.of(true, false)) {
+            for (String name : names) {
+                if (out.size() >= limit) {
+                    return;
+                }
+                if (name == null || containsNameIgnoreCase(out.keySet(), name)) {
+                    continue;
+                }
+                String normalized = name.toLowerCase(Locale.ROOT);
+                boolean matches = prefixPass
+                        ? normalized.startsWith(lower)
+                        : !normalized.startsWith(lower) && normalized.contains(lower);
+                if (matches) {
+                    out.put(name, Boolean.TRUE);
+                }
+            }
+        }
+    }
+
+    private static boolean containsNameIgnoreCase(Collection<String> names, String candidate) {
+        return names.stream().anyMatch(existing -> existing.equalsIgnoreCase(candidate));
     }
 
     private static class ClientPlayerResolver {
@@ -126,7 +195,7 @@ public final class PlayerResolver implements IQueryResolver {
             if (typed.isBlank()) {
                 return Map.of();
             }
-            if (!PlayerHeadHistory.isValidName(typed)) {
+            if (!isValidPlayerName(typed)) {
                 return Map.of();
             }
 
@@ -149,7 +218,7 @@ public final class PlayerResolver implements IQueryResolver {
             String typed = query == null ? "" : query.trim();
             String lower = typed.toLowerCase(Locale.ROOT);
             if (typed.isBlank() || limit <= 0) return List.of();
-            if (!PlayerHeadHistory.isValidName(typed)) return List.of();
+            if (!isValidPlayerName(typed)) return List.of();
             return List.copyOf(playerHeadCandidates(typed, lower, Math.min(limit, playerHeadSuggestionsLimit())).keySet());
         }
 
@@ -219,6 +288,11 @@ public final class PlayerResolver implements IQueryResolver {
         }
 
         private static void collectOnlinePlayerHeads(Map<String, GameProfile> out, String lower, int limit) {
+            TestHooks hooks = testHooks;
+            if (hooks != null) {
+                collectOnlineNames(out, hooks.onlineNames(), lower, limit);
+                return;
+            }
             var mc = net.minecraft.client.Minecraft.getInstance();
             var conn = mc.getConnection();
             if (conn == null) return;
@@ -240,8 +314,33 @@ public final class PlayerResolver implements IQueryResolver {
         }
 
         private static void collectHistory(Map<String, GameProfile> out, String lower, int limit) {
+            TestHooks hooks = testHooks;
+            if (hooks != null) {
+                collectHistoryNames(out, hooks.historyNames(), lower, limit);
+                return;
+            }
+            collectHistoryNames(out, PlayerHeadHistory.load(), lower, limit);
+        }
+
+        private static void collectOnlineNames(Map<String, GameProfile> out, List<String> names, String lower, int limit) {
             for (boolean prefixPass : List.of(true, false)) {
-                for (String name : PlayerHeadHistory.load()) {
+                for (String name : names) {
+                    if (out.size() >= limit) return;
+                    if (name == null || containsName(out, name)) continue;
+                    String normalized = name.toLowerCase(Locale.ROOT);
+                    boolean matches = prefixPass
+                            ? normalized.startsWith(lower)
+                            : !normalized.startsWith(lower) && normalized.contains(lower);
+                    if (matches) {
+                        out.put(name, null);
+                    }
+                }
+            }
+        }
+
+        private static void collectHistoryNames(Map<String, GameProfile> out, List<String> names, String lower, int limit) {
+            for (boolean prefixPass : List.of(true, false)) {
+                for (String name : names) {
                     if (out.size() >= limit) return;
                     if (containsName(out, name)) continue;
                     String normalized = name.toLowerCase(Locale.ROOT);
@@ -256,7 +355,7 @@ public final class PlayerResolver implements IQueryResolver {
         }
 
         private static boolean containsName(Map<String, GameProfile> out, String name) {
-            return out.keySet().stream().anyMatch(existing -> existing.equalsIgnoreCase(name));
+            return containsNameIgnoreCase(out.keySet(), name);
         }
 
         private static SearchNode playerHeadNode(String name, GameProfile profile, String query) {
@@ -326,5 +425,8 @@ public final class PlayerResolver implements IQueryResolver {
             }
         }
 
+    }
+
+    private record TestHooks(List<String> onlineNames, List<String> historyNames) {
     }
 }
