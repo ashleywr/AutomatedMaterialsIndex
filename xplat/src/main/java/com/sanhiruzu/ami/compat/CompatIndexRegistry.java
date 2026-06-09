@@ -16,7 +16,8 @@ public final class CompatIndexRegistry {
             new GuideMePlugin(),
             new ModonomiconPlugin(),
             new ResourceBookPlugin(),
-            new ApotheosisPlugin()
+            new ApotheosisPlugin(),
+            new MekanismIndexPlugin()
     );
 
     private static final List<CompatIndexPlugin> EXTERNAL = new CopyOnWriteArrayList<>();
