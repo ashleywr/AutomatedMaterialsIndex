@@ -31,9 +31,9 @@ import java.util.Map;
 import java.util.Set;
 
 public class RecipeViewerIngredientProvider implements IAmiDataProvider {
-    static final String TYPE_UID_KEY = "recipeViewerTypeUid";
-    static final String INGREDIENT_UID_KEY = "recipeViewerIngredientUid";
-    static final String DISPLAY_MOD_ID_KEY = "recipeViewerDisplayModId";
+    public static final String TYPE_UID_KEY = "recipeViewerTypeUid";
+    public static final String INGREDIENT_UID_KEY = "recipeViewerIngredientUid";
+    public static final String DISPLAY_MOD_ID_KEY = "recipeViewerDisplayModId";
 
     @Override
     public void populate(GlobalIndex index, @Nullable Level level) {

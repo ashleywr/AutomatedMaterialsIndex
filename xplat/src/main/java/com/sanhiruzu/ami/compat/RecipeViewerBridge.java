@@ -2,6 +2,8 @@ package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.client.recipe.RecipeTransferHandler;
+import com.sanhiruzu.ami.index.NodeType;
+import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -72,6 +74,28 @@ public class RecipeViewerBridge {
         return false;
     }
 
+    public static boolean hasRecipes(SearchNode node) {
+        if (node == null) return false;
+        if (node.type() == NodeType.ITEM) {
+            return hasRecipes(com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node));
+        }
+        if (isJeiSelectedExternalViewer()) {
+            return JeiRecipeBridge.hasRecipes(node);
+        }
+        return false;
+    }
+
+    public static boolean hasUses(SearchNode node) {
+        if (node == null) return false;
+        if (node.type() == NodeType.ITEM) {
+            return hasUses(com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node));
+        }
+        if (isJeiSelectedExternalViewer()) {
+            return JeiRecipeBridge.hasUses(node);
+        }
+        return false;
+    }
+
     public static boolean supportsSearchSync() {
         if (isEmiSelectedExternalViewer()) return EmiSearchSyncBridge.isAvailable();
         if (isJeiSelectedExternalViewer()) return JeiSearchSyncBridge.isAvailable();
@@ -118,6 +142,19 @@ public class RecipeViewerBridge {
         RecipeViewerBridgeCommon.recordLookup(stack);
     }
 
+    public static void openRecipes(SearchNode node) {
+        if (node == null) return;
+        if (node.type() == NodeType.ITEM) {
+            openRecipes(com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node));
+            return;
+        }
+        if (!isJeiSelectedExternalViewer()) {
+            return;
+        }
+        markRecipeViewActive();
+        JeiRecipeBridge.openRecipes(node);
+    }
+
     /**
      * Open the recipe viewer for uses of the item (what consumes it).
      */
@@ -135,6 +172,19 @@ public class RecipeViewerBridge {
             JeiRecipeBridge.openUses(stack);
         }
         RecipeViewerBridgeCommon.recordLookup(stack);
+    }
+
+    public static void openUses(SearchNode node) {
+        if (node == null) return;
+        if (node.type() == NodeType.ITEM) {
+            openUses(com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node));
+            return;
+        }
+        if (!isJeiSelectedExternalViewer()) {
+            return;
+        }
+        markRecipeViewActive();
+        JeiRecipeBridge.openUses(node);
     }
 
     public static void startDrag(ItemStack stack) {

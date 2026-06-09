@@ -1,0 +1,104 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.8/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+
+
+[2A[1B[1m> Starting Daemon[m[17D[1B[1A[1m> Starting Daemon > Connecting to Daemon[m[40D[1B[2ADaemon will be stopped at the end of the build 
+[1B[0K
+[2A[0K[1B> IDLE[6D[1B[2A[1m<[0;1m-------------> 0% INITIALIZING [21ms][m[38D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [114ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [223ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [316ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [425ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [518ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [611ms][m[39D[2B[2AReusing configuration cache.[0K
+[1B[0K
+[2A[1m<[0;1m-------------> 0% INITIALIZING [720ms][m[39D[1B[1m> Loading configuration cache state[m[35D[1B[2A[1m<[0;1m-------------> 0% INITIALIZING [813ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [923ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [1s][m[0K[36D[2B[2A[1m<[0;1m-------------> 0% EXECUTING [1s][m[0K[33D[1B> IDLE[0K[6D[1B
+[3A[1m<[0;32;1m========[0;39;1m-----> 66% EXECUTING [1s][m[34D[1B[1m> :forge:compileJava[m[20D[1B[1m> :neoforge:compileJava[m[23D[1B[3A[1m<[0;32;1m========[0;39;1m-----> 66% EXECUTING [2s][m[34D[3B[3A[1m<[0;32;1m========[0;39;1m-----> 66% EXECUTING [3s][m[34D[3B[3A[0K
+[31;1m> Task :neoforge:compileJava[0;39m[31m FAILED[39m[0K
+[1B[0K
+[0K
+[3A[1m<[0;31;1m==========[0;39;1m---> 83% EXECUTING [3s][m[34D[1B[1m> :forge:compileJava[m[20D[1B> IDLE[6D[1B[3A[1m<[0;31;1m==========[0;39;1m---> 83% EXECUTING [4s][m[34D[3B[3A[0K
+[1m> Task :forge:compileJava[m[0K
+[1B[0K
+[0K
+C:\WorkDir\AutomatedMaterialsIndex\xplat\src\main\java\com\sanhiruzu\ami\compat\MekanismIndexPlugin.java:21: �G���[: �V���{�����������܂���
+        for (SearchNode node : index.getAllNodes()) {
+                                    ^
+  �V���{��:   ���\�b�h getAllNodes()
+  �ꏊ: �^�C�vGlobalIndex�̕ϐ� index
+�G���[1��
+�m�[�g:SpongePowered MIXIN Annotation Processor Version=0.8.5
+�m�[�g:Supported obfuscation types: ObfuscationServiceMCP supports [searge,notch]
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\client\AMICheatMode.java:193: �x��:[removal] ResourceLocation��ResourceLocation(String,String)�͐�������Ă��炸�A�폜�p�Ƀ}�[�N����Ă��܂�
+        ResourceLocation spawnEggId = new ResourceLocation(
+                                      ^
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\client\icon\EntityIconRenderer.java:56: �x��:[removal] ResourceLocation��ResourceLocation(String)�͐�������Ă��炸�A�폜�p�Ƀ}�[�N����Ă��܂�
+        if ("experience_orb".equals(entityId.getPath())) return new ResourceLocation("experience_bottle");
+                                                                ^
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\client\icon\EntityIconRenderer.java:114: �x��:[removal] ResourceLocation��ResourceLocation(String)�͐�������Ă��炸�A�폜�p�Ƀ}�[�N����Ă��܂�
+                    .getOptional(new ResourceLocation("iron_sword"))
+                                 ^
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\client\tooltip\HeartBarTooltipComponent.java:20: �x��:[removal] ResourceLocation��ResourceLocation(String)�͐�������Ă��炸�A�폜�p�Ƀ}�[�N����Ă��܂�
+    private static final ResourceLocation ICONS = new ResourceLocation("textures/gui/icons.png");
+                                                  ^
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\forge\AMI.java:29: �x��:[removal] FMLJavaModLoadingContext��get()�͐�������Ă��炸�A�폜�p�Ƀ}�[�N����Ă��܂�
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+                                                        ^
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\forge\AMIClient.java:30: �x��:[removal] FMLJavaModLoadingContext��get()�͐�������Ă��炸�A�폜�p�Ƀ}�[�N����Ă��܂�
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+                                                        ^
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\forge\ForgePlatformHelper.java:204: �x��:[removal] ResourceLocation��ResourceLocation(String,String)�͐�������Ă��炸�A�폜�p�Ƀ}�[�N����Ă��܂�
+        return new ResourceLocation(namespace, path);
+               ^
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\forge\network\AmiPacketHandler.java:14: �x��:[removal] ResourceLocation��ResourceLocation(String,String)�͐�������Ă��炸�A�폜�p�Ƀ}�[�N����Ă��܂�
+            new ResourceLocation(AMI.MODID, "main"),
+            ^
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\recipe\AmiRecipeIndex.java:309: �x��:[removal] ResourceLocation��ResourceLocation(String,String)�͐�������Ă��炸�A�폜�p�Ƀ}�[�N����Ă��܂�
+        ResourceLocation id = new ResourceLocation("ami", "brewing/" + idCounter++);
+                              ^
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\recipe\AmiRecipeIndex.java:334: �x��:[removal] ResourceLocation��ResourceLocation(String,String)�͐�������Ă��炸�A�폜�p�Ƀ}�[�N����Ă��܂�
+                    ResourceLocation id = new ResourceLocation("ami", "repair/" + idCounter++);
+                                          ^
+C:\WorkDir\AutomatedMaterialsIndex\xplat\src\main\java\com\sanhiruzu\ami\compat\MekanismIndexPlugin.java:21: �G���[: �V���{�����������܂���
+        for (SearchNode node : index.getAllNodes()) {
+                                    ^
+  �V���{��:   ���\�b�h getAllNodes()
+  �ꏊ: �^�C�vGlobalIndex�̕ϐ� index
+C:\WorkDir\AutomatedMaterialsIndex\xplat\src\main\java\com\sanhiruzu\ami\index\providers\RecipeViewerIngredientProvider.java:173: �x��:[removal] IIngredientRenderer��getTooltip(T,TooltipFlag)�͐�������Ă��炸�A�폜�p�Ƀ}�[�N����Ă��܂�
+            List<Component> tooltip = renderer.getTooltip(ingredient, TooltipFlag.Default.NORMAL);
+                                              ^
+  T���^�ϐ��̏ꍇ:
+    �C���^�t�F�[�X IIngredientRenderer�Ő錾����Ă���T extends Object
+�m�[�g:�ꕔ�̓��̓t�@�C���͐�������Ȃ�API���g�p�܂��̓I�[�o�[���C�h���Ă��܂��B
+�m�[�g:�ڍׂ́A-Xlint:deprecation�I�v�V�������w�肵�čăR���p�C�����Ă��������B
+�m�[�g:���̓t�@�C���̑���̂����A���`�F�b�N�܂��͈��S�ł͂Ȃ����̂�����܂��B
+�m�[�g:�ڍׂ́A-Xlint:unchecked�I�v�V�������w�肵�čăR���p�C�����Ă��������B
+�G���[1��
+�x��11��
+
+FAILURE: Build completed with 2 failures.
+
+1: Task failed with an exception.
+-----------
+* What went wrong:
+Execution failed for task ':neoforge:compileJava'.
+> Compilation failed; see the compiler error output for details.
+
+* Try:
+> Run with --info option to get more log output.
+> Run with --scan to get full insights.
+==============================================================================
+
+2: Task failed with an exception.
+-----------
+* What went wrong:
+Execution failed for task ':forge:compileJava'.
+[3A[1m<[0;31;1m==========[0;39;1m---> 83% EXECUTING [4s][m[34D[1B[1m> :forge:compileJava[m[20D[1B> IDLE[6D[1B[3A[1m<[0;31;1m==========[0;39;1m---> 83% EXECUTING [5s][m[34D[3B[3A[1m<[0;31;1m==========[0;39;1m---> 83% EXECUTING [6s][m[34D[3B[3A[1m<[0;31;1m==========[0;39;1m---> 83% EXECUTING [7s][m[34D[3B[3A[1m<[0;31;1m==========[0;39;1m---> 83% EXECUTING [8s][m[34D[3B[3A[1m<[0;31;1m==========[0;39;1m---> 83% EXECUTING [9s][m[34D[3B[3A[0K
+[31;1m> Task :forge:compileJava[0;39m[31m FAILED[39m[0K
+4 actionable tasks: 2 executed, 2 up-to-date[0K
+Configuration cache entry reused.
+[0K
+[0K
+[0K
+> Compilation failed; see the compiler error output for details.
+
+* Try:
+> Run with --info option to get more log output.
+> Run with --scan to get full insights.
+==============================================================================
+
+BUILD FAILED in 10s
+[3A[1m<[0;1m-------------> 0% WAITING[m[26D[1B[1m> :forge:compileJava[m[20D[1B> IDLE[6D[1B[3A[2K[1B[2K[1B[2K[2A

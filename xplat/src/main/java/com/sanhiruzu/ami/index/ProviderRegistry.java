@@ -106,7 +106,8 @@ public final class ProviderRegistry {
             if (id == null) continue;
             ItemFilter.firstCreativeStack(item, creativeStackMap).ifPresent(stack -> ItemIconRenderer.registerStack(id, stack));
             List<SubtypeExpander.SubtypeEntry> entries = SubtypeExpander.expand(id, registryAccess);
-            if (entries.isEmpty() && hasMultipleCreativeStacks(creativeStackMap.get(item))) {
+            if ((entries.isEmpty() || SubtypeExpander.shouldPreferCreativeStackParity(id))
+                    && hasMultipleCreativeStacks(creativeStackMap.get(item))) {
                 entries = CreativeStackVariantExpander.expand(id, creativeStackMap.get(item), level);
             }
             for (SubtypeExpander.SubtypeEntry entry : entries) {

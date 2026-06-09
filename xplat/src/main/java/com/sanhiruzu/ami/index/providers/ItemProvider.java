@@ -744,7 +744,8 @@ public class ItemProvider implements IAmiDataProvider {
             List<SubtypeExpander.SubtypeEntry> subtypes =
                     SubtypeExpander.expand(id, registryAccess);
             List<ItemFilter.CreativeStackInfo> creativeStacks = creativeStackMap.get(item);
-            if (subtypes.isEmpty()
+            boolean preferCreativeStackParity = SubtypeExpander.shouldPreferCreativeStackParity(id);
+            if ((subtypes.isEmpty() || preferCreativeStackParity)
                     && ItemFilter.shouldShowAccessLevel(accessLevel)
                     && hasMultipleCreativeStacks(creativeStacks)) {
                 creativeVariantCandidates++;
@@ -753,6 +754,10 @@ public class ItemProvider implements IAmiDataProvider {
                     suppressedCreativeVariants++;
                     suppressedCreativeVariantMeta.put(id,
                             new SuppressedCreativeVariants(suppressionReason, creativeStacks.size()));
+                    if (preferCreativeStackParity && !subtypes.isEmpty()) {
+                        AmiCore.LOGGER.debug("ItemProvider: creative parity family {} is suppressed by default reason={}",
+                                id, suppressionReason);
+                    }
                 } else {
                     subtypes = CreativeStackVariantExpander.expand(id, creativeStacks, level);
                 }

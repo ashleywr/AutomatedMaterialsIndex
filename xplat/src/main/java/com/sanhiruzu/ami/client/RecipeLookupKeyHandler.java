@@ -44,6 +44,21 @@ public final class RecipeLookupKeyHandler {
 
     public static boolean openHoveredLookup(SearchNode hoveredNode, ItemStack hoveredSlotStack, boolean showRecipes,
                                            boolean allowSlotFallback) {
+        if (hoveredNode != null && hoveredNode.type() != NodeType.ITEM) {
+            boolean supported = showRecipes
+                    ? RecipeViewerBridge.hasRecipes(hoveredNode)
+                    : RecipeViewerBridge.hasUses(hoveredNode);
+            if (!supported) {
+                return false;
+            }
+            if (showRecipes) {
+                RecipeViewerBridge.openRecipes(hoveredNode);
+            } else {
+                RecipeViewerBridge.openUses(hoveredNode);
+            }
+            return true;
+        }
+
         ItemStack stack = lookupStack(hoveredNode, hoveredSlotStack, allowSlotFallback);
         if (stack.isEmpty()) return false;
 

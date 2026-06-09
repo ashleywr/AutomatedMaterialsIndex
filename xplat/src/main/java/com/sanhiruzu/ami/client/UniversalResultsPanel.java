@@ -1546,6 +1546,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     private void onItemClicked(SearchNode node, int button) {
+        if (node == null) {
+            return;
+        }
         if (button == 1) {
             openItemContextMenu(node, lastClickX, lastClickY);
             return;
@@ -1564,8 +1567,22 @@ public class UniversalResultsPanel implements SearchState.Listener {
         ItemStack stack = com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node);
         boolean shiftDown = net.minecraft.client.gui.screens.Screen.hasShiftDown();
         boolean controlDown = net.minecraft.client.gui.screens.Screen.hasControlDown();
-        if (!stack.isEmpty() && shouldOpenLookup(node, stack, button, shiftDown, controlDown))
+        if (!stack.isEmpty() && shouldOpenLookup(node, stack, button, shiftDown, controlDown)) {
             RecipeViewerBridge.handleItemClick(stack, button, shiftDown, controlDown);
+            return;
+        }
+        if (stack.isEmpty() && shouldOpenLookup(node, stack, button, shiftDown, controlDown)) {
+            if (button == 1) {
+                RecipeViewerBridge.openUses(node);
+            } else {
+                switch (AmiConfig.itemClickAction) {
+                    case RECIPES -> RecipeViewerBridge.openRecipes(node);
+                    case USES -> RecipeViewerBridge.openUses(node);
+                    case NONE -> {
+                    }
+                }
+            }
+        }
     }
 
     private void onGroupClicked(TreeNode node, int button) {
@@ -1721,6 +1738,20 @@ public class UniversalResultsPanel implements SearchState.Listener {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private boolean shouldOpenLookup(SearchNode node, ItemStack stack, int button, boolean shiftDown, boolean controlDown) {
+        if (node != null && node.type() != NodeType.ITEM) {
+            if ((shiftDown || controlDown) && button == 0) {
+                return RecipeViewerBridge.hasRecipes(node);
+            }
+            if (button == 1) {
+                return RecipeViewerBridge.hasUses(node);
+            }
+            return switch (AmiConfig.itemClickAction) {
+                case RECIPES -> RecipeViewerBridge.hasRecipes(node);
+                case USES -> RecipeViewerBridge.hasUses(node);
+                case NONE -> false;
+            };
+        }
+
         if (node == null || node.type() != NodeType.ENTITY || !Services.PLATFORM.isRecipeIndexBuilt()) {
             return true;
         }

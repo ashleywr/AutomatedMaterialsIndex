@@ -70,10 +70,11 @@ public final class CreativeStackVariantExpander {
 
         List<SubtypeExpander.SubtypeEntry> result = new ArrayList<>();
         Set<ResourceLocation> emittedIds = new HashSet<>();
+        int cap = SubtypeExpander.capFor(baseId.getPath());
         for (VisibleStack visibleStack : visibleStacks) {
-            if (result.size() >= SubtypeExpander.HARD_CAP) {
+            if (result.size() >= cap) {
                 AmiCore.LOGGER.debug("CreativeStackVariantExpander: hit HARD_CAP for {}; truncating expansion to {} entries.",
-                        baseId, SubtypeExpander.HARD_CAP);
+                        baseId, cap);
                 break;
             }
 
