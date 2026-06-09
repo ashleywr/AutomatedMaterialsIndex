@@ -162,7 +162,7 @@ public class ResultsToolbar implements SearchState.Listener {
         g.enableScissor(x, y, x + width, y + TOOLBAR_HEIGHT);
         g.pose().pushPose();
         try {
-            g.pose().translate(-scrollOffset, 0, 0);
+            g.pose().translate(-scrollOffset, 0, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
 
             // ── Row 1 ──────────────────────────────────────────────────────────
             if (state.getViewMode() == ViewMode.LIST) {
@@ -289,7 +289,7 @@ public class ResultsToolbar implements SearchState.Listener {
         g.pose().pushPose();
         try {
             g.pose().translate(0, 0, OverlayLayers.DROPDOWN);
-            g.pose().translate(-scrollOffset, 0, 0);
+            g.pose().translate(-scrollOffset, 0, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
             if (state.getViewMode() == ViewMode.LIST) {
                 lensDropdown.renderList(g, mouseX + scrollOffset, mouseY);
                 sortFieldDropdown.renderList(g, mouseX + scrollOffset, mouseY);

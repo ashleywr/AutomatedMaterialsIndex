@@ -4,6 +4,8 @@ import net.minecraft.network.chat.Component;
 
 public enum NodeType {
     ITEM("ami.gui.items"),
+    FLUID("ami.gui.fluids"),
+    INGREDIENT("ami.gui.ingredients"),
     BIOME("ami.gui.biomes"),
     STRUCTURE("ami.gui.structures"),
     ENTITY("ami.gui.entities"),
@@ -18,10 +20,11 @@ public enum NodeType {
     }
 
     /**
-     * All browseable types in Tab-cycle order: Items → Biomes → Structures → Entities → Dimensions.
+     * All browseable types in Tab-cycle order:
+     * Items → Fluids → Ingredients → Biomes → Structures → Entities → Dimensions.
      */
     public static NodeType[] atlasValues() {
-        return new NodeType[]{ITEM, BIOME, STRUCTURE, ENTITY, DIMENSION};
+        return new NodeType[]{ITEM, FLUID, INGREDIENT, BIOME, STRUCTURE, ENTITY, DIMENSION};
     }
 
     public String translationKey() {
@@ -44,7 +47,7 @@ public enum NodeType {
     }
 
     /**
-     * Cycles: ITEM → BIOME → STRUCTURE → ENTITY → DIMENSION → ITEM.
+     * Cycles through atlasValues().
      */
     public NodeType next() {
         NodeType[] atlas = atlasValues();

@@ -327,10 +327,6 @@ public class ItemProvider implements IAmiDataProvider {
     private static void addTooltipSearchTokens(Map<String, String> meta, ItemStack stack, @Nullable Level level,
                                                ResourceLocation id, String displayName,
                                                Map<String, String> modNameCache) {
-        if (!IndexingHotItemPolicy.shouldIndexTooltipSearchTokens()
-                && !"true".equals(meta.get(SearchNodeKeys.GUIDE_BOOK_CANDIDATE))) {
-            return;
-        }
         try {
             String modName = modNameCache.computeIfAbsent(id.getNamespace(), namespace ->
                     Services.PLATFORM.getModName(namespace).orElse(namespace));

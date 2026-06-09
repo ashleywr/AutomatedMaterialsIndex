@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
  * registered item advertises multiple component-backed variants.
  */
 public final class CreativeStackVariantExpander {
+    private static final int HIDDEN_DUPLICATE_PARITY_THRESHOLD = 4;
     private static final Pattern RESOURCE_AMOUNT_PATTERN = Pattern.compile(
             "([0-9][0-9,]*(?:\\.[0-9]+)?)\\s*(?:[kmg]?\\s*)?(?:fe|rf|mb|buckets?|liters?|l|j|eu)\\b",
             Pattern.CASE_INSENSITIVE
@@ -85,14 +86,19 @@ public final class CreativeStackVariantExpander {
             List<VisibleStack> sameNameStacks = emittedByVisibleName.getOrDefault(visibleStack.displayKey, List.of());
             boolean hiddenDuplicate = visiblyEquivalentToAny(sameNameStacks, visibleStack);
             String displayKey = visibleStack.displayKey;
+            int repeatedDisplayCount = displayNameCounts.getOrDefault(displayKey, 0);
             int displayOrdinal = emittedByDisplayName.merge(displayKey, 1, Integer::sum) - 1;
             if (hiddenDuplicate) {
+                if (shouldPreserveHiddenDuplicateParity(repeatedDisplayCount, visibleStack)) {
+                    extra.put("variantAccessReason", "hidden_component_duplicate");
+                } else {
                 hiddenDuplicateSkips++;
                 if (isHiddenDuplicateDiagnosticsEnabled()) {
                     logHiddenDuplicateSkip(baseId, sameNameStacks, visibleStack);
                 }
                 continue;
-            } else if (displayNameCounts.getOrDefault(displayKey, 0) > 1
+                }
+            } else if (repeatedDisplayCount > 1
                     && displayOrdinal > 0
                     && visibleStack.hasPositiveStoredResource()) {
                 if (!includeDiagnosticVariants) {
@@ -122,6 +128,12 @@ public final class CreativeStackVariantExpander {
                     .add(visibleStack);
         }
         return result;
+    }
+
+    private static boolean shouldPreserveHiddenDuplicateParity(int repeatedDisplayCount, VisibleStack visibleStack) {
+        return repeatedDisplayCount >= HIDDEN_DUPLICATE_PARITY_THRESHOLD
+                && visibleStack != null
+                && !visibleStack.hasPositiveStoredResource();
     }
 
     private static boolean isSuppressedComponentBackedFamily(ResourceLocation baseId) {

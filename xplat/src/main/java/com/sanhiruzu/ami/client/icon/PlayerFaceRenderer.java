@@ -68,7 +68,7 @@ public class PlayerFaceRenderer implements IIconRenderer {
         // Scale using the pose matrix so every pixel maps cleanly.
         var poses = g.pose();
         poses.pushPose();
-        poses.translate(x, y, 0);
+        poses.translate(x, y, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
         float s = size / 8f;
         poses.scale(s, s, 1f);
         g.blit(skin, 0, 0, 8.0f, 8.0f, 8, 8, 64, 64);

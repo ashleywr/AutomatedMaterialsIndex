@@ -11,9 +11,11 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attribute;
@@ -27,7 +29,7 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.SuspiciousEffectHolder;
+import net.minecraft.world.level.block.FlowerBlock;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLPaths;
@@ -226,6 +228,56 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     }
 
     @Override
+    public net.minecraft.network.chat.Component getFluidDisplayName(net.minecraft.world.level.material.Fluid fluid) {
+        return new net.neoforged.neoforge.fluids.FluidStack(fluid, net.neoforged.neoforge.fluids.FluidType.BUCKET_VOLUME).getHoverName();
+    }
+
+    @Override
+    public net.minecraft.resources.ResourceLocation getFluidStillTexture(net.minecraft.world.level.material.Fluid fluid) {
+        try {
+            return net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions.of(fluid).getStillTexture();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @Override
+    public int getFluidTintColor(net.minecraft.world.level.material.Fluid fluid) {
+        try {
+            return net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions.of(fluid).getTintColor();
+        } catch (Exception e) {
+            return 0xFFFFFFFF;
+        }
+    }
+
+    @Override
+    public void renderFluidSprite(net.minecraft.client.gui.GuiGraphics g,
+                                  net.minecraft.client.renderer.texture.TextureAtlasSprite sprite,
+                                  int tintColor, int x, int y, int size) {
+        int alphaInt = (tintColor >> 24) & 0xFF;
+        float a = alphaInt == 0 ? 1.0f : alphaInt / 255.0f;
+        float r = ((tintColor >> 16) & 0xFF) / 255.0f;
+        float gv = ((tintColor >> 8) & 0xFF) / 255.0f;
+        float b = (tintColor & 0xFF) / 255.0f;
+        com.mojang.blaze3d.systems.RenderSystem.enableBlend();
+        com.mojang.blaze3d.systems.RenderSystem.setShaderTexture(0, net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS);
+        com.mojang.blaze3d.systems.RenderSystem.setShader(net.minecraft.client.renderer.GameRenderer::getPositionTexShader);
+        com.mojang.blaze3d.systems.RenderSystem.setShaderColor(r, gv, b, a);
+        org.joml.Matrix4f matrix = g.pose().last().pose();
+        com.mojang.blaze3d.vertex.Tesselator tesselator = com.mojang.blaze3d.vertex.Tesselator.getInstance();
+        com.mojang.blaze3d.vertex.BufferBuilder buf = tesselator.begin(com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS, com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX);
+        float u0 = sprite.getU0(), u1 = sprite.getU1();
+        float v0 = sprite.getV0(), v1 = sprite.getV1();
+        buf.addVertex(matrix, x,        y + size, 100).setUv(u0, v1);
+        buf.addVertex(matrix, x + size, y + size, 100).setUv(u1, v1);
+        buf.addVertex(matrix, x + size, y,        100).setUv(u1, v0);
+        buf.addVertex(matrix, x,        y,        100).setUv(u0, v0);
+        com.mojang.blaze3d.vertex.BufferUploader.drawWithShader(buf.buildOrThrow());
+        com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+        com.mojang.blaze3d.systems.RenderSystem.disableBlend();
+    }
+
+    @Override
     public OptionalLong getItemFluidCapacity(ItemStack stack) {
         IFluidHandlerItem handler = stack.getCapability(Capabilities.FluidHandler.ITEM);
         if (handler == null || handler.getTanks() <= 0) return OptionalLong.empty();
@@ -305,21 +357,27 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     @Override
     public List<SubtypeStack> createSuspiciousStewSubtypeStacks() {
         List<SubtypeStack> result = new ArrayList<>();
-        for (Block block : BuiltInRegistries.BLOCK) {
-            SuspiciousEffectHolder holder = SuspiciousEffectHolder.tryGet(block);
-            if (holder == null) continue;
+        BuiltInRegistries.ITEM.getTag(ItemTags.SMALL_FLOWERS)
+                .stream()
+                .flatMap(HolderSet.ListBacked::stream)
+                .map(Holder::value)
+                .filter(BlockItem.class::isInstance)
+                .map(BlockItem.class::cast)
+                .map(BlockItem::getBlock)
+                .filter(FlowerBlock.class::isInstance)
+                .map(FlowerBlock.class::cast)
+                .forEach(flowerBlock -> {
+                    SuspiciousStewEffects effects = flowerBlock.getSuspiciousEffects();
+                    if (effects.effects().isEmpty()) return;
 
-            SuspiciousStewEffects effects = holder.getSuspiciousEffects();
-            if (effects.effects().isEmpty()) continue;
+                    SuspiciousStewEffects.Entry firstEntry = effects.effects().get(0);
+                    ResourceLocation effectId = BuiltInRegistries.MOB_EFFECT.getKey(firstEntry.effect().value());
+                    if (effectId == null) return;
 
-            SuspiciousStewEffects.Entry firstEntry = effects.effects().get(0);
-            ResourceLocation effectId = BuiltInRegistries.MOB_EFFECT.getKey(firstEntry.effect().value());
-            if (effectId == null) continue;
-
-            ItemStack stack = new ItemStack(Items.SUSPICIOUS_STEW);
-            stack.set(DataComponents.SUSPICIOUS_STEW_EFFECTS, effects);
-            result.add(new SubtypeStack(effectId, stack));
-        }
+                    ItemStack stack = new ItemStack(Items.SUSPICIOUS_STEW);
+                    stack.set(DataComponents.SUSPICIOUS_STEW_EFFECTS, effects);
+                    result.add(new SubtypeStack(effectId, stack));
+                });
         return result;
     }
 

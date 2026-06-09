@@ -26,6 +26,7 @@ import java.util.Set;
 public final class SubtypeExpander {
 
     public static final int HARD_CAP = 150;
+    static final int ENCHANTED_BOOK_CAP = 600;
 
     private SubtypeExpander() {
     }
@@ -54,18 +55,20 @@ public final class SubtypeExpander {
             if (isAtCap(result, itemPath)) return result;
 
             ResourceLocation potionId = potionRef.key().location();
-            String effectPath = potionId.getPath();
-            if (effectPath.equals("empty")) continue;
-            if (effectPath.startsWith("long_") || effectPath.startsWith("strong_")) continue;
+            if (shouldSkipPotionSubtype(potionId)) continue;
 
             ItemStack stack = Services.PLATFORM.createPotionSubtypeStack(potionItem, potionRef);
             if (stack.isEmpty()) continue;
 
-            ResourceLocation syntheticId = syntheticId(itemPath, potionId.getNamespace(), effectPath);
+            ResourceLocation syntheticId = syntheticId(itemPath, potionId.getNamespace(), potionId.getPath());
             java.util.Map<String, String> extra = java.util.Map.of(SearchNodeKeys.POTION_EFFECT, potionId.toString());
             result.add(new SubtypeEntry(syntheticId, stack, stack.getHoverName().getString(), extra));
         }
         return result;
+    }
+
+    static boolean shouldSkipPotionSubtype(ResourceLocation potionId) {
+        return potionId == null || "empty".equals(potionId.getPath());
     }
 
     private static List<SubtypeEntry> expandEnchantedBooks(RegistryAccess registryAccess) {
@@ -165,10 +168,15 @@ public final class SubtypeExpander {
     }
 
     private static boolean isAtCap(List<SubtypeEntry> result, String itemPath) {
-        if (result.size() < HARD_CAP) return false;
+        int cap = capFor(itemPath);
+        if (result.size() < cap) return false;
         AmiCore.LOGGER.debug("SubtypeExpander: hit HARD_CAP for {}; truncating expansion to {} entries.",
-                itemPath, HARD_CAP);
+                itemPath, cap);
         return true;
+    }
+
+    static int capFor(String itemPath) {
+        return "enchanted_book".equals(itemPath) ? ENCHANTED_BOOK_CAP : HARD_CAP;
     }
 
     private static ResourceLocation syntheticId(String itemPath, String subNs, String subPath) {

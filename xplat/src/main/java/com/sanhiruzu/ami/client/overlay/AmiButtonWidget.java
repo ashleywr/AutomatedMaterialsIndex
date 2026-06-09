@@ -94,7 +94,7 @@ public class AmiButtonWidget extends AbstractWidget {
 
         g.pose().pushPose();
         float scale = 1.05f;
-        g.pose().translate(getX() + width / 2f, textY, 0);
+        g.pose().translate(getX() + width / 2f, textY, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
         g.pose().scale(scale, scale, 1.0f);
         Component label = Component.translatable("ami.gui.ami_button");
         int labelW = font.width(label);
@@ -111,7 +111,7 @@ public class AmiButtonWidget extends AbstractWidget {
             g.fill(badgeX, badgeY + badgeH - 1, badgeX + badgeW, badgeY + badgeH, 0xAA000000);
             float badgeScale = 0.55f;
             g.pose().pushPose();
-            g.pose().translate(badgeX + 2, badgeY + 1, 0);
+            g.pose().translate(badgeX + 2, badgeY + 1, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
             g.pose().scale(badgeScale, badgeScale, 1.0f);
             g.drawString(font, badge, 0, 0, 0xFFFFFFFF, false);
             g.pose().popPose();

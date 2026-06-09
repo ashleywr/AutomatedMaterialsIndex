@@ -8,7 +8,10 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Fluids;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -24,6 +27,8 @@ public final class ProviderRegistry {
     private static final List<IAmiDataProvider> PROVIDERS = List.of(
             new RecipeProvider(),
             new ItemProvider(),
+            new FluidProvider(),
+            new RecipeViewerIngredientProvider(),
             new BiomeProvider(),
             new EntityProvider(),
             new CobblemonSpeciesProvider(),
@@ -45,6 +50,7 @@ public final class ProviderRegistry {
         AmiIndexerService progress = AmiIndexerService.getInstance();
         index.clear();
         ItemIconRenderer.clearPersistent();
+        com.sanhiruzu.ami.client.icon.RecipeViewerIngredientRenderer.clearPersistent();
 
         // Mark deferred types as loading
         index.setLoading(NodeType.STRUCTURE, true);
@@ -108,6 +114,12 @@ public final class ProviderRegistry {
                 registered++;
             }
         }
+        for (Fluid fluid : BuiltInRegistries.FLUID) {
+            if (fluid == Fluids.EMPTY || !fluid.isSource(fluid.defaultFluidState())) continue;
+            ResourceLocation fluidId = BuiltInRegistries.FLUID.getKey(fluid);
+            if (fluidId != null) FluidProvider.registerBucketIcon(fluidId, fluid);
+        }
+        RecipeViewerIngredientProvider.rebuildRuntimeHandles(GlobalIndex.getInstance());
         AmiCore.LOGGER.info("AMI indexing: restored cached item icons in {}ms (creativeTabs={}ms, subtypeStacks={})",
                 System.currentTimeMillis() - start, creativeMs, registered);
     }

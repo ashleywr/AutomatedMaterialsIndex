@@ -355,6 +355,39 @@ public interface IPlatformHelper {
         return Optional.empty();
     }
 
+    default net.minecraft.network.chat.Component getFluidDisplayName(net.minecraft.world.level.material.Fluid fluid) {
+        return net.minecraft.network.chat.Component.empty();
+    }
+
+    @org.jetbrains.annotations.Nullable
+    default ResourceLocation getFluidStillTexture(net.minecraft.world.level.material.Fluid fluid) {
+        return null;
+    }
+
+    default int getFluidTintColor(net.minecraft.world.level.material.Fluid fluid) {
+        return 0xFFFFFFFF;
+    }
+
+    /**
+     * Renders a fluid still sprite with tint. Default uses GuiGraphics.blit() + setShaderColor()
+     * which works correctly in MC 1.20.x. NeoForge 1.21.x overrides with the BufferBuilder API
+     * because GuiGraphics.blit() hard-codes color=-1 in that version.
+     */
+    default void renderFluidSprite(net.minecraft.client.gui.GuiGraphics g,
+                                   net.minecraft.client.renderer.texture.TextureAtlasSprite sprite,
+                                   int tintColor, int x, int y, int size) {
+        int alphaInt = (tintColor >> 24) & 0xFF;
+        float a = alphaInt == 0 ? 1.0f : alphaInt / 255.0f;
+        float r = ((tintColor >> 16) & 0xFF) / 255.0f;
+        float gv = ((tintColor >> 8) & 0xFF) / 255.0f;
+        float b = (tintColor & 0xFF) / 255.0f;
+        com.mojang.blaze3d.systems.RenderSystem.enableBlend();
+        com.mojang.blaze3d.systems.RenderSystem.setShaderColor(r, gv, b, a);
+        g.blit(x, y, 100, size, size, sprite);
+        com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+        com.mojang.blaze3d.systems.RenderSystem.disableBlend();
+    }
+
     default OptionalLong getItemFluidCapacity(ItemStack stack) {
         return OptionalLong.empty();
     }

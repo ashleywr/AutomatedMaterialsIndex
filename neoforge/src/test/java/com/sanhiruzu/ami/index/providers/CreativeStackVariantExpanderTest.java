@@ -72,6 +72,28 @@ public class CreativeStackVariantExpanderTest {
     }
 
     @Test
+    void highCardinalityHiddenComponentFamiliesKeepParityVariants() {
+        Item shulkerBox = new Item("Shulker Box");
+        ItemFilter.CreativeTabInfo storage = new ItemFilter.CreativeTabInfo("test:storage", "Storage");
+
+        List<SubtypeExpander.SubtypeEntry> entries = CreativeStackVariantExpander.expand(
+                new ResourceLocation("test", "shulker_box"),
+                List.of(
+                        new ItemFilter.CreativeStackInfo(new ItemStack(shulkerBox).withComponentSignature("white"), storage),
+                        new ItemFilter.CreativeStackInfo(new ItemStack(shulkerBox).withComponentSignature("orange"), storage),
+                        new ItemFilter.CreativeStackInfo(new ItemStack(shulkerBox).withComponentSignature("magenta"), storage),
+                        new ItemFilter.CreativeStackInfo(new ItemStack(shulkerBox).withComponentSignature("light_blue"), storage)
+                ),
+                null
+        );
+
+        assertEquals(4, entries.size());
+        assertTrue(entries.stream().allMatch(entry ->
+                "hidden_component_duplicate".equals(entry.extraMeta().get("variantAccessReason"))
+                        || !entry.extraMeta().containsKey("variantAccessReason")));
+    }
+
+    @Test
     void distinctCreativeStackNamesStillExpand() {
         Item barrel = new Item("Barrel");
         ItemFilter.CreativeTabInfo storage = new ItemFilter.CreativeTabInfo("test:storage", "Storage");

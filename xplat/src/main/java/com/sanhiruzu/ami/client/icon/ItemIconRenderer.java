@@ -138,7 +138,7 @@ public class ItemIconRenderer implements IIconRenderer {
         // Scale item rendering to requested size
         var poses = g.pose();
         poses.pushPose();
-        poses.translate(x, y, 0);
+        poses.translate(x, y, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
         float s = size / 16f;
         poses.scale(s, s, 1f);
         g.renderItem(stack, 0, 0);

@@ -572,7 +572,7 @@ public class ItemGridView {
             return;
         }
         g.pose().pushPose();
-        g.pose().translate(x + 8, y + 8, 0);
+        g.pose().translate(x + 8, y + 8, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
         if (cachedDragging || hovered) {
             g.pose().scale(1.1f + cachedWiggle, 1.1f + cachedWiggle, 1.1f);
             if (cachedDragging) {
@@ -590,7 +590,7 @@ public class ItemGridView {
             g.enableScissor(x, y, x + 16, y + 16);
         }
         g.pose().pushPose();
-        g.pose().translate(x + 8, y + 8, 0);
+        g.pose().translate(x + 8, y + 8, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
         if (cachedDragging || hovered) {
             g.pose().scale(1.1f + cachedWiggle, 1.1f + cachedWiggle, 1.1f);
             if (cachedDragging) {

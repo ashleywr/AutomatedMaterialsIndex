@@ -439,7 +439,7 @@ public class ProxyBlockRenderer implements IIconRenderer {
         if (size == 16) {
             g.renderItem(proxy, x, y);
         } else {
-            poses.translate(x, y, 0);
+            poses.translate(x, y, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
             float s = size / 16f;
             poses.scale(s, s, 1f);
             g.renderItem(proxy, 0, 0);
