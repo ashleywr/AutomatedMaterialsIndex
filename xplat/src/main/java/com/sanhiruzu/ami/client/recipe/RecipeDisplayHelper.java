@@ -294,27 +294,58 @@ public final class RecipeDisplayHelper {
             outputY = bgRenderY + 1;
 
         } else {
+            // Generic fallback for unknown/mod recipe types.
+            // Filter empty ingredients first so layout math is based on real slots.
             List<Ingredient> ingredients = recipe.getIngredients();
-            int cols = Math.min(ingredients.size(), 3);
-            int rows = ingredients.isEmpty() ? 0 : (int) Math.ceil((double) ingredients.size() / cols);
-            int gridPixelW = cols * 18;
-            int startX = (134 - gridPixelW) / 2;
-            int startY = 14;
-
-            for (int i = 0; i < ingredients.size(); i++) {
-                Ingredient ing = ingredients.get(i);
-                if (ing.isEmpty()) continue;
-                int col = i % cols;
-                int row = i / cols;
-                inputs.add(new SlotPosition(startX + col * 18, startY + row * 18, List.of(ing.getItems())));
+            List<Ingredient> nonEmpty = new ArrayList<>();
+            for (Ingredient ing : ingredients) {
+                if (!ing.isEmpty()) nonEmpty.add(ing);
             }
 
-            gridW = cols;
-            gridH = rows;
-            arrowX = 92;
-            arrowY = 14;
-            outputX = 92;
-            outputY = 14;
+            int inputCount = nonEmpty.size();
+
+            if (inputCount == 0) {
+                // No inputs — just show the output centred.
+                gridW = 0; gridH = 0;
+                arrowX = 20; arrowY = 4;
+                outputX = 44; outputY = 0;
+
+            } else if (inputCount == 1) {
+                // Single input: furnace-style horizontal  [in] → [out]
+                inputs.add(new SlotPosition(0, 0, List.of(nonEmpty.get(0).getItems())));
+                gridW = 1; gridH = 1;
+                arrowX = 24; arrowY = 4;
+                outputX = 48; outputY = 0;
+
+            } else if (inputCount <= 3) {
+                // One row of up to 3 slots, then arrow, then output.
+                for (int i = 0; i < inputCount; i++) {
+                    inputs.add(new SlotPosition(i * 18, 0, List.of(nonEmpty.get(i).getItems())));
+                }
+                gridW = inputCount; gridH = 1;
+                int rowPx = inputCount * 18;
+                arrowX = rowPx + 6;
+                arrowY = 4;
+                outputX = rowPx + 22;
+                outputY = 0;
+
+            } else {
+                // Grid layout: max 3 columns, as many rows as needed.
+                int cols = inputCount <= 4 ? 2 : 3;
+                int rows = (int) Math.ceil((double) inputCount / cols);
+                for (int i = 0; i < inputCount; i++) {
+                    int col = i % cols;
+                    int row = i / cols;
+                    inputs.add(new SlotPosition(col * 18, row * 18, List.of(nonEmpty.get(i).getItems())));
+                }
+                gridW = cols; gridH = rows;
+                int gridPxW = cols * 18;
+                int gridPxH = rows * 18;
+                arrowX = gridPxW + 6;
+                arrowY = Math.max(0, (gridPxH - 9) / 2);
+                outputX = gridPxW + 22;
+                outputY = Math.max(0, (gridPxH - 18) / 2);
+            }
         }
 
         return new RecipeLayout(
@@ -322,6 +353,17 @@ public final class RecipeDisplayHelper {
                 outputX, outputY, arrowX, arrowY,
                 backgroundTexture, bgX, bgY, bgW, bgH, bgRenderX, bgRenderY, drawSlotBackground
         );
+    }
+
+    /** Returns true for recipe types that have a dedicated bespoke renderer (no generic fallback). */
+    public static boolean hasDedicatedLayout(RecipeType<?> type) {
+        if (type == RecipeType.CRAFTING || type == RecipeType.SMITHING || type == RecipeType.STONECUTTING)
+            return true;
+        if (isFurnaceType(type)) return true;
+        String t = type.toString();
+        return t.equals("ami:brewing") || t.equals("ami:grinding") || t.equals("ami:anvil_repairing")
+                || t.equals("ami:composting") || t.equals("ami:fuel") || t.equals("ami:disenchanting")
+                || t.equals("ami:enchanting");
     }
 
     public static boolean isFurnaceType(RecipeType<?> type) {

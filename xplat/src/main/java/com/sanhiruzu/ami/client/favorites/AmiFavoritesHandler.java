@@ -192,6 +192,21 @@ public class AmiFavoritesHandler {
         removeFavoriteByKey(key, true);
     }
 
+    /** Returns all recipe-level favorites (starred recipes in the viewer). */
+    public List<RecipeFavoriteEntry> getRecipeFavorites() {
+        List<RecipeFavoriteEntry> out = new ArrayList<>();
+        for (FavoriteRecord record : records) {
+            if (record.kind() == FavoriteKind.RECIPE_OUTPUT
+                    && record.recipeId() != null
+                    && !record.renderStack().isEmpty()) {
+                out.add(new RecipeFavoriteEntry(record.renderStack(), record.recipeId()));
+            }
+        }
+        return List.copyOf(out);
+    }
+
+    public record RecipeFavoriteEntry(ItemStack stack, ResourceLocation recipeId) {}
+
     public List<SearchNode> getFavorites() {
         mergeExternalFavorites(false);
         List<SearchNode> out = new ArrayList<>(records.size());
