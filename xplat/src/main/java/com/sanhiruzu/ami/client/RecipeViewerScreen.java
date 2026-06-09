@@ -7,6 +7,7 @@ import com.sanhiruzu.ami.client.recipe.RecipeDisplayHelper.SlotPosition;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -112,6 +113,8 @@ public class RecipeViewerScreen extends Screen {
     private int pageIndex;
     private int guiLeft, guiTop;
     private RecipeLayout currentLayout;
+    private List<RecipeLayout> cachedLayouts = new ArrayList<>();
+    private boolean loggedLayoutCacheDrift;
     private long animStart;
     private boolean canTransfer;
 
@@ -183,7 +186,7 @@ public class RecipeViewerScreen extends Screen {
         int totalH = guiHeight + (guiTop - effectiveTop);
         // Extend left to cover the workstation panel (28px wide, 4px overlaps main panel)
         boolean hasCatalysts = !tabs.isEmpty() && selectedTab < tabs.size()
-                && !RecipeDisplayHelper.getWorkstations(tabs.get(selectedTab).type()).isEmpty();
+                && !tabs.get(selectedTab).workstations().isEmpty();
         int catalystPad = hasCatalysts ? 24 : 0;
         return new com.sanhiruzu.ami.compat.RecipeViewerBridge.RecipeViewerBounds(
                 guiLeft - catalystPad, effectiveTop, GUI_WIDTH + catalystPad, totalH);
@@ -214,7 +217,9 @@ public class RecipeViewerScreen extends Screen {
                         type,
                         RecipeDisplayHelper.tabComponent(type),
                         RecipeDisplayHelper.tabShortLabel(type),
-                        entry.getValue()));
+                        entry.getValue(),
+                        RecipeDisplayHelper.getRepresentativeWorkstation(type),
+                        RecipeDisplayHelper.getWorkstations(type)));
             }
             tabs = list;
         }
@@ -278,6 +283,8 @@ public class RecipeViewerScreen extends Screen {
         canTransfer = false;
         slotOffsets.clear();
         currentLayout = null;
+        cachedLayouts = new ArrayList<>();
+        loggedLayoutCacheDrift = false;
 
         if (!tabs.isEmpty() && minecraft != null && minecraft.level != null) {
             Tab tab = tabs.get(selectedTab);
@@ -301,6 +308,17 @@ public class RecipeViewerScreen extends Screen {
         if (newCardH != currentCardH) {
             currentCardH = newCardH;
             recomputeRecipesPerPage();
+        }
+
+        // Cache layouts for all visible recipes using the now-final recipesPerPage value.
+        if (!tabs.isEmpty() && minecraft != null && minecraft.level != null) {
+            Tab tab = tabs.get(selectedTab);
+            int firstIdx = pageIndex * recipesPerPage;
+            int endIdx   = Math.min(firstIdx + recipesPerPage, tab.recipes().size());
+            for (int i = firstIdx; i < endIdx; i++) {
+                cachedLayouts.add(RecipeDisplayHelper.getLayout(
+                        tab.recipes().get(i), minecraft.level.registryAccess()));
+            }
         }
     }
 
@@ -333,7 +351,6 @@ public class RecipeViewerScreen extends Screen {
         AMITheme.sync();
         syncPalette();
 
-        renderBackground(g, mouseX, mouseY, delta);
         g.fill(0, 0, width, height, COL_BG_OVERLAY);
         drawPanel(g);
         drawTabBar(g, mouseX, mouseY);
@@ -431,8 +448,8 @@ public class RecipeViewerScreen extends Screen {
             // Row 1: category prev/next + category title
             boolean canPrevCat = selectedTab > 0;
             boolean canNextCat = selectedTab < tabs.size() - 1;
-            drawNavBtn(g, mx, my, btnL, btnY1, UV_BTN_PREV_X, UV_BTN_PREV_Y, canPrevCat);
-            drawNavBtn(g, mx, my, btnR, btnY1, UV_BTN_NEXT_X, UV_BTN_NEXT_Y, canNextCat);
+            drawNavBtn(g, mx, my, btnL, btnY1, true,  canPrevCat);
+            drawNavBtn(g, mx, my, btnR, btnY1, false, canNextCat);
             g.fill(btnL + SMALL_BTN_W, btnY1, btnR, btnY1 + SMALL_BTN_H, 0x30000000);
             drawCentered(g, tabs.get(selectedTab).label(),
                     guiLeft + GUI_WIDTH / 2, guiTop + (titleH - font.lineHeight) / 2 + 1, COL_TEXT_TITLE);
@@ -442,8 +459,8 @@ public class RecipeViewerScreen extends Screen {
             Tab tab = tabs.get(selectedTab);
             int totalPages = (int) Math.ceil((double) tab.recipes().size() / Math.max(1, recipesPerPage));
             if (totalPages > 1) {
-                drawNavBtn(g, mx, my, btnL, btnY2, UV_BTN_PREV_X, UV_BTN_PREV_Y, pageIndex > 0);
-                drawNavBtn(g, mx, my, btnR, btnY2, UV_BTN_NEXT_X, UV_BTN_NEXT_Y, pageIndex < totalPages - 1);
+                drawNavBtn(g, mx, my, btnL, btnY2, true,  pageIndex > 0);
+                drawNavBtn(g, mx, my, btnR, btnY2, false, pageIndex < totalPages - 1);
                 g.fill(btnL + SMALL_BTN_W, btnY2, btnR, btnY2 + SMALL_BTN_H, 0x30000000);
                 drawCentered(g, Component.translatable("ami.recipe_viewer.page", pageIndex + 1, totalPages),
                         guiLeft + GUI_WIDTH / 2, btnY2 + (SMALL_BTN_H - font.lineHeight) / 2, COL_TEXT_NAV);
@@ -456,17 +473,18 @@ public class RecipeViewerScreen extends Screen {
         g.fill(guiLeft, guiTop + HEADER_H, guiLeft + GUI_WIDTH, guiTop + HEADER_H + 1, COL_HEADER_LINE);
     }
 
-    private void drawNavBtn(GuiGraphics g, int mx, int my, int x, int y, int uvX, int uvY, boolean active) {
+    private void drawNavBtn(GuiGraphics g, int mx, int my, int x, int y, boolean isPrev, boolean active) {
         if (!active) {
-            drawCentered(g, uvX == UV_BTN_PREV_X ? "❮" : "❯",
+            drawCentered(g, isPrev ? "❮" : "❯",
                     x + SMALL_BTN_W / 2, y + (SMALL_BTN_H - font.lineHeight) / 2, COL_TAB_TEXT_I);
             return;
         }
+        int uvX = isPrev ? UV_BTN_PREV_X : UV_BTN_NEXT_X;
+        int uvY = isPrev ? UV_BTN_PREV_Y : UV_BTN_NEXT_Y;
         boolean hov = isHovering(mx, my, x, y, SMALL_BTN_W, SMALL_BTN_H);
         int sx = x + (SMALL_BTN_W - 9) / 2;
         int sy = y + (SMALL_BTN_H - 9) / 2;
         g.blit(widgets(), sx, sy, 9, 9, uvX, uvY, 9, 9, 256, 256);
-        // tint on hover
         if (hov) g.fill(x, y, x + SMALL_BTN_W, y + SMALL_BTN_H, 0x30FFFFFF);
     }
 
@@ -477,13 +495,13 @@ public class RecipeViewerScreen extends Screen {
     private void drawTabBar(GuiGraphics g, int mouseX, int mouseY) {
         if (tabs.isEmpty()) return;
         int ty = tabTopY();
-        int startX = guiLeft + 2;  // 2px inset from panel edge
+        int startX = guiLeft + 4;  // 4px inset — matches mouseClicked hit-test
 
         if (tabsOverflow()) {
             boolean canL = tabScrollOffset > 0;
             boolean canR = tabScrollOffset + visibleTabCount() < tabs.size();
             int arrowLX = startX;
-            int arrowRX = guiLeft + GUI_WIDTH - 2 - TAB_ARROW_W;
+            int arrowRX = guiLeft + GUI_WIDTH - 4 - TAB_ARROW_W;
             int arrowMidY = ty + (TAB_H - 9) / 2;
             if (canL) {
                 g.blit(widgets(), arrowLX + (TAB_ARROW_W - 9) / 2, arrowMidY, 9, 9, UV_BTN_PREV_X, UV_BTN_PREV_Y, 9, 9, 256, 256);
@@ -517,7 +535,7 @@ public class RecipeViewerScreen extends Screen {
         g.blit(widgets(), tx, ty, TAB_W, TAB_H, uvX, uvY, TAB_W, TAB_H, 256, 256);
         if (hovered && !active) g.fill(tx, ty, tx + TAB_W, ty + TAB_H, 0x30FFFFFF);
 
-        ItemStack icon = RecipeDisplayHelper.getRepresentativeWorkstation(tabs.get(tabIdx).type());
+        ItemStack icon = tabs.get(tabIdx).icon();
         if (icon != null && !icon.isEmpty()) {
             g.renderItem(icon, tx + (TAB_W - 16) / 2, ty + (TAB_H - 16) / 2);
         } else {
@@ -564,7 +582,7 @@ public class RecipeViewerScreen extends Screen {
 
         for (int i = startIdx; i < endIdx; i++) {
             AmiRecipeHolder<?> recipe = tab.recipes().get(i);
-            RecipeLayout layout = RecipeDisplayHelper.getLayout(recipe, minecraft.level.registryAccess());
+            RecipeLayout layout = getLayoutForDisplay(i - startIdx, recipe);
             if (layout == null) continue;
 
             int cardY = guiTop + CONTENT_Y + (i - startIdx) * slotH + singleOffset;
@@ -703,6 +721,25 @@ public class RecipeViewerScreen extends Screen {
 
     }
 
+    private RecipeLayout getLayoutForDisplay(int displayIndex, AmiRecipeHolder<?> recipe) {
+        if (displayIndex >= 0 && displayIndex < cachedLayouts.size()) {
+            return cachedLayouts.get(displayIndex);
+        }
+        if (!loggedLayoutCacheDrift) {
+            loggedLayoutCacheDrift = true;
+            System.err.println("[AMI] RecipeViewerScreen cache drift detected: "
+                    + "displayIndex=" + displayIndex
+                    + ", cachedLayouts=" + cachedLayouts.size()
+                    + ", recipesOnPage=" + recipesPerPage
+                    + ", selectedTab=" + selectedTab
+                    + ", pageIndex=" + pageIndex);
+        }
+        if (recipe == null || minecraft == null || minecraft.level == null) {
+            return null;
+        }
+        return RecipeDisplayHelper.getLayout(recipe, minecraft.level.registryAccess());
+    }
+
     private void renderIngredientTooltip(GuiGraphics g, SlotPosition slot, int altIdx, int mouseX, int mouseY) {
         ItemStack stack = slot.alternatives().get(altIdx);
         if (slot.alternatives().size() <= 1) {
@@ -782,7 +819,7 @@ public class RecipeViewerScreen extends Screen {
 
     private void drawWorkstationPanel(GuiGraphics g, int mouseX, int mouseY) {
         if (tabs.isEmpty() || selectedTab >= tabs.size()) return;
-        List<ItemStack> workstations = RecipeDisplayHelper.getWorkstations(tabs.get(selectedTab).type());
+        List<ItemStack> workstations = tabs.get(selectedTab).workstations();
         if (workstations.isEmpty()) return;
 
         int slotOuter = 20;   // 18px slot + 1px border each side
@@ -839,12 +876,20 @@ public class RecipeViewerScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (Services.PLATFORM.keyMappings().favorite().isActiveAndMatches(
+                InputConstants.getKey(keyCode, scanCode)) && tryToggleFavoriteUnderMouse()) {
+            return true;
+        }
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             onClose();
             return true;
         }
+        if (keyCode == GLFW.GLFW_KEY_E) {
+            onClose();
+            return true;
+        }
         if (Services.PLATFORM.keyMappings().recipeBack().isActiveAndMatches(
-                com.mojang.blaze3d.platform.InputConstants.getKey(keyCode, scanCode))
+                InputConstants.getKey(keyCode, scanCode))
                 || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
             goBack();
             return true;
@@ -864,6 +909,82 @@ public class RecipeViewerScreen extends Screen {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    private boolean tryToggleFavoriteUnderMouse() {
+        if (tabs.isEmpty() || minecraft == null) {
+            return false;
+        }
+        var window = minecraft.getWindow();
+        double mouseX = minecraft.mouseHandler.xpos() * window.getGuiScaledWidth() / (double) window.getScreenWidth();
+        double mouseY = minecraft.mouseHandler.ypos() * window.getGuiScaledHeight() / (double) window.getScreenHeight();
+        return tryToggleFavoriteUnderMouse(mouseX, mouseY);
+    }
+
+    private boolean tryToggleFavoriteUnderMouse(double mouseX, double mouseY) {
+        if (tabs.isEmpty()) {
+            return false;
+        }
+
+        Tab tab     = tabs.get(selectedTab);
+        int tabSize = tab.recipes().size();
+        if (tabSize == 0) {
+            return false;
+        }
+
+        int startIdx = pageIndex * recipesPerPage;
+        int endIdx   = Math.min(startIdx + recipesPerPage, tabSize);
+        int cardH    = currentCardH;
+        int slotH    = cardH + 4;
+        int cardX    = guiLeft + 4;
+        int singleOffset = 6;
+
+        for (int i = startIdx; i < endIdx; i++) {
+            AmiRecipeHolder<?> recipe = tab.recipes().get(i);
+            RecipeLayout layout = getLayoutForDisplay(i - startIdx, recipe);
+            if (layout == null) continue;
+
+            int cardY = guiTop + CONTENT_Y + (i - startIdx) * slotH + singleOffset;
+            int rx = cardX + 24;
+            int layoutHeight = layout.backgroundTexture() != null
+                    ? layout.bgRenderY() + layout.bgH()
+                    : 14 + layout.gridHeight() * 18;
+            int ry = cardY + Math.max(4, (cardH - layoutHeight) / 2);
+
+            if (!layout.output().isEmpty()) {
+                int outX = rx + layout.outputX();
+                int outY = ry + layout.outputY();
+                if (isHovering(mouseX, mouseY, outX, outY, 18, 18)) {
+                    AmiFavoritesHandler favorites = AmiFavoritesHandler.getInstance();
+                    if (favorites.isRecipeFavorite(recipe.id(), layout.output())) {
+                        favorites.removeRecipeFavorite(recipe.id(), layout.output());
+                    } else {
+                        favorites.addRecipeFavorite(recipe.id(), layout.output());
+                    }
+                    return true;
+                }
+            }
+
+            int slotIdx = 0;
+            for (SlotPosition slot : layout.inputs()) {
+                if (!slot.alternatives().isEmpty()) {
+                    int sx = rx + slot.x();
+                    int sy = ry + slot.y();
+                    if (isHovering(mouseX, mouseY, sx, sy, 18, 18)) {
+                        String slotKey = recipe.id().toString() + "_" + slotIdx;
+                        int altIdx = getSlotAltIndex(slotKey, slot.alternatives().size());
+                        ItemStack stack = slot.alternatives().get(altIdx);
+                        if (!stack.isEmpty()) {
+                            AmiFavoritesHandler.getInstance().toggleFavorite(stack);
+                            return true;
+                        }
+                    }
+                }
+                slotIdx++;
+            }
+        }
+
+        return false;
     }
 
     // NeoForge 1.21.1+: 4-param signature
@@ -902,7 +1023,7 @@ public class RecipeViewerScreen extends Screen {
         // Scroll over an ingredient slot → cycle alternatives
         for (int i = startIdx; i < endIdx; i++) {
             AmiRecipeHolder<?> recipe = tab.recipes().get(i);
-            RecipeLayout layout = RecipeDisplayHelper.getLayout(recipe, minecraft.level.registryAccess());
+            RecipeLayout layout = getLayoutForDisplay(i - startIdx, recipe);
             if (layout == null) continue;
 
             int cardY = guiTop + CONTENT_Y + (i - startIdx) * slotH + singleOffset2;
@@ -910,7 +1031,7 @@ public class RecipeViewerScreen extends Screen {
             int layoutHeight = layout.backgroundTexture() != null
                     ? layout.bgRenderY() + layout.bgH()
                     : 14 + layout.gridHeight() * 18;
-            int ry = cardY + Math.max(0, (cardH - layoutHeight) / 2);
+            int ry = cardY + Math.max(4, (cardH - layoutHeight) / 2);
 
             int slotIdx = 0;
             for (SlotPosition slot : layout.inputs()) {
@@ -1020,6 +1141,25 @@ public class RecipeViewerScreen extends Screen {
             }
         }
 
+        // Workstation panel click → navigate to the workstation item
+        if (!tab.workstations().isEmpty() && (button == 0 || button == 1)) {
+            int slotOuter = 20;
+            int padH = 4, padV = 5;
+            int panelW = slotOuter + 2 * padH;
+            int overlap = 4;
+            int px = guiLeft - panelW + overlap;
+            int py = guiTop + CONTENT_Y;
+            List<ItemStack> ws = tab.workstations();
+            for (int i = 0; i < ws.size(); i++) {
+                int sx = px + padH;
+                int sy = py + padV + i * slotOuter;
+                if (isHovering(mouseX, mouseY, sx, sy, 18, 18)) {
+                    navigateTo(ws.get(i), button == 0);
+                    return true;
+                }
+            }
+        }
+
         int totalPages = (int) Math.ceil((double) tabSize / recipesPerPage);
         int startIdx   = pageIndex * recipesPerPage;
         int endIdx     = Math.min(startIdx + recipesPerPage, tabSize);
@@ -1031,7 +1171,7 @@ public class RecipeViewerScreen extends Screen {
 
         for (int i = startIdx; i < endIdx; i++) {
             AmiRecipeHolder<?> recipe = tab.recipes().get(i);
-            RecipeLayout layout = RecipeDisplayHelper.getLayout(recipe, minecraft.level.registryAccess());
+            RecipeLayout layout = getLayoutForDisplay(i - startIdx, recipe);
             if (layout == null) continue;
 
             int cardY = guiTop + CONTENT_Y + (i - startIdx) * slotH + singleOffset;
@@ -1039,7 +1179,7 @@ public class RecipeViewerScreen extends Screen {
             int layoutHeight = layout.backgroundTexture() != null
                     ? layout.bgRenderY() + layout.bgH()
                     : 14 + layout.gridHeight() * 18;
-            int ry = cardY + Math.max(0, (cardH - layoutHeight) / 2);
+            int ry = cardY + Math.max(4, (cardH - layoutHeight) / 2);
 
             boolean recipeCanTransfer = RecipeViewerBridge.canTransferRecipe(recipe, parentScreen);
 
@@ -1184,5 +1324,6 @@ public class RecipeViewerScreen extends Screen {
                                 int pageIndex, RecipeType<?> focusType) {}
 
     private record Tab(RecipeType<?> type, Component label, String shortLabel,
-                       List<AmiRecipeHolder<?>> recipes) {}
+                       List<AmiRecipeHolder<?>> recipes,
+                       ItemStack icon, List<ItemStack> workstations) {}
 }
