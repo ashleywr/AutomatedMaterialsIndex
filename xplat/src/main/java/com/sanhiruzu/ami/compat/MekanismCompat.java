@@ -61,7 +61,7 @@ public final class MekanismCompat {
         if (containsAny(context.itemClass, "ItemUpgrade", "ItemModule", "ItemTierInstaller")) facts.add("upgrade");
         if (containsAny(context.itemClass, "ItemQIODrive", "QIO", "Transporter", "Pipe", "Tube", "Cable")) facts.add("logistics");
         if (containsAny(context.itemClass, "ItemEnergized", "ItemBlockEnergyCube", "ItemBlockInduction")) facts.add("energy");
-        if (containsAny(context.itemClass, "ItemConfigurator", "ItemNetworkReader", "ItemDictionary", "ItemGaugeDropper",
+        if (containsAny(context.itemClass, "ItemConfigurator", "ItemConfigurationCard", "ItemNetworkReader", "ItemDictionary", "ItemGaugeDropper",
                 "ItemGeigerCounter", "ItemDosimeter", "ItemPortableQIODashboard")) facts.add("tool");
         if (containsAny(context.itemClass, "ItemAtomicDisassembler", "ItemMekaTool", "ItemElectricBow", "ItemFlamethrower")) facts.add("weapon_tool");
         if (containsAny(context.itemClass, "ItemMekaSuitArmor", "ItemFreeRunners", "ItemJetpack", "ItemScuba", "ItemHazmat", "ItemHDPEElytra")) facts.add("gear");
@@ -97,7 +97,7 @@ public final class MekanismCompat {
                 "oredictionificator", "modification_station", "security_desk", "personal_chest")) {
             facts.add("machine");
         }
-        if (containsAny(path, "configurator", "network_reader", "dictionary", "gauge_dropper", "geiger_counter",
+        if (containsAny(path, "configurator", "configuration_card", "network_reader", "dictionary", "gauge_dropper", "geiger_counter",
                 "dosimeter", "portable_qio_dashboard", "portable_teleporter")) {
             facts.add("tool");
         }

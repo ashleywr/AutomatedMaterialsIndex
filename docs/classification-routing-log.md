@@ -276,6 +276,22 @@ chemical content, and upgrades to the top-level Mekanism category, while Meka
 tools, armor, dusts, ingots, gems, and other strong semantic identities remain
 discoverable in normal ontology.
 
+### 2026-06-09: Facetless Mekanism Workflow Tools Stay Together
+
+The AMICompat dump showed three Mekanism workflow items still scattered into
+`utility/tools`: `dictionary`, `dosimeter`, and `configuration_card`. They are
+Mekanism-owned operator tools with no stronger generic gameplay identity, and in
+one case (`configuration_card`) the compat enricher was not even recording the
+existing tool fact.
+
+Mekanism compat now recognizes `ItemConfigurationCard` / `configuration_card` as
+tool facts. Hybrid Mekanism identity also treats `mekanismItemKind=tools` as
+focused only when the item does not already expose a concrete generic semantic
+role such as harvest tool, melee/ranged weapon, utility tool, armor, or food.
+This keeps facetless workflow tools grouped under `Mekanism > Tools` while
+energy tools and other strongly semantic equipment still stay in their normal
+ontology buckets.
+
 ### 2026-05-31: Sophisticated Storage Is Focused Storage Identity
 
 Added Sophisticated Storage/Backpacks enrichment using exact namespaces and

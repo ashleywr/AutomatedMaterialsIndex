@@ -1,104 +1,110 @@
-To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.8/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Reusing configuration cache.
 
 
-[2A[1B[1m> Starting Daemon[m[17D[1B[1A[1m> Starting Daemon > Connecting to Daemon[m[40D[1B[2ADaemon will be stopped at the end of the build 
-[1B[0K
-[2A[0K[1B> IDLE[6D[1B[2A[1m<[0;1m-------------> 0% INITIALIZING [21ms][m[38D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [114ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [223ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [316ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [425ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [518ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [611ms][m[39D[2B[2AReusing configuration cache.[0K
-[1B[0K
-[2A[1m<[0;1m-------------> 0% INITIALIZING [720ms][m[39D[1B[1m> Loading configuration cache state[m[35D[1B[2A[1m<[0;1m-------------> 0% INITIALIZING [813ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [923ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [1s][m[0K[36D[2B[2A[1m<[0;1m-------------> 0% EXECUTING [1s][m[0K[33D[1B> IDLE[0K[6D[1B
-[3A[1m<[0;32;1m========[0;39;1m-----> 66% EXECUTING [1s][m[34D[1B[1m> :forge:compileJava[m[20D[1B[1m> :neoforge:compileJava[m[23D[1B[3A[1m<[0;32;1m========[0;39;1m-----> 66% EXECUTING [2s][m[34D[3B[3A[1m<[0;32;1m========[0;39;1m-----> 66% EXECUTING [3s][m[34D[3B[3A[0K
+[2A[1m<[0;1m-------------> 0% INITIALIZING [40ms][m[38D[1B[1m> Loading configuration cache state[m[35D[1B
+[3A[1m<[0;32;1m=========[0;39;1m----> 69% EXECUTING [134ms][m[0K[37D[1B[1m> :neoforge:compileJava[m[0K[23D[1B[1m> :forge:compileJava[m[20D[1B[3A[1m<[0;32;1m=========[0;39;1m----> 69% EXECUTING [244ms][m[37D[3B[3A[1m<[0;32;1m=========[0;39;1m----> 69% EXECUTING [337ms][m[37D[3B[3A[1m<[0;32;1m=========[0;39;1m----> 69% EXECUTING [431ms][m[37D[3B[3A[1m<[0;32;1m=========[0;39;1m----> 69% EXECUTING [542ms][m[37D[3B[3A[1m<[0;32;1m=========[0;39;1m----> 69% EXECUTING [635ms][m[37D[3B[3A[1m<[0;32;1m=========[0;39;1m----> 69% EXECUTING [731ms][m[37D[3B[3A[1m<[0;32;1m=========[0;39;1m----> 69% EXECUTING [844ms][m[37D[3B[3A[1m<[0;32;1m=========[0;39;1m----> 69% EXECUTING [938ms][m[37D[3B[3A[1m<[0;32;1m=========[0;39;1m----> 69% EXECUTING [1s][m[0K[34D[3BC:\WorkDir\AutomatedMaterialsIndex\xplat\src\main\java\com\sanhiruzu\ami\compat\ChemicalGroupingPlugin.java:47: ƒGƒ‰[: ƒVƒ“ƒ{ƒ‹‚ğŒ©‚Â‚¯‚ç‚ê‚Ü‚¹‚ñ
+            if (isBucketItem(itemClass)) {
+                ^
+  ƒVƒ“ƒ{ƒ‹:   ƒƒ\ƒbƒh isBucketItem(String)
+  êŠ: ƒNƒ‰ƒX ChemicalGroupingPlugin
+C:\WorkDir\AutomatedMaterialsIndex\xplat\src\main\java\com\sanhiruzu\ami\index\providers\RecipeViewerIngredientProvider.java:129: Œx: [removal] IIngredientHelper‚ÌgetUniqueId(V,UidContext)‚Í„§‚³‚ê‚Ä‚¨‚ç‚¸Aíœ—p‚Éƒ}[ƒN‚³‚ê‚Ä‚¢‚Ü‚·
+            return helper.getUniqueId(ingredient, UidContext.Ingredient);
+                         ^
+  V‚ªŒ^•Ï”‚Ìê‡:
+    ƒCƒ“ƒ^ƒtƒF[ƒX IIngredientHelper‚ÅéŒ¾‚³‚ê‚Ä‚¢‚éV extends Object
+ƒm[ƒg: C:\WorkDir\AutomatedMaterialsIndex\xplat\src\main\java\com\sanhiruzu\ami\index\FacetIndexer.java‚Í„§‚³‚ê‚È‚¢API‚ğg—p‚Ü‚½‚ÍƒI[ƒo[ƒ‰ƒCƒh‚µ‚Ä‚¢‚Ü‚·B
+ƒm[ƒg: Ú×‚ÍA-Xlint:deprecationƒIƒvƒVƒ‡ƒ“‚ğw’è‚µ‚ÄÄƒRƒ“ƒpƒCƒ‹‚µ‚Ä‚­‚¾‚³‚¢B
+ƒm[ƒg: “ü—Íƒtƒ@ƒCƒ‹‚Ì‘€ì‚Ì‚¤‚¿A–¢ƒ`ƒFƒbƒN‚Ü‚½‚ÍˆÀ‘S[3A[0K
 [31;1m> Task :neoforge:compileJava[0;39m[31m FAILED[39m[0K
 [1B[0K
 [0K
-[3A[1m<[0;31;1m==========[0;39;1m---> 83% EXECUTING [3s][m[34D[1B[1m> :forge:compileJava[m[20D[1B> IDLE[6D[1B[3A[1m<[0;31;1m==========[0;39;1m---> 83% EXECUTING [4s][m[34D[3B[3A[0K
+[3A[1m<[0;31;1m=========[0;39;1m----> 72% EXECUTING [1s][m[34D[1B> IDLE[6D[1B[1m> :forge:compileJava[m[20D[1B[3A[1m<[0;31;1m=========[0;39;1m----> 72% EXECUTING [2s][m[34D[3B‚Å‚Í‚È‚¢‚à‚Ì‚ª‚ ‚è‚Ü‚·B
+ƒm[ƒg: Ú×‚ÍA-Xlint:uncheckedƒIƒvƒVƒ‡ƒ“‚ğw’è‚µ‚ÄÄƒRƒ“ƒpƒCƒ‹‚µ‚Ä‚­‚¾‚³‚¢B
+ƒGƒ‰[1ŒÂ
+Œx1ŒÂ
+ƒm[ƒg:SpongePowered MIXIN Annotation Processor Version=0.8.5
+ƒm[ƒg:Supported obfuscation types: ObfuscationServiceMCP supports [searge,notch]
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\client\AMICheatMode.java:193: Œx:[removal] ResourceLocation‚ÌResourceLocation(String,String)‚Í„§‚³‚ê‚Ä‚¨‚ç‚¸Aíœ—p‚Éƒ}[ƒN‚³‚ê‚Ä‚¢‚Ü‚·
+        ResourceLocation spawnEggId = new ResourceLocation(
+                                      ^
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\client\icon\EntityIconRenderer.java:56: Œx:[removal] ResourceLocation‚ÌResourceLocation(String)‚Í„§‚³‚ê‚Ä‚¨‚ç‚¸Aíœ—p‚Éƒ}[ƒN‚³‚ê‚Ä‚¢‚Ü‚·
+        if ("experience_orb".equals(entityId.getPath())) return new ResourceLocation("experience_bottle");
+                                                                ^
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\client\icon\EntityIconRenderer.java:114: Œx:[removal] ResourceLocation‚ÌResourceLocation(String)‚Í„§‚³‚ê‚Ä‚¨‚ç‚¸Aíœ—p‚Éƒ}[ƒN‚³‚ê‚Ä‚¢‚Ü‚·
+                    .getOptional(new ResourceLocation("iron_sword"))
+                                 ^
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\client\tooltip\HeartBarTooltipComponent.java:20: Œx:[removal] ResourceLocation‚ÌResourceLocation(String)‚Í„§‚³‚ê‚Ä‚¨‚ç‚¸Aíœ—p‚Éƒ}[ƒN‚³‚ê‚Ä‚¢‚Ü‚·
+    private static final ResourceLocation ICONS = new ResourceLocation("textures/gui/icons.png");
+                                                  ^
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\forge\AMI.java:29: Œx:[removal] FMLJavaModLoadingContext‚Ìget()‚Í„§‚³‚ê‚Ä‚¨‚ç‚¸Aíœ—p‚Éƒ}[ƒN‚³‚ê‚Ä‚¢‚Ü‚·
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+                                                        ^
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\forge\AMIClient.java:30: Œx:[removal] FMLJavaModLoadingContext‚Ìget()‚Í„§‚³‚ê‚Ä‚¨‚ç‚¸Aíœ—p‚Éƒ}[ƒN‚³‚ê‚Ä‚¢‚Ü‚·
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+                                                        ^
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\forge\ForgePlatformHelper.java:204: Œx:[removal] ResourceLocation‚ÌResourceLocation(String,String)‚Í„§‚³‚ê‚Ä‚¨‚ç‚¸Aíœ—p‚Éƒ}[ƒN‚³‚ê‚Ä‚¢‚Ü‚·
+        return new ResourceLocation(namespace, path);
+               ^
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\forge\network\AmiPacketHandler.java:14: Œx:[removal] ResourceLocation‚ÌResourceLocation(String,String)‚Í„§‚³‚ê‚Ä‚¨‚ç‚¸Aíœ—p‚Éƒ}[ƒN‚³‚ê‚Ä‚¢‚Ü‚·
+            new ResourceLocation(AMI.MODID, "main"),
+            ^
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\recipe\AmiRecipeIndex.java:309: Œx:[removal] ResourceLocation‚ÌResourceLocation(String,String)‚Í„§‚³‚ê‚Ä‚¨‚ç‚¸Aíœ—p‚Éƒ}[ƒN‚³‚ê‚Ä‚¢‚Ü‚·
+        ResourceLocation id = new ResourceLocation("ami", "brewing/" + idCounter++);
+                              ^
+C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\recipe\AmiRecipeIndex.java:334: Œx:[removal] ResourceLocation‚ÌResourceLocation(String,String)‚Í„§‚³‚ê‚Ä‚¨‚ç‚¸Aíœ—p‚Éƒ}[ƒN‚³‚ê‚Ä‚¢‚Ü‚·
+                    ResourceLocation id = new ResourceLocation("ami", "repair/" + idCounter++);[3A[0K
 [1m> Task :forge:compileJava[m[0K
 [1B[0K
 [0K
-C:\WorkDir\AutomatedMaterialsIndex\xplat\src\main\java\com\sanhiruzu\ami\compat\MekanismIndexPlugin.java:21: ï¿½Gï¿½ï¿½ï¿½[: ï¿½Vï¿½ï¿½ï¿½{ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â‚ï¿½ï¿½ï¿½ï¿½Ü‚ï¿½ï¿½ï¿½
-        for (SearchNode node : index.getAllNodes()) {
-                                    ^
-  ï¿½Vï¿½ï¿½ï¿½{ï¿½ï¿½:   ï¿½ï¿½ï¿½\ï¿½bï¿½h getAllNodes()
-  ï¿½êŠ: ï¿½^ï¿½Cï¿½vGlobalIndexï¿½Ì•Ïï¿½ index
-ï¿½Gï¿½ï¿½ï¿½[1ï¿½ï¿½
-ï¿½mï¿½[ï¿½g:SpongePowered MIXIN Annotation Processor Version=0.8.5
-ï¿½mï¿½[ï¿½g:Supported obfuscation types: ObfuscationServiceMCP supports [searge,notch]
-C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\client\AMICheatMode.java:193: ï¿½xï¿½ï¿½:[removal] ResourceLocationï¿½ï¿½ResourceLocation(String,String)ï¿½Íï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ç‚¸ï¿½Aï¿½íœï¿½pï¿½Éƒ}ï¿½[ï¿½Nï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½Ü‚ï¿½
-        ResourceLocation spawnEggId = new ResourceLocation(
-                                      ^
-C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\client\icon\EntityIconRenderer.java:56: ï¿½xï¿½ï¿½:[removal] ResourceLocationï¿½ï¿½ResourceLocation(String)ï¿½Íï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ç‚¸ï¿½Aï¿½íœï¿½pï¿½Éƒ}ï¿½[ï¿½Nï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½Ü‚ï¿½
-        if ("experience_orb".equals(entityId.getPath())) return new ResourceLocation("experience_bottle");
-                                                                ^
-C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\client\icon\EntityIconRenderer.java:114: ï¿½xï¿½ï¿½:[removal] ResourceLocationï¿½ï¿½ResourceLocation(String)ï¿½Íï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ç‚¸ï¿½Aï¿½íœï¿½pï¿½Éƒ}ï¿½[ï¿½Nï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½Ü‚ï¿½
-                    .getOptional(new ResourceLocation("iron_sword"))
-                                 ^
-C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\client\tooltip\HeartBarTooltipComponent.java:20: ï¿½xï¿½ï¿½:[removal] ResourceLocationï¿½ï¿½ResourceLocation(String)ï¿½Íï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ç‚¸ï¿½Aï¿½íœï¿½pï¿½Éƒ}ï¿½[ï¿½Nï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½Ü‚ï¿½
-    private static final ResourceLocation ICONS = new ResourceLocation("textures/gui/icons.png");
-                                                  ^
-C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\forge\AMI.java:29: ï¿½xï¿½ï¿½:[removal] FMLJavaModLoadingContextï¿½ï¿½get()ï¿½Íï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ç‚¸ï¿½Aï¿½íœï¿½pï¿½Éƒ}ï¿½[ï¿½Nï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½Ü‚ï¿½
-        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-                                                        ^
-C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\forge\AMIClient.java:30: ï¿½xï¿½ï¿½:[removal] FMLJavaModLoadingContextï¿½ï¿½get()ï¿½Íï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ç‚¸ï¿½Aï¿½íœï¿½pï¿½Éƒ}ï¿½[ï¿½Nï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½Ü‚ï¿½
-        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-                                                        ^
-C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\forge\ForgePlatformHelper.java:204: ï¿½xï¿½ï¿½:[removal] ResourceLocationï¿½ï¿½ResourceLocation(String,String)ï¿½Íï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ç‚¸ï¿½Aï¿½íœï¿½pï¿½Éƒ}ï¿½[ï¿½Nï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½Ü‚ï¿½
-        return new ResourceLocation(namespace, path);
-               ^
-C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\forge\network\AmiPacketHandler.java:14: ï¿½xï¿½ï¿½:[removal] ResourceLocationï¿½ï¿½ResourceLocation(String,String)ï¿½Íï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ç‚¸ï¿½Aï¿½íœï¿½pï¿½Éƒ}ï¿½[ï¿½Nï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½Ü‚ï¿½
-            new ResourceLocation(AMI.MODID, "main"),
-            ^
-C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\recipe\AmiRecipeIndex.java:309: ï¿½xï¿½ï¿½:[removal] ResourceLocationï¿½ï¿½ResourceLocation(String,String)ï¿½Íï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ç‚¸ï¿½Aï¿½íœï¿½pï¿½Éƒ}ï¿½[ï¿½Nï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½Ü‚ï¿½
-        ResourceLocation id = new ResourceLocation("ami", "brewing/" + idCounter++);
-                              ^
-C:\WorkDir\AutomatedMaterialsIndex\forge\src\main\java\com\sanhiruzu\ami\recipe\AmiRecipeIndex.java:334: ï¿½xï¿½ï¿½:[removal] ResourceLocationï¿½ï¿½ResourceLocation(String,String)ï¿½Íï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ç‚¸ï¿½Aï¿½íœï¿½pï¿½Éƒ}ï¿½[ï¿½Nï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½Ü‚ï¿½
-                    ResourceLocation id = new ResourceLocation("ami", "repair/" + idCounter++);
+[3A[1m<[0;31;1m=========[0;39;1m----> 72% EXECUTING [2s][m[34D[1B> IDLE[6D[1B[1m> :forge:compileJava[m[20D[1B
                                           ^
-C:\WorkDir\AutomatedMaterialsIndex\xplat\src\main\java\com\sanhiruzu\ami\compat\MekanismIndexPlugin.java:21: ï¿½Gï¿½ï¿½ï¿½[: ï¿½Vï¿½ï¿½ï¿½{ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â‚ï¿½ï¿½ï¿½ï¿½Ü‚ï¿½ï¿½ï¿½
-        for (SearchNode node : index.getAllNodes()) {
-                                    ^
-  ï¿½Vï¿½ï¿½ï¿½{ï¿½ï¿½:   ï¿½ï¿½ï¿½\ï¿½bï¿½h getAllNodes()
-  ï¿½êŠ: ï¿½^ï¿½Cï¿½vGlobalIndexï¿½Ì•Ïï¿½ index
-C:\WorkDir\AutomatedMaterialsIndex\xplat\src\main\java\com\sanhiruzu\ami\index\providers\RecipeViewerIngredientProvider.java:173: ï¿½xï¿½ï¿½:[removal] IIngredientRendererï¿½ï¿½getTooltip(T,TooltipFlag)ï¿½Íï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ç‚¸ï¿½Aï¿½íœï¿½pï¿½Éƒ}ï¿½[ï¿½Nï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½Ü‚ï¿½
+C:\WorkDir\AutomatedMaterialsIndex\xplat\src\main\java\com\sanhiruzu\ami\compat\ChemicalGroupingPlugin.java:47: ƒGƒ‰[: ƒVƒ“ƒ{ƒ‹‚ğŒ©‚Â‚¯‚ç‚ê‚Ü‚¹‚ñ
+            if (isBucketItem(itemClass)) {
+                ^
+  ƒVƒ“ƒ{ƒ‹:   ƒƒ\ƒbƒh isBucketItem(String)
+  êŠ: ƒNƒ‰ƒX ChemicalGroupingPlugin
+C:\WorkDir\AutomatedMaterialsIndex\xplat\src\main\java\com\sanhiruzu\ami\index\providers\RecipeViewerIngredientProvider.java:173: Œx:[removal] IIngredientRenderer‚ÌgetTooltip(T,TooltipFlag)‚Í„§‚³‚ê‚Ä‚¨‚ç‚¸Aíœ—p‚Éƒ}[ƒN‚³‚ê‚Ä‚¢‚Ü‚·
             List<Component> tooltip = renderer.getTooltip(ingredient, TooltipFlag.Default.NORMAL);
                                               ^
-  Tï¿½ï¿½ï¿½^ï¿½Ïï¿½ï¿½Ìê‡:
-    ï¿½Cï¿½ï¿½ï¿½^ï¿½tï¿½Fï¿½[ï¿½X IIngredientRendererï¿½ÅéŒ¾ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½T extends Object
-ï¿½mï¿½[ï¿½g:ï¿½ê•”ï¿½Ì“ï¿½ï¿½Íƒtï¿½@ï¿½Cï¿½ï¿½ï¿½Íï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È‚ï¿½APIï¿½ï¿½ï¿½gï¿½pï¿½Ü‚ï¿½ï¿½ÍƒIï¿½[ï¿½oï¿½[ï¿½ï¿½ï¿½Cï¿½hï¿½ï¿½ï¿½Ä‚ï¿½ï¿½Ü‚ï¿½ï¿½B
-ï¿½mï¿½[ï¿½g:ï¿½Ú×‚ÍA-Xlint:deprecationï¿½Iï¿½vï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½wï¿½è‚µï¿½ÄÄƒRï¿½ï¿½ï¿½pï¿½Cï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
-ï¿½mï¿½[ï¿½g:ï¿½ï¿½ï¿½Íƒtï¿½@ï¿½Cï¿½ï¿½ï¿½Ì‘ï¿½ï¿½ï¿½Ì‚ï¿½ï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½`ï¿½Fï¿½bï¿½Nï¿½Ü‚ï¿½ï¿½Íˆï¿½ï¿½Sï¿½Å‚Í‚È‚ï¿½ï¿½ï¿½ï¿½Ì‚ï¿½ï¿½ï¿½ï¿½ï¿½Ü‚ï¿½ï¿½B
-ï¿½mï¿½[ï¿½g:ï¿½Ú×‚ÍA-Xlint:uncheckedï¿½Iï¿½vï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½wï¿½è‚µï¿½ÄÄƒRï¿½ï¿½ï¿½pï¿½Cï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
-ï¿½Gï¿½ï¿½ï¿½[1ï¿½ï¿½
-ï¿½xï¿½ï¿½11ï¿½ï¿½
+  T‚ªŒ^•Ï”‚Ìê‡:
+    ƒCƒ“ƒ^ƒtƒF[ƒX IIngredientRenderer‚ÅéŒ¾‚³‚ê‚Ä‚¢‚éT extends Object
+ƒm[ƒg:ˆê•”‚Ì“ü—Íƒtƒ@ƒCƒ‹‚Í„§‚³‚ê‚È‚¢API‚ğg—p‚Ü‚½‚ÍƒI[ƒo[ƒ‰ƒCƒh‚µ‚Ä‚¢‚Ü‚·B
+ƒm[ƒg:Ú×‚ÍA-Xlint:deprecationƒIƒvƒVƒ‡ƒ“‚ğw’è‚µ‚ÄÄƒRƒ“ƒpƒCƒ‹‚µ‚Ä‚­‚¾‚³‚¢B
+ƒm[ƒg:“ü—Íƒtƒ@ƒCƒ‹‚Ì‘€ì‚Ì‚¤‚¿A–¢ƒ`ƒFƒbƒN‚Ü‚½‚ÍˆÀ‘S‚Å‚Í‚È‚¢‚à‚Ì‚ª‚ ‚è‚Ü‚·B
+ƒm[ƒg:Ú×‚ÍA-Xlint:uncheckedƒIƒvƒVƒ‡ƒ“‚ğw’è‚µ‚ÄÄƒRƒ“ƒpƒCƒ‹‚µ‚Ä‚­‚¾‚³‚¢B
+ƒGƒ‰[1ŒÂ
+Œx11ŒÂ
 
-FAILURE: Build completed with 2 failures.
+[31mFAILURE: Build completed with 2 failures.[39m
 
-1: Task failed with an exception.
+[31m1: [39m[31mTask failed with an exception.[39m
 -----------
 * What went wrong:
 Execution failed for task ':neoforge:compileJava'.
-> Compilation failed; see the compiler error output for details.
+[33m> [39mCompilation failed; see the compiler error output for details.
 
 * Try:
-> Run with --info option to get more log output.
-> Run with --scan to get full insights.
+[33m> [39mRun with [1m--info[m option to get more log output.
+[33m> [39mRun with [1m--scan[m to get full insights.
 ==============================================================================
 
-2: Task failed with an exception.
+[31m2: [39m[31mTask failed with an exception.[39m
 -----------
 * What went wrong:
 Execution failed for task ':forge:compileJava'.
-[3A[1m<[0;31;1m==========[0;39;1m---> 83% EXECUTING [4s][m[34D[1B[1m> :forge:compileJava[m[20D[1B> IDLE[6D[1B[3A[1m<[0;31;1m==========[0;39;1m---> 83% EXECUTING [5s][m[34D[3B[3A[1m<[0;31;1m==========[0;39;1m---> 83% EXECUTING [6s][m[34D[3B[3A[1m<[0;31;1m==========[0;39;1m---> 83% EXECUTING [7s][m[34D[3B[3A[1m<[0;31;1m==========[0;39;1m---> 83% EXECUTING [8s][m[34D[3B[3A[1m<[0;31;1m==========[0;39;1m---> 83% EXECUTING [9s][m[34D[3B[3A[0K
+[33m> [39mCompilation failed; see the compiler error output for details.
+
+* Try:
+[33m> [39mRun with [1m--info[m option to get more log output.
+[33m> [39mRun with [1m--scan[m to get full insights.
+==============================================[3A[0K
 [31;1m> Task :forge:compileJava[0;39m[31m FAILED[39m[0K
-4 actionable tasks: 2 executed, 2 up-to-date[0K
+12 actionable tasks: 2 executed, 10 up-to-date[0K
 Configuration cache entry reused.
 [0K
 [0K
 [0K
-> Compilation failed; see the compiler error output for details.
+[3A[1m<[0;1m-------------> 0% WAITING[m[26D[1B> IDLE[6D[1B> IDLE[6D[1B================================
 
-* Try:
-> Run with --info option to get more log output.
-> Run with --scan to get full insights.
-==============================================================================
-
-BUILD FAILED in 10s
-[3A[1m<[0;1m-------------> 0% WAITING[m[26D[1B[1m> :forge:compileJava[m[20D[1B> IDLE[6D[1B[3A[2K[1B[2K[1B[2K[2A
+[31;1mBUILD FAILED[0;39m in 2s
+[3A[2K[1B[2K[1B[2K[2A
