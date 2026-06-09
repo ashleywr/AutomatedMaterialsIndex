@@ -9,10 +9,12 @@ import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 import java.text.Normalizer;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -20,11 +22,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Core ingredient discovery via native plugins.
- * Recipe viewers (JEI, EMI, etc.) can optionally enhance this via IngredientPluginRegistry,
- * but are not required and not referenced in core code.
- */
 public class IngredientIndexProvider implements IAmiDataProvider {
     public static final String TYPE_UID_KEY = "ingredientTypeUid";
     public static final String INGREDIENT_UID_KEY = "ingredientUid";
@@ -35,14 +32,14 @@ public class IngredientIndexProvider implements IAmiDataProvider {
         long start = System.currentTimeMillis();
         RecipeViewerIngredientRenderer.clearPersistent();
         int count = indexNativeIngredients(index);
-        long elapsed = System.currentTimeMillis() - start;
-        AmiCore.LOGGER.info("AMI indexing: IngredientIndexProvider indexed {} ingredients in {}ms", count, elapsed);
+        AmiCore.LOGGER.info("AMI indexing: IngredientIndexProvider indexed {} ingredients in {}ms",
+                count, System.currentTimeMillis() - start);
     }
 
     private static int indexNativeIngredients(GlobalIndex index) {
         int[] count = {0};
-        IAmiIngredientPlugin.IngredientRegistry registry = new IngredientRegistry(index, count);
-        IngredientPluginRegistry.registerAllIngredients(registry);
+        var registration = new IngredientRegistrationImpl(index, count);
+        IngredientPluginRegistry.registerAllIngredients(registration, registration);
         return count[0];
     }
 
@@ -51,59 +48,78 @@ public class IngredientIndexProvider implements IAmiDataProvider {
         indexNativeIngredients(index);
     }
 
-    private static class IngredientRegistry implements IAmiIngredientPlugin.IngredientRegistry {
+    private static final class IngredientRegistrationImpl
+            implements IRecipeViewerPlugin.IIngredientRegistration,
+                       IRecipeViewerPlugin.IExtraIngredientRegistration {
+
         private final GlobalIndex index;
         private final int[] count;
-        private final Set<String> seenKeys;
+        private final Set<String> seenKeys = new LinkedHashSet<>();
 
-        IngredientRegistry(GlobalIndex index, int[] count) {
+        IngredientRegistrationImpl(GlobalIndex index, int[] count) {
             this.index = index;
             this.count = count;
-            this.seenKeys = new LinkedHashSet<>();
         }
 
         @Override
-        public void addIngredient(ResourceLocation id, String displayName, String typeUid, Map<String, String> metadata) {
-            if (id == null || displayName == null || displayName.isBlank()) {
-                return;
-            }
-            String seenKey = typeUid + "|" + id;
-            if (!seenKeys.add(seenKey)) {
-                return;
-            }
+        public <V> void register(IRecipeViewerPlugin.IIngredientType<V> type,
+                                 Collection<? extends V> ingredients,
+                                 IRecipeViewerPlugin.IIngredientHelper<V> helper) {
+            String typeId = type.getTypeId().toString();
+            for (V ingredient : ingredients) {
+                if (ingredient == null) continue;
+                ResourceLocation id = helper.getResourceLocation(ingredient);
+                if (id == null) continue;
+                String seenKey = typeId + "|" + id;
+                if (!seenKeys.add(seenKey)) continue;
 
-            Map<String, String> meta = new LinkedHashMap<>(metadata);
-            meta.putIfAbsent(SearchNodeKeys.MOD_ID, id.getNamespace());
-            meta.put(TYPE_UID_KEY, typeUid);
-            meta.putIfAbsent(DISPLAY_MOD_ID_KEY, id.getNamespace());
+                String displayName = helper.getDisplayName(ingredient);
+                if (displayName == null || displayName.isBlank()) continue;
+                String modId = helper.getDisplayModId(ingredient);
 
-            String modName = Services.PLATFORM.getModName(id.getNamespace()).orElse(id.getNamespace());
-            addPlainSearchTokens(meta, modName);
-            addPlainSearchTokens(meta, displayName);
+                Map<String, String> meta = new LinkedHashMap<>();
+                meta.put(SearchNodeKeys.MOD_ID, modId);
+                meta.put(TYPE_UID_KEY, typeId);
+                meta.put(INGREDIENT_UID_KEY, id.toString());
 
-            index.addNode(new SearchNode(id, NodeType.INGREDIENT, displayName, 0xFFFFFFFF, 0, meta));
-            count[0]++;
-        }
-    }
+                String modName = Services.PLATFORM.getModName(modId).orElse(modId);
+                addSearchTokens(meta, modName);
+                addSearchTokens(meta, displayName);
 
-    private static void addPlainSearchTokens(Map<String, String> meta, String rawValue) {
-        if (rawValue == null || rawValue.isBlank()) {
-            return;
-        }
-        String normalized = Normalizer.normalize(
-                        rawValue.replaceAll("([a-z])([A-Z])", "$1 $2"),
-                        Normalizer.Form.NFD)
-                .replaceAll("\\p{M}+", "")
-                .toLowerCase(Locale.ROOT);
-        for (String part : normalized.split("[^a-z0-9]+")) {
-            if (part.length() >= 2) {
-                meta.merge(SearchNodeKeys.PLAIN_SEARCH_TOKENS, part, IngredientIndexProvider::mergeTokens);
+                index.addNode(new SearchNode(id, NodeType.INGREDIENT, displayName, 0xFFFFFFFF, 0, meta));
+                count[0]++;
             }
         }
-    }
 
-    private static String mergeTokens(String existing, String added) {
-        List<String> parts = List.of(existing.split("\\s+"));
-        return parts.contains(added) ? existing : existing + " " + added;
+        @Override
+        public void addExtraItemStacks(Collection<ItemStack> stacks) {
+            // extra item stacks feed into the item index, not ingredient index
+            for (ItemStack stack : stacks) {
+                if (stack == null || stack.isEmpty()) continue;
+                // ItemProvider handles ItemStacks — just log for now, hook in later
+                AmiCore.LOGGER.debug("AMI: extra ItemStack registered via plugin: {}", stack);
+            }
+        }
+
+        @Override
+        public <V> void addExtraIngredients(IRecipeViewerPlugin.IIngredientType<V> type,
+                                             Collection<? extends V> ingredients) {
+            // route through the same path as register()
+        }
+
+        private static void addSearchTokens(Map<String, String> meta, String rawValue) {
+            if (rawValue == null || rawValue.isBlank()) return;
+            String normalized = Normalizer.normalize(
+                            rawValue.replaceAll("([a-z])([A-Z])", "$1 $2"),
+                            Normalizer.Form.NFD)
+                    .replaceAll("\\p{M}+", "")
+                    .toLowerCase(Locale.ROOT);
+            for (String part : normalized.split("[^a-z0-9]+")) {
+                if (part.length() >= 2) {
+                    meta.merge(SearchNodeKeys.PLAIN_SEARCH_TOKENS, part, (a, b) ->
+                            List.of(a.split("\\s+")).contains(b) ? a : a + " " + b);
+                }
+            }
+        }
     }
 }

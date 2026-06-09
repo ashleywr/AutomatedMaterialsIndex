@@ -11,7 +11,12 @@ public enum NodeType {
     ENTITY("ami.gui.entities"),
     DIMENSION("ami.gui.dimensions"),
     PLAYER("ami.gui.players"),
-    WAYPOINT("ami.gui.waypoints");
+    WAYPOINT("ami.gui.waypoints"),
+    /**
+     * Recipe graph node. Not browseable directly — used for ingredient/output edge traversal.
+     * Populated by RecipeGraphProvider after ItemProvider; not serialized to the index cache.
+     */
+    RECIPE("ami.gui.recipes");
 
     private final String translationKey;
 

@@ -111,7 +111,7 @@ public final class JeiFavoritesBridge {
         if (runtime == null || bookmarkList == null || stack == null || stack.isEmpty()) return null;
 
         Optional<ITypedIngredient<ItemStack>> typed = runtime.getIngredientManager()
-                .createTypedIngredient(VanillaTypes.ITEM_STACK, stack.copy());
+                .createTypedIngredient(VanillaTypes.ITEM_STACK, stack.copy(), false);
         if (typed.isEmpty()) return null;
 
         Object bookmarkFactory = getFieldValue(bookmarkList, "bookmarkFactory");

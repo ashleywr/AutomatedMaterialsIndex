@@ -89,6 +89,10 @@ public abstract class AmiRecipeIndexBase {
         return Set.copyOf(recipesByOutput.keySet());
     }
 
+    public Set<Item> getAllInputItems() {
+        return Set.copyOf(recipesByInput.keySet());
+    }
+
     @SuppressWarnings("unchecked")
     public <T extends Recipe<?>> List<AmiRecipeHolder<T>> getAllRecipesOfType(RecipeType<T> type) {
         List<AmiRecipeHolder<T>> result = new ArrayList<>();

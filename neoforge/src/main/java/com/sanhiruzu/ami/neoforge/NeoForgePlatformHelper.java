@@ -37,6 +37,7 @@ import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
 import net.neoforged.neoforge.items.IItemHandler;
+import org.objectweb.asm.Type;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -490,5 +491,28 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     @Override
     public void saveGlobalIndexCache() {
         GlobalIndexCache.save();
+    }
+
+    @Override
+    public <T> List<T> discoverAnnotatedPlugins(Class<?> annotationClass, Class<T> pluginClass) {
+        List<T> result = new ArrayList<>();
+        if (ModList.get() == null) return result;
+        var annotationType = Type.getType(annotationClass);
+        for (var scanData : ModList.get().getAllScanData()) {
+            for (var annotation : scanData.getAnnotations()) {
+                if (!Objects.equals(annotation.annotationType(), annotationType)) continue;
+                String className = annotation.memberName();
+                try {
+                    Class<?> cls = Class.forName(className, false, NeoForgePlatformHelper.class.getClassLoader());
+                    if (!pluginClass.isAssignableFrom(cls)) continue;
+                    @SuppressWarnings("unchecked")
+                    T plugin = (T) cls.getDeclaredConstructor().newInstance();
+                    result.add(plugin);
+                } catch (Throwable t) {
+                    com.sanhiruzu.ami.AmiCore.LOGGER.warn("Failed to instantiate @{} plugin class {}", annotationClass.getSimpleName(), className, t);
+                }
+            }
+        }
+        return result;
     }
 }
