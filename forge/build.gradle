@@ -45,6 +45,13 @@ legacyForge {
             ideName = 'Forge Client EMI'
         }
 
+        clientJeiEmi {
+            client()
+            gameDirectory = runDirectory('forge-jei-emi')
+            systemProperty 'forge.enabledGameTestNamespaces', mod_id
+            ideName = 'Forge Client JEI+EMI'
+        }
+
         server {
             server()
             gameDirectory = runDirectory('forge-server')
@@ -93,21 +100,7 @@ sourceSets {
     }
 }
 
-def devRecipeViewer = findProperty('dev_recipe_viewer') ?: 'both'
-
 configurations {
-    devRuntimeRecipeViewerMods {
-        canBeConsumed = false
-        canBeResolved = true
-        attributes {
-            attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category, Category.LIBRARY))
-            attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage, Usage.JAVA_RUNTIME))
-            attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements, LibraryElements.JAR))
-            attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.EXTERNAL))
-            attribute(TargetJvmEnvironment.TARGET_JVM_ENVIRONMENT_ATTRIBUTE, objects.named(TargetJvmEnvironment, TargetJvmEnvironment.STANDARD_JVM))
-            attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 17)
-        }
-    }
     devRuntimeJeiViewerMods {
         canBeConsumed = false
         canBeResolved = true
@@ -139,13 +132,6 @@ dependencies {
     modCompileOnly "mezz.jei:jei-${forge_minecraft_version}-forge:${forge_jei_version}"
     modCompileOnly "dev.emi:emi-forge:${forge_emi_version}+${forge_minecraft_version}"
 
-    if (devRecipeViewer == 'jei' || devRecipeViewer == 'both') {
-        devRuntimeRecipeViewerMods "mezz.jei:jei-${forge_minecraft_version}-forge:${forge_jei_version}"
-    }
-    if (devRecipeViewer == 'emi' || devRecipeViewer == 'both') {
-        devRuntimeRecipeViewerMods "dev.emi:emi-forge:${forge_emi_version}+${forge_minecraft_version}"
-    }
-
     devRuntimeJeiViewerMods "mezz.jei:jei-${forge_minecraft_version}-forge:${forge_jei_version}"
     devRuntimeEmiViewerMods "dev.emi:emi-forge:${forge_emi_version}+${forge_minecraft_version}"
 
@@ -170,10 +156,8 @@ def registerRecipeViewerModSync = { String taskName, List<String> configurationN
     tasks.register(taskName, Copy) {
         def modsDir = runDirectory(runDirName).toPath().resolve('mods').toFile()
         dependsOn cleanupTask
-        def includeJei = configurationNames.contains('devRuntimeRecipeViewerMods') ||
-                configurationNames.contains('devRuntimeJeiViewerMods')
-        def includeEmi = configurationNames.contains('devRuntimeRecipeViewerMods') ||
-                configurationNames.contains('devRuntimeEmiViewerMods')
+        def includeJei = configurationNames.contains('devRuntimeJeiViewerMods')
+        def includeEmi = configurationNames.contains('devRuntimeEmiViewerMods')
         def viewerFiles = configurations.compileClasspath.filter { file ->
             (includeJei && file.name == jeiJarName) ||
                     (includeEmi && file.name == emiJarName)
@@ -197,10 +181,14 @@ def cleanClientEmiRecipeViewerMods = registerRecipeViewerModCleanup(
         'cleanClientEmiRecipeViewerMods',
         'forge-emi'
 )
+def cleanClientJeiEmiRecipeViewerMods = registerRecipeViewerModCleanup(
+        'cleanClientJeiEmiRecipeViewerMods',
+        'forge-jei-emi'
+)
 
 def syncClientRecipeViewerMods = registerRecipeViewerModSync(
         'syncClientRecipeViewerMods',
-        ['devRuntimeRecipeViewerMods'],
+        [],
         'forge',
         cleanClientRecipeViewerMods
 )
@@ -216,6 +204,12 @@ def syncClientEmiRecipeViewerMods = registerRecipeViewerModSync(
         'forge-emi',
         cleanClientEmiRecipeViewerMods
 )
+def syncClientJeiEmiRecipeViewerMods = registerRecipeViewerModSync(
+        'syncClientJeiEmiRecipeViewerMods',
+        ['devRuntimeJeiViewerMods', 'devRuntimeEmiViewerMods'],
+        'forge-jei-emi',
+        cleanClientJeiEmiRecipeViewerMods
+)
 
 tasks.matching { it.name == 'prepareClientRun' }.configureEach {
     dependsOn syncClientRecipeViewerMods
@@ -225,6 +219,9 @@ tasks.matching { it.name == 'prepareClientJeiRun' }.configureEach {
 }
 tasks.matching { it.name == 'prepareClientEmiRun' }.configureEach {
     dependsOn syncClientEmiRecipeViewerMods
+}
+tasks.matching { it.name == 'prepareClientJeiEmiRun' }.configureEach {
+    dependsOn syncClientJeiEmiRecipeViewerMods
 }
 
 tasks.named('processResources', ProcessResources).configure {
