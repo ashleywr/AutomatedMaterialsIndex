@@ -4,6 +4,7 @@ import com.google.gson.*;
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.platform.Services;
+import com.sanhiruzu.ami.recipe.AmiRecipeIndex;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -188,13 +189,23 @@ public final class GlobalIndexCache {
         return CompletableFuture
                 .runAsync(() -> {
                     GroupingEngine.initialize(level);
-                    if (!tryLoad()) {
+                if (!tryLoad()) {
                         ProviderRegistry.indexAll(level);
                         save();
                     } else {
                         // Index data restored from cache, but per-session ItemStacks for synthetic
                         // nodes (potions, enchanted books, etc.) are not serialized. Rebuild them.
                         ProviderRegistry.rehydrateSubtypeStacks(level);
+
+                        // Recipe index is runtime-only and not serialized with the global cache. Rebuild it
+                        // here so native recipe lookups function without requiring a full reindex.
+                        if (!AmiRecipeIndex.getInstance().isBuilt()) {
+                            try {
+                                AmiRecipeIndex.getInstance().rebuild(level);
+                            } catch (RuntimeException e) {
+                                AmiCore.LOGGER.warn("AMI: Recipe index rebuild after cache restore failed: {}", e.getMessage(), e);
+                            }
+                        }
                     }
                     GlobalIndex.getInstance().markIndexReady();
                 }, Util.backgroundExecutor())

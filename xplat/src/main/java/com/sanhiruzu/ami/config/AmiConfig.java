@@ -172,7 +172,7 @@ public class AmiConfig {
     // --- Side Panels Group ---
     @ConfigGroup(value = "sidepanels", icon = "sidepanels", order = 3)
     @ConfigValue("sidepanels.left.width")
-    public static int leftPanelWidth = 140;
+    public static int leftPanelWidth = 0; // 0 = Auto
     @ConfigValue("sidepanels.right.width")
     public static int rightPanelWidth = 0; // 0 = Auto
     @ConfigValue("sidepanels.left.slots")
@@ -347,7 +347,7 @@ public class AmiConfig {
         mapUtilityCategoryPolicy = CompatCategoryPolicy.HYBRID;
         waystonesOpenScreenFromAnywhere = false;
 
-        leftPanelWidth = 140;
+        leftPanelWidth = 0;
         rightPanelWidth = 0;
         leftPanelSlots = "FAVORITES";
         leftPanelAlternateSlots = "NONE";

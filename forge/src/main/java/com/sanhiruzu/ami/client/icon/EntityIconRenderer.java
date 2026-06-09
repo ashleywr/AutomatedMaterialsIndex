@@ -53,7 +53,7 @@ public class EntityIconRenderer implements IIconRenderer {
 
     private static ResourceLocation resolveProxyItemId(ResourceLocation entityId) {
         // experience_orb has no item form; proxy to experience_bottle for the icon.
-        if ("experience_orb".equals(entityId.getPath())) return new ResourceLocation("experience_bottle");
+        if ("experience_orb".equals(entityId.getPath())) return ResourceLocation.fromNamespaceAndPath("minecraft", "experience_bottle");
         return null;
     }
 
@@ -111,7 +111,7 @@ public class EntityIconRenderer implements IIconRenderer {
         try {
             int dmg = Integer.parseInt(s);
             ItemStack sword = new ItemStack(BuiltInRegistries.ITEM
-                    .getOptional(new ResourceLocation("iron_sword"))
+                    .getOptional(ResourceLocation.fromNamespaceAndPath("minecraft", "iron_sword"))
                     .orElse(Items.AIR));
             return new StatIconRowTooltipComponent(sword, Component.translatable("ami.tooltip.entity.damage", dmg).getString(), AMITheme.ENTITY_DAMAGE_COLOR);
         } catch (NumberFormatException e) {

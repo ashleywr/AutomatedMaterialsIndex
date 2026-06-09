@@ -40,6 +40,8 @@ public class OverlayWidgetManager {
     private static final int MAX_MARGIN_CONTROL_H = 32;
     private static final int TOP_MARGIN_CONTROL_MAX_Y = 96;
     private static final int PANEL_HANDLE_HITBOX = 8;
+    private static final float LEFT_PANEL_AUTO_WIDTH_RATIO = 0.22f;
+    private static final float RIGHT_PANEL_AUTO_WIDTH_RATIO = 0.35f;
     private static final int LEFT_PANEL_BAR_H = 20;
     private static final int BAR_EXPAND_BTN_W = 20;
     private static final int BAR_EXPAND_BTN_H = 14;
@@ -266,7 +268,11 @@ public class OverlayWidgetManager {
             int recipeBookW = computeRecipeBookWidth(containerScreen, screenW);
             int adjustedContainerLeftEdge = containerLeftEdge - recipeBookW;
             int leftBaseY = pinnedPanelY("left_panel", leftY, panelBottom);
-            int leftW = Math.min(AmiConfig.leftPanelWidth, adjustedContainerLeftEdge - PANEL_MARGIN * 2);
+            int configuredLeftWidth = configuredPanelWidth("left_panel", AmiConfig.leftPanelWidth, screenW);
+            int leftAvailableW = adjustedContainerLeftEdge - PANEL_MARGIN * 2;
+            int leftW = leftAvailableW > 0
+                    ? Math.min(configuredLeftWidth, leftAvailableW)
+                    : 0;
             boolean placed = false;
             if (!leftPanelCollapsed && leftW >= 40) {
                 int thirdPartyBottom = thirdPartyWidgetBottomInStrip(containerScreen, 0, adjustedContainerLeftEdge, panelY, panelBottom);
@@ -297,9 +303,7 @@ public class OverlayWidgetManager {
         int safeWidth = screenW - containerRightEdge - PANEL_MARGIN * 2;
         int panelStartX = screenW;
         if (safeWidth >= MIN_PANEL_WIDTH) {
-            int configuredRightWidth = AmiConfig.rightPanelWidth > 0
-                    ? AmiConfig.rightPanelWidth
-                    : net.minecraft.util.Mth.clamp((int) (screenW * 0.35f), MIN_PANEL_WIDTH, MAX_PANEL_WIDTH);
+            int configuredRightWidth = configuredPanelWidth("right_panel", AmiConfig.rightPanelWidth, screenW);
             int rw = net.minecraft.util.Mth.clamp(configuredRightWidth, MIN_PANEL_WIDTH, Math.min(safeWidth, MAX_PANEL_WIDTH));
             panelStartX = screenW - rw - PANEL_MARGIN;
             int rightBaseY = pinnedPanelY("right_panel", panelY, panelBottom);
@@ -318,10 +322,6 @@ public class OverlayWidgetManager {
                 List<AmiConfig.PanelContent> rightContents = rightContents();
                 placeSideSlots(rightSlot, rightContents, rightSlotPool);
                 lastResultsBounds = rightSlot.toWidgetBounds();
-                if (shouldEmbedSearchBar(rightContents, lastResultsBounds)) {
-                    searchBar.updateBounds(UniversalResultsPanel.embeddedSearchBounds(lastResultsBounds));
-                    searchBarEmbedded = true;
-                }
                 // Claim full right vertical strip to screen bottom so JEI can't use the corner
                 rightStripBounds = new WidgetBounds(rightSlot.x(), 0, screenW - rightSlot.x(), screenH - BOTTOM_BAR_H);
             }
@@ -423,9 +423,11 @@ public class OverlayWidgetManager {
         // Use the actual recipe viewer bounds when it is open; fall back to a
         // screen-fraction estimate for other modal screens (EMI, etc.).
         int centerLeft, centerRight;
-        if (com.sanhiruzu.ami.client.RecipeViewerScreen.openLeft >= 0) {
-            centerLeft  = com.sanhiruzu.ami.client.RecipeViewerScreen.openLeft;
-            centerRight = com.sanhiruzu.ami.client.RecipeViewerScreen.openRight;
+        com.sanhiruzu.ami.compat.RecipeViewerBridge.RecipeViewerBounds viewerBounds =
+                com.sanhiruzu.ami.compat.RecipeViewerBridge.getActiveRecipeViewerBounds();
+        if (viewerBounds.isValid()) {
+            centerLeft  = viewerBounds.left();
+            centerRight = viewerBounds.right() + PANEL_MARGIN;
         } else {
             int centerReserve = Math.max(screenW / 3, 200);
             centerLeft  = (screenW - centerReserve) / 2;
@@ -434,7 +436,8 @@ public class OverlayWidgetManager {
 
         List<AmiConfig.PanelContent> leftContents = leftContents();
         if (!leftContents.isEmpty()) {
-            int leftW = Math.min(AmiConfig.leftPanelWidth, centerLeft - PANEL_MARGIN * 2);
+            int configuredLeftWidth = configuredPanelWidth("left_panel", AmiConfig.leftPanelWidth, screenW);
+            int leftW = Math.min(configuredLeftWidth, centerLeft - PANEL_MARGIN * 2);
             if (leftW >= 40) {
                 int leftBaseY = pinnedPanelY("left_panel", leftY, panelBottom);
                 int thirdPartyBottom = thirdPartyWidgetBottomInStrip(screen, 0, centerLeft, panelY, panelBottom);
@@ -451,9 +454,7 @@ public class OverlayWidgetManager {
         int safeWidth = screenW - centerRight - PANEL_MARGIN * 2;
         int panelStartX = screenW;
         if (safeWidth >= MIN_PANEL_WIDTH) {
-            int configuredRightWidth = AmiConfig.rightPanelWidth > 0
-                    ? AmiConfig.rightPanelWidth
-                    : net.minecraft.util.Mth.clamp((int) (screenW * 0.35f), MIN_PANEL_WIDTH, MAX_PANEL_WIDTH);
+            int configuredRightWidth = configuredPanelWidth("right_panel", AmiConfig.rightPanelWidth, screenW);
             int rw = net.minecraft.util.Mth.clamp(configuredRightWidth, MIN_PANEL_WIDTH, Math.min(safeWidth, MAX_PANEL_WIDTH));
             panelStartX = screenW - rw - PANEL_MARGIN;
             int rightBaseY = pinnedPanelY("right_panel", panelY, panelBottom);
@@ -470,10 +471,6 @@ public class OverlayWidgetManager {
                 List<AmiConfig.PanelContent> rightContents = rightContents();
                 placeSideSlots(rightSlot, rightContents, rightSlotPool);
                 lastResultsBounds = rightSlot.toWidgetBounds();
-                if (shouldEmbedSearchBar(rightContents, lastResultsBounds)) {
-                    searchBar.updateBounds(UniversalResultsPanel.embeddedSearchBounds(lastResultsBounds));
-                    searchBarEmbedded = true;
-                }
                 rightStripBounds = new WidgetBounds(rightSlot.x(), 0, screenW - rightSlot.x(), screenH - BOTTOM_BAR_H);
             }
         } else {
@@ -553,7 +550,18 @@ public class OverlayWidgetManager {
         );
     }
 
-    private boolean shouldEmbedSearchBar(List<AmiConfig.PanelContent> contents, WidgetBounds panelBounds) {
+    private int configuredPanelWidth(String panelId, int configuredWidth, int screenW) {
+        if (configuredWidth > 0) {
+            return configuredWidth;
+        }
+        float ratio = "left_panel".equals(panelId) ? LEFT_PANEL_AUTO_WIDTH_RATIO : RIGHT_PANEL_AUTO_WIDTH_RATIO;
+        return net.minecraft.util.Mth.clamp((int) (screenW * ratio), MIN_PANEL_WIDTH, MAX_PANEL_WIDTH);
+    }
+
+    private boolean shouldEmbedSearchBar(String panelId, List<AmiConfig.PanelContent> contents, WidgetBounds panelBounds) {
+        if (!"left_panel".equals(panelId)) {
+            return false;
+        }
         return false;
     }
 

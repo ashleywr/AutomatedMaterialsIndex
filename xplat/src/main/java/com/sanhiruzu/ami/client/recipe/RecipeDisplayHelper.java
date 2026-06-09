@@ -205,8 +205,8 @@ public final class RecipeDisplayHelper {
             drawSlotBackground = false;
 
             if (recipe instanceof AnvilRepairRecipeView arr) {
-                inputs.add(new SlotPosition(bgRenderX + 1, bgRenderY + 1, List.of(arr.getTool())));
-                inputs.add(new SlotPosition(bgRenderX + 50, bgRenderY + 1, List.of(arr.getMaterial().getItems())));
+                inputs.add(new SlotPosition(bgRenderX, bgRenderY, List.of(arr.getTool())));
+                inputs.add(new SlotPosition(bgRenderX + 49, bgRenderY, List.of(arr.getMaterial().getItems())));
             }
 
             gridW = 2;
@@ -214,7 +214,7 @@ public final class RecipeDisplayHelper {
             arrowX = bgRenderX + 76;
             arrowY = bgRenderY;
             outputX = bgRenderX + 108;
-            outputY = bgRenderY + 1;
+            outputY = bgRenderY;
 
         } else if (type.toString().equals("ami:composting")) {
             drawSlotBackground = true;
@@ -274,8 +274,8 @@ public final class RecipeDisplayHelper {
             drawSlotBackground = false;
 
             if (recipe instanceof AnvilEnchantingRecipeView aer) {
-                inputs.add(new SlotPosition(bgRenderX + 1, bgRenderY + 1, List.of(aer.getTool())));
-                inputs.add(new SlotPosition(bgRenderX + 50, bgRenderY + 1, List.of(aer.getBook())));
+                inputs.add(new SlotPosition(bgRenderX, bgRenderY, List.of(aer.getTool())));
+                inputs.add(new SlotPosition(bgRenderX + 49, bgRenderY, List.of(aer.getBook())));
             }
 
             gridW = 2;
@@ -283,7 +283,7 @@ public final class RecipeDisplayHelper {
             arrowX = bgRenderX + 76;
             arrowY = bgRenderY;
             outputX = bgRenderX + 108;
-            outputY = bgRenderY + 1;
+            outputY = bgRenderY;
 
         } else {
             // Generic fallback for unknown/mod recipe types.
@@ -307,7 +307,7 @@ public final class RecipeDisplayHelper {
                 inputs.add(new SlotPosition(0, 0, List.of(nonEmpty.get(0).getItems())));
                 gridW = 1; gridH = 1;
                 arrowX = 24; arrowY = 4;
-                outputX = 48; outputY = 0;
+                outputX = 50; outputY = 0;
 
             } else if (inputCount <= 3) {
                 // One row of up to 3 slots, then arrow, then output.
@@ -318,7 +318,7 @@ public final class RecipeDisplayHelper {
                 int rowPx = inputCount * 18;
                 arrowX = rowPx + 6;
                 arrowY = 4;
-                outputX = rowPx + 22;
+                outputX = rowPx + 32;  // arrowX + arrow_width(22) + output_sprite_margin(4)
                 outputY = 0;
 
             } else {
@@ -335,7 +335,7 @@ public final class RecipeDisplayHelper {
                 int gridPxH = rows * 18;
                 arrowX = gridPxW + 6;
                 arrowY = Math.max(0, (gridPxH - 9) / 2);
-                outputX = gridPxW + 22;
+                outputX = gridPxW + 32;  // arrowX + arrow_width(22) + output_sprite_margin(4)
                 outputY = Math.max(0, (gridPxH - 18) / 2);
             }
         }
@@ -398,7 +398,13 @@ public final class RecipeDisplayHelper {
             return name != null ? Component.literal(name) : Component.literal(type.toString());
         }
         ResourceLocation key = BuiltInRegistries.RECIPE_TYPE.getKey(type);
-        if (key == null) return Component.literal(type.toString());
+        if (key == null) {
+            String raw = type.toString();
+            if (raw.startsWith("ami:")) {
+                return Component.translatable("ami.recipe_viewer.tab." + raw.substring(4));
+            }
+            return Component.literal(raw);
+        }
         String langKey = "ami.recipe_viewer.tab." + key.getPath();
         if ("minecraft".equals(key.getNamespace()) || "ami".equals(key.getNamespace())) {
             return Component.translatable(langKey);
@@ -412,7 +418,13 @@ public final class RecipeDisplayHelper {
             if (name != null) return name.length() > 8 ? name.substring(0, 8) : name;
         }
         ResourceLocation key = BuiltInRegistries.RECIPE_TYPE.getKey(type);
-        if (key == null) return type.toString().substring(0, Math.min(6, type.toString().length()));
+        if (key == null) {
+            String raw = type.toString();
+            if (raw.startsWith("ami:")) {
+                return Component.translatable("ami.recipe_viewer.tab.short." + raw.substring(4)).getString();
+            }
+            return raw.substring(0, Math.min(6, raw.length()));
+        }
         if ("minecraft".equals(key.getNamespace()) || "ami".equals(key.getNamespace())) {
             return Component.translatable("ami.recipe_viewer.tab.short." + key.getPath()).getString();
         }
