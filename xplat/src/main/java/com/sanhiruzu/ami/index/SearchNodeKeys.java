@@ -25,6 +25,7 @@ public final class SearchNodeKeys {
     public static final String TAGS = "tags";  // Comma-separated tag paths
     public static final String FACETS = "facets"; // Comma-separated stable facet ids
     public static final String ITEM_CLASS = "itemClass"; // concrete item class
+    public static final String IS_BUCKET_ITEM = "isBucketItem"; // "true" for items that hold fluids in buckets
     public static final String ESM_CAPACITY = "emsCapacity";  // Equivalent Stack Metric
     public static final String ENERGY_CAPACITY = "energy_capacity"; // Maximum FE/RF capacity
     public static final String ENERGY_GENERATION = "energy_generation"; // FE/RF generated per tick
