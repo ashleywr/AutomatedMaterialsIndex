@@ -132,9 +132,36 @@ public final class CreativeStackVariantExpander {
     }
 
     private static boolean shouldPreserveHiddenDuplicateParity(int repeatedDisplayCount, VisibleStack visibleStack) {
+        if (visibleStack == null) {
+            return false;
+        }
+        if (hasMeaningfulPayload(visibleStack.stack)) {
+            return true;
+        }
         return repeatedDisplayCount >= HIDDEN_DUPLICATE_PARITY_THRESHOLD
-                && visibleStack != null
                 && !visibleStack.hasPositiveStoredResource();
+    }
+
+    private static boolean hasMeaningfulPayload(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return false;
+        }
+        String componentKey = reflectedStackDetail(stack, "getComponentsPatch");
+        if (componentKey.isBlank()) {
+            componentKey = reflectedStackDetail(stack, "getTag");
+        }
+        if (componentKey.isBlank()) {
+            componentKey = reflectedStackDetail(stack, "getShareTag");
+        }
+        if (componentKey.isBlank()) {
+            return false;
+        }
+        String normalized = componentKey.toLowerCase(Locale.ROOT);
+        return normalized.contains("enchantment") || normalized.contains("potion")
+                || normalized.contains("entity") || normalized.contains("bucket_entity")
+                || normalized.contains("block_entity") || normalized.contains("fluid")
+                || normalized.contains("chemical") || normalized.contains("gas")
+                || normalized.contains("effect");
     }
 
     private static boolean isSuppressedComponentBackedFamily(ResourceLocation baseId) {
