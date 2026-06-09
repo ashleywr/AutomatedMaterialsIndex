@@ -10,6 +10,8 @@ import com.sanhiruzu.ami.index.NodeType;
 public final class RendererRegistry {
 
     public static final ItemIconRenderer ITEM = new ItemIconRenderer();
+    public static final FluidIconRenderer FLUID = new FluidIconRenderer();
+    public static final RecipeViewerIngredientRenderer INGREDIENT = new RecipeViewerIngredientRenderer();
     public static final EntityIconRenderer ENTITY = new EntityIconRenderer();
     public static final PlayerFaceRenderer PLAYER = new PlayerFaceRenderer();
     public static final PlayerModelRenderer PLAYER_MODEL = new PlayerModelRenderer();
@@ -22,6 +24,8 @@ public final class RendererRegistry {
     public static IIconRenderer get(NodeType type) {
         return switch (type) {
             case ITEM -> ITEM;
+            case FLUID -> FLUID;
+            case INGREDIENT -> INGREDIENT;
             case ENTITY -> ENTITY;
             case PLAYER -> PLAYER;
             case BIOME, STRUCTURE -> PROXY;
@@ -31,6 +35,7 @@ public final class RendererRegistry {
 
     public static void invalidateAll() {
         ITEM.invalidate();
+        INGREDIENT.invalidate();
         ENTITY.invalidate();
         PLAYER_MODEL.invalidate();
         PROXY.invalidate();

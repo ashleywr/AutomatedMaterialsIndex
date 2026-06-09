@@ -526,6 +526,7 @@ public final class AmiOntology {
             case ENTITY -> BESTIARY;
             case PLAYER -> SOCIAL;
             case WAYPOINT -> ENVIRONMENT;
+            case FLUID, INGREDIENT -> MISC;
             case ITEM -> classifyItem(node);
         };
     }

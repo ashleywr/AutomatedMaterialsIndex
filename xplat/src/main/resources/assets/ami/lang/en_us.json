@@ -6,6 +6,8 @@
   "ami.version": "AMI Version",
   "ami.gui.registry_tree": "Registry Tree",
   "ami.gui.items": "Items",
+  "ami.gui.fluids": "Fluids",
+  "ami.gui.ingredients": "Ingredients",
   "ami.gui.biomes": "Biomes",
   "ami.gui.structures": "Structures",
   "ami.gui.entities": "Entities",

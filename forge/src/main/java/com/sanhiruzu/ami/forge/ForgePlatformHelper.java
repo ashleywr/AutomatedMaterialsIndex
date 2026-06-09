@@ -12,10 +12,12 @@ import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -29,8 +31,7 @@ import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.SuspiciousEffectHolder;
+import net.minecraft.world.level.block.FlowerBlock;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fluids.capability.IFluidHandlerItem;
@@ -233,6 +234,29 @@ public class ForgePlatformHelper implements IPlatformHelper {
     }
 
     @Override
+    public net.minecraft.network.chat.Component getFluidDisplayName(net.minecraft.world.level.material.Fluid fluid) {
+        return new net.minecraftforge.fluids.FluidStack(fluid, 1000).getDisplayName();
+    }
+
+    @Override
+    public net.minecraft.resources.ResourceLocation getFluidStillTexture(net.minecraft.world.level.material.Fluid fluid) {
+        try {
+            return net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions.of(fluid).getStillTexture();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @Override
+    public int getFluidTintColor(net.minecraft.world.level.material.Fluid fluid) {
+        try {
+            return net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions.of(fluid).getTintColor();
+        } catch (Exception e) {
+            return 0xFFFFFFFF;
+        }
+    }
+
+    @Override
     public OptionalLong getItemFluidCapacity(ItemStack stack) {
         IFluidHandlerItem handler = stack.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).orElse(null);
         if (handler == null || handler.getTanks() <= 0) return OptionalLong.empty();
@@ -313,24 +337,30 @@ public class ForgePlatformHelper implements IPlatformHelper {
     @Override
     public List<SubtypeStack> createSuspiciousStewSubtypeStacks() {
         List<SubtypeStack> result = new ArrayList<>();
-        for (Block block : BuiltInRegistries.BLOCK) {
-            SuspiciousEffectHolder holder = SuspiciousEffectHolder.tryGet(block);
-            if (holder == null) continue;
+        BuiltInRegistries.ITEM.getTag(ItemTags.SMALL_FLOWERS)
+                .stream()
+                .flatMap(HolderSet.ListBacked::stream)
+                .map(Holder::value)
+                .filter(BlockItem.class::isInstance)
+                .map(BlockItem.class::cast)
+                .map(BlockItem::getBlock)
+                .filter(FlowerBlock.class::isInstance)
+                .map(FlowerBlock.class::cast)
+                .forEach(flowerBlock -> {
+                    MobEffect effect = flowerBlock.getSuspiciousEffect();
+                    ResourceLocation effectId = BuiltInRegistries.MOB_EFFECT.getKey(effect);
+                    if (effectId == null) return;
 
-            MobEffect effect = holder.getSuspiciousEffect();
-            ResourceLocation effectId = BuiltInRegistries.MOB_EFFECT.getKey(effect);
-            if (effectId == null) continue;
-
-            ItemStack stack = new ItemStack(Items.SUSPICIOUS_STEW);
-            CompoundTag tag = stack.getOrCreateTag();
-            ListTag list = new ListTag();
-            CompoundTag effectTag = new CompoundTag();
-            effectTag.putInt("EffectId", MobEffect.getId(effect));
-            effectTag.putInt("EffectDuration", holder.getEffectDuration());
-            list.add(effectTag);
-            tag.put("Effects", list);
-            result.add(new SubtypeStack(effectId, stack));
-        }
+                    ItemStack stack = new ItemStack(Items.SUSPICIOUS_STEW);
+                    CompoundTag tag = stack.getOrCreateTag();
+                    ListTag list = new ListTag();
+                    CompoundTag effectTag = new CompoundTag();
+                    effectTag.putInt("EffectId", MobEffect.getId(effect));
+                    effectTag.putInt("EffectDuration", flowerBlock.getEffectDuration());
+                    list.add(effectTag);
+                    tag.put("Effects", list);
+                    result.add(new SubtypeStack(effectId, stack));
+                });
         return result;
     }
 

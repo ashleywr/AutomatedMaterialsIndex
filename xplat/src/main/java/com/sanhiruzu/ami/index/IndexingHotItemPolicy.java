@@ -18,8 +18,6 @@ public final class IndexingHotItemPolicy {
             Boolean.getBoolean("ami.debug.deferFacadeItems");
     private static final boolean FAST_FACADE_INDEX =
             Boolean.getBoolean("ami.debug.fastFacadeIndex");
-    private static final boolean TOOLTIP_SEARCH_TOKENS =
-            Boolean.getBoolean("ami.debug.tooltipSearchTokens");
     private static final boolean CLASSIFICATION_TRACE =
             Boolean.getBoolean("ami.debug.classificationTrace");
     private static final boolean ICON_AUDIT =
@@ -67,13 +65,8 @@ public final class IndexingHotItemPolicy {
     public static String cacheKeyFragment() {
         return "_deferFacadeItems=" + DEFER_FACADE_ITEMS
                 + "_fastFacadeIndex=" + FAST_FACADE_INDEX
-                + "_tooltipSearchTokens=" + TOOLTIP_SEARCH_TOKENS
                 + "_classificationTrace=" + CLASSIFICATION_TRACE
                 + "_deferredIndexNamespaces=" + deferredIndexNamespacesForLog();
-    }
-
-    public static boolean shouldIndexTooltipSearchTokens() {
-        return TOOLTIP_SEARCH_TOKENS;
     }
 
     public static boolean shouldRecordClassificationTrace() {

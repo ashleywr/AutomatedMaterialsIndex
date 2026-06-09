@@ -26,11 +26,11 @@ import java.util.zip.GZIPOutputStream;
 
 /**
  * Serialization cache for GlobalIndex.
- * Caches ITEM, BIOME, and ENTITY nodes (keyed by mod list hash).
+ * Caches ITEM, FLUID, INGREDIENT, BIOME, and ENTITY nodes (keyed by mod list hash).
  * STRUCTURE and DIMENSION are always live-loaded (world/datapack-specific).
  */
 public final class GlobalIndexCache {
-    private static final int CACHE_VERSION = 51; // Bump this when index data format changes
+    private static final int CACHE_VERSION = 54; // Bump this when index data format changes
 
     private static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
@@ -191,7 +191,7 @@ public final class GlobalIndexCache {
     private static void serializeFrom(GlobalIndex index, OutputStreamWriter writer) throws IOException {
         JsonObject root = new JsonObject();
 
-        // Only cache non-deferred types (ITEM, BIOME, ENTITY)
+        // Only cache non-deferred types
         // STRUCTURE and DIMENSION are always empty in cache (live-loaded)
         for (NodeType type : NodeType.values()) {
             JsonArray array = new JsonArray();

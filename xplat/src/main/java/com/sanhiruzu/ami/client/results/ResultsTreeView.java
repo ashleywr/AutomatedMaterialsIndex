@@ -334,7 +334,7 @@ public class ResultsTreeView {
 
         // Z-lift prevents dark-background clipping on 3D item models
         g.pose().pushPose();
-        g.pose().translate(iconX + 8, iconY + 8, 0);
+        g.pose().translate(iconX + 8, iconY + 8, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
 
         boolean dragging = com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging();
         if (dragging || hovered) {
@@ -423,7 +423,7 @@ public class ResultsTreeView {
                     int iconX = currentX - TOOL_ICON_SIZE;
                     int iconY = drawY + (AMITheme.ROW_HEIGHT - TOOL_ICON_SIZE) / 2;
                     g.pose().pushPose();
-                    g.pose().translate(iconX + TOOL_ICON_SIZE / 2.0, iconY + TOOL_ICON_SIZE / 2.0, 0);
+                    g.pose().translate(iconX + TOOL_ICON_SIZE / 2.0, iconY + TOOL_ICON_SIZE / 2.0, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
                     float toolScale = TOOL_ICON_SIZE / 16.0f;
                     g.pose().scale(toolScale, toolScale, 1.0f);
                     g.renderItem(toolStack, -8, -8);
@@ -546,7 +546,7 @@ public class ResultsTreeView {
             int iconX = rowX + 12;
             int iconY = drawY + 1;
             g.pose().pushPose();
-            g.pose().translate(0, 0, 0);
+            g.pose().translate(0, 0, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
             g.renderItem(icon, iconX, iconY);
             g.pose().popPose();
         }

@@ -6,6 +6,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.sanhiruzu.ami.client.results.*;
 import com.sanhiruzu.ami.forge.AMI;
 import com.sanhiruzu.ami.index.*;
+import com.sanhiruzu.ami.index.providers.RecipeViewerItemAudit;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -37,6 +38,12 @@ public class AmiClientCommands {
                 .then(Commands.literal("dump-guide-docs")
                         .executes(context -> {
                             exportGuideDocs(context.getSource());
+                            return 1;
+                        })
+                )
+                .then(Commands.literal("dump-recipe-viewer-items")
+                        .executes(context -> {
+                            exportRecipeViewerItemAudit(context.getSource());
                             return 1;
                         })
                 )
@@ -106,6 +113,27 @@ public class AmiClientCommands {
         } catch (Exception e) {
             AMI.LOGGER.error("Failed to export AMI guide docs mirror", e);
             source.sendSystemMessage(Component.literal("Failed to export AMI guide docs mirror: " + e.getMessage())
+                    .withStyle(ChatFormatting.RED));
+        }
+    }
+
+    private static void exportRecipeViewerItemAudit(CommandSourceStack source) {
+        Path dumpDir = FMLPaths.GAMEDIR.get().resolve("ami_dumps");
+        try {
+            Files.createDirectories(dumpDir);
+            RecipeViewerItemAudit.AuditOutputs outputs = RecipeViewerItemAudit.writeDump(
+                    dumpDir,
+                    net.minecraft.client.Minecraft.getInstance().level
+            );
+            source.sendSystemMessage(Component.literal(
+                            "AMI recipe viewer item audit written to "
+                                    + outputs.reportMarkdown().toAbsolutePath()
+                                    + " and "
+                                    + outputs.reportJson().toAbsolutePath())
+                    .withStyle(ChatFormatting.GREEN));
+        } catch (Exception e) {
+            AMI.LOGGER.error("Failed to export AMI recipe viewer item audit", e);
+            source.sendSystemMessage(Component.literal("Failed to export AMI recipe viewer item audit: " + e.getMessage())
                     .withStyle(ChatFormatting.RED));
         }
     }

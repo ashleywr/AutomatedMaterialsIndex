@@ -210,7 +210,7 @@ public class EntityIconRenderer implements IIconRenderer {
                     IconRenderState.render3dIcon(g, () -> {
                         g.pose().pushPose();
                         try {
-                            g.pose().translate(x + size / 2.0, y + size / 2.0, 0);
+                            g.pose().translate(x + size / 2.0, y + size / 2.0, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
                             float s = size / 16.0f;
                             g.pose().scale(s, s, 1f);
                             g.renderItem(proxy, -8, -8);
