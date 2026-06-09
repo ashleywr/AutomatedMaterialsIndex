@@ -37,32 +37,65 @@ public class RecipeViewerIngredientProvider implements IAmiDataProvider {
 
     @Override
     public void populate(GlobalIndex index, @Nullable Level level) {
-        rebuildRuntimeHandles(index);
+        long start = System.currentTimeMillis();
+        int nativeCount = indexNativeIngredients(index);
+        int jeiCount = indexJeiIngredients(index);
+        long elapsed = System.currentTimeMillis() - start;
+        AmiCore.LOGGER.info("AMI indexing: RecipeViewerIngredientProvider indexed {} native + {} JEI ingredients in {}ms",
+                nativeCount, jeiCount, elapsed);
+    }
+
+    private static int indexNativeIngredients(GlobalIndex index) {
+        RecipeViewerIngredientRenderer.clearPersistent();
+        int[] count = {0};
+        IAmiIngredientPlugin.IngredientRegistry registry = new IngredientRegistry(index, count);
+        IngredientPluginRegistry.registerAllIngredients(registry);
+        return count[0];
+    }
+
+    private static int indexJeiIngredients(GlobalIndex index) {
+        RecipeViewerIngredientRenderer.clearPersistent();
+        int[] count = {0};
+        JeiRuntimeAccessor.withRuntime(runtime -> {
+            indexJeiIngredientsInternal(index, runtime, count);
+        });
+        return count[0];
+    }
+
+    private static void indexJeiIngredientsInternal(GlobalIndex index, mezz.jei.api.runtime.IJeiRuntime runtime, int[] count) {
+        var ingredientManager = runtime.getIngredientManager();
+        var visibility = runtime.getJeiHelpers().getIngredientVisibility();
+        Set<String> seenKeys = new LinkedHashSet<>();
+        for (mezz.jei.api.ingredients.IIngredientType<?> type : ingredientManager.getRegisteredIngredientTypes()) {
+            String typeUid = safeTypeUid(type);
+            if (RecipeViewerIngredientIds.shouldSkipTypeUid(typeUid)) {
+                continue;
+            }
+            count[0] += addJeiType(index, ingredientManager, visibility, type, typeUid, seenKeys);
+        }
     }
 
     public static void rebuildRuntimeHandles(GlobalIndex index) {
         RecipeViewerIngredientRenderer.clearPersistent();
-        int[] count = {0};
         JeiRuntimeAccessor.withRuntime(runtime -> {
             var ingredientManager = runtime.getIngredientManager();
             var visibility = runtime.getJeiHelpers().getIngredientVisibility();
             Set<String> seenKeys = new LinkedHashSet<>();
-            for (IIngredientType<?> type : ingredientManager.getRegisteredIngredientTypes()) {
+            for (mezz.jei.api.ingredients.IIngredientType<?> type : ingredientManager.getRegisteredIngredientTypes()) {
                 String typeUid = safeTypeUid(type);
                 if (RecipeViewerIngredientIds.shouldSkipTypeUid(typeUid)) {
                     continue;
                 }
-                count[0] += addType(index, ingredientManager, visibility, type, typeUid, seenKeys);
+                addJeiType(index, ingredientManager, visibility, type, typeUid, seenKeys);
             }
         });
-        AmiCore.LOGGER.info("AMI indexing: RecipeViewerIngredientProvider indexed {} non-item recipe viewer ingredients", count[0]);
     }
 
-    private static <V> int addType(
+    private static <V> int addJeiType(
             GlobalIndex index,
             mezz.jei.api.runtime.IIngredientManager ingredientManager,
             mezz.jei.api.runtime.IIngredientVisibility visibility,
-            IIngredientType<V> type,
+            mezz.jei.api.ingredients.IIngredientType<V> type,
             String typeUid,
             Set<String> seenKeys
     ) {
@@ -235,6 +268,42 @@ public class RecipeViewerIngredientProvider implements IAmiDataProvider {
     private static String mergeTokens(String existing, String added) {
         List<String> parts = List.of(existing.split("\\s+"));
         return parts.contains(added) ? existing : existing + " " + added;
+    }
+
+    private static class IngredientRegistry implements IAmiIngredientPlugin.IngredientRegistry {
+        private final GlobalIndex index;
+        private final int[] count;
+        private final Set<String> seenKeys;
+
+        IngredientRegistry(GlobalIndex index, int[] count) {
+            this.index = index;
+            this.count = count;
+            this.seenKeys = new LinkedHashSet<>();
+        }
+
+        @Override
+        public void addIngredient(ResourceLocation id, String displayName, String typeUid, Map<String, String> metadata) {
+            if (id == null || displayName == null || displayName.isBlank()) {
+                return;
+            }
+            String seenKey = typeUid + "|" + id;
+            if (!seenKeys.add(seenKey)) {
+                return;
+            }
+
+            Map<String, String> meta = new LinkedHashMap<>(metadata);
+            meta.putIfAbsent(SearchNodeKeys.MOD_ID, id.getNamespace());
+            meta.put(TYPE_UID_KEY, typeUid);
+            meta.putIfAbsent(DISPLAY_MOD_ID_KEY, id.getNamespace());
+            maybeApplyKnownOntology(meta, id.getNamespace(), typeUid);
+
+            String modName = Services.PLATFORM.getModName(id.getNamespace()).orElse(id.getNamespace());
+            addPlainSearchTokens(meta, modName);
+            addPlainSearchTokens(meta, displayName);
+
+            index.addNode(new SearchNode(id, NodeType.INGREDIENT, displayName, 0xFFFFFFFF, 0, meta));
+            count[0]++;
+        }
     }
 
 }
