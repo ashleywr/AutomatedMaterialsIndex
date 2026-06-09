@@ -39,7 +39,7 @@ final class ResultsFilter {
 
     private boolean matchesAccessLevel(SearchNode node) {
         String level = node.meta(SearchNodeKeys.ACCESS_LEVEL, "");
-        if (ItemFilter.ACCESS_DEV.equals(level)) return AmiConfig.devMode;
+        if (ItemFilter.ACCESS_DEV.equals(level)) return AmiConfig.devMode || AmiConfig.showHiddenModItems;
         if (ItemFilter.ACCESS_CHEAT.equals(level)) return AmiConfig.cheatMode || AmiConfig.devMode;
 
         if (ItemFilter.ACCESS_CREATIVE.equals(level)) {
