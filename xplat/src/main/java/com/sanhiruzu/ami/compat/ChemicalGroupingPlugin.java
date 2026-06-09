@@ -40,11 +40,10 @@ public class ChemicalGroupingPlugin implements CompatIndexPlugin {
             fluidDisplayNames.put(baseName, node.displayName());
         }
 
-        // Collect bucket items by class inspection
+        // Collect bucket items by IS_BUCKET_ITEM flag
         for (SearchNode node : index.getNodes(NodeType.ITEM)) {
             if (node == null || node.id() == null) continue;
-            String itemClass = node.metadata().getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
-            if (isBucketItem(itemClass)) {
+            if ("true".equals(node.metadata().get(SearchNodeKeys.IS_BUCKET_ITEM))) {
                 String baseName = extractBaseName(node.id().getPath());
                 bucketDisplayNames.put(baseName, node.displayName());
             }
@@ -89,8 +88,7 @@ public class ChemicalGroupingPlugin implements CompatIndexPlugin {
         for (SearchNode node : index.getNodes(NodeType.ITEM)) {
             if (node == null || node.id() == null) continue;
             Map<String, String> meta = node.metadata();
-            String itemClass = meta.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
-            if (isBucketItem(itemClass)) {
+            if ("true".equals(meta.get(SearchNodeKeys.IS_BUCKET_ITEM))) {
                 String baseName = extractBaseName(node.id().getPath());
                 if (fluidDisplayNames.containsKey(baseName)) {
                     String modId = node.id().getNamespace();
@@ -98,11 +96,6 @@ public class ChemicalGroupingPlugin implements CompatIndexPlugin {
                 }
             }
         }
-    }
-
-    private boolean isBucketItem(String itemClass) {
-        if (itemClass == null || itemClass.isBlank()) return false;
-        return itemClass.contains("BucketItem") || itemClass.contains(".Bucket");
     }
 
     private void applyChemicalGrouping(Map<String, String> meta, String modNamespace, String baseName, String displayName) {
@@ -121,9 +114,6 @@ public class ChemicalGroupingPlugin implements CompatIndexPlugin {
     }
 
     private boolean isChemicalIngredient(String typeUid) {
-        if (typeUid == null) return false;
-        String lower = typeUid.toLowerCase(Locale.ROOT);
-        return lower.contains("chemical") || lower.contains("gas") || lower.contains("pigment")
-                || lower.contains("slurry") || lower.contains("infuse");
+        return ChemicalTypeDetector.isChemicalType(typeUid);
     }
 }

@@ -131,6 +131,9 @@ public final class FacetIndexer {
 
     private static void applyItemClassFacts(Item item, ResourceLocation id, EnumSet<ItemFacet> facets, Map<String, String> attributes) {
         String itemClass = item.getClass().getName().toLowerCase(Locale.ROOT);
+        if (item instanceof BucketItem) {
+            attributes.put(SearchNodeKeys.IS_BUCKET_ITEM, "true");
+        }
         if (containsAny(itemClass, "bottleitem", "flaskitem")) {
             facets.add(ItemFacet.UTILITY_MISC);
         }
