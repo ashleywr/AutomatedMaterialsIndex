@@ -317,10 +317,11 @@ public final class FacetIndexer {
             facets.add(ItemFacet.INGREDIENT_MINERAL);
         }
         if (path.equals("coal") || path.equals("charcoal")) {
-            facets.add(ItemFacet.DUST);
+            facets.add(ItemFacet.INGREDIENT_MINERAL);
         }
         if (path.equals("netherite_scrap")) {
             facets.add(ItemFacet.RAW_MATERIAL);
+            facets.add(ItemFacet.INGREDIENT_MINERAL);
         }
         if (path.equals("painting") || path.contains("item_frame")
                 || path.equals("armor_stand") || path.contains("banner_pattern")) {
@@ -467,8 +468,15 @@ public final class FacetIndexer {
             }
             if (isCommonTagFamily(tag, "ingots")) facets.add(ItemFacet.INGOT);
             if (isCommonTagFamily(tag, "gems")) facets.add(ItemFacet.GEM);
-            if (isCommonTagFamily(tag, "nuggets")) facets.add(ItemFacet.NUGGET);
-            if (isCommonTagFamily(tag, "raw_materials")) facets.add(ItemFacet.RAW_MATERIAL);
+            if (tag.equals("c:silicon")) facets.add(ItemFacet.INGREDIENT_MINERAL);
+            if (isCommonTagFamily(tag, "nuggets")) {
+                facets.add(ItemFacet.NUGGET);
+                facets.add(ItemFacet.INGREDIENT_MINERAL);
+            }
+            if (isCommonTagFamily(tag, "raw_materials")) {
+                facets.add(ItemFacet.RAW_MATERIAL);
+                facets.add(ItemFacet.INGREDIENT_MINERAL);
+            }
             if (isCommonTagFamily(tag, "dusts")) facets.add(ItemFacet.DUST);
             if (isCommonTagFamily(tag, "gears")) {
                 facets.add(ItemFacet.MECHANICAL_COMPONENT);
@@ -520,10 +528,6 @@ public final class FacetIndexer {
             }
             if (tag.startsWith("c:seeds")) facets.add(ItemFacet.SEED);
             if (tag.startsWith("c:crops")) facets.add(ItemFacet.CROP);
-            if (isProduceFoodTag(tag)
-                    || (tag.equals("diet:vegetables") && facets.contains(ItemFacet.EDIBLE))) {
-                facets.add(ItemFacet.CROP);
-            }
             if (tag.startsWith("c:eggs") || tag.startsWith("c:feathers") || tag.startsWith("c:string")
                     || tag.startsWith("c:leathers") || tag.startsWith("c:bones")
                     || tag.equals("spore:body_parts")
@@ -594,6 +598,9 @@ public final class FacetIndexer {
                 } else {
                     facets.add(ItemFacet.INGOT);
                 }
+            }
+            if (tag.equals("c:ores") || tag.equals("forge:ores")) {
+                facets.add(ItemFacet.STONE_BLOCK);
             }
         }
     }
@@ -672,11 +679,6 @@ public final class FacetIndexer {
             }
         }
         return false;
-    }
-
-    private static boolean isProduceFoodTag(String tag) {
-        return tag.startsWith("c:foods/vegetable")
-                || tag.startsWith("forge:foods/vegetable");
     }
 
     private static boolean isFurnitureTag(String tag) {
@@ -790,7 +792,8 @@ public final class FacetIndexer {
                 || path.endsWith("_honeycomb")
                 || path.endsWith("_scute")
                 || isNaturalShellPath(path)
-                || containsPathToken(path,
+                || path.equals("egg")
+        || containsPathToken(path,
                 "paper",
                 "string",
                 "feather",
@@ -798,8 +801,6 @@ public final class FacetIndexer {
                 "leather",
                 "bone",
                 "bones",
-                "egg",
-                "eggs",
                 "honeycomb",
                 "scute");
     }
@@ -886,8 +887,11 @@ public final class FacetIndexer {
         String blockClass = blockItem.getBlock().getClass().getName();
         attributes.put(SearchNodeKeys.BLOCK_CLASS, blockClass);
         String normalizedBlockClass = blockClass.toLowerCase(Locale.ROOT);
-        if ("net.minecraft.world.level.block.ConduitBlock".equals(blockClass)) {
-            facets.add(ItemFacet.UTILITY_MISC);
+        if ("net.minecraft.world.level.block.ConduitBlock".equals(blockClass)
+                || "net.minecraft.world.level.block.BeaconBlock".equals(blockClass)
+                || "net.minecraft.world.level.block.EnchantmentTableBlock".equals(blockClass)
+                || "net.minecraft.world.level.block.EndPortalFrameBlock".equals(blockClass)) {
+            facets.add(ItemFacet.MAGIC_ARTIFACT);
         }
         if (containsAny(normalizedBlockClass, "powerbottleblock", "symbolblock", "staffblock")) {
             facets.add(ItemFacet.MAGIC_ARTIFACT);
@@ -1018,7 +1022,7 @@ public final class FacetIndexer {
         if (state.is(BlockTags.BASE_STONE_OVERWORLD) || state.is(BlockTags.BASE_STONE_NETHER)) {
             facets.add(ItemFacet.STONE_BLOCK);
         }
-        if (state.is(BlockTags.DIRT) || path.contains("sand") || path.contains("gravel")) {
+        if (state.is(BlockTags.DIRT) || (path.contains("sand") && !path.contains("sandstone")) || path.contains("gravel")) {
             facets.add(ItemFacet.SOIL_BLOCK);
         }
         if (path.contains("glass") || path.contains("pane")) {
@@ -1175,6 +1179,9 @@ public final class FacetIndexer {
     private static boolean isCropLikePlaceable(String path, String blockClass) {
         String className = blockClass.toLowerCase(Locale.ROOT);
         if (path.equals("dead_bush") || className.contains("deadbush")) {
+            return false;
+        }
+        if (className.contains("flower")) {
             return false;
         }
         return path.endsWith("_crop")
