@@ -49,7 +49,7 @@ public class AmiEnumDropdownWidget extends AbstractWidget implements AmiDropdown
         int listY = dropdownY(listH);
 
         g.pose().pushPose();
-        g.pose().translate(0, 0, 250);
+        g.pose().translate(0, 0, com.sanhiruzu.ami.client.overlay.OverlayLayers.DROPDOWN);
         AMITheme.fillPixelPopup(g, listX, listY, listW, listH,
                 AMITheme.DROPDOWN_LIST_BG, AMITheme.BORDER_LIGHT, AMITheme.CONTROL_SHADOW, 0);
 

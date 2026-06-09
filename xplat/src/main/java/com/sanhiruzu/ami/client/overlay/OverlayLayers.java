@@ -1,17 +1,23 @@
 package com.sanhiruzu.ami.client.overlay;
 
 /**
- * Named z translations for AMI's painter-order overlay pass.
+ * Named z translations for screen rendering layers.
  *
- * Promise: render panel bodies first, then each higher layer in ascending order.
+ * Z-order is ascending: higher values render on top (closer to camera).
+ * Promise: all Z values defined here; no magic numbers in rendering code.
  * Do not fix z-order bugs with ad hoc literals in individual widgets.
  */
 public final class OverlayLayers {
-    public static final int PANEL = 200;
-    public static final int DROPDOWN = 400;
-    public static final int CONTEXT_MENU = 500;
-    public static final int TRANSIENT_TOOLTIP = 600;
-    public static final int DEBUG = 700;
+    public static final int SCREEN = 0;              // Vanilla screen/menu base
+    public static final int AMI_BASE = 200;          // AMI overlay base (panels, etc.)
+    public static final int PANEL = AMI_BASE;        // Alias for compatibility
+    public static final int SEARCH_BAR = 201;        // Search bar (just above panels)
+    public static final int DROPDOWN = 400;          // Dropdowns on top of panels
+    public static final int CONTEXT_MENU = 500;      // Context menus
+    public static final int TRANSIENT_TOOLTIP = 600; // AMI's own tooltips
+    public static final int DEBUG = 700;             // Debug overlays
+    public static final int LAYOUT_MODE = 210;       // Layout mode UI (above panels)
+    public static final int VANILLA_TOOLTIP = 1000;  // Vanilla Minecraft tooltips (always on top)
 
     private OverlayLayers() {
     }

@@ -214,7 +214,7 @@ public class InventoryOverlayHandler {
         manager.refreshLayoutIfNeeded(event.getScreen());
 
         if (currentLayer == VisibleLayer.AMI) {
-            manager.tick(event);
+            manager.tick();
             manager.renderAll(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
         }
     }
