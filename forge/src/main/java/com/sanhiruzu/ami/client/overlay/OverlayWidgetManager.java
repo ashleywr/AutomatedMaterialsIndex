@@ -624,7 +624,7 @@ public class OverlayWidgetManager {
         refreshSidebars();
     }
 
-    public void tick(ScreenEvent.Render.Post event) {
+    public void tick() {
         if (!panelVisible) return;
 
         ensureWidgets();
@@ -666,7 +666,7 @@ public class OverlayWidgetManager {
                 g.flush();
                 com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
                 g.pose().pushPose();
-                g.pose().translate(0, 0, 0);
+                g.pose().translate(0, 0, OverlayLayers.SCREEN);
 
                 amiButton.render(g, mx, my, pt);
 
@@ -681,7 +681,7 @@ public class OverlayWidgetManager {
 
                 if (inLayoutMode) {
                     g.pose().pushPose();
-                    g.pose().translate(0, 0, OverlayLayers.PANEL + 10);
+                    g.pose().translate(0, 0, OverlayLayers.LAYOUT_MODE);
                     renderLayoutMode(g, mx, my, pt);
                     g.pose().popPose();
                 }
@@ -741,7 +741,7 @@ public class OverlayWidgetManager {
             g.flush();
             com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
             g.pose().pushPose();
-            g.pose().translate(0, 0, OverlayLayers.PANEL + 1);
+            g.pose().translate(0, 0, OverlayLayers.SEARCH_BAR);
             searchBar.render(g, mx, my, pt);
             g.pose().popPose();
             g.flush();
