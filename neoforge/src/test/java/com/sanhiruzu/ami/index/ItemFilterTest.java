@@ -38,6 +38,15 @@ public class ItemFilterTest {
         assertEquals(ItemFilter.ACCESS_CREATIVE, ItemFilter.classifyAccessLevel(new ResourceLocation("mekanism:creative_fluid_tank"), true));
         assertEquals(ItemFilter.ACCESS_CREATIVE, ItemFilter.classifyAccessLevel(new ResourceLocation("example:infinite_creative_battery"), true));
 
+        // Path patterns that were too broad — these are real functional items, not debug items
+        assertEquals(ItemFilter.ACCESS_SURVIVAL, ItemFilter.classifyAccessLevel(new ResourceLocation("naturesaura:effect_powder"), true));
+        assertEquals(ItemFilter.ACCESS_CREATIVE, ItemFilter.classifyAccessLevel(new ResourceLocation("spectrum:particle_spawner"), true));
+        assertEquals(ItemFilter.ACCESS_CREATIVE, ItemFilter.classifyAccessLevel(new ResourceLocation("spectrum:creative_particle_spawner"), true));
+
+        // Debug/test patterns that should still be dev-only
+        assertEquals(ItemFilter.ACCESS_DEV, ItemFilter.classifyAccessLevel(new ResourceLocation("ae2:debug_card"), true));
+        assertEquals(ItemFilter.ACCESS_DEV, ItemFilter.classifyAccessLevel(new ResourceLocation("mod:test_item_generator"), true));
+
         // Hidden items (not in creative)
         assertEquals(ItemFilter.ACCESS_DEV, ItemFilter.classifyAccessLevel(new ResourceLocation("minecraft:iron_ingot"), false));
     }

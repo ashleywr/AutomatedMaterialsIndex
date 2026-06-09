@@ -137,8 +137,7 @@ public final class ItemFilter {
         String path = id.getPath();
 
         // Explicitly hidden/technical items are always dev-only
-        if (path.contains("debug") || path.contains("test_") || path.contains("fireball")
-                || path.contains("effect") || path.contains("particle")) return ACCESS_DEV;
+        if (path.contains("debug") || path.contains("test_") || path.contains("fireball")) return ACCESS_DEV;
 
         // Special restricted items
         if (isCreativeOnlyPath(path)) return ACCESS_CREATIVE;

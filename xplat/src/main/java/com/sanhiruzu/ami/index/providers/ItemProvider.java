@@ -800,7 +800,7 @@ public class ItemProvider implements IAmiDataProvider {
                 continue;
             }
 
-            if (!ItemFilter.shouldShowAccessLevel(accessLevel)) continue;
+            if (!ItemFilter.shouldShowAccessLevel(accessLevel) && !ItemFilter.ACCESS_DEV.equals(accessLevel)) continue;
 
             long basePreRecipeStart = System.nanoTime();
             long baseStageStart = System.nanoTime();
