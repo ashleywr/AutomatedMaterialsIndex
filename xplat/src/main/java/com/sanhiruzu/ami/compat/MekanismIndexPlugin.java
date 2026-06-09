@@ -7,6 +7,7 @@ import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.providers.RecipeViewerIngredientProvider;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
@@ -18,6 +19,22 @@ public class MekanismIndexPlugin implements CompatIndexPlugin {
 
     @Override
     public void applyToIndex(GlobalIndex index) {
+        // First pass: collect all mekanism chemicals by ingredient type UID
+        Map<String, String> chemicalBaseNames = new HashMap<>();
+        for (SearchNode ingredientNode : index.getNodes(NodeType.INGREDIENT)) {
+            if (ingredientNode == null) continue;
+            ResourceLocation id = ingredientNode.id();
+            if (id == null || !"mekanism".equals(id.getNamespace())) continue;
+
+            Map<String, String> meta = ingredientNode.metadata();
+            String typeUid = meta.get(RecipeViewerIngredientProvider.TYPE_UID_KEY);
+            if (isChemicalIngredient(typeUid)) {
+                String baseName = extractBaseName(id.getPath());
+                chemicalBaseNames.put(baseName, ingredientNode.displayName());
+            }
+        }
+
+        // Second pass: group fluids, ingredients, and buckets by their chemical base name
         for (NodeType type : NodeType.values()) {
             for (SearchNode node : index.getNodes(type)) {
                 if (node == null) continue;
@@ -30,54 +47,53 @@ public class MekanismIndexPlugin implements CompatIndexPlugin {
                 Map<String, String> meta = node.metadata();
                 String path = id.getPath().toLowerCase(Locale.ROOT);
 
-                if (type == NodeType.FLUID && isChemicalFluid(path)) {
-                    meta.putIfAbsent(SearchNodeKeys.ONTOLOGY_CATEGORY, "mekanism");
-                    meta.putIfAbsent(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "chemicals");
-                    String chemicalBase = extractChemicalBase(path);
-                    applyChemicalGrouping(meta, chemicalBase, node.displayName());
+                // Check if this node belongs to a chemical family
+                String baseName = null;
+                String displayName = node.displayName();
+
+                if (type == NodeType.FLUID) {
+                    baseName = extractBaseName(path);
+                    if (chemicalBaseNames.containsKey(baseName)) {
+                        meta.putIfAbsent(SearchNodeKeys.ONTOLOGY_CATEGORY, "mekanism");
+                        meta.putIfAbsent(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "chemicals");
+                        displayName = chemicalBaseNames.get(baseName);
+                    }
                 }
 
                 if (type == NodeType.INGREDIENT) {
                     String typeUid = meta.get(RecipeViewerIngredientProvider.TYPE_UID_KEY);
                     if (isChemicalIngredient(typeUid)) {
-                        String chemicalBase = extractChemicalBase(path);
-                        applyChemicalGrouping(meta, chemicalBase, node.displayName());
+                        baseName = extractBaseName(path);
                     }
                 }
 
-                if (type == NodeType.ITEM && isChemicalBucketItem(path)) {
-                    String chemicalBase = extractChemicalBaseFromBucket(path);
-                    applyChemicalGrouping(meta, chemicalBase, extractChemicalDisplayName(path));
+                if (type == NodeType.ITEM && path.endsWith("_bucket")) {
+                    baseName = extractBaseName(path.replace("_bucket", ""));
+                    if (chemicalBaseNames.containsKey(baseName)) {
+                        displayName = chemicalBaseNames.get(baseName);
+                    }
+                }
+
+                if (baseName != null && chemicalBaseNames.containsKey(baseName)) {
+                    applyChemicalGrouping(meta, baseName, chemicalBaseNames.get(baseName));
                 }
             }
         }
     }
 
-    private void applyChemicalGrouping(Map<String, String> meta, String collapseFamily, String displayName) {
-        meta.putIfAbsent(SearchNodeKeys.COLLAPSE_FAMILY, collapseFamily);
+    private void applyChemicalGrouping(Map<String, String> meta, String baseName, String displayName) {
+        meta.putIfAbsent(SearchNodeKeys.COLLAPSE_FAMILY, "mekanism:" + baseName);
         meta.putIfAbsent(SearchNodeKeys.COLLAPSE_LABEL, displayName);
         meta.putIfAbsent(SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed");
     }
 
-    private String extractChemicalBase(String path) {
-        return "mekanism:" + path;
-    }
-
-    private String extractChemicalBaseFromBucket(String path) {
-        String base = path.replace("_bucket", "");
-        return "mekanism:" + base;
-    }
-
-    private String extractChemicalDisplayName(String bucketPath) {
-        String base = bucketPath.replace("_bucket", "");
-        return base.substring(0, 1).toUpperCase(Locale.ROOT) + base.substring(1).replace("_", " ");
-    }
-
-    private boolean isChemicalFluid(String path) {
-        return path.contains("oxygen") || path.contains("hydrogen") || path.contains("nitrogen")
-                || path.contains("fluorine") || path.contains("chlorine") || path.contains("sulfur")
-                || path.contains("ethene") || path.contains("sodium") || path.contains("brine")
-                || path.contains("lithium") || path.contains("osmium") || path.contains("steam");
+    private String extractBaseName(String path) {
+        String normalized = path.toLowerCase(Locale.ROOT).replace("_bucket", "");
+        // Handle variant IDs like "oxygen/rv/38f493f35930" -> "oxygen"
+        if (normalized.contains("/")) {
+            normalized = normalized.substring(0, normalized.indexOf('/'));
+        }
+        return normalized;
     }
 
     private boolean isChemicalIngredient(String typeUid) {
@@ -85,11 +101,5 @@ public class MekanismIndexPlugin implements CompatIndexPlugin {
         String lower = typeUid.toLowerCase(Locale.ROOT);
         return lower.contains("chemical") || lower.contains("gas") || lower.contains("pigment")
                 || lower.contains("slurry") || lower.contains("infuse");
-    }
-
-    private boolean isChemicalBucketItem(String path) {
-        if (!path.endsWith("_bucket")) return false;
-        String base = path.replace("_bucket", "");
-        return isChemicalFluid(base);
     }
 }
