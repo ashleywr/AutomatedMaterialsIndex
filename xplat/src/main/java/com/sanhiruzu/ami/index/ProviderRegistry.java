@@ -28,7 +28,7 @@ public final class ProviderRegistry {
             new RecipeProvider(),
             new ItemProvider(),
             new FluidProvider(),
-            new RecipeViewerIngredientProvider(),
+            new IngredientIndexProvider(),
             new BiomeProvider(),
             new EntityProvider(),
             new CobblemonSpeciesProvider(),
@@ -120,7 +120,7 @@ public final class ProviderRegistry {
             ResourceLocation fluidId = BuiltInRegistries.FLUID.getKey(fluid);
             if (fluidId != null) FluidProvider.registerBucketIcon(fluidId, fluid);
         }
-        RecipeViewerIngredientProvider.rebuildRuntimeHandles(GlobalIndex.getInstance());
+        IngredientIndexProvider.rebuildRuntimeHandles(GlobalIndex.getInstance());
         AmiCore.LOGGER.info("AMI indexing: restored cached item icons in {}ms (creativeTabs={}ms, subtypeStacks={})",
                 System.currentTimeMillis() - start, creativeMs, registered);
     }

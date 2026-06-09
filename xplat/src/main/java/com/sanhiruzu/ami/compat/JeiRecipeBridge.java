@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.index.SearchNode;
-import com.sanhiruzu.ami.index.providers.RecipeViewerIngredientProvider;
+import com.sanhiruzu.ami.index.providers.IngredientIndexProvider;
 import mezz.jei.api.gui.IRecipeLayoutDrawable;
 import mezz.jei.api.constants.RecipeTypes;
 import mezz.jei.api.ingredients.IIngredientType;
@@ -193,8 +193,8 @@ class JeiRecipeBridge {
         if (node == null) {
             return Optional.empty();
         }
-        String typeUid = node.meta(RecipeViewerIngredientProvider.TYPE_UID_KEY, "");
-        String ingredientUid = node.meta(RecipeViewerIngredientProvider.INGREDIENT_UID_KEY, "");
+        String typeUid = node.meta(IngredientIndexProvider.TYPE_UID_KEY, "");
+        String ingredientUid = node.meta(IngredientIndexProvider.INGREDIENT_UID_KEY, "");
         if (typeUid.isBlank() || ingredientUid.isBlank()) {
             return Optional.empty();
         }
