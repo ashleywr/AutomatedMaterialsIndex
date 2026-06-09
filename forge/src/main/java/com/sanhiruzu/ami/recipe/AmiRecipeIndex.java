@@ -310,7 +310,7 @@ public final class AmiRecipeIndex {
     }
 
     private int indexBrewingRecipe(int idCounter, ItemStack inputStack, Ingredient ingredient, ItemStack outputStack) {
-        ResourceLocation id = new ResourceLocation("ami", "brewing/" + idCounter++);
+        ResourceLocation id = ResourceLocation.fromNamespaceAndPath("ami", "brewing/" + idCounter++);
         var recipe = new com.sanhiruzu.ami.forge.recipe.special.PotionBrewingRecipe(
                 id,
                 inputStack.copy(),
@@ -335,7 +335,7 @@ public final class AmiRecipeIndex {
             for (Item materialItem : ForgeRegistries.ITEMS) {
                 ItemStack materialStack = materialItem.getDefaultInstance();
                 if (isValidRepairItem(item, stack, materialStack)) {
-                    ResourceLocation id = new ResourceLocation("ami", "repair/" + idCounter++);
+                    ResourceLocation id = ResourceLocation.fromNamespaceAndPath("ami", "repair/" + idCounter++);
                     Ingredient ingredient = Ingredient.of(materialStack);
                     ItemStack result = stack.copy();
                     result.setDamageValue(0);

@@ -10,6 +10,7 @@ import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.StatIconRowTooltipComponent;
 import com.sanhiruzu.ami.compat.FtbQuestsRuntimeCompat;
 import com.sanhiruzu.ami.config.AmiConfigStore;
+import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.index.GlobalIndexCache;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -95,6 +96,7 @@ public class AMIClient {
             GlobalIndexCache.preloadAsync();
         }
         FtbQuestsRuntimeCompat.clientTick();
+        AmiIndexerService.getInstance().ensurePendingRecipeIndexBuild();
         InventoryOverlayHandler.tickAutoIndexBootstrap();
     }
 

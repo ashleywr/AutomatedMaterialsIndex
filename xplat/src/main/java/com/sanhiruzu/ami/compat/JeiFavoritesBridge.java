@@ -107,6 +107,7 @@ public final class JeiFavoritesBridge {
         return getFieldValue(runtime.getBookmarkOverlay(), "bookmarkList");
     }
 
+    @SuppressWarnings("removal")
     private static Object createIngredientBookmark(IJeiRuntime runtime, Object bookmarkList, ItemStack stack) {
         if (runtime == null || bookmarkList == null || stack == null || stack.isEmpty()) return null;
 

@@ -901,10 +901,10 @@ public final class AMITheme {
 
             // ── Recipe viewer: JEI-pixel-accurate palette ─────────────────
 
-            RECIPE_BG_OVERLAY        = 0xAA000000;  // dim behind modal
+            RECIPE_BG_OVERLAY        = 0x55000000;  // subtle dim; JEI has none but we're a modal
             RECIPE_PANEL             = 0xFFC6C6C6;  // JEI panel grey
             RECIPE_PANEL_INNER       = 0xFF8B8B8B;  // inner recipe area
-            RECIPE_BORDER            = 0xFF000000;  // JEI 1px black border
+            RECIPE_BORDER            = 0xFF555555;  // MC inventory border charcoal
             RECIPE_HEADER_LINE       = 0xFF373737;  // separator dark line
             RECIPE_TAB_ACTIVE        = 0xFFC6C6C6;  // active tab = panel colour (open bottom)
             RECIPE_TAB_HOVER         = 0xFFD6D6D6;  // slight brighten on hover
@@ -921,7 +921,7 @@ public final class AMITheme {
             RECIPE_TEXT_NAV          = 0xFF404040;
             RECIPE_TEXT_FOOTER       = 0xFF555555;
             RECIPE_BTN_IDLE          = 0xFF8B8B8B;
-            RECIPE_BTN_HOVER         = 0xFF373737;
+            RECIPE_BTN_HOVER         = 0xFFB8B8B8;  // vanilla hover lightens, not darkens
             RECIPE_SHAPELESS         = 0xFF373737;
             RECIPE_WORKSTATION_BG    = 0xFFB5B5B5;
             RECIPE_WORKSTATION_TEXT  = 0xFF373737;

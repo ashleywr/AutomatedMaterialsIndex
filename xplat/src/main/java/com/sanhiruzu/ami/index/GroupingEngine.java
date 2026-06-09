@@ -390,7 +390,20 @@ public class GroupingEngine {
     public static Optional<CollapsedFamily> classifyColorizedGeneratedFamily(ResourceLocation id, String displayName,
                                                                              String colorBucket, String tags,
                                                                              String materialGroup) {
-        if (id == null || colorBucket == null || colorBucket.isBlank()) {
+        if (id == null) {
+            return Optional.empty();
+        }
+        if (colorBucket == null || colorBucket.isBlank()) {
+            // Root of a colorized family: the item has no color itself but acts as the base for colored
+            // variants (e.g. minecraft:candle among white_candle…black_candle). Detect by: materialGroup
+            // points back to this item AND the item has a plural form of its own path as a tag.
+            if (materialGroup != null && materialGroup.equals(id.toString())) {
+                String path = id.getPath().toLowerCase(Locale.ROOT);
+                String pluralTag = id.getNamespace() + ":" + path + "s";
+                if (hasCsvTagToken(tags, pluralTag)) {
+                    return Optional.of(new CollapsedFamily(id.toString(), pluralize(title(path))));
+                }
+            }
             return Optional.empty();
         }
         String familyKey = "";
@@ -435,6 +448,14 @@ public class GroupingEngine {
                 id.getNamespace() + ":compressed/" + base,
                 "Compressed " + title(base)
         ));
+    }
+
+    private static boolean hasCsvTagToken(String tags, String expected) {
+        if (tags == null || tags.isBlank()) return false;
+        for (String t : tags.split(",")) {
+            if (expected.equals(t.trim().toLowerCase(Locale.ROOT))) return true;
+        }
+        return false;
     }
 
     private static String matchingColorStrippedTag(ResourceLocation id, String colorBucket, String tags) {
