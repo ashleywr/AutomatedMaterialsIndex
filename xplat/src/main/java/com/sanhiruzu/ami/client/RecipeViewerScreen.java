@@ -22,19 +22,26 @@ import java.util.Map;
 
 public class RecipeViewerScreen extends Screen {
 
-    // ── Sprite sheet ────────────────────────────────────────────────────────
-    private static final ResourceLocation WIDGETS =
-            Services.PLATFORM.rl("ami", "textures/gui/recipe_viewer.png");
-    // UV offsets in WIDGETS (256×256)
-    private static final int UV_SLOT_X          =  0, UV_SLOT_Y          =  0; // 18×18 input slot
-    private static final int UV_OUT_X           = 18, UV_OUT_Y           =  0; // 20×20 output slot (incl. gold ring)
-    private static final int UV_ARROW_X         = 38, UV_ARROW_Y         =  0; // 22×16 crafting arrow
-    private static final int UV_TAB_INACTIVE_X  =  0, UV_TAB_INACTIVE_Y  = 20; // 60×18 tab inactive
-    private static final int UV_TAB_ACTIVE_X    =  0, UV_TAB_ACTIVE_Y    = 38; // 60×18 tab active
-    private static final int UV_BTN_L_X         = 70, UV_BTN_L_Y         =  0; // 14×14 left arrow (normal)
-    private static final int UV_BTN_L_HOV_X     = 70, UV_BTN_L_HOV_Y     = 14; // 14×14 left arrow (hover)
-    private static final int UV_BTN_R_X         = 84, UV_BTN_R_Y         =  0; // 14×14 right arrow (normal)
-    private static final int UV_BTN_R_HOV_X     = 84, UV_BTN_R_HOV_Y     = 14; // 14×14 right arrow (hover)
+    // ── Sprite sheet (per-theme, same UV layout) ────────────────────────────
+    private static final ResourceLocation WIDGETS_VANILLA     = Services.PLATFORM.rl("ami", "textures/gui/recipe_viewer_vanilla.png");
+    private static final ResourceLocation WIDGETS_MODERN      = Services.PLATFORM.rl("ami", "textures/gui/recipe_viewer_modern.png");
+    private static final ResourceLocation WIDGETS_TRANSPARENT = Services.PLATFORM.rl("ami", "textures/gui/recipe_viewer_transparent.png");
+
+    private static ResourceLocation widgets() {
+        return switch (com.sanhiruzu.ami.config.AmiConfig.theme) {
+            case VANILLA     -> WIDGETS_VANILLA;
+            case TRANSPARENT -> WIDGETS_TRANSPARENT;
+            default          -> WIDGETS_MODERN;
+        };
+    }
+    // UV offsets in WIDGETS (256×256) — sprites are pixel-accurate copies of JEI's textures
+    private static final int UV_SLOT_X      =  0, UV_SLOT_Y      =  0; // 18×18 input slot
+    private static final int UV_OUT_X       = 18, UV_OUT_Y       =  0; // 26×26 output slot (JEI output_slot.png)
+    private static final int UV_ARROW_X     = 44, UV_ARROW_Y     =  0; // 22×16 crafting arrow
+    private static final int UV_TAB_SEL_X   =  0, UV_TAB_SEL_Y   = 26; // 24×24 tab selected
+    private static final int UV_TAB_UNS_X   = 24, UV_TAB_UNS_Y   = 26; // 24×24 tab unselected
+    private static final int UV_BTN_PREV_X  = 48, UV_BTN_PREV_Y  = 26; //  9×9  arrow prev
+    private static final int UV_BTN_NEXT_X  = 57, UV_BTN_NEXT_Y  = 26; //  9×9  arrow next
 
     // ── Layout constants ────────────────────────────────────────────────────
     private static final int GUI_WIDTH        = 240;
@@ -91,6 +98,12 @@ public class RecipeViewerScreen extends Screen {
     private int recipesPerPage = 1;
     private int currentCardH   = 70;   // computed from recipe layout, drives panel sizing
 
+    // ── Layout broadcast (read by OverlayWidgetManager to avoid panel overlap) ──
+    /** Set while this screen is open; -1 when closed. X of the left edge of the panel. */
+    public static int openLeft  = -1;
+    /** Set while this screen is open; -1 when closed. X of the right edge of the panel. */
+    public static int openRight = -1;
+
     // ── State ─────────────────────────────────────────────────────────────
     private ItemStack target;
     private boolean showRecipes;
@@ -126,6 +139,8 @@ public class RecipeViewerScreen extends Screen {
     @Override
     protected void init() {
         guiLeft   = (width  - GUI_WIDTH) / 2;
+        openLeft  = guiLeft;
+        openRight = guiLeft + GUI_WIDTH;
         animStart = System.currentTimeMillis();
 
         if (tabs.isEmpty()) {
@@ -409,20 +424,17 @@ public class RecipeViewerScreen extends Screen {
             boolean hovL = isHovering(mouseX, mouseY, arrowLX, barY, TAB_ARROW_W, TAB_H);
             boolean hovR = isHovering(mouseX, mouseY, arrowRX, barY, TAB_ARROW_W, TAB_H);
 
-            // Arrow buttons — sprite handles bg + glyph; disabled = greyed fill only
+            // 9×9 arrow glyphs centred in the button area; greyed text fallback when disabled
+            int btnMidY = barY + (TAB_H - 9) / 2;
             if (canL) {
-                int uy = hovL ? UV_BTN_L_HOV_Y : UV_BTN_L_Y;
-                g.blit(WIDGETS, arrowLX, barY + (TAB_H - 14) / 2, 14, 14, UV_BTN_L_X, uy, 14, 14, 256, 256);
+                g.blit(widgets(), arrowLX + (TAB_ARROW_W - 9) / 2, btnMidY, 9, 9, UV_BTN_PREV_X, UV_BTN_PREV_Y, 9, 9, 256, 256);
             } else {
-                AMITheme.fillRounded(g, arrowLX, barY + (TAB_H - 14) / 2, 14, 14, COL_TAB_IDLE);
-                g.drawCenteredString(font, "❮", arrowLX + 7, barY + (TAB_H - font.lineHeight) / 2, COL_TAB_TEXT_I);
+                g.drawCenteredString(font, "❮", arrowLX + TAB_ARROW_W / 2, barY + (TAB_H - font.lineHeight) / 2, COL_TAB_TEXT_I);
             }
             if (canR) {
-                int uy = hovR ? UV_BTN_R_HOV_Y : UV_BTN_R_Y;
-                g.blit(WIDGETS, arrowRX, barY + (TAB_H - 14) / 2, 14, 14, UV_BTN_R_X, uy, 14, 14, 256, 256);
+                g.blit(widgets(), arrowRX + (TAB_ARROW_W - 9) / 2, btnMidY, 9, 9, UV_BTN_NEXT_X, UV_BTN_NEXT_Y, 9, 9, 256, 256);
             } else {
-                AMITheme.fillRounded(g, arrowRX, barY + (TAB_H - 14) / 2, 14, 14, COL_TAB_IDLE);
-                g.drawCenteredString(font, "❯", arrowRX + 7, barY + (TAB_H - font.lineHeight) / 2, COL_TAB_TEXT_I);
+                g.drawCenteredString(font, "❯", arrowRX + TAB_ARROW_W / 2, barY + (TAB_H - font.lineHeight) / 2, COL_TAB_TEXT_I);
             }
 
             int tabAreaX = arrowLX + TAB_ARROW_W + 1;
@@ -794,16 +806,16 @@ public class RecipeViewerScreen extends Screen {
     // ── Slot / arrow drawing ──────────────────────────────────────────────
 
     private void drawSlot(GuiGraphics g, int x, int y) {
-        g.blit(WIDGETS, x, y, 18, 18, UV_SLOT_X, UV_SLOT_Y, 18, 18, 256, 256);
+        g.blit(widgets(), x, y, 18, 18, UV_SLOT_X, UV_SLOT_Y, 18, 18, 256, 256);
     }
 
     private void drawOutputSlot(GuiGraphics g, int x, int y) {
-        // Sprite is 20×20 centred on the same 18×18 position (gold ring extends 1px each side)
-        g.blit(WIDGETS, x - 1, y - 1, 20, 20, UV_OUT_X, UV_OUT_Y, 20, 20, 256, 256);
+        // Output sprite is 26×26; inner 18×18 item area starts at (4,4) in sprite space
+        g.blit(widgets(), x - 4, y - 4, 26, 26, UV_OUT_X, UV_OUT_Y, 26, 26, 256, 256);
     }
 
     private void drawArrow(GuiGraphics g, int x, int y) {
-        g.blit(WIDGETS, x, y, 22, 16, UV_ARROW_X, UV_ARROW_Y, 22, 16, 256, 256);
+        g.blit(widgets(), x, y, 22, 16, UV_ARROW_X, UV_ARROW_Y, 22, 16, 256, 256);
     }
 
     private void drawAnimatedArrow(GuiGraphics g, int x, int y) {
@@ -1140,6 +1152,8 @@ public class RecipeViewerScreen extends Screen {
 
     @Override
     public void onClose() {
+        openLeft  = -1;
+        openRight = -1;
         RecipeViewerBridge.clearRecipeView();
         InventoryOverlayHandler.setAmiEnabled(shouldRestoreAmiEnabled);
         if (minecraft != null) minecraft.setScreen(parentScreen);
