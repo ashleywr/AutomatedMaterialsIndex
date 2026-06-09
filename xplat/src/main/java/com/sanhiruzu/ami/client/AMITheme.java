@@ -626,6 +626,7 @@ public final class AMITheme {
         RECIPE_COUNT_BADGE_TEXT = visibleColor(AmiConfig.cardTextSubtitle);
         RECIPE_OUTPUT_SLOT_BORDER = ACCENT_GOLD;
 
+
         if (AmiConfig.theme == AmiConfig.Theme.MODERN) {
             // "Modern" is now the glassy look the user liked for readability.
             PANEL_BG = 0xCC101014; // ~80% opacity deep dark glass
@@ -728,6 +729,7 @@ public final class AMITheme {
             RECIPE_COUNT_BADGE = 0x33FFFFFF;
             RECIPE_COUNT_BADGE_TEXT = 0xFFAAAAAA;
             RECIPE_OUTPUT_SLOT_BORDER = 0xFFAA8833;
+
         } else if (AmiConfig.theme == AmiConfig.Theme.TRANSPARENT) {
             // "Transparent" is now ultra-minimal like EMI.
             PANEL_BG = 0x1A000000; // ~10% opacity black
@@ -826,6 +828,7 @@ public final class AMITheme {
             RECIPE_COUNT_BADGE = 0x22FFFFFF;
             RECIPE_COUNT_BADGE_TEXT = 0xFF888888;
             RECIPE_OUTPUT_SLOT_BORDER = 0xFFAA8833;
+
         } else if (AmiConfig.theme == AmiConfig.Theme.VANILLA) {
             // VANILLA
             PANEL_BG = 0xFFC6C6C6;
@@ -895,6 +898,38 @@ public final class AMITheme {
             CONFIG_SEP = 0x22000000;
 
             PLAYER_NAME_COLOR = 0xFF0000AA;
+
+            // ── Recipe viewer: JEI-pixel-accurate palette ─────────────────
+
+            RECIPE_BG_OVERLAY        = 0xAA000000;  // dim behind modal
+            RECIPE_PANEL             = 0xFFC6C6C6;  // JEI panel grey
+            RECIPE_PANEL_INNER       = 0xFF8B8B8B;  // inner recipe area
+            RECIPE_BORDER            = 0xFF000000;  // JEI 1px black border
+            RECIPE_HEADER_LINE       = 0xFF373737;  // separator dark line
+            RECIPE_TAB_ACTIVE        = 0xFFC6C6C6;  // active tab = panel colour (open bottom)
+            RECIPE_TAB_HOVER         = 0xFFD6D6D6;  // slight brighten on hover
+            RECIPE_TAB_IDLE          = 0xFF8B8B8B;  // inactive tab mid-grey
+            RECIPE_TAB_TEXT_A        = 0xFF000000;  // black text on active tab
+            RECIPE_TAB_TEXT_I        = 0xFF373737;  // dark grey on inactive
+            RECIPE_SLOT_BORDER       = 0xFF373737;  // slot shadow edge
+            RECIPE_SLOT_BG           = 0xFF8B8B8B;  // slot interior
+            RECIPE_ARROW             = 0xFF8B8B8B;  // arrow mid-grey
+            RECIPE_ARROW_ANIM        = 0xFF373737;  // animated fill darker
+            RECIPE_TEXT_TITLE        = 0xFF404040;  // dark title text
+            RECIPE_TEXT_ITEM         = 0xFF404040;
+            RECIPE_TEXT_CAT          = 0xFF555555;
+            RECIPE_TEXT_NAV          = 0xFF404040;
+            RECIPE_TEXT_FOOTER       = 0xFF555555;
+            RECIPE_BTN_IDLE          = 0xFF8B8B8B;
+            RECIPE_BTN_HOVER         = 0xFF373737;
+            RECIPE_SHAPELESS         = 0xFF373737;
+            RECIPE_WORKSTATION_BG    = 0xFFB5B5B5;
+            RECIPE_WORKSTATION_TEXT  = 0xFF373737;
+            RECIPE_TAB_ARROW         = 0xFF373737;
+            RECIPE_TAB_ARROW_HOVER   = 0xFF000000;
+            RECIPE_COUNT_BADGE       = 0xFF373737;
+            RECIPE_COUNT_BADGE_TEXT  = 0xFFC6C6C6;
+            RECIPE_OUTPUT_SLOT_BORDER = 0xFF373737; // sprites handle the visual; this is fill fallback
         }
         ThemeResourceLoader.applyCurrentTheme();
         applyThemeTransparency();

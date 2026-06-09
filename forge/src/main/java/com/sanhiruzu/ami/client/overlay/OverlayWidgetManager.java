@@ -420,11 +420,17 @@ public class OverlayWidgetManager {
         int leftY = PANEL_MARGIN_V + (usableH - leftH) / 2;
 
         // Reserve the middle of the screen for recipe content / modal UI.
-        // This avoids overlapping the recipe view without needing to know
-        // exact recipe bounds via reflection.
-        int centerReserve = Math.max(screenW / 3, 200);
-        int centerLeft = (screenW - centerReserve) / 2;
-        int centerRight = centerLeft + centerReserve;
+        // Use the actual recipe viewer bounds when it is open; fall back to a
+        // screen-fraction estimate for other modal screens (EMI, etc.).
+        int centerLeft, centerRight;
+        if (com.sanhiruzu.ami.client.RecipeViewerScreen.openLeft >= 0) {
+            centerLeft  = com.sanhiruzu.ami.client.RecipeViewerScreen.openLeft;
+            centerRight = com.sanhiruzu.ami.client.RecipeViewerScreen.openRight;
+        } else {
+            int centerReserve = Math.max(screenW / 3, 200);
+            centerLeft  = (screenW - centerReserve) / 2;
+            centerRight = centerLeft + centerReserve;
+        }
 
         List<AmiConfig.PanelContent> leftContents = leftContents();
         if (!leftContents.isEmpty()) {
