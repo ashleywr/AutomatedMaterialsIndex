@@ -1,5 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
+import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.index.providers.RecipeViewerIngredientProvider;
 import mezz.jei.api.gui.IRecipeLayoutDrawable;
 import mezz.jei.api.constants.RecipeTypes;
 import mezz.jei.api.ingredients.IIngredientType;
@@ -43,6 +45,14 @@ class JeiRecipeBridge {
         });
     }
 
+    static void openRecipes(SearchNode node) {
+        JeiRuntimeAccessor.withRuntime(runtime -> show(node, runtime, RecipeIngredientRole.OUTPUT));
+    }
+
+    static void openUses(SearchNode node) {
+        JeiRuntimeAccessor.withRuntime(runtime -> show(node, runtime, RecipeIngredientRole.INPUT));
+    }
+
     static boolean hasRecipes(ItemStack stack) {
         if (stack == null || stack.isEmpty()) {
             return false;
@@ -55,6 +65,20 @@ class JeiRecipeBridge {
             return false;
         }
         return JeiRuntimeAccessor.withRuntime(runtime -> hasFocus(runtime, stack, RecipeIngredientRole.INPUT), false);
+    }
+
+    static boolean hasRecipes(SearchNode node) {
+        if (node == null) {
+            return false;
+        }
+        return JeiRuntimeAccessor.withRuntime(runtime -> hasFocus(runtime, node, RecipeIngredientRole.OUTPUT), false);
+    }
+
+    static boolean hasUses(SearchNode node) {
+        if (node == null) {
+            return false;
+        }
+        return JeiRuntimeAccessor.withRuntime(runtime -> hasFocus(runtime, node, RecipeIngredientRole.INPUT), false);
     }
 
     static void startDrag(ItemStack stack) {
@@ -99,6 +123,18 @@ class JeiRecipeBridge {
         runtime.getRecipesGui().show(focus);
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static void show(SearchNode node, IJeiRuntime runtime, RecipeIngredientRole role) {
+        Optional<FocusTarget> focusTarget = resolveFocusTarget(runtime, node);
+        if (focusTarget.isEmpty()) {
+            return;
+        }
+        IFocusFactory focusFactory = runtime.getJeiHelpers().getFocusFactory();
+        FocusTarget target = focusTarget.get();
+        IFocus<?> focus = focusFactory.createFocus(role, (IIngredientType) target.type(), target.ingredient());
+        runtime.getRecipesGui().show(List.of(focus));
+    }
+
     private static ItemStack firstFocusStack(IJeiRuntime runtime, ItemStack requested, RecipeIngredientRole role) {
         for (ItemStack candidate : RecipeLookupStackResolver.candidates(requested)) {
             if (hasDirectFocus(runtime, candidate, role)) {
@@ -117,6 +153,12 @@ class JeiRecipeBridge {
         return false;
     }
 
+    private static boolean hasFocus(IJeiRuntime runtime, SearchNode node, RecipeIngredientRole role) {
+        return resolveFocusTarget(runtime, node)
+                .map(target -> hasDirectFocus(runtime, target, role))
+                .orElse(false);
+    }
+
     private static boolean hasDirectFocus(IJeiRuntime runtime, ItemStack stack, RecipeIngredientRole role) {
         IIngredientType<ItemStack> itemType = mezz.jei.api.constants.VanillaTypes.ITEM_STACK;
         if (itemType == null) {
@@ -131,6 +173,38 @@ class JeiRecipeBridge {
                 .get()
                 .findAny()
                 .isPresent();
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static boolean hasDirectFocus(IJeiRuntime runtime, FocusTarget target, RecipeIngredientRole role) {
+        IFocusFactory focusFactory = runtime.getJeiHelpers().getFocusFactory();
+        IFocus<?> focus = focusFactory.createFocus(role, (IIngredientType) target.type(), target.ingredient());
+        IFocusGroup focusGroup = focusFactory.createFocusGroup(List.of(focus));
+        return runtime.getRecipeManager()
+                .createRecipeCategoryLookup()
+                .limitFocus(focusGroup.getAllFocuses())
+                .get()
+                .findAny()
+                .isPresent();
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked", "removal"})
+    private static Optional<FocusTarget> resolveFocusTarget(IJeiRuntime runtime, SearchNode node) {
+        if (node == null) {
+            return Optional.empty();
+        }
+        String typeUid = node.meta(RecipeViewerIngredientProvider.TYPE_UID_KEY, "");
+        String ingredientUid = node.meta(RecipeViewerIngredientProvider.INGREDIENT_UID_KEY, "");
+        if (typeUid.isBlank() || ingredientUid.isBlank()) {
+            return Optional.empty();
+        }
+        return runtime.getIngredientManager()
+                .getIngredientTypeForUid(typeUid)
+                .flatMap(type -> ((IIngredientType) type) == null
+                        ? Optional.empty()
+                        : runtime.getIngredientManager()
+                                .getIngredientByUid((IIngredientType) type, ingredientUid)
+                                .map(ingredient -> new FocusTarget((IIngredientType<Object>) type, ingredient)));
     }
 
     static boolean transferStack(ItemStack stack, Screen screen, boolean maxTransfer) {
@@ -368,5 +442,8 @@ class JeiRecipeBridge {
     }
 
     private record RecipeTypeAndRecipe(mezz.jei.api.recipe.RecipeType<?> type, Object recipe) {
+    }
+
+    private record FocusTarget(IIngredientType<Object> type, Object ingredient) {
     }
 }

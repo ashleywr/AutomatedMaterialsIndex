@@ -94,6 +94,25 @@ public class CreativeStackVariantExpanderTest {
     }
 
     @Test
+    void enchantedBookParityUsesHigherCreativeVariantCap() {
+        Item enchantedBook = new Item("Enchanted Book");
+        ItemFilter.CreativeTabInfo combat = new ItemFilter.CreativeTabInfo("minecraft:combat", "Combat");
+        List<ItemFilter.CreativeStackInfo> stacks = java.util.stream.IntStream.range(0, 200)
+                .mapToObj(i -> new ItemFilter.CreativeStackInfo(
+                        new ItemStack(enchantedBook).withComponentSignature("variant-" + i),
+                        combat))
+                .toList();
+
+        List<SubtypeExpander.SubtypeEntry> entries = CreativeStackVariantExpander.expand(
+                new ResourceLocation("minecraft", "enchanted_book"),
+                stacks,
+                null
+        );
+
+        assertEquals(200, entries.size());
+    }
+
+    @Test
     void distinctCreativeStackNamesStillExpand() {
         Item barrel = new Item("Barrel");
         ItemFilter.CreativeTabInfo storage = new ItemFilter.CreativeTabInfo("test:storage", "Storage");

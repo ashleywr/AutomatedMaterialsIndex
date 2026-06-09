@@ -15,6 +15,15 @@ class SubtypeExpanderTest {
     }
 
     @Test
+    void creativeParityFamiliesPreferCreativeStacks() {
+        assertTrue(SubtypeExpander.shouldPreferCreativeStackParity(new ResourceLocation("minecraft", "enchanted_book")));
+        assertTrue(SubtypeExpander.shouldPreferCreativeStackParity(new ResourceLocation("minecraft", "suspicious_stew")));
+        assertTrue(SubtypeExpander.shouldPreferCreativeStackParity(new ResourceLocation("minecraft", "firework_rocket")));
+        assertFalse(SubtypeExpander.shouldPreferCreativeStackParity(new ResourceLocation("minecraft", "potion")));
+        assertFalse(SubtypeExpander.shouldPreferCreativeStackParity(new ResourceLocation("apotheosis", "enchanted_book")));
+    }
+
+    @Test
     void potionParityKeepsLongAndStrongVariants() {
         assertFalse(SubtypeExpander.shouldSkipPotionSubtype(new ResourceLocation("minecraft", "long_fire_resistance")));
         assertFalse(SubtypeExpander.shouldSkipPotionSubtype(new ResourceLocation("minecraft", "strong_swiftness")));

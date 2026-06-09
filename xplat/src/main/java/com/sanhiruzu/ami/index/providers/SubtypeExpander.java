@@ -27,6 +27,11 @@ public final class SubtypeExpander {
 
     public static final int HARD_CAP = 150;
     static final int ENCHANTED_BOOK_CAP = 600;
+    private static final Set<String> CREATIVE_STACK_PARITY_ITEMS = Set.of(
+            "enchanted_book",
+            "suspicious_stew",
+            "firework_rocket"
+    );
 
     private SubtypeExpander() {
     }
@@ -177,6 +182,12 @@ public final class SubtypeExpander {
 
     static int capFor(String itemPath) {
         return "enchanted_book".equals(itemPath) ? ENCHANTED_BOOK_CAP : HARD_CAP;
+    }
+
+    public static boolean shouldPreferCreativeStackParity(ResourceLocation baseId) {
+        return baseId != null
+                && "minecraft".equals(baseId.getNamespace())
+                && CREATIVE_STACK_PARITY_ITEMS.contains(baseId.getPath());
     }
 
     private static ResourceLocation syntheticId(String itemPath, String subNs, String subPath) {
