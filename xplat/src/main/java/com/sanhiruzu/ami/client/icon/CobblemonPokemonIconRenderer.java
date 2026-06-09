@@ -604,7 +604,7 @@ public final class CobblemonPokemonIconRenderer {
                 .orElse(ItemStack.EMPTY);
         if (!ball.isEmpty() && size >= 14) {
             g.pose().pushPose();
-            g.pose().translate(x + size / 2.0f, y + size / 2.0f, 0);
+            g.pose().translate(x + size / 2.0f, y + size / 2.0f, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
             float scale = size / 18.0f;
             g.pose().scale(scale, scale, 1.0f);
             g.renderItem(ball, -8, -8);
