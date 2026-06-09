@@ -19,98 +19,82 @@ public class ChemicalGroupingPlugin implements CompatIndexPlugin {
 
     @Override
     public void applyToIndex(GlobalIndex index) {
-        // First pass: collect chemicals and fluids with their display names
         Map<String, String> chemicalBaseNames = new HashMap<>();
         Map<String, String> fluidDisplayNames = new HashMap<>();
+        Map<String, String> bucketDisplayNames = new HashMap<>();
 
         // Collect ingredients with recognized chemical types
-        for (SearchNode ingredientNode : index.getNodes(NodeType.INGREDIENT)) {
-            if (ingredientNode == null) continue;
-            ResourceLocation id = ingredientNode.id();
-            if (id == null) continue;
-
-            Map<String, String> meta = ingredientNode.metadata();
-            String typeUid = meta.get(RecipeViewerIngredientProvider.TYPE_UID_KEY);
+        for (SearchNode node : index.getNodes(NodeType.INGREDIENT)) {
+            if (node == null || node.id() == null) continue;
+            String typeUid = node.metadata().get(RecipeViewerIngredientProvider.TYPE_UID_KEY);
             if (isChemicalIngredient(typeUid)) {
-                String baseName = extractBaseName(id.getPath());
-                chemicalBaseNames.put(baseName, ingredientNode.displayName());
+                String baseName = extractBaseName(node.id().getPath());
+                chemicalBaseNames.put(baseName, node.displayName());
             }
         }
 
         // Collect fluids
-        for (SearchNode fluidNode : index.getNodes(NodeType.FLUID)) {
-            if (fluidNode == null) continue;
-            ResourceLocation id = fluidNode.id();
-            if (id == null) continue;
-
-            String baseName = extractBaseName(id.getPath().toLowerCase(Locale.ROOT));
-            fluidDisplayNames.put(baseName, fluidNode.displayName());
+        for (SearchNode node : index.getNodes(NodeType.FLUID)) {
+            if (node == null || node.id() == null) continue;
+            String baseName = extractBaseName(node.id().getPath());
+            fluidDisplayNames.put(baseName, node.displayName());
         }
 
         // Collect bucket items by class inspection
-        Map<String, String> bucketDisplayNames = new HashMap<>();
-        for (SearchNode itemNode : index.getNodes(NodeType.ITEM)) {
-            if (itemNode == null) continue;
-            ResourceLocation id = itemNode.id();
-            if (id == null) continue;
-
-            Map<String, String> meta = itemNode.metadata();
-            String itemClass = meta.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
+        for (SearchNode node : index.getNodes(NodeType.ITEM)) {
+            if (node == null || node.id() == null) continue;
+            String itemClass = node.metadata().getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
             if (isBucketItem(itemClass)) {
-                String baseName = extractBaseName(id.getPath().toLowerCase(Locale.ROOT));
-                bucketDisplayNames.put(baseName, itemNode.displayName());
+                String baseName = extractBaseName(node.id().getPath());
+                bucketDisplayNames.put(baseName, node.displayName());
             }
         }
 
-        // Second pass: group ingredients, fluids, and buckets
-        for (NodeType type : NodeType.values()) {
-            for (SearchNode node : index.getNodes(type)) {
-                if (node == null) continue;
+        // Apply grouping to collected families
+        processIngredients(index, chemicalBaseNames);
+        processFluids(index, fluidDisplayNames, bucketDisplayNames);
+        processBuckets(index, fluidDisplayNames);
+    }
 
-                ResourceLocation id = node.id();
-                if (id == null) continue;
+    private void processIngredients(GlobalIndex index, Map<String, String> chemicalBaseNames) {
+        for (SearchNode node : index.getNodes(NodeType.INGREDIENT)) {
+            if (node == null || node.id() == null) continue;
+            Map<String, String> meta = node.metadata();
+            String typeUid = meta.get(RecipeViewerIngredientProvider.TYPE_UID_KEY);
+            if (isChemicalIngredient(typeUid)) {
+                String baseName = extractBaseName(node.id().getPath());
+                String modId = node.id().getNamespace();
+                meta.putIfAbsent(SearchNodeKeys.ONTOLOGY_CATEGORY, modId);
+                meta.putIfAbsent(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "chemicals");
+                applyChemicalGrouping(meta, modId, baseName, chemicalBaseNames.get(baseName));
+            }
+        }
+    }
 
+    private void processFluids(GlobalIndex index, Map<String, String> fluidDisplayNames, Map<String, String> bucketDisplayNames) {
+        for (SearchNode node : index.getNodes(NodeType.FLUID)) {
+            if (node == null || node.id() == null) continue;
+            String baseName = extractBaseName(node.id().getPath());
+            if (bucketDisplayNames.containsKey(baseName)) {
                 Map<String, String> meta = node.metadata();
-                String path = id.getPath().toLowerCase(Locale.ROOT);
-                String baseName = null;
-                String displayName = node.displayName();
+                String modId = node.id().getNamespace();
+                meta.putIfAbsent(SearchNodeKeys.ONTOLOGY_CATEGORY, modId);
+                meta.putIfAbsent(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "chemicals");
+                applyChemicalGrouping(meta, modId, baseName, fluidDisplayNames.get(baseName));
+            }
+        }
+    }
 
-                // Process ingredients with chemical types
-                if (type == NodeType.INGREDIENT) {
-                    String typeUid = meta.get(RecipeViewerIngredientProvider.TYPE_UID_KEY);
-                    if (isChemicalIngredient(typeUid)) {
-                        baseName = extractBaseName(path);
-                        String modId = id.getNamespace();
-                        meta.putIfAbsent(SearchNodeKeys.ONTOLOGY_CATEGORY, modId);
-                        meta.putIfAbsent(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "chemicals");
-                    }
-                }
-
-                // Process fluids that have a matching bucket
-                if (type == NodeType.FLUID) {
-                    baseName = extractBaseName(path);
-                    if (bucketDisplayNames.containsKey(baseName)) {
-                        String modId = id.getNamespace();
-                        meta.putIfAbsent(SearchNodeKeys.ONTOLOGY_CATEGORY, modId);
-                        meta.putIfAbsent(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "chemicals");
-                    }
-                }
-
-                // Process bucket items with matching fluids
-                if (type == NodeType.ITEM) {
-                    String itemClass = meta.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
-                    if (isBucketItem(itemClass)) {
-                        baseName = extractBaseName(path);
-                        if (fluidDisplayNames.containsKey(baseName)) {
-                            displayName = fluidDisplayNames.get(baseName);
-                        }
-                    }
-                }
-
-                // Apply grouping if this is part of a chemical family
-                if (baseName != null && (chemicalBaseNames.containsKey(baseName) || (fluidDisplayNames.containsKey(baseName) && bucketDisplayNames.containsKey(baseName)))) {
-                    String groupDisplayName = chemicalBaseNames.getOrDefault(baseName, displayName);
-                    applyChemicalGrouping(meta, id.getNamespace(), baseName, groupDisplayName);
+    private void processBuckets(GlobalIndex index, Map<String, String> fluidDisplayNames) {
+        for (SearchNode node : index.getNodes(NodeType.ITEM)) {
+            if (node == null || node.id() == null) continue;
+            Map<String, String> meta = node.metadata();
+            String itemClass = meta.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
+            if (isBucketItem(itemClass)) {
+                String baseName = extractBaseName(node.id().getPath());
+                if (fluidDisplayNames.containsKey(baseName)) {
+                    String modId = node.id().getNamespace();
+                    applyChemicalGrouping(meta, modId, baseName, fluidDisplayNames.get(baseName));
                 }
             }
         }
