@@ -1137,7 +1137,8 @@ public final class PrimaryCategoryResolver {
         if (kind.isBlank()) {
             return Optional.empty();
         }
-        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.HYBRID && !isFocusedMekanismKind(kind)) {
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.HYBRID
+                && !isFocusedMekanismKind(kind, context)) {
             return Optional.empty();
         }
         String subcategory = mapMekanismSubcategory(kind);
@@ -1150,11 +1151,19 @@ public final class PrimaryCategoryResolver {
         ));
     }
 
-    private static boolean isFocusedMekanismKind(String kind) {
+    private static boolean isFocusedMekanismKind(String kind, ResolveContext context) {
         return switch (kind) {
             case "machines", "energy", "chemicals", "logistics", "upgrades" -> true;
+            case "tools" -> !shouldLetMekanismUseObviousSemanticCategory(context);
             default -> false;
         };
+    }
+
+    private static boolean shouldLetMekanismUseObviousSemanticCategory(ResolveContext context) {
+        return hasActualFoodIdentity(context.facets, context.attributes)
+                || shouldResolveAsArmorOrCurio(context.facets)
+                || hasAny(context.facets, ItemFacet.HARVEST_TOOL, ItemFacet.MELEE_WEAPON,
+                ItemFacet.RANGED_WEAPON, ItemFacet.UTILITY_TOOL);
     }
 
     private static Optional<CategoryAssignment> resolveGregTechIdentity(ResolveContext context) {

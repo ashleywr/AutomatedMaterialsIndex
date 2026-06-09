@@ -24,3 +24,6 @@
 {"id":"quark:magenta_shard","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"Glass shard in the Ingredients tab; generic shard material evidence should not create or preserve magic reagent routing."}
 {"id":"minecraft:spider_eye","category":"magic","subcategory":"reagents","confidence":"certain","notes":"Spider Eye is edible, but its brewing reagent role should be the primary bucket; edible remains searchable as a facet."}
 {"id":"immersiveengineering:manual","category":"utility","subcategory":"books","confidence":"certain","notes":"Guide manual should beat generic utility_tool identity"}
+{"id":"mekanism:dosimeter","category":"mekanism","subcategory":"tools","confidence":"certain","notes":"Facetless Mekanism workflow tool should stay grouped under Mekanism"}
+{"id":"mekanism:dictionary","category":"mekanism","subcategory":"tools","confidence":"certain","notes":"Facetless Mekanism workflow tool should stay grouped under Mekanism"}
+{"id":"mekanism:configuration_card","category":"mekanism","subcategory":"tools","confidence":"certain","notes":"Facetless Mekanism workflow tool should stay grouped under Mekanism"}

@@ -3,9 +3,14 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -57,5 +62,27 @@ public class ItemFilterTest {
         AmiConfig.cheatMode = false;
         AmiConfig.devMode = true;
         assertTrue(ItemFilter.shouldShowAccessLevel(ItemFilter.ACCESS_DEV));
+    }
+
+    @Test
+    void appendCreativeStackKeepsSearchOnlyVariantsAndDedupesOverlap() {
+        Item plastic = new Item("Plastic Sheet");
+        Item soulVial = new Item("Soul Vial");
+        net.minecraft.core.registries.BuiltInRegistries.itemRegistry().register(
+                new ResourceLocation("pneumaticcraft", "plastic"), plastic);
+        net.minecraft.core.registries.BuiltInRegistries.itemRegistry().register(
+                new ResourceLocation("enderio", "soul_vial"), soulVial);
+
+        Map<Item, List<ItemFilter.CreativeStackInfo>> items = new LinkedHashMap<>();
+        Map<Item, List<ItemStack>> seen = new LinkedHashMap<>();
+        ItemFilter.CreativeTabInfo tab = new ItemFilter.CreativeTabInfo("test:machines", "Machines");
+
+        assertTrue(ItemFilter.appendCreativeStack(items, seen, new ItemStack(soulVial).withComponentSignature("zombie"), tab));
+        assertFalse(ItemFilter.appendCreativeStack(items, seen, new ItemStack(soulVial).withComponentSignature("zombie"), tab));
+        assertTrue(ItemFilter.appendCreativeStack(items, seen, new ItemStack(soulVial).withComponentSignature("skeleton"), tab));
+        assertTrue(ItemFilter.appendCreativeStack(items, seen, new ItemStack(plastic), tab));
+
+        assertEquals(2, items.getOrDefault(soulVial, List.of()).size());
+        assertEquals(1, items.getOrDefault(plastic, List.of()).size());
     }
 }

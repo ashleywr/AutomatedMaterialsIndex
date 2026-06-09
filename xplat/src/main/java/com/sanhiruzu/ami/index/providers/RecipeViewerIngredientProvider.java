@@ -204,9 +204,16 @@ public class RecipeViewerIngredientProvider implements IAmiDataProvider {
             return;
         }
         meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, modId);
-        if ("mekanism".equals(modId) && com.sanhiruzu.ami.compat.ChemicalTypeDetector.isChemicalType(typeUid)) {
+        if (isChemicalType(typeUid)) {
             meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "chemicals");
         }
+    }
+
+    private static boolean isChemicalType(String typeUid) {
+        if (typeUid == null) return false;
+        String lower = typeUid.toLowerCase(java.util.Locale.ROOT);
+        return lower.contains("chemical") || lower.contains("gas") || lower.contains("pigment")
+                || lower.contains("slurry") || lower.contains("infuse");
     }
 
     private static void addPlainSearchTokens(Map<String, String> meta, String rawValue) {

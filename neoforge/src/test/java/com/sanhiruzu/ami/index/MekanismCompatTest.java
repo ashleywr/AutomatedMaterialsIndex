@@ -102,6 +102,27 @@ class MekanismCompatTest {
     }
 
     @Test
+    void facetlessWorkflowToolsRouteToMekanismToolsUnderHybridPolicy() {
+        Map<String, String> dictionary = meta("mekanism", "Mekanism",
+                "mekanism.common.item.ItemDictionary", "");
+        MekanismCompat.enrichItem(new ResourceLocation("mekanism", "dictionary"), dictionary);
+        CategoryAssignment dictionaryAssignment = resolve("mekanism:dictionary", dictionary);
+
+        assertEquals("tools", dictionary.get(SearchNodeKeys.MEKANISM_ITEM_KIND));
+        assertEquals("mekanism", dictionaryAssignment.categoryId());
+        assertEquals("tools", dictionaryAssignment.subcategoryId());
+
+        Map<String, String> configurationCard = meta("mekanism", "Mekanism",
+                "mekanism.common.item.ItemConfigurationCard", "");
+        MekanismCompat.enrichItem(new ResourceLocation("mekanism", "configuration_card"), configurationCard);
+        CategoryAssignment configurationCardAssignment = resolve("mekanism:configuration_card", configurationCard);
+
+        assertEquals("tools", configurationCard.get(SearchNodeKeys.MEKANISM_ITEM_KIND));
+        assertEquals("mekanism", configurationCardAssignment.categoryId());
+        assertEquals("tools", configurationCardAssignment.subcategoryId());
+    }
+
+    @Test
     void materialsStaySemanticUnderHybridPolicy() {
         Map<String, String> meta = meta("mekanism", "Mekanism",
                 "net.minecraft.world.item.Item", "");

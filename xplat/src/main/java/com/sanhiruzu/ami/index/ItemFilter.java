@@ -83,6 +83,32 @@ public final class ItemFilter {
         return Optional.empty();
     }
 
+    static boolean appendCreativeStack(Map<Item, List<CreativeStackInfo>> items,
+                                       Map<Item, List<ItemStack>> seenStacks,
+                                       ItemStack rawStack,
+                                       CreativeTabInfo tabInfo) {
+        if (rawStack == null || rawStack.isEmpty()) {
+            return false;
+        }
+        ItemStack stack = rawStack.copy();
+        stack.setCount(1);
+        Item item = stack.getItem();
+        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(item);
+        List<CreativeStackInfo> itemStacks = items.computeIfAbsent(item, ignored -> new ArrayList<>());
+        List<ItemStack> seenForItem = seenStacks.computeIfAbsent(item, ignored -> new ArrayList<>());
+        for (ItemStack seen : seenForItem) {
+            if (Services.PLATFORM.sameItemSameComponents(seen, stack)) {
+                return false;
+            }
+        }
+        if (IndexingHotItemPolicy.shouldCollapseCreativeStacks(itemId) && !itemStacks.isEmpty()) {
+            return false;
+        }
+        seenForItem.add(stack.copy());
+        itemStacks.add(new CreativeStackInfo(stack, tabInfo));
+        return true;
+    }
+
     /**
      * Returns the set of all items that appear as the output of at least one registered recipe.
      */
@@ -176,8 +202,10 @@ public final class ItemFilter {
                 return Collections.emptyMap();
             }
             Map<Item, List<CreativeStackInfo>> items = new LinkedHashMap<>();
+            Map<Item, List<ItemStack>> seenStacks = new LinkedHashMap<>();
             long started = System.currentTimeMillis();
             int displayStacks = 0;
+            int searchDisplayStacks = 0;
             int copiedStacks = 0;
             int collapsedHotStacks = 0;
             try {
@@ -194,30 +222,44 @@ public final class ItemFilter {
                     ResourceLocation tabId = BuiltInRegistries.CREATIVE_MODE_TAB.getKey(tab);
                     String tabKey = tabId != null ? tabId.toString() : tab.getDisplayName().getString();
                     String tabLabel = tab.getDisplayName().getString();
+                    CreativeTabInfo tabInfo = new CreativeTabInfo(tabKey, tabLabel);
                     for (ItemStack stack : tab.getDisplayItems()) {
                         if (!stack.isEmpty()) {
                             displayStacks++;
-                            CreativeTabInfo tabInfo = new CreativeTabInfo(tabKey, tabLabel);
-                            Item item = stack.getItem();
-                            ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(item);
-                            List<CreativeStackInfo> itemStacks = items.computeIfAbsent(item, ignored -> new ArrayList<>());
-                            if (IndexingHotItemPolicy.shouldCollapseCreativeStacks(itemId) && !itemStacks.isEmpty()) {
-                                collapsedHotStacks++;
-                                continue;
+                            if (appendCreativeStack(items, seenStacks, stack, tabInfo)) {
+                                copiedStacks++;
+                            } else {
+                                ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                                if (IndexingHotItemPolicy.shouldCollapseCreativeStacks(itemId)) {
+                                    collapsedHotStacks++;
+                                }
                             }
-                            itemStacks.add(new CreativeStackInfo(stack.copy(), tabInfo));
-                            copiedStacks++;
+                        }
+                    }
+                    Collection<ItemStack> searchTabDisplayItems = tab.getSearchTabDisplayItems();
+                    if (!tab.getDisplayItems().equals(searchTabDisplayItems)) {
+                        for (ItemStack stack : searchTabDisplayItems) {
+                            if (!stack.isEmpty()) {
+                                searchDisplayStacks++;
+                                if (appendCreativeStack(items, seenStacks, stack, tabInfo)) {
+                                    copiedStacks++;
+                                } else {
+                                    ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                                    if (IndexingHotItemPolicy.shouldCollapseCreativeStacks(itemId)) {
+                                        collapsedHotStacks++;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             } catch (Exception e) {
                 AmiCore.LOGGER.warn("AMI: Failed to build creative tab map: {}", e.getMessage());
             }
-            if (collapsedHotStacks > 0) {
-                AmiCore.LOGGER.info("AMI indexing: creative tabs built in {}ms (items={} displayStacks={} copiedStacks={} collapsedHotStacks={})",
-                        System.currentTimeMillis() - started, items.size(), displayStacks, copiedStacks, collapsedHotStacks);
-            }
+            AmiCore.LOGGER.info("AMI indexing: creative tabs built in {}ms (items={} displayStacks={} searchDisplayStacks={} copiedStacks={} collapsedHotStacks={})",
+                    System.currentTimeMillis() - started, items.size(), displayStacks, searchDisplayStacks, copiedStacks, collapsedHotStacks);
             return items;
         }
+
     }
 }
