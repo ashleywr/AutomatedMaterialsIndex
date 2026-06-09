@@ -1,7 +1,19 @@
 {"id":"refurbished_furniture:yellow_toilet","category":"decoration","subcategory":"furniture","confidence":"certain","notes":"Furniture/bathroom block with passive comparator output, not redstone logic."}
 {"id":"bigreactors:inanite_ingot","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"Material item identified by forge:ingots/inanite tag."}
 {"id":"minecraft:target","category":"tech","subcategory":"redstone","confidence":"certain","notes":"Active redstone behavior block."}
-{"id":"minecraft:conduit","category":"utility","subcategory":"misc","confidence":"certain","notes":"Vanilla ConduitBlock should not be treated as a tech cable from the path token."}
+{"id":"minecraft:conduit","category":"magic","subcategory":"artifacts","confidence":"certain","notes":"Vanilla ConduitBlock is a magic underwater buff structure; not a cable (path token) nor utility/misc."}
+{"id":"minecraft:coal_ore","category":"geology","subcategory":"stone","confidence":"certain","notes":"Ore blocks with c:ores tag belong in geology/stone, not masonry/full_block."}
+{"id":"minecraft:iron_ore","category":"geology","subcategory":"stone","confidence":"certain","notes":"Ore blocks with c:ores tag belong in geology/stone, not masonry/full_block."}
+{"id":"minecraft:redstone_ore","category":"geology","subcategory":"stone","confidence":"certain","notes":"Ore block; path contains 'redstone' but c:ores identity should win over CategoryScorer tech/redstone."}
+{"id":"minecraft:ancient_debris","category":"geology","subcategory":"stone","confidence":"certain","notes":"Ore block (c:ores/netherite_scrap) in Nether; should be geology/stone not masonry."}
+{"id":"minecraft:sandstone","category":"masonry","subcategory":"full_block","confidence":"certain","notes":"sandstone path contains 'sand' but is not terrain soil; SOIL_BLOCK facet must not be set for sandstone paths."}
+{"id":"minecraft:smooth_sandstone","category":"masonry","subcategory":"full_block","confidence":"certain","notes":"Smelted sandstone variant; not terrain. Same sandstone path exclusion applies."}
+{"id":"minecraft:enchanting_table","category":"magic","subcategory":"artifacts","confidence":"certain","notes":"Vanilla magic workstation; CategoryScorer was routing it to decoration/furniture via light_source evidence."}
+{"id":"minecraft:crafting_table","category":"tech","subcategory":"machines","confidence":"certain","notes":"Vanilla workstation; CategoryScorer was routing it to decoration/furniture despite machine+workstation facets."}
+{"id":"minecraft:beacon","category":"magic","subcategory":"artifacts","confidence":"certain","notes":"Late-game buff structure; primary function is area effect, not lighting; CategoryScorer was routing via light_source."}
+{"id":"minecraft:end_portal_frame","category":"magic","subcategory":"artifacts","confidence":"certain","notes":"Magic structure block; eye block state produces analog output signal causing tech/redstone routing."}
+{"id":"minecraft:jukebox","category":"decoration","subcategory":"furniture","confidence":"certain","notes":"Music player furniture; has_record signal source caused tech/redstone routing via CategoryScorer."}
+{"id":"minecraft:spawner","category":"bestiary","subcategory":"hostile","confidence":"certain","notes":"Monster spawner block; should be bestiary/hostile not masonry fallthrough."}
 {"id":"minecraft:saddle","category":"armor","subcategory":"animal","confidence":"certain","notes":"SaddleItem is animal equipment and should not remain generic utility misc."}
 {"id":"reactive:soul_bottle","category":"magic","subcategory":"artifacts","confidence":"certain","notes":"Reactive power bottle tag/class should beat the uncraftable terrain fallback."}
 {"id":"farmersdelight:stove","category":"tech","subcategory":"machines","confidence":"certain","notes":"Cooking workstation/block entity, not prepared food."}
@@ -27,3 +39,30 @@
 {"id":"mekanism:dosimeter","category":"mekanism","subcategory":"tools","confidence":"certain","notes":"Facetless Mekanism workflow tool should stay grouped under Mekanism"}
 {"id":"mekanism:dictionary","category":"mekanism","subcategory":"tools","confidence":"certain","notes":"Facetless Mekanism workflow tool should stay grouped under Mekanism"}
 {"id":"mekanism:configuration_card","category":"mekanism","subcategory":"tools","confidence":"certain","notes":"Facetless Mekanism workflow tool should stay grouped under Mekanism"}
+{"id":"minecraft:coal","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"coal is a mineral ingredient; INGREDIENT_MINERAL facet replaces DUST"}
+{"id":"minecraft:charcoal","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"charcoal is a mineral/organic ingredient; INGREDIENT_MINERAL facet replaces DUST"}
+{"id":"minecraft:rose_bush","category":"nature","subcategory":"flora","confidence":"certain","notes":"Tall flower (TallFlowerBlock): flower facet should beat the _bush path heuristic in isCropLikePlaceable"}
+{"id":"minecraft:golden_carrot","category":"nature","subcategory":"snacks","confidence":"certain","notes":"Crafted food (carrot+gold): not a farmable crop; CROP facet came from isProduceFoodTag c:foods/vegetable which was too broad"}
+{"id":"minecraft:ominous_bottle/variant/ominous_bottle_75a9abdfd088","category":"utility","subcategory":"misc","confidence":"certain","notes":"Bad-omen effect item; c:drinks/ominous tag marks it non-nutritional; utility/misc should beat EDIBLE"}
+{"id":"minecraft:candle","category":"decoration","subcategory":"lighting","confidence":"certain","notes":"plain candle is the root of the colorized candle family; should share collapseFamily with colored candles"}
+{"id":"minecraft:oak_sign","category":"decoration","subcategory":"furniture","confidence":"certain","notes":"flammable-wood sign; fuel rule removed, DECORATIVE_BLOCK facet routes to decoration/furniture"}
+{"id":"minecraft:bamboo_sign","category":"decoration","subcategory":"furniture","confidence":"certain","notes":"flammable-wood sign; same fix as oak_sign"}
+{"id":"minecraft:oak_hanging_sign","category":"decoration","subcategory":"furniture","confidence":"certain","notes":"flammable-wood hanging sign; same fix as oak_sign"}
+{"id":"minecraft:ominous_bottle/variant/ominous_bottle_64c287ba6b96","category":"utility","subcategory":"misc","confidence":"certain","notes":"Bad-omen effect item, all variants must not land in nature/drinks"}
+{"id":"minecraft:ominous_bottle/variant/ominous_bottle_edef36c3bc89","category":"utility","subcategory":"misc","confidence":"certain","notes":"Bad-omen effect item, all variants must not land in nature/drinks"}
+{"id":"minecraft:ominous_bottle/variant/ominous_bottle_2b4a92e4074a","category":"utility","subcategory":"misc","confidence":"certain","notes":"Bad-omen effect item, all variants must not land in nature/drinks"}
+{"id":"minecraft:ominous_bottle/variant/ominous_bottle_516bae682f8e","category":"utility","subcategory":"misc","confidence":"certain","notes":"Bad-omen effect item, all variants must not land in nature/drinks"}
+{"id":"minecraft:carrot","category":"nature","subcategory":"crops","confidence":"certain","notes":"Farmable crop with c:crops tag; must survive isProduceFoodTag removal and stay in nature/crops"}
+{"id":"minecraft:honey_bottle","category":"nature","subcategory":"drinks","confidence":"certain","notes":"Legitimate nutritional drink; must not be caught by the ominous_bottle c:drinks/ominous gate"}
+{"id":"minecraft:end_rod","category":"decoration","subcategory":"lighting","confidence":"certain","notes":"partial non-functional light source; LIGHT_SOURCE facet now routes partial blocks to decoration/lighting"}
+{"id":"minecraft:amethyst_cluster","category":"decoration","subcategory":"lighting","confidence":"certain","notes":"partial light-emitting crystal; LIGHT_SOURCE + partial routes to decoration/lighting"}
+{"id":"minecraft:small_amethyst_bud","category":"decoration","subcategory":"lighting","confidence":"certain","notes":"partial light-emitting crystal growth stage"}
+{"id":"minecraft:medium_amethyst_bud","category":"decoration","subcategory":"lighting","confidence":"certain","notes":"partial light-emitting crystal growth stage"}
+{"id":"minecraft:large_amethyst_bud","category":"decoration","subcategory":"lighting","confidence":"certain","notes":"partial light-emitting crystal growth stage"}
+{"id":"minecraft:dragon_egg","category":"decoration","subcategory":"lighting","confidence":"certain","notes":"trophy block with LIGHT_SOURCE; 'egg' token removed from broad path match so it no longer gets INGREDIENT_ORGANIC; routes as partial light source to decoration/lighting"}
+{"id":"minecraft:raw_iron","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"c:raw_materials tag now also sets INGREDIENT_MINERAL"}
+{"id":"minecraft:raw_copper","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"c:raw_materials tag"}
+{"id":"minecraft:raw_gold","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"c:raw_materials tag"}
+{"id":"minecraft:netherite_scrap","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"path match now also sets INGREDIENT_MINERAL alongside RAW_MATERIAL"}
+{"id":"minecraft:gold_nugget","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"c:nuggets tag now also sets INGREDIENT_MINERAL"}
+{"id":"minecraft:iron_nugget","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"c:nuggets tag"}
