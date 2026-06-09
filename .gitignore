@@ -81,11 +81,11 @@ test.java
 /reports/
 /skills/
 
-### Agent/Codex files (not to be committed) ###
-/docs/agents/
-/docs/agent-playbook.md
+### Agent/Codex/docs files (not to be committed) ###
+/docs/
 /scripts/
 /.codex/
+/AGENTS.md
 
 ### Dot directories (keep only .gitignore) ###
 .*
