@@ -7,10 +7,13 @@ import com.sanhiruzu.ami.client.recipe.RecipeDisplayHelper.SlotPosition;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeType;
 import org.lwjgl.glfw.GLFW;
@@ -45,17 +48,18 @@ public class RecipeViewerScreen extends Screen {
 
     // ── Layout constants ────────────────────────────────────────────────────
     private static final int GUI_WIDTH        = 240;
-    private static final int HEADER_H         = 28;
-    private static final int TAB_BAR_Y        = HEADER_H + 2;               // 30
-    private static final int TAB_H            = 18;
-    private static final int TAB_W            = 60;                          // fixed width per tab slot
-    private static final int TAB_ARROW_W      = 14;                          // scroll arrow button width
-    private static final int WORKSTATION_BAR_Y = TAB_BAR_Y + TAB_H + 4;    // 52
-    private static final int WORKSTATION_H    = 22;
-    private static final int CONTENT_Y        = WORKSTATION_BAR_Y + WORKSTATION_H + 4; // 78
+    private static final int HEADER_H         = 32;   // two 13px nav button rows + padding
+    private static final int TAB_H            = 24;   // JEI TAB_HEIGHT
+    private static final int TAB_W            = 24;   // JEI TAB_WIDTH
+    private static final int TAB_GUI_OVERLAP  = 3;    // tabs dip into panel top edge by this much
+    private static final int TAB_ARROW_W      = 14;   // scroll arrow for overflow
+    private static final int SMALL_BTN_W      = 13;   // JEI smallButtonWidth
+    private static final int SMALL_BTN_H      = 13;   // JEI smallButtonHeight
+    private static final int BORDER_PAD       = 6;    // JEI borderPadding
+    private static final int NAV_PAD          = 2;    // JEI navBarPadding
+    private static final int CONTENT_Y        = HEADER_H + 4; // 36
     private static final int FOOTER_H         = 18;
-    // Non-recipe vertical overhead (CONTENT_Y + padding + FOOTER_H)
-    private static final int CHROME_OVERHEAD  = 112;
+    private static final int CHROME_OVERHEAD  = CONTENT_Y + 8 + FOOTER_H; // 62
 
     // ── Palette (synchronized from AMITheme in render) ──────────────────────
     private static int COL_BG_OVERLAY      = 0xFF101010;
@@ -98,12 +102,6 @@ public class RecipeViewerScreen extends Screen {
     private int recipesPerPage = 1;
     private int currentCardH   = 70;   // computed from recipe layout, drives panel sizing
 
-    // ── Layout broadcast (read by OverlayWidgetManager to avoid panel overlap) ──
-    /** Set while this screen is open; -1 when closed. X of the left edge of the panel. */
-    public static int openLeft  = -1;
-    /** Set while this screen is open; -1 when closed. X of the right edge of the panel. */
-    public static int openRight = -1;
-
     // ── State ─────────────────────────────────────────────────────────────
     private ItemStack target;
     private boolean showRecipes;
@@ -139,16 +137,15 @@ public class RecipeViewerScreen extends Screen {
     @Override
     protected void init() {
         guiLeft   = (width  - GUI_WIDTH) / 2;
-        openLeft  = guiLeft;
-        openRight = guiLeft + GUI_WIDTH;
         animStart = System.currentTimeMillis();
 
         if (tabs.isEmpty()) {
-            rebuildTabs();   // calls recomputePanelSize() → sets guiTop
+            rebuildTabs();
         } else {
             recomputePanelSize();
             refreshLayout();
         }
+        recomputePanelSize();
     }
 
     // Returns the natural card height for a recipe layout.
@@ -163,17 +160,33 @@ public class RecipeViewerScreen extends Screen {
         return Math.max(44, natural);
     }
 
-    // Recomputes recipesPerPage, guiHeight, guiTop from currentCardH and screen size.
+    // Fixes panel geometry (guiHeight, guiTop) from screen size — called only at init/resize,
+    // never from recipe navigation. This keeps the panel from jumping size as recipes change.
     private void recomputePanelSize() {
-        int slotH  = currentCardH + 4;                     // card + gap between cards
-        int maxH   = (minecraft != null ? minecraft.getWindow().getGuiScaledHeight() : height) - 30;
-        int avail  = maxH - CHROME_OVERHEAD - 16;           // 16 = top+bottom card padding
-        int N      = Math.max(1, Math.min(3, avail / slotH));
-        this.recipesPerPage = N;
-        this.guiHeight = N == 1
-                ? CHROME_OVERHEAD + currentCardH + 32     // 16 top + 16 bottom content padding
-                : CHROME_OVERHEAD + N * slotH + 12;       // small margin at top/bottom
-        this.guiTop = ((minecraft != null ? minecraft.getWindow().getGuiScaledHeight() : height) - guiHeight) / 2;
+        int screenH = minecraft != null ? minecraft.getWindow().getGuiScaledHeight() : height;
+        // Match JEI: height = screen - 76, clamped to [minH, 420]
+        int minH = CHROME_OVERHEAD + 102;   // enough for one standard recipe card
+        this.guiHeight = Math.max(minH, Math.min(screenH - 76, 420));
+        this.guiTop    = (screenH - guiHeight) / 2;
+        recomputeRecipesPerPage();
+    }
+
+    // Recomputes only recipesPerPage from the fixed panel height. Safe to call on tab/recipe change.
+    private void recomputeRecipesPerPage() {
+        int slotH = currentCardH + 4;
+        int avail = guiHeight - CHROME_OVERHEAD - 16;
+        this.recipesPerPage = Math.max(1, Math.min(3, avail / slotH));
+    }
+
+    public com.sanhiruzu.ami.compat.RecipeViewerBridge.RecipeViewerBounds getViewerBounds() {
+        int effectiveTop = guiTop - TAB_H + TAB_GUI_OVERLAP;
+        int totalH = guiHeight + (guiTop - effectiveTop);
+        // Extend left to cover the workstation panel (28px wide, 4px overlaps main panel)
+        boolean hasCatalysts = !tabs.isEmpty() && selectedTab < tabs.size()
+                && !RecipeDisplayHelper.getWorkstations(tabs.get(selectedTab).type()).isEmpty();
+        int catalystPad = hasCatalysts ? 24 : 0;
+        return new com.sanhiruzu.ami.compat.RecipeViewerBridge.RecipeViewerBounds(
+                guiLeft - catalystPad, effectiveTop, GUI_WIDTH + catalystPad, totalH);
     }
 
     private void rebuildTabs() {
@@ -283,11 +296,11 @@ public class RecipeViewerScreen extends Screen {
             }
         }
 
-        // Update panel size if the recipe type changed card height
+        // Recompute recipesPerPage if card height changed — panel geometry stays fixed.
         int newCardH = getCardHeight(currentLayout);
         if (newCardH != currentCardH) {
             currentCardH = newCardH;
-            recomputePanelSize();
+            recomputeRecipesPerPage();
         }
     }
 
@@ -320,24 +333,38 @@ public class RecipeViewerScreen extends Screen {
         AMITheme.sync();
         syncPalette();
 
+        renderBackground(g, mouseX, mouseY, delta);
         g.fill(0, 0, width, height, COL_BG_OVERLAY);
         drawPanel(g);
-        drawHeader(g);
-        drawFavoritesButton(g, mouseX, mouseY);
+        drawTabBar(g, mouseX, mouseY);
+        drawHeader(g, mouseX, mouseY);
 
         if (tabs.isEmpty()) {
             drawNoRecipes(g);
         } else {
-            drawTabBar(g, mouseX, mouseY);
-            drawWorkstationPanel(g, mouseX, mouseY);
             drawContent(g, mouseX, mouseY);
         }
 
-        g.drawCenteredString(font,
+        drawCentered(g,
                 Component.translatable("ami.recipe_viewer.go_back"),
                 guiLeft + GUI_WIDTH / 2,
                 guiTop + guiHeight - FOOTER_H + 4,
                 COL_TEXT_FOOTER);
+
+        drawWorkstationPanel(g, mouseX, mouseY);
+
+        // Category title hover tooltip — must render last so it's on top
+        if (!tabs.isEmpty() && focusType == null) {
+            Component catTitle = tabs.get(selectedTab).label();
+            int titleH = font.lineHeight + BORDER_PAD;
+            int ty = guiTop + (titleH - font.lineHeight) / 2 + 1;
+            int tw = font.width(catTitle);
+            int tx = guiLeft + GUI_WIDTH / 2 - tw / 2;
+            if (isHovering(mouseX, mouseY, tx, ty, tw, font.lineHeight)) {
+                g.renderTooltip(font,
+                        Component.translatable("ami.recipe_viewer.category_show_all"), mouseX, mouseY);
+            }
+        }
     }
 
     private void syncPalette() {
@@ -385,167 +412,135 @@ public class RecipeViewerScreen extends Screen {
         g.fill(guiLeft + 4, contentTop, guiLeft + GUI_WIDTH - 4, contentBot, COL_PANEL_INNER);
     }
 
-    private void drawHeader(GuiGraphics g) {
-        Component modeLabel = showRecipes
-                ? Component.translatable("ami.recipe_viewer.mode.recipes")
-                : Component.translatable("ami.recipe_viewer.mode.uses");
-        g.drawCenteredString(font, modeLabel,
-                guiLeft + GUI_WIDTH / 2, guiTop + 5, COL_TEXT_TITLE);
-        g.drawCenteredString(font, target.getHoverName(),
-                guiLeft + GUI_WIDTH / 2, guiTop + 5 + font.lineHeight + 2, COL_TEXT_ITEM);
-        g.fill(guiLeft + 4, guiTop + HEADER_H, guiLeft + GUI_WIDTH - 4, guiTop + HEADER_H + 1, COL_HEADER_LINE);
-    }
+    private void drawHeader(GuiGraphics g, int mx, int my) {
+        // JEI-style: two nav button rows inside the header
+        // Row 1 y: titleH - SMALL_BTN_H + NAV_PAD  (= 15 - 13 + 2 = 4)
+        int titleH = font.lineHeight + BORDER_PAD;
+        int btnY1  = guiTop + titleH - SMALL_BTN_H + NAV_PAD;
+        int btnL   = guiLeft + BORDER_PAD;
+        int btnR   = guiLeft + GUI_WIDTH - BORDER_PAD - SMALL_BTN_W;
 
-    // Returns the bounding box of the favorites button in the header.
-    private int favBtnX() { return guiLeft + GUI_WIDTH - 18; }
-    private int favBtnY() { return guiTop + 4; }
+        if (tabs.isEmpty()) {
+            Component modeLabel = showRecipes
+                    ? Component.translatable("ami.recipe_viewer.mode.recipes")
+                    : Component.translatable("ami.recipe_viewer.mode.uses");
+            drawCentered(g, modeLabel, guiLeft + GUI_WIDTH / 2, guiTop + (titleH - font.lineHeight) / 2 + 1, COL_TEXT_TITLE);
+            drawCentered(g, target.getHoverName(),
+                    guiLeft + GUI_WIDTH / 2, btnY1 + (SMALL_BTN_H - font.lineHeight) / 2, COL_TEXT_ITEM);
+        } else {
+            // Row 1: category prev/next + category title
+            boolean canPrevCat = selectedTab > 0;
+            boolean canNextCat = selectedTab < tabs.size() - 1;
+            drawNavBtn(g, mx, my, btnL, btnY1, UV_BTN_PREV_X, UV_BTN_PREV_Y, canPrevCat);
+            drawNavBtn(g, mx, my, btnR, btnY1, UV_BTN_NEXT_X, UV_BTN_NEXT_Y, canNextCat);
+            g.fill(btnL + SMALL_BTN_W, btnY1, btnR, btnY1 + SMALL_BTN_H, 0x30000000);
+            drawCentered(g, tabs.get(selectedTab).label(),
+                    guiLeft + GUI_WIDTH / 2, guiTop + (titleH - font.lineHeight) / 2 + 1, COL_TEXT_TITLE);
 
-    private void drawFavoritesButton(GuiGraphics g, int mouseX, int mouseY) {
-        int bx = favBtnX(), by = favBtnY();
-        boolean hov = isHovering(mouseX, mouseY, bx, by, 14, 14);
-        AMITheme.fillRounded(g, bx, by, 14, 14, hov ? COL_TAB_HOVER : COL_TAB_IDLE);
-        g.drawCenteredString(font, "★", bx + 7, by + 3,
-                hov ? COL_TAB_ACTIVE : COL_TAB_TEXT_I);
-        if (hov) {
-            g.renderTooltip(font, Component.translatable("ami.favorites.open"), mouseX, mouseY);
+            // Row 2: page prev/next + page number (or item name if single page)
+            int btnY2 = btnY1 + SMALL_BTN_H + NAV_PAD;
+            Tab tab = tabs.get(selectedTab);
+            int totalPages = (int) Math.ceil((double) tab.recipes().size() / Math.max(1, recipesPerPage));
+            if (totalPages > 1) {
+                drawNavBtn(g, mx, my, btnL, btnY2, UV_BTN_PREV_X, UV_BTN_PREV_Y, pageIndex > 0);
+                drawNavBtn(g, mx, my, btnR, btnY2, UV_BTN_NEXT_X, UV_BTN_NEXT_Y, pageIndex < totalPages - 1);
+                g.fill(btnL + SMALL_BTN_W, btnY2, btnR, btnY2 + SMALL_BTN_H, 0x30000000);
+                drawCentered(g, Component.translatable("ami.recipe_viewer.page", pageIndex + 1, totalPages),
+                        guiLeft + GUI_WIDTH / 2, btnY2 + (SMALL_BTN_H - font.lineHeight) / 2, COL_TEXT_NAV);
+            } else {
+                drawCentered(g, target.getHoverName(),
+                        guiLeft + GUI_WIDTH / 2, btnY2 + (SMALL_BTN_H - font.lineHeight) / 2, COL_TEXT_ITEM);
+            }
         }
+
+        g.fill(guiLeft, guiTop + HEADER_H, guiLeft + GUI_WIDTH, guiTop + HEADER_H + 1, COL_HEADER_LINE);
     }
 
-    // ── Tab bar ───────────────────────────────────────────────────────────
+    private void drawNavBtn(GuiGraphics g, int mx, int my, int x, int y, int uvX, int uvY, boolean active) {
+        if (!active) {
+            drawCentered(g, uvX == UV_BTN_PREV_X ? "❮" : "❯",
+                    x + SMALL_BTN_W / 2, y + (SMALL_BTN_H - font.lineHeight) / 2, COL_TAB_TEXT_I);
+            return;
+        }
+        boolean hov = isHovering(mx, my, x, y, SMALL_BTN_W, SMALL_BTN_H);
+        int sx = x + (SMALL_BTN_W - 9) / 2;
+        int sy = y + (SMALL_BTN_H - 9) / 2;
+        g.blit(widgets(), sx, sy, 9, 9, uvX, uvY, 9, 9, 256, 256);
+        // tint on hover
+        if (hov) g.fill(x, y, x + SMALL_BTN_W, y + SMALL_BTN_H, 0x30FFFFFF);
+    }
+
+    // ── Tab bar (24×24 squares above the panel, JEI-style) ───────────────
+
+    private int tabTopY() { return guiTop - TAB_H + TAB_GUI_OVERLAP; }
 
     private void drawTabBar(GuiGraphics g, int mouseX, int mouseY) {
-        int barY = guiTop + TAB_BAR_Y;
+        if (tabs.isEmpty()) return;
+        int ty = tabTopY();
+        int startX = guiLeft + 2;  // 2px inset from panel edge
 
         if (tabsOverflow()) {
-            int arrowLX  = guiLeft + 4;
-            int arrowRX  = guiLeft + GUI_WIDTH - 4 - TAB_ARROW_W;
             boolean canL = tabScrollOffset > 0;
             boolean canR = tabScrollOffset + visibleTabCount() < tabs.size();
-            boolean hovL = isHovering(mouseX, mouseY, arrowLX, barY, TAB_ARROW_W, TAB_H);
-            boolean hovR = isHovering(mouseX, mouseY, arrowRX, barY, TAB_ARROW_W, TAB_H);
-
-            // 9×9 arrow glyphs centred in the button area; greyed text fallback when disabled
-            int btnMidY = barY + (TAB_H - 9) / 2;
+            int arrowLX = startX;
+            int arrowRX = guiLeft + GUI_WIDTH - 2 - TAB_ARROW_W;
+            int arrowMidY = ty + (TAB_H - 9) / 2;
             if (canL) {
-                g.blit(widgets(), arrowLX + (TAB_ARROW_W - 9) / 2, btnMidY, 9, 9, UV_BTN_PREV_X, UV_BTN_PREV_Y, 9, 9, 256, 256);
+                g.blit(widgets(), arrowLX + (TAB_ARROW_W - 9) / 2, arrowMidY, 9, 9, UV_BTN_PREV_X, UV_BTN_PREV_Y, 9, 9, 256, 256);
             } else {
-                g.drawCenteredString(font, "❮", arrowLX + TAB_ARROW_W / 2, barY + (TAB_H - font.lineHeight) / 2, COL_TAB_TEXT_I);
+                drawCentered(g, "❮", arrowLX + TAB_ARROW_W / 2, ty + (TAB_H - font.lineHeight) / 2, COL_TAB_TEXT_I);
             }
             if (canR) {
-                g.blit(widgets(), arrowRX + (TAB_ARROW_W - 9) / 2, btnMidY, 9, 9, UV_BTN_NEXT_X, UV_BTN_NEXT_Y, 9, 9, 256, 256);
+                g.blit(widgets(), arrowRX + (TAB_ARROW_W - 9) / 2, arrowMidY, 9, 9, UV_BTN_NEXT_X, UV_BTN_NEXT_Y, 9, 9, 256, 256);
             } else {
-                g.drawCenteredString(font, "❯", arrowRX + TAB_ARROW_W / 2, barY + (TAB_H - font.lineHeight) / 2, COL_TAB_TEXT_I);
+                drawCentered(g, "❯", arrowRX + TAB_ARROW_W / 2, ty + (TAB_H - font.lineHeight) / 2, COL_TAB_TEXT_I);
             }
-
             int tabAreaX = arrowLX + TAB_ARROW_W + 1;
             int vis = visibleTabCount();
             for (int i = 0; i < vis; i++) {
                 int tabIdx = tabScrollOffset + i;
                 if (tabIdx >= tabs.size()) break;
-                drawSingleTab(g, mouseX, mouseY, tabIdx, tabAreaX + i * TAB_W, TAB_W - 1, barY);
+                drawSingleTab(g, mouseX, mouseY, tabIdx, tabAreaX + i * TAB_W, ty);
             }
         } else {
-            int tabW   = Math.min((GUI_WIDTH - 8) / tabs.size(), 72);
-            int totalW = tabW * tabs.size();
-            int startX = guiLeft + (GUI_WIDTH - totalW) / 2;
             for (int i = 0; i < tabs.size(); i++) {
-                drawSingleTab(g, mouseX, mouseY, i, startX + i * tabW, tabW - 1, barY);
+                drawSingleTab(g, mouseX, mouseY, i, startX + i * TAB_W, ty);
             }
         }
     }
 
-    private void drawSingleTab(GuiGraphics g, int mouseX, int mouseY,
-                               int tabIdx, int tx, int tw, int barY) {
+    private void drawSingleTab(GuiGraphics g, int mx, int my, int tabIdx, int tx, int ty) {
         boolean active  = (tabIdx == selectedTab);
-        boolean hovered = isHovering(mouseX, mouseY, tx, barY, tw, TAB_H);
-
-        int bg = active ? COL_TAB_ACTIVE : hovered ? COL_TAB_HOVER : COL_TAB_IDLE;
-        AMITheme.fillRounded(g, tx, barY, tw, TAB_H, bg);
-        if (active) {
-            g.fill(tx + 1, barY + TAB_H - 2, tx + tw - 1, barY + TAB_H, COL_TAB_ACTIVE);
-        }
+        boolean hovered = isHovering(mx, my, tx, ty, TAB_W, TAB_H);
+        int uvX = active ? UV_TAB_SEL_X : UV_TAB_UNS_X;
+        int uvY = active ? UV_TAB_SEL_Y : UV_TAB_UNS_Y;
+        g.blit(widgets(), tx, ty, TAB_W, TAB_H, uvX, uvY, TAB_W, TAB_H, 256, 256);
+        if (hovered && !active) g.fill(tx, ty, tx + TAB_W, ty + TAB_H, 0x30FFFFFF);
 
         ItemStack icon = RecipeDisplayHelper.getRepresentativeWorkstation(tabs.get(tabIdx).type());
-        if (icon != null && !icon.isEmpty() && tw >= 18) {
-            int iconX = tx + (tw - 16) / 2;
-            int iconY = barY + (TAB_H - 16) / 2;
-            g.renderItem(icon, iconX, iconY);
+        if (icon != null && !icon.isEmpty()) {
+            g.renderItem(icon, tx + (TAB_W - 16) / 2, ty + (TAB_H - 16) / 2);
         } else {
-            String label    = tabs.get(tabIdx).shortLabel();
-            int textColor   = active ? COL_TAB_TEXT_A : COL_TAB_TEXT_I;
-            int textX       = tx + (tw - font.width(label)) / 2;
-            int textY       = barY + (TAB_H - font.lineHeight) / 2;
-            g.drawString(font, label, textX, textY, textColor, false);
-        }
-
-        // Recipe count badge (top-right corner of the tab)
-        int count = tabs.get(tabIdx).recipes().size();
-        if (count > 0 && tw >= 26) {
-            String countStr = count > 99 ? "99+" : String.valueOf(count);
-            int badgeW = font.width(countStr) + 3;
-            int badgeX = tx + tw - badgeW - 1;
-            int badgeY = barY + 1;
-            if ((COL_COUNT_BADGE >>> 24) != 0) {
-                g.fill(badgeX, badgeY, badgeX + badgeW, badgeY + font.lineHeight + 1, COL_COUNT_BADGE);
-            }
-            g.drawString(font, countStr, badgeX + 1, badgeY + 1, COL_COUNT_BADGE_TEXT, false);
+            String label = tabs.get(tabIdx).shortLabel();
+            g.drawString(font, label,
+                    tx + (TAB_W - font.width(label)) / 2, ty + (TAB_H - font.lineHeight) / 2,
+                    active ? COL_TAB_TEXT_A : COL_TAB_TEXT_I, false);
         }
 
         if (hovered) {
-            g.renderTooltip(font, tabs.get(tabIdx).label(), mouseX, mouseY);
+            List<Component> tabTip = new ArrayList<>();
+            tabTip.add(tabs.get(tabIdx).label());
+            tabTip.add(Component.translatable("ami.recipe_viewer.tab_count", tabs.get(tabIdx).recipes().size())
+                    .withStyle(ChatFormatting.GRAY));
+            g.renderTooltip(font, tabTip, java.util.Optional.empty(), mx, my);
         }
     }
 
-    // ── Workstation panel ─────────────────────────────────────────────────
-
-    private void drawWorkstationPanel(GuiGraphics g, int mouseX, int mouseY) {
-        if (tabs.isEmpty()) return;
-        Tab tab = tabs.get(selectedTab);
-
-        int stripY = guiTop + WORKSTATION_BAR_Y;
-        int stripX = guiLeft + 4;
-        int stripW = GUI_WIDTH - 8;
-
-        if ((COL_WORKSTATION_BG >>> 24) != 0) {
-            g.fill(stripX, stripY, stripX + stripW, stripY + WORKSTATION_H, COL_WORKSTATION_BG);
-        }
-        g.fill(stripX, stripY,                   stripX + stripW, stripY + 1,            COL_BORDER);
-        g.fill(stripX, stripY + WORKSTATION_H - 1, stripX + stripW, stripY + WORKSTATION_H, COL_BORDER);
-
-        Component label = Component.translatable("ami.recipe_viewer.made_in");
-        int labelX = stripX + 4;
-        int labelY = stripY + (WORKSTATION_H - font.lineHeight) / 2;
-        g.drawString(font, label, labelX, labelY, COL_WORKSTATION_TEXT, false);
-
-        List<ItemStack> workstations = RecipeDisplayHelper.getWorkstations(tab.type());
-        int iconX = labelX + font.width(label) + 5;
-        int iconY = stripY + (WORKSTATION_H - 16) / 2;
-        int shown = 0;
-        for (ItemStack ws : workstations) {
-            if (ws.isEmpty()) continue;
-            if (shown >= 6) {
-                // More indicator
-                g.drawString(font, "…", iconX + 2, iconY + (16 - font.lineHeight) / 2,
-                        COL_TEXT_CAT, false);
-                break;
-            }
-            g.renderItem(ws, iconX, iconY);
-            if (isHovering(mouseX, mouseY, iconX, iconY, 16, 16)) {
-                List<Component> wsTip = new ArrayList<>(
-                        net.minecraft.client.gui.screens.Screen.getTooltipFromItem(minecraft, ws));
-                wsTip.add(Component.translatable("ami.recipe_viewer.browse_type")
-                        .withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
-                g.renderTooltip(font, wsTip, java.util.Optional.empty(), mouseX, mouseY);
-            }
-            iconX += 18;
-            shown++;
-        }
-    }
 
     // ── Content ───────────────────────────────────────────────────────────
 
     private void drawNoRecipes(GuiGraphics g) {
-        g.drawCenteredString(font,
+        drawCentered(g,
                 Component.translatable("ami.recipe_viewer.no_recipes"),
                 guiLeft + GUI_WIDTH / 2,
                 guiTop + guiHeight / 2 - font.lineHeight,
@@ -565,9 +560,7 @@ public class RecipeViewerScreen extends Screen {
         int cardH = currentCardH;
         int slotH = cardH + 4;                          // card height + gap
         int cardX = guiLeft + 4;
-        // Centre the recipe(s) inside the content area when only one is shown
-        int contentAreaH = guiHeight - CONTENT_Y - FOOTER_H;
-        int singleOffset = recipesPerPage == 1 ? Math.max(0, (contentAreaH - cardH) / 2) : 6;
+        int singleOffset = 6;                           // fixed top padding — JEI top-aligns recipes
 
         for (int i = startIdx; i < endIdx; i++) {
             AmiRecipeHolder<?> recipe = tab.recipes().get(i);
@@ -584,7 +577,7 @@ public class RecipeViewerScreen extends Screen {
             int layoutHeight = layout.backgroundTexture() != null
                     ? layout.bgRenderY() + layout.bgH()
                     : 14 + layout.gridHeight() * 18;
-            int yOffset = Math.max(0, (cardH - layoutHeight) / 2);
+            int yOffset = Math.max(4, (cardH - layoutHeight) / 2);
             int ry = cardY + yOffset;
 
             if (layout.backgroundTexture() != null) {
@@ -615,7 +608,7 @@ public class RecipeViewerScreen extends Screen {
                 }
             }
 
-            // Favorite button
+            // Favorite button — 9×9 star sprite centred in a 14×14 hit area
             if (!layout.output().isEmpty()) {
                 int favX = cardX + 6;
                 int favY = cardY + 4;
@@ -623,8 +616,11 @@ public class RecipeViewerScreen extends Screen {
                 boolean favHov   = isHovering(mouseX, mouseY, favX, favY, 14, 14);
                 AMITheme.fillRounded(g, favX, favY, 14, 14,
                         favorite ? COL_TAB_ACTIVE : favHov ? COL_TAB_HOVER : COL_TAB_IDLE);
-                g.drawCenteredString(font, Component.translatable("ami.recipe_viewer.favorite_icon"),
-                        favX + 7, favY + 3, favorite ? 0xFFFFFFFF : COL_TAB_TEXT_I);
+                String star = "★";
+                g.drawString(font, star,
+                        favX + (14 - font.width(star)) / 2,
+                        favY + (14 - font.lineHeight) / 2,
+                        favorite ? 0xFFFFFFFF : COL_TAB_TEXT_I, false);
                 if (favHov) {
                     g.renderTooltip(font, Component.translatable(favorite
                             ? "ami.recipe_viewer.unfavorite"
@@ -696,7 +692,7 @@ public class RecipeViewerScreen extends Screen {
                 int btnY    = cardY + (cardH - 14) / 2;
                 boolean bHov = isHovering(mouseX, mouseY, btnX, btnY, 18, 14);
                 AMITheme.fillRounded(g, btnX, btnY, 18, 14, bHov ? COL_BTN_HOVER : COL_BTN_IDLE);
-                g.drawCenteredString(font, Component.translatable("ami.recipe_viewer.transfer_icon"),
+                drawCentered(g, Component.translatable("ami.recipe_viewer.transfer_icon"),
                         btnX + 9, btnY + 2, 0xFFFFFFFF);
                 if (bHov) {
                     g.renderTooltip(font,
@@ -705,9 +701,6 @@ public class RecipeViewerScreen extends Screen {
             }
         }
 
-        if (totalPages > 1) {
-            drawPageNav(g, mouseX, mouseY, pageIndex + 1, totalPages);
-        }
     }
 
     private void renderIngredientTooltip(GuiGraphics g, SlotPosition slot, int altIdx, int mouseX, int mouseY) {
@@ -785,22 +778,36 @@ public class RecipeViewerScreen extends Screen {
         }
     }
 
-    // ── Page nav ──────────────────────────────────────────────────────────
+    // ── Workstation / catalyst panel ─────────────────────────────────────
 
-    private void drawPageNav(GuiGraphics g, int mouseX, int mouseY, int current, int total) {
-        int navY  = guiTop + guiHeight - FOOTER_H - 8;
-        int navCX = guiLeft + GUI_WIDTH / 2;
+    private void drawWorkstationPanel(GuiGraphics g, int mouseX, int mouseY) {
+        if (tabs.isEmpty() || selectedTab >= tabs.size()) return;
+        List<ItemStack> workstations = RecipeDisplayHelper.getWorkstations(tabs.get(selectedTab).type());
+        if (workstations.isEmpty()) return;
 
-        boolean prevHov = isHovering(mouseX, mouseY, navCX - 40, navY - 2, 14, 12);
-        boolean nextHov = isHovering(mouseX, mouseY, navCX + 26, navY - 2, 14, 12);
+        int slotOuter = 20;   // 18px slot + 1px border each side
+        int padH      = 4;
+        int padV      = 5;
+        int panelW    = slotOuter + 2 * padH;  // 28px
+        int panelH    = 2 * padV + workstations.size() * slotOuter;
+        int overlap   = 4;
+        int px        = guiLeft - panelW + overlap;
+        int py        = guiTop + CONTENT_Y;
 
-        g.drawString(font, Component.translatable("ami.recipe_viewer.prev"),
-                navCX - 36, navY, prevHov ? 0xFFFFFFFF : COL_TEXT_NAV, false);
-        g.drawString(font, Component.translatable("ami.recipe_viewer.next"),
-                navCX + 28, navY, nextHov ? 0xFFFFFFFF : COL_TEXT_NAV, false);
-        g.drawCenteredString(font,
-                Component.translatable("ami.recipe_viewer.page", current, total),
-                navCX, navY, COL_TEXT_NAV);
+        g.fill(px - 1, py - 1, px + panelW + 1, py + panelH + 1, COL_BORDER);
+        g.fill(px,     py,     px + panelW,     py + panelH,     COL_PANEL);
+
+        for (int i = 0; i < workstations.size(); i++) {
+            ItemStack ws = workstations.get(i);
+            int sx = px + padH;
+            int sy = py + padV + i * slotOuter;
+            drawSlot(g, sx, sy);
+            g.renderItem(ws, sx + 1, sy + 1);
+            g.renderItemDecorations(font, ws, sx + 1, sy + 1);
+            if (isHovering(mouseX, mouseY, sx, sy, 18, 18)) {
+                g.renderTooltip(font, ws, mouseX, mouseY);
+            }
+        }
     }
 
     // ── Slot / arrow drawing ──────────────────────────────────────────────
@@ -873,8 +880,8 @@ public class RecipeViewerScreen extends Screen {
         if (tabs.isEmpty() || scrollY == 0) return false;
 
         // Scroll over tab bar → scroll tab strip if overflow
-        int barY = guiTop + TAB_BAR_Y;
-        if (tabsOverflow() && isHovering(mouseX, mouseY, guiLeft, barY, GUI_WIDTH, TAB_H)) {
+        int tabY = tabTopY();
+        if (tabsOverflow() && isHovering(mouseX, mouseY, guiLeft, tabY, GUI_WIDTH, TAB_H)) {
             int vis    = visibleTabCount();
             int maxOff = Math.max(0, tabs.size() - vis);
             tabScrollOffset = Math.max(0, Math.min(tabScrollOffset + (scrollY > 0 ? -1 : 1), maxOff));
@@ -889,9 +896,8 @@ public class RecipeViewerScreen extends Screen {
         int endIdx   = Math.min(startIdx + recipesPerPage, tabSize);
         int cardH    = currentCardH;
         int slotH    = cardH + 4;
-        int cardX    = guiLeft + 4;
-        int contentAreaH2 = guiHeight - CONTENT_Y - FOOTER_H;
-        int singleOffset2 = recipesPerPage == 1 ? Math.max(0, (contentAreaH2 - cardH) / 2) : 6;
+        int cardX        = guiLeft + 4;
+        int singleOffset2 = 6;
 
         // Scroll over an ingredient slot → cycle alternatives
         for (int i = startIdx; i < endIdx; i++) {
@@ -938,46 +944,42 @@ public class RecipeViewerScreen extends Screen {
 
         Tab tab     = tabs.get(selectedTab);
         int tabSize = tab.recipes().size();
-        int barY    = guiTop + TAB_BAR_Y;
+        int tabY    = tabTopY();
 
-        // Favorites button (★ in header top-right)
-        if (button == 0 && isHovering(mouseX, mouseY, favBtnX(), favBtnY(), 14, 14)) {
-            if (minecraft != null) {
-                minecraft.setScreen(new com.sanhiruzu.ami.client.favorites.AmiFavoritesScreen(parentScreen));
-            }
-            return true;
-        }
+        // Header nav buttons — row 1: category prev/next; row 2: page prev/next
+        if (button == 0) {
+            int titleH = font.lineHeight + BORDER_PAD;
+            int btnY1  = guiTop + titleH - SMALL_BTN_H + NAV_PAD;
+            int btnY2  = btnY1 + SMALL_BTN_H + NAV_PAD;
+            int btnL   = guiLeft + BORDER_PAD;
+            int btnR   = guiLeft + GUI_WIDTH - BORDER_PAD - SMALL_BTN_W;
+            if (isHovering(mouseX, mouseY, btnL, btnY1, SMALL_BTN_W, SMALL_BTN_H)) { prevTab(); return true; }
+            if (isHovering(mouseX, mouseY, btnR, btnY1, SMALL_BTN_W, SMALL_BTN_H)) { nextTab(); return true; }
+            if (isHovering(mouseX, mouseY, btnL, btnY2, SMALL_BTN_W, SMALL_BTN_H)) { prevPage(); return true; }
+            if (isHovering(mouseX, mouseY, btnR, btnY2, SMALL_BTN_W, SMALL_BTN_H)) { nextPage(); return true; }
 
-        // Workstation panel — click any workstation icon to browse all recipes of that type
-        int wsY = guiTop + WORKSTATION_BAR_Y;
-        if (button == 0 && mouseY >= wsY && mouseY < wsY + WORKSTATION_H && !tabs.isEmpty()) {
-            Tab wTab = tabs.get(selectedTab);
-            List<ItemStack> workstations = RecipeDisplayHelper.getWorkstations(wTab.type());
-            int wsLabelX = guiLeft + 4 + 4;
-            int wsIconX  = wsLabelX + font.width(Component.translatable("ami.recipe_viewer.made_in")) + 5;
-            int wsIconY  = wsY + (WORKSTATION_H - 16) / 2;
-            int shown    = 0;
-            for (ItemStack ws : workstations) {
-                if (ws.isEmpty()) continue;
-                if (shown >= 6) break;
-                if (isHovering(mouseX, mouseY, wsIconX, wsIconY, 16, 16)) {
-                    navigateToType(wTab.type());
+            // Category title click → show all recipes of this type (JEI feature)
+            if (focusType == null) {
+                Component catTitle = tabs.get(selectedTab).label();
+                int ty = guiTop + (titleH - font.lineHeight) / 2 + 1;
+                int tw = font.width(catTitle);
+                int tx = guiLeft + GUI_WIDTH / 2 - tw / 2;
+                if (isHovering(mouseX, mouseY, tx, ty, tw, font.lineHeight)) {
+                    navigateToType(tabs.get(selectedTab).type());
                     return true;
                 }
-                wsIconX += 18;
-                shown++;
             }
         }
 
         // Tab scroll arrows
-        if (tabsOverflow() && mouseY >= barY && mouseY <= barY + TAB_H) {
+        if (tabsOverflow() && mouseY >= tabY && mouseY <= tabY + TAB_H) {
             int arrowLX = guiLeft + 4;
             int arrowRX = guiLeft + GUI_WIDTH - 4 - TAB_ARROW_W;
-            if (isHovering(mouseX, mouseY, arrowLX, barY, TAB_ARROW_W, TAB_H) && tabScrollOffset > 0) {
+            if (isHovering(mouseX, mouseY, arrowLX, tabY, TAB_ARROW_W, TAB_H) && tabScrollOffset > 0) {
                 tabScrollOffset--;
                 return true;
             }
-            if (isHovering(mouseX, mouseY, arrowRX, barY, TAB_ARROW_W, TAB_H)
+            if (isHovering(mouseX, mouseY, arrowRX, tabY, TAB_ARROW_W, TAB_H)
                     && tabScrollOffset + visibleTabCount() < tabs.size()) {
                 tabScrollOffset++;
                 return true;
@@ -985,7 +987,7 @@ public class RecipeViewerScreen extends Screen {
         }
 
         // Tab selection
-        if (mouseY >= barY && mouseY <= barY + TAB_H) {
+        if (mouseY >= tabY && mouseY <= tabY + TAB_H) {
             if (tabsOverflow()) {
                 int tabAreaX = guiLeft + 4 + TAB_ARROW_W + 1;
                 int vis      = visibleTabCount();
@@ -993,23 +995,27 @@ public class RecipeViewerScreen extends Screen {
                     int tabIdx = tabScrollOffset + i;
                     if (tabIdx >= tabs.size()) break;
                     int tx = tabAreaX + i * TAB_W;
-                    if (isHovering(mouseX, mouseY, tx, barY, TAB_W - 1, TAB_H)) {
+                    if (isHovering(mouseX, mouseY, tx, tabY, TAB_W - 1, TAB_H)) {
                         selectedTab = tabIdx;
                         pageIndex   = 0;
                         refreshLayout();
+                        minecraft.getSoundManager().play(
+                                SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                         return true;
                     }
                 }
             } else {
-                int tabW   = Math.min((GUI_WIDTH - 8) / tabs.size(), 72);
-                int totalW = tabW * tabs.size();
-                int startX = guiLeft + (GUI_WIDTH - totalW) / 2;
-                int idx    = (int) ((mouseX - startX) / tabW);
-                if (idx >= 0 && idx < tabs.size()) {
-                    selectedTab = idx;
-                    pageIndex   = 0;
-                    refreshLayout();
-                    return true;
+                int startX = guiLeft + 4;
+                for (int i = 0; i < tabs.size(); i++) {
+                    int tx = startX + i * TAB_W;
+                    if (isHovering(mouseX, mouseY, tx, tabY, TAB_W, TAB_H)) {
+                        selectedTab = i;
+                        pageIndex   = 0;
+                        refreshLayout();
+                        minecraft.getSoundManager().play(
+                                SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                        return true;
+                    }
                 }
             }
         }
@@ -1021,8 +1027,7 @@ public class RecipeViewerScreen extends Screen {
         int cardH      = currentCardH;
         int slotH      = cardH + 4;
         int cardX      = guiLeft + 4;
-        int contentAreaH = guiHeight - CONTENT_Y - FOOTER_H;
-        int singleOffset = recipesPerPage == 1 ? Math.max(0, (contentAreaH - cardH) / 2) : 6;
+        int singleOffset = 6;
 
         for (int i = startIdx; i < endIdx; i++) {
             AmiRecipeHolder<?> recipe = tab.recipes().get(i);
@@ -1095,16 +1100,6 @@ public class RecipeViewerScreen extends Screen {
             }
         }
 
-        // Page nav
-        if (totalPages > 1) {
-            int navY  = guiTop + guiHeight - FOOTER_H - 8;
-            int navCX = guiLeft + GUI_WIDTH / 2;
-            if (mouseY >= navY - 2 && mouseY <= navY + 12) {
-                if (mouseX >= navCX - 40 && mouseX <= navCX - 26) { prevPage(); return true; }
-                if (mouseX >= navCX + 26 && mouseX <= navCX + 40) { nextPage(); return true; }
-            }
-        }
-
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
@@ -1152,8 +1147,6 @@ public class RecipeViewerScreen extends Screen {
 
     @Override
     public void onClose() {
-        openLeft  = -1;
-        openRight = -1;
         RecipeViewerBridge.clearRecipeView();
         InventoryOverlayHandler.setAmiEnabled(shouldRestoreAmiEnabled);
         if (minecraft != null) minecraft.setScreen(parentScreen);
@@ -1171,6 +1164,18 @@ public class RecipeViewerScreen extends Screen {
 
     private boolean isHovering(double mx, double my, int x, int y, int w, int h) {
         return mx >= x && mx < x + w && my >= y && my < y + h;
+    }
+
+    private boolean shadow() {
+        return com.sanhiruzu.ami.config.AmiConfig.theme != com.sanhiruzu.ami.config.AmiConfig.Theme.VANILLA;
+    }
+
+    private void drawCentered(GuiGraphics g, Component text, int cx, int y, int color) {
+        g.drawString(font, text, cx - font.width(text) / 2, y, color, shadow());
+    }
+
+    private void drawCentered(GuiGraphics g, String text, int cx, int y, int color) {
+        g.drawString(font, text, cx - font.width(text) / 2, y, color, shadow());
     }
 
     // ── Records ───────────────────────────────────────────────────────────
