@@ -211,6 +211,13 @@ public final class AMITheme {
     public static int RECIPE_BTN_IDLE = 0xFF226622;
     public static int RECIPE_BTN_HOVER = 0xFF44AA44;
     public static int RECIPE_SHAPELESS = 0xFF5555AA;
+    public static int RECIPE_WORKSTATION_BG = 0xFF181820;
+    public static int RECIPE_WORKSTATION_TEXT = 0xFF6666AA;
+    public static int RECIPE_TAB_ARROW = 0xFF6688CC;
+    public static int RECIPE_TAB_ARROW_HOVER = 0xFF4488FF;
+    public static int RECIPE_COUNT_BADGE = 0xFF444466;
+    public static int RECIPE_COUNT_BADGE_TEXT = 0xFF8888BB;
+    public static int RECIPE_OUTPUT_SLOT_BORDER = 0xFF886633;
     /**
      * Synchronizes theme fields with AmiConfig values.
      * Called during mod initialization and config reload events.
@@ -493,6 +500,8 @@ public final class AMITheme {
         RECIPE_ARROW_ANIM = transparencyAdjusted(RECIPE_ARROW_ANIM, percent);
         RECIPE_BTN_IDLE = transparencyAdjusted(RECIPE_BTN_IDLE, percent, 0x20);
         RECIPE_BTN_HOVER = transparencyAdjusted(RECIPE_BTN_HOVER, percent, 0x28);
+        RECIPE_WORKSTATION_BG = transparencyAdjusted(RECIPE_WORKSTATION_BG, percent, 0x18);
+        RECIPE_COUNT_BADGE = transparencyAdjusted(RECIPE_COUNT_BADGE, percent, 0x18);
     }
 
     public static void sync() {
@@ -609,6 +618,13 @@ public final class AMITheme {
         RECIPE_BTN_IDLE = AmiConfig.cardBg;
         RECIPE_BTN_HOVER = AmiConfig.cardBgHover;
         RECIPE_SHAPELESS = accent;
+        RECIPE_WORKSTATION_BG = AmiConfig.cardBg;
+        RECIPE_WORKSTATION_TEXT = visibleColor(AmiConfig.cardTextSubtitle);
+        RECIPE_TAB_ARROW = visibleColor(AmiConfig.cardTextSubtitle);
+        RECIPE_TAB_ARROW_HOVER = accent;
+        RECIPE_COUNT_BADGE = AmiConfig.cardBg;
+        RECIPE_COUNT_BADGE_TEXT = visibleColor(AmiConfig.cardTextSubtitle);
+        RECIPE_OUTPUT_SLOT_BORDER = ACCENT_GOLD;
 
         if (AmiConfig.theme == AmiConfig.Theme.MODERN) {
             // "Modern" is now the glassy look the user liked for readability.
@@ -705,6 +721,13 @@ public final class AMITheme {
             RECIPE_BTN_IDLE = 0x4444AA44;
             RECIPE_BTN_HOVER = 0x8844AA44;
             RECIPE_SHAPELESS = 0xFF6666CC;
+            RECIPE_WORKSTATION_BG = 0x1AFFFFFF;
+            RECIPE_WORKSTATION_TEXT = 0xFFAAAAAA;
+            RECIPE_TAB_ARROW = 0xFFAAAAAA;
+            RECIPE_TAB_ARROW_HOVER = accent;
+            RECIPE_COUNT_BADGE = 0x33FFFFFF;
+            RECIPE_COUNT_BADGE_TEXT = 0xFFAAAAAA;
+            RECIPE_OUTPUT_SLOT_BORDER = 0xFFAA8833;
         } else if (AmiConfig.theme == AmiConfig.Theme.TRANSPARENT) {
             // "Transparent" is now ultra-minimal like EMI.
             PANEL_BG = 0x1A000000; // ~10% opacity black
@@ -796,6 +819,13 @@ public final class AMITheme {
             RECIPE_BTN_IDLE = 0x3344AA44;
             RECIPE_BTN_HOVER = 0x6644AA44;
             RECIPE_SHAPELESS = 0xFF8888FF;
+            RECIPE_WORKSTATION_BG = 0x0AFFFFFF;
+            RECIPE_WORKSTATION_TEXT = 0xFF888888;
+            RECIPE_TAB_ARROW = 0xFFCCCCCC;
+            RECIPE_TAB_ARROW_HOVER = accent;
+            RECIPE_COUNT_BADGE = 0x22FFFFFF;
+            RECIPE_COUNT_BADGE_TEXT = 0xFF888888;
+            RECIPE_OUTPUT_SLOT_BORDER = 0xFFAA8833;
         } else if (AmiConfig.theme == AmiConfig.Theme.VANILLA) {
             // VANILLA
             PANEL_BG = 0xFFC6C6C6;

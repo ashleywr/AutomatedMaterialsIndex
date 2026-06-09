@@ -28,7 +28,34 @@ public final class AmiTooltipHandler {
             }
         }
 
-        // 2. Potentially other AMI data here
+        // 2. Recipe / Uses counts — shown when the recipe index is ready
+        if (com.sanhiruzu.ami.platform.Services.PLATFORM.isRecipeIndexBuilt()) {
+            ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+            if (itemId != null) {
+                GlobalIndex.getInstance().getNode(itemId).ifPresent(node -> {
+                    appendRecipeCounts(node, lines);
+                });
+            }
+        }
+    }
+
+    private static void appendRecipeCounts(SearchNode node, List<Component> lines) {
+        String recipes = node.meta(SearchNodeKeys.RECIPE_OUTPUT_COUNT, "");
+        String uses    = node.meta(SearchNodeKeys.RECIPE_USE_COUNT, "");
+        int rCount = recipes.isEmpty() ? 0 : parseInt(recipes);
+        int uCount = uses.isEmpty()    ? 0 : parseInt(uses);
+        if (rCount <= 0 && uCount <= 0) return;
+
+        // Build a single compact hint line: "R: 3  U: 5"
+        StringBuilder sb = new StringBuilder();
+        if (rCount > 0) sb.append(ChatFormatting.AQUA).append("R: ").append(rCount);
+        if (rCount > 0 && uCount > 0) sb.append(ChatFormatting.DARK_GRAY).append("  ");
+        if (uCount > 0) sb.append(ChatFormatting.GREEN).append("U: ").append(uCount);
+        lines.add(Component.literal(sb.toString()));
+    }
+
+    private static int parseInt(String s) {
+        try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return 0; }
     }
 
     private static void appendEntityInfo(SearchNode node, List<Component> lines) {
