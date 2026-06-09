@@ -34,7 +34,8 @@ public final class ProviderRegistry {
             new CobblemonSpeciesProvider(),
             new DimensionProvider(),
             new LootTableProvider(),
-            new SpawnProvider()
+            new SpawnProvider(),
+            new RecipeGraphProvider()    // must run last: wires edges onto nodes from all prior providers
     );
 
     private ProviderRegistry() {

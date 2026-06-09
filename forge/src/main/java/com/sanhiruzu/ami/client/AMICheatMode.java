@@ -190,7 +190,7 @@ public final class AMICheatMode {
      * Example: minecraft:cow -> minecraft:cow_spawn_egg
      */
     private static ResourceLocation entityToSpawnEggId(ResourceLocation entityId) {
-        ResourceLocation spawnEggId = new ResourceLocation(
+        ResourceLocation spawnEggId = ResourceLocation.fromNamespaceAndPath(
                 entityId.getNamespace(),
                 entityId.getPath() + "_spawn_egg"
         );

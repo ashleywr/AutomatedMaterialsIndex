@@ -1,53 +1,52 @@
 package com.sanhiruzu.ami.index.providers;
 
 import com.sanhiruzu.ami.AmiCore;
+import com.sanhiruzu.ami.platform.Services;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-/**
- * Registry for IAmiIngredientPlugin implementations.
- * Mods can register custom ingredient providers to contribute non-item ingredients
- * (gases, chemicals, fluids, etc.) to AMI's index without depending on recipe viewers.
- */
 public final class IngredientPluginRegistry {
-    private static final List<IAmiIngredientPlugin> BUILT_IN = List.of();
-    private static final List<IAmiIngredientPlugin> EXTERNAL = new CopyOnWriteArrayList<>();
 
-    private IngredientPluginRegistry() {
-    }
+    private static final List<IRecipeViewerPlugin> DISCOVERED = discoverPlugins();
+    private static final List<IRecipeViewerPlugin> EXTERNAL = new CopyOnWriteArrayList<>();
 
-    /**
-     * Register an external ingredient plugin.
-     */
-    public static void register(IAmiIngredientPlugin plugin) {
+    private IngredientPluginRegistry() {}
+
+    public static void register(IRecipeViewerPlugin plugin) {
         if (plugin != null) {
             EXTERNAL.add(plugin);
         }
     }
 
-    /**
-     * Get all registered ingredient plugins.
-     */
-    public static List<IAmiIngredientPlugin> getAll() {
-        if (EXTERNAL.isEmpty()) {
-            return BUILT_IN;
-        }
-        List<IAmiIngredientPlugin> all = new ArrayList<>(BUILT_IN);
+    public static List<IRecipeViewerPlugin> getAll() {
+        List<IRecipeViewerPlugin> all = new ArrayList<>(DISCOVERED.size() + EXTERNAL.size());
+        all.addAll(DISCOVERED);
         all.addAll(EXTERNAL);
         return List.copyOf(all);
     }
 
-    /**
-     * Register all ingredients from all plugins.
-     */
-    public static void registerAllIngredients(IAmiIngredientPlugin.IngredientRegistry registry) {
-        for (IAmiIngredientPlugin plugin : getAll()) {
+    public static void registerAllIngredients(IRecipeViewerPlugin.IIngredientRegistration registration,
+                                              IRecipeViewerPlugin.IExtraIngredientRegistration extraRegistration) {
+        for (IRecipeViewerPlugin plugin : getAll()) {
             try {
-                plugin.registerIngredients(registry);
+                plugin.registerIngredients(registration);
             } catch (Throwable t) {
-                AmiCore.LOGGER.warn("AMI ingredient plugin '{}' failed during registration", plugin.modId(), t);
+                AmiCore.LOGGER.warn("Plugin '{}' failed during registerIngredients", plugin.getClass().getName(), t);
+            }
+            try {
+                plugin.registerExtraIngredients(extraRegistration);
+            } catch (Throwable t) {
+                AmiCore.LOGGER.warn("Plugin '{}' failed during registerExtraIngredients", plugin.getClass().getName(), t);
             }
         }
+    }
+
+    private static List<IRecipeViewerPlugin> discoverPlugins() {
+        List<IRecipeViewerPlugin> result = Services.PLATFORM.discoverAnnotatedPlugins(
+                RecipeViewerPlugin.class, IRecipeViewerPlugin.class);
+        AmiCore.LOGGER.info("AMI: discovered {} @RecipeViewerPlugin classes", result.size());
+        return result;
     }
 }

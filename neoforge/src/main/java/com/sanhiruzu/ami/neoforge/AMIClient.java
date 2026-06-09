@@ -10,6 +10,7 @@ import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.StatIconRowTooltipComponent;
 import com.sanhiruzu.ami.compat.FtbQuestsRuntimeCompat;
 import com.sanhiruzu.ami.config.AmiConfigStore;
+import com.sanhiruzu.ami.index.GlobalIndexCache;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
@@ -85,8 +86,14 @@ public class AMIClient {
         FtbQuestsRuntimeCompat.clear();
     }
 
+    private static boolean cachePreloadTriggered = false;
+
     @SubscribeEvent
     static void onClientTick(ClientTickEvent.Post event) {
+        if (!cachePreloadTriggered) {
+            cachePreloadTriggered = true;
+            GlobalIndexCache.preloadAsync();
+        }
         FtbQuestsRuntimeCompat.clientTick();
         InventoryOverlayHandler.tickAutoIndexBootstrap();
     }

@@ -527,6 +527,7 @@ public final class AmiOntology {
             case PLAYER -> SOCIAL;
             case WAYPOINT -> ENVIRONMENT;
             case FLUID, INGREDIENT -> MISC;
+            case RECIPE -> MISC;
             case ITEM -> classifyItem(node);
         };
     }

@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -30,7 +31,7 @@ import java.util.zip.GZIPOutputStream;
  * STRUCTURE and DIMENSION are always live-loaded (world/datapack-specific).
  */
 public final class GlobalIndexCache {
-    private static final int CACHE_VERSION = 54; // Bump this when index data format changes
+    private static final int CACHE_VERSION = 55; // Bump this when index data format changes
 
     private static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
@@ -38,7 +39,45 @@ public final class GlobalIndexCache {
     private static final String CACHE_DIR = "config/ami/cache";
     private static final boolean DISABLE_INDEX_CACHE = Boolean.getBoolean("ami.debug.disableIndexCache");
 
+    private static final AtomicReference<JsonObject> preloadedData = new AtomicReference<>();
+    // Path used when preloadedData was parsed; used to detect key drift (e.g. language change).
+    private static volatile Path preloadedPath = null;
+
     private GlobalIndexCache() {
+    }
+
+    /**
+     * Starts async deserialization of the on-disk cache into memory before any world join.
+     * Call at game startup (first client tick). Safe to call more than once; no-ops after first
+     * call. If the cache key changes by world-join time (language switch, etc.) the pre-loaded
+     * data is discarded and tryLoad() falls back to normal disk read.
+     */
+    public static void preloadAsync() {
+        if (DISABLE_INDEX_CACHE) return;
+        if (preloadedData.get() != null || preloadedPath != null) return; // already pre-loading / done
+        CompletableFuture.runAsync(() -> {
+            Path cacheFile;
+            try {
+                cacheFile = resolveCacheFile();
+            } catch (Exception e) {
+                AmiCore.LOGGER.debug("AMI: Cache pre-load skipped — key unavailable: {}", e.getMessage());
+                return;
+            }
+            if (!Files.exists(cacheFile)) {
+                AmiCore.LOGGER.debug("AMI: Cache pre-load skipped — no cache file at {}", cacheFile.getFileName());
+                return;
+            }
+            preloadedPath = cacheFile;
+            try (var gzipIn = new GZIPInputStream(Files.newInputStream(cacheFile));
+                 var reader = new InputStreamReader(gzipIn, StandardCharsets.UTF_8)) {
+                JsonObject parsed = JsonParser.parseReader(reader).getAsJsonObject();
+                preloadedData.set(parsed);
+                AmiCore.LOGGER.info("AMI: Cache pre-loaded into memory ({})", cacheFile.getFileName());
+            } catch (Exception e) {
+                AmiCore.LOGGER.debug("AMI: Cache pre-load failed: {}", e.getMessage());
+                preloadedPath = null;
+            }
+        }, Util.backgroundExecutor());
     }
 
     /**
@@ -49,6 +88,27 @@ public final class GlobalIndexCache {
             AmiCore.LOGGER.info("AMI: Index cache disabled by -Dami.debug.disableIndexCache=true; rebuilding.");
             return false;
         }
+
+        // Use pre-loaded data if the cache key still matches (avoids disk I/O entirely).
+        JsonObject preloaded = preloadedData.getAndSet(null);
+        if (preloaded != null) {
+            Path expectedFile = resolveCacheFile();
+            if (expectedFile.equals(preloadedPath)) {
+                AmiCore.LOGGER.debug("AMI: Applying pre-loaded cache (no disk read)");
+                AmiIndexerService.getInstance().beginProgress("Loading index cache");
+                try {
+                    deserializeInto(GlobalIndex.getInstance(), preloaded);
+                    AmiCore.LOGGER.debug("AMI: Applied pre-loaded cache: {}", expectedFile.getFileName());
+                    return true;
+                } catch (Exception e) {
+                    AmiCore.LOGGER.warn("AMI: Pre-loaded cache apply failed, will re-index: {}", e.getMessage());
+                    return false;
+                }
+            } else {
+                AmiCore.LOGGER.debug("AMI: Pre-loaded cache key drifted (language change?), falling back to disk read");
+            }
+        }
+        preloadedPath = null;
 
         Path cacheFile = resolveCacheFile();
         if (!Files.exists(cacheFile)) return false;
@@ -191,12 +251,12 @@ public final class GlobalIndexCache {
     private static void serializeFrom(GlobalIndex index, OutputStreamWriter writer) throws IOException {
         JsonObject root = new JsonObject();
 
-        // Only cache non-deferred types
-        // STRUCTURE and DIMENSION are always empty in cache (live-loaded)
+        // Only cache non-deferred types.
+        // STRUCTURE, DIMENSION, and RECIPE are always live-loaded (world/datapack-specific).
         for (NodeType type : NodeType.values()) {
             JsonArray array = new JsonArray();
             for (SearchNode node : index.getNodes(type)) {
-                if (type == NodeType.STRUCTURE || type == NodeType.DIMENSION) {
+                if (type == NodeType.STRUCTURE || type == NodeType.DIMENSION || type == NodeType.RECIPE) {
                     continue;
                 }
                 array.add(nodeToJson(node));
@@ -209,8 +269,10 @@ public final class GlobalIndexCache {
     }
 
     private static void deserializeInto(GlobalIndex index, InputStreamReader reader) throws IOException {
-        JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
+        deserializeInto(index, JsonParser.parseReader(reader).getAsJsonObject());
+    }
 
+    private static void deserializeInto(GlobalIndex index, JsonObject root) throws IOException {
         index.clear();
         int total = 0;
         for (String typeStr : root.keySet()) {
@@ -245,6 +307,7 @@ public final class GlobalIndexCache {
         // Mark deferred types as still loading since they will be populated on first frame
         index.setLoading(NodeType.STRUCTURE, true);
         index.setLoading(NodeType.DIMENSION, true);
+        index.setLoading(NodeType.RECIPE, true);
     }
 
     private static JsonObject nodeToJson(SearchNode node) {

@@ -469,6 +469,14 @@ public interface IPlatformHelper {
                 : OptionalLong.empty();
     }
 
+    /**
+     * Discovers all classes annotated with {@code annotationClass} that implement {@code pluginClass},
+     * using the platform's mod scan data (e.g. NeoForge ModList).
+     */
+    default <T> List<T> discoverAnnotatedPlugins(Class<?> annotationClass, Class<T> pluginClass) {
+        return List.of();
+    }
+
     boolean isRecipeIndexBuilt();
 
     List<AmiRecipeHolder<?>> getRecipesFor(ItemStack target);
