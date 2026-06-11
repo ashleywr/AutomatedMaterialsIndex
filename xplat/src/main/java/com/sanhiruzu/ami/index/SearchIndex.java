@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.index;
 
 import it.unimi.dsi.fastutil.chars.Char2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 
 import java.text.Normalizer;
 import java.util.*;
@@ -129,6 +130,9 @@ public final class SearchIndex {
     private final TrieNode root = new TrieNode();
     private final Set<SearchNode> allNodes = new LinkedHashSet<>();
     private final Map<SearchNode, String> searchableText = new LinkedHashMap<>();
+    private final Map<String, ArrayList<SearchNode>> trigramIndex = new HashMap<>();
+    // Reused across addNode() calls (build thread only) to avoid per-node HashSet allocation.
+    private final IntOpenHashSet trigramSeenHashes = new IntOpenHashSet(512, 0.75f);
     private final boolean includeMetadata;
 
     public SearchIndex() {
@@ -204,17 +208,19 @@ public final class SearchIndex {
     }
 
     /**
-     * Add a node into the trie. Mutations are synchronized to keep the trie safe
-     * during concurrent indexing; reads remain lock-free.
+     * Add a node into the trie. Must only be called from the build thread before the
+     * SearchService is published; concurrent reads are safe after publication due to
+     * the volatile write on AmiIndexerService.searchService establishing happens-before.
      */
     public void addNode(SearchNode node) {
-        synchronized (this) {
-            for (String key : searchableKeys(node)) {
-                addKey(key, node);
-            }
-            allNodes.add(node);
-            searchableText.put(node, searchableHaystack(node));
+        List<String> keys = searchableKeys(node);
+        for (String key : keys) {
+            addKey(key, node);
         }
+        allNodes.add(node);
+        String haystack = buildHaystack(keys);
+        searchableText.put(node, haystack);
+        indexTrigrams(haystack, node);
     }
 
     /**
@@ -231,29 +237,97 @@ public final class SearchIndex {
             cur = next;
         }
 
-        LinkedHashSet<SearchNode> out = new LinkedHashSet<>();
+        List<SearchNode> out = new ArrayList<>();
+        Set<SearchNode> seen = Collections.newSetFromMap(new IdentityHashMap<>());
         Deque<TrieNode> dq = new ArrayDeque<>();
         dq.add(cur);
         while (!dq.isEmpty()) {
             TrieNode t = dq.poll();
-            out.addAll(t.hits);
+            if (t.hits != null) {
+                for (SearchNode node : t.hits) {
+                    if (seen.add(node)) out.add(node);
+                }
+            }
             for (TrieNode child : t.children.values()) {
                 dq.add(child);
             }
         }
-        return new ArrayList<>(out);
+        return out;
     }
 
     /**
-     * Substring fallback scan.
+     * Substring search: trigram index for queries ≥3 chars, linear scan for shorter queries.
      */
     public List<SearchNode> substringSearch(String substring) {
         if (substring == null || substring.isEmpty()) return Collections.emptyList();
         String low = normalizeSearchText(substring);
         if (low.isEmpty()) return Collections.emptyList();
+        if (low.length() >= 3) {
+            return trigramSubstringSearch(low);
+        }
+        // Short query: linear scan (uncommon path)
         List<SearchNode> out = new ArrayList<>();
         for (SearchNode n : allNodes) {
             if (searchableText.getOrDefault(n, n.displayName().toLowerCase(Locale.ROOT)).contains(low)) {
+                out.add(n);
+            }
+        }
+        return out;
+    }
+
+    private void indexTrigrams(String haystack, SearchNode node) {
+        int len = haystack.length();
+        if (len < 3) return;
+        // Pack three chars into one int (each char fits in 7 bits for normalized lowercase text)
+        // to avoid allocating a substring just to check if the trigram was already seen.
+        trigramSeenHashes.clear();
+        for (int i = 0; i <= len - 3; i++) {
+            int hash = (haystack.charAt(i) << 14) | (haystack.charAt(i + 1) << 7) | haystack.charAt(i + 2);
+            if (trigramSeenHashes.add(hash)) {
+                String tri = haystack.substring(i, i + 3);
+                trigramIndex.computeIfAbsent(tri, k -> new ArrayList<>()).add(node);
+            }
+        }
+    }
+
+    private List<SearchNode> trigramSubstringSearch(String low) {
+        int len = low.length();
+        // Collect all trigrams from the query
+        List<String> trigrams = new ArrayList<>(len - 2);
+        for (int i = 0; i <= len - 3; i++) {
+            trigrams.add(low.substring(i, i + 3));
+        }
+
+        // Find the smallest bucket to minimize the initial candidate set
+        ArrayList<SearchNode> smallest = null;
+        for (String tri : trigrams) {
+            ArrayList<SearchNode> bucket = trigramIndex.get(tri);
+            if (bucket == null) return Collections.emptyList(); // no match possible
+            if (smallest == null || bucket.size() < smallest.size()) {
+                smallest = bucket;
+            }
+        }
+        if (smallest == null) return Collections.emptyList();
+
+        // Build candidate set from smallest bucket (identity comparison — instances are canonical)
+        Set<SearchNode> candidates = Collections.newSetFromMap(new IdentityHashMap<>(smallest.size() * 2));
+        candidates.addAll(smallest);
+
+        // Intersect with remaining trigram buckets
+        for (String tri : trigrams) {
+            ArrayList<SearchNode> bucket = trigramIndex.get(tri);
+            if (bucket == smallest) continue;
+            Set<SearchNode> bucketSet = Collections.newSetFromMap(new IdentityHashMap<>(bucket.size() * 2));
+            bucketSet.addAll(bucket);
+            candidates.retainAll(bucketSet);
+            if (candidates.isEmpty()) return Collections.emptyList();
+        }
+
+        // Exact verification against stored haystack (trigrams can produce false positives across word boundaries)
+        List<SearchNode> out = new ArrayList<>(candidates.size());
+        for (SearchNode n : candidates) {
+            String haystack = searchableText.get(n);
+            if (haystack != null && haystack.contains(low)) {
                 out.add(n);
             }
         }
@@ -290,6 +364,7 @@ public final class SearchIndex {
             }
             cur = next;
         }
+        if (cur.hits == null) cur.hits = new ArrayList<>(2);
         cur.hits.add(node);
     }
 
@@ -297,16 +372,18 @@ public final class SearchIndex {
         return searchableKeys(node, includeMetadata);
     }
 
-    private String searchableHaystack(SearchNode node) {
+    private String buildHaystack(List<String> keys) {
         StringBuilder sb = new StringBuilder();
-        for (String key : searchableKeys(node)) {
+        for (String key : keys) {
             sb.append(key).append(" ");
         }
         return normalizeSearchText(sb.toString());
     }
 
     private static final class TrieNode {
-        final Char2ObjectOpenHashMap<TrieNode> children = new Char2ObjectOpenHashMap<>();
-        final LinkedHashSet<SearchNode> hits = new LinkedHashSet<>();
+        // Initial capacity 2 — most trie nodes have 1–2 children.
+        final Char2ObjectOpenHashMap<TrieNode> children = new Char2ObjectOpenHashMap<>(2, 0.9f);
+        // Lazily initialized — most intermediate trie nodes have no hits.
+        @org.jetbrains.annotations.Nullable List<SearchNode> hits = null;
     }
 }

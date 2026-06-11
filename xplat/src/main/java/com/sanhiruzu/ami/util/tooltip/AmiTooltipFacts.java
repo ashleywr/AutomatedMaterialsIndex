@@ -14,6 +14,7 @@ public final class AmiTooltipFacts {
             new EnergyTooltipFact(),
             new DurabilityTooltipFact(),
             new ToolSpeedTooltipFact(),
+            new DiscoveryTooltipFact(),
             new RuntimeFavoriteTooltipFact(),
             new PlayerTooltipFact(),
             new GuideBookTooltipFact(),

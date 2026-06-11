@@ -241,20 +241,21 @@ public class ResultsTreeView {
 
         renderScrollbar(g, totalH, contentH, y + topOffset, mouseX, mouseY);
 
-        if (!toolbarDropdownOpen) {
-            var font = Minecraft.getInstance().font;
-            RenderStateSnapshot renderState = RenderStateSnapshot.capture();
-            try {
-                com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
-                if (pendingTooltipLines != null) {
-                    ItemStack stackContext = (pendingItemStack != null) ? pendingItemStack : ItemStack.EMPTY;
-                    AmiTooltipRenderer.render(g, font, stackContext, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY);
-                } else if (pendingItemStack != null && !pendingItemStack.isEmpty()) {
-                    AmiTooltipRenderer.render(g, font, pendingItemStack, mouseX, mouseY);
-                }
-            } finally {
-                renderState.restore();
+    }
+
+    public void renderPendingTooltip(GuiGraphics g, int mouseX, int mouseY) {
+        var font = Minecraft.getInstance().font;
+        RenderStateSnapshot renderState = RenderStateSnapshot.capture();
+        try {
+            com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
+            if (pendingTooltipLines != null) {
+                ItemStack stackContext = (pendingItemStack != null) ? pendingItemStack : ItemStack.EMPTY;
+                AmiTooltipRenderer.render(g, font, stackContext, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY);
+            } else if (pendingItemStack != null && !pendingItemStack.isEmpty()) {
+                AmiTooltipRenderer.render(g, font, pendingItemStack, mouseX, mouseY);
             }
+        } finally {
+            renderState.restore();
         }
     }
 
@@ -349,6 +350,7 @@ public class ResultsTreeView {
         var renderer = usesPlayerModelRenderer(entry) ? RendererRegistry.PLAYER_MODEL : RendererRegistry.get(entry.type());
         renderer.render(g, entry, -8, -8, AMITheme.ICON_SIZE, hovered);
         g.pose().popPose();
+        DiscoveryVisuals.renderIconOverlay(g, entry, iconX, iconY, AMITheme.ICON_SIZE);
 
         int textX = iconX + AMITheme.ICON_SIZE + 4;
         int maxTextW = x + width - SCROLLBAR_W - 6 - textX;
@@ -367,7 +369,7 @@ public class ResultsTreeView {
         g.pose().scale(currentLabelScale, currentLabelScale, 1f);
         g.drawString(font, name,
                 Math.round(textX / currentLabelScale), Math.round(screenTextY / currentLabelScale),
-                AMITheme.TEXT_PRIMARY, currentLabelScale >= 1f);
+                DiscoveryVisuals.primaryTextColor(entry, AMITheme.TEXT_PRIMARY), currentLabelScale >= 1f);
         g.pose().popPose();
 
         // Mod name (on the second line, right aligned)
@@ -381,6 +383,7 @@ public class ResultsTreeView {
         }
 
         int modNameColor = matched ? AMITheme.TEXT_HIGHLIGHT : AMITheme.MOD_NAME;
+        modNameColor = DiscoveryVisuals.subtitleTextColor(entry, modNameColor);
 
         renderBadges(g, font, entry, drawY, rightEdge, modNameColor, matched);
 

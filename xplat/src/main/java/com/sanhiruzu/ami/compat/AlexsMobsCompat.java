@@ -20,7 +20,7 @@ public final class AlexsMobsCompat {
             "warped_mixture", "straddlite", "dropbear_claw", "ambergris", "cachalot_whale_tooth",
             "falconry_hood", "tarantula_hawk_wing_fragment", "tarantula_hawk_wing",
             "void_worm_mandible", "void_worm_eye", "serrated_shark_tooth", "froststalker_horn",
-            "shed_snake_skin", "mungal_spores", "bison_fur", "lost_tentacle", "farseer_arm",
+            "shark_tooth", "shed_snake_skin", "mungal_spores", "bison_fur", "lost_tentacle", "farseer_arm",
             "skreecher_soul", "elastic_tendon"
     );
 
@@ -131,6 +131,9 @@ public final class AlexsMobsCompat {
         }
         if (context.path.equals("chorus_on_a_stick")) {
             facts.add("protein_food");
+        }
+        if (context.path.equals("mimicream")) {
+            facts.add("organic_drop");
         }
     }
 

@@ -10,6 +10,8 @@ public final class SearchNodeKeys {
     public static final String COMPAT_FAMILIES = "compatFamilies"; // Comma-separated parent ecosystem ids.
     public static final String PRIMARY_COMPAT_FAMILY = "primaryCompatFamily"; // UI/category owner when one family must win.
     public static final String COMPAT_CATEGORY_POLICY = "compatCategoryPolicy"; // focused, semantic, or hybrid.
+    public static final String COMPAT_ROUTE_CATEGORY = "compatRouteCategory"; // Optional compat-owned ontology category target.
+    public static final String COMPAT_ROUTE_SUBCATEGORY = "compatRouteSubcategory"; // Optional compat-owned ontology subcategory target.
     public static final String CLASSIFICATION_ROUTE = "classificationRoute"; // Human-readable resolver path.
     public static final String CLASSIFICATION_TRACE = "classificationTrace"; // Step-by-step resolver trace for debug UI.
     public static final String CLASSIFICATION_ROUTE_PHASE = "classificationRoutePhase"; // Final resolver gate.
@@ -202,6 +204,8 @@ public final class SearchNodeKeys {
     public static final String FOLIAGE_COLOR = "foliageColor"; // Biome foliage color override (hex int string)
     public static final String GRASS_COLOR = "grassColor";   // Biome grass color override (hex int string)
     public static final String TEMPERATURE_MODIFIER = "temperatureModifier"; // "frozen" or empty
+    public static final String DISCOVERY_STATE = "discoveryState"; // discovered or undiscovered.
+    public static final String DISCOVERY_SOURCE = "discoverySource"; // runtime mechanism that set DISCOVERY_STATE.
     // Player-specific (transient, never persisted)
     public static final String PLAYER_UUID = "playerUuid";
     public static final String PLAYER_NAME = "playerName";

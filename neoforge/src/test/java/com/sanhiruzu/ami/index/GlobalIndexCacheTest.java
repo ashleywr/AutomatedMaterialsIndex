@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.index;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -19,12 +20,129 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GlobalIndexCacheTest {
     private static final String ASSET_LOCALES_RESOURCE = "ami/minecraft_locales.txt";
     private static final Pattern ASSET_INDEX_LANGUAGE_PATTERN = Pattern.compile("\"minecraft/lang/([^\".]+)\\.json\"");
     private static final int ASSET_INDEX_SEARCH_DEPTH = 8;
+
+    // ---- dynamicScriptHash ----
+
+    @Test
+    void dynamicScriptHashIsEmptyWhenNoDynamicDirsExist(@TempDir Path gameDir) {
+        assertEquals("", GlobalIndexCache.dynamicScriptHash(gameDir));
+    }
+
+    @Test
+    void dynamicScriptHashIsNonEmptyWhenKubeJsDirExists(@TempDir Path gameDir) throws IOException {
+        Files.createDirectories(gameDir.resolve("kubejs/server_scripts"));
+        Files.writeString(gameDir.resolve("kubejs/server_scripts/recipes.js"), "// hello");
+
+        String hash = GlobalIndexCache.dynamicScriptHash(gameDir);
+        assertFalse(hash.isEmpty(), "Expected a non-empty hash when kubejs scripts are present");
+        assertTrue(hash.matches("[0-9a-f]{64}"), "Hash should be a 64-char hex string: " + hash);
+    }
+
+    @Test
+    void dynamicScriptHashChangesWhenFileIsAdded(@TempDir Path gameDir) throws IOException {
+        Path dir = gameDir.resolve("kubejs/server_scripts");
+        Files.createDirectories(dir);
+        Files.writeString(dir.resolve("a.js"), "ServerEvents.recipes(e => {})");
+
+        String before = GlobalIndexCache.dynamicScriptHash(gameDir);
+        Files.writeString(dir.resolve("b.js"), "ServerEvents.recipes(e => { e.remove({}) })");
+        String after = GlobalIndexCache.dynamicScriptHash(gameDir);
+
+        assertNotEquals(before, after, "Hash must change when a file is added");
+    }
+
+    @Test
+    void dynamicScriptHashChangesWhenFileIsRemoved(@TempDir Path gameDir) throws IOException {
+        Path dir = gameDir.resolve("kubejs/server_scripts");
+        Files.createDirectories(dir);
+        Path file = dir.resolve("recipes.js");
+        Files.writeString(file, "ServerEvents.recipes(e => {})");
+
+        String before = GlobalIndexCache.dynamicScriptHash(gameDir);
+        Files.delete(file);
+        String after = GlobalIndexCache.dynamicScriptHash(gameDir);
+
+        assertNotEquals(before, after, "Hash must change when a file is removed");
+    }
+
+    @Test
+    void dynamicScriptHashChangesWhenFileSizeChanges(@TempDir Path gameDir) throws IOException {
+        Path dir = gameDir.resolve("scripts");
+        Files.createDirectories(dir);
+        Path file = dir.resolve("recipes.zs");
+        Files.writeString(file, "// CraftTweaker script");
+
+        String before = GlobalIndexCache.dynamicScriptHash(gameDir);
+        Files.writeString(file, "// CraftTweaker script with more content added");
+        String after = GlobalIndexCache.dynamicScriptHash(gameDir);
+
+        assertNotEquals(before, after, "Hash must change when file content (size) changes");
+    }
+
+    @Test
+    void dynamicScriptHashIsStableForUnchangedFiles(@TempDir Path gameDir) throws IOException {
+        Path dir = gameDir.resolve("groovy");
+        Files.createDirectories(dir);
+        Files.writeString(dir.resolve("postInit.groovy"), "// groovyscript");
+
+        String first = GlobalIndexCache.dynamicScriptHash(gameDir);
+        String second = GlobalIndexCache.dynamicScriptHash(gameDir);
+
+        assertEquals(first, second, "Hash must be stable across repeated calls with no changes");
+    }
+
+    @Test
+    void dynamicScriptHashCoversAllKnownDynamicDirs(@TempDir Path gameDir) throws IOException {
+        // All declared dirs should contribute to the hash — verify each one independently
+        for (String rel : GlobalIndexCache.DYNAMIC_SCRIPT_DIRS) {
+            Path dir = gameDir.resolve(rel);
+            Files.createDirectories(dir);
+            Files.writeString(dir.resolve("test.txt"), rel); // unique content per dir
+
+            String hash = GlobalIndexCache.dynamicScriptHash(gameDir);
+            assertFalse(hash.isEmpty(), "Expected non-empty hash for dir: " + rel);
+
+            // Remove the dir for the next iteration so dirs don't accumulate
+            Files.delete(dir.resolve("test.txt"));
+            Files.delete(dir);
+            // also clean up parent if it was created and is now empty
+            Path parent = dir.getParent();
+            if (!parent.equals(gameDir) && Files.isDirectory(parent)) {
+                try (var s = Files.list(parent)) {
+                    if (s.findAny().isEmpty()) Files.delete(parent);
+                }
+            }
+        }
+    }
+
+    @Test
+    void dynamicScriptHashesAreDifferentAcrossDirs(@TempDir Path gameDir) throws IOException {
+        // A file in kubejs/server_scripts and a file in scripts should produce different hashes
+        // because the relative path is part of the hash input
+        Path kubejsDir = gameDir.resolve("kubejs/server_scripts");
+        Path ctDir = gameDir.resolve("scripts");
+        Files.createDirectories(kubejsDir);
+        Files.createDirectories(ctDir);
+
+        Files.writeString(kubejsDir.resolve("file.js"), "same content");
+        String kubeHash = GlobalIndexCache.dynamicScriptHash(gameDir);
+
+        Files.delete(kubejsDir.resolve("file.js"));
+        Files.writeString(ctDir.resolve("file.js"), "same content");
+        String ctHash = GlobalIndexCache.dynamicScriptHash(gameDir);
+
+        assertNotEquals(kubeHash, ctHash, "Same filename with same content in different dirs must hash differently");
+    }
+
+    // ---- normalizeLanguageCodeForCache ----
 
     @Test
     void normalizeLanguageCodeForCacheRewritesCommonFormats() {

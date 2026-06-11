@@ -284,7 +284,7 @@ public final class CreativeStackVariantExpander {
         }
     }
 
-    static String stackIdentityHash(ResourceLocation baseId, ItemStack stack, @Nullable Level level) {
+    public static String stackIdentityHash(ResourceLocation baseId, ItemStack stack, @Nullable Level level) {
         if (stack == null || stack.isEmpty()) {
             return shortHash(String.valueOf(baseId));
         }

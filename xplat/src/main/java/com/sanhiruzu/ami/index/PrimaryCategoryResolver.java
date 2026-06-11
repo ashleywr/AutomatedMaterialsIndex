@@ -304,6 +304,12 @@ public final class PrimaryCategoryResolver {
             "storagedrawers"
     );
     private static final List<PrimaryRule> PRIMARY_RULES = List.of(
+            rule("compat route metadata",
+                    PrimaryCategoryResolver::shouldUseCompatRouteMetadata,
+                    c -> assignment(
+                            c.attributes.get(SearchNodeKeys.COMPAT_ROUTE_CATEGORY),
+                            c.attributes.get(SearchNodeKeys.COMPAT_ROUTE_SUBCATEGORY),
+                            c.attributes)),
             rule("create handheld tools",
                     c -> shouldBiasCreateFamilyHandheldToTools(c.modFamily, c.path),
                     c -> assignment("tools", classifyCreateFamilyToolSubcategory(c.path), c.attributes)),
@@ -3483,6 +3489,16 @@ public final class PrimaryCategoryResolver {
             };
         }
         return "full_block";
+    }
+
+    private static boolean shouldUseCompatRouteMetadata(ResolveContext context) {
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.SEMANTIC) {
+            return false;
+        }
+        String category = context.attributes.getOrDefault(SearchNodeKeys.COMPAT_ROUTE_CATEGORY, "");
+        String subcategory = context.attributes.getOrDefault(SearchNodeKeys.COMPAT_ROUTE_SUBCATEGORY, "");
+        return category != null && !category.isBlank()
+                && subcategory != null && !subcategory.isBlank();
     }
 
     private enum ModFamily {

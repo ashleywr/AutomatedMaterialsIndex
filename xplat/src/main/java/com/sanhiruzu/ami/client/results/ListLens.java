@@ -4,6 +4,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.GroupingEngine;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.network.chat.Component;
 
 import java.util.EnumSet;
@@ -26,6 +27,42 @@ public enum ListLens {
         @Override
         public boolean matches(SearchNode node) {
             return true;
+        }
+    },
+
+    DISCOVERED("ami.list_lens.discovered",
+            ResultsProcessor.SortField.ALPHABETICAL,
+            true,
+            ResultsProcessor.GroupBy.DIMENSION,
+            EnumSet.of(RowField.DISCOVERY, RowField.MOD_NAME),
+            List.of(
+                    ResultsProcessor.SortField.ALPHABETICAL,
+                    ResultsProcessor.SortField.REGISTRY,
+                    ResultsProcessor.SortField.MOD
+            )) {
+        @Override
+        public boolean matches(SearchNode node) {
+            return AmiConfig.enableDiscoveryChecklist
+                    && isDiscoverableChecklistNode(node)
+                    && "discovered".equals(node.meta(SearchNodeKeys.DISCOVERY_STATE, ""));
+        }
+    },
+
+    UNDISCOVERED("ami.list_lens.undiscovered",
+            ResultsProcessor.SortField.ALPHABETICAL,
+            true,
+            ResultsProcessor.GroupBy.DIMENSION,
+            EnumSet.of(RowField.DISCOVERY, RowField.MOD_NAME),
+            List.of(
+                    ResultsProcessor.SortField.ALPHABETICAL,
+                    ResultsProcessor.SortField.REGISTRY,
+                    ResultsProcessor.SortField.MOD
+            )) {
+        @Override
+        public boolean matches(SearchNode node) {
+            return AmiConfig.enableDiscoveryChecklist
+                    && isDiscoverableChecklistNode(node)
+                    && "undiscovered".equals(node.meta(SearchNodeKeys.DISCOVERY_STATE, ""));
         }
     },
 
@@ -349,6 +386,12 @@ public enum ListLens {
 
     private static boolean hasMetadata(SearchNode node, String key) {
         return !node.meta(key, "").isBlank();
+    }
+
+    private static boolean isDiscoverableChecklistNode(SearchNode node) {
+        return node.type() == NodeType.BIOME
+                || node.type() == NodeType.STRUCTURE
+                || (node.type() == NodeType.ITEM && hasMetadata(node, SearchNodeKeys.FOOD_NUTRITION));
     }
 
     private static boolean hasGregTechEnergyMetadata(SearchNode node) {

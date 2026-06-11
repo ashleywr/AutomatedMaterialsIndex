@@ -23,6 +23,12 @@ public final class SearchService {
     private final IQueryResolver playerResolver;
     private final IQueryResolver runtimeResolver;
 
+    // Single-entry query cache. SearchService is accessed from the render thread only after
+    // publication; no synchronization needed. A new SearchService (index rebuild) clears it implicitly.
+    private String cachedQuery = null;
+    private long cachedRuntimeRevision = Long.MIN_VALUE;
+    private Map<NodeType, List<SearchNode>> cachedResult = null;
+
     private SearchService(List<IQueryResolver> resolvers, List<IQueryResolver> broadResolvers,
                           TagResolver tagResolver, ModResolver modResolver,
                           EnvironmentResolver envResolver, NumericMetadataResolver numericResolver,
@@ -60,6 +66,7 @@ public final class SearchService {
         CategoryResolver categoryResolver = new CategoryResolver();
 
         // Pre-load all resolvers with indexed nodes
+        int nodeCount = 0;
         for (NodeType type : NodeType.values()) {
             for (SearchNode node : index.getNodes(type)) {
                 literal.addNode(node);
@@ -70,6 +77,7 @@ public final class SearchService {
                 numericResolver.addNode(node);
                 propertyResolver.addNode(node);
                 categoryResolver.addNode(node);
+                if ((++nodeCount & 255) == 0) Thread.yield();
             }
         }
 
@@ -115,17 +123,28 @@ public final class SearchService {
      * Results are deduplicated and exclusions are applied.
      */
     public Map<NodeType, List<SearchNode>> query(String text) {
+        long currentRt = runtimeRevision();
+        if (cachedResult != null && currentRt == cachedRuntimeRevision && Objects.equals(text, cachedQuery)) {
+            return cachedResult;
+        }
+
+        Map<NodeType, List<SearchNode>> result;
         if (text != null && text.contains("|")) {
-            Map<NodeType, List<SearchNode>> combined = new LinkedHashMap<>();
+            result = new LinkedHashMap<>();
             for (String branch : text.split("\\|", -1)) {
                 String trimmed = branch.trim();
                 if (!trimmed.isEmpty()) {
-                    mergeResults(combined, queryInternal(trimmed, null));
+                    mergeResults(result, queryInternal(trimmed, null));
                 }
             }
-            return combined;
+        } else {
+            result = queryInternal(text, null);
         }
-        return queryInternal(text, null);
+
+        cachedQuery = text;
+        cachedRuntimeRevision = currentRt;
+        cachedResult = result;
+        return result;
     }
 
     public QueryExplanation explain(String text) {
@@ -360,7 +379,7 @@ public final class SearchService {
     }
 
     private void mergeResults(Map<NodeType, List<SearchNode>> dest, Map<NodeType, List<SearchNode>> src) {
-        Set<SearchNode> seen = new HashSet<>();
+        Set<SearchNode> seen = Collections.newSetFromMap(new IdentityHashMap<>());
         for (var entry : dest.values()) {
             seen.addAll(entry);
         }
@@ -376,7 +395,7 @@ public final class SearchService {
     }
 
     private void intersectResults(Map<NodeType, List<SearchNode>> dest, Map<NodeType, List<SearchNode>> filter) {
-        Set<SearchNode> allowed = new HashSet<>();
+        Set<SearchNode> allowed = Collections.newSetFromMap(new IdentityHashMap<>());
         for (List<SearchNode> nodes : filter.values()) {
             allowed.addAll(nodes);
         }

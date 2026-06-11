@@ -116,6 +116,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private net.minecraft.world.level.GameType lastPlayerMode = null;
     private boolean lastDevMode = false;
     private boolean lastShowCreativeItems = false;
+    private boolean lastDiscoveryChecklist = false;
+    private long lastDiscoveryRevision = Long.MIN_VALUE;
     private long lastIndexProgressRefreshMs = 0L;
 
     public UniversalResultsPanel(int x, int y, int width, int height) {
@@ -751,6 +753,19 @@ public class UniversalResultsPanel implements SearchState.Listener {
     public void renderOverlay(GuiGraphics g, int mouseX, int mouseY) {
         toolbar.renderOpenDropdownLists(g, mouseX, mouseY);
         contextMenu.render(g, mouseX, mouseY);
+        renderResultTooltipOverlay(g, mouseX, mouseY);
+    }
+
+    private void renderResultTooltipOverlay(GuiGraphics g, int mouseX, int mouseY) {
+        if (toolbar.isAnyDropdownOpen() || contextMenu.isOpen()) {
+            return;
+        }
+
+        if (isGridActive()) {
+            gridView.renderPendingTooltip(g, mouseX, mouseY);
+        } else {
+            treeView.renderPendingTooltip(g, mouseX, mouseY);
+        }
     }
 
     private void renderSidebarToggle(GuiGraphics g, int mouseX, int mouseY) {
@@ -1253,14 +1268,23 @@ public class UniversalResultsPanel implements SearchState.Listener {
         net.minecraft.world.level.GameType mode = mc.gameMode == null ? null : mc.gameMode.getPlayerMode();
         boolean devMode = AmiConfig.devMode;
         boolean showCreativeItems = AmiConfig.shouldShowCreativeItems(mode);
-        if (mode != lastPlayerMode || devMode != lastDevMode || showCreativeItems != lastShowCreativeItems) {
+        boolean discoveryChecklist = AmiConfig.enableDiscoveryChecklist;
+        long discoveryRevision = com.sanhiruzu.ami.client.discovery.AmiDiscoveryState.getInstance().revision();
+        boolean playerContextChanged = mode != lastPlayerMode
+                || devMode != lastDevMode
+                || showCreativeItems != lastShowCreativeItems;
+        boolean discoveryChanged = discoveryChecklist != lastDiscoveryChecklist
+                || discoveryRevision != lastDiscoveryRevision;
+        if (playerContextChanged || discoveryChanged) {
             lastPlayerMode = mode;
             lastDevMode = devMode;
             lastShowCreativeItems = showCreativeItems;
+            lastDiscoveryChecklist = discoveryChecklist;
+            lastDiscoveryRevision = discoveryRevision;
             invalidateProjectionCache();
             forceLensRecompute();
             refreshAvailableListLenses();
-            refreshTree();
+            refreshTree(!playerContextChanged);
         }
     }
 
@@ -1330,7 +1354,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 + "|dev=" + AmiConfig.devMode
                 + "|cheat=" + AmiConfig.cheatMode
                 + "|hidden=" + AmiConfig.showHiddenModItems
-                + "|creative=" + AmiConfig.shouldShowCreativeItems(lastPlayerMode);
+                + "|creative=" + AmiConfig.shouldShowCreativeItems(lastPlayerMode)
+                + "|discoveryEnabled=" + AmiConfig.enableDiscoveryChecklist
+                + "|discoveryRevision=" + com.sanhiruzu.ami.client.discovery.AmiDiscoveryState.getInstance().revision();
     }
 
     private void invalidateProjectionCache() {
@@ -1342,7 +1368,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (!lensesDirty) return;
         long now = System.currentTimeMillis();
         if (cachedAvailableLenses != null && now - lensesLastComputedMs < LENS_DEBOUNCE_MS) return;
-        cachedAvailableLenses = ListLens.availableFor(resolveSource());
+        cachedAvailableLenses = ListLens.availableFor(ResultsViewProjector.applyRuntimeMetadataForLens(resolveSource()));
         lensesLastComputedMs = now;
         lensesDirty = false;
         state.setAvailableListLenses(cachedAvailableLenses);
@@ -1359,11 +1385,16 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     private void setViewRoots(List<TreeNode> roots, boolean incrementalUpdate) {
         List<TreeNode> normalized = ResultsTreeNormalizer.normalize(roots);
-        if (TreeNodeShape.sameVisibleContent(treeView.getRootNodes(), normalized)) {
+        List<TreeNode> currentRoots = treeView.getRootNodes();
+        if (TreeNodeShape.sameVisibleContent(currentRoots, normalized)) {
             return;
         }
         boolean resetScroll = !incrementalUpdate;
-        ResultsExpansionDefaults.apply(normalized, AmiConfig.resultsExpandedByDefault);
+        if (incrementalUpdate && !currentRoots.isEmpty()) {
+            ResultsExpansionDefaults.transferExpansionState(currentRoots, normalized);
+        } else {
+            ResultsExpansionDefaults.apply(normalized, AmiConfig.resultsExpandedByDefault);
+        }
         treeView.setRootNodes(normalized, resetScroll);
         gridView.setRootNodes(normalized, resetScroll);
         if (resetScroll) {
