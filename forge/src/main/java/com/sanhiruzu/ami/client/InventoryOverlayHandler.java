@@ -6,8 +6,11 @@ import com.sanhiruzu.ami.client.overlay.OverlayWidgetManager;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.forge.AMI;
 import com.sanhiruzu.ami.index.AmiIndexerService;
+import com.mojang.datafixers.util.Either;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.network.chat.FormattedText;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.client.event.RenderTooltipEvent;
@@ -15,6 +18,8 @@ import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
+
+import java.util.List;
 
 @Mod.EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
 public class InventoryOverlayHandler {
@@ -36,6 +41,7 @@ public class InventoryOverlayHandler {
     private static VisibleLayer recipeTransitionRestoreLayer = VisibleLayer.AMI;
     private static boolean sessionInitialized = false;
     private static boolean indexingRequested = false;
+    private static PendingGatheredTooltip pendingGatheredTooltip = null;
     private static PendingExternalTooltip pendingExternalTooltip = null;
     private static boolean renderingExternalTooltip = false;
 
@@ -291,6 +297,20 @@ public class InventoryOverlayHandler {
     }
 
     @SubscribeEvent
+    static void onGatherTooltip(RenderTooltipEvent.GatherComponents event) {
+        var screen = Minecraft.getInstance().screen;
+        if (screen == null || !isAmiScreen(screen)) return;
+        if (com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer.isRenderingAmiTooltip()) return;
+        if (renderingExternalTooltip) return;
+        if (currentLayer != VisibleLayer.AMI || !manager.isPanelVisible()) return;
+
+        pendingGatheredTooltip = new PendingGatheredTooltip(
+                event.getItemStack().copy(),
+                List.copyOf(event.getTooltipElements())
+        );
+    }
+
+    @SubscribeEvent
     static void onRenderTooltip(RenderTooltipEvent.Pre event) {
         var screen = Minecraft.getInstance().screen;
         if (screen == null || !isAmiScreen(screen)) return;
@@ -300,10 +320,13 @@ public class InventoryOverlayHandler {
             event.setCanceled(true);
             return;
         }
-        if (currentLayer == VisibleLayer.AMI && manager.isPanelVisible() && !event.getItemStack().isEmpty()) {
+        if (currentLayer == VisibleLayer.AMI && manager.isPanelVisible()) {
+            PendingGatheredTooltip gathered = pendingGatheredTooltip;
+            pendingGatheredTooltip = null;
             pendingExternalTooltip = new PendingExternalTooltip(
                     event.getFont(),
-                    event.getItemStack().copy(),
+                    gathered != null ? gathered.stack() : event.getItemStack().copy(),
+                    gathered != null ? gathered.elements() : List.of(),
                     event.getX(),
                     event.getY()
             );
@@ -314,14 +337,19 @@ public class InventoryOverlayHandler {
     private static void renderPendingExternalTooltip(net.minecraft.client.gui.GuiGraphics graphics) {
         PendingExternalTooltip tooltip = pendingExternalTooltip;
         pendingExternalTooltip = null;
-        if (tooltip == null || tooltip.stack().isEmpty()) return;
+        if (tooltip == null || (tooltip.stack().isEmpty() && tooltip.elements().isEmpty())) return;
 
         var state = com.sanhiruzu.ami.client.RenderStateSnapshot.capture();
         try {
             renderingExternalTooltip = true;
             graphics.pose().pushPose();
             graphics.pose().translate(0, 0, com.sanhiruzu.ami.client.overlay.OverlayLayers.TRANSIENT_TOOLTIP);
-            graphics.renderTooltip(tooltip.font(), tooltip.stack(), tooltip.x(), tooltip.y());
+            if (tooltip.elements().isEmpty()) {
+                graphics.renderTooltip(tooltip.font(), tooltip.stack(), tooltip.x(), tooltip.y());
+            } else {
+                graphics.renderComponentTooltipFromElements(
+                        tooltip.font(), tooltip.elements(), tooltip.x(), tooltip.y(), tooltip.stack());
+            }
             graphics.pose().popPose();
             graphics.flush();
         } finally {
@@ -330,9 +358,16 @@ public class InventoryOverlayHandler {
         }
     }
 
+    private record PendingGatheredTooltip(
+            net.minecraft.world.item.ItemStack stack,
+            List<Either<FormattedText, TooltipComponent>> elements
+    ) {
+    }
+
     private record PendingExternalTooltip(
             net.minecraft.client.gui.Font font,
             net.minecraft.world.item.ItemStack stack,
+            List<Either<FormattedText, TooltipComponent>> elements,
             int x,
             int y
     ) {
