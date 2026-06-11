@@ -36,6 +36,8 @@ public class InventoryOverlayHandler {
     private static VisibleLayer recipeTransitionRestoreLayer = VisibleLayer.AMI;
     private static boolean sessionInitialized = false;
     private static boolean indexingRequested = false;
+    private static PendingExternalTooltip pendingExternalTooltip = null;
+    private static boolean renderingExternalTooltip = false;
 
     /**
      * The single choke point for all visibility state changes. Updates the panel and schedules
@@ -197,8 +199,16 @@ public class InventoryOverlayHandler {
     @SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.LOWEST)
     static void onRenderPost(ScreenEvent.Render.Post event) {
         if (!isAmiScreen(event.getScreen())) return;
+        renderOverlayFrame(event.getScreen(), event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
+    }
+
+    private static void renderOverlayFrame(net.minecraft.client.gui.screens.Screen screen,
+                                           net.minecraft.client.gui.GuiGraphics guiGraphics,
+                                           int mouseX,
+                                           int mouseY,
+                                           float partialTick) {
         ensureIndexingStarted();
-        syncVanillaRecipeBookVisibility(event.getScreen());
+        syncVanillaRecipeBookVisibility(screen);
 
         if (pendingScreenReinit) {
             pendingScreenReinit = false;
@@ -209,15 +219,16 @@ public class InventoryOverlayHandler {
             return;
         }
 
-        if (AmiApi.shouldSuppressAmi(event.getScreen())) {
+        if (AmiApi.shouldSuppressAmi(screen)) {
             return;
         }
 
-        manager.refreshLayoutIfNeeded(event.getScreen());
+        manager.refreshLayoutIfNeeded(screen);
 
         if (currentLayer == VisibleLayer.AMI) {
             manager.tick();
-            manager.renderAll(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
+            manager.renderAll(guiGraphics, mouseX, mouseY, partialTick);
+            renderPendingExternalTooltip(guiGraphics);
         }
     }
 
@@ -286,9 +297,47 @@ public class InventoryOverlayHandler {
         var screen = Minecraft.getInstance().screen;
         if (screen == null || !isAmiScreen(screen)) return;
         if (com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer.isRenderingAmiTooltip()) return;
+        if (renderingExternalTooltip) return;
         if (isMouseOverAmiOverlay(event.getX(), event.getY())) {
             event.setCanceled(true);
+            return;
         }
+        if (currentLayer == VisibleLayer.AMI && manager.isPanelVisible() && !event.getItemStack().isEmpty()) {
+            pendingExternalTooltip = new PendingExternalTooltip(
+                    event.getFont(),
+                    event.getItemStack().copy(),
+                    event.getX(),
+                    event.getY()
+            );
+            event.setCanceled(true);
+        }
+    }
+
+    private static void renderPendingExternalTooltip(net.minecraft.client.gui.GuiGraphics graphics) {
+        PendingExternalTooltip tooltip = pendingExternalTooltip;
+        pendingExternalTooltip = null;
+        if (tooltip == null || tooltip.stack().isEmpty()) return;
+
+        var state = com.sanhiruzu.ami.client.RenderStateSnapshot.capture();
+        try {
+            renderingExternalTooltip = true;
+            graphics.pose().pushPose();
+            graphics.pose().translate(0, 0, com.sanhiruzu.ami.client.overlay.OverlayLayers.TRANSIENT_TOOLTIP);
+            graphics.renderTooltip(tooltip.font(), tooltip.stack(), tooltip.x(), tooltip.y());
+            graphics.pose().popPose();
+            graphics.flush();
+        } finally {
+            renderingExternalTooltip = false;
+            state.restore();
+        }
+    }
+
+    private record PendingExternalTooltip(
+            net.minecraft.client.gui.Font font,
+            net.minecraft.world.item.ItemStack stack,
+            int x,
+            int y
+    ) {
     }
 
     public static OverlayWidgetManager getManager() {

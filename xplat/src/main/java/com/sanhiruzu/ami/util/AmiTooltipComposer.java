@@ -168,8 +168,7 @@ public final class AmiTooltipComposer {
 
     public static Optional<TooltipComponent> getTooltipImage(SearchNode node) {
         if (node.type() == NodeType.ITEM) {
-            ItemStack stack = ItemIconRenderer.resolveStack(node.id());
-            return stack.isEmpty() ? Optional.empty() : stack.getTooltipImage();
+            return Optional.empty();
         } else {
             var renderer = RendererRegistry.get(node.type());
             return renderer != null ? renderer.getTooltipImage(node) : Optional.empty();

@@ -691,6 +691,7 @@ public class OverlayWidgetManager {
                     }
                     renderPanels(g, mx, my, pt);
                     renderSearchBar(g, mx, my, pt);
+                    renderPanelOverlays(g, mx, my);
                 }
 
                 if (inLayoutMode) {
@@ -729,9 +730,6 @@ public class OverlayWidgetManager {
             for (PanelSlot slot : renderingSlots) {
                 slot.render(g, mx, my, pt);
             }
-            for (PanelSlot slot : renderingSlots) {
-                slot.renderOverlay(g, mx, my);
-            }
             renderCheatDeleteHint(g, mx, my, renderingSlots);
             if (leftPanelBarBounds != null) {
                 renderLeftPanelBar(g, mx, my);
@@ -744,6 +742,22 @@ public class OverlayWidgetManager {
                 g.pose().popPose();
             }
 
+            g.pose().popPose();
+            g.flush();
+        }
+    }
+
+    public void renderPanelOverlays(net.minecraft.client.gui.GuiGraphics g, int mx, int my) {
+        if (!panelVisible) return;
+        try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("overlay.panelOverlays")) {
+            List<PanelSlot> renderingSlots = activeSlotsSnapshot();
+            g.flush();
+            com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
+            g.pose().pushPose();
+            g.pose().translate(0, 0, OverlayLayers.TRANSIENT_TOOLTIP);
+            for (PanelSlot slot : renderingSlots) {
+                slot.renderOverlay(g, mx, my);
+            }
             g.pose().popPose();
             g.flush();
         }
