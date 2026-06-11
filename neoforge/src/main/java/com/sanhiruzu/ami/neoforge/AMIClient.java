@@ -8,7 +8,9 @@ import com.sanhiruzu.ami.client.results.ItemGridView;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.StatIconRowTooltipComponent;
+import com.sanhiruzu.ami.api.AmiPluginRegistry;
 import com.sanhiruzu.ami.compat.FtbQuestsRuntimeCompat;
+import com.sanhiruzu.ami.compat.KubeJSAmiPlugin;
 import com.sanhiruzu.ami.config.AmiConfigStore;
 import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.index.GlobalIndexCache;
@@ -48,6 +50,7 @@ public class AMIClient {
         boolean jeiLoaded = ModList.get().isLoaded("jei");
         boolean emiLoaded = ModList.get().isLoaded("emi");
         boolean ftbQuestsLoaded = ModList.get().isLoaded("ftbquests");
+        boolean kubeJsLoaded = ModList.get().isLoaded("kubejs");
 
         if (jeiLoaded) {
             AMI.LOGGER.debug("JEI detected - plugin will integrate when ready");
@@ -62,6 +65,9 @@ public class AMIClient {
             AMI.LOGGER.debug("No recipe UI detected - AMI shell UI will be used");
         }
         FtbQuestsRuntimeCompat.setModLoaded(ftbQuestsLoaded);
+        if (kubeJsLoaded) {
+            AmiPluginRegistry.register(new KubeJSAmiPlugin());
+        }
     }
 
     @SubscribeEvent
@@ -96,6 +102,7 @@ public class AMIClient {
             GlobalIndexCache.preloadAsync();
         }
         FtbQuestsRuntimeCompat.clientTick();
+        com.sanhiruzu.ami.client.discovery.AmiDiscoveryState.getInstance().clientTick();
         AmiIndexerService.getInstance().ensurePendingRecipeIndexBuild();
         InventoryOverlayHandler.tickAutoIndexBootstrap();
     }
@@ -103,5 +110,12 @@ public class AMIClient {
     @SubscribeEvent
     static void onItemTooltip(net.neoforged.neoforge.event.entity.player.ItemTooltipEvent event) {
         com.sanhiruzu.ami.client.AmiTooltipHandler.appendTooltip(event.getItemStack(), event.getToolTip());
+    }
+
+    @SubscribeEvent
+    static void onItemUseFinish(net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent.Finish event) {
+        if (event.getEntity() == net.minecraft.client.Minecraft.getInstance().player) {
+            com.sanhiruzu.ami.client.discovery.AmiDiscoveryState.getInstance().markFoodTasted(event.getItem());
+        }
     }
 }

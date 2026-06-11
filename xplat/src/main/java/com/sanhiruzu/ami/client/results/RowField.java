@@ -48,6 +48,26 @@ public enum RowField {
         }
     },
 
+    DISCOVERY(Component.translatable("ami.row_field.discovery")) {
+        @Override
+        public String extract(SearchNode node) {
+            String state = node.meta(SearchNodeKeys.DISCOVERY_STATE, "");
+            if (state.isBlank()) {
+                return "";
+            }
+            if (node.type() == com.sanhiruzu.ami.index.NodeType.ITEM
+                    && !node.meta(SearchNodeKeys.FOOD_NUTRITION, "").isBlank()) {
+                return Component.translatable("ami.discovery.food." + state).getString();
+            }
+            return Component.translatable("ami.discovery." + state).getString();
+        }
+
+        @Override
+        public boolean hasValue(SearchNode node) {
+            return !node.meta(SearchNodeKeys.DISCOVERY_STATE, "").isBlank();
+        }
+    },
+
     AMMO_TYPE(Component.translatable("ami.row_field.ammo")) {
         @Override
         public String extract(SearchNode node) {

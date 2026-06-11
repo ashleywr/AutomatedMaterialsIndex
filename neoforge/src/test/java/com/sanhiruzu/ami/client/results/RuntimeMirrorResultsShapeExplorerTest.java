@@ -103,7 +103,7 @@ public class RuntimeMirrorResultsShapeExplorerTest {
         if (configured != null && !configured.isBlank()) {
             return Path.of(configured);
         }
-        return repoRoot().resolve(Path.of("run", "neoforge-emi", "ami_dumps", "search_nodes.jsonl"));
+        return repoRoot().resolve(Path.of("run", "neoforge-emi", "ami_dumps", "search", "search_nodes.jsonl"));
     }
 
     private static Path repoRoot() {

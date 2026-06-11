@@ -282,23 +282,24 @@ public class ItemGridView {
 
         renderScrollbar(g, totalH, contentY, contentH, mouseX, mouseY);
 
-        if (!toolbarDropdownOpen) {
-            try (AmiRenderProfiler.Section tooltipSection = AmiRenderProfiler.section("grid.tooltip")) {
-                var font = Minecraft.getInstance().font;
-                RenderStateSnapshot state = RenderStateSnapshot.capture();
-                try {
-                    com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
-                    if (pendingTextTooltip != null) {
-                        ItemStack stackContext = (pendingTooltip != null) ? pendingTooltip : ItemStack.EMPTY;
-                        AmiTooltipRenderer.render(g, font, stackContext, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY);
-                    } else if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
-                        AmiTooltipRenderer.render(g, font, pendingTooltip, mouseX, mouseY);
-                    }
-                } finally {
-                    state.restore();
-                }
-            }
         }
+    }
+
+    public void renderPendingTooltip(GuiGraphics g, int mouseX, int mouseY) {
+        try (AmiRenderProfiler.Section tooltipSection = AmiRenderProfiler.section("grid.tooltip")) {
+            var font = Minecraft.getInstance().font;
+            RenderStateSnapshot state = RenderStateSnapshot.capture();
+            try {
+                com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
+                if (pendingTextTooltip != null) {
+                    ItemStack stackContext = (pendingTooltip != null) ? pendingTooltip : ItemStack.EMPTY;
+                    AmiTooltipRenderer.render(g, font, stackContext, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY);
+                } else if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
+                    AmiTooltipRenderer.render(g, font, pendingTooltip, mouseX, mouseY);
+                }
+            } finally {
+                state.restore();
+            }
         }
     }
 
@@ -434,7 +435,7 @@ public class ItemGridView {
             }
 
             if (overrideStack != null) {
-                queueItemIcon(overrideId, overrideStack, cellX + 2, cellY + 2, hovered);
+                queueItemIcon(entry, overrideId, overrideStack, cellX + 2, cellY + 2, hovered);
             } else if (entry.type() == com.sanhiruzu.ami.index.NodeType.ITEM) {
                 if (usesPlayerModelRenderer(entry)) {
                     AmiRenderProfiler.count("grid.queuedRendererIcons");
@@ -442,7 +443,7 @@ public class ItemGridView {
                     queueRendererIcon(entry, cellX + 2, cellY + 2, hovered);
                 } else {
                     ItemStack stack = resolveStack(entry);
-                    if (!stack.isEmpty()) queueItemIcon(entry.id(), stack, cellX + 2, cellY + 2, hovered);
+                    if (!stack.isEmpty()) queueItemIcon(entry, entry.id(), stack, cellX + 2, cellY + 2, hovered);
                 }
             } else {
                 AmiRenderProfiler.count("grid.queuedRendererIcons");
@@ -456,10 +457,10 @@ public class ItemGridView {
         }
     }
 
-    private void queueItemIcon(ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
-        if (TEXTURE_ITEM_ICON_CACHE_ENABLED || hovered || cachedDragging) {
+    private void queueItemIcon(SearchNode entry, ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
+        if (TEXTURE_ITEM_ICON_CACHE_ENABLED || hovered || cachedDragging || DiscoveryVisuals.hasDiscoveryState(entry)) {
             AmiRenderProfiler.count("grid.queuedDirectIcons");
-            queueDirectItemIcon(itemId, stack, x, y, hovered);
+            queueDirectItemIcon(entry, itemId, stack, x, y, hovered);
         } else {
             AmiRenderProfiler.count("grid.queuedBatchedIcons");
             itemIconBatchRenderer().add(stack, x, y);
@@ -472,7 +473,7 @@ public class ItemGridView {
         pendingQuestMarkerCount = 0;
     }
 
-    private void queueDirectItemIcon(ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
+    private void queueDirectItemIcon(SearchNode entry, ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
         PendingItemIcon icon;
         if (pendingDirectItemIconCount < pendingDirectItemIcons.size()) {
             icon = pendingDirectItemIcons.get(pendingDirectItemIconCount);
@@ -481,7 +482,7 @@ public class ItemGridView {
             pendingDirectItemIcons.add(icon);
         }
         pendingDirectItemIconCount++;
-        icon.set(itemId, stack, x, y, hovered);
+        icon.set(entry, itemId, stack, x, y, hovered);
     }
 
     private void queueRendererIcon(SearchNode entry, int x, int y, boolean hovered) {
@@ -529,10 +530,12 @@ public class ItemGridView {
             for (int i = 0; i < pendingDirectItemIconCount; i++) {
                 PendingItemIcon icon = pendingDirectItemIcons.get(i);
                 renderIconWithWiggle(g, icon.itemId, icon.stack, icon.x, icon.y, icon.hovered);
+                DiscoveryVisuals.renderIconOverlay(g, icon.entry, icon.x, icon.y, 16);
             }
             for (int i = 0; i < pendingRendererIconCount; i++) {
                 PendingRendererIcon icon = pendingRendererIcons.get(i);
                 renderRendererWithWiggle(g, icon.entry, icon.x, icon.y, icon.hovered);
+                DiscoveryVisuals.renderIconOverlay(g, icon.entry, icon.x, icon.y, 16);
             }
         }
     }
@@ -1122,13 +1125,15 @@ public class ItemGridView {
     }
 
     private static final class PendingItemIcon {
+        private SearchNode entry;
         private ResourceLocation itemId;
         private ItemStack stack = ItemStack.EMPTY;
         private int x;
         private int y;
         private boolean hovered;
 
-        private void set(ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
+        private void set(SearchNode entry, ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
+            this.entry = entry;
             this.itemId = itemId;
             this.stack = stack;
             this.x = x;

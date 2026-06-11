@@ -85,6 +85,10 @@ public final class AmiIndexerService {
         if (!isRebuilding.compareAndSet(false, true)) return false;
         lastRebuildFailure = null;
 
+        // Capture creative tab data on the calling (main) thread before dispatching background work.
+        // tab.buildContents() fires NeoForge events; calling it off-thread is unsupported by mod authors.
+        ItemFilter.captureCreativeTabSnapshot(level);
+
         CompletableFuture.runAsync(withIndexerClassLoader(() -> {
             try {
                 performRebuild(level, forceProviderRebuild);

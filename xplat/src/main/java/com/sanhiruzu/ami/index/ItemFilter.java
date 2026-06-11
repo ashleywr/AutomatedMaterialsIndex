@@ -23,7 +23,24 @@ public final class ItemFilter {
     public static final String ACCESS_CHEAT = "cheat";
     public static final String ACCESS_DEV = "dev";
 
+    // Creative tab snapshot captured on the main thread before background indexing.
+    // tab.buildContents() fires NeoForge events that mod authors expect on the main thread;
+    // background callers read this field rather than calling buildContents() themselves.
+    private static volatile Map<Item, List<CreativeStackInfo>> mainThreadCreativeSnapshot = Collections.emptyMap();
+
     private ItemFilter() {
+    }
+
+    /**
+     * Captures creative tab data on the calling (main) thread so background indexing can use it
+     * without calling tab.buildContents() off-thread. Must be called before background indexing begins.
+     */
+    public static void captureCreativeTabSnapshot(@org.jetbrains.annotations.Nullable net.minecraft.world.level.Level level) {
+        if (!Services.PLATFORM.isClient()) {
+            mainThreadCreativeSnapshot = Collections.emptyMap();
+            return;
+        }
+        mainThreadCreativeSnapshot = ClientItemFilter.buildCreativeStackMap(level);
     }
 
     /**
@@ -49,12 +66,20 @@ public final class ItemFilter {
      * Returns every displayed creative-tab stack grouped by item. Unlike
      * buildCreativeTabMap, this preserves multiple ItemStack component variants
      * for the same registered item.
+     *
+     * <p>Must only be called on the main client thread (tab.buildContents fires NeoForge events).
+     * Background indexing threads receive the snapshot captured by {@link #captureCreativeTabSnapshot}.
      */
     public static Map<Item, List<CreativeStackInfo>> buildCreativeStackMap(net.minecraft.world.level.Level level) {
-        if (Services.PLATFORM.isClient()) {
-            return ClientItemFilter.buildCreativeStackMap(level);
+        if (!Services.PLATFORM.isClient()) return Collections.emptyMap();
+        if (!ClientItemFilter.isMainClientThread()) {
+            Map<Item, List<CreativeStackInfo>> snapshot = mainThreadCreativeSnapshot;
+            if (snapshot.isEmpty()) {
+                AmiCore.LOGGER.warn("AMI: buildCreativeStackMap called from background thread before captureCreativeTabSnapshot; creative data will be empty");
+            }
+            return snapshot;
         }
-        return Collections.emptyMap();
+        return ClientItemFilter.buildCreativeStackMap(level);
     }
 
     public static Map<Item, CreativeTabInfo> firstCreativeTabs(Map<Item, List<CreativeStackInfo>> stackMap) {
@@ -192,6 +217,14 @@ public final class ItemFilter {
      * Internal class to prevent ClientLevel class loading on Dedicated Server.
      */
     private static class ClientItemFilter {
+        static boolean isMainClientThread() {
+            try {
+                return net.minecraft.client.Minecraft.getInstance().isSameThread();
+            } catch (Exception e) {
+                return true;
+            }
+        }
+
         private static Map<Item, CreativeTabInfo> buildCreativeTabMap(net.minecraft.world.level.Level level) {
             return firstCreativeTabs(buildCreativeStackMap(level));
         }
