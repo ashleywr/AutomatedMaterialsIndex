@@ -13,7 +13,8 @@ import java.util.*;
 public final class SearchIndex {
     private static final Set<String> PLAIN_SEARCHABLE_METADATA_KEYS = Set.of(
             SearchNodeKeys.PLAIN_SEARCH_TOKENS,
-            SearchNodeKeys.DESCRIPTION_SEARCH_TOKENS
+            SearchNodeKeys.DESCRIPTION_SEARCH_TOKENS,
+            SearchNodeKeys.TOOLTIP_SEARCH_TOKENS
     );
     private static final Set<String> SEARCHABLE_METADATA_KEYS = Set.of(
             SearchNodeKeys.MOD_ID,

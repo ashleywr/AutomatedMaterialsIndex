@@ -23,7 +23,7 @@ AMI 1.5.0 focuses on UI rendering and tooltip layering stability, result-tree co
 
 - Changed inventory overlay lifecycle and tooltip orchestration to better handle container screens, external recipe viewers, and status-effect ownership so AMI no longer steals tooltip ownership at the wrong layer.
 - Changed result icon and scrollbar rendering to sprite-backed batches in grid/tree views while preserving hover and theme behavior.
-- Changed item search indexing to use description block tokens for plain search, replacing direct tooltip token usage in that contract.
+- Changed item search indexing to include description block tokens as a dedicated plain-search source in addition to existing tooltip metadata tokens.
 - Changed result tree builder grouping so misc-node terminal buckets only include item nodes, removing non-item noise from misc terminal categories.
 - Changed `UniversalResultsPanel` projection keying to use a source signature so cache invalidation can track content changes more accurately.
 
@@ -33,6 +33,8 @@ AMI 1.5.0 focuses on UI rendering and tooltip layering stability, result-tree co
 - Fixed visual/interaction regressions from status-effects and external-tooltip handling by re-hosting external recipe tooltips when needed and making overlay hover ownership explicit.
 - Fixed ingredient-compat indexing pollution by skipping panel entry ingredient types from the AMI global ingredient index path.
 - Fixed dev/access markers and discovery overlays to be rendered through shared sprite renderers instead of inline raw fill logic, reducing drift and repeated render state churn.
+- Fixed `ItemGridView` rendering helpers to lazily initialize `GridCellSpriteBatchRenderer` so non-rendering test/runtime paths no longer fail on client-only texture classes.
+- Fixed plain-text search regressions in tooltip token coverage by restoring `tooltipSearchTokens` in plain search indexing while retaining description token indexing.
 
 ## 1.4.2 - 2026-06-08
 

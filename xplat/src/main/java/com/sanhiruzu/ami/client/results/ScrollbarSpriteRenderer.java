@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.client.results;
 import com.sanhiruzu.ami.client.AMITheme;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
+import com.sanhiruzu.ami.config.AmiConfig;
 
 final class ScrollbarSpriteRenderer {
     private static final int WIDTH = 6;
@@ -41,35 +42,38 @@ final class ScrollbarSpriteRenderer {
     private static int trackSignature() {
         int result = AMITheme.SCROLL_TRACK;
         result = 31 * result + AMITheme.CONTROL_EDGE_DARK;
-        result = 31 * result + AMITheme.CONTROL_EDGE_LIGHT;
+        result = 31 * result + AMITheme.CONTROL_EDGE_DARK;
         return result;
     }
 
     private static int thumbSignature(boolean active) {
         int result = active ? AMITheme.SCROLL_THUMB_ACTIVE : AMITheme.SCROLL_THUMB;
-        result = 31 * result + AMITheme.CONTROL_EDGE_LIGHT;
         result = 31 * result + AMITheme.CONTROL_EDGE_DARK;
-        result = 31 * result + AMITheme.ACCENT_BLUE;
+        result = 31 * result + AMITheme.CONTROL_EDGE_DARK;
         return result;
     }
 
     private static void paintTrack(GeneratedGuiSprite.Canvas canvas) {
         canvas.fill(0, 0, WIDTH, HEIGHT, AMITheme.SCROLL_TRACK);
         canvas.fill(0, 0, 1, HEIGHT, AMITheme.CONTROL_EDGE_DARK);
-        canvas.fill(WIDTH - 1, 0, WIDTH, HEIGHT, AMITheme.CONTROL_EDGE_LIGHT);
+        canvas.fill(WIDTH - 1, 0, WIDTH, HEIGHT, AMITheme.CONTROL_EDGE_DARK);
     }
 
     private static void paintThumb(GeneratedGuiSprite.Canvas canvas, boolean active) {
-        int fill = active ? AMITheme.SCROLL_THUMB_ACTIVE : AMITheme.SCROLL_THUMB;
+        int fill = modernThemeThumbColor(active);
         canvas.fill(1, 0, WIDTH - 1, HEIGHT, fill);
-        canvas.fill(0, 1, 1, HEIGHT - 1, fill);
-        canvas.fill(WIDTH - 1, 1, WIDTH, HEIGHT - 1, fill);
-        canvas.fill(1, 0, WIDTH - 1, 1, AMITheme.CONTROL_EDGE_LIGHT);
-        canvas.fill(1, HEIGHT - 1, WIDTH - 1, HEIGHT, AMITheme.CONTROL_EDGE_DARK);
-        canvas.fill(0, 1, 1, HEIGHT - 1, AMITheme.CONTROL_EDGE_LIGHT);
+        canvas.fill(0, 1, 1, HEIGHT - 1, AMITheme.CONTROL_EDGE_DARK);
         canvas.fill(WIDTH - 1, 1, WIDTH, HEIGHT - 1, AMITheme.CONTROL_EDGE_DARK);
-        if (active && (AMITheme.ACCENT_BLUE >>> 24) != 0) {
-            canvas.fill(2, 2, WIDTH - 2, 3, AMITheme.ACCENT_BLUE);
+        canvas.fill(1, 0, WIDTH - 1, 1, AMITheme.CONTROL_EDGE_DARK);
+        canvas.fill(1, HEIGHT - 1, WIDTH - 1, HEIGHT, AMITheme.CONTROL_EDGE_DARK);
+    }
+
+    private static int modernThemeThumbColor(boolean active) {
+        int color = active ? AMITheme.SCROLL_THUMB_ACTIVE : AMITheme.SCROLL_THUMB;
+        if (AmiConfig.theme == AmiConfig.Theme.MODERN) {
+            int alpha = active ? 0x55 : 0x33;
+            return (color & 0x00FFFFFF) | (alpha << 24);
         }
+        return color;
     }
 }
