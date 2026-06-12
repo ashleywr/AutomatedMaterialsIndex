@@ -117,19 +117,22 @@ public class AmiButtonWidget extends AbstractWidget {
             g.pose().popPose();
         }
 
-        if (hovered) {
-            List<Component> tooltip = new ArrayList<>();
-            tooltip.add(Component.translatable("ami.gui.ami_button.tooltip"));
-            tooltip.add(Component.translatable("ami.gui.ami_button.hotkey",
-                    Services.PLATFORM.keyMappings().toggleViewer().getTranslatedKeyMessage()));
-            if (devMode) {
-                tooltip.add(Component.translatable("ami.gui.ami_button.dev_mode"));
-                tooltip.add(Component.translatable("ami.gui.ami_button.cheat_actions_enabled"));
-            } else if (cheatMode) {
-                tooltip.add(Component.translatable("ami.gui.ami_button.cheat_mode"));
-            }
-            g.renderTooltip(font, tooltip, java.util.Optional.empty(), mouseX, mouseY);
+    }
+
+    public void renderTooltip(GuiGraphics g, int mouseX, int mouseY) {
+        if (!isMouseOver(mouseX, mouseY)) return;
+
+        List<Component> tooltip = new ArrayList<>();
+        tooltip.add(Component.translatable("ami.gui.ami_button.tooltip"));
+        tooltip.add(Component.translatable("ami.gui.ami_button.hotkey",
+                Services.PLATFORM.keyMappings().toggleViewer().getTranslatedKeyMessage()));
+        if (AmiConfig.devMode) {
+            tooltip.add(Component.translatable("ami.gui.ami_button.dev_mode"));
+            tooltip.add(Component.translatable("ami.gui.ami_button.cheat_actions_enabled"));
+        } else if (AmiConfig.cheatMode) {
+            tooltip.add(Component.translatable("ami.gui.ami_button.cheat_mode"));
         }
+        g.renderTooltip(Minecraft.getInstance().font, tooltip, java.util.Optional.empty(), mouseX, mouseY);
     }
 
     @Override

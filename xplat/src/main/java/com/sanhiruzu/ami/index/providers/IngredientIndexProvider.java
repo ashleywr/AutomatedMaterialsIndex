@@ -14,6 +14,7 @@ import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 import java.text.Normalizer;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -31,34 +32,33 @@ public class IngredientIndexProvider implements IAmiDataProvider {
     public void populate(GlobalIndex index, @Nullable Level level) {
         long start = System.currentTimeMillis();
         RecipeViewerIngredientRenderer.clearPersistent();
-        int count = indexNativeIngredients(index);
+        List<SearchNode> nodes = collectNativeIngredients();
+        index.replaceNodes(NodeType.INGREDIENT, nodes);
         AmiCore.LOGGER.info("AMI indexing: IngredientIndexProvider indexed {} ingredients in {}ms",
-                count, System.currentTimeMillis() - start);
+                nodes.size(), System.currentTimeMillis() - start);
     }
 
-    private static int indexNativeIngredients(GlobalIndex index) {
-        int[] count = {0};
-        var registration = new IngredientRegistrationImpl(index, count);
+    private static List<SearchNode> collectNativeIngredients() {
+        List<SearchNode> nodes = new ArrayList<>();
+        var registration = new IngredientRegistrationImpl(nodes);
         IngredientPluginRegistry.registerAllIngredients(registration, registration);
-        return count[0];
+        return nodes;
     }
 
     public static void rebuildRuntimeHandles(GlobalIndex index) {
         RecipeViewerIngredientRenderer.clearPersistent();
-        indexNativeIngredients(index);
+        index.replaceNodes(NodeType.INGREDIENT, collectNativeIngredients());
     }
 
     private static final class IngredientRegistrationImpl
             implements IRecipeViewerPlugin.IIngredientRegistration,
                        IRecipeViewerPlugin.IExtraIngredientRegistration {
 
-        private final GlobalIndex index;
-        private final int[] count;
+        private final List<SearchNode> nodes;
         private final Set<String> seenKeys = new LinkedHashSet<>();
 
-        IngredientRegistrationImpl(GlobalIndex index, int[] count) {
-            this.index = index;
-            this.count = count;
+        IngredientRegistrationImpl(List<SearchNode> nodes) {
+            this.nodes = nodes;
         }
 
         @Override
@@ -86,8 +86,7 @@ public class IngredientIndexProvider implements IAmiDataProvider {
                 addSearchTokens(meta, modName);
                 addSearchTokens(meta, displayName);
 
-                index.addNode(new SearchNode(id, NodeType.INGREDIENT, displayName, 0xFFFFFFFF, 0, meta));
-                count[0]++;
+                nodes.add(new SearchNode(id, NodeType.INGREDIENT, displayName, 0xFFFFFFFF, 0, meta));
             }
         }
 

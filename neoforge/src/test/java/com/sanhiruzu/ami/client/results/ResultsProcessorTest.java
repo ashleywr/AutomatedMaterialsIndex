@@ -123,6 +123,18 @@ public class ResultsProcessorTest {
         );
     }
 
+    private static SearchNode node(NodeType type, String namespace, String path, String displayName,
+                                   Map<String, String> metadata) {
+        return new SearchNode(
+                new ResourceLocation(namespace, path),
+                type,
+                displayName,
+                0,
+                0,
+                metadata
+        );
+    }
+
     private static List<SearchNode> railwaysMagentaDoorVariants() {
         Map<String, String> baseMetadata = Map.of(
                 SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
@@ -1388,6 +1400,43 @@ public class ResultsProcessorTest {
 
         assertTrue(hasKeyStartingWith(root, "cardinality:family:atlantis:linguistic_glyph/yellow"),
                 ResultsTreeDump.dump(root));
+    }
+
+    @Test
+    void categoryGroupingSkipsNonItemTerminalMiscNodes() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.ALPHABETICAL,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        List<TreeNode> root = processor.process(List.of(
+                item("paper_scrap", "Paper Scrap", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "misc",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "unknown"
+                )),
+                node(NodeType.INGREDIENT, "minecraft", "nether/obtain_crying_obsidian", "Who is Cutting Onions?", Map.of()),
+                node(NodeType.FLUID, "minecraft", "water", "Water", Map.of()),
+                node(NodeType.ENTITY, "minecraft", "area_effect_cloud", "Area Effect Cloud", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "misc",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "unknown"
+                )),
+                node(NodeType.ENTITY, "minecraft", "allay", "Allay", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "bestiary",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "passive"
+                ))
+        ));
+
+        assertEquals("""
+                Bestiary [expanded]
+                  Passive [expanded]
+                    Allay
+                Misc [expanded]
+                  Unknown [expanded]
+                    Paper Scrap
+                """, ResultsTreeDump.dump(root));
     }
 
     @Test

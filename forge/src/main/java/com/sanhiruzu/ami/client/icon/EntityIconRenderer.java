@@ -33,9 +33,23 @@ import java.util.*;
  */
 public class EntityIconRenderer implements IIconRenderer {
 
-    private static final boolean ENTITY_ICON_CACHE_ENABLED = Boolean.getBoolean("ami.entityIconCache");
+    private static final boolean ENTITY_ICON_ATLAS_ENABLED =
+            Boolean.parseBoolean(System.getProperty("ami.entityIconAtlas", "true"));
+    private static final boolean ENTITY_ICON_ATLAS_WARMUP_ENABLED =
+            Boolean.parseBoolean(System.getProperty("ami.entityIconAtlasWarmup", "true"));
+    private static final int ENTITY_ICON_ATLAS_WARMUP_PER_TICK =
+            Math.max(0, Integer.getInteger("ami.entityIconAtlasWarmupPerTick", 2));
+    private static final int ENTITY_ICON_ATLAS_BAKE_PER_TICK =
+            Math.max(0, Integer.getInteger("ami.entityIconAtlasBakePerTick", 1));
+    private static final int ENTITY_ICON_ATLAS_BAKE_INTERVAL_TICKS =
+            Math.max(1, Integer.getInteger("ami.entityIconAtlasBakeIntervalTicks", 10));
+    private static final int ENTITY_ICON_ATLAS_WARMUP_SIZE = 16;
     private static final Map<ResourceLocation, LivingEntity> entityCache = new HashMap<>();
     private static final Set<ResourceLocation> failedRenderers = new HashSet<>();
+    private static List<SearchNode> warmupQueue = List.of();
+    private static long warmupRevision = -1L;
+    private static int warmupIndex = 0;
+    private static int bakeTickCounter = 0;
 
     private static void renderEntity(GuiGraphics g, int x, int y, int scale, float angleX, float angleY, LivingEntity entity) {
         IconRenderState.render3dIcon(g, () ->
@@ -164,6 +178,85 @@ public class EntityIconRenderer implements IIconRenderer {
         return missing;
     }
 
+    public static void tickAtlasWarmup() {
+        if (!ENTITY_ICON_ATLAS_ENABLED) {
+            return;
+        }
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) {
+            return;
+        }
+
+        bakeTickCounter++;
+        if (ENTITY_ICON_ATLAS_BAKE_PER_TICK > 0
+                && bakeTickCounter % ENTITY_ICON_ATLAS_BAKE_INTERVAL_TICKS == 0) {
+            EntityIconCache.processPendingBakes(ENTITY_ICON_ATLAS_BAKE_PER_TICK);
+        }
+
+        if (!ENTITY_ICON_ATLAS_WARMUP_ENABLED || ENTITY_ICON_ATLAS_WARMUP_PER_TICK <= 0
+                || !GlobalIndex.getInstance().isIndexReady()) {
+            return;
+        }
+
+        long revision = GlobalIndex.getInstance().revision();
+        if (revision != warmupRevision) {
+            warmupRevision = revision;
+            warmupQueue = GlobalIndex.getInstance().getNodes(NodeType.ENTITY).stream()
+                    .filter(node -> !EntityIconTooltipSupport.isPokemonSpecies(node))
+                    .toList();
+            warmupIndex = 0;
+        }
+
+        int warmed = 0;
+        while (warmupIndex < warmupQueue.size() && warmed < ENTITY_ICON_ATLAS_WARMUP_PER_TICK) {
+            SearchNode node = warmupQueue.get(warmupIndex++);
+            LivingEntity entity = resolveEntity(node.id());
+            if (entity == null || failedRenderers.contains(node.id()) || !hasRenderableTexture(entity)) {
+                continue;
+            }
+
+            float maxBounds = Math.max(entity.getBbHeight(), entity.getBbWidth());
+            int scale = Math.max(1, (int) Math.min(
+                    ENTITY_ICON_ATLAS_WARMUP_SIZE - 4,
+                    (ENTITY_ICON_ATLAS_WARMUP_SIZE - 2) / maxBounds));
+            try {
+                warmStaticEntity(node.id(), entity, scale);
+            } catch (RuntimeException e) {
+                if (failedRenderers.add(node.id())) {
+                    AmiCore.LOGGER.warn("AMI: disabling entity icon renderer for {} after warmup failure", node.id(), e);
+                }
+            }
+            warmed++;
+        }
+    }
+
+    private static void warmStaticEntity(ResourceLocation id, LivingEntity entity, int scale) {
+        float savedBodyRot = entity.yBodyRot;
+        float savedYRot = entity.getYRot();
+        float savedXRot = entity.getXRot();
+        float savedHeadRotO = entity.yHeadRotO;
+        float savedHeadRot = entity.yHeadRot;
+
+        entity.yBodyRot = 180f;
+        entity.setYRot(180f);
+        entity.setXRot(0f);
+        entity.yHeadRot = entity.getYRot();
+        entity.yHeadRotO = entity.getYRot();
+
+        try {
+            EntityIconCache.warmCached(id, ENTITY_ICON_ATLAS_WARMUP_SIZE,
+                    cacheG -> renderEntity(cacheG, ENTITY_ICON_ATLAS_WARMUP_SIZE / 2,
+                            ENTITY_ICON_ATLAS_WARMUP_SIZE - 1, scale, 0f, 0f, entity));
+        } finally {
+            entity.yBodyRot = savedBodyRot;
+            entity.setYRot(savedYRot);
+            entity.setXRot(savedXRot);
+            entity.yHeadRotO = savedHeadRotO;
+            entity.yHeadRot = savedHeadRot;
+        }
+    }
+
     @Override
     public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
         if (EntityIconTooltipSupport.isPokemonSpecies(node)) {
@@ -228,8 +321,11 @@ public class EntityIconRenderer implements IIconRenderer {
         entity.yHeadRotO = entity.getYRot();
 
         try {
-            if (!hovered && ENTITY_ICON_CACHE_ENABLED && EntityIconCache.blitCached(g, node.id(), size, x, y,
-                    cacheG -> renderEntity(cacheG, size / 2, size - 1, scale, 0f, 0f, entity))) {
+            if (!hovered && ENTITY_ICON_ATLAS_ENABLED) {
+                if (EntityIconCache.blitCached(g, node.id(), size, x, y,
+                        cacheG -> renderEntity(cacheG, size / 2, size - 1, scale, 0f, 0f, entity))) {
+                    return;
+                }
                 return;
             }
             renderEntity(g, cx, cy, scale, 0f, 0f, entity);
@@ -292,6 +388,10 @@ public class EntityIconRenderer implements IIconRenderer {
     public void invalidate() {
         entityCache.clear();
         failedRenderers.clear();
+        warmupQueue = List.of();
+        warmupRevision = -1L;
+        warmupIndex = 0;
+        bakeTickCounter = 0;
         EntityIconCache.invalidate();
         CobblemonPokemonIconRenderer.invalidate();
     }

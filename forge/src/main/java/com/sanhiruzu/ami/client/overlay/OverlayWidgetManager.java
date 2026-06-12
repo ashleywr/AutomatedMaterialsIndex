@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.client.overlay;
 
 import com.sanhiruzu.ami.api.AmiPluginRegistry;
 import com.sanhiruzu.ami.client.AmiRenderProfiler;
+import com.sanhiruzu.ami.client.AmiRenderPhase;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.UniversalResultsPanel;
 import com.sanhiruzu.ami.compat.FtbLibrarySidebarCompat;
@@ -676,33 +677,8 @@ public class OverlayWidgetManager {
         AmiRenderProfiler.beginFrame();
         try {
             try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("overlay.renderAll")) {
-                com.sanhiruzu.ami.client.AMITheme.sync();
-                g.flush();
-                com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
-                g.pose().pushPose();
-                g.pose().translate(0, 0, OverlayLayers.SCREEN);
-
-                amiButton.render(g, mx, my, pt);
-
-                if (panelVisible) {
-                    Screen screen = Minecraft.getInstance().screen;
-                    if (screen instanceof AbstractContainerScreen<?> containerScreen) {
-                        inventorySearchHighlighter.render(containerScreen, g);
-                    }
-                    renderPanels(g, mx, my, pt);
-                    renderSearchBar(g, mx, my, pt);
-                    renderPanelOverlays(g, mx, my);
-                }
-
-                if (inLayoutMode) {
-                    g.pose().pushPose();
-                    g.pose().translate(0, 0, OverlayLayers.LAYOUT_MODE);
-                    renderLayoutMode(g, mx, my, pt);
-                    g.pose().popPose();
-                }
-
-                g.pose().popPose();
-                g.flush();
+                renderBase(g, mx, my, pt);
+                renderTopLayer(g, mx, my);
             }
         } catch (Exception e) {
             AMI.LOGGER.error("AMI overlay render failed", e);
@@ -714,6 +690,76 @@ public class OverlayWidgetManager {
             pendingEmiReinit = false;
             var mc = Minecraft.getInstance();
             if (mc.screen != null) mc.screen.init(mc, mc.screen.width, mc.screen.height);
+        }
+    }
+
+    /**
+     * Renders AMI's durable overlay body: buttons, panels, result grids, item icons,
+     * search bars, and layout UI. Container screens use the same post-render stack
+     * as JEI; AMI-owned tooltips are drawn afterward by renderTopLayer().
+     */
+    public void renderBase(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
+        try (AmiRenderPhase.Scope phase = AmiRenderPhase.enter(AmiRenderPhase.Phase.BASE);
+             AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("overlay.renderBase")) {
+            com.sanhiruzu.ami.client.AMITheme.sync();
+            g.flush();
+            com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
+            g.pose().pushPose();
+            g.pose().translate(0, 0, OverlayLayers.SCREEN);
+
+            amiButton.render(g, mx, my, pt);
+
+            if (panelVisible) {
+                Screen screen = Minecraft.getInstance().screen;
+                if (screen instanceof AbstractContainerScreen<?> containerScreen) {
+                    inventorySearchHighlighter.render(containerScreen, g);
+                }
+                renderPanels(g, mx, my, pt);
+                renderSearchBar(g, mx, my, pt);
+            }
+
+            if (inLayoutMode) {
+                g.pose().pushPose();
+                g.pose().translate(0, 0, OverlayLayers.LAYOUT_MODE);
+                renderLayoutMode(g, mx, my, pt);
+                g.pose().popPose();
+            }
+
+            g.pose().popPose();
+            g.flush();
+
+            // AMI result icons are drawn via g.renderItem, which writes real 3D model depth;
+            // block models reach past the vanilla tooltip's z (~400). Clear the base layer's
+            // depth residue so the vanilla/status tooltip drawn after the container foreground
+            // is never occluded by a result icon. Upholds IconRenderState's "no depth residue"
+            // promise at the whole-layer level instead of relying on a 3D icon being visible.
+            com.mojang.blaze3d.systems.RenderSystem.clear(
+                    org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
+        }
+    }
+
+    /**
+     * Renders only AMI-owned transient UI: AMI tooltips, dropdowns, context menus,
+     * and hints. This phase must not render result-panel bodies or result icons.
+     */
+    public void renderTopLayer(net.minecraft.client.gui.GuiGraphics g, int mx, int my) {
+        try (AmiRenderPhase.Scope phase = AmiRenderPhase.enter(AmiRenderPhase.Phase.TOP);
+             AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("overlay.renderTopLayer")) {
+            g.flush();
+            com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
+            g.pose().pushPose();
+
+            amiButton.renderTooltip(g, mx, my);
+            if (panelVisible) {
+                List<PanelSlot> renderingSlots = activeSlotsSnapshot();
+                for (PanelSlot slot : renderingSlots) {
+                    slot.renderOverlay(g, mx, my);
+                }
+                renderCheatDeleteHint(g, mx, my, renderingSlots);
+            }
+
+            g.pose().popPose();
+            g.flush();
         }
     }
 
@@ -730,7 +776,6 @@ public class OverlayWidgetManager {
             for (PanelSlot slot : renderingSlots) {
                 slot.render(g, mx, my, pt);
             }
-            renderCheatDeleteHint(g, mx, my, renderingSlots);
             if (leftPanelBarBounds != null) {
                 renderLeftPanelBar(g, mx, my);
             }
@@ -742,22 +787,6 @@ public class OverlayWidgetManager {
                 g.pose().popPose();
             }
 
-            g.pose().popPose();
-            g.flush();
-        }
-    }
-
-    public void renderPanelOverlays(net.minecraft.client.gui.GuiGraphics g, int mx, int my) {
-        if (!panelVisible) return;
-        try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("overlay.panelOverlays")) {
-            List<PanelSlot> renderingSlots = activeSlotsSnapshot();
-            g.flush();
-            com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
-            g.pose().pushPose();
-            g.pose().translate(0, 0, OverlayLayers.TRANSIENT_TOOLTIP);
-            for (PanelSlot slot : renderingSlots) {
-                slot.renderOverlay(g, mx, my);
-            }
             g.pose().popPose();
             g.flush();
         }
@@ -787,10 +816,7 @@ public class OverlayWidgetManager {
             if (slot.results.visible && slot.results.isMouseOver(mx, my)) {
                 var font = net.minecraft.client.Minecraft.getInstance().font;
                 var msg = net.minecraft.network.chat.Component.translatable("ami.cheat.drop_to_delete");
-                g.pose().pushPose();
-                g.pose().translate(0, 0, OverlayLayers.TRANSIENT_TOOLTIP);
                 g.renderTooltip(font, List.of(msg), java.util.Optional.empty(), mx, my);
-                g.pose().popPose();
                 break;
             }
         }

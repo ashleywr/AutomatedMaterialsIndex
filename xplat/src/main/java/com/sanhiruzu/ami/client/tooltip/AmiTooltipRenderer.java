@@ -1,6 +1,5 @@
 package com.sanhiruzu.ami.client.tooltip;
 
-import com.sanhiruzu.ami.client.overlay.OverlayLayers;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -49,14 +48,10 @@ public final class AmiTooltipRenderer {
 
     private static void renderAtTooltipLayer(GuiGraphics g, Runnable renderer) {
         RENDERING_AMI_TOOLTIP.set(true);
-        g.pose().pushPose();
-        g.pose().translate(0, 0, OverlayLayers.TRANSIENT_TOOLTIP);
         try {
             renderer.run();
         } finally {
-            g.pose().popPose();
             RENDERING_AMI_TOOLTIP.set(false);
         }
-        g.flush();
     }
 }

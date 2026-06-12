@@ -353,7 +353,6 @@ public class UniversalResultsPanel implements SearchState.Listener {
             return false;
         }
         this.runtimeSearchRevision = revision;
-        invalidateProjectionCache();
         refreshTree(true);
         return true;
     }
@@ -456,6 +455,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        AmiRenderPhase.requireBase("UniversalResultsPanel.render");
         try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("panel.render")) {
             checkPlayerStateChanged();
             refreshIndexProgressIfNeeded();
@@ -1338,10 +1338,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (!state.getQuery().isBlank()) {
             return null;
         }
+        List<SearchNode> source = resolveSource();
         return GlobalIndex.getInstance().revision() + "|searchRevision=" + searchServiceRevision
-                + "|runtimeRevision=" + runtimeSearchRevision
-                + "|source=" + System.identityHashCode(currentResults)
-                + "|size=" + currentResults.size()
+                + "|sourceSignature=" + sourceSignature(source)
                 + "|view=" + state.getViewMode()
                 + "|lens=" + state.getListLens()
                 + "|sort=" + state.getSortField()
@@ -1357,6 +1356,17 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 + "|creative=" + AmiConfig.shouldShowCreativeItems(lastPlayerMode)
                 + "|discoveryEnabled=" + AmiConfig.enableDiscoveryChecklist
                 + "|discoveryRevision=" + com.sanhiruzu.ami.client.discovery.AmiDiscoveryState.getInstance().revision();
+    }
+
+    private static long sourceSignature(List<SearchNode> source) {
+        long signature = 1125899906842597L;
+        for (SearchNode node : source) {
+            signature = 31 * signature + node.type().hashCode();
+            signature = 31 * signature + node.id().hashCode();
+            signature = 31 * signature + node.displayName().hashCode();
+            signature = 31 * signature + node.metadata().hashCode();
+        }
+        return signature;
     }
 
     private void invalidateProjectionCache() {

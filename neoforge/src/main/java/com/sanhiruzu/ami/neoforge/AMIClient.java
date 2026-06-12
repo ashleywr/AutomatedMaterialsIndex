@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.neoforge;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.ThemeResourceLoader;
+import com.sanhiruzu.ami.client.icon.EntityIconRenderer;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.client.results.ItemGridView;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
@@ -105,6 +106,7 @@ public class AMIClient {
         com.sanhiruzu.ami.client.discovery.AmiDiscoveryState.getInstance().clientTick();
         AmiIndexerService.getInstance().ensurePendingRecipeIndexBuild();
         InventoryOverlayHandler.tickAutoIndexBootstrap();
+        EntityIconRenderer.tickAtlasWarmup();
     }
 
     @SubscribeEvent

@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.forge;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.ThemeResourceLoader;
+import com.sanhiruzu.ami.client.icon.EntityIconRenderer;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.client.results.ItemGridView;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
@@ -91,6 +92,7 @@ public class AMIClient {
             if (event.phase == TickEvent.Phase.END) {
                 FtbQuestsRuntimeCompat.clientTick();
                 InventoryOverlayHandler.tickAutoIndexBootstrap();
+                EntityIconRenderer.tickAtlasWarmup();
             }
         }
 

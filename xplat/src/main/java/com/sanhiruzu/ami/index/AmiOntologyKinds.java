@@ -1,6 +1,8 @@
 package com.sanhiruzu.ami.index;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
 
 /**
@@ -164,16 +166,26 @@ public final class AmiOntologyKinds {
             rule("tools", "ammo", "arrows", "Arrows", c -> c.pathToken("arrow")),
             rule("tools", "ammo", "rounds", "Rounds & Shells", c -> c.pathToken("round", "shell", "bolt"))
     );
+    private static final Map<ScopeKey, List<Rule>> RULES_BY_SCOPE = buildRulesByScope();
+    private static final Map<ScopeKey, List<Kind>> KINDS_BY_SCOPE = buildKindsByScope();
+    private static final ConcurrentMap<ClassifyKey, Optional<Kind>> CLASSIFICATION_CACHE = new ConcurrentHashMap<>();
 
     private AmiOntologyKinds() {
     }
 
     public static Optional<Kind> classify(SearchNode node, String categoryId, String subcategoryId) {
+        List<Rule> rules = RULES_BY_SCOPE.get(new ScopeKey(categoryId, subcategoryId));
+        if (rules == null || rules.isEmpty()) {
+            return Optional.empty();
+        }
+        return CLASSIFICATION_CACHE.computeIfAbsent(ClassifyKey.of(node, categoryId, subcategoryId),
+                ignored -> classifyUncached(node, rules));
+    }
+
+    private static Optional<Kind> classifyUncached(SearchNode node, List<Rule> rules) {
         Context context = new Context(node);
-        for (Rule rule : RULES) {
-            if (rule.category.equals(categoryId)
-                    && rule.subcategory.equals(subcategoryId)
-                    && rule.predicate.test(context)) {
+        for (Rule rule : rules) {
+            if (rule.predicate.test(context)) {
                 return Optional.of(rule.kind);
             }
         }
@@ -181,16 +193,61 @@ public final class AmiOntologyKinds {
     }
 
     public static List<Kind> kindsFor(String categoryId, String subcategoryId) {
-        List<Kind> result = new ArrayList<>();
-        Set<String> seen = new java.util.LinkedHashSet<>();
+        return KINDS_BY_SCOPE.getOrDefault(new ScopeKey(categoryId, subcategoryId), List.of());
+    }
+
+    private static Map<ScopeKey, List<Rule>> buildRulesByScope() {
+        Map<ScopeKey, List<Rule>> result = new LinkedHashMap<>();
         for (Rule rule : RULES) {
-            if (rule.category.equals(categoryId)
-                    && rule.subcategory.equals(subcategoryId)
-                    && seen.add(rule.kind.id())) {
-                result.add(rule.kind);
+            result.computeIfAbsent(new ScopeKey(rule.category, rule.subcategory), ignored -> new ArrayList<>()).add(rule);
+        }
+        result.replaceAll((ignored, rules) -> List.copyOf(rules));
+        return Map.copyOf(result);
+    }
+
+    private static Map<ScopeKey, List<Kind>> buildKindsByScope() {
+        Map<ScopeKey, List<Kind>> result = new LinkedHashMap<>();
+        Map<ScopeKey, Set<String>> seenByScope = new LinkedHashMap<>();
+        for (Rule rule : RULES) {
+            ScopeKey scope = new ScopeKey(rule.category, rule.subcategory);
+            Set<String> seen = seenByScope.computeIfAbsent(scope, ignored -> new LinkedHashSet<>());
+            if (seen.add(rule.kind.id())) {
+                result.computeIfAbsent(scope, ignored -> new ArrayList<>()).add(rule.kind);
             }
         }
-        return result;
+        result.replaceAll((ignored, kinds) -> List.copyOf(kinds));
+        return Map.copyOf(result);
+    }
+
+    private static int relevantMetadataHash(SearchNode node) {
+        int hash = 1;
+        hash = 31 * hash + node.meta(SearchNodeKeys.FACETS, "").hashCode();
+        hash = 31 * hash + node.meta(SearchNodeKeys.TAGS, "").hashCode();
+        hash = 31 * hash + node.meta(SearchNodeKeys.BLOCK_TAGS, "").hashCode();
+        hash = 31 * hash + node.meta(SearchNodeKeys.VARIANT_GROUP, "").hashCode();
+        hash = 31 * hash + node.meta("blockShape", "").hashCode();
+        return hash;
+    }
+
+    private record ScopeKey(String category, String subcategory) {
+    }
+
+    private record ClassifyKey(NodeType type,
+                               net.minecraft.resources.ResourceLocation id,
+                               String category,
+                               String subcategory,
+                               int metadataHash) {
+        static ClassifyKey of(SearchNode node, String category, String subcategory) {
+            return new ClassifyKey(node.type(), node.id(), category, subcategory, relevantMetadataHash(node));
+        }
+    }
+
+    static int cachedClassificationCountForTests() {
+        return CLASSIFICATION_CACHE.size();
+    }
+
+    static void clearClassificationCacheForTests() {
+        CLASSIFICATION_CACHE.clear();
     }
 
     private static Rule rule(String category, String subcategory, String kindId, String label, Predicate<Context> predicate) {

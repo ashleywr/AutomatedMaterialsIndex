@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.AMITheme;
-import com.sanhiruzu.ami.client.RenderStateSnapshot;
+import com.sanhiruzu.ami.client.AmiRenderPhase;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
@@ -201,6 +201,7 @@ public class ResultsTreeView {
      */
     public void render(GuiGraphics g, int mouseX, int mouseY, boolean toolbarDropdownOpen,
                        Component sectionLabel, SearchState state) {
+        AmiRenderPhase.requireBase("ResultsTreeView.render");
         pendingTooltipLines = null;
         pendingTooltipImage = Optional.empty();
         pendingItemStack = null;
@@ -245,17 +246,11 @@ public class ResultsTreeView {
 
     public void renderPendingTooltip(GuiGraphics g, int mouseX, int mouseY) {
         var font = Minecraft.getInstance().font;
-        RenderStateSnapshot renderState = RenderStateSnapshot.capture();
-        try {
-            com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
-            if (pendingTooltipLines != null) {
-                ItemStack stackContext = (pendingItemStack != null) ? pendingItemStack : ItemStack.EMPTY;
-                AmiTooltipRenderer.render(g, font, stackContext, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY);
-            } else if (pendingItemStack != null && !pendingItemStack.isEmpty()) {
-                AmiTooltipRenderer.render(g, font, pendingItemStack, mouseX, mouseY);
-            }
-        } finally {
-            renderState.restore();
+        if (pendingTooltipLines != null) {
+            ItemStack stackContext = (pendingItemStack != null) ? pendingItemStack : ItemStack.EMPTY;
+            AmiTooltipRenderer.render(g, font, stackContext, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY);
+        } else if (pendingItemStack != null && !pendingItemStack.isEmpty()) {
+            AmiTooltipRenderer.render(g, font, pendingItemStack, mouseX, mouseY);
         }
     }
 
@@ -351,7 +346,7 @@ public class ResultsTreeView {
         renderer.render(g, entry, -8, -8, AMITheme.ICON_SIZE, hovered);
         g.pose().popPose();
         DiscoveryVisuals.renderIconOverlay(g, entry, iconX, iconY, AMITheme.ICON_SIZE);
-        AccessLevelVisuals.renderIconOverlay(g, entry, iconX, iconY, AMITheme.ICON_SIZE);
+        AccessLevelOverlayRenderer.renderIconOverlay(g, entry, iconX, iconY, AMITheme.ICON_SIZE);
 
         int textX = iconX + AMITheme.ICON_SIZE + 4;
         int maxTextW = x + width - SCROLLBAR_W - 6 - textX;
@@ -731,9 +726,8 @@ public class ResultsTreeView {
         } else {
             int barW = active ? 6 : 4;
             int barX = x + width - 1 - barW;
-            g.fill(x + width - SCROLLBAR_W, originY, x + width, originY + contentH, AMITheme.SCROLL_TRACK);
-            g.fill(barX, thumbY, barX + barW, thumbY + thumbH,
-                    active ? AMITheme.SCROLL_THUMB_ACTIVE : AMITheme.SCROLL_THUMB);
+            ScrollbarSpriteRenderer.renderTrack(g, x + width - SCROLLBAR_W, originY, SCROLLBAR_W, contentH);
+            ScrollbarSpriteRenderer.renderThumb(g, barX, thumbY, barW, thumbH, active);
         }
     }
 
@@ -887,7 +881,9 @@ public class ResultsTreeView {
         int totalH = countAllNodes() * AMITheme.ROW_HEIGHT;
         if (totalH <= contentH) return true;
 
-        int thumbH = Math.max(10, (contentH * contentH) / totalH);
+        int thumbH = AmiConfig.theme == AmiConfig.Theme.VANILLA
+                ? vanillaThumbHeight(totalH, contentH)
+                : Math.max(12, (contentH * contentH) / totalH);
         int dragRange = contentH - thumbH;
         if (dragRange <= 0) return true;
 

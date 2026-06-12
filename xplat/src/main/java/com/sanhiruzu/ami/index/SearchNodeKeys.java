@@ -50,6 +50,7 @@ public final class SearchNodeKeys {
     public static final String SEARCH_TOKENS = "searchTokens";  // Space-separated synthetic search tokens
     public static final String PLAIN_SEARCH_TOKENS = "plainSearchTokens"; // Small curated aliases for normal text search
     public static final String TOOLTIP_SEARCH_TOKENS = "tooltipSearchTokens"; // Filtered native tooltip words for plain search
+    public static final String DESCRIPTION_SEARCH_TOKENS = "descriptionSearchTokens"; // First description block only (before first blank line)
     public static final String ACCESS_LEVEL = "accessLevel";  // "survival", "creative", "cheat", or "dev"
     public static final String VISIBILITY = "visibility";    // "hidden" = not in any creative tab
     public static final String OBTAINABILITY = "obtainability"; // "no_recipe" = no recipe output

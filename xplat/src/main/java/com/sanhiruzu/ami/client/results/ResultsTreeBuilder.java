@@ -220,7 +220,11 @@ final class ResultsTreeBuilder {
     private List<TreeNode> groupByCategory(List<SearchNode> entries) {
         Map<String, List<SearchNode>> catMap = new LinkedHashMap<>();
         for (SearchNode entry : entries) {
-            catMap.computeIfAbsent(AmiOntology.classifyNode(entry).id, k -> new ArrayList<>()).add(entry);
+            AmiOntology.Category category = AmiOntology.classifyNode(entry);
+            if (!shouldDisplayInCategoryGroup(entry, category)) {
+                continue;
+            }
+            catMap.computeIfAbsent(category.id, k -> new ArrayList<>()).add(entry);
         }
 
         List<TreeNode> result = new ArrayList<>();
@@ -291,6 +295,13 @@ final class ResultsTreeBuilder {
             result.add(catNode);
         }
         return result;
+    }
+
+    private static boolean shouldDisplayInCategoryGroup(SearchNode node, AmiOntology.Category category) {
+        if (category != AmiOntology.MISC) {
+            return true;
+        }
+        return node.type() == NodeType.ITEM;
     }
 
     private List<TreeNode> groupByCreative(List<SearchNode> entries) {
