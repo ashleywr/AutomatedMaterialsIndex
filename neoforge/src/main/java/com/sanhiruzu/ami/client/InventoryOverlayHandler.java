@@ -9,6 +9,7 @@ import com.sanhiruzu.ami.neoforge.AMI;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.EffectRenderingInventoryScreen;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.neoforged.api.distmarker.Dist;
@@ -19,6 +20,7 @@ import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.RenderTooltipEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 
+import java.lang.reflect.Method;
 import java.util.List;
 
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
@@ -44,6 +46,9 @@ public class InventoryOverlayHandler {
     private static PendingGatheredTooltip pendingGatheredTooltip = null;
     private static PendingExternalTooltip pendingExternalTooltip = null;
     private static boolean renderingExternalTooltip = false;
+    private static boolean renderingStatusEffectsAboveAmi = false;
+    private static int statusEffectsOnTopFrames = 0;
+    private static Method renderEffectsMethod = null;
 
     /**
      * The single choke point for all visibility state changes. Updates the panel and schedules
@@ -234,7 +239,12 @@ public class InventoryOverlayHandler {
         if (currentLayer == VisibleLayer.AMI) {
             manager.tick();
             manager.renderAll(guiGraphics, mouseX, mouseY, partialTick);
-            renderPendingExternalTooltip(guiGraphics);
+            if (statusEffectsOnTopFrames > 0 && renderStatusEffectsAboveAmi(screen, guiGraphics, mouseX, mouseY)) {
+                statusEffectsOnTopFrames--;
+                pendingExternalTooltip = null;
+            } else {
+                renderPendingExternalTooltip(guiGraphics);
+            }
         }
     }
 
@@ -310,6 +320,9 @@ public class InventoryOverlayHandler {
                 event.getItemStack().copy(),
                 List.copyOf(event.getTooltipElements())
         );
+        if (event.getItemStack().isEmpty() && !event.getTooltipElements().isEmpty()) {
+            statusEffectsOnTopFrames = 2;
+        }
     }
 
     @SubscribeEvent
@@ -318,7 +331,8 @@ public class InventoryOverlayHandler {
         if (screen == null || !isAmiScreen(screen)) return;
         if (com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer.isRenderingAmiTooltip()) return;
         if (renderingExternalTooltip) return;
-        if (isMouseOverAmiOverlay(event.getX(), event.getY())) {
+        if (renderingStatusEffectsAboveAmi) return;
+        if (statusEffectsOnTopFrames <= 0 && isMouseOverAmiOverlay(event.getX(), event.getY())) {
             event.setCanceled(true);
             return;
         }
@@ -333,6 +347,40 @@ public class InventoryOverlayHandler {
                     event.getY()
             );
             event.setCanceled(true);
+        }
+    }
+
+    private static boolean renderStatusEffectsAboveAmi(net.minecraft.client.gui.screens.Screen screen,
+                                                       net.minecraft.client.gui.GuiGraphics graphics,
+                                                       int mouseX,
+                                                       int mouseY) {
+        if (!(screen instanceof EffectRenderingInventoryScreen<?> effectScreen)) return false;
+
+        try {
+            Method method = renderEffectsMethod;
+            if (method == null) {
+                method = EffectRenderingInventoryScreen.class.getDeclaredMethod(
+                        "renderEffects", net.minecraft.client.gui.GuiGraphics.class, int.class, int.class);
+                method.setAccessible(true);
+                renderEffectsMethod = method;
+            }
+
+            var state = com.sanhiruzu.ami.client.RenderStateSnapshot.capture();
+            try {
+                renderingStatusEffectsAboveAmi = true;
+                graphics.pose().pushPose();
+                graphics.pose().translate(0, 0, com.sanhiruzu.ami.client.overlay.OverlayLayers.TRANSIENT_TOOLTIP);
+                method.invoke(effectScreen, graphics, mouseX, mouseY);
+                graphics.pose().popPose();
+                graphics.flush();
+            } finally {
+                renderingStatusEffectsAboveAmi = false;
+                state.restore();
+            }
+            return true;
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            renderEffectsMethod = null;
+            return false;
         }
     }
 
