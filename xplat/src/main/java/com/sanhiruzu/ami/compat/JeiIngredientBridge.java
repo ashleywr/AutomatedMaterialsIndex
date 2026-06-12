@@ -45,10 +45,7 @@ public class JeiIngredientBridge implements IRecipeViewerPlugin {
                                       mezz.jei.api.ingredients.IIngredientType<V> jeiType,
                                       IRecipeViewerPlugin.IIngredientRegistration registration) {
         Class<? extends V> cls = jeiType.getIngredientClass();
-        // ItemStacks are indexed as ITEM nodes by ItemProvider; FluidStacks as FLUID nodes.
-        // Skip both to avoid orphaned INGREDIENT duplicates with no category or display data.
-        if (ItemStack.class.isAssignableFrom(cls)) return;
-        if (cls.getName().endsWith(".FluidStack")) return;
+        if (!isBrowseableIngredientTypeForAmi(cls)) return;
 
         String typeUid = cls.getName();
 
@@ -74,6 +71,30 @@ public class JeiIngredientBridge implements IRecipeViewerPlugin {
                 ingredients,
                 new HelperAdapter<>(helper)
         );
+    }
+
+    static boolean isBrowseableIngredientTypeForAmi(Class<?> ingredientClass) {
+        if (ingredientClass == null) {
+            return false;
+        }
+        if (ItemStack.class.isAssignableFrom(ingredientClass)) {
+            return false;
+        }
+        return isBrowseableIngredientClassNameForAmi(ingredientClass.getName());
+    }
+
+    static boolean isBrowseableIngredientClassNameForAmi(String className) {
+        if (className == null || className.isBlank()) {
+            return false;
+        }
+        // ItemStacks are indexed as ITEM nodes by ItemProvider; FluidStacks as FLUID nodes.
+        // JEI addon document/effect entries are panel content, not AMI global search nodes.
+        if (className.endsWith(".FluidStack")) return false;
+        if (className.equals("net.minecraft.core.Holder")) return false;
+        if (className.equals("net.minecraft.world.effect.MobEffectInstance")) return false;
+        if (className.startsWith("net.minecraft.advancements.")) return false;
+        if (className.startsWith("de.melanx.jea.")) return false;
+        return true;
     }
 
     // "net.minecraft.world.item.ItemStack" → jei:net/minecraft/world/item/itemstack

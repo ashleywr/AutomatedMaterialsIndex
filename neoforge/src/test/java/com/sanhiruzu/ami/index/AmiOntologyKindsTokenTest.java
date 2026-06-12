@@ -30,6 +30,18 @@ class AmiOntologyKindsTokenTest {
     }
 
     @Test
+    void repeatedClassificationUsesCachedNodeScopeResult() {
+        AmiOntologyKinds.clearClassificationCacheForTests();
+        SearchNode pressurePlate = item("minecraft", "oak_pressure_plate");
+
+        assertTrue(AmiOntologyKinds.classify(pressurePlate, "masonry", "redstone").isPresent());
+        assertEquals(1, AmiOntologyKinds.cachedClassificationCountForTests());
+
+        assertTrue(AmiOntologyKinds.classify(pressurePlate, "masonry", "redstone").isPresent());
+        assertEquals(1, AmiOntologyKinds.cachedClassificationCountForTests());
+    }
+
+    @Test
     void backpackKindIgnoresIncidentalTrashBagBlacklistTags() {
         SearchNode magnet = item("simplemagnets", "basicmagnet", Map.of(
                 SearchNodeKeys.FACETS, "curio",

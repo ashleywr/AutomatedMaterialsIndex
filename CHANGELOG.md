@@ -2,6 +2,38 @@
 
 User-facing changes are recorded here.
 
+## 1.5.0 - 2026-06-12
+
+AMI 1.5.0 focuses on UI rendering and tooltip layering stability, result-tree consistency, and search/ontology indexing correctness.
+
+### Added
+
+- Added a new render-phase model (`AmiRenderPhase`) and split overlay painting into `renderBase`/`renderTopLayer` paths so durable panels (buttons, search bars, result rows) and transient overlays (tooltips, dropdowns, context menus) no longer race each other.
+- Added batched sprite rendering utilities (`ColoredQuadBatch`, `TexturedQuadBatch`) and generated GUI sprite helpers for lightweight result-grid visuals, quest markers, scrollbars, and dev-only/access overlays.
+- Added an entity icon atlas cache in `EntityIconCache` with on-demand bake queueing, disk persistence, deterministic cache keys, and bounded per-tick bake throughput for smoother hover and scroll behavior.
+- Added entity icon warmup pass (`EntityIconRenderer.tickAtlasWarmup`) to pre-bake icon atlas entries progressively after index changes.
+- Added ontology classification memoization in `AmiOntologyKinds` with per-scope rule/index caches for deterministic, reusable kind assignment.
+- Added `descriptionSearchTokens` extraction (`TooltipSearchTokens#extractDescription`) and wired it into item indexing metadata.
+- Added validation coverage for:
+  - `JeiIngredientBridge` non-browseable ingredient filtering
+  - ontology cache behavior
+  - misc-category group pruning in category mode results.
+
+### Changed
+
+- Changed inventory overlay lifecycle and tooltip orchestration to better handle container screens, external recipe viewers, and status-effect ownership so AMI no longer steals tooltip ownership at the wrong layer.
+- Changed result icon and scrollbar rendering to sprite-backed batches in grid/tree views while preserving hover and theme behavior.
+- Changed item search indexing to use description block tokens for plain search, replacing direct tooltip token usage in that contract.
+- Changed result tree builder grouping so misc-node terminal buckets only include item nodes, removing non-item noise from misc terminal categories.
+- Changed `UniversalResultsPanel` projection keying to use a source signature so cache invalidation can track content changes more accurately.
+
+### Fixed
+
+- Fixed tooltip-layer z/focus flicker from mixed render-stack transitions by removing ad-hoc transient push/pop blocks around AMI tooltip components and using explicit phase separation.
+- Fixed visual/interaction regressions from status-effects and external-tooltip handling by re-hosting external recipe tooltips when needed and making overlay hover ownership explicit.
+- Fixed ingredient-compat indexing pollution by skipping panel entry ingredient types from the AMI global ingredient index path.
+- Fixed dev/access markers and discovery overlays to be rendered through shared sprite renderers instead of inline raw fill logic, reducing drift and repeated render state churn.
+
 ## 1.4.2 - 2026-06-08
 
 AMI 1.4.2 is a hotfix release for result-panel refresh lag triggered by recipe lookups.

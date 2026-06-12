@@ -33,6 +33,37 @@ public final class TooltipSearchTokens {
     private TooltipSearchTokens() {
     }
 
+    /**
+     * Extracts tokens from the first description block only — lines before the first blank separator.
+     * Used for plain search so attribute/stat lines don't pollute name-based queries.
+     */
+    public static String extractDescription(Collection<Component> tooltipLines, String displayName,
+                                            ResourceLocation id, String modName) {
+        if (tooltipLines == null || tooltipLines.isEmpty()) {
+            return "";
+        }
+        LinkedHashSet<String> excluded = new LinkedHashSet<>();
+        addExcludedTokens(excluded, displayName);
+        if (id != null) {
+            addExcludedTokens(excluded, id.toString());
+            addExcludedTokens(excluded, id.getNamespace());
+            addExcludedTokens(excluded, id.getPath());
+        }
+        addExcludedTokens(excluded, modName);
+        LinkedHashSet<String> tokens = new LinkedHashSet<>();
+        for (Component line : tooltipLines) {
+            if (line == null) continue;
+            String text = line.getString();
+            if (stripFormatting(text).isBlank()) break;
+            if (!shouldIndexLine(text)) continue;
+            for (String token : tokenize(text)) {
+                addToken(tokens, excluded, token);
+                if (tokens.size() >= MAX_TOKENS) return String.join(" ", tokens);
+            }
+        }
+        return String.join(" ", tokens);
+    }
+
     public static String extract(Collection<Component> tooltipLines, String displayName,
                                  ResourceLocation id, String modName) {
         if (tooltipLines == null || tooltipLines.isEmpty()) {

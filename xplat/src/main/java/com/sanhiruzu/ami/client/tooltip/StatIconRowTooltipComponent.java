@@ -45,10 +45,7 @@ public final class StatIconRowTooltipComponent implements TooltipComponent, Clie
     public void renderImage(Font font, int x, int y, GuiGraphics g) {
         int iconY = y + TOP_PAD;
 
-        g.pose().pushPose();
-        g.pose().translate(0, 0, 150); // prevent z-clipping on 3D item models
         g.renderItem(icon, x, iconY);
-        g.pose().popPose();
 
         int textX = x + ICON_SIZE + ICON_GAP;
         int textY = iconY + (ICON_SIZE - font.lineHeight) / 2;

@@ -330,14 +330,14 @@ public class ItemProvider implements IAmiDataProvider {
         try {
             String modName = modNameCache.computeIfAbsent(id.getNamespace(), namespace ->
                     Services.PLATFORM.getModName(namespace).orElse(namespace));
-            String tokens = TooltipSearchTokens.extract(
-                    Services.PLATFORM.getTooltipLines(stack, level),
-                    displayName,
-                    id,
-                    modName
-            );
+            List<net.minecraft.network.chat.Component> lines = Services.PLATFORM.getTooltipLines(stack, level);
+            String tokens = TooltipSearchTokens.extract(lines, displayName, id, modName);
             if (!tokens.isBlank()) {
                 meta.put(SearchNodeKeys.TOOLTIP_SEARCH_TOKENS, tokens);
+            }
+            String descTokens = TooltipSearchTokens.extractDescription(lines, displayName, id, modName);
+            if (!descTokens.isBlank()) {
+                meta.put(SearchNodeKeys.DESCRIPTION_SEARCH_TOKENS, descTokens);
             }
         } catch (RuntimeException e) {
             AmiCore.LOGGER.debug("Unable to inspect search tooltip for {}", id, e);
