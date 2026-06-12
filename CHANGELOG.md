@@ -2,6 +2,15 @@
 
 User-facing changes are recorded here.
 
+## 1.5.1 - 2026-06-12
+
+AMI 1.5.1 is a hotfix release for the Forge 1.20.1 packaged build published in 1.5.0.
+
+### Fixed
+
+- Fixed a Forge 1.20.1 crash when AMI rendered inventory result-grid sprite batches from the packaged production jar by adding production SRG fallbacks for reflected Blaze3D rendering methods.
+- Fixed the Forge release verification gate to catch missing production render-method fallbacks before upload.
+
 ## 1.5.0 - 2026-06-12
 
 AMI 1.5.0 focuses on UI rendering and tooltip layering stability, result-tree consistency, and search/ontology indexing correctness.
