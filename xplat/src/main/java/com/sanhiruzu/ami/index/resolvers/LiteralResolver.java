@@ -43,30 +43,30 @@ public final class LiteralResolver implements IQueryResolver {
     public Map<NodeType, List<SearchNode>> resolve(String query) {
         String lower = query.toLowerCase(Locale.ROOT);
 
-        Set<SearchNode> prefixHits = new LinkedHashSet<>(index.prefixSearch(lower));
-        List<SearchNode> substringHits = new ArrayList<>();
+        List<SearchNode> prefixHits = index.prefixSearch(lower);
+        List<SearchNode> substringHits = Collections.emptyList();
         if (shouldUseSubstringFallback(lower)) {
+            // IdentityHashMap: SearchNode instances are canonical within a session — identity
+            // comparison is correct and faster than equals()/hashCode().
+            Set<SearchNode> prefixSet = Collections.newSetFromMap(new IdentityHashMap<>(prefixHits.size() * 2 + 1));
+            prefixSet.addAll(prefixHits);
+            substringHits = new ArrayList<>();
             for (SearchNode node : index.substringSearch(lower)) {
-                if (!prefixHits.contains(node)) substringHits.add(node);
+                if (!prefixSet.contains(node)) substringHits.add(node);
             }
         }
 
-        // Step 3: Merge into result map grouped by type
-        Map<NodeType, List<SearchNode>> result = new LinkedHashMap<>();
-        for (NodeType type : NodeType.values()) {
-            result.put(type, new ArrayList<>());
-        }
-
+        // EnumMap + lazy computeIfAbsent: no pre-allocated empty lists per type.
+        Map<NodeType, List<SearchNode>> result = new EnumMap<>(NodeType.class);
         for (SearchNode node : prefixHits) {
-            result.get(node.type()).add(node);
+            result.computeIfAbsent(node.type(), k -> new ArrayList<>()).add(node);
         }
         for (SearchNode node : substringHits) {
-            result.get(node.type()).add(node);
+            result.computeIfAbsent(node.type(), k -> new ArrayList<>()).add(node);
         }
 
-        // Remove empty types. Keep the old cap only for one/two-character
-        // probes; longer queries must not drop valid tooltip/token matches.
-        result.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+        // Keep the old cap only for one/two-character probes; longer queries must not
+        // drop valid tooltip/token matches.
         if (shouldCapShortQuery(lower)) {
             for (List<SearchNode> list : result.values()) {
                 if (list.size() > SHORT_QUERY_MAX_RESULTS_PER_TYPE) {

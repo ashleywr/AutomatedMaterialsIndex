@@ -85,7 +85,7 @@ class FacetIndexerTest {
         assertTrue(index(toolComponentLike).attributes().getOrDefault(SearchNodeKeys.COMPONENT_FACTS, "").contains("tool"));
         assertTrue(index(cookedMeat).facets().contains(ItemFacet.FOOD_MEAL));
         assertTrue(index(cookedMeat).facets().contains(ItemFacet.FOOD_PROTEIN));
-        assertTrue(index(vegetable).facets().contains(ItemFacet.CROP));
+        assertFalse(index(vegetable).facets().contains(ItemFacet.CROP));
         assertTrue(index(meal).facets().contains(ItemFacet.FOOD_MEAL));
     }
 
@@ -308,7 +308,7 @@ class FacetIndexerTest {
         assertTrue(templateProfile.facets().contains(ItemFacet.UTILITY_MISC));
         assertTrue(paintingProfile.facets().contains(ItemFacet.DECORATIVE_BLOCK));
         assertTrue(scuteProfile.facets().contains(ItemFacet.INGREDIENT_ORGANIC));
-        assertTrue(coalProfile.facets().contains(ItemFacet.DUST));
+        assertTrue(coalProfile.facets().contains(ItemFacet.INGREDIENT_MINERAL));
         assertTrue(endCrystalProfile.facets().contains(ItemFacet.MAGIC_ARTIFACT));
         assertTrue(poppedChorusFruitProfile.facets().contains(ItemFacet.INGREDIENT_ORGANIC));
     }
@@ -531,7 +531,7 @@ class FacetIndexerTest {
 
         assertFalse(index(leaves).facets().contains(ItemFacet.CROP));
         assertFalse(index(slimeball).facets().contains(ItemFacet.FOOD_PROTEIN));
-        assertTrue(index(tomato).facets().contains(ItemFacet.CROP));
+        assertFalse(index(tomato).facets().contains(ItemFacet.CROP));
     }
 
     @Test

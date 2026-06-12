@@ -35,6 +35,10 @@ final class CompatCategoryPolicyResolver {
             case "apotheosis" -> AmiConfig.apotheosisCategoryPolicy;
             case "botania" -> AmiConfig.botaniaCategoryPolicy;
             case CompatFamilyDetector.ARS_NOUVEAU, "arsnouveau" -> AmiConfig.arsNouveauCategoryPolicy;
+            case "pastel" -> AmiConfig.pastelCategoryPolicy;
+            case "malum" -> AmiConfig.malumCategoryPolicy;
+            case "swem" -> AmiConfig.swemCategoryPolicy;
+            case "cataclysm" -> AmiConfig.cataclysmCategoryPolicy;
             case CompatFamilyDetector.MAPPING, "map", "maps", "xaero", "journeymap", "ftb" -> AmiConfig.mapUtilityCategoryPolicy;
             default -> AmiConfig.CompatCategoryPolicy.SEMANTIC;
         };

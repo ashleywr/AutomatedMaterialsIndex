@@ -201,7 +201,7 @@ public class ForgePlatformHelper implements IPlatformHelper {
 
     @Override
     public ResourceLocation rl(String namespace, String path) {
-        return new ResourceLocation(namespace, path);
+        return ResourceLocation.fromNamespaceAndPath(namespace, path);
     }
 
     @Override

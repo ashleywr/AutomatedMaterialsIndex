@@ -3,6 +3,8 @@ package com.sanhiruzu.ami.compat;
 import com.sanhiruzu.ami.client.RecipeViewerScreen;
 import com.sanhiruzu.ami.client.favorites.AmiHistoryHandler;
 import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.platform.Services;
+import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.item.ItemStack;
@@ -21,6 +23,12 @@ final class RecipeViewerBridgeCommon {
 
     static void openNative(ItemStack stack, boolean showRecipes) {
         if (stack == null || stack.isEmpty()) return;
+        if (!Services.PLATFORM.isRecipeIndexBuilt()) return;
+
+        List<com.sanhiruzu.ami.util.AmiRecipeHolder<?>> recipes = showRecipes
+                ? Services.PLATFORM.getRecipesFor(stack)
+                : Services.PLATFORM.getUsesFor(stack);
+        if (recipes.isEmpty()) return;
 
         Minecraft mc = Minecraft.getInstance();
         Screen parent = mc.screen;

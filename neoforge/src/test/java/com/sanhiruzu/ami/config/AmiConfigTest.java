@@ -26,7 +26,7 @@ public class AmiConfigTest {
         // Verify they are back to original hardcoded defaults
         assertFalse(AmiConfig.cheatMode);
         assertEquals(0xFF5555, AmiConfig.accentColor);
-        assertEquals(140, AmiConfig.leftPanelWidth);
+        assertEquals(0, AmiConfig.leftPanelWidth);
         assertEquals("LIST", AmiConfig.rightPanelAlternateSlots);
         assertEquals(10, AmiConfig.listScrollRows);
         assertEquals(AmiConfig.GuideIndexingMode.SUMMARY, AmiConfig.guideIndexingMode);

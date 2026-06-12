@@ -99,6 +99,9 @@ public final class AlexsCavesCompat {
         if (containsAny(context.itemClass, "RadiationRemovingFoodItem", "SackOfSatingItem")) {
             facts.add("snack_food");
         }
+        if (containsAny(context.itemClass, "JellyBeanItem")) {
+            facts.add("snack_food");
+        }
         if (containsAny(context.itemClass, "RadioactiveItem")) {
             facts.add("tech_part");
         }
@@ -148,6 +151,9 @@ public final class AlexsCavesCompat {
         if (path.equals("peppermint_powder")) {
             facts.add("ingredient");
         }
+        if (path.equals("sulfur_dust") || path.equals("sulphur_dust")) {
+            facts.add("mineral_dust");
+        }
         if (path.equals("depth_charge") || path.equals("cinder_brick")) {
             facts.add("projectile");
         }
@@ -163,6 +169,7 @@ public final class AlexsCavesCompat {
         if (facts.contains("material")) return "materials";
         if (facts.contains("tech_part")) return "tech_parts";
         if (facts.contains("magic_reagent")) return "magic_reagents";
+        if (facts.contains("mineral_dust")) return "mineral_dusts";
         if (facts.contains("protein_food")) return "protein_foods";
         if (facts.contains("snack_food")) return "snacks";
         if (facts.contains("organic_drop")) return "organic_drops";
@@ -184,6 +191,10 @@ public final class AlexsCavesCompat {
             case "materials" -> addFacet(meta, ItemFacet.INGOT);
             case "tech_parts" -> addFacet(meta, ItemFacet.TECH_COMPONENT);
             case "magic_reagents" -> addFacet(meta, ItemFacet.MAGIC_REAGENT);
+            case "mineral_dusts" -> {
+                addFacet(meta, ItemFacet.DUST);
+                addFacet(meta, ItemFacet.INGREDIENT_MINERAL);
+            }
             case "protein_foods" -> addFacet(meta, ItemFacet.FOOD_PROTEIN);
             case "snacks" -> addFacet(meta, ItemFacet.EDIBLE);
             case "organic_drops", "ingredients" -> addFacet(meta, ItemFacet.INGREDIENT_ORGANIC);

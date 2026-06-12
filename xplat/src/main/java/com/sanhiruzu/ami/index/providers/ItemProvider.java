@@ -400,6 +400,21 @@ public class ItemProvider implements IAmiDataProvider {
                 || hasCompatFamily(meta, CompatFamilyDetector.SOPHISTICATED)) {
             ItemProviderCompatHooks.runCompatSafely("SophisticatedCompat", () -> SophisticatedCompat.enrichItem(id, meta));
         }
+        if (namespaceIs(id, "swem")) {
+            ItemProviderCompatHooks.runCompatSafely("SwemCompat", () -> SwemCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "malum")) {
+            ItemProviderCompatHooks.runCompatSafely("MalumCompat", () -> MalumCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "pastel")) {
+            ItemProviderCompatHooks.runCompatSafely("PastelCompat", () -> PastelCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "born_in_chaos_v1")) {
+            ItemProviderCompatHooks.runCompatSafely("BornInChaosCompat", () -> BornInChaosCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "cataclysm")) {
+            ItemProviderCompatHooks.runCompatSafely("CataclysmCompat", () -> CataclysmCompat.enrichItem(id, meta));
+        }
         if (namespaceIs(id, "silentgear", "tconstruct") || hasCompatFamily(meta, CompatFamilyDetector.MODULAR_GEAR)
                 || hasCompatFamily(meta, CompatFamilyDetector.TINKERS) || hasCompatFamily(meta, CompatFamilyDetector.SILENT_GEAR)) {
             ItemProviderCompatHooks.runCompatSafely("ModularGearCompat", () -> ModularGearCompat.enrichItem(id, meta));
@@ -437,6 +452,8 @@ public class ItemProvider implements IAmiDataProvider {
             ItemProviderCompatHooks.runCompatSafely("ChippedCompat", () -> ChippedCompat.enrichItem(id, meta));
         }
         ItemProviderCompatHooks.runCompatSafely("StorageCompat", () -> StorageCompat.enrichItem(id, meta));
+        ItemProviderCompatHooks.runCompatSafely("GeneratedVariantCollapseCompat", () ->
+                GeneratedVariantCollapseCompat.enrichItem(id, meta));
         if (includePluginHooks) {
             ItemProviderCompatHooks.runPluginItemCompatHooks(id, stack, level, meta);
         }
@@ -698,6 +715,8 @@ public class ItemProvider implements IAmiDataProvider {
                 pass == ItemIndexPass.DEFERRED ? IndexingHotItemPolicy.deferredIndexNamespacesForLog() : "",
                 totalItems);
         long itemLoopStart = System.currentTimeMillis();
+        // Reused across items — SearchNode copies the map in its constructor so this is safe.
+        Map<String, String> meta = new HashMap<>(32);
 
         for (Item item : orderedItemsForIndexing()) {
             scannedItems++;
@@ -708,6 +727,7 @@ public class ItemProvider implements IAmiDataProvider {
                     progress.updateProgressDetail(id.toString());
                 }
             }
+            if ((scannedItems & 255) == 0) Thread.yield();
             if (id == null || id.getNamespace().equals("air") || id.getPath().equals("air")) continue;
             boolean deferredNamespace = IndexingHotItemPolicy.shouldDeferFullIndex(id);
             if (pass == ItemIndexPass.PRIMARY && deferredNamespace) {
@@ -772,27 +792,29 @@ public class ItemProvider implements IAmiDataProvider {
                             SearchNodeKeys.COLOR_BUCKET,
                             extractColorBucket(entry.id())
                     );
-                    Map<String, String> meta = buildSubtypeMeta(id, entry.stack(), colorBucket, creativeTabs.get(item), level, modNameCache);
-                    if (!entry.extraMeta().isEmpty()) meta.putAll(entry.extraMeta());
-                    preventGuideBookAutoCollapse(meta);
-                    if (!tags.isEmpty()) meta.put(SearchNodeKeys.TAGS, tags);
-                    foodMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addFoodStats(meta, stats));
-                    powerMetricSniffer.sniff(entry.stack(), entry.id(), level).ifPresent(stats -> addPowerStats(meta, stats));
-                    fluidMetricSniffer.sniff(entry.stack(), entry.id(), level).ifPresent(stats -> addFluidStats(meta, stats));
-                    toolMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addToolStats(meta, stats));
-                    armorMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addArmorStats(meta, stats));
+                    Map<String, String> subtypeMeta = buildSubtypeMeta(id, entry.stack(), colorBucket, creativeTabs.get(item), level, modNameCache);
+                    if (!entry.extraMeta().isEmpty()) subtypeMeta.putAll(entry.extraMeta());
+                    preventGuideBookAutoCollapse(subtypeMeta);
+                    ItemProviderCompatHooks.runCompatSafely("GeneratedVariantCollapseCompat", () ->
+                            GeneratedVariantCollapseCompat.enrichItem(entry.id(), subtypeMeta));
+                    if (!tags.isEmpty()) subtypeMeta.put(SearchNodeKeys.TAGS, tags);
+                    foodMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addFoodStats(subtypeMeta, stats));
+                    powerMetricSniffer.sniff(entry.stack(), entry.id(), level).ifPresent(stats -> addPowerStats(subtypeMeta, stats));
+                    fluidMetricSniffer.sniff(entry.stack(), entry.id(), level).ifPresent(stats -> addFluidStats(subtypeMeta, stats));
+                    toolMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addToolStats(subtypeMeta, stats));
+                    armorMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addArmorStats(subtypeMeta, stats));
                     long tooltipSearchStart = System.nanoTime();
-                    addTooltipSearchTokens(meta, entry.stack(), level, entry.id(), entry.displayName(), modNameCache);
+                    addTooltipSearchTokens(subtypeMeta, entry.stack(), level, entry.id(), entry.displayName(), modNameCache);
                     tooltipSearchNs += System.nanoTime() - tooltipSearchStart;
-                    inferAmmoType(entry.id(), meta);
-                    markGeneratedModularGearVariantCheatOnly(entry.id(), meta);
-                    applyPrimaryCategoryMeta(id, item, null, meta);
-                    if (!ItemFilter.shouldShowAccessLevel(meta.getOrDefault(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL))
-                            && !isHiddenComponentDuplicateVariant(meta)) {
+                    inferAmmoType(entry.id(), subtypeMeta);
+                    markGeneratedModularGearVariantCheatOnly(entry.id(), subtypeMeta);
+                    applyPrimaryCategoryMeta(id, item, null, subtypeMeta);
+                    if (!ItemFilter.shouldShowAccessLevel(subtypeMeta.getOrDefault(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL))
+                            && !isHiddenComponentDuplicateVariant(subtypeMeta)) {
                         continue;
                     }
                     index.addNode(new SearchNode(entry.id(), NodeType.ITEM,
-                            entry.displayName(), 0xFFFFFF, 0, meta));
+                            entry.displayName(), 0xFFFFFF, 0, subtypeMeta));
                     subtypeNodes++;
                 }
                 subtypeNodeNs += System.nanoTime() - subtypeNodeStart;
@@ -800,7 +822,7 @@ public class ItemProvider implements IAmiDataProvider {
                 continue;
             }
 
-            if (!ItemFilter.shouldShowAccessLevel(accessLevel)) continue;
+            if (!ItemFilter.shouldShowAccessLevel(accessLevel) && !ItemFilter.ACCESS_DEV.equals(accessLevel)) continue;
 
             long basePreRecipeStart = System.nanoTime();
             long baseStageStart = System.nanoTime();
@@ -851,7 +873,7 @@ public class ItemProvider implements IAmiDataProvider {
             baseFacetNs += System.nanoTime() - baseStageStart;
 
             baseStageStart = System.nanoTime();
-            Map<String, String> meta = new HashMap<>(32);
+            meta.clear();
             meta.put(SearchNodeKeys.MOD_ID, modId);
             meta.put(SearchNodeKeys.VARIANT_GROUP, variantGroup);
             meta.put(SearchNodeKeys.COLOR_BUCKET, colorBucket);

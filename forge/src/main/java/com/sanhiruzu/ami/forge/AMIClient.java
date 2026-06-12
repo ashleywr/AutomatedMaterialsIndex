@@ -22,12 +22,10 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 public class AMIClient {
 
-    public static void init() {
-        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+    public static void init(IEventBus modEventBus) {
         modEventBus.addListener(AMIClient::onClientSetup);
         modEventBus.addListener(AMIClient::onRegisterTooltipFactories);
         modEventBus.addListener(AMIClient::onRegisterReloadListeners);

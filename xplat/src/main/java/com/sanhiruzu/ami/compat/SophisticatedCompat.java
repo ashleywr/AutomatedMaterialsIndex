@@ -34,6 +34,11 @@ public final class SophisticatedCompat {
         if (!kind.isBlank()) {
             meta.put(SearchNodeKeys.SOPHISTICATED_ITEM_KIND, kind);
             addSearchToken(meta, "sophisticated_" + kind);
+            if ("backpacks".equals(kind)) {
+                meta.putIfAbsent(SearchNodeKeys.COLLAPSE_FAMILY, "sophisticatedbackpacks:backpack");
+                meta.putIfAbsent(SearchNodeKeys.COLLAPSE_LABEL, "Backpacks");
+                meta.putIfAbsent(SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed");
+            }
         }
         String tier = classifyTier(context.path);
         if (!tier.isBlank()) {

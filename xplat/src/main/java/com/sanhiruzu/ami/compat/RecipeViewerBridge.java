@@ -9,6 +9,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.item.ItemStack;
 import java.lang.ref.WeakReference;
+import java.util.Optional;
 
 public class RecipeViewerBridge {
 
@@ -60,7 +61,9 @@ public class RecipeViewerBridge {
         if (isJeiSelectedExternalViewer()) {
             return JeiRecipeBridge.hasRecipes(stack);
         }
-        return false;
+        return RecipeViewerBridgeCommon.shouldUseNativeViewer(false)
+                && Services.PLATFORM.isRecipeIndexBuilt()
+                && Services.PLATFORM.hasRecipesFor(stack);
     }
 
     public static boolean hasUses(ItemStack stack) {
@@ -71,7 +74,9 @@ public class RecipeViewerBridge {
         if (isJeiSelectedExternalViewer()) {
             return JeiRecipeBridge.hasUses(stack);
         }
-        return false;
+        return RecipeViewerBridgeCommon.shouldUseNativeViewer(false)
+                && Services.PLATFORM.isRecipeIndexBuilt()
+                && Services.PLATFORM.hasUsesFor(stack);
     }
 
     public static boolean hasRecipes(SearchNode node) {
@@ -224,7 +229,202 @@ public class RecipeViewerBridge {
 
     public static boolean isEmiRecipeScreenActive() {
         var screen = net.minecraft.client.Minecraft.getInstance().screen;
-        return screen != null && screen.getClass().getName().equals("dev.emi.emi.screen.RecipeScreen");
+        return isScreenClass(screen, "dev.emi.emi.screen.RecipeScreen", "RecipeScreen");
+    }
+
+    public static RecipeViewerBounds getActiveRecipeViewerBounds() {
+        var screen = Minecraft.getInstance().screen;
+        if (screen == null) {
+            return RecipeViewerBounds.EMPTY;
+        }
+
+        RecipeViewerBounds emiBounds = readEmiRecipeScreenBounds(screen);
+        if (emiBounds.isValid()) {
+            return emiBounds;
+        }
+
+        RecipeViewerBounds jeiBounds = readJeiRecipeScreenBounds(screen);
+        if (jeiBounds.isValid()) {
+            return jeiBounds;
+        }
+
+        return readNativeRecipeViewerBounds();
+    }
+
+    /**
+     * Structured access to active viewer geometry for overlay layout.
+     */
+    public static final class RecipeViewerBounds {
+        public static final RecipeViewerBounds EMPTY = new RecipeViewerBounds(-1, -1, 0, 0);
+        public final int x;
+        public final int y;
+        public final int width;
+        public final int height;
+
+        public RecipeViewerBounds(int x, int y, int width, int height) {
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+        }
+
+        public int left() {
+            return x;
+        }
+
+        public int top() {
+            return y;
+        }
+
+        public int right() {
+            return x + width;
+        }
+
+        public int bottom() {
+            return y + height;
+        }
+
+        public boolean isValid() {
+            return width > 0 && height > 0;
+        }
+    }
+
+    private static RecipeViewerBounds readEmiRecipeScreenBounds(Screen screen) {
+        if (!isEmiRecipeScreenActive()) {
+            return RecipeViewerBounds.EMPTY;
+        }
+
+        try {
+            Object recipeScreen = screen;
+            Object bounds = readMember(recipeScreen, "getBounds", "bounds");
+            return readBoundsLike(bounds, "x", "y", "width", "height");
+        } catch (RuntimeException ignored) {
+            return RecipeViewerBounds.EMPTY;
+        }
+    }
+
+    private static RecipeViewerBounds readJeiRecipeScreenBounds(Screen screen) {
+        if (!isJeiRecipeScreenActive(screen)) {
+            return RecipeViewerBounds.EMPTY;
+        }
+
+        RecipeViewerBounds fromProperties = readJeiRecipeScreenBoundsViaProperties(screen);
+        if (fromProperties.isValid()) {
+            return fromProperties;
+        }
+        return readJeiRecipeScreenBoundsViaArea(screen);
+    }
+
+    private static RecipeViewerBounds readJeiRecipeScreenBoundsViaProperties(Screen screen) {
+        try {
+            Object properties = readMember(screen, "getProperties", "properties");
+            return readBoundsLike(properties, "guiLeft", "guiTop", "guiXSize", "guiYSize");
+        } catch (RuntimeException ignored) {
+            return RecipeViewerBounds.EMPTY;
+        }
+    }
+
+    private static RecipeViewerBounds readJeiRecipeScreenBoundsViaArea(Screen screen) {
+        try {
+            Object area = readMember(screen, "getArea", "area");
+            return readBoundsLike(area, "x", "y", "width", "height");
+        } catch (RuntimeException ignored) {
+            return RecipeViewerBounds.EMPTY;
+        }
+    }
+
+    private static boolean isJeiRecipeScreenActive(Screen screen) {
+        return isScreenClass(screen, "mezz.jei.gui.recipes.RecipesGui", "RecipesGui");
+    }
+
+    private static boolean isScreenClass(Screen screen, String... classNames) {
+        if (screen == null) {
+            return false;
+        }
+
+        String screenClass = screen.getClass().getName();
+        for (String className : classNames) {
+            if (screenClass.equals(className)) {
+                return true;
+            }
+            if (screenClass.endsWith("." + className) || screenClass.endsWith("$" + className)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static RecipeViewerBounds readNativeRecipeViewerBounds() {
+        Screen screen = Minecraft.getInstance().screen;
+        if (!(screen instanceof com.sanhiruzu.ami.client.RecipeViewerScreen rvs)) {
+            return RecipeViewerBounds.EMPTY;
+        }
+        return rvs.getViewerBounds();
+    }
+
+    private static RecipeViewerBounds readBoundsLike(Object bounds, String xName, String yName, String widthName, String heightName) {
+        if (bounds == null) {
+            return RecipeViewerBounds.EMPTY;
+        }
+        Optional<Integer> x = callInt(bounds, xName, "left", "getLeft");
+        Optional<Integer> y = callInt(bounds, yName, "top", "getTop");
+        Optional<Integer> width = callInt(bounds, widthName, "w", "getW", "getWidth");
+        Optional<Integer> height = callInt(bounds, heightName, "h", "getH", "getHeight");
+        if (x.isEmpty() || y.isEmpty() || width.isEmpty() || height.isEmpty()) {
+            return RecipeViewerBounds.EMPTY;
+        }
+        return new RecipeViewerBounds(x.get(), y.get(), width.get(), height.get());
+    }
+
+    private static Object readMember(Object obj, String... memberNames) {
+        if (obj == null || memberNames == null) {
+            return null;
+        }
+        Class<?> type = obj.getClass();
+        for (String memberName : memberNames) {
+            if (memberName == null || memberName.isBlank()) {
+                continue;
+            }
+            try {
+                return type.getMethod(memberName).invoke(obj);
+            } catch (ReflectiveOperationException ignored) {
+            } catch (RuntimeException ignored) {
+            }
+
+            try {
+                var field = type.getField(memberName);
+                return field.get(obj);
+            } catch (ReflectiveOperationException ignored) {
+            } catch (RuntimeException ignored) {
+            }
+
+            try {
+                var field = type.getDeclaredField(memberName);
+                if (!field.canAccess(obj)) {
+                    field.setAccessible(true);
+                }
+                return field.get(obj);
+            } catch (ReflectiveOperationException ignored) {
+            } catch (RuntimeException ignored) {
+            }
+        }
+        return null;
+    }
+
+    private static Optional<Integer> callInt(Object obj, String... memberNames) {
+        if (obj == null) {
+            return Optional.empty();
+        }
+        for (String memberName : memberNames) {
+            if (memberName == null || memberName.isBlank()) {
+                continue;
+            }
+            Object value = readMember(obj, memberName);
+            if (value instanceof Number n) {
+                return Optional.of(n.intValue());
+            }
+        }
+        return Optional.empty();
     }
 
     public static void stopDrag() {

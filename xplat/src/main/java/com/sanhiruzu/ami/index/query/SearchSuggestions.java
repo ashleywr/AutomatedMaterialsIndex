@@ -610,8 +610,15 @@ public final class SearchSuggestions {
 
         static Vocabulary build(GlobalIndex index, boolean cheatMode, boolean devMode, boolean showHidden, boolean showCreativeItems) {
             Vocabulary vocabulary = new Vocabulary(devMode);
+            Set<String> contentMods = index.getContentMods();
             for (NodeType type : NodeType.values()) {
+                if (type == NodeType.RECIPE && !devMode) {
+                    continue;
+                }
                 for (SearchNode node : index.getNodes(type)) {
+                    if (!contentMods.contains(node.id().getNamespace())) {
+                        continue;
+                    }
                     if (isSuggestionVisible(node, cheatMode, devMode, showHidden, showCreativeItems)) {
                         vocabulary.add(node, cheatMode || devMode);
                     }

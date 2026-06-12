@@ -5,7 +5,6 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -80,8 +79,6 @@ public final class RecipeLookupKeyHandler {
 
     private static ItemStack stackFromNode(SearchNode node) {
         if (node == null || node.type() != NodeType.ITEM) return ItemStack.EMPTY;
-        return BuiltInRegistries.ITEM.getOptional(node.id())
-                .map(ItemStack::new)
-                .orElse(ItemStack.EMPTY);
+        return com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node);
     }
 }

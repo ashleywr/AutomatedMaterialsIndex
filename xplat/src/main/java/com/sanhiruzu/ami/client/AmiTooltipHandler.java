@@ -4,7 +4,6 @@ import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -27,8 +26,6 @@ public final class AmiTooltipHandler {
                 });
             }
         }
-
-        // 2. Potentially other AMI data here
     }
 
     private static void appendEntityInfo(SearchNode node, List<Component> lines) {

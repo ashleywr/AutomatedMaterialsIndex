@@ -117,12 +117,12 @@ class ClassificationGoldSetEvaluationTest {
                 System.getProperty("user.home"),
                 "AppData", "Roaming", "PrismLauncher", "instances",
                 "DeceasedCraft - Urban Zombie Apocalypse",
-                "minecraft", "ami_dumps", "search_nodes.jsonl");
+                "minecraft", "ami_dumps", "search", "search_nodes.jsonl");
         if (Files.exists(deceasedCraft)) {
             return deceasedCraft;
         }
 
-        return repoRoot().resolve(Path.of("run", "neoforge-emi", "ami_dumps", "search_nodes.jsonl"));
+        return repoRoot().resolve(Path.of("run", "neoforge-emi", "ami_dumps", "search", "search_nodes.jsonl"));
     }
 
     private static Path repoRoot() {

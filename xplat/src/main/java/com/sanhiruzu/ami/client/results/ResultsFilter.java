@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.client.results;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.ItemFilter;
+import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.client.Minecraft;
@@ -20,11 +21,19 @@ final class ResultsFilter {
 
     List<SearchNode> filter(List<SearchNode> results) {
         return results.stream()
+                .filter(this::isNotRecipeUnlessDevMode)
                 .filter(n -> options.selectedMods().isEmpty() || options.selectedMods().contains(n.id().getNamespace()))
                 .filter(this::matchesFacets)
                 .filter(this::matchesAccessLevel)
                 .filter(this::matchesVisibility)
                 .collect(Collectors.toList());
+    }
+
+    private boolean isNotRecipeUnlessDevMode(SearchNode node) {
+        if (node.type() == NodeType.RECIPE) {
+            return AmiConfig.devMode;
+        }
+        return true;
     }
 
     private boolean matchesVisibility(SearchNode node) {
