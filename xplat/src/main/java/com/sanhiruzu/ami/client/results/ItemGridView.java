@@ -49,7 +49,7 @@ public class ItemGridView {
     private final List<PendingRendererIcon> pendingRendererIcons = new ArrayList<>();
     private final List<PendingIconOverlay> pendingIconOverlays = new ArrayList<>();
     private final List<PendingQuestMarker> pendingQuestMarkers = new ArrayList<>();
-    private final GridCellSpriteBatchRenderer gridCellSprites = new GridCellSpriteBatchRenderer();
+    private GridCellSpriteBatchRenderer gridCellSprites;
     private int pendingDirectItemIconCount;
     private int pendingRendererIconCount;
     private int pendingIconOverlayCount;
@@ -217,7 +217,7 @@ public class ItemGridView {
         hoveredTreeNode = null;
         clearItemIconBatchRenderer();
         clearPendingQueues();
-        gridCellSprites.clear();
+        clearGridCellSpriteRenderer();
 
         // Cache animation state once per frame
         cachedDragging = com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging();
@@ -276,14 +276,14 @@ public class ItemGridView {
                 }
             }
 
-            gridCellSprites.flush(g);
+            gridCellSpriteRenderer().flush(g);
             renderItemIconBatch(g);
             renderPendingDirectIcons(g);
             renderPendingIconOverlays(g);
             renderPendingQuestMarkers(g);
         } finally {
             g.disableScissor();
-            gridCellSprites.clear();
+            clearGridCellSpriteRenderer();
             clearItemIconBatchRenderer();
             clearPendingQueues();
         }
@@ -393,7 +393,7 @@ public class ItemGridView {
                     && mouseY >= cellY && mouseY < cellY + CELL_SIZE;
 
             if (hovered) {
-                gridCellSprites.hover(cellX, cellY);
+                gridCellSpriteRenderer().hover(cellX, cellY);
                 hoveredNode = entry;
                 hoveredTreeNode = node;
 
@@ -422,7 +422,7 @@ public class ItemGridView {
             // Group styling
             if (node.isHighCardinality()) {
                 // Gold border for family cards, including the expanded collapse target.
-                gridCellSprites.goldBorder(cellX, cellY);
+                gridCellSpriteRenderer().goldBorder(cellX, cellY);
             }
 
             if (overrideStack != null) {
@@ -532,6 +532,19 @@ public class ItemGridView {
     private void clearItemIconBatchRenderer() {
         if (itemIconBatchRenderer instanceof ItemIconBatchRenderer renderer) {
             renderer.clear();
+        }
+    }
+
+    private GridCellSpriteBatchRenderer gridCellSpriteRenderer() {
+        if (gridCellSprites == null) {
+            gridCellSprites = new GridCellSpriteBatchRenderer();
+        }
+        return gridCellSprites;
+    }
+
+    private void clearGridCellSpriteRenderer() {
+        if (gridCellSprites != null) {
+            gridCellSprites.clear();
         }
     }
 
@@ -780,7 +793,7 @@ public class ItemGridView {
         AmiRenderProfiler.add("grid.slotBackgrounds", itemCount);
         int rowX = gridLeftX();
         for (int i = 0; i < itemCount; i++) {
-            gridCellSprites.slot(rowX + i * CELL_SIZE, rowY);
+            gridCellSpriteRenderer().slot(rowX + i * CELL_SIZE, rowY);
         }
     }
 
