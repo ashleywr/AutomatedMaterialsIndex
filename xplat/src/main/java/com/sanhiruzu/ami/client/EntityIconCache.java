@@ -4,6 +4,7 @@ import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexSorting;
+import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
@@ -176,6 +177,39 @@ public class EntityIconCache {
         pendingBakes.clear();
     }
 
+    /**
+     * Clears active atlas textures and removes all persistent cache files so
+     * entities are fully re-rendered on next use.
+     */
+    public static void invalidateAndPurgePersistentCache() {
+        invalidate();
+        Path cacheRoot = cacheRootDir();
+        if (!Files.exists(cacheRoot)) {
+            return;
+        }
+        try {
+            try (var cachePaths = Files.walk(cacheRoot)) {
+                cachePaths
+                        .sorted(java.util.Comparator.reverseOrder())
+                        .forEach(path -> {
+                            try {
+                                Files.deleteIfExists(path);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+            }
+        } catch (RuntimeException e) {
+            if (e.getCause() instanceof IOException ioException) {
+                AmiCore.LOGGER.warn("AMI: Failed to clear entity icon cache directory: {}", ioException.getMessage());
+            } else {
+                throw e;
+            }
+        } catch (IOException e) {
+            AmiCore.LOGGER.warn("AMI: Failed to clear entity icon cache directory: {}", e.getMessage());
+        }
+    }
+
     private static Atlas atlas(int size) {
         return atlases.computeIfAbsent(size, Atlas::load);
     }
@@ -301,10 +335,14 @@ public class EntityIconCache {
     }
 
     private static Path cacheDir() {
+        return cacheRootDir()
+                .resolve(cacheFingerprint());
+    }
+
+    private static Path cacheRootDir() {
         return Services.PLATFORM.getGameDir()
                 .resolve("ami-icon-cache")
-                .resolve("entity-atlas")
-                .resolve(cacheFingerprint());
+                .resolve("entity-atlas");
     }
 
     private static String cacheFingerprint() {

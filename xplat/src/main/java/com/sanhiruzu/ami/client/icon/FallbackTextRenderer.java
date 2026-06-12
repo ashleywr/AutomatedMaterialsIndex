@@ -38,13 +38,19 @@ public class FallbackTextRenderer implements IIconRenderer {
             return AMITheme.BLACK | (r << 16) | (gv << 8) | b;
         }
         return switch (node.type()) {
-            case ENTITY -> AMITheme.FALLBACK_BG_ENTITY;
+            case ENTITY -> entityFallbackColor();
             case PLAYER -> AMITheme.FALLBACK_BG_PLAYER;
             case BIOME -> AMITheme.FALLBACK_BG_BIOME;
             case STRUCTURE -> AMITheme.FALLBACK_BG_STRUCTURE;
             case DIMENSION -> AMITheme.FALLBACK_BG_DIMENSION;
             default -> AMITheme.FALLBACK_BG_DEFAULT;
         };
+    }
+
+    private static int entityFallbackColor() {
+        return AmiConfig.theme == AmiConfig.Theme.MODERN || AmiConfig.theme == AmiConfig.Theme.TRANSPARENT
+                ? 0x00000000
+                : AMITheme.FALLBACK_BG_ENTITY;
     }
 
     @Override

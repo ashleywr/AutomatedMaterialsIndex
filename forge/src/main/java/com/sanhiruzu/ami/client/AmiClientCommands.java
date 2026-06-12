@@ -3,10 +3,13 @@ package com.sanhiruzu.ami.client;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.sanhiruzu.ami.client.EntityIconCache;
+import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.results.*;
 import com.sanhiruzu.ami.forge.AMI;
 import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.index.providers.RecipeViewerItemAudit;
+import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -143,9 +146,10 @@ public class AmiClientCommands {
             boolean deleted = GlobalIndexCache.invalidateCurrent();
             boolean accepted = AmiIndexerService.getInstance().rebuild(true);
             if (accepted) {
+                invalidateRuntimeCaches();
                 source.sendSystemMessage(Component.literal("AMI index cache "
                                 + (deleted ? "deleted" : "was already absent")
-                                + "; forced reindex started")
+                                + "; forced reindex and icon cache reset started")
                         .withStyle(ChatFormatting.GREEN));
             } else {
                 source.sendSystemMessage(Component.literal("AMI index cache "
@@ -158,6 +162,12 @@ public class AmiClientCommands {
             source.sendSystemMessage(Component.literal("Failed to invalidate AMI index cache: " + e.getMessage())
                     .withStyle(ChatFormatting.RED));
         }
+    }
+
+    private static void invalidateRuntimeCaches() {
+        ItemIconCache.invalidate();
+        RendererRegistry.invalidateAll();
+        EntityIconCache.invalidateAndPurgePersistentCache();
     }
 
     private static String buildResultsTreeDump(String query) {
