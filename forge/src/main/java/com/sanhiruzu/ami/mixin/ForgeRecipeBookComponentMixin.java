@@ -22,10 +22,13 @@ public abstract class ForgeRecipeBookComponentMixin {
 
     @Inject(method = {"toggleVisibility", "m_100384_"}, at = @At("HEAD"), cancellable = true, remap = false, require = 1)
     private void onRecipeBookButtonClicked(CallbackInfo ci) {
-        switch (InventoryOverlayHandler.recipeBookIntercept()) {
-            case VANILLA    -> { setVisible(!isVisible()); ci.cancel(); }
-            case AMI_TOGGLE -> { InventoryOverlayHandler.handleRecipeBookToggle(); ci.cancel(); }
-            case PASS       -> {}
+        var mode = InventoryOverlayHandler.recipeBookIntercept();
+        if (mode == InventoryOverlayHandler.RecipeBookIntercept.VANILLA) {
+            setVisible(!isVisible());
+            ci.cancel();
+        } else if (mode == InventoryOverlayHandler.RecipeBookIntercept.AMI_TOGGLE) {
+            InventoryOverlayHandler.handleRecipeBookToggle();
+            ci.cancel();
         }
     }
 }

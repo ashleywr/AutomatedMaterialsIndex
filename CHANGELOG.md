@@ -35,6 +35,7 @@ AMI 1.5.0 focuses on UI rendering and tooltip layering stability, result-tree co
 - Fixed dev/access markers and discovery overlays to be rendered through shared sprite renderers instead of inline raw fill logic, reducing drift and repeated render state churn.
 - Fixed `ItemGridView` rendering helpers to lazily initialize `GridCellSpriteBatchRenderer` so non-rendering test/runtime paths no longer fail on client-only texture classes.
 - Fixed plain-text search regressions in tooltip token coverage by restoring `tooltipSearchTokens` in plain search indexing while retaining description token indexing.
+- Fixed NeoForge recipe-book mixin crash caused by enum switch bytecode in `RecipeBookComponentMixin` by removing synthetic switch-map dependence and using direct mode checks.
 
 ## 1.4.2 - 2026-06-08
 

@@ -20,10 +20,13 @@ public abstract class RecipeBookComponentMixin {
 
     @Inject(method = "toggleVisibility", at = @At("HEAD"), cancellable = true, remap = false)
     private void onRecipeBookButtonClicked(CallbackInfo ci) {
-        switch (InventoryOverlayHandler.recipeBookIntercept()) {
-            case VANILLA    -> { setVisible(!isVisible()); ci.cancel(); }
-            case AMI_TOGGLE -> { InventoryOverlayHandler.handleRecipeBookToggle(); ci.cancel(); }
-            case PASS       -> {}
+        var mode = InventoryOverlayHandler.recipeBookIntercept();
+        if (mode == InventoryOverlayHandler.RecipeBookIntercept.VANILLA) {
+            setVisible(!isVisible());
+            ci.cancel();
+        } else if (mode == InventoryOverlayHandler.RecipeBookIntercept.AMI_TOGGLE) {
+            InventoryOverlayHandler.handleRecipeBookToggle();
+            ci.cancel();
         }
     }
 }
