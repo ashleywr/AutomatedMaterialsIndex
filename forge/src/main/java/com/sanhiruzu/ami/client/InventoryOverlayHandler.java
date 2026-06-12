@@ -20,6 +20,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
 
@@ -47,8 +48,12 @@ public class InventoryOverlayHandler {
     private static PendingExternalTooltip pendingExternalTooltip = null;
     private static boolean renderingExternalTooltip = false;
     private static boolean renderingStatusEffectsAboveAmi = false;
-    private static int statusEffectsOnTopFrames = 0;
+    private static boolean statusEffectsHoverOwned = false;
+    private static boolean wasMouseOverStatusEffects = false;
     private static Method renderEffectsMethod = null;
+    private static Field containerLeftPosField = null;
+    private static Field containerTopPosField = null;
+    private static Field containerImageWidthField = null;
 
     /**
      * The single choke point for all visibility state changes. Updates the panel and schedules
@@ -236,9 +241,11 @@ public class InventoryOverlayHandler {
 
         if (currentLayer == VisibleLayer.AMI) {
             manager.tick();
-            manager.renderAll(guiGraphics, mouseX, mouseY, partialTick);
-            if (statusEffectsOnTopFrames > 0 && renderStatusEffectsAboveAmi(screen, guiGraphics, mouseX, mouseY)) {
-                statusEffectsOnTopFrames--;
+            boolean statusEffectsHovered = updateStatusEffectsHoverOwnership(screen, mouseX, mouseY);
+            int amiMouseX = statusEffectsHovered ? Integer.MIN_VALUE : mouseX;
+            int amiMouseY = statusEffectsHovered ? Integer.MIN_VALUE : mouseY;
+            manager.renderAll(guiGraphics, amiMouseX, amiMouseY, partialTick);
+            if (statusEffectsHovered && renderStatusEffectsAboveAmi(screen, guiGraphics, mouseX, mouseY)) {
                 pendingExternalTooltip = null;
             } else {
                 renderPendingExternalTooltip(guiGraphics);
@@ -318,9 +325,6 @@ public class InventoryOverlayHandler {
                 event.getItemStack().copy(),
                 List.copyOf(event.getTooltipElements())
         );
-        if (event.getItemStack().isEmpty() && !event.getTooltipElements().isEmpty()) {
-            statusEffectsOnTopFrames = 2;
-        }
     }
 
     @SubscribeEvent
@@ -330,7 +334,7 @@ public class InventoryOverlayHandler {
         if (com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer.isRenderingAmiTooltip()) return;
         if (renderingExternalTooltip) return;
         if (renderingStatusEffectsAboveAmi) return;
-        if (statusEffectsOnTopFrames <= 0 && isMouseOverAmiOverlay(event.getX(), event.getY())) {
+        if (!statusEffectsHoverOwned && isMouseOverAmiOverlay(event.getX(), event.getY())) {
             event.setCanceled(true);
             return;
         }
@@ -346,6 +350,78 @@ public class InventoryOverlayHandler {
             );
             event.setCanceled(true);
         }
+    }
+
+    private static boolean updateStatusEffectsHoverOwnership(net.minecraft.client.gui.screens.Screen screen, int mouseX, int mouseY) {
+        boolean mouseOverStatusEffects = isMouseOverStatusEffects(screen, mouseX, mouseY);
+        if (!mouseOverStatusEffects) {
+            statusEffectsHoverOwned = false;
+            wasMouseOverStatusEffects = false;
+            return false;
+        }
+
+        if (!statusEffectsHoverOwned && !wasMouseOverStatusEffects && !isMouseOverAmiOverlay(mouseX, mouseY)) {
+            statusEffectsHoverOwned = true;
+        }
+        wasMouseOverStatusEffects = true;
+        return statusEffectsHoverOwned;
+    }
+
+    private static boolean isMouseOverStatusEffects(net.minecraft.client.gui.screens.Screen screen, int mouseX, int mouseY) {
+        if (!(screen instanceof EffectRenderingInventoryScreen<?> effectScreen)) return false;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.player.getActiveEffects().isEmpty()) return false;
+        if (!effectScreen.canSeeEffects()) return false;
+
+        try {
+            int leftPos = reflectedContainerInt(effectScreen, "leftPos");
+            int topPos = reflectedContainerInt(effectScreen, "topPos");
+            int imageWidth = reflectedContainerInt(effectScreen, "imageWidth");
+            int renderX = leftPos + imageWidth + 2;
+            int availableWidth = screen.width - renderX;
+            if (availableWidth < 32) return false;
+
+            int effectCount = mc.player.getActiveEffects().size();
+            int rowStep = effectCount > 5 ? 132 / Math.max(1, effectCount - 1) : 33;
+            int stripWidth = availableWidth >= 120 ? 120 : 33;
+            int stripHeight = 32 + Math.max(0, effectCount - 1) * rowStep;
+            return mouseX >= renderX && mouseX <= renderX + stripWidth
+                    && mouseY >= topPos && mouseY <= topPos + stripHeight;
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            return false;
+        }
+    }
+
+    private static int reflectedContainerInt(AbstractContainerScreen<?> screen, String name)
+            throws ReflectiveOperationException {
+        Field field = switch (name) {
+            case "leftPos" -> {
+                if (containerLeftPosField == null) {
+                    containerLeftPosField = containerField("leftPos");
+                }
+                yield containerLeftPosField;
+            }
+            case "topPos" -> {
+                if (containerTopPosField == null) {
+                    containerTopPosField = containerField("topPos");
+                }
+                yield containerTopPosField;
+            }
+            case "imageWidth" -> {
+                if (containerImageWidthField == null) {
+                    containerImageWidthField = containerField("imageWidth");
+                }
+                yield containerImageWidthField;
+            }
+            default -> throw new NoSuchFieldException(name);
+        };
+        return field.getInt(screen);
+    }
+
+    private static Field containerField(String name) throws NoSuchFieldException {
+        Field field = AbstractContainerScreen.class.getDeclaredField(name);
+        field.setAccessible(true);
+        return field;
     }
 
     private static boolean renderStatusEffectsAboveAmi(net.minecraft.client.gui.screens.Screen screen,
