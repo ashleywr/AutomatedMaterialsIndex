@@ -95,7 +95,8 @@ public final class ColoredQuadBatch {
             Tesselator tesselator = Tesselator.getInstance();
             Method begin = tesselatorBeginMethod;
             if (begin == null) {
-                begin = Tesselator.class.getMethod("begin", VertexFormat.Mode.class, com.mojang.blaze3d.vertex.VertexFormat.class);
+                begin = findMethod(Tesselator.class, new String[]{"begin"},
+                        VertexFormat.Mode.class, com.mojang.blaze3d.vertex.VertexFormat.class);
                 tesselatorBeginMethod = begin;
             }
             return begin.invoke(tesselator, VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
@@ -104,13 +105,14 @@ public final class ColoredQuadBatch {
                 Tesselator tesselator = Tesselator.getInstance();
                 Method getBuilder = tesselatorGetBuilderMethod;
                 if (getBuilder == null) {
-                    getBuilder = Tesselator.class.getMethod("getBuilder");
+                    getBuilder = findMethod(Tesselator.class, new String[]{"getBuilder", "m_85915_"});
                     tesselatorGetBuilderMethod = getBuilder;
                 }
                 Object buffer = getBuilder.invoke(tesselator);
                 Method begin = legacyBufferBeginMethod;
                 if (begin == null) {
-                    begin = buffer.getClass().getMethod("begin", VertexFormat.Mode.class, com.mojang.blaze3d.vertex.VertexFormat.class);
+                    begin = findMethod(buffer.getClass(), new String[]{"begin", "m_166779_"},
+                            VertexFormat.Mode.class, com.mojang.blaze3d.vertex.VertexFormat.class);
                     legacyBufferBeginMethod = begin;
                 }
                 begin.invoke(buffer, VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
@@ -125,13 +127,13 @@ public final class ColoredQuadBatch {
         try {
             Method addVertex = addVertexMethod;
             if (addVertex == null) {
-                addVertex = buffer.getClass().getMethod("addVertex", Matrix4f.class, float.class, float.class, float.class);
+                addVertex = findMethod(buffer.getClass(), new String[]{"addVertex"}, Matrix4f.class, float.class, float.class, float.class);
                 addVertexMethod = addVertex;
             }
             Object vertex = addVertex.invoke(buffer, matrix, (float) x, (float) y, 0.0f);
             Method setColor = setColorMethod;
             if (setColor == null) {
-                setColor = vertex.getClass().getMethod("setColor", float.class, float.class, float.class, float.class);
+                setColor = findMethod(vertex.getClass(), new String[]{"setColor"}, float.class, float.class, float.class, float.class);
                 setColorMethod = setColor;
             }
             setColor.invoke(vertex, r, g, b, a);
@@ -140,19 +142,21 @@ public final class ColoredQuadBatch {
             try {
                 Method vertex = legacyVertexMethod;
                 if (vertex == null) {
-                    vertex = buffer.getClass().getMethod("vertex", Matrix4f.class, float.class, float.class, float.class);
+                    vertex = findMethod(buffer.getClass(), new String[]{"vertex", "m_252986_"},
+                            Matrix4f.class, float.class, float.class, float.class);
                     legacyVertexMethod = vertex;
                 }
                 Object vertexConsumer = vertex.invoke(buffer, matrix, (float) x, (float) y, 0.0f);
                 Method color = legacyColorMethod;
                 if (color == null) {
-                    color = vertexConsumer.getClass().getMethod("color", float.class, float.class, float.class, float.class);
+                    color = findMethod(vertexConsumer.getClass(), new String[]{"color", "m_85950_"},
+                            float.class, float.class, float.class, float.class);
                     legacyColorMethod = color;
                 }
                 Object colored = color.invoke(vertexConsumer, r, g, b, a);
                 Method endVertex = legacyEndVertexMethod;
                 if (endVertex == null) {
-                    endVertex = colored.getClass().getMethod("endVertex");
+                    endVertex = findMethod(colored.getClass(), new String[]{"endVertex", "m_5752_"});
                     legacyEndVertexMethod = endVertex;
                 }
                 endVertex.invoke(colored);
@@ -166,7 +170,7 @@ public final class ColoredQuadBatch {
         try {
             Method buildOrThrow = buildOrThrowMethod;
             if (buildOrThrow == null) {
-                buildOrThrow = buffer.getClass().getMethod("buildOrThrow");
+                buildOrThrow = findMethod(buffer.getClass(), new String[]{"buildOrThrow"});
                 buildOrThrowMethod = buildOrThrow;
             }
             return buildOrThrow.invoke(buffer);
@@ -174,7 +178,7 @@ public final class ColoredQuadBatch {
             try {
                 Method end = legacyEndMethod;
                 if (end == null) {
-                    end = buffer.getClass().getMethod("end");
+                    end = findMethod(buffer.getClass(), new String[]{"end", "m_231175_"});
                     legacyEndMethod = end;
                 }
                 return end.invoke(buffer);
@@ -188,13 +192,26 @@ public final class ColoredQuadBatch {
         try {
             Method draw = drawWithShaderMethod;
             if (draw == null) {
-                draw = com.mojang.blaze3d.vertex.BufferUploader.class.getMethod("drawWithShader", meshData.getClass());
+                draw = findMethod(com.mojang.blaze3d.vertex.BufferUploader.class,
+                        new String[]{"drawWithShader", "m_231202_"}, meshData.getClass());
                 drawWithShaderMethod = draw;
             }
             draw.invoke(null, meshData);
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException("Unable to draw AMI colored quad batch", e);
         }
+    }
+
+    private static Method findMethod(Class<?> owner, String[] names, Class<?>... parameterTypes) throws NoSuchMethodException {
+        NoSuchMethodException last = null;
+        for (String name : names) {
+            try {
+                return owner.getMethod(name, parameterTypes);
+            } catch (NoSuchMethodException e) {
+                last = e;
+            }
+        }
+        throw last == null ? new NoSuchMethodException(owner.getName()) : last;
     }
 
     private static final class Rect {
