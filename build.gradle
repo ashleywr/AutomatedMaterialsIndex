@@ -316,4 +316,7 @@ tasks.register('verifyReleaseArtifacts') {
 
 ext.synesthesiaLocalModKey = 'ami'
 ext.synesthesiaBuildTask = ':neoforge:jar'
-apply from: 'C:/WorkDir/synesthesia/tools/synesthesia-sync.gradle'
+def synesthesiaSyncScript = file('C:/WorkDir/synesthesia/tools/synesthesia-sync.gradle')
+if (synesthesiaSyncScript.isFile()) {
+    apply from: synesthesiaSyncScript
+}
