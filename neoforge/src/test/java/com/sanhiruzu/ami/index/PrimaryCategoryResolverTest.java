@@ -132,13 +132,13 @@ class PrimaryCategoryResolverTest {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("minecraft:conduit"),
                 new FacetProfile(
-                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.CABLE, ItemFacet.TECH_COMPONENT, ItemFacet.LIGHT_SOURCE),
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.CABLE, ItemFacet.TECH_COMPONENT, ItemFacet.LIGHT_SOURCE, ItemFacet.MAGIC_ARTIFACT),
                         Map.of(SearchNodeKeys.BLOCK_CLASS, "net.minecraft.world.level.block.ConduitBlock")
                 )
         );
 
-        assertEquals("utility", assignment.categoryId());
-        assertEquals("misc", assignment.subcategoryId());
+        assertEquals("magic", assignment.categoryId());
+        assertEquals("artifacts", assignment.subcategoryId());
     }
 
     @Test
@@ -280,20 +280,14 @@ class PrimaryCategoryResolverTest {
     }
 
     @Test
-    void fuelRecipeUsesResolveToIngredientsFuel() {
+    void coalWithIngredientMineralResolvesToIngredientsMineral() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("silentgear:netherwood_charcoal"),
-                new FacetProfile(
-                        EnumSet.noneOf(ItemFacet.class),
-                        Map.of(
-                                SearchNodeKeys.RECIPE_USE_CATEGORIES, "crafting,ami:fuel",
-                                SearchNodeKeys.TAGS, "silents_mechanisms:coal_generator_fuels"
-                        )
-                )
+                new ResourceLocation("minecraft:coal"),
+                new FacetProfile(EnumSet.of(ItemFacet.INGREDIENT_MINERAL), Map.of())
         );
 
         assertEquals("ingredients", assignment.categoryId());
-        assertEquals("fuel", assignment.subcategoryId());
+        assertEquals("mineral", assignment.subcategoryId());
     }
 
     @Test
@@ -1602,5 +1596,47 @@ class PrimaryCategoryResolverTest {
         assertEquals("meals", stickFoodAssignment.subcategoryId());
         assertEquals("nature", pieAssignment.categoryId());
         assertEquals("meals", pieAssignment.subcategoryId());
+    }
+
+    @Test
+    void tallFlowerWithBushInPathResolvesToFlora() {
+        // rose_bush path ends with "_bush" but is a TallFlowerBlock, not a crop
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:rose_bush"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.COMPOSTABLE, ItemFacet.CROP, ItemFacet.FLOWER),
+                        Map.of(SearchNodeKeys.BLOCK_CLASS, "net.minecraft.world.level.block.TallFlowerBlock"))
+        );
+
+        assertEquals("nature", assignment.categoryId());
+        assertEquals("flora", assignment.subcategoryId());
+    }
+
+    @Test
+    void craftedVegetableFoodResolvesToSnacks() {
+        // golden_carrot is crafted from carrot+gold; c:foods/vegetable alone must not yield CROP routing
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:golden_carrot"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.EDIBLE),
+                        Map.of(SearchNodeKeys.TAGS, "c:foods,c:foods/vegetable,c:foods/golden"))
+        );
+
+        assertEquals("nature", assignment.categoryId());
+        assertEquals("snacks", assignment.subcategoryId());
+    }
+
+    @Test
+    void ominousBottleResolvesToUtilityMiscNotDrinks() {
+        // OminousBottleItem has food data for animation but c:drinks/ominous marks it non-nutritional
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecraft:ominous_bottle"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.EDIBLE, ItemFacet.FOOD_DRINK, ItemFacet.UTILITY_MISC),
+                        Map.of(SearchNodeKeys.TAGS, "c:foods,c:drinks,c:drinks/ominous,c:drinks/magic"))
+        );
+
+        assertEquals("utility", assignment.categoryId());
+        assertEquals("misc", assignment.subcategoryId());
     }
 }

@@ -304,6 +304,12 @@ public final class PrimaryCategoryResolver {
             "storagedrawers"
     );
     private static final List<PrimaryRule> PRIMARY_RULES = List.of(
+            rule("compat route metadata",
+                    PrimaryCategoryResolver::shouldUseCompatRouteMetadata,
+                    c -> assignment(
+                            c.attributes.get(SearchNodeKeys.COMPAT_ROUTE_CATEGORY),
+                            c.attributes.get(SearchNodeKeys.COMPAT_ROUTE_SUBCATEGORY),
+                            c.attributes)),
             rule("create handheld tools",
                     c -> shouldBiasCreateFamilyHandheldToTools(c.modFamily, c.path),
                     c -> assignment("tools", classifyCreateFamilyToolSubcategory(c.path), c.attributes)),
@@ -341,9 +347,6 @@ public final class PrimaryCategoryResolver {
                     c -> hasAny(c.facets, ItemFacet.UTILITY_NAVIGATION, ItemFacet.UTILITY_MEDICAL, ItemFacet.UTILITY_CURRENCY,
                             ItemFacet.BOOK, ItemFacet.GUIDE_BOOK, ItemFacet.UTILITY_MISC, ItemFacet.FLUID_CONTAINER),
                     c -> assignment("utility", classifyUtilitySubcategory(c.facets), c.attributes)),
-            rule("fuel recipe uses",
-                    c -> isFuelRecipeUse(c.attributes),
-                    c -> assignment("ingredients", "fuel", c.attributes)),
             rule("clear ingredients before incidental equipment or tech",
                     c -> shouldResolveIngredientBeforeEquipmentTech(c.facets),
                     c -> assignment("ingredients", classifyIngredientSubcategory(c.facets), c.attributes)),
@@ -408,7 +411,7 @@ public final class PrimaryCategoryResolver {
                             ItemFacet.TRAPDOOR),
                     c -> assignment("masonry", classifyMasonrySubcategory(c.facets, c.path, c.attributes), c.attributes)),
             rule("decoration facets",
-                    c -> shouldResolveDecorationFacetPrimary(c.path, c.facets),
+                    c -> shouldResolveDecorationFacetPrimary(c.path, c.facets, c.attributes),
                     c -> assignment("decoration", classifyDecorationSubcategory(c.facets), c.attributes)),
             rule("social facets",
                     c -> hasAny(c.facets, ItemFacet.SOCIAL_PLAYERS, ItemFacet.SOCIAL_CLAIMS),
@@ -557,7 +560,56 @@ public final class PrimaryCategoryResolver {
         return route.finish("fallback", "unknown", fallback());
     }
 
+    private static Optional<CategoryAssignment> resolveVanillaIdentity(ResolveContext context) {
+        // Ore blocks: c:ores is a concrete runtime tag on all ore blocks.
+        // Checked before CategoryScorer so redstone_ore (which also has redstone path tokens)
+        // and normal ores (blocksMaterial=other_building) both land in geology/stone.
+        if (hasMetadataToken(context.attributes, SearchNodeKeys.TAGS, "c:ores")
+                || hasMetadataToken(context.attributes, SearchNodeKeys.BLOCK_TAGS, "c:ores")) {
+            return Optional.of(identityAssignment(
+                    "geology", "stone", context.attributes,
+                    "identity.ore_block", "c:ores tag"));
+        }
+
+        // Magic structure blocks: FacetIndexer sets MAGIC_ARTIFACT on specific block classes.
+        // Using the facet lets mod-added magic structures benefit from the same routing.
+        if (context.facets.contains(ItemFacet.MAGIC_ARTIFACT) && context.facets.contains(ItemFacet.PLACEABLE)) {
+            return Optional.of(identityAssignment("magic", "artifacts", context.attributes,
+                    "identity.magic_structure_block", "magic artifact block"));
+        }
+
+        if (!"minecraft".equals(context.modId)) {
+            return Optional.empty();
+        }
+
+        return switch (context.path) {
+            case "jukebox" ->
+                    Optional.of(identityAssignment("decoration", "furniture", context.attributes,
+                            "identity.vanilla.jukebox", "vanilla jukebox"));
+            case "spawner" ->
+                    Optional.of(identityAssignment("bestiary", "hostile", context.attributes,
+                            "identity.vanilla.spawner", "vanilla monster spawner"));
+            default -> {
+                // Vanilla workstations: machine+workstation+placeable → tech/machines.
+                // Excludes lectern (book-stand furniture, not a processing station).
+                if (context.facets.contains(ItemFacet.WORKSTATION)
+                        && context.facets.contains(ItemFacet.MACHINE)
+                        && context.facets.contains(ItemFacet.PLACEABLE)
+                        && !context.path.equals("lectern")) {
+                    yield Optional.of(identityAssignment("tech", "machines", context.attributes,
+                            "identity.vanilla.workstation", "vanilla workstation block"));
+                }
+                yield Optional.empty();
+            }
+        };
+    }
+
     private static Optional<CategoryAssignment> resolveHardIdentity(ResolveContext context) {
+        Optional<CategoryAssignment> vanilla = resolveVanillaIdentity(context);
+        if (vanilla.isPresent()) {
+            return vanilla;
+        }
+
         if (hasAny(context.facets, ItemFacet.SPAWN_EGG, ItemFacet.MOB_BUCKET)) {
             return Optional.of(identityAssignment(
                     "bestiary",
@@ -721,6 +773,17 @@ public final class PrimaryCategoryResolver {
                     context.attributes,
                     "identity.edible_magic_reagent",
                     "edible brewing reagent identity"
+            ));
+        }
+
+        if (context.facets.contains(ItemFacet.UTILITY_MISC)
+                && hasMetadataToken(context.attributes, SearchNodeKeys.TAGS, "c:drinks/ominous")) {
+            return Optional.of(identityAssignment(
+                    "utility",
+                    "misc",
+                    context.attributes,
+                    "identity.ominous_bottle",
+                    "bad-omen effect item, not nutritional food"
             ));
         }
 
@@ -2326,6 +2389,9 @@ public final class PrimaryCategoryResolver {
         if (!facets.contains(ItemFacet.PLACEABLE) || isSapling(path, attributes) || isLeaves(path, facets, attributes)) {
             return false;
         }
+        if (facets.contains(ItemFacet.FLOWER)) {
+            return false;
+        }
         String blockClass = attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "").toLowerCase(Locale.ROOT);
         if (path.equals("dead_bush") || blockClass.contains("deadbush")) {
             return false;
@@ -2353,11 +2419,6 @@ public final class PrimaryCategoryResolver {
         return false;
     }
 
-    private static boolean isFuelRecipeUse(Map<String, String> attributes) {
-        return hasMetadataToken(attributes, SearchNodeKeys.RECIPE_USE_CATEGORIES, "ami:fuel")
-                || hasMetadataToken(attributes, SearchNodeKeys.RECIPE_USE_CATEGORIES, "fuel");
-    }
-
     private static boolean hasCsvToken(String encoded, String expected) {
         if (encoded == null || encoded.isBlank()) {
             return false;
@@ -2381,9 +2442,22 @@ public final class PrimaryCategoryResolver {
         return "furniture";
     }
 
-    private static boolean shouldResolveDecorationFacetPrimary(String path, Set<ItemFacet> facets) {
-        return facets.contains(ItemFacet.DECORATIVE_BLOCK)
-                || (facets.contains(ItemFacet.LIGHT_SOURCE) && isPrimaryLightingPath(path));
+    private static boolean shouldResolveDecorationFacetPrimary(String path, Set<ItemFacet> facets, Map<String, String> attributes) {
+        if (facets.contains(ItemFacet.DECORATIVE_BLOCK)) {
+            return true;
+        }
+        if (facets.contains(ItemFacet.LIGHT_SOURCE)) {
+            // Partial-shaped non-functional light sources are decorative fixtures (torches, rods, lanterns, candles).
+            // Full-block light sources are handled by isPrimaryLightingPath below.
+            String blockShape = attributes.getOrDefault("blockShape", "");
+            if ("partial".equals(blockShape)
+                    && !facets.contains(ItemFacet.HAS_BLOCK_ENTITY)
+                    && !hasAny(facets, ItemFacet.INTERACTIVE_BLOCK, ItemFacet.MACHINE, ItemFacet.WORKSTATION)) {
+                return true;
+            }
+            return isPrimaryLightingPath(path);
+        }
+        return false;
     }
 
     private static boolean isPrimaryLightingPath(String path) {
@@ -2819,6 +2893,10 @@ public final class PrimaryCategoryResolver {
     }
 
     private static boolean shouldBiasAutomationFamilyToTech(ModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
+        // Exclude plain decorative glass (glass without a block entity means it's not a functional machine component).
+        if (facets.contains(ItemFacet.GLASS_BLOCK) && !facets.contains(ItemFacet.HAS_BLOCK_ENTITY)) {
+            return false;
+        }
         return modFamily == ModFamily.AUTOMATION
                 && !hasAny(facets,
                 ItemFacet.DECORATIVE_BLOCK,
@@ -3149,7 +3227,7 @@ public final class PrimaryCategoryResolver {
             return false;
         }
         if (facets.contains(ItemFacet.LIGHT_SOURCE)) {
-            return true;
+            return false;
         }
         String properties = attributes.getOrDefault(SearchNodeKeys.BLOCK_STATE_PROPERTIES, "");
         if (hasMicroPartialStateHints(properties)) {
@@ -3411,6 +3489,16 @@ public final class PrimaryCategoryResolver {
             };
         }
         return "full_block";
+    }
+
+    private static boolean shouldUseCompatRouteMetadata(ResolveContext context) {
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.SEMANTIC) {
+            return false;
+        }
+        String category = context.attributes.getOrDefault(SearchNodeKeys.COMPAT_ROUTE_CATEGORY, "");
+        String subcategory = context.attributes.getOrDefault(SearchNodeKeys.COMPAT_ROUTE_SUBCATEGORY, "");
+        return category != null && !category.isBlank()
+                && subcategory != null && !subcategory.isBlank();
     }
 
     private enum ModFamily {

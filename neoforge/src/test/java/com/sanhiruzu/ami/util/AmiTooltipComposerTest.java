@@ -1,10 +1,15 @@
 package com.sanhiruzu.ami.util;
 
 import com.sanhiruzu.ami.client.icon.FallbackTextRenderer;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.util.tooltip.DiscoveryTooltipFact;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -16,6 +21,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class AmiTooltipComposerTest {
+    @BeforeEach
+    void setUp() {
+        AmiConfig.resetToDefaults();
+    }
+
+    @AfterEach
+    void tearDown() {
+        AmiConfig.resetToDefaults();
+    }
 
     @Test
     void modNameDetectionIgnoresFormattingAndWhitespace() {
@@ -99,5 +113,46 @@ class AmiTooltipComposerTest {
         assertFalse(AmiTooltipComposer.shouldShowTypeLabel(NodeType.PLAYER));
         assertFalse(AmiTooltipComposer.shouldShowTypeLabel(NodeType.ENTITY));
         assertTrue(AmiTooltipComposer.shouldShowTypeLabel(NodeType.WAYPOINT));
+    }
+
+    @Test
+    void discoveryTooltipShowsFoodChecklistStateWhenEnabled() {
+        AmiConfig.enableDiscoveryChecklist = true;
+        SearchNode apple = new SearchNode(
+                new ResourceLocation("minecraft:apple"),
+                NodeType.ITEM,
+                "Apple",
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.FOOD_NUTRITION, "4",
+                        SearchNodeKeys.DISCOVERY_STATE, "undiscovered"
+                )
+        );
+
+        List<String> lines = new DiscoveryTooltipFact().build(apple).stream().map(Component::getString).toList();
+
+        assertTrue(lines.contains("Discovery: Untasted")
+                || lines.contains("ami.tooltip.discovery_state.food.undiscovered"));
+    }
+
+    @Test
+    void discoveryTooltipIsHiddenWhenFeatureIsDisabled() {
+        AmiConfig.enableDiscoveryChecklist = false;
+        SearchNode apple = new SearchNode(
+                new ResourceLocation("minecraft:apple"),
+                NodeType.ITEM,
+                "Apple",
+                0,
+                0,
+                Map.of(
+                        SearchNodeKeys.FOOD_NUTRITION, "4",
+                        SearchNodeKeys.DISCOVERY_STATE, "undiscovered"
+                )
+        );
+
+        List<String> lines = new DiscoveryTooltipFact().build(apple).stream().map(Component::getString).toList();
+
+        assertTrue(lines.isEmpty());
     }
 }

@@ -41,6 +41,35 @@ class ResultsExpansionDefaultsTest {
         assertFalse(child.isExpanded());
     }
 
+    @Test
+    void transferExpansionStateKeepsUserCollapsedGroupsDuringIncrementalRefresh() {
+        TreeNode currentRoot = group("ingredients", "Ingredients");
+        TreeNode currentFood = group("ingredients/food", "Food");
+        TreeNode currentMineral = group("ingredients/mineral", "Mineral");
+        currentRoot.setExpanded(true);
+        currentFood.setExpanded(false);
+        currentMineral.setExpanded(true);
+        currentRoot.addChild(currentFood);
+        currentRoot.addChild(currentMineral);
+
+        TreeNode refreshedRoot = group("ingredients", "Ingredients");
+        TreeNode refreshedFood = group("ingredients/food", "Food");
+        TreeNode refreshedMineral = group("ingredients/mineral", "Mineral");
+        refreshedRoot.setExpanded(false);
+        refreshedFood.setExpanded(true);
+        refreshedMineral.setExpanded(false);
+        refreshedFood.addChild(leaf("minecraft:apple", "Apple"));
+        refreshedMineral.addChild(leaf("minecraft:iron_ingot", "Iron Ingot"));
+        refreshedRoot.addChild(refreshedFood);
+        refreshedRoot.addChild(refreshedMineral);
+
+        ResultsExpansionDefaults.transferExpansionState(List.of(currentRoot), List.of(refreshedRoot));
+
+        assertTrue(refreshedRoot.isExpanded());
+        assertFalse(refreshedFood.isExpanded());
+        assertTrue(refreshedMineral.isExpanded());
+    }
+
     private static TreeNode group(String key, String label) {
         return new TreeNode(key, Component.literal(label));
     }

@@ -6,8 +6,12 @@ import com.sanhiruzu.ami.client.overlay.OverlayWidgetManager;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.neoforge.AMI;
+import com.mojang.datafixers.util.Either;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.EffectRenderingInventoryScreen;
+import net.minecraft.network.chat.FormattedText;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
@@ -15,6 +19,10 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.RenderTooltipEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.List;
 
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
 public class InventoryOverlayHandler {
@@ -36,6 +44,16 @@ public class InventoryOverlayHandler {
     private static VisibleLayer recipeTransitionRestoreLayer = VisibleLayer.AMI;
     private static boolean sessionInitialized = false;
     private static boolean indexingRequested = false;
+    private static PendingGatheredTooltip pendingGatheredTooltip = null;
+    private static PendingExternalTooltip pendingExternalTooltip = null;
+    private static boolean renderingExternalTooltip = false;
+    private static boolean renderingStatusEffectsAboveAmi = false;
+    private static boolean statusEffectsHoverOwned = false;
+    private static boolean wasMouseOverStatusEffects = false;
+    private static Method renderEffectsMethod = null;
+    private static Field containerLeftPosField = null;
+    private static Field containerTopPosField = null;
+    private static Field containerImageWidthField = null;
 
     /**
      * The single choke point for all visibility state changes. Updates the panel and schedules
@@ -197,8 +215,16 @@ public class InventoryOverlayHandler {
     @SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.LOWEST)
     static void onRenderPost(ScreenEvent.Render.Post event) {
         if (!isAmiScreen(event.getScreen())) return;
+        renderOverlayFrame(event.getScreen(), event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
+    }
+
+    private static void renderOverlayFrame(net.minecraft.client.gui.screens.Screen screen,
+                                           net.minecraft.client.gui.GuiGraphics guiGraphics,
+                                           int mouseX,
+                                           int mouseY,
+                                           float partialTick) {
         ensureIndexingStarted();
-        syncVanillaRecipeBookVisibility(event.getScreen());
+        syncVanillaRecipeBookVisibility(screen);
 
         if (pendingScreenReinit) {
             pendingScreenReinit = false;
@@ -209,15 +235,23 @@ public class InventoryOverlayHandler {
             return;
         }
 
-        if (AmiApi.shouldSuppressAmi(event.getScreen())) {
+        if (AmiApi.shouldSuppressAmi(screen)) {
             return;
         }
 
-        manager.refreshLayoutIfNeeded(event.getScreen());
+        manager.refreshLayoutIfNeeded(screen);
 
         if (currentLayer == VisibleLayer.AMI) {
             manager.tick();
-            manager.renderAll(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
+            boolean statusEffectsHovered = updateStatusEffectsHoverOwnership(screen, mouseX, mouseY);
+            int amiMouseX = statusEffectsHovered ? Integer.MIN_VALUE : mouseX;
+            int amiMouseY = statusEffectsHovered ? Integer.MIN_VALUE : mouseY;
+            manager.renderAll(guiGraphics, amiMouseX, amiMouseY, partialTick);
+            if (statusEffectsHovered && renderStatusEffectsAboveAmi(screen, guiGraphics, mouseX, mouseY)) {
+                pendingExternalTooltip = null;
+            } else {
+                renderPendingExternalTooltip(guiGraphics);
+            }
         }
     }
 
@@ -282,13 +316,187 @@ public class InventoryOverlayHandler {
     }
 
     @SubscribeEvent
+    static void onGatherTooltip(RenderTooltipEvent.GatherComponents event) {
+        var screen = Minecraft.getInstance().screen;
+        if (screen == null || !isAmiScreen(screen)) return;
+        if (com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer.isRenderingAmiTooltip()) return;
+        if (renderingExternalTooltip) return;
+        if (currentLayer != VisibleLayer.AMI || !manager.isPanelVisible()) return;
+
+        pendingGatheredTooltip = new PendingGatheredTooltip(
+                event.getItemStack().copy(),
+                List.copyOf(event.getTooltipElements())
+        );
+    }
+
+    @SubscribeEvent
     static void onRenderTooltip(RenderTooltipEvent.Pre event) {
         var screen = Minecraft.getInstance().screen;
         if (screen == null || !isAmiScreen(screen)) return;
         if (com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer.isRenderingAmiTooltip()) return;
-        if (isMouseOverAmiOverlay(event.getX(), event.getY())) {
+        if (renderingExternalTooltip) return;
+        if (renderingStatusEffectsAboveAmi) return;
+        if (!statusEffectsHoverOwned && isMouseOverAmiOverlay(event.getX(), event.getY())) {
+            event.setCanceled(true);
+            return;
+        }
+        if (currentLayer == VisibleLayer.AMI && manager.isPanelVisible()) {
+            PendingGatheredTooltip gathered = pendingGatheredTooltip;
+            pendingGatheredTooltip = null;
+            pendingExternalTooltip = new PendingExternalTooltip(
+                    event.getFont(),
+                    gathered != null ? gathered.stack() : event.getItemStack().copy(),
+                    gathered != null ? gathered.elements() : List.of(),
+                    event.getX(),
+                    event.getY()
+            );
             event.setCanceled(true);
         }
+    }
+
+    private static boolean updateStatusEffectsHoverOwnership(net.minecraft.client.gui.screens.Screen screen, int mouseX, int mouseY) {
+        boolean mouseOverStatusEffects = isMouseOverStatusEffects(screen, mouseX, mouseY);
+        if (!mouseOverStatusEffects) {
+            statusEffectsHoverOwned = false;
+            wasMouseOverStatusEffects = false;
+            return false;
+        }
+
+        if (!statusEffectsHoverOwned && !wasMouseOverStatusEffects && !isMouseOverAmiOverlay(mouseX, mouseY)) {
+            statusEffectsHoverOwned = true;
+        }
+        wasMouseOverStatusEffects = true;
+        return statusEffectsHoverOwned;
+    }
+
+    private static boolean isMouseOverStatusEffects(net.minecraft.client.gui.screens.Screen screen, int mouseX, int mouseY) {
+        if (!(screen instanceof EffectRenderingInventoryScreen<?> effectScreen)) return false;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.player.getActiveEffects().isEmpty()) return false;
+        if (!effectScreen.canSeeEffects()) return false;
+
+        try {
+            int leftPos = reflectedContainerInt(effectScreen, "leftPos");
+            int topPos = reflectedContainerInt(effectScreen, "topPos");
+            int imageWidth = reflectedContainerInt(effectScreen, "imageWidth");
+            int renderX = leftPos + imageWidth + 2;
+            int availableWidth = screen.width - renderX;
+            if (availableWidth < 32) return false;
+
+            int effectCount = mc.player.getActiveEffects().size();
+            int rowStep = effectCount > 5 ? 132 / Math.max(1, effectCount - 1) : 33;
+            int stripWidth = availableWidth >= 120 ? 120 : 33;
+            int stripHeight = 32 + Math.max(0, effectCount - 1) * rowStep;
+            return mouseX >= renderX && mouseX <= renderX + stripWidth
+                    && mouseY >= topPos && mouseY <= topPos + stripHeight;
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            return false;
+        }
+    }
+
+    private static int reflectedContainerInt(AbstractContainerScreen<?> screen, String name)
+            throws ReflectiveOperationException {
+        Field field = switch (name) {
+            case "leftPos" -> {
+                if (containerLeftPosField == null) {
+                    containerLeftPosField = containerField("leftPos");
+                }
+                yield containerLeftPosField;
+            }
+            case "topPos" -> {
+                if (containerTopPosField == null) {
+                    containerTopPosField = containerField("topPos");
+                }
+                yield containerTopPosField;
+            }
+            case "imageWidth" -> {
+                if (containerImageWidthField == null) {
+                    containerImageWidthField = containerField("imageWidth");
+                }
+                yield containerImageWidthField;
+            }
+            default -> throw new NoSuchFieldException(name);
+        };
+        return field.getInt(screen);
+    }
+
+    private static Field containerField(String name) throws NoSuchFieldException {
+        Field field = AbstractContainerScreen.class.getDeclaredField(name);
+        field.setAccessible(true);
+        return field;
+    }
+
+    private static boolean renderStatusEffectsAboveAmi(net.minecraft.client.gui.screens.Screen screen,
+                                                       net.minecraft.client.gui.GuiGraphics graphics,
+                                                       int mouseX,
+                                                       int mouseY) {
+        if (!(screen instanceof EffectRenderingInventoryScreen<?> effectScreen)) return false;
+
+        try {
+            Method method = renderEffectsMethod;
+            if (method == null) {
+                method = EffectRenderingInventoryScreen.class.getDeclaredMethod(
+                        "renderEffects", net.minecraft.client.gui.GuiGraphics.class, int.class, int.class);
+                method.setAccessible(true);
+                renderEffectsMethod = method;
+            }
+
+            var state = com.sanhiruzu.ami.client.RenderStateSnapshot.capture();
+            try {
+                renderingStatusEffectsAboveAmi = true;
+                graphics.pose().pushPose();
+                graphics.pose().translate(0, 0, com.sanhiruzu.ami.client.overlay.OverlayLayers.TRANSIENT_TOOLTIP);
+                method.invoke(effectScreen, graphics, mouseX, mouseY);
+                graphics.pose().popPose();
+                graphics.flush();
+            } finally {
+                renderingStatusEffectsAboveAmi = false;
+                state.restore();
+            }
+            return true;
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            renderEffectsMethod = null;
+            return false;
+        }
+    }
+
+    private static void renderPendingExternalTooltip(net.minecraft.client.gui.GuiGraphics graphics) {
+        PendingExternalTooltip tooltip = pendingExternalTooltip;
+        pendingExternalTooltip = null;
+        if (tooltip == null || (tooltip.stack().isEmpty() && tooltip.elements().isEmpty())) return;
+
+        var state = com.sanhiruzu.ami.client.RenderStateSnapshot.capture();
+        try {
+            renderingExternalTooltip = true;
+            graphics.pose().pushPose();
+            graphics.pose().translate(0, 0, com.sanhiruzu.ami.client.overlay.OverlayLayers.TRANSIENT_TOOLTIP);
+            if (tooltip.elements().isEmpty()) {
+                graphics.renderTooltip(tooltip.font(), tooltip.stack(), tooltip.x(), tooltip.y());
+            } else {
+                graphics.renderComponentTooltipFromElements(
+                        tooltip.font(), tooltip.elements(), tooltip.x(), tooltip.y(), tooltip.stack());
+            }
+            graphics.pose().popPose();
+            graphics.flush();
+        } finally {
+            renderingExternalTooltip = false;
+            state.restore();
+        }
+    }
+
+    private record PendingGatheredTooltip(
+            net.minecraft.world.item.ItemStack stack,
+            List<Either<FormattedText, TooltipComponent>> elements
+    ) {
+    }
+
+    private record PendingExternalTooltip(
+            net.minecraft.client.gui.Font font,
+            net.minecraft.world.item.ItemStack stack,
+            List<Either<FormattedText, TooltipComponent>> elements,
+            int x,
+            int y
+    ) {
     }
 
     public static OverlayWidgetManager getManager() {

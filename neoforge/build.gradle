@@ -126,6 +126,8 @@ dependencies {
     devRuntimeJeiViewerMods "mezz.jei:jei-${neoforge_minecraft_version}-neoforge:${neoforge_jei_version}"
     devRuntimeEmiViewerMods "dev.emi:emi-neoforge:${neoforge_emi_version}+${neoforge_minecraft_version}"
 
+    compileOnly "dev.latvian.mods:kubejs-neoforge:${neoforge_kubejs_version}"
+
     compileOnly "it.unimi.dsi:fastutil:8.5.9"
 
     testImplementation "org.junit.jupiter:junit-jupiter:5.9.3"

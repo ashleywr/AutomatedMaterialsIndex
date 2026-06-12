@@ -70,7 +70,8 @@ class AmiTaxonomyCatalogTest {
 
         for (String id : Set.of(
                 "cobblemon", "create", "ae2", "mekanism", "gregtech", "minecolonies",
-                "apotheosis", "botania", "sophisticated", "mapping")) {
+                "apotheosis", "botania", "pastel", "malum", "swem", "cataclysm",
+                "sophisticated", "mapping")) {
             assertTrue(categories.containsKey(id), "Missing compat category: " + id);
             assertFalse(categories.get(id).subcategories().isEmpty(), "Missing subcategories for " + id);
         }
@@ -82,6 +83,10 @@ class AmiTaxonomyCatalogTest {
         assertTrue(hasSubcategory(categories, "ae2", "storage"));
         assertTrue(hasSubcategory(categories, "mekanism", "chemicals"));
         assertTrue(hasSubcategory(categories, "gregtech", "multiblocks"));
+        assertTrue(hasSubcategory(categories, "pastel", "progression"));
+        assertTrue(hasSubcategory(categories, "malum", "geasa"));
+        assertTrue(hasSubcategory(categories, "swem", "tack"));
+        assertTrue(hasSubcategory(categories, "cataclysm", "dungeon_eyes"));
         assertTrue(hasSubcategory(categories, "sophisticated", "backpacks"));
     }
 

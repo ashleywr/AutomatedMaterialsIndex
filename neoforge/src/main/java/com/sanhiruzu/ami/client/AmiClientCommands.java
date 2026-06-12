@@ -41,9 +41,27 @@ public class AmiClientCommands {
                             return 1;
                         })
                 )
+                .then(Commands.literal("dump-recipes")
+                        .executes(context -> {
+                            exportRuntimeRecipes(context.getSource());
+                            return 1;
+                        })
+                )
+                .then(Commands.literal("dump-loot-tables")
+                        .executes(context -> {
+                            exportLootTables(context.getSource());
+                            return 1;
+                        })
+                )
                 .then(Commands.literal("dump-recipe-viewer-items")
                         .executes(context -> {
                             exportRecipeViewerItemAudit(context.getSource());
+                            return 1;
+                        })
+                )
+                .then(Commands.literal("dump-recipe-viewer-recipes")
+                        .executes(context -> {
+                            exportRecipeViewerRecipes(context.getSource());
                             return 1;
                         })
                 )
@@ -72,7 +90,7 @@ public class AmiClientCommands {
     }
 
     private static void exportResultsTree(CommandSourceStack source, String query) {
-        Path dumpDir = FMLPaths.GAMEDIR.get().resolve("ami_dumps");
+        Path dumpDir = dumpDir("results");
         try {
             Files.createDirectories(dumpDir);
             Path out = dumpDir.resolve("results_tree_dump.md");
@@ -87,7 +105,7 @@ public class AmiClientCommands {
     }
 
     private static void exportSearchNodes(CommandSourceStack source) {
-        Path dumpDir = FMLPaths.GAMEDIR.get().resolve("ami_dumps");
+        Path dumpDir = dumpDir("search");
         try {
             Files.createDirectories(dumpDir);
             Path out = dumpDir.resolve("search_nodes.jsonl");
@@ -107,7 +125,7 @@ public class AmiClientCommands {
     }
 
     private static void exportGuideDocs(CommandSourceStack source) {
-        Path dumpDir = FMLPaths.GAMEDIR.get().resolve("ami_dumps");
+        Path dumpDir = dumpDir("guides");
         try {
             Files.createDirectories(dumpDir);
             Path out = dumpDir.resolve("guide_docs.jsonl");
@@ -122,8 +140,59 @@ public class AmiClientCommands {
         }
     }
 
+    private static void exportRuntimeRecipes(CommandSourceStack source) {
+        Path dumpDir = dumpDir("recipes");
+        try {
+            Files.createDirectories(dumpDir);
+            RecipeDumpWriters.RuntimeRecipeDumpOutputs outputs = RecipeDumpWriters.writeRuntimeRecipes(
+                    dumpDir,
+                    net.minecraft.client.Minecraft.getInstance().level
+            );
+            source.sendSystemMessage(Component.literal(
+                            "AMI runtime recipe dump written to "
+                                    + outputs.dump().toAbsolutePath()
+                                    + " ("
+                                    + outputs.recipeCount()
+                                    + " recipes) + metadata at "
+                                    + outputs.meta().toAbsolutePath()
+                                    + "; reports at "
+                                    + outputs.csv().toAbsolutePath()
+                                    + " and "
+                                    + outputs.markdown().toAbsolutePath())
+                    .withStyle(ChatFormatting.GREEN));
+        } catch (Exception e) {
+            AMI.LOGGER.error("Failed to export AMI runtime recipe dump", e);
+            source.sendSystemMessage(Component.literal("Failed to export AMI runtime recipe dump: " + e.getMessage())
+                    .withStyle(ChatFormatting.RED));
+        }
+    }
+
+    private static void exportLootTables(CommandSourceStack source) {
+        Path dumpDir = dumpDir("loot_tables");
+        try {
+            Files.createDirectories(dumpDir);
+            RecipeDumpWriters.LootTableDumpOutputs outputs = RecipeDumpWriters.writeLootTables(dumpDir);
+            source.sendSystemMessage(Component.literal(
+                            "AMI loot table dump written to "
+                                    + outputs.dump().toAbsolutePath()
+                                    + " ("
+                                    + outputs.tableCount()
+                                    + " tables) + metadata at "
+                                    + outputs.meta().toAbsolutePath()
+                                    + "; reports at "
+                                    + outputs.csv().toAbsolutePath()
+                                    + " and "
+                                    + outputs.markdown().toAbsolutePath())
+                    .withStyle(ChatFormatting.GREEN));
+        } catch (Exception e) {
+            AMI.LOGGER.error("Failed to export AMI loot table dump", e);
+            source.sendSystemMessage(Component.literal("Failed to export AMI loot table dump: " + e.getMessage())
+                    .withStyle(ChatFormatting.RED));
+        }
+    }
+
     private static void exportRecipeViewerItemAudit(CommandSourceStack source) {
-        Path dumpDir = FMLPaths.GAMEDIR.get().resolve("ami_dumps");
+        Path dumpDir = dumpDir("recipe_viewer");
         try {
             Files.createDirectories(dumpDir);
             RecipeViewerItemAudit.AuditOutputs outputs = RecipeViewerItemAudit.writeDump(
@@ -141,6 +210,34 @@ public class AmiClientCommands {
             source.sendSystemMessage(Component.literal("Failed to export AMI recipe viewer item audit: " + e.getMessage())
                     .withStyle(ChatFormatting.RED));
         }
+    }
+
+    private static void exportRecipeViewerRecipes(CommandSourceStack source) {
+        Path dumpDir = dumpDir("recipe_viewer");
+        try {
+            Files.createDirectories(dumpDir);
+            RecipeDumpWriters.ViewerRecipeDumpOutputs outputs = RecipeDumpWriters.writeViewerRecipes(
+                    dumpDir,
+                    net.minecraft.client.Minecraft.getInstance().level
+            );
+            source.sendSystemMessage(Component.literal(
+                            "AMI recipe viewer recipe dump written to "
+                                    + outputs.meta().toAbsolutePath()
+                                    + " ("
+                                    + outputs.totalRecipes()
+                                    + " recipes across "
+                                    + outputs.datasets().size()
+                                    + " datasets)")
+                    .withStyle(ChatFormatting.GREEN));
+        } catch (Exception e) {
+            AMI.LOGGER.error("Failed to export AMI recipe viewer recipe dump", e);
+            source.sendSystemMessage(Component.literal("Failed to export AMI recipe viewer recipe dump: " + e.getMessage())
+                    .withStyle(ChatFormatting.RED));
+        }
+    }
+
+    private static Path dumpDir(String category) {
+        return FMLPaths.GAMEDIR.get().resolve("ami_dumps").resolve(category);
     }
 
     private static void invalidateAndRebuildIndex(CommandSourceStack source) {

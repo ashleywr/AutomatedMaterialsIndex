@@ -14,9 +14,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RuntimeMirrorOntologyAnomalyReportTest {
     private static final List<Path> DEFAULT_DUMPS = List.of(
-            Path.of("C:", "Users", "ashle", "AppData", "Roaming", "PrismLauncher", "instances", "Society- Sunlit Valley", "minecraft", "ami_dumps", "search_nodes.jsonl"),
-            Path.of("C:", "Users", "ashle", "AppData", "Roaming", "PrismLauncher", "instances", "Ashley Modpack", "minecraft", "ami_dumps", "search_nodes.jsonl"),
-            Path.of("C:", "Users", "ashle", "AppData", "Roaming", "PrismLauncher", "instances", "DeceasedCraft - Urban Zombie Apocalypse", "minecraft", "ami_dumps", "search_nodes.jsonl")
+            Path.of("C:", "Users", "ashle", "AppData", "Roaming", "PrismLauncher", "instances", "Society- Sunlit Valley", "minecraft", "ami_dumps", "search", "search_nodes.jsonl"),
+            Path.of("C:", "Users", "ashle", "AppData", "Roaming", "PrismLauncher", "instances", "Ashley Modpack", "minecraft", "ami_dumps", "search", "search_nodes.jsonl"),
+            Path.of("C:", "Users", "ashle", "AppData", "Roaming", "PrismLauncher", "instances", "DeceasedCraft - Urban Zombie Apocalypse", "minecraft", "ami_dumps", "search", "search_nodes.jsonl")
     );
 
     private static List<Path> configuredDumps() {

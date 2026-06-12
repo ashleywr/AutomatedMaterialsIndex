@@ -26,6 +26,10 @@ public final class AmiOntology {
     public static final Category APOTHEOSIS;
     public static final Category BOTANIA;
     public static final Category ARS_NOUVEAU;
+    public static final Category PASTEL;
+    public static final Category MALUM;
+    public static final Category SWEM;
+    public static final Category CATACLYSM;
     public static final Category SOPHISTICATED;
     public static final Category MAPPING;
     public static final Category MODULAR_GEAR;
@@ -239,6 +243,73 @@ public final class AmiOntology {
                         new SubCategory("materials", "ami.subcategory.ars_nouveau.materials"),
                         new SubCategory("building", "ami.subcategory.ars_nouveau.building"),
                         new SubCategory("misc", "ami.subcategory.ars_nouveau.misc")
+                ),
+                List.of()
+        );
+
+        PASTEL = new Category(
+                "pastel", "ami.category.pastel", "Pastel",
+                "pastel:guidebook", 0xFF7CC7D8,
+                List.of(
+                        new SubCategory("progression", "ami.subcategory.pastel.progression"),
+                        new SubCategory("machines", "ami.subcategory.pastel.machines"),
+                        new SubCategory("resources", "ami.subcategory.pastel.resources"),
+                        new SubCategory("pigments", "ami.subcategory.pastel.pigments"),
+                        new SubCategory("drinks", "ami.subcategory.pastel.drinks"),
+                        new SubCategory("equipment", "ami.subcategory.pastel.equipment"),
+                        new SubCategory("structures", "ami.subcategory.pastel.structures"),
+                        new SubCategory("magic", "ami.subcategory.pastel.magic"),
+                        new SubCategory("building", "ami.subcategory.pastel.building"),
+                        new SubCategory("misc", "ami.subcategory.pastel.misc")
+                ),
+                List.of()
+        );
+
+        MALUM = new Category(
+                "malum", "ami.category.malum", "Malum",
+                "malum:encyclopedia_arcana", 0xFFB0617E,
+                List.of(
+                        new SubCategory("spirits", "ami.subcategory.malum.spirits"),
+                        new SubCategory("geasa", "ami.subcategory.malum.geasa"),
+                        new SubCategory("impetus", "ami.subcategory.malum.impetus"),
+                        new SubCategory("augments", "ami.subcategory.malum.augments"),
+                        new SubCategory("equipment", "ami.subcategory.malum.equipment"),
+                        new SubCategory("materials", "ami.subcategory.malum.materials"),
+                        new SubCategory("building", "ami.subcategory.malum.building"),
+                        new SubCategory("misc", "ami.subcategory.malum.misc")
+                ),
+                List.of()
+        );
+
+        SWEM = new Category(
+                "swem", "ami.category.swem", "SWEM",
+                "swem:saddle_bag_black", 0xFFC8915F,
+                List.of(
+                        new SubCategory("tack", "ami.subcategory.swem.tack"),
+                        new SubCategory("horse_armor", "ami.subcategory.swem.horse_armor"),
+                        new SubCategory("care", "ami.subcategory.swem.care"),
+                        new SubCategory("feed", "ami.subcategory.swem.feed"),
+                        new SubCategory("riding_gear", "ami.subcategory.swem.riding_gear"),
+                        new SubCategory("stable", "ami.subcategory.swem.stable"),
+                        new SubCategory("materials", "ami.subcategory.swem.materials"),
+                        new SubCategory("misc", "ami.subcategory.swem.misc")
+                ),
+                List.of()
+        );
+
+        CATACLYSM = new Category(
+                "cataclysm", "ami.category.cataclysm", "Cataclysm",
+                "cataclysm:mech_eye", 0xFF9A5A44,
+                List.of(
+                        new SubCategory("bosses", "ami.subcategory.cataclysm.bosses"),
+                        new SubCategory("artifacts", "ami.subcategory.cataclysm.artifacts"),
+                        new SubCategory("dungeon_eyes", "ami.subcategory.cataclysm.dungeon_eyes"),
+                        new SubCategory("weapons", "ami.subcategory.cataclysm.weapons"),
+                        new SubCategory("equipment", "ami.subcategory.cataclysm.equipment"),
+                        new SubCategory("materials", "ami.subcategory.cataclysm.materials"),
+                        new SubCategory("mobs", "ami.subcategory.cataclysm.mobs"),
+                        new SubCategory("structures", "ami.subcategory.cataclysm.structures"),
+                        new SubCategory("misc", "ami.subcategory.cataclysm.misc")
                 ),
                 List.of()
         );
@@ -495,7 +566,8 @@ public final class AmiOntology {
 
         // Priority order: most-specific first, GEOLOGY/MASONRY second-to-last, MISC as terminal fallback.
         CATEGORIES = List.of(
-                COBBLEMON, CREATE, AE2, MEKANISM, GREGTECH, MINECOLONIES, APOTHEOSIS, BOTANIA, ARS_NOUVEAU, SOPHISTICATED, MAPPING,
+                COBBLEMON, CREATE, AE2, MEKANISM, GREGTECH, MINECOLONIES, APOTHEOSIS, BOTANIA, ARS_NOUVEAU,
+                PASTEL, MALUM, SWEM, CATACLYSM, SOPHISTICATED, MAPPING,
                 MODULAR_GEAR, TACZ, UTILITY, BESTIARY, MAGIC, ARMOR, TOOLS, TECH, LOOKUP_HISTORY, NATURE, INGREDIENTS, DECORATION, ENVIRONMENT, SOCIAL,
                 GEOLOGY, MASONRY, MISC
         );

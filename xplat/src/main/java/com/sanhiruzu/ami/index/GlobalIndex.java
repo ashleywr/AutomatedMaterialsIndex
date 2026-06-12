@@ -23,6 +23,9 @@ public class GlobalIndex {
     private final Map<String, List<SearchNode>> categoryIndex = new ConcurrentHashMap<>();
     private volatile boolean indexReady = false;
     private long indexBuildTimeMs;
+    // Cache of mods that have actual content (not recipes, not hidden dev-only items)
+    private volatile Set<String> contentModsCache = null;
+    private volatile long contentModsCacheRevision = -1L;
 
     private GlobalIndex() {
         for (NodeType t : NodeType.values()) {
@@ -169,6 +172,7 @@ public class GlobalIndex {
 
     public void markIndexReady() {
         this.indexReady = true;
+        revision.incrementAndGet();
     }
 
     public boolean isIndexReady() {
@@ -205,6 +209,33 @@ public class GlobalIndex {
                         n -> n.meta(metadataKey, "unknown"),
                         LinkedHashMap::new,
                         Collectors.toList()));
+    }
+
+    /**
+     * Get the set of mod namespaces that actually have content (items, fluids, ingredients, etc).
+     * This excludes recipes and mods that are known non-content systems (AMI, JEI, etc).
+     * Cached and invalidated on index changes.
+     */
+    public Set<String> getContentMods() {
+        long currentRevision = revision.get();
+        if (contentModsCache != null && contentModsCacheRevision == currentRevision) {
+            return contentModsCache;
+        }
+
+        Set<String> contentMods = new HashSet<>();
+        // Browse all non-recipe types and collect mods that have any content
+        for (NodeType type : new NodeType[]{NodeType.ITEM, NodeType.FLUID, NodeType.INGREDIENT,
+                NodeType.BIOME, NodeType.STRUCTURE, NodeType.ENTITY, NodeType.DIMENSION}) {
+            for (SearchNode node : getNodes(type)) {
+                // Include any mod that has items, even if hidden or dev-only
+                // The visibility filters will be applied during actual searches
+                contentMods.add(node.id().getNamespace());
+            }
+        }
+
+        contentModsCache = Collections.unmodifiableSet(contentMods);
+        contentModsCacheRevision = currentRevision;
+        return contentModsCache;
     }
 
     // Fast lookup by ID + Type

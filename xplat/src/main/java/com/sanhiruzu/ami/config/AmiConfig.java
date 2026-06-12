@@ -61,6 +61,8 @@ public class AmiConfig {
     @ConfigHidden
     @ConfigValue("features.enable-progression-graph")
     public static boolean enableProgressionGraph = true;
+    @ConfigValue("features.enable-discovery-checklist")
+    public static boolean enableDiscoveryChecklist = false;
     @ConfigValue("ui.block-subgroup")
     public static BlockSubgroup blockSubgroup = BlockSubgroup.SHAPE;
     @ConfigHidden
@@ -165,6 +167,14 @@ public class AmiConfig {
     public static CompatCategoryPolicy botaniaCategoryPolicy = CompatCategoryPolicy.HYBRID;
     @ConfigValue("compat.ars-nouveau.category-policy")
     public static CompatCategoryPolicy arsNouveauCategoryPolicy = CompatCategoryPolicy.FOCUSED;
+    @ConfigValue("compat.pastel.category-policy")
+    public static CompatCategoryPolicy pastelCategoryPolicy = CompatCategoryPolicy.HYBRID;
+    @ConfigValue("compat.malum.category-policy")
+    public static CompatCategoryPolicy malumCategoryPolicy = CompatCategoryPolicy.HYBRID;
+    @ConfigValue("compat.swem.category-policy")
+    public static CompatCategoryPolicy swemCategoryPolicy = CompatCategoryPolicy.HYBRID;
+    @ConfigValue("compat.cataclysm.category-policy")
+    public static CompatCategoryPolicy cataclysmCategoryPolicy = CompatCategoryPolicy.HYBRID;
     @ConfigValue("compat.map-utility.category-policy")
     public static CompatCategoryPolicy mapUtilityCategoryPolicy = CompatCategoryPolicy.HYBRID;
     @ConfigValue("compat.waystones.open-screen-from-anywhere")
@@ -172,7 +182,7 @@ public class AmiConfig {
     // --- Side Panels Group ---
     @ConfigGroup(value = "sidepanels", icon = "sidepanels", order = 3)
     @ConfigValue("sidepanels.left.width")
-    public static int leftPanelWidth = 140;
+    public static int leftPanelWidth = 0; // 0 = Auto
     @ConfigValue("sidepanels.right.width")
     public static int rightPanelWidth = 0; // 0 = Auto
     @ConfigValue("sidepanels.left.slots")
@@ -303,6 +313,7 @@ public class AmiConfig {
         strictSurvivalMode = false;
         enableMaterialRootUI = true;
         enableProgressionGraph = true;
+        enableDiscoveryChecklist = false;
         blockSubgroup = BlockSubgroup.SHAPE;
         dynamicShapeMinCount = 40;
         dynamicShapeMinModSpread = 3;
@@ -344,10 +355,14 @@ public class AmiConfig {
         apotheosisCategoryPolicy = CompatCategoryPolicy.HYBRID;
         botaniaCategoryPolicy = CompatCategoryPolicy.HYBRID;
         arsNouveauCategoryPolicy = CompatCategoryPolicy.FOCUSED;
+        pastelCategoryPolicy = CompatCategoryPolicy.HYBRID;
+        malumCategoryPolicy = CompatCategoryPolicy.HYBRID;
+        swemCategoryPolicy = CompatCategoryPolicy.HYBRID;
+        cataclysmCategoryPolicy = CompatCategoryPolicy.HYBRID;
         mapUtilityCategoryPolicy = CompatCategoryPolicy.HYBRID;
         waystonesOpenScreenFromAnywhere = false;
 
-        leftPanelWidth = 140;
+        leftPanelWidth = 0;
         rightPanelWidth = 0;
         leftPanelSlots = "FAVORITES";
         leftPanelAlternateSlots = "NONE";

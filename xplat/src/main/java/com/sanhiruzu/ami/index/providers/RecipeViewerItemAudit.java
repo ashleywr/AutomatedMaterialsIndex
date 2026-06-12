@@ -8,6 +8,7 @@ import com.sanhiruzu.ami.compat.JeiRuntimeAccessor;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
 import dev.emi.emi.api.EmiApi;
 import dev.emi.emi.registry.EmiStackList;
@@ -145,7 +146,17 @@ public final class RecipeViewerItemAudit {
             if (itemId.isBlank() && BuiltInRegistries.ITEM.containsKey(node.id())) {
                 itemId = node.id().toString();
             }
+            if (itemId.isBlank()) {
+                String subtypeOf = node.meta(SearchNodeKeys.SUBTYPE_OF, "");
+                ResourceLocation subtypeId = ResourceLocation.tryParse(subtypeOf);
+                if (subtypeId != null && BuiltInRegistries.ITEM.containsKey(subtypeId)) {
+                    itemId = subtypeId.toString();
+                }
+            }
             String exactHash = itemId.isBlank() || stack.isEmpty() ? "" : exactHash(stack, level);
+            if (exactHash.isBlank() && !itemId.isBlank()) {
+                exactHash = variantHashFromNodeId(node.id());
+            }
             String exactKey = exactKey(itemId, exactHash);
             snapshots.add(new AmiItemSnapshot(
                     node.id().toString(),
@@ -276,6 +287,34 @@ public final class RecipeViewerItemAudit {
             return "";
         }
         return itemId + "|" + exactHash;
+    }
+
+    private static String variantHashFromNodeId(ResourceLocation nodeId) {
+        if (nodeId == null) {
+            return "";
+        }
+        String path = nodeId.getPath();
+        int marker = path.indexOf("/variant/");
+        if (marker < 0) {
+            return "";
+        }
+        String variantPath = path.substring(marker + "/variant/".length());
+        int underscore = variantPath.lastIndexOf('_');
+        if (underscore < 0 || underscore + 1 >= variantPath.length()) {
+            return "";
+        }
+        String candidate = variantPath.substring(underscore + 1);
+        if (candidate.length() < 8 || candidate.length() > 32) {
+            return "";
+        }
+        for (int i = 0; i < candidate.length(); i++) {
+            char c = candidate.charAt(i);
+            boolean hex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+            if (!hex) {
+                return "";
+            }
+        }
+        return candidate;
     }
 
     private static String dumpFileName(String source, String scope) {

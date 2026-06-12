@@ -4,6 +4,7 @@ import com.google.gson.*;
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.platform.Services;
+import com.sanhiruzu.ami.recipe.AmiRecipeIndex;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -16,8 +17,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -38,6 +41,19 @@ public final class GlobalIndexCache {
             .create();
     private static final String CACHE_DIR = "config/ami/cache";
     private static final boolean DISABLE_INDEX_CACHE = Boolean.getBoolean("ami.debug.disableIndexCache");
+
+    // Subdirectories (relative to game dir) where dynamic mods store scripts that can add/remove/modify items or recipes.
+    // These are NOT hashed by the mod fingerprint system since only the mod jar version is fingerprinted.
+    // Keeping startup_scripts separate from the rest of kubejs avoids hashing asset textures.
+    static final List<String> DYNAMIC_SCRIPT_DIRS = List.of(
+            "kubejs/server_scripts",   // KubeJS — recipe modifications
+            "kubejs/startup_scripts",  // KubeJS — item registration
+            "kubejs/client_scripts",   // KubeJS — display names, tooltips
+            "scripts",                 // CraftTweaker
+            "groovy",                  // GroovyScript
+            "openloader/resources",    // Open Loader — resource packs injected without a world
+            "openloader/data"          // Open Loader — data packs injected without a world
+    );
 
     private static final AtomicReference<JsonObject> preloadedData = new AtomicReference<>();
     // Path used when preloadedData was parsed; used to detect key drift (e.g. language change).
@@ -188,13 +204,23 @@ public final class GlobalIndexCache {
         return CompletableFuture
                 .runAsync(() -> {
                     GroupingEngine.initialize(level);
-                    if (!tryLoad()) {
+                if (!tryLoad()) {
                         ProviderRegistry.indexAll(level);
                         save();
                     } else {
                         // Index data restored from cache, but per-session ItemStacks for synthetic
                         // nodes (potions, enchanted books, etc.) are not serialized. Rebuild them.
                         ProviderRegistry.rehydrateSubtypeStacks(level);
+
+                        // Recipe index is runtime-only and not serialized with the global cache. Rebuild it
+                        // here so native recipe lookups function without requiring a full reindex.
+                        if (!AmiRecipeIndex.getInstance().isBuilt()) {
+                            try {
+                                AmiRecipeIndex.getInstance().rebuild(level);
+                            } catch (RuntimeException e) {
+                                AmiCore.LOGGER.warn("AMI: Recipe index rebuild after cache restore failed: {}", e.getMessage(), e);
+                            }
+                        }
                     }
                     GlobalIndex.getInstance().markIndexReady();
                 }, Util.backgroundExecutor())
@@ -223,7 +249,8 @@ public final class GlobalIndexCache {
                     + "_strictSurvival=" + AmiConfig.strictSurvivalMode
                     + "_cheat=" + AmiConfig.cheatMode
                     + "_dev=" + AmiConfig.devMode
-                    + IndexingHotItemPolicy.cacheKeyFragment();
+                    + IndexingHotItemPolicy.cacheKeyFragment()
+                    + "_scripts=" + dynamicScriptHash();
 
             MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
             byte[] digest = sha256.digest(input.getBytes(StandardCharsets.UTF_8));
@@ -233,6 +260,52 @@ public final class GlobalIndexCache {
         } catch (Exception e) {
             AmiCore.LOGGER.warn("AMI: Hash computation failed, using fallback key");
             return "fallback";
+        }
+    }
+
+    private static String dynamicScriptHash() {
+        return dynamicScriptHash(Services.PLATFORM.getGameDir());
+    }
+
+    /**
+     * Hashes the relative paths, sizes, and last-modified times of all files under known
+     * dynamic-script directories (KubeJS, CraftTweaker, GroovyScript, Open Loader).
+     * Returns an empty string if none of those directories exist. Any I/O error is
+     * swallowed so it cannot break cache-key computation.
+     */
+    static String dynamicScriptHash(Path gameDir) {
+        try {
+            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+            boolean anyDir = false;
+
+            for (String rel : DYNAMIC_SCRIPT_DIRS) {
+                Path dir = gameDir.resolve(rel);
+                if (!Files.isDirectory(dir)) continue;
+                anyDir = true;
+
+                List<Path> files = new ArrayList<>();
+                try (var stream = Files.walk(dir)) {
+                    stream.filter(Files::isRegularFile).sorted().forEach(files::add);
+                }
+
+                for (Path file : files) {
+                    // Relative to game dir so the hash is not machine-path-sensitive
+                    String relPath = gameDir.relativize(file).toString().replace('\\', '/');
+                    long size = Files.size(file);
+                    long mtime = Files.getLastModifiedTime(file).toMillis();
+                    sha256.update((relPath + "|" + size + "|" + mtime + "\n").getBytes(StandardCharsets.UTF_8));
+                }
+            }
+
+            if (!anyDir) return "";
+
+            byte[] digest = sha256.digest();
+            StringBuilder hex = new StringBuilder();
+            for (byte b : digest) hex.append(String.format("%02x", b));
+            return hex.toString();
+        } catch (Exception e) {
+            AmiCore.LOGGER.debug("AMI: Dynamic script directory hash skipped: {}", e.getMessage());
+            return "";
         }
     }
 
@@ -297,6 +370,7 @@ public final class GlobalIndexCache {
                     if ((loaded & 255) == 0 || loaded == total) {
                         progress.updateProgress(loaded);
                         progress.updateProgressDetail(node.id().toString());
+                        Thread.yield();
                     }
                 }
             } catch (IllegalArgumentException e) {

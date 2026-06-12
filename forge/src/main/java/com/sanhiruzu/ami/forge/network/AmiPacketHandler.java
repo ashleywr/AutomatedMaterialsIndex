@@ -11,7 +11,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 public class AmiPacketHandler {
     private static final String PROTOCOL_VERSION = "1";
     public static final SimpleChannel INSTANCE = NetworkRegistry.newSimpleChannel(
-            new ResourceLocation(AMI.MODID, "main"),
+            ResourceLocation.fromNamespaceAndPath(AMI.MODID, "main"),
             () -> PROTOCOL_VERSION,
             NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION),
             NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION)

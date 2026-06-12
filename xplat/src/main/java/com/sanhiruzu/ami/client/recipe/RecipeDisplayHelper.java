@@ -39,53 +39,45 @@ public final class RecipeDisplayHelper {
 
         if (type == RecipeType.CRAFTING) {
             shapeless = !(recipe instanceof ShapedRecipe);
-            backgroundTexture = Services.PLATFORM.rl("minecraft", "textures/gui/container/crafting_table.png");
-            bgX = 29;
-            bgY = 16;
-            bgW = 116;
-            bgH = 54;
-            bgRenderX = 20;
-            bgRenderY = 4;
-            drawSlotBackground = false;
+            // No vanilla texture — use AMI-styled slots for visual consistency.
+            // drawSlotBackground stays true (default).
+            int gridOriginX = 4;
+            int gridOriginY = 4;
 
             List<Ingredient> ingredients = recipe.getIngredients();
             List<Ingredient> padded = new ArrayList<>();
+            int cols = 3, rows = 3;
             if (recipe instanceof ShapedRecipe shaped) {
-                int w = shaped.getWidth();
-                int h = shaped.getHeight();
-                for (int y = 0; y < 3; y++) {
-                    for (int x = 0; x < 3; x++) {
-                        if (x < w && y < h) {
-                            padded.add(ingredients.get(y * w + x));
-                        } else {
-                            padded.add(Ingredient.EMPTY);
-                        }
+                cols = shaped.getWidth();
+                rows = shaped.getHeight();
+                for (int y = 0; y < rows; y++) {
+                    for (int x = 0; x < cols; x++) {
+                        padded.add(ingredients.get(y * cols + x));
                     }
                 }
             } else {
+                cols = 3; rows = 3;
                 for (int i = 0; i < 9; i++) {
-                    if (i < ingredients.size()) {
-                        padded.add(ingredients.get(i));
-                    } else {
-                        padded.add(Ingredient.EMPTY);
-                    }
+                    padded.add(i < ingredients.size() ? ingredients.get(i) : Ingredient.EMPTY);
                 }
             }
 
-            for (int i = 0; i < 9; i++) {
-                int col = i % 3;
-                int row = i / 3;
+            for (int i = 0; i < padded.size(); i++) {
+                int col = i % cols;
+                int row = i / cols;
                 Ingredient ing = padded.get(i);
                 List<ItemStack> alternatives = ing.isEmpty() ? List.of() : List.of(ing.getItems());
-                inputs.add(new SlotPosition(bgRenderX + col * 18 + 1, bgRenderY + row * 18 + 1, alternatives));
+                inputs.add(new SlotPosition(gridOriginX + col * 18, gridOriginY + row * 18, alternatives));
             }
 
-            gridW = 3;
-            gridH = 3;
-            arrowX = bgRenderX + 61;
-            arrowY = bgRenderY + 19;
-            outputX = bgRenderX + 95;
-            outputY = bgRenderY + 19;
+            gridW = cols;
+            gridH = rows;
+            int gridEndX = gridOriginX + cols * 18;
+            int gridMidY = gridOriginY + rows * 9 - 9;
+            arrowX = gridEndX + 4;
+            arrowY = gridMidY;
+            outputX = arrowX + 26;
+            outputY = gridMidY;
 
         } else if (isFurnaceType(type)) {
             backgroundTexture = Services.PLATFORM.rl("minecraft", "textures/gui/container/furnace.png");
@@ -99,11 +91,11 @@ public final class RecipeDisplayHelper {
 
             List<Ingredient> ingredients = recipe.getIngredients();
             if (!ingredients.isEmpty()) {
-                inputs.add(new SlotPosition(bgRenderX + 1, bgRenderY + 1, List.of(ingredients.get(0).getItems())));
+                inputs.add(new SlotPosition(bgRenderX, bgRenderY, List.of(ingredients.get(0).getItems())));
             } else {
-                inputs.add(new SlotPosition(bgRenderX + 1, bgRenderY + 1, List.of()));
+                inputs.add(new SlotPosition(bgRenderX, bgRenderY, List.of()));
             }
-            inputs.add(new SlotPosition(bgRenderX + 1, bgRenderY + 37, List.of()));
+            inputs.add(new SlotPosition(bgRenderX, bgRenderY + 36, List.of()));
 
             gridW = 1;
             gridH = 2;
@@ -125,7 +117,7 @@ public final class RecipeDisplayHelper {
             List<Ingredient> ingredients = recipe.getIngredients();
             for (int i = 0; i < 3; i++) {
                 Ingredient ing = (i < ingredients.size()) ? ingredients.get(i) : Ingredient.EMPTY;
-                inputs.add(new SlotPosition(bgRenderX + i * 18 + 1, bgRenderY + 1, ing.isEmpty() ? List.of() : List.of(ing.getItems())));
+                inputs.add(new SlotPosition(bgRenderX + i * 18, bgRenderY, ing.isEmpty() ? List.of() : List.of(ing.getItems())));
             }
 
             gridW = 3;
@@ -133,7 +125,7 @@ public final class RecipeDisplayHelper {
             arrowX = bgRenderX + 61;
             arrowY = bgRenderY;
             outputX = bgRenderX + 91;
-            outputY = bgRenderY + 1;
+            outputY = bgRenderY;
 
         } else if (type == RecipeType.STONECUTTING) {
             backgroundTexture = Services.PLATFORM.rl("minecraft", "textures/gui/container/stonecutter.png");
@@ -147,15 +139,15 @@ public final class RecipeDisplayHelper {
 
             List<Ingredient> ingredients = recipe.getIngredients();
             if (!ingredients.isEmpty()) {
-                inputs.add(new SlotPosition(bgRenderX + 1, bgRenderY + 1, List.of(ingredients.get(0).getItems())));
+                inputs.add(new SlotPosition(bgRenderX, bgRenderY, List.of(ingredients.get(0).getItems())));
             }
 
             gridW = 1;
             gridH = 1;
             arrowX = bgRenderX + 68;
-            arrowY = bgRenderY + 1;
+            arrowY = bgRenderY;
             outputX = bgRenderX + 124;
-            outputY = bgRenderY + 1;
+            outputY = bgRenderY;
 
         } else if (type.toString().equals("ami:brewing")) {
             backgroundTexture = Services.PLATFORM.rl("minecraft", "textures/gui/container/brewing_stand.png");
@@ -213,8 +205,8 @@ public final class RecipeDisplayHelper {
             drawSlotBackground = false;
 
             if (recipe instanceof AnvilRepairRecipeView arr) {
-                inputs.add(new SlotPosition(bgRenderX + 1, bgRenderY + 1, List.of(arr.getTool())));
-                inputs.add(new SlotPosition(bgRenderX + 50, bgRenderY + 1, List.of(arr.getMaterial().getItems())));
+                inputs.add(new SlotPosition(bgRenderX, bgRenderY, List.of(arr.getTool())));
+                inputs.add(new SlotPosition(bgRenderX + 49, bgRenderY, List.of(arr.getMaterial().getItems())));
             }
 
             gridW = 2;
@@ -222,7 +214,7 @@ public final class RecipeDisplayHelper {
             arrowX = bgRenderX + 76;
             arrowY = bgRenderY;
             outputX = bgRenderX + 108;
-            outputY = bgRenderY + 1;
+            outputY = bgRenderY;
 
         } else if (type.toString().equals("ami:composting")) {
             drawSlotBackground = true;
@@ -282,8 +274,8 @@ public final class RecipeDisplayHelper {
             drawSlotBackground = false;
 
             if (recipe instanceof AnvilEnchantingRecipeView aer) {
-                inputs.add(new SlotPosition(bgRenderX + 1, bgRenderY + 1, List.of(aer.getTool())));
-                inputs.add(new SlotPosition(bgRenderX + 50, bgRenderY + 1, List.of(aer.getBook())));
+                inputs.add(new SlotPosition(bgRenderX, bgRenderY, List.of(aer.getTool())));
+                inputs.add(new SlotPosition(bgRenderX + 49, bgRenderY, List.of(aer.getBook())));
             }
 
             gridW = 2;
@@ -291,30 +283,61 @@ public final class RecipeDisplayHelper {
             arrowX = bgRenderX + 76;
             arrowY = bgRenderY;
             outputX = bgRenderX + 108;
-            outputY = bgRenderY + 1;
+            outputY = bgRenderY;
 
         } else {
+            // Generic fallback for unknown/mod recipe types.
+            // Filter empty ingredients first so layout math is based on real slots.
             List<Ingredient> ingredients = recipe.getIngredients();
-            int cols = Math.min(ingredients.size(), 3);
-            int rows = ingredients.isEmpty() ? 0 : (int) Math.ceil((double) ingredients.size() / cols);
-            int gridPixelW = cols * 18;
-            int startX = (134 - gridPixelW) / 2;
-            int startY = 14;
-
-            for (int i = 0; i < ingredients.size(); i++) {
-                Ingredient ing = ingredients.get(i);
-                if (ing.isEmpty()) continue;
-                int col = i % cols;
-                int row = i / cols;
-                inputs.add(new SlotPosition(startX + col * 18, startY + row * 18, List.of(ing.getItems())));
+            List<Ingredient> nonEmpty = new ArrayList<>();
+            for (Ingredient ing : ingredients) {
+                if (!ing.isEmpty()) nonEmpty.add(ing);
             }
 
-            gridW = cols;
-            gridH = rows;
-            arrowX = 92;
-            arrowY = 14;
-            outputX = 92;
-            outputY = 14;
+            int inputCount = nonEmpty.size();
+
+            if (inputCount == 0) {
+                // No inputs — just show the output centred.
+                gridW = 0; gridH = 0;
+                arrowX = 20; arrowY = 4;
+                outputX = 44; outputY = 0;
+
+            } else if (inputCount == 1) {
+                // Single input: furnace-style horizontal  [in] → [out]
+                inputs.add(new SlotPosition(0, 0, List.of(nonEmpty.get(0).getItems())));
+                gridW = 1; gridH = 1;
+                arrowX = 24; arrowY = 4;
+                outputX = 50; outputY = 0;
+
+            } else if (inputCount <= 3) {
+                // One row of up to 3 slots, then arrow, then output.
+                for (int i = 0; i < inputCount; i++) {
+                    inputs.add(new SlotPosition(i * 18, 0, List.of(nonEmpty.get(i).getItems())));
+                }
+                gridW = inputCount; gridH = 1;
+                int rowPx = inputCount * 18;
+                arrowX = rowPx + 6;
+                arrowY = 4;
+                outputX = rowPx + 32;  // arrowX + arrow_width(22) + output_sprite_margin(4)
+                outputY = 0;
+
+            } else {
+                // Grid layout: max 3 columns, as many rows as needed.
+                int cols = inputCount <= 4 ? 2 : 3;
+                int rows = (int) Math.ceil((double) inputCount / cols);
+                for (int i = 0; i < inputCount; i++) {
+                    int col = i % cols;
+                    int row = i / cols;
+                    inputs.add(new SlotPosition(col * 18, row * 18, List.of(nonEmpty.get(i).getItems())));
+                }
+                gridW = cols; gridH = rows;
+                int gridPxW = cols * 18;
+                int gridPxH = rows * 18;
+                arrowX = gridPxW + 6;
+                arrowY = Math.max(0, (gridPxH - 9) / 2);
+                outputX = gridPxW + 32;  // arrowX + arrow_width(22) + output_sprite_margin(4)
+                outputY = Math.max(0, (gridPxH - 18) / 2);
+            }
         }
 
         return new RecipeLayout(
@@ -322,6 +345,17 @@ public final class RecipeDisplayHelper {
                 outputX, outputY, arrowX, arrowY,
                 backgroundTexture, bgX, bgY, bgW, bgH, bgRenderX, bgRenderY, drawSlotBackground
         );
+    }
+
+    /** Returns true for recipe types that have a dedicated bespoke renderer (no generic fallback). */
+    public static boolean hasDedicatedLayout(RecipeType<?> type) {
+        if (type == RecipeType.CRAFTING || type == RecipeType.SMITHING || type == RecipeType.STONECUTTING)
+            return true;
+        if (isFurnaceType(type)) return true;
+        String t = type.toString();
+        return t.equals("ami:brewing") || t.equals("ami:grinding") || t.equals("ami:anvil_repairing")
+                || t.equals("ami:composting") || t.equals("ami:fuel") || t.equals("ami:disenchanting")
+                || t.equals("ami:enchanting");
     }
 
     public static boolean isFurnaceType(RecipeType<?> type) {
@@ -364,7 +398,13 @@ public final class RecipeDisplayHelper {
             return name != null ? Component.literal(name) : Component.literal(type.toString());
         }
         ResourceLocation key = BuiltInRegistries.RECIPE_TYPE.getKey(type);
-        if (key == null) return Component.literal(type.toString());
+        if (key == null) {
+            String raw = type.toString();
+            if (raw.startsWith("ami:")) {
+                return Component.translatable("ami.recipe_viewer.tab." + raw.substring(4));
+            }
+            return Component.literal(raw);
+        }
         String langKey = "ami.recipe_viewer.tab." + key.getPath();
         if ("minecraft".equals(key.getNamespace()) || "ami".equals(key.getNamespace())) {
             return Component.translatable(langKey);
@@ -378,7 +418,13 @@ public final class RecipeDisplayHelper {
             if (name != null) return name.length() > 8 ? name.substring(0, 8) : name;
         }
         ResourceLocation key = BuiltInRegistries.RECIPE_TYPE.getKey(type);
-        if (key == null) return type.toString().substring(0, Math.min(6, type.toString().length()));
+        if (key == null) {
+            String raw = type.toString();
+            if (raw.startsWith("ami:")) {
+                return Component.translatable("ami.recipe_viewer.tab.short." + raw.substring(4)).getString();
+            }
+            return raw.substring(0, Math.min(6, raw.length()));
+        }
         if ("minecraft".equals(key.getNamespace()) || "ami".equals(key.getNamespace())) {
             return Component.translatable("ami.recipe_viewer.tab.short." + key.getPath()).getString();
         }

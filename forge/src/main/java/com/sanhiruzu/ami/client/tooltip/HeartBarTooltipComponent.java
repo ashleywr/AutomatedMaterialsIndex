@@ -17,7 +17,7 @@ public final class HeartBarTooltipComponent implements TooltipComponent, ClientT
 
     // In 1.20.1 hearts live on the icons texture sheet, not the sprite atlas.
     // UV offsets from Gui.HeartType: CONTAINER index=0 → u=16, NORMAL index=2 → full u=52, half u=61.
-    private static final ResourceLocation ICONS = new ResourceLocation("textures/gui/icons.png");
+    private static final ResourceLocation ICONS = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/icons.png");
     private static final int U_CONTAINER = 16;
     private static final int U_FULL = 52;
     private static final int U_HALF = 61;

@@ -7,6 +7,7 @@ import com.sanhiruzu.ami.compat.CompatIndexRegistry;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.config.AmiCustomTaxonomy;
 import com.sanhiruzu.ami.config.AmiDataFixes;
+import com.sanhiruzu.ami.recipe.AmiRecipeIndex;
 import com.sanhiruzu.ami.index.query.SearchSuggestions;
 import com.sanhiruzu.ami.index.runtime.RuntimeSearchProviders;
 import com.sanhiruzu.ami.platform.Services;
@@ -25,6 +26,8 @@ public final class AmiIndexerService {
     private final AtomicBoolean isRebuilding = new AtomicBoolean(false);
     private final AtomicBoolean isDeferredIndexing = new AtomicBoolean(false);
     private final AtomicBoolean isDeferredGuideIndexing = new AtomicBoolean(false);
+    private final AtomicBoolean pendingRecipeIndexRebuild = new AtomicBoolean(false);
+    private final AtomicBoolean isRecipeIndexRebuilding = new AtomicBoolean(false);
     private volatile SearchService searchService;
     private volatile long searchServiceRevision = -1L;
     private volatile AmiGuideSearchIndex guideSearchIndex = new AmiGuideSearchIndex(null, AmiGuideSearchIndex.GuideIndexingMode.OFF);
@@ -81,6 +84,10 @@ public final class AmiIndexerService {
     public boolean rebuild(Level level, boolean forceProviderRebuild) {
         if (!isRebuilding.compareAndSet(false, true)) return false;
         lastRebuildFailure = null;
+
+        // Capture creative tab data on the calling (main) thread before dispatching background work.
+        // tab.buildContents() fires NeoForge events; calling it off-thread is unsupported by mod authors.
+        ItemFilter.captureCreativeTabSnapshot(level);
 
         CompletableFuture.runAsync(withIndexerClassLoader(() -> {
             try {
@@ -152,6 +159,7 @@ public final class AmiIndexerService {
         if (!deferredNamespaceMode && !forceProviderRebuild && Services.PLATFORM.tryLoadGlobalIndexCache()) {
             beginProgress("Restoring cached item icons", "Rebuilding runtime stacks", estimatedItemTotal());
             ProviderRegistry.rehydrateSubtypeStacks(level);
+            ensureRecipeIndexBuilt(level);
         } else {
             beginProgress("Building item index");
             ProviderRegistry.indexAll(level);
@@ -209,6 +217,56 @@ public final class AmiIndexerService {
             scheduleIconAuditIfEnabled();
         }
         scheduleDeferredGuideIndex();
+    }
+
+    private void ensureRecipeIndexBuilt(Level level) {
+        if (level == null) {
+            if (pendingRecipeIndexRebuild.compareAndSet(false, true)) {
+                AmiCore.LOGGER.debug("AMI: Recipe index rebuild deferred; waiting for client level.");
+            }
+            return;
+        }
+        pendingRecipeIndexRebuild.set(false);
+
+        AmiRecipeIndex recipeIndex = AmiRecipeIndex.getInstance();
+        if (recipeIndex.isBuilt()) {
+            return;
+        }
+        rebuildRecipeIndexNow(level, recipeIndex);
+    }
+
+    public void ensurePendingRecipeIndexBuild() {
+        if (!pendingRecipeIndexRebuild.get()) return;
+
+        Level level = com.sanhiruzu.ami.util.DistUtils.getClientLevel();
+        if (level == null) return;
+
+        if (pendingRecipeIndexRebuild.compareAndSet(true, false)) {
+            scheduleRecipeIndexRebuild(level);
+        }
+    }
+
+    public void scheduleRecipeIndexRebuild(Level level) {
+        if (level == null) return;
+        if (!isRecipeIndexRebuilding.compareAndSet(false, true)) return;
+
+        CompletableFuture.runAsync(withIndexerClassLoader(() -> {
+            try {
+                rebuildRecipeIndexNow(level, AmiRecipeIndex.getInstance());
+            } finally {
+                isRecipeIndexRebuilding.set(false);
+            }
+        }), Util.backgroundExecutor());
+    }
+
+    private void rebuildRecipeIndexNow(Level level, AmiRecipeIndex recipeIndex) {
+        beginProgress("Rebuilding recipe index");
+        try {
+            recipeIndex.rebuild(level);
+            AmiCore.LOGGER.debug("AMI: Recipe index rebuilt after cache restore ({} recipes)", recipeIndex.recipeCount());
+        } catch (RuntimeException e) {
+            AmiCore.LOGGER.warn("AMI: Recipe index rebuild after cache restore failed: {}", e.getMessage(), e);
+        }
     }
 
     private void scheduleDeferredNamespaceIndex(Level level) {
