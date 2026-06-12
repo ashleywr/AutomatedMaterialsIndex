@@ -71,9 +71,22 @@ final class ScrollbarSpriteRenderer {
     private static int modernThemeThumbColor(boolean active) {
         int color = active ? AMITheme.SCROLL_THUMB_ACTIVE : AMITheme.SCROLL_THUMB;
         if (AmiConfig.theme == AmiConfig.Theme.MODERN) {
+            color = darken(color, 0x70);
             int alpha = active ? 0x55 : 0x33;
             return (color & 0x00FFFFFF) | (alpha << 24);
         }
         return color;
+    }
+
+    private static int darken(int argb, int amount) {
+        int a = (argb >>> 24) & 0xFF;
+        int r = (argb >>> 16) & 0xFF;
+        int g = (argb >>> 8) & 0xFF;
+        int b = argb & 0xFF;
+
+        r = (r * amount) >> 8;
+        g = (g * amount) >> 8;
+        b = (b * amount) >> 8;
+        return (a << 24) | (r << 16) | (g << 8) | b;
     }
 }
