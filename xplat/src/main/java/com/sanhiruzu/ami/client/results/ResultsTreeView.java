@@ -351,6 +351,7 @@ public class ResultsTreeView {
         renderer.render(g, entry, -8, -8, AMITheme.ICON_SIZE, hovered);
         g.pose().popPose();
         DiscoveryVisuals.renderIconOverlay(g, entry, iconX, iconY, AMITheme.ICON_SIZE);
+        AccessLevelVisuals.renderIconOverlay(g, entry, iconX, iconY, AMITheme.ICON_SIZE);
 
         int textX = iconX + AMITheme.ICON_SIZE + 4;
         int maxTextW = x + width - SCROLLBAR_W - 6 - textX;

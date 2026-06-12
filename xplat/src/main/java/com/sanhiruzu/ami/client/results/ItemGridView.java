@@ -458,7 +458,11 @@ public class ItemGridView {
     }
 
     private void queueItemIcon(SearchNode entry, ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
-        if (TEXTURE_ITEM_ICON_CACHE_ENABLED || hovered || cachedDragging || DiscoveryVisuals.hasDiscoveryState(entry)) {
+        if (TEXTURE_ITEM_ICON_CACHE_ENABLED
+                || hovered
+                || cachedDragging
+                || DiscoveryVisuals.hasDiscoveryState(entry)
+                || AccessLevelVisuals.hasDevOnlyMarker(entry)) {
             AmiRenderProfiler.count("grid.queuedDirectIcons");
             queueDirectItemIcon(entry, itemId, stack, x, y, hovered);
         } else {
@@ -531,11 +535,13 @@ public class ItemGridView {
                 PendingItemIcon icon = pendingDirectItemIcons.get(i);
                 renderIconWithWiggle(g, icon.itemId, icon.stack, icon.x, icon.y, icon.hovered);
                 DiscoveryVisuals.renderIconOverlay(g, icon.entry, icon.x, icon.y, 16);
+                AccessLevelVisuals.renderIconOverlay(g, icon.entry, icon.x, icon.y, 16);
             }
             for (int i = 0; i < pendingRendererIconCount; i++) {
                 PendingRendererIcon icon = pendingRendererIcons.get(i);
                 renderRendererWithWiggle(g, icon.entry, icon.x, icon.y, icon.hovered);
                 DiscoveryVisuals.renderIconOverlay(g, icon.entry, icon.x, icon.y, 16);
+                AccessLevelVisuals.renderIconOverlay(g, icon.entry, icon.x, icon.y, 16);
             }
         }
     }
