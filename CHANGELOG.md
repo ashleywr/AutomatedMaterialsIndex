@@ -37,6 +37,10 @@ AMI 1.5.0 focuses on UI rendering and tooltip layering stability, result-tree co
 - Fixed plain-text search regressions in tooltip token coverage by restoring `tooltipSearchTokens` in plain search indexing while retaining description token indexing.
 - Fixed NeoForge recipe-book mixin crash caused by enum switch bytecode in `RecipeBookComponentMixin` by removing synthetic switch-map dependence and using direct mode checks.
 
+### Compatibility Notes
+
+- Verified the current best-effort mapping-mod compatibility paths against the latest compat-watch updates from issue #35: JourneyMap `1.21.1-6.0.0-beta.83+neoforge`, Xaero's Minimap `forge-1.20.1-26.1.0` / `neoforge-1.21.1-26.1.0`, and Xaero's World Map `forge-1.20.1-1.41.0` / `neoforge-1.21.1-1.41.0`.
+
 ## 1.4.2 - 2026-06-08
 
 AMI 1.4.2 is a hotfix release for result-panel refresh lag triggered by recipe lookups.
