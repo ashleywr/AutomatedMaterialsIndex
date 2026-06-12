@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.recipe;
 
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
+import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -15,6 +16,7 @@ import java.util.concurrent.ConcurrentMap;
 public abstract class AmiRecipeIndexBase {
     private final ConcurrentMap<Item, List<AmiRecipeHolder<?>>> recipesByOutput = new ConcurrentHashMap<>();
     private final ConcurrentMap<Item, List<AmiRecipeHolder<?>>> recipesByInput = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ResourceLocation, ItemStack> outputByRecipe = new ConcurrentHashMap<>();
     private volatile boolean built;
 
     public boolean isBuilt() {
@@ -24,6 +26,7 @@ public abstract class AmiRecipeIndexBase {
     protected void beginRebuild() {
         recipesByOutput.clear();
         recipesByInput.clear();
+        outputByRecipe.clear();
         built = false;
     }
 
@@ -40,7 +43,13 @@ public abstract class AmiRecipeIndexBase {
     }
 
     protected void addOutput(ItemStack stack, AmiRecipeHolder<?> holder) {
-        if (!stack.isEmpty()) addOutput(stack.getItem(), holder);
+        if (stack.isEmpty()) return;
+        if (holder != null && holder.id() != null) {
+            ItemStack copy = stack.copy();
+            copy.setCount(1);
+            outputByRecipe.put(holder.id(), copy);
+        }
+        addOutput(stack.getItem(), holder);
     }
 
     protected void addInput(ItemStack stack, AmiRecipeHolder<?> holder) {
@@ -56,13 +65,21 @@ public abstract class AmiRecipeIndexBase {
     public List<AmiRecipeHolder<?>> getRecipesFor(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return List.of();
         List<AmiRecipeHolder<?>> list = recipesByOutput.get(stack.getItem());
-        return list == null ? List.of() : List.copyOf(list);
+        if (list == null || list.isEmpty()) return List.of();
+        if (!hasStackSpecificComponents(stack)) return List.copyOf(list);
+
+        List<AmiRecipeHolder<?>> exact = new ArrayList<>();
+        for (AmiRecipeHolder<?> holder : list) {
+            ItemStack output = outputByRecipe.get(holder.id());
+            if (output != null && Services.PLATFORM.sameItemSameComponents(stack, output)) {
+                exact.add(holder);
+            }
+        }
+        return List.copyOf(exact);
     }
 
     public boolean hasRecipesFor(ItemStack stack) {
-        if (stack == null || stack.isEmpty()) return false;
-        List<AmiRecipeHolder<?>> list = recipesByOutput.get(stack.getItem());
-        return list != null && !list.isEmpty();
+        return !getRecipesFor(stack).isEmpty();
     }
 
     public List<AmiRecipeHolder<?>> getUsesFor(ItemStack stack) {
@@ -122,5 +139,17 @@ public abstract class AmiRecipeIndexBase {
             unique.putIfAbsent(holder.value().getType(), holder);
         }
         return new ArrayList<>(unique.values());
+    }
+
+    private static boolean hasStackSpecificComponents(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        try {
+            Object patch = stack.getClass().getMethod("getComponentsPatch").invoke(stack);
+            if (patch == null) return false;
+            Object empty = patch.getClass().getMethod("isEmpty").invoke(patch);
+            return empty instanceof Boolean bool && !bool;
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+            return false;
+        }
     }
 }

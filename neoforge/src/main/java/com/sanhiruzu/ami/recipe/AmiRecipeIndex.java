@@ -116,7 +116,7 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
                     if (!result.isEmpty()) {
                         Item key = result.getItem();
                         if (seenOutputs.computeIfAbsent(key, k -> new HashSet<>()).add(id)) {
-                            addOutput(key, holder);
+                            addOutput(result, holder);
                         }
                     }
                 } catch (Exception ignored) {
