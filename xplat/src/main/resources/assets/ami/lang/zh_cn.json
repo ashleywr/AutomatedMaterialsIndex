@@ -588,7 +588,6 @@
   "ami.config.emi_config": "EMI设置",
   "ami.config.group.general": "常规",
   "ami.config.group.display": "主题",
-  "ami.config.group.interaction": "搜索",
   "ami.config.group.features": "特性",
   "ami.config.group.layout": "布局",
   "ami.config.group.palette": "高级主题",
@@ -658,6 +657,8 @@
   "ami.config.tooltip.features.enable-ghost-crafting": "允许在配方中放置幽灵物品。",
   "ami.config.value.features.guide-indexing-mode": "指南索引",
   "ami.config.tooltip.features.guide-indexing-mode": "控制可搜索的指南页面索引。标题可降低内存占用；摘要还会索引限定长度的页面文本。",
+  "ami.config.value.search.include-entities": "生物和实体结果",
+  "ami.config.tooltip.search.include-entities": "索引并显示生物等实体结果。关闭后会跳过实体索引和图标预热。",
   "ami.config.value.features.pack-author-mode": "整合包作者模式",
   "ami.config.tooltip.features.pack-author-mode": "显示整合包作者的复制报告和起始代码片段，而不启用所有AMI开发者/调试行为。",
   "ami.config.value.ui.confirm-external-links": "确认外部链接",
@@ -1016,5 +1017,24 @@
   "ami.config.value.ui.theme.vanilla": "原版",
   "ami.config.value.ui.theme.modern": "现代",
   "ami.config.value.ui.theme.custom": "自定义",
-  "ami.config.panel.remove_slot": "-"
+  "ami.config.panel.remove_slot": "-",
+
+  "__machine_translated_below": "--- Strings below this line are machine-translated ---",
+
+  "ami.gui.advancement_results": "进度",
+  "ami.context.open_advancement": "打开进度",
+  "ami.context.copy_advancement_title": "复制进度标题",
+  "ami.context.copy_advancement_id": "复制进度ID",
+  "ami.config.group.search": "搜索",
+  "ami.config.group.interaction": "交互",
+  "ami.config.value.search.include-guides": "指南结果",
+  "ami.config.tooltip.search.include-guides": "在搜索结果中以文档行显示指南书页面匹配。",
+  "ami.config.value.search.include-quests": "任务结果",
+  "ami.config.tooltip.search.include-quests": "在搜索结果中以文档行显示任务匹配。",
+  "ami.config.value.search.include-advancements": "进度结果",
+  "ami.config.tooltip.search.include-advancements": "在搜索结果中以文档行显示可见的Minecraft进度匹配。",
+  "ami.config.value.search.include-players": "玩家结果",
+  "ami.config.tooltip.search.include-players": "在搜索结果中显示在线玩家和玩家头匹配。",
+  "ami.config.value.search.include-waypoints": "路径点结果",
+  "ami.config.tooltip.search.include-waypoints": "在搜索结果中显示运行时玩家路径点匹配。"
 }
