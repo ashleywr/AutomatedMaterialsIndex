@@ -14,37 +14,64 @@ import net.minecraft.resources.ResourceLocation;
 import org.joml.Matrix4f;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.LinkedHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 /**
- * Bakes static entity thumbnails into persistent per-size atlas PNGs, then blits
- * atlas regions on normal grid frames. The expensive entity renderer only runs
- * on a first bake for an entity/size pair or when the cache key changes.
+ * Bakes static entity thumbnails into a runtime atlas, then blits atlas regions
+ * on normal grid frames. Persistent cache files are per-icon PNGs so a new bake
+ * never rewrites the whole atlas image.
  */
 public class EntityIconCache {
 
     private static final int ATLAS_SIZE = 2048;
-    private static final String CACHE_VERSION = "entity-atlas-v1";
+    private static final boolean ADAPTIVE_BAKING =
+            Boolean.parseBoolean(System.getProperty("ami.entityIconAtlasAdaptiveBake", "true"));
+    private static final int ADAPTIVE_MIN_INTERVAL_TICKS =
+            Math.max(1, Integer.getInteger("ami.entityIconAtlasAdaptiveMinIntervalTicks", 2));
+    private static final int ADAPTIVE_MAX_INTERVAL_TICKS =
+            Math.max(ADAPTIVE_MIN_INTERVAL_TICKS,
+                    Integer.getInteger("ami.entityIconAtlasAdaptiveMaxIntervalTicks", 40));
+    private static final long ADAPTIVE_TARGET_NANOS =
+            Math.max(100_000L, Long.getLong("ami.entityIconAtlasAdaptiveTargetMs", 3L) * 1_000_000L);
+    private static final long ADAPTIVE_BACKOFF_NANOS =
+            Math.max(ADAPTIVE_TARGET_NANOS, Long.getLong("ami.entityIconAtlasAdaptiveBackoffMs", 8L) * 1_000_000L);
+    // Queue entries retain render lambdas, which can retain entity instances. Keep this intentionally small.
+    private static final int MAX_PENDING_BAKES =
+            Math.max(1, Integer.getInteger("ami.entityIconAtlasPendingBakeLimit", 64));
+    private static final AmiClientWorkScheduler.Lane BAKE_LANE = AmiClientWorkScheduler.lane(
+            "entityIconAtlasBake",
+            new AdaptiveTickScheduler.Config(
+                    ADAPTIVE_BAKING,
+                    Integer.getInteger("ami.entityIconAtlasBakeIntervalTicks", 10),
+                    ADAPTIVE_MIN_INTERVAL_TICKS,
+                    ADAPTIVE_MAX_INTERVAL_TICKS,
+                    ADAPTIVE_TARGET_NANOS,
+                    ADAPTIVE_BACKOFF_NANOS,
+                    8));
     private static final Map<Integer, Atlas> atlases = new HashMap<>();
     private static final Set<CacheKey> failedKeys = new HashSet<>();
     private static final Map<CacheKey, BakeTask> pendingBakes = new LinkedHashMap<>();
+    private static String activeFingerprint;
+    private static long queuedBakeRequests;
+    private static long droppedBakeRequests;
+    private static long renderedBakeCount;
+    private static long persistentLoadCount;
+    private static long failedBakeCount;
+    private static final ExecutorService PERSIST_EXECUTOR = Executors.newSingleThreadExecutor(task -> {
+        Thread thread = new Thread(task, "AMI Entity Icon Atlas Writer");
+        thread.setDaemon(true);
+        thread.setPriority(Math.max(Thread.MIN_PRIORITY, Thread.NORM_PRIORITY - 1));
+        return thread;
+    });
 
     private EntityIconCache() {
     }
@@ -62,9 +89,9 @@ public class EntityIconCache {
         }
 
         Atlas atlas = atlas(size);
-        AtlasEntry entry = atlas.entry(id);
+        EntityIconAtlasAllocator.AtlasEntry entry = atlas.entry(id);
         if (entry == null) {
-            queueBake(cacheKey, renderToFramebuffer);
+            queueBake(cacheKey, renderToFramebuffer, true);
             return false;
         }
 
@@ -83,66 +110,165 @@ public class EntityIconCache {
      * Requests a persistent atlas bake without drawing anything to the current
      * screen. Actual baking happens later through {@link #processPendingBakes}.
      */
-    public static boolean warmCached(ResourceLocation id, int size, Consumer<GuiGraphics> renderToFramebuffer) {
+    public static BakeRequestResult warmCached(ResourceLocation id, int size, Consumer<GuiGraphics> renderToFramebuffer) {
         CacheKey cacheKey = new CacheKey(id, size);
         if (failedKeys.contains(cacheKey)) {
-            return false;
+            return BakeRequestResult.FAILED;
         }
 
         Atlas atlas = atlas(size);
         if (atlas.entry(id) != null) {
-            return true;
+            return BakeRequestResult.CACHED;
         }
 
-        queueBake(cacheKey, renderToFramebuffer);
-        return false;
+        return queueBake(cacheKey, renderToFramebuffer, false);
     }
 
     /**
      * Runs a bounded amount of queued atlas baking on the client thread.
      */
     public static void processPendingBakes(int maxBakes) {
+        processPendingBakes(maxBakes, Long.MAX_VALUE);
+    }
+
+    public static void processPendingBakes(int maxBakes, long maxNanos) {
         int remaining = Math.max(0, maxBakes);
+        long startedAt = System.nanoTime();
         while (remaining > 0 && !pendingBakes.isEmpty()) {
             BakeTask task = pendingBakes.values().iterator().next();
             pendingBakes.remove(task.key());
-            bakeNow(task);
+            long elapsedNanos = bakeNow(task);
+            BAKE_LANE.recordWorkNanos(elapsedNanos);
             remaining--;
+            if (System.nanoTime() - startedAt >= maxNanos) {
+                break;
+            }
         }
+    }
+
+    public static void processPendingBakesAdaptive(int maxBakes) {
+        processPendingBakesAdaptive(maxBakes, Long.MAX_VALUE);
+    }
+
+    public static void processPendingBakesAdaptive(int maxBakes, long maxNanos) {
+        if (!BAKE_LANE.shouldRunThisTick()) {
+            return;
+        }
+        processPendingBakes(maxBakes, maxNanos);
     }
 
     public static int pendingBakeCount() {
         return pendingBakes.size();
     }
 
-    private static void queueBake(CacheKey cacheKey, Consumer<GuiGraphics> renderToFramebuffer) {
-        if (failedKeys.contains(cacheKey) || pendingBakes.containsKey(cacheKey)) {
-            return;
-        }
-        Atlas atlas = atlas(cacheKey.size());
-        if (atlas.entry(cacheKey.id()) != null) {
-            return;
-        }
-        pendingBakes.put(cacheKey, new BakeTask(cacheKey, renderToFramebuffer));
+    public static boolean isFailed(ResourceLocation id, int size) {
+        return failedKeys.contains(new CacheKey(id, size));
     }
 
-    private static void bakeNow(BakeTask task) {
+    public static Stats stats() {
+        Map<Integer, AtlasStats> atlasStats = new LinkedHashMap<>();
+        long pendingWrites = 0L;
+        long droppedWrites = 0L;
+        for (Map.Entry<Integer, Atlas> entry : atlases.entrySet()) {
+            Atlas atlas = entry.getValue();
+            atlasStats.put(entry.getKey(), atlas.stats());
+            EntityIconPersistentStore.StoreStats storeStats = atlas.storeStats();
+            pendingWrites += storeStats.pendingWrites();
+            droppedWrites += storeStats.droppedWrites();
+        }
+        return new Stats(
+                atlases.size(),
+                pendingBakes.size(),
+                failedKeys.size(),
+                queuedBakeRequests,
+                droppedBakeRequests,
+                renderedBakeCount,
+                persistentLoadCount,
+                failedBakeCount,
+                pendingWrites,
+                droppedWrites,
+                atlasStats
+        );
+    }
+
+    private static BakeRequestResult queueBake(CacheKey cacheKey, Consumer<GuiGraphics> renderToFramebuffer, boolean priority) {
+        if (failedKeys.contains(cacheKey)) {
+            return BakeRequestResult.FAILED;
+        }
+        Atlas atlas = atlas(cacheKey.size());
+        if (atlas.entry(cacheKey.id()) != null) {
+            return BakeRequestResult.CACHED;
+        }
+        if (pendingBakes.containsKey(cacheKey)) {
+            if (priority) {
+                putPendingFirst(cacheKey, new BakeTask(cacheKey, renderToFramebuffer, true));
+            }
+            return BakeRequestResult.QUEUED;
+        }
+        if (pendingBakes.size() >= MAX_PENDING_BAKES) {
+            if (!priority) {
+                droppedBakeRequests++;
+                return BakeRequestResult.QUEUE_FULL;
+            }
+            CacheKey evictableKey = null;
+            for (Map.Entry<CacheKey, BakeTask> entry : pendingBakes.entrySet()) {
+                if (!entry.getValue().priority()) {
+                    evictableKey = entry.getKey();
+                }
+            }
+            if (evictableKey == null) {
+                return BakeRequestResult.QUEUE_FULL;
+            }
+            if (evictableKey != null) {
+                pendingBakes.remove(evictableKey);
+                droppedBakeRequests++;
+            }
+        }
+        if (priority) {
+            putPendingFirst(cacheKey, new BakeTask(cacheKey, renderToFramebuffer, true));
+        } else {
+            pendingBakes.put(cacheKey, new BakeTask(cacheKey, renderToFramebuffer, false));
+        }
+        queuedBakeRequests++;
+        return BakeRequestResult.QUEUED;
+    }
+
+    private static void putPendingFirst(CacheKey cacheKey, BakeTask task) {
+        LinkedHashMap<CacheKey, BakeTask> reordered = new LinkedHashMap<>();
+        reordered.put(cacheKey, task);
+        for (Map.Entry<CacheKey, BakeTask> entry : pendingBakes.entrySet()) {
+            if (!entry.getKey().equals(cacheKey)) {
+                reordered.put(entry.getKey(), entry.getValue());
+            }
+        }
+        pendingBakes.clear();
+        pendingBakes.putAll(reordered);
+    }
+
+    private static long bakeNow(BakeTask task) {
+        long startedAt = System.nanoTime();
         CacheKey cacheKey = task.key();
         if (failedKeys.contains(cacheKey)) {
-            return;
+            return System.nanoTime() - startedAt;
         }
 
         Atlas atlas = atlas(cacheKey.size());
         if (atlas.entry(cacheKey.id()) != null) {
-            return;
+            return System.nanoTime() - startedAt;
+        }
+        if (atlas.loadPersistent(cacheKey.id())) {
+            persistentLoadCount++;
+            return System.nanoTime() - startedAt;
         }
 
+        // Entity renderers are a Minecraft client-thread contract; the scheduler controls cadence, not threading.
         NativeImage image = null;
         try {
             image = bakeImage(cacheKey.size(), task.renderToFramebuffer());
         } catch (RuntimeException e) {
             failedKeys.add(cacheKey);
-            return;
+            failedBakeCount++;
+            return System.nanoTime() - startedAt;
         }
         makeEdgeBackgroundTransparent(image);
         if (image == null || isBlankOrBlack(image)) {
@@ -150,16 +276,21 @@ public class EntityIconCache {
                 image.close();
             }
             failedKeys.add(cacheKey);
-            return;
+            failedBakeCount++;
+            return System.nanoTime() - startedAt;
         }
         try {
-            AtlasEntry entry = atlas.store(cacheKey.id(), image);
+            EntityIconAtlasAllocator.AtlasEntry entry = atlas.store(cacheKey.id(), image);
             if (entry == null) {
                 failedKeys.add(cacheKey);
+                failedBakeCount++;
+            } else {
+                renderedBakeCount++;
             }
         } finally {
             image.close();
         }
+        return System.nanoTime() - startedAt;
     }
 
     /**
@@ -175,6 +306,12 @@ public class EntityIconCache {
         atlases.clear();
         failedKeys.clear();
         pendingBakes.clear();
+        activeFingerprint = null;
+        queuedBakeRequests = 0L;
+        droppedBakeRequests = 0L;
+        renderedBakeCount = 0L;
+        persistentLoadCount = 0L;
+        failedBakeCount = 0L;
     }
 
     /**
@@ -211,7 +348,25 @@ public class EntityIconCache {
     }
 
     private static Atlas atlas(int size) {
-        return atlases.computeIfAbsent(size, Atlas::load);
+        String fingerprint = activeFingerprint();
+        Atlas existing = atlases.get(size);
+        if (existing != null && existing.fingerprint().equals(fingerprint)) {
+            return existing;
+        }
+        if (existing != null) {
+            Minecraft.getInstance().getTextureManager().release(existing.textureKey());
+            existing.close();
+        }
+        Atlas loaded = Atlas.load(size, fingerprint, persistentStore(fingerprint));
+        atlases.put(size, loaded);
+        return loaded;
+    }
+
+    private static String activeFingerprint() {
+        if (activeFingerprint == null) {
+            activeFingerprint = EntityIconCacheKey.currentFingerprint();
+        }
+        return activeFingerprint;
     }
 
     private static NativeImage bakeImage(int size, Consumer<GuiGraphics> renderFunc) {
@@ -334,133 +489,126 @@ public class EntityIconCache {
         return alpha >= 248 && red <= 3 && green <= 3 && blue <= 3;
     }
 
-    private static Path cacheDir() {
-        return cacheRootDir()
-                .resolve(cacheFingerprint());
-    }
-
     private static Path cacheRootDir() {
         return Services.PLATFORM.getGameDir()
                 .resolve("ami-icon-cache")
                 .resolve("entity-atlas");
     }
 
-    private static String cacheFingerprint() {
-        List<String> parts = new ArrayList<>();
-        parts.add(CACHE_VERSION);
-        parts.add("language=" + Services.PLATFORM.getClientLanguageCode());
-        for (String entry : Services.PLATFORM.getLoadedModFingerprintEntries()) {
-            parts.add("mod=" + entry);
-        }
-        for (String pack : selectedResourcePacks()) {
-            parts.add("pack=" + pack);
-        }
-        parts.sort(Comparator.naturalOrder());
-        return sha256(String.join("\n", parts)).substring(0, 16);
-    }
-
-    private static List<String> selectedResourcePacks() {
-        try {
-            Object repository = Minecraft.getInstance().getResourcePackRepository();
-            Method method = repository.getClass().getMethod("getSelectedIds");
-            Object selected = method.invoke(repository);
-            if (selected instanceof Collection<?> collection) {
-                return collection.stream().map(String::valueOf).sorted().toList();
-            }
-        } catch (ReflectiveOperationException | RuntimeException ignored) {
-        }
-        return List.of();
-    }
-
-    private static String sha256(String input) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-            StringBuilder sb = new StringBuilder(hash.length * 2);
-            for (byte b : hash) {
-                sb.append(String.format(Locale.ROOT, "%02x", b));
-            }
-            return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
-        }
+    private static EntityIconPersistentStore persistentStore(String fingerprint) {
+        return new EntityIconPersistentStore(cacheRootDir(), fingerprint, PERSIST_EXECUTOR);
     }
 
     private record CacheKey(ResourceLocation id, int size) {
     }
 
-    private record BakeTask(CacheKey key, Consumer<GuiGraphics> renderToFramebuffer) {
+    private record BakeTask(CacheKey key, Consumer<GuiGraphics> renderToFramebuffer, boolean priority) {
     }
 
-    private record AtlasEntry(int x, int y) {
+    public record Stats(
+            int atlasCount,
+            int pendingBakeCount,
+            int failedKeyCount,
+            long queuedBakeRequests,
+            long droppedBakeRequests,
+            long renderedBakeCount,
+            long persistentLoadCount,
+            long failedBakeCount,
+            long pendingPersistentWrites,
+            long droppedPersistentWrites,
+            Map<Integer, AtlasStats> atlases
+    ) {
+    }
+
+    public record AtlasStats(int size, int entryCount, int maxSlots) {
+    }
+
+    public enum BakeRequestResult {
+        CACHED,
+        QUEUED,
+        QUEUE_FULL,
+        FAILED
     }
 
     private static final class Atlas implements AutoCloseable {
         private final int size;
-        private final Path directory;
-        private final Path imageFile;
-        private final Path metadataFile;
+        private final String fingerprint;
+        private final EntityIconPersistentStore persistentStore;
         private final ResourceLocation textureKey;
-        private final Map<ResourceLocation, AtlasEntry> entries = new HashMap<>();
+        private final EntityIconAtlasAllocator allocator;
         private NativeImage image;
         private DynamicTexture texture;
 
-        private Atlas(int size, Path directory, NativeImage image) {
+        private Atlas(int size, String fingerprint, EntityIconPersistentStore persistentStore, NativeImage image) {
             this.size = size;
-            this.directory = directory;
+            this.fingerprint = fingerprint;
+            this.persistentStore = persistentStore;
             this.image = image;
-            this.imageFile = directory.resolve("atlas.png");
-            this.metadataFile = directory.resolve("atlas.tsv");
+            this.allocator = new EntityIconAtlasAllocator(ATLAS_SIZE, size);
             this.textureKey = Services.PLATFORM.rl("ami",
-                    "entity_icon_atlas/" + cacheFingerprint() + "/" + size);
+                    "entity_icon_atlas/" + fingerprint + "/" + size);
         }
 
-        static Atlas load(int size) {
-            Path directory = cacheDir().resolve(Integer.toString(size));
-            NativeImage image = readAtlasImage(directory.resolve("atlas.png"));
-            if (image == null || image.getWidth() != ATLAS_SIZE || image.getHeight() != ATLAS_SIZE) {
-                if (image != null) {
-                    image.close();
-                }
-                image = new NativeImage(ATLAS_SIZE, ATLAS_SIZE, true);
-            }
-
-            Atlas atlas = new Atlas(size, directory, image);
-            atlas.readMetadata();
+        static Atlas load(int size, String fingerprint, EntityIconPersistentStore persistentStore) {
+            NativeImage image = new NativeImage(ATLAS_SIZE, ATLAS_SIZE, true);
+            Atlas atlas = new Atlas(size, fingerprint, persistentStore, image);
             atlas.registerTexture();
             return atlas;
+        }
+
+        String fingerprint() {
+            return fingerprint;
         }
 
         ResourceLocation textureKey() {
             return textureKey;
         }
 
-        AtlasEntry entry(ResourceLocation id) {
-            return entries.get(id);
+        EntityIconAtlasAllocator.AtlasEntry entry(ResourceLocation id) {
+            return allocator.entry(id);
         }
 
-        AtlasEntry store(ResourceLocation id, NativeImage source) {
+        AtlasStats stats() {
+            return new AtlasStats(size, allocator.entryCount(), allocator.maxSlots());
+        }
+
+        EntityIconPersistentStore.StoreStats storeStats() {
+            return persistentStore.stats();
+        }
+
+        boolean loadPersistent(ResourceLocation id) {
+            if (allocator.entry(id) != null) {
+                return true;
+            }
+            NativeImage cached = persistentStore.loadIcon(id, size);
+            if (cached == null) {
+                return false;
+            }
+            try {
+                return store(id, cached, false) != null;
+            } finally {
+                cached.close();
+            }
+        }
+
+        EntityIconAtlasAllocator.AtlasEntry store(ResourceLocation id, NativeImage source) {
+            return store(id, source, true);
+        }
+
+        private EntityIconAtlasAllocator.AtlasEntry store(ResourceLocation id, NativeImage source, boolean persist) {
             if (source.getWidth() != size || source.getHeight() != size) {
                 return null;
             }
-            int slot = entries.size();
-            int columns = ATLAS_SIZE / size;
-            if (columns <= 0 || slot >= columns * columns) {
+            EntityIconAtlasAllocator.AtlasEntry entry = allocator.allocate(id);
+            if (entry == null) {
                 return null;
             }
 
-            int atlasX = (slot % columns) * size;
-            int atlasY = (slot / columns) * size;
-            for (int y = 0; y < size; y++) {
-                for (int x = 0; x < size; x++) {
-                    image.setPixelRGBA(atlasX + x, atlasY + y, source.getPixelRGBA(x, y));
-                }
-            }
-
-            AtlasEntry entry = new AtlasEntry(atlasX, atlasY);
-            entries.put(id, entry);
+            copyIconToAtlas(source, entry.x(), entry.y());
             upload();
-            writeToDisk();
+            if (persist) {
+                persistentStore.enqueueWrite(id, size, source);
+            }
             return entry;
         }
 
@@ -476,43 +624,12 @@ public class EntityIconCache {
             }
         }
 
-        private void readMetadata() {
-            if (!Files.isRegularFile(metadataFile)) {
-                return;
-            }
-            try {
-                for (String line : Files.readAllLines(metadataFile, StandardCharsets.UTF_8)) {
-                    if (line.isBlank()) {
-                        continue;
-                    }
-                    String[] parts = line.split("\t");
-                    if (parts.length != 3) {
-                        continue;
-                    }
-                    ResourceLocation id = Services.PLATFORM.rl(parts[0]);
-                    int x = Integer.parseInt(parts[1]);
-                    int y = Integer.parseInt(parts[2]);
-                    if (x >= 0 && y >= 0 && x + size <= ATLAS_SIZE && y + size <= ATLAS_SIZE) {
-                        entries.put(id, new AtlasEntry(x, y));
-                    }
-                }
-            } catch (IOException | NumberFormatException ignored) {
-                entries.clear();
-            }
-        }
 
-        private void writeToDisk() {
-            try {
-                Files.createDirectories(directory);
-                image.writeToFile(imageFile);
-                List<String> lines = new ArrayList<>(entries.size());
-                for (Map.Entry<ResourceLocation, AtlasEntry> entry : entries.entrySet()) {
-                    lines.add(entry.getKey() + "\t" + entry.getValue().x() + "\t" + entry.getValue().y());
+        private void copyIconToAtlas(NativeImage icon, int atlasX, int atlasY) {
+            for (int y = 0; y < size; y++) {
+                for (int x = 0; x < size; x++) {
+                    image.setPixelRGBA(atlasX + x, atlasY + y, icon.getPixelRGBA(x, y));
                 }
-                lines.sort(Comparator.naturalOrder());
-                Files.write(metadataFile, lines, StandardCharsets.UTF_8);
-            } catch (IOException ignored) {
-                // Disk persistence is best-effort; the in-memory atlas remains valid.
             }
         }
 
@@ -525,15 +642,5 @@ public class EntityIconCache {
             texture = null;
         }
 
-        private static NativeImage readAtlasImage(Path file) {
-            if (!Files.isRegularFile(file)) {
-                return null;
-            }
-            try (InputStream in = Files.newInputStream(file)) {
-                return NativeImage.read(in);
-            } catch (IOException ignored) {
-                return null;
-            }
-        }
     }
 }

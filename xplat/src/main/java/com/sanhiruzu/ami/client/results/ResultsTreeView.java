@@ -242,15 +242,16 @@ public class ResultsTreeView {
         }
 
         g.enableScissor(x + 2, y + topOffset, x + width - 2, y + height - 2);
-
-        int[] rowCounter = {0};
-        int effectiveMouseX = toolbarDropdownOpen ? -1 : mouseX;
-        for (TreeNode node : rootNodes) {
-            rowCounter[0] = renderNode(g, node, 0, rowCounter[0],
-                    effectiveMouseX, mouseY, y + topOffset, contentH, currentQuery, selectedMods);
+        try {
+            int[] rowCounter = {0};
+            int effectiveMouseX = toolbarDropdownOpen ? -1 : mouseX;
+            for (TreeNode node : rootNodes) {
+                rowCounter[0] = renderNode(g, node, 0, rowCounter[0],
+                        effectiveMouseX, mouseY, y + topOffset, contentH, currentQuery, selectedMods);
+            }
+        } finally {
+            g.disableScissor();
         }
-
-        g.disableScissor();
 
         renderScrollbar(g, totalH, contentH, y + topOffset, mouseX, mouseY);
 

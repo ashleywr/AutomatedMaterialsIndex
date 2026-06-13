@@ -1062,50 +1062,53 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         if (!intersectsContent(topY, guideSectionHeight())) return;
         g.enableScissor(innerX, contentY(), innerX + innerW, contentY() + contentHeight());
-        g.fill(innerX, topY, innerX + innerW, topY + GUIDE_HEADER_H, AMITheme.GROUP_HEADER_BG);
-        DocumentRowIconSprites.guide(g, innerX + 2, topY + 1, true);
-        g.drawString(font, Component.translatable("ami.gui.guides").getString(), innerX + 18, topY + 2, AMITheme.TEXT_HEADER, false);
+        try {
+            g.fill(innerX, topY, innerX + innerW, topY + GUIDE_HEADER_H, AMITheme.GROUP_HEADER_BG);
+            DocumentRowIconSprites.guide(g, innerX + 2, topY + 1, true);
+            g.drawString(font, Component.translatable("ami.gui.guides").getString(), innerX + 18, topY + 2, AMITheme.TEXT_HEADER, false);
 
-        int rowY = topY + GUIDE_HEADER_H;
-        for (int i = 0; i < rowCount; i++) {
-            GuideResultRow row = currentGuideRows.get(i);
-            boolean hovered = guideRowAt(mouseX, mouseY) == row;
-            int bg = i % 2 == 0 ? AMITheme.GRID_ROW_TINT_EVEN : AMITheme.GRID_ROW_TINT_ODD;
-            g.fill(innerX, rowY, innerX + innerW, rowY + GUIDE_ROW_H, bg);
-            if (hovered) {
-                g.fill(innerX, rowY, innerX + innerW, rowY + GUIDE_ROW_H, AMITheme.ENTRY_HOVER);
+            int rowY = topY + GUIDE_HEADER_H;
+            for (int i = 0; i < rowCount; i++) {
+                GuideResultRow row = currentGuideRows.get(i);
+                boolean hovered = guideRowAt(mouseX, mouseY) == row;
+                int bg = i % 2 == 0 ? AMITheme.GRID_ROW_TINT_EVEN : AMITheme.GRID_ROW_TINT_ODD;
+                g.fill(innerX, rowY, innerX + innerW, rowY + GUIDE_ROW_H, bg);
+                if (hovered) {
+                    g.fill(innerX, rowY, innerX + innerW, rowY + GUIDE_ROW_H, AMITheme.ENTRY_HOVER);
+                }
+
+                int iconX = innerX + 2;
+                int iconY = rowY + 2;
+                ItemStack bookStack = guideBookStack(row.document());
+                if (!bookStack.isEmpty()) {
+                    g.pose().pushPose();
+                    g.renderItem(bookStack, iconX, iconY);
+                    g.pose().popPose();
+                } else {
+                    int bx = iconX + 2;
+                    int by = iconY + 2;
+                    g.fill(bx, by, bx + 12, by + 12, AMITheme.DROPDOWN_BG);
+                    g.fill(bx, by, bx + 12, by + 1, AMITheme.SECTION_SEP);
+                    g.fill(bx, by + 11, bx + 12, by + 12, AMITheme.SECTION_SEP);
+                    g.fill(bx, by, bx + 1, by + 12, AMITheme.SECTION_SEP);
+                    g.fill(bx + 11, by, bx + 12, by + 12, AMITheme.SECTION_SEP);
+                    DocumentRowIconSprites.guide(g, bx, by, false);
+                }
+
+                int textX = iconX + 18;
+                int maxTextW = innerX + innerW - textX - 4;
+                String title = truncate(font, row.title(), maxTextW);
+                String subtitle = truncate(font, row.sourceLine() + " - " + row.provenanceLine(), maxTextW);
+                g.drawString(font, title, textX, rowY + 2, AMITheme.TEXT_PRIMARY, false);
+                g.drawString(font, subtitle, textX, rowY + 11, AMITheme.TEXT_SUBTLE, false);
+                rowY += GUIDE_ROW_H;
             }
 
-            int iconX = innerX + 2;
-            int iconY = rowY + 2;
-            ItemStack bookStack = guideBookStack(row.document());
-            if (!bookStack.isEmpty()) {
-                g.pose().pushPose();
-                g.renderItem(bookStack, iconX, iconY);
-                g.pose().popPose();
-            } else {
-                int bx = iconX + 2;
-                int by = iconY + 2;
-                g.fill(bx, by, bx + 12, by + 12, AMITheme.DROPDOWN_BG);
-                g.fill(bx, by, bx + 12, by + 1, AMITheme.SECTION_SEP);
-                g.fill(bx, by + 11, bx + 12, by + 12, AMITheme.SECTION_SEP);
-                g.fill(bx, by, bx + 1, by + 12, AMITheme.SECTION_SEP);
-                g.fill(bx + 11, by, bx + 12, by + 12, AMITheme.SECTION_SEP);
-                DocumentRowIconSprites.guide(g, bx, by, false);
-            }
-
-            int textX = iconX + 18;
-            int maxTextW = innerX + innerW - textX - 4;
-            String title = truncate(font, row.title(), maxTextW);
-            String subtitle = truncate(font, row.sourceLine() + " - " + row.provenanceLine(), maxTextW);
-            g.drawString(font, title, textX, rowY + 2, AMITheme.TEXT_PRIMARY, false);
-            g.drawString(font, subtitle, textX, rowY + 11, AMITheme.TEXT_SUBTLE, false);
-            rowY += GUIDE_ROW_H;
+            int sepY = topY + guideSectionHeight() - AMITheme.ELEMENT_GAP;
+            g.fill(innerX + 3, sepY, innerX + innerW - 3, sepY + 1, AMITheme.SECTION_SEP);
+        } finally {
+            g.disableScissor();
         }
-
-        int sepY = topY + guideSectionHeight() - AMITheme.ELEMENT_GAP;
-        g.fill(innerX + 3, sepY, innerX + innerW - 3, sepY + 1, AMITheme.SECTION_SEP);
-        g.disableScissor();
     }
 
     private void renderAdvancementRows(GuiGraphics g, int mouseX, int mouseY) {
@@ -1119,51 +1122,54 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         if (!intersectsContent(topY, advancementSectionHeight())) return;
         g.enableScissor(innerX, contentY(), innerX + innerW, contentY() + contentHeight());
-        g.fill(innerX, topY, innerX + innerW, topY + GUIDE_HEADER_H, AMITheme.GROUP_HEADER_BG);
-        DocumentRowIconSprites.advancement(g, innerX + 2, topY + 1, true);
-        g.drawString(font, Component.translatable("ami.gui.advancement_results").getString(), innerX + 18, topY + 2, AMITheme.TEXT_HEADER, false);
+        try {
+            g.fill(innerX, topY, innerX + innerW, topY + GUIDE_HEADER_H, AMITheme.GROUP_HEADER_BG);
+            DocumentRowIconSprites.advancement(g, innerX + 2, topY + 1, true);
+            g.drawString(font, Component.translatable("ami.gui.advancement_results").getString(), innerX + 18, topY + 2, AMITheme.TEXT_HEADER, false);
 
-        int rowY = topY + GUIDE_HEADER_H;
-        for (int i = 0; i < rowCount; i++) {
-            AdvancementResultRow row = currentAdvancementRows.get(i);
-            boolean hovered = advancementRowAt(mouseX, mouseY) == row;
-            int bg = i % 2 == 0 ? AMITheme.GRID_ROW_TINT_EVEN : AMITheme.GRID_ROW_TINT_ODD;
-            g.fill(innerX, rowY, innerX + innerW, rowY + GUIDE_ROW_H, bg);
-            if (hovered) {
-                g.fill(innerX, rowY, innerX + innerW, rowY + GUIDE_ROW_H, AMITheme.ENTRY_HOVER);
+            int rowY = topY + GUIDE_HEADER_H;
+            for (int i = 0; i < rowCount; i++) {
+                AdvancementResultRow row = currentAdvancementRows.get(i);
+                boolean hovered = advancementRowAt(mouseX, mouseY) == row;
+                int bg = i % 2 == 0 ? AMITheme.GRID_ROW_TINT_EVEN : AMITheme.GRID_ROW_TINT_ODD;
+                g.fill(innerX, rowY, innerX + innerW, rowY + GUIDE_ROW_H, bg);
+                if (hovered) {
+                    g.fill(innerX, rowY, innerX + innerW, rowY + GUIDE_ROW_H, AMITheme.ENTRY_HOVER);
+                }
+
+                int iconX = innerX + 2;
+                int iconY = rowY + 2;
+                ItemStack iconStack = advancementIconStack(row.document());
+                if (!iconStack.isEmpty()) {
+                    g.pose().pushPose();
+                    g.renderItem(iconStack, iconX, iconY);
+                    g.pose().popPose();
+                } else {
+                    int bx = iconX + 2;
+                    int by = iconY + 2;
+                    g.fill(bx, by, bx + 12, by + 12, AMITheme.DROPDOWN_BG);
+                    g.fill(bx, by, bx + 12, by + 1, AMITheme.SECTION_SEP);
+                    g.fill(bx, by + 11, bx + 12, by + 12, AMITheme.SECTION_SEP);
+                    g.fill(bx, by, bx + 1, by + 12, AMITheme.SECTION_SEP);
+                    g.fill(bx + 11, by, bx + 12, by + 12, AMITheme.SECTION_SEP);
+                    DocumentRowIconSprites.advancement(g, bx, by, false);
+                }
+                renderAdvancementStatusIcon(g, row.document(), iconX + 8, iconY + 8);
+
+                int textX = iconX + 18;
+                int maxTextW = innerX + innerW - textX - 4;
+                String title = truncate(font, row.title(), maxTextW);
+                String subtitle = truncate(font, row.sourceLine() + " - " + row.provenanceLine(), maxTextW);
+                g.drawString(font, title, textX, rowY + 2, AMITheme.TEXT_PRIMARY, false);
+                g.drawString(font, subtitle, textX, rowY + 11, AMITheme.TEXT_SUBTLE, false);
+                rowY += GUIDE_ROW_H;
             }
 
-            int iconX = innerX + 2;
-            int iconY = rowY + 2;
-            ItemStack iconStack = advancementIconStack(row.document());
-            if (!iconStack.isEmpty()) {
-                g.pose().pushPose();
-                g.renderItem(iconStack, iconX, iconY);
-                g.pose().popPose();
-            } else {
-                int bx = iconX + 2;
-                int by = iconY + 2;
-                g.fill(bx, by, bx + 12, by + 12, AMITheme.DROPDOWN_BG);
-                g.fill(bx, by, bx + 12, by + 1, AMITheme.SECTION_SEP);
-                g.fill(bx, by + 11, bx + 12, by + 12, AMITheme.SECTION_SEP);
-                g.fill(bx, by, bx + 1, by + 12, AMITheme.SECTION_SEP);
-                g.fill(bx + 11, by, bx + 12, by + 12, AMITheme.SECTION_SEP);
-                DocumentRowIconSprites.advancement(g, bx, by, false);
-            }
-            renderAdvancementStatusIcon(g, row.document(), iconX + 8, iconY + 8);
-
-            int textX = iconX + 18;
-            int maxTextW = innerX + innerW - textX - 4;
-            String title = truncate(font, row.title(), maxTextW);
-            String subtitle = truncate(font, row.sourceLine() + " - " + row.provenanceLine(), maxTextW);
-            g.drawString(font, title, textX, rowY + 2, AMITheme.TEXT_PRIMARY, false);
-            g.drawString(font, subtitle, textX, rowY + 11, AMITheme.TEXT_SUBTLE, false);
-            rowY += GUIDE_ROW_H;
+            int sepY = topY + advancementSectionHeight() - AMITheme.ELEMENT_GAP;
+            g.fill(innerX + 3, sepY, innerX + innerW - 3, sepY + 1, AMITheme.SECTION_SEP);
+        } finally {
+            g.disableScissor();
         }
-
-        int sepY = topY + advancementSectionHeight() - AMITheme.ELEMENT_GAP;
-        g.fill(innerX + 3, sepY, innerX + innerW - 3, sepY + 1, AMITheme.SECTION_SEP);
-        g.disableScissor();
     }
 
     private void renderAdvancementStatusIcon(GuiGraphics g, AmiAdvancementDocument document, int x, int y) {
@@ -1181,41 +1187,44 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         if (!intersectsContent(topY, questSectionHeight())) return;
         g.enableScissor(innerX, contentY(), innerX + innerW, contentY() + contentHeight());
-        g.fill(innerX, topY, innerX + innerW, topY + GUIDE_HEADER_H, AMITheme.GROUP_HEADER_BG);
-        DocumentRowIconSprites.quest(g, innerX + 2, topY + 1, true);
-        g.drawString(font, Component.translatable("ami.gui.quest_results").getString(), innerX + 18, topY + 2, AMITheme.TEXT_HEADER, false);
+        try {
+            g.fill(innerX, topY, innerX + innerW, topY + GUIDE_HEADER_H, AMITheme.GROUP_HEADER_BG);
+            DocumentRowIconSprites.quest(g, innerX + 2, topY + 1, true);
+            g.drawString(font, Component.translatable("ami.gui.quest_results").getString(), innerX + 18, topY + 2, AMITheme.TEXT_HEADER, false);
 
-        int rowY = topY + GUIDE_HEADER_H;
-        for (int i = 0; i < rowCount; i++) {
-            QuestResultRow row = currentQuestRows.get(i);
-            boolean hovered = questRowAt(mouseX, mouseY) == row;
-            int bg = i % 2 == 0 ? AMITheme.GRID_ROW_TINT_EVEN : AMITheme.GRID_ROW_TINT_ODD;
-            g.fill(innerX, rowY, innerX + innerW, rowY + GUIDE_ROW_H, bg);
-            if (hovered) {
-                g.fill(innerX, rowY, innerX + innerW, rowY + GUIDE_ROW_H, AMITheme.ENTRY_HOVER);
+            int rowY = topY + GUIDE_HEADER_H;
+            for (int i = 0; i < rowCount; i++) {
+                QuestResultRow row = currentQuestRows.get(i);
+                boolean hovered = questRowAt(mouseX, mouseY) == row;
+                int bg = i % 2 == 0 ? AMITheme.GRID_ROW_TINT_EVEN : AMITheme.GRID_ROW_TINT_ODD;
+                g.fill(innerX, rowY, innerX + innerW, rowY + GUIDE_ROW_H, bg);
+                if (hovered) {
+                    g.fill(innerX, rowY, innerX + innerW, rowY + GUIDE_ROW_H, AMITheme.ENTRY_HOVER);
+                }
+
+                int iconX = innerX + 4;
+                int iconY = rowY + 4;
+                g.fill(iconX, iconY, iconX + 12, iconY + 12, AMITheme.DROPDOWN_BG);
+                g.fill(iconX, iconY, iconX + 12, iconY + 1, AMITheme.SECTION_SEP);
+                g.fill(iconX, iconY + 11, iconX + 12, iconY + 12, AMITheme.SECTION_SEP);
+                g.fill(iconX, iconY, iconX + 1, iconY + 12, AMITheme.SECTION_SEP);
+                g.fill(iconX + 11, iconY, iconX + 12, iconY + 12, AMITheme.SECTION_SEP);
+                DocumentRowIconSprites.quest(g, iconX, iconY, false);
+
+                int textX = iconX + 16;
+                int maxTextW = innerX + innerW - textX - 4;
+                String title = truncate(font, row.title(), maxTextW);
+                String subtitle = truncate(font, row.sourceLine() + " - " + row.provenanceLine(), maxTextW);
+                g.drawString(font, title, textX, rowY + 2, AMITheme.TEXT_PRIMARY, false);
+                g.drawString(font, subtitle, textX, rowY + 11, AMITheme.TEXT_SUBTLE, false);
+                rowY += GUIDE_ROW_H;
             }
 
-            int iconX = innerX + 4;
-            int iconY = rowY + 4;
-            g.fill(iconX, iconY, iconX + 12, iconY + 12, AMITheme.DROPDOWN_BG);
-            g.fill(iconX, iconY, iconX + 12, iconY + 1, AMITheme.SECTION_SEP);
-            g.fill(iconX, iconY + 11, iconX + 12, iconY + 12, AMITheme.SECTION_SEP);
-            g.fill(iconX, iconY, iconX + 1, iconY + 12, AMITheme.SECTION_SEP);
-            g.fill(iconX + 11, iconY, iconX + 12, iconY + 12, AMITheme.SECTION_SEP);
-            DocumentRowIconSprites.quest(g, iconX, iconY, false);
-
-            int textX = iconX + 16;
-            int maxTextW = innerX + innerW - textX - 4;
-            String title = truncate(font, row.title(), maxTextW);
-            String subtitle = truncate(font, row.sourceLine() + " - " + row.provenanceLine(), maxTextW);
-            g.drawString(font, title, textX, rowY + 2, AMITheme.TEXT_PRIMARY, false);
-            g.drawString(font, subtitle, textX, rowY + 11, AMITheme.TEXT_SUBTLE, false);
-            rowY += GUIDE_ROW_H;
+            int sepY = topY + questSectionHeight() - AMITheme.ELEMENT_GAP;
+            g.fill(innerX + 3, sepY, innerX + innerW - 3, sepY + 1, AMITheme.SECTION_SEP);
+        } finally {
+            g.disableScissor();
         }
-
-        int sepY = topY + questSectionHeight() - AMITheme.ELEMENT_GAP;
-        g.fill(innerX + 3, sepY, innerX + innerW - 3, sepY + 1, AMITheme.SECTION_SEP);
-        g.disableScissor();
     }
 
     private void renderGuideTooltip(GuiGraphics g, int mouseX, int mouseY) {

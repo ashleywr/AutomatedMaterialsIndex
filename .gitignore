@@ -59,6 +59,7 @@ internal/
 dev/
 font_issue.png
 release-assets/
+profile-runs/
 test.java
 *.log
 .geminiignore

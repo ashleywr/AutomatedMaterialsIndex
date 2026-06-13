@@ -3,10 +3,12 @@ package com.sanhiruzu.ami.client.icon;
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.EntityIconCache;
+import com.sanhiruzu.ami.client.EntityIconWarmupMetrics;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.StatIconRowTooltipComponent;
 import com.sanhiruzu.ami.index.GlobalIndex;
+import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
@@ -38,18 +40,24 @@ public class EntityIconRenderer implements IIconRenderer {
     private static final boolean ENTITY_ICON_ATLAS_WARMUP_ENABLED =
             Boolean.parseBoolean(System.getProperty("ami.entityIconAtlasWarmup", "true"));
     private static final int ENTITY_ICON_ATLAS_WARMUP_PER_TICK =
-            Math.max(0, Integer.getInteger("ami.entityIconAtlasWarmupPerTick", 2));
+            Math.max(0, Integer.getInteger("ami.entityIconAtlasWarmupPerTick", 8));
     private static final int ENTITY_ICON_ATLAS_BAKE_PER_TICK =
-            Math.max(0, Integer.getInteger("ami.entityIconAtlasBakePerTick", 1));
-    private static final int ENTITY_ICON_ATLAS_BAKE_INTERVAL_TICKS =
-            Math.max(1, Integer.getInteger("ami.entityIconAtlasBakeIntervalTicks", 10));
+            Math.max(0, Integer.getInteger("ami.entityIconAtlasBakePerTick", 4));
+    private static final long ENTITY_ICON_ATLAS_BAKE_BUDGET_NANOS =
+            Math.max(1L, Long.getLong("ami.entityIconAtlasBakeBudgetMs", 8L)) * 1_000_000L;
     private static final int ENTITY_ICON_ATLAS_WARMUP_SIZE = 16;
-    private static final Map<ResourceLocation, LivingEntity> entityCache = new HashMap<>();
+    private static final int MAX_ENTITY_INSTANCE_CACHE =
+            Math.max(16, Integer.getInteger("ami.entityIconEntityCacheLimit", 128));
+    private static final Map<ResourceLocation, LivingEntity> entityCache = new LinkedHashMap<>(MAX_ENTITY_INSTANCE_CACHE, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<ResourceLocation, LivingEntity> eldest) {
+            return size() > MAX_ENTITY_INSTANCE_CACHE;
+        }
+    };
     private static final Set<ResourceLocation> failedRenderers = new HashSet<>();
     private static List<SearchNode> warmupQueue = List.of();
     private static long warmupRevision = -1L;
     private static int warmupIndex = 0;
-    private static int bakeTickCounter = 0;
 
     private static void renderEntity(GuiGraphics g, int x, int y, int scale, float angleX, float angleY, LivingEntity entity) {
         IconRenderState.render3dIcon(g, () ->
@@ -63,12 +71,6 @@ public class EntityIconRenderer implements IIconRenderer {
                         entity
                 )
         );
-    }
-
-    private static ResourceLocation resolveProxyItemId(ResourceLocation entityId) {
-        // experience_orb has no item form; proxy to experience_bottle for the icon.
-        if ("experience_orb".equals(entityId.getPath())) return ResourceLocation.fromNamespaceAndPath("minecraft", "experience_bottle");
-        return null;
     }
 
     private static LivingEntity resolveEntity(ResourceLocation id) {
@@ -149,7 +151,7 @@ public class EntityIconRenderer implements IIconRenderer {
                 continue;
             }
 
-            if (resolveProxyItemId(node.id()) != null) {
+            if (EntityIconFallbacks.proxyItemId(node.id()) != null) {
                 continue;
             }
 
@@ -188,10 +190,13 @@ public class EntityIconRenderer implements IIconRenderer {
             return;
         }
 
-        bakeTickCounter++;
-        if (ENTITY_ICON_ATLAS_BAKE_PER_TICK > 0
-                && bakeTickCounter % ENTITY_ICON_ATLAS_BAKE_INTERVAL_TICKS == 0) {
-            EntityIconCache.processPendingBakes(ENTITY_ICON_ATLAS_BAKE_PER_TICK);
+        if (AmiIndexerService.getInstance().isBusy()) {
+            return;
+        }
+
+        if (ENTITY_ICON_ATLAS_BAKE_PER_TICK > 0) {
+            EntityIconCache.processPendingBakesAdaptive(ENTITY_ICON_ATLAS_BAKE_PER_TICK,
+                    ENTITY_ICON_ATLAS_BAKE_BUDGET_NANOS);
         }
 
         if (!ENTITY_ICON_ATLAS_WARMUP_ENABLED || ENTITY_ICON_ATLAS_WARMUP_PER_TICK <= 0
@@ -206,13 +211,16 @@ public class EntityIconRenderer implements IIconRenderer {
                     .filter(node -> !EntityIconTooltipSupport.isPokemonSpecies(node))
                     .toList();
             warmupIndex = 0;
+            EntityIconWarmupMetrics.reset(revision, warmupQueue.size());
         }
 
         int warmed = 0;
         while (warmupIndex < warmupQueue.size() && warmed < ENTITY_ICON_ATLAS_WARMUP_PER_TICK) {
-            SearchNode node = warmupQueue.get(warmupIndex++);
+            SearchNode node = warmupQueue.get(warmupIndex);
             LivingEntity entity = resolveEntity(node.id());
             if (entity == null || failedRenderers.contains(node.id()) || !hasRenderableTexture(entity)) {
+                warmupIndex++;
+                EntityIconWarmupMetrics.recordSkipped();
                 continue;
             }
 
@@ -221,17 +229,28 @@ public class EntityIconRenderer implements IIconRenderer {
                     ENTITY_ICON_ATLAS_WARMUP_SIZE - 4,
                     (ENTITY_ICON_ATLAS_WARMUP_SIZE - 2) / maxBounds));
             try {
-                warmStaticEntity(node.id(), entity, scale);
+                EntityIconCache.BakeRequestResult result = warmStaticEntity(node.id(), entity, scale);
+                if (result == EntityIconCache.BakeRequestResult.QUEUE_FULL) {
+                    break;
+                }
+                warmupIndex++;
+                if (result == EntityIconCache.BakeRequestResult.FAILED) {
+                    EntityIconWarmupMetrics.recordSkipped();
+                    continue;
+                }
+                EntityIconWarmupMetrics.recordQueuedOrCached();
             } catch (RuntimeException e) {
+                warmupIndex++;
                 if (failedRenderers.add(node.id())) {
                     AmiCore.LOGGER.warn("AMI: disabling entity icon renderer for {} after warmup failure", node.id(), e);
                 }
+                EntityIconWarmupMetrics.recordRenderFailure();
             }
             warmed++;
         }
     }
 
-    private static void warmStaticEntity(ResourceLocation id, LivingEntity entity, int scale) {
+    private static EntityIconCache.BakeRequestResult warmStaticEntity(ResourceLocation id, LivingEntity entity, int scale) {
         float savedBodyRot = entity.yBodyRot;
         float savedYRot = entity.getYRot();
         float savedXRot = entity.getXRot();
@@ -245,7 +264,7 @@ public class EntityIconRenderer implements IIconRenderer {
         entity.yHeadRotO = entity.getYRot();
 
         try {
-            EntityIconCache.warmCached(id, ENTITY_ICON_ATLAS_WARMUP_SIZE,
+            return EntityIconCache.warmCached(id, ENTITY_ICON_ATLAS_WARMUP_SIZE,
                     cacheG -> renderEntity(cacheG, ENTITY_ICON_ATLAS_WARMUP_SIZE / 2,
                             ENTITY_ICON_ATLAS_WARMUP_SIZE - 1, scale, 0f, 0f, entity));
         } finally {
@@ -271,25 +290,7 @@ public class EntityIconRenderer implements IIconRenderer {
 
         LivingEntity entity = resolveEntity(node.id());
         if (entity == null) {
-            ResourceLocation proxyId = resolveProxyItemId(node.id());
-            if (proxyId != null) {
-                ItemStack proxy = BuiltInRegistries.ITEM.getOptional(proxyId).map(ItemStack::new).orElse(ItemStack.EMPTY);
-                if (!proxy.isEmpty()) {
-                    IconRenderState.render3dIcon(g, () -> {
-                        g.pose().pushPose();
-                        try {
-                            g.pose().translate(x + size / 2.0, y + size / 2.0, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
-                            float s = size / 16.0f;
-                            g.pose().scale(s, s, 1f);
-                            g.renderItem(proxy, -8, -8);
-                        } finally {
-                            g.pose().popPose();
-                        }
-                    });
-                    return;
-                }
-            }
-            FallbackTextRenderer.renderFallback(g, node, x, y, size);
+            EntityIconFallbacks.renderFailure(g, node.id(), x, y, size);
             return;
         }
 
@@ -297,7 +298,7 @@ public class EntityIconRenderer implements IIconRenderer {
         int scale = Math.max(1, (int) Math.min(size - 4, (size - 2) / maxBounds));
 
         if (failedRenderers.contains(node.id()) || !hasRenderableTexture(entity)) {
-            FallbackTextRenderer.renderFallback(g, node, x, y, size);
+            EntityIconFallbacks.renderFailure(g, node.id(), x, y, size);
             return;
         }
 
@@ -326,6 +327,7 @@ public class EntityIconRenderer implements IIconRenderer {
                         cacheG -> renderEntity(cacheG, size / 2, size - 1, scale, 0f, 0f, entity))) {
                     return;
                 }
+                EntityIconFallbacks.renderFailure(g, node.id(), x, y, size);
                 return;
             }
             renderEntity(g, cx, cy, scale, 0f, 0f, entity);
@@ -333,7 +335,7 @@ public class EntityIconRenderer implements IIconRenderer {
             if (failedRenderers.add(node.id())) {
                 AmiCore.LOGGER.warn("AMI: disabling entity icon renderer for {} after render failure", node.id(), e);
             }
-            FallbackTextRenderer.renderFallback(g, node, x, y, size);
+            EntityIconFallbacks.renderFailure(g, node.id(), x, y, size);
         } finally {
             entity.yBodyRot = savedBodyRot;
             entity.setYRot(savedYRot);
@@ -387,11 +389,11 @@ public class EntityIconRenderer implements IIconRenderer {
     @Override
     public void invalidate() {
         entityCache.clear();
+        EntityIconFallbacks.clear();
         failedRenderers.clear();
         warmupQueue = List.of();
         warmupRevision = -1L;
         warmupIndex = 0;
-        bakeTickCounter = 0;
         EntityIconCache.invalidate();
         CobblemonPokemonIconRenderer.invalidate();
     }
