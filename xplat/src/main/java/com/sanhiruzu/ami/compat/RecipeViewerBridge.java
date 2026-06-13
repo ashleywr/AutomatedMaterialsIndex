@@ -7,6 +7,7 @@ import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import java.lang.ref.WeakReference;
 import java.util.Optional;
@@ -51,6 +52,17 @@ public class RecipeViewerBridge {
 
     public static boolean isJeiLoaded() {
         return Services.PLATFORM.isModLoaded("jei");
+    }
+
+    public static boolean openJustEnoughAdvancement(ResourceLocation advancementId) {
+        if (advancementId == null || !Services.PLATFORM.isModLoaded("jei") || !Services.PLATFORM.isModLoaded("jea")) {
+            return false;
+        }
+        boolean opened = JeiRecipeBridge.openJustEnoughAdvancement(advancementId);
+        if (opened) {
+            markRecipeViewActive();
+        }
+        return opened;
     }
 
     public static boolean hasRecipes(ItemStack stack) {

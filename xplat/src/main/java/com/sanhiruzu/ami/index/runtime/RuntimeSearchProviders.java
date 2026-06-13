@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.index.runtime;
 
 import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.resolvers.PlayerResolver;
 import com.sanhiruzu.ami.player.PlayerWaypointProviders;
 
@@ -27,6 +28,9 @@ public final class RuntimeSearchProviders {
 
             @Override
             public List<SearchNode> nodes() {
+                if (!AmiConfig.searchIncludePlayers) {
+                    return List.of();
+                }
                 return PlayerResolver.livePlayerNodes();
             }
         });
@@ -43,6 +47,9 @@ public final class RuntimeSearchProviders {
 
             @Override
             public List<SearchNode> nodes() {
+                if (!AmiConfig.searchIncludeWaypoints) {
+                    return List.of();
+                }
                 return PlayerWaypointProviders.liveWaypointNodes();
             }
         });
@@ -76,6 +83,8 @@ public final class RuntimeSearchProviders {
 
     public static long revision() {
         long revision = 17L;
+        revision = 31L * revision + Boolean.hashCode(AmiConfig.searchIncludePlayers);
+        revision = 31L * revision + Boolean.hashCode(AmiConfig.searchIncludeWaypoints);
         for (RuntimeSearchProvider provider : PROVIDERS) {
             try {
                 revision = 31L * revision + provider.id().hashCode();

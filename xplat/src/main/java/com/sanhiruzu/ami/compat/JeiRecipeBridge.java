@@ -15,6 +15,7 @@ import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Recipe;
@@ -51,6 +52,13 @@ class JeiRecipeBridge {
 
     static void openUses(SearchNode node) {
         JeiRuntimeAccessor.withRuntime(runtime -> show(node, runtime, RecipeIngredientRole.INPUT));
+    }
+
+    static boolean openJustEnoughAdvancement(ResourceLocation advancementId) {
+        if (advancementId == null) {
+            return false;
+        }
+        return JeiRuntimeAccessor.withRuntime(runtime -> showJustEnoughAdvancement(runtime, advancementId), false);
     }
 
     static boolean hasRecipes(ItemStack stack) {
@@ -121,6 +129,28 @@ class JeiRecipeBridge {
         IFocusFactory focusFactory = runtime.getJeiHelpers().getFocusFactory();
         IFocus<ItemStack> focus = focusFactory.createFocus(role, itemType, stack);
         runtime.getRecipesGui().show(focus);
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static boolean showJustEnoughAdvancement(IJeiRuntime runtime, ResourceLocation advancementId) {
+        try {
+            Class<?> clientAdvancementsClass = Class.forName("de.melanx.jea.client.ClientAdvancements");
+            Object info = clientAdvancementsClass.getMethod("getInfo", ResourceLocation.class).invoke(null, advancementId);
+            if (info == null) {
+                return false;
+            }
+            Class<?> jeaClass = Class.forName("de.melanx.jea.api.client.Jea");
+            Object type = jeaClass.getField("ADVANCEMENT_TYPE").get(null);
+            if (!(type instanceof IIngredientType<?> ingredientType)) {
+                return false;
+            }
+            IFocusFactory focusFactory = runtime.getJeiHelpers().getFocusFactory();
+            IFocus<?> focus = focusFactory.createFocus(RecipeIngredientRole.OUTPUT, (IIngredientType) ingredientType, info);
+            runtime.getRecipesGui().show(List.of(focus));
+            return true;
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
+            return false;
+        }
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})

@@ -4,7 +4,9 @@ import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.AmiGuiIcons;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.widget.*;
+import com.sanhiruzu.ami.compat.FtbQuestsRuntimeCompat;
 import com.sanhiruzu.ami.config.*;
+import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.*;
@@ -228,7 +230,40 @@ public class AmiConfigScreen extends Screen {
 
     private void onSettingChanged(Field field, Object value) {
         AMITheme.sync();
+        applySearchSourceSettingChange(field, value);
         updateButtonStates();
+    }
+
+    private void applySearchSourceSettingChange(Field field, Object value) {
+        ConfigValue configValue = field.getAnnotation(ConfigValue.class);
+        if (configValue == null) {
+            return;
+        }
+
+        switch (configValue.value()) {
+            case "search.include-guides", "search.include-entities" -> {
+                if (Boolean.TRUE.equals(value)) {
+                    AmiIndexerService.getInstance().rebuild(false);
+                }
+                InventoryOverlayHandler.refreshOverlayResults();
+            }
+            case "search.include-quests" -> {
+                FtbQuestsRuntimeCompat.refreshNow();
+                InventoryOverlayHandler.refreshOverlayResults();
+            }
+            case "search.include-advancements", "search.include-players", "search.include-waypoints" ->
+                    InventoryOverlayHandler.refreshOverlayResults();
+            default -> {
+            }
+        }
+    }
+
+    private void applySearchSourceSettingsChanged() {
+        FtbQuestsRuntimeCompat.refreshNow();
+        if (AmiConfig.searchIncludeGuides || AmiConfig.searchIncludeEntities) {
+            AmiIndexerService.getInstance().rebuild(false);
+        }
+        InventoryOverlayHandler.refreshOverlayResults();
     }
 
     private void onConfigDropdownOpened(AmiDropdownPopup dropdown) {
@@ -253,6 +288,7 @@ public class AmiConfigScreen extends Screen {
     private void resetToDefaults() {
         AmiConfig.resetToDefaults();
         AMITheme.sync();
+        applySearchSourceSettingsChanged();
         AmiConfigStore.save();
         captureOriginalValues();
         resetConfigScrollOnNextBuild = true;
@@ -268,6 +304,7 @@ public class AmiConfigScreen extends Screen {
             }
         }
         AMITheme.sync();
+        applySearchSourceSettingsChanged();
         AmiConfigStore.save();
         captureOriginalValues();
         resetConfigScrollOnNextBuild = true;

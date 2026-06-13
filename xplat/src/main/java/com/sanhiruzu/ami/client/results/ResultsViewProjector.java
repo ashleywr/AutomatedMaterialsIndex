@@ -2,6 +2,8 @@ package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.index.AmiGuideSearchIndex;
 import com.sanhiruzu.ami.index.AmiQuestSearchIndex;
+import com.sanhiruzu.ami.index.AmiAdvancementSearchIndex;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
@@ -29,6 +31,18 @@ public final class ResultsViewProjector {
     private static List<SearchNode> applyUniversalFilters(List<SearchNode> nodes) {
         int originalSize = nodes.size();
         List<SearchNode> filtered = nodes.stream()
+                .filter(n -> {
+                    if (!AmiConfig.searchIncludeEntities && n.type() == NodeType.ENTITY) {
+                        return false;
+                    }
+                    if (!AmiConfig.searchIncludePlayers && n.type() == NodeType.PLAYER) {
+                        return false;
+                    }
+                    if (!AmiConfig.searchIncludeWaypoints && n.type() == NodeType.WAYPOINT) {
+                        return false;
+                    }
+                    return true;
+                })
                 .filter(n -> {
                     boolean isDeleted = DeletedSearchNodesTracker.isDeleted(n.id());
                     if (isDeleted) {
@@ -77,6 +91,17 @@ public final class ResultsViewProjector {
                                      AmiQuestSearchIndex questSearchIndex,
                                      boolean compactMainPanel,
                                      boolean favoritesPanel) {
+        return project(source, state, searchService, guideSearchIndex, questSearchIndex, null, compactMainPanel, favoritesPanel);
+    }
+
+    public static Projection project(List<SearchNode> source,
+                                     SearchState state,
+                                     SearchService searchService,
+                                     AmiGuideSearchIndex guideSearchIndex,
+                                     AmiQuestSearchIndex questSearchIndex,
+                                     AmiAdvancementSearchIndex advancementSearchIndex,
+                                     boolean compactMainPanel,
+                                     boolean favoritesPanel) {
         List<SearchNode> effectiveSource = applyUniversalFilters(source);
         effectiveSource = applyRuntimeMetadataForLens(effectiveSource);
         String query = state.getQuery();
@@ -114,19 +139,23 @@ public final class ResultsViewProjector {
         }
 
         roots = ResultsTreeNormalizer.normalize(roots);
-        List<GuideResultRow> guideRows = favoritesPanel || compactMainPanel
+        List<GuideResultRow> guideRows = favoritesPanel || compactMainPanel || !AmiConfig.searchIncludeGuides
                 ? List.of()
                 : GuideResultsProjector.project(query, guideSearchIndex);
-        List<QuestResultRow> questRows = favoritesPanel || compactMainPanel
+        List<QuestResultRow> questRows = favoritesPanel || compactMainPanel || !AmiConfig.searchIncludeQuests
                 ? List.of()
                 : QuestResultsProjector.project(query, questSearchIndex);
+        List<AdvancementResultRow> advancementRows = favoritesPanel || compactMainPanel || !AmiConfig.searchIncludeAdvancements
+                ? List.of()
+                : AdvancementResultsProjector.project(query, advancementSearchIndex);
         return new Projection(
                 roots,
+                advancementRows,
                 guideRows,
                 questRows,
                 source.size(),
                 effectiveSource.size(),
-                summary(state, source.size(), effectiveSource.size(), guideRows.size(), questRows.size(), compactMainPanel, favoritesPanel)
+                summary(state, source.size(), effectiveSource.size(), guideRows.size(), questRows.size(), advancementRows.size(), compactMainPanel, favoritesPanel)
         );
     }
 
@@ -285,6 +314,7 @@ public final class ResultsViewProjector {
                                   int displayedItemCount,
                                   int displayedGuideCount,
                                   int displayedQuestCount,
+                                  int displayedAdvancementCount,
                                   boolean compactMainPanel,
                                   boolean favoritesPanel) {
         return "query=\"" + state.getQuery() + "\""
@@ -292,6 +322,7 @@ public final class ResultsViewProjector {
                 + " displayed=" + displayedItemCount
                 + " guides=" + displayedGuideCount
                 + " quests=" + displayedQuestCount
+                + " advancements=" + displayedAdvancementCount
                 + " view=" + state.getViewMode()
                 + " lens=" + state.getListLens()
                 + " sort=" + state.getSortField()
@@ -303,6 +334,7 @@ public final class ResultsViewProjector {
 
     public record Projection(
             List<TreeNode> roots,
+            List<AdvancementResultRow> advancementRows,
             List<GuideResultRow> guideRows,
             List<QuestResultRow> questRows,
             int sourceCount,

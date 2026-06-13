@@ -249,6 +249,9 @@ public final class GlobalIndexCache {
                     + "_strictSurvival=" + AmiConfig.strictSurvivalMode
                     + "_cheat=" + AmiConfig.cheatMode
                     + "_dev=" + AmiConfig.devMode
+                    + "_searchEntities=" + AmiConfig.searchIncludeEntities
+                    + "_searchPlayers=" + AmiConfig.searchIncludePlayers
+                    + "_searchWaypoints=" + AmiConfig.searchIncludeWaypoints
                     + IndexingHotItemPolicy.cacheKeyFragment()
                     + "_scripts=" + dynamicScriptHash();
 

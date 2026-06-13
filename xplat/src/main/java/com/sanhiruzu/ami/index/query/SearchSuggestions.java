@@ -484,11 +484,14 @@ public final class SearchSuggestions {
         if (rawValue == null || rawValue.isBlank()) {
             return;
         }
-        for (String part : rawValue.split("[,\\s]+")) {
-            String token = cleanToken(part);
+        int start = nextDelimitedTokenStart(rawValue, 0);
+        while (start >= 0) {
+            int end = delimitedTokenEnd(rawValue, start);
+            String token = cleanToken(rawValue.substring(start, end));
             if (!token.isBlank()) {
                 values.add(token);
             }
+            start = nextDelimitedTokenStart(rawValue, end + 1);
         }
     }
 
@@ -497,12 +500,37 @@ public final class SearchSuggestions {
             return false;
         }
         String normalizedExpected = cleanToken(expected);
-        for (String part : rawValue.split("[,\\s]+")) {
-            if (cleanToken(part).equals(normalizedExpected)) {
+        int start = nextDelimitedTokenStart(rawValue, 0);
+        while (start >= 0) {
+            int end = delimitedTokenEnd(rawValue, start);
+            if (cleanToken(rawValue.substring(start, end)).equals(normalizedExpected)) {
                 return true;
             }
+            start = nextDelimitedTokenStart(rawValue, end + 1);
         }
         return false;
+    }
+
+    private static int nextDelimitedTokenStart(String value, int fromIndex) {
+        for (int i = Math.max(0, fromIndex); i < value.length(); i++) {
+            if (!isDelimitedTokenSeparator(value.charAt(i))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static int delimitedTokenEnd(String value, int start) {
+        for (int i = start; i < value.length(); i++) {
+            if (isDelimitedTokenSeparator(value.charAt(i))) {
+                return i;
+            }
+        }
+        return value.length();
+    }
+
+    private static boolean isDelimitedTokenSeparator(char value) {
+        return value == ',' || Character.isWhitespace(value);
     }
 
     private static String cleanToken(String raw) {
@@ -809,8 +837,11 @@ public final class SearchSuggestions {
             if (rawValue == null || rawValue.isBlank()) {
                 return;
             }
-            for (String part : rawValue.split("[,\\s]+")) {
-                addModToken(part, countedModTokens);
+            int start = nextDelimitedTokenStart(rawValue, 0);
+            while (start >= 0) {
+                int end = delimitedTokenEnd(rawValue, start);
+                addModToken(rawValue.substring(start, end), countedModTokens);
+                start = nextDelimitedTokenStart(rawValue, end + 1);
             }
         }
 
@@ -836,9 +867,12 @@ public final class SearchSuggestions {
             if (rawValue == null || rawValue.isBlank()) {
                 return;
             }
-            for (String part : rawValue.split("[,\\s]+")) {
-                String token = cleanToken(part);
+            int start = nextDelimitedTokenStart(rawValue, 0);
+            while (start >= 0) {
+                int end = delimitedTokenEnd(rawValue, start);
+                String token = cleanToken(rawValue.substring(start, end));
                 if (token.isBlank()) {
+                    start = nextDelimitedTokenStart(rawValue, end + 1);
                     continue;
                 }
                 ami.add(token);
@@ -846,6 +880,7 @@ public final class SearchSuggestions {
                 if (separator > 0 && separator < token.length() - 1 && "ami".equals(token.substring(0, separator))) {
                     ami.add(token.substring(separator + 1));
                 }
+                start = nextDelimitedTokenStart(rawValue, end + 1);
             }
         }
     }

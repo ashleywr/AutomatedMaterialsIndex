@@ -29,6 +29,8 @@ public class AmiConfig {
     @ConfigGroupEnd
     public static final Object displayGroupEnd = null;
     @ConfigGroupEnd
+    public static final Object searchGroupEnd = null;
+    @ConfigGroupEnd
     public static final Object interactionGroupEnd = null;
     @ConfigGroupEnd
     public static final Object sidepanelsGroupEnd = null;
@@ -95,8 +97,23 @@ public class AmiConfig {
     @ConfigValue("subtitles.fields")
     public static String subtitleFields = "MOD_NAME";
     public static int subtitleFieldsChecksum = 0;
-    // --- Search ---
-    @ConfigGroup(value = "interaction", icon = "interaction", order = 2)
+    // --- Search Sources ---
+    @ConfigGroup(value = "search", icon = "general", order = 2)
+    @ConfigValue("search.include-guides")
+    public static boolean searchIncludeGuides = true;
+    @ConfigValue("search.include-quests")
+    public static boolean searchIncludeQuests = true;
+    @ConfigValue("search.include-advancements")
+    public static boolean searchIncludeAdvancements = true;
+    @ConfigValue("search.include-entities")
+    public static boolean searchIncludeEntities = true;
+    @ConfigValue("search.include-players")
+    public static boolean searchIncludePlayers = true;
+    @ConfigValue("search.include-waypoints")
+    public static boolean searchIncludeWaypoints = true;
+
+    // --- Interaction ---
+    @ConfigGroup(value = "interaction", icon = "interaction", order = 3)
     @ConfigValue("ui.item-click-action")
     public static ItemClickAction itemClickAction = ItemClickAction.RECIPES;
 
@@ -180,7 +197,7 @@ public class AmiConfig {
     @ConfigValue("compat.waystones.open-screen-from-anywhere")
     public static boolean waystonesOpenScreenFromAnywhere = false;
     // --- Side Panels Group ---
-    @ConfigGroup(value = "sidepanels", icon = "sidepanels", order = 3)
+    @ConfigGroup(value = "sidepanels", icon = "sidepanels", order = 4)
     @ConfigValue("sidepanels.left.width")
     public static int leftPanelWidth = 0; // 0 = Auto
     @ConfigValue("sidepanels.right.width")
@@ -203,7 +220,7 @@ public class AmiConfig {
     public static PanelContent rightPanelAlternateSecondaryContent = PanelContent.NONE;
     public static PanelContent rightPanelSecondaryContent = PanelContent.NONE;
     // --- Cheats & Developer ---
-    @ConfigGroup(value = "cheat", icon = "cheat", order = 4)
+    @ConfigGroup(value = "cheat", icon = "cheat", order = 5)
     @ConfigValue("general.cheat-mode")
     public static boolean cheatMode = false;
     @ConfigValue("general.dev-mode")
@@ -226,7 +243,7 @@ public class AmiConfig {
     @ConfigValue("general.highlight-exclusion-areas")
     public static boolean highlightExclusionAreas = false;
     // --- Layout & Sizing ---
-    @ConfigGroup(value = "layout", icon = "sidepanels", order = 2)
+    @ConfigGroup(value = "layout", icon = "sidepanels", order = 6)
     @ConfigValue("layout.search-bar-width")
     public static int searchBarWidth = 240;
     @ConfigValue("layout.grid-columns")
@@ -246,7 +263,7 @@ public class AmiConfig {
     @ConfigValue("layout.pinned-positions")
     public static String pinnedPositionsJson = "{}";
     // --- Palette Group ---
-    @ConfigGroup(value = "palette", icon = "palette", order = 6)
+    @ConfigGroup(value = "palette", icon = "palette", order = 7)
     @ConfigColor
     @ConfigValue("palette.overlay-bg")
     public static int overlayBg = 0x66000000;
@@ -330,6 +347,12 @@ public class AmiConfig {
         subtitleFieldsChecksum = 0;
 
         itemClickAction = ItemClickAction.RECIPES;
+        searchIncludeGuides = true;
+        searchIncludeQuests = true;
+        searchIncludeAdvancements = true;
+        searchIncludeEntities = true;
+        searchIncludePlayers = true;
+        searchIncludeWaypoints = true;
         recipeViewerMode = RecipeViewerMode.AUTO;
         enableGhostCrafting = true;
         guideIndexingMode = GuideIndexingMode.SUMMARY;
