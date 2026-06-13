@@ -4,6 +4,7 @@ import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.api.AmiQuestDocument;
 import com.sanhiruzu.ami.api.AmiQuestTaskDocument;
 import com.sanhiruzu.ami.api.AmiQuestsApi;
+import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -56,6 +57,10 @@ public final class FtbQuestsRuntimeCompat {
         if (!modLoaded) {
             return;
         }
+        if (!AmiConfig.searchIncludeQuests) {
+            clearIfNeeded();
+            return;
+        }
         if (ticksUntilRefresh++ < REFRESH_INTERVAL_TICKS) {
             return;
         }
@@ -64,6 +69,10 @@ public final class FtbQuestsRuntimeCompat {
     }
 
     public static void refreshNow() {
+        if (!AmiConfig.searchIncludeQuests) {
+            clearIfNeeded();
+            return;
+        }
         ticksUntilRefresh = 0;
         refresh();
     }
@@ -86,6 +95,10 @@ public final class FtbQuestsRuntimeCompat {
     }
 
     private static void refresh() {
+        if (!AmiConfig.searchIncludeQuests) {
+            clearIfNeeded();
+            return;
+        }
         try {
             Reflection reflection = Reflection.load();
             if (!reflection.exists()) {

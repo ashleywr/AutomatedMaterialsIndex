@@ -57,6 +57,14 @@ public final class AmiIndexerService {
         return searchService != null && !isRebuilding.get();
     }
 
+    public boolean isBusy() {
+        return isRebuilding.get()
+                || isDeferredIndexing.get()
+                || isDeferredGuideIndexing.get()
+                || isRecipeIndexRebuilding.get()
+                || pendingRecipeIndexRebuild.get();
+    }
+
     public Throwable getLastRebuildFailure() {
         return lastRebuildFailure;
     }
@@ -314,7 +322,7 @@ public final class AmiIndexerService {
     }
 
     private void scheduleDeferredGuideIndex() {
-        if (AmiConfig.guideIndexingMode == AmiConfig.GuideIndexingMode.OFF) {
+        if (!AmiConfig.searchIncludeGuides || AmiConfig.guideIndexingMode == AmiConfig.GuideIndexingMode.OFF) {
             return;
         }
         if (!isDeferredGuideIndexing.compareAndSet(false, true)) {

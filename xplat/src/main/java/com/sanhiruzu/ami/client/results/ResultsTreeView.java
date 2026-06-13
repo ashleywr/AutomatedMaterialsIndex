@@ -69,6 +69,7 @@ public class ResultsTreeView {
      * Height of the scrollable content area (height minus any sticky header). Updated each render.
      */
     private int lastContentH = 0;
+    private int topContentHeight = 0;
     private boolean scrollbarDragging = false;
     private int scrollbarDragStartY;
     private int scrollbarDragStartOffset;
@@ -193,6 +194,14 @@ public class ResultsTreeView {
         this.height = height;
     }
 
+    public void setTopContentHeight(int topContentHeight) {
+        this.topContentHeight = Math.max(0, topContentHeight);
+    }
+
+    public int getPixelScrollOffset() {
+        return pixelScrollOffset;
+    }
+
     // ── Badges ────────────────────────────────────────────────────────────────
 
     /**
@@ -218,16 +227,19 @@ public class ResultsTreeView {
             topOffset = HEADER_LABEL_H;
         }
 
-        if (rootNodes.isEmpty()) {
-            g.drawString(Minecraft.getInstance().font,
-                    Component.translatable("ami.gui.no_results"), x + AMITheme.GLOBAL_PADDING, y + topOffset + AMITheme.GLOBAL_PADDING, AMITheme.TEXT_SUBTLE, false);
-            return;
-        }
-
         int contentH = height - topOffset;
         lastContentH = contentH;
-        int totalH = countAllNodes() * AMITheme.ROW_HEIGHT;
+        int totalH = topContentHeight + countAllNodes() * AMITheme.ROW_HEIGHT;
         clampScroll(totalH, contentH);
+
+        if (rootNodes.isEmpty()) {
+            if (topContentHeight <= 0) {
+                g.drawString(Minecraft.getInstance().font,
+                        Component.translatable("ami.gui.no_results"), x + AMITheme.GLOBAL_PADDING, y + topOffset + AMITheme.GLOBAL_PADDING, AMITheme.TEXT_SUBTLE, false);
+            }
+            renderScrollbar(g, totalH, contentH, y + topOffset, mouseX, mouseY);
+            return;
+        }
 
         g.enableScissor(x + 2, y + topOffset, x + width - 2, y + height - 2);
 
@@ -269,7 +281,7 @@ public class ResultsTreeView {
      */
     private int renderNode(GuiGraphics g, TreeNode node, int depth, int rowIdx,
                            int mouseX, int mouseY, int originY, int contentH, String currentQuery, Set<String> selectedMods) {
-        int drawY = originY - pixelScrollOffset + rowIdx * AMITheme.ROW_HEIGHT;
+        int drawY = originY - pixelScrollOffset + topContentHeight + rowIdx * AMITheme.ROW_HEIGHT;
 
         // Only draw if even partially visible
         if (drawY + AMITheme.ROW_HEIGHT > originY && drawY < originY + contentH) {
@@ -771,7 +783,9 @@ public class ResultsTreeView {
 
         if (mouseX < x || mouseX >= x + width - SCROLLBAR_W) return false;
 
-        int targetRow = (int) (mouseY - y + pixelScrollOffset) / AMITheme.ROW_HEIGHT;
+        int relativeY = (int) (mouseY - y + pixelScrollOffset - topContentHeight);
+        if (relativeY < 0) return false;
+        int targetRow = relativeY / AMITheme.ROW_HEIGHT;
         if (targetRow < 0) return false;
 
         int[] counter = {0};
@@ -824,7 +838,7 @@ public class ResultsTreeView {
 
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         int contentH = lastContentH > 0 ? lastContentH : height;
-        int totalH = countAllNodes() * AMITheme.ROW_HEIGHT;
+        int totalH = topContentHeight + countAllNodes() * AMITheme.ROW_HEIGHT;
         int maxScroll = Math.max(0, totalH - contentH);
         int rowsPerWheel = Math.max(1, Math.min(50, AmiConfig.listScrollRows));
         pixelScrollOffset = Math.max(0, Math.min(maxScroll,
@@ -854,7 +868,7 @@ public class ResultsTreeView {
             return true;
         } else if (keyCode == GLFW.GLFW_KEY_PAGE_DOWN) {
             int contentH = lastContentH > 0 ? lastContentH : height;
-            int totalH = countAllNodes() * AMITheme.ROW_HEIGHT;
+            int totalH = topContentHeight + countAllNodes() * AMITheme.ROW_HEIGHT;
             int maxScroll = Math.max(0, totalH - contentH);
             pixelScrollOffset = Math.min(maxScroll, pixelScrollOffset + contentH);
             return true;
@@ -866,7 +880,7 @@ public class ResultsTreeView {
         if (button != 0) return false;
         int contentH = lastContentH > 0 ? lastContentH : height;
         int topOffset = height - contentH;
-        int totalH = countAllNodes() * AMITheme.ROW_HEIGHT;
+        int totalH = topContentHeight + countAllNodes() * AMITheme.ROW_HEIGHT;
         if (!isScrollbarHovered((int) mouseX, (int) mouseY, totalH, contentH, y + topOffset)) return false;
         scrollbarDragging = true;
         scrollbarDragStartY = (int) mouseY;
@@ -878,7 +892,7 @@ public class ResultsTreeView {
         if (!scrollbarDragging || button != 0) return false;
 
         int contentH = lastContentH > 0 ? lastContentH : height;
-        int totalH = countAllNodes() * AMITheme.ROW_HEIGHT;
+        int totalH = topContentHeight + countAllNodes() * AMITheme.ROW_HEIGHT;
         if (totalH <= contentH) return true;
 
         int thumbH = AmiConfig.theme == AmiConfig.Theme.VANILLA
@@ -914,7 +928,8 @@ public class ResultsTreeView {
         if (!isMouseOver(mx, my)) return null;
 
         int topOffset = height - (lastContentH > 0 ? lastContentH : height);
-        int targetRow = (int) (my - y - topOffset + pixelScrollOffset) / AMITheme.ROW_HEIGHT;
+        int relativeY = (int) (my - y - topOffset + pixelScrollOffset - topContentHeight);
+        int targetRow = relativeY / AMITheme.ROW_HEIGHT;
         if (targetRow < 0) return null;
 
         int[] counter = {0};
@@ -941,7 +956,7 @@ public class ResultsTreeView {
         if (!isMouseOver(mouseX, mouseY)) return -1;
         int contentH = lastContentH > 0 ? lastContentH : height;
         int topOffset = height - contentH;
-        int relativeY = (int) mouseY - y - topOffset + pixelScrollOffset;
+        int relativeY = (int) mouseY - y - topOffset + pixelScrollOffset - topContentHeight;
         int rowIndex = relativeY / AMITheme.ROW_HEIGHT;
         return Math.max(0, rowIndex);
     }

@@ -57,6 +57,7 @@ public class ItemGridView {
     private int x, y, width, height;
     private List<TreeNode> rootNodes = new ArrayList<>();
     private int pixelScrollOffset = 0;
+    private int topContentHeight = 0;
     private boolean scrollbarDragging = false;
     private int scrollbarDragStartY;
     private int scrollbarDragStartOffset;
@@ -195,6 +196,14 @@ public class ItemGridView {
         this.cachedRows = null; // cols may have changed
     }
 
+    public void setTopContentHeight(int topContentHeight) {
+        this.topContentHeight = Math.max(0, topContentHeight);
+    }
+
+    public int getPixelScrollOffset() {
+        return pixelScrollOffset;
+    }
+
     public void setItemClickCallback(BiConsumer<SearchNode, Integer> callback) {
         this.onItemClick = callback;
     }
@@ -230,21 +239,24 @@ public class ItemGridView {
             cachedRotation = 0f;
         }
 
-        if (rootNodes.isEmpty()) {
-            g.drawString(Minecraft.getInstance().font,
-                    Component.translatable("ami.gui.no_results"), x + AMITheme.GLOBAL_PADDING, y + AMITheme.GLOBAL_PADDING, AMITheme.GRID_NO_RESULTS_TEXT, false);
-            return;
-        }
-
         int effectiveMouseX = toolbarDropdownOpen ? -1 : mouseX;
 
         int cols = computeCols();
         List<VirtualRow> rows = getVirtualRows(cols);
         AmiRenderProfiler.add("grid.virtualRows", rows.size());
-        int totalH = calcTotalHeight(rows);
+        int totalH = totalHeight(rows);
         StickyContext stickyContext = stickyContext(rows);
         int contentY = contentY(stickyContext);
         int contentH = contentHeight(stickyContext);
+
+        if (rootNodes.isEmpty()) {
+            if (topContentHeight <= 0) {
+                g.drawString(Minecraft.getInstance().font,
+                        Component.translatable("ami.gui.no_results"), x + AMITheme.GLOBAL_PADDING, y + AMITheme.GLOBAL_PADDING, AMITheme.GRID_NO_RESULTS_TEXT, false);
+            }
+            renderScrollbar(g, totalH, contentY, contentH, mouseX, mouseY);
+            return;
+        }
 
         if (stickyContext != null) {
             renderStickyContext(g, stickyContext);
@@ -259,7 +271,7 @@ public class ItemGridView {
             }
 
             try (AmiRenderProfiler.Section rowsSection = AmiRenderProfiler.section("grid.rows")) {
-                int drawY = contentY - pixelScrollOffset;
+                int drawY = contentY - pixelScrollOffset + topContentHeight;
                 for (VirtualRow row : rows) {
                     int rowBottom = drawY + row.height();
                     if (rowBottom > contentY && drawY < y + height) {
@@ -658,7 +670,7 @@ public class ItemGridView {
 
     private void primeIconCache(GuiGraphics g, List<VirtualRow> rows, int contentY) {
         List<Map.Entry<ResourceLocation, ItemStack>> uncached = new ArrayList<>();
-        int drawY = contentY - pixelScrollOffset;
+        int drawY = contentY - pixelScrollOffset + topContentHeight;
         for (VirtualRow row : rows) {
             if (drawY + row.height() > contentY && drawY < y + height && row instanceof ItemRow ir) {
                 for (TreeNode node : ir.items()) {
@@ -832,7 +844,8 @@ public class ItemGridView {
     }
 
     private StickyContext stickyContext(List<VirtualRow> rows) {
-        if (pixelScrollOffset <= 0) {
+        int rowScrollOffset = pixelScrollOffset - topContentHeight;
+        if (rowScrollOffset <= 0) {
             return null;
         }
 
@@ -840,7 +853,7 @@ public class ItemGridView {
         int rowTop = 0;
         for (VirtualRow row : rows) {
             int rowBottom = rowTop + row.height();
-            if (rowTop >= pixelScrollOffset) {
+            if (rowTop >= rowScrollOffset) {
                 break;
             }
             if (row instanceof HeaderRow header) {
@@ -853,7 +866,7 @@ public class ItemGridView {
                     stack.set(header.depth(), header);
                 }
             }
-            if (rowBottom > pixelScrollOffset) {
+            if (rowBottom > rowScrollOffset) {
                 break;
             }
             rowTop = rowBottom;
@@ -889,6 +902,10 @@ public class ItemGridView {
         int h = 0;
         for (VirtualRow r : rows) h += r.height();
         return h;
+    }
+
+    private int totalHeight(List<VirtualRow> rows) {
+        return topContentHeight + calcTotalHeight(rows);
     }
 
     private int computeCols() {
@@ -935,7 +952,7 @@ public class ItemGridView {
         int cols = computeCols();
         List<VirtualRow> rows = getVirtualRows(cols);
         StickyContext stickyContext = stickyContext(rows);
-        int totalH = calcTotalHeight(rows);
+        int totalH = totalHeight(rows);
         int contentY = contentY(stickyContext);
         int contentH = contentHeight(stickyContext);
         if (totalH <= contentH) return false;
@@ -958,7 +975,7 @@ public class ItemGridView {
             return false;
         }
 
-        int drawY = contentY - pixelScrollOffset;
+        int drawY = contentY - pixelScrollOffset + topContentHeight;
         for (VirtualRow row : rows) {
             if (mouseY >= drawY && mouseY < drawY + row.height()) {
                 if (row instanceof HeaderRow hr) {
@@ -1012,7 +1029,7 @@ public class ItemGridView {
         int cols = computeCols();
         List<VirtualRow> rows = getVirtualRows(cols);
         StickyContext stickyContext = stickyContext(rows);
-        int totalH = calcTotalHeight(rows);
+        int totalH = totalHeight(rows);
         int contentH = contentHeight(stickyContext);
         int maxScroll = Math.max(0, totalH - contentH);
 
@@ -1057,7 +1074,7 @@ public class ItemGridView {
             List<VirtualRow> rows = getVirtualRows(cols);
             StickyContext stickyContext = stickyContext(rows);
             int contentH = contentHeight(stickyContext);
-            int totalH = calcTotalHeight(rows);
+            int totalH = totalHeight(rows);
             int maxScroll = Math.max(0, totalH - contentH);
             pixelScrollOffset = Math.min(maxScroll, pixelScrollOffset + contentH);
             return true;
@@ -1083,7 +1100,7 @@ public class ItemGridView {
         List<VirtualRow> rows = getVirtualRows(cols);
         StickyContext stickyContext = stickyContext(rows);
         int contentH = contentHeight(stickyContext);
-        int totalH = calcTotalHeight(rows);
+        int totalH = totalHeight(rows);
         if (totalH <= contentH) return true;
         int thumbH = AmiConfig.theme == AmiConfig.Theme.VANILLA
                 ? vanillaThumbHeight(totalH, contentH)
@@ -1122,7 +1139,7 @@ public class ItemGridView {
             return 0;
         }
         int itemCounter = 0;
-        int drawY = contentY - pixelScrollOffset;
+        int drawY = contentY - pixelScrollOffset + topContentHeight;
         for (VirtualRow row : rows) {
             if (mouseY >= drawY && mouseY < drawY + row.height()) {
                 if (row instanceof HeaderRow) return itemCounter;

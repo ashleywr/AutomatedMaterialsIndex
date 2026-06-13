@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.compat.CobblemonSpeciesProvider;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.providers.*;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -59,6 +60,10 @@ public final class ProviderRegistry {
 
         for (int i = 0; i < PROVIDERS.size(); i++) {
             IAmiDataProvider provider = PROVIDERS.get(i);
+            if (!shouldRunProvider(provider)) {
+                AmiCore.LOGGER.info("AMI indexing: {} provider skipped by config", providerName(provider));
+                continue;
+            }
             long providerStart = System.currentTimeMillis();
             progress.beginProgress("Indexing " + providerName(provider), (i + 1) + "/" + PROVIDERS.size(), 0);
             try {
@@ -169,6 +174,13 @@ public final class ProviderRegistry {
     private static String providerName(IAmiDataProvider provider) {
         String name = provider.getClass().getSimpleName();
         return name.endsWith("Provider") ? name.substring(0, name.length() - "Provider".length()) : name;
+    }
+
+    private static boolean shouldRunProvider(IAmiDataProvider provider) {
+        if (provider instanceof EntityProvider || provider instanceof CobblemonSpeciesProvider) {
+            return AmiConfig.searchIncludeEntities;
+        }
+        return true;
     }
 
     private static boolean hasMultipleCreativeStacks(@Nullable List<ItemFilter.CreativeStackInfo> stacks) {

@@ -4,6 +4,7 @@ import com.sanhiruzu.ami.api.AmiQuestDocument;
 import com.sanhiruzu.ami.api.AmiQuestItemMatch;
 import com.sanhiruzu.ami.api.AmiQuestTaskDocument;
 import com.sanhiruzu.ami.api.AmiQuestsApi;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.resources.ResourceLocation;
@@ -21,7 +22,7 @@ public final class QuestItemEvidenceProjector {
     }
 
     public static QuestItemEvidence project(SearchNode node) {
-        if (node == null || node.type() != NodeType.ITEM) {
+        if (!AmiConfig.searchIncludeQuests || node == null || node.type() != NodeType.ITEM) {
             return empty();
         }
         return project(AmiQuestsApi.getQuestMatchesForItem(node.id()));

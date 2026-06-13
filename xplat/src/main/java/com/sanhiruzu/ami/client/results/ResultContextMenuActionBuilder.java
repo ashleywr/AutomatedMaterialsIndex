@@ -286,7 +286,7 @@ public class ResultContextMenuActionBuilder {
         ResourceLocation id = resolvedItemId(node);
         ItemStack stack = context.stack() == null ? ItemStack.EMPTY : context.stack().copy();
         boolean hasStack = !stack.isEmpty();
-        List<AmiQuestItemMatch> questMatches = node.type() == NodeType.ITEM
+        List<AmiQuestItemMatch> questMatches = AmiConfig.searchIncludeQuests && node.type() == NodeType.ITEM
                 ? AmiQuestsApi.getQuestMatchesForItem(id)
                 : List.of();
 
