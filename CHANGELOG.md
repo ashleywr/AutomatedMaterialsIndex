@@ -2,6 +2,39 @@
 
 User-facing changes are recorded here.
 
+## 1.6.0 - 2026-06-13
+
+AMI 1.6.0 adds advancement search, expands document-result controls, and improves large-modpack entity icon performance and release profiling.
+
+### Added
+
+- Added client-visible Minecraft advancement search as document rows in AMI search results, including progress state, match evidence, context actions, and opening through Just Enough Advancements when available.
+- Added configurable search-source toggles for advancement, guide, quest, player, and waypoint document/runtime rows.
+- Added localized advancement-result labels and configuration text across supported languages.
+- Added a reusable adaptive client-work scheduler for expensive render-thread background tasks.
+- Added Synesthesia-scale profiling tooling that captures indexing duration, entity icon warmup, FPS/tick telemetry, memory/process samples, screenshots, logs, and optional JFR recordings.
+- Added a release benchmark exporter for compact GitHub release benchmark Markdown/JSON assets.
+- Added Spanish localization and translation delimiter sentinels for localization maintenance.
+
+### Changed
+
+- Changed entity icon atlas warmup to use prioritized, bounded, adaptive scheduling so visible icons are favored while background warmup backs off under frame pressure.
+- Changed entity icon cache persistence from full-atlas writes to per-icon persistent PNG cache files, with asynchronous best-effort writes and lazy bounded reads.
+- Changed entity icon cache keys to include a stable mod/resource-pack fingerprint without recomputing that fingerprint during normal icon blits.
+- Changed runtime `/ami/status` telemetry to report index busy state, node-type counts, heap/process CPU, AMI tick/frame timing, and entity icon cache/warmup counters.
+- Changed document row rendering to clean up scissor state reliably when guide, quest, and advancement rows are rendered.
+
+### Fixed
+
+- Fixed entity icon atlas writes causing render-thread hitches by removing full-atlas PNG writes from client tick processing.
+- Fixed entity icon cache misses and render failures to show concrete fallbacks, preferring spawn eggs or proxy items before a red error marker.
+- Fixed entity icon warmup completion accounting so a full queue no longer makes unqueued renderable entities look complete.
+- Fixed visible entity icon requests churning the bounded bake queue when the queue is already full of visible-priority work.
+- Fixed entity icon warmup competing with AMI indexing by pausing atlas work while high-impact indexing phases are busy.
+- Fixed retained entity-renderer memory pressure by bounding cached `LivingEntity` instances and pending bake tasks.
+- Fixed the Synesthesia profiler harness to tolerate optional status fields and to pass `jcmd` JFR arguments correctly.
+- Fixed runtime result-debug projection so guide, quest, and advancement row counts respect their config toggles.
+
 ## 1.5.1 - 2026-06-12
 
 AMI 1.5.1 is a hotfix release for the Forge 1.20.1 packaged build published in 1.5.0.
