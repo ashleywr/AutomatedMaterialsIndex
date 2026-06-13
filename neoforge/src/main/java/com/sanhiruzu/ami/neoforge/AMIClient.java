@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.neoforge;
 
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+import com.sanhiruzu.ami.client.AmiClientTelemetry;
 import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.ThemeResourceLoader;
 import com.sanhiruzu.ami.client.icon.EntityIconRenderer;
@@ -26,6 +27,7 @@ import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
+import net.neoforged.neoforge.client.event.RenderFrameEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 
@@ -98,15 +100,25 @@ public class AMIClient {
 
     @SubscribeEvent
     static void onClientTick(ClientTickEvent.Post event) {
-        if (!cachePreloadTriggered) {
-            cachePreloadTriggered = true;
-            GlobalIndexCache.preloadAsync();
+        AmiClientTelemetry.beginClientTick();
+        try {
+            if (!cachePreloadTriggered) {
+                cachePreloadTriggered = true;
+                GlobalIndexCache.preloadAsync();
+            }
+            FtbQuestsRuntimeCompat.clientTick();
+            com.sanhiruzu.ami.client.discovery.AmiDiscoveryState.getInstance().clientTick();
+            AmiIndexerService.getInstance().ensurePendingRecipeIndexBuild();
+            InventoryOverlayHandler.tickAutoIndexBootstrap();
+            EntityIconRenderer.tickAtlasWarmup();
+        } finally {
+            AmiClientTelemetry.endClientTick();
         }
-        FtbQuestsRuntimeCompat.clientTick();
-        com.sanhiruzu.ami.client.discovery.AmiDiscoveryState.getInstance().clientTick();
-        AmiIndexerService.getInstance().ensurePendingRecipeIndexBuild();
-        InventoryOverlayHandler.tickAutoIndexBootstrap();
-        EntityIconRenderer.tickAtlasWarmup();
+    }
+
+    @SubscribeEvent
+    static void onRenderFrame(RenderFrameEvent.Post event) {
+        AmiClientTelemetry.recordFrame();
     }
 
     @SubscribeEvent

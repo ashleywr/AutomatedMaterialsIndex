@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.forge;
 
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+import com.sanhiruzu.ami.client.AmiClientTelemetry;
 import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.ThemeResourceLoader;
 import com.sanhiruzu.ami.client.icon.EntityIconRenderer;
@@ -90,9 +91,14 @@ public class AMIClient {
         @SubscribeEvent
         public static void onClientTick(TickEvent.ClientTickEvent event) {
             if (event.phase == TickEvent.Phase.END) {
-                FtbQuestsRuntimeCompat.clientTick();
-                InventoryOverlayHandler.tickAutoIndexBootstrap();
-                EntityIconRenderer.tickAtlasWarmup();
+                AmiClientTelemetry.beginClientTick();
+                try {
+                    FtbQuestsRuntimeCompat.clientTick();
+                    InventoryOverlayHandler.tickAutoIndexBootstrap();
+                    EntityIconRenderer.tickAtlasWarmup();
+                } finally {
+                    AmiClientTelemetry.endClientTick();
+                }
             }
         }
 

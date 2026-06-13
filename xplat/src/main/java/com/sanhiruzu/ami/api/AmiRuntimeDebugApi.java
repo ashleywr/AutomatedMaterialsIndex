@@ -4,9 +4,14 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.sanhiruzu.ami.client.AmiClientTelemetry;
+import com.sanhiruzu.ami.client.EntityIconCache;
+import com.sanhiruzu.ami.client.EntityIconWarmupMetrics;
 import com.sanhiruzu.ami.client.results.*;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.*;
 
+import java.lang.management.ManagementFactory;
 import java.util.*;
 
 /**
@@ -51,8 +56,9 @@ public final class AmiRuntimeDebugApi {
                 source,
                 state,
                 searchService,
-                AmiIndexerService.getInstance().getGuideSearchIndex(),
-                AmiQuestsApi.getQuestSearchIndex(),
+                AmiConfig.searchIncludeGuides ? AmiIndexerService.getInstance().getGuideSearchIndex() : null,
+                AmiConfig.searchIncludeQuests ? AmiQuestsApi.getQuestSearchIndex() : null,
+                AmiConfig.searchIncludeAdvancements ? AdvancementRuntimeDocuments.searchIndex() : null,
                 compact,
                 false
         );
@@ -69,6 +75,7 @@ public final class AmiRuntimeDebugApi {
         out.addProperty("displayedItemCount", displayedLeaves.size());
         out.addProperty("guideResultCount", projection.guideRows().size());
         out.addProperty("questResultCount", projection.questRows().size());
+        out.addProperty("advancementResultCount", projection.advancementRows().size());
         out.addProperty("summary", projection.summary());
         out.add("sourceTypeCounts", typeCounts(source));
         out.add("displayedTypeCounts", typeCounts(displayedLeaves));
@@ -76,6 +83,7 @@ public final class AmiRuntimeDebugApi {
         out.add("roots", treeSummaries(projection.roots(), boundedLimit));
         out.add("guides", guideSummaries(projection.guideRows(), boundedLimit));
         out.add("quests", questSummaries(projection.questRows(), boundedLimit));
+        out.add("advancements", advancementSummaries(projection.advancementRows(), boundedLimit));
         out.addProperty("treeDump", ResultsTreeShapeDump.dumpTree(projection.roots()));
         return GSON.toJson(out);
     }
@@ -85,10 +93,15 @@ public final class AmiRuntimeDebugApi {
         GlobalIndex index = GlobalIndex.getInstance();
         JsonObject out = new JsonObject();
         out.addProperty("ready", indexer.isReady());
+        out.addProperty("busy", indexer.isBusy());
         out.addProperty("indexReady", index.isIndexReady());
         out.addProperty("revision", index.revision());
         out.addProperty("indexBuildTimeMs", index.getIndexBuildTimeMs());
         out.addProperty("indexedItemCount", indexer.indexedItemCount());
+        out.add("nodeTypeCounts", indexTypeCounts(index));
+        out.add("memory", memoryStatus());
+        out.add("clientTick", clientTickStatus(AmiClientTelemetry.snapshot()));
+        out.add("entityIcons", entityIconStatus());
         AmiIndexProgress progress = indexer.progress();
         JsonObject progressJson = new JsonObject();
         progressJson.addProperty("active", progress.active());
@@ -105,6 +118,102 @@ public final class AmiRuntimeDebugApi {
             out.addProperty("lastRebuildFailure", failure.getClass().getName() + ": " + failure.getMessage());
         }
         return out;
+    }
+
+    private static JsonObject memoryStatus() {
+        Runtime runtime = Runtime.getRuntime();
+        JsonObject out = new JsonObject();
+        long total = runtime.totalMemory();
+        long free = runtime.freeMemory();
+        long max = runtime.maxMemory();
+        out.addProperty("heapUsedBytes", total - free);
+        out.addProperty("heapCommittedBytes", total);
+        out.addProperty("heapMaxBytes", max);
+        out.addProperty("availableProcessors", runtime.availableProcessors());
+        try {
+            java.lang.management.OperatingSystemMXBean bean = ManagementFactory.getOperatingSystemMXBean();
+            out.addProperty("processCpuLoad", processCpuLoad(bean));
+            out.addProperty("systemCpuLoad", systemCpuLoad(bean));
+        } catch (RuntimeException ignored) {
+        }
+        return out;
+    }
+
+    private static double processCpuLoad(java.lang.management.OperatingSystemMXBean bean) {
+        if (bean instanceof com.sun.management.OperatingSystemMXBean sunBean) {
+            return sunBean.getProcessCpuLoad();
+        }
+        return -1.0D;
+    }
+
+    private static double systemCpuLoad(java.lang.management.OperatingSystemMXBean bean) {
+        if (bean instanceof com.sun.management.OperatingSystemMXBean sunBean) {
+            return sunBean.getCpuLoad();
+        }
+        return -1.0D;
+    }
+
+    private static JsonObject clientTickStatus(AmiClientTelemetry.Snapshot snapshot) {
+        JsonObject out = new JsonObject();
+        out.addProperty("tickSamples", snapshot.tickSamples());
+        out.addProperty("tickIntervalSamples", snapshot.tickIntervalSamples());
+        out.addProperty("frameSamples", snapshot.frameSamples());
+        out.addProperty("averageTickMs", nanosToMs(snapshot.averageTickNanos()));
+        out.addProperty("maxTickMs", nanosToMs(snapshot.maxTickNanos()));
+        out.addProperty("averageTickIntervalMs", nanosToMs(snapshot.averageTickIntervalNanos()));
+        out.addProperty("maxTickIntervalMs", nanosToMs(snapshot.maxTickIntervalNanos()));
+        out.addProperty("averageFrameIntervalMs", nanosToMs(snapshot.averageFrameIntervalNanos()));
+        out.addProperty("maxFrameIntervalMs", nanosToMs(snapshot.maxFrameIntervalNanos()));
+        out.addProperty("estimatedFps", snapshot.estimatedFps());
+        return out;
+    }
+
+    private static JsonObject indexTypeCounts(GlobalIndex index) {
+        JsonObject counts = new JsonObject();
+        for (NodeType type : NodeType.values()) {
+            counts.addProperty(type.name(), index.getNodes(type).size());
+        }
+        return counts;
+    }
+
+    private static JsonObject entityIconStatus() {
+        EntityIconCache.Stats stats = EntityIconCache.stats();
+        EntityIconWarmupMetrics.Snapshot warmup = EntityIconWarmupMetrics.snapshot();
+        JsonObject out = new JsonObject();
+        out.addProperty("atlasCount", stats.atlasCount());
+        out.addProperty("pendingBakeCount", stats.pendingBakeCount());
+        out.addProperty("failedKeyCount", stats.failedKeyCount());
+        out.addProperty("queuedBakeRequests", stats.queuedBakeRequests());
+        out.addProperty("droppedBakeRequests", stats.droppedBakeRequests());
+        out.addProperty("renderedBakeCount", stats.renderedBakeCount());
+        out.addProperty("persistentLoadCount", stats.persistentLoadCount());
+        out.addProperty("failedBakeCount", stats.failedBakeCount());
+        out.addProperty("pendingPersistentWrites", stats.pendingPersistentWrites());
+        out.addProperty("droppedPersistentWrites", stats.droppedPersistentWrites());
+        JsonObject warmupJson = new JsonObject();
+        warmupJson.addProperty("revision", warmup.revision());
+        warmupJson.addProperty("total", warmup.total());
+        warmupJson.addProperty("visited", warmup.visited());
+        warmupJson.addProperty("remaining", warmup.remaining());
+        warmupJson.addProperty("queuedOrCached", warmup.queuedOrCached());
+        warmupJson.addProperty("skipped", warmup.skipped());
+        warmupJson.addProperty("renderFailures", warmup.renderFailures());
+        warmupJson.addProperty("done", warmup.done());
+        out.add("warmup", warmupJson);
+        JsonArray atlases = new JsonArray();
+        for (EntityIconCache.AtlasStats atlas : stats.atlases().values()) {
+            JsonObject atlasJson = new JsonObject();
+            atlasJson.addProperty("size", atlas.size());
+            atlasJson.addProperty("entryCount", atlas.entryCount());
+            atlasJson.addProperty("maxSlots", atlas.maxSlots());
+            atlases.add(atlasJson);
+        }
+        out.add("atlases", atlases);
+        return out;
+    }
+
+    private static double nanosToMs(long nanos) {
+        return nanos / 1_000_000.0D;
     }
 
     private static List<SearchNode> atlasNodes() {
@@ -260,6 +369,18 @@ public final class AmiRuntimeDebugApi {
             json.addProperty("provenanceLine", row.provenanceLine());
             json.addProperty("requirementCount", row.requirementCount());
             json.addProperty("rewardCount", row.rewardCount());
+            out.add(json);
+        }
+        return out;
+    }
+
+    private static JsonArray advancementSummaries(List<AdvancementResultRow> rows, int limit) {
+        JsonArray out = new JsonArray();
+        for (AdvancementResultRow row : rows.stream().limit(limit).toList()) {
+            JsonObject json = new JsonObject();
+            json.addProperty("title", row.title());
+            json.addProperty("sourceLine", row.sourceLine());
+            json.addProperty("provenanceLine", row.provenanceLine());
             out.add(json);
         }
         return out;
