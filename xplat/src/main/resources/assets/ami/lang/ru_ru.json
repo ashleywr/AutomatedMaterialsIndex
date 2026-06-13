@@ -621,7 +621,6 @@
   "ami.config.emi_config": "Настройки EMI",
   "ami.config.group.general": "Основное",
   "ami.config.group.display": "Тема",
-  "ami.config.group.interaction": "Поиск",
   "ami.config.group.features": "Функции",
   "ami.config.group.layout": "Макет",
   "ami.config.group.palette": "Расширенная тема",
@@ -702,6 +701,8 @@
   "ami.config.tooltip.features.enable-ghost-crafting": "Разрешить призрачное размещение предметов в рецептах.",
   "ami.config.value.features.guide-indexing-mode": "Индексация руководств",
   "ami.config.tooltip.features.guide-indexing-mode": "Управляет индексацией страниц руководств для поиска. «Заголовки» экономит память; «Аннотации» также индексирует текст страниц.",
+  "ami.config.value.search.include-entities": "Результаты мобов и сущностей",
+  "ami.config.tooltip.search.include-entities": "Индексировать и показывать сущности, например мобов. Отключение пропускает индексацию сущностей и подготовку их значков.",
   "ami.config.value.features.pack-author-mode": "Режим автора пакета",
   "ami.config.tooltip.features.pack-author-mode": "Показывает отчёты и заготовки для авторов пакетов без включения всего режима разработчика AMI.",
   "ami.config.value.ui.confirm-external-links": "Подтверждение внешних ссылок",
@@ -1085,5 +1086,24 @@
   "ami.config.value.ui.theme.vanilla": "Ванильный",
   "ami.config.value.ui.theme.modern": "Современный",
   "ami.config.value.ui.theme.custom": "Пользовательский",
-  "ami.config.panel.remove_slot": "-"
+  "ami.config.panel.remove_slot": "-",
+
+  "__machine_translated_below": "--- Strings below this line are machine-translated ---",
+
+  "ami.gui.advancement_results": "Достижения",
+  "ami.context.open_advancement": "Открыть достижение",
+  "ami.context.copy_advancement_title": "Скопировать название достижения",
+  "ami.context.copy_advancement_id": "Скопировать ID достижения",
+  "ami.config.group.search": "Поиск",
+  "ami.config.group.interaction": "Управление",
+  "ami.config.value.search.include-guides": "Результаты руководств",
+  "ami.config.tooltip.search.include-guides": "Показывать совпадения страниц руководств отдельными строками в результатах поиска.",
+  "ami.config.value.search.include-quests": "Результаты заданий",
+  "ami.config.tooltip.search.include-quests": "Показывать совпадения заданий отдельными строками в результатах поиска.",
+  "ami.config.value.search.include-advancements": "Результаты достижений",
+  "ami.config.tooltip.search.include-advancements": "Показывать видимые достижения Minecraft отдельными строками в результатах поиска.",
+  "ami.config.value.search.include-players": "Результаты игроков",
+  "ami.config.tooltip.search.include-players": "Показывать онлайн-игроков и головы игроков в результатах поиска.",
+  "ami.config.value.search.include-waypoints": "Результаты точек",
+  "ami.config.tooltip.search.include-waypoints": "Показывать текущие точки игроков в результатах поиска."
 }
