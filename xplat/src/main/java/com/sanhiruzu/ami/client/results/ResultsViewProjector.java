@@ -3,7 +3,10 @@ package com.sanhiruzu.ami.client.results;
 import com.sanhiruzu.ami.index.AmiGuideSearchIndex;
 import com.sanhiruzu.ami.index.AmiQuestSearchIndex;
 import com.sanhiruzu.ami.index.AmiAdvancementSearchIndex;
+import com.sanhiruzu.ami.index.AmiRegistryDocumentIndex;
+import com.sanhiruzu.ami.index.RegistryDocumentKind;
 import com.sanhiruzu.ami.config.AmiConfig;
+import java.util.EnumSet;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
@@ -102,6 +105,19 @@ public final class ResultsViewProjector {
                                      AmiAdvancementSearchIndex advancementSearchIndex,
                                      boolean compactMainPanel,
                                      boolean favoritesPanel) {
+        return project(source, state, searchService, guideSearchIndex, questSearchIndex, advancementSearchIndex,
+                null, compactMainPanel, favoritesPanel);
+    }
+
+    public static Projection project(List<SearchNode> source,
+                                     SearchState state,
+                                     SearchService searchService,
+                                     AmiGuideSearchIndex guideSearchIndex,
+                                     AmiQuestSearchIndex questSearchIndex,
+                                     AmiAdvancementSearchIndex advancementSearchIndex,
+                                     AmiRegistryDocumentIndex registryDocumentIndex,
+                                     boolean compactMainPanel,
+                                     boolean favoritesPanel) {
         List<SearchNode> effectiveSource = applyUniversalFilters(source);
         effectiveSource = applyRuntimeMetadataForLens(effectiveSource);
         String query = state.getQuery();
@@ -148,11 +164,24 @@ public final class ResultsViewProjector {
         List<AdvancementResultRow> advancementRows = favoritesPanel || compactMainPanel || !AmiConfig.searchIncludeAdvancements
                 ? List.of()
                 : AdvancementResultsProjector.project(query, advancementSearchIndex);
+
+        java.util.Set<RegistryDocumentKind> enabledKinds = EnumSet.noneOf(RegistryDocumentKind.class);
+        if (AmiConfig.searchIncludeEnchantments) enabledKinds.add(RegistryDocumentKind.ENCHANTMENT);
+        if (AmiConfig.searchIncludeMobEffects) enabledKinds.add(RegistryDocumentKind.MOB_EFFECT);
+        if (AmiConfig.searchIncludeTags) enabledKinds.add(RegistryDocumentKind.TAG);
+        if (AmiConfig.searchIncludePaintings) enabledKinds.add(RegistryDocumentKind.PAINTING);
+        if (AmiConfig.searchIncludeGameRules) enabledKinds.add(RegistryDocumentKind.GAME_RULE);
+
+        List<RegistryDocumentRow> registryDocumentRows = favoritesPanel || compactMainPanel || enabledKinds.isEmpty()
+                ? List.of()
+                : RegistryDocumentResultsProjector.project(query, enabledKinds, registryDocumentIndex);
+
         return new Projection(
                 roots,
                 advancementRows,
                 guideRows,
                 questRows,
+                registryDocumentRows,
                 source.size(),
                 effectiveSource.size(),
                 summary(state, source.size(), effectiveSource.size(), guideRows.size(), questRows.size(), advancementRows.size(), compactMainPanel, favoritesPanel)
@@ -337,6 +366,7 @@ public final class ResultsViewProjector {
             List<AdvancementResultRow> advancementRows,
             List<GuideResultRow> guideRows,
             List<QuestResultRow> questRows,
+            List<RegistryDocumentRow> registryDocumentRows,
             int sourceCount,
             int displayedItemCount,
             String summary
