@@ -15,7 +15,7 @@ public final class RegistryDocumentResultsProjector {
     public static List<RegistryDocumentRow> project(String query,
                                                      Set<RegistryDocumentKind> enabledKinds,
                                                      AmiRegistryDocumentIndex index) {
-        if (index == null || query == null || query.isBlank() || enabledKinds.isEmpty()) {
+        if (index == null || query == null || query.isBlank() || enabledKinds == null || enabledKinds.isEmpty()) {
             return List.of();
         }
         List<RegistryDocument> hits = index.query(query, enabledKinds);
