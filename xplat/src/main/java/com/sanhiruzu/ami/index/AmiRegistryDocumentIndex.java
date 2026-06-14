@@ -9,11 +9,11 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.decoration.PaintingVariant;
 import java.lang.reflect.Method;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.GameRules;
 
@@ -83,6 +83,10 @@ public final class AmiRegistryDocumentIndex {
         List<RegistryDocument> docs = new ArrayList<>();
         var registry = registryAccess.registry(Registries.ENCHANTMENT).orElse(null);
         if (registry == null) return docs;
+        // EnchantmentTags.CURSE / TREASURE constants (net.minecraft.tags.EnchantmentTags) exist in
+        // MC 1.21+, but that class is absent in MC 1.20.1. Building the TagKey manually gives
+        // identical keys on 1.21+ and silently returns false on 1.20.1 where enchantments are not
+        // data-driven (Holder.is returns false rather than throwing).
         TagKey<Enchantment> curseTag = TagKey.create(Registries.ENCHANTMENT,
                 Services.PLATFORM.rl("minecraft", "curse"));
         TagKey<Enchantment> treasureTag = TagKey.create(Registries.ENCHANTMENT,
@@ -97,7 +101,7 @@ public final class AmiRegistryDocumentIndex {
             boolean isTreasure = holder.is(treasureTag);
 
             List<String> tokens = new ArrayList<>();
-            tokens.add("enchantment");
+            tokens.add(RegistryDocumentKind.ENCHANTMENT.categoryToken());
             if (isCurse) tokens.add("curse");
             if (isTreasure) tokens.add("treasure");
             tokens.add(id.getNamespace());
@@ -134,7 +138,7 @@ public final class AmiRegistryDocumentIndex {
             boolean isInstant = effect.isInstantenous();
 
             List<String> tokens = new ArrayList<>();
-            tokens.add("effect");
+            tokens.add(RegistryDocumentKind.MOB_EFFECT.categoryToken());
             tokens.add(category.name().toLowerCase(Locale.ROOT));
             if (isInstant) tokens.add("instant");
             tokens.add(id.getNamespace());
@@ -167,7 +171,7 @@ public final class AmiRegistryDocumentIndex {
             int h = paintingDimension(variant, "height", "m_219985_");
 
             List<String> tokens = new ArrayList<>();
-            tokens.add("painting");
+            tokens.add(RegistryDocumentKind.PAINTING.categoryToken());
             tokens.add(w + "x" + h);
             tokens.add(id.getNamespace());
 
@@ -193,10 +197,20 @@ public final class AmiRegistryDocumentIndex {
                 ResourceLocation id = Services.PLATFORM.rl("minecraft", ruleName);
                 T rule = type.createRule();
                 String defaultVal = rule.serialize();
-                String typeName = defaultVal.equals("true") || defaultVal.equals("false") ? "boolean" : "integer";
+                String typeName;
+                if (defaultVal.equals("true") || defaultVal.equals("false")) {
+                    typeName = "boolean";
+                } else {
+                    try {
+                        Integer.parseInt(defaultVal);
+                        typeName = "integer";
+                    } catch (NumberFormatException e) {
+                        typeName = "value";
+                    }
+                }
 
                 List<String> tokens = new ArrayList<>();
-                tokens.add("game rule");
+                tokens.add(RegistryDocumentKind.GAME_RULE.categoryToken());
                 tokens.add("gamerule");
                 tokens.add(typeName);
                 tokens.add(ruleName.toLowerCase(Locale.ROOT));
@@ -236,7 +250,7 @@ public final class AmiRegistryDocumentIndex {
             int memberCount = (int) named.stream().count();
 
             List<String> tokens = new ArrayList<>();
-            tokens.add("tag");
+            tokens.add(RegistryDocumentKind.TAG.categoryToken());
             tokens.add(typeLabel);
             tokens.add(tagId.getNamespace());
             tokens.add(tagId.getPath().replace('/', ' '));
