@@ -111,6 +111,16 @@ public class AmiConfig {
     public static boolean searchIncludePlayers = true;
     @ConfigValue("search.include-waypoints")
     public static boolean searchIncludeWaypoints = true;
+    @ConfigValue("search.include-enchantments")
+    public static boolean searchIncludeEnchantments = true;
+    @ConfigValue("search.include-mob-effects")
+    public static boolean searchIncludeMobEffects = true;
+    @ConfigValue("search.include-tags")
+    public static boolean searchIncludeTags = true;
+    @ConfigValue("search.include-paintings")
+    public static boolean searchIncludePaintings = true;
+    @ConfigValue("search.include-game-rules")
+    public static boolean searchIncludeGameRules = false;
 
     // --- Interaction ---
     @ConfigGroup(value = "interaction", icon = "interaction", order = 3)
@@ -353,6 +363,11 @@ public class AmiConfig {
         searchIncludeEntities = true;
         searchIncludePlayers = true;
         searchIncludeWaypoints = true;
+        searchIncludeEnchantments = true;
+        searchIncludeMobEffects = true;
+        searchIncludeTags = true;
+        searchIncludePaintings = true;
+        searchIncludeGameRules = false;
         recipeViewerMode = RecipeViewerMode.AUTO;
         enableGhostCrafting = true;
         guideIndexingMode = GuideIndexingMode.SUMMARY;
