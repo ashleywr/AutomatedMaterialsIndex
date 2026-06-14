@@ -13,6 +13,7 @@ class AmiIndexerServiceBusyTest {
             "isRebuilding",
             "isDeferredIndexing",
             "isDeferredGuideIndexing",
+            "isDeferredRegistryDocumentIndexing",
             "pendingRecipeIndexRebuild",
             "isRecipeIndexRebuilding"
     };

@@ -11,9 +11,13 @@ import com.sanhiruzu.ami.recipe.AmiRecipeIndex;
 import com.sanhiruzu.ami.index.query.SearchSuggestions;
 import com.sanhiruzu.ami.index.runtime.RuntimeSearchProviders;
 import com.sanhiruzu.ami.platform.Services;
+import com.sanhiruzu.ami.index.providers.AmiRegistryDocumentBuilders;
 import net.minecraft.Util;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.world.level.Level;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -26,11 +30,13 @@ public final class AmiIndexerService {
     private final AtomicBoolean isRebuilding = new AtomicBoolean(false);
     private final AtomicBoolean isDeferredIndexing = new AtomicBoolean(false);
     private final AtomicBoolean isDeferredGuideIndexing = new AtomicBoolean(false);
+    private final AtomicBoolean isDeferredRegistryDocumentIndexing = new AtomicBoolean(false);
     private final AtomicBoolean pendingRecipeIndexRebuild = new AtomicBoolean(false);
     private final AtomicBoolean isRecipeIndexRebuilding = new AtomicBoolean(false);
     private volatile SearchService searchService;
     private volatile long searchServiceRevision = -1L;
     private volatile AmiGuideSearchIndex guideSearchIndex = new AmiGuideSearchIndex(null, AmiGuideSearchIndex.GuideIndexingMode.OFF);
+    private volatile AmiRegistryDocumentIndex registryDocumentIndex = AmiRegistryDocumentIndex.EMPTY;
     private volatile int indexedItemCount;
     private volatile Throwable lastRebuildFailure;
     private volatile AmiIndexProgress progress = AmiIndexProgress.idle();
@@ -61,6 +67,7 @@ public final class AmiIndexerService {
         return isRebuilding.get()
                 || isDeferredIndexing.get()
                 || isDeferredGuideIndexing.get()
+                || isDeferredRegistryDocumentIndexing.get()
                 || isRecipeIndexRebuilding.get()
                 || pendingRecipeIndexRebuild.get();
     }
@@ -75,6 +82,10 @@ public final class AmiIndexerService {
 
     public AmiGuideSearchIndex getGuideSearchIndex() {
         return guideSearchIndex;
+    }
+
+    public AmiRegistryDocumentIndex getRegistryDocumentIndex() {
+        return registryDocumentIndex;
     }
 
     public boolean rebuild() {
@@ -200,6 +211,7 @@ public final class AmiIndexerService {
         beginProgress("Preparing guide index");
         AmiGuideRegistry.clear();
         guideSearchIndex = AmiGuideSearchIndex.fromConfig(java.util.List.of());
+        registryDocumentIndex = AmiRegistryDocumentIndex.EMPTY;
 
         index.markIndexReady();
         indexedLanguageCode = buildLanguageCode;
@@ -225,6 +237,7 @@ public final class AmiIndexerService {
             scheduleIconAuditIfEnabled();
         }
         scheduleDeferredGuideIndex();
+        scheduleDeferredRegistryDocumentIndex(level != null ? level.registryAccess() : null);
     }
 
     private void ensureRecipeIndexBuilt(Level level) {
@@ -344,6 +357,44 @@ public final class AmiIndexerService {
                 AmiCore.LOGGER.warn("AMI: Deferred guide indexing failed: {}", t.getMessage(), t);
             } finally {
                 isDeferredGuideIndexing.set(false);
+                progress = AmiIndexProgress.idle();
+            }
+        }), Util.backgroundExecutor());
+    }
+
+    private void scheduleDeferredRegistryDocumentIndex(RegistryAccess registryAccess) {
+        if (!isDeferredRegistryDocumentIndexing.compareAndSet(false, true)) {
+            return;
+        }
+        CompletableFuture.runAsync(withIndexerClassLoader(() -> {
+            long started = System.currentTimeMillis();
+            try {
+                beginProgress("Indexing registry documents");
+                List<RegistryDocument> docs = new ArrayList<>();
+                if (registryAccess != null) {
+                    if (AmiConfig.searchIncludeEnchantments) {
+                        docs.addAll(AmiRegistryDocumentBuilders.buildEnchantmentDocuments(registryAccess));
+                    }
+                    if (AmiConfig.searchIncludePaintings) {
+                        docs.addAll(AmiRegistryDocumentBuilders.buildPaintingDocuments(registryAccess));
+                    }
+                    if (AmiConfig.searchIncludeTags) {
+                        docs.addAll(AmiRegistryDocumentBuilders.buildTagDocuments(registryAccess));
+                    }
+                }
+                if (AmiConfig.searchIncludeMobEffects) {
+                    docs.addAll(AmiRegistryDocumentBuilders.buildMobEffectDocuments());
+                }
+                if (AmiConfig.searchIncludeGameRules) {
+                    docs.addAll(AmiRegistryDocumentBuilders.buildGameRuleDocuments());
+                }
+                registryDocumentIndex = new AmiRegistryDocumentIndex(docs);
+                AmiCore.LOGGER.info("AMI: Registry document indexing complete in {}ms ({} docs).",
+                        System.currentTimeMillis() - started, docs.size());
+            } catch (Throwable t) {
+                AmiCore.LOGGER.warn("AMI: Registry document indexing failed: {}", t.getMessage(), t);
+            } finally {
+                isDeferredRegistryDocumentIndexing.set(false);
                 progress = AmiIndexProgress.idle();
             }
         }), Util.backgroundExecutor());
