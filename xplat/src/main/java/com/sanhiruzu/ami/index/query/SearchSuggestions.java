@@ -198,9 +198,10 @@ public final class SearchSuggestions {
         if (index == null) {
             return;
         }
-        registryDocumentVocab = index;
-        // Invalidate the cache so the next vocabulary() call picks up the registry docs.
+        // Invalidate the cache before publishing the index so any reader that sees the new
+        // registryDocumentVocab reference is guaranteed to also see the invalidation.
         cache = new Cache(-1L, false, false, false, false, Vocabulary.empty());
+        registryDocumentVocab = index;
     }
 
     private static void applyRegistryDocumentVocab(Vocabulary vocabulary, AmiRegistryDocumentIndex index) {
