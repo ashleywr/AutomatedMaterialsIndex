@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Locale;
 
 final class EntityIconCacheKey {
-    static final String CACHE_VERSION = "entity-icons-v3";
+    static final String CACHE_VERSION = "entity-icons-v4";
 
     private EntityIconCacheKey() {
     }
