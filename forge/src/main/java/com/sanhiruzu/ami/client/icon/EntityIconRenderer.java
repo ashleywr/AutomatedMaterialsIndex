@@ -257,8 +257,8 @@ public class EntityIconRenderer implements IIconRenderer {
         float savedHeadRotO = entity.yHeadRotO;
         float savedHeadRot = entity.yHeadRot;
 
-        entity.yBodyRot = 0f;
-        entity.setYRot(0f);
+        entity.yBodyRot = EntityFacingConstants.STATIC_ENTITY_Y_ROT;
+        entity.setYRot(EntityFacingConstants.STATIC_ENTITY_Y_ROT);
         entity.setXRot(0f);
         entity.yHeadRot = entity.getYRot();
         entity.yHeadRotO = entity.getYRot();
@@ -305,7 +305,7 @@ public class EntityIconRenderer implements IIconRenderer {
         // Hovered: live render with spin — no scissor so the full entity shows.
         int cx = x + size / 2;
         int cy = y + size - 1;
-        float yRot = 0f;
+        float yRot = EntityFacingConstants.STATIC_ENTITY_Y_ROT;
         if (hovered) {
             yRot += (System.currentTimeMillis() % 3000) / 3000f * 360f;
         }

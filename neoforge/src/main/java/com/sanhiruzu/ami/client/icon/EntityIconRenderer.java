@@ -61,12 +61,12 @@ public class EntityIconRenderer implements IIconRenderer {
     private static int warmupIndex = 0;
 
     private static void renderStaticEntity(GuiGraphics g, int x, int y, int size, int scale, LivingEntity entity) {
-        renderEntityWithRotation(g, x, y, size, scale, entity, 180.0f);
+        renderEntityWithRotation(g, x, y, size, scale, entity, EntityFacingConstants.STATIC_ENTITY_Y_ROT);
     }
 
     private static void renderSpinningEntity(GuiGraphics g, int x, int y, int size, int scale, LivingEntity entity) {
         float spinDeg = (System.currentTimeMillis() % 3000L) / 3000.0f * 360.0f;
-        renderEntityWithRotation(g, x, y, size, scale, entity, 180.0f + spinDeg);
+        renderEntityWithRotation(g, x, y, size, scale, entity, EntityFacingConstants.STATIC_ENTITY_Y_ROT + spinDeg);
     }
 
     private static void renderEntityWithRotation(GuiGraphics g, int x, int y, int size, int scale, LivingEntity entity, float yRot) {

@@ -137,6 +137,14 @@ dependencies {
 
     implementation "it.unimi.dsi:fastutil:8.5.12"
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+
+    testImplementation "org.junit.jupiter:junit-jupiter:5.9.3"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.9.3"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.9.3"
+}
+
+tasks.named('test').configure {
+    useJUnitPlatform()
 }
 
 def registerRecipeViewerModCleanup = { String taskName, String runDirName ->
