@@ -47,6 +47,9 @@ public class EntityIconCache {
     // Queue entries retain render lambdas, which can retain entity instances. Keep this intentionally small.
     private static final int MAX_PENDING_BAKES =
             Math.max(1, Integer.getInteger("ami.entityIconAtlasPendingBakeLimit", 64));
+    private static final long PER_FRAME_FAST_BAKE_BUDGET_NANOS =
+            Math.max(0L, Long.getLong("ami.entityIconFastBakeBudgetMs", 8L)) * 1_000_000L;
+    private static final long FRAME_RESET_INTERVAL_NANOS = 8_000_000L;
     private static final AmiClientWorkScheduler.Lane BAKE_LANE = AmiClientWorkScheduler.lane(
             "entityIconAtlasBake",
             new AdaptiveTickScheduler.Config(
@@ -66,6 +69,8 @@ public class EntityIconCache {
     private static long renderedBakeCount;
     private static long persistentLoadCount;
     private static long failedBakeCount;
+    private static long frameBudgetRemainingNanos = 0L;
+    private static long frameResetTimestamp = 0L;
     private static final ExecutorService PERSIST_EXECUTOR = Executors.newSingleThreadExecutor(task -> {
         Thread thread = new Thread(task, "AMI Entity Icon Atlas Writer");
         thread.setDaemon(true);
@@ -74,6 +79,18 @@ public class EntityIconCache {
     });
 
     private EntityIconCache() {
+    }
+
+    private static void refreshFrameBudget() {
+        long now = System.nanoTime();
+        if (now - frameResetTimestamp >= FRAME_RESET_INTERVAL_NANOS) {
+            frameBudgetRemainingNanos = PER_FRAME_FAST_BAKE_BUDGET_NANOS;
+            frameResetTimestamp = now;
+        }
+    }
+
+    static boolean isKnownSlow(ResourceLocation id) {
+        return EntityIconSlowKeys.isKnownSlow(id);
     }
 
     /**
@@ -91,8 +108,21 @@ public class EntityIconCache {
         Atlas atlas = atlas(size);
         EntityIconAtlasAllocator.AtlasEntry entry = atlas.entry(id);
         if (entry == null) {
-            queueBake(cacheKey, renderToFramebuffer, true);
-            return false;
+            refreshFrameBudget();
+            if (!EntityIconSlowKeys.isKnownSlow(id) && frameBudgetRemainingNanos > 0) {
+                long t0 = System.nanoTime();
+                bakeNow(new BakeTask(cacheKey, renderToFramebuffer, true));
+                long elapsed = System.nanoTime() - t0;
+                frameBudgetRemainingNanos = Math.max(0L, frameBudgetRemainingNanos - elapsed);
+                EntityIconSlowKeys.recordBakeElapsed(id, elapsed);
+                entry = atlas.entry(id);
+            }
+            if (entry == null) {
+                if (!failedKeys.contains(cacheKey)) {
+                    queueBake(cacheKey, renderToFramebuffer, true);
+                }
+                return false;
+            }
         }
 
         RenderStateSnapshot state = RenderStateSnapshot.capture();
@@ -312,6 +342,9 @@ public class EntityIconCache {
         renderedBakeCount = 0L;
         persistentLoadCount = 0L;
         failedBakeCount = 0L;
+        EntityIconSlowKeys.clear();
+        frameBudgetRemainingNanos = 0L;
+        frameResetTimestamp = 0L;
     }
 
     /**
