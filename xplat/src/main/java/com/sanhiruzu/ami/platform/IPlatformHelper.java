@@ -131,6 +131,10 @@ public interface IPlatformHelper {
 
     Optional<String> getModName(String modId);
 
+    default Optional<String> getModVersion(String modId) {
+        return Optional.empty();
+    }
+
     default Optional<String> getModMetadataText(String modId) {
         return getModName(modId);
     }

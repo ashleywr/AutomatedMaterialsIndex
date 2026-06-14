@@ -153,6 +153,18 @@ public class ForgePlatformHelper implements IPlatformHelper {
     }
 
     @Override
+    public Optional<String> getModVersion(String modId) {
+        if (ModList.get() != null) {
+            for (var info : ModList.get().getMods()) {
+                if (info.getModId().equals(modId)) {
+                    return Optional.ofNullable(info.getVersion().toString());
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    @Override
     public Optional<String> getModMetadataText(String modId) {
         if (ModList.get() != null) {
             for (var info : ModList.get().getMods()) {

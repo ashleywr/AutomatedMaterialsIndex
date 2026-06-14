@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.client.screen;
 
+import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.AmiGuiIcons;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
@@ -638,6 +639,10 @@ public class AmiConfigScreen extends Screen {
         // Brand rendering
         g.drawString(this.font, Component.translatable("ami.config.brand_top"), 8, 8, AMITheme.CONFIG_BRAND_GOLD);
         g.drawString(this.font, Component.translatable("ami.config.brand_bottom"), 8, 18, AMITheme.CONFIG_TEXT_PRIMARY);
+        String version = Services.PLATFORM.getModVersion(AmiCore.MODID).map(v -> "v" + v).orElse("");
+        if (!version.isEmpty()) {
+            g.drawString(this.font, version, 8, 28, AMITheme.CONFIG_TEXT_MUTED, false);
+        }
         renderOpenDropdown(g, mouseX, mouseY, partialTick);
     }
 
