@@ -305,8 +305,8 @@ public class EntityIconCache {
             if (image != null) {
                 image.close();
             }
-            failedKeys.add(cacheKey);
-            failedBakeCount++;
+            // Blank/black means textures probably haven't loaded yet — don't permanently fail.
+            // The entity will be retried next time it's visible via blitCached.
             return System.nanoTime() - startedAt;
         }
         try {
