@@ -1,5 +1,7 @@
 package com.sanhiruzu.ami.index;
 
+import java.util.Locale;
+
 public enum RegistryDocumentKind {
     ENCHANTMENT,
     MOB_EFFECT,
@@ -9,7 +11,7 @@ public enum RegistryDocumentKind {
 
     /** Token added to every document of this kind so `$enchantment` etc. works. */
     public String categoryToken() {
-        return name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
+        return name().toLowerCase(Locale.ROOT).replace('_', ' ');
         // yields: "enchantment", "mob effect", "tag", "game rule", "painting"
     }
 }
