@@ -31,6 +31,7 @@
   "ami.gui.guides": "Guides",
   "ami.gui.advancement_results": "Advancements",
   "ami.gui.quest_results": "Quests",
+  "ami.gui.registry_results": "Registry Documents",
   "ami.gui.close_hint": "Press %s to close",
   "ami.gui.search.placeholder": "Search",
   "ami.gui.search.placeholder_hint": "Search all items",

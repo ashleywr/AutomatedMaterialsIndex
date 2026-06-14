@@ -6,6 +6,7 @@ import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.api.AmiGuideOpeners;
 import com.sanhiruzu.ami.api.AmiQuestsApi;
 import com.sanhiruzu.ami.client.results.*;
+import com.sanhiruzu.ami.index.AmiRegistryDocumentIndex;
 import com.sanhiruzu.ami.client.overlay.WidgetBounds;
 import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
 import com.sanhiruzu.ami.compat.CompatRegistry;
@@ -96,6 +97,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private List<GuideResultRow> currentGuideRows = List.of();
     private List<QuestResultRow> currentQuestRows = List.of();
     private List<AdvancementResultRow> currentAdvancementRows = List.of();
+    private List<RegistryDocumentRow> currentRegistryDocumentRows = List.of();
     private Runnable externalResetCallback;
     private java.util.function.Consumer<String> onTokenInject;
     private Runnable externalModeToggleCallback;
@@ -307,6 +309,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         currentGuideRows = List.of();
         currentQuestRows = List.of();
         currentAdvancementRows = List.of();
+        currentRegistryDocumentRows = List.of();
         this.displayedItemCount = countLeaves(normalized);
     }
 
@@ -588,6 +591,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 renderAdvancementRows(g, mouseX, mouseY);
                 renderQuestRows(g, mouseX, mouseY);
                 renderGuideRows(g, mouseX, mouseY);
+                renderRegistryDocumentRows(g, mouseX, mouseY);
                 if (isGridActive()) {
                     gridView.render(g, mouseX, mouseY, dropdownOpen);
                 } else {
@@ -600,6 +604,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 renderAdvancementTooltip(g, mouseX, mouseY);
                 renderQuestTooltip(g, mouseX, mouseY);
                 renderGuideTooltip(g, mouseX, mouseY);
+                renderRegistryDocumentTooltip(g, mouseX, mouseY);
             }
         }
     }
@@ -1249,6 +1254,67 @@ public class UniversalResultsPanel implements SearchState.Listener {
         AmiTooltipRenderer.render(g, Minecraft.getInstance().font, lines, Optional.empty(), mouseX, mouseY);
     }
 
+    private void renderRegistryDocumentRows(GuiGraphics g, int mouseX, int mouseY) {
+        if (!shouldShowRegistryDocumentRows()) return;
+
+        var font = Minecraft.getInstance().font;
+        int innerX = x + AMITheme.GLOBAL_PADDING;
+        int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
+        int topY = sourceRowsTopY() + advancementSectionHeight() + questSectionHeight() + guideSectionHeight();
+        int rowCount = visibleRegistryDocumentRowCount();
+
+        if (!intersectsContent(topY, registryDocumentSectionHeight())) return;
+        g.enableScissor(innerX, contentY(), innerX + innerW, contentY() + contentHeight());
+        try {
+            g.fill(innerX, topY, innerX + innerW, topY + GUIDE_HEADER_H, AMITheme.GROUP_HEADER_BG);
+            DocumentRowIconSprites.guide(g, innerX + 2, topY + 1, true);
+            g.drawString(font, Component.translatable("ami.gui.registry_results").getString(), innerX + 18, topY + 2, AMITheme.TEXT_HEADER, false);
+
+            int rowY = topY + GUIDE_HEADER_H;
+            for (int i = 0; i < rowCount; i++) {
+                RegistryDocumentRow row = currentRegistryDocumentRows.get(i);
+                boolean hovered = registryDocumentRowAt(mouseX, mouseY) == row;
+                int bg = i % 2 == 0 ? AMITheme.GRID_ROW_TINT_EVEN : AMITheme.GRID_ROW_TINT_ODD;
+                g.fill(innerX, rowY, innerX + innerW, rowY + GUIDE_ROW_H, bg);
+                if (hovered) {
+                    g.fill(innerX, rowY, innerX + innerW, rowY + GUIDE_ROW_H, AMITheme.ENTRY_HOVER);
+                }
+
+                int iconX = innerX + 4;
+                int iconY = rowY + 4;
+                g.fill(iconX, iconY, iconX + 12, iconY + 12, AMITheme.DROPDOWN_BG);
+                g.fill(iconX, iconY, iconX + 12, iconY + 1, AMITheme.SECTION_SEP);
+                g.fill(iconX, iconY + 11, iconX + 12, iconY + 12, AMITheme.SECTION_SEP);
+                g.fill(iconX, iconY, iconX + 1, iconY + 12, AMITheme.SECTION_SEP);
+                g.fill(iconX + 11, iconY, iconX + 12, iconY + 12, AMITheme.SECTION_SEP);
+                DocumentRowIconSprites.guide(g, iconX, iconY, false);
+
+                int textX = iconX + 16;
+                int maxTextW = innerX + innerW - textX - 4;
+                String title = truncate(font, row.title(), maxTextW);
+                String subtitle = truncate(font, row.subtitleLine(), maxTextW);
+                g.drawString(font, title, textX, rowY + 2, AMITheme.TEXT_PRIMARY, false);
+                g.drawString(font, subtitle, textX, rowY + 11, AMITheme.TEXT_SUBTLE, false);
+                rowY += GUIDE_ROW_H;
+            }
+
+            int sepY = topY + registryDocumentSectionHeight() - AMITheme.ELEMENT_GAP;
+            g.fill(innerX + 3, sepY, innerX + innerW - 3, sepY + 1, AMITheme.SECTION_SEP);
+        } finally {
+            g.disableScissor();
+        }
+    }
+
+    private void renderRegistryDocumentTooltip(GuiGraphics g, int mouseX, int mouseY) {
+        RegistryDocumentRow row = registryDocumentRowAt(mouseX, mouseY);
+        if (row == null) return;
+
+        List<Component> lines = new ArrayList<>();
+        lines.add(Component.literal(sanitizeTooltipText(row.title())));
+        lines.add(Component.literal(sanitizeTooltipText(row.subtitleLine())));
+        AmiTooltipRenderer.render(g, Minecraft.getInstance().font, lines, Optional.empty(), mouseX, mouseY);
+    }
+
     private void renderQuestTooltip(GuiGraphics g, int mouseX, int mouseY) {
         QuestResultRow row = questRowAt(mouseX, mouseY);
         if (row == null) return;
@@ -1415,6 +1481,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         currentAdvancementRows = projection.advancementRows();
         currentGuideRows = projection.guideRows();
         currentQuestRows = projection.questRows();
+        currentRegistryDocumentRows = projection.registryDocumentRows();
         updateResultViewLayouts();
         setViewRoots(projection.roots(), incrementalUpdate);
     }
@@ -1432,6 +1499,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 AmiConfig.searchIncludeGuides ? AmiIndexerService.getInstance().getGuideSearchIndex() : null,
                 AmiConfig.searchIncludeQuests ? AmiQuestsApi.getQuestSearchIndex() : null,
                 AmiConfig.searchIncludeAdvancements ? AdvancementRuntimeDocuments.searchIndex() : null,
+                AmiIndexerService.getInstance().getRegistryDocumentIndex(),
                 isCompactLayout() && !isFavoritesPanel,
                 isFavoritesPanel
         );
@@ -1469,6 +1537,11 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 + "|searchEntities=" + AmiConfig.searchIncludeEntities
                 + "|searchPlayers=" + AmiConfig.searchIncludePlayers
                 + "|searchWaypoints=" + AmiConfig.searchIncludeWaypoints
+                + "|searchEnchantments=" + AmiConfig.searchIncludeEnchantments
+                + "|searchEffects=" + AmiConfig.searchIncludeMobEffects
+                + "|searchTags=" + AmiConfig.searchIncludeTags
+                + "|searchPaintings=" + AmiConfig.searchIncludePaintings
+                + "|searchGameRules=" + AmiConfig.searchIncludeGameRules
                 + "|discoveryEnabled=" + AmiConfig.enableDiscoveryChecklist
                 + "|discoveryRevision=" + com.sanhiruzu.ami.client.discovery.AmiDiscoveryState.getInstance().revision();
     }
@@ -1627,8 +1700,24 @@ public class UniversalResultsPanel implements SearchState.Listener {
         return GUIDE_HEADER_H + visibleQuestRowCount() * GUIDE_ROW_H + AMITheme.ELEMENT_GAP;
     }
 
+    private boolean shouldShowRegistryDocumentRows() {
+        return !isCompactLayout()
+                && !isFavoritesPanel
+                && !currentQuery.isBlank()
+                && !currentRegistryDocumentRows.isEmpty();
+    }
+
+    private int visibleRegistryDocumentRowCount() {
+        return Math.min(MAX_VISIBLE_GUIDE_ROWS, currentRegistryDocumentRows.size());
+    }
+
+    private int registryDocumentSectionHeight() {
+        if (!shouldShowRegistryDocumentRows()) return 0;
+        return GUIDE_HEADER_H + visibleRegistryDocumentRowCount() * GUIDE_ROW_H + AMITheme.ELEMENT_GAP;
+    }
+
     private int sourceSectionsHeight() {
-        return advancementSectionHeight() + questSectionHeight() + guideSectionHeight();
+        return advancementSectionHeight() + questSectionHeight() + guideSectionHeight() + registryDocumentSectionHeight();
     }
 
     private GuideResultRow guideRowAt(double mouseX, double mouseY) {
@@ -1671,6 +1760,20 @@ public class UniversalResultsPanel implements SearchState.Listener {
         int y0 = rowY + row * GUIDE_ROW_H;
         if (mouseY < y0 || mouseY >= y0 + GUIDE_ROW_H) return null;
         return currentAdvancementRows.get(row);
+    }
+
+    private RegistryDocumentRow registryDocumentRowAt(double mouseX, double mouseY) {
+        if (!shouldShowRegistryDocumentRows()) return null;
+        int innerX = x + AMITheme.GLOBAL_PADDING;
+        int innerW = width - (AMITheme.GLOBAL_PADDING * 2);
+        int rowY = sourceRowsTopY() + advancementSectionHeight() + questSectionHeight() + guideSectionHeight() + GUIDE_HEADER_H;
+        if (mouseX < innerX || mouseX >= innerX + innerW) return null;
+        if (mouseY < contentY() || mouseY >= contentY() + contentHeight()) return null;
+        int row = ((int) mouseY - rowY) / GUIDE_ROW_H;
+        if (row < 0 || row >= visibleRegistryDocumentRowCount()) return null;
+        int y0 = rowY + row * GUIDE_ROW_H;
+        if (mouseY < y0 || mouseY >= y0 + GUIDE_ROW_H) return null;
+        return currentRegistryDocumentRows.get(row);
     }
 
     private static void tryOpenGuide(AmiGuideDocument document) {
@@ -2235,6 +2338,11 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 tryOpenGuide(guideRow.document());
                 return true;
             }
+        }
+
+        RegistryDocumentRow registryDocumentRow = registryDocumentRowAt(mouseX, mouseY);
+        if (registryDocumentRow != null) {
+            return true;
         }
 
         // Handle Dashboard Atlas lazy loading
