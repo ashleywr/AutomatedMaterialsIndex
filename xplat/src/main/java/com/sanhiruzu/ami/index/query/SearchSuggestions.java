@@ -22,6 +22,7 @@ public final class SearchSuggestions {
             "gregtechCircuit", "gregtechEnergy", "storage", "fluid", "color"
     );
     private static volatile Cache cache = new Cache(-1L, false, false, false, false, Vocabulary.empty());
+    private static volatile AmiRegistryDocumentIndex registryDocumentVocab = null;
 
     private SearchSuggestions() {
     }
@@ -188,8 +189,35 @@ public final class SearchSuggestions {
             return cached.vocabulary;
         }
         Vocabulary built = Vocabulary.build(index, cheatMode, devMode, showHidden, showCreativeItems);
+        applyRegistryDocumentVocab(built, registryDocumentVocab);
         cache = new Cache(revision, cheatMode, devMode, showHidden, showCreativeItems, built);
         return built;
+    }
+
+    public static void warmRegistryDocuments(AmiRegistryDocumentIndex index) {
+        if (index == null) {
+            return;
+        }
+        registryDocumentVocab = index;
+        // Invalidate the cache so the next vocabulary() call picks up the registry docs.
+        cache = new Cache(-1L, false, false, false, false, Vocabulary.empty());
+    }
+
+    private static void applyRegistryDocumentVocab(Vocabulary vocabulary, AmiRegistryDocumentIndex index) {
+        if (index == null) {
+            return;
+        }
+        if (AmiConfig.searchIncludeEnchantments) vocabulary.categories.add("enchantment");
+        if (AmiConfig.searchIncludeMobEffects) vocabulary.categories.add("effect");
+        if (AmiConfig.searchIncludeTags) vocabulary.categories.add("tag");
+        if (AmiConfig.searchIncludePaintings) vocabulary.categories.add("painting");
+        for (RegistryDocument doc : index.allDocuments()) {
+            if (doc.kind() == RegistryDocumentKind.TAG) {
+                vocabulary.tags.add(doc.id().getNamespace() + ":" + doc.id().getPath());
+            } else if (doc.kind() == RegistryDocumentKind.GAME_RULE) {
+                vocabulary.meta.add(doc.id().getPath());
+            }
+        }
     }
 
     private static List<Suggestion> defaultSuggestions(Vocabulary vocabulary, ActiveToken token, int limit) {

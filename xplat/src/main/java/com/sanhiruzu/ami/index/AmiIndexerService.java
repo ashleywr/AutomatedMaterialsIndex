@@ -389,6 +389,7 @@ public final class AmiIndexerService {
                     docs.addAll(AmiRegistryDocumentBuilders.buildGameRuleDocuments());
                 }
                 registryDocumentIndex = new AmiRegistryDocumentIndex(docs);
+                SearchSuggestions.warmRegistryDocuments(registryDocumentIndex);
                 AmiCore.LOGGER.info("AMI: Registry document indexing complete in {}ms ({} docs).",
                         System.currentTimeMillis() - started, docs.size());
             } catch (Throwable t) {
