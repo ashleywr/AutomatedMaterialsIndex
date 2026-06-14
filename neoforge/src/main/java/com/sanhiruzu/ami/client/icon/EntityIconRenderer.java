@@ -308,8 +308,11 @@ public class EntityIconRenderer implements IIconRenderer {
                         cacheG -> renderStaticEntity(cacheG, 0, 0, size, scale, entity))) {
                         return;
                     }
-                    EntityIconFallbacks.renderFailure(g, node.id(), x, y, size);
-                    return;
+                    if (EntityIconCache.isFailed(node.id(), size)) {
+                        EntityIconFallbacks.renderFailure(g, node.id(), x, y, size);
+                        return;
+                    }
+                    // Cache miss: atlas bake pending — fall through to live render
                 }
                 renderStaticEntity(g, x, y, size, scale, entity);
                 return;
