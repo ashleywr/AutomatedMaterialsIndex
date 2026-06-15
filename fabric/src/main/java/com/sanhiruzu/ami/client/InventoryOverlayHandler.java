@@ -74,8 +74,13 @@ public class InventoryOverlayHandler {
         }
         if (screen instanceof com.sanhiruzu.ami.client.RecipeViewerScreen) return true;
         String name = screen.getClass().getName();
-        return name.equals("dev.emi.emi.screen.RecipeScreen")
-                || name.equals("mezz.jei.gui.recipes.RecipesGui");
+        if (name.equals("dev.emi.emi.screen.RecipeScreen")
+                || name.equals("mezz.jei.gui.recipes.RecipesGui")) {
+            return true;
+        }
+        // REI's recipe/display screens implement the DisplayScreen API interface (the concrete classes
+        // are internal). Detected via the reflection helper so this stays safe when REI is absent.
+        return Services.PLATFORM.isInstanceOf(screen, "me.shedaniel.rei.api.client.gui.screen.DisplayScreen");
     }
 
     public static boolean isAmiScreen(Screen screen) {

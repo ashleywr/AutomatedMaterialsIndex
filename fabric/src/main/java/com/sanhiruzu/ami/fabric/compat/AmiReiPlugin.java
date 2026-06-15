@@ -6,6 +6,7 @@ import com.sanhiruzu.ami.client.overlay.WidgetBounds;
 import me.shedaniel.math.Rectangle;
 import me.shedaniel.rei.api.client.plugins.REIClientPlugin;
 import me.shedaniel.rei.api.client.registry.screen.ExclusionZones;
+import me.shedaniel.rei.api.client.gui.screen.DisplayScreen;
 import me.shedaniel.rei.api.client.registry.screen.OverlayDecider;
 import me.shedaniel.rei.api.client.registry.screen.ScreenRegistry;
 import net.fabricmc.api.EnvType;
@@ -53,7 +54,11 @@ public class AmiReiPlugin implements REIClientPlugin {
     private static final class AmiOverlayDecider implements OverlayDecider {
         @Override
         public <R extends Screen> boolean isHandingScreen(Class<R> screen) {
-            return AbstractContainerScreen.class.isAssignableFrom(screen);
+            // Handle inventory-like screens (AMI's overlay) and REI's own recipe/display screens, so that
+            // while AMI is active we suppress REI's item-list overlay there too — leaving the recipe content
+            // in the middle and AMI's panels on the sides.
+            return AbstractContainerScreen.class.isAssignableFrom(screen)
+                    || DisplayScreen.class.isAssignableFrom(screen);
         }
 
         @Override
