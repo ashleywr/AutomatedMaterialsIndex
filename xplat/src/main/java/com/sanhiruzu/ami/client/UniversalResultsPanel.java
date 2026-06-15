@@ -2171,11 +2171,11 @@ public class UniversalResultsPanel implements SearchState.Listener {
                     if (stack.isEmpty()) {
                         stack = new ItemStack(BuiltInRegistries.ITEM.get(hovered.id()));
                     }
-                    if (Services.PLATFORM.keyMappings().cheatGiveStack().isActiveAndMatches(mouseKey)) {
+                    if (AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().cheatGiveStack(), mouseKey)) {
                         AMICheatMode.giveStack(stack);
                         return true;
                     }
-                    if (Services.PLATFORM.keyMappings().cheatGiveOne().isActiveAndMatches(mouseKey)) {
+                    if (AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().cheatGiveOne(), mouseKey)) {
                         AMICheatMode.giveItem(stack);
                         return true;
                     }
@@ -2183,20 +2183,20 @@ public class UniversalResultsPanel implements SearchState.Listener {
                     boolean isPokemon = "pokemon_species".equals(
                             hovered.meta(com.sanhiruzu.ami.index.SearchNodeKeys.ENTITY_CATEGORY, ""));
                     if (isPokemon) {
-                        if (Services.PLATFORM.keyMappings().cheatGiveStack().isActiveAndMatches(mouseKey)) {
+                        if (AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().cheatGiveStack(), mouseKey)) {
                             AMICheatMode.pokemonToParty(hovered.id());
                             return true;
                         }
-                        if (Services.PLATFORM.keyMappings().cheatGiveOne().isActiveAndMatches(mouseKey)) {
+                        if (AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().cheatGiveOne(), mouseKey)) {
                             AMICheatMode.spawnPokemon(hovered.id());
                             return true;
                         }
                     } else {
-                        if (Services.PLATFORM.keyMappings().cheatGiveStack().isActiveAndMatches(mouseKey)) {
+                        if (AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().cheatGiveStack(), mouseKey)) {
                             AMICheatMode.giveEntityStackAsSpawnEgg(hovered.id());
                             return true;
                         }
-                        if (Services.PLATFORM.keyMappings().cheatGiveOne().isActiveAndMatches(mouseKey)) {
+                        if (AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().cheatGiveOne(), mouseKey)) {
                             AMICheatMode.giveEntityAsSpawnEgg(hovered.id());
                             return true;
                         }

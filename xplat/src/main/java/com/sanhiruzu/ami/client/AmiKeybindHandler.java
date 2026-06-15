@@ -9,6 +9,7 @@ import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
@@ -45,11 +46,13 @@ public class AmiKeybindHandler {
 
         var keys = Services.PLATFORM.keyMappings();
 
-        if (keys.favorite().isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+        InputConstants.Key pressedKey = InputConstants.getKey(keyCode, scanCode);
+
+        if (AmiKeybinds.activeAndMatches(keys.favorite(), pressedKey)) {
             return handleFavoriteKey();
         }
 
-        if (AmiConfig.devMode && keys.debugTooltips().isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+        if (AmiConfig.devMode && AmiKeybinds.activeAndMatches(keys.debugTooltips(), pressedKey)) {
             debugTooltipsActive = !debugTooltipsActive;
             return true;
         }
@@ -59,19 +62,19 @@ public class AmiKeybindHandler {
             return true;
         }
 
-        if (keys.showRecipes().isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+        if (AmiKeybinds.activeAndMatches(keys.showRecipes(), pressedKey)) {
             return handleRecipeLookup(true, allowAmiResultLookup, allowRecipeSlotFallback);
         }
 
-        if (keys.showUses().isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+        if (AmiKeybinds.activeAndMatches(keys.showUses(), pressedKey)) {
             return handleRecipeLookup(false, allowAmiResultLookup, allowRecipeSlotFallback);
         }
 
-        if (keys.cheatGiveStack().isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+        if (AmiKeybinds.activeAndMatches(keys.cheatGiveStack(), pressedKey)) {
             return handleGive(true);
         }
 
-        if (keys.cheatGiveOne().isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+        if (AmiKeybinds.activeAndMatches(keys.cheatGiveOne(), pressedKey)) {
             return handleGive(false);
         }
 
@@ -79,8 +82,9 @@ public class AmiKeybindHandler {
     }
 
     public static boolean isToggleViewerKey(int keyCode, int scanCode) {
-        return Services.PLATFORM.keyMappings().toggleViewer()
-                .isActiveAndMatches(InputConstants.getKey(keyCode, scanCode));
+        return AmiKeybinds.activeAndMatches(
+                Services.PLATFORM.keyMappings().toggleViewer(),
+                InputConstants.getKey(keyCode, scanCode));
     }
 
     private static boolean handleRecipeLookup(boolean showRecipes, boolean allowAmiResultLookup, boolean allowSlotFallback) {
@@ -131,7 +135,7 @@ public class AmiKeybindHandler {
         }
 
         // 3. Try hovering over a vanilla slot
-        var slot = containerScreen == null ? null : containerScreen.getSlotUnderMouse();
+        Slot slot = containerScreen == null ? null : Services.PLATFORM.getHoveredSlot(containerScreen);
         if (slot != null && slot.hasItem()) {
             ItemStack stack = slot.getItem();
             AmiFavoritesHandler.getInstance().toggleFavorite(stack);

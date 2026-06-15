@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.client.tooltip;
 
+import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -35,7 +36,7 @@ public final class AmiTooltipRenderer {
     public static void render(GuiGraphics g, Font font, ItemStack stack, List<Component> lines,
                               Optional<TooltipComponent> image, int mouseX, int mouseY) {
         if (image.isPresent()) {
-            renderAtTooltipLayer(g, () -> g.renderTooltip(font, lines, image, stack, mouseX, mouseY));
+            renderAtTooltipLayer(g, () -> Services.PLATFORM.renderItemTooltip(g, font, lines, image, stack, mouseX, mouseY));
             return;
         }
 

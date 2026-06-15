@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.client.overlay;
 
 import com.sanhiruzu.ami.client.AmiRenderProfiler;
 import com.sanhiruzu.ami.index.GlobalIndex;
+import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchService;
@@ -84,8 +85,8 @@ public final class InventorySearchHighlighter {
                 AmiRenderProfiler.count("inventoryHighlighter.waitingForQuery");
                 return;
             }
-            int left = screen.getGuiLeft();
-            int top = screen.getGuiTop();
+            int left = Services.PLATFORM.getGuiLeft(screen);
+            int top = Services.PLATFORM.getGuiTop(screen);
             OverlayBatch overlays = overlayBatch(screen, matches);
             try (AmiRenderProfiler.Section draw = AmiRenderProfiler.section("inventoryHighlighter.draw")) {
                 AmiRenderProfiler.add("inventoryHighlighter.dimRuns", overlays.dimRuns().size());

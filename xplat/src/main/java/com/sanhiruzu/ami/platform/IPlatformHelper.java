@@ -1,12 +1,19 @@
 package com.sanhiruzu.ami.platform;
 
 import com.mojang.authlib.GameProfile;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.sanhiruzu.ami.index.metrics.FoodStats;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
@@ -175,6 +182,51 @@ public interface IPlatformHelper {
     ResourceLocation rl(String namespace, String path);
 
     IAmiKeyMappings keyMappings();
+
+    /**
+     * Returns true if the given KeyMapping is active and matches the given key.
+     * Delegates to {@code KeyMapping.isActiveAndMatches()} which is patched in by Forge/NeoForge
+     * and does not exist in vanilla/Fabric.
+     */
+    boolean keyActiveAndMatches(KeyMapping mapping, InputConstants.Key key);
+
+    /**
+     * Returns the slot currently under the mouse in an AbstractContainerScreen, or null.
+     * Delegates to {@code AbstractContainerScreen.getSlotUnderMouse()} which is Forge/NeoForge-patched.
+     */
+    Slot getHoveredSlot(AbstractContainerScreen<?> screen);
+
+    /**
+     * Returns the screen-space X origin of the container GUI (left edge).
+     * Delegates to {@code AbstractContainerScreen.getGuiLeft()} which is Forge/NeoForge-patched.
+     */
+    int getGuiLeft(AbstractContainerScreen<?> screen);
+
+    /**
+     * Returns the screen-space Y origin of the container GUI (top edge).
+     * Delegates to {@code AbstractContainerScreen.getGuiTop()} which is Forge/NeoForge-patched.
+     */
+    int getGuiTop(AbstractContainerScreen<?> screen);
+
+    /**
+     * Returns the biome downfall value from the modified climate settings.
+     * Delegates to {@code Biome.getModifiedClimateSettings().downfall()} which is Forge/NeoForge-patched.
+     */
+    float getBiomeDownfall(net.minecraft.world.level.biome.Biome biome);
+
+    /**
+     * Returns whether this biome has the FROZEN temperature modifier.
+     * Delegates to {@code Biome.getModifiedClimateSettings().temperatureModifier()} which is Forge/NeoForge-patched.
+     */
+    boolean isBiomeTemperatureFrozen(net.minecraft.world.level.biome.Biome biome);
+
+    /**
+     * Renders a tooltip with an associated ItemStack for decoration/positioning purposes.
+     * Delegates to the 6-arg {@code GuiGraphics.renderTooltip(Font, List, Optional, ItemStack, int, int)}
+     * overload added by Forge/NeoForge.
+     */
+    void renderItemTooltip(GuiGraphics g, Font font, List<Component> lines,
+                           Optional<TooltipComponent> image, ItemStack stack, int x, int y);
 
     default void renderVanillaScrollbar(Object guiGraphics, ResourceLocation scroller, ResourceLocation scrollerBackground,
                                         int x, int y, int width, int height, int thumbY, int thumbHeight) {

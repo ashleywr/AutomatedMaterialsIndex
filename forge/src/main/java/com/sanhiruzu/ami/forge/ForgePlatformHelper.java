@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.forge;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.sanhiruzu.ami.forge.client.AMIKeyMappings;
 import com.sanhiruzu.ami.index.GlobalIndexCache;
 import com.sanhiruzu.ami.platform.IAmiKeyMappings;
@@ -10,7 +11,9 @@ import com.sanhiruzu.ami.platform.IPlatformHelper;
 import com.sanhiruzu.ami.recipe.AmiRecipeIndex;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -24,9 +27,12 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.*;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentInstance;
@@ -219,6 +225,43 @@ public class ForgePlatformHelper implements IPlatformHelper {
     @Override
     public IAmiKeyMappings keyMappings() {
         return KEY_MAPPINGS;
+    }
+
+    @Override
+    public boolean keyActiveAndMatches(KeyMapping mapping, InputConstants.Key key) {
+        return mapping.isActiveAndMatches(key);
+    }
+
+    @Override
+    public Slot getHoveredSlot(AbstractContainerScreen<?> screen) {
+        return screen.getSlotUnderMouse();
+    }
+
+    @Override
+    public int getGuiLeft(AbstractContainerScreen<?> screen) {
+        return screen.getGuiLeft();
+    }
+
+    @Override
+    public int getGuiTop(AbstractContainerScreen<?> screen) {
+        return screen.getGuiTop();
+    }
+
+    @Override
+    public float getBiomeDownfall(Biome biome) {
+        return biome.getModifiedClimateSettings().downfall();
+    }
+
+    @Override
+    public boolean isBiomeTemperatureFrozen(Biome biome) {
+        return biome.getModifiedClimateSettings().temperatureModifier()
+                == Biome.TemperatureModifier.FROZEN;
+    }
+
+    @Override
+    public void renderItemTooltip(GuiGraphics g, Font font, java.util.List<net.minecraft.network.chat.Component> lines,
+                                  java.util.Optional<TooltipComponent> image, ItemStack stack, int x, int y) {
+        g.renderTooltip(font, lines, image, stack, x, y);
     }
 
     @Override
