@@ -268,6 +268,19 @@ public class FabricPlatformHelper implements IPlatformHelper {
         return com.sanhiruzu.ami.fabric.compat.ReiRecipeBridge.open(stack, uses);
     }
 
+    /**
+     * Reads the stack under the cursor in REI's window. The {@code roughlyenoughitems} guard keeps
+     * {@link com.sanhiruzu.ami.fabric.compat.ReiFavoritesBridge} (and the {@code me.shedaniel.rei.*}
+     * types it references) from being linked when REI is absent.
+     */
+    @Override
+    public ItemStack getHoveredExternalViewerStack() {
+        if (!isModLoaded("roughlyenoughitems")) {
+            return ItemStack.EMPTY;
+        }
+        return com.sanhiruzu.ami.fabric.compat.ReiFavoritesBridge.getHoveredStack();
+    }
+
     @Override
     public void openChatDraftScreen(String text) {
         // Delegated to a nested class so the client-only ChatScreen reference is not verified when

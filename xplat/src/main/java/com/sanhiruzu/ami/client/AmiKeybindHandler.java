@@ -134,7 +134,18 @@ public class AmiKeybindHandler {
             return true;
         }
 
-        // 3. Try hovering over a vanilla slot
+        // 3. REI (Fabric-only) has no AMI favorites integration of its own, so favorite the hovered REI
+        // item (item list / favorites / recipe display) into AMI's own favorites. Routed through the
+        // platform seam so xplat never references me.shedaniel.rei.*; no-op on loaders without REI.
+        if (Services.PLATFORM.isModLoaded("roughlyenoughitems")) {
+            ItemStack reiStack = Services.PLATFORM.getHoveredExternalViewerStack();
+            if (reiStack != null && !reiStack.isEmpty()) {
+                AmiFavoritesHandler.getInstance().toggleFavorite(reiStack);
+                return true;
+            }
+        }
+
+        // 4. Try hovering over a vanilla slot
         Slot slot = containerScreen == null ? null : Services.PLATFORM.getHoveredSlot(containerScreen);
         if (slot != null && slot.hasItem()) {
             ItemStack stack = slot.getItem();

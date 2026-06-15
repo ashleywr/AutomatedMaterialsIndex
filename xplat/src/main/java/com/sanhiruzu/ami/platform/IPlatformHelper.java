@@ -267,6 +267,18 @@ public interface IPlatformHelper {
     }
 
     /**
+     * Returns the vanilla {@link ItemStack} currently under the cursor in a loader-only external recipe
+     * viewer's window, or {@link ItemStack#EMPTY} if none. Used so AMI's favorite key can favorite the
+     * hovered viewer item into AMI's own favorites. Currently this is REI, which ships <b>only</b> on
+     * Fabric; referencing {@code me.shedaniel.rei.*} from xplat (or neoforge/forge) would break those
+     * builds. The Fabric helper overrides this to read REI's focused stack when {@code roughlyenoughitems}
+     * is loaded; neoforge/forge inherit this no-op default (EMI/JEI are handled by their own bridges).
+     */
+    default ItemStack getHoveredExternalViewerStack() {
+        return ItemStack.EMPTY;
+    }
+
+    /**
      * Renders a tooltip with an associated ItemStack for decoration/positioning purposes.
      * Delegates to the 6-arg {@code GuiGraphics.renderTooltip(Font, List, Optional, ItemStack, int, int)}
      * overload added by Forge/NeoForge.

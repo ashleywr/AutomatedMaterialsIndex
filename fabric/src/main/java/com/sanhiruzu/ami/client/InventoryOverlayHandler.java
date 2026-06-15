@@ -61,7 +61,26 @@ public class InventoryOverlayHandler {
             manager.setPanelVisible(false);
             AmiKeybindHandler.resetDebugTooltips();
         }
+        syncReiOverlay();
         pendingScreenReinit = true;
+    }
+
+    /**
+     * Keeps REI's overlay (item list + search) hidden while AMI is the active layer and restores it
+     * otherwise. The {@code roughlyenoughitems} guard means the Fabric-only {@code ReiOverlayController}
+     * (and the {@code me.shedaniel.rei.*} types it references) is never linked when REI is absent.
+     *
+     * <p>REI's overlay is suppressed only while AMI is the active layer AND the current screen is an AMI
+     * screen; on any other screen (or layer) REI's prior overlay visibility is restored, so REI is never
+     * left stranded invisible after the inventory/recipe screen closes.
+     */
+    private static void syncReiOverlay() {
+        if (!Services.PLATFORM.isModLoaded("roughlyenoughitems")) {
+            return;
+        }
+        boolean amiActive = currentLayer == VisibleLayer.AMI
+                && isAmiScreen(Minecraft.getInstance().screen);
+        com.sanhiruzu.ami.fabric.compat.ReiOverlayController.setAmiActive(amiActive);
     }
 
     public static boolean isContainerScreen(Screen screen) {
@@ -154,7 +173,11 @@ public class InventoryOverlayHandler {
      * Mirrors NeoForge's onScreenInit handler.
      */
     public static void onScreenInit(Screen screen) {
-        if (!isAmiScreen(screen)) return;
+        if (!isAmiScreen(screen)) {
+            // Left all AMI screens — restore REI's overlay so it is never stranded invisible.
+            syncReiOverlay();
+            return;
+        }
 
         com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
 
@@ -207,6 +230,10 @@ public class InventoryOverlayHandler {
         if (currentLayer == VisibleLayer.AMI && !manager.isPanelVisible() && !pendingScreenReinit) {
             manager.setPanelVisible(true);
         }
+
+        // The layer can be set directly above (startHidden / first-open defaults, recipe-transition
+        // restore) without going through setLayer(), so sync REI's overlay to the resolved state here.
+        syncReiOverlay();
     }
 
     /**
@@ -365,6 +392,7 @@ public class InventoryOverlayHandler {
     }
 
     public static void resetSessionState() {
+        syncReiOverlay();
         currentLayer = VisibleLayer.NONE;
         pendingScreenReinit = false;
         initializedScreen = null;
