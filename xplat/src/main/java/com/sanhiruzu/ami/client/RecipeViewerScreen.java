@@ -876,8 +876,9 @@ public class RecipeViewerScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (Services.PLATFORM.keyMappings().favorite().isActiveAndMatches(
-                InputConstants.getKey(keyCode, scanCode)) && tryToggleFavoriteUnderMouse()) {
+        InputConstants.Key pressedKey = InputConstants.getKey(keyCode, scanCode);
+        if (AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().favorite(), pressedKey)
+                && tryToggleFavoriteUnderMouse()) {
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
@@ -888,8 +889,7 @@ public class RecipeViewerScreen extends Screen {
             onClose();
             return true;
         }
-        if (Services.PLATFORM.keyMappings().recipeBack().isActiveAndMatches(
-                InputConstants.getKey(keyCode, scanCode))
+        if (AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().recipeBack(), pressedKey)
                 || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
             goBack();
             return true;

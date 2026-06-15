@@ -1,0 +1,20 @@
+accessWidener v2 named
+
+# AbstractContainerScreen fields (vanilla protected, accessed on Fabric)
+accessible field net/minecraft/client/gui/screens/inventory/AbstractContainerScreen hoveredSlot Lnet/minecraft/world/inventory/Slot;
+accessible field net/minecraft/client/gui/screens/inventory/AbstractContainerScreen leftPos I
+accessible field net/minecraft/client/gui/screens/inventory/AbstractContainerScreen topPos I
+accessible field net/minecraft/client/gui/screens/inventory/AbstractContainerScreen imageWidth I
+accessible field net/minecraft/client/gui/screens/inventory/AbstractContainerScreen imageHeight I
+
+# Biome climate settings (private field, accessed to approximate NeoForge getModifiedClimateSettings())
+accessible field net/minecraft/world/level/biome/Biome climateSettings Lnet/minecraft/world/level/biome/Biome$ClimateSettings;
+
+# Biome$ClimateSettings record (package-private class, made accessible)
+accessible class net/minecraft/world/level/biome/Biome$ClimateSettings
+
+# PotionBrewing private mix lists + the package-private Mix record (accessed to index brewing recipes
+# directly instead of by-Mojmap-name reflection, which fails on Fabric's intermediary runtime)
+accessible field net/minecraft/world/item/alchemy/PotionBrewing potionMixes Ljava/util/List;
+accessible field net/minecraft/world/item/alchemy/PotionBrewing containerMixes Ljava/util/List;
+accessible class net/minecraft/world/item/alchemy/PotionBrewing$Mix

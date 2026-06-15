@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.index.providers;
 
 import com.sanhiruzu.ami.index.*;
+import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.tags.BiomeTags;
@@ -33,8 +34,9 @@ public class BiomeProvider implements IAmiDataProvider {
                     else if (holder.is(BiomeTags.IS_END)) dimension = "end";
 
                     float temperature = holder.value().getBaseTemperature();
-                    var climate = holder.value().getModifiedClimateSettings();
                     var effects = holder.value().getSpecialEffects();
+                    float downfall = Services.PLATFORM.getBiomeDownfall(holder.value());
+                    boolean frozen = Services.PLATFORM.isBiomeTemperatureFrozen(holder.value());
 
                     Map<String, String> meta = new HashMap<>();
                     meta.put(SearchNodeKeys.MOD_ID, id.getNamespace());
@@ -42,11 +44,11 @@ public class BiomeProvider implements IAmiDataProvider {
                     meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, AmiOntology.ENVIRONMENT.id);
                     meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "biomes");
                     meta.put(SearchNodeKeys.TEMPERATURE, String.format("%.3f", temperature));
-                    meta.put(SearchNodeKeys.DOWNFALL, String.format("%.2f", climate.downfall()));
+                    meta.put(SearchNodeKeys.DOWNFALL, String.format("%.2f", downfall));
                     meta.put(SearchNodeKeys.FOG_COLOR, String.valueOf(effects.getFogColor()));
                     effects.getFoliageColorOverride().ifPresent(c -> meta.put(SearchNodeKeys.FOLIAGE_COLOR, String.valueOf(c)));
                     effects.getGrassColorOverride().ifPresent(c -> meta.put(SearchNodeKeys.GRASS_COLOR, String.valueOf(c)));
-                    if (climate.temperatureModifier() == net.minecraft.world.level.biome.Biome.TemperatureModifier.FROZEN) {
+                    if (frozen) {
                         meta.put(SearchNodeKeys.TEMPERATURE_MODIFIER, "frozen");
                     }
 

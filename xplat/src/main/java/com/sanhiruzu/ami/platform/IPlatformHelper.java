@@ -1,12 +1,19 @@
 package com.sanhiruzu.ami.platform;
 
 import com.mojang.authlib.GameProfile;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.sanhiruzu.ami.index.metrics.FoodStats;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
@@ -14,6 +21,7 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
+import org.joml.Matrix4f;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -175,6 +183,100 @@ public interface IPlatformHelper {
     ResourceLocation rl(String namespace, String path);
 
     IAmiKeyMappings keyMappings();
+
+    /**
+     * Returns true if the given KeyMapping is active and matches the given key.
+     * Delegates to {@code KeyMapping.isActiveAndMatches()} which is patched in by Forge/NeoForge
+     * and does not exist in vanilla/Fabric.
+     */
+    boolean keyActiveAndMatches(KeyMapping mapping, InputConstants.Key key);
+
+    /**
+     * Returns the slot currently under the mouse in an AbstractContainerScreen, or null.
+     * Delegates to {@code AbstractContainerScreen.getSlotUnderMouse()} which is Forge/NeoForge-patched.
+     */
+    Slot getHoveredSlot(AbstractContainerScreen<?> screen);
+
+    /**
+     * Returns the screen-space X origin of the container GUI (left edge).
+     * Delegates to {@code AbstractContainerScreen.getGuiLeft()} which is Forge/NeoForge-patched.
+     */
+    int getGuiLeft(AbstractContainerScreen<?> screen);
+
+    /**
+     * Returns the screen-space Y origin of the container GUI (top edge).
+     * Delegates to {@code AbstractContainerScreen.getGuiTop()} which is Forge/NeoForge-patched.
+     */
+    int getGuiTop(AbstractContainerScreen<?> screen);
+
+    /**
+     * Returns the biome downfall value from the modified climate settings.
+     * Delegates to {@code Biome.getModifiedClimateSettings().downfall()} which is Forge/NeoForge-patched.
+     */
+    float getBiomeDownfall(net.minecraft.world.level.biome.Biome biome);
+
+    /**
+     * Returns whether this biome has the FROZEN temperature modifier.
+     * Delegates to {@code Biome.getModifiedClimateSettings().temperatureModifier()} which is Forge/NeoForge-patched.
+     */
+    boolean isBiomeTemperatureFrozen(net.minecraft.world.level.biome.Biome biome);
+
+    /**
+     * Returns the painting's {@code {width, height}} in tiles. The accessor names diverge across
+     * versions: MC 1.20.1 exposes {@code getWidth()}/{@code getHeight()} on the {@code PaintingVariant}
+     * class, while MC 1.21.1 exposes the record accessors {@code width()}/{@code height()}. Implemented
+     * per-loader so each calls the correct direct (remappable) accessor instead of name reflection.
+     */
+    int[] getPaintingSize(net.minecraft.world.entity.decoration.PaintingVariant variant);
+
+    /**
+     * Wraps {@code recipe} in a {@code net.minecraft.world.item.crafting.RecipeHolder} for JEI's
+     * recipe-holder display path. {@code RecipeHolder} was introduced in MC 1.21 and does NOT exist in
+     * MC 1.20.1, so the type cannot be referenced from xplat (which compiles against the 1.20.1 API).
+     * Implemented per-loader: Forge (1.20.1) returns {@code null} (no such type — caller falls back to
+     * the legacy recipe path); NeoForge/Fabric (1.21.1) return a real {@code RecipeHolder} via a direct,
+     * Loom-remappable reference. Returns {@link Object} because the type is absent at xplat compile time.
+     */
+    default Object createRecipeHolder(ResourceLocation id, net.minecraft.world.item.crafting.Recipe<?> recipe) {
+        return null;
+    }
+
+    /**
+     * Opens the vanilla chat screen pre-filled with {@code text}. {@code ChatScreen} is a client-only
+     * class; referencing it directly from xplat would force the verifier to load it on the
+     * client-stripped unit-test classpath, and {@code Class.forName(Mojmap-name)} failed on Fabric's
+     * intermediary runtime. Implemented per-loader with direct (Loom-remappable) calls. No-op by default.
+     */
+    default void openChatDraftScreen(String text) {
+        // Default no-op; loader helpers provide the real client implementation.
+    }
+
+    /**
+     * Renders a tooltip with an associated ItemStack for decoration/positioning purposes.
+     * Delegates to the 6-arg {@code GuiGraphics.renderTooltip(Font, List, Optional, ItemStack, int, int)}
+     * overload added by Forge/NeoForge.
+     */
+    void renderItemTooltip(GuiGraphics g, Font font, List<Component> lines,
+                           Optional<TooltipComponent> image, ItemStack stack, int x, int y);
+
+    /**
+     * Begins a GUI quad batch on the shared {@code Tesselator}, returning the loader's buffer object.
+     * xplat cannot call this API directly because the vertex-buffer API differs between MC 1.20.1
+     * (Tesselator.getBuilder + BufferBuilder.begin/vertex/uv/color/endVertex/end) and 1.21.1
+     * (Tesselator.begin + BufferBuilder.addVertex/setUv/setColor/buildOrThrow), and reflection by
+     * Mojang/SRG name fails on Fabric's intermediary runtime. Each loader implements these three
+     * methods with direct calls so Loom's remap (and NeoForge/Forge's native names) resolve correctly.
+     *
+     * @param textured {@code true} for POSITION_TEX_COLOR (uv used), {@code false} for POSITION_COLOR.
+     */
+    Object beginGuiQuadBatch(boolean textured);
+
+    /** Appends one vertex to a batch started by {@link #beginGuiQuadBatch(boolean)}. */
+    void guiQuadVertex(Object buffer, Matrix4f matrix, float x, float y, float u, float v,
+                       float r, float g, float b, float a, boolean textured);
+
+    /** Builds and draws (via {@code BufferUploader.drawWithShader}) a batch started by {@link #beginGuiQuadBatch(boolean)}. */
+    void endAndDrawGuiQuadBatch(Object buffer);
 
     default void renderVanillaScrollbar(Object guiGraphics, ResourceLocation scroller, ResourceLocation scrollerBackground,
                                         int x, int y, int width, int height, int thumbY, int thumbHeight) {

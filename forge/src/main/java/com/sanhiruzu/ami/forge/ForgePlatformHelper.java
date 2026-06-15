@@ -3,6 +3,13 @@ package com.sanhiruzu.ami.forge;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
+import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import com.sanhiruzu.ami.forge.client.AMIKeyMappings;
 import com.sanhiruzu.ami.index.GlobalIndexCache;
 import com.sanhiruzu.ami.platform.IAmiKeyMappings;
@@ -10,7 +17,9 @@ import com.sanhiruzu.ami.platform.IPlatformHelper;
 import com.sanhiruzu.ami.recipe.AmiRecipeIndex;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -24,9 +33,12 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.*;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentInstance;
@@ -222,11 +234,93 @@ public class ForgePlatformHelper implements IPlatformHelper {
     }
 
     @Override
+    public boolean keyActiveAndMatches(KeyMapping mapping, InputConstants.Key key) {
+        return mapping.isActiveAndMatches(key);
+    }
+
+    @Override
+    public Slot getHoveredSlot(AbstractContainerScreen<?> screen) {
+        return screen.getSlotUnderMouse();
+    }
+
+    @Override
+    public int getGuiLeft(AbstractContainerScreen<?> screen) {
+        return screen.getGuiLeft();
+    }
+
+    @Override
+    public int getGuiTop(AbstractContainerScreen<?> screen) {
+        return screen.getGuiTop();
+    }
+
+    @Override
+    public float getBiomeDownfall(Biome biome) {
+        return biome.getModifiedClimateSettings().downfall();
+    }
+
+    @Override
+    public boolean isBiomeTemperatureFrozen(Biome biome) {
+        return biome.getModifiedClimateSettings().temperatureModifier()
+                == Biome.TemperatureModifier.FROZEN;
+    }
+
+    /**
+     * MC 1.20.1 {@code PaintingVariant} is a plain class with {@code getWidth()}/{@code getHeight()}.
+     */
+    @Override
+    public int[] getPaintingSize(net.minecraft.world.entity.decoration.PaintingVariant variant) {
+        return new int[]{variant.getWidth(), variant.getHeight()};
+    }
+
+    @Override
+    public void openChatDraftScreen(String text) {
+        // Delegated to a nested class so the client-only ChatScreen reference is not verified when
+        // this helper loads via ServiceLoader (the headless unit-test classpath lacks ChatScreen).
+        ChatDraftOpener.open(text);
+    }
+
+    private static final class ChatDraftOpener {
+        static void open(String text) {
+            net.minecraft.client.Minecraft minecraft = net.minecraft.client.Minecraft.getInstance();
+            minecraft.setScreen(new net.minecraft.client.gui.screens.ChatScreen(text));
+        }
+    }
+
+    @Override
+    public void renderItemTooltip(GuiGraphics g, Font font, java.util.List<net.minecraft.network.chat.Component> lines,
+                                  java.util.Optional<TooltipComponent> image, ItemStack stack, int x, int y) {
+        g.renderTooltip(font, lines, image, stack, x, y);
+    }
+
+    @Override
     public void renderVanillaScrollbar(Object guiGraphics, ResourceLocation scroller, ResourceLocation scrollerBackground,
                                        int x, int y, int width, int height, int thumbY, int thumbHeight) {
         GuiGraphics g = (GuiGraphics) guiGraphics;
         g.fill(x, thumbY, x + width, thumbY + thumbHeight, -8355712);
         g.fill(x, thumbY, x + width - 1, thumbY + thumbHeight - 1, -4144960);
+    }
+
+    @Override
+    public Object beginGuiQuadBatch(boolean textured) {
+        BufferBuilder builder = Tesselator.getInstance().getBuilder();
+        builder.begin(VertexFormat.Mode.QUADS,
+                textured ? DefaultVertexFormat.POSITION_TEX_COLOR : DefaultVertexFormat.POSITION_COLOR);
+        return builder;
+    }
+
+    @Override
+    public void guiQuadVertex(Object buffer, org.joml.Matrix4f matrix, float x, float y, float u, float v,
+                              float r, float g, float b, float a, boolean textured) {
+        VertexConsumer vertex = ((BufferBuilder) buffer).vertex(matrix, x, y, 0.0f);
+        if (textured) {
+            vertex = vertex.uv(u, v);
+        }
+        vertex.color(r, g, b, a).endVertex();
+    }
+
+    @Override
+    public void endAndDrawGuiQuadBatch(Object buffer) {
+        BufferUploader.drawWithShader(((BufferBuilder) buffer).end());
     }
 
     @Override

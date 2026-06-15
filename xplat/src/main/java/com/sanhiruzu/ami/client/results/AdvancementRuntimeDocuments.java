@@ -260,7 +260,11 @@ public final class AdvancementRuntimeDocuments {
 
     private static Optional<Screen> createAdvancementsScreen(Object advancements, Screen lastScreen) {
         try {
-            Class<?> screenClass = Class.forName("net.minecraft.client.gui.screens.advancements.AdvancementsScreen");
+            // AdvancementsScreen is an always-present client class; its constructor shape differs
+            // across MC 1.20.1/1.21.1 (handled by the constructor probing below), but the class
+            // reference itself is stable. A direct reference is remapped by Loom for the
+            // intermediary-named Fabric runtime, where Class.forName(Mojmap-name) failed.
+            Class<?> screenClass = net.minecraft.client.gui.screens.advancements.AdvancementsScreen.class;
             for (Constructor<?> constructor : screenClass.getConstructors()) {
                 Class<?>[] parameters = constructor.getParameterTypes();
                 if (parameters.length == 2
@@ -277,7 +281,7 @@ public final class AdvancementRuntimeDocuments {
                     return screen instanceof Screen value ? Optional.of(value) : Optional.empty();
                 }
             }
-        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException ignored) {
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException ignored) {
             return Optional.empty();
         }
         return Optional.empty();

@@ -1,35 +1,25 @@
 package com.sanhiruzu.ami.client;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
 import org.joml.Matrix4f;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Batches flat GUI rectangles into one POSITION_COLOR draw. This avoids many
  * tiny GuiGraphics.fill calls on dense AMI result grids.
+ *
+ * <p>The vertex-buffer plumbing (begin/vertex/build/draw) lives behind
+ * {@link Services#PLATFORM} because the API differs between MC versions and, on Fabric,
+ * must be called directly (not via reflection by name) so Loom remaps it to intermediary.
  */
 public final class ColoredQuadBatch {
     private final List<Rect> rects = new ArrayList<>();
     private int count;
-    private static Method tesselatorBeginMethod;
-    private static Method tesselatorGetBuilderMethod;
-    private static Method legacyBufferBeginMethod;
-    private static Method addVertexMethod;
-    private static Method setColorMethod;
-    private static Method legacyVertexMethod;
-    private static Method legacyColorMethod;
-    private static Method legacyEndVertexMethod;
-    private static Method buildOrThrowMethod;
-    private static Method legacyEndMethod;
-    private static Method drawWithShaderMethod;
 
     public void clear() {
         count = 0;
@@ -71,147 +61,23 @@ public final class ColoredQuadBatch {
             RenderSystem.setShader(GameRenderer::getPositionColorShader);
 
             Matrix4f matrix = graphics.pose().last().pose();
-            Object buffer = beginBuffer();
+            Object buffer = Services.PLATFORM.beginGuiQuadBatch(false);
             for (int i = 0; i < count; i++) {
                 Rect rect = rects.get(i);
                 float a = ((rect.color >>> 24) & 0xFF) / 255.0f;
                 float r = ((rect.color >>> 16) & 0xFF) / 255.0f;
                 float g = ((rect.color >>> 8) & 0xFF) / 255.0f;
                 float b = (rect.color & 0xFF) / 255.0f;
-                addVertex(buffer, matrix, rect.x1, rect.y2, r, g, b, a);
-                addVertex(buffer, matrix, rect.x2, rect.y2, r, g, b, a);
-                addVertex(buffer, matrix, rect.x2, rect.y1, r, g, b, a);
-                addVertex(buffer, matrix, rect.x1, rect.y1, r, g, b, a);
+                Services.PLATFORM.guiQuadVertex(buffer, matrix, rect.x1, rect.y2, 0f, 0f, r, g, b, a, false);
+                Services.PLATFORM.guiQuadVertex(buffer, matrix, rect.x2, rect.y2, 0f, 0f, r, g, b, a, false);
+                Services.PLATFORM.guiQuadVertex(buffer, matrix, rect.x2, rect.y1, 0f, 0f, r, g, b, a, false);
+                Services.PLATFORM.guiQuadVertex(buffer, matrix, rect.x1, rect.y1, 0f, 0f, r, g, b, a, false);
             }
-            drawWithShader(buildBuffer(buffer));
+            Services.PLATFORM.endAndDrawGuiQuadBatch(buffer);
         } finally {
             state.restore();
             clear();
         }
-    }
-
-    private static Object beginBuffer() {
-        try {
-            Tesselator tesselator = Tesselator.getInstance();
-            Method begin = tesselatorBeginMethod;
-            if (begin == null) {
-                begin = findMethod(Tesselator.class, new String[]{"begin"},
-                        VertexFormat.Mode.class, com.mojang.blaze3d.vertex.VertexFormat.class);
-                tesselatorBeginMethod = begin;
-            }
-            return begin.invoke(tesselator, VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        } catch (ReflectiveOperationException newerApiUnavailable) {
-            try {
-                Tesselator tesselator = Tesselator.getInstance();
-                Method getBuilder = tesselatorGetBuilderMethod;
-                if (getBuilder == null) {
-                    getBuilder = findMethod(Tesselator.class, new String[]{"getBuilder", "m_85915_"});
-                    tesselatorGetBuilderMethod = getBuilder;
-                }
-                Object buffer = getBuilder.invoke(tesselator);
-                Method begin = legacyBufferBeginMethod;
-                if (begin == null) {
-                    begin = findMethod(buffer.getClass(), new String[]{"begin", "m_166779_"},
-                            VertexFormat.Mode.class, com.mojang.blaze3d.vertex.VertexFormat.class);
-                    legacyBufferBeginMethod = begin;
-                }
-                begin.invoke(buffer, VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-                return buffer;
-            } catch (ReflectiveOperationException e) {
-                throw new IllegalStateException("Unable to begin AMI colored quad batch", e);
-            }
-        }
-    }
-
-    private static void addVertex(Object buffer, Matrix4f matrix, int x, int y, float r, float g, float b, float a) {
-        try {
-            Method addVertex = addVertexMethod;
-            if (addVertex == null) {
-                addVertex = findMethod(buffer.getClass(), new String[]{"addVertex"}, Matrix4f.class, float.class, float.class, float.class);
-                addVertexMethod = addVertex;
-            }
-            Object vertex = addVertex.invoke(buffer, matrix, (float) x, (float) y, 0.0f);
-            Method setColor = setColorMethod;
-            if (setColor == null) {
-                setColor = findMethod(vertex.getClass(), new String[]{"setColor"}, float.class, float.class, float.class, float.class);
-                setColorMethod = setColor;
-            }
-            setColor.invoke(vertex, r, g, b, a);
-            return;
-        } catch (ReflectiveOperationException newerApiUnavailable) {
-            try {
-                Method vertex = legacyVertexMethod;
-                if (vertex == null) {
-                    vertex = findMethod(buffer.getClass(), new String[]{"vertex", "m_252986_"},
-                            Matrix4f.class, float.class, float.class, float.class);
-                    legacyVertexMethod = vertex;
-                }
-                Object vertexConsumer = vertex.invoke(buffer, matrix, (float) x, (float) y, 0.0f);
-                Method color = legacyColorMethod;
-                if (color == null) {
-                    color = findMethod(vertexConsumer.getClass(), new String[]{"color", "m_85950_"},
-                            float.class, float.class, float.class, float.class);
-                    legacyColorMethod = color;
-                }
-                Object colored = color.invoke(vertexConsumer, r, g, b, a);
-                Method endVertex = legacyEndVertexMethod;
-                if (endVertex == null) {
-                    endVertex = findMethod(colored.getClass(), new String[]{"endVertex", "m_5752_"});
-                    legacyEndVertexMethod = endVertex;
-                }
-                endVertex.invoke(colored);
-            } catch (ReflectiveOperationException e) {
-                throw new IllegalStateException("Unable to append AMI colored quad vertex", e);
-            }
-        }
-    }
-
-    private static Object buildBuffer(Object buffer) {
-        try {
-            Method buildOrThrow = buildOrThrowMethod;
-            if (buildOrThrow == null) {
-                buildOrThrow = findMethod(buffer.getClass(), new String[]{"buildOrThrow"});
-                buildOrThrowMethod = buildOrThrow;
-            }
-            return buildOrThrow.invoke(buffer);
-        } catch (ReflectiveOperationException newerApiUnavailable) {
-            try {
-                Method end = legacyEndMethod;
-                if (end == null) {
-                    end = findMethod(buffer.getClass(), new String[]{"end", "m_231175_"});
-                    legacyEndMethod = end;
-                }
-                return end.invoke(buffer);
-            } catch (ReflectiveOperationException e) {
-                throw new IllegalStateException("Unable to build AMI colored quad batch", e);
-            }
-        }
-    }
-
-    private static void drawWithShader(Object meshData) {
-        try {
-            Method draw = drawWithShaderMethod;
-            if (draw == null) {
-                draw = findMethod(com.mojang.blaze3d.vertex.BufferUploader.class,
-                        new String[]{"drawWithShader", "m_231202_"}, meshData.getClass());
-                drawWithShaderMethod = draw;
-            }
-            draw.invoke(null, meshData);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Unable to draw AMI colored quad batch", e);
-        }
-    }
-
-    private static Method findMethod(Class<?> owner, String[] names, Class<?>... parameterTypes) throws NoSuchMethodException {
-        NoSuchMethodException last = null;
-        for (String name : names) {
-            try {
-                return owner.getMethod(name, parameterTypes);
-            } catch (NoSuchMethodException e) {
-                last = e;
-            }
-        }
-        throw last == null ? new NoSuchMethodException(owner.getName()) : last;
     }
 
     private static final class Rect {

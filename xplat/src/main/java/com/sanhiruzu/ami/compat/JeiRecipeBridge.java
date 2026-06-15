@@ -20,7 +20,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Recipe;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Optional;
@@ -446,10 +445,15 @@ class JeiRecipeBridge {
             Method createHolderType = mezz.jei.api.recipe.RecipeType.class
                     .getMethod("createRecipeHolderType", net.minecraft.resources.ResourceLocation.class);
             Object jeiType = createHolderType.invoke(null, typeId);
-            Class<?> holderClass = Class.forName("net.minecraft.world.item.crafting.RecipeHolder");
-            Constructor<?> constructor = holderClass.getConstructor(
-                    net.minecraft.resources.ResourceLocation.class, Recipe.class);
-            Object holder = constructor.newInstance(recipe.id(), recipe.value());
+            // RecipeHolder (MC 1.21+) does not exist in 1.20.1, so we cannot reference it directly from
+            // xplat. Constructing it via Class.forName(Mojmap-name) failed on Fabric's intermediary
+            // runtime, so the construction is delegated to the platform seam (Forge returns null here,
+            // making this method fall through to the legacy recipe path).
+            Object holder = com.sanhiruzu.ami.platform.Services.PLATFORM
+                    .createRecipeHolder(recipe.id(), recipe.value());
+            if (holder == null) {
+                return Optional.empty();
+            }
             return Optional.of(new RecipeTypeAndRecipe((mezz.jei.api.recipe.RecipeType<?>) jeiType, holder));
         } catch (ReflectiveOperationException | RuntimeException ignored) {
             return Optional.empty();

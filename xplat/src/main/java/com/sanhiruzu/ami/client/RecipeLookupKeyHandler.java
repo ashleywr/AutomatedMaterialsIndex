@@ -3,8 +3,10 @@ package com.sanhiruzu.ami.client;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -23,7 +25,7 @@ public final class RecipeLookupKeyHandler {
         ItemStack hoveredSlotStack = ItemStack.EMPTY;
 
         if (allowSlotFallback && mc.screen instanceof AbstractContainerScreen<?> containerScreen) {
-            var slot = containerScreen.getSlotUnderMouse();
+            Slot slot = Services.PLATFORM.getHoveredSlot(containerScreen);
             if (slot != null && slot.hasItem()) {
                 hoveredSlotStack = slot.getItem();
             }
