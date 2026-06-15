@@ -1,0 +1,54 @@
+plugins {
+    id 'java-library'
+    id 'fabric-loom' version "${fabric_loom_version}"
+}
+
+base {
+    archivesName = "${mod_id}-fabric-${fabric_minecraft_version}"
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+def xplatProject = project(':xplat')
+
+sourceSets {
+    main {
+        java.srcDir xplatProject.file('src/main/java')
+        resources {
+            srcDir xplatProject.file('src/main/resources')
+        }
+    }
+}
+
+loom {
+    accessWidenerPath = file('src/main/resources/ami.accesswidener')
+    mixin {
+        defaultRefmapName = 'ami.refmap.json'
+    }
+    runs {
+        client { client() }
+        server { server() }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${fabric_minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+
+    modCompileOnly "mezz.jei:jei-${fabric_minecraft_version}-fabric-api:${fabric_jei_version}"
+    modCompileOnly "mezz.jei:jei-${fabric_minecraft_version}-fabric:${fabric_jei_version}"
+
+    modCompileOnly "dev.emi:emi-fabric:${fabric_emi_version}+${fabric_minecraft_version}"
+
+    compileOnly 'it.unimi.dsi:fastutil:8.5.9'
+}
+
+processResources {
+    inputs.property 'version', project.version
+
+    filesMatching('fabric.mod.json') {
+        expand version: project.version
+    }
+}

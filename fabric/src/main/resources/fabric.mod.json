@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "ami",
+  "version": "${version}",
+  "name": "Automated Materials Index",
+  "license": "MIT",
+  "environment": "*",
+  "accessWidener": "ami.accesswidener",
+  "entrypoints": {
+    "main": ["com.sanhiruzu.ami.fabric.AmiFabric"],
+    "client": ["com.sanhiruzu.ami.fabric.AmiFabricClient"]
+  },
+  "mixins": [
+    "ami.mixins.json",
+    { "config": "ami.client.mixins.json", "environment": "client" }
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "jei": "*",
+    "emi": "*"
+  }
+}
