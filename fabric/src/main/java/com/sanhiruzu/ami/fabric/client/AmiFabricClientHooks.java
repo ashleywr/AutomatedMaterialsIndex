@@ -110,11 +110,14 @@ public final class AmiFabricClientHooks {
             return !consumed;
         });
 
-        // Key press: return false to cancel.
+        // Key press: return false to cancel. We intentionally do NOT gate on isAmiEnabled() here — the
+        // toggle-viewer keybind (and recipe-lookup keys) must still be processed when AMI is hidden behind
+        // an external viewer (e.g. REI) so the user can toggle AMI back. OverlayInputController forwards to
+        // AmiKeybindHandler, which handles the toggle regardless of the active layer; non-AMI keys return
+        // unconsumed and pass through to the viewer/screen.
         ScreenKeyboardEvents.allowKeyPress(screen).register((s, key, scancode, modifiers) -> {
-            if (!InventoryOverlayHandler.isAmiEnabled()) return true;
             boolean consumed = com.sanhiruzu.ami.client.OverlayInputController.keyPressed(
-                    s, InventoryOverlayHandler.getManager(), true,
+                    s, InventoryOverlayHandler.getManager(), InventoryOverlayHandler.isAmiEnabled(),
                     key, scancode, modifiers);
             return !consumed;
         });
