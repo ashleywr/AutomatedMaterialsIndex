@@ -80,6 +80,10 @@ public final class AmiFabricClientHooks {
         // afterRender: both base and top layer in screen-space coordinates.
         // On Fabric there is no container-foreground hook, so AMI renders after vanilla.
         ScreenEvents.afterRender(screen).register((s, guiGraphics, mouseX, mouseY, tickDelta) -> {
+            // Apply any screen reinit queued by a layer change (alt-V toggle, recipe-book button, recipe
+            // transition) before rendering. Without this, pendingScreenReinit stays set and
+            // prepareOverlayFrame skips every frame, so AMI never re-renders after a toggle.
+            InventoryOverlayHandler.consumePendingScreenReinit();
             InventoryOverlayHandler.renderOverlayFrame(s, guiGraphics, mouseX, mouseY, tickDelta);
         });
 
