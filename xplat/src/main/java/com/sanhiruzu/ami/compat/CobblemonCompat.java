@@ -52,6 +52,11 @@ public final class CobblemonCompat {
     private static final List<ItemRule> ITEM_RULES = List.of(
             rule("poke_balls", CobblemonCompat::isPokeBall, CobblemonCompat::enrichPokeBall),
             rule("medicine", CobblemonCompat::isMedicine, CobblemonCompat::enrichMedicine),
+            rule("tms", CobblemonCompat::isTM, context -> {
+                kind(context, "tm");
+                tokens(context, "tm tr technical_machine technical_record move_tutor move");
+                collapse(context, "cobblemon:tms", "TMs & TRs");
+            }),
             rule("held_items", CobblemonCompat::isHeldItem, CobblemonCompat::enrichHeldItem),
             rule("berries", CobblemonCompat::isBerry, context -> {
                 kind(context, "berry");
@@ -203,16 +208,21 @@ public final class CobblemonCompat {
 
     private static boolean isMedicine(ItemContext context) {
         String medicinePath = medicinePath(context.path);
-        return medicinePath.equals("sweet_heart")
-                || (context.inTab("consumables")
+        // Path-strong matches that don't need creative-tab evidence.
+        // Stat-modifying candies that aren't real CandyItem-class items (rare_candy, exp_candy)
+        // are medicine; real CandyItem-class candies stay in consumables.
+        boolean pathStrong = medicinePath.equals("sweet_heart")
+                || medicinePath.endsWith("_mochi")
+                || medicinePath.endsWith("_mint")
+                || (medicinePath.endsWith("_candy") && !context.itemClass.contains("candyitem"))
+                || VITAMINS.contains(medicinePath);
+        if (pathStrong) return true;
+        return (context.inTab("consumables")
                 && (medicinePath.contains("potion")
                 || STATUS_CURE_BY_ITEM.containsKey(medicinePath)
                 || PP_RESTORES.contains(medicinePath)
                 || REVIVES.contains(medicinePath)
                 || BATTLE_ITEMS.contains(medicinePath)
-                || medicinePath.endsWith("_mint")
-                || medicinePath.endsWith("_mochi")
-                || VITAMINS.contains(medicinePath)
                 || medicinePath.equals("remedy")
                 || medicinePath.equals("superb_remedy")
                 || medicinePath.equals("poke_bait")
@@ -224,12 +234,12 @@ public final class CobblemonCompat {
                 || context.itemClass.contains("xstatitem")
                 || context.itemClass.contains("guardspec")
                 || context.itemClass.contains("direhit")))
-                || context.isNamespace("create_cobblemon_potion")
+                || (context.isNamespace("create_cobblemon_potion")
                 && (medicinePath.contains("potion")
                 || medicinePath.equals("medicinal_brew")
                 || medicinePath.equals("full_restore")
                 || STATUS_CURE_BY_ITEM.containsKey(medicinePath)
-                || PP_RESTORES.contains(medicinePath));
+                || PP_RESTORES.contains(medicinePath)));
     }
 
     private static void enrichMedicine(ItemContext context) {
@@ -347,7 +357,9 @@ public final class CobblemonCompat {
                 || context.inTab("blocks")
                 && (MACHINES.contains(context.path)
                 || context.path.contains("machine")
-                || context.path.contains("analyzer"));
+                || context.path.contains("analyzer"))
+                || (context.isNamespace("cobblemon_farmers")
+                && (context.path.contains("station") || context.path.contains("mine")));
     }
 
     private static boolean isDecor(ItemContext context) {
@@ -358,6 +370,14 @@ public final class CobblemonCompat {
                 || context.path.contains("tatami")
                 || context.path.contains("campfire_pot")
                 || context.path.contains("display_case");
+    }
+
+    private static boolean isTM(ItemContext context) {
+        return context.isNamespace("simpletms")
+                && (context.itemClass.contains("movetutoritem")
+                || context.itemClass.contains("blanktmitem")
+                || context.path.startsWith("tm_")
+                || context.path.startsWith("tr_"));
     }
 
     private static boolean isHeldItem(ItemContext context) {
@@ -402,6 +422,7 @@ public final class CobblemonCompat {
         return context.inTab("utility items")
                 || context.isNamespace("badgebox")
                 || context.isNamespace("cobbled_counter")
+                || context.isNamespace("cobbledex")
                 || (context.isNamespace("fightorflight") && context.path.contains("staff"))
                 || isMegaShowdownUtility(context)
                 || context.isNamespace("rctmod")
@@ -409,7 +430,9 @@ public final class CobblemonCompat {
                 || context.itemClass.contains("pokedexitem")
                 || context.itemClass.contains("pokeroditem")
                 || context.hasTag("cobblemon:pokedex")
-                || context.hasTag("cobblemon:poke_rods");
+                || context.hasTag("cobblemon:poke_rods")
+                || (context.isNamespace("cobblemon_farmers")
+                && (context.path.endsWith("_worker") || context.path.equals("retrieve_worker")));
     }
 
     private static boolean isTransport(ItemContext context) {
@@ -438,6 +461,7 @@ public final class CobblemonCompat {
     private static boolean isConsumable(ItemContext context) {
         return context.inTab("consumables")
                 || context.creativeTab.equals("food & drinks")
+                || context.path.endsWith("_candy")
                 || context.itemClass.contains("candyitem")
                 || context.itemClass.contains("hypertrainingitem")
                 || context.itemClass.contains("aprijuiceitem")
@@ -451,7 +475,8 @@ public final class CobblemonCompat {
     }
 
     private static boolean isAgriculture(ItemContext context) {
-        return context.inTab("agriculture");
+        return context.inTab("agriculture")
+                || context.itemClass.contains("pokemonegg");
     }
 
     private static boolean isBuilding(ItemContext context) {

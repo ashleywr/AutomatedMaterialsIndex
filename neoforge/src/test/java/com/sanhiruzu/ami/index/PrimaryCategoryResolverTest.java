@@ -1526,6 +1526,20 @@ class PrimaryCategoryResolverTest {
     }
 
     @Test
+    void moddedBombProjectilesResolveToAmmo() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("supplementaries:bomb"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PROJECTILE),
+                        Map.of(SearchNodeKeys.ITEM_CLASS, "net.mehvahdjukaar.supplementaries.common.items.BombItem")
+                )
+        );
+
+        assertEquals("tools", assignment.categoryId());
+        assertEquals("ammo", assignment.subcategoryId());
+    }
+
+    @Test
     void createAddonDomainPriorsHandleWineryEnchantingAndOreExtraction() {
         CategoryAssignment wineryMachineAssignment = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("create_winery:fermentation_vat"),

@@ -229,19 +229,19 @@ class ResourceBookRuntimeGuideSourceTest {
     @Test
     void indexesHexereiBookOfShadowsPagesFromEntriesAndLangKeys() {
         Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("hexerei", "book/book_entries.json"), """
+        resources.put(new ResourceLocation("hexerei", "book/book_of_shadows/book_of_shadows.json"), """
                 {
                   "chapters": [
                     {
                       "name": "Items",
                       "pages": [
-                        { "page_location": "hexerei:book_pages/items/items_mixing_cauldron_1" }
+                        { "page_location": "hexerei:book_of_shadows/book_pages/items/items_mixing_cauldron_1" }
                       ]
                     }
                   ]
                 }
                 """);
-        resources.put(new ResourceLocation("hexerei", "book/book_pages/items/items_mixing_cauldron_1.json"), """
+        resources.put(new ResourceLocation("hexerei", "book/book_of_shadows/book_pages/items/items_mixing_cauldron_1.json"), """
                 {
                   "paragraphs": [
                     { "passage_text": "book.hexerei.items_mixing_cauldron_1.passage_1" },
@@ -269,7 +269,7 @@ class ResourceBookRuntimeGuideSourceTest {
         AmiGuideDocument document = documents.getFirst();
         assertEquals(new ResourceLocation("hexerei", "book_of_shadows"), document.bookId());
         assertEquals("hexerei_book", document.sourceType());
-        assertEquals("hexerei:book_pages/items/items_mixing_cauldron_1", document.pageId());
+        assertEquals("hexerei:book_of_shadows/book_pages/items/items_mixing_cauldron_1", document.pageId());
         assertEquals("Items", document.chapter());
         assertEquals("Mixing Cauldron", document.title());
         assertTrue(document.summaryText().contains("potions and crafts"));

@@ -339,6 +339,12 @@ public class ItemProvider implements IAmiDataProvider {
             if (!descTokens.isBlank()) {
                 meta.put(SearchNodeKeys.DESCRIPTION_SEARCH_TOKENS, descTokens);
             }
+            // Items whose tooltip signals removal (e.g. "REMOVED! You shouldn't have this...")
+            // should be hidden from survival visibility.
+            if (ItemFilter.ACCESS_SURVIVAL.equals(meta.get(SearchNodeKeys.ACCESS_LEVEL))
+                    && hasRemovalTooltip(lines)) {
+                meta.put(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_CHEAT);
+            }
         } catch (RuntimeException e) {
             AmiCore.LOGGER.debug("Unable to inspect search tooltip for {}", id, e);
         }
@@ -409,6 +415,12 @@ public class ItemProvider implements IAmiDataProvider {
         if (namespaceIs(id, "pastel")) {
             ItemProviderCompatHooks.runCompatSafely("PastelCompat", () -> PastelCompat.enrichItem(id, meta));
         }
+        if (namespaceIs(id, "silentgems")) {
+            ItemProviderCompatHooks.runCompatSafely("SilentGemsCompat", () -> SilentGemsCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "datanessence")) {
+            ItemProviderCompatHooks.runCompatSafely("DatanessenceCompat", () -> DatanessenceCompat.enrichItem(id, meta));
+        }
         if (namespaceIs(id, "born_in_chaos_v1")) {
             ItemProviderCompatHooks.runCompatSafely("BornInChaosCompat", () -> BornInChaosCompat.enrichItem(id, meta));
         }
@@ -452,6 +464,7 @@ public class ItemProvider implements IAmiDataProvider {
             ItemProviderCompatHooks.runCompatSafely("ChippedCompat", () -> ChippedCompat.enrichItem(id, meta));
         }
         ItemProviderCompatHooks.runCompatSafely("StorageCompat", () -> StorageCompat.enrichItem(id, meta));
+        ItemProviderCompatHooks.runCompatSafely("SocietyCompat", () -> SocietyCompat.enrichItem(id, meta));
         ItemProviderCompatHooks.runCompatSafely("GeneratedVariantCollapseCompat", () ->
                 GeneratedVariantCollapseCompat.enrichItem(id, meta));
         if (includePluginHooks) {
@@ -798,6 +811,11 @@ public class ItemProvider implements IAmiDataProvider {
                     ItemProviderCompatHooks.runCompatSafely("GeneratedVariantCollapseCompat", () ->
                             GeneratedVariantCollapseCompat.enrichItem(entry.id(), subtypeMeta));
                     if (!tags.isEmpty()) subtypeMeta.put(SearchNodeKeys.TAGS, tags);
+                    if (ItemFilter.ACCESS_SURVIVAL.equals(
+                            subtypeMeta.getOrDefault(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL))
+                            && ItemFilter.isHiddenByRecipeViewerConvention(tags)) {
+                        subtypeMeta.put(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_CHEAT);
+                    }
                     foodMetricSniffer.sniff(entry.stack()).ifPresent(stats -> addFoodStats(subtypeMeta, stats));
                     powerMetricSniffer.sniff(entry.stack(), entry.id(), level).ifPresent(stats -> addPowerStats(subtypeMeta, stats));
                     fluidMetricSniffer.sniff(entry.stack(), entry.id(), level).ifPresent(stats -> addFluidStats(subtypeMeta, stats));
@@ -829,6 +847,10 @@ public class ItemProvider implements IAmiDataProvider {
             ItemStack defaultStack = new ItemStack(item);
             String modId = id.getNamespace();
             String displayName = item.getName(defaultStack).getString();
+            // Items whose display name signals removal or deprecation should be cheat-only
+            if (ItemFilter.ACCESS_SURVIVAL.equals(accessLevel) && isRemovedItemName(displayName)) {
+                accessLevel = ItemFilter.ACCESS_CHEAT;
+            }
             ItemFilter.firstCreativeStack(item, creativeStackMap).ifPresent(stack -> ItemIconRenderer.registerStack(id, stack));
             baseIdentityNs += System.nanoTime() - baseStageStart;
 
@@ -842,6 +864,10 @@ public class ItemProvider implements IAmiDataProvider {
             baseStageStart = System.nanoTime();
             int color = 0xFFFFFF;
             String tags = collectTags(item);
+            if (ItemFilter.ACCESS_SURVIVAL.equals(accessLevel)
+                    && ItemFilter.isHiddenByRecipeViewerConvention(tags)) {
+                accessLevel = ItemFilter.ACCESS_CHEAT;
+            }
             String requiredTool = determineRequiredTool(item);
             baseTagsToolNs += System.nanoTime() - baseStageStart;
 
@@ -967,27 +993,7 @@ public class ItemProvider implements IAmiDataProvider {
             basePostCompatNs += System.nanoTime() - basePostStageStart;
 
             basePostStageStart = System.nanoTime();
-            CategoryAssignment assignment = PrimaryCategoryResolver.resolve(id, facetProfile.facets(), meta);
-            if (!assignment.attributes().isEmpty()) {
-                meta.putAll(assignment.attributes());
-            }
-            if (!"misc".equals(assignment.categoryId())) {
-                meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, assignment.categoryId());
-                meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, assignment.subcategoryId());
-            } else if (shouldUseLegacyOntologyFallback(facetProfile)) {
-                // Keep the old classifier as a migration fallback until the facet model
-                // fully covers the remaining facetless edge cases.
-                String[] ontology = OntologyClassifier.classifyItem(item, id);
-                if (ontology != null) {
-                    meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, ontology[0]);
-                    if (ontology.length > 1) {
-                        meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, ontology[1]);
-                    }
-                    if (ontology.length > 2) {
-                        meta.put(SearchNodeKeys.BLOCKS_MATERIAL, ontology[2]);
-                    }
-                }
-            }
+            applyPrimaryCategoryMeta(id, item, facetProfile, meta);
             basePostCategoryNs += System.nanoTime() - basePostStageStart;
 
             basePostStageStart = System.nanoTime();
@@ -1213,6 +1219,39 @@ public class ItemProvider implements IAmiDataProvider {
         }
 
         return req;
+    }
+
+    /**
+     * Returns true when the display name signals a removed, deprecated, or no-longer-functional item
+     * that should be hidden from survival visibility.
+     */
+    private static boolean isRemovedItemName(String displayName) {
+        if (displayName == null || displayName.isBlank()) return false;
+        String lower = displayName.toLowerCase(Locale.ROOT);
+        return lower.contains("removed")
+                || lower.contains("deprecated")
+                || lower.contains("no longer function")
+                || lower.contains("no longer need")
+                || lower.contains("do not use")
+                || lower.contains("shouldn't have")
+                || lower.contains("(old)");
+    }
+
+    /**
+     * Returns true when any tooltip line signals that the item has been removed
+     * and should not be visible to survival players.
+     */
+    private static boolean hasRemovalTooltip(List<net.minecraft.network.chat.Component> lines) {
+        for (net.minecraft.network.chat.Component line : lines) {
+            String text = line.getString().toLowerCase(Locale.ROOT);
+            if (text.contains("removed") && (text.contains("shouldn't")
+                    || text.contains("should not")
+                    || text.contains("no longer")
+                    || text.contains("you shouldn"))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String collectTags(Item item) {

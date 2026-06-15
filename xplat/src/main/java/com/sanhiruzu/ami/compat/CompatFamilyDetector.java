@@ -41,14 +41,18 @@ public final class CompatFamilyDetector {
     private static final Set<String> COBBLEMON_ADDON_NAMESPACES = Set.of(
             "badgebox",
             "cobbled_counter",
-            "cobblemore_lib",
+            "cobbledex",
             "cobblefurnies",
+            "cobblemon_farmers",
             "cobblemon_manufactory",
+            "cobblemore_lib",
+            "cobbreeding",
             "create_cobblemon_potion",
             "createmonballsoverhaul",
             "fightorflight",
             "mega_showdown",
-            "rctmod"
+            "rctmod",
+            "simpletms"
     );
 
     private static final Set<String> CREATE_ADDON_NAMESPACES = Set.of(

@@ -41,6 +41,24 @@ public class ItemGridViewTest {
         return ((TreeNode) ((List<?>) items.invoke(row)).get(index)).getLabel().getString();
     }
 
+    private static List<?> expandedGroupRuns(Object row) throws Exception {
+        Method runs = row.getClass().getDeclaredMethod("expandedGroupRuns");
+        runs.setAccessible(true);
+        return (List<?>) runs.invoke(row);
+    }
+
+    private static int runInt(Object run, String methodName) throws Exception {
+        Method method = run.getClass().getDeclaredMethod(methodName);
+        method.setAccessible(true);
+        return (int) method.invoke(run);
+    }
+
+    private static boolean runBoolean(Object run, String methodName) throws Exception {
+        Method method = run.getClass().getDeclaredMethod(methodName);
+        method.setAccessible(true);
+        return (boolean) method.invoke(run);
+    }
+
     private static TreeNode leaf(String path, String displayName) {
         SearchNode node = new SearchNode(
                 new ResourceLocation("minecraft:" + path),
@@ -154,6 +172,49 @@ public class ItemGridViewTest {
         assertEquals("Red Dragon Scale", itemLabel(rows.get(0), 1));
         assertEquals("Blue Dragon Scale", itemLabel(rows.get(0), 2));
         assertEquals("Apple", itemLabel(rows.get(0), 3));
+
+        List<?> runs = expandedGroupRuns(rows.get(0));
+        assertEquals(1, runs.size());
+        assertEquals(0, runInt(runs.get(0), "startCol"));
+        assertEquals(3, runInt(runs.get(0), "endCol"));
+        assertTrue(runBoolean(runs.get(0), "firstSlice"));
+        assertTrue(runBoolean(runs.get(0), "lastSlice"));
+    }
+
+    @Test
+    void expandedHighCardinalityGroupOutlineContinuesAcrossWrappedRows() throws Exception {
+        ItemGridView gridView = new ItemGridView(0, 0, 41, 100);
+
+        TreeNode group = new TreeNode("cardinality:minecraft:dragon_scale", Component.literal("Dragon Scales"));
+        group.setHighCardinality(true);
+        group.setExpanded(true);
+        group.addChild(leaf("red_dragon_scale", "Red Dragon Scale"));
+        group.addChild(leaf("blue_dragon_scale", "Blue Dragon Scale"));
+        group.addChild(leaf("green_dragon_scale", "Green Dragon Scale"));
+
+        gridView.setRootNodes(List.of(group));
+        gridView.expandAll();
+
+        Method buildVirtualRows = ItemGridView.class.getDeclaredMethod("buildVirtualRows", int.class);
+        buildVirtualRows.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        List<Object> rows = (List<Object>) buildVirtualRows.invoke(gridView, 2);
+
+        assertEquals(2, rows.size());
+
+        List<?> firstRowRuns = expandedGroupRuns(rows.get(0));
+        assertEquals(1, firstRowRuns.size());
+        assertEquals(0, runInt(firstRowRuns.get(0), "startCol"));
+        assertEquals(2, runInt(firstRowRuns.get(0), "endCol"));
+        assertTrue(runBoolean(firstRowRuns.get(0), "firstSlice"));
+        assertEquals(false, runBoolean(firstRowRuns.get(0), "lastSlice"));
+
+        List<?> secondRowRuns = expandedGroupRuns(rows.get(1));
+        assertEquals(1, secondRowRuns.size());
+        assertEquals(0, runInt(secondRowRuns.get(0), "startCol"));
+        assertEquals(2, runInt(secondRowRuns.get(0), "endCol"));
+        assertEquals(false, runBoolean(secondRowRuns.get(0), "firstSlice"));
+        assertTrue(runBoolean(secondRowRuns.get(0), "lastSlice"));
     }
 
     @Test

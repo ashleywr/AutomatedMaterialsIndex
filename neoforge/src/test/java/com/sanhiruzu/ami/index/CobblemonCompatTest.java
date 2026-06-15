@@ -151,7 +151,7 @@ class CobblemonCompatTest {
     void utilityConsumableAgricultureAndTaggedHeldItemsUseCobblemonBuckets() {
         Map<String, String> pokedex = enriched("cobblemon:pokedex_black", "Cobblemon: Utility Items",
                 "com.cobblemon.mod.common.item.PokedexItem");
-        Map<String, String> candy = enriched("cobblemon:mighty_candy", "Cobblemon: Consumables",
+        Map<String, String> hyperTrainingCandy = enriched("cobblemon:mighty_candy", "Cobblemon: Consumables",
                 "com.cobblemon.mod.common.item.interactive.HyperTrainingItem");
         Map<String, String> mulch = enriched("cobblemon:growth_mulch", "Cobblemon: Agriculture", "");
         Map<String, String> gem = enriched("cobblemon:psychic_gem", "Cobblemon: Archaeology",
@@ -159,14 +159,14 @@ class CobblemonCompatTest {
                 Map.of(SearchNodeKeys.TAGS, "cobblemon:held/is_held_item,cobblemon:type_gems,c:gems"));
 
         CategoryAssignment pokedexAssignment = resolve("cobblemon:pokedex_black", pokedex);
-        CategoryAssignment candyAssignment = resolve("cobblemon:mighty_candy", candy);
+        CategoryAssignment hyperTrainingCandyAssignment = resolve("cobblemon:mighty_candy", hyperTrainingCandy);
         CategoryAssignment mulchAssignment = resolve("cobblemon:growth_mulch", mulch);
         CategoryAssignment gemAssignment = resolve("cobblemon:psychic_gem", gem, ItemFacet.GEM);
 
         assertEquals("utility_item", pokedex.get(SearchNodeKeys.COBBLEMON_ITEM_KIND));
         assertEquals("utility", pokedexAssignment.subcategoryId());
-        assertEquals("consumable", candy.get(SearchNodeKeys.COBBLEMON_ITEM_KIND));
-        assertEquals("consumables", candyAssignment.subcategoryId());
+        assertEquals("medicine", hyperTrainingCandy.get(SearchNodeKeys.COBBLEMON_ITEM_KIND));
+        assertEquals("medicine", hyperTrainingCandyAssignment.subcategoryId());
         assertEquals("agriculture", mulch.get(SearchNodeKeys.COBBLEMON_ITEM_KIND));
         assertEquals("agriculture", mulchAssignment.subcategoryId());
         assertEquals("held_item", gem.get(SearchNodeKeys.COBBLEMON_ITEM_KIND));
@@ -489,6 +489,54 @@ class CobblemonCompatTest {
     }
 
     @Test
+    void pathStrongMedicineItemsWorkWithoutConsumablesTab() {
+        Map<String, String> candy = enriched("cobblemon:courage_candy", "KubeJS",
+                "dev.latvian.mods.kubejs.item.custom.BasicItemJS");
+        Map<String, String> mochi = enriched("cobblemon:health_mochi", "KubeJS",
+                "dev.latvian.mods.kubejs.item.custom.BasicItemJS");
+        Map<String, String> mint = enriched("cobblemon:gentle_mint", "KubeJS",
+                "dev.latvian.mods.kubejs.item.custom.BasicItemJS");
+        Map<String, String> vitamin = enriched("cobblemon:protein", "KubeJS",
+                "dev.latvian.mods.kubejs.item.custom.BasicItemJS");
+
+        CategoryAssignment candyAssignment = resolve("cobblemon:courage_candy", candy);
+        CategoryAssignment mochiAssignment = resolve("cobblemon:health_mochi", mochi);
+        CategoryAssignment mintAssignment = resolve("cobblemon:gentle_mint", mint);
+        CategoryAssignment vitaminAssignment = resolve("cobblemon:protein", vitamin);
+
+        assertEquals("medicine", candy.get(SearchNodeKeys.COBBLEMON_ITEM_KIND));
+        assertEquals("cobblemon", candyAssignment.categoryId());
+        assertEquals("medicine", candyAssignment.subcategoryId());
+        assertEquals("medicine", mochi.get(SearchNodeKeys.COBBLEMON_ITEM_KIND));
+        assertEquals("cobblemon", mochiAssignment.categoryId());
+        assertEquals("medicine", mochiAssignment.subcategoryId());
+        assertEquals("medicine", mint.get(SearchNodeKeys.COBBLEMON_ITEM_KIND));
+        assertEquals("cobblemon", mintAssignment.categoryId());
+        assertEquals("medicine", mintAssignment.subcategoryId());
+        assertEquals("medicine", vitamin.get(SearchNodeKeys.COBBLEMON_ITEM_KIND));
+        assertEquals("cobblemon", vitaminAssignment.categoryId());
+        assertEquals("medicine", vitaminAssignment.subcategoryId());
+    }
+
+    @Test
+    void realCandyItemClassCandiesStayInConsumables() {
+        Map<String, String> rare = enriched("cobblemon:rare_candy", "Cobblemon: Consumables",
+                "com.cobblemon.mod.common.item.interactive.CandyItem");
+        Map<String, String> expCandy = enriched("cobblemon:exp_candy_xl", "Cobblemon: Consumables",
+                "com.cobblemon.mod.common.item.interactive.CandyItem");
+
+        CategoryAssignment rareAssignment = resolve("cobblemon:rare_candy", rare);
+        CategoryAssignment expAssignment = resolve("cobblemon:exp_candy_xl", expCandy);
+
+        assertEquals("consumable", rare.get(SearchNodeKeys.COBBLEMON_ITEM_KIND));
+        assertEquals("cobblemon", rareAssignment.categoryId());
+        assertEquals("consumables", rareAssignment.subcategoryId());
+        assertEquals("consumable", expCandy.get(SearchNodeKeys.COBBLEMON_ITEM_KIND));
+        assertEquals("cobblemon", expAssignment.categoryId());
+        assertEquals("consumables", expAssignment.subcategoryId());
+    }
+
+    @Test
     void megaShowdownUtilitiesConsumablesAndHeldItemsAvoidCobblemonMisc() {
         Map<String, String> zRing = enriched("mega_showdown:z_ring", "Mega Showdown",
                 "com.github.yajatkaul.mega_showdown.item.ZRingItem",
@@ -550,6 +598,56 @@ class CobblemonCompatTest {
         } finally {
             AmiConfig.cobblemonCategoryPolicy = oldPolicy;
         }
+    }
+
+    @Test
+    void cobblemonAddonTmsFarmersDexAndEggUseFocusedSubcategories() {
+        Map<String, String> tm = enriched("simpletms:tm_thunderbolt", "SimpleTMs: TMs",
+                "git.dragomordor.simpletms.forge.item.custom.MoveTutorItem");
+        Map<String, String> tr = enriched("simpletms:tr_ice_beam", "SimpleTMs: TRs",
+                "git.dragomordor.simpletms.forge.item.custom.MoveTutorItem");
+        Map<String, String> blankTm = enriched("simpletms:tm_blank", "SimpleTMs: TMs",
+                "git.dragomordor.simpletms.forge.item.custom.BlankTMItem");
+        Map<String, String> worker = enriched("cobblemon_farmers:fire_type_worker", "Cobblemon Farmers",
+                "net.minecraft.world.item.Item");
+        Map<String, String> station = enriched("cobblemon_farmers:gardening_station", "Cobblemon Farmers",
+                "net.minecraft.world.item.BlockItem");
+        Map<String, String> cobbledex = enriched("cobbledex:cobbledex_item", "Tools & Utilities",
+                "com.rafacasari.mod.cobbledex.items.CobbledexItem");
+        Map<String, String> pokemonEgg = enriched("cobbreeding:pokemon_egg", "",
+                "ludichat.cobbreeding.PokemonEgg");
+
+        CategoryAssignment tmAssignment = resolve("simpletms:tm_thunderbolt", tm);
+        CategoryAssignment trAssignment = resolve("simpletms:tr_ice_beam", tr);
+        CategoryAssignment blankAssignment = resolve("simpletms:tm_blank", blankTm);
+        CategoryAssignment workerAssignment = resolve("cobblemon_farmers:fire_type_worker", worker);
+        CategoryAssignment stationAssignment = resolve("cobblemon_farmers:gardening_station", station);
+        CategoryAssignment dexAssignment = resolve("cobbledex:cobbledex_item", cobbledex);
+        CategoryAssignment eggAssignment = resolve("cobbreeding:pokemon_egg", pokemonEgg);
+
+        assertEquals("tm", tm.get(SearchNodeKeys.COBBLEMON_ITEM_KIND));
+        assertEquals("cobblemon", tmAssignment.categoryId());
+        assertEquals("tms", tmAssignment.subcategoryId());
+        assertEquals("tm", tr.get(SearchNodeKeys.COBBLEMON_ITEM_KIND));
+        assertEquals("cobblemon", trAssignment.categoryId());
+        assertEquals("tms", trAssignment.subcategoryId());
+        assertEquals("tm", blankTm.get(SearchNodeKeys.COBBLEMON_ITEM_KIND));
+        assertEquals("tms", blankAssignment.subcategoryId());
+
+        assertEquals("utility_item", worker.get(SearchNodeKeys.COBBLEMON_ITEM_KIND));
+        assertEquals("cobblemon", workerAssignment.categoryId());
+        assertEquals("utility", workerAssignment.subcategoryId());
+        assertEquals("machine", station.get(SearchNodeKeys.COBBLEMON_ITEM_KIND));
+        assertEquals("cobblemon", stationAssignment.categoryId());
+        assertEquals("machines", stationAssignment.subcategoryId());
+
+        assertEquals("utility_item", cobbledex.get(SearchNodeKeys.COBBLEMON_ITEM_KIND));
+        assertEquals("cobblemon", dexAssignment.categoryId());
+        assertEquals("utility", dexAssignment.subcategoryId());
+
+        assertEquals("agriculture", pokemonEgg.get(SearchNodeKeys.COBBLEMON_ITEM_KIND));
+        assertEquals("cobblemon", eggAssignment.categoryId());
+        assertEquals("agriculture", eggAssignment.subcategoryId());
     }
 
     @Test

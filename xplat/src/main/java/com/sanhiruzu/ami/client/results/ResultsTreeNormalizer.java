@@ -49,7 +49,10 @@ public final class ResultsTreeNormalizer {
         List<TreeNode> flattened = new ArrayList<>();
         boolean changed = false;
         for (TreeNode child : parent.getChildren()) {
-            if (shouldUnwrapRedundantKindWrapper(child)) {
+            if (shouldFlattenSingletonGeneratedGroup(child)) {
+                flattened.add(child.getChildren().get(0));
+                changed = true;
+            } else if (shouldUnwrapRedundantKindWrapper(child)) {
                 flattened.add(child.getChildren().get(0));
                 changed = true;
             } else if (shouldFlattenMatchingChildGroup(parent, child)) {
@@ -92,6 +95,9 @@ public final class ResultsTreeNormalizer {
         if (child.isLeaf() || !child.isExpanded()) {
             return false;
         }
+        if (shouldFlattenSingletonGeneratedGroup(child)) {
+            return true;
+        }
         if (isRepresentativeVariantGroup(child)) {
             return false;
         }
@@ -101,6 +107,23 @@ public final class ResultsTreeNormalizer {
                     || shouldFlattenCoveredSemanticGroup(parent, child);
         }
         return normalizedLabel(parent).equals(normalizedLabel(child));
+    }
+
+    private static boolean shouldFlattenSingletonGeneratedGroup(TreeNode node) {
+        return node != null
+                && !node.isLeaf()
+                && node.isExpanded()
+                && node.isHighCardinality()
+                && isGeneratedGroupingKey(node.getKey())
+                && node.getChildren().size() == 1
+                && node.getChildren().get(0).isLeaf();
+    }
+
+    private static boolean isGeneratedGroupingKey(String key) {
+        return key != null
+                && (key.startsWith("cardinality:")
+                || key.startsWith("color_group:")
+                || key.startsWith("duplicate_label:"));
     }
 
     private static boolean shouldUnwrapRedundantKindWrapper(TreeNode node) {

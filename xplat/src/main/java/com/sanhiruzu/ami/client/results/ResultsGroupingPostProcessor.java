@@ -17,7 +17,13 @@ final class ResultsGroupingPostProcessor {
     private static final int CARDINALITY_THRESHOLD = 4;
     private static final int EXPLICIT_FAMILY_THRESHOLD = 4;
     private static final int COLOR_GROUP_MIN = 3;
+    private static final int CATEGORY_SHAPE_MATERIAL_GROUP_MIN = 2;
     private static final int DUPLICATE_LABEL_THRESHOLD = 4;
+    private static final Map<String, String> CATEGORY_SHAPE_MATERIAL_LABELS = Map.of(
+            "slab", "Slabs",
+            "stairs", "Stairs",
+            "wall", "Walls"
+    );
     private static final Set<String> CATEGORY_CARDINALITY_BASE_PATHS = Set.of(
             "candle",
             "mushroom",
@@ -36,7 +42,10 @@ final class ResultsGroupingPostProcessor {
     static List<TreeNode> applyToTree(List<TreeNode> tree, ResultsProcessor.GroupBy groupBy) {
         return switch (groupBy) {
             case NONE -> tree;
-            case CATEGORY -> applyDefaultCollapsedFamilyGrouping(applyCategoryHighCardinalityGrouping(tree), true);
+            case CATEGORY -> applyDefaultCollapsedFamilyGrouping(
+                    applyCategoryShapeMaterialGrouping(applyCategoryHighCardinalityGrouping(tree)),
+                    true
+            );
             case MATERIAL -> applyDefaultCollapsedFamilyGrouping(applyMaterialGroupingPasses(tree), true);
             case FAMILY -> applyFamilyGroupingPasses(tree);
             case SHAPE -> applyDefaultCollapsedFamilyGrouping(applyHighCardinalityGrouping(tree), true);
@@ -129,6 +138,129 @@ final class ResultsGroupingPostProcessor {
 
     private static List<TreeNode> applyCategoryHighCardinalityGrouping(List<TreeNode> nodes) {
         return applyHighCardinalityGrouping(nodes, ResultsGroupingPostProcessor::isCategoryCardinalityNode);
+    }
+
+    private static List<TreeNode> applyCategoryShapeMaterialGrouping(List<TreeNode> nodes) {
+        List<TreeNode> result = new ArrayList<>();
+        for (TreeNode node : nodes) {
+            if (node.isLeaf() || isIntentionalLeafFamily(node)) {
+                result.add(node);
+                continue;
+            }
+
+            TreeNode copy = copyGroupNode(node);
+            List<TreeNode> children = applyCategoryShapeMaterialGrouping(node.getChildren());
+            String shapeId = categoryShapeMaterialGroupId(node);
+            copy.getChildren().addAll(shapeId.isEmpty()
+                    ? children
+                    : groupCategoryShapeMaterialLeaves(children, shapeId));
+            result.add(copy);
+        }
+        return result;
+    }
+
+    private static String categoryShapeMaterialGroupId(TreeNode node) {
+        String key = node.getKey();
+        if (!key.startsWith("masonry/")) {
+            return "";
+        }
+        String subcategory = key.substring("masonry/".length());
+        return CATEGORY_SHAPE_MATERIAL_LABELS.containsKey(subcategory) ? subcategory : "";
+    }
+
+    private static List<TreeNode> groupCategoryShapeMaterialLeaves(List<TreeNode> nodes, String shapeId) {
+        Map<String, List<TreeNode>> membersByMaterial = new LinkedHashMap<>();
+        for (TreeNode node : nodes) {
+            if (!node.isLeaf()) continue;
+            String material = categoryShapeMaterialKey(node);
+            if (!material.isEmpty()) {
+                membersByMaterial.computeIfAbsent(material, ignored -> new ArrayList<>()).add(node);
+            }
+        }
+
+        Map<TreeNode, TreeNode> replacements = new IdentityHashMap<>();
+        for (var entry : membersByMaterial.entrySet()) {
+            List<TreeNode> members = entry.getValue();
+            if (members.size() < CATEGORY_SHAPE_MATERIAL_GROUP_MIN) continue;
+            TreeNode group = categoryShapeMaterialGroup(shapeId, entry.getKey(), members);
+            for (TreeNode member : members) {
+                replacements.put(member, group);
+            }
+        }
+
+        if (replacements.isEmpty()) {
+            return nodes;
+        }
+
+        List<TreeNode> result = new ArrayList<>();
+        Set<TreeNode> emittedGroups = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (TreeNode node : nodes) {
+            TreeNode replacement = replacements.get(node);
+            if (replacement == null) {
+                result.add(node);
+                continue;
+            }
+            if (emittedGroups.add(replacement)) {
+                result.add(replacement);
+            }
+        }
+        return result;
+    }
+
+    private static String categoryShapeMaterialKey(TreeNode node) {
+        if (!node.getEntry().meta(SearchNodeKeys.COLLAPSE_FAMILY, "").isEmpty()) {
+            return "";
+        }
+        String material = node.getEntry().meta(SearchNodeKeys.SUBTYPE_OF, "");
+        if (material.isEmpty()) {
+            material = node.getEntry().meta(SearchNodeKeys.MATERIAL_GROUP, "");
+        }
+        return material.isEmpty() || GroupingEngine.isUnknownGroup(material) ? "" : material;
+    }
+
+    private static TreeNode categoryShapeMaterialGroup(String shapeId, String material, List<TreeNode> members) {
+        TreeNode group = new TreeNode(
+                "category_shape_material:" + shapeId + ":" + material,
+                Component.literal(categoryShapeMaterialLabel(shapeId, material))
+        );
+        group.setHighCardinality(true);
+        group.setExpanded(true);
+        group.getChildren().addAll(members);
+        return group;
+    }
+
+    private static String categoryShapeMaterialLabel(String shapeId, String material) {
+        ResourceLocation loc = ResourceLocation.tryParse(material);
+        String path = loc == null ? material : loc.getPath();
+        String base = stripShapeSuffix(path, shapeId).replace('_', ' ').replace('/', ' ');
+        String label = ResultsGroupLabels.formatGroupLabel(base);
+        String shapeLabel = CATEGORY_SHAPE_MATERIAL_LABELS.getOrDefault(shapeId, ResultsGroupLabels.formatGroupLabel(shapeId));
+        if (label.isBlank()) {
+            return shapeLabel;
+        }
+        String lower = label.toLowerCase(Locale.ROOT);
+        if (lower.endsWith(" " + shapeLabel.toLowerCase(Locale.ROOT))) {
+            return label;
+        }
+        return label + " " + shapeLabel;
+    }
+
+    private static String stripShapeSuffix(String path, String shapeId) {
+        return switch (shapeId) {
+            case "slab" -> stripAnySuffix(path, "_slabs", "_slab", "/slabs", "/slab");
+            case "stairs" -> stripAnySuffix(path, "_stairs", "_stair", "/stairs", "/stair");
+            case "wall" -> stripAnySuffix(path, "_walls", "_wall", "/walls", "/wall");
+            default -> path;
+        };
+    }
+
+    private static String stripAnySuffix(String value, String... suffixes) {
+        for (String suffix : suffixes) {
+            if (value.endsWith(suffix)) {
+                return value.substring(0, value.length() - suffix.length());
+            }
+        }
+        return value;
     }
 
     private static List<TreeNode> applyHighCardinalityGrouping(List<TreeNode> nodes, BiPredicate<TreeNode, String> baseIdFilter) {
@@ -274,7 +406,7 @@ final class ResultsGroupingPostProcessor {
 
         Map<TreeNode, TreeNode> replacementGroups = new IdentityHashMap<>();
         for (var entry : familyMembers.entrySet()) {
-            if (entry.getValue().size() < EXPLICIT_FAMILY_THRESHOLD) continue;
+            if (entry.getValue().size() < explicitFamilyThreshold(entry.getValue())) continue;
             String familyKey = entry.getKey();
             String label = familyLabels.getOrDefault(familyKey,
                     ResultsGroupLabels.formatGroupLabel(ResultsGroupLabels.formatGroupKey(familyKey, false)));
@@ -313,6 +445,17 @@ final class ResultsGroupingPostProcessor {
                 .thenComparing(node -> node.getLabel().getString(), String.CASE_INSENSITIVE_ORDER)
                 .thenComparing(node -> node.getEntry().id().toString()));
         return sorted;
+    }
+
+    private static int explicitFamilyThreshold(List<TreeNode> members) {
+        if (members.size() >= 2 && members.stream().allMatch(ResultsGroupingPostProcessor::hasExplicitDefaultCollapsedMode)) {
+            return 2;
+        }
+        return EXPLICIT_FAMILY_THRESHOLD;
+    }
+
+    private static boolean hasExplicitDefaultCollapsedMode(TreeNode node) {
+        return "default_collapsed".equals(node.getEntry().meta(SearchNodeKeys.VARIANT_COLLAPSE_MODE, ""));
     }
 
     private static boolean isDefaultCollapsedFamilyMember(TreeNode node) {

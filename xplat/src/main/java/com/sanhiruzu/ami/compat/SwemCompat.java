@@ -46,10 +46,13 @@ public final class SwemCompat {
         if (CompatMetaUtil.containsAny(context.itemClass, "TackItem", "SaddlebagItem")) facts.add("horse_tack");
         if (CompatMetaUtil.containsAny(context.itemClass, "CoinItem")) facts.add("currency");
         if (CompatMetaUtil.containsAny(context.itemClass, "HorseXPPotion", "PotionItem")) facts.add("horse_potion");
-        if (CompatMetaUtil.containsAny(context.itemClass, "FlySprayItem", "DesensitizingItem", "Booster")) facts.add("horse_care");
+        if (CompatMetaUtil.containsAny(context.itemClass, "FlySprayItem", "DesensitizingItem", "Booster",
+                "WhistleItem", "BreedingToken", "VetCheckBag")) facts.add("horse_care");
         if (CompatMetaUtil.containsAny(context.itemClass, "FeedItem", "GrainFeedItem", "ScoopFeedItem", "ShavingsItem")) facts.add("horse_feed");
+        if (CompatMetaUtil.containsAny(context.itemClass, "EggJumpItem", "TackBoxBlockItem", "ConeBlockItem")) facts.add("stable_equipment");
         if (CompatMetaUtil.containsAny(context.itemClass, "RidingHelmet", "CowboyHat")) facts.add("head_armor");
         if (CompatMetaUtil.containsAny(context.itemClass, "RidingBoots")) facts.add("feet_armor");
+        if (CompatMetaUtil.containsAny(context.blockClass, "GrainBinBlock")) facts.add("horse_feed");
     }
 
     private static void addTagFacts(Context context, Set<String> facts) {
@@ -60,16 +63,24 @@ public final class SwemCompat {
             if (tag.startsWith("swem:") && tag.contains("horse_armors")) facts.add("horse_armor");
             if (tag.startsWith("swem:") && tag.contains("riding_boots")) facts.add("feet_armor");
             if (tag.startsWith("swem:") && tag.contains("toys")) facts.add("horse_toy");
+            if (tag.startsWith("swem:") && CompatMetaUtil.containsAny(tag,
+                    "grain_bins", "slow_feeders", "grain_feeders", "half_barrels")) facts.add("horse_feed");
+            if (tag.startsWith("swem:") && CompatMetaUtil.containsAny(tag,
+                    "wheelbarrows", "tack_boxes")) facts.add("stable_equipment");
         }
     }
 
     private static void addPathFacts(Context context, Set<String> facts) {
         String path = context.path;
+        if (path.contains("horse_armor")) facts.add("horse_armor");
         if (CompatMetaUtil.containsAny(path, "plate_", "rivet_", "_plate", "_rivet")) facts.add("metal_component");
         if (path.contains("shield_")) facts.add("shield_part");
         if (CompatMetaUtil.containsAny(path, "bushel", "feed", "sugar_cube", "sweet_feed")) facts.add("horse_feed");
+        if (CompatMetaUtil.containsAny(path, "bin_grain", "slow_feeder", "grain_feeder", "half_barrel")) facts.add("horse_feed");
         if (CompatMetaUtil.containsAny(path, "poop", "manure")) facts.add("organic_drop");
-        if (path.startsWith("spawn_structure") || path.startsWith("spawn_structures")) facts.add("structure_placer");
+        if (CompatMetaUtil.containsAny(path, "stall_horse", "pasture_", "tack_box", "wheelbarrow", "jump_xc")
+                || path.startsWith("spawn_structure")
+                || path.startsWith("spawn_structures")) facts.add("stable_equipment");
         if (CompatMetaUtil.containsAny(path, "offering", "cantazarite", "star_worm")) facts.add("magic_reagent");
     }
 
@@ -80,20 +91,24 @@ public final class SwemCompat {
         if (facts.contains("feet_armor")) return "feet_armor";
         if (facts.contains("currency")) return "currency";
         if (facts.contains("horse_feed")) return "horse_feed";
+        if (facts.contains("stable_equipment")) return "stable_equipment";
         if (facts.contains("metal_component") || facts.contains("shield_part")) return "components";
         if (facts.contains("magic_reagent")) return "magic_reagents";
         if (facts.contains("horse_potion") || facts.contains("horse_care") || facts.contains("horse_toy")) return "horse_care";
         if (facts.contains("organic_drop")) return "organic_drops";
-        if (facts.contains("structure_placer")) return "structure_placers";
         return "";
     }
 
     private static void applyKindMetadata(String kind, Map<String, String> meta) {
         switch (kind) {
             case "horse_armor" -> CompatMetaUtil.addFacet(meta, ItemFacet.ARMOR_ANIMAL);
-            case "horse_tack", "horse_care", "structure_placers" -> {
+            case "horse_tack", "horse_care" -> {
                 CompatMetaUtil.addFacet(meta, ItemFacet.UTILITY_MISC);
                 route(meta, "horse_tack".equals(kind) ? "tack" : "care");
+            }
+            case "stable_equipment" -> {
+                CompatMetaUtil.addFacet(meta, ItemFacet.UTILITY_MISC);
+                route(meta, "stable");
             }
             case "head_armor" -> {
                 CompatMetaUtil.addFacet(meta, ItemFacet.EQUIPPABLE);
@@ -139,11 +154,13 @@ public final class SwemCompat {
     private static final class Context {
         final String path;
         final String itemClass;
+        final String blockClass;
         final String tags;
 
         Context(ResourceLocation id, Map<String, String> meta) {
             this.path = id.getPath().toLowerCase(Locale.ROOT);
             this.itemClass = meta.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
+            this.blockClass = meta.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "");
             this.tags = meta.getOrDefault(SearchNodeKeys.TAGS, "").toLowerCase(Locale.ROOT);
         }
     }

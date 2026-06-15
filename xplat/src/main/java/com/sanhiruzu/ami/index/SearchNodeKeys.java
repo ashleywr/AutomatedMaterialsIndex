@@ -84,6 +84,7 @@ public final class SearchNodeKeys {
     // Cobblemon / Pokemon-specific optional metadata. These are plain strings so
     // AMI can index datapack-backed Cobblemon content without a hard dependency.
     public static final String COBBLEMON_ITEM_KIND = "cobblemonItemKind";
+    public static final String SOCIETY_ITEM_KIND = "societyItemKind";
     public static final String POKEMON_BALL_FAMILY = "pokemonBallFamily";
     public static final String POKEMON_BALL_TIER = "pokemonBallTier";
     public static final String POKEMON_MEDICINE_KIND = "pokemonMedicineKind";

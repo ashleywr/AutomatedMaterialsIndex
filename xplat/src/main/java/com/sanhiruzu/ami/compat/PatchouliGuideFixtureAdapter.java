@@ -52,9 +52,14 @@ public final class PatchouliGuideFixtureAdapter {
 
         Map<String, String> safeTranslations = translations == null ? Map.of() : translations;
         Map<String, String> categoryLabels = parseCategoryLabels(bookId, categoryJsonById, safeTranslations);
-        String bookTitle = parseObject(bookJson)
+        Optional<JsonObject> bookObject = parseObject(bookJson);
+        String bookTitle = bookObject
                 .flatMap(object -> firstString(object, safeTranslations, "name", "title"))
                 .orElse(bookId.toString());
+        // Fall-back icon for the whole book (used when entries have no per-entry icon).
+        ResourceLocation bookFallbackIcon = bookObject
+                .flatMap(object -> parseIconItemId(object, "index_icon"))
+                .orElse(null);
 
         List<AmiGuideDocument> documents = new ArrayList<>();
         for (Map.Entry<String, String> entry : entryJsonById.entrySet()) {
@@ -79,11 +84,14 @@ public final class PatchouliGuideFixtureAdapter {
             collectEntrySummary(object, safeTranslations, summaryParts);
             collectReferencedItems(object, referencedItems);
 
+            ResourceLocation entryIcon = parseIconItemId(object, "icon").orElse(bookFallbackIcon);
+
             AmiGuideDocument document = AmiGuideDocument.builder(documentId(bookId, pageId),
                             SOURCE_TYPE,
                             bookId.getNamespace(),
                             title)
                     .bookId(bookId)
+                    .iconItemId(entryIcon)
                     .pageId(pageId)
                     .chapter(chapter)
                     .referencedItems(new ArrayList<>(referencedItems))
@@ -172,6 +180,19 @@ public final class PatchouliGuideFixtureAdapter {
             collectReferencedItems(object.get("item"), referencedItems);
             collectReferencedItems(object.get("id"), referencedItems);
         }
+    }
+
+    private static Optional<ResourceLocation> parseIconItemId(JsonObject object, String... fieldNames) {
+        for (String fieldName : fieldNames) {
+            JsonElement el = object.get(fieldName);
+            if (el != null && el.isJsonPrimitive()) {
+                Optional<ResourceLocation> id = itemId(el.getAsString());
+                if (id.isPresent()) {
+                    return id;
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     private static Optional<ResourceLocation> itemId(String raw) {

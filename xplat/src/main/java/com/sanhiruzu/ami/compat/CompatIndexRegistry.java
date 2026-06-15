@@ -16,7 +16,9 @@ public final class CompatIndexRegistry {
             new GuideMePlugin(),
             new ModonomiconPlugin(),
             new ResourceBookPlugin(),
-            new ApotheosisPlugin()
+            new ApotheosisPlugin(),
+            new MalumCodexPlugin(),
+            new CrittersCrawlersPlugin()
     );
 
     private static final List<CompatIndexPlugin> EXTERNAL = new CopyOnWriteArrayList<>();
@@ -121,6 +123,26 @@ public final class CompatIndexRegistry {
         @Override
         public void registerGuideDocuments(Consumer<AmiGuideDocument> registry) {
             ApotheosisGuideSource.registerGuideDocuments(registry);
+        }
+    }
+
+    private static final class MalumCodexPlugin implements CompatIndexPlugin {
+        @Override
+        public String modId() { return "malum"; }
+
+        @Override
+        public void registerGuideDocuments(Consumer<AmiGuideDocument> registry) {
+            MalumCodexGuideSource.registerGuideDocuments(registry);
+        }
+    }
+
+    private static final class CrittersCrawlersPlugin implements CompatIndexPlugin {
+        @Override
+        public String modId() { return "cnc"; }
+
+        @Override
+        public void registerGuideDocuments(Consumer<AmiGuideDocument> registry) {
+            CrittersCrawlersGuideSource.registerGuideDocuments(registry);
         }
     }
 }

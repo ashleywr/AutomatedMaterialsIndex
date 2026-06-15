@@ -33,6 +33,7 @@ public final class AmiOntology {
     public static final Category SOPHISTICATED;
     public static final Category MAPPING;
     public static final Category MODULAR_GEAR;
+    public static final Category SOCIETY;
     public static final Category TACZ;
 
     // ── Singleton category constants ──────────────────────────────────────────
@@ -223,6 +224,8 @@ public final class AmiOntology {
                         new SubCategory("runes", "ami.subcategory.botania.runes"),
                         new SubCategory("baubles", "ami.subcategory.botania.baubles"),
                         new SubCategory("tools", "ami.subcategory.botania.tools"),
+                        new SubCategory("decoration", "ami.subcategory.botania.decoration"),
+                        new SubCategory("brews", "ami.subcategory.botania.brews"),
                         new SubCategory("materials", "ami.subcategory.botania.materials"),
                         new SubCategory("misc", "ami.subcategory.botania.misc")
                 ),
@@ -355,6 +358,22 @@ public final class AmiOntology {
                         new SubCategory("stations", "ami.subcategory.modular_gear.stations"),
                         new SubCategory("blueprints", "ami.subcategory.modular_gear.blueprints"),
                         new SubCategory("misc", "ami.subcategory.modular_gear.misc")
+                ),
+                List.of()
+        );
+
+        SOCIETY = new Category(
+                "society", "ami.category.society", "Society",
+                "society:sparkstone", 0xFFC8A84E,
+                List.of(
+                        new SubCategory("artisan_goods", "ami.subcategory.society.artisan_goods"),
+                        new SubCategory("fishing", "ami.subcategory.society.fishing"),
+                        new SubCategory("gems", "ami.subcategory.society.gems"),
+                        new SubCategory("machines", "ami.subcategory.society.machines"),
+                        new SubCategory("farming", "ami.subcategory.society.farming"),
+                        new SubCategory("decoration", "ami.subcategory.society.decoration"),
+                        new SubCategory("books", "ami.subcategory.society.books"),
+                        new SubCategory("misc", "ami.subcategory.society.misc")
                 ),
                 List.of()
         );
@@ -568,7 +587,7 @@ public final class AmiOntology {
         CATEGORIES = List.of(
                 COBBLEMON, CREATE, AE2, MEKANISM, GREGTECH, MINECOLONIES, APOTHEOSIS, BOTANIA, ARS_NOUVEAU,
                 PASTEL, MALUM, SWEM, CATACLYSM, SOPHISTICATED, MAPPING,
-                MODULAR_GEAR, TACZ, UTILITY, BESTIARY, MAGIC, ARMOR, TOOLS, TECH, LOOKUP_HISTORY, NATURE, INGREDIENTS, DECORATION, ENVIRONMENT, SOCIAL,
+                MODULAR_GEAR, SOCIETY, TACZ, UTILITY, BESTIARY, MAGIC, ARMOR, TOOLS, TECH, LOOKUP_HISTORY, NATURE, INGREDIENTS, DECORATION, ENVIRONMENT, SOCIAL,
                 GEOLOGY, MASONRY, MISC
         );
     }

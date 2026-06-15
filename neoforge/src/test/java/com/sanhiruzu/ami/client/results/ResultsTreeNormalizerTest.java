@@ -212,6 +212,37 @@ public class ResultsTreeNormalizerTest {
     }
 
     @Test
+    void normalizeChildrenFlattensSingletonRepresentativeVariantSubgroup() {
+        TreeNode parent = group("curios/charms", "Charms");
+        TreeNode child = group("cardinality:family:pastel:alluring_jewel", "Alluring Jewels");
+        child.setHighCardinality(true);
+        child.addChild(variantLeaf("pastel", "alluring_jewel_charged_inventory", "Alluring Jewel", "pastel:alluring_jewel"));
+        parent.addChild(child);
+        parent.addChild(leaf("rabbit_foot", "Rabbit's Foot"));
+
+        ResultsTreeNormalizer.normalizeChildren(parent);
+
+        assertEquals(2, parent.getChildren().size());
+        assertEquals("Alluring Jewel", parent.getChildren().get(0).getLabel().getString());
+        assertEquals("Rabbit's Foot", parent.getChildren().get(1).getLabel().getString());
+    }
+
+    @Test
+    void normalizeChildrenPreservesMultiItemRepresentativeVariantSubgroup() {
+        TreeNode parent = group("curios/charms", "Charms");
+        TreeNode child = group("cardinality:family:pastel:alluring_jewel", "Alluring Jewels");
+        child.setHighCardinality(true);
+        child.addChild(variantLeaf("pastel", "alluring_jewel", "Alluring Jewel", "pastel:alluring_jewel"));
+        child.addChild(variantLeaf("pastel", "alluring_jewel_charged_inventory", "Alluring Jewel", "pastel:alluring_jewel"));
+        parent.addChild(child);
+
+        ResultsTreeNormalizer.normalizeChildren(parent);
+
+        assertEquals(1, parent.getChildren().size());
+        assertEquals("cardinality:family:pastel:alluring_jewel", parent.getChildren().get(0).getKey());
+    }
+
+    @Test
     void normalizeChildrenFlattensWoodKindAndMaterialLayers() {
         TreeNode parent = group("nature/wood", "Wood & Logs");
         TreeNode logs = group("nature/wood/logs", "Logs");

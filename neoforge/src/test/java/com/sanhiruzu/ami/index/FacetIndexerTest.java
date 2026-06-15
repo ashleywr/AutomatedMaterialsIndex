@@ -237,6 +237,18 @@ class FacetIndexerTest {
     }
 
     @Test
+    void packAuthorFacetTagsProduceConcreteFacets() {
+        Item coating = register("fire_coating", new Item("Fire Coating")
+                .withTag(TagKey.create(null, new ResourceLocation("ami", "facets/magic_reagent")))
+                .withTag(TagKey.create(null, new ResourceLocation("ami", "facets/tech_component"))));
+
+        FacetProfile profile = index(coating);
+
+        assertTrue(profile.facets().contains(ItemFacet.MAGIC_REAGENT));
+        assertTrue(profile.facets().contains(ItemFacet.TECH_COMPONENT));
+    }
+
+    @Test
     void playerHeadGetsSocialFacet() {
         Item playerHead = register("player_head", new Item("Player Head"));
 
@@ -440,6 +452,94 @@ class FacetIndexerTest {
         assertEquals("net.minecraft.world.level.block.Block", profile.attributes().get(SearchNodeKeys.BLOCK_CLASS));
         assertEquals("minecraft:planks", profile.attributes().get(SearchNodeKeys.BLOCK_TAGS));
         assertEquals("facing", profile.attributes().get(SearchNodeKeys.BLOCK_STATE_PROPERTIES));
+    }
+
+    @Test
+    void statefulActivationPropertiesProduceInteractiveFacet() {
+        Item idol = register("ender_dragon_idol",
+                new BlockItem("Mighty Idol", new Block(new BlockState().withProperty(new Property<>("cooldown")))));
+
+        FacetProfile profile = index(idol);
+
+        assertTrue(profile.facets().contains(ItemFacet.PLACEABLE));
+        assertTrue(profile.facets().contains(ItemFacet.INTERACTIVE_BLOCK));
+        assertEquals("cooldown", profile.attributes().get(SearchNodeKeys.BLOCK_STATE_PROPERTIES));
+    }
+
+    @Test
+    void functionalFullBlockClassesAndTagsProduceConcreteFacets() {
+        Item shop = register("shop", new BlockItem("Shop", new ShopBlock(new BlockState())));
+        Item station = register("baker_station", new BlockItem("Baker Station", new BakerStationBlock(new BlockState())));
+        Item trim = register("toms_storage", "trim", new BlockItem("Inventory Trim", new TrimBlock(new BlockState()))
+                .withTag(TagKey.create(null, new ResourceLocation("toms_storage", "trims"))));
+        Item connector = register("toms_storage", "inventory_connector",
+                new BlockItem("Inventory Connector", new InventoryConnectorBlock(new BlockState())));
+        Item transformer = register("transformer_core", new BlockItem("Transformer Core", new TransformerCoreBlock(new BlockState())));
+        Item grainBin = register("grain_bin", new BlockItem("Grain Bin", new GrainBinBlock(new BlockState())));
+        Item stove = register("sandstone_stove", new BlockItem("Sandstone Stove", new CStoveBlock(new BlockState())));
+        Item taskScreen = register("task_screen", new BlockItem("Task Screen", new TaskScreenBlock(new BlockState())));
+        Item trap = register("obsidian_trap", new BlockItem("Obsidian Trap", new ObsidianExplosionTrapBricks(new BlockState())));
+        Item bossSpawner = register("boss_respawner", new BlockItem("Boss Respawner", new Boss_Respawn_Spawner_Block(new BlockState())));
+        Item quarry = register("quarry", new BlockItem("Quarry", new QuarryBlock(new BlockState())));
+        Item anthill = register("anthill", new BlockItem("Anthill", new AnthillBlock(new BlockState())));
+        Item echoAltar = register("echo_altar", new BlockItem("Echo Altar", new EchoAltarBlock(new BlockState())));
+
+        FacetProfile shopProfile = index(shop);
+        FacetProfile stationProfile = index(station);
+        FacetProfile trimProfile = index(trim);
+        FacetProfile connectorProfile = index(connector);
+        FacetProfile transformerProfile = index(transformer);
+        FacetProfile grainBinProfile = index(grainBin);
+        FacetProfile stoveProfile = index(stove);
+        FacetProfile taskScreenProfile = index(taskScreen);
+        FacetProfile trapProfile = index(trap);
+        FacetProfile bossSpawnerProfile = index(bossSpawner);
+        FacetProfile quarryProfile = index(quarry);
+        FacetProfile anthillProfile = index(anthill);
+        FacetProfile echoAltarProfile = index(echoAltar);
+
+        assertTrue(shopProfile.facets().contains(ItemFacet.INTERACTIVE_BLOCK));
+        assertTrue(shopProfile.facets().contains(ItemFacet.WORKSTATION));
+        assertTrue(shopProfile.facets().contains(ItemFacet.MACHINE));
+        assertTrue(stationProfile.facets().contains(ItemFacet.INTERACTIVE_BLOCK));
+        assertTrue(stationProfile.facets().contains(ItemFacet.WORKSTATION));
+        assertTrue(stationProfile.facets().contains(ItemFacet.MACHINE));
+        assertTrue(trimProfile.facets().contains(ItemFacet.STORAGE));
+        assertFalse(trimProfile.facets().contains(ItemFacet.MACHINE));
+        assertTrue(connectorProfile.facets().contains(ItemFacet.STORAGE));
+        assertFalse(connectorProfile.facets().contains(ItemFacet.MACHINE));
+        assertTrue(transformerProfile.facets().contains(ItemFacet.HAS_ENERGY));
+        assertTrue(transformerProfile.facets().contains(ItemFacet.MACHINE));
+        assertTrue(grainBinProfile.facets().contains(ItemFacet.STORAGE));
+        assertTrue(stoveProfile.facets().contains(ItemFacet.WORKSTATION));
+        assertTrue(stoveProfile.facets().contains(ItemFacet.MACHINE));
+        assertTrue(taskScreenProfile.facets().contains(ItemFacet.INTERACTIVE_BLOCK));
+        assertTrue(taskScreenProfile.facets().contains(ItemFacet.UTILITY_MISC));
+        assertTrue(trapProfile.facets().contains(ItemFacet.INTERACTIVE_BLOCK));
+        assertTrue(bossSpawnerProfile.facets().contains(ItemFacet.INTERACTIVE_BLOCK));
+        assertTrue(bossSpawnerProfile.facets().contains(ItemFacet.MAGIC_ARTIFACT));
+        assertTrue(quarryProfile.facets().contains(ItemFacet.INTERACTIVE_BLOCK));
+        assertTrue(quarryProfile.facets().contains(ItemFacet.MACHINE));
+        assertTrue(anthillProfile.facets().contains(ItemFacet.NATURE_MISC));
+        assertTrue(echoAltarProfile.facets().contains(ItemFacet.MAGIC_ARTIFACT));
+    }
+
+    @Test
+    void notableVanillaFunctionalBlocksDoNotBecomeMachinesByDefault() {
+        Item honeyBlock = register("honey_block", new BlockItem("Honey Block", new Block(new BlockState())));
+        Item beehive = register("beehive", new BlockItem("Beehive", new Block(new BlockState())));
+        Item respawnAnchor = register("respawn_anchor", new BlockItem("Respawn Anchor", new Block(new BlockState())));
+
+        FacetProfile honeyProfile = index(honeyBlock);
+        FacetProfile beehiveProfile = index(beehive);
+        FacetProfile respawnAnchorProfile = index(respawnAnchor);
+
+        assertFalse(honeyProfile.facets().contains(ItemFacet.MACHINE));
+        assertFalse(beehiveProfile.facets().contains(ItemFacet.MACHINE));
+        assertTrue(beehiveProfile.facets().contains(ItemFacet.NATURE_MISC));
+        assertFalse(respawnAnchorProfile.facets().contains(ItemFacet.MACHINE));
+        assertTrue(respawnAnchorProfile.facets().contains(ItemFacet.MAGIC_ARTIFACT));
+        assertTrue(respawnAnchorProfile.facets().contains(ItemFacet.INTERACTIVE_BLOCK));
     }
 
     @Test
@@ -673,6 +773,58 @@ class FacetIndexerTest {
         assertEquals("chest", profile.attributes().get(SearchNodeKeys.EQUIPMENT_SLOT));
     }
 
+    @Test
+    void hatItemsByClassNameGetHeadArmorAndEquippable() {
+        Item hat = register("bat_wing_hat", new TestHatItem("Bat Wing Hat"));
+        Item dyeableHat = register("rainbow_hat", new TestHatItemDyeable("Rainbow Hat"));
+
+        FacetProfile hatProfile = index(hat);
+        FacetProfile dyeableProfile = index(dyeableHat);
+
+        assertTrue(hatProfile.facets().contains(ItemFacet.ARMOR_HEAD), "HatItem class should get ARMOR_HEAD");
+        assertTrue(hatProfile.facets().contains(ItemFacet.EQUIPPABLE), "HatItem class should get EQUIPPABLE");
+        assertTrue(dyeableProfile.facets().contains(ItemFacet.ARMOR_HEAD), "HatItemDyeable class should get ARMOR_HEAD");
+        assertTrue(dyeableProfile.facets().contains(ItemFacet.EQUIPPABLE), "HatItemDyeable class should get EQUIPPABLE");
+    }
+
+    @Test
+    void classNamedWeaponsArmorToolsAndCuriosGetCorrectFacets() {
+        Item blunderbuss = register("blunderbuss", new TestBlunderBussItem("Blunderbuss"));
+        Item furCloak = register("fur_cloak", new TestFurCloakItem("Fur Cloak"));
+        Item wateringCan = register("watering_can", new TestWateringCanItem("Watering Can"));
+        Item ammunition = register("ammo", new TestAmmunitionItem("Ammunition"));
+        Item automobile = register("motorcar", new TestAutomobileItem("Motorcar"));
+        Item relic = register("space_dissector", new TestRelicItem("Space Dissector"));
+        Item curio = register("magic_ring", new TestCurioItem("Magic Ring"));
+        Item lure = register("fishing_lure", new TestLureItem("Fishing Lure"));
+
+        FacetProfile bb = index(blunderbuss);
+        assertTrue(bb.facets().contains(ItemFacet.RANGED_WEAPON), "BlunderBussItem → RANGED_WEAPON");
+
+        FacetProfile fc = index(furCloak);
+        assertTrue(fc.facets().contains(ItemFacet.ARMOR_CHEST), "FurCloakItem → ARMOR_CHEST");
+        assertTrue(fc.facets().contains(ItemFacet.EQUIPPABLE), "FurCloakItem → EQUIPPABLE");
+
+        FacetProfile wc = index(wateringCan);
+        assertTrue(wc.facets().contains(ItemFacet.UTILITY_TOOL), "WateringCanItem → UTILITY_TOOL");
+
+        FacetProfile ammo = index(ammunition);
+        assertTrue(ammo.facets().contains(ItemFacet.INGREDIENT_MINERAL), "AmmunitionItem → INGREDIENT_MINERAL");
+
+        FacetProfile auto = index(automobile);
+        assertTrue(auto.facets().contains(ItemFacet.TRANSPORT), "AutomobileItem → TRANSPORT");
+
+        FacetProfile rel = index(relic);
+        assertTrue(rel.facets().contains(ItemFacet.MAGIC_ARTIFACT), "RelicItem → MAGIC_ARTIFACT");
+
+        FacetProfile cur = index(curio);
+        assertTrue(cur.facets().contains(ItemFacet.CURIO), "CurioItem → CURIO");
+        assertTrue(cur.facets().contains(ItemFacet.EQUIPPABLE), "CurioItem → EQUIPPABLE");
+
+        FacetProfile lr = index(lure);
+        assertTrue(lr.facets().contains(ItemFacet.UTILITY_MISC), "LureItem → UTILITY_MISC");
+    }
+
     private static final class TestEntityBlock extends Block implements EntityBlock {
         private TestEntityBlock(BlockState defaultState) {
             super(defaultState);
@@ -756,6 +908,50 @@ class FacetIndexerTest {
         }
     }
 
+    private static final class TestHatItem extends Item {
+        private TestHatItem(String name) {
+            super(name);
+        }
+    }
+
+    private static final class TestHatItemDyeable extends Item {
+        private TestHatItemDyeable(String name) {
+            super(name);
+        }
+    }
+
+    private static final class TestBlunderBussItem extends Item {
+        private TestBlunderBussItem(String name) { super(name); }
+    }
+
+    private static final class TestFurCloakItem extends Item {
+        private TestFurCloakItem(String name) { super(name); }
+    }
+
+    private static final class TestWateringCanItem extends Item {
+        private TestWateringCanItem(String name) { super(name); }
+    }
+
+    private static final class TestAmmunitionItem extends Item {
+        private TestAmmunitionItem(String name) { super(name); }
+    }
+
+    private static final class TestAutomobileItem extends Item {
+        private TestAutomobileItem(String name) { super(name); }
+    }
+
+    private static final class TestRelicItem extends Item {
+        private TestRelicItem(String name) { super(name); }
+    }
+
+    private static final class TestCurioItem extends Item {
+        private TestCurioItem(String name) { super(name); }
+    }
+
+    private static final class TestLureItem extends Item {
+        private TestLureItem(String name) { super(name); }
+    }
+
     private static final class PowerBottleBlock extends Block {
         private PowerBottleBlock(BlockState defaultState) {
             super(defaultState);
@@ -765,6 +961,84 @@ class FacetIndexerTest {
     private static final class PowerBottleItem extends BlockItem {
         private PowerBottleItem(String name, Block block) {
             super(name, block);
+        }
+    }
+
+    private static final class ShopBlock extends Block {
+        private ShopBlock(BlockState defaultState) {
+            super(defaultState);
+        }
+    }
+
+    private static final class BakerStationBlock extends Block {
+        private BakerStationBlock(BlockState defaultState) {
+            super(defaultState);
+        }
+    }
+
+    private static final class TrimBlock extends Block {
+        private TrimBlock(BlockState defaultState) {
+            super(defaultState);
+        }
+    }
+
+    private static final class InventoryConnectorBlock extends Block {
+        private InventoryConnectorBlock(BlockState defaultState) {
+            super(defaultState);
+        }
+    }
+
+    private static final class TransformerCoreBlock extends Block {
+        private TransformerCoreBlock(BlockState defaultState) {
+            super(defaultState);
+        }
+    }
+
+    private static final class GrainBinBlock extends Block {
+        private GrainBinBlock(BlockState defaultState) {
+            super(defaultState);
+        }
+    }
+
+    private static final class CStoveBlock extends Block {
+        private CStoveBlock(BlockState defaultState) {
+            super(defaultState);
+        }
+    }
+
+    private static final class TaskScreenBlock extends Block {
+        private TaskScreenBlock(BlockState defaultState) {
+            super(defaultState);
+        }
+    }
+
+    private static final class ObsidianExplosionTrapBricks extends Block {
+        private ObsidianExplosionTrapBricks(BlockState defaultState) {
+            super(defaultState);
+        }
+    }
+
+    private static final class Boss_Respawn_Spawner_Block extends Block {
+        private Boss_Respawn_Spawner_Block(BlockState defaultState) {
+            super(defaultState);
+        }
+    }
+
+    private static final class QuarryBlock extends Block {
+        private QuarryBlock(BlockState defaultState) {
+            super(defaultState);
+        }
+    }
+
+    private static final class AnthillBlock extends Block {
+        private AnthillBlock(BlockState defaultState) {
+            super(defaultState);
+        }
+    }
+
+    private static final class EchoAltarBlock extends Block {
+        private EchoAltarBlock(BlockState defaultState) {
+            super(defaultState);
         }
     }
 

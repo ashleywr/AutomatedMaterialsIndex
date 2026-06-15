@@ -75,7 +75,7 @@ public final class FacetIndexer {
         applyTagFacts(tags, facets);
 
         if (item instanceof BlockItem blockItem) {
-            applyBlockFacts(blockItem, stack, path, facets, attributes);
+            applyBlockFacts(blockItem, id, stack, path, tags, facets, attributes);
         }
 
         return new FacetProfile(facets, attributes);
@@ -374,6 +374,9 @@ public final class FacetIndexer {
                 }
             }
         }
+        // Class-name-based equipment detection for items that don't use vanilla
+        // interfaces (ArmorItem, etc.) but have clear functional class names.
+        applyClassNamedFacts(item, facets);
         if (item instanceof PotionItem) {
             facets.add(ItemFacet.POTION);
         }
@@ -442,6 +445,79 @@ public final class FacetIndexer {
         return isAnimalArmorPath(path);
     }
 
+    /**
+     * Detects equipment types from the item's Java class name when the item doesn't
+     * implement vanilla interfaces like ArmorItem. Many mods use custom item classes
+     * with descriptive names (e.g. {@code BlunderBussItem}, {@code FurCloakItem},
+     * {@code WateringCanItem}) that reveal their function.
+     */
+    private static void applyClassNamedFacts(Item item, EnumSet<ItemFacet> facets) {
+        String c = item.getClass().getName().toLowerCase(Locale.ROOT);
+
+        if (!facets.contains(ItemFacet.ARMOR_HEAD) && containsAny(c,
+                "hatitem", "helmetitem", "crownitem", "tiaraitem",
+                "headbanditem", "wigitem", "maskitem", "gogglesitem", "monocleitem")) {
+            facets.add(ItemFacet.ARMOR_HEAD);
+            facets.add(ItemFacet.EQUIPPABLE);
+        }
+        if (!facets.contains(ItemFacet.ARMOR_CHEST) && containsAny(c,
+                "cloakitem", "capeitem", "chestplateitem", "breastplateitem",
+                "robeitem", "tunicitem", "vestitem", "tabarditem")) {
+            facets.add(ItemFacet.ARMOR_CHEST);
+            facets.add(ItemFacet.EQUIPPABLE);
+        }
+        if (!facets.contains(ItemFacet.ARMOR_LEGS) && containsAny(c,
+                "leggingsitem", "greavesitem", "pantsitem", "trousersitem")) {
+            facets.add(ItemFacet.ARMOR_LEGS);
+            facets.add(ItemFacet.EQUIPPABLE);
+        }
+        if (!facets.contains(ItemFacet.ARMOR_FEET) && containsAny(c,
+                "bootsitem", "shoesitem", "slippersitem", "sabatonsitem")) {
+            facets.add(ItemFacet.ARMOR_FEET);
+            facets.add(ItemFacet.EQUIPPABLE);
+        }
+        if (!facets.contains(ItemFacet.CURIO) && containsAny(c,
+                "curioitem", "accessoryitem", "trinketitem",
+                "beltitem", "ringitem", "amuletitem", "necklaceitem",
+                "pendantitem", "braceletitem", "charmitem", "broochitem")) {
+            facets.add(ItemFacet.CURIO);
+            facets.add(ItemFacet.EQUIPPABLE);
+        }
+        if (!facets.contains(ItemFacet.MELEE_WEAPON) && containsAny(c,
+                "sworditem", "bladeitem", "daggeritem", "knifeitem",
+                "spearitem", "lanceitem", "maceitem", "hammeritem",
+                "axeitem", "halberditem", "scytheitem", "greatsworditem",
+                "rapieritem", "katanaitem", "saberitem", "cutlassitem",
+                "clubitem", "batonitem", "flailitem", "glaiveitem")) {
+            facets.add(ItemFacet.MELEE_WEAPON);
+        }
+        if (!facets.contains(ItemFacet.RANGED_WEAPON) && containsAny(c,
+                "gunitem", "rifleitem", "pistolitem", "cannonitem",
+                "blunderbussitem", "shotgunitem",
+                "bowitem", "crossbowitem", "launcheritem",
+                "musketitem", "revolveritem", "blasteritem")) {
+            facets.add(ItemFacet.RANGED_WEAPON);
+        }
+        if (!facets.contains(ItemFacet.UTILITY_TOOL) && containsAny(c,
+                "wateringcanitem", "wrenchitem", "screwdriveritem",
+                "crowbaritem", "pliersitem", "hammeritem",
+                "scytheitem", "sickleitem", "paintbrushitem")) {
+            facets.add(ItemFacet.UTILITY_TOOL);
+        }
+        if (containsAny(c, "ammunitionitem", "ammoitem", "bulletitem")) {
+            facets.add(ItemFacet.INGREDIENT_MINERAL);
+        }
+        if (containsAny(c, "automobileitem", "vehicleitem", "motorcaritem")) {
+            facets.add(ItemFacet.TRANSPORT);
+        }
+        if (containsAny(c, "relicitem", "artifactitem", "baubleitem")) {
+            facets.add(ItemFacet.MAGIC_ARTIFACT);
+        }
+        if (containsAny(c, "lureitem", "bobberitem")) {
+            facets.add(ItemFacet.UTILITY_MISC);
+        }
+    }
+
     private static void applyComponentPromotions(Map<String, String> attributes, EnumSet<ItemFacet> facets) {
         if (!hasComponentFact(attributes, "tool")) {
             return;
@@ -462,6 +538,7 @@ public final class FacetIndexer {
 
     private static void applyTagFacts(List<String> tags, EnumSet<ItemFacet> facets) {
         for (String tag : tags) {
+            applyPackFacetTag(tag, facets);
             if (tag.equals("forge:books/guide") || tag.equals("c:books/guide") || tag.endsWith(":guides")) {
                 facets.add(ItemFacet.BOOK);
                 facets.add(ItemFacet.GUIDE_BOOK);
@@ -602,6 +679,16 @@ public final class FacetIndexer {
             if (tag.equals("c:ores") || tag.equals("forge:ores")) {
                 facets.add(ItemFacet.STONE_BLOCK);
             }
+        }
+    }
+
+    private static void applyPackFacetTag(String tag, EnumSet<ItemFacet> facets) {
+        if (tag == null || !tag.startsWith("ami:facets/")) {
+            return;
+        }
+        ItemFacet facet = ItemFacet.byId(tag.substring("ami:facets/".length()));
+        if (facet != null) {
+            facets.add(facet);
         }
     }
 
@@ -877,8 +964,10 @@ public final class FacetIndexer {
 
     private static void applyBlockFacts(
             BlockItem blockItem,
+            ResourceLocation id,
             ItemStack stack,
             String path,
+            List<String> itemTags,
             EnumSet<ItemFacet> facets,
             Map<String, String> attributes
     ) {
@@ -900,6 +989,7 @@ public final class FacetIndexer {
             facets.add(ItemFacet.WORKSTATION);
             facets.add(ItemFacet.MACHINE);
         }
+        applyFunctionalBlockClassFacts(id, path, normalizedBlockClass, facets);
 
         String blockTags = state.getTags()
                 .map(tag -> tag.location().toString().toLowerCase(Locale.ROOT))
@@ -908,6 +998,7 @@ public final class FacetIndexer {
         if (!blockTags.isBlank()) {
             attributes.put(SearchNodeKeys.BLOCK_TAGS, blockTags);
         }
+        applyFunctionalItemTagsForBlockFacts(itemTags, facets);
 
         String blockProperties = state.getProperties().stream()
                 .map(property -> property.getName().toLowerCase(Locale.ROOT))
@@ -915,6 +1006,9 @@ public final class FacetIndexer {
                 .collect(Collectors.joining(","));
         if (!blockProperties.isBlank()) {
             attributes.put(SearchNodeKeys.BLOCK_STATE_PROPERTIES, blockProperties);
+        }
+        if (hasInteractiveStateProperty(blockProperties)) {
+            facets.add(ItemFacet.INTERACTIVE_BLOCK);
         }
         if (hasBlockStateProperty(blockProperties, "powered")
                 || hasBlockStateProperty(blockProperties, "power")
@@ -924,6 +1018,9 @@ public final class FacetIndexer {
             facets.add(ItemFacet.ACTIVE_REDSTONE_LOGIC);
             facets.add(ItemFacet.REDSTONE_LOGIC);
             facets.add(ItemFacet.REDSTONE_SIGNAL);
+        }
+        if (hasActivationBlockTag(blockTags)) {
+            facets.add(ItemFacet.INTERACTIVE_BLOCK);
         }
 
         if (!attributes.containsKey("blockShape")) {
@@ -1058,13 +1155,16 @@ public final class FacetIndexer {
             facets.add(ItemFacet.WORKSTATION);
             facets.add(ItemFacet.MACHINE);
         }
-        if (path.equals("honey_block") || path.equals("lectern")
-                || path.equals("beehive") || path.equals("bee_nest")
-                || path.equals("respawn_anchor")) {
-            if (path.equals("lectern")) {
-                facets.add(ItemFacet.WORKSTATION);
-            }
+        if (path.equals("lectern")) {
+            facets.add(ItemFacet.WORKSTATION);
             facets.add(ItemFacet.MACHINE);
+        }
+        if (path.equals("beehive") || path.equals("bee_nest")) {
+            facets.add(ItemFacet.NATURE_MISC);
+        }
+        if (path.equals("respawn_anchor")) {
+            facets.add(ItemFacet.INTERACTIVE_BLOCK);
+            facets.add(ItemFacet.MAGIC_ARTIFACT);
         }
         if (isStoragePath(path)) {
             facets.add(ItemFacet.STORAGE);
@@ -1159,6 +1259,86 @@ public final class FacetIndexer {
                 || path.equals("hopper")
                 || path.equals("dispenser")
                 || path.equals("dropper");
+    }
+
+    private static void applyFunctionalBlockClassFacts(ResourceLocation id, String path, String blockClass,
+                                                       EnumSet<ItemFacet> facets) {
+        if (blockClass == null || blockClass.isBlank()) {
+            return;
+        }
+        if (containsAny(blockClass, "stationblock", "workstationblock", "shopblock")) {
+            facets.add(ItemFacet.INTERACTIVE_BLOCK);
+            facets.add(ItemFacet.WORKSTATION);
+            facets.add(ItemFacet.MACHINE);
+        }
+        if (containsAny(blockClass, "transformer", "powergrid", "generatorblock", "batteryblock", "energyblock")) {
+            facets.add(ItemFacet.HAS_ENERGY);
+            facets.add(ItemFacet.MACHINE);
+        }
+        if ("toms_storage".equals(id.getNamespace()) && containsAny(blockClass,
+                "trimblock", "inventoryconnectorblock", "opencrateblock",
+                "inventoryinterfaceblock", "inventoryproxyblock")) {
+            facets.add(ItemFacet.STORAGE);
+        }
+        if (containsPathToken(path, "trim") && containsAny(blockClass, "storagemod")) {
+            facets.add(ItemFacet.STORAGE);
+        }
+        if (containsAny(blockClass, "grainbinblock", "blockminecoloniesrack", "supplydepotblock")) {
+            facets.add(ItemFacet.STORAGE);
+        }
+        if (containsAny(blockClass, "cstoveblock")) {
+            facets.add(ItemFacet.WORKSTATION);
+            facets.add(ItemFacet.MACHINE);
+        }
+        if (containsAny(blockClass, "taskscreenblock", "questbarrierblock", "stagebarrierblock", "lootcrateopenerblock")) {
+            facets.add(ItemFacet.INTERACTIVE_BLOCK);
+            facets.add(ItemFacet.UTILITY_MISC);
+        }
+        if (containsAny(blockClass, "trap") && !containsAny(blockClass, "trapdoor")) {
+            facets.add(ItemFacet.INTERACTIVE_BLOCK);
+        }
+        if (containsAny(blockClass, "boss_respawn_spawner", "bossrespawnspawner", "altar_of_fire", "altaroffire",
+                "echoaltarblock", "preservationcontrollerblock", "deeplightblock")) {
+            facets.add(ItemFacet.MAGIC_ARTIFACT);
+        }
+        if (containsAny(blockClass, "boss_respawn_spawner", "bossrespawnspawner", "altar_of_fire", "altaroffire",
+                "preservationcontrollerblock", "quarryblock", "enigmaticengineblock")) {
+            facets.add(ItemFacet.INTERACTIVE_BLOCK);
+        }
+        if (containsAny(blockClass, "quarryblock", "enigmaticengineblock")) {
+            facets.add(ItemFacet.MACHINE);
+        }
+        if (containsAny(blockClass, "moleburrowblock", "anthillblock", "blockleafcutteranthill")) {
+            facets.add(ItemFacet.NATURE_MISC);
+        }
+    }
+
+    private static void applyFunctionalItemTagsForBlockFacts(List<String> itemTags, EnumSet<ItemFacet> facets) {
+        if (itemTags == null || itemTags.isEmpty()) {
+            return;
+        }
+        if (itemTags.contains("toms_storage:trims")) {
+            facets.add(ItemFacet.STORAGE);
+        }
+    }
+
+    private static boolean hasInteractiveStateProperty(String blockProperties) {
+        return hasBlockStateProperty(blockProperties, "cooldown")
+                || hasBlockStateProperty(blockProperties, "triggered")
+                || hasBlockStateProperty(blockProperties, "armed");
+    }
+
+    private static boolean hasActivationBlockTag(String blockTags) {
+        if (blockTags == null || blockTags.isBlank()) {
+            return false;
+        }
+        for (String rawTag : blockTags.split(",")) {
+            String tag = rawTag.trim();
+            if (tag.endsWith("_activates") || tag.contains(":activates/") || tag.contains("_activation")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isDecorativePlaceable(String path) {

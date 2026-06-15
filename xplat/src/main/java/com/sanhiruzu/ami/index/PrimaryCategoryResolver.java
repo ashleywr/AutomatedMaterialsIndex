@@ -529,6 +529,11 @@ public final class PrimaryCategoryResolver {
         ResolveContext context = new ResolveContext(id, modId, path, facets, attributes, modFamily, categoryPolicy);
         CategoryRouteTrace route = CategoryRouteTrace.start(id, modFamily.name().toLowerCase(Locale.ROOT), facets, attributes);
 
+        if (shouldUseEarlyCompatRouteMetadata(context)) {
+            return route.finish("compat_route", "explicit metadata", compatRouteAssignment(context));
+        }
+        route.skipped("compat_route", "no early explicit compat route");
+
         Optional<CategoryAssignment> hardIdentity = resolveHardIdentity(context);
         if (hardIdentity.isPresent()) {
             return route.finish("hard_identity", "identity", hardIdentity.get());
@@ -673,6 +678,11 @@ public final class PrimaryCategoryResolver {
         Optional<CategoryAssignment> modularGolems = resolveModularGolemsIdentity(context);
         if (modularGolems.isPresent()) {
             return modularGolems;
+        }
+
+        Optional<CategoryAssignment> society = resolveSocietyIdentity(context);
+        if (society.isPresent()) {
+            return society;
         }
 
         Optional<CategoryAssignment> mna = resolveMnaIdentity(context);
@@ -967,6 +977,9 @@ public final class PrimaryCategoryResolver {
             case "archaeology" -> identityAssignment(
                     "cobblemon", "archaeology", context.attributes,
                     "identity.cobblemon.archaeology", "Cobblemon archaeology item");
+            case "tm" -> identityAssignment(
+                    "cobblemon", "tms", context.attributes,
+                    "identity.cobblemon.tm", "Cobblemon TM or TR");
             default -> identityAssignment(
                     "cobblemon", "misc", context.attributes,
                     "identity.cobblemon", "Cobblemon item");
@@ -978,9 +991,45 @@ public final class PrimaryCategoryResolver {
             case "poke_ball", "medicine", "status_cure", "vitamin", "mint", "mochi",
                     "berry", "apricorn", "apricorn_seed", "evolution_item", "fossil",
                     "machine", "held_item", "utility_item", "consumable", "agriculture",
-                    "archaeology" -> true;
+                    "archaeology", "tm" -> true;
             default -> false;
         };
+    }
+
+    private static Optional<CategoryAssignment> resolveSocietyIdentity(ResolveContext context) {
+        if (!"society".equals(context.modId)) {
+            return Optional.empty();
+        }
+        String kind = context.attributes.getOrDefault(SearchNodeKeys.SOCIETY_ITEM_KIND, "");
+        if (kind.isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.of(switch (kind) {
+            case "artisan_goods" -> identityAssignment(
+                    "society", "artisan_goods", context.attributes,
+                    "identity.society.artisan_goods", "Society artisan good");
+            case "fishing" -> identityAssignment(
+                    "society", "fishing", context.attributes,
+                    "identity.society.fishing", "Society fishing item");
+            case "gem" -> identityAssignment(
+                    "society", "gems", context.attributes,
+                    "identity.society.gem", "Society gem or mineral");
+            case "machine" -> identityAssignment(
+                    "society", "machines", context.attributes,
+                    "identity.society.machine", "Society machine");
+            case "farming" -> identityAssignment(
+                    "society", "farming", context.attributes,
+                    "identity.society.farming", "Society farming item");
+            case "decoration" -> identityAssignment(
+                    "society", "decoration", context.attributes,
+                    "identity.society.decoration", "Society decoration");
+            case "book" -> identityAssignment(
+                    "society", "books", context.attributes,
+                    "identity.society.book", "Society book");
+            default -> identityAssignment(
+                    "society", "misc", context.attributes,
+                    "identity.society", "Society item");
+        });
     }
 
     private static Optional<CategoryAssignment> resolveCreateIdentity(ResolveContext context) {
@@ -1423,6 +1472,9 @@ public final class PrimaryCategoryResolver {
         if (isBotaniaFunctionalFlower(context.path)) {
             return "functional_flowers";
         }
+        if (pathTokens.containsAny("brew", "vial", "flask", "incense", "incense_stick")) {
+            return "brews";
+        }
         if (hasAny(context.facets, ItemFacet.CURIO, ItemFacet.EQUIPPABLE)
                 || pathTokens.containsAny(BOTANIA_BAUBLE_TOKENS)) {
             return "baubles";
@@ -1432,10 +1484,20 @@ public final class PrimaryCategoryResolver {
                 || pathTokens.containsAny(BOTANIA_TOOL_TOKENS)) {
             return "tools";
         }
+        if (hasAny(context.facets, ItemFacet.DECORATIVE_BLOCK, ItemFacet.GLASS_BLOCK,
+                ItemFacet.STONE_BLOCK, ItemFacet.FLOWER, ItemFacet.FUNGI)
+                || (hasAny(context.facets, ItemFacet.PLACEABLE)
+                && containsAny(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "blockitem"))) {
+            return "decoration";
+        }
         if (hasAny(context.facets, ItemFacet.INGOT, ItemFacet.NUGGET, ItemFacet.DUST,
                 ItemFacet.GEM, ItemFacet.RAW_MATERIAL, ItemFacet.TECH_COMPONENT,
-                ItemFacet.INGREDIENT_ORGANIC, ItemFacet.INGREDIENT_MINERAL)
-                || pathTokens.containsAny(BOTANIA_MATERIAL_TOKENS)) {
+                ItemFacet.INGREDIENT_ORGANIC, ItemFacet.INGREDIENT_MINERAL,
+                ItemFacet.TEMPLATE)
+                || pathTokens.containsAny(BOTANIA_MATERIAL_TOKENS)
+                || pathTokens.containsAny("seed", "seeds", "shard")
+                || containsAny(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""),
+                "grassseeds", "laputashard")) {
             return "materials";
         }
         return "misc";
@@ -2033,7 +2095,7 @@ public final class PrimaryCategoryResolver {
                 || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:arrows")
                 || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "createbigcannons:big_cannon_projectiles")
                 || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "createbigcannons:big_cannon_projectiles")
-                || containsAny(itemClass, "SnowballItem");
+                || containsAny(itemClass, "SnowballItem", "BombItem");
     }
 
     private static boolean hasActualFoodIdentity(Set<ItemFacet> facets, Map<String, String> attributes) {
@@ -3495,10 +3557,37 @@ public final class PrimaryCategoryResolver {
         if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.SEMANTIC) {
             return false;
         }
+        if (shouldUseEarlyCompatRouteMetadata(context)) {
+            return false;
+        }
         String category = context.attributes.getOrDefault(SearchNodeKeys.COMPAT_ROUTE_CATEGORY, "");
         String subcategory = context.attributes.getOrDefault(SearchNodeKeys.COMPAT_ROUTE_SUBCATEGORY, "");
         return category != null && !category.isBlank()
                 && subcategory != null && !subcategory.isBlank();
+    }
+
+    private static boolean shouldUseEarlyCompatRouteMetadata(ResolveContext context) {
+        if (context.categoryPolicy == AmiConfig.CompatCategoryPolicy.SEMANTIC) {
+            return false;
+        }
+        String category = context.attributes.getOrDefault(SearchNodeKeys.COMPAT_ROUTE_CATEGORY, "");
+        String subcategory = context.attributes.getOrDefault(SearchNodeKeys.COMPAT_ROUTE_SUBCATEGORY, "");
+        if (category == null || category.isBlank() || subcategory == null || subcategory.isBlank()) {
+            return false;
+        }
+        if (context.facets.contains(ItemFacet.GUIDE_BOOK) || context.facets.contains(ItemFacet.BOOK)) {
+            return false;
+        }
+        return context.categoryPolicy == AmiConfig.CompatCategoryPolicy.FOCUSED
+                || "halcyon".equals(category)
+                || "swem".equals(category);
+    }
+
+    private static CategoryAssignment compatRouteAssignment(ResolveContext context) {
+        return assignment(
+                context.attributes.get(SearchNodeKeys.COMPAT_ROUTE_CATEGORY),
+                context.attributes.get(SearchNodeKeys.COMPAT_ROUTE_SUBCATEGORY),
+                context.attributes);
     }
 
     private enum ModFamily {

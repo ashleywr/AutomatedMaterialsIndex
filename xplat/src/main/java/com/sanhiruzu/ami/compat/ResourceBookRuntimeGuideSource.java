@@ -352,9 +352,44 @@ public final class ResourceBookRuntimeGuideSource {
 
     private static List<AmiGuideDocument> hexereiDocuments(Map<ResourceLocation, String> resources,
                                                            Map<String, String> translations) {
-        String entriesText = resources.get(ResourceLocation.fromNamespaceAndPath("hexerei", "book/book_entries.json"));
-        JsonObject entries = parseObject(entriesText);
-        if (entries == null || !(entries.get("chapters") instanceof JsonArray chapters)) {
+        List<AmiGuideDocument> out = new ArrayList<>();
+        // Each hexerei book has its root at hexerei:book/{bookname}/{bookname}.json.
+        // There is no single aggregate file; scan for individual roots instead.
+        for (Map.Entry<ResourceLocation, String> entry : resources.entrySet()) {
+            ResourceLocation id = entry.getKey();
+            if (!"hexerei".equals(id.getNamespace()) || !isHexereiBookRoot(id.getPath())) {
+                continue;
+            }
+            String bookName = hexereiBookName(id.getPath());
+            if (bookName.isBlank()) {
+                continue;
+            }
+            ResourceLocation bookId = ResourceLocation.fromNamespaceAndPath("hexerei", bookName);
+            out.addAll(hexereiBookDocuments(bookId, entry.getValue(), resources, translations));
+        }
+        return out;
+    }
+
+    private static boolean isHexereiBookRoot(String path) {
+        if (!path.startsWith("book/") || !path.endsWith(".json")) {
+            return false;
+        }
+        // Matches book/{name}/{name}.json — root files only, not page files.
+        String[] parts = path.split("/");
+        return parts.length == 3 && stripJsonExtension(parts[2]).equals(parts[1]);
+    }
+
+    private static String hexereiBookName(String path) {
+        String[] parts = path.split("/");
+        return parts.length >= 2 ? parts[1] : "";
+    }
+
+    private static List<AmiGuideDocument> hexereiBookDocuments(ResourceLocation bookId,
+                                                               String bookJson,
+                                                               Map<ResourceLocation, String> resources,
+                                                               Map<String, String> translations) {
+        JsonObject bookObject = parseObject(bookJson);
+        if (bookObject == null || !(bookObject.get("chapters") instanceof JsonArray chapters)) {
             return List.of();
         }
         List<AmiGuideDocument> out = new ArrayList<>();
@@ -380,21 +415,27 @@ public final class ResourceBookRuntimeGuideSource {
                         pageId.getNamespace(),
                         "book/" + pageId.getPath() + ".json"
                 ));
-                hexereiDocument(pageId, pageJson, chapter, translations).ifPresent(out::add);
+                hexereiDocument(bookId, pageId, pageJson, chapter, translations).ifPresent(out::add);
             }
         }
         return out;
     }
 
-    private static Optional<AmiGuideDocument> hexereiDocument(ResourceLocation pageId,
-                                                             String pageJson,
-                                                             String chapter,
-                                                             Map<String, String> translations) {
+    private static Optional<AmiGuideDocument> hexereiDocument(ResourceLocation bookId,
+                                                              ResourceLocation pageId,
+                                                              String pageJson,
+                                                              String chapter,
+                                                              Map<String, String> translations) {
         JsonObject page = parseObject(pageJson);
         if (page == null) {
             return Optional.empty();
         }
         List<String> passages = new ArrayList<>();
+        // "name" on hexerei pages is the entity/item translation key used as a title.
+        String nameKey = string(page, "name");
+        if (!nameKey.isBlank()) {
+            passages.add(translated(nameKey, translations, nameKey));
+        }
         String showTitle = string(page, "showTitle");
         if (!showTitle.isBlank()) {
             passages.add(translated(showTitle, translations, showTitle));
@@ -418,10 +459,9 @@ public final class ResourceBookRuntimeGuideSource {
         Set<ResourceLocation> referencedItems = new LinkedHashSet<>();
         collectItems(page, referencedItems);
         String title = firstNonBlankLine(summary).orElse(humanize(leaf(pageId.getPath())));
-        ResourceLocation bookId = ResourceLocation.fromNamespaceAndPath("hexerei", "book_of_shadows");
         ResourceLocation documentId = ResourceLocation.fromNamespaceAndPath(
                 "ami",
-                "guide/hexerei/" + safePath(stripJsonExtension(pageId.getPath()))
+                "guide/hexerei/" + safePath(bookId.getPath()) + "/" + safePath(stripJsonExtension(pageId.getPath()))
         );
         return Optional.of(AmiGuideDocument.builder(documentId, "hexerei_book", "hexerei", title)
                 .bookId(bookId)
@@ -431,8 +471,9 @@ public final class ResourceBookRuntimeGuideSource {
                 .referencedItems(List.copyOf(referencedItems))
                 .tag("hexerei")
                 .tag("guide")
-                .tag("book_of_shadows")
+                .tag(bookId.getPath())
                 .summaryText(summary)
+                .openAction(AmiGuideOpeners.hexereiBook(bookId, pageId.toString()))
                 .build());
     }
 

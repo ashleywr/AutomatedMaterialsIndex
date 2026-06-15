@@ -31,6 +31,11 @@ final class ResultsTreeBuilder {
     }
 
     private static void addCategoryLeaves(String categoryId, String subId, TreeNode parent, List<SearchNode> nodes) {
+        if ("masonry".equals(categoryId) && "full_block".equals(subId)) {
+            addFullBlockCategoryLeaves(parent, nodes);
+            return;
+        }
+
         if (shouldKeepCategorySubcategoryFlat(categoryId, subId)) {
             addLeaves(parent, nodes);
             return;
@@ -81,6 +86,126 @@ final class ResultsTreeBuilder {
 
     private static boolean shouldKeepCategorySubcategoryFlat(String categoryId, String subId) {
         return "masonry".equals(categoryId) && "full_block".equals(subId);
+    }
+
+    private static void addFullBlockCategoryLeaves(TreeNode parent, List<SearchNode> nodes) {
+        List<SearchNode> glassBlocks = new ArrayList<>();
+        List<SearchNode> specialBlocks = new ArrayList<>();
+        List<SearchNode> plainBlocks = new ArrayList<>();
+
+        for (SearchNode node : nodes) {
+            if (isGlassFullBlock(node)) {
+                glassBlocks.add(node);
+            } else if (hasSpecialFullBlockBehavior(node)) {
+                specialBlocks.add(node);
+            } else {
+                plainBlocks.add(node);
+            }
+        }
+
+        int nonEmptyGroups = 0;
+        if (!glassBlocks.isEmpty()) nonEmptyGroups++;
+        if (!specialBlocks.isEmpty()) nonEmptyGroups++;
+        if (!plainBlocks.isEmpty()) nonEmptyGroups++;
+        if (nonEmptyGroups <= 1) {
+            addLeaves(parent, nodes);
+            return;
+        }
+
+        addFullBlockGroup(parent, "glass", "Glass", glassBlocks);
+        addFullBlockGroup(parent, "special", "Special Blocks", specialBlocks);
+        addFullBlockGroup(parent, "plain", "Plain Blocks", plainBlocks);
+    }
+
+    private static void addFullBlockGroup(TreeNode parent, String keySuffix, String label, List<SearchNode> nodes) {
+        if (nodes.isEmpty()) {
+            return;
+        }
+        TreeNode group = new TreeNode(parent.getKey() + "/" + keySuffix, Component.literal(label));
+        group.setExpanded(true);
+        addLeaves(group, nodes);
+        parent.addChild(group);
+    }
+
+    private static boolean isGlassFullBlock(SearchNode node) {
+        return hasCsvToken(node.meta(SearchNodeKeys.FACETS, ""), "glass_block")
+                || "glass".equals(node.meta(SearchNodeKeys.BLOCKS_MATERIAL, ""))
+                || hasMetadataTokenContaining(node, SearchNodeKeys.BLOCK_TAGS, "glass_blocks")
+                || node.id().getPath().contains("glass");
+    }
+
+    private static boolean hasSpecialFullBlockBehavior(SearchNode node) {
+        String facets = node.meta(SearchNodeKeys.FACETS, "");
+        if (hasCsvToken(facets, "has_block_entity")
+                || hasCsvToken(facets, "interactive_block")
+                || hasCsvToken(facets, "machine")
+                || hasCsvToken(facets, "workstation")
+                || hasCsvToken(facets, "storage")
+                || hasCsvToken(facets, "has_energy")
+                || hasCsvToken(facets, "active_redstone_logic")
+                || hasCsvToken(facets, "passive_comparator_output")
+                || hasCsvToken(facets, "redstone_logic")
+                || hasCsvToken(facets, "redstone_signal")) {
+            return true;
+        }
+        if (hasMetadataTokenContaining(node, SearchNodeKeys.BLOCK_TAGS, "activates")
+                || hasMetadataTokenContaining(node, SearchNodeKeys.BLOCK_TAGS, "activation")) {
+            return true;
+        }
+        if (hasFunctionalFullBlockClass(node)
+                || hasCsvToken(node.meta(SearchNodeKeys.TAGS, ""), "toms_storage:trims")) {
+            return true;
+        }
+        String properties = node.meta(SearchNodeKeys.BLOCK_STATE_PROPERTIES, "");
+        return hasCsvToken(properties, "cooldown")
+                || hasCsvToken(properties, "triggered")
+                || hasCsvToken(properties, "armed")
+                || hasCsvToken(properties, "powered")
+                || hasCsvToken(properties, "active")
+                || hasCsvToken(properties, "enabled");
+    }
+
+    private static boolean hasFunctionalFullBlockClass(SearchNode node) {
+        String blockClass = node.meta(SearchNodeKeys.BLOCK_CLASS, "").toLowerCase(Locale.ROOT);
+        if (blockClass.isBlank()) {
+            return false;
+        }
+        return blockClass.contains("stationblock")
+                || blockClass.contains("workstationblock")
+                || blockClass.contains("shopblock")
+                || blockClass.contains("trimblock")
+                || blockClass.contains("spongeblock")
+                || blockClass.contains("lavaspongeblock")
+                || blockClass.contains("transformer")
+                || blockClass.contains("powergrid")
+                || blockClass.contains("generatorblock")
+                || blockClass.contains("batteryblock")
+                || blockClass.contains("energyblock");
+    }
+
+    private static boolean hasCsvToken(String encoded, String expected) {
+        if (encoded == null || encoded.isBlank()) {
+            return false;
+        }
+        for (String rawToken : encoded.split(",")) {
+            if (expected.equals(rawToken.trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasMetadataTokenContaining(SearchNode node, String key, String needle) {
+        String encoded = node.meta(key, "");
+        if (encoded.isBlank()) {
+            return false;
+        }
+        for (String rawToken : encoded.split(",")) {
+            if (rawToken.trim().contains(needle)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isBuildingShape(String subId) {

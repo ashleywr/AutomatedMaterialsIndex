@@ -49,11 +49,13 @@ public class ItemGridView {
     private final List<PendingRendererIcon> pendingRendererIcons = new ArrayList<>();
     private final List<PendingIconOverlay> pendingIconOverlays = new ArrayList<>();
     private final List<PendingQuestMarker> pendingQuestMarkers = new ArrayList<>();
+    private final List<PendingGroupOutline> pendingGroupOutlines = new ArrayList<>();
     private GridCellSpriteBatchRenderer gridCellSprites;
     private int pendingDirectItemIconCount;
     private int pendingRendererIconCount;
     private int pendingIconOverlayCount;
     private int pendingQuestMarkerCount;
+    private int pendingGroupOutlineCount;
     private int x, y, width, height;
     private List<TreeNode> rootNodes = new ArrayList<>();
     private int pixelScrollOffset = 0;
@@ -289,6 +291,7 @@ public class ItemGridView {
             }
 
             gridCellSpriteRenderer().flush(g);
+            renderPendingGroupOutlines(g);
             renderItemIconBatch(g);
             renderPendingDirectIcons(g);
             renderPendingIconOverlays(g);
@@ -369,6 +372,7 @@ public class ItemGridView {
     private void renderItemRow(GuiGraphics g, ItemRow ir, int drawY, int mouseX, int mouseY) {
         renderGroupContext(g, ir.depth(), drawY, ir.alternateBand());
         renderRowSlotBackgrounds(g, drawY, ir.items().size());
+        queueExpandedGroupOutlines(ir, drawY);
         for (int i = 0; i < ir.items().size(); i++) {
             int cellX = gridLeftX() + i * CELL_SIZE;
             int cellY = drawY;
@@ -462,6 +466,22 @@ public class ItemGridView {
         }
     }
 
+    private void queueExpandedGroupOutlines(ItemRow row, int drawY) {
+        for (ExpandedGroupRun run : row.expandedGroupRuns()) {
+            int left = gridLeftX() + run.startCol() * CELL_SIZE;
+            int right = gridLeftX() + run.endCol() * CELL_SIZE;
+            PendingGroupOutline outline;
+            if (pendingGroupOutlineCount < pendingGroupOutlines.size()) {
+                outline = pendingGroupOutlines.get(pendingGroupOutlineCount);
+            } else {
+                outline = new PendingGroupOutline();
+                pendingGroupOutlines.add(outline);
+            }
+            pendingGroupOutlineCount++;
+            outline.set(left, drawY, right, drawY + CELL_SIZE, run.firstSlice(), run.lastSlice());
+        }
+    }
+
     private void queueItemIcon(SearchNode entry, ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
         if (TEXTURE_ITEM_ICON_CACHE_ENABLED
                 || hovered
@@ -480,6 +500,7 @@ public class ItemGridView {
         pendingRendererIconCount = 0;
         pendingIconOverlayCount = 0;
         pendingQuestMarkerCount = 0;
+        pendingGroupOutlineCount = 0;
     }
 
     private void queueDirectItemIcon(SearchNode entry, ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
@@ -585,6 +606,22 @@ public class ItemGridView {
             for (int i = 0; i < pendingIconOverlayCount; i++) {
                 PendingIconOverlay overlay = pendingIconOverlays.get(i);
                 AccessLevelOverlayRenderer.renderIconOverlay(g, overlay.entry, overlay.x, overlay.y, 16);
+            }
+        }
+    }
+
+    private void renderPendingGroupOutlines(GuiGraphics g) {
+        try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("grid.groupOutlines")) {
+            AmiRenderProfiler.add("grid.groupOutlines", pendingGroupOutlineCount);
+            for (int i = 0; i < pendingGroupOutlineCount; i++) {
+                PendingGroupOutline outline = pendingGroupOutlines.get(i);
+                int color = AMITheme.GRID_GOLD_BORDER;
+                g.fill(outline.left, outline.top, outline.right, outline.top + 1,
+                        outline.firstSlice ? color : AMITheme.GRID_GROUP_RAIL);
+                g.fill(outline.left, outline.bottom - 1, outline.right, outline.bottom,
+                        outline.lastSlice ? color : AMITheme.GRID_GROUP_RAIL);
+                g.fill(outline.left, outline.top, outline.left + 1, outline.bottom, color);
+                g.fill(outline.right - 1, outline.top, outline.right, outline.bottom, color);
             }
         }
     }
@@ -720,7 +757,7 @@ public class ItemGridView {
     private List<VirtualRow> buildVirtualRows(int cols) {
         List<VirtualRow> rows = new ArrayList<>();
 
-        List<TreeNode> linearItems = new ArrayList<>();
+        List<GridItem> linearItems = new ArrayList<>();
         BandSequence bands = new BandSequence();
         for (TreeNode root : rootNodes) {
             processNode(root, 0, cols, rows, linearItems, bands, false);
@@ -734,16 +771,17 @@ public class ItemGridView {
     // Virtual row construction
     // =========================================================
 
-    private void processNode(TreeNode node, int depth, int cols, List<VirtualRow> out, List<TreeNode> linearItems,
-                             BandSequence bands, boolean alternateBand) {
+    private void processNode(TreeNode node, int depth, int cols, List<VirtualRow> out, List<GridItem> linearItems,
+                              BandSequence bands, boolean alternateBand) {
         if (node.isLeaf()) {
-            linearItems.add(node);
+            linearItems.add(new GridItem(node, null));
         } else if (node.isHighCardinality()) {
-            linearItems.add(node);
+            TreeNode expandedGroup = node.isExpanded() ? node : null;
+            linearItems.add(new GridItem(node, expandedGroup));
             if (node.isExpanded()) {
                 for (TreeNode child : node.getChildren()) {
                     if (child.isLeaf() || child.isHighCardinality()) {
-                        linearItems.add(child);
+                        linearItems.add(new GridItem(child, node));
                     } else {
                         packIntoRows(linearItems, cols, out, depth, alternateBand);
                         linearItems.clear();
@@ -892,10 +930,32 @@ public class ItemGridView {
         return sum;
     }
 
-    private void packIntoRows(List<TreeNode> items, int cols, List<VirtualRow> out, int depth, boolean alternateBand) {
+    private void packIntoRows(List<GridItem> items, int cols, List<VirtualRow> out, int depth, boolean alternateBand) {
         for (int i = 0; i < items.size(); i += cols) {
-            out.add(new ItemRow(new ArrayList<>(items.subList(i, Math.min(i + cols, items.size()))), depth, alternateBand));
+            int end = Math.min(i + cols, items.size());
+            List<GridItem> rowItems = new ArrayList<>(items.subList(i, end));
+            out.add(new ItemRow(rowItems.stream().map(GridItem::node).toList(), expandedGroupRuns(items, i, end), depth, alternateBand));
         }
+    }
+
+    private List<ExpandedGroupRun> expandedGroupRuns(List<GridItem> items, int rowStart, int rowEnd) {
+        List<ExpandedGroupRun> runs = new ArrayList<>();
+        TreeNode activeGroup = null;
+        int start = -1;
+        for (int i = rowStart; i <= rowEnd; i++) {
+            TreeNode group = i < rowEnd ? items.get(i).expandedGroup() : null;
+            if (group == activeGroup) {
+                continue;
+            }
+            if (activeGroup != null) {
+                boolean firstSlice = start == 0 || items.get(start - 1).expandedGroup() != activeGroup;
+                boolean lastSlice = i == items.size() || items.get(i).expandedGroup() != activeGroup;
+                runs.add(new ExpandedGroupRun(activeGroup, start - rowStart, i - rowStart, firstSlice, lastSlice));
+            }
+            activeGroup = group;
+            start = i;
+        }
+        return runs;
     }
 
     private int calcTotalHeight(List<VirtualRow> rows) {
@@ -1165,10 +1225,17 @@ public class ItemGridView {
         }
     }
 
-    private record ItemRow(List<TreeNode> items, int depth, boolean alternateBand) implements VirtualRow {
+    private record ItemRow(List<TreeNode> items, List<ExpandedGroupRun> expandedGroupRuns, int depth,
+                           boolean alternateBand) implements VirtualRow {
         public int height() {
             return CELL_SIZE;
         }
+    }
+
+    private record GridItem(TreeNode node, TreeNode expandedGroup) {
+    }
+
+    private record ExpandedGroupRun(TreeNode group, int startCol, int endCol, boolean firstSlice, boolean lastSlice) {
     }
 
     private record StickyContext(String label) {
@@ -1227,6 +1294,24 @@ public class ItemGridView {
             this.entry = entry;
             this.cellX = cellX;
             this.cellY = cellY;
+        }
+    }
+
+    private static final class PendingGroupOutline {
+        private int left;
+        private int top;
+        private int right;
+        private int bottom;
+        private boolean firstSlice;
+        private boolean lastSlice;
+
+        private void set(int left, int top, int right, int bottom, boolean firstSlice, boolean lastSlice) {
+            this.left = left;
+            this.top = top;
+            this.right = right;
+            this.bottom = bottom;
+            this.firstSlice = firstSlice;
+            this.lastSlice = lastSlice;
         }
     }
 

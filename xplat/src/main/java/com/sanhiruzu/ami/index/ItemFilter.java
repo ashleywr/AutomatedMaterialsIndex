@@ -164,6 +164,12 @@ public final class ItemFilter {
         // Explicitly hidden/technical items are always dev-only
         if (path.contains("debug") || path.contains("test_") || path.contains("fireball")) return ACCESS_DEV;
 
+        // Items whose path signals removal or deprecation should be cheat-only
+        if (path.contains("removed") || path.contains("deprecated")) return ACCESS_CHEAT;
+
+        // Unimplemented/deprecated mod namespaces
+        if ("unimplemented_items".equals(id.getNamespace())) return ACCESS_CHEAT;
+
         // Special restricted items
         if (isCreativeOnlyPath(path)) return ACCESS_CREATIVE;
         if (isSpawnEgg(id, item) || path.contains("spawner")) return ACCESS_CREATIVE;
@@ -191,6 +197,17 @@ public final class ItemFilter {
         return path.endsWith("_spawn_egg")
                 || path.startsWith("spawn_egg_")
                 || path.equals("spawn_egg");
+    }
+
+    /**
+     * Returns true when the item carries a standard tag signalling it should be hidden
+     * from recipe viewers and item indexes, such as {@code c:hidden_from_recipe_viewers}.
+     * Both Fabric and NeoForge/Forge mods use this convention.
+     */
+    public static boolean isHiddenByRecipeViewerConvention(String tags) {
+        if (tags == null || tags.isBlank()) return false;
+        return tags.contains("c:hidden_from_recipe_viewers")
+                || tags.contains("c:hidden");
     }
 
     public static boolean shouldShowAccessLevel(String accessLevel) {

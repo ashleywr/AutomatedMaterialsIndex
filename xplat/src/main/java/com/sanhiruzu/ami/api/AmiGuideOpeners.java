@@ -142,6 +142,55 @@ public final class AmiGuideOpeners {
         return openSilentGearMaterialBook(materialId);
     }
 
+    // ── Malum ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Opens the Malum codex to a specific entry by identifier.
+     * <p>
+     * Tries to locate the {@code BookEntry} via the progression screen's entry list
+     * and calls {@code CodexEntryScreen.openScreen(entry)}. Falls back to opening
+     * the codex overview if the entry cannot be resolved.
+     *
+     * @param identifier the entry identifier (e.g. {@code "spirit_collection"})
+     */
+    public static Runnable malumCodexEntry(String identifier) {
+        return () -> openMalumCodexEntry(identifier);
+    }
+
+    // ── Critters n' Crawlers ─────────────────────────────────────────────────
+
+    /**
+     * Opens the Critters n' Crawlers Field Guide to a specific creature entry.
+     * <p>
+     * In singleplayer the creature screen is opened by running the mod's
+     * {@code FieldGuide{Creature}OpenProcedure} on the integrated server thread
+     * (required because CnC uses Minecraft's container menu system).
+     * In multiplayer the guide opens to its cover screen as a fallback.
+     *
+     * @param creatureClassSuffix PascalCase creature suffix (e.g. {@code "BlackBear"})
+     */
+    public static Runnable cncFieldGuideCreature(String creatureClassSuffix) {
+        return () -> openCncCreatureScreen(creatureClassSuffix);
+    }
+
+    // ── Hexerei ───────────────────────────────────────────────────────────────
+
+    /**
+     * Opens a Hexerei guide book screen.
+     * <p>
+     * {@code bookId} selects the book (e.g. {@code hexerei:book_of_shadows}).
+     * {@code pageId} is the page_location string from the book's chapter listing
+     * (e.g. {@code hexerei:book_of_shadows/book_pages/entities/entities_crow_page_1}).
+     * Precise page navigation is attempted via reflection; if the constructor does
+     * not accept a page argument the book opens at its default page.
+     *
+     * @param bookId the Hexerei book item id
+     * @param pageId the page_location string, or {@code null} to open the cover
+     */
+    public static Runnable hexereiBook(ResourceLocation bookId, String pageId) {
+        return () -> openHexereiBook(bookId, pageId);
+    }
+
     // ── Resource-backed custom books ─────────────────────────────────────────
 
     /**
@@ -800,6 +849,136 @@ public final class AmiGuideOpeners {
         }
     }
 
+    private static void openMalumCodexEntry(String identifier) {
+        try {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player == null) {
+                return;
+            }
+            // Prefer opening the specific entry via CodexEntryScreen.openScreen(BookEntry).
+            java.util.Optional<Object> entry = com.sanhiruzu.ami.compat.MalumCodexGuideSource.findCodexEntry(identifier);
+            if (entry.isPresent()) {
+                Class<?> entryScreenClass = Class.forName(
+                        "com.sammy.malum.client.screen.codex.screens.CodexEntryScreen");
+                Class<?> bookEntryClass = Class.forName(
+                        "com.sammy.malum.client.screen.codex.BookEntry");
+                Method openScreen = entryScreenClass.getMethod("openScreen", bookEntryClass);
+                openScreen.invoke(null, entry.get());
+                return;
+            }
+            // Fall back to the Arcana codex overview.
+            Class<?> arcanaClass = Class.forName(
+                    "com.sammy.malum.client.screen.codex.screens.progression.ArcanaProgressionScreen");
+            Object holder = arcanaClass.getField("SCREEN").get(null);
+            Class<?> holderClass = holder.getClass();
+            holderClass.getMethod("openCodexViaItem", boolean.class).invoke(holder, false);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Malum codex entry open failed for " + identifier, e);
+        }
+    }
+
+    private static void openCncCreatureScreen(String creatureClassSuffix) {
+        try {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player == null) {
+                return;
+            }
+            // Try singleplayer integrated server first — CnC uses AbstractContainerScreen
+            // which requires server-side openMenu() to synchronize the menu.
+            Object server = cncSingleplayerServer(mc);
+            if (server != null) {
+                String playerName = mc.player.getName().getString();
+                double x = mc.player.getX();
+                double y = mc.player.getY();
+                double z = mc.player.getZ();
+                String procedureName = com.sanhiruzu.ami.compat.CrittersCrawlersGuideSource
+                        .procedureClassName(creatureClassSuffix);
+                if (procedureName == null) {
+                    // Unknown creature; open the cover screen instead.
+                    procedureName = "net.imasillylittleguy.cnc.procedures.FieldGuideOpenProcedure";
+                }
+                final String resolvedProcedure = procedureName;
+                final Object finalServer = server;
+                Runnable task = () -> {
+                    try {
+                        Object playerList = finalServer.getClass().getMethod("getPlayerList").invoke(finalServer);
+                        Object sp = playerList.getClass().getMethod("getPlayerByName", String.class).invoke(playerList, playerName);
+                        if (sp == null) {
+                            return;
+                        }
+                        Class<?> levelAccessorClass = Class.forName("net.minecraft.world.level.LevelAccessor");
+                        Class<?> entityClass = Class.forName("net.minecraft.world.entity.Entity");
+                        Class<?> procClass = Class.forName(resolvedProcedure);
+                        java.lang.reflect.Method execute = procClass.getMethod("execute",
+                                levelAccessorClass,
+                                double.class, double.class, double.class,
+                                entityClass);
+                        Object level = entityClass.getMethod("level").invoke(sp);
+                        execute.invoke(null, level, x, y, z, sp);
+                    } catch (ReflectiveOperationException | RuntimeException | LinkageError ex) {
+                        LOGGER.log(Level.FINE, "AMI: CnC field guide open failed for "
+                                + creatureClassSuffix, ex);
+                    }
+                };
+                try {
+                    server.getClass().getMethod("execute", Runnable.class).invoke(server, task);
+                } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+                    LOGGER.log(Level.FINE, "AMI: CnC server execute failed for " + creatureClassSuffix, e);
+                }
+                return;
+            }
+            // Multiplayer: fall back to the cover screen via its open procedure.
+            // (Multiplayer cannot access the server player directly.)
+            LOGGER.log(Level.FINE, "AMI: CnC field guide requires singleplayer to open "
+                    + creatureClassSuffix + "; no action in multiplayer");
+        } catch (RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: CnC field guide unavailable for " + creatureClassSuffix, e);
+        }
+    }
+
+    private static Object cncSingleplayerServer(Minecraft mc) {
+        try {
+            return Minecraft.class.getMethod("getSingleplayerServer").invoke(mc);
+        } catch (ReflectiveOperationException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: getSingleplayerServer unavailable", e);
+            return null;
+        }
+    }
+
+    private static void openHexereiBook(ResourceLocation bookId, String pageId) {
+        try {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player == null) {
+                return;
+            }
+            // All hexerei books share BookOfShadowsScreen as the unified reader.
+            Class<?> screenClass = Class.forName("net.joefoxe.hexerei.screen.BookOfShadowsScreen");
+            Object screen = null;
+            if (pageId != null && !pageId.isBlank()) {
+                ResourceLocation pageLocation = ResourceLocation.tryParse(pageId);
+                if (pageLocation != null) {
+                    try {
+                        screen = screenClass.getConstructor(ResourceLocation.class).newInstance(pageLocation);
+                    } catch (ReflectiveOperationException ignored) {
+                    }
+                }
+                if (screen == null) {
+                    try {
+                        screen = screenClass.getConstructor(String.class).newInstance(pageId);
+                    } catch (ReflectiveOperationException ignored) {
+                    }
+                }
+            }
+            if (screen == null) {
+                screen = screenClass.getConstructor().newInstance();
+            }
+            final Object finalScreen = screen;
+            mc.execute(() -> mc.setScreen((net.minecraft.client.gui.screens.Screen) finalScreen));
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOGGER.log(Level.FINE, "AMI: Hexerei book unavailable for guide open: " + bookId + " / " + pageId, e);
+        }
+    }
+
     private static void openAlexsMobsAnimalDictionary(String pageJson) {
         try {
             Minecraft mc = Minecraft.getInstance();
@@ -821,16 +1000,21 @@ public final class AmiGuideOpeners {
         try {
             Minecraft mc = Minecraft.getInstance();
             Class<?> screenClass = Class.forName("com.github.alexmodguy.alexscaves.client.gui.book.CaveBookScreen");
-            Object screen = screenClass.getConstructor().newInstance();
+            Object screen;
             if (pageJson != null) {
+                // CaveBookScreen(String) sets the initial page before init() is called.
+                // Data files live under "books/" which alexPagePath strips, so prepend it back.
+                String path = "books/" + pageJson.getPath();
                 try {
-                    screenClass.getMethod("attemptChangePage", ResourceLocation.class, boolean.class)
-                            .invoke(screen, pageJson, false);
-                } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
-                    LOGGER.log(Level.FINE, "AMI: Alex's Caves exact page selection failed for " + pageJson, ignored);
+                    screen = screenClass.getConstructor(String.class).newInstance(path);
+                } catch (ReflectiveOperationException ignored) {
+                    screen = screenClass.getConstructor().newInstance();
                 }
+            } else {
+                screen = screenClass.getConstructor().newInstance();
             }
-            mc.execute(() -> mc.setScreen((net.minecraft.client.gui.screens.Screen) screen));
+            final Object finalScreen = screen;
+            mc.execute(() -> mc.setScreen((net.minecraft.client.gui.screens.Screen) finalScreen));
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
             LOGGER.log(Level.FINE, "AMI: Alex's Caves book unavailable for guide open: " + pageJson, e);
         }

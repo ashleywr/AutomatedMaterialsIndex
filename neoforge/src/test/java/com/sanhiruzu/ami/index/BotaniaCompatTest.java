@@ -82,6 +82,55 @@ class BotaniaCompatTest {
         }
     }
 
+    @Test
+    void botaniaBrewsAndIncenseUseBrewsSubcategory() {
+        Map<String, String> brew = meta("botania", "vazkii.botania.common.item.brew.BaseBrewItem");
+        Map<String, String> vial = meta("botania", "vazkii.botania.common.item.brew.VialItem");
+        Map<String, String> incense = meta("botania", "vazkii.botania.common.item.brew.IncenseStickItem");
+        Map<String, String> flask = meta("botania", "net.minecraft.world.item.Item");
+
+        CompatFamilyDetector.detect(new ResourceLocation("botania", "brew_vial"), brew);
+        CompatFamilyDetector.detect(new ResourceLocation("botania", "vial"), vial);
+        CompatFamilyDetector.detect(new ResourceLocation("botania", "incense_stick"), incense);
+        CompatFamilyDetector.detect(new ResourceLocation("botania", "flask"), flask);
+
+        assertEquals("botania", brew.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
+        assertEquals("brews", resolve("botania:brew_vial", brew, ItemFacet.FOOD_DRINK).subcategoryId());
+        assertEquals("brews", resolve("botania:vial", vial).subcategoryId());
+        assertEquals("brews", resolve("botania:incense_stick", incense).subcategoryId());
+        assertEquals("brews", resolve("botania:flask", flask).subcategoryId());
+    }
+
+    @Test
+    void botaniaDecorativeBlocksUseDecorationSubcategory() {
+        Map<String, String> shimmering = meta("botania", "net.minecraft.world.item.BlockItem");
+        Map<String, String> brick = meta("botania", "net.minecraft.world.item.BlockItem");
+        Map<String, String> glimmering = meta("botania", "net.minecraft.world.item.BlockItem");
+
+        CompatFamilyDetector.detect(new ResourceLocation("botania", "shimmerrock"), shimmering);
+        CompatFamilyDetector.detect(new ResourceLocation("botania", "livingrock_brick"), brick);
+        CompatFamilyDetector.detect(new ResourceLocation("botania", "glimmering_white_flower"), glimmering);
+
+        assertEquals("decoration", resolve("botania:shimmerrock", shimmering, ItemFacet.PLACEABLE, ItemFacet.STONE_BLOCK).subcategoryId());
+        assertEquals("decoration", resolve("botania:livingrock_brick", brick, ItemFacet.PLACEABLE, ItemFacet.DECORATIVE_BLOCK).subcategoryId());
+        assertEquals("decoration", resolve("botania:glimmering_white_flower", glimmering, ItemFacet.PLACEABLE, ItemFacet.FLOWER, ItemFacet.LIGHT_SOURCE).subcategoryId());
+    }
+
+    @Test
+    void botaniaSeedsShardsAndPatternsUseMaterials() {
+        Map<String, String> seeds = meta("botania", "vazkii.botania.common.item.GrassSeedsItem");
+        Map<String, String> shard = meta("botania", "vazkii.botania.common.item.LaputaShardItem");
+        Map<String, String> pattern = meta("botania", "vazkii.botania.common.item.CraftingPatternItem");
+
+        CompatFamilyDetector.detect(new ResourceLocation("botania", "grass_seeds"), seeds);
+        CompatFamilyDetector.detect(new ResourceLocation("botania", "laputa_shard"), shard);
+        CompatFamilyDetector.detect(new ResourceLocation("botania", "pattern_1_1"), pattern);
+
+        assertEquals("materials", resolve("botania:grass_seeds", seeds).subcategoryId());
+        assertEquals("materials", resolve("botania:laputa_shard", shard).subcategoryId());
+        assertEquals("materials", resolve("botania:pattern_1_1", pattern, ItemFacet.TEMPLATE).subcategoryId());
+    }
+
     private static Map<String, String> meta(String modId, String itemClass) {
         Map<String, String> meta = new HashMap<>();
         meta.put(SearchNodeKeys.MOD_ID, modId);

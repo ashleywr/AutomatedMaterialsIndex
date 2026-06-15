@@ -1280,6 +1280,156 @@ public class ResultsProcessorTest {
     }
 
     @Test
+    void categoryGroupingCondensesSlabsWithSharedMaterialRoots() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.REGISTRY,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        List<TreeNode> root = processor.process(List.of(
+                item("sandstone_slab", "Sandstone Slab", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "slab",
+                        SearchNodeKeys.SUBTYPE_OF, "minecraft:sandstone"
+                )),
+                item("cut_sandstone_slab", "Cut Sandstone Slab", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "slab",
+                        SearchNodeKeys.SUBTYPE_OF, "minecraft:sandstone"
+                )),
+                item("red_sandstone_slab", "Red Sandstone Slab", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "slab",
+                        SearchNodeKeys.SUBTYPE_OF, "minecraft:red_sandstone"
+                )),
+                item("cut_red_sandstone_slab", "Cut Red Sandstone Slab", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "slab",
+                        SearchNodeKeys.SUBTYPE_OF, "minecraft:red_sandstone"
+                )),
+                item("stone_slab", "Stone Slab", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "slab",
+                        SearchNodeKeys.SUBTYPE_OF, "minecraft:stone"
+                ))
+        ));
+
+        assertEquals("""
+                Building [expanded]
+                  Slab [expanded]
+                    Red Sandstone Slabs [expanded] [cardinality]
+                      Cut Red Sandstone Slab
+                      Red Sandstone Slab
+                    Sandstone Slabs [expanded] [cardinality]
+                      Cut Sandstone Slab
+                      Sandstone Slab
+                    Stone Slab
+                """, ResultsTreeDump.dump(root));
+    }
+
+    @Test
+    void categoryGroupingCondensesStairsAndWallsWithSharedMaterialRoots() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.REGISTRY,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        List<TreeNode> root = processor.process(List.of(
+                item("sandstone_stairs", "Sandstone Stairs", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "stairs",
+                        SearchNodeKeys.MATERIAL_GROUP, "minecraft:sandstone"
+                )),
+                item("smooth_sandstone_stairs", "Smooth Sandstone Stairs", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "stairs",
+                        SearchNodeKeys.MATERIAL_GROUP, "minecraft:sandstone"
+                )),
+                item("short_red_brick_wall", "Short Red Brick Wall", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "wall",
+                        SearchNodeKeys.SUBTYPE_OF, "createdeco:red_brick"
+                )),
+                item("tall_red_brick_wall", "Tall Red Brick Wall", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "wall",
+                        SearchNodeKeys.SUBTYPE_OF, "createdeco:red_brick"
+                ))
+        ));
+
+        assertEquals("""
+                Building [expanded]
+                  Stairs [expanded]
+                    Sandstone Stairs [expanded] [cardinality]
+                      Sandstone Stairs
+                      Smooth Sandstone Stairs
+                  Wall [expanded]
+                    Red Brick Walls [expanded] [cardinality]
+                      Short Red Brick Wall
+                      Tall Red Brick Wall
+                """, ResultsTreeDump.dump(root));
+    }
+
+    @Test
+    void categoryGroupingSplitsMixedFullBlocksByGlassAndSpecialBehavior() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.REGISTRY,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        Map<String, String> fullBlockBase = Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "full_block",
+                "blockShape", "full_block"
+        );
+        SearchNode stone = item("polished_stone", "Polished Stone", fullBlockBase);
+        SearchNode glass = item("clear_glass", "Clear Glass", Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "full_block",
+                SearchNodeKeys.FACETS, "placeable,glass_block",
+                SearchNodeKeys.BLOCKS_MATERIAL, "glass",
+                "blockShape", "full_block"
+        ));
+        SearchNode idol = node(NodeType.ITEM, "pastel", "ender_dragon_idol", "Mighty Idol", Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "full_block",
+                SearchNodeKeys.FACETS, "placeable",
+                SearchNodeKeys.BLOCK_STATE_PROPERTIES, "cooldown",
+                "blockShape", "full_block"
+        ));
+        SearchNode bomb = node(NodeType.ITEM, "alexscaves", "nuclear_bomb", "Nuclear Bomb", Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "full_block",
+                SearchNodeKeys.FACETS, "placeable",
+                SearchNodeKeys.BLOCK_TAGS, "alexscaves:remote_detonator_activates",
+                "blockShape", "full_block"
+        ));
+
+        List<TreeNode> root = processor.process(List.of(stone, glass, idol, bomb));
+
+        assertEquals("""
+                Building [expanded]
+                  Full Block [expanded]
+                    Glass [expanded]
+                      Clear Glass
+                    Special Blocks [expanded]
+                      Mighty Idol
+                      Nuclear Bomb
+                    Plain Blocks [expanded]
+                      Polished Stone
+                """, ResultsTreeDump.dump(root));
+    }
+
+    @Test
     void categoryGroupingCondensesRechiseledMaterialFamilies() {
         ResultsProcessor processor = new ResultsProcessor(
                 ResultsProcessor.SortField.REGISTRY,
@@ -1306,6 +1456,131 @@ public class ResultsProcessorTest {
 
         assertTrue(hasKeyStartingWith(root, "cardinality:family:rechiseled:acacia_planks"),
                 ResultsTreeDump.dump(root));
+    }
+
+    @Test
+    void categoryGroupingCollapsesTwoDefaultCollapsedCreativeStackVariants() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.REGISTRY,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        Map<String, String> meta = Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "pastel",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "equipment",
+                SearchNodeKeys.COLLAPSE_FAMILY, "pastel:heartsingers_reward",
+                SearchNodeKeys.COLLAPSE_LABEL, "Heartsingers Reward",
+                SearchNodeKeys.SUBTYPE_OF, "pastel:heartsingers_reward",
+                SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed"
+        );
+
+        List<TreeNode> root = processor.process(List.of(
+                node(NodeType.ITEM, "pastel", "heartsingers_reward/variant/heartsinger_s_reward_65823d7a6d05", "Heartsinger's Reward", meta),
+                node(NodeType.ITEM, "pastel", "heartsingers_reward/variant/heartsinger_s_reward_d0db18426600", "Heartsinger's Reward", meta)
+        ));
+
+        assertEquals("""
+                Pastel [expanded]
+                  Equipment [expanded]
+                    Heartsingers Reward [expanded] [cardinality]
+                      Heartsinger's Reward
+                      Heartsinger's Reward
+                """, ResultsTreeDump.dump(root));
+    }
+
+    @Test
+    void flatCardGroupingCollapsesTwoDefaultCollapsedCreativeStackVariants() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.REGISTRY,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        Map<String, String> meta = Map.of(
+                SearchNodeKeys.COLLAPSE_FAMILY, "pastel:heartsingers_reward",
+                SearchNodeKeys.COLLAPSE_LABEL, "Heartsingers Reward",
+                SearchNodeKeys.SUBTYPE_OF, "pastel:heartsingers_reward",
+                SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed"
+        );
+
+        List<TreeNode> root = processor.processFlatWithCardGrouping(List.of(
+                node(NodeType.ITEM, "pastel", "heartsingers_reward/variant/heartsinger_s_reward_65823d7a6d05", "Heartsinger's Reward", meta),
+                node(NodeType.ITEM, "pastel", "heartsingers_reward/variant/heartsinger_s_reward_d0db18426600", "Heartsinger's Reward", meta)
+        ));
+
+        assertEquals("""
+                Heartsingers Reward [expanded] [cardinality]
+                  Heartsinger's Reward
+                  Heartsinger's Reward
+                """, ResultsTreeDump.dump(root));
+    }
+
+    @Test
+    void categoryGroupingCollapsesSilentGemsGemNamedBlockVariantsByShape() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.REGISTRY,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        Map<String, String> meta = Map.of(
+                SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry",
+                SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "full_block",
+                SearchNodeKeys.COLLAPSE_FAMILY, "silentgems:smooth_stone",
+                SearchNodeKeys.COLLAPSE_LABEL, "Smooth Gem Stones",
+                SearchNodeKeys.MATERIAL_GROUP, "silentgems:smooth_stone",
+                SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed"
+        );
+
+        List<TreeNode> root = processor.process(List.of(
+                node(NodeType.ITEM, "silentgems", "smooth_rose_quartz", "Smooth Rose Quartz Stone", meta),
+                node(NodeType.ITEM, "silentgems", "smooth_ammolite", "Smooth Ammolite Stone", meta)
+        ));
+
+        assertEquals("""
+                Building [expanded]
+                  Full Block [expanded]
+                    Smooth Gem Stones [expanded] [cardinality]
+                      Smooth Ammolite Stone
+                      Smooth Rose Quartz Stone
+                """, ResultsTreeDump.dump(root));
+    }
+
+    @Test
+    void categoryGroupingUsesHalcyonHeaderForDatanessenceCompatRoute() {
+        ResultsProcessor processor = new ResultsProcessor(
+                ResultsProcessor.SortField.REGISTRY,
+                true,
+                ResultsProcessor.GroupBy.CATEGORY,
+                Set.of(),
+                Set.of()
+        );
+
+        List<TreeNode> root = processor.process(List.of(
+                node(NodeType.ITEM, "datanessence", "item_filter", "Item Filter", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "halcyon",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "machines"
+                )),
+                node(NodeType.ITEM, "datanessence", "tag_filter", "Tag Filter Label", Map.of(
+                        SearchNodeKeys.ONTOLOGY_CATEGORY, "halcyon",
+                        SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "parts"
+                ))
+        ));
+
+        assertEquals("""
+                Halcyon [expanded]
+                  Machines [expanded]
+                    Item Filter
+                  Parts [expanded]
+                    Tag Filter Label
+                """, ResultsTreeDump.dump(root));
     }
 
     @Test
