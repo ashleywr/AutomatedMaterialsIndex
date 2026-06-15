@@ -252,6 +252,21 @@ public interface IPlatformHelper {
     }
 
     /**
+     * Opens an external recipe-viewer view (recipes or uses) for {@code stack} using a viewer that
+     * only exists on one loader. Currently this is REI, which ships <b>only</b> on Fabric; referencing
+     * {@code me.shedaniel.rei.*} from xplat (or neoforge/forge) would break those builds since REI is
+     * not on their classpath. The Fabric helper overrides this to route to {@code ReiRecipeBridge} when
+     * {@code roughlyenoughitems} is loaded; neoforge/forge inherit this no-op default.
+     *
+     * @param stack the stack to look up
+     * @param uses  {@code true} to show usages (what consumes it), {@code false} to show recipes
+     * @return {@code true} if an external view was opened
+     */
+    default boolean openExternalRecipeView(ItemStack stack, boolean uses) {
+        return false;
+    }
+
+    /**
      * Renders a tooltip with an associated ItemStack for decoration/positioning purposes.
      * Delegates to the 6-arg {@code GuiGraphics.renderTooltip(Font, List, Optional, ItemStack, int, int)}
      * overload added by Forge/NeoForge.

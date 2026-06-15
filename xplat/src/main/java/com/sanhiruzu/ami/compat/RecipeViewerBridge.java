@@ -35,7 +35,18 @@ public class RecipeViewerBridge {
     }
 
     public static boolean isAvailable() {
-        return isEmiSelectedExternalViewer() || isJeiSelectedExternalViewer();
+        return isEmiSelectedExternalViewer() || isJeiSelectedExternalViewer() || isReiSelectedExternalViewer();
+    }
+
+    /**
+     * REI (Fabric-only) is treated as a present external viewer when neither EMI nor JEI is selected.
+     * The actual open is routed through the {@code openExternalRecipeView} platform seam so xplat never
+     * references {@code me.shedaniel.rei.*}.
+     */
+    public static boolean isReiSelectedExternalViewer() {
+        return !isEmiSelectedExternalViewer()
+                && !isJeiSelectedExternalViewer()
+                && Services.PLATFORM.isModLoaded("roughlyenoughitems");
     }
 
     public static boolean shouldUseNativeViewer() {
@@ -155,6 +166,9 @@ public class RecipeViewerBridge {
             EmiRecipeBridge.openRecipes(stack);
         } else if (isJeiSelectedExternalViewer()) {
             JeiRecipeBridge.openRecipes(stack);
+        } else {
+            // Loader-specific external viewers (REI on Fabric) route through the platform seam.
+            Services.PLATFORM.openExternalRecipeView(stack, false);
         }
         RecipeViewerBridgeCommon.recordLookup(stack);
     }
@@ -187,6 +201,9 @@ public class RecipeViewerBridge {
             EmiRecipeBridge.openUses(stack);
         } else if (isJeiSelectedExternalViewer()) {
             JeiRecipeBridge.openUses(stack);
+        } else {
+            // Loader-specific external viewers (REI on Fabric) route through the platform seam.
+            Services.PLATFORM.openExternalRecipeView(stack, true);
         }
         RecipeViewerBridgeCommon.recordLookup(stack);
     }
