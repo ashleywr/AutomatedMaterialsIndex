@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.sanhiruzu.ami.fabric.client.FabricAmiKeyMappings;
 import com.sanhiruzu.ami.platform.IAmiKeyMappings;
 import com.sanhiruzu.ami.platform.IPlatformHelper;
+import com.sanhiruzu.ami.recipe.AmiRecipeIndex;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.KeyMapping;
@@ -180,42 +181,37 @@ public class FabricPlatformHelper implements IPlatformHelper {
     }
 
     // -------------------------------------------------------------------------
-    // Recipe index — stubbed until Milestone E
+    // Recipe index
     // -------------------------------------------------------------------------
 
     @Override
     public boolean isRecipeIndexBuilt() {
-        // TODO(Milestone E): wire up Fabric recipe index
-        return false;
+        return AmiRecipeIndex.getInstance().isBuilt();
     }
 
     @Override
     public List<AmiRecipeHolder<?>> getRecipesFor(ItemStack target) {
-        // TODO(Milestone E): wire up Fabric recipe index
-        return List.of();
+        return AmiRecipeIndex.getInstance().getRecipesFor(target);
     }
 
     @Override
     public boolean hasRecipesFor(ItemStack target) {
-        // TODO(Milestone E): wire up Fabric recipe index
-        return false;
+        return AmiRecipeIndex.getInstance().hasRecipesFor(target);
     }
 
     @Override
     public List<AmiRecipeHolder<?>> getUsesFor(ItemStack target) {
-        // TODO(Milestone E): wire up Fabric recipe index
-        return List.of();
+        return AmiRecipeIndex.getInstance().getUsesFor(target);
     }
 
     @Override
     public boolean hasUsesFor(ItemStack target) {
-        // TODO(Milestone E): wire up Fabric recipe index
-        return false;
+        return AmiRecipeIndex.getInstance().hasUsesFor(target);
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public List<AmiRecipeHolder<?>> getAllRecipesOfType(RecipeType<?> type) {
-        // TODO(Milestone E): wire up Fabric recipe index
-        return List.of();
+        return (List<AmiRecipeHolder<?>>) (List<?>) AmiRecipeIndex.getInstance().getAllRecipesOfType((RecipeType) type);
     }
 }
