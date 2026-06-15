@@ -8,7 +8,8 @@
   "accessWidener": "ami.accesswidener",
   "entrypoints": {
     "main": ["com.sanhiruzu.ami.fabric.AmiFabric"],
-    "client": ["com.sanhiruzu.ami.fabric.AmiFabricClient"]
+    "client": ["com.sanhiruzu.ami.fabric.AmiFabricClient"],
+    "jei_mod_plugin": ["com.sanhiruzu.ami.compat.AmiJeiPlugin"]
   },
   "mixins": [
     "ami.mixins.json",
