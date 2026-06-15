@@ -12,7 +12,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.EffectRenderingInventoryScreen;
 
-import java.lang.reflect.Field;
 
 /**
  * Fabric port of InventoryOverlayHandler.
@@ -45,9 +44,6 @@ public class InventoryOverlayHandler {
     private static boolean indexingRequested = false;
     private static boolean statusEffectsHoverOwned = false;
     private static boolean wasMouseOverStatusEffects = false;
-    private static Field containerLeftPosField = null;
-    private static Field containerTopPosField = null;
-    private static Field containerImageWidthField = null;
 
     /**
      * The single choke point for all visibility state changes. Updates the panel and schedules
@@ -287,55 +283,21 @@ public class InventoryOverlayHandler {
         if (mc.player == null || mc.player.getActiveEffects().isEmpty()) return false;
         if (!effectScreen.canSeeEffects()) return false;
 
-        try {
-            int leftPos = reflectedContainerInt(effectScreen, "leftPos");
-            int topPos = reflectedContainerInt(effectScreen, "topPos");
-            int imageWidth = reflectedContainerInt(effectScreen, "imageWidth");
-            int renderX = leftPos + imageWidth + 2;
-            int availableWidth = screen.width - renderX;
-            if (availableWidth < 32) return false;
+        // Direct access to the access-widened AbstractContainerScreen position fields
+        // (Mojmap-name reflection would fail on Fabric's intermediary runtime).
+        int leftPos = effectScreen.leftPos;
+        int topPos = effectScreen.topPos;
+        int imageWidth = effectScreen.imageWidth;
+        int renderX = leftPos + imageWidth + 2;
+        int availableWidth = screen.width - renderX;
+        if (availableWidth < 32) return false;
 
-            int effectCount = mc.player.getActiveEffects().size();
-            int rowStep = effectCount > 5 ? 132 / Math.max(1, effectCount - 1) : 33;
-            int stripWidth = availableWidth >= 120 ? 120 : 33;
-            int stripHeight = 32 + Math.max(0, effectCount - 1) * rowStep;
-            return mouseX >= renderX && mouseX <= renderX + stripWidth
-                    && mouseY >= topPos && mouseY <= topPos + stripHeight;
-        } catch (ReflectiveOperationException | RuntimeException e) {
-            return false;
-        }
-    }
-
-    private static int reflectedContainerInt(AbstractContainerScreen<?> screen, String name)
-            throws ReflectiveOperationException {
-        Field field = switch (name) {
-            case "leftPos" -> {
-                if (containerLeftPosField == null) {
-                    containerLeftPosField = containerField("leftPos");
-                }
-                yield containerLeftPosField;
-            }
-            case "topPos" -> {
-                if (containerTopPosField == null) {
-                    containerTopPosField = containerField("topPos");
-                }
-                yield containerTopPosField;
-            }
-            case "imageWidth" -> {
-                if (containerImageWidthField == null) {
-                    containerImageWidthField = containerField("imageWidth");
-                }
-                yield containerImageWidthField;
-            }
-            default -> throw new NoSuchFieldException(name);
-        };
-        return field.getInt(screen);
-    }
-
-    private static Field containerField(String name) throws NoSuchFieldException {
-        Field field = AbstractContainerScreen.class.getDeclaredField(name);
-        field.setAccessible(true);
-        return field;
+        int effectCount = mc.player.getActiveEffects().size();
+        int rowStep = effectCount > 5 ? 132 / Math.max(1, effectCount - 1) : 33;
+        int stripWidth = availableWidth >= 120 ? 120 : 33;
+        int stripHeight = 32 + Math.max(0, effectCount - 1) * rowStep;
+        return mouseX >= renderX && mouseX <= renderX + stripWidth
+                && mouseY >= topPos && mouseY <= topPos + stripHeight;
     }
 
     // -------------------------------------------------------------------------
