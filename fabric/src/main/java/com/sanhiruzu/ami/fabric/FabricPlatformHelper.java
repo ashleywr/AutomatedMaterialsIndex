@@ -8,6 +8,7 @@ import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.sanhiruzu.ami.fabric.client.FabricAmiKeyMappings;
+import com.sanhiruzu.ami.index.metrics.FoodStats;
 import com.sanhiruzu.ami.platform.IAmiKeyMappings;
 import com.sanhiruzu.ami.platform.IPlatformHelper;
 import com.sanhiruzu.ami.recipe.AmiRecipeIndex;
@@ -17,21 +18,65 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.client.resources.PlayerSkin;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import net.minecraft.world.item.Equipable;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.ItemContainerContents;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.Set;
 
 public class FabricPlatformHelper implements IPlatformHelper {
 
     private static final IAmiKeyMappings KEY_MAPPINGS = new FabricAmiKeyMappings();
+
+    /**
+     * Maps the {@code DataComponents} field-name string literals that AMI's xplat code passes to
+     * {@link #hasDefaultItemComponent}, {@link #hasStackComponent}, {@link #getDefaultItemComponentNames}
+     * and {@link #getStackComponentNames} to direct {@code DataComponents.*} references. Direct references
+     * are compiled against Mojmap and remapped to intermediary by Loom, so they resolve at runtime on the
+     * intermediary-named Fabric production runtime (reflection by Mojmap string literal would silently fail).
+     * The key set is the union of every literal AMI actually passes (see FacetIndexer + OntologyClassifier).
+     */
+    private static final Map<String, DataComponentType<?>> COMPONENT_TYPES_BY_FIELD_NAME = Map.ofEntries(
+            Map.entry("FOOD", DataComponents.FOOD),
+            Map.entry("CONTAINER", DataComponents.CONTAINER),
+            Map.entry("POTION_CONTENTS", DataComponents.POTION_CONTENTS),
+            Map.entry("STORED_ENCHANTMENTS", DataComponents.STORED_ENCHANTMENTS),
+            Map.entry("TOOL", DataComponents.TOOL),
+            Map.entry("MAX_DAMAGE", DataComponents.MAX_DAMAGE),
+            Map.entry("DAMAGE", DataComponents.DAMAGE),
+            Map.entry("BUNDLE_CONTENTS", DataComponents.BUNDLE_CONTENTS),
+            Map.entry("CUSTOM_DATA", DataComponents.CUSTOM_DATA),
+            Map.entry("ENTITY_DATA", DataComponents.ENTITY_DATA),
+            Map.entry("BUCKET_ENTITY_DATA", DataComponents.BUCKET_ENTITY_DATA),
+            Map.entry("BLOCK_ENTITY_DATA", DataComponents.BLOCK_ENTITY_DATA)
+    );
 
     // -------------------------------------------------------------------------
     // Platform identity
@@ -245,5 +290,165 @@ public class FabricPlatformHelper implements IPlatformHelper {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public List<AmiRecipeHolder<?>> getAllRecipesOfType(RecipeType<?> type) {
         return (List<AmiRecipeHolder<?>>) (List<?>) AmiRecipeIndex.getInstance().getAllRecipesOfType((RecipeType) type);
+    }
+
+    // -------------------------------------------------------------------------
+    // Item metadata extraction (direct 1.21.1 API calls; the xplat defaults use
+    // reflection-by-Mojmap-name which silently fails on Fabric's intermediary
+    // runtime, so each of these is overridden with a remappable direct call).
+    // -------------------------------------------------------------------------
+
+    @Override
+    public List<Component> getTooltipLines(ItemStack stack, Level level) {
+        if (stack == null || stack.isEmpty()) {
+            return List.of();
+        }
+        Item.TooltipContext context = level == null ? Item.TooltipContext.EMPTY : Item.TooltipContext.of(level);
+        return stack.getTooltipLines(context, null, TooltipFlag.Default.NORMAL);
+    }
+
+    @Override
+    public Optional<FoodStats> getFoodStats(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return Optional.empty();
+        }
+        FoodProperties food = stack.get(DataComponents.FOOD);
+        if (food == null) {
+            return Optional.empty();
+        }
+        return Optional.of(new FoodStats(food.nutrition(), food.saturation()));
+    }
+
+    @Override
+    public boolean hasFood(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return false;
+        }
+        return stack.has(DataComponents.FOOD);
+    }
+
+    @Override
+    public boolean sameItemSameComponents(ItemStack first, ItemStack second) {
+        return ItemStack.isSameItemSameComponents(first, second);
+    }
+
+    @Override
+    public Optional<String> getEquipmentSlotName(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return Optional.empty();
+        }
+        // MC 1.21.1 has no Equippable DataComponent (that arrived in 1.21.2); equip info is exposed
+        // via the vanilla Equipable interface, resolved per-stack by Equipable.get(stack).
+        Equipable equipable = Equipable.get(stack);
+        if (equipable == null) {
+            return Optional.empty();
+        }
+        EquipmentSlot slot = equipable.getEquipmentSlot();
+        if (slot == null) {
+            return Optional.empty();
+        }
+        return Optional.of(slot.toString().toLowerCase(Locale.ROOT));
+    }
+
+    @Override
+    public ItemStack getRecipeResultItem(Object recipeOrHolder, RegistryAccess registryAccess) {
+        Recipe<?> recipe = unwrapRecipe(recipeOrHolder);
+        if (recipe == null) {
+            return ItemStack.EMPTY;
+        }
+        ItemStack result = recipe.getResultItem(registryAccess);
+        return result == null ? ItemStack.EMPTY : result;
+    }
+
+    @Override
+    public List<Ingredient> getRecipeIngredients(Object recipeOrHolder) {
+        Recipe<?> recipe = unwrapRecipe(recipeOrHolder);
+        if (recipe == null) {
+            return List.of();
+        }
+        List<Ingredient> ingredients = recipe.getIngredients();
+        return ingredients == null ? List.of() : ingredients;
+    }
+
+    @Override
+    public OptionalLong getContainerComponentCapacity(ItemStack stack, long defaultStackSize) {
+        if (stack == null || stack.isEmpty()) {
+            return OptionalLong.empty();
+        }
+        ItemContainerContents contents = stack.get(DataComponents.CONTAINER);
+        if (contents == null) {
+            return OptionalLong.empty();
+        }
+        // The xplat default counts slots (NeoForge's patched ItemContainerContents.getSlots()). In vanilla
+        // Mojmap, stream() yields one entry per slot (including empty ones), so its count is the slot count.
+        long slots = contents.stream().count();
+        return slots > 0 ? OptionalLong.of(slots * defaultStackSize) : OptionalLong.empty();
+    }
+
+    @Override
+    public ResourceLocation getPlayerSkinTexture(Object playerInfo) {
+        if (!(playerInfo instanceof PlayerInfo info)) {
+            return null;
+        }
+        PlayerSkin skin = info.getSkin();
+        return skin == null ? null : skin.texture();
+    }
+
+    @Override
+    public boolean hasDefaultItemComponent(Object item, String componentFieldName) {
+        if (!(item instanceof Item actualItem)) {
+            return false;
+        }
+        DataComponentType<?> type = COMPONENT_TYPES_BY_FIELD_NAME.get(componentFieldName);
+        return type != null && actualItem.components().has(type);
+    }
+
+    @Override
+    public boolean hasStackComponent(ItemStack stack, String componentFieldName) {
+        if (stack == null || stack.isEmpty()) {
+            return false;
+        }
+        DataComponentType<?> type = COMPONENT_TYPES_BY_FIELD_NAME.get(componentFieldName);
+        return type != null && stack.has(type);
+    }
+
+    @Override
+    public Set<String> getDefaultItemComponentNames(Object item, Collection<String> componentFieldNames) {
+        if (!(item instanceof Item actualItem) || componentFieldNames == null || componentFieldNames.isEmpty()) {
+            return Set.of();
+        }
+        Set<String> result = new HashSet<>();
+        for (String fieldName : componentFieldNames) {
+            DataComponentType<?> type = COMPONENT_TYPES_BY_FIELD_NAME.get(fieldName);
+            if (type != null && actualItem.components().has(type)) {
+                result.add(fieldName);
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public Set<String> getStackComponentNames(ItemStack stack, Collection<String> componentFieldNames) {
+        if (stack == null || stack.isEmpty() || componentFieldNames == null || componentFieldNames.isEmpty()) {
+            return Set.of();
+        }
+        Set<String> result = new HashSet<>();
+        for (String fieldName : componentFieldNames) {
+            DataComponentType<?> type = COMPONENT_TYPES_BY_FIELD_NAME.get(fieldName);
+            if (type != null && stack.has(type)) {
+                result.add(fieldName);
+            }
+        }
+        return result;
+    }
+
+    private static Recipe<?> unwrapRecipe(Object recipeOrHolder) {
+        if (recipeOrHolder instanceof RecipeHolder<?> holder) {
+            return holder.value();
+        }
+        if (recipeOrHolder instanceof Recipe<?> recipe) {
+            return recipe;
+        }
+        return null;
     }
 }
