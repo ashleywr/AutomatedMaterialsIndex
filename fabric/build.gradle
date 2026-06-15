@@ -31,6 +31,15 @@ loom {
     }
 }
 
+// The repo enables Gradle's configuration cache globally (org.gradle.configuration-cache=true)
+// for NeoForge's ModDevGradle, but Fabric Loom's run tasks are not configuration-cache
+// compatible (they serialize SourceSet and call Task.project at execution time). Mark them
+// so a build that includes a run task disables the config cache for that invocation instead
+// of failing — mirrors how the root build.gradle handles its Prism deploy tasks.
+tasks.withType(net.fabricmc.loom.task.RunGameTask).configureEach {
+    notCompatibleWithConfigurationCache('Fabric Loom run tasks are not configuration-cache compatible')
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${fabric_minecraft_version}"
     mappings loom.officialMojangMappings()
