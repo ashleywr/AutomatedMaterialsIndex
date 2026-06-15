@@ -1,6 +1,12 @@
 package com.sanhiruzu.ami.fabric;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import com.sanhiruzu.ami.fabric.client.FabricAmiKeyMappings;
 import com.sanhiruzu.ami.platform.IAmiKeyMappings;
 import com.sanhiruzu.ami.platform.IPlatformHelper;
@@ -178,6 +184,32 @@ public class FabricPlatformHelper implements IPlatformHelper {
     public void renderItemTooltip(GuiGraphics g, Font font, List<Component> lines,
                                   Optional<TooltipComponent> image, ItemStack stack, int x, int y) {
         g.renderTooltip(font, lines, image, x, y);
+    }
+
+    // -------------------------------------------------------------------------
+    // GUI quad batch rendering (1.21.1 vertex-buffer API; direct calls so Loom
+    // remaps the Mojang names to intermediary — reflection by name would not).
+    // -------------------------------------------------------------------------
+
+    @Override
+    public Object beginGuiQuadBatch(boolean textured) {
+        return Tesselator.getInstance().begin(VertexFormat.Mode.QUADS,
+                textured ? DefaultVertexFormat.POSITION_TEX_COLOR : DefaultVertexFormat.POSITION_COLOR);
+    }
+
+    @Override
+    public void guiQuadVertex(Object buffer, org.joml.Matrix4f matrix, float x, float y, float u, float v,
+                              float r, float g, float b, float a, boolean textured) {
+        VertexConsumer vertex = ((BufferBuilder) buffer).addVertex(matrix, x, y, 0.0f);
+        if (textured) {
+            vertex.setUv(u, v);
+        }
+        vertex.setColor(r, g, b, a);
+    }
+
+    @Override
+    public void endAndDrawGuiQuadBatch(Object buffer) {
+        BufferUploader.drawWithShader(((BufferBuilder) buffer).buildOrThrow());
     }
 
     // -------------------------------------------------------------------------

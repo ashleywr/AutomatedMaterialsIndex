@@ -4,6 +4,12 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import com.sanhiruzu.ami.forge.client.AMIKeyMappings;
 import com.sanhiruzu.ami.index.GlobalIndexCache;
 import com.sanhiruzu.ami.platform.IAmiKeyMappings;
@@ -270,6 +276,29 @@ public class ForgePlatformHelper implements IPlatformHelper {
         GuiGraphics g = (GuiGraphics) guiGraphics;
         g.fill(x, thumbY, x + width, thumbY + thumbHeight, -8355712);
         g.fill(x, thumbY, x + width - 1, thumbY + thumbHeight - 1, -4144960);
+    }
+
+    @Override
+    public Object beginGuiQuadBatch(boolean textured) {
+        BufferBuilder builder = Tesselator.getInstance().getBuilder();
+        builder.begin(VertexFormat.Mode.QUADS,
+                textured ? DefaultVertexFormat.POSITION_TEX_COLOR : DefaultVertexFormat.POSITION_COLOR);
+        return builder;
+    }
+
+    @Override
+    public void guiQuadVertex(Object buffer, org.joml.Matrix4f matrix, float x, float y, float u, float v,
+                              float r, float g, float b, float a, boolean textured) {
+        VertexConsumer vertex = ((BufferBuilder) buffer).vertex(matrix, x, y, 0.0f);
+        if (textured) {
+            vertex = vertex.uv(u, v);
+        }
+        vertex.color(r, g, b, a).endVertex();
+    }
+
+    @Override
+    public void endAndDrawGuiQuadBatch(Object buffer) {
+        BufferUploader.drawWithShader(((BufferBuilder) buffer).end());
     }
 
     @Override

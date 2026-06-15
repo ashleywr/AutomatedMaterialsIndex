@@ -21,6 +21,7 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
+import org.joml.Matrix4f;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -227,6 +228,25 @@ public interface IPlatformHelper {
      */
     void renderItemTooltip(GuiGraphics g, Font font, List<Component> lines,
                            Optional<TooltipComponent> image, ItemStack stack, int x, int y);
+
+    /**
+     * Begins a GUI quad batch on the shared {@code Tesselator}, returning the loader's buffer object.
+     * xplat cannot call this API directly because the vertex-buffer API differs between MC 1.20.1
+     * (Tesselator.getBuilder + BufferBuilder.begin/vertex/uv/color/endVertex/end) and 1.21.1
+     * (Tesselator.begin + BufferBuilder.addVertex/setUv/setColor/buildOrThrow), and reflection by
+     * Mojang/SRG name fails on Fabric's intermediary runtime. Each loader implements these three
+     * methods with direct calls so Loom's remap (and NeoForge/Forge's native names) resolve correctly.
+     *
+     * @param textured {@code true} for POSITION_TEX_COLOR (uv used), {@code false} for POSITION_COLOR.
+     */
+    Object beginGuiQuadBatch(boolean textured);
+
+    /** Appends one vertex to a batch started by {@link #beginGuiQuadBatch(boolean)}. */
+    void guiQuadVertex(Object buffer, Matrix4f matrix, float x, float y, float u, float v,
+                       float r, float g, float b, float a, boolean textured);
+
+    /** Builds and draws (via {@code BufferUploader.drawWithShader}) a batch started by {@link #beginGuiQuadBatch(boolean)}. */
+    void endAndDrawGuiQuadBatch(Object buffer);
 
     default void renderVanillaScrollbar(Object guiGraphics, ResourceLocation scroller, ResourceLocation scrollerBackground,
                                         int x, int y, int width, int height, int thumbY, int thumbHeight) {

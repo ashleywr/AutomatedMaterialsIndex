@@ -2,6 +2,12 @@ package com.sanhiruzu.ami.neoforge;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import com.sanhiruzu.ami.index.GlobalIndexCache;
 import com.sanhiruzu.ami.neoforge.client.AMIKeyMappings;
 import com.sanhiruzu.ami.platform.IAmiKeyMappings;
@@ -265,6 +271,27 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
                                        int x, int y, int width, int height, int thumbY, int thumbHeight) {
         GuiGraphics g = (GuiGraphics) guiGraphics;
         g.blitSprite(scroller, x, thumbY, width, thumbHeight);
+    }
+
+    @Override
+    public Object beginGuiQuadBatch(boolean textured) {
+        return Tesselator.getInstance().begin(VertexFormat.Mode.QUADS,
+                textured ? DefaultVertexFormat.POSITION_TEX_COLOR : DefaultVertexFormat.POSITION_COLOR);
+    }
+
+    @Override
+    public void guiQuadVertex(Object buffer, org.joml.Matrix4f matrix, float x, float y, float u, float v,
+                              float r, float g, float b, float a, boolean textured) {
+        VertexConsumer vertex = ((BufferBuilder) buffer).addVertex(matrix, x, y, 0.0f);
+        if (textured) {
+            vertex.setUv(u, v);
+        }
+        vertex.setColor(r, g, b, a);
+    }
+
+    @Override
+    public void endAndDrawGuiQuadBatch(Object buffer) {
+        BufferUploader.drawWithShader(((BufferBuilder) buffer).buildOrThrow());
     }
 
     @Override
