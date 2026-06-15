@@ -9,6 +9,7 @@ import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.sanhiruzu.ami.fabric.client.FabricAmiKeyMappings;
+import com.sanhiruzu.ami.index.GlobalIndexCache;
 import com.sanhiruzu.ami.index.metrics.FoodStats;
 import com.sanhiruzu.ami.platform.IAmiKeyMappings;
 import com.sanhiruzu.ami.platform.IPlatformHelper;
@@ -268,17 +269,20 @@ public class FabricPlatformHelper implements IPlatformHelper {
         return com.sanhiruzu.ami.fabric.compat.ReiRecipeBridge.open(stack, uses);
     }
 
-    /**
-     * Reads the stack under the cursor in REI's window. The {@code roughlyenoughitems} guard keeps
-     * {@link com.sanhiruzu.ami.fabric.compat.ReiFavoritesBridge} (and the {@code me.shedaniel.rei.*}
-     * types it references) from being linked when REI is absent.
-     */
+    // -------------------------------------------------------------------------
+    // Global index cache persistence (delegates to the xplat cache, same as NeoForge).
+    // Without these overrides the IPlatformHelper defaults are a no-op, so the index would
+    // never load from or save to disk on Fabric — forcing a full reindex every launch.
+    // -------------------------------------------------------------------------
+
     @Override
-    public ItemStack getHoveredExternalViewerStack() {
-        if (!isModLoaded("roughlyenoughitems")) {
-            return ItemStack.EMPTY;
-        }
-        return com.sanhiruzu.ami.fabric.compat.ReiFavoritesBridge.getHoveredStack();
+    public boolean tryLoadGlobalIndexCache() {
+        return GlobalIndexCache.tryLoad();
+    }
+
+    @Override
+    public void saveGlobalIndexCache() {
+        GlobalIndexCache.save();
     }
 
     @Override
