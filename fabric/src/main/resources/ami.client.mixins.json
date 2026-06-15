@@ -7,12 +7,12 @@
   "refmap": "ami.refmap.json",
   "mixins": [],
   "client": [
-    "ContainerTooltipMixin",
     "EmiRecipeScreenFavoriteMixin",
     "EmiScreenManagerMixin",
+    "FabricContainerTooltipMixin",
+    "FabricRecipeBookComponentMixin",
     "JeiBookmarkListMixin",
     "JeiClientInputHandlerMixin",
-    "JeiGuiEventHandlerMixin",
-    "RecipeBookComponentMixin"
+    "JeiGuiEventHandlerMixin"
   ]
 }

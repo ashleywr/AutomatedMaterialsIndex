@@ -1,18 +1,16 @@
 package com.sanhiruzu.ami.fabric.recipe.special;
 
-import com.sanhiruzu.ami.recipe.special.AmiSpecialRecipe;
 import com.sanhiruzu.ami.recipe.special.FuelRecipeView;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 
 import java.util.List;
 
-public class FuelRecipe extends AmiSpecialRecipe implements Recipe<RecipeInput>, FuelRecipeView {
+public class FuelRecipe extends FabricSpecialRecipe implements FuelRecipeView {
     private final ItemStack stack;
     private final int time;
 

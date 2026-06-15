@@ -8,6 +8,11 @@ import net.minecraft.world.item.crafting.RecipeType;
 
 import java.util.List;
 
+// Deliberately does NOT implement Recipe: this base is shared with the 1.20.1 Forge
+// module, where Recipe's type argument is Container and RecipeInput does not exist.
+// Each loader's concrete subclasses declare the loader-appropriate Recipe<...> interface.
+// On Fabric, the intermediate FabricSpecialRecipe re-declares the vanilla methods below so
+// the remapper recognizes them as interface implementations (see that class for details).
 public abstract class AmiSpecialRecipe {
     private final ItemStack result;
     private final NonNullList<Ingredient> ingredients;

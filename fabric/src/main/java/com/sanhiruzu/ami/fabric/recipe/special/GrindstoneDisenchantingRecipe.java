@@ -1,18 +1,16 @@
 package com.sanhiruzu.ami.fabric.recipe.special;
 
-import com.sanhiruzu.ami.recipe.special.AmiSpecialRecipe;
 import com.sanhiruzu.ami.recipe.special.GrindstoneDisenchantingRecipeView;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 
 import java.util.List;
 
-public class GrindstoneDisenchantingRecipe extends AmiSpecialRecipe implements Recipe<RecipeInput>, GrindstoneDisenchantingRecipeView {
+public class GrindstoneDisenchantingRecipe extends FabricSpecialRecipe implements GrindstoneDisenchantingRecipeView {
     private final ItemStack enchanted;
 
     public GrindstoneDisenchantingRecipe(ItemStack enchanted, ItemStack normal, RecipeType<?> type) {

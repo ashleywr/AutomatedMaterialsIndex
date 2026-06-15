@@ -1,18 +1,16 @@
 package com.sanhiruzu.ami.fabric.recipe.special;
 
-import com.sanhiruzu.ami.recipe.special.AmiSpecialRecipe;
 import com.sanhiruzu.ami.recipe.special.GrindstoneRepairRecipeView;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 
 import java.util.List;
 
-public class GrindstoneRepairRecipe extends AmiSpecialRecipe implements Recipe<RecipeInput>, GrindstoneRepairRecipeView {
+public class GrindstoneRepairRecipe extends FabricSpecialRecipe implements GrindstoneRepairRecipeView {
     private final ItemStack tool1;
     private final ItemStack tool2;
 
