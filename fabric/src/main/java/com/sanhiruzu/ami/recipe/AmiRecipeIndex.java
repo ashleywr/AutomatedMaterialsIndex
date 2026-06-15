@@ -177,17 +177,12 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
 
     private void indexBrewing(Level level) {
         try {
-            net.minecraft.world.item.alchemy.PotionBrewing brewing = level.potionBrewing();
+            var brewing = level.potionBrewing();
             if (brewing == null) return;
 
-            java.lang.reflect.Field potionMixesField = net.minecraft.world.item.alchemy.PotionBrewing.class.getDeclaredField("potionMixes");
-            potionMixesField.setAccessible(true);
-            List<?> potionMixes = (List<?>) potionMixesField.get(brewing);
-
-            java.lang.reflect.Field containerMixesField = net.minecraft.world.item.alchemy.PotionBrewing.class.getDeclaredField("containerMixes");
-            containerMixesField.setAccessible(true);
-            List<?> containerMixes = (List<?>) containerMixesField.get(brewing);
-
+            // Direct field/accessor access (the lists + the package-private Mix record are
+            // access-widened in ami.accesswidener). Mojmap-name reflection would fail on
+            // Fabric's intermediary runtime; direct access is remapped by Loom.
             Item[] containers = {
                     Items.POTION,
                     Items.SPLASH_POTION,
@@ -196,72 +191,52 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
 
             int idCounter = 0;
 
-            // 1. Process Potion Contents Mixes
-            for (Object mix : potionMixes) {
-                java.lang.reflect.Field fromField = mix.getClass().getDeclaredField("from");
-                fromField.setAccessible(true);
-                net.minecraft.core.Holder<?> fromHolder = (net.minecraft.core.Holder<?>) fromField.get(mix);
+            // 1. Process Potion Contents Mixes (input potion -> output potion via ingredient)
+            for (var mix : brewing.potionMixes) {
+                var fromHolder = mix.from();
+                var ingredient = mix.ingredient();
+                var toHolder = mix.to();
+                if (fromHolder == null || toHolder == null || ingredient == null) continue;
 
-                java.lang.reflect.Field ingredientField = mix.getClass().getDeclaredField("ingredient");
-                ingredientField.setAccessible(true);
-                net.minecraft.world.item.crafting.Ingredient ingredient = (net.minecraft.world.item.crafting.Ingredient) ingredientField.get(mix);
+                for (Item container : containers) {
+                    ItemStack inStack = PotionContents.createItemStack(container, fromHolder);
+                    ItemStack outStack = PotionContents.createItemStack(container, toHolder);
 
-                java.lang.reflect.Field toField = mix.getClass().getDeclaredField("to");
-                toField.setAccessible(true);
-                net.minecraft.core.Holder<?> toHolder = (net.minecraft.core.Holder<?>) toField.get(mix);
+                    var recipe = new PotionBrewingRecipe(inStack, ingredient, outStack, BREWING);
+                    AmiRecipeHolder<?> holder = wrap(new RecipeHolder<>(
+                            ResourceLocation.fromNamespaceAndPath("ami", "brewing_potion_" + idCounter++),
+                            recipe
+                    ));
 
-                if (fromHolder != null && toHolder != null && ingredient != null) {
-                    for (Item container : containers) {
-                        @SuppressWarnings("unchecked")
-                        ItemStack inStack = PotionContents.createItemStack(container, (net.minecraft.core.Holder<net.minecraft.world.item.alchemy.Potion>) fromHolder);
-                        @SuppressWarnings("unchecked")
-                        ItemStack outStack = PotionContents.createItemStack(container, (net.minecraft.core.Holder<net.minecraft.world.item.alchemy.Potion>) toHolder);
-
-                        var recipe = new PotionBrewingRecipe(inStack, ingredient, outStack, BREWING);
-                        AmiRecipeHolder<?> holder = wrap(new RecipeHolder<>(
-                                ResourceLocation.fromNamespaceAndPath("ami", "brewing_potion_" + idCounter++),
-                                recipe
-                        ));
-
-                        addOutput(outStack, holder);
-                        addInput(inStack, holder);
-                        addIngredientInputs(ingredient, holder);
-                    }
+                    addOutput(outStack, holder);
+                    addInput(inStack, holder);
+                    addIngredientInputs(ingredient, holder);
                 }
             }
 
-            // 2. Process Container Mixes
-            for (Object mix : containerMixes) {
-                java.lang.reflect.Field fromField = mix.getClass().getDeclaredField("from");
-                fromField.setAccessible(true);
-                net.minecraft.core.Holder<?> fromHolder = (net.minecraft.core.Holder<?>) fromField.get(mix);
+            // 2. Process Container Mixes (input container -> output container, across all potions)
+            for (var mix : brewing.containerMixes) {
+                var fromHolder = mix.from();
+                var ingredient = mix.ingredient();
+                var toHolder = mix.to();
+                if (fromHolder == null || toHolder == null || ingredient == null) continue;
 
-                java.lang.reflect.Field ingredientField = mix.getClass().getDeclaredField("ingredient");
-                ingredientField.setAccessible(true);
-                net.minecraft.world.item.crafting.Ingredient ingredient = (net.minecraft.world.item.crafting.Ingredient) ingredientField.get(mix);
+                Item fromItem = fromHolder.value();
+                Item toItem = toHolder.value();
 
-                java.lang.reflect.Field toField = mix.getClass().getDeclaredField("to");
-                toField.setAccessible(true);
-                net.minecraft.core.Holder<?> toHolder = (net.minecraft.core.Holder<?>) toField.get(mix);
+                for (var potionRef : BuiltInRegistries.POTION.holders().toList()) {
+                    ItemStack inStack = PotionContents.createItemStack(fromItem, potionRef);
+                    ItemStack outStack = PotionContents.createItemStack(toItem, potionRef);
 
-                if (fromHolder != null && toHolder != null && ingredient != null) {
-                    Item fromItem = (Item) fromHolder.value();
-                    Item toItem = (Item) toHolder.value();
+                    var recipe = new PotionBrewingRecipe(inStack, ingredient, outStack, BREWING);
+                    AmiRecipeHolder<?> holder = wrap(new RecipeHolder<>(
+                            ResourceLocation.fromNamespaceAndPath("ami", "brewing_container_" + idCounter++),
+                            recipe
+                    ));
 
-                    for (net.minecraft.core.Holder.Reference<net.minecraft.world.item.alchemy.Potion> potionRef : BuiltInRegistries.POTION.holders().toList()) {
-                        ItemStack inStack = PotionContents.createItemStack(fromItem, potionRef);
-                        ItemStack outStack = PotionContents.createItemStack(toItem, potionRef);
-
-                        var recipe = new PotionBrewingRecipe(inStack, ingredient, outStack, BREWING);
-                        AmiRecipeHolder<?> holder = wrap(new RecipeHolder<>(
-                                ResourceLocation.fromNamespaceAndPath("ami", "brewing_container_" + idCounter++),
-                                recipe
-                        ));
-
-                        addOutput(outStack, holder);
-                        addInput(inStack, holder);
-                        addIngredientInputs(ingredient, holder);
-                    }
+                    addOutput(outStack, holder);
+                    addInput(inStack, holder);
+                    addIngredientInputs(ingredient, holder);
                 }
             }
 
