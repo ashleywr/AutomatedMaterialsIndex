@@ -85,3 +85,13 @@ processResources {
         expand version: project.version
     }
 }
+
+// Compatibility shim for stale IntelliJ Gradle task activations carried over from
+// the NeoForge-only workspace (which defines regutilsIdeSync as an alias for its
+// ModDevGradle IDE sync). Fabric Loom generates its run configs automatically on
+// project import, so this only needs to exist as a no-op so the post-sync task
+// activation resolves against :fabric instead of failing.
+tasks.register('regutilsIdeSync') {
+    group = 'ide'
+    description = 'No-op compatibility alias for stale IntelliJ sync task activation.'
+}
