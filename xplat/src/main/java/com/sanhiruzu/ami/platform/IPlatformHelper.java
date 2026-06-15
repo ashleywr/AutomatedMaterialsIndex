@@ -222,6 +222,36 @@ public interface IPlatformHelper {
     boolean isBiomeTemperatureFrozen(net.minecraft.world.level.biome.Biome biome);
 
     /**
+     * Returns the painting's {@code {width, height}} in tiles. The accessor names diverge across
+     * versions: MC 1.20.1 exposes {@code getWidth()}/{@code getHeight()} on the {@code PaintingVariant}
+     * class, while MC 1.21.1 exposes the record accessors {@code width()}/{@code height()}. Implemented
+     * per-loader so each calls the correct direct (remappable) accessor instead of name reflection.
+     */
+    int[] getPaintingSize(net.minecraft.world.entity.decoration.PaintingVariant variant);
+
+    /**
+     * Wraps {@code recipe} in a {@code net.minecraft.world.item.crafting.RecipeHolder} for JEI's
+     * recipe-holder display path. {@code RecipeHolder} was introduced in MC 1.21 and does NOT exist in
+     * MC 1.20.1, so the type cannot be referenced from xplat (which compiles against the 1.20.1 API).
+     * Implemented per-loader: Forge (1.20.1) returns {@code null} (no such type — caller falls back to
+     * the legacy recipe path); NeoForge/Fabric (1.21.1) return a real {@code RecipeHolder} via a direct,
+     * Loom-remappable reference. Returns {@link Object} because the type is absent at xplat compile time.
+     */
+    default Object createRecipeHolder(ResourceLocation id, net.minecraft.world.item.crafting.Recipe<?> recipe) {
+        return null;
+    }
+
+    /**
+     * Opens the vanilla chat screen pre-filled with {@code text}. {@code ChatScreen} is a client-only
+     * class; referencing it directly from xplat would force the verifier to load it on the
+     * client-stripped unit-test classpath, and {@code Class.forName(Mojmap-name)} failed on Fabric's
+     * intermediary runtime. Implemented per-loader with direct (Loom-remappable) calls. No-op by default.
+     */
+    default void openChatDraftScreen(String text) {
+        // Default no-op; loader helpers provide the real client implementation.
+    }
+
+    /**
      * Renders a tooltip with an associated ItemStack for decoration/positioning purposes.
      * Delegates to the 6-arg {@code GuiGraphics.renderTooltip(Font, List, Optional, ItemStack, int, int)}
      * overload added by Forge/NeoForge.

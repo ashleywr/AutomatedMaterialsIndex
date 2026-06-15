@@ -261,6 +261,30 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     }
 
     @Override
+    public int[] getPaintingSize(net.minecraft.world.entity.decoration.PaintingVariant variant) {
+        return new int[]{variant.width(), variant.height()};
+    }
+
+    @Override
+    public Object createRecipeHolder(ResourceLocation id, net.minecraft.world.item.crafting.Recipe<?> recipe) {
+        return new net.minecraft.world.item.crafting.RecipeHolder<>(id, recipe);
+    }
+
+    @Override
+    public void openChatDraftScreen(String text) {
+        // Delegated to a nested class so the client-only ChatScreen reference is not verified when
+        // this helper loads via ServiceLoader (the headless unit-test classpath lacks ChatScreen).
+        ChatDraftOpener.open(text);
+    }
+
+    private static final class ChatDraftOpener {
+        static void open(String text) {
+            net.minecraft.client.Minecraft minecraft = net.minecraft.client.Minecraft.getInstance();
+            minecraft.setScreen(new net.minecraft.client.gui.screens.ChatScreen(text));
+        }
+    }
+
+    @Override
     public void renderItemTooltip(GuiGraphics g, Font font, java.util.List<net.minecraft.network.chat.Component> lines,
                                   java.util.Optional<TooltipComponent> image, ItemStack stack, int x, int y) {
         g.renderTooltip(font, lines, image, stack, x, y);

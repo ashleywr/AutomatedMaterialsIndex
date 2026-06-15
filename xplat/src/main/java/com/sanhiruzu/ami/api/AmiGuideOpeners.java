@@ -797,14 +797,16 @@ public final class AmiGuideOpeners {
             if (book == null) {
                 return;
             }
-            Class<?> componentClass = Class.forName("net.minecraft.network.chat.Component");
-            Object title = componentClass.getMethod("literal", String.class).invoke(null, bookId.toString());
+            // Component is an always-present vanilla class with a stable Component.literal(String)
+            // API across MC 1.20.1/1.21.1. Direct references are remapped by Loom for the
+            // intermediary-named Fabric runtime, where the old Class.forName(Mojmap-name) failed.
+            Object title = net.minecraft.network.chat.Component.literal(bookId.toString());
             for (Method method : book.getClass().getMethods()) {
                 if (!"openGui".equals(method.getName()) || method.getParameterCount() != 3) {
                     continue;
                 }
                 Class<?>[] types = method.getParameterTypes();
-                if (componentClass.isAssignableFrom(types[0]) && types[1] == String.class) {
+                if (net.minecraft.network.chat.Component.class.isAssignableFrom(types[0]) && types[1] == String.class) {
                     method.invoke(book, title, pageId == null ? "" : pageId, (java.util.function.Consumer<String>) ignored -> {
                     });
                     return;
@@ -906,14 +908,16 @@ public final class AmiGuideOpeners {
                         if (sp == null) {
                             return;
                         }
-                        Class<?> levelAccessorClass = Class.forName("net.minecraft.world.level.LevelAccessor");
-                        Class<?> entityClass = Class.forName("net.minecraft.world.entity.Entity");
+                        // LevelAccessor / Entity are always-present vanilla classes with stable names
+                        // across MC 1.20.1/1.21.1; direct references are remapped by Loom for the
+                        // intermediary-named Fabric runtime (Class.forName(Mojmap-name) failed there).
+                        // procClass stays reflective: it is a third-party (CnC) mod class.
                         Class<?> procClass = Class.forName(resolvedProcedure);
                         java.lang.reflect.Method execute = procClass.getMethod("execute",
-                                levelAccessorClass,
+                                net.minecraft.world.level.LevelAccessor.class,
                                 double.class, double.class, double.class,
-                                entityClass);
-                        Object level = entityClass.getMethod("level").invoke(sp);
+                                net.minecraft.world.entity.Entity.class);
+                        Object level = ((net.minecraft.world.entity.Entity) sp).level();
                         execute.invoke(null, level, x, y, z, sp);
                     } catch (ReflectiveOperationException | RuntimeException | LinkageError ex) {
                         LOGGER.log(Level.FINE, "AMI: CnC field guide open failed for "

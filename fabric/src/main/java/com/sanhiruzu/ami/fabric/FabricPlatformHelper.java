@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.fabric;
 
+import com.mojang.authlib.GameProfile;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
@@ -13,6 +14,7 @@ import com.sanhiruzu.ami.platform.IAmiKeyMappings;
 import com.sanhiruzu.ami.platform.IPlatformHelper;
 import com.sanhiruzu.ami.recipe.AmiRecipeIndex;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
+import it.unimi.dsi.fastutil.ints.IntList;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.Font;
@@ -20,28 +22,46 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.resources.PlayerSkin;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Equipable;
+import net.minecraft.world.item.Instrument;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.component.FireworkExplosion;
+import net.minecraft.world.item.component.Fireworks;
 import net.minecraft.world.item.component.ItemContainerContents;
+import net.minecraft.world.item.component.ResolvableProfile;
+import net.minecraft.world.item.component.SuspiciousStewEffects;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.FlowerBlock;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -50,6 +70,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.UUID;
 
 public class FabricPlatformHelper implements IPlatformHelper {
 
@@ -215,6 +236,36 @@ public class FabricPlatformHelper implements IPlatformHelper {
     @Override
     public boolean isBiomeTemperatureFrozen(Biome biome) {
         return biome.climateSettings.temperatureModifier() == Biome.TemperatureModifier.FROZEN;
+    }
+
+    /**
+     * MC 1.21.1 {@code PaintingVariant} is a record, so the accessors are {@code width()}/{@code height()}.
+     */
+    @Override
+    public int[] getPaintingSize(net.minecraft.world.entity.decoration.PaintingVariant variant) {
+        return new int[]{variant.width(), variant.height()};
+    }
+
+    /**
+     * MC 1.21.1 has {@code RecipeHolder}; constructed via a direct, Loom-remappable reference.
+     */
+    @Override
+    public Object createRecipeHolder(ResourceLocation id, Recipe<?> recipe) {
+        return new RecipeHolder<>(id, recipe);
+    }
+
+    @Override
+    public void openChatDraftScreen(String text) {
+        // Delegated to a nested class so the client-only ChatScreen reference is not verified when
+        // this helper loads via ServiceLoader (the headless unit-test classpath lacks ChatScreen).
+        ChatDraftOpener.open(text);
+    }
+
+    private static final class ChatDraftOpener {
+        static void open(String text) {
+            net.minecraft.client.Minecraft minecraft = net.minecraft.client.Minecraft.getInstance();
+            minecraft.setScreen(new net.minecraft.client.gui.screens.ChatScreen(text));
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -440,6 +491,135 @@ public class FabricPlatformHelper implements IPlatformHelper {
             }
         }
         return result;
+    }
+
+    // -------------------------------------------------------------------------
+    // Item subtype-stack creators (direct 1.21.1 API calls; the xplat defaults
+    // return EMPTY and NeoForge implements these natively, so AMI's index would
+    // be missing these subtypes on Fabric without these overrides).
+    // -------------------------------------------------------------------------
+
+    @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public ItemStack createPotionSubtypeStack(Item potionItem, Object potionHolder) {
+        if (!(potionHolder instanceof Holder<?> holder)) return ItemStack.EMPTY;
+        ItemStack stack = new ItemStack(potionItem);
+        stack.set(DataComponents.POTION_CONTENTS, new PotionContents((Holder) holder));
+        return stack;
+    }
+
+    @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public ItemStack createEnchantedBookSubtypeStack(Object enchantmentHolder, int level) {
+        if (!(enchantmentHolder instanceof Holder<?> holder) || !(holder.value() instanceof Enchantment)) {
+            return ItemStack.EMPTY;
+        }
+        ItemStack stack = new ItemStack(Items.ENCHANTED_BOOK);
+        ItemEnchantments.Mutable mutable = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
+        mutable.set((Holder) holder, level);
+        stack.set(DataComponents.STORED_ENCHANTMENTS, mutable.toImmutable());
+        return stack;
+    }
+
+    @Override
+    public List<SubtypeStack> createSuspiciousStewSubtypeStacks() {
+        List<SubtypeStack> result = new ArrayList<>();
+        BuiltInRegistries.ITEM.getTag(ItemTags.SMALL_FLOWERS)
+                .stream()
+                .flatMap(HolderSet.ListBacked::stream)
+                .map(Holder::value)
+                .filter(BlockItem.class::isInstance)
+                .map(BlockItem.class::cast)
+                .map(BlockItem::getBlock)
+                .filter(FlowerBlock.class::isInstance)
+                .map(FlowerBlock.class::cast)
+                .forEach(flowerBlock -> {
+                    SuspiciousStewEffects effects = flowerBlock.getSuspiciousEffects();
+                    if (effects.effects().isEmpty()) return;
+
+                    SuspiciousStewEffects.Entry firstEntry = effects.effects().get(0);
+                    ResourceLocation effectId = BuiltInRegistries.MOB_EFFECT.getKey(firstEntry.effect().value());
+                    if (effectId == null) return;
+
+                    ItemStack stack = new ItemStack(Items.SUSPICIOUS_STEW);
+                    stack.set(DataComponents.SUSPICIOUS_STEW_EFFECTS, effects);
+                    result.add(new SubtypeStack(effectId, stack));
+                });
+        return result;
+    }
+
+    @Override
+    public List<SubtypeStack> createFireworkRocketSubtypeStacks() {
+        List<SubtypeStack> result = new ArrayList<>();
+        int[] repColors = {0xFF0000, 0x00AA00, 0x5555FF, 0xFFFF55, 0xFFFFFF};
+        FireworkExplosion.Shape[] shapes = FireworkExplosion.Shape.values();
+
+        for (int i = 0; i < Math.min(shapes.length, repColors.length); i++) {
+            FireworkExplosion.Shape shape = shapes[i];
+            FireworkExplosion explosion = new FireworkExplosion(
+                    shape, IntList.of(repColors[i]), IntList.of(), false, false);
+            ItemStack stack = new ItemStack(Items.FIREWORK_ROCKET);
+            stack.set(DataComponents.FIREWORKS, new Fireworks(1, List.of(explosion)));
+            result.add(new SubtypeStack(rl("minecraft", shape.name().toLowerCase(Locale.ROOT)), stack));
+        }
+        return result;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public ItemStack createGoatHornSubtypeStack(Object instrumentHolder) {
+        if (!(instrumentHolder instanceof Holder<?> holder) || !(holder.value() instanceof Instrument)) {
+            return ItemStack.EMPTY;
+        }
+        Holder<Instrument> instrument = (Holder<Instrument>) holder;
+        ItemStack stack = new ItemStack(Items.GOAT_HORN);
+        stack.set(DataComponents.INSTRUMENT, instrument);
+        return stack;
+    }
+
+    @Override
+    public ItemStack createPlayerHeadStack(String name) {
+        return createPlayerHeadStack(name, (UUID) null);
+    }
+
+    @Override
+    public ItemStack createPlayerHeadStack(String name, UUID uuid) {
+        if (name == null || name.isBlank()) return ItemStack.EMPTY;
+        ItemStack stack = new ItemStack(Items.PLAYER_HEAD);
+        stack.set(DataComponents.PROFILE, new ResolvableProfile(
+                Optional.of(name),
+                uuid == null ? Optional.empty() : Optional.of(uuid),
+                new com.mojang.authlib.properties.PropertyMap()));
+        return stack;
+    }
+
+    @Override
+    public ItemStack createPlayerHeadStack(GameProfile profile) {
+        if (profile == null || profile.getName() == null || profile.getName().isBlank()) return ItemStack.EMPTY;
+        ItemStack stack = new ItemStack(Items.PLAYER_HEAD);
+        stack.set(DataComponents.PROFILE, new ResolvableProfile(
+                Optional.of(profile.getName()),
+                profile.getId() == null ? Optional.empty() : Optional.of(profile.getId()),
+                profile.getProperties()));
+        return stack;
+    }
+
+    @Override
+    public String playerHeadGiveCommand(String name) {
+        if (name == null || name.isBlank()) {
+            return "give @s minecraft:player_head 1";
+        }
+        return "give @s minecraft:player_head[minecraft:profile={name:\"" + escapeCommandString(name) + "\"}] 1";
+    }
+
+    @Override
+    public ResourceLocation getSpawnEggEntityTypeId(SpawnEggItem egg, ItemStack stack) {
+        EntityType<?> entityType = egg.getType(stack);
+        return entityType == null ? null : BuiltInRegistries.ENTITY_TYPE.getKey(entityType);
+    }
+
+    private static String escapeCommandString(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private static Recipe<?> unwrapRecipe(Object recipeOrHolder) {

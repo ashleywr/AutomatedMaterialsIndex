@@ -1921,13 +1921,13 @@ public class ResultContextMenuActionBuilder {
         if (text == null || text.isBlank()) return;
 
         try {
-            Class<?> minecraftClass = Class.forName("net.minecraft.client.Minecraft");
-            Class<?> screenClass = Class.forName("net.minecraft.client.gui.screens.Screen");
-            Class<?> chatScreenClass = Class.forName("net.minecraft.client.gui.screens.ChatScreen");
-            Object minecraft = minecraftClass.getMethod("getInstance").invoke(null);
-            Object chatScreen = chatScreenClass.getConstructor(String.class).newInstance(text);
-            minecraftClass.getMethod("setScreen", screenClass).invoke(minecraft, chatScreen);
-        } catch (ReflectiveOperationException | RuntimeException e) {
+            // ChatScreen is a client-only class. A direct reference here would force the
+            // bytecode verifier to load it whenever this xplat class is touched, which breaks
+            // the client-stripped unit-test classpath. The Class.forName(Mojmap-name) approach
+            // also failed on Fabric's intermediary runtime. So the screen open is delegated to a
+            // platform seam, implemented with direct (Loom-remappable) calls in each loader module.
+            com.sanhiruzu.ami.platform.Services.PLATFORM.openChatDraftScreen(text);
+        } catch (RuntimeException e) {
             LOGGER.log(Level.WARNING, "AMI: Failed to open chat draft from context menu", e);
         }
     }

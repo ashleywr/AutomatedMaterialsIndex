@@ -18,7 +18,6 @@ import net.minecraft.world.entity.decoration.PaintingVariant;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.GameRules;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -114,8 +113,9 @@ public final class AmiRegistryDocumentBuilders {
             PaintingVariant variant = holder.value();
             String rawName = id.getPath().replace('_', ' ');
             String name = Character.toUpperCase(rawName.charAt(0)) + rawName.substring(1);
-            int w = paintingDimension(variant, "width", "m_219980_");
-            int h = paintingDimension(variant, "height", "m_219985_");
+            int[] size = Services.PLATFORM.getPaintingSize(variant);
+            int w = size[0];
+            int h = size[1];
 
             List<String> tokens = new ArrayList<>();
             tokens.add(RegistryDocumentKind.PAINTING.categoryToken());
@@ -214,18 +214,5 @@ public final class AmiRegistryDocumentBuilders {
                     tokens
             ));
         });
-    }
-
-    /** Reflectively reads a dimension int from PaintingVariant, tolerating SRG name differences. */
-    private static int paintingDimension(PaintingVariant variant, String... methodNames) {
-        for (String name : methodNames) {
-            try {
-                Method m = PaintingVariant.class.getMethod(name);
-                Object result = m.invoke(variant);
-                if (result instanceof Number n) return n.intValue();
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-        return 1;
     }
 }
