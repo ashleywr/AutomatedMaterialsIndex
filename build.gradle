@@ -19,6 +19,7 @@ allprojects {
         maven { url = "https://maven.minecraftforge.net" }
         maven { url = "https://maven.neoforged.net/releases" }
         maven { url = "https://maven.latvian.dev/releases" }
+        maven { url = "https://maven.shedaniel.me/" }
         mavenCentral()
     }
 }
@@ -106,6 +107,11 @@ configurations {
         canBeResolved = true
         transitive = false
     }
+    fabricReiSources {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
 }
 
 dependencies {
@@ -117,6 +123,7 @@ dependencies {
     forgeJeiApiSources("mezz.jei:jei-${forge_minecraft_version}-forge-api:${forge_jei_version}:sources")
     forgeJeiSources("mezz.jei:jei-${forge_minecraft_version}-forge:${forge_jei_version}:sources")
     forgeEmiSources("dev.emi:emi-forge:${forge_emi_version}+${forge_minecraft_version}:sources")
+    fabricReiSources("me.shedaniel:RoughlyEnoughItems-api-fabric:${fabric_rei_version}:sources")
 }
 
 def registerVendorSourceSync = { String taskName, String configurationName, String outputPath ->
@@ -159,6 +166,11 @@ def syncForgeEmiSources = registerVendorSourceSync(
         'forgeEmiSources',
         "vendor-sources/resolved/emi/forge-${forge_minecraft_version}"
 )
+def syncFabricReiSources = registerVendorSourceSync(
+        'syncFabricReiSources',
+        'fabricReiSources',
+        "vendor-sources/resolved/rei/fabric-${fabric_minecraft_version}"
+)
 
 def syncNeoForgeReferenceSources = registerVendorSourceSync(
         'syncNeoForgeReferenceSources',
@@ -187,6 +199,7 @@ tasks.register('syncRecipeViewerSources') {
     dependsOn syncForgeJeiApiSources
     dependsOn syncForgeJeiSources
     dependsOn syncForgeEmiSources
+    dependsOn syncFabricReiSources
 }
 
 tasks.named('compileJava', JavaCompile).configure {

@@ -57,6 +57,8 @@ dependencies {
 
     modCompileOnly "dev.emi:emi-fabric:${fabric_emi_version}+${fabric_minecraft_version}"
 
+    modCompileOnly "me.shedaniel:RoughlyEnoughItems-api-fabric:${fabric_rei_version}"
+
     // Recipe-viewer mods are only present in :fabric:runClient when explicitly requested,
     // because JEI and EMI conflict and must be tested separately (mirrors the NeoForge
     // clientJei / clientEmi / clientJeiEmi split). Select with -Pami.viewer=jei|emi|jei_emi.
@@ -68,6 +70,11 @@ dependencies {
     }
     if (amiViewer in ['emi', 'jei_emi']) {
         modLocalRuntime "dev.emi:emi-fabric:${fabric_emi_version}+${fabric_minecraft_version}"
+    }
+    // REI is mutually exclusive with JEI/EMI (it bundles its own JEI-compat layer), so it has
+    // its own viewer value rather than combining: -Pami.viewer=rei.
+    if (amiViewer == 'rei') {
+        modLocalRuntime "me.shedaniel:RoughlyEnoughItems-fabric:${fabric_rei_version}"
     }
 
     compileOnly 'it.unimi.dsi:fastutil:8.5.9'
