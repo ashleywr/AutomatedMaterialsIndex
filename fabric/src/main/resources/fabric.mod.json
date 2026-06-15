@@ -9,7 +9,8 @@
   "entrypoints": {
     "main": ["com.sanhiruzu.ami.fabric.AmiFabric"],
     "client": ["com.sanhiruzu.ami.fabric.AmiFabricClient"],
-    "jei_mod_plugin": ["com.sanhiruzu.ami.compat.AmiJeiPlugin"]
+    "jei_mod_plugin": ["com.sanhiruzu.ami.compat.AmiJeiPlugin"],
+    "rei_client": ["com.sanhiruzu.ami.fabric.compat.AmiReiPlugin"]
   },
   "mixins": [
     "ami.mixins.json",
@@ -23,6 +24,7 @@
   },
   "suggests": {
     "jei": "*",
-    "emi": "*"
+    "emi": "*",
+    "roughlyenoughitems": "*"
   }
 }

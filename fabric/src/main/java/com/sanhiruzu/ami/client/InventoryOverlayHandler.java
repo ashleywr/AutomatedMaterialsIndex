@@ -24,7 +24,9 @@ import net.minecraft.client.gui.screens.inventory.EffectRenderingInventoryScreen
 public class InventoryOverlayHandler {
 
     public static final boolean RECIPE_VIEWER_PRESENT =
-            Services.PLATFORM.isModLoaded("emi") || Services.PLATFORM.isModLoaded("jei");
+            Services.PLATFORM.isModLoaded("emi")
+                    || Services.PLATFORM.isModLoaded("jei")
+                    || Services.PLATFORM.isModLoaded("roughlyenoughitems");
 
     private static final boolean EAGER_WORLD_JOIN_INDEXING =
             Boolean.getBoolean("ami.debug.indexOnWorldJoin");

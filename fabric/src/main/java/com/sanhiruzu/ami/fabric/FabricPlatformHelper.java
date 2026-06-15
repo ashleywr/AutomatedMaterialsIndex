@@ -254,6 +254,20 @@ public class FabricPlatformHelper implements IPlatformHelper {
         return new RecipeHolder<>(id, recipe);
     }
 
+    /**
+     * Routes AMI's recipe/usage open requests to REI, which ships only on Fabric. The
+     * {@code roughlyenoughitems} guard means {@link com.sanhiruzu.ami.fabric.compat.ReiRecipeBridge}
+     * (and therefore the {@code me.shedaniel.rei.*} types it references) is never linked when REI is
+     * absent — mirrors how RecipeViewerBridge guards the EMI/JEI bridges.
+     */
+    @Override
+    public boolean openExternalRecipeView(ItemStack stack, boolean uses) {
+        if (stack == null || stack.isEmpty() || !isModLoaded("roughlyenoughitems")) {
+            return false;
+        }
+        return com.sanhiruzu.ami.fabric.compat.ReiRecipeBridge.open(stack, uses);
+    }
+
     @Override
     public void openChatDraftScreen(String text) {
         // Delegated to a nested class so the client-only ChatScreen reference is not verified when
