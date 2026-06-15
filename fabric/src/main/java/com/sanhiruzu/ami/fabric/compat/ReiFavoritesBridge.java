@@ -47,13 +47,18 @@ public final class ReiFavoritesBridge {
                 return ItemStack.EMPTY;
             }
 
-            // REI scales the mouse to GUI-space the same way vanilla screens do.
+            // Convert the raw cursor position to GUI-scaled coordinates exactly the way vanilla screens
+            // do (xpos * guiScaledWidth / screenWidth), so the point matches REI's widget space.
             MouseHandler mouse = mc.mouseHandler;
-            double guiScale = mc.getWindow().getGuiScale();
-            int mouseX = (int) (mouse.xpos() / guiScale);
-            int mouseY = (int) (mouse.ypos() / guiScale);
+            var window = mc.getWindow();
+            int mouseX = (int) (mouse.xpos() * window.getGuiScaledWidth() / window.getScreenWidth());
+            int mouseY = (int) (mouse.ypos() * window.getGuiScaledHeight() / window.getScreenHeight());
 
             EntryStack<?> focused = registry.getFocusedStack(screen, new Point(mouseX, mouseY));
+            // TEMP diagnostic (remove once confirmed): logs what REI reports under the cursor on an A press.
+            AmiFabric.LOGGER.info("AMI REI favorite probe: screen={} mouse=({},{}) focused={}",
+                    screen.getClass().getName(), mouseX, mouseY,
+                    focused == null ? "null" : (focused.isEmpty() ? "empty" : focused.getType().getId()));
             if (focused == null || focused.isEmpty()) {
                 return ItemStack.EMPTY;
             }
