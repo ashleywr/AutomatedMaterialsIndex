@@ -1,6 +1,9 @@
 plugins {
     id 'java-library'
+    id 'maven-publish'
     id 'fabric-loom' version "${fabric_loom_version}"
+    id 'com.modrinth.minotaur' version '2.8.7'
+    id 'com.matthewprenger.cursegradle' version '1.4.0'
 }
 
 base {
@@ -94,4 +97,70 @@ processResources {
 tasks.register('regutilsIdeSync') {
     group = 'ide'
     description = 'No-op compatibility alias for stale IntelliJ sync task activation.'
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            from components.java
+        }
+    }
+}
+
+// Release publishing — mirrors neoforge/build.gradle, but the publishable artifact is
+// Loom's remapJar (the production, intermediary-remapped jar), NOT the dev jar.
+
+def changelogText = {
+    def f = rootProject.file('CHANGELOG.md')
+    if (!f.exists()) return ''
+    def text = f.text.replace('\r\n', '\n')
+    def start = text.indexOf("## ${mod_version}")
+    if (start < 0) return text.trim()
+    def next = text.indexOf('\n## ', start + 1)
+    return (next < 0 ? text.substring(start) : text.substring(start, next)).trim()
+}
+
+modrinth {
+    token = System.getenv('MODRINTH_TOKEN') ?: ''
+    projectId = 'QOM56zjQ'
+    versionNumber = "${mod_version}+fabric.${fabric_minecraft_version}"
+    versionName = "AMI ${mod_version} (Fabric ${fabric_minecraft_version})"
+    versionType = 'release'
+    uploadFile = tasks.named('remapJar')
+    gameVersions = [fabric_minecraft_version]
+    loaders = ['fabric']
+    detectLoaders = false
+    changelog = changelogText()
+    dependencies {
+        required.project 'fabric-api'
+        optional.project 'emi'
+        optional.project 'jei'
+    }
+}
+
+if (System.getenv('CURSEFORGE_TOKEN')) {
+    curseforge {
+        apiKey = System.getenv('CURSEFORGE_TOKEN')
+        project {
+            id = '1558643'
+            releaseType = 'release'
+            changelogType = 'markdown'
+            changelog = changelogText()
+            addGameVersion fabric_minecraft_version
+            addGameVersion 'Fabric'
+            mainArtifact(tasks.remapJar) {
+                displayName = "AMI ${mod_version} (Fabric ${fabric_minecraft_version})"
+            }
+            relations {
+                requiredDependency 'fabric-api'
+                optionalDependency 'jei'
+                optionalDependency 'emi'
+            }
+        }
+        options {
+            javaIntegration = false
+            forgeGradleIntegration = false
+            javaVersionAutoDetect = false
+        }
+    }
 }
