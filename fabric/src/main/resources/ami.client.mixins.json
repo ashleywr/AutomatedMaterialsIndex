@@ -1,10 +1,18 @@
 {
   "required": true,
-  "package": "com.sanhiruzu.ami.mixin.fabric.client",
+  "package": "com.sanhiruzu.ami.mixin",
   "plugin": "com.sanhiruzu.ami.mixin.AmiMixinConfigPlugin",
   "compatibilityLevel": "JAVA_21",
   "minVersion": "0.8.4",
   "refmap": "ami.refmap.json",
   "mixins": [],
-  "client": []
+  "client": [
+    "ContainerTooltipMixin",
+    "EmiRecipeScreenFavoriteMixin",
+    "EmiScreenManagerMixin",
+    "JeiBookmarkListMixin",
+    "JeiClientInputHandlerMixin",
+    "JeiGuiEventHandlerMixin",
+    "RecipeBookComponentMixin"
+  ]
 }

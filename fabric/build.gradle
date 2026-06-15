@@ -54,6 +54,19 @@ dependencies {
 
     modCompileOnly "dev.emi:emi-fabric:${fabric_emi_version}+${fabric_minecraft_version}"
 
+    // Recipe-viewer mods are only present in :fabric:runClient when explicitly requested,
+    // because JEI and EMI conflict and must be tested separately (mirrors the NeoForge
+    // clientJei / clientEmi / clientJeiEmi split). Select with -Pami.viewer=jei|emi|jei_emi.
+    // JEI's Fabric build needs its companion -gui/-lib/-common artifacts, which it pulls in
+    // transitively, so the runtime jar is enough.
+    def amiViewer = providers.gradleProperty('ami.viewer').getOrElse('none').toLowerCase()
+    if (amiViewer in ['jei', 'jei_emi']) {
+        modLocalRuntime "mezz.jei:jei-${fabric_minecraft_version}-fabric:${fabric_jei_version}"
+    }
+    if (amiViewer in ['emi', 'jei_emi']) {
+        modLocalRuntime "dev.emi:emi-fabric:${fabric_emi_version}+${fabric_minecraft_version}"
+    }
+
     compileOnly 'it.unimi.dsi:fastutil:8.5.9'
 
     testImplementation "org.junit.jupiter:junit-jupiter:5.9.3"

@@ -43,12 +43,28 @@ public class AmiMixinConfigPlugin implements IMixinConfigPlugin {
         return true;
     }
 
+    private static Boolean isFabricModLoaded(String modId) {
+        try {
+            Class<?> fabricLoaderClass = Class.forName("net.fabricmc.loader.api.FabricLoader");
+            Object instance = fabricLoaderClass.getMethod("getInstance").invoke(null);
+            Object loaded = instance.getClass().getMethod("isModLoaded", String.class).invoke(instance, modId);
+            return loaded instanceof Boolean result ? result : null;
+        } catch (ClassNotFoundException ignored) {
+            return null;
+        } catch (Throwable ignored) {
+            return true; // Fallback for unit tests where FabricLoader is not active
+        }
+    }
+
     private boolean isModLoaded(String modId) {
         Boolean neoForgeLoaded = isModLoaded("net.neoforged.fml.loading.LoadingModList", modId);
         if (neoForgeLoaded != null) return neoForgeLoaded;
 
         Boolean forgeLoaded = isModLoaded("net.minecraftforge.fml.loading.LoadingModList", modId);
-        return forgeLoaded == null || forgeLoaded;
+        if (forgeLoaded != null) return forgeLoaded;
+
+        Boolean fabricLoaded = isFabricModLoaded(modId);
+        return fabricLoaded == null || fabricLoaded;
     }
 
     @Override
