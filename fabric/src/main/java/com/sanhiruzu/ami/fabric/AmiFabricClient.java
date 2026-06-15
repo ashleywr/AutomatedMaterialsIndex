@@ -6,10 +6,12 @@ import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.ThemeResourceLoader;
 import com.sanhiruzu.ami.client.discovery.AmiDiscoveryState;
+import com.sanhiruzu.ami.client.icon.EntityIconRenderer;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.client.results.ItemGridView;
 import com.sanhiruzu.ami.compat.FtbQuestsRuntimeCompat;
 import com.sanhiruzu.ami.config.AmiConfigStore;
+import com.sanhiruzu.ami.fabric.client.AmiFabricClientHooks;
 import com.sanhiruzu.ami.fabric.client.FabricAmiKeyMappings;
 import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.index.GlobalIndexCache;
@@ -69,6 +71,7 @@ public class AmiFabricClient implements ClientModInitializer {
         registerClientLifecycleEvents();
         registerClientTickEvents();
         registerPlayerLogoutEvents();
+        AmiFabricClientHooks.register();
 
         // Config + theme load: mirror NeoForge's onClientSetup
         AmiConfigStore.load();
@@ -186,8 +189,7 @@ public class AmiFabricClient implements ClientModInitializer {
                 AmiDiscoveryState.getInstance().clientTick();
                 AmiIndexerService.getInstance().ensurePendingRecipeIndexBuild();
                 InventoryOverlayHandler.tickAutoIndexBootstrap();
-                // EntityIconRenderer.tickAtlasWarmup() is deferred to Milestone D
-                // (the Fabric stub EntityIconRenderer exists but atlas warmup is a rendering concern)
+                EntityIconRenderer.tickAtlasWarmup();
             } finally {
                 AmiClientTelemetry.endClientTick();
             }

@@ -18,6 +18,9 @@ sourceSets {
             srcDir xplatProject.file('src/main/resources')
         }
     }
+    test {
+        java.srcDirs = ['src/test/java']
+    }
 }
 
 loom {
@@ -52,6 +55,14 @@ dependencies {
     modCompileOnly "dev.emi:emi-fabric:${fabric_emi_version}+${fabric_minecraft_version}"
 
     compileOnly 'it.unimi.dsi:fastutil:8.5.9'
+
+    testImplementation "org.junit.jupiter:junit-jupiter:5.9.3"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.9.3"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.9.3"
+}
+
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
 }
 
 processResources {
