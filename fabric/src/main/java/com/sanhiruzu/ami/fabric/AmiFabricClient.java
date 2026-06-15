@@ -9,6 +9,11 @@ import com.sanhiruzu.ami.client.discovery.AmiDiscoveryState;
 import com.sanhiruzu.ami.client.icon.EntityIconRenderer;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.client.results.ItemGridView;
+import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
+import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
+import com.sanhiruzu.ami.client.tooltip.PokemonStatBarsComponent;
+import com.sanhiruzu.ami.client.tooltip.PokemonTypeBadgesComponent;
+import com.sanhiruzu.ami.client.tooltip.StatIconRowTooltipComponent;
 import com.sanhiruzu.ami.compat.FtbQuestsRuntimeCompat;
 import com.sanhiruzu.ami.config.AmiConfigStore;
 import com.sanhiruzu.ami.fabric.client.AmiFabricClientHooks;
@@ -26,7 +31,9 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.client.rendering.v1.TooltipComponentCallback;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackType;
@@ -49,10 +56,8 @@ import java.util.concurrent.Executor;
  * - Reset session state (caches, network flag) on player logout.
  * <p>
  * What is NOT here (later milestones):
- * - Overlay rendering, screen mixins, input dispatch (Milestone D).
+ * - Screen mixins for JEI/EMI integration (Milestone F).
  * - Recipe index integration (Milestone E).
- * - Tooltip component factory registration (no Fabric equivalent of
- *   RegisterClientTooltipComponentFactoriesEvent; planned for Milestone D).
  */
 @Environment(EnvType.CLIENT)
 public class AmiFabricClient implements ClientModInitializer {
@@ -66,6 +71,7 @@ public class AmiFabricClient implements ClientModInitializer {
         AmiFabric.LOGGER.debug("================================");
 
         registerKeyBindings();
+        registerTooltipComponentFactories();
         registerResourceReloadListeners();
         registerNetworkReceivers();
         registerClientLifecycleEvents();
@@ -112,6 +118,30 @@ public class AmiFabricClient implements ClientModInitializer {
             KeyBindingHelper.registerKeyBinding(km);
         }
         AmiFabric.LOGGER.debug("AMI: registered {} key bindings", keyMappings.all().length);
+    }
+
+    // -------------------------------------------------------------------------
+    // Tooltip component factories
+    // -------------------------------------------------------------------------
+
+    /**
+     * Fabric equivalent of NeoForge's RegisterClientTooltipComponentFactoriesEvent.
+     * AMI's tooltip components implement both {@code TooltipComponent} (data) and
+     * {@code ClientTooltipComponent} (render), so each maps to itself. Without this,
+     * vanilla {@code ClientTooltipComponent.create()} throws when AMI passes one of
+     * its custom components to {@code GuiGraphics.renderTooltip(...)}.
+     */
+    private void registerTooltipComponentFactories() {
+        TooltipComponentCallback.EVENT.register(data -> {
+            if (data instanceof CompositeTooltipComponent
+                    || data instanceof HeartBarTooltipComponent
+                    || data instanceof StatIconRowTooltipComponent
+                    || data instanceof PokemonTypeBadgesComponent
+                    || data instanceof PokemonStatBarsComponent) {
+                return (ClientTooltipComponent) data;
+            }
+            return null;
+        });
     }
 
     // -------------------------------------------------------------------------
