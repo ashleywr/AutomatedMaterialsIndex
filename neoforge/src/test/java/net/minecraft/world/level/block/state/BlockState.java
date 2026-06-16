@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 public class BlockState {
+    private Block block;
     private final Set<TagKey<Block>> tags = new LinkedHashSet<>();
     private final Set<Property<?>> properties = new LinkedHashSet<>();
     private int lightEmission;
@@ -65,6 +66,15 @@ public class BlockState {
 
     public boolean hasAnalogOutputSignal() {
         return analogOutputSignal;
+    }
+
+    public Block getBlock() {
+        return block;
+    }
+
+    public BlockState setBlock(Block block) {
+        this.block = block;
+        return this;
     }
 
     public boolean isCollisionShapeFullBlock(BlockGetter level, BlockPos pos) {

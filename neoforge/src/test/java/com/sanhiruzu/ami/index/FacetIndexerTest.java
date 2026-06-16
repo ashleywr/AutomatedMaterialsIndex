@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -26,12 +26,12 @@ class FacetIndexerTest {
     }
 
     private static Item register(String path, Item item) {
-        BuiltInRegistries.itemRegistry().register(new ResourceLocation("ami_test", path), item);
+        BuiltInRegistries.itemRegistry().register(new Identifier("ami_test", path), item);
         return item;
     }
 
     private static Item register(String namespace, String path, Item item) {
-        BuiltInRegistries.itemRegistry().register(new ResourceLocation(namespace, path), item);
+        BuiltInRegistries.itemRegistry().register(new Identifier(namespace, path), item);
         return item;
     }
 
@@ -67,13 +67,13 @@ class FacetIndexerTest {
                 .withComponent(DataComponents.DAMAGE));
         Item cookedMeat = register("cooked_duck", new Item("Cooked Duck")
                 .withComponent(DataComponents.FOOD)
-                .withTag(TagKey.create(null, new ResourceLocation("c", "cooked_meat"))));
+                .withTag(TagKey.create(null, new Identifier("c", "cooked_meat"))));
         Item vegetable = register("canned_carrot", new Item("Canned Carrot")
                 .withComponent(DataComponents.FOOD)
-                .withTag(TagKey.create(null, new ResourceLocation("diet", "vegetables"))));
+                .withTag(TagKey.create(null, new Identifier("diet", "vegetables"))));
         Item meal = register("fried_rice", new Item("Fried Rice")
                 .withComponent(DataComponents.FOOD)
-                .withTag(TagKey.create(null, new ResourceLocation("farmersdelight", "meals"))));
+                .withTag(TagKey.create(null, new Identifier("farmersdelight", "meals"))));
 
         assertTrue(index(drink).facets().contains(ItemFacet.FOOD_DRINK));
         assertTrue(index(drink).attributes().getOrDefault(SearchNodeKeys.COMPONENT_FACTS, "").contains("food"));
@@ -94,7 +94,7 @@ class FacetIndexerTest {
         Item powerBottle = register("reactive_power_bottle", new PowerBottleItem(
                 "Reactive Power Bottle",
                 new PowerBottleBlock(new BlockState().withProperty(new Property<>("bottles")))
-        ).withTag(TagKey.create(null, new ResourceLocation("reactive", "power_bottles"))));
+        ).withTag(TagKey.create(null, new Identifier("reactive", "power_bottles"))));
         Item crucible = register("reactive_crucible", new BlockItem(
                 "Reactive Crucible",
                 new CrucibleBlock(new BlockState())
@@ -215,7 +215,7 @@ class FacetIndexerTest {
 
         FacetProfile profile = index(bookshelf);
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("ami_test:oak_bookshelf"),
+                new Identifier("ami_test:oak_bookshelf"),
                 profile
         );
 
@@ -229,7 +229,7 @@ class FacetIndexerTest {
     @Test
     void taggedBoneGetsOrganicIngredientFacet() {
         Item boneMeal = register("test_bone", new Item("Test Bone")
-                .withTag(TagKey.create(null, new ResourceLocation("c", "bones"))));
+                .withTag(TagKey.create(null, new Identifier("c", "bones"))));
 
         FacetProfile profile = index(boneMeal);
 
@@ -239,8 +239,8 @@ class FacetIndexerTest {
     @Test
     void packAuthorFacetTagsProduceConcreteFacets() {
         Item coating = register("fire_coating", new Item("Fire Coating")
-                .withTag(TagKey.create(null, new ResourceLocation("ami", "facets/magic_reagent")))
-                .withTag(TagKey.create(null, new ResourceLocation("ami", "facets/tech_component"))));
+                .withTag(TagKey.create(null, new Identifier("ami", "facets/magic_reagent")))
+                .withTag(TagKey.create(null, new Identifier("ami", "facets/tech_component"))));
 
         FacetProfile profile = index(coating);
 
@@ -428,7 +428,7 @@ class FacetIndexerTest {
     void furnitureTagsProduceDecorationFacetForPassiveSignalBlocks() {
         Item toilet = register("yellow_toilet", new BlockItem("Yellow Toilet",
                 new TestEntityBlock(new BlockState().withAnalogOutputSignal(true)))
-                .withTag(TagKey.create(null, new ResourceLocation("refurbished_furniture", "bathroom"))));
+                .withTag(TagKey.create(null, new Identifier("refurbished_furniture", "bathroom"))));
 
         FacetProfile profile = index(toilet);
 
@@ -471,7 +471,7 @@ class FacetIndexerTest {
         Item shop = register("shop", new BlockItem("Shop", new ShopBlock(new BlockState())));
         Item station = register("baker_station", new BlockItem("Baker Station", new BakerStationBlock(new BlockState())));
         Item trim = register("toms_storage", "trim", new BlockItem("Inventory Trim", new TrimBlock(new BlockState()))
-                .withTag(TagKey.create(null, new ResourceLocation("toms_storage", "trims"))));
+                .withTag(TagKey.create(null, new Identifier("toms_storage", "trims"))));
         Item connector = register("toms_storage", "inventory_connector",
                 new BlockItem("Inventory Connector", new InventoryConnectorBlock(new BlockState())));
         Item transformer = register("transformer_core", new BlockItem("Transformer Core", new TransformerCoreBlock(new BlockState())));
@@ -585,11 +585,11 @@ class FacetIndexerTest {
     @Test
     void storageBlocksGetMaterialFacetsButNotStorageFacet() {
         Item ironBlock = register("iron_block", new Item("Iron Block")
-                .withTag(TagKey.create(null, new ResourceLocation("c", "storage_blocks/iron"))));
+                .withTag(TagKey.create(null, new Identifier("c", "storage_blocks/iron"))));
         Item rawIronBlock = register("raw_iron_block", new Item("Raw Iron Block")
-                .withTag(TagKey.create(null, new ResourceLocation("c", "storage_blocks/raw_iron"))));
+                .withTag(TagKey.create(null, new Identifier("c", "storage_blocks/raw_iron"))));
         Item diamondBlock = register("diamond_block", new Item("Diamond Block")
-                .withTag(TagKey.create(null, new ResourceLocation("c", "storage_blocks/diamond"))));
+                .withTag(TagKey.create(null, new Identifier("c", "storage_blocks/diamond"))));
 
         FacetProfile ironProfile = index(ironBlock);
         FacetProfile rawIronProfile = index(rawIronBlock);
@@ -608,11 +608,11 @@ class FacetIndexerTest {
     @Test
     void forgeMaterialTagsProduceTechMaterialFacets() {
         Item inaniteIngot = register("inanite_ingot", new Item("Inanite Ingot")
-                .withTag(TagKey.create(null, new ResourceLocation("forge", "ingots/inanite"))));
+                .withTag(TagKey.create(null, new Identifier("forge", "ingots/inanite"))));
         Item cyaniteDust = register("cyanite_dust", new Item("Cyanite Dust")
-                .withTag(TagKey.create(null, new ResourceLocation("forge", "dusts/cyanite"))));
+                .withTag(TagKey.create(null, new Identifier("forge", "dusts/cyanite"))));
         Item yelloriumBlock = register("yellorium_block", new Item("Yellorium Block")
-                .withTag(TagKey.create(null, new ResourceLocation("forge", "storage_blocks/yellorium"))));
+                .withTag(TagKey.create(null, new Identifier("forge", "storage_blocks/yellorium"))));
 
         assertTrue(index(inaniteIngot).facets().contains(ItemFacet.INGOT));
         assertTrue(index(cyaniteDust).facets().contains(ItemFacet.DUST));
@@ -622,12 +622,12 @@ class FacetIndexerTest {
     @Test
     void broadDietTagsOnlyCreateFoodFacetsForEdibleItems() {
         Item leaves = register("diet_leaves", new BlockItem("Diet Leaves", new Block(new BlockState()))
-                .withTag(TagKey.create(null, new ResourceLocation("diet", "vegetables"))));
+                .withTag(TagKey.create(null, new Identifier("diet", "vegetables"))));
         Item slimeball = register("diet_slimeball", new Item("Diet Slimeball")
-                .withTag(TagKey.create(null, new ResourceLocation("diet", "proteins"))));
+                .withTag(TagKey.create(null, new Identifier("diet", "proteins"))));
         Item tomato = register("diet_tomato", new Item("Diet Tomato")
                 .withComponent(DataComponents.FOOD)
-                .withTag(TagKey.create(null, new ResourceLocation("diet", "vegetables"))));
+                .withTag(TagKey.create(null, new Identifier("diet", "vegetables"))));
 
         assertFalse(index(leaves).facets().contains(ItemFacet.CROP));
         assertFalse(index(slimeball).facets().contains(ItemFacet.FOOD_PROTEIN));
@@ -649,7 +649,7 @@ class FacetIndexerTest {
     @Test
     void materialLeadDoesNotBecomeUtilityLeash() {
         Item leadIngot = register("ingot_lead", new Item("Lead Ingot")
-                .withTag(TagKey.create(null, new ResourceLocation("forge", "ingots/lead"))));
+                .withTag(TagKey.create(null, new Identifier("forge", "ingots/lead"))));
         Item leash = register("lead", new Item("Lead"));
 
         assertTrue(index(leadIngot).facets().contains(ItemFacet.INGOT));
@@ -660,7 +660,7 @@ class FacetIndexerTest {
     @Test
     void curiosTagsProduceCurioFacet() {
         Item trinket = register("trinket", new Item("Trinket")
-                .withTag(TagKey.create(null, new ResourceLocation("curios", "charm"))));
+                .withTag(TagKey.create(null, new Identifier("curios", "charm"))));
 
         assertTrue(index(trinket).facets().contains(ItemFacet.CURIO));
     }
@@ -668,33 +668,33 @@ class FacetIndexerTest {
     @Test
     void componentAndToolTagsProduceConcreteFacets() {
         Item wire = register("wire_copper", new Item("Copper Wire")
-                .withTag(TagKey.create(null, new ResourceLocation("c", "wires/copper"))));
+                .withTag(TagKey.create(null, new Identifier("c", "wires/copper"))));
         Item circuit = register("integrated_circuit", new Item("Integrated Circuit")
-                .withTag(TagKey.create(null, new ResourceLocation("ccbr", "integrated_circuits"))));
+                .withTag(TagKey.create(null, new Identifier("ccbr", "integrated_circuits"))));
         Item cogwheel = register("small_cogwheel", new Item("Small Cogwheel"));
         Item hammer = register("hammer", new Item("Hammer")
-                .withTag(TagKey.create(null, new ResourceLocation("immersiveengineering", "tools/hammers"))));
+                .withTag(TagKey.create(null, new Identifier("immersiveengineering", "tools/hammers"))));
         Item disc = register("music_disc", new Item("Music Disc")
-                .withTag(TagKey.create(null, new ResourceLocation("minecraft", "music_discs"))));
+                .withTag(TagKey.create(null, new Identifier("minecraft", "music_discs"))));
         Item round = register("autocannon_round", new Item("Autocannon Round")
-                .withTag(TagKey.create(null, new ResourceLocation("createbigcannons", "autocannon_rounds"))));
+                .withTag(TagKey.create(null, new Identifier("createbigcannons", "autocannon_rounds"))));
         Item narrowTrack = register("track_incomplete_jungle_narrow", new Item("Incomplete Narrow Jungle Track"));
         Item rockyShell = register("rocky_shell", new Item("Rocky Shell"));
         Item mapleDoor = register("maple_japanese_door", new BlockItem("Maple Shoji Door", new Block(new BlockState())));
         Item upgrade = register("speed_upgrade", new Item("Speed Upgrade"));
         Item blueprint = register("blueprint", new Item("Blueprint"));
         Item leggingsBlueprint = register("leggings_blueprint", new Item("Leggings Blueprint")
-                .withTag(TagKey.create(null, new ResourceLocation("silentgear", "blueprints/leggings")))
-                .withTag(TagKey.create(null, new ResourceLocation("silentgear", "blueprints")))
-                .withTag(TagKey.create(null, new ResourceLocation("c", "blueprint_override"))));
+                .withTag(TagKey.create(null, new Identifier("silentgear", "blueprints/leggings")))
+                .withTag(TagKey.create(null, new Identifier("silentgear", "blueprints")))
+                .withTag(TagKey.create(null, new Identifier("c", "blueprint_override"))));
         Item bandage = register("bandage", new Item("Bandage"));
         Item coin = register("gold_coin", new Item("Gold Coin"));
         Item wrench = register("modded_wrench", new Item("Modded Wrench")
-                .withTag(TagKey.create(null, new ResourceLocation("c", "tools/wrenches"))));
+                .withTag(TagKey.create(null, new Identifier("c", "tools/wrenches"))));
         Item taggedFishingRod = register("tagged_rod", new Item("Tagged Rod")
-                .withTag(TagKey.create(null, new ResourceLocation("c", "tools/fishing_rods"))));
+                .withTag(TagKey.create(null, new Identifier("c", "tools/fishing_rods"))));
         Item enchantableHelmet = register("enchantable_helmet", new Item("Enchantable Helmet")
-                .withTag(TagKey.create(null, new ResourceLocation("minecraft", "enchantable/head_armor"))));
+                .withTag(TagKey.create(null, new Identifier("minecraft", "enchantable/head_armor"))));
 
         assertTrue(index(wire).facets().contains(ItemFacet.TECH_COMPONENT));
         assertTrue(index(wire).facets().contains(ItemFacet.CABLE));
@@ -725,7 +725,7 @@ class FacetIndexerTest {
         Item copperCan = register("tconstruct", "copper_can", new TestCopperCanItem("Copper Can"));
         Item piggyBackpack = register("tconstruct", "piggy_backpack", new TestPiggyBackPackItem("Piggybackpack"));
         Item glowBall = register("tconstruct", "glow_ball", new TestGlowBallItem("Glowball")
-                .withTag(TagKey.create(null, new ResourceLocation("tconstruct", "throwable"))));
+                .withTag(TagKey.create(null, new Identifier("tconstruct", "throwable"))));
         Item crystalshot = register("tconstruct", "crystalshot", new TestCrystalshotItem("Crystalshot"));
         Item venombone = register("tconstruct", "venombone", new Item("Venombone"));
 
@@ -849,8 +849,8 @@ class FacetIndexerTest {
         }
 
         @Override
-        public UseAnim getUseAnimation(ItemStack stack) {
-            return UseAnim.DRINK;
+        public ItemUseAnimation getUseAnimation(ItemStack stack) {
+            return ItemUseAnimation.DRINK;
         }
     }
 

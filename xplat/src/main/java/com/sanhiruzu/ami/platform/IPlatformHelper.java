@@ -7,11 +7,11 @@ import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.Item;
@@ -21,7 +21,6 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
-import org.joml.Matrix4f;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -180,7 +179,7 @@ public interface IPlatformHelper {
         return getModName(modId).isPresent();
     }
 
-    ResourceLocation rl(String namespace, String path);
+    Identifier rl(String namespace, String path);
 
     IAmiKeyMappings keyMappings();
 
@@ -227,7 +226,7 @@ public interface IPlatformHelper {
      * class, while MC 1.21.1 exposes the record accessors {@code width()}/{@code height()}. Implemented
      * per-loader so each calls the correct direct (remappable) accessor instead of name reflection.
      */
-    int[] getPaintingSize(net.minecraft.world.entity.decoration.PaintingVariant variant);
+    int[] getPaintingSize(net.minecraft.world.entity.decoration.painting.PaintingVariant variant);
 
     /**
      * Wraps {@code recipe} in a {@code net.minecraft.world.item.crafting.RecipeHolder} for JEI's
@@ -237,7 +236,7 @@ public interface IPlatformHelper {
      * the legacy recipe path); NeoForge/Fabric (1.21.1) return a real {@code RecipeHolder} via a direct,
      * Loom-remappable reference. Returns {@link Object} because the type is absent at xplat compile time.
      */
-    default Object createRecipeHolder(ResourceLocation id, net.minecraft.world.item.crafting.Recipe<?> recipe) {
+    default Object createRecipeHolder(Identifier id, net.minecraft.world.item.crafting.Recipe<?> recipe) {
         return null;
     }
 
@@ -268,10 +267,10 @@ public interface IPlatformHelper {
 
     /**
      * Renders a tooltip with an associated ItemStack for decoration/positioning purposes.
-     * Delegates to the 6-arg {@code GuiGraphics.renderTooltip(Font, List, Optional, ItemStack, int, int)}
+     * Delegates to the 6-arg {@code GuiGraphicsExtractor.renderTooltip(Font, List, Optional, ItemStack, int, int)}
      * overload added by Forge/NeoForge.
      */
-    void renderItemTooltip(GuiGraphics g, Font font, List<Component> lines,
+    void renderItemTooltip(GuiGraphicsExtractor g, Font font, List<Component> lines,
                            Optional<TooltipComponent> image, ItemStack stack, int x, int y);
 
     /**
@@ -287,13 +286,13 @@ public interface IPlatformHelper {
     Object beginGuiQuadBatch(boolean textured);
 
     /** Appends one vertex to a batch started by {@link #beginGuiQuadBatch(boolean)}. */
-    void guiQuadVertex(Object buffer, Matrix4f matrix, float x, float y, float u, float v,
+    void guiQuadVertex(Object buffer, Object matrix, float x, float y, float u, float v,
                        float r, float g, float b, float a, boolean textured);
 
     /** Builds and draws (via {@code BufferUploader.drawWithShader}) a batch started by {@link #beginGuiQuadBatch(boolean)}. */
     void endAndDrawGuiQuadBatch(Object buffer);
 
-    default void renderVanillaScrollbar(Object guiGraphics, ResourceLocation scroller, ResourceLocation scrollerBackground,
+    default void renderVanillaScrollbar(Object GuiGraphicsExtractor, Identifier scroller, Identifier scrollerBackground,
                                         int x, int y, int width, int height, int thumbY, int thumbHeight) {
         throw new UnsupportedOperationException("Vanilla scrollbar rendering is client-only");
     }
@@ -303,7 +302,7 @@ public interface IPlatformHelper {
         return false;
     }
 
-    default ResourceLocation rl(String namespaceAndPath) {
+    default Identifier rl(String namespaceAndPath) {
         int colon = namespaceAndPath.indexOf(':');
         return colon >= 0
                 ? rl(namespaceAndPath.substring(0, colon), namespaceAndPath.substring(colon + 1))
@@ -317,15 +316,15 @@ public interface IPlatformHelper {
         return tagResult != null && tagResult;
     }
 
-    default ResourceLocation getPlayerSkinTexture(Object playerInfo) {
+    default Identifier getPlayerSkinTexture(Object playerInfo) {
         if (playerInfo == null) return null;
         Object skin = invokeNoArg(playerInfo, "getSkin");
         if (skin != null) {
             Object texture = invokeNoArg(skin, "texture");
-            if (texture instanceof ResourceLocation location) return location;
+            if (texture instanceof Identifier location) return location;
         }
         Object location = invokeNoArg(playerInfo, "getSkinLocation");
-        return location instanceof ResourceLocation resourceLocation ? resourceLocation : null;
+        return location instanceof Identifier Identifier ? Identifier : null;
     }
 
     default ItemStack getRecipeResultItem(Object recipeOrHolder, RegistryAccess registryAccess) {
@@ -481,7 +480,7 @@ public interface IPlatformHelper {
     }
 
     @org.jetbrains.annotations.Nullable
-    default ResourceLocation getFluidStillTexture(net.minecraft.world.level.material.Fluid fluid) {
+    default Identifier getFluidStillTexture(net.minecraft.world.level.material.Fluid fluid) {
         return null;
     }
 
@@ -490,23 +489,15 @@ public interface IPlatformHelper {
     }
 
     /**
-     * Renders a fluid still sprite with tint. Default uses GuiGraphics.blit() + setShaderColor()
+     * Renders a fluid still sprite with tint. Default uses GuiGraphicsExtractor.blit() + setShaderColor()
      * which works correctly in MC 1.20.x. NeoForge 1.21.x overrides with the BufferBuilder API
-     * because GuiGraphics.blit() hard-codes color=-1 in that version.
+     * because GuiGraphicsExtractor.blit() hard-codes color=-1 in that version.
      */
-    default void renderFluidSprite(net.minecraft.client.gui.GuiGraphics g,
+    default void renderFluidSprite(net.minecraft.client.gui.GuiGraphicsExtractor g,
                                    net.minecraft.client.renderer.texture.TextureAtlasSprite sprite,
                                    int tintColor, int x, int y, int size) {
-        int alphaInt = (tintColor >> 24) & 0xFF;
-        float a = alphaInt == 0 ? 1.0f : alphaInt / 255.0f;
-        float r = ((tintColor >> 16) & 0xFF) / 255.0f;
-        float gv = ((tintColor >> 8) & 0xFF) / 255.0f;
-        float b = (tintColor & 0xFF) / 255.0f;
-        com.mojang.blaze3d.systems.RenderSystem.enableBlend();
-        com.mojang.blaze3d.systems.RenderSystem.setShaderColor(r, gv, b, a);
-        g.blit(x, y, 100, size, size, sprite);
-        com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-        com.mojang.blaze3d.systems.RenderSystem.disableBlend();
+        g.blit(sprite.atlasLocation(), x, y, x + size, y + size,
+                sprite.getU0(), sprite.getU1(), sprite.getV0(), sprite.getV1());
     }
 
     default OptionalLong getItemFluidCapacity(ItemStack stack) {
@@ -568,14 +559,14 @@ public interface IPlatformHelper {
 
     default ItemStack createPlayerHeadStack(GameProfile profile) {
         if (profile == null) return ItemStack.EMPTY;
-        return createPlayerHeadStack(profile.getName(), profile.getId());
+        return createPlayerHeadStack(profile.name(), profile.id());
     }
 
     default String playerHeadGiveCommand(String name) {
         return "give @s minecraft:player_head 1";
     }
 
-    default ResourceLocation getSpawnEggEntityTypeId(SpawnEggItem egg, ItemStack stack) {
+    default Identifier getSpawnEggEntityTypeId(SpawnEggItem egg, ItemStack stack) {
         return null;
     }
 
@@ -631,7 +622,7 @@ public interface IPlatformHelper {
     record ItemAttributeModifier(ItemAttributeKind kind, double amount, ItemAttributeOperation operation) {
     }
 
-    record SubtypeStack(ResourceLocation subtypeId, ItemStack stack) {
+    record SubtypeStack(Identifier subtypeId, ItemStack stack) {
     }
 
     final class DataComponentTypeCache {

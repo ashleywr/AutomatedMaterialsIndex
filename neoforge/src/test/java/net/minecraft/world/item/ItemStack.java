@@ -72,8 +72,14 @@ public class ItemStack {
         return item == null ? Stream.empty() : item.builtInRegistryHolder().tags();
     }
 
-    public UseAnim getUseAnimation() {
-        return item == null ? UseAnim.NONE : item.getUseAnimation(this);
+    public ItemUseAnimation getUseAnimation() {
+        return item == null ? ItemUseAnimation.NONE : item.getUseAnimation(this);
+    }
+
+    public boolean is(Object item) {
+        if (item instanceof Item i) return is(i);
+        if (item instanceof net.minecraft.tags.TagKey<?> tag) return is((net.minecraft.tags.TagKey<Item>) tag);
+        return false;
     }
 
     public net.minecraft.world.entity.EquipmentSlot getEquipmentSlot() {

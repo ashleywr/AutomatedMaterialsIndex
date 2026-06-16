@@ -3,7 +3,6 @@ package com.sanhiruzu.ami.neoforge;
 import com.mojang.authlib.GameProfile;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -17,13 +16,13 @@ import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -42,17 +41,20 @@ import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.FlowerBlock;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.energy.IEnergyStorage;
-import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
-import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.energy.EnergyHandler;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
+import net.neoforged.neoforge.transfer.item.ItemResource;
 import org.objectweb.asm.Type;
 
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.StreamSupport;
 
 public class NeoForgePlatformHelper implements IPlatformHelper {
     private static final IAmiKeyMappings KEY_MAPPINGS = new IAmiKeyMappings() {
@@ -125,22 +127,13 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
         return null;
     }
 
-    private static long itemHandlerCapacity(IItemHandler handler) {
-        if (handler == null || handler.getSlots() <= 0) return 0L;
-        long capacity = 0L;
-        for (int slot = 0; slot < handler.getSlots(); slot++) {
-            capacity += Math.max(0, handler.getSlotLimit(slot));
-        }
-        return capacity;
-    }
-
     private static String escapeCommandString(String value) {
         return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     @Override
     public boolean isClient() {
-        return FMLEnvironment.dist.isClient();
+        return FMLEnvironment.getDist() == Dist.CLIENT;
     }
 
     @Override
@@ -220,8 +213,8 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     }
 
     @Override
-    public ResourceLocation rl(String namespace, String path) {
-        return ResourceLocation.fromNamespaceAndPath(namespace, path);
+    public Identifier rl(String namespace, String path) {
+        return Identifier.fromNamespaceAndPath(namespace, path);
     }
 
     @Override
@@ -261,13 +254,14 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     }
 
     @Override
-    public int[] getPaintingSize(net.minecraft.world.entity.decoration.PaintingVariant variant) {
+    public int[] getPaintingSize(net.minecraft.world.entity.decoration.painting.PaintingVariant variant) {
         return new int[]{variant.width(), variant.height()};
     }
 
     @Override
-    public Object createRecipeHolder(ResourceLocation id, net.minecraft.world.item.crafting.Recipe<?> recipe) {
-        return new net.minecraft.world.item.crafting.RecipeHolder<>(id, recipe);
+    public Object createRecipeHolder(Identifier id, net.minecraft.world.item.crafting.Recipe<?> recipe) {
+        return new net.minecraft.world.item.crafting.RecipeHolder<>(
+                net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.RECIPE, id), recipe);
     }
 
     @Override
@@ -277,24 +271,90 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
         ChatDraftOpener.open(text);
     }
 
+    // Delegated to a nested class so the Blaze3D / JOML references (Matrix4fc, BufferBuilder, etc.)
+    // are not resolved when this helper loads via ServiceLoader (the headless unit-test classpath
+    // lacks these classes and their supertype hierarchies).
+    private static final class ClientRendering {
+        static void guiQuadVertex(Object buffer, Object matrix, float x, float y, float u, float v,
+                                  float r, float g, float b, float a, boolean textured) {
+            VertexConsumer vertex = ((BufferBuilder) buffer).addVertex((org.joml.Matrix4f) matrix, x, y, 0.0f);
+            if (textured) {
+                vertex.setUv(u, v);
+            }
+            vertex.setColor(r, g, b, a);
+        }
+    }
+
+    // Delegated to a nested class so the NeoForge transfer API references are not verified when
+    // this helper loads via ServiceLoader (the headless unit-test classpath lacks these classes).
+    private static final class TransferCapabilities {
+        static Optional<Integer> getItemEnergyCapacity(ItemStack stack) {
+            EnergyHandler energyHandler = Capabilities.Energy.ITEM.getCapability(stack, null);
+            if (energyHandler == null) return Optional.empty();
+            int capacity = energyHandler.getCapacityAsInt();
+            return capacity > 0 ? Optional.of(capacity) : Optional.empty();
+        }
+
+        static Optional<Integer> getItemEnergyStored(ItemStack stack) {
+            EnergyHandler energyHandler = Capabilities.Energy.ITEM.getCapability(stack, null);
+            if (energyHandler == null) return Optional.empty();
+            int stored = energyHandler.getAmountAsInt();
+            return stored > 0 ? Optional.of(stored) : Optional.empty();
+        }
+
+        static OptionalLong getItemFluidCapacity(ItemStack stack) {
+            ResourceHandler<FluidResource> handler = Capabilities.Fluid.ITEM.getCapability(stack, null);
+            if (handler == null || handler.size() <= 0) return OptionalLong.empty();
+            long capacity = 0L;
+            for (int tank = 0; tank < handler.size(); tank++) {
+                capacity += Math.max(0, handler.getCapacityAsLong(tank, FluidResource.EMPTY));
+            }
+            return capacity > 0 ? OptionalLong.of(capacity) : OptionalLong.empty();
+        }
+
+        static OptionalLong getItemFluidAmount(ItemStack stack) {
+            ResourceHandler<FluidResource> handler = Capabilities.Fluid.ITEM.getCapability(stack, null);
+            if (handler == null || handler.size() <= 0) return OptionalLong.empty();
+            long amount = 0L;
+            for (int tank = 0; tank < handler.size(); tank++) {
+                amount += Math.max(0, handler.getAmountAsLong(tank));
+            }
+            return amount > 0 ? OptionalLong.of(amount) : OptionalLong.empty();
+        }
+
+        static OptionalLong getItemHandlerCapacity(ItemStack stack) {
+            try {
+                ResourceHandler<ItemResource> handler = Capabilities.Item.ITEM.getCapability(stack, null);
+                if (handler == null || handler.size() <= 0) return OptionalLong.empty();
+                long capacity = 0L;
+                for (int slot = 0; slot < handler.size(); slot++) {
+                    capacity += Math.max(0, handler.getCapacityAsLong(slot, ItemResource.EMPTY));
+                }
+                return capacity > 0 ? OptionalLong.of(capacity) : OptionalLong.empty();
+            } catch (RuntimeException | LinkageError ignored) {
+                return OptionalLong.empty();
+            }
+        }
+    }
+
     private static final class ChatDraftOpener {
         static void open(String text) {
             net.minecraft.client.Minecraft minecraft = net.minecraft.client.Minecraft.getInstance();
-            minecraft.setScreen(new net.minecraft.client.gui.screens.ChatScreen(text));
+            minecraft.setScreen(new net.minecraft.client.gui.screens.ChatScreen(text, false));
         }
     }
 
     @Override
-    public void renderItemTooltip(GuiGraphics g, Font font, java.util.List<net.minecraft.network.chat.Component> lines,
+    public void renderItemTooltip(GuiGraphicsExtractor g, Font font, java.util.List<net.minecraft.network.chat.Component> lines,
                                   java.util.Optional<TooltipComponent> image, ItemStack stack, int x, int y) {
-        g.renderTooltip(font, lines, image, stack, x, y);
+        g.setTooltipForNextFrame(font, lines, image, stack, x, y);
     }
 
     @Override
-    public void renderVanillaScrollbar(Object guiGraphics, ResourceLocation scroller, ResourceLocation scrollerBackground,
+    public void renderVanillaScrollbar(Object GuiGraphicsExtractor, Identifier scroller, Identifier scrollerBackground,
                                        int x, int y, int width, int height, int thumbY, int thumbHeight) {
-        GuiGraphics g = (GuiGraphics) guiGraphics;
-        g.blitSprite(scroller, x, thumbY, width, thumbHeight);
+        GuiGraphicsExtractor g = (GuiGraphicsExtractor) GuiGraphicsExtractor;
+        g.blitSprite(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, scroller, x, thumbY, width, thumbHeight);
     }
 
     @Override
@@ -304,34 +364,24 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     }
 
     @Override
-    public void guiQuadVertex(Object buffer, org.joml.Matrix4f matrix, float x, float y, float u, float v,
+    public void guiQuadVertex(Object buffer, Object matrix, float x, float y, float u, float v,
                               float r, float g, float b, float a, boolean textured) {
-        VertexConsumer vertex = ((BufferBuilder) buffer).addVertex(matrix, x, y, 0.0f);
-        if (textured) {
-            vertex.setUv(u, v);
-        }
-        vertex.setColor(r, g, b, a);
+        ClientRendering.guiQuadVertex(buffer, matrix, x, y, u, v, r, g, b, a, textured);
     }
 
     @Override
     public void endAndDrawGuiQuadBatch(Object buffer) {
-        BufferUploader.drawWithShader(((BufferBuilder) buffer).buildOrThrow());
+        ((BufferBuilder) buffer).build(); // No-op draw: BufferUploader removed in MC 26.1.2
     }
 
     @Override
     public Optional<Integer> getItemEnergyCapacity(ItemStack stack) {
-        IEnergyStorage energyStorage = stack.getCapability(Capabilities.EnergyStorage.ITEM);
-        if (energyStorage == null) return Optional.empty();
-        int capacity = energyStorage.getMaxEnergyStored();
-        return capacity > 0 ? Optional.of(capacity) : Optional.empty();
+        return TransferCapabilities.getItemEnergyCapacity(stack);
     }
 
     @Override
     public Optional<Integer> getItemEnergyStored(ItemStack stack) {
-        IEnergyStorage energyStorage = stack.getCapability(Capabilities.EnergyStorage.ITEM);
-        if (energyStorage == null) return Optional.empty();
-        int stored = energyStorage.getEnergyStored();
-        return stored > 0 ? Optional.of(stored) : Optional.empty();
+        return TransferCapabilities.getItemEnergyStored(stack);
     }
 
     @Override
@@ -340,82 +390,37 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     }
 
     @Override
-    public net.minecraft.resources.ResourceLocation getFluidStillTexture(net.minecraft.world.level.material.Fluid fluid) {
-        try {
-            return net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions.of(fluid).getStillTexture();
-        } catch (Exception e) {
-            return null;
-        }
+    public net.minecraft.resources.Identifier getFluidStillTexture(net.minecraft.world.level.material.Fluid fluid) {
+        return null;
     }
 
     @Override
     public int getFluidTintColor(net.minecraft.world.level.material.Fluid fluid) {
-        try {
-            return net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions.of(fluid).getTintColor();
-        } catch (Exception e) {
-            return 0xFFFFFFFF;
-        }
+        return 0xFFFFFFFF;
     }
 
     @Override
-    public void renderFluidSprite(net.minecraft.client.gui.GuiGraphics g,
+    public void renderFluidSprite(net.minecraft.client.gui.GuiGraphicsExtractor g,
                                   net.minecraft.client.renderer.texture.TextureAtlasSprite sprite,
                                   int tintColor, int x, int y, int size) {
-        int alphaInt = (tintColor >> 24) & 0xFF;
-        float a = alphaInt == 0 ? 1.0f : alphaInt / 255.0f;
-        float r = ((tintColor >> 16) & 0xFF) / 255.0f;
-        float gv = ((tintColor >> 8) & 0xFF) / 255.0f;
-        float b = (tintColor & 0xFF) / 255.0f;
-        com.mojang.blaze3d.systems.RenderSystem.enableBlend();
-        com.mojang.blaze3d.systems.RenderSystem.setShaderTexture(0, net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS);
-        com.mojang.blaze3d.systems.RenderSystem.setShader(net.minecraft.client.renderer.GameRenderer::getPositionTexShader);
-        com.mojang.blaze3d.systems.RenderSystem.setShaderColor(r, gv, b, a);
-        org.joml.Matrix4f matrix = g.pose().last().pose();
-        com.mojang.blaze3d.vertex.Tesselator tesselator = com.mojang.blaze3d.vertex.Tesselator.getInstance();
-        com.mojang.blaze3d.vertex.BufferBuilder buf = tesselator.begin(com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS, com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX);
         float u0 = sprite.getU0(), u1 = sprite.getU1();
         float v0 = sprite.getV0(), v1 = sprite.getV1();
-        buf.addVertex(matrix, x,        y + size, 100).setUv(u0, v1);
-        buf.addVertex(matrix, x + size, y + size, 100).setUv(u1, v1);
-        buf.addVertex(matrix, x + size, y,        100).setUv(u1, v0);
-        buf.addVertex(matrix, x,        y,        100).setUv(u0, v0);
-        com.mojang.blaze3d.vertex.BufferUploader.drawWithShader(buf.buildOrThrow());
-        com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-        com.mojang.blaze3d.systems.RenderSystem.disableBlend();
+        g.blit(sprite.atlasLocation(), x, y, x + size, y + size, u0, u1, v0, v1);
     }
 
     @Override
     public OptionalLong getItemFluidCapacity(ItemStack stack) {
-        IFluidHandlerItem handler = stack.getCapability(Capabilities.FluidHandler.ITEM);
-        if (handler == null || handler.getTanks() <= 0) return OptionalLong.empty();
-        long capacity = 0L;
-        for (int tank = 0; tank < handler.getTanks(); tank++) {
-            capacity += Math.max(0, handler.getTankCapacity(tank));
-        }
-        return capacity > 0 ? OptionalLong.of(capacity) : OptionalLong.empty();
+        return TransferCapabilities.getItemFluidCapacity(stack);
     }
 
     @Override
     public OptionalLong getItemFluidAmount(ItemStack stack) {
-        IFluidHandlerItem handler = stack.getCapability(Capabilities.FluidHandler.ITEM);
-        if (handler == null || handler.getTanks() <= 0) return OptionalLong.empty();
-        long amount = 0L;
-        for (int tank = 0; tank < handler.getTanks(); tank++) {
-            amount += Math.max(0, handler.getFluidInTank(tank).getAmount());
-        }
-        return amount > 0 ? OptionalLong.of(amount) : OptionalLong.empty();
+        return TransferCapabilities.getItemFluidAmount(stack);
     }
 
     @Override
     public OptionalLong getItemHandlerCapacity(ItemStack stack) {
-        try {
-            IItemHandler handler = stack.getCapability(Capabilities.ItemHandler.ITEM);
-            if (handler == null || handler.getSlots() <= 0) return OptionalLong.empty();
-            long capacity = itemHandlerCapacity(handler);
-            return capacity > 0 ? OptionalLong.of(capacity) : OptionalLong.empty();
-        } catch (RuntimeException | LinkageError ignored) {
-            return OptionalLong.empty();
-        }
+        return TransferCapabilities.getItemHandlerCapacity(stack);
     }
 
     @Override
@@ -464,9 +469,7 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     @Override
     public List<SubtypeStack> createSuspiciousStewSubtypeStacks() {
         List<SubtypeStack> result = new ArrayList<>();
-        BuiltInRegistries.ITEM.getTag(ItemTags.SMALL_FLOWERS)
-                .stream()
-                .flatMap(HolderSet.ListBacked::stream)
+        StreamSupport.stream(BuiltInRegistries.ITEM.getTagOrEmpty(ItemTags.SMALL_FLOWERS).spliterator(), false)
                 .map(Holder::value)
                 .filter(BlockItem.class::isInstance)
                 .map(BlockItem.class::cast)
@@ -478,7 +481,7 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
                     if (effects.effects().isEmpty()) return;
 
                     SuspiciousStewEffects.Entry firstEntry = effects.effects().get(0);
-                    ResourceLocation effectId = BuiltInRegistries.MOB_EFFECT.getKey(firstEntry.effect().value());
+                    Identifier effectId = BuiltInRegistries.MOB_EFFECT.getKey(firstEntry.effect().value());
                     if (effectId == null) return;
 
                     ItemStack stack = new ItemStack(Items.SUSPICIOUS_STEW);
@@ -513,7 +516,7 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
         }
         Holder<Instrument> instrument = (Holder<Instrument>) holder;
         ItemStack stack = new ItemStack(Items.GOAT_HORN);
-        stack.set(DataComponents.INSTRUMENT, instrument);
+        stack.set(DataComponents.INSTRUMENT, new InstrumentComponent(instrument));
         return stack;
     }
 
@@ -526,21 +529,17 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     public ItemStack createPlayerHeadStack(String name, UUID uuid) {
         if (name == null || name.isBlank()) return ItemStack.EMPTY;
         ItemStack stack = new ItemStack(Items.PLAYER_HEAD);
-        stack.set(DataComponents.PROFILE, new ResolvableProfile(
-                Optional.of(name),
-                uuid == null ? Optional.empty() : Optional.of(uuid),
-                new com.mojang.authlib.properties.PropertyMap()));
+        stack.set(DataComponents.PROFILE, uuid == null
+                ? ResolvableProfile.createUnresolved(name)
+                : ResolvableProfile.createResolved(new GameProfile(uuid, name)));
         return stack;
     }
 
     @Override
     public ItemStack createPlayerHeadStack(GameProfile profile) {
-        if (profile == null || profile.getName() == null || profile.getName().isBlank()) return ItemStack.EMPTY;
+        if (profile == null || profile.name() == null || profile.name().isBlank()) return ItemStack.EMPTY;
         ItemStack stack = new ItemStack(Items.PLAYER_HEAD);
-        stack.set(DataComponents.PROFILE, new ResolvableProfile(
-                Optional.of(profile.getName()),
-                profile.getId() == null ? Optional.empty() : Optional.of(profile.getId()),
-                profile.getProperties()));
+        stack.set(DataComponents.PROFILE, ResolvableProfile.createResolved(profile));
         return stack;
     }
 
@@ -553,7 +552,7 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     }
 
     @Override
-    public ResourceLocation getSpawnEggEntityTypeId(SpawnEggItem egg, ItemStack stack) {
+    public Identifier getSpawnEggEntityTypeId(SpawnEggItem egg, ItemStack stack) {
         EntityType<?> entityType = egg.getType(stack);
         return entityType == null ? null : BuiltInRegistries.ENTITY_TYPE.getKey(entityType);
     }

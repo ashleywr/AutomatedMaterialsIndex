@@ -1,11 +1,15 @@
 package net.minecraft.core;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public interface DefaultedRegistry<T> extends Registry<T> {
-    T get(ResourceLocation id);
+    T get(Identifier id);
 
-    boolean containsKey(ResourceLocation id);
+    default T getValue(Identifier id) {
+        return get(id);
+    }
+
+    boolean containsKey(Identifier id);
 
     int getId(T value);
 }

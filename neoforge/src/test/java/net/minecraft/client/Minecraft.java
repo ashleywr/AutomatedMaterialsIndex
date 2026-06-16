@@ -12,4 +12,12 @@ public class Minecraft {
     public void setScreen(net.minecraft.client.gui.screens.Screen screen) {
         this.screen = screen;
     }
+
+    public boolean hasShiftDown() {
+        return false;
+    }
+
+    public com.mojang.blaze3d.platform.Window getWindow() {
+        return com.mojang.blaze3d.platform.Window.INSTANCE;
+    }
 }
