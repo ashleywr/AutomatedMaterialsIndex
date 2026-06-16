@@ -313,6 +313,14 @@ public class FabricPlatformHelper implements IPlatformHelper {
         g.renderTooltip(font, lines, image, x, y);
     }
 
+    @Override
+    public void renderVanillaScrollbar(Object guiGraphics, ResourceLocation scroller, ResourceLocation scrollerBackground,
+                                       int x, int y, int width, int height, int thumbY, int thumbHeight) {
+        GuiGraphics g = (GuiGraphics) guiGraphics;
+        g.blitSprite(scrollerBackground, x, y, width, height);
+        g.blitSprite(scroller, x, thumbY, width, thumbHeight);
+    }
+
     // -------------------------------------------------------------------------
     // GUI quad batch rendering (1.21.1 vertex-buffer API; direct calls so Loom
     // remaps the Mojang names to intermediary — reflection by name would not).

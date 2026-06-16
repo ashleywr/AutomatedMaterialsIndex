@@ -40,18 +40,20 @@ import java.util.Optional;
  * External viewers are optional sync peers, not the source of truth.
  */
 public class AmiFavoritesHandler {
+    private static boolean persistenceEnabled = true;
     private static final AmiFavoritesHandler INSTANCE = new AmiFavoritesHandler();
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String FILE_NAME = "favorites.json";
     private static final int FORMAT_VERSION = 2;
-    private static boolean persistenceEnabled = true;
 
     private final List<FavoriteRecord> records = new ArrayList<>();
     private Runnable onChange;
 
     private AmiFavoritesHandler() {
+        AmiCore.LOGGER.info("AMI favorites INSTANCE: constructing, persistenceEnabled={}", persistenceEnabled);
         loadState();
         mergeExternalFavorites(false);
+        AmiCore.LOGGER.info("AMI favorites INSTANCE: constructed, records={}", records.size());
     }
 
     public static AmiFavoritesHandler getInstance() {
@@ -214,8 +216,13 @@ public class AmiFavoritesHandler {
             SearchNode node = toDisplayNode(record);
             if (node != null) {
                 out.add(node);
+            } else {
+                AmiCore.LOGGER.warn("AMI favorites getFavorites: record did not resolve to a display node (kind={} itemId={} nodeId={})",
+                        record.kind(), record.itemId(), record.nodeId());
             }
         }
+        // TEMP diagnostic (remove once persistence confirmed on Fabric).
+        AmiCore.LOGGER.info("AMI favorites getFavorites: {} records -> {} nodes", records.size(), out.size());
         return List.copyOf(out);
     }
 
@@ -442,6 +449,7 @@ public class AmiFavoritesHandler {
     }
 
     private void loadState() {
+        AmiCore.LOGGER.info("AMI favorites loadState: ENTER persistenceEnabled={}", persistenceEnabled);
         if (!persistenceEnabled) {
             return;
         }
@@ -465,12 +473,19 @@ public class AmiFavoritesHandler {
     }
 
     private void loadCanonicalState(JsonArray array) {
+        int dropped = 0;
         for (JsonElement element : array) {
             if (!element.isJsonObject()) continue;
             FavoriteRecord record = FavoriteRecord.fromJson(element.getAsJsonObject());
             if (record != null) {
                 records.add(record);
+            } else {
+                dropped++;
+                AmiCore.LOGGER.warn("AMI favorites loadState: failed to parse record: {}", element);
             }
+        }
+        if (dropped > 0) {
+            AmiCore.LOGGER.warn("AMI favorites loadState: dropped {} records that failed to parse", dropped);
         }
     }
 
@@ -680,6 +695,9 @@ public class AmiFavoritesHandler {
         SearchNode toFavoriteNode() {
             ItemStack renderStack = renderStack();
             if (renderStack.isEmpty() || itemId == null || nodeId == null) {
+                // TEMP diagnostic (remove once persistence confirmed on Fabric).
+                AmiCore.LOGGER.warn("AMI favorites toFavoriteNode: null (stackEmpty={} itemId={} nodeId={})",
+                        renderStack.isEmpty(), itemId, nodeId);
                 return null;
             }
             ItemIconRenderer.registerStack(nodeId, renderStack);
