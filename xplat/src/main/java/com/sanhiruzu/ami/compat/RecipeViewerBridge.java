@@ -7,7 +7,7 @@ import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import java.lang.ref.WeakReference;
 import java.util.Optional;
@@ -65,7 +65,7 @@ public class RecipeViewerBridge {
         return Services.PLATFORM.isModLoaded("jei");
     }
 
-    public static boolean openJustEnoughAdvancement(ResourceLocation advancementId) {
+    public static boolean openJustEnoughAdvancement(Identifier advancementId) {
         if (advancementId == null || !Services.PLATFORM.isModLoaded("jei") || !Services.PLATFORM.isModLoaded("jea")) {
             return false;
         }

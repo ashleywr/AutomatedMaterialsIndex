@@ -1,19 +1,19 @@
 package net.minecraft.tags;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public final class TagKey<T> {
-    private final ResourceLocation location;
+    private final Identifier location;
 
-    private TagKey(ResourceLocation location) {
+    private TagKey(Identifier location) {
         this.location = location;
     }
 
-    public static <T> TagKey<T> create(Object registry, ResourceLocation location) {
+    public static <T> TagKey<T> create(Object registry, Identifier location) {
         return new TagKey<>(location);
     }
 
-    public ResourceLocation location() {
+    public Identifier location() {
         return location;
     }
 

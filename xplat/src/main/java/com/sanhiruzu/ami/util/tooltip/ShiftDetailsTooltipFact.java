@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.util.tooltip;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
@@ -35,7 +35,7 @@ public final class ShiftDetailsTooltipFact implements AmiTooltipFact {
 
     @Override
     public List<Component> build(SearchNode entry) {
-        if (Screen.hasShiftDown()) {
+        if (Minecraft.getInstance().hasShiftDown()) {
             List<Component> lines = new ArrayList<>();
             lines.addAll(TooltipFactSupport.line("ami.tooltip.registry_id", entry.id().toString()));
             lines.addAll(TooltipFactSupport.line("ami.tooltip.creative_tab", entry.meta(SearchNodeKeys.CREATIVE_TAB_LABEL, "")));

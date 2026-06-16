@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.config;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -67,7 +67,7 @@ class AmiDataFixesTest {
     @Test
     void runtimeNodeWithoutUserCategoryFixStripsCategoryFields() {
         SearchNode node = new SearchNode(
-                new ResourceLocation("minecraft", "lever"),
+                new Identifier("minecraft", "lever"),
                 NodeType.ITEM,
                 "Lever",
                 0,

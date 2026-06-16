@@ -5,7 +5,7 @@ import com.sanhiruzu.ami.index.metrics.FluidMetricParser;
 import com.sanhiruzu.ami.index.metrics.FluidStats;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -17,7 +17,7 @@ import java.util.Optional;
 import java.util.OptionalLong;
 
 public final class FluidMetricSniffer {
-    private static boolean shouldScanTooltip(ItemStack stack, ResourceLocation id) {
+    private static boolean shouldScanTooltip(ItemStack stack, Identifier id) {
         String identity = (id + " " + stack.getHoverName().getString()).toLowerCase(Locale.ROOT);
         return containsAny(identity,
                 "fluid", "liquid", "water", "lava", "milk", "oil", "fuel",
@@ -34,7 +34,7 @@ public final class FluidMetricSniffer {
         return false;
     }
 
-    public Optional<FluidStats> sniff(ItemStack stack, ResourceLocation id, @Nullable Level level) {
+    public Optional<FluidStats> sniff(ItemStack stack, Identifier id, @Nullable Level level) {
         if (stack == null || stack.isEmpty()) {
             return Optional.empty();
         }

@@ -5,9 +5,9 @@ import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.providers.RegistryUtils;
 import com.sanhiruzu.ami.player.PlayerWaypointProviders;
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -92,7 +92,7 @@ public final class PlayerTooltipFact implements AmiTooltipFact {
     }
 
     private static String formatProviderList(List<String> providers) {
-        if (Screen.hasShiftDown() || providers.size() <= MAX_PROVIDER_PREVIEW) {
+        if (Minecraft.getInstance().hasShiftDown() || providers.size() <= MAX_PROVIDER_PREVIEW) {
             return String.join(", ", providers);
         }
         List<String> preview = providers.subList(0, MAX_PROVIDER_PREVIEW);
@@ -107,7 +107,7 @@ public final class PlayerTooltipFact implements AmiTooltipFact {
     }
 
     private static String prettyDimension(String rawDimension) {
-        ResourceLocation parsed = ResourceLocation.tryParse(rawDimension);
+        Identifier parsed = Identifier.tryParse(rawDimension);
         if (parsed == null) {
             return rawDimension;
         }

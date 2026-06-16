@@ -5,24 +5,24 @@ import com.sanhiruzu.ami.neoforge.AMI;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-public record AmiCheatPokemonPacket(ResourceLocation speciesId, Action action) implements CustomPacketPayload {
+public record AmiCheatPokemonPacket(Identifier speciesId, Action action) implements CustomPacketPayload {
     public static final Type<AmiCheatPokemonPacket> TYPE =
-            new Type<>(ResourceLocation.fromNamespaceAndPath(AMI.MODID, "cheat_pokemon"));
+            new Type<>(Identifier.fromNamespaceAndPath(AMI.MODID, "cheat_pokemon"));
     public static final StreamCodec<RegistryFriendlyByteBuf, AmiCheatPokemonPacket> STREAM_CODEC =
             StreamCodec.of(AmiCheatPokemonPacket::encode, AmiCheatPokemonPacket::decode);
 
     private static void encode(RegistryFriendlyByteBuf buf, AmiCheatPokemonPacket packet) {
-        buf.writeResourceLocation(packet.speciesId);
+        buf.writeIdentifier(packet.speciesId);
         buf.writeEnum(packet.action);
     }
 
     private static AmiCheatPokemonPacket decode(RegistryFriendlyByteBuf buf) {
-        return new AmiCheatPokemonPacket(buf.readResourceLocation(), buf.readEnum(Action.class));
+        return new AmiCheatPokemonPacket(buf.readIdentifier(), buf.readEnum(Action.class));
     }
 
     public static void handle(AmiCheatPokemonPacket packet, IPayloadContext context) {
@@ -46,7 +46,7 @@ public record AmiCheatPokemonPacket(ResourceLocation speciesId, Action action) i
         });
     }
 
-    private static String extractSpeciesName(ResourceLocation entityId) {
+    private static String extractSpeciesName(Identifier entityId) {
         String path = entityId.getPath();
         return path.startsWith("species/") ? path.substring("species/".length()) : path;
     }

@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.client.favorites;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +30,7 @@ public class AmiFavoritesHandlerTest {
 
         // Mock a biome node (not supported by EMI)
         SearchNode biome = new SearchNode(
-                new ResourceLocation("minecraft:plains"),
+                new Identifier("minecraft:plains"),
                 NodeType.BIOME,
                 "Plains",
                 0, 0, Map.of()
@@ -86,7 +86,7 @@ public class AmiFavoritesHandlerTest {
     void testRecipeFavoriteIsDistinctFromItemFavorite() {
         AmiFavoritesHandler handler = AmiFavoritesHandler.getInstance();
         ItemStack stack = new ItemStack(Items.CAKE);
-        ResourceLocation recipeId = new ResourceLocation("minecraft:diamond_from_blasting");
+        Identifier recipeId = new Identifier("minecraft:diamond_from_blasting");
 
         handler.removeFavorite(stack);
         handler.removeRecipeFavorite(recipeId, stack);
@@ -106,7 +106,7 @@ public class AmiFavoritesHandlerTest {
     void runtimeWaypointFavoriteSurvivesOutsideGlobalIndex() {
         AmiFavoritesHandler handler = AmiFavoritesHandler.getInstance();
         SearchNode waypoint = new SearchNode(
-                new ResourceLocation("ami:waypoint/manual/home"),
+                new Identifier("ami:waypoint/manual/home"),
                 NodeType.WAYPOINT,
                 "Home",
                 0,
@@ -135,7 +135,7 @@ public class AmiFavoritesHandlerTest {
     void offlinePlayerFavoriteIsMarkedStale() {
         AmiFavoritesHandler handler = AmiFavoritesHandler.getInstance();
         SearchNode player = new SearchNode(
-                new ResourceLocation("ami:player/123456781234123412341234567890ab"),
+                new Identifier("ami:player/123456781234123412341234567890ab"),
                 NodeType.PLAYER,
                 "Alex",
                 0,
@@ -165,7 +165,7 @@ public class AmiFavoritesHandlerTest {
     void moveFavoriteReordersMixedFavorites() {
         AmiFavoritesHandler handler = AmiFavoritesHandler.getInstance();
         SearchNode player = new SearchNode(
-                new ResourceLocation("ami:player/123456781234123412341234567890ab"),
+                new Identifier("ami:player/123456781234123412341234567890ab"),
                 NodeType.PLAYER,
                 "Alex",
                 0,

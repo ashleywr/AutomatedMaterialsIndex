@@ -2,15 +2,11 @@ package com.sanhiruzu.ami.benchmark;
 
 import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.neoforge.AMI;
-import net.minecraft.gametest.framework.GameTest;
-import net.minecraft.gametest.framework.GameTestHelper;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-@PrefixGameTestTemplate(false)
 public final class AmiBenchmarkGameTests {
     private static final String SUITE_NAME = "ami_search_registry_benchmark";
     private static final int DEFAULT_ITERATIONS = 120;
@@ -29,30 +25,14 @@ public final class AmiBenchmarkGameTests {
     private AmiBenchmarkGameTests() {
     }
 
-    @GameTest(templateNamespace = AMI.MODID, template = "ami_benchmark_empty", setupTicks = 1L, timeoutTicks = 6000)
-    public static void benchmarkSearchRegistry(GameTestHelper helper) {
+    public static void benchmarkSearchRegistry(Runnable onReady, java.util.function.Consumer<String> onFail) {
         AmiIndexerService indexer = AmiIndexerService.getInstance();
-        indexer.rebuild(helper.getLevel());
-        helper.succeedWhen(() -> {
-            failIfRebuildFailed(helper, indexer);
-            helper.assertTrue(indexer.isReady(), "AMI index rebuild is still running");
-            try {
-                runBenchmark(indexer);
-            } catch (Throwable t) {
-                AMI.LOGGER.error("AMI benchmark GameTest failed", t);
-                if (t instanceof Error error) {
-                    throw error;
-                }
-                helper.fail("AMI benchmark failed: " + t.getMessage());
-            }
-        });
-    }
-
-    private static void failIfRebuildFailed(GameTestHelper helper, AmiIndexerService indexer) {
-        Throwable failure = indexer.getLastRebuildFailure();
-        if (failure != null) {
-            AMI.LOGGER.error("AMI benchmark GameTest failed during index rebuild", failure);
-            helper.fail("AMI index rebuild failed: " + failure.getMessage());
+        try {
+            runBenchmark(indexer);
+            onReady.run();
+        } catch (Throwable t) {
+            AMI.LOGGER.error("AMI benchmark failed", t);
+            onFail.accept(t.getMessage());
         }
     }
 

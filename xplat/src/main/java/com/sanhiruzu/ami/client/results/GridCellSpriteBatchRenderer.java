@@ -4,9 +4,9 @@ import com.mojang.blaze3d.platform.NativeImage;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.TexturedQuadBatch;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 final class GridCellSpriteBatchRenderer {
     static final int CELL_SIZE = 20;
@@ -16,8 +16,8 @@ final class GridCellSpriteBatchRenderer {
     private static final int HOVER_U = 34;
     private static final int GOLD_U = 66;
     private static final float UV_INSET = 0.25f;
-    private static final ResourceLocation TEXTURE =
-            ResourceLocation.fromNamespaceAndPath("ami", "generated/grid_cell_atlas");
+    private static final Identifier TEXTURE =
+            Identifier.fromNamespaceAndPath("ami", "generated/grid_cell_atlas");
     private final TexturedQuadBatch batch = new TexturedQuadBatch();
     private int registeredSignature;
 
@@ -37,7 +37,7 @@ final class GridCellSpriteBatchRenderer {
         add(x, y, GOLD_U);
     }
 
-    void flush(GuiGraphics g) {
+    void flush(GuiGraphicsExtractor g) {
         ensureRegistered();
         batch.setTexture(TEXTURE);
         batch.flush(g);
@@ -64,7 +64,7 @@ final class GridCellSpriteBatchRenderer {
         paintSlot(image, SLOT_U, 0);
         paintHover(image, HOVER_U, 0);
         paintGoldBorder(image, GOLD_U, 0);
-        Minecraft.getInstance().getTextureManager().register(TEXTURE, new DynamicTexture(image));
+        Minecraft.getInstance().getTextureManager().register(TEXTURE, new DynamicTexture(() -> "ami:grid_atlas", image));
         registeredSignature = signature;
     }
 
@@ -98,7 +98,7 @@ final class GridCellSpriteBatchRenderer {
         int rgba = argbToNativeRgba(argb);
         for (int y = Math.max(0, y1); y < Math.min(ATLAS_H, y2); y++) {
             for (int x = Math.max(0, x1); x < Math.min(ATLAS_W, x2); x++) {
-                image.setPixelRGBA(x, y, rgba);
+                image.setPixel(x, y, rgba);
             }
         }
     }

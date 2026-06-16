@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.api;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
@@ -12,11 +12,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AmiGuideOpenersTest {
     @Test
     void patchouliEntryIdUsesBookNamespaceForPlainPaths() {
-        ResourceLocation bookId = ResourceLocation.fromNamespaceAndPath("silentgear", "guide_book");
+        Identifier bookId = Identifier.of("silentgear", "guide_book");
 
-        assertEquals(ResourceLocation.fromNamespaceAndPath("silentgear", "trait/floatstoner"),
+        assertEquals(Identifier.of("silentgear", "trait/floatstoner"),
                 AmiGuideOpeners.patchouliEntryId(bookId, "trait/floatstoner"));
-        assertEquals(ResourceLocation.fromNamespaceAndPath("apotheosis", "affix/socketed"),
+        assertEquals(Identifier.of("apotheosis", "affix/socketed"),
                 AmiGuideOpeners.patchouliEntryId(bookId, "apotheosis:affix/socketed"));
     }
 
@@ -61,15 +61,15 @@ class AmiGuideOpenersTest {
     @Test
     void patchouliOpenInvocationMustActuallyOpenExpectedBookWhenQueryable() throws Exception {
         class DummyPatchouliApi {
-            ResourceLocation openBook;
+            Identifier openBook;
 
-            public void openBookGUI(ResourceLocation bookId) {
+            public void openBookGUI(Identifier bookId) {
                 if ("valid".equals(bookId.getPath())) {
                     openBook = bookId;
                 }
             }
 
-            public ResourceLocation getOpenBookGui() {
+            public Identifier getOpenBookGui() {
                 return openBook;
             }
         }
@@ -79,13 +79,13 @@ class AmiGuideOpenersTest {
                 "tryInvokePatchouliOpen",
                 Object.class,
                 String.class,
-                ResourceLocation.class,
+                Identifier.class,
                 Object[].class
         );
         method.setAccessible(true);
 
-        ResourceLocation invalidBook = ResourceLocation.fromNamespaceAndPath("example", "missing");
-        ResourceLocation validBook = ResourceLocation.fromNamespaceAndPath("example", "valid");
+        Identifier invalidBook = Identifier.of("example", "missing");
+        Identifier validBook = Identifier.of("example", "valid");
 
         assertFalse((Boolean) method.invoke(null, api, "openBookGUI", invalidBook, new Object[]{invalidBook}));
         assertTrue((Boolean) method.invoke(null, api, "openBookGUI", validBook, new Object[]{validBook}));
@@ -94,13 +94,13 @@ class AmiGuideOpenersTest {
     @Test
     void guideMEPageMatchAcceptsRuntimeRootedAe2Paths() {
         assertTrue(AmiGuideOpeners.isGuideMEPageMatch(
-                ResourceLocation.fromNamespaceAndPath("ae2", "ae2guide/items-blocks-machines/fluix_crystal"),
+                Identifier.of("ae2", "ae2guide/items-blocks-machines/fluix_crystal"),
                 "items-blocks-machines/fluix_crystal"));
         assertTrue(AmiGuideOpeners.isGuideMEPageMatch(
-                ResourceLocation.fromNamespaceAndPath("ae2", "items-blocks-machines/processors"),
+                Identifier.of("ae2", "items-blocks-machines/processors"),
                 "items-blocks-machines/processors"));
         assertFalse(AmiGuideOpeners.isGuideMEPageMatch(
-                ResourceLocation.fromNamespaceAndPath("ae2", "ae2guide/items-blocks-machines/fluix_crystal"),
+                Identifier.of("ae2", "ae2guide/items-blocks-machines/fluix_crystal"),
                 "items-blocks-machines/fluix"));
     }
 }

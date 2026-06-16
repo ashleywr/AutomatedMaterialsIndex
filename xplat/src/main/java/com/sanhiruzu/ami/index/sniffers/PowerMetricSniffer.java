@@ -6,7 +6,7 @@ import com.sanhiruzu.ami.index.metrics.PowerMetricParser;
 import com.sanhiruzu.ami.index.metrics.PowerStats;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -40,7 +40,7 @@ public final class PowerMetricSniffer {
         return new PowerStats(capacity, generation, consumption, "static");
     }
 
-    private static PowerStats sniffTooltip(ItemStack stack, ResourceLocation id, @Nullable Level level) {
+    private static PowerStats sniffTooltip(ItemStack stack, Identifier id, @Nullable Level level) {
         try {
             List<String> lines = Services.PLATFORM.getTooltipLines(stack, level)
                     .stream()
@@ -53,7 +53,7 @@ public final class PowerMetricSniffer {
         }
     }
 
-    private static boolean shouldScanTooltip(ItemStack stack, ResourceLocation id, PowerStats stats) {
+    private static boolean shouldScanTooltip(ItemStack stack, Identifier id, PowerStats stats) {
         if (stats.hasAny()) {
             return true;
         }
@@ -65,7 +65,7 @@ public final class PowerMetricSniffer {
                 "flux", "joule", "power", "wire", "cable");
     }
 
-    private static String identity(ItemStack stack, ResourceLocation id) {
+    private static String identity(ItemStack stack, Identifier id) {
         return id + " " + stack.getHoverName().getString();
     }
 
@@ -86,7 +86,7 @@ public final class PowerMetricSniffer {
         return value > 0.0D ? value : null;
     }
 
-    public Optional<PowerStats> sniff(ItemStack stack, ResourceLocation id, @Nullable Level level) {
+    public Optional<PowerStats> sniff(ItemStack stack, Identifier id, @Nullable Level level) {
         if (stack == null || stack.isEmpty()) {
             return Optional.empty();
         }

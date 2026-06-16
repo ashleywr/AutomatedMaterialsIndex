@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client.screen;
 
 import com.sanhiruzu.ami.client.input.TextInputFilter;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -97,8 +97,8 @@ public class AmiColorPickerScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        super.render(g, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(g, mouseX, mouseY, partialTick);
 
         int centerX = width / 2;
         int centerY = height / 2;
@@ -106,9 +106,10 @@ public class AmiColorPickerScreen extends Screen {
         // Color preview box
         g.fill(centerX + 110, centerY - 60, centerX + 150, centerY + 35, 0xFFFFFFFF);
         g.fill(centerX + 111, centerY - 59, centerX + 149, centerY + 34, currentColor);
-        g.renderOutline(centerX + 110, centerY - 60, 40, 95, 0xFF000000);
+        g.outline(centerX + 110, centerY - 60, centerX + 150, centerY + 35, 0xFF000000);
 
-        g.drawCenteredString(font, field.getName(), centerX, centerY - 80, 0xFFFFAA00);
+        String fieldName = field.getName();
+        g.text(font, fieldName, centerX - font.width(fieldName) / 2, centerY - 80, 0xFFFFAA00);
     }
 
     @Override

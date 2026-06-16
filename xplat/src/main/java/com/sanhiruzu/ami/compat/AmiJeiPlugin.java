@@ -7,8 +7,8 @@ import com.sanhiruzu.ami.index.providers.IngredientPluginRegistry;
 import com.sanhiruzu.ami.platform.Services;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
-import net.minecraft.Util;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Util;
+import net.minecraft.resources.Identifier;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -21,12 +21,12 @@ import java.util.concurrent.CompletableFuture;
  */
 @JeiPlugin
 public class AmiJeiPlugin implements IModPlugin {
-    private static final ResourceLocation UID = Services.PLATFORM.rl(AmiCore.MODID, "plugin");
+    private static final Identifier UID = Services.PLATFORM.rl(AmiCore.MODID, "plugin");
     private static final JeiIngredientBridge INGREDIENT_BRIDGE = new JeiIngredientBridge();
     private static boolean bridgeRegistered = false;
 
     @Override
-    public ResourceLocation getPluginUid() {
+    public Identifier getPluginUid() {
         return UID;
     }
 

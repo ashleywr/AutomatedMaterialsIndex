@@ -1,13 +1,13 @@
 package com.sanhiruzu.ami.index;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.List;
 import java.util.Objects;
 
 public record RegistryDocument(
         RegistryDocumentKind kind,
-        ResourceLocation id,
+        Identifier id,
         String displayName,
         String description,
         String sourceMod,

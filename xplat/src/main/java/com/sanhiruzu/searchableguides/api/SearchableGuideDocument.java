@@ -1,6 +1,6 @@
 package com.sanhiruzu.searchableguides.api;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,15 +13,15 @@ import java.util.function.BooleanSupplier;
  * Viewers can adapt these documents into their own search/result surfaces.
  */
 public record SearchableGuideDocument(
-        ResourceLocation id,
+        Identifier id,
         String sourceType,
         String modId,
-        ResourceLocation bookId,
-        ResourceLocation iconItemId,
+        Identifier bookId,
+        Identifier iconItemId,
         String pageId,
         String title,
         String chapter,
-        List<ResourceLocation> referencedItems,
+        List<Identifier> referencedItems,
         List<String> tags,
         String summaryText,
         BooleanSupplier visibility,
@@ -60,7 +60,7 @@ public record SearchableGuideDocument(
         }
     }
 
-    public static Builder builder(ResourceLocation id, String sourceType, String modId, String title) {
+    public static Builder builder(Identifier id, String sourceType, String modId, String title) {
         return new Builder(id, sourceType, modId, title);
     }
 
@@ -83,33 +83,33 @@ public record SearchableGuideDocument(
     }
 
     public static final class Builder {
-        private final ResourceLocation id;
+        private final Identifier id;
         private final String sourceType;
         private final String modId;
         private final String title;
-        private ResourceLocation bookId;
-        private ResourceLocation iconItemId;
+        private Identifier bookId;
+        private Identifier iconItemId;
         private String pageId = "";
         private String chapter = "";
-        private final List<ResourceLocation> referencedItems = new ArrayList<>();
+        private final List<Identifier> referencedItems = new ArrayList<>();
         private final List<String> tags = new ArrayList<>();
         private String summaryText = "";
         private BooleanSupplier visibility;
         private Runnable openAction;
 
-        private Builder(ResourceLocation id, String sourceType, String modId, String title) {
+        private Builder(Identifier id, String sourceType, String modId, String title) {
             this.id = id;
             this.sourceType = sourceType;
             this.modId = modId;
             this.title = title;
         }
 
-        public Builder bookId(ResourceLocation bookId) {
+        public Builder bookId(Identifier bookId) {
             this.bookId = bookId;
             return this;
         }
 
-        public Builder iconItemId(ResourceLocation iconItemId) {
+        public Builder iconItemId(Identifier iconItemId) {
             this.iconItemId = iconItemId;
             return this;
         }
@@ -124,16 +124,16 @@ public record SearchableGuideDocument(
             return this;
         }
 
-        public Builder referencedItem(ResourceLocation itemId) {
+        public Builder referencedItem(Identifier itemId) {
             if (itemId != null && !referencedItems.contains(itemId)) {
                 referencedItems.add(itemId);
             }
             return this;
         }
 
-        public Builder referencedItems(List<ResourceLocation> itemIds) {
+        public Builder referencedItems(List<Identifier> itemIds) {
             if (itemIds != null) {
-                for (ResourceLocation itemId : itemIds) {
+                for (Identifier itemId : itemIds) {
                     referencedItem(itemId);
                 }
             }

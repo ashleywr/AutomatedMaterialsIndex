@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +17,7 @@ public class DebugTooltipTest {
 
     private static SearchNode node() {
         return new SearchNode(
-                new ResourceLocation("create:cardboard_sword"),
+                new Identifier("create:cardboard_sword"),
                 NodeType.ITEM,
                 "Cardboard Sword",
                 0,

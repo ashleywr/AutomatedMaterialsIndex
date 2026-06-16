@@ -9,7 +9,7 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.*;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -36,15 +36,15 @@ public final class SubtypeExpander {
     private SubtypeExpander() {
     }
 
-    public static List<SubtypeEntry> expand(ResourceLocation baseId,
+    public static List<SubtypeEntry> expand(Identifier baseId,
                                             RegistryAccess registryAccess) {
         if (!baseId.getNamespace().equals("minecraft")) return List.of();
 
         return switch (baseId.getPath()) {
-            case "potion" -> expandPotions(Items.POTION, "potion");
-            case "splash_potion" -> expandPotions(Items.SPLASH_POTION, "splash_potion");
-            case "lingering_potion" -> expandPotions(Items.LINGERING_POTION, "lingering_potion");
-            case "tipped_arrow" -> expandPotions(Items.TIPPED_ARROW, "tipped_arrow");
+            case "potion" -> expandPotions(Items.POTION, "potion", registryAccess);
+            case "splash_potion" -> expandPotions(Items.SPLASH_POTION, "splash_potion", registryAccess);
+            case "lingering_potion" -> expandPotions(Items.LINGERING_POTION, "lingering_potion", registryAccess);
+            case "tipped_arrow" -> expandPotions(Items.TIPPED_ARROW, "tipped_arrow", registryAccess);
             case "enchanted_book" -> expandEnchantedBooks(registryAccess);
             case "suspicious_stew" -> expandSuspiciousStew();
             case "firework_rocket" -> expandFireworkRockets();
@@ -54,37 +54,40 @@ public final class SubtypeExpander {
         };
     }
 
-    private static List<SubtypeEntry> expandPotions(Item potionItem, String itemPath) {
+    private static List<SubtypeEntry> expandPotions(Item potionItem, String itemPath, RegistryAccess registryAccess) {
+        if (registryAccess == null) return List.of();
         List<SubtypeEntry> result = new ArrayList<>();
-        for (Holder.Reference<Potion> potionRef : BuiltInRegistries.POTION.holders().toList()) {
-            if (isAtCap(result, itemPath)) return result;
+        registryAccess.lookup(Registries.POTION).ifPresent(potionReg ->
+            potionReg.listElements().forEach(potionRef -> {
+                if (isAtCap(result, itemPath)) return;
 
-            ResourceLocation potionId = potionRef.key().location();
-            if (shouldSkipPotionSubtype(potionId)) continue;
+                Identifier potionId = potionRef.key().identifier();
+                if (shouldSkipPotionSubtype(potionId)) return;
 
-            ItemStack stack = Services.PLATFORM.createPotionSubtypeStack(potionItem, potionRef);
-            if (stack.isEmpty()) continue;
+                ItemStack stack = Services.PLATFORM.createPotionSubtypeStack(potionItem, potionRef);
+                if (stack.isEmpty()) return;
 
-            ResourceLocation syntheticId = syntheticId(itemPath, potionId.getNamespace(), potionId.getPath());
-            java.util.Map<String, String> extra = java.util.Map.of(SearchNodeKeys.POTION_EFFECT, potionId.toString());
-            result.add(new SubtypeEntry(syntheticId, stack, stack.getHoverName().getString(), extra));
-        }
+                Identifier syntheticId = syntheticId(itemPath, potionId.getNamespace(), potionId.getPath());
+                java.util.Map<String, String> extra = java.util.Map.of(SearchNodeKeys.POTION_EFFECT, potionId.toString());
+                result.add(new SubtypeEntry(syntheticId, stack, stack.getHoverName().getString(), extra));
+            })
+        );
         return result;
     }
 
-    static boolean shouldSkipPotionSubtype(ResourceLocation potionId) {
+    static boolean shouldSkipPotionSubtype(Identifier potionId) {
         return potionId == null || "empty".equals(potionId.getPath());
     }
 
     private static List<SubtypeEntry> expandEnchantedBooks(RegistryAccess registryAccess) {
         if (registryAccess == null) return List.of();
-        var enchantmentRegistry = registryAccess.registry(Registries.ENCHANTMENT).orElse(null);
+        var enchantmentRegistry = registryAccess.lookup(Registries.ENCHANTMENT).orElse(null);
         if (enchantmentRegistry == null) return List.of();
 
         List<SubtypeEntry> result = new ArrayList<>();
-        for (Holder.Reference<Enchantment> enchantmentRef : enchantmentRegistry.holders().toList()) {
+        for (Holder.Reference<Enchantment> enchantmentRef : enchantmentRegistry.listElements().toList()) {
             Enchantment enchantment = enchantmentRef.value();
-            ResourceLocation enchantmentId = enchantmentRef.key().location();
+            Identifier enchantmentId = enchantmentRef.key().identifier();
             int maxLevel = enchantment.getMaxLevel();
 
             for (int level = 1; level <= maxLevel; level++) {
@@ -94,7 +97,7 @@ public final class SubtypeExpander {
                 if (stack.isEmpty()) continue;
 
                 String suffix = maxLevel > 1 ? "_" + level : "";
-                ResourceLocation syntheticId = syntheticId("enchanted_book",
+                Identifier syntheticId = syntheticId("enchanted_book",
                         enchantmentId.getNamespace(), enchantmentId.getPath() + suffix);
                 result.add(new SubtypeEntry(syntheticId, stack, stack.getHoverName().getString()));
             }
@@ -104,14 +107,14 @@ public final class SubtypeExpander {
 
     private static List<SubtypeEntry> expandSuspiciousStew() {
         List<SubtypeEntry> result = new ArrayList<>();
-        Set<ResourceLocation> seenEffectIds = new HashSet<>();
+        Set<Identifier> seenEffectIds = new HashSet<>();
 
         for (SubtypeStack subtype : Services.PLATFORM.createSuspiciousStewSubtypeStacks()) {
-            ResourceLocation effectId = subtype.subtypeId();
+            Identifier effectId = subtype.subtypeId();
             if (effectId == null || !seenEffectIds.add(effectId)) continue;
             if (isAtCap(result, "suspicious_stew")) return result;
 
-            ResourceLocation syntheticId = syntheticId("suspicious_stew", effectId.getNamespace(), effectId.getPath());
+            Identifier syntheticId = syntheticId("suspicious_stew", effectId.getNamespace(), effectId.getPath());
             result.add(new SubtypeEntry(syntheticId, subtype.stack(), subtype.stack().getHoverName().getString()));
         }
         return result;
@@ -121,12 +124,12 @@ public final class SubtypeExpander {
         List<SubtypeEntry> result = new ArrayList<>();
 
         for (SubtypeStack subtype : Services.PLATFORM.createFireworkRocketSubtypeStacks()) {
-            ResourceLocation shapeId = subtype.subtypeId();
+            Identifier shapeId = subtype.subtypeId();
             if (shapeId == null) continue;
             if (isAtCap(result, "firework_rocket")) return result;
 
             String shapeName = shapeId.getPath();
-            ResourceLocation syntheticId = syntheticId("firework_rocket", shapeId.getNamespace(), shapeName);
+            Identifier syntheticId = syntheticId("firework_rocket", shapeId.getNamespace(), shapeName);
             result.add(new SubtypeEntry(syntheticId, subtype.stack(),
                     Component.translatable("ami.subtype.firework_rocket", friendlyShape(shapeName)).getString()));
         }
@@ -139,18 +142,18 @@ public final class SubtypeExpander {
 
     private static List<SubtypeEntry> expandGoatHorns(RegistryAccess registryAccess) {
         if (registryAccess == null) return List.of();
-        var instrumentRegistry = registryAccess.registry(Registries.INSTRUMENT).orElse(null);
+        var instrumentRegistry = registryAccess.lookup(Registries.INSTRUMENT).orElse(null);
         if (instrumentRegistry == null) return List.of();
 
         List<SubtypeEntry> result = new ArrayList<>();
-        for (Holder.Reference<Instrument> instrumentRef : instrumentRegistry.holders().toList()) {
+        for (Holder.Reference<Instrument> instrumentRef : instrumentRegistry.listElements().toList()) {
             if (isAtCap(result, "goat_horn")) return result;
 
             ItemStack stack = Services.PLATFORM.createGoatHornSubtypeStack(instrumentRef);
             if (stack.isEmpty()) continue;
 
-            ResourceLocation instrumentId = instrumentRef.key().location();
-            ResourceLocation syntheticId = syntheticId("goat_horn", instrumentId.getNamespace(), instrumentId.getPath());
+            Identifier instrumentId = instrumentRef.key().identifier();
+            Identifier syntheticId = syntheticId("goat_horn", instrumentId.getNamespace(), instrumentId.getPath());
             result.add(new SubtypeEntry(syntheticId, stack, stack.getHoverName().getString()));
         }
         return result;
@@ -163,10 +166,10 @@ public final class SubtypeExpander {
             if (isAtCap(result, "spawn_egg")) return result;
 
             ItemStack stack = new ItemStack(egg);
-            ResourceLocation entityId = Services.PLATFORM.getSpawnEggEntityTypeId(egg, stack);
+            Identifier entityId = Services.PLATFORM.getSpawnEggEntityTypeId(egg, stack);
             if (entityId == null) continue;
 
-            ResourceLocation syntheticId = syntheticId("spawn_egg", entityId.getNamespace(), entityId.getPath());
+            Identifier syntheticId = syntheticId("spawn_egg", entityId.getNamespace(), entityId.getPath());
             result.add(new SubtypeEntry(syntheticId, stack, stack.getHoverName().getString()));
         }
         return result;
@@ -184,19 +187,19 @@ public final class SubtypeExpander {
         return "enchanted_book".equals(itemPath) ? ENCHANTED_BOOK_CAP : HARD_CAP;
     }
 
-    public static boolean shouldPreferCreativeStackParity(ResourceLocation baseId) {
+    public static boolean shouldPreferCreativeStackParity(Identifier baseId) {
         return baseId != null
                 && "minecraft".equals(baseId.getNamespace())
                 && CREATIVE_STACK_PARITY_ITEMS.contains(baseId.getPath());
     }
 
-    private static ResourceLocation syntheticId(String itemPath, String subNs, String subPath) {
+    private static Identifier syntheticId(String itemPath, String subNs, String subPath) {
         return Services.PLATFORM.rl("minecraft", itemPath + "/" + subNs + "/" + subPath);
     }
 
-    public record SubtypeEntry(ResourceLocation id, ItemStack stack, String displayName,
+    public record SubtypeEntry(Identifier id, ItemStack stack, String displayName,
                                java.util.Map<String, String> extraMeta) {
-        public SubtypeEntry(ResourceLocation id, ItemStack stack, String displayName) {
+        public SubtypeEntry(Identifier id, ItemStack stack, String displayName) {
             this(id, stack, displayName, java.util.Map.of());
         }
     }

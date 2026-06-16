@@ -7,7 +7,7 @@ import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.client.input.TextInputFilter;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -73,7 +73,7 @@ public class AmiCategoryFixScreen extends Screen {
         setInitialFocus(categoryBox);
     }
 
-    private void renderPanel(GuiGraphics g) {
+    private void renderPanel(GuiGraphicsExtractor g) {
         int left = (width - PANEL_WIDTH) / 2;
         int top = Math.max(24, height / 2 - 76);
         int panelHeight = 158;
@@ -85,30 +85,34 @@ public class AmiCategoryFixScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         g.fill(0, 0, width, height, 0x88000000);
         renderPanel(g);
-        super.render(g, mouseX, mouseY, partialTick);
+        super.extractRenderState(g, mouseX, mouseY, partialTick);
         int left = (width - PANEL_WIDTH) / 2;
         int top = Math.max(24, height / 2 - 76);
 
-        g.drawString(font, title, left + 12, top + 10, AMITheme.TEXT_HEADER, false);
-        g.drawString(font, Component.literal(node.displayName()), left + 12, top + 24, AMITheme.TEXT_SUBTLE, false);
-        g.drawString(font, Component.translatable("ami.fix_category.category"), left + 12, top + 34, AMITheme.TEXT_SUBTLE, false);
-        g.drawString(font, Component.translatable("ami.fix_category.subcategory"), left + 12, top + 72, AMITheme.TEXT_SUBTLE, false);
+        g.text(font, title, left + 12, top + 10, AMITheme.TEXT_HEADER, false);
+        g.text(font, Component.literal(node.displayName()), left + 12, top + 24, AMITheme.TEXT_SUBTLE, false);
+        g.text(font, Component.translatable("ami.fix_category.category"), left + 12, top + 34, AMITheme.TEXT_SUBTLE, false);
+        g.text(font, Component.translatable("ami.fix_category.subcategory"), left + 12, top + 72, AMITheme.TEXT_SUBTLE, false);
         renderSuggestions(g, mouseX, mouseY);
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean bl) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         if (button == 0 && acceptSuggestionAt((int) mouseX, (int) mouseY)) {
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, bl);
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        int keyCode = event.key();
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
             apply();
             return true;
@@ -116,7 +120,7 @@ public class AmiCategoryFixScreen extends Screen {
         if (keyCode == GLFW.GLFW_KEY_TAB && acceptFirstSuggestion()) {
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     private void apply() {
@@ -154,7 +158,7 @@ public class AmiCategoryFixScreen extends Screen {
         return out.isEmpty() && !allowBlank ? "custom" : out.toString();
     }
 
-    private void renderSuggestions(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderSuggestions(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         EditBox focused = focusedBox();
         if (focused == null) return;
 
@@ -176,7 +180,7 @@ public class AmiCategoryFixScreen extends Screen {
             }
             Suggestion suggestion = suggestions.get(i);
             String label = font.plainSubstrByWidth(suggestion.label(), width - 8);
-            g.drawString(font, label, x + 4, rowY + 3, AMITheme.TEXT_HEADER, false);
+            g.text(font, label, x + 4, rowY + 3, AMITheme.TEXT_HEADER, false);
         }
     }
 

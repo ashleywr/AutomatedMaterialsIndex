@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -18,7 +18,7 @@ public final class AE2Compat {
     private AE2Compat() {
     }
 
-    public static void enrichItem(ResourceLocation id, Map<String, String> meta) {
+    public static void enrichItem(Identifier id, Map<String, String> meta) {
         if (id == null || meta == null) {
             return;
         }
@@ -62,7 +62,7 @@ public final class AE2Compat {
         }
     }
 
-    private static boolean isAe2FamilyItem(ResourceLocation id, Map<String, String> meta) {
+    private static boolean isAe2FamilyItem(Identifier id, Map<String, String> meta) {
         return MOD_ID.equals(id.getNamespace())
                 || "appmek".equals(id.getNamespace())
                 || "appliedenergistics2".equals(id.getNamespace())
@@ -101,7 +101,7 @@ public final class AE2Compat {
         }
     }
 
-    private static void addGuideBookFacts(ResourceLocation id, Map<String, String> meta, Context context, Set<String> facts) {
+    private static void addGuideBookFacts(Identifier id, Map<String, String> meta, Context context, Set<String> facts) {
         if (!"guide".equals(context.path) && !containsAny(context.itemClass, "GuideItem")) {
             return;
         }
@@ -304,7 +304,7 @@ public final class AE2Compat {
         final String recipeCategories;
         final String recipeUseCategories;
 
-        Context(ResourceLocation id, Map<String, String> meta) {
+        Context(Identifier id, Map<String, String> meta) {
             this.path = id.getPath().toLowerCase(Locale.ROOT);
             this.itemClass = meta.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
             this.blockClass = meta.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "");

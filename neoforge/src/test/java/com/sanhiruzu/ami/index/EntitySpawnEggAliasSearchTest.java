@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +23,7 @@ class EntitySpawnEggAliasSearchTest {
     void entityPlainSearchCanUseLocalizedSpawnEggNameAlias() {
         GlobalIndex index = GlobalIndex.getInstance();
         SearchNode entity = new SearchNode(
-                new ResourceLocation("example", "blue_swet"),
+                new Identifier("example", "blue_swet"),
                 NodeType.ENTITY,
                 "Blue Swet",
                 0,

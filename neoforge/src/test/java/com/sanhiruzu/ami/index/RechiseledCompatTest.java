@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.compat.RechiseledCompat;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -19,7 +19,7 @@ class RechiseledCompatTest {
         meta.put(SearchNodeKeys.ITEM_CLASS, "com.supermartijn642.rechiseled.registration.RechiseledCommonBlockBuilderImpl$2");
         meta.put(SearchNodeKeys.BLOCK_CLASS, "com.supermartijn642.rechiseled.blocks.RechiseledStairBlock");
 
-        RechiseledCompat.enrichItem(new ResourceLocation("rechiseled:acacia_planks_bricks_stairs_connecting"), meta);
+        RechiseledCompat.enrichItem(new Identifier("rechiseled:acacia_planks_bricks_stairs_connecting"), meta);
 
         assertEquals("rechiseled:acacia_planks", meta.get(SearchNodeKeys.COLLAPSE_FAMILY));
         assertEquals("Acacia Planks", meta.get(SearchNodeKeys.COLLAPSE_LABEL));
@@ -34,7 +34,7 @@ class RechiseledCompatTest {
         meta.put(SearchNodeKeys.ITEM_CLASS, "com.supermartijn642.core.item.BaseBlockItem");
         meta.put(SearchNodeKeys.BLOCK_CLASS, "com.supermartijn642.rechiseled.blocks.RechiseledBlock");
 
-        RechiseledCompat.enrichItem(new ResourceLocation("rechiseled:mossy_cobblestone_stripes"), meta);
+        RechiseledCompat.enrichItem(new Identifier("rechiseled:mossy_cobblestone_stripes"), meta);
 
         assertEquals("rechiseled:cobblestone", meta.get(SearchNodeKeys.COLLAPSE_FAMILY));
         assertEquals("Cobblestone", meta.get(SearchNodeKeys.COLLAPSE_LABEL));
@@ -49,7 +49,7 @@ class RechiseledCompatTest {
         meta.put(SearchNodeKeys.ITEM_CLASS, "com.supermartijn642.core.item.BaseBlockItem");
         meta.put(SearchNodeKeys.BLOCK_CLASS, "com.supermartijn642.rechiseled.blocks.RechiseledStairBlock");
 
-        RechiseledCompat.enrichItem(new ResourceLocation("rechiseled:cobblestone_bricks_stairs"), meta);
+        RechiseledCompat.enrichItem(new Identifier("rechiseled:cobblestone_bricks_stairs"), meta);
 
         assertFalse(meta.containsKey(SearchNodeKeys.COLLAPSE_FAMILY));
     }
@@ -61,7 +61,7 @@ class RechiseledCompatTest {
         meta.put(SearchNodeKeys.ITEM_CLASS, "com.supermartijn642.rechiseled.registration.RechiseledCommonBlockBuilderImpl$2");
         meta.put(SearchNodeKeys.BLOCK_CLASS, "com.supermartijn642.rechiseled.blocks.RechiseledGlassPillarBlock");
 
-        RechiseledCompat.enrichItem(new ResourceLocation("rechiseledcreate:acacia_window_covered_connecting"), meta);
+        RechiseledCompat.enrichItem(new Identifier("rechiseledcreate:acacia_window_covered_connecting"), meta);
 
         assertEquals("rechiseledcreate:acacia_window", meta.get(SearchNodeKeys.COLLAPSE_FAMILY));
         assertEquals("Acacia Windows", meta.get(SearchNodeKeys.COLLAPSE_LABEL));
@@ -75,7 +75,7 @@ class RechiseledCompatTest {
         meta.put(SearchNodeKeys.ITEM_CLASS, "com.supermartijn642.rechiseled.registration.RechiseledCommonBlockBuilderImpl$2");
         meta.put(SearchNodeKeys.BLOCK_CLASS, "com.supermartijn642.rechiseled.blocks.RechiseledStairBlock");
 
-        RechiseledCompat.enrichItem(new ResourceLocation("rechiseledcreate:andesite_cut_polished_stairs_connecting"), meta);
+        RechiseledCompat.enrichItem(new Identifier("rechiseledcreate:andesite_cut_polished_stairs_connecting"), meta);
 
         assertEquals("rechiseledcreate:andesite_cut_polished", meta.get(SearchNodeKeys.COLLAPSE_FAMILY));
         assertEquals("Andesite Cut Polished", meta.get(SearchNodeKeys.COLLAPSE_LABEL));
@@ -87,7 +87,7 @@ class RechiseledCompatTest {
         Map<String, String> meta = new HashMap<>();
         meta.put(SearchNodeKeys.ITEM_CLASS, "com.supermartijn642.rechiseled.ChiselItem");
 
-        RechiseledCompat.enrichItem(new ResourceLocation("rechiseled:chisel"), meta);
+        RechiseledCompat.enrichItem(new Identifier("rechiseled:chisel"), meta);
 
         assertEquals("tools", meta.get(SearchNodeKeys.ONTOLOGY_CATEGORY));
         assertEquals("utility", meta.get(SearchNodeKeys.ONTOLOGY_SUBCATEGORY));

@@ -15,7 +15,7 @@ import com.sanhiruzu.searchableitems.api.SearchableItemProvider;
 import com.sanhiruzu.searchableitems.api.SearchableItemProviders;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -138,7 +138,7 @@ public class ItemProvider implements IAmiDataProvider {
                 containsToken(existing, added) ? existing : existing + " " + added);
     }
 
-    private static void addGuideBookSearchTokens(Map<String, String> meta, ResourceLocation id, ItemStack stack, FacetProfile facetProfile) {
+    private static void addGuideBookSearchTokens(Map<String, String> meta, Identifier id, ItemStack stack, FacetProfile facetProfile) {
         if (facetProfile == null || !facetProfile.facets().contains(ItemFacet.GUIDE_BOOK)) {
             return;
         }
@@ -186,7 +186,7 @@ public class ItemProvider implements IAmiDataProvider {
         }
     }
 
-    private static Optional<ResourceLocation> readPatchouliBookId(ItemStack stack) {
+    private static Optional<Identifier> readPatchouliBookId(ItemStack stack) {
         if (stack == null || stack.isEmpty()) {
             return Optional.empty();
         }
@@ -200,13 +200,13 @@ public class ItemProvider implements IAmiDataProvider {
                 return Optional.empty();
             }
             Object id = book.getClass().getField("id").get(book);
-            return id instanceof ResourceLocation location ? Optional.of(location) : Optional.empty();
+            return id instanceof Identifier location ? Optional.of(location) : Optional.empty();
         } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
             return Optional.empty();
         }
     }
 
-    private static Optional<ResourceLocation> readModonomiconBookId(ItemStack stack) {
+    private static Optional<Identifier> readModonomiconBookId(ItemStack stack) {
         if (stack == null || stack.isEmpty()) {
             return Optional.empty();
         }
@@ -216,7 +216,7 @@ public class ItemProvider implements IAmiDataProvider {
                 return Optional.empty();
             }
             Object id = itemClass.getMethod("getBookId", ItemStack.class).invoke(null, stack);
-            return id instanceof ResourceLocation location ? Optional.of(location) : Optional.empty();
+            return id instanceof Identifier location ? Optional.of(location) : Optional.empty();
         } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
             return Optional.empty();
         }
@@ -232,8 +232,8 @@ public class ItemProvider implements IAmiDataProvider {
             if (address == null) {
                 return Optional.empty();
             }
-            ResourceLocation bookId = invokeResourceLocation(address, "bookId").orElse(null);
-            ResourceLocation entryId = invokeResourceLocation(address, "entryId").orElse(null);
+            Identifier bookId = invokeResourceLocation(address, "bookId").orElse(null);
+            Identifier entryId = invokeResourceLocation(address, "entryId").orElse(null);
             if (bookId == null) {
                 return Optional.empty();
             }
@@ -243,16 +243,16 @@ public class ItemProvider implements IAmiDataProvider {
         }
     }
 
-    private static Optional<ResourceLocation> invokeResourceLocation(Object target, String methodName) {
+    private static Optional<Identifier> invokeResourceLocation(Object target, String methodName) {
         try {
             Object value = target.getClass().getMethod(methodName).invoke(target);
-            return value instanceof ResourceLocation location ? Optional.of(location) : Optional.empty();
+            return value instanceof Identifier location ? Optional.of(location) : Optional.empty();
         } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
             return Optional.empty();
         }
     }
 
-    private static void addCheapPlainSearchTokens(Map<String, String> meta, ResourceLocation id,
+    private static void addCheapPlainSearchTokens(Map<String, String> meta, Identifier id,
                                                   Map<String, String> modNameCache) {
         if (id == null) {
             return;
@@ -276,7 +276,7 @@ public class ItemProvider implements IAmiDataProvider {
         }
     }
 
-    private static boolean isCobblemonFamily(ResourceLocation id, Map<String, String> meta, String modName) {
+    private static boolean isCobblemonFamily(Identifier id, Map<String, String> meta, String modName) {
         return "cobblemon".equals(id.getNamespace())
                 || id.getNamespace().contains("cobblemon")
                 || CompatFamilyDetector.hasFamily(meta, CompatFamilyDetector.COBBLEMON)
@@ -325,7 +325,7 @@ public class ItemProvider implements IAmiDataProvider {
     }
 
     private static void addTooltipSearchTokens(Map<String, String> meta, ItemStack stack, @Nullable Level level,
-                                               ResourceLocation id, String displayName,
+                                               Identifier id, String displayName,
                                                Map<String, String> modNameCache) {
         try {
             String modName = modNameCache.computeIfAbsent(id.getNamespace(), namespace ->
@@ -364,7 +364,7 @@ public class ItemProvider implements IAmiDataProvider {
         meta.put(SearchNodeKeys.FACETS, encoded + "," + facet.id());
     }
 
-    private static boolean namespaceIs(ResourceLocation id, String... namespaces) {
+    private static boolean namespaceIs(Identifier id, String... namespaces) {
         if (id == null) {
             return false;
         }
@@ -377,7 +377,7 @@ public class ItemProvider implements IAmiDataProvider {
         return false;
     }
 
-    private static boolean namespaceStartsWith(ResourceLocation id, String prefix) {
+    private static boolean namespaceStartsWith(Identifier id, String prefix) {
         return id != null && id.getNamespace().startsWith(prefix);
     }
 
@@ -385,7 +385,7 @@ public class ItemProvider implements IAmiDataProvider {
         return CompatFamilyDetector.hasFamily(meta, family);
     }
 
-    private static void runFocusedCompatHooks(ResourceLocation id, ItemStack stack, @Nullable Level level,
+    private static void runFocusedCompatHooks(Identifier id, ItemStack stack, @Nullable Level level,
                                               Map<String, String> meta, boolean includePluginHooks) {
         if (namespaceIs(id, "cobblemon") || hasCompatFamily(meta, CompatFamilyDetector.COBBLEMON)) {
             ItemProviderCompatHooks.runCompatSafely("CobblemonCompat", () -> CobblemonCompat.enrichItem(id, meta));
@@ -472,7 +472,7 @@ public class ItemProvider implements IAmiDataProvider {
         }
     }
 
-    private static void inferAmmoType(ResourceLocation id, Map<String, String> meta) {
+    private static void inferAmmoType(Identifier id, Map<String, String> meta) {
         if (meta.containsKey(SearchNodeKeys.AMMO_TYPE)) {
             return;
         }
@@ -511,7 +511,7 @@ public class ItemProvider implements IAmiDataProvider {
         return new HashSet<>(Arrays.asList(path.split("[_/\\-]")));
     }
 
-    private static String extractColorBucket(ResourceLocation id) {
+    private static String extractColorBucket(Identifier id) {
         return GroupingEngine.classifyColorFromPath(id.getPath());
     }
 
@@ -519,7 +519,7 @@ public class ItemProvider implements IAmiDataProvider {
         return family != null && Set.of("banner_patterns", "banners", "goat_horns", "music_discs").contains(family.key());
     }
 
-    private static Map<String, String> buildSubtypeMeta(ResourceLocation baseId, ItemStack stack, String colorBucket,
+    private static Map<String, String> buildSubtypeMeta(Identifier baseId, ItemStack stack, String colorBucket,
                                                         @Nullable ItemFilter.CreativeTabInfo creativeTab,
                                                         @Nullable Level level,
                                                         Map<String, String> modNameCache) {
@@ -565,7 +565,7 @@ public class ItemProvider implements IAmiDataProvider {
         return meta;
     }
 
-    static void applyPrimaryCategoryMeta(ResourceLocation id, Item item, FacetProfile facetProfile, Map<String, String> meta) {
+    static void applyPrimaryCategoryMeta(Identifier id, Item item, FacetProfile facetProfile, Map<String, String> meta) {
         if (id == null || meta == null) {
             return;
         }
@@ -626,7 +626,7 @@ public class ItemProvider implements IAmiDataProvider {
         List<Item> regular = new ArrayList<>();
         List<Item> deferred = new ArrayList<>();
         for (Item item : BuiltInRegistries.ITEM) {
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+            Identifier id = BuiltInRegistries.ITEM.getKey(item);
             if (IndexingHotItemPolicy.shouldDeferUntilTail(id)) {
                 deferred.add(item);
             } else {
@@ -650,7 +650,7 @@ public class ItemProvider implements IAmiDataProvider {
         }
     }
 
-    private static void markGeneratedModularGearVariantCheatOnly(ResourceLocation syntheticId, Map<String, String> meta) {
+    private static void markGeneratedModularGearVariantCheatOnly(Identifier syntheticId, Map<String, String> meta) {
         if (syntheticId == null || meta == null || !syntheticId.getPath().contains("/variant/")) {
             return;
         }
@@ -707,7 +707,7 @@ public class ItemProvider implements IAmiDataProvider {
         int fastFacadeNodes = 0;
         int creativeVariantCandidates = 0;
         int suppressedCreativeVariants = 0;
-        Map<ResourceLocation, SuppressedCreativeVariants> suppressedCreativeVariantMeta = new HashMap<>();
+        Map<Identifier, SuppressedCreativeVariants> suppressedCreativeVariantMeta = new HashMap<>();
         int deferredSkipped = 0;
         long subtypeExpandNs = 0L;
         long subtypeNodeNs = 0L;
@@ -733,7 +733,7 @@ public class ItemProvider implements IAmiDataProvider {
 
         for (Item item : orderedItemsForIndexing()) {
             scannedItems++;
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+            Identifier id = BuiltInRegistries.ITEM.getKey(item);
             if ((scannedItems & 31) == 0 || scannedItems == totalItems) {
                 progress.updateProgress(scannedItems);
                 if (id != null) {
@@ -1025,7 +1025,7 @@ public class ItemProvider implements IAmiDataProvider {
                 nanosToMillis(basePostCompatNs), nanosToMillis(basePostCategoryNs), nanosToMillis(basePostAddNodeNs));
     }
 
-    private void indexFastFacadeItem(GlobalIndex index, Item item, ResourceLocation id,
+    private void indexFastFacadeItem(GlobalIndex index, Item item, Identifier id,
                                      Map<Item, List<ItemFilter.CreativeStackInfo>> creativeStackMap,
                                      @Nullable ItemFilter.CreativeTabInfo creativeTab,
                                      String accessLevel, boolean inCreative) {
@@ -1081,7 +1081,7 @@ public class ItemProvider implements IAmiDataProvider {
             // Use full class name to avoid collisions between two plugins in the same package.
             String pluginKey = plugin.getClass().getName().replace('.', '_').toLowerCase();
             Set<String> seenHeroStackKeys = new HashSet<>();
-            Set<ResourceLocation> emittedHeroIds = new HashSet<>();
+            Set<Identifier> emittedHeroIds = new HashSet<>();
             int count = 0;
             for (ItemStack stack : heroItems) {
                 if (stack == null || stack.isEmpty()) continue;
@@ -1091,7 +1091,7 @@ public class ItemProvider implements IAmiDataProvider {
                             plugin.getClass().getName());
                     break;
                 }
-                ResourceLocation baseId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                Identifier baseId = BuiltInRegistries.ITEM.getKey(stack.getItem());
                 if (baseId == null) continue;
 
                 String identityHash = CreativeStackVariantExpander.stackIdentityHash(baseId, stack, level);
@@ -1099,7 +1099,7 @@ public class ItemProvider implements IAmiDataProvider {
                 if (!seenHeroStackKeys.add(stackKey)) {
                     continue;
                 }
-                ResourceLocation syntheticId = Services.PLATFORM.rl(
+                Identifier syntheticId = Services.PLATFORM.rl(
                         "ami",
                         "hero/" + pluginKey + "/" + baseId.getNamespace() + "/" + baseId.getPath() + "_" + identityHash
                 );
@@ -1140,7 +1140,7 @@ public class ItemProvider implements IAmiDataProvider {
 
             String providerKey = providerId(provider).replace('.', '_').replace(':', '_').toLowerCase(Locale.ROOT);
             Set<String> seenHeroStackKeys = new HashSet<>();
-            Set<ResourceLocation> emittedHeroIds = new HashSet<>();
+            Set<Identifier> emittedHeroIds = new HashSet<>();
             int count = 0;
             for (ItemStack stack : representativeItems) {
                 if (stack == null || stack.isEmpty()) continue;
@@ -1150,7 +1150,7 @@ public class ItemProvider implements IAmiDataProvider {
                             providerId(provider));
                     break;
                 }
-                ResourceLocation baseId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                Identifier baseId = BuiltInRegistries.ITEM.getKey(stack.getItem());
                 if (baseId == null) continue;
 
                 String identityHash = CreativeStackVariantExpander.stackIdentityHash(baseId, stack, level);
@@ -1158,7 +1158,7 @@ public class ItemProvider implements IAmiDataProvider {
                 if (!seenHeroStackKeys.add(stackKey)) {
                     continue;
                 }
-                ResourceLocation syntheticId = Services.PLATFORM.rl(
+                Identifier syntheticId = Services.PLATFORM.rl(
                         "ami",
                         "hero/" + providerKey + "/" + baseId.getNamespace() + "/" + baseId.getPath() + "_" + identityHash
                 );
@@ -1273,7 +1273,7 @@ public class ItemProvider implements IAmiDataProvider {
         }
     }
 
-    private record ModonomiconBookAddress(ResourceLocation bookId, ResourceLocation entryId) {
+    private record ModonomiconBookAddress(Identifier bookId, Identifier entryId) {
     }
 
     record SuppressedCreativeVariants(String reason, int count) {

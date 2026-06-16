@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
 import com.sanhiruzu.ami.config.AmiConfig;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -19,7 +19,7 @@ class ApotheosisCompatTest {
                 "dev.shadowsoffire.apothic_enchanting.objects.TomeItem",
                 "");
 
-        CompatFamilyDetector.detect(new ResourceLocation("apothic_enchanting", "weapon_tome"), meta);
+        CompatFamilyDetector.detect(new Identifier("apothic_enchanting", "weapon_tome"), meta);
         CategoryAssignment assignment = resolve("apothic_enchanting:weapon_tome", meta);
 
         assertEquals("apotheosis", meta.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
@@ -37,8 +37,8 @@ class ApotheosisCompatTest {
                 "");
         charm.put(SearchNodeKeys.TAGS, "curios:charm");
 
-        CompatFamilyDetector.detect(new ResourceLocation("apotheosis", "gem"), gem);
-        CompatFamilyDetector.detect(new ResourceLocation("apotheosis", "potion_charm"), charm);
+        CompatFamilyDetector.detect(new Identifier("apotheosis", "gem"), gem);
+        CompatFamilyDetector.detect(new Identifier("apotheosis", "potion_charm"), charm);
 
         assertEquals("gems", resolve("apotheosis:gem", gem).subcategoryId());
         assertEquals("sockets", resolve("apotheosis:potion_charm", charm, ItemFacet.CURIO).subcategoryId());
@@ -53,8 +53,8 @@ class ApotheosisCompatTest {
                 "dev.shadowsoffire.apotheosis.item.BossSummonerItem",
                 "");
 
-        CompatFamilyDetector.detect(new ResourceLocation("apotheosis", "reforging_table"), table);
-        CompatFamilyDetector.detect(new ResourceLocation("apotheosis", "boss_summoner"), boss);
+        CompatFamilyDetector.detect(new Identifier("apotheosis", "reforging_table"), table);
+        CompatFamilyDetector.detect(new Identifier("apotheosis", "boss_summoner"), boss);
 
         assertEquals("affixes", resolve("apotheosis:reforging_table", table,
                 ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY).subcategoryId());
@@ -69,7 +69,7 @@ class ApotheosisCompatTest {
             Map<String, String> meta = meta("apothic_enchanting",
                     "dev.shadowsoffire.apothic_enchanting.objects.TomeItem",
                     "");
-            CompatFamilyDetector.detect(new ResourceLocation("apothic_enchanting", "weapon_tome"), meta);
+            CompatFamilyDetector.detect(new Identifier("apothic_enchanting", "weapon_tome"), meta);
 
             CategoryAssignment assignment = resolve("apothic_enchanting:weapon_tome", meta, ItemFacet.RANGED_WEAPON);
 
@@ -95,7 +95,7 @@ class ApotheosisCompatTest {
 
     private static CategoryAssignment resolve(String id, Map<String, String> meta, ItemFacet... facets) {
         return PrimaryCategoryResolver.resolve(
-                new ResourceLocation(id),
+                new Identifier(id),
                 new FacetProfile(facets.length == 0 ? EnumSet.noneOf(ItemFacet.class) : EnumSet.of(facets[0], facets), meta)
         );
     }

@@ -7,7 +7,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.SearchService;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,11 +20,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DiscoveryChecklistProjectionTest {
-    private static final ResourceLocation PLAINS = new ResourceLocation("minecraft:plains");
-    private static final ResourceLocation CHERRY_GROVE = new ResourceLocation("minecraft:cherry_grove");
-    private static final ResourceLocation VILLAGE = new ResourceLocation("minecraft:village_plains");
-    private static final ResourceLocation APPLE = new ResourceLocation("minecraft:apple");
-    private static final ResourceLocation CARROT = new ResourceLocation("minecraft:carrot");
+    private static final Identifier PLAINS = new Identifier("minecraft:plains");
+    private static final Identifier CHERRY_GROVE = new Identifier("minecraft:cherry_grove");
+    private static final Identifier VILLAGE = new Identifier("minecraft:village_plains");
+    private static final Identifier APPLE = new Identifier("minecraft:apple");
+    private static final Identifier CARROT = new Identifier("minecraft:carrot");
 
     @BeforeEach
     void setUp() {
@@ -131,15 +131,15 @@ class DiscoveryChecklistProjectionTest {
         assertEquals(0, ResultsViewProjector.project(List.of(plains, cherry), unvisitedPlains, searchService, false, false).displayedItemCount());
     }
 
-    private static SearchNode biome(ResourceLocation id, String name) {
+    private static SearchNode biome(Identifier id, String name) {
         return new SearchNode(id, NodeType.BIOME, name, 0, 0, Map.of(SearchNodeKeys.DIMENSION, "overworld"));
     }
 
-    private static SearchNode structure(ResourceLocation id, String name) {
+    private static SearchNode structure(Identifier id, String name) {
         return new SearchNode(id, NodeType.STRUCTURE, name, 0, 0, Map.of(SearchNodeKeys.DIMENSION, "overworld"));
     }
 
-    private static SearchNode food(ResourceLocation id, String name) {
+    private static SearchNode food(Identifier id, String name) {
         return new SearchNode(id, NodeType.ITEM, name, 0, 0, Map.of(SearchNodeKeys.FOOD_NUTRITION, "4"));
     }
 }

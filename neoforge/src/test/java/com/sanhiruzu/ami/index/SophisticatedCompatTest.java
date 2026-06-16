@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
 import com.sanhiruzu.ami.compat.SophisticatedCompat;
 import com.sanhiruzu.ami.config.AmiConfig;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -20,7 +20,7 @@ class SophisticatedCompatTest {
         Map<String, String> meta = meta("sophisticatedbackpacks", "Sophisticated Backpacks",
                 "net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackItem", "");
 
-        CompatFamilyDetector.detect(new ResourceLocation("sophisticatedbackpacks", "backpack"), meta);
+        CompatFamilyDetector.detect(new Identifier("sophisticatedbackpacks", "backpack"), meta);
 
         assertEquals("sophisticated", meta.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
     }
@@ -36,7 +36,7 @@ class SophisticatedCompatTest {
                 ItemFacet.CURIO
         )));
 
-        SophisticatedCompat.enrichItem(new ResourceLocation("sophisticatedbackpacks", "diamond_backpack"), meta);
+        SophisticatedCompat.enrichItem(new Identifier("sophisticatedbackpacks", "diamond_backpack"), meta);
         CategoryAssignment assignment = resolve("sophisticatedbackpacks:diamond_backpack", meta,
                 ItemFacet.STORAGE, ItemFacet.EQUIPPABLE, ItemFacet.ARMOR_CHEST, ItemFacet.CURIO);
 
@@ -57,7 +57,7 @@ class SophisticatedCompatTest {
                 ItemFacet.STORAGE
         )));
 
-        SophisticatedCompat.enrichItem(new ResourceLocation("sophisticatedstorage", "oak_barrel"), meta);
+        SophisticatedCompat.enrichItem(new Identifier("sophisticatedstorage", "oak_barrel"), meta);
         CategoryAssignment assignment = resolve("sophisticatedstorage:oak_barrel", meta,
                 ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.STORAGE);
 
@@ -72,7 +72,7 @@ class SophisticatedCompatTest {
                 "net.p3pp3rf1y.sophisticatedcore.upgrades.stack.StackUpgradeItem", "");
         meta.put(SearchNodeKeys.TAGS, "sophisticatedbackpacks:upgrade");
 
-        SophisticatedCompat.enrichItem(new ResourceLocation("sophisticatedbackpacks", "stack_upgrade_omega_tier"), meta);
+        SophisticatedCompat.enrichItem(new Identifier("sophisticatedbackpacks", "stack_upgrade_omega_tier"), meta);
         CategoryAssignment assignment = resolve("sophisticatedbackpacks:stack_upgrade_omega_tier", meta, ItemFacet.UPGRADE);
 
         assertEquals("upgrades", meta.get(SearchNodeKeys.SOPHISTICATED_ITEM_KIND));
@@ -88,7 +88,7 @@ class SophisticatedCompatTest {
                 "net.p3pp3rf1y.sophisticatedcore.upgrades.filter.FilterUpgradeItem", "");
         meta.put(SearchNodeKeys.TAGS, "sophisticatedstorage:upgrade");
 
-        SophisticatedCompat.enrichItem(new ResourceLocation("sophisticatedstorage", "advanced_filter_upgrade"), meta);
+        SophisticatedCompat.enrichItem(new Identifier("sophisticatedstorage", "advanced_filter_upgrade"), meta);
         CategoryAssignment assignment = resolve("sophisticatedstorage:advanced_filter_upgrade", meta, ItemFacet.UPGRADE);
 
         assertEquals("filters", meta.get(SearchNodeKeys.SOPHISTICATED_ITEM_KIND));
@@ -103,7 +103,7 @@ class SophisticatedCompatTest {
                 "net.minecraft.world.item.BucketItem", "");
         meta.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.FLUID_CONTAINER, ItemFacet.UTILITY_MISC)));
 
-        SophisticatedCompat.enrichItem(new ResourceLocation("sophisticatedcore", "xp_bucket"), meta);
+        SophisticatedCompat.enrichItem(new Identifier("sophisticatedcore", "xp_bucket"), meta);
         CategoryAssignment assignment = resolve("sophisticatedcore:xp_bucket", meta,
                 ItemFacet.FLUID_CONTAINER, ItemFacet.UTILITY_MISC);
 
@@ -118,7 +118,7 @@ class SophisticatedCompatTest {
             Map<String, String> meta = meta("sophisticatedbackpacks", "Sophisticated Backpacks",
                     "net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackItem", "");
 
-            SophisticatedCompat.enrichItem(new ResourceLocation("sophisticatedbackpacks", "backpack"), meta);
+            SophisticatedCompat.enrichItem(new Identifier("sophisticatedbackpacks", "backpack"), meta);
             CategoryAssignment assignment = resolve("sophisticatedbackpacks:backpack", meta,
                     ItemFacet.STORAGE, ItemFacet.EQUIPPABLE, ItemFacet.ARMOR_CHEST, ItemFacet.CURIO);
 
@@ -145,7 +145,7 @@ class SophisticatedCompatTest {
 
     private static CategoryAssignment resolve(String id, Map<String, String> meta, ItemFacet... facets) {
         return PrimaryCategoryResolver.resolve(
-                new ResourceLocation(id),
+                new Identifier(id),
                 new FacetProfile(facets.length == 0 ? EnumSet.noneOf(ItemFacet.class) : EnumSet.of(facets[0], facets), meta)
         );
     }

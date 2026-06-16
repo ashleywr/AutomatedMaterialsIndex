@@ -1,21 +1,18 @@
 package com.sanhiruzu.ami.client.icon;
 
 import com.mojang.authlib.GameProfile;
-import com.mojang.authlib.properties.PropertyMap;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.player.RemotePlayer;
-import net.minecraft.client.resources.PlayerSkin;
+import net.minecraft.world.entity.player.PlayerSkin;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.component.ResolvableProfile;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
 
 import java.util.HashMap;
 import java.util.List;
@@ -41,7 +38,7 @@ public class PlayerModelRenderer implements IIconRenderer {
         if (connection != null) {
             for (PlayerInfo info : connection.getOnlinePlayers()) {
                 GameProfile profile = info.getProfile();
-                if (profile != null && name.equalsIgnoreCase(profile.getName())) {
+                if (profile != null && name.equalsIgnoreCase(profile.name())) {
                     return cache(name, new RenderOnlyPlayer(mc.level, profile));
                 }
             }
@@ -55,9 +52,8 @@ public class PlayerModelRenderer implements IIconRenderer {
             GameProfile profile = pending.getNow(null);
             return profile == null ? null : cache(name, new RenderOnlyPlayer(mc.level, profile));
         }
-        ResolvableProfile profile = new ResolvableProfile(Optional.of(name), Optional.empty(), new PropertyMap());
-        PENDING_PROFILES.put(name, profile.resolve()
-                .thenApply(ResolvableProfile::gameProfile)
+        ResolvableProfile rp = ResolvableProfile.createUnresolved(name);
+        PENDING_PROFILES.put(name, rp.resolveProfile(Minecraft.getInstance().services().profileResolver())
                 .exceptionally(ex -> null));
         return null;
     }
@@ -67,39 +63,22 @@ public class PlayerModelRenderer implements IIconRenderer {
         return player;
     }
 
-    private static void renderPlayer(GuiGraphics g, int x, int y, int size, RemotePlayer player, float yRot) {
-        float savedBodyRot = player.yBodyRot;
-        float savedYRot = player.getYRot();
-        float savedXRot = player.getXRot();
-        float savedHeadRotO = player.yHeadRotO;
-        float savedHeadRot = player.yHeadRot;
-        player.yBodyRot = yRot;
-        player.setYRot(yRot);
-        player.setXRot(0.0f);
-        player.yHeadRot = player.getYRot();
-        player.yHeadRotO = player.getYRot();
+    private static void renderPlayer(GuiGraphicsExtractor g, int x, int y, int size, RemotePlayer player, float yRot) {
         float renderScale = Math.max(1.0f, (size - 2.0f) / Math.max(0.1f, player.getBbHeight()));
-        float centerX = x + size / 2.0f;
-        float centerY = y + size / 2.0f;
-        Vector3f translate = new Vector3f(0.0f, player.getBbHeight() / 2.0f, 0.0f);
-        Quaternionf pose = new Quaternionf().rotateZ((float) Math.PI);
-        g.pose().pushPose();
+        float xAngle = (yRot - 180.0f) / 20.0f;
+        float offsetY = player.getBbHeight() / 2.0f;
+        g.pose().pushMatrix();
         try {
             IconRenderState.render3dIcon(g, () ->
-                    InventoryScreen.renderEntityInInventory(g, centerX, centerY, renderScale, translate, pose, new Quaternionf(), player)
+                    InventoryScreen.renderEntityInInventoryFollowsAngle(g, x, y, x + size, y + size, (int) renderScale, offsetY, xAngle, 0.0f, player)
             );
         } finally {
-            g.pose().popPose();
-            player.yBodyRot = savedBodyRot;
-            player.setYRot(savedYRot);
-            player.setXRot(savedXRot);
-            player.yHeadRotO = savedHeadRotO;
-            player.yHeadRot = savedHeadRot;
+            g.pose().popMatrix();
         }
     }
 
     @Override
-    public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
+    public void render(GuiGraphicsExtractor g, SearchNode node, int x, int y, int size, boolean hovered) {
         if (size < 12) {
             FallbackTextRenderer.renderFallback(g, node, x, y, size);
             return;
@@ -146,7 +125,7 @@ public class PlayerModelRenderer implements IIconRenderer {
 
         private RenderOnlyPlayer(ClientLevel level, GameProfile profile) {
             super(level, profile);
-            this.skinSupplier = Minecraft.getInstance().getSkinManager().lookupInsecure(profile);
+            this.skinSupplier = Minecraft.getInstance().getSkinManager().createLookup(profile, false);
         }
 
         @Override

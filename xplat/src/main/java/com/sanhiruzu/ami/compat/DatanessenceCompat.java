@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.ItemFacet;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.Locale;
 import java.util.Map;
@@ -14,7 +14,7 @@ public final class DatanessenceCompat {
     private DatanessenceCompat() {
     }
 
-    public static void enrichItem(ResourceLocation id, Map<String, String> meta) {
+    public static void enrichItem(Identifier id, Map<String, String> meta) {
         if (id == null || meta == null || !MOD_ID.equals(id.getNamespace())) {
             return;
         }
@@ -30,7 +30,7 @@ public final class DatanessenceCompat {
         CompatMetaUtil.addSearchToken(meta, "halcyon");
     }
 
-    private static void markGuideBookCandidate(ResourceLocation id, Map<String, String> meta) {
+    private static void markGuideBookCandidate(Identifier id, Map<String, String> meta) {
         String path = id.getPath().toLowerCase(Locale.ROOT);
         if (!path.contains("book") && !path.contains("guide") && !path.contains("manual")
                 && !path.contains("codex") && !path.contains("lexicon")) {
@@ -44,7 +44,7 @@ public final class DatanessenceCompat {
         CompatMetaUtil.addSearchToken(meta, "guide");
     }
 
-    private static void applyClassFacts(ResourceLocation id, Map<String, String> meta) {
+    private static void applyClassFacts(Identifier id, Map<String, String> meta) {
         String path = id.getPath().toLowerCase(Locale.ROOT);
         String itemClass = meta.getOrDefault(SearchNodeKeys.ITEM_CLASS, "").toLowerCase(Locale.ROOT);
         String blockClass = meta.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "").toLowerCase(Locale.ROOT);
@@ -84,7 +84,7 @@ public final class DatanessenceCompat {
         }
     }
 
-    private static String classifyKind(ResourceLocation id, Map<String, String> meta) {
+    private static String classifyKind(Identifier id, Map<String, String> meta) {
         String path = id.getPath().toLowerCase(Locale.ROOT);
         String facets = meta.getOrDefault(SearchNodeKeys.FACETS, "").toLowerCase(Locale.ROOT);
         String category = meta.getOrDefault(SearchNodeKeys.ONTOLOGY_CATEGORY, "");
@@ -111,7 +111,7 @@ public final class DatanessenceCompat {
         return "items";
     }
 
-    private static String routeSubcategory(ResourceLocation id, Map<String, String> meta) {
+    private static String routeSubcategory(Identifier id, Map<String, String> meta) {
         return switch (classifyKind(id, meta)) {
             case "transport" -> "transport";
             case "cables" -> "cables";

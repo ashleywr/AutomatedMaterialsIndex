@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.client.results;
 import com.sanhiruzu.ami.api.AmiQuestDocument;
 import com.sanhiruzu.ami.api.AmiQuestTaskDocument;
 import com.sanhiruzu.ami.index.AmiQuestSearchIndex;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -73,13 +73,13 @@ public final class QuestResultsProjector {
 
     private static List<MatchEvidence> evidence(AmiQuestDocument document, List<String> tokens) {
         List<MatchEvidence> evidence = new ArrayList<>();
-        ResourceLocation sourceId = sourceId(document);
+        Identifier sourceId = sourceId(document);
         addEvidence(evidence, tokens, document.title(), MatchEvidence.SourceType.QUEST_TITLE, sourceId, document.title(), "");
         addEvidence(evidence, tokens, document.chapterTitle(), MatchEvidence.SourceType.QUEST_CHAPTER, sourceId, document.chapterTitle(), "");
         addEvidence(evidence, tokens, document.status().name(), MatchEvidence.SourceType.QUEST_STATUS, sourceId, statusLabel(document.status()), "");
         for (AmiQuestTaskDocument task : document.tasks()) {
             addEvidence(evidence, tokens, task.title(), MatchEvidence.SourceType.QUEST_TASK, sourceId, task.title(), taskLine(task));
-            for (ResourceLocation itemId : task.itemIds()) {
+            for (Identifier itemId : task.itemIds()) {
                 String itemLabel = formatId(itemId);
                 addEvidence(evidence, tokens, itemId.toString() + " " + itemId.getPath(), MatchEvidence.SourceType.QUEST_ITEM,
                         sourceId, itemLabel, taskLine(task));
@@ -93,7 +93,7 @@ public final class QuestResultsProjector {
     }
 
     private static void addEvidence(List<MatchEvidence> evidence, List<String> tokens, String haystack,
-                                    MatchEvidence.SourceType sourceType, ResourceLocation sourceId,
+                                    MatchEvidence.SourceType sourceType, Identifier sourceId,
                                     String label, String snippet) {
         String normalized = normalize(haystack);
         if (normalized.isBlank()) {
@@ -167,10 +167,10 @@ public final class QuestResultsProjector {
         return ResultsGroupLabels.formatGroupLabel(ResultsGroupLabels.formatGroupKey(sourceId, true));
     }
 
-    private static ResourceLocation sourceId(AmiQuestDocument document) {
+    private static Identifier sourceId(AmiQuestDocument document) {
         String id = document.id();
-        ResourceLocation parsed = ResourceLocation.tryParse(id);
-        return parsed == null ? ResourceLocation.fromNamespaceAndPath("ami", "quest/" + Math.abs(id.hashCode())) : parsed;
+        Identifier parsed = Identifier.tryParse(id);
+        return parsed == null ? Identifier.fromNamespaceAndPath("ami", "quest/" + Math.abs(id.hashCode())) : parsed;
     }
 
     private static List<String> tokens(String query) {
@@ -196,7 +196,7 @@ public final class QuestResultsProjector {
                 .replaceAll("\\s+", " ");
     }
 
-    private static String formatId(ResourceLocation id) {
+    private static String formatId(Identifier id) {
         if (id == null) {
             return "";
         }

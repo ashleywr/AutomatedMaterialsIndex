@@ -7,7 +7,7 @@ import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.api.AmiGuideOpeners;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 
@@ -70,20 +70,20 @@ public final class MalumCodexGuideSource {
         // Maps identifier → isVoid (true = Encyclopedia Esoterica).
         Map<String, Boolean> voidByIdentifier = enumerateVoidFlags();
 
-        ResourceLocation arcanaBookId = ResourceLocation.fromNamespaceAndPath(MOD_ID, "encyclopedia_arcana");
-        ResourceLocation esotericaBookId = ResourceLocation.fromNamespaceAndPath(MOD_ID, "encyclopedia_esoterica");
+        Identifier arcanaBookId = Identifier.fromNamespaceAndPath(MOD_ID, "encyclopedia_arcana");
+        Identifier esotericaBookId = Identifier.fromNamespaceAndPath(MOD_ID, "encyclopedia_esoterica");
 
         for (String identifier : identifiers) {
             String title = lang.getOrDefault(ENTRY_PREFIX + identifier, identifier);
             String description = lang.getOrDefault(ENTRY_PREFIX + identifier + DESCRIPTION_SUFFIX, "");
             String summary = description.isBlank() ? title : title + "\n" + description;
-            ResourceLocation documentId = ResourceLocation.fromNamespaceAndPath(
+            Identifier documentId = Identifier.fromNamespaceAndPath(
                     "ami",
                     "guide/malum/" + identifier.replace('.', '/').replace(' ', '_')
             );
             boolean isVoid = voidByIdentifier.getOrDefault(identifier,
                     identifier.contains("void") || identifier.contains("umbral") || identifier.contains("esoterica"));
-            ResourceLocation bookId = isVoid ? esotericaBookId : arcanaBookId;
+            Identifier bookId = isVoid ? esotericaBookId : arcanaBookId;
             documents.accept(AmiGuideDocument.builder(documentId, "malum_codex", MOD_ID, title)
                     .bookId(bookId)
                     .iconItemId(bookId)
@@ -215,7 +215,7 @@ public final class MalumCodexGuideSource {
         try {
             ResourceManager rm = Minecraft.getInstance().getResourceManager();
             Optional<Resource> resource = rm.getResource(
-                    ResourceLocation.fromNamespaceAndPath(MOD_ID, "lang/en_us.json"));
+                    Identifier.fromNamespaceAndPath(MOD_ID, "lang/en_us.json"));
             if (resource.isEmpty()) {
                 return Map.of();
             }

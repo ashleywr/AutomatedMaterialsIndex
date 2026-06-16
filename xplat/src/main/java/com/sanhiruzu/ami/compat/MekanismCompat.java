@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -15,7 +15,7 @@ public final class MekanismCompat {
     private MekanismCompat() {
     }
 
-    public static void enrichItem(ResourceLocation id, Map<String, String> meta) {
+    public static void enrichItem(Identifier id, Map<String, String> meta) {
         if (id == null || meta == null) {
             return;
         }
@@ -51,7 +51,7 @@ public final class MekanismCompat {
         }
     }
 
-    private static boolean isMekanismFamilyItem(ResourceLocation id, Map<String, String> meta) {
+    private static boolean isMekanismFamilyItem(Identifier id, Map<String, String> meta) {
         return MOD_ID.equals(id.getNamespace())
                 || id.getNamespace().startsWith("mekanism")
                 || CompatFamilyDetector.hasFamily(meta, CompatFamilyDetector.MEKANISM);
@@ -260,7 +260,7 @@ public final class MekanismCompat {
         final String facets;
         final Map<String, String> meta;
 
-        Context(ResourceLocation id, Map<String, String> meta) {
+        Context(Identifier id, Map<String, String> meta) {
             this.path = id.getPath().toLowerCase(Locale.ROOT);
             this.itemClass = meta.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
             this.blockClass = meta.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "");

@@ -55,6 +55,14 @@ anomaly_report.md
 vendor-sources/
 internal/
 
+### xplat source junctions (recreate with mklink /J after fresh clone) ###
+forge/main-java
+forge/main-resources
+neoforge/main-java
+neoforge/main-resources
+fabric/main-java
+fabric/main-resources
+
 ### Local Development ###
 dev/
 font_issue.png

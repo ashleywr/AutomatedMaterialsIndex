@@ -5,27 +5,31 @@ import com.google.gson.JsonElement;
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.platform.Services;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.FileToIdConverter;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
+import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
+import net.minecraft.util.GsonHelper;
 import net.minecraft.util.profiling.ProfilerFiller;
 
+import java.io.IOException;
+import java.io.Reader;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-public final class ThemeResourceLoader extends SimpleJsonResourceReloadListener {
+public final class ThemeResourceLoader extends SimplePreparableReloadListener<Map<Identifier, JsonElement>> {
     private static final Gson GSON = new Gson();
     private static final String DIRECTORY = "themes";
-    private static final Map<ResourceLocation, ThemeResourceStyles.ThemeDefinition> THEMES = new HashMap<>();
+    private static final FileToIdConverter LISTER = FileToIdConverter.json(DIRECTORY);
+    private static final Map<Identifier, ThemeResourceStyles.ThemeDefinition> THEMES = new HashMap<>();
     public static final ThemeResourceLoader INSTANCE = new ThemeResourceLoader();
 
-    private ThemeResourceLoader() {
-        super(GSON, DIRECTORY);
-    }
+    private ThemeResourceLoader() {}
 
     public static void applyCurrentTheme() {
-        ResourceLocation id = selectedThemeId();
+        Identifier id = selectedThemeId();
         ThemeResourceStyles.ThemeDefinition theme = THEMES.get(id);
         if (theme == null) {
             return;
@@ -33,14 +37,32 @@ public final class ThemeResourceLoader extends SimpleJsonResourceReloadListener 
         theme.apply();
     }
 
-    public static ResourceLocation selectedThemeId() {
+    public static Identifier selectedThemeId() {
         return Services.PLATFORM.rl(AmiCore.MODID, AmiConfig.theme.name().toLowerCase(Locale.ROOT));
     }
 
     @Override
-    protected void apply(Map<ResourceLocation, JsonElement> resources, ResourceManager resourceManager, ProfilerFiller profiler) {
-        Map<ResourceLocation, ThemeResourceStyles.ThemeDefinition> parsed = new HashMap<>();
-        for (Map.Entry<ResourceLocation, JsonElement> entry : resources.entrySet()) {
+    protected Map<Identifier, JsonElement> prepare(ResourceManager manager, ProfilerFiller profiler) {
+        Map<Identifier, JsonElement> result = new HashMap<>();
+        for (Map.Entry<Identifier, Resource> entry : LISTER.listMatchingResources(manager).entrySet()) {
+            Identifier fileId = entry.getKey();
+            Identifier themeId = LISTER.fileToId(fileId);
+            try (Reader reader = entry.getValue().openAsReader()) {
+                JsonElement json = GsonHelper.fromJson(GSON, reader, JsonElement.class);
+                if (json != null) {
+                    result.put(themeId, json);
+                }
+            } catch (IOException | com.google.gson.JsonParseException e) {
+                AmiCore.LOGGER.error("Failed to load AMI theme {}", fileId, e);
+            }
+        }
+        return result;
+    }
+
+    @Override
+    protected void apply(Map<Identifier, JsonElement> resources, ResourceManager resourceManager, ProfilerFiller profiler) {
+        Map<Identifier, ThemeResourceStyles.ThemeDefinition> parsed = new HashMap<>();
+        for (Map.Entry<Identifier, JsonElement> entry : resources.entrySet()) {
             ThemeResourceStyles.ThemeDefinition theme = ThemeResourceStyles.parse(entry.getKey(), entry.getValue());
             if (!theme.isEmpty()) {
                 parsed.put(entry.getKey(), theme);

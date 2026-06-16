@@ -12,7 +12,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.SearchService;
 import com.sanhiruzu.ami.client.discovery.AmiDiscoveryState;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
@@ -227,7 +227,7 @@ public final class ResultsViewProjector {
         return out;
     }
 
-    private record NodeKey(NodeType type, ResourceLocation id) {
+    private record NodeKey(NodeType type, Identifier id) {
         static NodeKey of(SearchNode node) {
             return new NodeKey(node.type(), node.id());
         }

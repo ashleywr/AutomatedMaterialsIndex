@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.api;
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.searchableitems.api.SearchableItemProvider;
 import com.sanhiruzu.searchableitems.api.SearchableItemProviders;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
@@ -42,7 +42,7 @@ public final class ItemProviderCompatHooks {
         }
     }
 
-    public static void runPluginItemCompatHooks(ResourceLocation id, ItemStack stack, @Nullable Level level,
+    public static void runPluginItemCompatHooks(Identifier id, ItemStack stack, @Nullable Level level,
                                                 Map<String, String> metadata) {
         if (id == null || stack == null || metadata == null) {
             return;

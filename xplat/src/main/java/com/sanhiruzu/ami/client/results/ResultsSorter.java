@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.index.GroupingEngine;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.*;
 
@@ -138,10 +138,10 @@ final class ResultsSorter {
 
     private int registryId(SearchNode node) {
         if (node == null || node.id() == null) return -1;
-        ResourceLocation loc = node.id();
+        Identifier loc = node.id();
         if (loc.getPath().contains("/")) return -1;
-        var item = BuiltInRegistries.ITEM.get(loc);
-        if (item == net.minecraft.world.item.Items.AIR && !loc.getPath().equals("air")) return -1;
+        var item = BuiltInRegistries.ITEM.getValue(loc);
+        if ((item == null || item == net.minecraft.world.item.Items.AIR) && !loc.getPath().equals("air")) return -1;
         return BuiltInRegistries.ITEM.getId(item);
     }
 
@@ -160,8 +160,8 @@ final class ResultsSorter {
         if (cmp != 0) {
             return cmp;
         }
-        ResourceLocation idA = a == null ? null : a.id();
-        ResourceLocation idB = b == null ? null : b.id();
+        Identifier idA = a == null ? null : a.id();
+        Identifier idB = b == null ? null : b.id();
         cmp = String.valueOf(idA).compareTo(String.valueOf(idB));
         if (cmp != 0) {
             return cmp;

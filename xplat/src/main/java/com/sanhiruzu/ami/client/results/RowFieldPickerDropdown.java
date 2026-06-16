@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.AmiGuiIcons;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
 import java.util.EnumSet;
@@ -37,7 +37,7 @@ public class RowFieldPickerDropdown {
 
     // ── Render ────────────────────────────────────────────────────────────────
 
-    public void render(GuiGraphics g, int mouseX, int mouseY) {
+    public void render(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         boolean hovered = Dropdown.contains(mouseX, mouseY, x, y, width, BTN_H);
         AMITheme.fillControlChrome(g, x, y, width, BTN_H,
                 open || hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG, open);
@@ -46,11 +46,11 @@ public class RowFieldPickerDropdown {
         String label = Component.translatable("ami.gui.fields_button").getString();
         int labelW = font.width(label);
         int textX = x + Math.max(2, (width - labelW - 12) / 2);
-        g.drawString(font, label, textX, y + 2, AMITheme.TEXT_HEADER, false);
+        g.text(font, label, textX, y + 2, AMITheme.TEXT_HEADER, false);
         AmiGuiIcons.dropdownChevron(g, x + width - 7, y + BTN_H / 2, open || hovered ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_SUBTLE, open);
     }
 
-    public void renderList(GuiGraphics g, int mouseX, int mouseY) {
+    public void renderList(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (!open) return;
 
         List<RowField> active = RowFieldConfig.getSubtitleFields();
@@ -77,12 +77,12 @@ public class RowFieldPickerDropdown {
             g.fill(checkX, checkY, checkX + CHECK_SIZE, checkY + CHECK_SIZE, AMITheme.SECTION_SEP);
             if (isSelected) {
                 g.fill(checkX + 1, checkY + 1, checkX + CHECK_SIZE - 1, checkY + CHECK_SIZE - 1, AMITheme.ACCENT_BLUE);
-                g.drawString(font, "✓", checkX + 1, iy, AMITheme.WHITE, false);
+                g.text(font, "✓", checkX + 1, iy, AMITheme.WHITE, false);
             } else {
                 g.fill(checkX + 1, checkY + 1, checkX + CHECK_SIZE - 1, checkY + CHECK_SIZE - 1, AMITheme.DROPDOWN_LIST_BG);
             }
 
-            g.drawString(font, field.displayName, x + 12, iy + 2, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
+            g.text(font, field.displayName, x + 12, iy + 2, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
             iy += ITEM_H;
         }
     }

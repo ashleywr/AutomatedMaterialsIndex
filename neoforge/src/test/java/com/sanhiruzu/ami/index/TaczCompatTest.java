@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
 import com.sanhiruzu.ami.compat.TaczCompat;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -18,7 +18,7 @@ class TaczCompatTest {
     void taczNamespaceGetsFamilyPolicy() {
         Map<String, String> meta = meta("com.tacz.guns.item.ModernKineticGunItem");
 
-        CompatFamilyDetector.detect(new ResourceLocation("tacz", "modern_kinetic_gun"), meta);
+        CompatFamilyDetector.detect(new Identifier("tacz", "modern_kinetic_gun"), meta);
 
         assertEquals("tacz", meta.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
     }
@@ -30,7 +30,7 @@ class TaczCompatTest {
         meta.put(SearchNodeKeys.MATERIAL_GROUP, "tacz:attachment");
 
         TaczCompat.enrichItem(
-                new ResourceLocation("tacz", "attachment/variant/sro_mini_red_dot_8d3fad27f0ad"),
+                new Identifier("tacz", "attachment/variant/sro_mini_red_dot_8d3fad27f0ad"),
                 meta);
         CategoryAssignment assignment = resolve(
                 "tacz:attachment/variant/sro_mini_red_dot_8d3fad27f0ad",
@@ -53,8 +53,8 @@ class TaczCompatTest {
         Map<String, String> meta = meta("com.tacz.guns.item.AttachmentItem");
         meta.put(SearchNodeKeys.MOD_ID, "example_tacz_addon");
 
-        CompatFamilyDetector.detect(new ResourceLocation("example_tacz_addon", "custom_scope"), meta);
-        TaczCompat.enrichItem(new ResourceLocation("example_tacz_addon", "custom_scope"), meta);
+        CompatFamilyDetector.detect(new Identifier("example_tacz_addon", "custom_scope"), meta);
+        TaczCompat.enrichItem(new Identifier("example_tacz_addon", "custom_scope"), meta);
         CategoryAssignment assignment = resolve("example_tacz_addon:custom_scope", meta);
 
         assertEquals("tacz", meta.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
@@ -67,13 +67,13 @@ class TaczCompatTest {
     void gunsAndAmmoRouteToTaczTopLevelGroup() {
         Map<String, String> gun = meta("com.tacz.guns.item.ModernKineticGunItem");
         gun.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.RANGED_WEAPON)));
-        TaczCompat.enrichItem(new ResourceLocation("tacz", "modern_kinetic_gun/variant/glock_17"), gun);
+        TaczCompat.enrichItem(new Identifier("tacz", "modern_kinetic_gun/variant/glock_17"), gun);
         CategoryAssignment gunAssignment = resolve("tacz:modern_kinetic_gun/variant/glock_17", gun,
                 ItemFacet.RANGED_WEAPON);
 
         Map<String, String> ammo = meta("com.tacz.guns.item.AmmoItem");
         ammo.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.PROJECTILE)));
-        TaczCompat.enrichItem(new ResourceLocation("tacz", "ammo/variant/9mm"), ammo);
+        TaczCompat.enrichItem(new Identifier("tacz", "ammo/variant/9mm"), ammo);
         CategoryAssignment ammoAssignment = resolve("tacz:ammo/variant/9mm", ammo, ItemFacet.PROJECTILE);
 
         assertEquals("guns", gun.get(SearchNodeKeys.TACZ_ITEM_KIND));
@@ -89,7 +89,7 @@ class TaczCompatTest {
     void workstationsRouteToTaczWorkstations() {
         Map<String, String> meta = meta("com.tacz.guns.item.GunSmithTableItem");
 
-        TaczCompat.enrichItem(new ResourceLocation("tacz", "gun_smith_table"), meta);
+        TaczCompat.enrichItem(new Identifier("tacz", "gun_smith_table"), meta);
         CategoryAssignment assignment = resolve("tacz:gun_smith_table", meta);
 
         assertEquals("workstations", meta.get(SearchNodeKeys.TACZ_ITEM_KIND));
@@ -107,7 +107,7 @@ class TaczCompatTest {
 
     private static CategoryAssignment resolve(String id, Map<String, String> meta, ItemFacet... facets) {
         return PrimaryCategoryResolver.resolve(
-                new ResourceLocation(id),
+                new Identifier(id),
                 facets.length == 0 ? EnumSet.noneOf(ItemFacet.class) : EnumSet.of(facets[0], facets),
                 meta
         );

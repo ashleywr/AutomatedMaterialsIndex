@@ -7,7 +7,7 @@ import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.providers.*;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
@@ -102,13 +102,13 @@ public final class ProviderRegistry {
         for (Item item : orderedItemsForIndexing()) {
             current++;
             if ((current & 31) == 0 || current == total) {
-                ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(item);
+                Identifier itemId = BuiltInRegistries.ITEM.getKey(item);
                 progress.updateProgress(current);
                 if (itemId != null) {
                     progress.updateProgressDetail(itemId.toString());
                 }
             }
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+            Identifier id = BuiltInRegistries.ITEM.getKey(item);
             if (id == null) continue;
             ItemFilter.firstCreativeStack(item, creativeStackMap).ifPresent(stack -> ItemIconRenderer.registerStack(id, stack));
             List<SubtypeExpander.SubtypeEntry> entries = SubtypeExpander.expand(id, registryAccess);
@@ -123,7 +123,7 @@ public final class ProviderRegistry {
         }
         for (Fluid fluid : BuiltInRegistries.FLUID) {
             if (fluid == Fluids.EMPTY || !fluid.isSource(fluid.defaultFluidState())) continue;
-            ResourceLocation fluidId = BuiltInRegistries.FLUID.getKey(fluid);
+            Identifier fluidId = BuiltInRegistries.FLUID.getKey(fluid);
             if (fluidId != null) FluidProvider.registerBucketIcon(fluidId, fluid);
         }
         IngredientIndexProvider.rebuildRuntimeHandles(GlobalIndex.getInstance());
@@ -191,7 +191,7 @@ public final class ProviderRegistry {
         List<Item> regular = new java.util.ArrayList<>();
         List<Item> deferred = new java.util.ArrayList<>();
         for (Item item : BuiltInRegistries.ITEM) {
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+            Identifier id = BuiltInRegistries.ITEM.getKey(item);
             if (IndexingHotItemPolicy.shouldDeferUntilTail(id)) {
                 deferred.add(item);
             } else {

@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.client.widget;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicReference;
@@ -89,7 +89,7 @@ class AmiDropdownPopupControllerTest {
         }
 
         @Override
-        public void renderDropdownList(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        public void renderDropdownList(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         }
 
         @Override

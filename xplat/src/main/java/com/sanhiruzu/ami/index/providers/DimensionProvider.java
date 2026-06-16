@@ -24,9 +24,9 @@ public class DimensionProvider implements IAmiDataProvider {
         }
 
         List<SearchNode> nodes = new ArrayList<>();
-        level.registryAccess().registry(Registries.DIMENSION).ifPresent(reg ->
-                reg.holders().forEach(holder -> {
-                    var id = holder.key().location();
+        level.registryAccess().lookup(Registries.DIMENSION).ifPresent(reg ->
+                reg.listElements().forEach(holder -> {
+                    var id = holder.key().identifier();
                     int color = RegistryUtils.dimensionColor(id);
 
                     Map<String, String> meta = new HashMap<>();

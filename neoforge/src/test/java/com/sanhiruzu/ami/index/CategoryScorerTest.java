@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -13,7 +13,7 @@ class CategoryScorerTest {
     @Test
     void componentFactsOutweighGenericPlaceableEvidence() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("ami_test:apple_pie_block"),
+                new Identifier("ami_test:apple_pie_block"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.PLACEABLE),
                         Map.of(SearchNodeKeys.COMPONENT_FACTS, "food")
@@ -29,7 +29,7 @@ class CategoryScorerTest {
     @Test
     void creativeTabEvidenceCanRescueFurnitureFromGenericPlaceable() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("ami_test:oak_toilet"),
+                new Identifier("ami_test:oak_toilet"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.PLACEABLE),
                         Map.of(SearchNodeKeys.CREATIVE_TAB_LABEL, "Macaw's Furniture")
@@ -44,7 +44,7 @@ class CategoryScorerTest {
     @Test
     void trustedTagsBeatWeakLexicalNoise() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("railways:track_incomplete_jungle_narrow"),
+                new Identifier("railways:track_incomplete_jungle_narrow"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.PLACEABLE),
                         Map.of(SearchNodeKeys.TAGS, "create:tracks")
@@ -59,7 +59,7 @@ class CategoryScorerTest {
     @Test
     void pathOnlyCableWordsClassifyThroughLexicalEvidenceNotFacets() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("immersiveengineering:wire_copper"),
+                new Identifier("immersiveengineering:wire_copper"),
                 new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of())
         );
 
@@ -71,7 +71,7 @@ class CategoryScorerTest {
     @Test
     void foodDrinkFacetBeatsGenericBottleContainerEvidence() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("farmersdelight:milk_bottle"),
+                new Identifier("farmersdelight:milk_bottle"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.FOOD_DRINK, ItemFacet.UTILITY_MISC),
                         Map.of(SearchNodeKeys.ITEM_CLASS, "vectorwing.farmersdelight.common.item.MilkBottleItem")
@@ -87,7 +87,7 @@ class CategoryScorerTest {
     @Test
     void magicBottleFacetBeatsGenericBottleContainerEvidence() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("minecraft:experience_bottle"),
+                new Identifier("minecraft:experience_bottle"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.MAGIC_REAGENT, ItemFacet.UTILITY_MISC),
                         Map.of(SearchNodeKeys.ITEM_CLASS, "net.minecraft.world.item.ExperienceBottleItem")
@@ -101,7 +101,7 @@ class CategoryScorerTest {
     @Test
     void plainBottleStillRoutesToUtilityContainer() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("minecraft:glass_bottle"),
+                new Identifier("minecraft:glass_bottle"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.UTILITY_MISC, ItemFacet.FLUID_CONTAINER),
                         Map.of(SearchNodeKeys.ITEM_CLASS, "net.minecraft.world.item.BottleItem")
@@ -116,7 +116,7 @@ class CategoryScorerTest {
     @Test
     void equipmentArmorEvidenceBeatsStaleUtilityToolFacet() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("ami_test:copper_chestplate"),
+                new Identifier("ami_test:copper_chestplate"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.EQUIPPABLE, ItemFacet.UTILITY_TOOL, ItemFacet.ARMOR_CHEST),
                         Map.of(SearchNodeKeys.EQUIPMENT_SLOT, "chest")
@@ -133,7 +133,7 @@ class CategoryScorerTest {
     @Test
     void elytraWingsDoNotBecomeProteinFromWingToken() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("silentgear:elytra_wings"),
+                new Identifier("silentgear:elytra_wings"),
                 new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of(SearchNodeKeys.COMPONENT_FACTS, "max_damage,damage"))
         );
 
@@ -144,7 +144,7 @@ class CategoryScorerTest {
     @Test
     void passiveComparatorFurnitureDoesNotTieRedstone() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("farmersdelight:acacia_cabinet"),
+                new Identifier("farmersdelight:acacia_cabinet"),
                 new FacetProfile(
                         EnumSet.of(
                                 ItemFacet.PLACEABLE,
@@ -165,7 +165,7 @@ class CategoryScorerTest {
     @Test
     void coffeeTablesDoNotBecomeDrinks() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("mcwquark:ancient_coffee_table"),
+                new Identifier("mcwquark:ancient_coffee_table"),
                 new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE), Map.of())
         );
 
@@ -177,7 +177,7 @@ class CategoryScorerTest {
     @Test
     void activeRedstoneBeatsFurnitureWord() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("create:desk_bell"),
+                new Identifier("create:desk_bell"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.ACTIVE_REDSTONE_LOGIC, ItemFacet.REDSTONE_LOGIC),
                         Map.of()
@@ -191,7 +191,7 @@ class CategoryScorerTest {
     @Test
     void arrowTagsBeatLightingWords() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("quark:torch_arrow"),
+                new Identifier("quark:torch_arrow"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.RANGED_WEAPON, ItemFacet.PROJECTILE),
                         Map.of(SearchNodeKeys.TAGS, "minecraft:arrows")
@@ -205,7 +205,7 @@ class CategoryScorerTest {
     @Test
     void foodBlockClassBeatsInkDyeWord() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("displaydelight:squid_ink_pasta"),
+                new Identifier("displaydelight:squid_ink_pasta"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.PLACEABLE),
                         Map.of(
@@ -222,7 +222,7 @@ class CategoryScorerTest {
     @Test
     void techBlockClassBeatsFullBlockFallback() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("create:basin"),
+                new Identifier("create:basin"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.PASSIVE_COMPARATOR_OUTPUT),
                         Map.of(SearchNodeKeys.BLOCK_CLASS, "com.simibubi.create.content.processing.basin.BasinBlock")
@@ -236,7 +236,7 @@ class CategoryScorerTest {
     @Test
     void trellisClassBeatsFullBlockFallback() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("natures_spirit:aspen_trellis"),
+                new Identifier("natures_spirit:aspen_trellis"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.PLACEABLE),
                         Map.of(SearchNodeKeys.BLOCK_CLASS, "net.hecco.bountifulfares.definition.block.custom.TrellisBlock")
@@ -250,7 +250,7 @@ class CategoryScorerTest {
     @Test
     void toolboxTokenBeatsGenericPlaceableFallback() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("create:black_toolbox"),
+                new Identifier("create:black_toolbox"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.PASSIVE_COMPARATOR_OUTPUT),
                         Map.of(SearchNodeKeys.TAGS, "create:toolboxes")
@@ -264,7 +264,7 @@ class CategoryScorerTest {
     @Test
     void scienceCreativeTabRescuesCrystalSeedsFromMisc() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("ae2cs:fluix_crystal_seed"),
+                new Identifier("ae2cs:fluix_crystal_seed"),
                 new FacetProfile(
                         EnumSet.noneOf(ItemFacet.class),
                         Map.of(SearchNodeKeys.CREATIVE_TAB_LABEL, "AE2: Crystal Science")
@@ -278,7 +278,7 @@ class CategoryScorerTest {
     @Test
     void utilityCreativeTabRescuesSeedPouchFromSeedNoise() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("quark:seed_pouch"),
+                new Identifier("quark:seed_pouch"),
                 new FacetProfile(
                         EnumSet.noneOf(ItemFacet.class),
                         Map.of(SearchNodeKeys.CREATIVE_TAB_LABEL, "Tools & Utilities")
@@ -292,7 +292,7 @@ class CategoryScorerTest {
     @Test
     void commonMaterialTagsClassifyAsIngredientsNotTech() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("minecraft:amethyst_shard"),
+                new Identifier("minecraft:amethyst_shard"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.MAGIC_REAGENT),
                         Map.of(SearchNodeKeys.TAGS, "c:gems,c:gems/amethyst")
@@ -306,7 +306,7 @@ class CategoryScorerTest {
     @Test
     void ingredientsTabShardEvidenceBeatsStaleMagicFacet() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("quark:magenta_shard"),
+                new Identifier("quark:magenta_shard"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.MAGIC_REAGENT),
                         Map.of(
@@ -327,7 +327,7 @@ class CategoryScorerTest {
     @Test
     void fenceGateFacetBeatsFenceAndWallTie() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("mcwfences:acacia_curved_gate"),
+                new Identifier("mcwfences:acacia_curved_gate"),
                 new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.FENCE_GATE, ItemFacet.WALL, ItemFacet.FENCE), Map.of())
         );
 
@@ -338,7 +338,7 @@ class CategoryScorerTest {
     @Test
     void wallNameBreaksFenceWallTie() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("mcwfences:andesite_grass_topped_wall"),
+                new Identifier("mcwfences:andesite_grass_topped_wall"),
                 new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.WALL, ItemFacet.FENCE), Map.of())
         );
 
@@ -349,7 +349,7 @@ class CategoryScorerTest {
     @Test
     void exactShapeFacetBeatsDecorativeTabTie() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("copycats:copycat_fence"),
+                new Identifier("copycats:copycat_fence"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.DECORATIVE_BLOCK, ItemFacet.FENCE),
                         Map.of(SearchNodeKeys.CREATIVE_TAB_LABEL, "Create: Copycats+ | Decorative")
@@ -363,7 +363,7 @@ class CategoryScorerTest {
     @Test
     void createMachineClassBeatsFullBlockFallback() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("create_power_loader:brass_chunk_loader"),
+                new Identifier("create_power_loader:brass_chunk_loader"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.PASSIVE_COMPARATOR_OUTPUT),
                         Map.of(SearchNodeKeys.BLOCK_CLASS, "com.hlysine.create_power_loader.content.brasschunkloader.BrassChunkLoaderBlock")
@@ -377,7 +377,7 @@ class CategoryScorerTest {
     @Test
     void rollTokenClassifiesFoodDisplayBlocksAsMeals() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("createfood:cinnamon_sweet_roll_base_plate_block"),
+                new Identifier("createfood:cinnamon_sweet_roll_base_plate_block"),
                 new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.PASSIVE_COMPARATOR_OUTPUT), Map.of())
         );
 
@@ -388,7 +388,7 @@ class CategoryScorerTest {
     @Test
     void compressedMaterialBlockClassBeatsFullBlockFallback() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("pneumaticcraft:compressed_iron_block"),
+                new Identifier("pneumaticcraft:compressed_iron_block"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.PASSIVE_COMPARATOR_OUTPUT),
                         Map.of(SearchNodeKeys.BLOCK_CLASS, "me.desht.pneumaticcraft.common.block.CompressedIronBlock")
@@ -402,7 +402,7 @@ class CategoryScorerTest {
     @Test
     void ae2EnergyClassBeatsFullBlockFallback() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("ae2:energy_acceptor"),
+                new Identifier("ae2:energy_acceptor"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.PASSIVE_COMPARATOR_OUTPUT),
                         Map.of(SearchNodeKeys.BLOCK_CLASS, "appeng.block.networking.EnergyAcceptorBlock")
@@ -416,7 +416,7 @@ class CategoryScorerTest {
     @Test
     void dishTokenBeatsFullBlockFallback() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("bountifulfares:ceramic_dish"),
+                new Identifier("bountifulfares:ceramic_dish"),
                 new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE), Map.of())
         );
 
@@ -427,7 +427,7 @@ class CategoryScorerTest {
     @Test
     void armorIdentityBeatsOrganicIngredientEvidence() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("minecraft:leather_helmet"),
+                new Identifier("minecraft:leather_helmet"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.ARMOR_HEAD, ItemFacet.INGREDIENT_ORGANIC),
                         Map.of(SearchNodeKeys.EQUIPMENT_SLOT, "head")
@@ -442,7 +442,7 @@ class CategoryScorerTest {
     @Test
     void harvestToolIdentityBeatsStorageAndRedstoneNoise() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("ami_test:compressed_pickaxe"),
+                new Identifier("ami_test:compressed_pickaxe"),
                 new FacetProfile(EnumSet.of(
                         ItemFacet.HARVEST_TOOL,
                         ItemFacet.STORAGE,
@@ -459,7 +459,7 @@ class CategoryScorerTest {
     @Test
     void projectileFacetRequiresAmmoContext() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("unusualfishmod:clement_shell"),
+                new Identifier("unusualfishmod:clement_shell"),
                 new FacetProfile(EnumSet.of(ItemFacet.PROJECTILE), Map.of())
         );
 
@@ -471,7 +471,7 @@ class CategoryScorerTest {
     @Test
     void mortarShellStillClassifiesAsAmmo() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("createbigcannons:drop_mortar_shell"),
+                new Identifier("createbigcannons:drop_mortar_shell"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.PROJECTILE, ItemFacet.PLACEABLE),
                         Map.of(SearchNodeKeys.TAGS, "createbigcannons:big_cannon_projectiles")
@@ -485,7 +485,7 @@ class CategoryScorerTest {
     @Test
     void foodDisplayPlatesBeatIngredientTokens() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("createfood:fish_taco_kelp_plate_block"),
+                new Identifier("createfood:fish_taco_kelp_plate_block"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.PASSIVE_COMPARATOR_OUTPUT, ItemFacet.REDSTONE_SIGNAL),
                         Map.of(
@@ -503,7 +503,7 @@ class CategoryScorerTest {
     @Test
     void foodChipNamesDoNotBecomeCircuits() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("createfood:potato_chip_bowl_block"),
+                new Identifier("createfood:potato_chip_bowl_block"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.PLACEABLE),
                         Map.of(SearchNodeKeys.BLOCK_CLASS, "dev.averageanime.block.type.display.BowlFoodBlock")
@@ -518,7 +518,7 @@ class CategoryScorerTest {
     @Test
     void foodBlockClassBeatsTemplateFacetNoise() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("displaydelight:warped_moldy_meat"),
+                new Identifier("displaydelight:warped_moldy_meat"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.TEMPLATE),
                         Map.of(
@@ -536,7 +536,7 @@ class CategoryScorerTest {
     @Test
     void rollTablesDoNotBecomeMeals() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("dndesires:roll_table"),
+                new Identifier("dndesires:roll_table"),
                 new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE), Map.of())
         );
 
@@ -548,7 +548,7 @@ class CategoryScorerTest {
     @Test
     void carpetWithAnimalEquipmentNoiseStaysDecoration() {
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
-                new ResourceLocation("minecraft:red_carpet"),
+                new Identifier("minecraft:red_carpet"),
                 new FacetProfile(
                         EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.DECORATIVE_BLOCK, ItemFacet.EQUIPPABLE, ItemFacet.ARMOR_ANIMAL),
                         Map.of(SearchNodeKeys.EQUIPMENT_SLOT, "body")

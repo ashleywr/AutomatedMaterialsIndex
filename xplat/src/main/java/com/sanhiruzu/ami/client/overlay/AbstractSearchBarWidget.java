@@ -10,10 +10,13 @@ import com.sanhiruzu.ami.index.query.SearchSuggestions;
 import com.sanhiruzu.ami.index.query.SearchSyntax;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
@@ -128,7 +131,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
     // ── Focus ─────────────────────────────────────────────────────────────────
 
     @Override
-    public void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void extractWidgetRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         if (width <= 0 || height <= 0) return;
         Font font = Minecraft.getInstance().font;
 
@@ -158,7 +161,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         if (value.isEmpty()) {
             Component hint = focused ? TYPING_HINT : PLACEHOLDER_HINT;
             g.enableScissor(textX, textY - 1, textX + maxTextWidth, textY + font.lineHeight + 1);
-            g.drawString(font, hint, textX, textY, AMITheme.SEARCH_PLACEHOLDER, false);
+            g.text(font, hint, textX, textY, AMITheme.SEARCH_PLACEHOLDER, false);
             g.disableScissor();
         } else {
             String visibleText = value.substring(displayStart);
@@ -168,7 +171,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
             int clearX = clearButtonX();
             int clearY = y + (h - 10) / 2;
             boolean hoveredX = mouseX >= clearX && mouseX < clearX + 12 && mouseY >= clearY && mouseY < clearY + 10;
-            g.drawString(font, Component.translatable("ami.gui.search.clear"), clearX + 3, clearY, hoveredX ? AMITheme.SEARCH_CLEAR_TEXT_HOVER : AMITheme.SEARCH_CLEAR_TEXT, false);
+            g.text(font, Component.translatable("ami.gui.search.clear"), clearX + 3, clearY, hoveredX ? AMITheme.SEARCH_CLEAR_TEXT_HOVER : AMITheme.SEARCH_CLEAR_TEXT, false);
         }
 
         if (focused && (System.currentTimeMillis() % 1000) < 500) {
@@ -199,7 +202,10 @@ public abstract class AbstractSearchBarWidget extends EditBox {
     // ── Rendering ─────────────────────────────────────────────────────────────
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         if (handleSearchOverlayClick(mouseX, mouseY, button)) {
             return true;
         }
@@ -209,7 +215,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         if (button == RIGHT_MOUSE_BUTTON) return handleSearchBarRightClick();
 
         resetInventoryFilterDoubleClick();
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     private boolean handleSearchOverlayClick(double mouseX, double mouseY, int button) {
@@ -252,7 +258,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
             return true;
         }
 
-        super.mouseClicked(mouseX, mouseY, LEFT_MOUSE_BUTTON);
+        super.mouseClicked(new MouseButtonEvent(mouseX, mouseY, new MouseButtonInfo(LEFT_MOUSE_BUTTON, 0)), false);
         focusForInput();
         rememberInventoryFilterClick(now);
         return true;
@@ -319,13 +325,13 @@ public abstract class AbstractSearchBarWidget extends EditBox {
     // ── Mouse ─────────────────────────────────────────────────────────────────
 
     @Override
-    public void onClick(double mouseX, double mouseY) {
-        doMoveCursorTo(cursorPositionFromMouse(mouseX), Screen.hasShiftDown());
+    public void onClick(MouseButtonEvent event, boolean doubleClick) {
+        doMoveCursorTo(cursorPositionFromMouse(event.x()), Minecraft.getInstance().hasShiftDown());
     }
 
     @Override
-    protected void onDrag(double mouseX, double mouseY, double dragX, double dragY) {
-        doMoveCursorTo(cursorPositionFromMouse(mouseX), true);
+    protected void onDrag(MouseButtonEvent event, double dx, double dy) {
+        doMoveCursorTo(cursorPositionFromMouse(event.x()), true);
     }
 
     @Override
@@ -343,7 +349,8 @@ public abstract class AbstractSearchBarWidget extends EditBox {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(KeyEvent event) {
+        int keyCode = event.key();
         if (!isFocused()) return false;
 
         if (keyCode == GLFW.GLFW_KEY_UP) {
@@ -395,22 +402,22 @@ public abstract class AbstractSearchBarWidget extends EditBox {
             submitAndUnfocus();
             return true;
         }
-        if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_Z) {
+        if (Minecraft.getInstance().hasControlDown() && keyCode == GLFW.GLFW_KEY_Z) {
             undoLastEdit();
             return true;
         }
 
-        if (Screen.hasControlDown()) {
+        if (Minecraft.getInstance().hasControlDown()) {
             if (keyCode == GLFW.GLFW_KEY_LEFT) {
-                moveCursorTokenWise(-1, Screen.hasShiftDown());
+                moveCursorTokenWise(-1, Minecraft.getInstance().hasShiftDown());
                 return true;
             } else if (keyCode == GLFW.GLFW_KEY_RIGHT) {
-                moveCursorTokenWise(1, Screen.hasShiftDown());
+                moveCursorTokenWise(1, Minecraft.getInstance().hasShiftDown());
                 return true;
             }
         }
 
-        super.keyPressed(keyCode, scanCode, modifiers);
+        super.keyPressed(event);
         return true;
     }
 
@@ -725,7 +732,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         setHighlightPos(start);
     }
 
-    private void renderSelection(GuiGraphics g, Font font, int textX, int textY, String visibleText, int displayStart, int maxTextWidth) {
+    private void renderSelection(GuiGraphicsExtractor g, Font font, int textX, int textY, String visibleText, int displayStart, int maxTextWidth) {
         int selectionStart = Math.min(cursorPos, highlightPos);
         int selectionEnd = Math.max(cursorPos, highlightPos);
         if (selectionStart == selectionEnd || visibleText.isEmpty()) return;
@@ -739,16 +746,16 @@ public abstract class AbstractSearchBarWidget extends EditBox {
 
         int startX = textX + font.width(visibleText.substring(0, clippedStart - displayStart));
         int endX = textX + font.width(visibleText.substring(0, clippedEnd - displayStart));
-        g.fill(RenderType.guiTextHighlight(), startX, textY - 1, endX, textY + font.lineHeight, AMITheme.SEARCH_SELECTION);
+        g.textHighlight(startX, textY - 1, endX, textY + font.lineHeight, false);
     }
 
-    private void drawColorizedText(GuiGraphics g, Font font, int startX, int startY, String visibleText, int scrollStart, int maxTextWidth) {
+    private void drawColorizedText(GuiGraphicsExtractor g, Font font, int startX, int startY, String visibleText, int scrollStart, int maxTextWidth) {
         if (visibleText.isEmpty()) return;
 
         g.enableScissor(startX, startY - 1, startX + maxTextWidth, startY + font.lineHeight + 1);
         try {
             if (colorSpans.isEmpty()) {
-                g.drawString(font, visibleText, startX, startY, AMITheme.SEARCH_DEFAULT_TEXT, false);
+                g.text(font, visibleText, startX, startY, AMITheme.SEARCH_DEFAULT_TEXT, false);
             } else {
                 int currentX = startX;
                 int coveredUntil = 0;
@@ -758,18 +765,18 @@ public abstract class AbstractSearchBarWidget extends EditBox {
                     if (sEnd <= sStart || sStart >= visibleText.length()) continue;
                     if (sStart > coveredUntil) {
                         String gap = visibleText.substring(coveredUntil, sStart);
-                        g.drawString(font, gap, currentX, startY, AMITheme.SEARCH_DEFAULT_TEXT, false);
+                        g.text(font, gap, currentX, startY, AMITheme.SEARCH_DEFAULT_TEXT, false);
                         currentX += font.width(gap);
                     }
                     String spanText = visibleText.substring(sStart, sEnd);
                     if (!spanText.isEmpty()) {
-                        g.drawString(font, spanText, currentX, startY, span.argbColor(), false);
+                        g.text(font, spanText, currentX, startY, span.argbColor(), false);
                         currentX += font.width(spanText);
                     }
                     coveredUntil = sEnd;
                 }
                 if (coveredUntil < visibleText.length()) {
-                    g.drawString(font, visibleText.substring(coveredUntil), currentX, startY, AMITheme.SEARCH_DEFAULT_TEXT, false);
+                    g.text(font, visibleText.substring(coveredUntil), currentX, startY, AMITheme.SEARCH_DEFAULT_TEXT, false);
                 }
             }
         } finally {
@@ -785,7 +792,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         return false;
     }
 
-    private void drawKoteEasterEgg(GuiGraphics g, Font font) {
+    private void drawKoteEasterEgg(GuiGraphicsExtractor g, Font font) {
         if (!shouldRenderKoteEasterEgg()) {
             return;
         }
@@ -802,7 +809,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
             return;
         }
 
-        g.drawString(font, Component.literal(THANKS_FOR_RUSSIAN_SUPPORT), noteX, noteY, AMITheme.TEXT_SUBTLE, false);
+        g.text(font, Component.literal(THANKS_FOR_RUSSIAN_SUPPORT), noteX, noteY, AMITheme.TEXT_SUBTLE, false);
     }
 
     private static String normalizeForEasterEgg(String value) {
@@ -812,13 +819,11 @@ public abstract class AbstractSearchBarWidget extends EditBox {
                 .trim();
     }
 
-    private void renderSuggestions(GuiGraphics g, Font font, int mouseX, int mouseY) {
+    private void renderSuggestions(GuiGraphicsExtractor g, Font font, int mouseX, int mouseY) {
         if (!hasVisibleSuggestions()) {
             return;
         }
-        g.flush();
-        g.pose().pushPose();
-        g.pose().translate(0, 0, OverlayLayers.DROPDOWN);
+        g.pose().pushMatrix();
         try {
             int popupX = getX();
             int popupY = suggestionPopupY();
@@ -846,9 +851,9 @@ public abstract class AbstractSearchBarWidget extends EditBox {
                 int labelMaxW = Math.max(20, popupW - 8 - detailW - scrollbarReserve - (detailW > 0 ? 8 : 0));
                 String label = font.plainSubstrByWidth(suggestion.display(), labelMaxW);
                 int textY = rowY + (SUGGESTION_ROW_HEIGHT - font.lineHeight) / 2 + 1;
-                g.drawString(font, label, popupX + 4, textY, suggestionColor(suggestion.kind()), false);
+                g.text(font, label, popupX + 4, textY, suggestionColor(suggestion.kind()), false);
                 if (!detail.isBlank()) {
-                    g.drawString(font, detail, popupX + popupW - 4 - detailW, textY, AMITheme.TEXT_SUBTLE, false);
+                    g.text(font, detail, popupX + popupW - 4 - detailW, textY, AMITheme.TEXT_SUBTLE, false);
                 }
             }
 
@@ -862,12 +867,11 @@ public abstract class AbstractSearchBarWidget extends EditBox {
                 g.fill(trackX, thumbY, trackX + 1, thumbY + thumbH, AMITheme.SCROLL_THUMB_ACTIVE);
             }
         } finally {
-            g.pose().popPose();
-            g.flush();
+            g.pose().popMatrix();
         }
     }
 
-    private void renderSearchIconButton(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderSearchIconButton(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         int buttonX = searchIconButtonX();
         int buttonY = searchIconButtonY();
         boolean hovered = isSearchIconMouseOver(mouseX, mouseY);
@@ -879,7 +883,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         AmiGuiIcons.search(g, buttonX + SEARCH_ICON_BUTTON_W / 2, getY() + height / 2, color);
     }
 
-    private void renderSearchHelp(GuiGraphics g, Font font, int mouseX, int mouseY) {
+    private void renderSearchHelp(GuiGraphicsExtractor g, Font font, int mouseX, int mouseY) {
         int popupX = helpPopupX();
         int popupY = helpPopupY();
         int popupW = helpPopupW();
@@ -890,8 +894,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         int maxScroll = maxHelpScrollOffset(cache, popupW, popupH);
         helpScrollOffset = Mth.clamp(helpScrollOffset, 0, maxScroll);
 
-        g.pose().pushPose();
-        g.pose().translate(0, 0, OverlayLayers.DROPDOWN);
+        g.pose().pushMatrix();
         AMITheme.fillPixelPopup(g, popupX, popupY, popupW, popupH,
                 AMITheme.SEARCH_HELP_BG, AMITheme.SEARCH_HELP_BORDER, AMITheme.SEARCH_HELP_SHADOW, AMITheme.ACCENT_BLUE);
 
@@ -919,10 +922,10 @@ public abstract class AbstractSearchBarWidget extends EditBox {
             drawHelpScrollbar(g, popupX, popupY, popupW, popupH, maxScroll);
         }
         helpClickTargets = List.copyOf(targets);
-        g.pose().popPose();
+        g.pose().popMatrix();
     }
 
-    private void drawHelpScrollbar(GuiGraphics g, int popupX, int popupY, int popupW, int popupH, int maxScroll) {
+    private void drawHelpScrollbar(GuiGraphicsExtractor g, int popupX, int popupY, int popupW, int popupH, int maxScroll) {
         int trackX = popupX + popupW - HELP_MARGIN + 2;
         int trackY = popupY + HELP_MARGIN;
         int trackH = Math.max(1, popupH - HELP_MARGIN * 2);
@@ -933,7 +936,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         g.fill(trackX, thumbY, trackX + HELP_SCROLLBAR_W, thumbY + thumbH, AMITheme.SCROLL_THUMB_ACTIVE);
     }
 
-    private int drawHelpSections(GuiGraphics g, Font font, List<SearchSyntax.HelpSection> sections, int exampleW,
+    private int drawHelpSections(GuiGraphicsExtractor g, Font font, List<SearchSyntax.HelpSection> sections, int exampleW,
                                  int x, int startY, int width, int visibleTop, int visibleBottom, int mouseX, int mouseY,
                                  List<HelpClickTarget> targets) {
         int y = startY;
@@ -943,7 +946,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
                 y += HELP_SECTION_GAP;
             }
             if (y + font.lineHeight >= visibleTop && y <= visibleBottom) {
-                g.drawString(font, Component.translatable(section.titleKey()), x, y,
+                g.text(font, Component.translatable(section.titleKey()), x, y,
                         AMITheme.SEARCH_HELP_TITLE, false);
             }
             y += font.lineHeight + 3;
@@ -969,8 +972,8 @@ public abstract class AbstractSearchBarWidget extends EditBox {
                 AMITheme.fillBorderedRect(g, x, y + 1, exampleW, HELP_ROW_HEIGHT - 2,
                         hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.SEARCH_HELP_CHIP_BG,
                         hovered ? AMITheme.ACCENT_BLUE : AMITheme.SEARCH_HELP_CHIP_BORDER);
-                g.drawString(font, example, x + 5, textY, exampleColor, false);
-                g.drawString(font, desc, descX, textY, AMITheme.SEARCH_HELP_TEXT, false);
+                g.text(font, example, x + 5, textY, exampleColor, false);
+                g.text(font, desc, descX, textY, AMITheme.SEARCH_HELP_TEXT, false);
                 targets.add(new HelpClickTarget(x, y + 1, exampleW, HELP_ROW_HEIGHT - 2, helpExample.text()));
                 y += HELP_ROW_HEIGHT;
             }

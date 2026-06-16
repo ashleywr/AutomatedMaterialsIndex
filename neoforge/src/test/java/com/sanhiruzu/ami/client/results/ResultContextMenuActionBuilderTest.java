@@ -20,7 +20,7 @@ import com.sanhiruzu.searchableitems.api.SearchableItemActionProvider;
 import com.sanhiruzu.searchableitems.api.SearchableItemActionProviders;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -119,7 +119,7 @@ class ResultContextMenuActionBuilderTest {
         com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler favorites =
                 com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance();
         SearchNode player = new SearchNode(
-                new ResourceLocation("ami:player/123456781234123412341234567890ab"),
+                new Identifier("ami:player/123456781234123412341234567890ab"),
                 NodeType.PLAYER,
                 "Alex",
                 0,
@@ -163,7 +163,7 @@ class ResultContextMenuActionBuilderTest {
         com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler favorites =
                 com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance();
         SearchNode waypoint = new SearchNode(
-                new ResourceLocation("ami:waypoint/waystones/home"),
+                new Identifier("ami:waypoint/waystones/home"),
                 NodeType.WAYPOINT,
                 "Home",
                 0,
@@ -428,7 +428,7 @@ class ResultContextMenuActionBuilderTest {
                                 "ftbquests:chapter/basic_power",
                                 AmiQuestTaskDocument.Role.REQUIREMENT)
                         .taskType("item")
-                        .itemId(new ResourceLocation("minecraft", "redstone"))
+                        .itemId(new Identifier("minecraft", "redstone"))
                         .requiredCount(12)
                         .build())
                 .openAction(() -> opened.set(true))
@@ -473,7 +473,7 @@ class ResultContextMenuActionBuilderTest {
 
         assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.COPY_FTB_ITEM_TASK));
         assertEquals("{type:\"item\",item:\"minecraft:apple\",count:1}",
-                ResultContextMenuActionBuilder.ftbItemTaskTemplate(new ResourceLocation("minecraft", "apple"), 1));
+                ResultContextMenuActionBuilder.ftbItemTaskTemplate(new Identifier("minecraft", "apple"), 1));
     }
 
     @Test
@@ -500,10 +500,10 @@ class ResultContextMenuActionBuilderTest {
         assertTrue(quest.contains("title:\"Apple\""));
         assertTrue(quest.contains("item:\"minecraft:apple\""));
 
-        String kubeJs = ResultContextMenuActionBuilder.kubeJsRecipeStub(new ResourceLocation("minecraft", "apple"));
+        String kubeJs = ResultContextMenuActionBuilder.kubeJsRecipeStub(new Identifier("minecraft", "apple"));
         assertTrue(kubeJs.contains("event.shaped('minecraft:apple'"));
 
-        String stage = ResultContextMenuActionBuilder.gameStageConditionStub(new ResourceLocation("minecraft", "apple"));
+        String stage = ResultContextMenuActionBuilder.gameStageConditionStub(new Identifier("minecraft", "apple"));
         assertTrue(stage.contains("const stage = 'replace_stage_id'"));
         assertTrue(stage.contains(".stage(stage)"));
     }
@@ -549,7 +549,7 @@ class ResultContextMenuActionBuilderTest {
     @Test
     void minecraftBiomeWikiUsesDirectPageWithoutBiomeSuffix() {
         SearchNode node = new SearchNode(
-                new ResourceLocation("minecraft:end_highlands"),
+                new Identifier("minecraft:end_highlands"),
                 NodeType.BIOME,
                 "End Highlands Biome",
                 0,
@@ -580,7 +580,7 @@ class ResultContextMenuActionBuilderTest {
                 guideMeDocument("guide/guideme/ae2/searchable_singularity", "appendix/searchable_singularity",
                         "Searching for Singularity", List.of()),
                 guideMeDocument("guide/guideme/ae2/singularity", "items-blocks-machines/singularity",
-                        "Singularity", List.of(new ResourceLocation("ae2", "singularity")))
+                        "Singularity", List.of(new Identifier("ae2", "singularity")))
         ), AmiGuideSearchIndex.GuideIndexingMode.TITLES);
 
         AmiGuideDocument document = ResultContextMenuActionBuilder.ae2GuideDocumentForNode(node, guideIndex)
@@ -608,7 +608,7 @@ class ResultContextMenuActionBuilderTest {
         SearchNode node = modItem("mekanism", "jetpack", "Jetpack");
         AmiGuideSearchIndex guideIndex = new AmiGuideSearchIndex(List.of(
                 guideMeDocument("guide/guideme/ae2/jetpack", "items-blocks-machines/jetpack",
-                        "Jetpack", List.of(new ResourceLocation("ae2", "jetpack")))
+                        "Jetpack", List.of(new Identifier("ae2", "jetpack")))
         ), AmiGuideSearchIndex.GuideIndexingMode.TITLES);
 
         assertTrue(ResultContextMenuActionBuilder.ae2GuideDocumentForNode(node, guideIndex).isEmpty());
@@ -617,7 +617,7 @@ class ResultContextMenuActionBuilderTest {
     @Test
     void cobblemonPokemonDocumentationUsesCobblemonToolsPokedexPage() {
         SearchNode node = new SearchNode(
-                new ResourceLocation("cobblemon", "species/mr_mime"),
+                new Identifier("cobblemon", "species/mr_mime"),
                 NodeType.ENTITY,
                 "Mr. Mime",
                 0,
@@ -639,7 +639,7 @@ class ResultContextMenuActionBuilderTest {
     @Test
     void cobblemonPokemonDocumentationUsesSpeciesIdWhenNameMissing() {
         SearchNode node = new SearchNode(
-                new ResourceLocation("cobblemon", "species/mr_mime"),
+                new Identifier("cobblemon", "species/mr_mime"),
                 NodeType.ENTITY,
                 "",
                 0,
@@ -662,7 +662,7 @@ class ResultContextMenuActionBuilderTest {
         AtomicReference<String> token = new AtomicReference<>();
         ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder();
         SearchNode node = new SearchNode(
-                new ResourceLocation("cobblemon", "species/bulbasaur"),
+                new Identifier("cobblemon", "species/bulbasaur"),
                 NodeType.ENTITY,
                 "Bulbasaur",
                 0,
@@ -706,7 +706,7 @@ class ResultContextMenuActionBuilderTest {
         AtomicReference<String> token = new AtomicReference<>();
         ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder();
         SearchNode node = new SearchNode(
-                new ResourceLocation("cobblemon", "species/bulbasaur"),
+                new Identifier("cobblemon", "species/bulbasaur"),
                 NodeType.ENTITY,
                 "Bulbasaur",
                 0,
@@ -737,7 +737,7 @@ class ResultContextMenuActionBuilderTest {
         AtomicReference<String> token = new AtomicReference<>();
         ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder();
         SearchNode node = new SearchNode(
-                new ResourceLocation("gtceu", "lv_macerator"),
+                new Identifier("gtceu", "lv_macerator"),
                 NodeType.ITEM,
                 "LV Macerator",
                 0,
@@ -771,7 +771,7 @@ class ResultContextMenuActionBuilderTest {
         AtomicReference<String> token = new AtomicReference<>();
         ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder();
         SearchNode node = new SearchNode(
-                new ResourceLocation("gtceu", "basic_electronic_circuit"),
+                new Identifier("gtceu", "basic_electronic_circuit"),
                 NodeType.ITEM,
                 "Basic Electronic Circuit",
                 0,
@@ -804,7 +804,7 @@ class ResultContextMenuActionBuilderTest {
     void gregTechCircuitContextActionsUseIndexedFallbackTierAndGrade() {
         AtomicReference<String> token = new AtomicReference<>();
         ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder();
-        ResourceLocation id = new ResourceLocation("gtceu", "good_electronic_circuit");
+        Identifier id = new Identifier("gtceu", "good_electronic_circuit");
         Map<String, String> metadata = new HashMap<>();
         metadata.put(SearchNodeKeys.MOD_ID, "gtceu");
         GregTechCompat.enrichItem(id, metadata);
@@ -848,7 +848,7 @@ class ResultContextMenuActionBuilderTest {
     @Test
     void gregTechDocumentationSearchUsesItemNameAndModNameOnly() {
         SearchNode node = new SearchNode(
-                new ResourceLocation("gtceu", "wetware_printed_circuit_board"),
+                new Identifier("gtceu", "wetware_printed_circuit_board"),
                 NodeType.ITEM,
                 "Wetware Printed Circuit Board",
                 0,
@@ -866,7 +866,7 @@ class ResultContextMenuActionBuilderTest {
     @Test
     void silentGearMaterialBookUsesNativeDocumentationTarget() {
         SearchNode node = new SearchNode(
-                new ResourceLocation("silentgear", "material_book"),
+                new Identifier("silentgear", "material_book"),
                 NodeType.ITEM,
                 "Material Book",
                 0,
@@ -1123,7 +1123,7 @@ class ResultContextMenuActionBuilderTest {
     @Test
     void documentationTargetForFavoriteMinecraftItemUsesMinecraftWiki() {
         SearchNode favoriteNode = new SearchNode(
-                ResourceLocation.tryParse("ami:favorite/item/abc123"),
+                Identifier.tryParse("ami:favorite/item/abc123"),
                 NodeType.ITEM,
                 "Stone",
                 0, 0,
@@ -1139,7 +1139,7 @@ class ResultContextMenuActionBuilderTest {
     @Test
     void documentationTargetForFavoriteModItemUsesRealModNamespace() {
         SearchNode favoriteNode = new SearchNode(
-                ResourceLocation.tryParse("ami:favorite/item/abc123"),
+                Identifier.tryParse("ami:favorite/item/abc123"),
                 NodeType.ITEM,
                 "Iron Tail TM",
                 0, 0,
@@ -1157,7 +1157,7 @@ class ResultContextMenuActionBuilderTest {
     void categoryFixOnFavoriteNodeResolvesToRealItemId() {
         ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder();
         SearchNode favoriteNode = new SearchNode(
-                ResourceLocation.tryParse("ami:favorite/item/abc123"),
+                Identifier.tryParse("ami:favorite/item/abc123"),
                 NodeType.ITEM,
                 "Diamond",
                 0, 0,
@@ -1173,14 +1173,14 @@ class ResultContextMenuActionBuilderTest {
 
         firstAction(actions, ResultContextMenuActionBuilder.START_CATEGORY_FIX).onClick().run();
 
-        assertEquals(ResourceLocation.tryParse("minecraft:diamond"),
+        assertEquals(Identifier.tryParse("minecraft:diamond"),
                 ResultContextMenuActionBuilder.pendingCategoryFixNodeForTests().id());
     }
 
     @Test
     void chatTextOnFavoriteNodeUsesRealItemId() {
         SearchNode favoriteNode = new SearchNode(
-                ResourceLocation.tryParse("ami:favorite/item/abc123"),
+                Identifier.tryParse("ami:favorite/item/abc123"),
                 NodeType.ITEM,
                 "Diamond",
                 0, 0,
@@ -1262,7 +1262,7 @@ class ResultContextMenuActionBuilderTest {
 
     private static SearchNode item(String path, String name, Map<String, String> metadata) {
         return new SearchNode(
-                new ResourceLocation("minecraft:" + path),
+                new Identifier("minecraft:" + path),
                 NodeType.ITEM,
                 name,
                 0,
@@ -1273,7 +1273,7 @@ class ResultContextMenuActionBuilderTest {
 
     private static SearchNode modItem(String namespace, String path, String name) {
         return new SearchNode(
-                new ResourceLocation(namespace + ":" + path),
+                new Identifier(namespace + ":" + path),
                 NodeType.ITEM,
                 name,
                 0,
@@ -1283,15 +1283,15 @@ class ResultContextMenuActionBuilderTest {
     }
 
     private static AmiGuideDocument guideMeDocument(String idPath, String pageId, String title,
-                                                    List<ResourceLocation> referencedItems) {
-        return AmiGuideDocument.builder(new ResourceLocation("ami", idPath), "guideme", "ae2", title)
-                .bookId(new ResourceLocation("ae2", "guide"))
+                                                    List<Identifier> referencedItems) {
+        return AmiGuideDocument.builder(new Identifier("ami", idPath), "guideme", "ae2", title)
+                .bookId(new Identifier("ae2", "guide"))
                 .pageId(pageId)
                 .referencedItems(referencedItems)
                 .build();
     }
 
     private static ItemStack stack(String path) {
-        return new ItemStack(BuiltInRegistries.ITEM.get(new ResourceLocation("minecraft:" + path)));
+        return new ItemStack(BuiltInRegistries.ITEM.get(new Identifier("minecraft:" + path)));
     }
 }

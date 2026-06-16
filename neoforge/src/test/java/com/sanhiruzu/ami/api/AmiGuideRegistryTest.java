@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.api;
 import com.sanhiruzu.searchableguides.api.SearchableGuideDocument;
 import com.sanhiruzu.searchableguides.api.SearchableGuideProvider;
 import com.sanhiruzu.searchableguides.api.SearchableGuideProviders;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +25,7 @@ class AmiGuideRegistryTest {
 
     @Test
     void duplicateIdsReplacePreviousDocumentDeterministically() {
-        ResourceLocation id = new ResourceLocation("ami", "guides/test");
+        Identifier id = new Identifier("ami", "guides/test");
 
         AmiGuideRegistry.register(AmiGuideDocument.builder(id, "plugin", "example", "Old Title").build());
         AmiGuideRegistry.register(AmiGuideDocument.builder(id, "plugin", "example", "New Title").build());
@@ -37,7 +37,7 @@ class AmiGuideRegistryTest {
     @Test
     void sourceFailureDoesNotRemovePreviouslyRegisteredDocuments() {
         AmiGuideRegistry.registerSource(source("good", documents -> documents.accept(
-                AmiGuideDocument.builder(new ResourceLocation("ami", "guides/good"), "plugin", "example", "Good").build()
+                AmiGuideDocument.builder(new Identifier("ami", "guides/good"), "plugin", "example", "Good").build()
         )));
 
         AmiGuideRegistry.registerSource(new AmiGuideSource() {
@@ -53,7 +53,7 @@ class AmiGuideRegistryTest {
         });
 
         AmiGuideRegistry.registerSource(source("also_good", documents -> documents.accept(
-                AmiGuideDocument.builder(new ResourceLocation("ami", "guides/also_good"), "plugin", "example", "Also Good").build()
+                AmiGuideDocument.builder(new Identifier("ami", "guides/also_good"), "plugin", "example", "Also Good").build()
         )));
 
         assertEquals(2, AmiGuideRegistry.size());
@@ -64,7 +64,7 @@ class AmiGuideRegistryTest {
         AtomicBoolean opened = new AtomicBoolean(false);
 
         AmiGuideRegistry.register(AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guides/openable"),
+                        new Identifier("ami", "guides/openable"),
                         "plugin",
                         "example",
                         "Openable"
@@ -83,7 +83,7 @@ class AmiGuideRegistryTest {
             @Override
             public void addGuideDocuments(Consumer<AmiGuideDocument> documents) {
                 documents.accept(AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guides/plugin_doc"),
+                        new Identifier("ami", "guides/plugin_doc"),
                         "plugin",
                         "example",
                         "Plugin Guide"
@@ -109,7 +109,7 @@ class AmiGuideRegistryTest {
             @Override
             public void addGuideDocuments(Consumer<AmiGuideDocument> documents) {
                 documents.accept(AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guides/good_plugin_doc"),
+                        new Identifier("ami", "guides/good_plugin_doc"),
                         "plugin",
                         "example",
                         "Good Plugin Guide"
@@ -126,14 +126,14 @@ class AmiGuideRegistryTest {
     @Test
     void amiApiRegistersGuideDocumentsAndSources() {
         AmiApi.registerGuideDocument(AmiGuideDocument.builder(
-                new ResourceLocation("ami", "guides/api_doc"),
+                new Identifier("ami", "guides/api_doc"),
                 "plugin",
                 "example",
                 "API Guide"
         ).build());
         AmiApi.registerGuideSource(source("api_source", documents -> documents.accept(
                 AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guides/api_source_doc"),
+                        new Identifier("ami", "guides/api_source_doc"),
                         "plugin",
                         "example",
                         "API Source Guide"
@@ -147,15 +147,15 @@ class AmiGuideRegistryTest {
     void sharedSearchableGuideProvidersAreAdaptedIntoAmiDocuments() {
         SearchableGuideProviders.register(searchableProvider("shared", documents -> documents.accept(
                 SearchableGuideDocument.builder(
-                                new ResourceLocation("example", "guides/shared_doc"),
+                                new Identifier("example", "guides/shared_doc"),
                                 "example_manual",
                                 "example",
                                 "Shared Guide")
-                        .bookId(new ResourceLocation("example", "manual"))
-                        .iconItemId(new ResourceLocation("example", "manual"))
+                        .bookId(new Identifier("example", "manual"))
+                        .iconItemId(new Identifier("example", "manual"))
                         .pageId("machines/press")
                         .chapter("Machines")
-                        .referencedItem(new ResourceLocation("example", "press"))
+                        .referencedItem(new Identifier("example", "press"))
                         .tag("machine")
                         .summaryText("A viewer-neutral guide document.")
                         .build()
@@ -167,15 +167,15 @@ class AmiGuideRegistryTest {
         AmiGuideDocument document = AmiGuideRegistry.getDocuments().getFirst();
         assertEquals("Shared Guide", document.title());
         assertEquals("example_manual", document.sourceType());
-        assertEquals(new ResourceLocation("example", "manual"), document.iconItemId());
-        assertEquals(List.of(new ResourceLocation("example", "press")), document.referencedItems());
+        assertEquals(new Identifier("example", "manual"), document.iconItemId());
+        assertEquals(List.of(new Identifier("example", "press")), document.referencedItems());
         assertTrue(document.summaryText().contains("viewer-neutral"));
     }
 
     @Test
     void guideDocumentsDoNotExposeRawTranslationKeys() {
         AmiGuideRegistry.register(AmiGuideDocument.builder(
-                        new ResourceLocation("example", "guides/raw_keys"),
+                        new Identifier("example", "guides/raw_keys"),
                         "plugin",
                         "example",
                         "example_mod.entries.volcanic_sourcelink.name")
@@ -196,7 +196,7 @@ class AmiGuideRegistryTest {
     void sharedSearchableGuideProviderRawKeysAreSanitizedForAmi() {
         SearchableGuideProviders.register(searchableProvider("shared_raw_keys", documents -> documents.accept(
                 SearchableGuideDocument.builder(
-                                new ResourceLocation("example", "guides/shared_raw_keys"),
+                                new Identifier("example", "guides/shared_raw_keys"),
                                 "example_manual",
                                 "example",
                                 "example_mod.entries.machine_press.title")
@@ -228,7 +228,7 @@ class AmiGuideRegistryTest {
         });
         SearchableGuideProviders.register(searchableProvider("good_shared", documents -> documents.accept(
                 SearchableGuideDocument.builder(
-                        new ResourceLocation("example", "guides/good_shared_doc"),
+                        new Identifier("example", "guides/good_shared_doc"),
                         "example_manual",
                         "example",
                         "Good Shared Guide"
@@ -245,7 +245,7 @@ class AmiGuideRegistryTest {
     void amiApiRegistersSharedSearchableGuideProviders() {
         AmiApi.registerSearchableGuideProvider(searchableProvider("api_shared", documents -> documents.accept(
                 SearchableGuideDocument.builder(
-                        new ResourceLocation("example", "guides/api_shared_doc"),
+                        new Identifier("example", "guides/api_shared_doc"),
                         "example_manual",
                         "example",
                         "API Shared Guide"

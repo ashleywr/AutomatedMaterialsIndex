@@ -1,7 +1,7 @@
 package com.cobblemon.mod.common.pokemon;
 
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -9,8 +9,8 @@ import java.util.List;
 import java.util.Map;
 
 public final class Species {
-    public ResourceLocation getResourceIdentifier() {
-        return ResourceLocation.fromNamespaceAndPath("cobblemon", "bulbasaur");
+    public Identifier getResourceIdentifier() {
+        return Identifier.of("cobblemon", "bulbasaur");
     }
 
     public Component getTranslatedName() {
@@ -92,10 +92,10 @@ public final class Species {
         public List<Object> getEntries() {
             return List.of(
                     new RawItemDropValue("minecraft:", 1.0f, 1),
-                    new ItemDropValue(ResourceLocation.fromNamespaceAndPath("minecraft", "air"), 1.0f, 1),
-                    new ItemDropValue(ResourceLocation.fromNamespaceAndPath("minecraft", "missing_item"), 1.0f, 1),
-                    new ItemDropValue(ResourceLocation.fromNamespaceAndPath("minecraft", "apple"), 0.5f, 1),
-                    new ItemDropValue(ResourceLocation.fromNamespaceAndPath("minecraft", "redstone"), 0.1f, 2)
+                    new ItemDropValue(Identifier.of("minecraft", "air"), 1.0f, 1),
+                    new ItemDropValue(Identifier.of("minecraft", "missing_item"), 1.0f, 1),
+                    new ItemDropValue(Identifier.of("minecraft", "apple"), 0.5f, 1),
+                    new ItemDropValue(Identifier.of("minecraft", "redstone"), 0.1f, 2)
             );
         }
     }
@@ -114,8 +114,8 @@ public final class Species {
         }
     }
 
-    private record ItemDropValue(ResourceLocation item, float percentage, int quantity) {
-        public ResourceLocation getItem() {
+    private record ItemDropValue(Identifier item, float percentage, int quantity) {
+        public Identifier getItem() {
             return item;
         }
 

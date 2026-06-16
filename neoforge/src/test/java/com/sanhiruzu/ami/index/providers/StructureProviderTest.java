@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -13,7 +13,7 @@ class StructureProviderTest {
     @Test
     void createStructureNodeCarriesEnvironmentMetadata() {
         SearchNode node = StructureProvider.createStructureNode(
-                ResourceLocation.fromNamespaceAndPath("minecraft", "trial_chambers"));
+                Identifier.of("minecraft", "trial_chambers"));
 
         assertEquals(NodeType.STRUCTURE, node.type());
         assertEquals("Trial Chambers Structure", node.displayName());

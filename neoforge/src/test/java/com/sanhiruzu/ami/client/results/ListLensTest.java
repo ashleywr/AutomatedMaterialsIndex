@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -28,7 +28,7 @@ class ListLensTest {
 
     private static SearchNode node(NodeType type, String namespace, String path, String displayName, Map<String, String> metadata) {
         return new SearchNode(
-                new ResourceLocation(namespace + ":" + path),
+                new Identifier(namespace + ":" + path),
                 type,
                 displayName,
                 0,

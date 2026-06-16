@@ -8,7 +8,7 @@ import com.sanhiruzu.ami.compat.MalumCompat;
 import com.sanhiruzu.ami.compat.PastelCompat;
 import com.sanhiruzu.ami.compat.SilentGemsCompat;
 import com.sanhiruzu.ami.compat.SwemCompat;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -23,7 +23,7 @@ class SynesthesiaCompatTest {
     void swemMetalComponentsNoLongerFallBackUnknown() {
         Map<String, String> meta = meta("swem", "net.minecraft.world.item.Item");
 
-        SwemCompat.enrichItem(new ResourceLocation("swem", "rivet_copper"), meta);
+        SwemCompat.enrichItem(new Identifier("swem", "rivet_copper"), meta);
         CategoryAssignment assignment = resolve("swem:rivet_copper", meta);
 
         assertEquals("components", meta.get("swemItemKind"));
@@ -36,23 +36,23 @@ class SynesthesiaCompatTest {
     void swemHorseSpecificItemsPreferSwemHeaderOverGenericRoutes() {
         Map<String, String> armor = meta("swem", "com.alaharranhonor.swem.item.tack.TackItem");
         armor.put(SearchNodeKeys.FACETS, "armor_animal");
-        SwemCompat.enrichItem(new ResourceLocation("swem", "horse_armor_cloth"), armor);
+        SwemCompat.enrichItem(new Identifier("swem", "horse_armor_cloth"), armor);
         CategoryAssignment armorAssignment = resolve("swem:horse_armor_cloth", armor);
 
         Map<String, String> ridingHelmet = meta("swem", "com.alaharranhonor.swem.item.armor.RidingHelmet");
         ridingHelmet.put(SearchNodeKeys.FACETS, "equippable,armor_head");
-        SwemCompat.enrichItem(new ResourceLocation("swem", "helmet_riding"), ridingHelmet);
+        SwemCompat.enrichItem(new Identifier("swem", "helmet_riding"), ridingHelmet);
         CategoryAssignment helmetAssignment = resolve("swem:helmet_riding", ridingHelmet);
 
         Map<String, String> feeder = meta("swem", "net.minecraft.world.item.BlockItem");
         feeder.put(SearchNodeKeys.BLOCK_CLASS, "com.alaharranhonor.swem.block.GrainBinBlock");
         feeder.put(SearchNodeKeys.FACETS, "placeable,has_block_entity");
         feeder.put(SearchNodeKeys.TAGS, "swem:grain_bins");
-        SwemCompat.enrichItem(new ResourceLocation("swem", "bin_grain_white"), feeder);
+        SwemCompat.enrichItem(new Identifier("swem", "bin_grain_white"), feeder);
         CategoryAssignment feederAssignment = resolve("swem:bin_grain_white", feeder);
 
         Map<String, String> jump = meta("swem", "com.alaharranhonor.swem.item.EggJumpItem");
-        SwemCompat.enrichItem(new ResourceLocation("swem", "jump_xc_bronze"), jump);
+        SwemCompat.enrichItem(new Identifier("swem", "jump_xc_bronze"), jump);
         CategoryAssignment jumpAssignment = resolve("swem:jump_xc_bronze", jump);
 
         assertEquals("horse_armor", armor.get("swemItemKind"));
@@ -71,7 +71,7 @@ class SynesthesiaCompatTest {
         Map<String, String> meta = meta("malum", "com.sammy.malum.common.item.GeasItem");
         meta.put(SearchNodeKeys.SUBTYPE_OF, "malum:geas");
 
-        MalumCompat.enrichItem(new ResourceLocation("malum", "geas/variant/geas_b28b0afe76f1"), meta);
+        MalumCompat.enrichItem(new Identifier("malum", "geas/variant/geas_b28b0afe76f1"), meta);
         CategoryAssignment assignment = resolve("malum:geas/variant/geas_b28b0afe76f1", meta);
 
         assertEquals("geasa", meta.get("malumItemKind"));
@@ -84,7 +84,7 @@ class SynesthesiaCompatTest {
     void pastelStructurePlacersRouteToUtility() {
         Map<String, String> meta = meta("pastel", "earth.terrarium.pastel.items.StructurePlacerItem");
 
-        PastelCompat.enrichItem(new ResourceLocation("pastel", "fusion_shrine_structure_placer"), meta);
+        PastelCompat.enrichItem(new Identifier("pastel", "fusion_shrine_structure_placer"), meta);
         CategoryAssignment assignment = resolve("pastel:fusion_shrine_structure_placer", meta);
 
         assertEquals("structure_placers", meta.get("pastelItemKind"));
@@ -97,8 +97,8 @@ class SynesthesiaCompatTest {
         Map<String, String> roseQuartz = meta("silentgems", "net.silentchaos512.gems.item.GemBlockItem");
         Map<String, String> ammolite = meta("silentgems", "net.silentchaos512.gems.item.GemBlockItem");
 
-        SilentGemsCompat.enrichItem(new ResourceLocation("silentgems", "smooth_rose_quartz"), roseQuartz);
-        SilentGemsCompat.enrichItem(new ResourceLocation("silentgems", "smooth_ammolite"), ammolite);
+        SilentGemsCompat.enrichItem(new Identifier("silentgems", "smooth_rose_quartz"), roseQuartz);
+        SilentGemsCompat.enrichItem(new Identifier("silentgems", "smooth_ammolite"), ammolite);
 
         assertEquals("silentgems:smooth_stone", roseQuartz.get(SearchNodeKeys.COLLAPSE_FAMILY));
         assertEquals("silentgems:smooth_stone", ammolite.get(SearchNodeKeys.COLLAPSE_FAMILY));
@@ -115,7 +115,7 @@ class SynesthesiaCompatTest {
         meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, "masonry");
         meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "full_block");
 
-        DatanessenceCompat.enrichItem(new ResourceLocation("datanessence", "item_filter"), meta);
+        DatanessenceCompat.enrichItem(new Identifier("datanessence", "item_filter"), meta);
         CategoryAssignment assignment = resolve("datanessence:item_filter", meta);
 
         assertEquals("machines", meta.get("halcyonItemKind"));
@@ -127,12 +127,12 @@ class SynesthesiaCompatTest {
     void datanessenceFocusedRoutesBeatGenericHardIdentityAndScoring() {
         Map<String, String> tool = meta("datanessence", "EsetKalenko.Halcyon.item.Locator");
         tool.put(SearchNodeKeys.FACETS, "utility_tool");
-        DatanessenceCompat.enrichItem(new ResourceLocation("datanessence", "locator"), tool);
+        DatanessenceCompat.enrichItem(new Identifier("datanessence", "locator"), tool);
         CategoryAssignment toolAssignment = resolve("datanessence:locator", tool);
 
         Map<String, String> template = meta("datanessence", "net.minecraft.world.item.Item");
         template.put(SearchNodeKeys.FACETS, "template");
-        DatanessenceCompat.enrichItem(new ResourceLocation("datanessence", "rod_mold"), template);
+        DatanessenceCompat.enrichItem(new Identifier("datanessence", "rod_mold"), template);
         CategoryAssignment templateAssignment = resolve("datanessence:rod_mold", template);
 
         assertEquals("halcyon", toolAssignment.categoryId());
@@ -144,19 +144,19 @@ class SynesthesiaCompatTest {
     @Test
     void datanessenceClassFactsProduceHalcyonEquipmentAndEssenceFacets() {
         Map<String, String> sword = meta("datanessence", "EsetKalenko.Halcyon.item.equipment.EssenceSword");
-        DatanessenceCompat.enrichItem(new ResourceLocation("datanessence", "essence_sword"), sword);
+        DatanessenceCompat.enrichItem(new Identifier("datanessence", "essence_sword"), sword);
         CategoryAssignment swordAssignment = resolve("datanessence:essence_sword", sword);
 
         Map<String, String> bomb = meta("datanessence", "EsetKalenko.Halcyon.item.equipment.EssenceBombItem");
-        DatanessenceCompat.enrichItem(new ResourceLocation("datanessence", "essence_bomb"), bomb);
+        DatanessenceCompat.enrichItem(new Identifier("datanessence", "essence_bomb"), bomb);
         CategoryAssignment bombAssignment = resolve("datanessence:essence_bomb", bomb);
 
         Map<String, String> shard = meta("datanessence", "EsetKalenko.Halcyon.api.item.EssenceShard");
-        DatanessenceCompat.enrichItem(new ResourceLocation("datanessence", "essence_shard"), shard);
+        DatanessenceCompat.enrichItem(new Identifier("datanessence", "essence_shard"), shard);
         CategoryAssignment shardAssignment = resolve("datanessence:essence_shard", shard);
 
         Map<String, String> drive = meta("datanessence", "EsetKalenko.Halcyon.item.DataDrive");
-        DatanessenceCompat.enrichItem(new ResourceLocation("datanessence", "data_drive"), drive);
+        DatanessenceCompat.enrichItem(new Identifier("datanessence", "data_drive"), drive);
         CategoryAssignment driveAssignment = resolve("datanessence:data_drive", drive);
 
         assertTrue(sword.get(SearchNodeKeys.FACETS).contains(ItemFacet.MELEE_WEAPON.id()));
@@ -178,7 +178,7 @@ class SynesthesiaCompatTest {
         meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "books");
         meta.put(SearchNodeKeys.FACETS, "book");
 
-        DatanessenceCompat.enrichItem(new ResourceLocation("datanessence", "sprite_book_flora"), meta);
+        DatanessenceCompat.enrichItem(new Identifier("datanessence", "sprite_book_flora"), meta);
         CategoryAssignment assignment = resolve("datanessence:sprite_book_flora", meta);
 
         assertEquals("books", meta.get("halcyonItemKind"));
@@ -191,11 +191,11 @@ class SynesthesiaCompatTest {
     @Test
     void bornInChaosMaterialsAndCharmsRouteSemantically() {
         Map<String, String> material = meta("born_in_chaos_v1", "net.mcreator.borninchaosv.item.DarkMetalIngotItem");
-        BornInChaosCompat.enrichItem(new ResourceLocation("born_in_chaos_v1", "dark_metal_ingot"), material);
+        BornInChaosCompat.enrichItem(new Identifier("born_in_chaos_v1", "dark_metal_ingot"), material);
         CategoryAssignment materialAssignment = resolve("born_in_chaos_v1:dark_metal_ingot", material);
 
         Map<String, String> charm = meta("born_in_chaos_v1", "net.mcreator.borninchaosv.item.CharmofPowerItem");
-        BornInChaosCompat.enrichItem(new ResourceLocation("born_in_chaos_v1", "charmof_power"), charm);
+        BornInChaosCompat.enrichItem(new Identifier("born_in_chaos_v1", "charmof_power"), charm);
         CategoryAssignment charmAssignment = resolve("born_in_chaos_v1:charmof_power", charm);
 
         assertEquals("materials", material.get("bornInChaosItemKind"));
@@ -209,11 +209,11 @@ class SynesthesiaCompatTest {
     @Test
     void cataclysmDungeonEyesAndIngotsRouteSemantically() {
         Map<String, String> eye = meta("cataclysm", "com.github.L_Ender.cataclysm.items.DungeonEyeItem");
-        CataclysmCompat.enrichItem(new ResourceLocation("cataclysm", "mech_eye"), eye);
+        CataclysmCompat.enrichItem(new Identifier("cataclysm", "mech_eye"), eye);
         CategoryAssignment eyeAssignment = resolve("cataclysm:mech_eye", eye);
 
         Map<String, String> ingot = meta("cataclysm", "net.minecraft.world.item.Item");
-        CataclysmCompat.enrichItem(new ResourceLocation("cataclysm", "witherite_ingot"), ingot);
+        CataclysmCompat.enrichItem(new Identifier("cataclysm", "witherite_ingot"), ingot);
         CategoryAssignment ingotAssignment = resolve("cataclysm:witherite_ingot", ingot);
 
         assertEquals("dungeon_eyes", eye.get("cataclysmItemKind"));
@@ -230,7 +230,7 @@ class SynesthesiaCompatTest {
         meta.put(SearchNodeKeys.SUBTYPE_OF, "domum_ornamentum:panel");
 
         GeneratedVariantCollapseCompat.enrichItem(
-                new ResourceLocation("domum_ornamentum", "panel/variant/stripped_oak_wood_panel_11720a6e1c90"),
+                new Identifier("domum_ornamentum", "panel/variant/stripped_oak_wood_panel_11720a6e1c90"),
                 meta);
 
         assertEquals("domum_ornamentum:panel", meta.get(SearchNodeKeys.COLLAPSE_FAMILY));
@@ -247,7 +247,7 @@ class SynesthesiaCompatTest {
 
     private static CategoryAssignment resolve(String id, Map<String, String> meta, ItemFacet... facets) {
         return PrimaryCategoryResolver.resolve(
-                new ResourceLocation(id),
+                new Identifier(id),
                 facetsFrom(meta, facets),
                 meta
         );

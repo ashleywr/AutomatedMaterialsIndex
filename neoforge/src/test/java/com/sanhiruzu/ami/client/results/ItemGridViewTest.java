@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.client.results;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
@@ -61,7 +61,7 @@ public class ItemGridViewTest {
 
     private static TreeNode leaf(String path, String displayName) {
         SearchNode node = new SearchNode(
-                new ResourceLocation("minecraft:" + path),
+                new Identifier("minecraft:" + path),
                 NodeType.ITEM,
                 displayName,
                 0,

@@ -10,7 +10,7 @@ import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.recipe.AmiRecipeIndex;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeType;
@@ -51,17 +51,17 @@ public class RecipeGraphProvider implements IAmiDataProvider {
             return;
         }
 
-        Set<ResourceLocation> emitted = new HashSet<>();
+        Set<Identifier> emitted = new HashSet<>();
         int nodeCount = 0;
         int edgeCount = 0;
 
         // Phase 1: recipes with a known output item
         for (Item outputItem : recipeIndex.getAllOutputItems()) {
-            ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(outputItem);
+            Identifier itemId = BuiltInRegistries.ITEM.getKey(outputItem);
             if (itemId == null) continue;
 
             for (AmiRecipeHolder<?> recipe : recipeIndex.getRecipesFor(new ItemStack(outputItem))) {
-                ResourceLocation recipeId = recipe.id();
+                Identifier recipeId = recipe.id();
                 if (!emitted.add(recipeId)) continue;
 
                 String typeId = recipeTypeId(recipe);
@@ -81,13 +81,16 @@ public class RecipeGraphProvider implements IAmiDataProvider {
                 edgeCount++;
 
                 // RECIPE → ingredient ITEMs (deduplicated per recipe)
-                Set<ResourceLocation> seenIngredients = new LinkedHashSet<>();
+                Set<Identifier> seenIngredients = new LinkedHashSet<>();
                 try {
-                    for (var ingredient : recipe.value().getIngredients()) {
-                        for (ItemStack stack : ingredient.getItems()) {
-                            if (stack.isEmpty()) continue;
-                            ResourceLocation ingId = BuiltInRegistries.ITEM.getKey(stack.getItem());
-                            if (ingId != null && seenIngredients.add(ingId)) {
+                    for (var ingredient : recipe.value().placementInfo().ingredients()) {
+                        var ingIds = ingredient.items()
+                                .map(net.minecraft.core.Holder::value)
+                                .map(BuiltInRegistries.ITEM::getKey)
+                                .filter(java.util.Objects::nonNull)
+                                .toList();
+                        for (Identifier ingId : ingIds) {
+                            if (seenIngredients.add(ingId)) {
                                 recipeNode.addUnresolvedEdge(EdgeType.REQUIRES, ingId);
                                 edgeCount++;
                             }
@@ -104,7 +107,7 @@ public class RecipeGraphProvider implements IAmiDataProvider {
                 });
 
                 // ingredient ITEMs → RECIPE (used_in), same deduplicated set
-                for (ResourceLocation ingId : seenIngredients) {
+                for (Identifier ingId : seenIngredients) {
                     index.getNode(ingId, NodeType.ITEM).ifPresent(ingNode -> {
                         ingNode.addUnresolvedEdge(EdgeType.USED_IN, recipeId);
                     });
@@ -115,11 +118,11 @@ public class RecipeGraphProvider implements IAmiDataProvider {
 
         // Phase 2: input-only recipes not captured above (fuels, etc.)
         for (Item inputItem : recipeIndex.getAllInputItems()) {
-            ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(inputItem);
+            Identifier itemId = BuiltInRegistries.ITEM.getKey(inputItem);
             if (itemId == null) continue;
 
             for (AmiRecipeHolder<?> recipe : recipeIndex.getUsesFor(new ItemStack(inputItem))) {
-                ResourceLocation recipeId = recipe.id();
+                Identifier recipeId = recipe.id();
                 if (!emitted.add(recipeId)) continue;
 
                 String typeId = recipeTypeId(recipe);
@@ -147,7 +150,7 @@ public class RecipeGraphProvider implements IAmiDataProvider {
 
     private static String recipeTypeId(AmiRecipeHolder<?> recipe) {
         RecipeType<?> type = recipe.value().getType();
-        ResourceLocation key = BuiltInRegistries.RECIPE_TYPE.getKey(type);
+        Identifier key = BuiltInRegistries.RECIPE_TYPE.getKey(type);
         if (key != null) return key.getPath();
         return type.toString().toLowerCase(java.util.Locale.ROOT);
     }

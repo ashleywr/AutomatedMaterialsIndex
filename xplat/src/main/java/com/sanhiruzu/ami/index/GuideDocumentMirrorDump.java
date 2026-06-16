@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import com.google.gson.Gson;
 import com.sanhiruzu.ami.api.AmiGuideDocument;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -43,7 +43,7 @@ public final class GuideDocumentMirrorDump {
     ) {
         static Snapshot from(AmiGuideDocument document) {
             List<String> items = document.referencedItems().stream()
-                    .map(ResourceLocation::toString)
+                    .map(Identifier::toString)
                     .sorted()
                     .toList();
             return new Snapshot(

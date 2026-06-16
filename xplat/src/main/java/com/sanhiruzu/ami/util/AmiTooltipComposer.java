@@ -20,7 +20,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 
@@ -133,7 +133,7 @@ public final class AmiTooltipComposer {
     }
 
     private static void appendModNameIfMissing(List<Component> lines, SearchNode entry) {
-        ResourceLocation resolvedId = FavoriteEntry.resolvedId(entry);
+        Identifier resolvedId = FavoriteEntry.resolvedId(entry);
         String namespace = resolvedId != null ? resolvedId.getNamespace() : "";
         String modId = entry.meta(SearchNodeKeys.MOD_ID, namespace);
         String modName = RegistryUtils.modDisplayName(modId).trim();

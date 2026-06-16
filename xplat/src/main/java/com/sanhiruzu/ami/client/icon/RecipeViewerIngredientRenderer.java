@@ -1,18 +1,18 @@
 package com.sanhiruzu.ami.client.icon;
 
 import com.sanhiruzu.ami.index.SearchNode;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RecipeViewerIngredientRenderer implements IIconRenderer {
-    private static final Map<ResourceLocation, RenderHandle> HANDLES = new ConcurrentHashMap<>();
+    private static final Map<Identifier, RenderHandle> HANDLES = new ConcurrentHashMap<>();
 
-    public static void register(ResourceLocation id, RenderHandle handle) {
+    public static void register(Identifier id, RenderHandle handle) {
         if (id == null || handle == null) return;
         HANDLES.put(id, handle);
     }
@@ -22,7 +22,7 @@ public class RecipeViewerIngredientRenderer implements IIconRenderer {
     }
 
     @Override
-    public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
+    public void render(GuiGraphicsExtractor g, SearchNode node, int x, int y, int size, boolean hovered) {
         RenderHandle handle = HANDLES.get(node.id());
         if (handle != null) {
             try {
@@ -54,7 +54,7 @@ public class RecipeViewerIngredientRenderer implements IIconRenderer {
     }
 
     public interface RenderHandle {
-        boolean render(GuiGraphics g, int x, int y, int size);
+        boolean render(GuiGraphicsExtractor g, int x, int y, int size);
 
         List<Component> tooltip();
 
@@ -62,7 +62,7 @@ public class RecipeViewerIngredientRenderer implements IIconRenderer {
             List<Component> safeTooltip = tooltip == null ? List.of() : List.copyOf(tooltip);
             return new RenderHandle() {
                 @Override
-                public boolean render(GuiGraphics g, int x, int y, int size) {
+                public boolean render(GuiGraphicsExtractor g, int x, int y, int size) {
                     int width = Math.max(1, renderer.getWidth());
                     int height = Math.max(1, renderer.getHeight());
                     float scale = Math.min((float) size / width, (float) size / height);
@@ -71,13 +71,13 @@ public class RecipeViewerIngredientRenderer implements IIconRenderer {
                     float dx = x + (size - drawWidth) / 2.0f;
                     float dy = y + (size - drawHeight) / 2.0f;
                     var pose = g.pose();
-                    pose.pushPose();
-                    pose.translate(dx, dy, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
+                    pose.pushMatrix();
+                    pose.translate(dx, dy);
                     if (scale != 1.0f) {
-                        pose.scale(scale, scale, 1.0f);
+                        pose.scale(scale, scale);
                     }
                     renderer.render(g, ingredient, 0, 0);
-                    pose.popPose();
+                    pose.popMatrix();
                     return true;
                 }
 

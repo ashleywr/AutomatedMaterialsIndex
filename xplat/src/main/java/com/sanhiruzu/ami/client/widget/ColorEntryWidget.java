@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client.widget;
 
 import com.sanhiruzu.ami.client.AMITheme;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
@@ -18,7 +18,7 @@ public class ColorEntryWidget extends AbstractWidget {
     }
 
     @Override
-    protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
+    protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         // Draw the border
         graphics.fill(getX() - 1, getY() - 1, getX() + width + 1, getY() + height + 1, AMITheme.CONFIG_SWATCH_BORDER);
         // Draw the color preview

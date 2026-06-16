@@ -6,7 +6,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.util.tooltip.DiscoveryTooltipFact;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -95,7 +95,7 @@ class AmiTooltipComposerTest {
     @Test
     void fallbackRendererDoesNotReenterTooltipComposer() {
         SearchNode waypoint = new SearchNode(
-                new ResourceLocation("ami:waypoint/test/home"),
+                new Identifier("ami:waypoint/test/home"),
                 NodeType.WAYPOINT,
                 "Home",
                 0,
@@ -119,7 +119,7 @@ class AmiTooltipComposerTest {
     void discoveryTooltipShowsFoodChecklistStateWhenEnabled() {
         AmiConfig.enableDiscoveryChecklist = true;
         SearchNode apple = new SearchNode(
-                new ResourceLocation("minecraft:apple"),
+                new Identifier("minecraft:apple"),
                 NodeType.ITEM,
                 "Apple",
                 0,
@@ -140,7 +140,7 @@ class AmiTooltipComposerTest {
     void discoveryTooltipIsHiddenWhenFeatureIsDisabled() {
         AmiConfig.enableDiscoveryChecklist = false;
         SearchNode apple = new SearchNode(
-                new ResourceLocation("minecraft:apple"),
+                new Identifier("minecraft:apple"),
                 NodeType.ITEM,
                 "Apple",
                 0,

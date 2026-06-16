@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.index.query.QueryParser;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +22,7 @@ public class QuerySearchModeTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode ingot = new SearchNode(
-                new ResourceLocation("minecraft:iron_ingot"),
+                new Identifier("minecraft:iron_ingot"),
                 NodeType.ITEM,
                 "Iron Ingot",
                 0,
@@ -30,7 +30,7 @@ public class QuerySearchModeTest {
                 Map.of()
         );
         SearchNode copycat = new SearchNode(
-                new ResourceLocation("copycats:copycat_light_weighted_pressure_plate"),
+                new Identifier("copycats:copycat_light_weighted_pressure_plate"),
                 NodeType.ITEM,
                 "Copycat Light Weighted Pressure Plate",
                 0,
@@ -38,7 +38,7 @@ public class QuerySearchModeTest {
                 Map.of(SearchNodeKeys.MATERIAL_GROUP, "create:zinc_ingot")
         );
         SearchNode template = new SearchNode(
-                new ResourceLocation("minecraft:netherite_upgrade_smithing_template"),
+                new Identifier("minecraft:netherite_upgrade_smithing_template"),
                 NodeType.ITEM,
                 "Netherite Upgrade Smithing Template",
                 0,
@@ -63,7 +63,7 @@ public class QuerySearchModeTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode medicine = new SearchNode(
-                new ResourceLocation("cobblemon:super_potion"),
+                new Identifier("cobblemon:super_potion"),
                 NodeType.ITEM,
                 "Super Potion",
                 0,
@@ -71,7 +71,7 @@ public class QuerySearchModeTest {
                 Map.of(SearchNodeKeys.PLAIN_SEARCH_TOKENS, "pokemon cobblemon")
         );
         SearchNode metadataOnly = new SearchNode(
-                new ResourceLocation("example:metadata_capsule"),
+                new Identifier("example:metadata_capsule"),
                 NodeType.ITEM,
                 "Metadata Capsule",
                 0,
@@ -94,7 +94,7 @@ public class QuerySearchModeTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode tooltipMatch = new SearchNode(
-                new ResourceLocation("example:medicine_capsule"),
+                new Identifier("example:medicine_capsule"),
                 NodeType.ITEM,
                 "Medicine Capsule",
                 0,
@@ -102,7 +102,7 @@ public class QuerySearchModeTest {
                 Map.of(SearchNodeKeys.TOOLTIP_SEARCH_TOKENS, "pokemon battle")
         );
         SearchNode metadataOnly = new SearchNode(
-                new ResourceLocation("example:metadata_capsule"),
+                new Identifier("example:metadata_capsule"),
                 NodeType.ITEM,
                 "Metadata Capsule",
                 0,
@@ -126,7 +126,7 @@ public class QuerySearchModeTest {
 
         for (int i = 0; i < 225; i++) {
             index.addNode(new SearchNode(
-                    new ResourceLocation("example", "pokemon_tooltip_" + i),
+                    new Identifier("example", "pokemon_tooltip_" + i),
                     NodeType.ITEM,
                     "Tooltip Match " + i,
                     0,
@@ -135,7 +135,7 @@ public class QuerySearchModeTest {
             ));
         }
         SearchNode lateMatch = new SearchNode(
-                new ResourceLocation("mega_showdown:rotom_mow"),
+                new Identifier("mega_showdown:rotom_mow"),
                 NodeType.ITEM,
                 "Mow Unit",
                 0,
@@ -156,7 +156,7 @@ public class QuerySearchModeTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode copycat = new SearchNode(
-                new ResourceLocation("copycats:copycat_light_weighted_pressure_plate"),
+                new Identifier("copycats:copycat_light_weighted_pressure_plate"),
                 NodeType.ITEM,
                 "Copycat Light Weighted Pressure Plate",
                 0,
@@ -177,7 +177,7 @@ public class QuerySearchModeTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode ironIngot = new SearchNode(
-                new ResourceLocation("minecraft:iron_ingot"),
+                new Identifier("minecraft:iron_ingot"),
                 NodeType.ITEM,
                 "Iron Ingot",
                 0,
@@ -185,7 +185,7 @@ public class QuerySearchModeTest {
                 Map.of(SearchNodeKeys.MOD_ID, "minecraft")
         );
         SearchNode zincIngot = new SearchNode(
-                new ResourceLocation("create:zinc_ingot"),
+                new Identifier("create:zinc_ingot"),
                 NodeType.ITEM,
                 "Zinc Ingot",
                 0,
@@ -208,7 +208,7 @@ public class QuerySearchModeTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode ironIngot = new SearchNode(
-                new ResourceLocation("minecraft:iron_ingot"),
+                new Identifier("minecraft:iron_ingot"),
                 NodeType.ITEM,
                 "Iron Ingot",
                 0,
@@ -216,7 +216,7 @@ public class QuerySearchModeTest {
                 Map.of(SearchNodeKeys.MOD_ID, "minecraft")
         );
         SearchNode zincIngot = new SearchNode(
-                new ResourceLocation("create:zinc_ingot"),
+                new Identifier("create:zinc_ingot"),
                 NodeType.ITEM,
                 "Zinc Ingot",
                 0,

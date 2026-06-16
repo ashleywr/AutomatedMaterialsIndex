@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.compat.ArsNouveauCompat;
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -17,7 +17,7 @@ class ArsNouveauCompatTest {
     void arsNouveauNamespaceGetsFamilyPolicy() {
         Map<String, String> meta = meta("com.hollingsworth.arsnouveau.common.items.Glyph");
 
-        CompatFamilyDetector.detect(new ResourceLocation("ars_nouveau", "glyph_invisibility"), meta);
+        CompatFamilyDetector.detect(new Identifier("ars_nouveau", "glyph_invisibility"), meta);
 
         assertEquals("ars_nouveau", meta.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
     }
@@ -27,7 +27,7 @@ class ArsNouveauCompatTest {
         Map<String, String> meta = meta("com.hollingsworth.arsnouveau.common.items.Glyph");
         meta.put(SearchNodeKeys.RECIPE_CATEGORIES, "glyph");
 
-        ArsNouveauCompat.enrichItem(new ResourceLocation("ars_nouveau", "glyph_cut"), meta);
+        ArsNouveauCompat.enrichItem(new Identifier("ars_nouveau", "glyph_cut"), meta);
         CategoryAssignment assignment = resolve("ars_nouveau:glyph_cut", meta);
 
         assertEquals("glyphs", meta.get(SearchNodeKeys.ARS_NOUVEAU_ITEM_KIND));
@@ -45,7 +45,7 @@ class ArsNouveauCompatTest {
         Map<String, String> meta = meta("net.minecraft.world.item.Item");
         meta.put(SearchNodeKeys.RECIPE_CATEGORIES, "glyph");
 
-        ArsNouveauCompat.enrichItem(new ResourceLocation("ars_nouveau", "reset"), meta);
+        ArsNouveauCompat.enrichItem(new Identifier("ars_nouveau", "reset"), meta);
         CategoryAssignment assignment = resolve("ars_nouveau:reset", meta);
 
         assertEquals("glyphs", meta.get(SearchNodeKeys.ARS_NOUVEAU_ITEM_KIND));
@@ -57,7 +57,7 @@ class ArsNouveauCompatTest {
     void ritualTabletsRouteToArsRitualsAndCollapseTogether() {
         Map<String, String> meta = meta("com.hollingsworth.arsnouveau.common.items.RitualTablet");
 
-        ArsNouveauCompat.enrichItem(new ResourceLocation("ars_nouveau", "ritual_burrowing"), meta);
+        ArsNouveauCompat.enrichItem(new Identifier("ars_nouveau", "ritual_burrowing"), meta);
         CategoryAssignment assignment = resolve("ars_nouveau:ritual_burrowing", meta);
 
         assertEquals("ritual_tablets", meta.get(SearchNodeKeys.ARS_NOUVEAU_ITEM_KIND));
@@ -73,7 +73,7 @@ class ArsNouveauCompatTest {
     void arsWorkstationsStayUnderArsHeader() {
         Map<String, String> meta = meta("com.hollingsworth.arsnouveau.common.items.ModBlockItem");
 
-        ArsNouveauCompat.enrichItem(new ResourceLocation("ars_nouveau", "enchanting_apparatus"), meta);
+        ArsNouveauCompat.enrichItem(new Identifier("ars_nouveau", "enchanting_apparatus"), meta);
         CategoryAssignment assignment = resolve("ars_nouveau:enchanting_apparatus", meta, ItemFacet.PLACEABLE, ItemFacet.WORKSTATION);
 
         assertEquals("automation", meta.get(SearchNodeKeys.ARS_NOUVEAU_ITEM_KIND));
@@ -86,7 +86,7 @@ class ArsNouveauCompatTest {
         Map<String, String> meta = meta("com.hollingsworth.arsnouveau.common.items.Glyph");
         meta.put(SearchNodeKeys.COMPAT_CATEGORY_POLICY, "semantic");
 
-        ArsNouveauCompat.enrichItem(new ResourceLocation("ars_nouveau", "glyph_cut"), meta);
+        ArsNouveauCompat.enrichItem(new Identifier("ars_nouveau", "glyph_cut"), meta);
         CategoryAssignment assignment = resolve("ars_nouveau:glyph_cut", meta);
 
         assertEquals("misc", assignment.categoryId());
@@ -103,7 +103,7 @@ class ArsNouveauCompatTest {
 
     private static CategoryAssignment resolve(String id, Map<String, String> meta, ItemFacet... facets) {
         return PrimaryCategoryResolver.resolve(
-                new ResourceLocation(id),
+                new Identifier(id),
                 new FacetProfile(facets.length == 0 ? EnumSet.noneOf(ItemFacet.class) : EnumSet.of(facets[0], facets), meta)
         );
     }

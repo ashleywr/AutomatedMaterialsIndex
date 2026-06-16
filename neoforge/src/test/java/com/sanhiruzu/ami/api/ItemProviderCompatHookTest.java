@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.api;
 
 import com.sanhiruzu.searchableitems.api.SearchableItemProvider;
 import com.sanhiruzu.searchableitems.api.SearchableItemProviders;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.junit.jupiter.api.AfterEach;
@@ -63,7 +63,7 @@ class ItemProviderCompatHookTest {
 
         AmiPluginRegistry.register(new IAmiPlugin() {
             @Override
-            public void enrichItemMeta(ResourceLocation id, ItemStack stack, Level level, Map<String, String> metadata) {
+            public void enrichItemMeta(Identifier id, ItemStack stack, Level level, Map<String, String> metadata) {
                 failingPluginCalls.incrementAndGet();
                 throw new IllegalStateException("compat exploded");
             }
@@ -71,7 +71,7 @@ class ItemProviderCompatHookTest {
 
         AmiPluginRegistry.register(new IAmiPlugin() {
             @Override
-            public void enrichItemMeta(ResourceLocation id, ItemStack stack, Level level, Map<String, String> metadata) {
+            public void enrichItemMeta(Identifier id, ItemStack stack, Level level, Map<String, String> metadata) {
                 safePluginCalls.incrementAndGet();
                 if (id.getPath().equals("stone")) {
                     metadata.put("ami", "safe_plugin");
@@ -80,7 +80,7 @@ class ItemProviderCompatHookTest {
         });
 
         Map<String, String> metadata = new HashMap<>();
-        ItemProviderCompatHooks.runPluginItemCompatHooks(new ResourceLocation("minecraft", "stone"),
+        ItemProviderCompatHooks.runPluginItemCompatHooks(new Identifier("minecraft", "stone"),
                 ItemStack.EMPTY, null, metadata);
 
         assertEquals(1, failingPluginCalls.get());
@@ -94,15 +94,15 @@ class ItemProviderCompatHookTest {
 
         AmiPluginRegistry.register(new IAmiPlugin() {
             @Override
-            public void enrichItemMeta(ResourceLocation id, ItemStack stack, Level level, Map<String, String> metadata) {
+            public void enrichItemMeta(Identifier id, ItemStack stack, Level level, Map<String, String> metadata) {
                 failingPluginCalls.incrementAndGet();
                 throw new RuntimeException("expected failure");
             }
         });
 
-        ItemProviderCompatHooks.runPluginItemCompatHooks(new ResourceLocation("minecraft", "stone"),
+        ItemProviderCompatHooks.runPluginItemCompatHooks(new Identifier("minecraft", "stone"),
                 ItemStack.EMPTY, null, new HashMap<>());
-        ItemProviderCompatHooks.runPluginItemCompatHooks(new ResourceLocation("minecraft", "stone"),
+        ItemProviderCompatHooks.runPluginItemCompatHooks(new Identifier("minecraft", "stone"),
                 ItemStack.EMPTY, null, new HashMap<>());
 
         assertEquals(1, failingPluginCalls.get(),
@@ -116,7 +116,7 @@ class ItemProviderCompatHookTest {
 
         AmiPluginRegistry.register(new IAmiPlugin() {
             @Override
-            public void enrichItemMeta(ResourceLocation id, ItemStack stack, Level level, Map<String, String> metadata) {
+            public void enrichItemMeta(Identifier id, ItemStack stack, Level level, Map<String, String> metadata) {
                 if ("minecraft".equals(id.getNamespace()) && "stone".equals(id.getPath())) {
                     baseItemCalls.incrementAndGet();
                     metadata.put("ami", "base");
@@ -131,9 +131,9 @@ class ItemProviderCompatHookTest {
         Map<String, String> baseMetadata = new HashMap<>();
         Map<String, String> subtypeMetadata = new HashMap<>();
 
-        ItemProviderCompatHooks.runPluginItemCompatHooks(new ResourceLocation("minecraft", "stone"),
+        ItemProviderCompatHooks.runPluginItemCompatHooks(new Identifier("minecraft", "stone"),
                 ItemStack.EMPTY, null, baseMetadata);
-        ItemProviderCompatHooks.runPluginItemCompatHooks(new ResourceLocation("minecraft", "potion/strength"),
+        ItemProviderCompatHooks.runPluginItemCompatHooks(new Identifier("minecraft", "potion/strength"),
                 ItemStack.EMPTY, null, subtypeMetadata);
 
         assertEquals(1, baseItemCalls.get(),
@@ -153,7 +153,7 @@ class ItemProviderCompatHookTest {
             }
 
             @Override
-            public void enrichItemMetadata(ResourceLocation id, ItemStack stack, Level level, Map<String, String> metadata) {
+            public void enrichItemMetadata(Identifier id, ItemStack stack, Level level, Map<String, String> metadata) {
                 if ("stone".equals(id.getPath())) {
                     metadata.put("shared", "provider");
                 }
@@ -161,7 +161,7 @@ class ItemProviderCompatHookTest {
         });
 
         Map<String, String> metadata = new HashMap<>();
-        ItemProviderCompatHooks.runPluginItemCompatHooks(new ResourceLocation("minecraft", "stone"),
+        ItemProviderCompatHooks.runPluginItemCompatHooks(new Identifier("minecraft", "stone"),
                 ItemStack.EMPTY, null, metadata);
 
         assertEquals("provider", metadata.get("shared"));
@@ -177,15 +177,15 @@ class ItemProviderCompatHookTest {
             }
 
             @Override
-            public void enrichItemMetadata(ResourceLocation id, ItemStack stack, Level level, Map<String, String> metadata) {
+            public void enrichItemMetadata(Identifier id, ItemStack stack, Level level, Map<String, String> metadata) {
                 failingProviderCalls.incrementAndGet();
                 throw new RuntimeException("expected failure");
             }
         });
 
-        ItemProviderCompatHooks.runPluginItemCompatHooks(new ResourceLocation("minecraft", "stone"),
+        ItemProviderCompatHooks.runPluginItemCompatHooks(new Identifier("minecraft", "stone"),
                 ItemStack.EMPTY, null, new HashMap<>());
-        ItemProviderCompatHooks.runPluginItemCompatHooks(new ResourceLocation("minecraft", "stone"),
+        ItemProviderCompatHooks.runPluginItemCompatHooks(new Identifier("minecraft", "stone"),
                 ItemStack.EMPTY, null, new HashMap<>());
 
         assertEquals(1, failingProviderCalls.get());

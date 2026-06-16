@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.client;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
  * Pixel-art icon helpers for AMI GUI buttons.
@@ -20,7 +20,7 @@ public final class AmiGuiIcons {
      * Shown on the toggle button when panel is in full mode (click → go compact).
      * Draws a 8×8 area centred on (cx, cy).
      */
-    public static void compact(GuiGraphics g, int cx, int cy, int color) {
+    public static void compact(GuiGraphicsExtractor g, int cx, int cy, int color) {
         int sx = cx - 4, sy = cy - 4;
         for (int row = 0; row < 3; row++)
             for (int col = 0; col < 3; col++)
@@ -34,7 +34,7 @@ public final class AmiGuiIcons {
      * Each row: a 2×2 item dot + a 5px text bar.
      * Draws a 9×8 area centred on (cx, cy).
      */
-    public static void expand(GuiGraphics g, int cx, int cy, int color) {
+    public static void expand(GuiGraphicsExtractor g, int cx, int cy, int color) {
         // Faint bar colour: same hue, ~40% opacity
         int a = (int) (((color >>> 24) & 0xFF) * 0.40f);
         int barColor = (a << 24) | (color & 0x00FFFFFF);
@@ -51,7 +51,7 @@ public final class AmiGuiIcons {
      * Split grid/list with a tiny arrow — represents switching result views.
      * Draws a 10×8 area centred on (cx, cy).
      */
-    public static void viewSwitch(GuiGraphics g, int cx, int cy, int color) {
+    public static void viewSwitch(GuiGraphicsExtractor g, int cx, int cy, int color) {
         int sx = cx - 5, sy = cy - 4;
 
         // Grid half
@@ -74,7 +74,7 @@ public final class AmiGuiIcons {
     /**
      * Small index-book glyph for the main result-view toggle.
      */
-    public static void resultBook(GuiGraphics g, int cx, int cy, int color, boolean targetList) {
+    public static void resultBook(GuiGraphicsExtractor g, int cx, int cy, int color, boolean targetList) {
         int sx = cx - 5;
         int sy = cy - 5;
         int paper = 0x66FFFFFF;
@@ -94,7 +94,7 @@ public final class AmiGuiIcons {
      * Two opposing arrows — represents swapping a sidebar panel to its alternate content.
      * Draws a 10x8 area centred on (cx, cy).
      */
-    public static void swap(GuiGraphics g, int cx, int cy, int color) {
+    public static void swap(GuiGraphicsExtractor g, int cx, int cy, int color) {
         int sx = cx - 5;
         int sy = cy - 4;
 
@@ -109,7 +109,7 @@ public final class AmiGuiIcons {
         g.fill(sx, sy + 6, sx + 1, sy + 7, color);
     }
 
-    public static void dropdownChevron(GuiGraphics g, int cx, int cy, int color, boolean open) {
+    public static void dropdownChevron(GuiGraphicsExtractor g, int cx, int cy, int color, boolean open) {
         int sx = cx - 2;
         int sy = cy - 2;
         if (open) {
@@ -123,7 +123,7 @@ public final class AmiGuiIcons {
         }
     }
 
-    public static void search(GuiGraphics g, int cx, int cy, int color) {
+    public static void search(GuiGraphicsExtractor g, int cx, int cy, int color) {
         int sx = cx - 4;
         int sy = cy - 4;
         g.fill(sx + 1, sy, sx + 5, sy + 1, color);
@@ -134,16 +134,16 @@ public final class AmiGuiIcons {
         g.fill(sx + 7, sy + 7, sx + 9, sy + 8, color);
     }
 
-    public static void collapseAll(GuiGraphics g, int cx, int cy, int color) {
+    public static void collapseAll(GuiGraphicsExtractor g, int cx, int cy, int color) {
         g.fill(cx - 4, cy - 1, cx + 4, cy + 1, color);
     }
 
-    public static void expandAll(GuiGraphics g, int cx, int cy, int color) {
+    public static void expandAll(GuiGraphicsExtractor g, int cx, int cy, int color) {
         g.fill(cx - 4, cy - 1, cx + 4, cy + 1, color);
         g.fill(cx - 1, cy - 4, cx + 1, cy + 4, color);
     }
 
-    public static void sortDirection(GuiGraphics g, int cx, int cy, int color, boolean ascending) {
+    public static void sortDirection(GuiGraphicsExtractor g, int cx, int cy, int color, boolean ascending) {
         int sx = cx - 4;
         int sy = cy - 5;
 
@@ -165,7 +165,7 @@ public final class AmiGuiIcons {
     /**
      * Cog/Gear icon - for General settings.
      */
-    public static void general(GuiGraphics g, int cx, int cy, int color) {
+    public static void general(GuiGraphicsExtractor g, int cx, int cy, int color) {
         int sx = cx - 4, sy = cy - 4;
         g.fill(sx + 3, sy, sx + 5, sy + 8, color); // vertical
         g.fill(sx, sy + 3, sx + 8, sy + 5, color); // horizontal
@@ -177,7 +177,7 @@ public final class AmiGuiIcons {
     /**
      * Screen icon - for Display settings.
      */
-    public static void display(GuiGraphics g, int cx, int cy, int color) {
+    public static void display(GuiGraphicsExtractor g, int cx, int cy, int color) {
         int sx = cx - 5, sy = cy - 4;
         g.fill(sx, sy, sx + 10, sy + 7, color); // monitor
         g.fill(sx + 1, sy + 1, sx + 9, sy + 6, 0x00000000); // screen (transparent)
@@ -188,7 +188,7 @@ public final class AmiGuiIcons {
     /**
      * Mouse cursor icon - for Interaction settings.
      */
-    public static void interaction(GuiGraphics g, int cx, int cy, int color) {
+    public static void interaction(GuiGraphicsExtractor g, int cx, int cy, int color) {
         int sx = cx - 3, sy = cy - 4;
         g.fill(sx, sy, sx + 1, sy + 8, color); // vertical stem
         g.fill(sx, sy, sx + 6, sy + 1, color); // top horizontal
@@ -201,7 +201,7 @@ public final class AmiGuiIcons {
     /**
      * Ruler/Grid icon - for Layout settings.
      */
-    public static void layout(GuiGraphics g, int cx, int cy, int color) {
+    public static void layout(GuiGraphicsExtractor g, int cx, int cy, int color) {
         int sx = cx - 4, sy = cy - 4;
         g.fill(sx, sy, sx + 8, sy + 1, color); // top
         g.fill(sx, sy + 1, sy + 8, sy + 1, color); // left
@@ -213,7 +213,7 @@ public final class AmiGuiIcons {
     /**
      * Paint palette icon - for Palette settings.
      */
-    public static void palette(GuiGraphics g, int cx, int cy, int color) {
+    public static void palette(GuiGraphicsExtractor g, int cx, int cy, int color) {
         int sx = cx - 4, sy = cy - 4;
         g.fill(sx + 1, sy, sx + 7, sy + 8, color); // body
         g.fill(sx, sy + 2, sx + 8, sy + 6, color); // sides
@@ -225,7 +225,7 @@ public final class AmiGuiIcons {
     /**
      * Split view icon - for Side Panels settings.
      */
-    public static void sidepanels(GuiGraphics g, int cx, int cy, int color) {
+    public static void sidepanels(GuiGraphicsExtractor g, int cx, int cy, int color) {
         int sx = cx - 5, sy = cy - 4;
         g.fill(sx, sy, sx + 3, sy + 8, color); // left panel
         g.fill(sx + 7, sy, sx + 10, sy + 8, color); // right panel
@@ -235,7 +235,7 @@ public final class AmiGuiIcons {
     /**
      * Keyboard icon - for Keybinds.
      */
-    public static void keybinds(GuiGraphics g, int cx, int cy, int color) {
+    public static void keybinds(GuiGraphicsExtractor g, int cx, int cy, int color) {
         int sx = cx - 5, sy = cy - 3;
         g.fill(sx, sy, sx + 10, sy + 6, color); // keyboard body
         g.fill(sx + 1, sy + 1, sx + 9, sy + 5, 0x00000000); // clear inner
@@ -249,7 +249,7 @@ public final class AmiGuiIcons {
      * Left-pointing chevron (◀) — used on the collapse button in a sidebar panel header.
      * Draws a 5×5 area centred on (cx, cy).
      */
-    public static void chevronLeft(GuiGraphics g, int cx, int cy, int color) {
+    public static void chevronLeft(GuiGraphicsExtractor g, int cx, int cy, int color) {
         g.fill(cx + 1, cy - 2, cx + 3, cy - 1, color);
         g.fill(cx,     cy - 1, cx + 2, cy,     color);
         g.fill(cx - 1, cy,     cx + 1, cy + 1, color);
@@ -261,7 +261,7 @@ public final class AmiGuiIcons {
      * Right-pointing chevron (►) — used on the expand button in the left-panel bar.
      * Draws a 5×5 area centred on (cx, cy).
      */
-    public static void chevronRight(GuiGraphics g, int cx, int cy, int color) {
+    public static void chevronRight(GuiGraphicsExtractor g, int cx, int cy, int color) {
         g.fill(cx - 2, cy - 2, cx,     cy - 1, color);
         g.fill(cx - 1, cy - 1, cx + 1, cy,     color);
         g.fill(cx,     cy,     cx + 2, cy + 1, color);
@@ -274,7 +274,7 @@ public final class AmiGuiIcons {
      * The top band stays wide while lower rows taper inward to suggest the panel folding up
      * into a single header row.
      */
-    public static void sidebarCollapse(GuiGraphics g, int cx, int cy, int color) {
+    public static void sidebarCollapse(GuiGraphicsExtractor g, int cx, int cy, int color) {
         int sx = cx - 5;
         int sy = cy - 4;
 
@@ -286,7 +286,7 @@ public final class AmiGuiIcons {
     /**
      * Reverse of {@link #sidebarCollapse}: suggests restoring the full sidebar from the compact bar.
      */
-    public static void sidebarExpand(GuiGraphics g, int cx, int cy, int color) {
+    public static void sidebarExpand(GuiGraphicsExtractor g, int cx, int cy, int color) {
         int sx = cx - 5;
         int sy = cy - 4;
 
@@ -298,7 +298,7 @@ public final class AmiGuiIcons {
     /**
      * Warning/Skull icon - for Cheat settings.
      */
-    public static void cheat(GuiGraphics g, int cx, int cy, int color) {
+    public static void cheat(GuiGraphicsExtractor g, int cx, int cy, int color) {
         int sx = cx - 4, sy = cy - 4;
         g.fill(sx + 1, sy, sx + 7, sy + 6, color); // head
         g.fill(sx, sy + 2, sx + 8, sy + 5, color); // ears area
@@ -310,7 +310,7 @@ public final class AmiGuiIcons {
     /**
      * Text bubble icon - for Subtitles settings.
      */
-    public static void subtitles(GuiGraphics g, int cx, int cy, int color) {
+    public static void subtitles(GuiGraphicsExtractor g, int cx, int cy, int color) {
         int sx = cx - 5, sy = cy - 4;
         g.fill(sx, sy, sx + 10, sy + 7, color); // bubble
         g.fill(sx + 2, sy + 2, sx + 8, sy + 3, 0xFF000000); // line 1
@@ -322,7 +322,7 @@ public final class AmiGuiIcons {
      * Circular refresh arrow (↺ shape) — represents reset/clear.
      * Draws a 10×10 area centred on (cx, cy).
      */
-    public static void reset(GuiGraphics g, int cx, int cy, int color) {
+    public static void reset(GuiGraphicsExtractor g, int cx, int cy, int color) {
         int sx = cx - 5, sy = cy - 5;
 
         // Outer ring (8×8 stroked circle, 1px wide)

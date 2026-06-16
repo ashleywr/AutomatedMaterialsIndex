@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.Map;
 import java.util.Set;
@@ -25,7 +25,7 @@ public final class ChippedCompat {
     private ChippedCompat() {
     }
 
-    public static void enrichItem(ResourceLocation id, Map<String, String> meta) {
+    public static void enrichItem(Identifier id, Map<String, String> meta) {
         if (id == null || meta == null || !CHIPPED.equals(id.getNamespace())) {
             return;
         }

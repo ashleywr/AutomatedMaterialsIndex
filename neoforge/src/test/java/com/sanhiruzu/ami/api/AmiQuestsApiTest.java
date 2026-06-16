@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.api;
 
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,7 @@ class AmiQuestsApiTest {
 
         assertEquals(List.of("ftbquests:first_a", "ftbquests:first_b", "ftbquests:late"),
                 AmiQuestsApi.getQuestGroups().stream().map(AmiQuestGroup::id).toList());
-        assertEquals(new ResourceLocation("minecraft", "diamond"),
+        assertEquals(new Identifier("minecraft", "diamond"),
                 AmiQuestsApi.getQuestGroups().get(2).entries().getFirst().itemId());
     }
 
@@ -45,14 +45,14 @@ class AmiQuestsApiTest {
                 "ftbquests:chapter/basic_power",
                 "Basic Power",
                 "Make a generator and wire it to storage.",
-                new ResourceLocation("minecraft", "redstone")
+                new Identifier("minecraft", "redstone")
         );
 
         AmiQuestsApi.registerQuestDocument(document);
 
         assertEquals(List.of(document), AmiQuestsApi.getQuestDocuments());
         assertEquals("Basic Power",
-                AmiQuestsApi.getQuestMatchesForItem(new ResourceLocation("minecraft", "redstone"))
+                AmiQuestsApi.getQuestMatchesForItem(new Identifier("minecraft", "redstone"))
                         .getFirst()
                         .quest()
                         .title());
@@ -68,20 +68,20 @@ class AmiQuestsApiTest {
                 "ftbquests:old",
                 "Old",
                 "",
-                new ResourceLocation("minecraft", "stone")
+                new Identifier("minecraft", "stone")
         );
         AmiQuestDocument other = questDocument(
                 "otherquests:kept",
                 "otherquests",
                 "Kept",
                 "",
-                new ResourceLocation("minecraft", "apple")
+                new Identifier("minecraft", "apple")
         );
         AmiQuestDocument ftbNew = questDocument(
                 "ftbquests:new",
                 "New",
                 "",
-                new ResourceLocation("minecraft", "diamond")
+                new Identifier("minecraft", "diamond")
         );
 
         AmiQuestsApi.registerQuestDocument(ftbOld);
@@ -93,9 +93,9 @@ class AmiQuestsApiTest {
         assertEquals(1, changes.get());
         assertEquals(List.of("ftbquests:new", "otherquests:kept"),
                 AmiQuestsApi.getQuestDocuments().stream().map(AmiQuestDocument::id).toList());
-        assertEquals(0, AmiQuestsApi.getQuestMatchesForItem(new ResourceLocation("minecraft", "stone")).size());
+        assertEquals(0, AmiQuestsApi.getQuestMatchesForItem(new Identifier("minecraft", "stone")).size());
         assertEquals("ftbquests:new",
-                AmiQuestsApi.getQuestMatchesForItem(new ResourceLocation("minecraft", "diamond"))
+                AmiQuestsApi.getQuestMatchesForItem(new Identifier("minecraft", "diamond"))
                         .getFirst()
                         .quest()
                         .id());
@@ -107,7 +107,7 @@ class AmiQuestsApiTest {
         AmiQuestsApi.registerQuestGroup(group("ftbquests:starter", 0, "minecraft:apple"));
 
         assertEquals("ftbquests:starter",
-                AmiQuestsApi.getQuestMatchesForItem(new ResourceLocation("minecraft", "apple"))
+                AmiQuestsApi.getQuestMatchesForItem(new Identifier("minecraft", "apple"))
                         .getFirst()
                         .quest()
                         .id());
@@ -164,14 +164,14 @@ class AmiQuestsApiTest {
     @Test
     void groupAndEntryValidateAndCopyInputs() {
         List<AmiQuestEntry> entries = new ArrayList<>();
-        entries.add(new AmiQuestEntry(new ResourceLocation("minecraft", "stone"), 1));
+        entries.add(new AmiQuestEntry(new Identifier("minecraft", "stone"), 1));
         AmiQuestGroup group = new AmiQuestGroup("ftbquests:test", null, entries);
         entries.clear();
 
         assertEquals("ftbquests:test", group.label().getString());
         assertEquals(1, group.entries().size());
         assertThrows(UnsupportedOperationException.class, () -> group.entries().add(
-                new AmiQuestEntry(new ResourceLocation("minecraft", "dirt"), 1)));
+                new AmiQuestEntry(new Identifier("minecraft", "dirt"), 1)));
         assertThrows(IllegalArgumentException.class, () -> new AmiQuestEntry(null, 1));
         assertThrows(IllegalArgumentException.class,
                 () -> new AmiQuestGroup("", Component.literal("Broken"), List.of()));
@@ -186,7 +186,7 @@ class AmiQuestsApiTest {
                 "ftbquests:doc",
                 "Document",
                 "",
-                new ResourceLocation("minecraft", "apple")
+                new Identifier("minecraft", "apple")
         );
         AmiApi.registerQuestDocument(document);
         assertEquals(1, AmiQuestsApi.getQuestDocuments().size());
@@ -199,16 +199,16 @@ class AmiQuestsApiTest {
 
     private static AmiQuestGroup group(String id, int priority, String itemId) {
         return new AmiQuestGroup(id, Component.literal(id), List.of(
-                new AmiQuestEntry(new ResourceLocation(itemId), 1)
+                new AmiQuestEntry(new Identifier(itemId), 1)
         ), priority);
     }
 
-    private static AmiQuestDocument questDocument(String id, String title, String description, ResourceLocation itemId) {
+    private static AmiQuestDocument questDocument(String id, String title, String description, Identifier itemId) {
         return questDocument(id, "ftbquests", title, description, itemId);
     }
 
     private static AmiQuestDocument questDocument(String id, String sourceId, String title, String description,
-                                                  ResourceLocation itemId) {
+                                                  Identifier itemId) {
         return AmiQuestDocument.builder(id, "ftbquests", title)
                 .sourceId(sourceId)
                 .chapterId("chapter")

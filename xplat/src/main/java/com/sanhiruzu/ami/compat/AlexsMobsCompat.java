@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.index.ItemFacet;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -32,7 +32,7 @@ public final class AlexsMobsCompat {
     private AlexsMobsCompat() {
     }
 
-    public static void enrichItem(ResourceLocation id, Map<String, String> meta) {
+    public static void enrichItem(Identifier id, Map<String, String> meta) {
         if (id == null || meta == null) {
             return;
         }
@@ -64,7 +64,7 @@ public final class AlexsMobsCompat {
         }
     }
 
-    private static boolean isAlexsMobsItem(ResourceLocation id, Map<String, String> meta) {
+    private static boolean isAlexsMobsItem(Identifier id, Map<String, String> meta) {
         return MOD_ID.equals(id.getNamespace())
                 || CompatFamilyDetector.hasFamily(meta, CompatFamilyDetector.ALEXS_MOBS);
     }
@@ -258,7 +258,7 @@ public final class AlexsMobsCompat {
         final String itemClass;
         final String tags;
 
-        Context(ResourceLocation id, Map<String, String> meta) {
+        Context(Identifier id, Map<String, String> meta) {
             this.path = id.getPath().toLowerCase(Locale.ROOT);
             this.itemClass = meta.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
             this.tags = meta.getOrDefault(SearchNodeKeys.TAGS, "").toLowerCase(Locale.ROOT);

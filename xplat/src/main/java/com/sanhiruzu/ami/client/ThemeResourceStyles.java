@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.client;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -16,7 +16,7 @@ public final class ThemeResourceStyles {
     private ThemeResourceStyles() {
     }
 
-    public static boolean apply(ResourceLocation id, JsonElement element) {
+    public static boolean apply(Identifier id, JsonElement element) {
         ThemeDefinition theme = ThemeDefinition.parse(id, element);
         if (theme.isEmpty()) {
             return false;
@@ -25,7 +25,7 @@ public final class ThemeResourceStyles {
         return true;
     }
 
-    static ThemeDefinition parse(ResourceLocation id, JsonElement element) {
+    static ThemeDefinition parse(Identifier id, JsonElement element) {
         return ThemeDefinition.parse(id, element);
     }
 
@@ -45,8 +45,8 @@ public final class ThemeResourceStyles {
         return key.toLowerCase(Locale.ROOT).replace("_", "").replace("-", "").replace(".", "");
     }
 
-    record ThemeDefinition(ResourceLocation id, Map<Field, Integer> values) {
-        static ThemeDefinition parse(ResourceLocation id, JsonElement element) {
+    record ThemeDefinition(Identifier id, Map<Field, Integer> values) {
+        static ThemeDefinition parse(Identifier id, JsonElement element) {
             Map<Field, Integer> values = new HashMap<>();
             if (!element.isJsonObject()) {
                 return new ThemeDefinition(id, values);
@@ -56,7 +56,7 @@ public final class ThemeResourceStyles {
             return new ThemeDefinition(id, values);
         }
 
-        private static void collect(Map<Field, Integer> values, ResourceLocation id, String prefix, JsonObject object) {
+        private static void collect(Map<Field, Integer> values, Identifier id, String prefix, JsonObject object) {
             for (Map.Entry<String, JsonElement> entry : object.entrySet()) {
                 String key = prefix.isEmpty() ? entry.getKey() : prefix + "." + entry.getKey();
                 JsonElement value = entry.getValue();

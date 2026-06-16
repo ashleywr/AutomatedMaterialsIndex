@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.index.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
@@ -56,7 +56,7 @@ public class StructureProvider implements IAmiDataProvider {
             "village_taiga"
     );
 
-    static SearchNode createStructureNode(ResourceLocation id) {
+    static SearchNode createStructureNode(Identifier id) {
         Map<String, String> meta = new HashMap<>();
         meta.put(SearchNodeKeys.MOD_ID, id.getNamespace());
         meta.put(SearchNodeKeys.ONTOLOGY_CATEGORY, AmiOntology.ENVIRONMENT.id);
@@ -77,11 +77,11 @@ public class StructureProvider implements IAmiDataProvider {
         boolean found = false;
 
         // Try client registry first
-        var optReg = level.registryAccess().registry(Registries.STRUCTURE);
+        var optReg = level.registryAccess().lookup(Registries.STRUCTURE);
         if (optReg.isPresent()) {
             var reg = optReg.get();
-            reg.holders().forEach(holder -> {
-                var id = holder.key().location();
+            reg.listElements().forEach(holder -> {
+                var id = holder.key().identifier();
                 nodes.add(createStructureNode(id));
             });
             found = !nodes.isEmpty();
@@ -92,11 +92,11 @@ public class StructureProvider implements IAmiDataProvider {
             Minecraft mc = Minecraft.getInstance();
             if (mc.getSingleplayerServer() != null) {
                 var serverLevel = mc.getSingleplayerServer().overworld();
-                var serverOptReg = serverLevel.registryAccess().registry(Registries.STRUCTURE);
+                var serverOptReg = serverLevel.registryAccess().lookup(Registries.STRUCTURE);
                 if (serverOptReg.isPresent()) {
                     var reg = serverOptReg.get();
-                    reg.holders().forEach(holder -> {
-                        var id = holder.key().location();
+                    reg.listElements().forEach(holder -> {
+                        var id = holder.key().identifier();
                         nodes.add(createStructureNode(id));
                     });
                     found = !nodes.isEmpty();
@@ -107,7 +107,7 @@ public class StructureProvider implements IAmiDataProvider {
 
         if (!found) {
             for (String path : VANILLA_STRUCTURE_IDS) {
-                nodes.add(createStructureNode(ResourceLocation.fromNamespaceAndPath("minecraft", path)));
+                nodes.add(createStructureNode(Identifier.fromNamespaceAndPath("minecraft", path)));
             }
             found = true;
             AmiCore.LOGGER.debug("Structure registry not found on client; using {} vanilla structure ids", nodes.size());

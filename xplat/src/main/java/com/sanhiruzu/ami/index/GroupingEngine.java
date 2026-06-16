@@ -6,7 +6,7 @@ import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.recipe.AmiRecipeIndex;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.*;
@@ -113,7 +113,7 @@ public class GroupingEngine {
         Set<String> discoveredColors = new HashSet<>(COLOR_BUCKETS);
         try {
             BuiltInRegistries.ITEM.getTags().forEach(tag -> {
-                ResourceLocation loc = tag.getFirst().location();
+                Identifier loc = tag.key().location();
                 if (loc.getNamespace().equals("c") && loc.getPath().startsWith("dyes/")) {
                     discoveredColors.add(loc.getPath().substring(5));
                 }
@@ -131,7 +131,7 @@ public class GroupingEngine {
         // 2. Dynamic Shape Discovery: Build a "Vocabulary" of shapes from common tags
         try {
             BuiltInRegistries.ITEM.getTags().forEach(tag -> {
-                String path = tag.getFirst().location().getPath();
+                String path = tag.key().location().getPath();
                 if (path.contains("/") && !path.startsWith("dyes/")) {
                     // In category/material tags, the FIRST part is usually the shape keyword (e.g. "ingots" in "ingots/iron")
                     String shape = path.substring(0, path.indexOf('/'));
@@ -156,16 +156,16 @@ public class GroupingEngine {
 
         // 3. Stonecutter Heuristics
         try {
-            for (var holder : level.getRecipeManager().getAllRecipesFor(RecipeType.STONECUTTING)) {
-                ItemStack result = Services.PLATFORM.getRecipeResultItem(holder, level.registryAccess());
-                if (result.isEmpty()) continue;
-                var ingredients = Services.PLATFORM.getRecipeIngredients(holder);
-                if (ingredients.isEmpty()) continue;
-                for (ItemStack input : ingredients.get(0).getItems()) {
-                    if (!input.isEmpty()) {
-                        STONECUTTER_MAP.put(result.getItem(), input.getItem());
-                        break;
-                    }
+            if (level instanceof net.minecraft.server.level.ServerLevel sl) {
+                var recipeManager = sl.getServer().getRecipeManager();
+                for (var entry : recipeManager.getRecipes()) {
+                    if (!(entry.value() instanceof net.minecraft.world.item.crafting.StonecutterRecipe stoneRecipe)) continue;
+                    ItemStack result = stoneRecipe.resultDisplay().resolveForFirstStack(net.minecraft.util.context.ContextMap.EMPTY);
+                    if (result.isEmpty()) continue;
+                    var ingredients = stoneRecipe.placementInfo().ingredients();
+                    if (ingredients.isEmpty()) continue;
+                    ingredients.get(0).items().map(net.minecraft.core.Holder::value).forEach(inputItem ->
+                            STONECUTTER_MAP.put(result.getItem(), inputItem));
                 }
             }
         } catch (Exception e) {
@@ -174,19 +174,19 @@ public class GroupingEngine {
     }
 
     public static void rebuildDynamicShapeCandidates(Iterable<Item> items) {
-        List<ResourceLocation> ids = new ArrayList<>();
+        List<Identifier> ids = new ArrayList<>();
         for (Item item : items) {
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+            Identifier id = BuiltInRegistries.ITEM.getKey(item);
             if (id != null) ids.add(id);
         }
         rebuildDynamicShapeCandidatesFromIds(ids);
     }
 
-    public static void rebuildDynamicShapeCandidatesFromIds(Iterable<ResourceLocation> ids) {
+    public static void rebuildDynamicShapeCandidatesFromIds(Iterable<Identifier> ids) {
         Map<String, Integer> tokenCount = new HashMap<>();
         Map<String, Set<String>> tokenMods = new HashMap<>();
 
-        for (ResourceLocation id : ids) {
+        for (Identifier id : ids) {
             if (id == null || "minecraft".equals(id.getNamespace())) continue;
             String token = extractTrailingToken(id.getPath());
             if (token == null) continue;
@@ -220,9 +220,8 @@ public class GroupingEngine {
 
     public static String classifyShape(ItemStack stack) {
         Item item = stack.getItem();
-        if (item instanceof SwordItem) return "tools";
-        if (item instanceof TieredItem) return "tools";
-        if (item instanceof ArmorItem) return "armor";
+        if (Services.PLATFORM.isInstanceOf(item, "net.minecraft.world.item.TieredItem")) return "tools";
+        if (Services.PLATFORM.isInstanceOf(item, "net.minecraft.world.item.ArmorItem")) return "armor";
         if (item instanceof BoatItem) return "boats";
         if (item instanceof MinecartItem) return "minecarts";
         if (Services.PLATFORM.hasFood(stack)) return "food";
@@ -267,7 +266,7 @@ public class GroupingEngine {
     }
 
     private static boolean isSafeCollisionShapeProbe(Item item) {
-        ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+        Identifier id = BuiltInRegistries.ITEM.getKey(item);
         return id != null && "minecraft".equals(id.getNamespace());
     }
 
@@ -287,7 +286,7 @@ public class GroupingEngine {
                 return color;
             }
         }
-        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
         if (id == null) return "";
         return classifyColorFromPath(id.getPath());
     }
@@ -311,14 +310,14 @@ public class GroupingEngine {
         Item item = stack.getItem();
         Item root = STONECUTTER_MAP.get(item);
         if (root != null) {
-            ResourceLocation rootId = BuiltInRegistries.ITEM.getKey(root);
+            Identifier rootId = BuiltInRegistries.ITEM.getKey(root);
             if (rootId != null) return rootId.toString();
         }
 
         String matFromTags = identifyMaterialFromTags(stack);
         if (matFromTags != null) return matFromTags;
 
-        ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+        Identifier id = BuiltInRegistries.ITEM.getKey(item);
         if (id == null) return "";
 
         String path = id.getPath();
@@ -343,7 +342,7 @@ public class GroupingEngine {
         return namespace + ":" + stripped;
     }
 
-    public static Optional<CollapsedFamily> classifyCollapsedFamily(ResourceLocation id) {
+    public static Optional<CollapsedFamily> classifyCollapsedFamily(Identifier id) {
         String path = id.getPath();
         if (path.endsWith("_banner")) return Optional.of(new CollapsedFamily("banners", "Banners"));
         if (path.endsWith("_banner_pattern"))
@@ -354,7 +353,7 @@ public class GroupingEngine {
         return Optional.empty();
     }
 
-    public static Optional<CollapsedFamily> classifyTintableGeneratedFamily(ResourceLocation id, String shape,
+    public static Optional<CollapsedFamily> classifyTintableGeneratedFamily(Identifier id, String shape,
                                                                             String colorBucket, String tags) {
         if (id == null || shape == null || shape.isBlank()) {
             return Optional.empty();
@@ -374,7 +373,7 @@ public class GroupingEngine {
         return Optional.of(new CollapsedFamily(key, title(color) + " " + title(normalizedShape)));
     }
 
-    public static Optional<CollapsedFamily> classifyLexicalGeneratedFamily(ResourceLocation id, String colorBucket) {
+    public static Optional<CollapsedFamily> classifyLexicalGeneratedFamily(Identifier id, String colorBucket) {
         if (id == null || colorBucket == null || colorBucket.isBlank()) {
             return Optional.empty();
         }
@@ -387,7 +386,7 @@ public class GroupingEngine {
         return Optional.empty();
     }
 
-    public static Optional<CollapsedFamily> classifyColorizedGeneratedFamily(ResourceLocation id, String displayName,
+    public static Optional<CollapsedFamily> classifyColorizedGeneratedFamily(Identifier id, String displayName,
                                                                              String colorBucket, String tags,
                                                                              String materialGroup) {
         if (id == null) {
@@ -421,21 +420,21 @@ public class GroupingEngine {
 
         String label = stripColorPrefixFromDisplayName(displayName, colorBucket);
         if (label.isBlank()) {
-            ResourceLocation familyId = ResourceLocation.tryParse(familyKey);
+            Identifier familyId = Identifier.tryParse(familyKey);
             label = familyId == null ? familyKey : title(familyId.getPath());
         }
         return Optional.of(new CollapsedFamily(familyKey, pluralize(label)));
     }
 
-    private static boolean isColorOnlyMaterialGroup(ResourceLocation id, String colorBucket, String materialGroup) {
-        ResourceLocation familyId = ResourceLocation.tryParse(materialGroup);
+    private static boolean isColorOnlyMaterialGroup(Identifier id, String colorBucket, String materialGroup) {
+        Identifier familyId = Identifier.tryParse(materialGroup);
         if (familyId == null || !familyId.getNamespace().equals(id.getNamespace())) {
             return false;
         }
         return familyId.getPath().equals(colorBucket.toLowerCase(Locale.ROOT));
     }
 
-    public static Optional<CollapsedFamily> classifyCompressedBlockFamily(ResourceLocation id) {
+    public static Optional<CollapsedFamily> classifyCompressedBlockFamily(Identifier id) {
         if (id == null || !"compressedblocks".equals(id.getNamespace())) {
             return Optional.empty();
         }
@@ -458,7 +457,7 @@ public class GroupingEngine {
         return false;
     }
 
-    private static String matchingColorStrippedTag(ResourceLocation id, String colorBucket, String tags) {
+    private static String matchingColorStrippedTag(Identifier id, String colorBucket, String tags) {
         if (tags == null || tags.isBlank()) {
             return "";
         }
@@ -598,8 +597,9 @@ public class GroupingEngine {
         return result;
     }
 
+    @SuppressWarnings("deprecation")
     private static String identifyMaterialFromTags(ItemStack stack) {
-        return stack.getTags().map(tag -> tag.location().toString())
+        return stack.getItem().builtInRegistryHolder().tags().map(tag -> tag.location().toString())
                 .filter(t -> t.contains("ingots/") || t.contains("gems/") || t.contains("planks/")
                         || t.contains("nuggets/") || t.contains("dusts/") || t.contains("ores/")
                         || t.contains("raw_materials/") || t.contains("storage_blocks/")
@@ -614,7 +614,7 @@ public class GroupingEngine {
     }
 
     public static int representativeWeight(ItemStack stack) {
-        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
         if (id == null) return 100;
         String path = id.getPath();
         if (path.endsWith("_wool") || path.endsWith("_terracotta") || path.endsWith("_concrete")) return 0;
@@ -631,7 +631,7 @@ public class GroupingEngine {
         // Hybrid Fallback Pipeline:
         // 1. If connected in recipe graph -> use DSU root
         if (dsuRoot != null && dsuRoot != item) {
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(dsuRoot);
+            Identifier id = BuiltInRegistries.ITEM.getKey(dsuRoot);
             if (id != null) return id.toString();
         }
 
@@ -728,7 +728,7 @@ public class GroupingEngine {
         Item item = stack.getItem();
         String root = SIMILARITY_CACHE.get(item);
         if (root != null) return root;
-        ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+        Identifier id = BuiltInRegistries.ITEM.getKey(item);
         return id != null ? id.toString() : "";
     }
 
@@ -737,12 +737,12 @@ public class GroupingEngine {
         Item item = stack.getItem();
         String root = PROPERTY_CACHE.get(item);
         if (root != null) return root;
-        ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+        Identifier id = BuiltInRegistries.ITEM.getKey(item);
         return id != null ? id.toString() : "";
     }
 
     private static int getTopologyPriority(Item item) {
-        ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+        Identifier id = BuiltInRegistries.ITEM.getKey(item);
         if (id == null) return 0;
         if (!id.getNamespace().equals("minecraft")) return 0;
         String path = id.getPath();
@@ -853,7 +853,7 @@ public class GroupingEngine {
 
         // Blacklist colors and common patterns
         for (Item item : allItems) {
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+            Identifier id = BuiltInRegistries.ITEM.getKey(item);
             if (id == null) continue;
             String path = id.getPath();
             if (path.contains("dye") || path.contains("smithing_template") || path.contains("pattern")) {
@@ -864,12 +864,13 @@ public class GroupingEngine {
         // Pass 1: Strong Material Anchors (Smelting, Blasting, 9-to-1)
         for (Item item : allItems) {
             for (var holder : index.getRecipesFor(new ItemStack(item))) {
-                var ingredients = holder.value().getIngredients();
+                var ingredients = holder.value().placementInfo().ingredients();
                 if (ingredients.size() == 1) {
-                    for (ItemStack is : ingredients.get(0).getItems()) {
-                        if (!is.isEmpty() && !blacklist.contains(is.getItem()) && !blacklist.contains(item)) {
-                            union.accept(is.getItem(), item);
-                        }
+                    if (!blacklist.contains(item)) {
+                        ingredients.get(0).items().map(net.minecraft.core.Holder::value)
+                                .filter(i -> !blacklist.contains(i))
+                                .findFirst()
+                                .ifPresent(inputItem -> union.accept(inputItem, item));
                     }
                 }
             }
@@ -885,15 +886,13 @@ public class GroupingEngine {
                 if (find.apply(item) == item) { // Still a root
                     Map<Item, Integer> candidates = new HashMap<>();
                     for (var holder : index.getRecipesFor(new ItemStack(item))) {
-                        for (var ing : holder.value().getIngredients()) {
-                            for (ItemStack is : ing.getItems()) {
-                                if (!is.isEmpty()) {
-                                    Item root = find.apply(is.getItem());
-                                    if (!blacklist.contains(root)) {
-                                        candidates.merge(root, 1, Integer::sum);
-                                    }
+                        for (var ing : holder.value().placementInfo().ingredients()) {
+                            ing.items().map(net.minecraft.core.Holder::value).forEach(ingItem -> {
+                                Item root = find.apply(ingItem);
+                                if (!blacklist.contains(root)) {
+                                    candidates.merge(root, 1, Integer::sum);
                                 }
-                            }
+                            });
                         }
                     }
                     if (!candidates.isEmpty()) {
@@ -912,9 +911,9 @@ public class GroupingEngine {
             if (find.apply(item) == item) {
                 String mat = classifyMaterialRoot(new ItemStack(item));
                 if (!isUnknownGroup(mat)) {
-                    ResourceLocation matLoc = ResourceLocation.tryParse(mat);
+                    Identifier matLoc = Identifier.tryParse(mat);
                     if (matLoc != null) {
-                        Item matItem = BuiltInRegistries.ITEM.get(matLoc);
+                        Item matItem = BuiltInRegistries.ITEM.getValue(matLoc);
                         if (matItem != Items.AIR) {
                             union.accept(matItem, item);
                         }
@@ -932,10 +931,11 @@ public class GroupingEngine {
 
     private static void buildSimilarity() {
         SIMILARITY_CACHE.clear();
-        Map<Item, Set<ResourceLocation>> itemTags = new HashMap<>();
+        Map<Item, Set<Identifier>> itemTags = new HashMap<>();
         for (Item item : BuiltInRegistries.ITEM) {
-            Set<ResourceLocation> tags = new HashSet<>();
-            item.getDefaultInstance().getTags().forEach(t -> tags.add(t.location()));
+            Set<Identifier> tags = new HashSet<>();
+            //noinspection deprecation
+            item.builtInRegistryHolder().tags().forEach(t -> tags.add(t.location()));
             if (!tags.isEmpty()) itemTags.put(item, tags);
         }
 
@@ -954,14 +954,14 @@ public class GroupingEngine {
         List<Item> items = new ArrayList<>(itemTags.keySet());
         for (int i = 0; i < items.size(); i++) {
             Item a = items.get(i);
-            Set<ResourceLocation> tagsA = itemTags.get(a);
+            Set<Identifier> tagsA = itemTags.get(a);
             for (int j = i + 1; j < items.size(); j++) {
                 Item b = items.get(j);
-                Set<ResourceLocation> tagsB = itemTags.get(b);
+                Set<Identifier> tagsB = itemTags.get(b);
 
                 // Jaccard Similarity: Intersection / Union
                 int intersection = 0;
-                for (ResourceLocation t : tagsA) if (tagsB.contains(t)) intersection++;
+                for (Identifier t : tagsA) if (tagsB.contains(t)) intersection++;
                 double similarity = (double) intersection / (tagsA.size() + tagsB.size() - intersection);
 
                 if (similarity >= 0.85) { // High threshold for "basically the same item"
@@ -1228,13 +1228,14 @@ public class GroupingEngine {
     }
 
     private static String classifyDynamicModShape(ItemStack stack) {
-        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
         if (id == null || "minecraft".equals(id.getNamespace())) return null;
 
-        Optional<String> fromTag = stack.getTags()
+        @SuppressWarnings("deprecation")
+        Optional<String> fromTag = stack.getItem().builtInRegistryHolder().tags()
                 .map(TagKey::location)
                 .filter(loc -> "c".equals(loc.getNamespace()))
-                .map(ResourceLocation::getPath)
+                .map(Identifier::getPath)
                 .filter(path -> path.startsWith("shapes/"))
                 .map(path -> path.substring("shapes/".length()))
                 .filter(shape -> !shape.isBlank())

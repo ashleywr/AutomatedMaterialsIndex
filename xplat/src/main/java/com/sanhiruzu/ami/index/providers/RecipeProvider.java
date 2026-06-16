@@ -7,7 +7,7 @@ import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.recipe.AmiRecipeIndex;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeType;
@@ -97,7 +97,7 @@ public class RecipeProvider implements IAmiDataProvider {
     }
 
     private static String getCategoryName(RecipeType<?> type) {
-        ResourceLocation key = BuiltInRegistries.RECIPE_TYPE.getKey(type);
+        Identifier key = BuiltInRegistries.RECIPE_TYPE.getKey(type);
         if (key == null) return type.toString().toLowerCase();
         return key.getPath();
     }

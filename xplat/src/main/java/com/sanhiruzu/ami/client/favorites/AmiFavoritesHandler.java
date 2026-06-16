@@ -18,7 +18,7 @@ import com.sanhiruzu.ami.index.resolvers.PlayerResolver;
 import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.player.PlayerWaypointProviders;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
@@ -80,7 +80,7 @@ public class AmiFavoritesHandler {
     public static ItemStack resolveStack(SearchNode node) {
         ItemStack stack = ItemIconRenderer.resolveStack(node.id());
         if (stack.isEmpty() && node.type() == NodeType.ENTITY) {
-            ResourceLocation eggId = Services.PLATFORM.rl(node.id().getNamespace(), node.id().getPath() + "_spawn_egg");
+            Identifier eggId = Services.PLATFORM.rl(node.id().getNamespace(), node.id().getPath() + "_spawn_egg");
             Item item = BuiltInRegistries.ITEM.getOptional(eggId).orElse(null);
             stack = item == null ? ItemStack.EMPTY : new ItemStack(item);
         }
@@ -123,7 +123,7 @@ public class AmiFavoritesHandler {
         return !key.isBlank() && findRecordIndexByKey(key) >= 0;
     }
 
-    public boolean isRecipeFavorite(ResourceLocation recipeId, ItemStack stack) {
+    public boolean isRecipeFavorite(Identifier recipeId, ItemStack stack) {
         String key = FavoriteRecord.recipeRecordKey(recipeId, stack);
         return !key.isBlank() && findRecordIndexByKey(key) >= 0;
     }
@@ -179,7 +179,7 @@ public class AmiFavoritesHandler {
         removeFavoriteByKey(key, true);
     }
 
-    public void addRecipeFavorite(ResourceLocation recipeId, ItemStack stack) {
+    public void addRecipeFavorite(Identifier recipeId, ItemStack stack) {
         FavoriteRecord record = FavoriteRecord.forRecipeStack(stack, recipeId, "ami");
         if (record == null) return;
         upsertRecord(record, records.size(), true);
@@ -188,7 +188,7 @@ public class AmiFavoritesHandler {
         notifyChange();
     }
 
-    public void removeRecipeFavorite(ResourceLocation recipeId, ItemStack stack) {
+    public void removeRecipeFavorite(Identifier recipeId, ItemStack stack) {
         String key = FavoriteRecord.recipeRecordKey(recipeId, stack);
         if (key.isBlank()) return;
         removeFavoriteByKey(key, true);
@@ -207,7 +207,7 @@ public class AmiFavoritesHandler {
         return List.copyOf(out);
     }
 
-    public record RecipeFavoriteEntry(ItemStack stack, ResourceLocation recipeId) {}
+    public record RecipeFavoriteEntry(ItemStack stack, Identifier recipeId) {}
 
     public List<SearchNode> getFavorites() {
         mergeExternalFavorites(false);
@@ -266,7 +266,7 @@ public class AmiFavoritesHandler {
             return null;
         }
         if (node.type() == NodeType.ITEM) {
-            ResourceLocation recipeId = parseRecipeId(node);
+            Identifier recipeId = parseRecipeId(node);
             ItemStack stack = resolveStack(node);
             if (recipeId != null && !stack.isEmpty()) {
                 return FavoriteRecord.forRecipeStack(stack, recipeId, "ami");
@@ -284,7 +284,7 @@ public class AmiFavoritesHandler {
             return null;
         }
         if (node.type() == NodeType.ITEM) {
-            ResourceLocation recipeId = parseRecipeId(node);
+            Identifier recipeId = parseRecipeId(node);
             ItemStack stack = resolveStack(node);
             if (recipeId != null && !stack.isEmpty()) {
                 return FavoriteRecord.recipeRecordKey(recipeId, stack);
@@ -297,9 +297,9 @@ public class AmiFavoritesHandler {
         return FavoriteRecord.runtimeRecordKey(node.type(), node.id());
     }
 
-    private static ResourceLocation parseRecipeId(SearchNode node) {
+    private static Identifier parseRecipeId(SearchNode node) {
         String recipeId = node.meta(FavoriteEntry.META_RECIPE_ID);
-        return recipeId == null || recipeId.isBlank() ? null : ResourceLocation.tryParse(recipeId);
+        return recipeId == null || recipeId.isBlank() ? null : Identifier.tryParse(recipeId);
     }
 
     private SearchNode toDisplayNode(FavoriteRecord record) {
@@ -527,7 +527,7 @@ public class AmiFavoritesHandler {
     }
 
     private static SearchNode nodeFromJson(JsonObject json) {
-        ResourceLocation id = json.has("id") ? ResourceLocation.tryParse(json.get("id").getAsString()) : null;
+        Identifier id = json.has("id") ? Identifier.tryParse(json.get("id").getAsString()) : null;
         if (id == null || !json.has("type")) {
             return null;
         }
@@ -560,11 +560,11 @@ public class AmiFavoritesHandler {
         return json;
     }
 
-    private static ItemStack deserializeStack(ResourceLocation itemId, String serialized) {
+    private static ItemStack deserializeStack(Identifier itemId, String serialized) {
         return baseStack(itemId);
     }
 
-    private static ItemStack baseStack(ResourceLocation itemId) {
+    private static ItemStack baseStack(Identifier itemId) {
         if (itemId == null) {
             return ItemStack.EMPTY;
         }
@@ -589,10 +589,10 @@ public class AmiFavoritesHandler {
     record FavoriteRecord(
             FavoriteKind kind,
             String recordKey,
-            ResourceLocation nodeId,
-            ResourceLocation itemId,
+            Identifier nodeId,
+            Identifier itemId,
             ItemStack stack,
-            ResourceLocation recipeId,
+            Identifier recipeId,
             SearchNode runtimeNodeSnapshot,
             String source
     ) {
@@ -618,7 +618,7 @@ public class AmiFavoritesHandler {
             );
         }
 
-        static FavoriteRecord forRecipeStack(ItemStack stack, ResourceLocation recipeId, String source) {
+        static FavoriteRecord forRecipeStack(ItemStack stack, Identifier recipeId, String source) {
             if (stack == null || stack.isEmpty() || recipeId == null) return null;
             FavoriteEntry entry = FavoriteEntry.recipe(stack, recipeId, source);
             if (entry == null) return null;
@@ -660,12 +660,12 @@ public class AmiFavoritesHandler {
             return "item|" + FavoriteEntry.stackKey(stack);
         }
 
-        static String recipeRecordKey(ResourceLocation recipeId, ItemStack stack) {
+        static String recipeRecordKey(Identifier recipeId, ItemStack stack) {
             if (recipeId == null || stack == null || stack.isEmpty()) return "";
             return "recipe|" + recipeId + "|" + FavoriteEntry.stackKey(stack);
         }
 
-        static String runtimeRecordKey(NodeType type, ResourceLocation id) {
+        static String runtimeRecordKey(NodeType type, Identifier id) {
             return "node|" + (type == null ? "UNKNOWN" : type.name()) + "|" + id;
         }
 
@@ -729,9 +729,9 @@ public class AmiFavoritesHandler {
             try {
                 FavoriteKind kind = FavoriteKind.valueOf(json.get("kind").getAsString());
                 String recordKey = json.get("recordKey").getAsString();
-                ResourceLocation nodeId = json.has("nodeId") ? ResourceLocation.tryParse(json.get("nodeId").getAsString()) : null;
-                ResourceLocation itemId = json.has("itemId") ? ResourceLocation.tryParse(json.get("itemId").getAsString()) : null;
-                ResourceLocation recipeId = json.has("recipeId") ? ResourceLocation.tryParse(json.get("recipeId").getAsString()) : null;
+                Identifier nodeId = json.has("nodeId") ? Identifier.tryParse(json.get("nodeId").getAsString()) : null;
+                Identifier itemId = json.has("itemId") ? Identifier.tryParse(json.get("itemId").getAsString()) : null;
+                Identifier recipeId = json.has("recipeId") ? Identifier.tryParse(json.get("recipeId").getAsString()) : null;
                 String source = json.has("source") ? json.get("source").getAsString() : "ami";
                 if (kind == FavoriteKind.RUNTIME_NODE) {
                     SearchNode snapshot = json.has("runtimeNode") && json.get("runtimeNode").isJsonObject()

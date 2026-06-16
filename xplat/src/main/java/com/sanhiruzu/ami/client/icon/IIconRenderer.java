@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client.icon;
 
 import com.sanhiruzu.ami.index.SearchNode;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 
@@ -18,11 +18,11 @@ public interface IIconRenderer {
     /**
      * Draw the icon at (x, y) with the given pixel size on each side.
      */
-    default void render(GuiGraphics g, SearchNode node, int x, int y, int size) {
+    default void render(GuiGraphicsExtractor g, SearchNode node, int x, int y, int size) {
         render(g, node, x, y, size, false);
     }
 
-    void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered);
+    void render(GuiGraphicsExtractor g, SearchNode node, int x, int y, int size, boolean hovered);
 
     /**
      * Text lines for the tooltip header.

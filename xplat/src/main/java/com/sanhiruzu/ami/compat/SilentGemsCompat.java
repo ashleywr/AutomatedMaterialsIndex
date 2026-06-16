@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.Locale;
 import java.util.Map;
@@ -12,7 +12,7 @@ public final class SilentGemsCompat {
     private SilentGemsCompat() {
     }
 
-    public static void enrichItem(ResourceLocation id, Map<String, String> meta) {
+    public static void enrichItem(Identifier id, Map<String, String> meta) {
         if (id == null || meta == null || !MOD_ID.equals(id.getNamespace())) {
             return;
         }

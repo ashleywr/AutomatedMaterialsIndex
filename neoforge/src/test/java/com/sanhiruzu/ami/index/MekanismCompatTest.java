@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
 import com.sanhiruzu.ami.compat.MekanismCompat;
 import com.sanhiruzu.ami.config.AmiConfig;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -19,7 +19,7 @@ class MekanismCompatTest {
     void mekanismNamespaceGetsFamilyPolicy() {
         Map<String, String> meta = meta("mekanism", "Mekanism", "net.minecraft.world.item.Item", "");
 
-        CompatFamilyDetector.detect(new ResourceLocation("mekanism", "energy_tablet"), meta);
+        CompatFamilyDetector.detect(new Identifier("mekanism", "energy_tablet"), meta);
 
         assertEquals("mekanism", meta.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
     }
@@ -30,7 +30,7 @@ class MekanismCompatTest {
                 "mekanism.common.item.ItemEnergized", "");
         meta.put(SearchNodeKeys.ENERGY_CAPACITY, "400000");
 
-        MekanismCompat.enrichItem(new ResourceLocation("mekanism", "energy_tablet"), meta);
+        MekanismCompat.enrichItem(new Identifier("mekanism", "energy_tablet"), meta);
         CategoryAssignment assignment = resolve("mekanism:energy_tablet", meta, ItemFacet.HAS_ENERGY);
 
         assertEquals("energy", meta.get(SearchNodeKeys.MEKANISM_ITEM_KIND));
@@ -50,7 +50,7 @@ class MekanismCompatTest {
                 ItemFacet.MACHINE
         )));
 
-        MekanismCompat.enrichItem(new ResourceLocation("mekanism", "metallurgic_infuser"), meta);
+        MekanismCompat.enrichItem(new Identifier("mekanism", "metallurgic_infuser"), meta);
         CategoryAssignment assignment = resolve("mekanism:metallurgic_infuser", meta,
                 ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.MACHINE);
 
@@ -64,7 +64,7 @@ class MekanismCompatTest {
         Map<String, String> meta = meta("mekanism", "Mekanism",
                 "mekanism.common.item.ItemTierInstaller", "");
 
-        MekanismCompat.enrichItem(new ResourceLocation("mekanism", "elite_tier_installer"), meta);
+        MekanismCompat.enrichItem(new Identifier("mekanism", "elite_tier_installer"), meta);
         CategoryAssignment assignment = resolve("mekanism:elite_tier_installer", meta);
 
         assertEquals("upgrades", meta.get(SearchNodeKeys.MEKANISM_ITEM_KIND));
@@ -78,7 +78,7 @@ class MekanismCompatTest {
         Map<String, String> meta = meta("mekanism", "Mekanism",
                 "mekanism.common.item.ItemQIODrive", "");
 
-        MekanismCompat.enrichItem(new ResourceLocation("mekanism", "qio_drive_hyper_dense"), meta);
+        MekanismCompat.enrichItem(new Identifier("mekanism", "qio_drive_hyper_dense"), meta);
         CategoryAssignment assignment = resolve("mekanism:qio_drive_hyper_dense", meta);
 
         assertEquals("logistics", meta.get(SearchNodeKeys.MEKANISM_ITEM_KIND));
@@ -93,7 +93,7 @@ class MekanismCompatTest {
         meta.put(SearchNodeKeys.ENERGY_CAPACITY, "6400000");
         meta.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.HAS_ENERGY, ItemFacet.UTILITY_TOOL)));
 
-        MekanismCompat.enrichItem(new ResourceLocation("mekanism", "meka_tool"), meta);
+        MekanismCompat.enrichItem(new Identifier("mekanism", "meka_tool"), meta);
         CategoryAssignment assignment = resolve("mekanism:meka_tool", meta, ItemFacet.HAS_ENERGY, ItemFacet.UTILITY_TOOL);
 
         assertEquals("tools", meta.get(SearchNodeKeys.MEKANISM_ITEM_KIND));
@@ -105,7 +105,7 @@ class MekanismCompatTest {
     void facetlessWorkflowToolsRouteToMekanismToolsUnderHybridPolicy() {
         Map<String, String> dictionary = meta("mekanism", "Mekanism",
                 "mekanism.common.item.ItemDictionary", "");
-        MekanismCompat.enrichItem(new ResourceLocation("mekanism", "dictionary"), dictionary);
+        MekanismCompat.enrichItem(new Identifier("mekanism", "dictionary"), dictionary);
         CategoryAssignment dictionaryAssignment = resolve("mekanism:dictionary", dictionary);
 
         assertEquals("tools", dictionary.get(SearchNodeKeys.MEKANISM_ITEM_KIND));
@@ -114,7 +114,7 @@ class MekanismCompatTest {
 
         Map<String, String> configurationCard = meta("mekanism", "Mekanism",
                 "mekanism.common.item.ItemConfigurationCard", "");
-        MekanismCompat.enrichItem(new ResourceLocation("mekanism", "configuration_card"), configurationCard);
+        MekanismCompat.enrichItem(new Identifier("mekanism", "configuration_card"), configurationCard);
         CategoryAssignment configurationCardAssignment = resolve("mekanism:configuration_card", configurationCard);
 
         assertEquals("tools", configurationCard.get(SearchNodeKeys.MEKANISM_ITEM_KIND));
@@ -129,7 +129,7 @@ class MekanismCompatTest {
         meta.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.DUST)));
         meta.put(SearchNodeKeys.TAGS, "c:dusts,c:dusts/bronze");
 
-        MekanismCompat.enrichItem(new ResourceLocation("mekanism", "dust_bronze"), meta);
+        MekanismCompat.enrichItem(new Identifier("mekanism", "dust_bronze"), meta);
         CategoryAssignment assignment = resolve("mekanism:dust_bronze", meta, ItemFacet.DUST);
 
         assertEquals("materials", meta.get(SearchNodeKeys.MEKANISM_ITEM_KIND));
@@ -141,7 +141,7 @@ class MekanismCompatTest {
         Map<String, String> meta = meta("mekanism", "Mekanism",
                 "net.minecraft.world.item.Item", "");
 
-        MekanismCompat.enrichItem(new ResourceLocation("mekanism", "alloy_atomic"), meta);
+        MekanismCompat.enrichItem(new Identifier("mekanism", "alloy_atomic"), meta);
         CategoryAssignment assignment = resolve("mekanism:alloy_atomic", meta);
 
         assertEquals("materials", meta.get(SearchNodeKeys.MEKANISM_ITEM_KIND));
@@ -155,7 +155,7 @@ class MekanismCompatTest {
         Map<String, String> meta = meta("mekanism", "Mekanism",
                 "mekanism.common.item.gear.ItemFlamethrower", "");
 
-        MekanismCompat.enrichItem(new ResourceLocation("mekanism", "flamethrower"), meta);
+        MekanismCompat.enrichItem(new Identifier("mekanism", "flamethrower"), meta);
         CategoryAssignment assignment = resolve("mekanism:flamethrower", meta);
 
         assertEquals("tools", meta.get(SearchNodeKeys.MEKANISM_ITEM_KIND));
@@ -172,7 +172,7 @@ class MekanismCompatTest {
                     "mekanism.common.item.block.ItemBlockMachine",
                     "mekanism.common.block.prefab.BlockTile");
 
-            MekanismCompat.enrichItem(new ResourceLocation("mekanism", "crusher"), meta);
+            MekanismCompat.enrichItem(new Identifier("mekanism", "crusher"), meta);
             CategoryAssignment assignment = resolve("mekanism:crusher", meta,
                     ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.MACHINE);
 
@@ -199,7 +199,7 @@ class MekanismCompatTest {
 
     private static CategoryAssignment resolve(String id, Map<String, String> meta, ItemFacet... facets) {
         return PrimaryCategoryResolver.resolve(
-                new ResourceLocation(id),
+                new Identifier(id),
                 new FacetProfile(facets.length == 0 ? EnumSet.noneOf(ItemFacet.class) : EnumSet.of(facets[0], facets), meta)
         );
     }

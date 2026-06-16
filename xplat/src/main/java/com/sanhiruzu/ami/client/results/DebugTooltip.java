@@ -8,7 +8,7 @@ import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 
@@ -292,7 +292,7 @@ public final class DebugTooltip {
             return parseCsvTags(indexedBlockTags);
         }
 
-        Item item = BuiltInRegistries.ITEM.get(entry.id());
+        Item item = BuiltInRegistries.ITEM.getValue(entry.id());
         if (!(item instanceof BlockItem blockItem)) {
             return List.of();
         }
@@ -301,7 +301,7 @@ public final class DebugTooltip {
         var holder = blockItem.getBlock().builtInRegistryHolder();
         return holder.tags()
                 .map(tagKey -> {
-                    ResourceLocation loc = tagKey.location();
+                    Identifier loc = tagKey.location();
                     return "#" + loc.getNamespace() + ":" + loc.getPath();
                 })
                 .sorted()

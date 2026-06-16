@@ -1,11 +1,14 @@
 package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.platform.Services;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.*;
+import net.minecraft.world.item.equipment.Equippable;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
@@ -82,7 +85,7 @@ public final class OntologyClassifier {
      * @return {categoryId, subcategoryId} or null to use runtime classification.
      */
     @Nullable
-    public static String[] classifyItem(Item item, ResourceLocation id) {
+    public static String[] classifyItem(Item item, Identifier id) {
         String path = id.getPath();
 
         // ── Pass 1: Semantic identity — wins regardless of game object type ───
@@ -222,7 +225,7 @@ public final class OntologyClassifier {
     // ── Food sub-classification ───────────────────────────────────────────────
 
     @Nullable
-    private static String[] classifyNonBlockItem(Item item, ResourceLocation id) {
+    private static String[] classifyNonBlockItem(Item item, Identifier id) {
         String path = id.getPath();
 
         // ── Fluid Buckets ─────────────────────────────────────────────────────
@@ -240,21 +243,23 @@ public final class OntologyClassifier {
         }
 
         // ── Armor ─────────────────────────────────────────────────────────────
-        if (item instanceof ArmorItem ai) {
-            return switch (ai.getEquipmentSlot()) {
-                case HEAD -> armor("head");
-                case CHEST -> armor("chest");
-                case LEGS -> armor("legs");
-                case FEET -> armor("feet");
-                default -> armor("chest");
-            };
+        Equippable equippable = item.components().get(DataComponents.EQUIPPABLE);
+        if (equippable != null) {
+            EquipmentSlot slot = equippable.slot();
+            if (slot == EquipmentSlot.HEAD) return armor("head");
+            if (slot == EquipmentSlot.CHEST) return armor("chest");
+            if (slot == EquipmentSlot.LEGS) return armor("legs");
+            if (slot == EquipmentSlot.FEET) return armor("feet");
         }
         if (Services.PLATFORM.isInstanceOf(item, "net.minecraft.world.item.AnimalArmorItem")) return null;
         if (item == Items.ELYTRA) return armor("curios");
 
         // ── Weapons & Tools ───────────────────────────────────────────────────
-        // Sword-like weapons (melee)
-        if (item instanceof SwordItem || item instanceof TridentItem
+        boolean hasTool = item.components().get(DataComponents.TOOL) != null;
+        boolean hasWeapon = item.components().get(DataComponents.WEAPON) != null;
+
+        // Sword-like weapons (melee): has WEAPON but no TOOL, or explicit trident/mace
+        if ((hasWeapon && !hasTool) || item instanceof TridentItem
                 || Services.PLATFORM.isInstanceOf(item, "net.minecraft.world.item.MaceItem")
                 || path.equals("mace")) {
             return tools("melee");
@@ -263,8 +268,8 @@ public final class OntologyClassifier {
         if (item instanceof BowItem || item instanceof CrossbowItem || item instanceof ArrowItem) {
             return tools("ranged");
         }
-        // Harvest tools (pickaxe, shovel, axe, hoe)
-        if (item instanceof DiggerItem) {
+        // Harvest tools (pickaxe, shovel, axe, hoe): has TOOL component
+        if (hasTool) {
             return tools("harvest");
         }
         // Utility tools (fishing rod, shears, flint & steel, brush)
@@ -574,7 +579,7 @@ public final class OntologyClassifier {
 
     private static boolean isDecorativeBlock(Item item, String path) {
         // Specific items known to be decorative (no generic tags or properties for these)
-        return item == Items.CHAIN || item == Items.GLOW_LICHEN
+        return item == Items.IRON_CHAIN || item == Items.GLOW_LICHEN
                 || item == Items.MOSS_CARPET || item == Items.AMETHYST_CLUSTER
                 || item == Items.SMALL_AMETHYST_BUD || item == Items.MEDIUM_AMETHYST_BUD
                 || item == Items.LARGE_AMETHYST_BUD || item == Items.BUDDING_AMETHYST;

@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.client;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -10,7 +10,7 @@ final class EntityIconAtlasAllocator {
     private final int iconSize;
     private final int columns;
     private final int maxSlots;
-    private final Map<ResourceLocation, AtlasEntry> entries = new LinkedHashMap<>();
+    private final Map<Identifier, AtlasEntry> entries = new LinkedHashMap<>();
 
     EntityIconAtlasAllocator(int atlasSize, int iconSize) {
         if (atlasSize <= 0 || iconSize <= 0) {
@@ -22,11 +22,11 @@ final class EntityIconAtlasAllocator {
         this.maxSlots = columns * columns;
     }
 
-    AtlasEntry entry(ResourceLocation id) {
+    AtlasEntry entry(Identifier id) {
         return entries.get(id);
     }
 
-    AtlasEntry allocate(ResourceLocation id) {
+    AtlasEntry allocate(Identifier id) {
         AtlasEntry existing = entries.get(id);
         if (existing != null) {
             return existing;
@@ -48,7 +48,7 @@ final class EntityIconAtlasAllocator {
         return maxSlots;
     }
 
-    Map<ResourceLocation, AtlasEntry> entries() {
+    Map<Identifier, AtlasEntry> entries() {
         return Map.copyOf(entries);
     }
 

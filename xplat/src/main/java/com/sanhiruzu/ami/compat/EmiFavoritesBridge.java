@@ -12,10 +12,11 @@ import dev.emi.emi.runtime.EmiFavorites;
 import dev.emi.emi.runtime.EmiPersistentData;
 import dev.emi.emi.screen.EmiScreenManager;
 import dev.emi.emi.screen.WidgetGroup;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,11 +28,40 @@ public final class EmiFavoritesBridge {
     private EmiFavoritesBridge() {
     }
 
-    public static boolean isFavorite(ResourceLocation id) {
+    // ResourceLocation is inaccessible in 26.x compile context; use reflection for all EMI ID ops.
+    private static String emiGetIdStr(Object emiStackOrRecipe) {
+        try {
+            Object id = emiStackOrRecipe.getClass().getMethod("getId").invoke(emiStackOrRecipe);
+            return id != null ? id.toString() : null;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private static EmiRecipe emiGetRecipeById(Identifier id) {
+        if (id == null) return null;
+        try {
+            var mgr = EmiApi.getRecipeManager();
+            String idStr = id.toString();
+            for (Method m : mgr.getClass().getMethods()) {
+                if (m.getName().equals("getRecipe") && m.getParameterCount() == 1) {
+                    Class<?> paramType = m.getParameterTypes()[0];
+                    Object rl = paramType.getMethod("parse", String.class).invoke(null, idStr);
+                    Object result = m.invoke(mgr, rl);
+                    return result instanceof EmiRecipe r ? r : null;
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    public static boolean isFavorite(Identifier id) {
+        String idStr = id.toString();
         for (EmiFavorite favorite : EmiFavorites.favorites) {
             EmiIngredient stack = favorite.getStack();
-            if (stack instanceof EmiStack emiStack && emiStack.getId().equals(id)) {
-                return true;
+            if (stack instanceof EmiStack emiStack) {
+                String emiId = emiGetIdStr(emiStack);
+                if (idStr.equals(emiId)) return true;
             }
         }
         return false;
@@ -72,9 +102,9 @@ public final class EmiFavoritesBridge {
         }
     }
 
-    public static boolean addRecipeFavorite(ItemStack stack, ResourceLocation recipeId) {
+    public static boolean addRecipeFavorite(ItemStack stack, Identifier recipeId) {
         if (stack == null || stack.isEmpty()) return false;
-        EmiRecipe recipe = recipeId == null ? null : EmiApi.getRecipeManager().getRecipe(recipeId);
+        EmiRecipe recipe = emiGetRecipeById(recipeId);
         if (recipe != null) {
             EmiFavorites.addFavorite(EmiStack.of(stack), recipe);
         } else {
@@ -87,8 +117,8 @@ public final class EmiFavoritesBridge {
         return added;
     }
 
-    public static void removeRecipeFavorite(ItemStack stack, ResourceLocation recipeId) {
-        EmiRecipe recipe = recipeId == null ? null : EmiApi.getRecipeManager().getRecipe(recipeId);
+    public static void removeRecipeFavorite(ItemStack stack, Identifier recipeId) {
+        EmiRecipe recipe = emiGetRecipeById(recipeId);
         if (recipe == null) {
             if (EmiFavorites.removeFavorite(EmiStack.of(stack))) {
                 syncFavoritesPanel();
@@ -143,12 +173,16 @@ public final class EmiFavoritesBridge {
         return true;
     }
 
-    public static List<ResourceLocation> getFavoriteIds() {
-        List<ResourceLocation> result = new ArrayList<>();
+    public static List<Identifier> getFavoriteIds() {
+        List<Identifier> result = new ArrayList<>();
         for (EmiFavorite favorite : EmiFavorites.favorites) {
             EmiIngredient stack = favorite.getStack();
             if (stack instanceof EmiStack emiStack) {
-                result.add(emiStack.getId());
+                String idStr = emiGetIdStr(emiStack);
+                if (idStr != null) {
+                    Identifier parsed = Identifier.tryParse(idStr);
+                    if (parsed != null) result.add(parsed);
+                }
             }
         }
         return result;
@@ -162,7 +196,8 @@ public final class EmiFavoritesBridge {
             if (stack.isEmpty()) continue;
 
             EmiRecipe recipe = favorite.getRecipe();
-            ResourceLocation recipeId = recipe == null ? null : recipe.getId();
+            String recipeIdStr = emiGetIdStr(recipe);
+            Identifier recipeId = recipeIdStr == null ? null : Identifier.tryParse(recipeIdStr);
             FavoriteEntry entry = recipeId == null
                     ? FavoriteEntry.item(stack, "emi")
                     : FavoriteEntry.recipe(stack, recipeId, "emi");
@@ -233,18 +268,18 @@ public final class EmiFavoritesBridge {
         ItemStack targetStack = firstItemStack(ingredient);
         if (targetStack.isEmpty()) return false;
 
-        ResourceLocation targetRecipeId = recipe == null ? null : recipe.getId();
+        String targetRecipeIdStr = emiGetIdStr(recipe);
+        Identifier targetRecipeId = targetRecipeIdStr == null ? null : Identifier.tryParse(targetRecipeIdStr);
         String targetStackKey = FavoriteEntry.stackKey(targetStack);
-        return EmiFavorites.favorites.removeIf(favorite -> {
-            return favoriteMatches(favorite, targetRecipeId, targetStackKey);
-        });
+        return EmiFavorites.favorites.removeIf(favorite -> favoriteMatches(favorite, targetRecipeId, targetStackKey));
     }
 
     private static boolean hasMatchingFavorite(EmiIngredient ingredient, EmiRecipe recipe) {
         ItemStack targetStack = firstItemStack(ingredient);
         if (targetStack.isEmpty()) return false;
 
-        ResourceLocation targetRecipeId = recipe == null ? null : recipe.getId();
+        String targetRecipeIdStr2 = emiGetIdStr(recipe);
+        Identifier targetRecipeId = targetRecipeIdStr2 == null ? null : Identifier.tryParse(targetRecipeIdStr2);
         String targetStackKey = FavoriteEntry.stackKey(targetStack);
         for (EmiFavorite favorite : EmiFavorites.favorites) {
             if (favoriteMatches(favorite, targetRecipeId, targetStackKey)) {
@@ -260,9 +295,10 @@ public final class EmiFavoritesBridge {
         RecipeViewerStateSync.favoritesChanged();
     }
 
-    private static boolean favoriteMatches(EmiFavorite favorite, ResourceLocation targetRecipeId, String targetStackKey) {
+    private static boolean favoriteMatches(EmiFavorite favorite, Identifier targetRecipeId, String targetStackKey) {
             EmiRecipe favoriteRecipe = favorite.getRecipe();
-            ResourceLocation favoriteRecipeId = favoriteRecipe == null ? null : favoriteRecipe.getId();
+            String favRecipeIdStr = emiGetIdStr(favoriteRecipe);
+            Identifier favoriteRecipeId = favRecipeIdStr == null ? null : Identifier.tryParse(favRecipeIdStr);
             if (targetRecipeId == null != (favoriteRecipeId == null)) {
                 return false;
             }

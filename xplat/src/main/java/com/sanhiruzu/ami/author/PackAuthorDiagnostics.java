@@ -7,7 +7,7 @@ import com.sanhiruzu.ami.api.AmiQuestsApi;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -98,7 +98,7 @@ public final class PackAuthorDiagnostics {
         }
 
         List<AmiQuestDocument> quests = questDocuments == null ? List.of() : questDocuments;
-        Map<ResourceLocation, SearchNode> itemById = new LinkedHashMap<>();
+        Map<Identifier, SearchNode> itemById = new LinkedHashMap<>();
         for (SearchNode item : items) {
             itemById.putIfAbsent(item.id(), item);
         }
@@ -152,8 +152,8 @@ public final class PackAuthorDiagnostics {
         return out.toString();
     }
 
-    private static QuestDiagnostics questDiagnostics(List<AmiQuestDocument> quests, Map<ResourceLocation, SearchNode> itemById) {
-        Set<ResourceLocation> missing = new LinkedHashSet<>();
+    private static QuestDiagnostics questDiagnostics(List<AmiQuestDocument> quests, Map<Identifier, SearchNode> itemById) {
+        Set<Identifier> missing = new LinkedHashSet<>();
         List<String> missingRows = new ArrayList<>();
         List<String> noRecipeRows = new ArrayList<>();
         List<String> highCardinalityRows = new ArrayList<>();
@@ -166,7 +166,7 @@ public final class PackAuthorDiagnostics {
                 if (task.highCardinality()) {
                     highCardinalityRows.add(questPath(quest) + " > " + taskLabel(task));
                 }
-                for (ResourceLocation itemId : task.itemIds()) {
+                for (Identifier itemId : task.itemIds()) {
                     SearchNode item = itemById.get(itemId);
                     if (item == null) {
                         if (missing.add(itemId)) {
@@ -185,13 +185,13 @@ public final class PackAuthorDiagnostics {
         return new QuestDiagnostics(missingRows, noRecipeRows, highCardinalityRows);
     }
 
-    private static boolean questTouchesSelectedItems(AmiQuestDocument quest, Map<ResourceLocation, SearchNode> itemById) {
+    private static boolean questTouchesSelectedItems(AmiQuestDocument quest, Map<Identifier, SearchNode> itemById) {
         if (quest == null || itemById == null || itemById.isEmpty()) {
             return false;
         }
         for (AmiQuestTaskDocument task : quest.tasks()) {
             if (task == null) continue;
-            for (ResourceLocation itemId : task.itemIds()) {
+            for (Identifier itemId : task.itemIds()) {
                 if (itemById.containsKey(itemId)) {
                     return true;
                 }
@@ -263,7 +263,7 @@ public final class PackAuthorDiagnostics {
         if (nodes == null || nodes.isEmpty()) {
             return List.of();
         }
-        Map<ResourceLocation, SearchNode> unique = new LinkedHashMap<>();
+        Map<Identifier, SearchNode> unique = new LinkedHashMap<>();
         for (SearchNode node : nodes) {
             if (node != null && node.type() == NodeType.ITEM && node.id() != null) {
                 unique.putIfAbsent(node.id(), node);

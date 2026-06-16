@@ -8,7 +8,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
@@ -68,7 +68,7 @@ public class IngredientIndexProvider implements IAmiDataProvider {
             String typeId = type.getTypeId().toString();
             for (V ingredient : ingredients) {
                 if (ingredient == null) continue;
-                ResourceLocation id = helper.getResourceLocation(ingredient);
+                Identifier id = helper.getResourceLocation(ingredient);
                 if (id == null) continue;
                 String seenKey = typeId + "|" + id;
                 if (!seenKeys.add(seenKey)) continue;

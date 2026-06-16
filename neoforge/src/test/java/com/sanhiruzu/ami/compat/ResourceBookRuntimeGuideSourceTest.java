@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.api.AmiGuideDocument;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
@@ -14,18 +14,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ResourceBookRuntimeGuideSourceTest {
     @Test
     void indexesMantleBookPagesFromIndexAndSectionResources() {
-        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("tinkers_reforged", "book/reforging_guide/index.json"), """
+        Map<Identifier, String> resources = new LinkedHashMap<>();
+        resources.put(new Identifier("tinkers_reforged", "book/reforging_guide/index.json"), """
                 [
                   { "name": "ores", "data": "sections/ores.json" }
                 ]
                 """);
-        resources.put(new ResourceLocation("tinkers_reforged", "book/reforging_guide/sections/ores.json"), """
+        resources.put(new Identifier("tinkers_reforged", "book/reforging_guide/sections/ores.json"), """
                 [
                   { "name": "barium", "type": "mantle:text", "data": "ores/barium.json" }
                 ]
                 """);
-        resources.put(new ResourceLocation("tinkers_reforged", "book/reforging_guide/en_us/ores/barium.json"), """
+        resources.put(new Identifier("tinkers_reforged", "book/reforging_guide/en_us/ores/barium.json"), """
                 {
                   "title": "Barium",
                   "text": [
@@ -40,7 +40,7 @@ class ResourceBookRuntimeGuideSourceTest {
 
         assertEquals(1, documents.size());
         AmiGuideDocument document = documents.getFirst();
-        assertEquals(new ResourceLocation("tinkers_reforged", "reforging_guide"), document.bookId());
+        assertEquals(new Identifier("tinkers_reforged", "reforging_guide"), document.bookId());
         assertEquals("barium", document.pageId());
         assertEquals("Barium", document.title());
         assertEquals("Ores", document.chapter());
@@ -50,14 +50,14 @@ class ResourceBookRuntimeGuideSourceTest {
 
     @Test
     void indexesMantleLanguageScopedPagesNotExplicitlyReferencedBySections() {
-        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("tconstruct", "book/encyclopedia/index.json"), """
+        Map<Identifier, String> resources = new LinkedHashMap<>();
+        resources.put(new Identifier("tconstruct", "book/encyclopedia/index.json"), """
                 [
                   { "name": "tools", "data": "sections/tools.json" },
                   { "name": "materials_harvest", "data": "no-load" }
                 ]
                 """);
-        resources.put(new ResourceLocation("tconstruct", "book/encyclopedia/sections/tools.json"), """
+        resources.put(new Identifier("tconstruct", "book/encyclopedia/sections/tools.json"), """
                 [
                   {
                     "name": "group_small",
@@ -72,7 +72,7 @@ class ResourceBookRuntimeGuideSourceTest {
                   }
                 ]
                 """);
-        resources.put(new ResourceLocation("tconstruct", "book/encyclopedia/en_us/tools/small.json"), """
+        resources.put(new Identifier("tconstruct", "book/encyclopedia/en_us/tools/small.json"), """
                 {
                   "title": "Small Tools",
                   "text": [
@@ -80,7 +80,7 @@ class ResourceBookRuntimeGuideSourceTest {
                   ]
                 }
                 """);
-        resources.put(new ResourceLocation("tconstruct", "book/encyclopedia/en_us/tools/small/tconstruct_pickaxe.json"), """
+        resources.put(new Identifier("tconstruct", "book/encyclopedia/en_us/tools/small/tconstruct_pickaxe.json"), """
                 {
                   "tool": "tconstruct:pickaxe",
                   "text": [
@@ -100,18 +100,18 @@ class ResourceBookRuntimeGuideSourceTest {
                 .filter(document -> "tools/small/tconstruct_pickaxe".equals(document.pageId()))
                 .findFirst()
                 .orElseThrow();
-        assertEquals(new ResourceLocation("tconstruct", "encyclopedia"), generatedTool.bookId());
+        assertEquals(new Identifier("tconstruct", "encyclopedia"), generatedTool.bookId());
         assertEquals("Tools Small", generatedTool.chapter());
         assertTrue(generatedTool.summaryText().contains("precise mining tool"));
         assertTrue(generatedTool.summaryText().contains("Attack Damage"));
-        assertEquals(List.of(new ResourceLocation("tconstruct", "pickaxe")), generatedTool.referencedItems());
+        assertEquals(List.of(new Identifier("tconstruct", "pickaxe")), generatedTool.referencedItems());
         assertTrue(generatedTool.canOpen());
     }
 
     @Test
     void indexesAlexStyleJsonBooksWithLocalizedTitlesAndTextFiles() {
-        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("alexsmobs", "book/animal_dictionary/alligator_snapping_turtle.json"), """
+        Map<Identifier, String> resources = new LinkedHashMap<>();
+        resources.put(new Identifier("alexsmobs", "book/animal_dictionary/alligator_snapping_turtle.json"), """
                 {
                   "parent": "root.json",
                   "text": "alligator_snapping_turtle.txt",
@@ -119,13 +119,13 @@ class ResourceBookRuntimeGuideSourceTest {
                   "recipes": [ { "recipe": "alexsmobs:spiked_turtle_shell" } ]
                 }
                 """);
-        resources.put(new ResourceLocation("alexsmobs", "book/animal_dictionary/en_us/alligator_snapping_turtle.txt"), """
+        resources.put(new Identifier("alexsmobs", "book/animal_dictionary/en_us/alligator_snapping_turtle.txt"), """
                 <NEWLINE>
                 The Alligator Snapping Turtle is a massive reptile found in swamps.
                 It can be bred with raw cod.
                 """);
-        Map<ResourceLocation, String> lang = Map.of(
-                new ResourceLocation("alexsmobs", "lang/en_us.json"),
+        Map<Identifier, String> lang = Map.of(
+                new Identifier("alexsmobs", "lang/en_us.json"),
                 "{ \"entity.alexsmobs.alligator_snapping_turtle\": \"Alligator Snapping Turtle\" }"
         );
 
@@ -134,17 +134,17 @@ class ResourceBookRuntimeGuideSourceTest {
         assertEquals(1, documents.size());
         AmiGuideDocument document = documents.getFirst();
         assertEquals("Alligator Snapping Turtle", document.title());
-        assertEquals(new ResourceLocation("alexsmobs", "animal_dictionary"), document.bookId());
+        assertEquals(new Identifier("alexsmobs", "animal_dictionary"), document.bookId());
         assertEquals("alligator_snapping_turtle", document.pageId());
-        assertEquals(List.of(new ResourceLocation("alexsmobs", "spiked_turtle_shell")), document.referencedItems());
+        assertEquals(List.of(new Identifier("alexsmobs", "spiked_turtle_shell")), document.referencedItems());
         assertTrue(document.summaryText().contains("massive reptile"));
         assertTrue(document.canOpen());
     }
 
     @Test
     void indexesAlexsCavesCodexPagesWithLocalizedTextFiles() {
-        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("alexscaves", "books/primordial/limestone.json"), """
+        Map<Identifier, String> resources = new LinkedHashMap<>();
+        resources.put(new Identifier("alexscaves", "books/primordial/limestone.json"), """
                 {
                   "parent": "root.json",
                   "text": "limestone.txt",
@@ -152,13 +152,13 @@ class ResourceBookRuntimeGuideSourceTest {
                   "items": [ { "item": "alexscaves:limestone" } ]
                 }
                 """);
-        resources.put(new ResourceLocation("alexscaves", "books/en_us/primordial/limestone.txt"), """
+        resources.put(new Identifier("alexscaves", "books/en_us/primordial/limestone.txt"), """
                 <NEWLINE>
                 Limestone is common in Primordial Caves.
                 It can be carved into many building blocks.
                 """);
-        Map<ResourceLocation, String> lang = Map.of(
-                new ResourceLocation("alexscaves", "lang/en_us.json"),
+        Map<Identifier, String> lang = Map.of(
+                new Identifier("alexscaves", "lang/en_us.json"),
                 "{ \"item.alexscaves.cave_codex\": \"Cave Codex\" }"
         );
 
@@ -168,17 +168,17 @@ class ResourceBookRuntimeGuideSourceTest {
         AmiGuideDocument document = documents.getFirst();
         assertEquals("Cave Codex", document.title());
         assertEquals("alexscaves_book", document.sourceType());
-        assertEquals(new ResourceLocation("alexscaves", "cave_codex"), document.bookId());
+        assertEquals(new Identifier("alexscaves", "cave_codex"), document.bookId());
         assertEquals("primordial/limestone", document.pageId());
-        assertEquals(List.of(new ResourceLocation("alexscaves", "limestone")), document.referencedItems());
+        assertEquals(List.of(new Identifier("alexscaves", "limestone")), document.referencedItems());
         assertTrue(document.summaryText().contains("Primordial Caves"));
         assertTrue(document.canOpen());
     }
 
     @Test
     void indexesMnaGuideJsonEntriesFromAddonNamespaces() {
-        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("dmnr", "guide/en_us.json"), """
+        Map<Identifier, String> resources = new LinkedHashMap<>();
+        resources.put(new Identifier("dmnr", "guide/en_us.json"), """
                 {
                   "Voidfeather Charm": {
                     "index": "1",
@@ -199,16 +199,16 @@ class ResourceBookRuntimeGuideSourceTest {
         assertEquals(1, documents.size());
         AmiGuideDocument document = documents.getFirst();
         assertEquals("Voidfeather Charm", document.title());
-        assertEquals(new ResourceLocation("mna", "guide_book"), document.bookId());
+        assertEquals(new Identifier("mna", "guide_book"), document.bookId());
         assertEquals("Artifice", document.chapter());
         assertTrue(document.summaryText().contains("Prevents death"));
-        assertEquals(List.of(new ResourceLocation("dmnr", "manaweaving/voidfeather_charm")), document.referencedItems());
+        assertEquals(List.of(new Identifier("dmnr", "manaweaving/voidfeather_charm")), document.referencedItems());
     }
 
     @Test
     void indexesImmersiveEngineeringManualTextPages() {
-        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("immersiveengineering", "manual/en_us/introduction.txt"), """
+        Map<Identifier, String> resources = new LinkedHashMap<>();
+        resources.put(new Identifier("immersiveengineering", "manual/en_us/introduction.txt"), """
                 Introduction
                 Getting into Engineering
                 Greetings, fellow engineer, and welcome to Immersive Engineering.
@@ -219,7 +219,7 @@ class ResourceBookRuntimeGuideSourceTest {
 
         assertEquals(1, documents.size());
         AmiGuideDocument document = documents.getFirst();
-        assertEquals(new ResourceLocation("immersiveengineering", "manual"), document.bookId());
+        assertEquals(new Identifier("immersiveengineering", "manual"), document.bookId());
         assertEquals("introduction", document.pageId());
         assertEquals("Introduction", document.title());
         assertEquals("Getting into Engineering", document.chapter());
@@ -228,8 +228,8 @@ class ResourceBookRuntimeGuideSourceTest {
 
     @Test
     void indexesHexereiBookOfShadowsPagesFromEntriesAndLangKeys() {
-        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("hexerei", "book/book_of_shadows/book_of_shadows.json"), """
+        Map<Identifier, String> resources = new LinkedHashMap<>();
+        resources.put(new Identifier("hexerei", "book/book_of_shadows/book_of_shadows.json"), """
                 {
                   "chapters": [
                     {
@@ -241,7 +241,7 @@ class ResourceBookRuntimeGuideSourceTest {
                   ]
                 }
                 """);
-        resources.put(new ResourceLocation("hexerei", "book/book_of_shadows/book_pages/items/items_mixing_cauldron_1.json"), """
+        resources.put(new Identifier("hexerei", "book/book_of_shadows/book_pages/items/items_mixing_cauldron_1.json"), """
                 {
                   "paragraphs": [
                     { "passage_text": "book.hexerei.items_mixing_cauldron_1.passage_1" },
@@ -253,8 +253,8 @@ class ResourceBookRuntimeGuideSourceTest {
                   ]
                 }
                 """);
-        Map<ResourceLocation, String> lang = Map.of(
-                new ResourceLocation("hexerei", "lang/en_us.json"),
+        Map<Identifier, String> lang = Map.of(
+                new Identifier("hexerei", "lang/en_us.json"),
                 """
                 {
                   "book.hexerei.items_mixing_cauldron_1.passage_1": "Mixing Cauldron",
@@ -267,13 +267,13 @@ class ResourceBookRuntimeGuideSourceTest {
 
         assertEquals(1, documents.size());
         AmiGuideDocument document = documents.getFirst();
-        assertEquals(new ResourceLocation("hexerei", "book_of_shadows"), document.bookId());
+        assertEquals(new Identifier("hexerei", "book_of_shadows"), document.bookId());
         assertEquals("hexerei_book", document.sourceType());
         assertEquals("hexerei:book_of_shadows/book_pages/items/items_mixing_cauldron_1", document.pageId());
         assertEquals("Items", document.chapter());
         assertEquals("Mixing Cauldron", document.title());
         assertTrue(document.summaryText().contains("potions and crafts"));
-        assertEquals(List.of(new ResourceLocation("hexerei", "mixing_cauldron")), document.referencedItems());
+        assertEquals(List.of(new Identifier("hexerei", "mixing_cauldron")), document.referencedItems());
     }
 
     @Test

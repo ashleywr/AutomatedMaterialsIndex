@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -96,6 +96,6 @@ class AmiOntologyKindsTokenTest {
     }
 
     private static SearchNode item(String namespace, String path, Map<String, String> metadata) {
-        return new SearchNode(new ResourceLocation(namespace, path), NodeType.ITEM, path, 0, 0, metadata);
+        return new SearchNode(new Identifier(namespace, path), NodeType.ITEM, path, 0, 0, metadata);
     }
 }

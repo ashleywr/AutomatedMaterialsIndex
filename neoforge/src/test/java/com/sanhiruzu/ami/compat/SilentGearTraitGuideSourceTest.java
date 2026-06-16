@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.index.AmiGuideSearchIndex;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -18,7 +18,7 @@ class SilentGearTraitGuideSourceTest {
     @Test
     void traitDocumentsExplainAndMatchSemanticTraitQueries() {
         AmiGuideDocument document = SilentGearTraitGuideSource.traitDocument(
-                new ResourceLocation("silentgear", "silentgear_traits/malleable.json"),
+                new Identifier("silentgear", "silentgear_traits/malleable.json"),
                 malleableJson());
 
         assertEquals("Malleable Trait", document.title());

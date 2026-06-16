@@ -6,7 +6,7 @@ import com.sanhiruzu.ami.api.AmiQuestsApi;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -59,13 +59,13 @@ class PackAuthorDiagnosticsTest {
                 .task(AmiQuestTaskDocument.builder("ftbquests:food/apple/task/apple", "ftbquests:food/apple",
                                 AmiQuestTaskDocument.Role.REQUIREMENT)
                         .taskType("item")
-                        .itemId(new ResourceLocation("minecraft", "apple"))
+                        .itemId(new Identifier("minecraft", "apple"))
                         .requiredCount(4)
                         .build())
                 .task(AmiQuestTaskDocument.builder("ftbquests:food/apple/task/missing", "ftbquests:food/apple",
                                 AmiQuestTaskDocument.Role.REQUIREMENT)
                         .taskType("item")
-                        .itemId(new ResourceLocation("example", "missing_item"))
+                        .itemId(new Identifier("example", "missing_item"))
                         .build())
                 .task(AmiQuestTaskDocument.builder("ftbquests:food/apple/task/filter", "ftbquests:food/apple",
                                 AmiQuestTaskDocument.Role.REQUIREMENT)
@@ -93,7 +93,7 @@ class PackAuthorDiagnosticsTest {
 
     private static SearchNode item(String path, String name, Map<String, String> metadata) {
         return new SearchNode(
-                new ResourceLocation("minecraft:" + path),
+                new Identifier("minecraft:" + path),
                 NodeType.ITEM,
                 name,
                 0,

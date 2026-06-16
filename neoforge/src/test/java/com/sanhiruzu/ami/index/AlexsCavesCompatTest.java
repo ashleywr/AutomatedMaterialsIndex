@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.compat.AlexsCavesCompat;
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -17,7 +17,7 @@ class AlexsCavesCompatTest {
     void alexsCavesNamespaceGetsFamilyPolicy() {
         Map<String, String> meta = meta("net.minecraft.world.item.Item");
 
-        CompatFamilyDetector.detect(new ResourceLocation("alexscaves", "telecore"), meta);
+        CompatFamilyDetector.detect(new Identifier("alexscaves", "telecore"), meta);
 
         assertEquals("alexscaves", meta.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
     }
@@ -27,7 +27,7 @@ class AlexsCavesCompatTest {
         Map<String, String> meta = meta("com.github.alexmodguy.alexscaves.server.item.CaveInfoItem");
 
         AlexsCavesCompat.enrichItem(
-                new ResourceLocation("alexscaves", "cave_tablet/variant/cave_tablet_1da4b27ad913"),
+                new Identifier("alexscaves", "cave_tablet/variant/cave_tablet_1da4b27ad913"),
                 meta);
         CategoryAssignment assignment = resolve("alexscaves:cave_tablet/variant/cave_tablet_1da4b27ad913", meta);
 
@@ -43,7 +43,7 @@ class AlexsCavesCompatTest {
     void neodymiumMaterialsRouteToTechIngots() {
         Map<String, String> meta = meta("net.minecraft.world.item.Item");
 
-        AlexsCavesCompat.enrichItem(new ResourceLocation("alexscaves", "scarlet_neodymium_ingot"), meta);
+        AlexsCavesCompat.enrichItem(new Identifier("alexscaves", "scarlet_neodymium_ingot"), meta);
         CategoryAssignment assignment = resolve("alexscaves:scarlet_neodymium_ingot", meta);
 
         assertEquals("materials", meta.get(SearchNodeKeys.ALEXS_CAVES_ITEM_KIND));
@@ -55,11 +55,11 @@ class AlexsCavesCompatTest {
     @Test
     void caveGadgetsRouteToTechOrUtilityBuckets() {
         Map<String, String> part = meta("net.minecraft.world.item.Item");
-        AlexsCavesCompat.enrichItem(new ResourceLocation("alexscaves", "telecore"), part);
+        AlexsCavesCompat.enrichItem(new Identifier("alexscaves", "telecore"), part);
         CategoryAssignment partAssignment = resolve("alexscaves:telecore", part);
 
         Map<String, String> tool = meta("com.github.alexmodguy.alexscaves.server.item.QuarrySmasherItem");
-        AlexsCavesCompat.enrichItem(new ResourceLocation("alexscaves", "quarry_smasher"), tool);
+        AlexsCavesCompat.enrichItem(new Identifier("alexscaves", "quarry_smasher"), tool);
         CategoryAssignment toolAssignment = resolve("alexscaves:quarry_smasher", tool);
 
         assertEquals("tech_parts", part.get(SearchNodeKeys.ALEXS_CAVES_ITEM_KIND));
@@ -74,12 +74,12 @@ class AlexsCavesCompatTest {
     void foodFamiliesRouteToNatureBuckets() {
         Map<String, String> protein = meta("net.minecraft.world.item.Item");
         protein.put(SearchNodeKeys.TAGS, "minecraft:fishes");
-        AlexsCavesCompat.enrichItem(new ResourceLocation("alexscaves", "cooked_radgill"), protein);
+        AlexsCavesCompat.enrichItem(new Identifier("alexscaves", "cooked_radgill"), protein);
         CategoryAssignment proteinAssignment = resolve("alexscaves:cooked_radgill", protein);
 
         Map<String, String> snack = meta("net.minecraft.world.item.Item");
         snack.put(SearchNodeKeys.TAGS, "alexscaves:gelatins,alexscaves:gummy_items");
-        AlexsCavesCompat.enrichItem(new ResourceLocation("alexscaves", "gelatin_red"), snack);
+        AlexsCavesCompat.enrichItem(new Identifier("alexscaves", "gelatin_red"), snack);
         CategoryAssignment snackAssignment = resolve("alexscaves:gelatin_red", snack);
 
         assertEquals("protein_foods", protein.get(SearchNodeKeys.ALEXS_CAVES_ITEM_KIND));
@@ -96,7 +96,7 @@ class AlexsCavesCompatTest {
         meta.put(SearchNodeKeys.ACCESS_LEVEL, "dev");
         meta.put(SearchNodeKeys.VISIBILITY, "hidden");
 
-        AlexsCavesCompat.enrichItem(new ResourceLocation("alexscaves", "dreadbow_pulling_0_inventory"), meta);
+        AlexsCavesCompat.enrichItem(new Identifier("alexscaves", "dreadbow_pulling_0_inventory"), meta);
         CategoryAssignment assignment = resolve("alexscaves:dreadbow_pulling_0_inventory", meta);
 
         assertEquals("ranged_weapons", meta.get(SearchNodeKeys.ALEXS_CAVES_ITEM_KIND));
@@ -109,11 +109,11 @@ class AlexsCavesCompatTest {
     @Test
     void magicAndOrganicCaveDropsRouteSemantically() {
         Map<String, String> magic = meta("com.github.alexmodguy.alexscaves.server.item.OccultGemItem");
-        AlexsCavesCompat.enrichItem(new ResourceLocation("alexscaves", "occult_gem"), magic);
+        AlexsCavesCompat.enrichItem(new Identifier("alexscaves", "occult_gem"), magic);
         CategoryAssignment magicAssignment = resolve("alexscaves:occult_gem", magic);
 
         Map<String, String> organic = meta("net.minecraft.world.item.Item");
-        AlexsCavesCompat.enrichItem(new ResourceLocation("alexscaves", "vesper_wing"), organic);
+        AlexsCavesCompat.enrichItem(new Identifier("alexscaves", "vesper_wing"), organic);
         CategoryAssignment organicAssignment = resolve("alexscaves:vesper_wing", organic);
 
         assertEquals("magic_reagents", magic.get(SearchNodeKeys.ALEXS_CAVES_ITEM_KIND));
@@ -134,7 +134,7 @@ class AlexsCavesCompatTest {
 
     private static CategoryAssignment resolve(String id, Map<String, String> meta, ItemFacet... facets) {
         return PrimaryCategoryResolver.resolve(
-                new ResourceLocation(id),
+                new Identifier(id),
                 facets.length == 0 ? EnumSet.noneOf(ItemFacet.class) : EnumSet.of(facets[0], facets),
                 meta
         );

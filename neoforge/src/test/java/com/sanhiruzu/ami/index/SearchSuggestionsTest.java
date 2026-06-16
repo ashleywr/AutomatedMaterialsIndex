@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.compat.CompatDisplayNames;
 import com.sanhiruzu.ami.index.query.SearchSuggestions;
 import com.sanhiruzu.ami.index.resolvers.PlayerResolver;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -518,6 +518,6 @@ class SearchSuggestionsTest {
     }
 
     private static SearchNode node(String namespace, String path, NodeType type, String displayName, Map<String, String> metadata) {
-        return new SearchNode(new ResourceLocation(namespace, path), type, displayName, 0, 0, metadata);
+        return new SearchNode(new Identifier(namespace, path), type, displayName, 0, 0, metadata);
     }
 }

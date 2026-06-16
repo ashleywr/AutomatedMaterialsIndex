@@ -8,7 +8,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.lang.reflect.Constructor;
@@ -58,7 +58,7 @@ public final class AdvancementRuntimeDocuments {
     }
 
     private static AmiAdvancementDocument document(Object advancements, Object node, Object display) {
-        ResourceLocation id = advancementId(node);
+        Identifier id = advancementId(node);
         String tabTitle = rootDisplay(node)
                 .map(AdvancementRuntimeDocuments::displayTitle)
                 .orElse("");
@@ -66,7 +66,7 @@ public final class AdvancementRuntimeDocuments {
                 .filter(ItemStack.class::isInstance)
                 .map(ItemStack.class::cast)
                 .orElse(ItemStack.EMPTY);
-        ResourceLocation iconItemId = icon.isEmpty() ? null : BuiltInRegistries.ITEM.getKey(icon.getItem());
+        Identifier iconItemId = icon.isEmpty() ? null : BuiltInRegistries.ITEM.getKey(icon.getItem());
         String title = displayTitle(display);
 
         return AmiAdvancementDocument.builder(id, title)
@@ -100,18 +100,18 @@ public final class AdvancementRuntimeDocuments {
                 .orElse(node);
     }
 
-    private static ResourceLocation advancementId(Object node) {
+    private static Identifier advancementId(Object node) {
         return invokeNoArg(node, "holder")
                 .flatMap(holder -> invokeNoArg(holder, "id"))
-                .filter(ResourceLocation.class::isInstance)
-                .map(ResourceLocation.class::cast)
+                .filter(Identifier.class::isInstance)
+                .map(Identifier.class::cast)
                 .or(() -> invokeNoArg(node, "id")
-                        .filter(ResourceLocation.class::isInstance)
-                        .map(ResourceLocation.class::cast))
+                        .filter(Identifier.class::isInstance)
+                        .map(Identifier.class::cast))
                 .or(() -> invokeNoArg(node, "getId")
-                        .filter(ResourceLocation.class::isInstance)
-                        .map(ResourceLocation.class::cast))
-                .orElseGet(() -> ResourceLocation.fromNamespaceAndPath("ami", "unknown_advancement"));
+                        .filter(Identifier.class::isInstance)
+                        .map(Identifier.class::cast))
+                .orElseGet(() -> Identifier.fromNamespaceAndPath("ami", "unknown_advancement"));
     }
 
     private static Optional<Object> rootDisplay(Object node) {
@@ -184,8 +184,8 @@ public final class AdvancementRuntimeDocuments {
         invokeNoArg(node, "holder").ifPresent(candidates::add);
         candidates.add(advancement(node));
         candidates.add(node);
-        ResourceLocation id = advancementId(node);
-        invokeOneArg(advancements, "get", ResourceLocation.class, id).ifPresent(candidates::add);
+        Identifier id = advancementId(node);
+        invokeOneArg(advancements, "get", Identifier.class, id).ifPresent(candidates::add);
 
         for (Method method : progressMethods(advancements.getClass())) {
             Class<?> parameterType = method.getParameterTypes()[0];
@@ -211,7 +211,7 @@ public final class AdvancementRuntimeDocuments {
     }
 
     private static void openAdvancementTab(Object advancements, Object node) {
-        ResourceLocation id = advancementId(node);
+        Identifier id = advancementId(node);
         if (RecipeViewerBridge.openJustEnoughAdvancement(id)) {
             return;
         }
@@ -229,8 +229,8 @@ public final class AdvancementRuntimeDocuments {
             return rootHolder;
         }
 
-        ResourceLocation id = advancementId(node);
-        Optional<Object> advancement = invokeOneArg(advancements, "get", ResourceLocation.class, id);
+        Identifier id = advancementId(node);
+        Optional<Object> advancement = invokeOneArg(advancements, "get", Identifier.class, id);
         if (advancement.isPresent()) {
             return advancement;
         }

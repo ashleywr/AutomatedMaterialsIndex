@@ -7,7 +7,7 @@ import com.sanhiruzu.searchableitems.api.SearchableItemActionProviders;
 import com.sanhiruzu.searchableitems.api.SearchableItemProvider;
 import com.sanhiruzu.searchableitems.api.SearchableItemProviders;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
@@ -191,15 +191,15 @@ public class AmiApi {
      * This is the proper way for plugins to notify AMI of deletions without knowing
      * anything about AMI's internal state or refresh mechanisms.
      *
-     * @param nodeId the ResourceLocation ID of the deleted search node
+     * @param nodeId the Identifier ID of the deleted search node
      */
-    public static void notifyItemDeleted(ResourceLocation nodeId) {
+    public static void notifyItemDeleted(Identifier nodeId) {
         if (nodeId == null) return;
 
         LOGGER.log(Level.INFO, "AMI: notifyItemDeleted called for " + nodeId);
         try {
             Class<?> handler = Class.forName("com.sanhiruzu.ami.client.ItemDeletionHandler");
-            handler.getMethod("handleItemDeleted", ResourceLocation.class).invoke(null, nodeId);
+            handler.getMethod("handleItemDeleted", Identifier.class).invoke(null, nodeId);
             LOGGER.log(Level.INFO, "AMI: notifyItemDeleted completed for " + nodeId);
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
             LOGGER.log(Level.WARNING, "AMI: Failed to notify item deletion for " + nodeId, e);

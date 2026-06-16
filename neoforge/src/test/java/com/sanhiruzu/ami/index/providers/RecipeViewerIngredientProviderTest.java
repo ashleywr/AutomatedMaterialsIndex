@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index.providers;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -16,9 +16,9 @@ class RecipeViewerIngredientProviderTest {
 
     @Test
     void syntheticIdKeepsNativeIdWhenUidMatchesResourceLocation() {
-        ResourceLocation oxygen = new ResourceLocation("mekanism", "oxygen");
+        Identifier oxygen = new Identifier("mekanism", "oxygen");
 
-        ResourceLocation resolved = RecipeViewerIngredientIds.syntheticId(
+        Identifier resolved = RecipeViewerIngredientIds.syntheticId(
                 "mekanism",
                 oxygen,
                 "mekanism:chemical",
@@ -30,9 +30,9 @@ class RecipeViewerIngredientProviderTest {
 
     @Test
     void syntheticIdFallsBackToStableSyntheticPathForSubtypeUid() {
-        ResourceLocation oxygen = new ResourceLocation("mekanism", "oxygen");
+        Identifier oxygen = new Identifier("mekanism", "oxygen");
 
-        ResourceLocation resolved = RecipeViewerIngredientIds.syntheticId(
+        Identifier resolved = RecipeViewerIngredientIds.syntheticId(
                 "mekanism",
                 oxygen,
                 "mekanism:chemical",

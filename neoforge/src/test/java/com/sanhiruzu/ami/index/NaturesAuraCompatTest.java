@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
 import com.sanhiruzu.ami.compat.NaturesAuraCompat;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -17,7 +17,7 @@ class NaturesAuraCompatTest {
     void naturesAuraNamespaceGetsFamilyPolicy() {
         Map<String, String> meta = meta("de.ellpeck.naturesaura.items.ItemEffectPowder");
 
-        CompatFamilyDetector.detect(new ResourceLocation("naturesaura", "effect_powder/variant/powder_of_fertility"), meta);
+        CompatFamilyDetector.detect(new Identifier("naturesaura", "effect_powder/variant/powder_of_fertility"), meta);
 
         assertEquals("naturesaura", meta.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
     }
@@ -26,7 +26,7 @@ class NaturesAuraCompatTest {
     void effectPowderVariantsRouteToMagicReagentsAndCollapseTogether() {
         Map<String, String> meta = meta("de.ellpeck.naturesaura.items.ItemEffectPowder");
 
-        NaturesAuraCompat.enrichItem(new ResourceLocation("naturesaura", "effect_powder/variant/powder_of_fertility"), meta);
+        NaturesAuraCompat.enrichItem(new Identifier("naturesaura", "effect_powder/variant/powder_of_fertility"), meta);
         CategoryAssignment assignment = resolve("naturesaura:effect_powder/variant/powder_of_fertility", meta);
 
         assertEquals("effect_powders", meta.get(SearchNodeKeys.NATURES_AURA_ITEM_KIND));
@@ -41,7 +41,7 @@ class NaturesAuraCompatTest {
     void structureFinderItemsRouteToUtilityNavigation() {
         Map<String, String> meta = meta("de.ellpeck.naturesaura.items.ItemStructureFinder");
 
-        NaturesAuraCompat.enrichItem(new ResourceLocation("naturesaura", "fortress_finder"), meta);
+        NaturesAuraCompat.enrichItem(new Identifier("naturesaura", "fortress_finder"), meta);
         CategoryAssignment assignment = resolve("naturesaura:fortress_finder", meta);
 
         assertEquals("structure_finders", meta.get(SearchNodeKeys.NATURES_AURA_ITEM_KIND));
@@ -55,7 +55,7 @@ class NaturesAuraCompatTest {
         Map<String, String> meta = meta("de.ellpeck.naturesaura.items.ItemImpl");
         meta.put(SearchNodeKeys.RECIPE_CATEGORIES, "tree_ritual");
 
-        NaturesAuraCompat.enrichItem(new ResourceLocation("naturesaura", "token_joy"), meta);
+        NaturesAuraCompat.enrichItem(new Identifier("naturesaura", "token_joy"), meta);
         CategoryAssignment assignment = resolve("naturesaura:token_joy", meta);
 
         assertEquals("tokens", meta.get(SearchNodeKeys.NATURES_AURA_ITEM_KIND));
@@ -68,7 +68,7 @@ class NaturesAuraCompatTest {
     void taintedGoldRoutesToMineralIngredient() {
         Map<String, String> meta = meta("de.ellpeck.naturesaura.items.ItemImpl");
 
-        NaturesAuraCompat.enrichItem(new ResourceLocation("naturesaura", "tainted_gold"), meta);
+        NaturesAuraCompat.enrichItem(new Identifier("naturesaura", "tainted_gold"), meta);
         CategoryAssignment assignment = resolve("naturesaura:tainted_gold", meta);
 
         assertEquals("materials", meta.get(SearchNodeKeys.NATURES_AURA_ITEM_KIND));
@@ -81,7 +81,7 @@ class NaturesAuraCompatTest {
     void auraCartRoutesToTechTransport() {
         Map<String, String> meta = meta("de.ellpeck.naturesaura.items.ItemMoverMinecart");
 
-        NaturesAuraCompat.enrichItem(new ResourceLocation("naturesaura", "mover_cart"), meta);
+        NaturesAuraCompat.enrichItem(new Identifier("naturesaura", "mover_cart"), meta);
         CategoryAssignment assignment = resolve("naturesaura:mover_cart", meta);
 
         assertEquals("transport", meta.get(SearchNodeKeys.NATURES_AURA_ITEM_KIND));
@@ -94,7 +94,7 @@ class NaturesAuraCompatTest {
     void utilityItemsRouteToUtilityMiscWithoutCrashingOnSpecificMetadata() {
         Map<String, String> meta = meta("de.ellpeck.naturesaura.items.ItemMultiblockMaker");
 
-        NaturesAuraCompat.enrichItem(new ResourceLocation("naturesaura", "multiblock_maker"), meta);
+        NaturesAuraCompat.enrichItem(new Identifier("naturesaura", "multiblock_maker"), meta);
         CategoryAssignment assignment = resolve("naturesaura:multiblock_maker", meta);
 
         assertEquals("utility", meta.get(SearchNodeKeys.NATURES_AURA_ITEM_KIND));
@@ -112,7 +112,7 @@ class NaturesAuraCompatTest {
 
     private static CategoryAssignment resolve(String id, Map<String, String> meta, ItemFacet... facets) {
         return PrimaryCategoryResolver.resolve(
-                new ResourceLocation(id),
+                new Identifier(id),
                 new FacetProfile(facets.length == 0 ? EnumSet.noneOf(ItemFacet.class) : EnumSet.of(facets[0], facets), meta)
         );
     }

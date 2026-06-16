@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.client.results;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
  * Base interface for all dropdown components.
@@ -16,12 +16,12 @@ public interface Dropdown {
     /**
      * Renders the button row only (no dropdown list).
      */
-    void render(GuiGraphics g, int mouseX, int mouseY);
+    void render(GuiGraphicsExtractor g, int mouseX, int mouseY);
 
     /**
      * Renders the open dropdown list overlay — call after other content so it appears on top.
      */
-    void renderList(GuiGraphics g, int mouseX, int mouseY);
+    void renderList(GuiGraphicsExtractor g, int mouseX, int mouseY);
 
     boolean mouseClicked(double mouseX, double mouseY, int button);
 

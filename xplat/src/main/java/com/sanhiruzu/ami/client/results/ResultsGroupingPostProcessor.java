@@ -5,7 +5,7 @@ import com.sanhiruzu.ami.index.GroupingEngine;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.*;
 import java.util.function.BiPredicate;
@@ -230,7 +230,7 @@ final class ResultsGroupingPostProcessor {
     }
 
     private static String categoryShapeMaterialLabel(String shapeId, String material) {
-        ResourceLocation loc = ResourceLocation.tryParse(material);
+        Identifier loc = Identifier.tryParse(material);
         String path = loc == null ? material : loc.getPath();
         String base = stripShapeSuffix(path, shapeId).replace('_', ' ').replace('/', ' ');
         String label = ResultsGroupLabels.formatGroupLabel(base);
@@ -343,7 +343,7 @@ final class ResultsGroupingPostProcessor {
     }
 
     private static boolean isCategoryCardinalityBaseId(String baseId) {
-        ResourceLocation loc = ResourceLocation.tryParse(baseId);
+        Identifier loc = Identifier.tryParse(baseId);
         String path = loc == null ? baseId : loc.getPath();
         return CATEGORY_CARDINALITY_BASE_PATHS.contains(path);
     }
@@ -551,7 +551,7 @@ final class ResultsGroupingPostProcessor {
         children.sort((a, b) -> Boolean.compare(!a.getEntry().id().toString().equals(baseId), !b.getEntry().id().toString().equals(baseId)));
 
         String label;
-        ResourceLocation loc = ResourceLocation.tryParse(baseId);
+        Identifier loc = Identifier.tryParse(baseId);
         if (loc != null && BuiltInRegistries.ITEM.containsKey(loc)) {
             label = ResultsGroupLabels.formatGroupLabel(ResultsGroupLabels.formatGroupKey(loc.getPath(), false));
             if (!label.endsWith("s")) label += "s";

@@ -1,13 +1,13 @@
 package com.sanhiruzu.ami.client.results;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /**
  * UI-facing explanation for why a non-item source contributed to a result.
  */
 public record MatchEvidence(
         SourceType sourceType,
-        ResourceLocation sourceId,
+        Identifier sourceId,
         String label,
         String snippet
 ) {

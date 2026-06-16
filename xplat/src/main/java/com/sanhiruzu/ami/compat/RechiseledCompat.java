@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.Map;
 import java.util.Set;
@@ -14,7 +14,7 @@ public final class RechiseledCompat {
     private RechiseledCompat() {
     }
 
-    public static void enrichItem(ResourceLocation id, Map<String, String> meta) {
+    public static void enrichItem(Identifier id, Map<String, String> meta) {
         if (id == null || meta == null || !isSupportedNamespace(id)) {
             return;
         }
@@ -41,11 +41,11 @@ public final class RechiseledCompat {
         }
     }
 
-    private static boolean isSupportedNamespace(ResourceLocation id) {
+    private static boolean isSupportedNamespace(Identifier id) {
         return RECHISELED.equals(id.getNamespace()) || RECHISELED_CREATE.equals(id.getNamespace());
     }
 
-    private static boolean isChisel(ResourceLocation id, Map<String, String> meta) {
+    private static boolean isChisel(Identifier id, Map<String, String> meta) {
         return RECHISELED.equals(id.getNamespace()) && "chisel".equals(id.getPath())
                 || meta.getOrDefault(SearchNodeKeys.ITEM_CLASS, "").endsWith(".ChiselItem");
     }

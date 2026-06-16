@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.index.AmiGuideSearchIndex;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,7 +72,7 @@ public final class GuideResultsProjector {
         for (String tag : document.tags()) {
             addEvidence(evidence, tokens, tag, MatchEvidence.SourceType.GUIDE_TAG, document.id(), tag, "");
         }
-        for (ResourceLocation itemId : document.referencedItems()) {
+        for (Identifier itemId : document.referencedItems()) {
             String itemLabel = formatId(itemId);
             addEvidence(evidence, tokens, itemId.toString() + " " + itemId.getPath(), MatchEvidence.SourceType.GUIDE_REFERENCE,
                     document.id(), itemLabel, "");
@@ -85,7 +85,7 @@ public final class GuideResultsProjector {
     }
 
     private static void addEvidence(List<MatchEvidence> evidence, List<String> tokens, String haystack,
-                                    MatchEvidence.SourceType sourceType, ResourceLocation sourceId,
+                                    MatchEvidence.SourceType sourceType, Identifier sourceId,
                                     String label, String snippet) {
         String normalized = normalize(haystack);
         if (normalized.isBlank()) {
@@ -138,7 +138,7 @@ public final class GuideResultsProjector {
                 .replaceAll("\\s+", " ");
     }
 
-    private static String formatId(ResourceLocation id) {
+    private static String formatId(Identifier id) {
         if (id == null) {
             return "";
         }

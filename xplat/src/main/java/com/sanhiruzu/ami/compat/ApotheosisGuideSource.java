@@ -7,7 +7,7 @@ import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.api.AmiGuideOpeners;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 
@@ -30,12 +30,12 @@ public final class ApotheosisGuideSource {
     private static final String AFFIX_GUIDE_ENTRY = "adventure/affix_loot/affixes";
     private static final String ENCHANTING_STATS_GUIDE_ENTRY = "enchanting/table/stats";
     private static final String ENCHANTMENT_GUIDE_ENTRY_PREFIX = "enchanting/enchantments/";
-    private static final List<ResourceLocation> BOOK_IDS = List.of(
-            ResourceLocation.fromNamespaceAndPath("apotheosis", "apoth_chronicle"),
-            ResourceLocation.fromNamespaceAndPath("apotheosis", "guide"),
-            ResourceLocation.fromNamespaceAndPath("apothic_enchanting", "guide"),
-            ResourceLocation.fromNamespaceAndPath("apothic_enchanting", "apothic_enchanting"),
-            ResourceLocation.fromNamespaceAndPath("apotheosis", "apothic_enchanting")
+    private static final List<Identifier> BOOK_IDS = List.of(
+            Identifier.fromNamespaceAndPath("apotheosis", "apoth_chronicle"),
+            Identifier.fromNamespaceAndPath("apotheosis", "guide"),
+            Identifier.fromNamespaceAndPath("apothic_enchanting", "guide"),
+            Identifier.fromNamespaceAndPath("apothic_enchanting", "apothic_enchanting"),
+            Identifier.fromNamespaceAndPath("apotheosis", "apothic_enchanting")
     );
 
     private ApotheosisGuideSource() {
@@ -48,7 +48,7 @@ public final class ApotheosisGuideSource {
         ClientResourceAccess.registerGuideDocuments(documents);
     }
 
-    static AmiGuideDocument affixDocument(ResourceLocation resourceId, JsonObject json) {
+    static AmiGuideDocument affixDocument(Identifier resourceId, JsonObject json) {
         String affixPath = resourcePath(resourceId, AFFIX_RESOURCE_PATH);
         String affixName = leafName(affixPath);
         String type = simplifyId(stringValue(json.get("type")));
@@ -68,7 +68,7 @@ public final class ApotheosisGuideSource {
         if (!values.isBlank()) details.add("Values: " + values);
 
         return AmiGuideDocument.builder(
-                        ResourceLocation.fromNamespaceAndPath("ami", "guide/apotheosis/affix/" + affixPath),
+                        Identifier.fromNamespaceAndPath("ami", "guide/apotheosis/affix/" + affixPath),
                         SOURCE_TYPE,
                         "apotheosis",
                         humanize(affixName) + " Affix"
@@ -91,9 +91,9 @@ public final class ApotheosisGuideSource {
                 .build();
     }
 
-    static AmiGuideDocument enchantingStatsDocument(ResourceLocation resourceId, JsonObject json) {
+    static AmiGuideDocument enchantingStatsDocument(Identifier resourceId, JsonObject json) {
         String statsPath = resourcePath(resourceId, ENCHANTING_STATS_RESOURCE_PATH);
-        ResourceLocation block = resourceLocation(stringValue(json.get("block")));
+        Identifier block = Identifier(stringValue(json.get("block")));
         JsonObject stats = objectValue(json.get("stats"));
         List<String> details = new ArrayList<>();
         if (block != null) details.add("Block: " + humanize(block.getPath()));
@@ -105,7 +105,7 @@ public final class ApotheosisGuideSource {
         }
 
         AmiGuideDocument.Builder builder = AmiGuideDocument.builder(
-                        ResourceLocation.fromNamespaceAndPath("ami", "guide/apotheosis/enchanting_stats/" + statsPath),
+                        Identifier.fromNamespaceAndPath("ami", "guide/apotheosis/enchanting_stats/" + statsPath),
                         SOURCE_TYPE,
                         "apothic_enchanting",
                         humanize(block == null ? leafName(statsPath) : block.getPath()) + " Enchanting Stats"
@@ -129,9 +129,9 @@ public final class ApotheosisGuideSource {
         return builder.build();
     }
 
-    static AmiGuideDocument enchantmentDocument(ResourceLocation resourceId, JsonObject json) {
+    static AmiGuideDocument enchantmentDocument(Identifier resourceId, JsonObject json) {
         String enchantmentPath = resourcePath(resourceId, ENCHANTMENT_RESOURCE_PATH);
-        ResourceLocation enchantmentId = ResourceLocation.fromNamespaceAndPath(resourceId.getNamespace(), enchantmentPath);
+        Identifier enchantmentId = Identifier.fromNamespaceAndPath(resourceId.getNamespace(), enchantmentPath);
         String title = componentText(json.get("description"),
                 "enchantment." + enchantmentId.getNamespace() + "." + enchantmentPath,
                 humanize(enchantmentPath));
@@ -144,7 +144,7 @@ public final class ApotheosisGuideSource {
         if (!slots.isBlank()) details.add("Slots: " + slots);
 
         return AmiGuideDocument.builder(
-                        ResourceLocation.fromNamespaceAndPath("ami", "guide/apotheosis/enchantment/" + enchantmentPath),
+                        Identifier.fromNamespaceAndPath("ami", "guide/apotheosis/enchantment/" + enchantmentPath),
                         SOURCE_TYPE,
                         resourceId.getNamespace(),
                         title + " Enchantment"
@@ -265,14 +265,14 @@ public final class ApotheosisGuideSource {
         return fallbackText == null ? "" : fallbackText;
     }
 
-    private static ResourceLocation resourceLocation(String value) {
+    private static Identifier Identifier(String value) {
         if (value.isBlank() || !value.contains(":")) {
             return null;
         }
-        return ResourceLocation.tryParse(value);
+        return Identifier.tryParse(value);
     }
 
-    private static String resourcePath(ResourceLocation resourceId, String root) {
+    private static String resourcePath(Identifier resourceId, String root) {
         String path = resourceId.getPath();
         if (path.startsWith(root + "/")) {
             path = path.substring((root + "/").length());
@@ -362,7 +362,7 @@ public final class ApotheosisGuideSource {
         }
 
         private static void registerResources(ResourceManager resourceManager, String root,
-                                              java.util.function.Predicate<ResourceLocation> namespace,
+                                              java.util.function.Predicate<Identifier> namespace,
                                               ResourceRegistrar registrar) {
             resourceManager.listResources(root, id -> namespace.test(id) && id.getPath().endsWith(".json"))
                     .entrySet()
@@ -371,7 +371,7 @@ public final class ApotheosisGuideSource {
                     .forEach(entry -> registerDocument(registrar, entry.getKey(), entry.getValue()));
         }
 
-        private static void registerDocument(ResourceRegistrar registrar, ResourceLocation id, Resource resource) {
+        private static void registerDocument(ResourceRegistrar registrar, Identifier id, Resource resource) {
             try (BufferedReader reader = resource.openAsReader()) {
                 JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
                 registrar.register(id, json);
@@ -381,7 +381,7 @@ public final class ApotheosisGuideSource {
         }
 
         private interface ResourceRegistrar {
-            void register(ResourceLocation id, JsonObject json);
+            void register(Identifier id, JsonObject json);
         }
     }
 }

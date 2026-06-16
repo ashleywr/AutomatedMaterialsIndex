@@ -1,8 +1,8 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.AMITheme;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
 
 final class QuestMarkerSpriteRenderer {
     private static final int SIZE = 6;
@@ -14,7 +14,7 @@ final class QuestMarkerSpriteRenderer {
     private QuestMarkerSpriteRenderer() {
     }
 
-    static void render(GuiGraphics g, int x, int y, boolean requirement, boolean multi) {
+    static void render(GuiGraphicsExtractor g, int x, int y, boolean requirement, boolean multi) {
         GeneratedGuiSprite sprite = requirement
                 ? multi ? REQUIREMENT_MULTI : REQUIREMENT
                 : multi ? REWARD_MULTI : REWARD;
@@ -23,7 +23,7 @@ final class QuestMarkerSpriteRenderer {
 
     private static GeneratedGuiSprite marker(String name, boolean multi) {
         return new GeneratedGuiSprite(
-                ResourceLocation.fromNamespaceAndPath("ami", "generated/quest_marker_" + name),
+                Identifier.fromNamespaceAndPath("ami", "generated/quest_marker_" + name),
                 SIZE,
                 SIZE,
                 () -> signature(multi),

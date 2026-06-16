@@ -32,7 +32,7 @@ subprojects {
     }
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
 sourceSets {
     main {
@@ -49,30 +49,30 @@ dependencies {
     compileOnly "it.unimi.dsi:fastutil:8.5.12"
     compileOnly "com.google.code.gson:gson:2.10.1"
     compileOnly "org.spongepowered:mixin:0.8.5"
-    compileOnly "org.ow2.asm:asm-tree:9.7.1"
-
-    compileOnly "mezz.jei:jei-${forge_minecraft_version}-forge-api:${forge_jei_version}"
-    compileOnly "mezz.jei:jei-${forge_minecraft_version}-forge:${forge_jei_version}"
-    compileOnly "dev.emi:emi-forge:${forge_emi_version}+${forge_minecraft_version}"
+    compileOnly "org.ow2.asm:asm-tree:9.8"
 
     testImplementation sourceSets.main.output
     testImplementation "org.junit.jupiter:junit-jupiter:5.9.3"
     testImplementation "it.unimi.dsi:fastutil:8.5.12"
     testImplementation "com.google.code.gson:gson:2.10.1"
     testImplementation "org.spongepowered:mixin:0.8.5"
-    testImplementation "org.ow2.asm:asm-tree:9.7.1"
-    testImplementation "mezz.jei:jei-${forge_minecraft_version}-forge-api:${forge_jei_version}"
+    testImplementation "org.ow2.asm:asm-tree:9.8"
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.9.3"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.9.3"
 }
 
 configurations {
-    neoforgeReferenceSources {
+    neoforge26ReferenceSources {
         canBeConsumed = false
         canBeResolved = true
         transitive = false
     }
-    forgeReferenceSources {
+    fancymodloader26ReferenceSources {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
+    neoforgeReferenceSources {
         canBeConsumed = false
         canBeResolved = true
         transitive = false
@@ -87,43 +87,14 @@ configurations {
         canBeResolved = true
         transitive = false
     }
-    neoforgeEmiSources {
-        canBeConsumed = false
-        canBeResolved = true
-        transitive = false
-    }
-    forgeJeiApiSources {
-        canBeConsumed = false
-        canBeResolved = true
-        transitive = false
-    }
-    forgeJeiSources {
-        canBeConsumed = false
-        canBeResolved = true
-        transitive = false
-    }
-    forgeEmiSources {
-        canBeConsumed = false
-        canBeResolved = true
-        transitive = false
-    }
-    fabricReiSources {
-        canBeConsumed = false
-        canBeResolved = true
-        transitive = false
-    }
 }
 
 dependencies {
+    neoforge26ReferenceSources("net.neoforged:neoforge:26.1.2.76:sources")
+    fancymodloader26ReferenceSources("net.neoforged.fancymodloader:loader:11.0.13:sources")
     neoforgeReferenceSources("net.neoforged:neoforge:${neoforge_version}:sources")
-    forgeReferenceSources("net.minecraftforge:forge:${forge_minecraft_version}-${forge_version}:sources")
     neoforgeJeiApiSources("mezz.jei:jei-${neoforge_minecraft_version}-neoforge-api:${neoforge_jei_version}:sources")
     neoforgeJeiSources("mezz.jei:jei-${neoforge_minecraft_version}-neoforge:${neoforge_jei_version}:sources")
-    neoforgeEmiSources("dev.emi:emi-neoforge:${neoforge_emi_version}+${neoforge_minecraft_version}:sources")
-    forgeJeiApiSources("mezz.jei:jei-${forge_minecraft_version}-forge-api:${forge_jei_version}:sources")
-    forgeJeiSources("mezz.jei:jei-${forge_minecraft_version}-forge:${forge_jei_version}:sources")
-    forgeEmiSources("dev.emi:emi-forge:${forge_emi_version}+${forge_minecraft_version}:sources")
-    fabricReiSources("me.shedaniel:RoughlyEnoughItems-api-fabric:${fabric_rei_version}:sources")
 }
 
 def registerVendorSourceSync = { String taskName, String configurationName, String outputPath ->
@@ -146,60 +117,41 @@ def syncNeoForgeJeiSources = registerVendorSourceSync(
         'neoforgeJeiSources',
         "vendor-sources/resolved/jei/neoforge-${neoforge_minecraft_version}/runtime"
 )
-def syncNeoForgeEmiSources = registerVendorSourceSync(
-        'syncNeoForgeEmiSources',
-        'neoforgeEmiSources',
-        "vendor-sources/resolved/emi/neoforge-${neoforge_minecraft_version}"
+
+def syncNeoForge26ReferenceSources = registerVendorSourceSync(
+        'syncNeoForge26ReferenceSources',
+        'neoforge26ReferenceSources',
+        'internal/reference-sources/minecraft-26.1.2-neoforge-26.1.2.76'
 )
-def syncForgeJeiApiSources = registerVendorSourceSync(
-        'syncForgeJeiApiSources',
-        'forgeJeiApiSources',
-        "vendor-sources/resolved/jei/forge-${forge_minecraft_version}/api"
+def syncFancyModLoader26ReferenceSources = registerVendorSourceSync(
+        'syncFancyModLoader26ReferenceSources',
+        'fancymodloader26ReferenceSources',
+        'internal/reference-sources/fancymodloader-11.0.13'
 )
-def syncForgeJeiSources = registerVendorSourceSync(
-        'syncForgeJeiSources',
-        'forgeJeiSources',
-        "vendor-sources/resolved/jei/forge-${forge_minecraft_version}/runtime"
-)
-def syncForgeEmiSources = registerVendorSourceSync(
-        'syncForgeEmiSources',
-        'forgeEmiSources',
-        "vendor-sources/resolved/emi/forge-${forge_minecraft_version}"
-)
-def syncFabricReiSources = registerVendorSourceSync(
-        'syncFabricReiSources',
-        'fabricReiSources',
-        "vendor-sources/resolved/rei/fabric-${fabric_minecraft_version}"
-)
+tasks.register('syncNeoForge26AllReferenceSources') {
+    group = 'documentation'
+    description = 'Pulls NeoForge 26.1.2.76 and FancyModLoader 11.0.13 sources for porting exploration.'
+    dependsOn syncNeoForge26ReferenceSources
+    dependsOn syncFancyModLoader26ReferenceSources
+}
 
 def syncNeoForgeReferenceSources = registerVendorSourceSync(
         'syncNeoForgeReferenceSources',
         'neoforgeReferenceSources',
         "internal/reference-sources/minecraft-${neoforge_minecraft_version}-neoforge-${neoforge_version}"
 )
-def syncForgeReferenceSources = registerVendorSourceSync(
-        'syncForgeReferenceSources',
-        'forgeReferenceSources',
-        "internal/reference-sources/minecraft-${forge_minecraft_version}-forge-${forge_version}"
-)
 
 tasks.register('syncReferenceSources') {
     group = 'documentation'
-    description = 'Resolves and extracts NeoForge and Forge sources jars into internal/reference-sources.'
+    description = 'Resolves and extracts NeoForge sources jar into internal/reference-sources.'
     dependsOn syncNeoForgeReferenceSources
-    dependsOn syncForgeReferenceSources
 }
 
 tasks.register('syncRecipeViewerSources') {
     group = 'documentation'
-    description = 'Resolves and extracts EMI/JEI source jars for the configured NeoForge and Forge dependencies.'
+    description = 'Resolves and extracts JEI source jars for the configured NeoForge dependencies.'
     dependsOn syncNeoForgeJeiApiSources
     dependsOn syncNeoForgeJeiSources
-    dependsOn syncNeoForgeEmiSources
-    dependsOn syncForgeJeiApiSources
-    dependsOn syncForgeJeiSources
-    dependsOn syncForgeEmiSources
-    dependsOn syncFabricReiSources
 }
 
 tasks.named('compileJava', JavaCompile).configure {
@@ -208,14 +160,7 @@ tasks.named('compileJava', JavaCompile).configure {
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
-    dependsOn ':forge:forgeReleaseJar'
     dependsOn ':neoforge:test'
-    systemProperty 'ami.forge.releaseJar',
-            project(':forge').layout.buildDirectory.file(
-                    "release/${mod_id}-forge-${forge_minecraft_version}-${amiEffectiveModVersion}.jar"
-            ).get().asFile.absolutePath
-    systemProperty 'ami.forge.namedToIntermediateTsrg',
-            project(':forge').layout.buildDirectory.file('moddev/artifacts/namedToIntermediate.tsrg').get().asFile.absolutePath
 }
 
 tasks.register('cleanLocalRuntime', Delete) {
@@ -291,9 +236,6 @@ def neoForgePrismJarFile = project(':neoforge').layout.buildDirectory.file(
                 ? "libs/${mod_id}-neoforge-${neoforge_minecraft_version}-${mod_version}-debug.jar"
                 : "libs/${mod_id}-neoforge-${neoforge_minecraft_version}-${mod_version}.jar"
 )
-def forgePrismJarFile = project(':forge').layout.buildDirectory.file(
-        "release/${mod_id}-forge-${forge_minecraft_version}-${amiEffectiveModVersion}.jar"
-)
 
 def deployNeoForgePrismCompatJar = registerPrismCompatJarDeploy(
         'deployNeoForgePrismCompatJar',
@@ -304,26 +246,15 @@ def deployNeoForgePrismCompatJar = registerPrismCompatJarDeploy(
         'ami-neoforge-'
 )
 
-def deployForgePrismCompatJar = registerPrismCompatJarDeploy(
-        'deployForgePrismCompatJar',
-        'Builds and copies the reobfuscated Forge AMI jar into the Prism AMICompatForge instance.',
-        ':forge:forgeReleaseJar',
-        forgePrismJarFile,
-        'AMICompatForge',
-        'ami-forge-'
-)
-
 tasks.register('deployPrismCompatJars') {
     group = 'deployment'
-    description = 'Builds AMI and updates the AMICompat and AMICompatForge Prism Launcher instances.'
+    description = 'Builds AMI and updates the AMICompat Prism Launcher instance.'
     dependsOn deployNeoForgePrismCompatJar
-    dependsOn deployForgePrismCompatJar
 }
 
 tasks.register('verifyReleaseArtifacts') {
     group = 'verification'
     description = 'Builds and verifies release artifacts before publishing.'
-    dependsOn ':forge:verifyForgeReleaseJarReobfuscated'
     dependsOn 'test'
 }
 

@@ -25,7 +25,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
+import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
@@ -82,8 +82,8 @@ public class AMIClient {
         event.register(com.sanhiruzu.ami.client.tooltip.PokemonStatBarsComponent.class, c -> c);
     }
 
-    static void onRegisterReloadListeners(RegisterClientReloadListenersEvent event) {
-        event.registerReloadListener(ThemeResourceLoader.INSTANCE);
+    static void onRegisterReloadListeners(AddClientReloadListenersEvent event) {
+        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath("ami", "theme_resource_loader"), ThemeResourceLoader.INSTANCE);
     }
 
     @SubscribeEvent

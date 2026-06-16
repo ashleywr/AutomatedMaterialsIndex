@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.client.results;
 import com.sanhiruzu.ami.api.AmiQuestDocument;
 import com.sanhiruzu.ami.api.AmiQuestItemMatch;
 import com.sanhiruzu.ami.api.AmiQuestTaskDocument;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class QuestItemEvidenceProjectorTest {
     @Test
     void evidenceSummarizesRequirementAndRewardMatches() {
-        ResourceLocation redstone = new ResourceLocation("minecraft", "redstone");
+        Identifier redstone = new Identifier("minecraft", "redstone");
         AmiQuestTaskDocument requirement = AmiQuestTaskDocument.builder("quest/task", "quest",
                         AmiQuestTaskDocument.Role.REQUIREMENT)
                 .title("4x Redstone Dust")

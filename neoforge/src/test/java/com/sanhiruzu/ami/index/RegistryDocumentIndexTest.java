@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -13,7 +13,7 @@ class RegistryDocumentIndexTest {
     private static RegistryDocument enchantment(String id, String name, String description, List<String> tokens) {
         return new RegistryDocument(
                 RegistryDocumentKind.ENCHANTMENT,
-                new ResourceLocation("minecraft", id),
+                new Identifier("minecraft", id),
                 name,
                 description,
                 "minecraft",
@@ -24,7 +24,7 @@ class RegistryDocumentIndexTest {
     private static RegistryDocument tag(String namespace, String path) {
         return new RegistryDocument(
                 RegistryDocumentKind.TAG,
-                new ResourceLocation(namespace, path),
+                new Identifier(namespace, path),
                 "#" + namespace + ":" + path,
                 "item tag - 3 members",
                 namespace,
@@ -106,7 +106,7 @@ class RegistryDocumentIndexTest {
     void tildeMatchesGameRule() {
         RegistryDocument keepInventory = new RegistryDocument(
                 RegistryDocumentKind.GAME_RULE,
-                new ResourceLocation("minecraft", "keepInventory"),
+                new Identifier("minecraft", "keepInventory"),
                 "keepInventory",
                 "Whether players keep their inventory after dying. Default: false",
                 "minecraft",

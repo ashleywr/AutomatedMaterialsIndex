@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.api.AmiAdvancementDocument;
 import com.sanhiruzu.ami.index.AmiAdvancementSearchIndex;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,7 +66,7 @@ public final class AdvancementResultsProjector {
         addEvidence(evidence, tokens, document.tabTitle(), MatchEvidence.SourceType.ADVANCEMENT_TAB, document.id(), document.tabTitle(), "");
         addEvidence(evidence, tokens, document.type(), MatchEvidence.SourceType.ADVANCEMENT_TYPE, document.id(), document.type(), "");
         if (document.iconItemId() != null) {
-            ResourceLocation itemId = document.iconItemId();
+            Identifier itemId = document.iconItemId();
             addEvidence(evidence, tokens, itemId.toString() + " " + itemId.getPath(), MatchEvidence.SourceType.ADVANCEMENT_ICON,
                     document.id(), formatId(itemId), "");
         }
@@ -78,7 +78,7 @@ public final class AdvancementResultsProjector {
     }
 
     private static void addEvidence(List<MatchEvidence> evidence, List<String> tokens, String haystack,
-                                    MatchEvidence.SourceType sourceType, ResourceLocation sourceId,
+                                    MatchEvidence.SourceType sourceType, Identifier sourceId,
                                     String label, String snippet) {
         String normalized = normalize(haystack);
         if (normalized.isBlank()) {
@@ -131,7 +131,7 @@ public final class AdvancementResultsProjector {
                 .replaceAll("\\s+", " ");
     }
 
-    private static String formatId(ResourceLocation id) {
+    private static String formatId(Identifier id) {
         if (id == null) {
             return "";
         }

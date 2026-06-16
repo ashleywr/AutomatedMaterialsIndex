@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
 import com.sanhiruzu.ami.compat.MnaCompat;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -17,7 +17,7 @@ class MnaCompatTest {
     void mnaNamespaceGetsFamilyPolicy() {
         Map<String, String> meta = meta("com.mna.api.items.TieredItem");
 
-        CompatFamilyDetector.detect(new ResourceLocation("mna", "ritual_focus_lesser"), meta);
+        CompatFamilyDetector.detect(new Identifier("mna", "ritual_focus_lesser"), meta);
 
         assertEquals("mna", meta.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
     }
@@ -26,7 +26,7 @@ class MnaCompatTest {
     void constructPartClassesRouteToTechPartsAndCollapseTogether() {
         Map<String, String> meta = meta("com.mna.items.constructs.parts.arms.ConstructPartManaCannonLeft");
 
-        MnaCompat.enrichItem(new ResourceLocation("mna", "construct_mana_cannon_left"), meta);
+        MnaCompat.enrichItem(new Identifier("mna", "construct_mana_cannon_left"), meta);
         CategoryAssignment assignment = resolve("mna:construct_mana_cannon_left", meta);
 
         assertEquals("construct_parts", meta.get(SearchNodeKeys.MNA_ITEM_KIND));
@@ -44,7 +44,7 @@ class MnaCompatTest {
         Map<String, String> meta = meta("com.mna.items.ritual.Mote");
         meta.put(SearchNodeKeys.TAGS, "mna:greater_motes");
 
-        MnaCompat.enrichItem(new ResourceLocation("mna", "greater_mote_earth"), meta);
+        MnaCompat.enrichItem(new Identifier("mna", "greater_mote_earth"), meta);
         CategoryAssignment assignment = resolve("mna:greater_mote_earth", meta);
 
         assertEquals("motes", meta.get(SearchNodeKeys.MNA_ITEM_KIND));
@@ -57,7 +57,7 @@ class MnaCompatTest {
     void practitionerPatchesRouteToMagicArtifactsAndCollapseTogether() {
         Map<String, String> meta = meta("com.mna.items.ritual.PractitionersPatch");
 
-        MnaCompat.enrichItem(new ResourceLocation("mna", "patch_collection"), meta);
+        MnaCompat.enrichItem(new Identifier("mna", "patch_collection"), meta);
         CategoryAssignment assignment = resolve("mna:patch_collection", meta);
 
         assertEquals("ritual_patches", meta.get(SearchNodeKeys.MNA_ITEM_KIND));
@@ -74,7 +74,7 @@ class MnaCompatTest {
         Map<String, String> meta = meta("com.mna.items.runes.StoneRune");
         meta.put(SearchNodeKeys.TAGS, "mna:stone_runes,mna:runes");
 
-        MnaCompat.enrichItem(new ResourceLocation("mna", "stone_rune_fire"), meta);
+        MnaCompat.enrichItem(new Identifier("mna", "stone_rune_fire"), meta);
         CategoryAssignment assignment = resolve("mna:stone_rune_fire", meta);
 
         assertEquals("runes", meta.get(SearchNodeKeys.MNA_ITEM_KIND));
@@ -87,7 +87,7 @@ class MnaCompatTest {
     void mnaSorceryReagentsRouteToMagicReagents() {
         Map<String, String> meta = meta("com.mna.items.sorcery.ItemManaGem");
 
-        MnaCompat.enrichItem(new ResourceLocation("mna", "minor_mana_gem"), meta);
+        MnaCompat.enrichItem(new Identifier("mna", "minor_mana_gem"), meta);
         CategoryAssignment assignment = resolve("mna:minor_mana_gem", meta);
 
         assertEquals("reagents", meta.get(SearchNodeKeys.MNA_ITEM_KIND));
@@ -100,7 +100,7 @@ class MnaCompatTest {
     void factionHornsRouteToMagicArtifacts() {
         Map<String, String> meta = meta("com.mna.items.artifice.ItemFactionHorn");
 
-        MnaCompat.enrichItem(new ResourceLocation("mna", "faction_horn_fey"), meta);
+        MnaCompat.enrichItem(new Identifier("mna", "faction_horn_fey"), meta);
         CategoryAssignment assignment = resolve("mna:faction_horn_fey", meta);
 
         assertEquals("artifacts", meta.get(SearchNodeKeys.MNA_ITEM_KIND));
@@ -113,7 +113,7 @@ class MnaCompatTest {
     void tieredMnaMaterialsRouteToIngredients() {
         Map<String, String> meta = meta("com.mna.api.items.TieredItem");
 
-        MnaCompat.enrichItem(new ResourceLocation("mna", "superheated_vinteum_ingot"), meta);
+        MnaCompat.enrichItem(new Identifier("mna", "superheated_vinteum_ingot"), meta);
         CategoryAssignment assignment = resolve("mna:superheated_vinteum_ingot", meta);
 
         assertEquals("materials", meta.get(SearchNodeKeys.MNA_ITEM_KIND));
@@ -126,7 +126,7 @@ class MnaCompatTest {
     void tieredSachetsRouteToMagicArtifacts() {
         Map<String, String> meta = meta("com.mna.api.items.TieredItem");
 
-        MnaCompat.enrichItem(new ResourceLocation("mna", "sachet_air"), meta);
+        MnaCompat.enrichItem(new Identifier("mna", "sachet_air"), meta);
         CategoryAssignment assignment = resolve("mna:sachet_air", meta);
 
         assertEquals("artifacts", meta.get(SearchNodeKeys.MNA_ITEM_KIND));
@@ -139,7 +139,7 @@ class MnaCompatTest {
         Map<String, String> meta = meta("com.mna.items.sorcery.MagicStaff");
         meta.put(SearchNodeKeys.TAGS, "mna:staves,mna:generated_spell_items");
 
-        MnaCompat.enrichItem(new ResourceLocation("mna", "eldrin_staff"), meta);
+        MnaCompat.enrichItem(new Identifier("mna", "eldrin_staff"), meta);
         CategoryAssignment assignment = resolve("mna:eldrin_staff", meta);
 
         assertEquals("ranged_weapons", meta.get(SearchNodeKeys.MNA_ITEM_KIND));
@@ -154,7 +154,7 @@ class MnaCompatTest {
         Map<String, String> meta = meta("com.mna.items.relic.AstroBlade");
         meta.put(SearchNodeKeys.TAGS, "mna:relics");
 
-        MnaCompat.enrichItem(new ResourceLocation("mna", "astro_blade"), meta);
+        MnaCompat.enrichItem(new Identifier("mna", "astro_blade"), meta);
         CategoryAssignment assignment = resolve("mna:astro_blade", meta);
 
         assertEquals("weapons", meta.get(SearchNodeKeys.MNA_ITEM_KIND));
@@ -167,7 +167,7 @@ class MnaCompatTest {
     void ritualUtilityItemsRouteToMagicArtifacts() {
         Map<String, String> meta = meta("net.minecraft.world.item.Item");
 
-        MnaCompat.enrichItem(new ResourceLocation("mna", "animated_quill"), meta);
+        MnaCompat.enrichItem(new Identifier("mna", "animated_quill"), meta);
         CategoryAssignment assignment = resolve("mna:animated_quill", meta);
 
         assertEquals("artifacts", meta.get(SearchNodeKeys.MNA_ITEM_KIND));
@@ -179,7 +179,7 @@ class MnaCompatTest {
     void hudBadgesRouteToUtilityMiscInsteadOfUnknown() {
         Map<String, String> meta = meta("net.minecraft.world.item.Item");
 
-        MnaCompat.enrichItem(new ResourceLocation("mna", "council_hud_badge_item"), meta);
+        MnaCompat.enrichItem(new Identifier("mna", "council_hud_badge_item"), meta);
         CategoryAssignment assignment = resolve("mna:council_hud_badge_item", meta);
 
         assertEquals("utility", meta.get(SearchNodeKeys.MNA_ITEM_KIND));
@@ -193,7 +193,7 @@ class MnaCompatTest {
         Map<String, String> meta = meta("net.minecraft.world.item.Item");
         meta.put(SearchNodeKeys.TAGS, "mna:dusts/arcane_compound");
 
-        MnaCompat.enrichItem(new ResourceLocation("mna", "arcane_compound"), meta);
+        MnaCompat.enrichItem(new Identifier("mna", "arcane_compound"), meta);
         CategoryAssignment assignment = resolve("mna:arcane_compound", meta);
 
         assertEquals("reagents", meta.get(SearchNodeKeys.MNA_ITEM_KIND));
@@ -211,7 +211,7 @@ class MnaCompatTest {
 
     private static CategoryAssignment resolve(String id, Map<String, String> meta, ItemFacet... facets) {
         return PrimaryCategoryResolver.resolve(
-                new ResourceLocation(id),
+                new Identifier(id),
                 facets.length == 0 ? EnumSet.noneOf(ItemFacet.class) : EnumSet.of(facets[0], facets),
                 meta
         );

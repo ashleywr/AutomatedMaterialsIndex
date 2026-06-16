@@ -1,11 +1,12 @@
 package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.platform.Services;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.*;
+import net.minecraft.world.item.ItemUseAnimation;
 import net.minecraft.world.level.block.ComposterBlock;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -49,7 +50,7 @@ public final class FacetIndexer {
     private FacetIndexer() {
     }
 
-    public static FacetProfile index(Item item, ResourceLocation id, ItemStack stack) {
+    public static FacetProfile index(Item item, Identifier id, ItemStack stack) {
         EnumSet<ItemFacet> facets = EnumSet.noneOf(ItemFacet.class);
         Map<String, String> attributes = new LinkedHashMap<>();
         String path = id.getPath().toLowerCase(Locale.ROOT);
@@ -60,7 +61,7 @@ public final class FacetIndexer {
         if (hasFood) {
             facets.add(ItemFacet.EDIBLE);
         }
-        if (stack.getUseAnimation() == UseAnim.DRINK) {
+        if (stack.getUseAnimation() == ItemUseAnimation.DRINK) {
             facets.add(ItemFacet.FOOD_DRINK);
         }
         if (ComposterBlock.COMPOSTABLES.containsKey(item)) {
@@ -129,7 +130,7 @@ public final class FacetIndexer {
         }
     }
 
-    private static void applyItemClassFacts(Item item, ResourceLocation id, EnumSet<ItemFacet> facets, Map<String, String> attributes) {
+    private static void applyItemClassFacts(Item item, Identifier id, EnumSet<ItemFacet> facets, Map<String, String> attributes) {
         String itemClass = item.getClass().getName().toLowerCase(Locale.ROOT);
         if (item instanceof BucketItem) {
             attributes.put(SearchNodeKeys.IS_BUCKET_ITEM, "true");
@@ -183,7 +184,7 @@ public final class FacetIndexer {
         }
     }
 
-    private static void applyPathFacts(ResourceLocation id, String path, EnumSet<ItemFacet> facets, Map<String, String> attributes) {
+    private static void applyPathFacts(Identifier id, String path, EnumSet<ItemFacet> facets, Map<String, String> attributes) {
         if (path.contains("spell") || path.contains("wand") || path.contains("staff") || path.contains("scroll")) {
             facets.add(ItemFacet.MAGIC_ARTIFACT);
         }
@@ -342,7 +343,7 @@ public final class FacetIndexer {
     }
 
     private static void applyTypeFacts(Item item, String path, EnumSet<ItemFacet> facets) {
-        if (item instanceof SwordItem || item instanceof AxeItem) {
+        if (Services.PLATFORM.isInstanceOf(item, "net.minecraft.world.item.SwordItem") || item instanceof AxeItem) {
             facets.add(ItemFacet.MELEE_WEAPON);
         }
         if (item instanceof BowItem || item instanceof CrossbowItem) {
@@ -351,7 +352,9 @@ public final class FacetIndexer {
         if (Services.PLATFORM.isInstanceOf(item, "net.minecraft.world.item.ProjectileItem") || isProjectilePath(path)) {
             facets.add(ItemFacet.PROJECTILE);
         }
-        if (item instanceof DiggerItem || item instanceof HoeItem || item instanceof ShovelItem || item instanceof PickaxeItem) {
+        if (Services.PLATFORM.isInstanceOf(item, "net.minecraft.world.item.DiggerItem")
+                || item instanceof HoeItem || item instanceof ShovelItem
+                || Services.PLATFORM.isInstanceOf(item, "net.minecraft.world.item.PickaxeItem")) {
             facets.add(ItemFacet.HARVEST_TOOL);
         }
         if (item instanceof FishingRodItem
@@ -363,16 +366,6 @@ public final class FacetIndexer {
         }
         if (isNonPlayerArmorItem(item, path)) {
             facets.add(ItemFacet.ARMOR_ANIMAL);
-        } else if (item instanceof ArmorItem armorItem) {
-            EquipmentSlot slot = armorItem.getEquipmentSlot();
-            switch (slot) {
-                case HEAD -> facets.add(ItemFacet.ARMOR_HEAD);
-                case CHEST -> facets.add(ItemFacet.ARMOR_CHEST);
-                case LEGS -> facets.add(ItemFacet.ARMOR_LEGS);
-                case FEET -> facets.add(ItemFacet.ARMOR_FEET);
-                default -> {
-                }
-            }
         }
         // Class-name-based equipment detection for items that don't use vanilla
         // interfaces (ArmorItem, etc.) but have clear functional class names.
@@ -380,7 +373,7 @@ public final class FacetIndexer {
         if (item instanceof PotionItem) {
             facets.add(ItemFacet.POTION);
         }
-        if (item instanceof EnchantedBookItem) {
+        if (Services.PLATFORM.isInstanceOf(item, "net.minecraft.world.item.EnchantedBookItem")) {
             facets.add(ItemFacet.ENCHANTED_BOOK);
             facets.add(ItemFacet.BOOK);
         }
@@ -964,7 +957,7 @@ public final class FacetIndexer {
 
     private static void applyBlockFacts(
             BlockItem blockItem,
-            ResourceLocation id,
+            Identifier id,
             ItemStack stack,
             String path,
             List<String> itemTags,
@@ -991,7 +984,8 @@ public final class FacetIndexer {
         }
         applyFunctionalBlockClassFacts(id, path, normalizedBlockClass, facets);
 
-        String blockTags = state.getTags()
+        @SuppressWarnings("deprecation")
+        String blockTags = state.getBlock().builtInRegistryHolder().tags()
                 .map(tag -> tag.location().toString().toLowerCase(Locale.ROOT))
                 .sorted()
                 .collect(Collectors.joining(","));
@@ -1230,7 +1224,7 @@ public final class FacetIndexer {
     }
 
     private static String itemId(Item item) {
-        ResourceLocation id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item);
+        Identifier id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item);
         return id != null ? id.toString() : null;
     }
 
@@ -1261,7 +1255,7 @@ public final class FacetIndexer {
                 || path.equals("dropper");
     }
 
-    private static void applyFunctionalBlockClassFacts(ResourceLocation id, String path, String blockClass,
+    private static void applyFunctionalBlockClassFacts(Identifier id, String path, String blockClass,
                                                        EnumSet<ItemFacet> facets) {
         if (blockClass == null || blockClass.isBlank()) {
             return;

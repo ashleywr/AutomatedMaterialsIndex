@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client;
 
 import com.mojang.blaze3d.platform.NativeImage;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,7 +22,7 @@ final class EntityIconPersistentStore {
     private final Path root;
     private final String fingerprint;
     private final ExecutorService writer;
-    private final Map<Integer, LinkedHashMap<ResourceLocation, String>> manifests = new LinkedHashMap<>();
+    private final Map<Integer, LinkedHashMap<Identifier, String>> manifests = new LinkedHashMap<>();
     private int pendingWrites = 0;
     private long droppedWrites = 0L;
 
@@ -32,8 +32,8 @@ final class EntityIconPersistentStore {
         this.writer = writer;
     }
 
-    NativeImage loadIcon(ResourceLocation id, int size) {
-        LinkedHashMap<ResourceLocation, String> manifest = manifest(size);
+    NativeImage loadIcon(Identifier id, int size) {
+        LinkedHashMap<Identifier, String> manifest = manifest(size);
         String fileName = manifest.get(id);
         if (fileName == null) {
             return null;
@@ -49,14 +49,14 @@ final class EntityIconPersistentStore {
         return image;
     }
 
-    void enqueueWrite(ResourceLocation id, int size, NativeImage source) {
+    void enqueueWrite(Identifier id, int size, NativeImage source) {
         Path iconFile;
         synchronized (this) {
             if (pendingWrites >= MAX_PENDING_WRITES) {
                 droppedWrites++;
                 return;
             }
-            LinkedHashMap<ResourceLocation, String> manifest = manifest(size);
+            LinkedHashMap<Identifier, String> manifest = manifest(size);
             manifest.put(id, EntityIconCacheKey.iconFileName(id.toString()));
             iconFile = iconDirectory(size).resolve(manifest.get(id));
             pendingWrites++;
@@ -79,11 +79,11 @@ final class EntityIconPersistentStore {
         return new StoreStats(pendingWrites, droppedWrites);
     }
 
-    private LinkedHashMap<ResourceLocation, String> manifest(int size) {
+    private LinkedHashMap<Identifier, String> manifest(int size) {
         return manifests.computeIfAbsent(size, this::readManifest);
     }
 
-    private LinkedHashMap<ResourceLocation, String> readManifest(int size) {
+    private LinkedHashMap<Identifier, String> readManifest(int size) {
         Path manifestFile = manifestFile(size);
         if (!Files.isRegularFile(manifestFile)) {
             return new LinkedHashMap<>();
@@ -95,8 +95,8 @@ final class EntityIconPersistentStore {
         }
     }
 
-    static LinkedHashMap<ResourceLocation, String> parseManifestLines(List<String> lines) {
-        LinkedHashMap<ResourceLocation, String> manifest = new LinkedHashMap<>();
+    static LinkedHashMap<Identifier, String> parseManifestLines(List<String> lines) {
+        LinkedHashMap<Identifier, String> manifest = new LinkedHashMap<>();
         for (String line : lines) {
             if (line.isBlank()) {
                 continue;
@@ -106,7 +106,7 @@ final class EntityIconPersistentStore {
                 continue;
             }
             try {
-                manifest.put(ResourceLocation.parse(parts[0]), parts[1]);
+                manifest.put(Identifier.parse(parts[0]), parts[1]);
             } catch (RuntimeException ignored) {
                 // Ignore corrupt manifest rows.
             }
@@ -114,9 +114,9 @@ final class EntityIconPersistentStore {
         return manifest;
     }
 
-    private List<String> manifestLines(LinkedHashMap<ResourceLocation, String> manifest) {
+    private List<String> manifestLines(LinkedHashMap<Identifier, String> manifest) {
         List<String> lines = new ArrayList<>(manifest.size());
-        for (Map.Entry<ResourceLocation, String> entry : manifest.entrySet()) {
+        for (Map.Entry<Identifier, String> entry : manifest.entrySet()) {
             lines.add(entry.getKey() + "\t" + entry.getValue());
         }
         lines.sort(String::compareTo);
@@ -152,7 +152,7 @@ final class EntityIconPersistentStore {
         NativeImage snapshot = new NativeImage(size, size, true);
         for (int y = 0; y < size; y++) {
             for (int x = 0; x < size; x++) {
-                snapshot.setPixelRGBA(x, y, source.getPixelRGBA(x, y));
+                snapshot.setPixel(x, y, source.getPixel(x, y));
             }
         }
         return snapshot;

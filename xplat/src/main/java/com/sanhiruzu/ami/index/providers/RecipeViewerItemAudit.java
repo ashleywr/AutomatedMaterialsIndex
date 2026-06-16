@@ -15,7 +15,7 @@ import dev.emi.emi.registry.EmiStackList;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.runtime.IIngredientVisibility;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
@@ -148,7 +148,7 @@ public final class RecipeViewerItemAudit {
             }
             if (itemId.isBlank()) {
                 String subtypeOf = node.meta(SearchNodeKeys.SUBTYPE_OF, "");
-                ResourceLocation subtypeId = ResourceLocation.tryParse(subtypeOf);
+                Identifier subtypeId = Identifier.tryParse(subtypeOf);
                 if (subtypeId != null && BuiltInRegistries.ITEM.containsKey(subtypeId)) {
                     itemId = subtypeId.toString();
                 }
@@ -270,12 +270,12 @@ public final class RecipeViewerItemAudit {
         if (stack == null || stack.isEmpty()) {
             return "";
         }
-        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
         return itemId == null ? "" : itemId.toString();
     }
 
     private static String exactHash(ItemStack stack, Level level) {
-        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
         if (itemId == null) {
             return "";
         }
@@ -289,7 +289,7 @@ public final class RecipeViewerItemAudit {
         return itemId + "|" + exactHash;
     }
 
-    private static String variantHashFromNodeId(ResourceLocation nodeId) {
+    private static String variantHashFromNodeId(Identifier nodeId) {
         if (nodeId == null) {
             return "";
         }

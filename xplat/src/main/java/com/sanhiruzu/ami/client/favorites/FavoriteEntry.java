@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.lang.reflect.Method;
@@ -14,7 +14,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public record FavoriteEntry(String key, ResourceLocation itemId, ItemStack stack, ResourceLocation recipeId,
+public record FavoriteEntry(String key, Identifier itemId, ItemStack stack, Identifier recipeId,
                             String source) {
     public static final String META_KIND = "ami.favorite.kind";
     public static final String META_BASE_ID = "ami.favorite.base_id";
@@ -26,7 +26,7 @@ public record FavoriteEntry(String key, ResourceLocation itemId, ItemStack stack
         return create(stack, null, source);
     }
 
-    public static FavoriteEntry recipe(ItemStack stack, ResourceLocation recipeId, String source) {
+    public static FavoriteEntry recipe(ItemStack stack, Identifier recipeId, String source) {
         return create(stack, recipeId, source);
     }
 
@@ -34,15 +34,15 @@ public record FavoriteEntry(String key, ResourceLocation itemId, ItemStack stack
         return item(stack, LOCAL_SOURCE);
     }
 
-    public static FavoriteEntry localRecipe(ItemStack stack, ResourceLocation recipeId) {
+    public static FavoriteEntry localRecipe(ItemStack stack, Identifier recipeId) {
         return recipe(stack, recipeId, LOCAL_SOURCE);
     }
 
-    private static FavoriteEntry create(ItemStack stack, ResourceLocation recipeId, String source) {
+    private static FavoriteEntry create(ItemStack stack, Identifier recipeId, String source) {
         if (stack == null || stack.isEmpty()) {
             return null;
         }
-        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
         if (itemId == null) {
             return null;
         }
@@ -56,7 +56,7 @@ public record FavoriteEntry(String key, ResourceLocation itemId, ItemStack stack
     }
 
     private static String stackIdentity(ItemStack stack) {
-        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
         StringBuilder sb = new StringBuilder(itemId == null ? "unknown" : itemId.toString());
         if (Boolean.TRUE.equals(invokeNoArg(stack, "isDamageableItem"))) {
             Object damage = invokeNoArg(stack, "getDamageValue");
@@ -108,7 +108,7 @@ public record FavoriteEntry(String key, ResourceLocation itemId, ItemStack stack
     }
 
     public SearchNode toNode() {
-        ResourceLocation nodeId = nodeId();
+        Identifier nodeId = nodeId();
         ItemIconRenderer.registerStack(nodeId, stack);
 
         Map<String, String> metadata = new LinkedHashMap<>();
@@ -122,9 +122,9 @@ public record FavoriteEntry(String key, ResourceLocation itemId, ItemStack stack
         return new SearchNode(nodeId, NodeType.ITEM, stack.getHoverName().getString(), 0, 0, metadata);
     }
 
-    public ResourceLocation nodeId() {
+    public Identifier nodeId() {
         String path = "favorite/" + (isRecipeFavorite() ? "recipe/" : "item/") + sha1(key);
-        ResourceLocation id = ResourceLocation.tryParse("ami:" + path);
+        Identifier id = Identifier.tryParse("ami:" + path);
         return id == null ? itemId : id;
     }
 
@@ -132,11 +132,11 @@ public record FavoriteEntry(String key, ResourceLocation itemId, ItemStack stack
      * Returns the real underlying item ID for a node that may be a favorite entry,
      * falling back to node.id() for non-favorite nodes.
      */
-    public static ResourceLocation resolvedId(SearchNode node) {
+    public static Identifier resolvedId(SearchNode node) {
         if (node == null) return null;
         String baseId = node.meta(META_BASE_ID, "");
         if (!baseId.isBlank()) {
-            ResourceLocation resolved = ResourceLocation.tryParse(baseId);
+            Identifier resolved = Identifier.tryParse(baseId);
             if (resolved != null) return resolved;
         }
         return node.id();

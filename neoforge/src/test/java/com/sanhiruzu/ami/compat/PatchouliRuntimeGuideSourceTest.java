@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.api.AmiGuideDocument;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
@@ -14,14 +14,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PatchouliRuntimeGuideSourceTest {
     @Test
     void buildsOpenableDocumentsFromPatchouliResources() {
-        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("botania", "patchouli_books/lexicon/en_us/book.json"), """
+        Map<Identifier, String> resources = new LinkedHashMap<>();
+        resources.put(new Identifier("botania", "patchouli_books/lexicon/en_us/book.json"), """
                 { "name": "Lexicon" }
                 """);
-        resources.put(new ResourceLocation("botania", "patchouli_books/lexicon/en_us/categories/basics.json"), """
+        resources.put(new Identifier("botania", "patchouli_books/lexicon/en_us/categories/basics.json"), """
                 { "name": "Basics" }
                 """);
-        resources.put(new ResourceLocation("botania", "patchouli_books/lexicon/en_us/entries/basics/mana_spreader.json"), """
+        resources.put(new Identifier("botania", "patchouli_books/lexicon/en_us/entries/basics/mana_spreader.json"), """
                 {
                   "name": "Mana Spreaders",
                   "category": "basics",
@@ -36,25 +36,25 @@ class PatchouliRuntimeGuideSourceTest {
 
         assertEquals(1, documents.size());
         AmiGuideDocument document = documents.getFirst();
-        assertEquals(new ResourceLocation("botania", "lexicon"), document.bookId());
+        assertEquals(new Identifier("botania", "lexicon"), document.bookId());
         assertEquals("basics/mana_spreader", document.pageId());
         assertEquals("Mana Spreaders", document.title());
         assertEquals("Basics", document.chapter());
-        assertEquals(List.of(new ResourceLocation("botania", "mana_spreader")), document.referencedItems());
+        assertEquals(List.of(new Identifier("botania", "mana_spreader")), document.referencedItems());
         assertTrue(document.summaryText().contains("Mana spreaders move mana."));
         assertTrue(document.canOpen());
     }
 
     @Test
     void selectedLanguageOverridesDefaultLanguageForSameEntry() {
-        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("example", "patchouli_books/manual/en_us/book.json"), """
+        Map<Identifier, String> resources = new LinkedHashMap<>();
+        resources.put(new Identifier("example", "patchouli_books/manual/en_us/book.json"), """
                 { "name": "Manual" }
                 """);
-        resources.put(new ResourceLocation("example", "patchouli_books/manual/en_us/entries/machines/press.json"), """
+        resources.put(new Identifier("example", "patchouli_books/manual/en_us/entries/machines/press.json"), """
                 { "name": "Press", "pages": [ { "text": "English body" } ] }
                 """);
-        resources.put(new ResourceLocation("example", "patchouli_books/manual/de_de/entries/machines/press.json"), """
+        resources.put(new Identifier("example", "patchouli_books/manual/de_de/entries/machines/press.json"), """
                 { "name": "Localized Press", "pages": [ { "text": "Localized body" } ] }
                 """);
 
@@ -67,9 +67,9 @@ class PatchouliRuntimeGuideSourceTest {
 
     @Test
     void malformedBookDoesNotBlockOtherBooks() {
-        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("bad", "patchouli_books/manual/en_us/entries/broken.json"), "{");
-        resources.put(new ResourceLocation("good", "patchouli_books/manual/en_us/entries/working.json"), """
+        Map<Identifier, String> resources = new LinkedHashMap<>();
+        resources.put(new Identifier("bad", "patchouli_books/manual/en_us/entries/broken.json"), "{");
+        resources.put(new Identifier("good", "patchouli_books/manual/en_us/entries/working.json"), """
                 { "name": "Working" }
                 """);
 
@@ -81,14 +81,14 @@ class PatchouliRuntimeGuideSourceTest {
 
     @Test
     void cobblepediaStyleRootBookAndLangKeysAreIndexed() {
-        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("cobblepedia", "patchouli_books/cobblepedia/book.json"), """
+        Map<Identifier, String> resources = new LinkedHashMap<>();
+        resources.put(new Identifier("cobblepedia", "patchouli_books/cobblepedia/book.json"), """
                 { "name": "book.cobblepedia" }
                 """);
-        resources.put(new ResourceLocation("cobblepedia", "patchouli_books/cobblepedia/en_us/categories/getting_started.json"), """
+        resources.put(new Identifier("cobblepedia", "patchouli_books/cobblepedia/en_us/categories/getting_started.json"), """
                 { "name": "book.cobblepedia.categories.getting_started" }
                 """);
-        resources.put(new ResourceLocation("cobblepedia", "patchouli_books/cobblepedia/en_us/entries/pokedex.json"), """
+        resources.put(new Identifier("cobblepedia", "patchouli_books/cobblepedia/en_us/entries/pokedex.json"), """
                 {
                   "name": "book.cobblepedia.entries.pokedex.name",
                   "category": "cobblepedia:getting_started",
@@ -102,8 +102,8 @@ class PatchouliRuntimeGuideSourceTest {
                   ]
                 }
                 """);
-        Map<ResourceLocation, String> lang = new LinkedHashMap<>();
-        lang.put(new ResourceLocation("cobblepedia", "lang/en_us.json"), """
+        Map<Identifier, String> lang = new LinkedHashMap<>();
+        lang.put(new Identifier("cobblepedia", "lang/en_us.json"), """
                 {
                   "book.cobblepedia": "Cobblepedia",
                   "book.cobblepedia.categories.getting_started": "Getting Started",
@@ -116,7 +116,7 @@ class PatchouliRuntimeGuideSourceTest {
 
         assertEquals(1, documents.size());
         AmiGuideDocument document = documents.getFirst();
-        assertEquals(new ResourceLocation("cobblepedia", "cobblepedia"), document.bookId());
+        assertEquals(new Identifier("cobblepedia", "cobblepedia"), document.bookId());
         assertEquals("pokedex", document.pageId());
         assertEquals("Pokedex", document.title());
         assertEquals("Getting Started", document.chapter());
@@ -127,20 +127,20 @@ class PatchouliRuntimeGuideSourceTest {
 
     @Test
     void naturesAuraStyleRootBookAndAssetEntriesAreIndexed() {
-        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("naturesaura", "patchouli_books/book/book.json"), """
+        Map<Identifier, String> resources = new LinkedHashMap<>();
+        resources.put(new Identifier("naturesaura", "patchouli_books/book/book.json"), """
                 {
                   "name": "Book of Natural Aura",
                   "use_resource_pack": true
                 }
                 """);
-        resources.put(new ResourceLocation("naturesaura", "patchouli_books/book/en_us/categories/using.json"), """
+        resources.put(new Identifier("naturesaura", "patchouli_books/book/en_us/categories/using.json"), """
                 {
                   "name": "Using Aura",
                   "description": "Ways to collect and spend aura."
                 }
                 """);
-        resources.put(new ResourceLocation("naturesaura", "patchouli_books/book/en_us/entries/using/altar.json"), """
+        resources.put(new Identifier("naturesaura", "patchouli_books/book/en_us/entries/using/altar.json"), """
                 {
                   "name": "The Natural Altar",
                   "icon": "naturesaura:nature_altar",
@@ -163,11 +163,11 @@ class PatchouliRuntimeGuideSourceTest {
 
         assertEquals(1, documents.size());
         AmiGuideDocument document = documents.getFirst();
-        assertEquals(new ResourceLocation("naturesaura", "book"), document.bookId());
+        assertEquals(new Identifier("naturesaura", "book"), document.bookId());
         assertEquals("using/altar", document.pageId());
         assertEquals("The Natural Altar", document.title());
         assertEquals("Using Aura", document.chapter());
-        assertEquals(List.of(new ResourceLocation("naturesaura", "nature_altar")), document.referencedItems());
+        assertEquals(List.of(new Identifier("naturesaura", "nature_altar")), document.referencedItems());
         assertTrue(document.summaryText().contains("The Natural Altar collects aura"));
         assertTrue(document.canOpen());
     }

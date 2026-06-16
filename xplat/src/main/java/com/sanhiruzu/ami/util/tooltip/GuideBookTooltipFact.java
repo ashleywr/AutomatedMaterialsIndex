@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.util.tooltip;
 import com.sanhiruzu.ami.index.*;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -52,7 +52,7 @@ public final class GuideBookTooltipFact implements AmiTooltipFact {
     }
 
     int indexedPageCount(SearchNode entry) {
-        ResourceLocation guideBookId = ResourceLocation.tryParse(entry.meta(SearchNodeKeys.GUIDE_BOOK_ID, ""));
+        Identifier guideBookId = Identifier.tryParse(entry.meta(SearchNodeKeys.GUIDE_BOOK_ID, ""));
         if (guideBookId == null) {
             return 0;
         }

@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.client;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -14,7 +14,7 @@ class EntityIconPersistentStoreTest {
         String zombieFile = EntityIconCacheKey.iconFileName("minecraft:zombie");
         String skeletonFile = EntityIconCacheKey.iconFileName("minecraft:skeleton");
 
-        Map<ResourceLocation, String> manifest = EntityIconPersistentStore.parseManifestLines(List.of(
+        Map<Identifier, String> manifest = EntityIconPersistentStore.parseManifestLines(List.of(
                 "minecraft:zombie\t" + zombieFile,
                 "minecraft:skeleton\t" + skeletonFile,
                 "minecraft:creeper\t../creeper.png",
@@ -24,10 +24,10 @@ class EntityIconPersistentStoreTest {
                 "minecraft:pig\t" + zombieFile + "\textra"));
 
         assertEquals(2, manifest.size());
-        assertEquals(zombieFile, manifest.get(ResourceLocation.parse("minecraft:zombie")));
-        assertEquals(skeletonFile, manifest.get(ResourceLocation.parse("minecraft:skeleton")));
-        assertFalse(manifest.containsKey(ResourceLocation.parse("minecraft:creeper")));
-        assertFalse(manifest.containsKey(ResourceLocation.parse("minecraft:enderman")));
-        assertFalse(manifest.containsKey(ResourceLocation.parse("minecraft:pig")));
+        assertEquals(zombieFile, manifest.get(Identifier.parse("minecraft:zombie")));
+        assertEquals(skeletonFile, manifest.get(Identifier.parse("minecraft:skeleton")));
+        assertFalse(manifest.containsKey(Identifier.parse("minecraft:creeper")));
+        assertFalse(manifest.containsKey(Identifier.parse("minecraft:enderman")));
+        assertFalse(manifest.containsKey(Identifier.parse("minecraft:pig")));
     }
 }

@@ -7,7 +7,7 @@ import com.google.gson.JsonParser;
 import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.api.AmiGuideOpeners;
 import com.sanhiruzu.ami.index.GlobalIndexCache;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 
@@ -54,15 +54,15 @@ public final class ModonomiconRuntimeGuideSource {
         }
     }
 
-    static List<AmiGuideDocument> documentsFromResources(Map<ResourceLocation, String> jsonById,
-                                                         Map<ResourceLocation, String> langJsonById,
+    static List<AmiGuideDocument> documentsFromResources(Map<Identifier, String> jsonById,
+                                                         Map<Identifier, String> langJsonById,
                                                          String selectedLanguage) {
         if (jsonById == null || jsonById.isEmpty()) {
             return List.of();
         }
         String language = normalizeLanguage(selectedLanguage);
         Map<String, String> translations = translations(langJsonById, language);
-        Map<ResourceLocation, BookResources> books = new LinkedHashMap<>();
+        Map<Identifier, BookResources> books = new LinkedHashMap<>();
 
         jsonById.entrySet().stream()
                 .sorted(Comparator.comparing(entry -> entry.getKey().toString()))
@@ -72,8 +72,8 @@ public final class ModonomiconRuntimeGuideSource {
                 }));
 
         List<AmiGuideDocument> documents = new ArrayList<>();
-        for (Map.Entry<ResourceLocation, BookResources> entry : books.entrySet()) {
-            ResourceLocation bookId = entry.getKey();
+        for (Map.Entry<Identifier, BookResources> entry : books.entrySet()) {
+            Identifier bookId = entry.getKey();
             BookResources book = entry.getValue();
             String bookTitle = parseObject(book.bookJson())
                     .flatMap(object -> firstString(object, translations, "name", "title"))
@@ -94,7 +94,7 @@ public final class ModonomiconRuntimeGuideSource {
         return List.copyOf(documents);
     }
 
-    private static Optional<AmiGuideDocument> documentFromEntry(ResourceLocation bookId,
+    private static Optional<AmiGuideDocument> documentFromEntry(Identifier bookId,
                                                                String bookTitle,
                                                                String entryKey,
                                                                String entryJson,
@@ -107,12 +107,12 @@ public final class ModonomiconRuntimeGuideSource {
         JsonObject object = maybeObject.get();
         String pageId = normalizePathKey(entryKey);
         String title = firstString(object, translations, "name", "title").orElse(humanize(pageId));
-        ResourceLocation categoryId = firstString(object, translations, "category")
+        Identifier categoryId = firstString(object, translations, "category")
                 .map(value -> entryScopedId(bookId, value))
-                .orElse(ResourceLocation.fromNamespaceAndPath(bookId.getNamespace(), categoryFromPath(pageId)));
-        ResourceLocation iconItemId = iconItemId(object).orElse(null);
+                .orElse(Identifier.fromNamespaceAndPath(bookId.getNamespace(), categoryFromPath(pageId)));
+        Identifier iconItemId = iconItemId(object).orElse(null);
         String chapter = categoryLabels.getOrDefault(categoryId.toString(), humanize(categoryId.getPath()));
-        LinkedHashSet<ResourceLocation> referencedItems = new LinkedHashSet<>();
+        LinkedHashSet<Identifier> referencedItems = new LinkedHashSet<>();
         List<String> summaryParts = new ArrayList<>();
 
         add(summaryParts, bookTitle);
@@ -121,7 +121,7 @@ public final class ModonomiconRuntimeGuideSource {
         collectSummaryAndItems(object, translations, summaryParts, referencedItems);
 
         AmiGuideDocument document = AmiGuideDocument.builder(
-                        ResourceLocation.fromNamespaceAndPath("ami",
+                        Identifier.fromNamespaceAndPath("ami",
                                 "guide/modonomicon/" + bookId.getNamespace() + "/" + safePath(bookId.getPath()) + "/" + safePath(pageId)),
                         SOURCE_TYPE,
                         bookId.getNamespace(),
@@ -138,16 +138,16 @@ public final class ModonomiconRuntimeGuideSource {
         return Optional.of(document);
     }
 
-    private static Optional<ResourceLocation> iconItemId(JsonObject object) {
+    private static Optional<Identifier> iconItemId(JsonObject object) {
         if (object == null) {
             return Optional.empty();
         }
-        LinkedHashSet<ResourceLocation> icons = new LinkedHashSet<>();
+        LinkedHashSet<Identifier> icons = new LinkedHashSet<>();
         collectItem(object.get("icon"), icons);
         return icons.stream().findFirst();
     }
 
-    private static Map<String, String> categoryLabels(ResourceLocation bookId,
+    private static Map<String, String> categoryLabels(Identifier bookId,
                                                       Map<String, String> categoryJsonById,
                                                       Map<String, String> translations) {
         if (categoryJsonById.isEmpty()) {
@@ -155,7 +155,7 @@ public final class ModonomiconRuntimeGuideSource {
         }
         Map<String, String> out = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : categoryJsonById.entrySet()) {
-            ResourceLocation categoryId = entryScopedId(bookId, entry.getKey());
+            Identifier categoryId = entryScopedId(bookId, entry.getKey());
             parseObject(entry.getValue())
                     .flatMap(object -> firstString(object, translations, "name", "title"))
                     .ifPresent(label -> out.put(categoryId.toString(), label));
@@ -166,7 +166,7 @@ public final class ModonomiconRuntimeGuideSource {
     private static void collectSummaryAndItems(JsonElement element,
                                                Map<String, String> translations,
                                                List<String> summaryParts,
-                                               Set<ResourceLocation> referencedItems) {
+                                               Set<Identifier> referencedItems) {
         if (element == null || element.isJsonNull()) {
             return;
         }
@@ -195,7 +195,7 @@ public final class ModonomiconRuntimeGuideSource {
         }
     }
 
-    private static void collectItem(JsonElement element, Set<ResourceLocation> referencedItems) {
+    private static void collectItem(JsonElement element, Set<Identifier> referencedItems) {
         if (element == null || element.isJsonNull()) {
             return;
         }
@@ -216,7 +216,7 @@ public final class ModonomiconRuntimeGuideSource {
         }
     }
 
-    private static Optional<ResourceLocation> itemId(String raw) {
+    private static Optional<Identifier> itemId(String raw) {
         if (raw == null) {
             return Optional.empty();
         }
@@ -228,7 +228,7 @@ public final class ModonomiconRuntimeGuideSource {
         if (cut >= 0) {
             value = value.substring(0, cut);
         }
-        ResourceLocation parsed = ResourceLocation.tryParse(value);
+        Identifier parsed = Identifier.tryParse(value);
         return parsed == null ? Optional.empty() : Optional.of(parsed);
     }
 
@@ -273,7 +273,7 @@ public final class ModonomiconRuntimeGuideSource {
                 && value.matches("[a-z0-9_.-]+");
     }
 
-    private static Map<String, String> translations(Map<ResourceLocation, String> langJsonById, String selectedLanguage) {
+    private static Map<String, String> translations(Map<Identifier, String> langJsonById, String selectedLanguage) {
         if (langJsonById == null || langJsonById.isEmpty()) {
             return Map.of();
         }
@@ -285,7 +285,7 @@ public final class ModonomiconRuntimeGuideSource {
         return Map.copyOf(out);
     }
 
-    private static void putTranslations(Map<String, String> out, Map<ResourceLocation, String> langJsonById, String language) {
+    private static void putTranslations(Map<String, String> out, Map<Identifier, String> langJsonById, String language) {
         String suffix = LANG_ROOT + "/" + language + ".json";
         langJsonById.entrySet().stream()
                 .filter(entry -> entry.getKey().getPath().equals(suffix))
@@ -299,8 +299,8 @@ public final class ModonomiconRuntimeGuideSource {
                 }));
     }
 
-    private static Map<ResourceLocation, String> readJsonResources(ResourceManager resourceManager) {
-        Map<ResourceLocation, String> out = new LinkedHashMap<>();
+    private static Map<Identifier, String> readJsonResources(ResourceManager resourceManager) {
+        Map<Identifier, String> out = new LinkedHashMap<>();
         resourceManager.listResources(ROOT, id -> id.getPath().endsWith(".json"))
                 .entrySet()
                 .stream()
@@ -309,8 +309,8 @@ public final class ModonomiconRuntimeGuideSource {
         return out;
     }
 
-    private static Map<ResourceLocation, String> readLangResources(ResourceManager resourceManager, String selectedLanguage) {
-        Map<ResourceLocation, String> out = new LinkedHashMap<>();
+    private static Map<Identifier, String> readLangResources(ResourceManager resourceManager, String selectedLanguage) {
+        Map<Identifier, String> out = new LinkedHashMap<>();
         if (resourceManager == null) {
             return out;
         }
@@ -358,7 +358,7 @@ public final class ModonomiconRuntimeGuideSource {
         return parsed.isJsonObject() ? Optional.of(parsed.getAsJsonObject()) : Optional.empty();
     }
 
-    private static Optional<ModonomiconResource> parseResource(ResourceLocation id) {
+    private static Optional<ModonomiconResource> parseResource(Identifier id) {
         if (id == null) {
             return Optional.empty();
         }
@@ -372,7 +372,7 @@ public final class ModonomiconRuntimeGuideSource {
         if (parts.length < 2) {
             return Optional.empty();
         }
-        ResourceLocation bookId = ResourceLocation.fromNamespaceAndPath(id.getNamespace(), parts[0]);
+        Identifier bookId = Identifier.fromNamespaceAndPath(id.getNamespace(), parts[0]);
         if ("book".equals(parts[1])) {
             return Optional.of(new ModonomiconResource(bookId, ResourceKind.BOOK, ""));
         }
@@ -391,15 +391,15 @@ public final class ModonomiconRuntimeGuideSource {
         return key.isBlank() ? Optional.empty() : Optional.of(new ModonomiconResource(bookId, kind, key));
     }
 
-    private static ResourceLocation entryScopedId(ResourceLocation bookId, String raw) {
+    private static Identifier entryScopedId(Identifier bookId, String raw) {
         String value = normalizePathKey(raw);
         if (value.contains(":")) {
-            ResourceLocation parsed = ResourceLocation.tryParse(value);
+            Identifier parsed = Identifier.tryParse(value);
             if (parsed != null) {
                 return parsed;
             }
         }
-        return ResourceLocation.fromNamespaceAndPath(bookId.getNamespace(), value);
+        return Identifier.fromNamespaceAndPath(bookId.getNamespace(), value);
     }
 
     private static String categoryFromPath(String pageId) {
@@ -407,7 +407,7 @@ public final class ModonomiconRuntimeGuideSource {
         return slash <= 0 ? pageId : pageId.substring(0, slash);
     }
 
-    private static List<String> tags(ResourceLocation categoryId) {
+    private static List<String> tags(Identifier categoryId) {
         List<String> tags = new ArrayList<>();
         tags.add(SOURCE_TYPE);
         if (categoryId != null) {
@@ -525,7 +525,7 @@ public final class ModonomiconRuntimeGuideSource {
         ENTRY
     }
 
-    private record ModonomiconResource(ResourceLocation bookId, ResourceKind kind, String key) {
+    private record ModonomiconResource(Identifier bookId, ResourceKind kind, String key) {
     }
 
     private static final class BookResources {

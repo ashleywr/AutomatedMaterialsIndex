@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -62,7 +62,7 @@ public class GlobalIndex {
     /**
      * Remove a node by id and type. Used for permanent deletion (e.g., deleted waypoints).
      */
-    public synchronized void removeNode(ResourceLocation id, NodeType type) {
+    public synchronized void removeNode(Identifier id, NodeType type) {
         SearchNode node = idIndex.remove(new NodeKey(id, type));
         if (node != null) {
             removeNodeFromCollections(node);
@@ -82,7 +82,7 @@ public class GlobalIndex {
         }
     }
 
-    public Optional<SearchNode> getNode(ResourceLocation id) {
+    public Optional<SearchNode> getNode(Identifier id) {
         // Fallback to searching all types if type is unknown, prioritizing ITEM then ENTITY
         SearchNode match = idIndex.get(new NodeKey(id, NodeType.ITEM));
         if (match != null) return Optional.of(match);
@@ -96,7 +96,7 @@ public class GlobalIndex {
         return Optional.empty();
     }
 
-    public Optional<SearchNode> getNode(ResourceLocation id, NodeType type) {
+    public Optional<SearchNode> getNode(Identifier id, NodeType type) {
         return Optional.ofNullable(idIndex.get(new NodeKey(id, type)));
     }
 
@@ -130,7 +130,7 @@ public class GlobalIndex {
     /**
      * Replace a single node by id. If no existing node matches, adds the new one.
      */
-    public synchronized void replaceNode(ResourceLocation id, NodeType type, SearchNode updated) {
+    public synchronized void replaceNode(Identifier id, NodeType type, SearchNode updated) {
         SearchNode old = idIndex.get(new NodeKey(id, type));
         if (old != null) {
             List<SearchNode> typeList = nodes.get(type);
@@ -239,6 +239,6 @@ public class GlobalIndex {
     }
 
     // Fast lookup by ID + Type
-    private record NodeKey(ResourceLocation id, NodeType type) {
+    private record NodeKey(Identifier id, NodeType type) {
     }
 }

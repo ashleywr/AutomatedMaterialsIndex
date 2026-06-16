@@ -6,11 +6,11 @@ import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.util.AmiWorldTooltipComposer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
@@ -107,8 +107,8 @@ public class ProxyBlockRenderer implements IIconRenderer {
             Map.entry("shrine", List.of("chiseled_stone_bricks", "lantern", "gold_block")),
             Map.entry("hut", List.of("mushroom_stem", "spruce_planks", "cauldron"))
     );
-    private static final Map<ResourceLocation, ItemStack> stackCache = new HashMap<>();
-    private static final Map<ResourceLocation, Integer> backgroundCache = new HashMap<>();
+    private static final Map<Identifier, ItemStack> stackCache = new HashMap<>();
+    private static final Map<Identifier, Integer> backgroundCache = new HashMap<>();
 
     // ── Mod-item inference ────────────────────────────────────────────────────
     // Suffix priority: earlier = preferred. Saplings/flowers are the most
@@ -131,7 +131,7 @@ public class ProxyBlockRenderer implements IIconRenderer {
     );
 
     // Namespace → all registered item IDs in that namespace (built once, never cleared).
-    private static final Map<String, List<ResourceLocation>> NAMESPACE_ITEM_CACHE = new HashMap<>();
+    private static final Map<String, List<Identifier>> NAMESPACE_ITEM_CACHE = new HashMap<>();
     private static volatile boolean namespaceCacheReady = false;
     private static final List<String> LAST_RESORT_PROXIES = List.of(
             "minecraft:stone_bricks",
@@ -254,13 +254,13 @@ public class ProxyBlockRenderer implements IIconRenderer {
     // ── Rendering ─────────────────────────────────────────────────────────────
 
     private static ItemStack resolveProxy(SearchNode node) {
-        ResourceLocation blockId = resolveProxyId(node);
+        Identifier blockId = resolveProxyId(node);
         ItemStack stack = resolveStack(blockId);
         if (!stack.isEmpty()) {
             return stack;
         }
 
-        ResourceLocation defaultId = dimensionDefaultBlock(node);
+        Identifier defaultId = dimensionDefaultBlock(node);
         if (!defaultId.equals(blockId)) {
             stack = resolveStack(defaultId);
             if (!stack.isEmpty()) {
@@ -269,7 +269,7 @@ public class ProxyBlockRenderer implements IIconRenderer {
         }
 
         for (String fallback : LAST_RESORT_PROXIES) {
-            ResourceLocation fallbackId = Services.PLATFORM.rl(fallback);
+            Identifier fallbackId = Services.PLATFORM.rl(fallback);
             if (fallbackId.equals(blockId) || fallbackId.equals(defaultId)) {
                 continue;
             }
@@ -282,7 +282,7 @@ public class ProxyBlockRenderer implements IIconRenderer {
         return ItemStack.EMPTY;
     }
 
-    private static ItemStack resolveStack(ResourceLocation id) {
+    private static ItemStack resolveStack(Identifier id) {
         ItemStack cached = stackCache.get(id);
         if (cached != null) {
             return cached;
@@ -295,7 +295,7 @@ public class ProxyBlockRenderer implements IIconRenderer {
         return stack;
     }
 
-    static ResourceLocation resolveProxyId(SearchNode node) {
+    static Identifier resolveProxyId(SearchNode node) {
         String mapped = PROXY_MAP.get(node.id().toString());
         if (mapped != null) {
             return Services.PLATFORM.rl(mapped);
@@ -311,11 +311,11 @@ public class ProxyBlockRenderer implements IIconRenderer {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private static Optional<ResourceLocation> inferBiomeProxyId(SearchNode node) {
+    private static Optional<Identifier> inferBiomeProxyId(SearchNode node) {
         String namespace = node.id().getNamespace();
         String path = node.id().getPath().toLowerCase(Locale.ROOT);
-        List<ResourceLocation> candidates = new ArrayList<>();
-        Set<ResourceLocation> seen = new HashSet<>();
+        List<Identifier> candidates = new ArrayList<>();
+        Set<Identifier> seen = new HashSet<>();
 
         addCandidate(candidates, seen, namespace, path);
         addCandidate(candidates, seen, namespace, path + "_sapling");
@@ -338,16 +338,16 @@ public class ProxyBlockRenderer implements IIconRenderer {
             addTokenCandidates(candidates, seen, "minecraft", token);
         }
 
-        Optional<ResourceLocation> found = candidates.stream().filter(ProxyBlockRenderer::itemExists).findFirst();
+        Optional<Identifier> found = candidates.stream().filter(ProxyBlockRenderer::itemExists).findFirst();
         if (found.isPresent()) return found;
         return findBestModItem(namespace, path, BIOME_STOP_WORDS, BIOME_ITEM_SUFFIXES);
     }
 
-    private static Optional<ResourceLocation> inferStructureProxyId(SearchNode node) {
+    private static Optional<Identifier> inferStructureProxyId(SearchNode node) {
         String namespace = node.id().getNamespace();
         String path = node.id().getPath().toLowerCase(Locale.ROOT);
-        List<ResourceLocation> candidates = new ArrayList<>();
-        Set<ResourceLocation> seen = new HashSet<>();
+        List<Identifier> candidates = new ArrayList<>();
+        Set<Identifier> seen = new HashSet<>();
 
         addCandidate(candidates, seen, namespace, path);
         addCandidate(candidates, seen, namespace, path + "_block");
@@ -370,12 +370,12 @@ public class ProxyBlockRenderer implements IIconRenderer {
             addStructureTokenCandidates(candidates, seen, "minecraft", token);
         }
 
-        Optional<ResourceLocation> found = candidates.stream().filter(ProxyBlockRenderer::itemExists).findFirst();
+        Optional<Identifier> found = candidates.stream().filter(ProxyBlockRenderer::itemExists).findFirst();
         if (found.isPresent()) return found;
         return findBestModItem(namespace, path, STRUCTURE_STOP_WORDS, STRUCTURE_ITEM_SUFFIXES);
     }
 
-    private static void addTokenCandidates(List<ResourceLocation> candidates, Set<ResourceLocation> seen,
+    private static void addTokenCandidates(List<Identifier> candidates, Set<Identifier> seen,
                                            String namespace, String token) {
         addCandidate(candidates, seen, namespace, token + "_sapling");
         addCandidate(candidates, seen, namespace, token + "_leaves");
@@ -388,7 +388,7 @@ public class ProxyBlockRenderer implements IIconRenderer {
         addCandidate(candidates, seen, namespace, token);
     }
 
-    private static void addStructureTokenCandidates(List<ResourceLocation> candidates, Set<ResourceLocation> seen,
+    private static void addStructureTokenCandidates(List<Identifier> candidates, Set<Identifier> seen,
                                                     String namespace, String token) {
         addCandidate(candidates, seen, namespace, token + "_block");
         addCandidate(candidates, seen, namespace, token + "_bricks");
@@ -400,19 +400,19 @@ public class ProxyBlockRenderer implements IIconRenderer {
         addCandidate(candidates, seen, namespace, token);
     }
 
-    private static void addCandidate(List<ResourceLocation> candidates, Set<ResourceLocation> seen,
+    private static void addCandidate(List<Identifier> candidates, Set<Identifier> seen,
                                      String namespace, String path) {
-        ResourceLocation id = Services.PLATFORM.rl(namespace, path);
+        Identifier id = Services.PLATFORM.rl(namespace, path);
         if (seen.add(id)) {
             candidates.add(id);
         }
     }
 
-    private static boolean itemExists(ResourceLocation id) {
+    private static boolean itemExists(Identifier id) {
         return BuiltInRegistries.ITEM.getOptional(id).isPresent();
     }
 
-    private static ResourceLocation dimensionDefaultBlock(SearchNode node) {
+    private static Identifier dimensionDefaultBlock(SearchNode node) {
         String dim = node.meta(SearchNodeKeys.DIMENSION, "overworld");
         if (node.type() == NodeType.STRUCTURE) {
             return Services.PLATFORM.rl("minecraft:stone_bricks");
@@ -426,7 +426,7 @@ public class ProxyBlockRenderer implements IIconRenderer {
     }
 
     @Override
-    public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
+    public void render(GuiGraphicsExtractor g, SearchNode node, int x, int y, int size, boolean hovered) {
         ItemStack proxy = resolveProxy(node);
         if (proxy.isEmpty()) {
             FallbackTextRenderer.renderFallback(g, node, x, y, size);
@@ -435,16 +435,16 @@ public class ProxyBlockRenderer implements IIconRenderer {
         g.fill(x, y, x + size, y + size, resolveBackground(node));
 
         var poses = g.pose();
-        poses.pushPose();
+        poses.pushMatrix();
         if (size == 16) {
-            g.renderItem(proxy, x, y);
+            g.item(proxy, x, y);
         } else {
-            poses.translate(x, y, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
+            poses.translate(x, y);
             float s = size / 16f;
-            poses.scale(s, s, 1f);
-            g.renderItem(proxy, 0, 0);
+            poses.scale(s, s);
+            g.item(proxy, 0, 0);
         }
-        poses.popPose();
+        poses.popMatrix();
     }
 
     // ── Background color ──────────────────────────────────────────────────────
@@ -457,10 +457,10 @@ public class ProxyBlockRenderer implements IIconRenderer {
         if (node.type() == NodeType.BIOME) {
             Minecraft mc = Minecraft.getInstance();
             if (mc.level != null) {
-                var reg = mc.level.registryAccess().registryOrThrow(Registries.BIOME);
-                var holder = reg.getOptional(node.id());
+                var reg = mc.level.registryAccess().lookupOrThrow(Registries.BIOME);
+                var holder = reg.get(net.minecraft.resources.ResourceKey.create(Registries.BIOME, node.id()));
                 if (holder.isPresent()) {
-                    return darkenRgb(holder.get().getSpecialEffects().getSkyColor(), 0.28f);
+                    return darkenRgb(holder.get().value().getSpecialEffects().waterColor(), 0.28f);
                 }
             }
             return hashToArgb(node.id().toString(), 0.40f, 0.22f);
@@ -516,8 +516,8 @@ public class ProxyBlockRenderer implements IIconRenderer {
 
     private static synchronized void buildNamespaceCache() {
         if (namespaceCacheReady) return;
-        Map<String, List<ResourceLocation>> map = new HashMap<>();
-        for (ResourceLocation id : BuiltInRegistries.ITEM.keySet()) {
+        Map<String, List<Identifier>> map = new HashMap<>();
+        for (Identifier id : BuiltInRegistries.ITEM.keySet()) {
             if (!"minecraft".equals(id.getNamespace())) {
                 map.computeIfAbsent(id.getNamespace(), k -> new ArrayList<>()).add(id);
             }
@@ -532,11 +532,11 @@ public class ProxyBlockRenderer implements IIconRenderer {
      * priority (earlier = preferred). Returns empty for minecraft: namespace since
      * the existing candidate lists already cover vanilla exhaustively.
      */
-    private static Optional<ResourceLocation> findBestModItem(
+    private static Optional<Identifier> findBestModItem(
             String namespace, String path, Set<String> stopWords, List<String> suffixes) {
         if ("minecraft".equals(namespace)) return Optional.empty();
         if (!namespaceCacheReady) buildNamespaceCache();
-        List<ResourceLocation> modItems = NAMESPACE_ITEM_CACHE.get(namespace);
+        List<Identifier> modItems = NAMESPACE_ITEM_CACHE.get(namespace);
         if (modItems == null || modItems.isEmpty()) return Optional.empty();
 
         Set<String> tokens = java.util.Arrays.stream(path.split("[_/]+"))

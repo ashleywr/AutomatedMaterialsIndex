@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -118,7 +118,7 @@ public final class ItemFilter {
         ItemStack stack = rawStack.copy();
         stack.setCount(1);
         Item item = stack.getItem();
-        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(item);
+        Identifier itemId = BuiltInRegistries.ITEM.getKey(item);
         List<CreativeStackInfo> itemStacks = items.computeIfAbsent(item, ignored -> new ArrayList<>());
         List<ItemStack> seenForItem = seenStacks.computeIfAbsent(item, ignored -> new ArrayList<>());
         for (ItemStack seen : seenForItem) {
@@ -141,11 +141,13 @@ public final class ItemFilter {
         if (level == null) return Collections.emptySet();
         Set<Item> items = new HashSet<>();
         try {
-            for (var holder : level.getRecipeManager().getRecipes()) {
-                try {
-                    ItemStack stack = Services.PLATFORM.getRecipeResultItem(holder, level.registryAccess());
-                    if (!stack.isEmpty()) items.add(stack.getItem());
-                } catch (Exception ignored) {
+            if (level instanceof net.minecraft.server.level.ServerLevel sl) {
+                for (var holder : sl.getServer().getRecipeManager().getRecipes()) {
+                    try {
+                        ItemStack stack = Services.PLATFORM.getRecipeResultItem(holder, level.registryAccess());
+                        if (!stack.isEmpty()) items.add(stack.getItem());
+                    } catch (Exception ignored) {
+                    }
                 }
             }
         } catch (Exception e) {
@@ -154,11 +156,11 @@ public final class ItemFilter {
         return items;
     }
 
-    public static String classifyAccessLevel(ResourceLocation id, boolean inCreative) {
+    public static String classifyAccessLevel(Identifier id, boolean inCreative) {
         return classifyAccessLevel(id, null, inCreative);
     }
 
-    public static String classifyAccessLevel(ResourceLocation id, Item item, boolean inCreative) {
+    public static String classifyAccessLevel(Identifier id, Item item, boolean inCreative) {
         String path = id.getPath();
 
         // Explicitly hidden/technical items are always dev-only
@@ -189,7 +191,7 @@ public final class ItemFilter {
                 || path.contains("_creative_");
     }
 
-    private static boolean isSpawnEgg(ResourceLocation id, Item item) {
+    private static boolean isSpawnEgg(Identifier id, Item item) {
         if (item instanceof SpawnEggItem) {
             return true;
         }
@@ -268,7 +270,7 @@ public final class ItemFilter {
                             || type == CreativeModeTab.Type.INVENTORY) continue;
 
                     tab.buildContents(params);
-                    ResourceLocation tabId = BuiltInRegistries.CREATIVE_MODE_TAB.getKey(tab);
+                    Identifier tabId = BuiltInRegistries.CREATIVE_MODE_TAB.getKey(tab);
                     String tabKey = tabId != null ? tabId.toString() : tab.getDisplayName().getString();
                     String tabLabel = tab.getDisplayName().getString();
                     CreativeTabInfo tabInfo = new CreativeTabInfo(tabKey, tabLabel);
@@ -278,7 +280,7 @@ public final class ItemFilter {
                             if (appendCreativeStack(items, seenStacks, stack, tabInfo)) {
                                 copiedStacks++;
                             } else {
-                                ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                                Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
                                 if (IndexingHotItemPolicy.shouldCollapseCreativeStacks(itemId)) {
                                     collapsedHotStacks++;
                                 }
@@ -293,7 +295,7 @@ public final class ItemFilter {
                                 if (appendCreativeStack(items, seenStacks, stack, tabInfo)) {
                                     copiedStacks++;
                                 } else {
-                                    ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                                    Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
                                     if (IndexingHotItemPolicy.shouldCollapseCreativeStacks(itemId)) {
                                         collapsedHotStacks++;
                                     }

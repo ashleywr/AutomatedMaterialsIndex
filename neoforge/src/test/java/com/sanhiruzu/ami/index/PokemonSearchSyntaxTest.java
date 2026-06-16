@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -82,7 +82,7 @@ class PokemonSearchSyntaxTest {
                 SearchNodeKeys.POKEMON_HELD_ITEM_ROLE, "type_boost",
                 SearchNodeKeys.POKEMON_TYPE, "psychic"
         ));
-        SearchNode addonBall = new SearchNode(new ResourceLocation("cobblemonextras", "shadow_ball"), NodeType.ITEM,
+        SearchNode addonBall = new SearchNode(new Identifier("cobblemonextras", "shadow_ball"), NodeType.ITEM,
                 "Shadow Ball", 0, 0, Map.of(
                 SearchNodeKeys.COMPAT_FAMILY, "cobblemon",
                 SearchNodeKeys.COBBLEMON_ITEM_KIND, "poke_ball",
@@ -110,13 +110,13 @@ class PokemonSearchSyntaxTest {
     }
 
     private static SearchNode species(String path, String name, Map<String, String> metadata) {
-        return new SearchNode(new ResourceLocation("cobblemon_species", path), NodeType.ENTITY, name, 0, 0, metadata);
+        return new SearchNode(new Identifier("cobblemon_species", path), NodeType.ENTITY, name, 0, 0, metadata);
     }
 
     private static SearchNode item(String path, String name, Map<String, String> metadata) {
         Map<String, String> copy = new HashMap<>(metadata);
         copy.put(SearchNodeKeys.MOD_ID, "cobblemon");
-        return new SearchNode(new ResourceLocation("cobblemon", path), NodeType.ITEM, name, 0, 0, copy);
+        return new SearchNode(new Identifier("cobblemon", path), NodeType.ITEM, name, 0, 0, copy);
     }
 
     private static void assertOnlyContains(List<SearchNode> results, SearchNode expected, SearchNode unexpected) {

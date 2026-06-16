@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.index.providers;
 
 import com.sanhiruzu.ami.AmiCore;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.charset.StandardCharsets;
@@ -19,24 +19,24 @@ final class RecipeViewerIngredientIds {
                 || "fluid_stack".equals(typeUid);
     }
 
-    static ResourceLocation syntheticId(String modId, @Nullable ResourceLocation resourceLocation, String typeUid, Object uniqueUid) {
-        if (resourceLocation != null && uniqueUidMatchesResource(resourceLocation, String.valueOf(uniqueUid))) {
-            return resourceLocation;
+    static Identifier syntheticId(String modId, @Nullable Identifier Identifier, String typeUid, Object uniqueUid) {
+        if (Identifier != null && uniqueUidMatchesResource(Identifier, String.valueOf(uniqueUid))) {
+            return Identifier;
         }
-        String namespace = normalizeNamespace(resourceLocation != null ? resourceLocation.getNamespace() : modId);
-        String basePath = resourceLocation != null ? resourceLocation.getPath() : normalizePathSegment(typeUid);
+        String namespace = normalizeNamespace(Identifier != null ? Identifier.getNamespace() : modId);
+        String basePath = Identifier != null ? Identifier.getPath() : normalizePathSegment(typeUid);
         String suffix = shortHash(typeUid + "|" + uniqueUid);
-        return ResourceLocation.fromNamespaceAndPath(namespace, basePath + "/rv/" + suffix);
+        return Identifier.fromNamespaceAndPath(namespace, basePath + "/rv/" + suffix);
     }
 
-    private static boolean uniqueUidMatchesResource(ResourceLocation resourceLocation, String uniqueUid) {
+    private static boolean uniqueUidMatchesResource(Identifier Identifier, String uniqueUid) {
         if (uniqueUid == null || uniqueUid.isBlank()) {
             return false;
         }
         String normalizedUid = uniqueUid.trim().toLowerCase(Locale.ROOT);
-        String asId = resourceLocation.toString().toLowerCase(Locale.ROOT);
+        String asId = Identifier.toString().toLowerCase(Locale.ROOT);
         return normalizedUid.equals(asId)
-                || normalizedUid.equals(resourceLocation.getNamespace().toLowerCase(Locale.ROOT) + "/" + resourceLocation.getPath().toLowerCase(Locale.ROOT));
+                || normalizedUid.equals(Identifier.getNamespace().toLowerCase(Locale.ROOT) + "/" + Identifier.getPath().toLowerCase(Locale.ROOT));
     }
 
     private static String normalizeNamespace(@Nullable String rawNamespace) {

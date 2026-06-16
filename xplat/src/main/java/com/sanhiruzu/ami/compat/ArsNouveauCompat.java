@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.index.ItemFacet;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -16,7 +16,7 @@ public final class ArsNouveauCompat {
     private ArsNouveauCompat() {
     }
 
-    public static void enrichItem(ResourceLocation id, Map<String, String> meta) {
+    public static void enrichItem(Identifier id, Map<String, String> meta) {
         if (id == null || meta == null) {
             return;
         }
@@ -48,7 +48,7 @@ public final class ArsNouveauCompat {
         }
     }
 
-    private static boolean isArsNouveauItem(ResourceLocation id, Map<String, String> meta) {
+    private static boolean isArsNouveauItem(Identifier id, Map<String, String> meta) {
         return MOD_ID.equals(id.getNamespace()) || CompatFamilyDetector.hasFamily(meta, CompatFamilyDetector.ARS_NOUVEAU);
     }
 
@@ -267,7 +267,7 @@ public final class ArsNouveauCompat {
         final String recipeCategories;
         final String recipeUseCategories;
 
-        Context(ResourceLocation id, Map<String, String> meta) {
+        Context(Identifier id, Map<String, String> meta) {
             this.path = id.getPath().toLowerCase(Locale.ROOT);
             this.itemClass = meta.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
             this.recipeCategories = meta.getOrDefault(SearchNodeKeys.RECIPE_CATEGORIES, "");

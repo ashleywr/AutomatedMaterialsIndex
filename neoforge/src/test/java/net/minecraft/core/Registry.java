@@ -1,11 +1,11 @@
 package net.minecraft.core;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.Optional;
 
 public interface Registry<T> {
-    ResourceLocation getKey(T value);
+    Identifier getKey(T value);
 
-    Optional<T> getOptional(ResourceLocation id);
+    Optional<T> getOptional(Identifier id);
 }

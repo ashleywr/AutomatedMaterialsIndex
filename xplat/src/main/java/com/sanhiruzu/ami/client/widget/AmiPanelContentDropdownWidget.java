@@ -3,9 +3,10 @@ package com.sanhiruzu.ami.client.widget;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 import java.util.function.Consumer;
@@ -43,7 +44,7 @@ public class AmiPanelContentDropdownWidget extends AbstractWidget implements Ami
     }
 
     @Override
-    public void renderDropdownList(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void renderDropdownList(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         if (!open || options == null || options.length == 0) return;
 
         int listX = getX();
@@ -51,8 +52,7 @@ public class AmiPanelContentDropdownWidget extends AbstractWidget implements Ami
         int listH = options.length * OPTION_HEIGHT + 2;
         int listY = dropdownY(listH);
 
-        g.pose().pushPose();
-        g.pose().translate(0, 0, com.sanhiruzu.ami.client.overlay.OverlayLayers.DROPDOWN);
+        g.pose().pushMatrix();
         AMITheme.fillPixelPopup(g, listX, listY, listW, listH,
                 AMITheme.DROPDOWN_LIST_BG, AMITheme.BORDER_LIGHT, AMITheme.CONTROL_SHADOW, 0);
 
@@ -68,14 +68,14 @@ public class AmiPanelContentDropdownWidget extends AbstractWidget implements Ami
             }
 
             String text = clipped(label(options[i]), listW - 8);
-            g.drawString(font, text, listX + 4, optionY + 5,
+            g.text(font, text, listX + 4, optionY + 5,
                     active ? AMITheme.TEXT_HIGHLIGHT : AMITheme.TEXT_PRIMARY, false);
         }
-        g.pose().popPose();
+        g.pose().popMatrix();
     }
 
     @Override
-    protected void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         boolean hovered = active && isMouseOver(mouseX, mouseY);
         int fill = (open || hovered) ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
         AMITheme.fillControlChrome(g, getX(), getY(), width, height, fill, open);
@@ -85,14 +85,40 @@ public class AmiPanelContentDropdownWidget extends AbstractWidget implements Ami
         int arrowW = font.width(arrow);
         String text = clipped(getMessage(), Math.max(0, width - arrowW - 10));
         int textY = getY() + (height - font.lineHeight) / 2 + 1;
-        g.drawString(font, text, getX() + 4, textY,
+        g.text(font, text, getX() + 4, textY,
                 active ? AMITheme.CONFIG_TEXT_PRIMARY : AMITheme.CONFIG_TEXT_MUTED, false);
-        g.drawString(font, arrow, getX() + width - arrowW - 4, textY, AMITheme.CONFIG_TEXT_SECONDARY, false);
+        g.text(font, arrow, getX() + width - arrowW - 4, textY, AMITheme.CONFIG_TEXT_SECONDARY, false);
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (!active || button != 0) return false;
+
+        if (open && isMouseOverPopup(mouseX, mouseY)) {
+            int index = (int) ((mouseY - (dropdownY(options.length * OPTION_HEIGHT + 2) + 1)) / OPTION_HEIGHT);
+            if (index >= 0 && index < options.length) {
+                setValue(options[index]);
+                close();
+                return true;
+            }
+        }
+
+        if (isMouseOver(mouseX, mouseY)) {
+            open = !open;
+            if (open && onOpen != null) {
+                onOpen.accept(this);
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        if (!active || event.button() != 0) return false;
 
         if (open && isMouseOverPopup(mouseX, mouseY)) {
             int index = (int) ((mouseY - (dropdownY(options.length * OPTION_HEIGHT + 2) + 1)) / OPTION_HEIGHT);

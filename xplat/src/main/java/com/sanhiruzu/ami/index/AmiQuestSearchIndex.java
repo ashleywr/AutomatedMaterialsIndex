@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.api.AmiQuestDocument;
 import com.sanhiruzu.ami.api.AmiQuestItemMatch;
 import com.sanhiruzu.ami.api.AmiQuestTaskDocument;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -17,7 +17,7 @@ import java.util.Map;
 public final class AmiQuestSearchIndex {
     private final List<AmiQuestDocument> documents = new ArrayList<>();
     private final Map<AmiQuestDocument, String> searchableText = new LinkedHashMap<>();
-    private final Map<ResourceLocation, List<AmiQuestItemMatch>> byItem = new LinkedHashMap<>();
+    private final Map<Identifier, List<AmiQuestItemMatch>> byItem = new LinkedHashMap<>();
 
     public AmiQuestSearchIndex(Collection<AmiQuestDocument> documents) {
         if (documents == null) {
@@ -77,7 +77,7 @@ public final class AmiQuestSearchIndex {
         return results;
     }
 
-    public List<AmiQuestItemMatch> findItem(ResourceLocation itemId) {
+    public List<AmiQuestItemMatch> findItem(Identifier itemId) {
         if (itemId == null) {
             return List.of();
         }
@@ -86,7 +86,7 @@ public final class AmiQuestSearchIndex {
 
     private void indexItems(AmiQuestDocument document) {
         for (AmiQuestTaskDocument task : document.tasks()) {
-            for (ResourceLocation itemId : task.itemIds()) {
+            for (Identifier itemId : task.itemIds()) {
                 byItem.computeIfAbsent(itemId, ignored -> new ArrayList<>())
                         .add(new AmiQuestItemMatch(document, task, itemId));
             }
@@ -108,7 +108,7 @@ public final class AmiQuestSearchIndex {
             fields.add(task.role().name());
             fields.add(task.taskType());
             fields.add(task.title());
-            for (ResourceLocation itemId : task.itemIds()) {
+            for (Identifier itemId : task.itemIds()) {
                 fields.add(itemId.toString());
                 fields.add(itemId.getNamespace());
                 fields.add(itemId.getPath());
@@ -126,7 +126,7 @@ public final class AmiQuestSearchIndex {
         if (contains(document.id(), token)) score += 20;
         for (AmiQuestTaskDocument task : document.tasks()) {
             if (contains(task.title(), token)) score += 30;
-            for (ResourceLocation itemId : task.itemIds()) {
+            for (Identifier itemId : task.itemIds()) {
                 if (contains(itemId.toString(), token) || contains(itemId.getPath(), token)) {
                     score += 35;
                     break;

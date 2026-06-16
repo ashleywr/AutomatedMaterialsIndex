@@ -5,10 +5,10 @@ import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.recipe.AmiRecipeIndex;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -405,7 +405,7 @@ public final class GlobalIndexCache {
     }
 
     private static SearchNode nodeFromJson(JsonObject obj, NodeType type) {
-        ResourceLocation id = Services.PLATFORM.rl(obj.get("id").getAsString());
+        Identifier id = Services.PLATFORM.rl(obj.get("id").getAsString());
         String displayName = obj.get("displayName").getAsString();
         int color = obj.get("color").getAsInt();
         int searchWeight = obj.get("searchWeight").getAsInt();

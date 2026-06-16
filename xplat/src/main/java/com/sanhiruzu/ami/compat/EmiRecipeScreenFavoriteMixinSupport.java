@@ -12,7 +12,7 @@ public final class EmiRecipeScreenFavoriteMixinSupport {
     public static boolean handleFavoriteKey(Object screen, int keyCode, int scanCode) {
         boolean amiFavoriteKey = AmiKeybinds.activeAndMatches(
                 Services.PLATFORM.keyMappings().favorite(),
-                InputConstants.getKey(keyCode, scanCode));
+                InputConstants.Type.KEYSYM.getOrCreate(keyCode));
         boolean emiFavoriteKey = EmiConfig.favorite.matchesKey(keyCode, scanCode);
         return (amiFavoriteKey || emiFavoriteKey) && EmiFavoritesBridge.toggleRecipeScreenHoveredFavorite(screen);
     }

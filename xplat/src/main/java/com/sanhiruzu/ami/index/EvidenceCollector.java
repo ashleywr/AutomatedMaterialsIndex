@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -13,7 +13,7 @@ final class EvidenceCollector {
     private EvidenceCollector() {
     }
 
-    static List<ClassificationEvidence> collect(ResourceLocation id, FacetProfile profile) {
+    static List<ClassificationEvidence> collect(Identifier id, FacetProfile profile) {
         List<ClassificationEvidence> evidence = new ArrayList<>();
         String path = id.getPath().toLowerCase(Locale.ROOT);
         Set<String> tokens = LexicalEvidenceDictionary.tokenize(path);

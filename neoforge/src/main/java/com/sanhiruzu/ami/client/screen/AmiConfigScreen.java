@@ -10,9 +10,12 @@ import com.sanhiruzu.ami.compat.FtbQuestsRuntimeCompat;
 import com.sanhiruzu.ami.config.*;
 import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.platform.Services;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 import java.lang.reflect.Field;
@@ -269,7 +272,7 @@ public class AmiConfigScreen extends Screen {
         openDropdown = dropdown;
     }
 
-    private void renderOpenDropdown(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    private void renderOpenDropdown(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         if (openDropdown != null && openDropdown.isOpen()) {
             openDropdown.renderDropdownList(g, mouseX, mouseY, partialTick);
         }
@@ -545,18 +548,18 @@ public class AmiConfigScreen extends Screen {
         return AmiDropdownPopupController.blocksUnderlyingHover(openDropdown, mouseX, mouseY);
     }
 
-    private void showTooltipIfHovered(Tooltip tooltip, int x, int y, int width, int height, int mouseX, int mouseY) {
+    private void showTooltipIfHovered(GuiGraphicsExtractor g, Tooltip tooltip, int x, int y, int width, int height, int mouseX, int mouseY) {
         if (tooltip != null
                 && !isHoverBlockedByOpenDropdown(mouseX, mouseY)
                 && mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height) {
-            this.setTooltipForNextRenderPass(tooltip, net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner.INSTANCE, true);
+            g.setTooltipForNextFrame(tooltip.toCharSequence(net.minecraft.client.Minecraft.getInstance()), mouseX, mouseY);
         }
     }
 
-    private void renderTextWithHighlight(GuiGraphics g, Component text, int x, int y, int color) {
+    private void renderTextWithHighlight(GuiGraphicsExtractor g, Component text, int x, int y, int color) {
         String raw = text.getString();
         if (searchQuery.isEmpty() || !raw.toLowerCase().contains(searchQuery)) {
-            g.drawString(this.font, text, x, y, color);
+            g.text(this.font, text, x, y, color);
             return;
         }
 
@@ -566,79 +569,79 @@ public class AmiConfigScreen extends Screen {
         String post = raw.substring(idx + searchQuery.length());
 
         int curX = x;
-        g.drawString(this.font, pre, curX, y, color);
+        g.text(this.font, pre, curX, y, color);
         curX += font.width(pre);
-        g.drawString(this.font, match, curX, y, AMITheme.ACCENT_BLUE);
+        g.text(this.font, match, curX, y, AMITheme.ACCENT_BLUE);
         curX += font.width(match);
-        g.drawString(this.font, post, curX, y, color);
+        g.text(this.font, post, curX, y, color);
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (AmiDropdownPopupController.mouseClicked(
                 () -> openDropdown,
                 dropdown -> openDropdown = dropdown,
-                mouseX,
-                mouseY,
-                button
+                event.x(),
+                event.y(),
+                event.button()
         )) {
             return true;
         }
         focusedConfigEntry = null;
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        if (focusedConfigEntry != null && focusedConfigEntry.mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
+    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+        if (focusedConfigEntry != null && focusedConfigEntry.mouseDragged(event, dragX, dragY)) {
             return true;
         }
-        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        return super.mouseDragged(event, dragX, dragY);
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (focusedConfigEntry != null && focusedConfigEntry.mouseReleased(mouseX, mouseY, button)) {
+    public boolean mouseReleased(MouseButtonEvent event) {
+        if (focusedConfigEntry != null && focusedConfigEntry.mouseReleased(event)) {
             focusedConfigEntry = null;
             return true;
         }
-        return super.mouseReleased(mouseX, mouseY, button);
+        return super.mouseReleased(event);
     }
 
     @Override
-    public boolean charTyped(char codePoint, int modifiers) {
-        if (focusedConfigEntry != null && focusedConfigEntry.charTyped(codePoint, modifiers)) {
+    public boolean charTyped(CharacterEvent event) {
+        if (focusedConfigEntry != null && focusedConfigEntry.charTyped(event)) {
             return true;
         }
-        return super.charTyped(codePoint, modifiers);
+        return super.charTyped(event);
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (focusedConfigEntry != null && focusedConfigEntry.keyPressed(keyCode, scanCode, modifiers)) {
+    public boolean keyPressed(KeyEvent event) {
+        if (focusedConfigEntry != null && focusedConfigEntry.keyPressed(event)) {
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     @Override
-    public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        super.renderBackground(g, mouseX, mouseY, partialTick);
+    public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
+        super.extractBackground(g, mouseX, mouseY, partialTick);
         // Draw sidebar backdrop after the screen background but before widgets.
         g.fill(0, 0, sidebarWidth, height, AMITheme.SIDEBAR_BG);
         g.fill(sidebarWidth, 0, sidebarWidth + 1, height, AMITheme.CONFIG_SEP);
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        super.render(g, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(g, mouseX, mouseY, partialTick);
 
         // Brand text rendered after widgets so it's not clipped by lists.
-        g.drawString(this.font, Component.translatable("ami.config.brand_top"), 8, 8, AMITheme.CONFIG_BRAND_GOLD);
-        g.drawString(this.font, Component.translatable("ami.config.brand_bottom"), 8, 18, AMITheme.CONFIG_TEXT_PRIMARY);
+        g.text(this.font, Component.translatable("ami.config.brand_top"), 8, 8, AMITheme.CONFIG_BRAND_GOLD);
+        g.text(this.font, Component.translatable("ami.config.brand_bottom"), 8, 18, AMITheme.CONFIG_TEXT_PRIMARY);
         String version = Services.PLATFORM.getModVersion(AmiCore.MODID).map(v -> "v" + v).orElse("");
         if (!version.isEmpty()) {
-            g.drawString(this.font, version, 8, 28, AMITheme.CONFIG_TEXT_MUTED, false);
+            g.text(this.font, version, 8, 28, AMITheme.CONFIG_TEXT_MUTED, false);
         }
         renderOpenDropdown(g, mouseX, mouseY, partialTick);
     }
@@ -658,7 +661,7 @@ public class AmiConfigScreen extends Screen {
         }
 
         @Override
-        protected int getScrollbarPosition() {
+        protected int scrollBarX() {
             return this.getX() + this.width - 4;
         }
 
@@ -668,8 +671,8 @@ public class AmiConfigScreen extends Screen {
         }
 
         @Override
-        protected void renderListBackground(GuiGraphics guiGraphics) {
-            // Sidebar background is drawn in renderBackground; suppress list texture.
+        protected void extractListBackground(GuiGraphicsExtractor GuiGraphicsExtractor) {
+            // Sidebar background is drawn in extractBackground; suppress list texture.
         }
 
         public void publicClearEntries() {
@@ -692,12 +695,16 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
+            public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean hovered, float a) {
+                int x = getX();
+                int y = getY();
+                int width = getWidth();
+                int height = getHeight();
                 boolean active = activeCategory.equals(id);
                 if (active) {
                     g.fill(x, y, x + width, y + height, AMITheme.SIDEBAR_SELECTION);
                     g.fill(x, y, x + 2, y + height, AMITheme.ACCENT_BLUE);
-                } else if (mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height) {
+                } else if (hovered) {
                     g.fill(x, y, x + width, y + height, AMITheme.SIDEBAR_TOGGLE_IDLE_HALO);
                 }
 
@@ -709,10 +716,10 @@ public class AmiConfigScreen extends Screen {
                 if (font.width(labelStr) > maxLabelW) {
                     labelStr = font.plainSubstrByWidth(labelStr, maxLabelW - 8) + "..";
                 }
-                g.drawString(font, labelStr, x + 22, y + 7, iconColor, false);
+                g.text(font, labelStr, x + 22, y + 7, iconColor, false);
             }
 
-            private void drawIcon(GuiGraphics g, int cx, int cy, int color) {
+            private void drawIcon(GuiGraphicsExtractor g, int cx, int cy, int color) {
                 switch (icon) {
                     case "general" -> AmiGuiIcons.general(g, cx, cy, color);
                     case "display" -> AmiGuiIcons.display(g, cx, cy, color);
@@ -728,7 +735,7 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
                 if (!activeCategory.equals(id)) {
                     resetConfigScrollOnNextBuild = true;
                 }
@@ -763,17 +770,17 @@ public class AmiConfigScreen extends Screen {
         }
 
         @Override
-        protected int getScrollbarPosition() {
+        protected int scrollBarX() {
             return AmiConfigScreen.this.listX + this.width - 6;
         }
 
         @Override
-        protected void renderListBackground(GuiGraphics guiGraphics) {
+        protected void extractListBackground(GuiGraphicsExtractor GuiGraphicsExtractor) {
             // Screen background is sufficient; suppress list texture.
         }
 
         abstract class ConfigEntry extends ObjectSelectionList.Entry<ConfigEntry> {
-            protected void renderCard(GuiGraphics g, int x, int y, int w, int h) {
+            protected void renderCard(GuiGraphicsExtractor g, int x, int y, int w, int h) {
                 AMITheme.fillRounded(g, x, y, w, h, AMITheme.CONFIG_CARD_BG);
             }
         }
@@ -786,8 +793,9 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
-                g.drawString(font, text, x + 5, y + 8, AMITheme.CONFIG_HEADER_GOLD, false);
+            public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean hovered, float a) {
+                int x = getX(); int y = getY(); int width = getWidth();
+                g.text(font, text, x + 5, y + 8, AMITheme.CONFIG_HEADER_GOLD, false);
                 g.fill(x + 5, y + 18, x + width - 5, y + 19, AMITheme.CONFIG_SEP);
             }
 
@@ -812,7 +820,8 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
+            public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean hovered, float a) {
+                int x = getX(); int y = getY(); int width = getWidth(); int height = getHeight();
                 renderCard(g, x, y, width, height);
                 boolean enabled = checkDependency(field);
                 int textColor = enabled ? AMITheme.CONFIG_TEXT_PRIMARY : AMITheme.CONFIG_TEXT_MUTED;
@@ -832,7 +841,7 @@ public class AmiConfigScreen extends Screen {
                     widget.setX(widgetX);
                     widget.setY(y + 3);
                     widget.setWidth(widgetW);
-                    widget.render(g, mouseX, mouseY, partialTick);
+                    widget.extractRenderState(g, mouseX, mouseY, a);
 
                     if (field.isAnnotationPresent(ConfigColor.class)) {
                         int color = 0;
@@ -841,24 +850,26 @@ public class AmiConfigScreen extends Screen {
                         } catch (Exception ignored) {
                         }
                         renderColorSwatch(g, x + width - 22, y + 4, color);
-                        g.renderOutline(x + width - 23, y + 3, 19, 18, 0xFFFFFFFF);
+                        g.outline(x + width - 23, y + 3, 19, 18, 0xFFFFFFFF);
                     }
                 }
 
                 if (enabled
                         && !isHoverBlockedByOpenDropdown(mouseX, mouseY)
-                        && mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height) {
-                    AmiConfigScreen.this.setTooltipForNextRenderPass(this.tooltip, net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner.INSTANCE, true);
+                        && hovered) {
+                    g.setTooltipForNextFrame(this.tooltip.toCharSequence(net.minecraft.client.Minecraft.getInstance()), mouseX, mouseY);
                 }
             }
 
             @Override
-            public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+                double mouseX = event.x();
+                double mouseY = event.y();
                 if (widget != null && widget.active && field.isAnnotationPresent(ConfigColor.class) && isColorSwatchMouseOver(mouseX, mouseY)) {
                     openColorPicker();
                     return true;
                 }
-                if (widget != null && widget.active && widget.mouseClicked(mouseX, mouseY, button)) {
+                if (widget != null && widget.active && widget.mouseClicked(event, doubleClick)) {
                     widget.setFocused(true);
                     AmiConfigScreen.this.focusedConfigEntry = this;
                     return true;
@@ -867,14 +878,14 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+            public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
                 return widget != null && widget.active && widget.isFocused()
-                        && widget.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+                        && widget.mouseDragged(event, dragX, dragY);
             }
 
             @Override
-            public boolean mouseReleased(double mouseX, double mouseY, int button) {
-                if (widget != null && widget.mouseReleased(mouseX, mouseY, button)) {
+            public boolean mouseReleased(MouseButtonEvent event) {
+                if (widget != null && widget.mouseReleased(event)) {
                     widget.setFocused(false);
                     return true;
                 }
@@ -898,7 +909,7 @@ public class AmiConfigScreen extends Screen {
                 }
             }
 
-            private void renderColorSwatch(GuiGraphics g, int x, int y, int color) {
+            private void renderColorSwatch(GuiGraphicsExtractor g, int x, int y, int color) {
                 int preview = isAlphaColorField() || (color >>> 24) != 0 ? color : 0xFF000000 | color;
                 g.fill(x, y, x + 17, y + 16, 0xFFE6E6E6);
                 g.fill(x, y, x + 8, y + 8, 0xFF9A9A9A);
@@ -912,13 +923,13 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public boolean charTyped(char codePoint, int modifiers) {
-                return widget != null && widget.charTyped(codePoint, modifiers);
+            public boolean charTyped(CharacterEvent event) {
+                return widget != null && widget.charTyped(event);
             }
 
             @Override
-            public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-                return widget != null && widget.keyPressed(keyCode, scanCode, modifiers);
+            public boolean keyPressed(KeyEvent event) {
+                return widget != null && widget.keyPressed(event);
             }
 
             @Override
@@ -937,9 +948,10 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
-                g.drawString(font, text, x + 5, y + 6, AMITheme.CONFIG_PANEL_TITLE, false);
-                showTooltipIfHovered(tooltip, x, y, width, height, mouseX, mouseY);
+            public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean hovered, float a) {
+                int x = getX(); int y = getY(); int width = getWidth(); int height = getHeight();
+                g.text(font, text, x + 5, y + 6, AMITheme.CONFIG_PANEL_TITLE, false);
+                showTooltipIfHovered(g, tooltip, x, y, width, height, mouseX, mouseY);
             }
 
             @Override
@@ -958,9 +970,10 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
-                g.drawString(font, text, x + 15, y + 6, AMITheme.CONFIG_TEXT_SECONDARY, false);
-                showTooltipIfHovered(tooltip, x, y, width, height, mouseX, mouseY);
+            public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean hovered, float a) {
+                int x = getX(); int y = getY(); int width = getWidth(); int height = getHeight();
+                g.text(font, text, x + 15, y + 6, AMITheme.CONFIG_TEXT_SECONDARY, false);
+                showTooltipIfHovered(g, tooltip, x, y, width, height, mouseX, mouseY);
             }
 
             @Override
@@ -977,9 +990,10 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
+            public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean hovered, float a) {
+                int x = getX(); int y = getY(); int width = getWidth();
                 int lineY = y + 13;
-                g.drawString(font, text, x + 10, y + 6, AMITheme.CONFIG_PANEL_TITLE, false);
+                g.text(font, text, x + 10, y + 6, AMITheme.CONFIG_PANEL_TITLE, false);
                 g.fill(x + 10 + font.width(text) + 8, lineY, x + width - 5, lineY + 1, AMITheme.CONFIG_SEP);
             }
 
@@ -999,9 +1013,10 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
-                g.drawString(font, label, x + 30, y + 6, AMITheme.CONFIG_TEXT_MUTED, false);
-                showTooltipIfHovered(tooltip, x, y, width, height, mouseX, mouseY);
+            public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean hovered, float a) {
+                int x = getX(); int y = getY(); int width = getWidth(); int height = getHeight();
+                g.text(font, label, x + 30, y + 6, AMITheme.CONFIG_TEXT_MUTED, false);
+                showTooltipIfHovered(g, tooltip, x, y, width, height, mouseX, mouseY);
             }
 
             @Override
@@ -1058,28 +1073,29 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
+            public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean hovered, float a) {
+                int x = getX(); int y = getY(); int width = getWidth(); int height = getHeight();
                 renderCard(g, x, y, width, height);
-                g.drawString(font, label, x + 30, y + 6, AMITheme.CONFIG_TEXT_PRIMARY, false);
+                g.text(font, label, x + 30, y + 6, AMITheme.CONFIG_TEXT_PRIMARY, false);
 
                 int removeX = x + Math.max(0, width - 25);
                 removeButton.setX(removeX);
                 removeButton.setY(y + 3);
-                removeButton.render(g, mouseX, mouseY, partialTick);
+                removeButton.extractRenderState(g, mouseX, mouseY, a);
 
                 int dropdownW = Math.max(72, Math.min(118, width - 110));
                 int dropdownX = removeX - dropdownW - 4;
                 dropdown.setX(dropdownX);
                 dropdown.setY(y + 3);
                 dropdown.setWidth(dropdownW);
-                dropdown.render(g, mouseX, mouseY, partialTick);
-                showTooltipIfHovered(tooltip, x, y, width, height, mouseX, mouseY);
+                dropdown.extractRenderState(g, mouseX, mouseY, a);
+                showTooltipIfHovered(g, tooltip, x, y, width, height, mouseX, mouseY);
             }
 
             @Override
-            public boolean mouseClicked(double mouseX, double mouseY, int button) {
-                if (this.removeButton.mouseClicked(mouseX, mouseY, button)) return true;
-                if (this.dropdown.mouseClicked(mouseX, mouseY, button)) return true;
+            public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+                if (this.removeButton.mouseClicked(event, doubleClick)) return true;
+                if (this.dropdown.mouseClicked(event, doubleClick)) return true;
                 return false;
             }
 
@@ -1103,18 +1119,19 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
-                renderCard(g, x, y, width, height);
+            public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean hovered, float a) {
+                int x = getX(); int y = getY(); int width = getWidth();
+                renderCard(g, x, y, width, getHeight());
                 int btnW = Math.min(140, width - 20);
                 button.setX(x + 10);
                 button.setY(y + 3);
                 button.setWidth(btnW);
-                button.render(g, mouseX, mouseY, partialTick);
+                button.extractRenderState(g, mouseX, mouseY, a);
             }
 
             @Override
-            public boolean mouseClicked(double mouseX, double mouseY, int button) {
-                return this.button.mouseClicked(mouseX, mouseY, button);
+            public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+                return this.button.mouseClicked(event, doubleClick);
             }
 
             @Override
@@ -1139,18 +1156,19 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
+            public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean hovered, float a) {
+                int x = getX(); int y = getY(); int width = getWidth(); int height = getHeight();
                 int btnW = Math.max(24, Math.min(80, width - 36));
                 button.setX(x + 30);
                 button.setY(y + 3);
                 button.setWidth(btnW);
-                button.render(g, mouseX, mouseY, partialTick);
-                showTooltipIfHovered(tooltip, x, y, width, height, mouseX, mouseY);
+                button.extractRenderState(g, mouseX, mouseY, a);
+                showTooltipIfHovered(g, tooltip, x, y, width, height, mouseX, mouseY);
             }
 
             @Override
-            public boolean mouseClicked(double mouseX, double mouseY, int button) {
-                return this.button.mouseClicked(mouseX, mouseY, button);
+            public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+                return this.button.mouseClicked(event, doubleClick);
             }
 
             @Override
@@ -1171,22 +1189,23 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
+            public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean hovered, float a) {
+                int x = getX(); int y = getY(); int width = getWidth(); int height = getHeight();
                 renderCard(g, x, y, width, height);
-                g.drawString(font, label, x + 15, y + 6, AMITheme.CONFIG_TEXT_PRIMARY, false);
+                g.text(font, label, x + 15, y + 6, AMITheme.CONFIG_TEXT_PRIMARY, false);
                 if (widget != null) {
                     int btnW = Math.min(75, width / 3);
                     widget.setX(x + width - btnW - 8);
                     widget.setY(y + 3);
                     widget.setWidth(btnW);
-                    widget.render(g, mouseX, mouseY, partialTick);
+                    widget.extractRenderState(g, mouseX, mouseY, a);
                 }
-                showTooltipIfHovered(tooltip, x, y, width, height, mouseX, mouseY);
+                showTooltipIfHovered(g, tooltip, x, y, width, height, mouseX, mouseY);
             }
 
             @Override
-            public boolean mouseClicked(double mouseX, double mouseY, int button) {
-                if (widget != null && widget.mouseClicked(mouseX, mouseY, button)) {
+            public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+                if (widget != null && widget.mouseClicked(event, doubleClick)) {
                     widget.setFocused(true);
                     AmiConfigScreen.this.focusedConfigEntry = this;
                     return true;
@@ -1195,13 +1214,13 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public boolean charTyped(char codePoint, int modifiers) {
-                return widget != null && widget.charTyped(codePoint, modifiers);
+            public boolean charTyped(CharacterEvent event) {
+                return widget != null && widget.charTyped(event);
             }
 
             @Override
-            public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-                return widget != null && widget.keyPressed(keyCode, scanCode, modifiers);
+            public boolean keyPressed(KeyEvent event) {
+                return widget != null && widget.keyPressed(event);
             }
 
             @Override
@@ -1224,7 +1243,8 @@ public class AmiConfigScreen extends Screen {
             }
 
             @Override
-            public void render(GuiGraphics g, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isSelected, float partialTick) {
+            public void extractContent(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean hovered, float a) {
+                int x = getX(); int y = getY(); int width = getWidth(); int height = getHeight();
                 renderCard(g, x, y, width, height);
 
                 int btnW = Math.min(80, width / 3);
@@ -1241,12 +1261,12 @@ public class AmiConfigScreen extends Screen {
                 button.setY(y + 3);
                 button.setWidth(btnW);
                 button.setMessage(keyMapping.getTranslatedKeyMessage());
-                button.render(g, mouseX, mouseY, 0);
+                button.extractRenderState(g, mouseX, mouseY, 0);
             }
 
             @Override
-            public boolean mouseClicked(double mouseX, double mouseY, int button) {
-                return this.button.mouseClicked(mouseX, mouseY, button);
+            public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+                return this.button.mouseClicked(event, doubleClick);
             }
 
             @Override

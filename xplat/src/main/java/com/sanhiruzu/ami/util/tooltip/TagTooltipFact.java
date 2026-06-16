@@ -5,7 +5,7 @@ import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
@@ -32,14 +32,14 @@ public final class TagTooltipFact implements AmiTooltipFact {
         lines.add(Component.translatable("ami.tooltip.tag_heading", Component.translatable(labelKey), tags.size())
                 .withStyle(s -> s.withColor(AMITheme.TEXT_SUBTLE)));
 
-        int limit = Screen.hasShiftDown() ? MAX_EXPANDED_TAGS_SHOWN : PREVIEW_TAGS_SHOWN;
+        int limit = Minecraft.getInstance().hasShiftDown() ? MAX_EXPANDED_TAGS_SHOWN : PREVIEW_TAGS_SHOWN;
         int shown = Math.min(tags.size(), limit);
         for (int i = 0; i < shown; i++) {
             lines.add(Component.translatable("ami.tooltip.tag_prefix", tags.get(i))
                     .withStyle(s -> s.withColor(AMITheme.POSITIVE)));
         }
         if (tags.size() > shown) {
-            String key = Screen.hasShiftDown() ? "ami.tooltip.more_entries" : "ami.tooltip.more_entries_shift";
+            String key = Minecraft.getInstance().hasShiftDown() ? "ami.tooltip.more_entries" : "ami.tooltip.more_entries_shift";
             lines.add(Component.translatable(key, tags.size() - shown)
                     .withStyle(s -> s.withColor(AMITheme.TEXT_SUBTLE)));
         }

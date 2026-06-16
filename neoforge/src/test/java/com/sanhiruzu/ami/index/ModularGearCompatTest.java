@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
 import com.sanhiruzu.ami.compat.ModularGearCompat;
 import com.sanhiruzu.ami.config.AmiConfig;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -21,8 +21,8 @@ class ModularGearCompatTest {
         Map<String, String> tinkers = meta("tconstruct", "Tinkers' Construct", "", "");
         Map<String, String> silentGear = meta("silentgear", "Silent Gear", "", "");
 
-        CompatFamilyDetector.detect(new ResourceLocation("tconstruct", "part_builder"), tinkers);
-        CompatFamilyDetector.detect(new ResourceLocation("silentgear", "pickaxe_blueprint"), silentGear);
+        CompatFamilyDetector.detect(new Identifier("tconstruct", "part_builder"), tinkers);
+        CompatFamilyDetector.detect(new Identifier("silentgear", "pickaxe_blueprint"), silentGear);
 
         assertEquals("tinkers", tinkers.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
         assertEquals("silent_gear", silentGear.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
@@ -33,7 +33,7 @@ class ModularGearCompatTest {
         Map<String, String> meta = meta("silentgear", "Silent Gear", "net.silentchaos512.gear.item.BlueprintItem", "");
         meta.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.TEMPLATE, ItemFacet.INGREDIENT_ORGANIC)));
 
-        ModularGearCompat.enrichItem(new ResourceLocation("silentgear", "pickaxe_blueprint"), meta);
+        ModularGearCompat.enrichItem(new Identifier("silentgear", "pickaxe_blueprint"), meta);
         CategoryAssignment assignment = resolve("silentgear:pickaxe_blueprint", meta,
                 ItemFacet.TEMPLATE, ItemFacet.INGREDIENT_ORGANIC);
 
@@ -51,7 +51,7 @@ class ModularGearCompatTest {
                 "slimeknights.tconstruct.tables.block.table.PartBuilderBlock");
         meta.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.WORKSTATION)));
 
-        ModularGearCompat.enrichItem(new ResourceLocation("tconstruct", "part_builder"), meta);
+        ModularGearCompat.enrichItem(new Identifier("tconstruct", "part_builder"), meta);
         CategoryAssignment assignment = resolve("tconstruct:part_builder", meta,
                 ItemFacet.PLACEABLE, ItemFacet.WORKSTATION);
 
@@ -66,7 +66,7 @@ class ModularGearCompatTest {
     void tinkersCastsArePartsNotStations() {
         Map<String, String> meta = meta("tconstruct", "Tinkers' Construct", "", "");
 
-        ModularGearCompat.enrichItem(new ResourceLocation("tconstruct", "pickaxe_head_cast"), meta);
+        ModularGearCompat.enrichItem(new Identifier("tconstruct", "pickaxe_head_cast"), meta);
 
         assertEquals("parts", meta.get(SearchNodeKeys.MODULAR_GEAR_ITEM_KIND));
         assertEquals("head", meta.get(SearchNodeKeys.MODULAR_GEAR_PART));
@@ -79,7 +79,7 @@ class ModularGearCompatTest {
                 "slimeknights.tconstruct.smeltery.block.SearedBlock");
         meta.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.PLACEABLE)));
 
-        ModularGearCompat.enrichItem(new ResourceLocation("tconstruct", "seared_stone"), meta);
+        ModularGearCompat.enrichItem(new Identifier("tconstruct", "seared_stone"), meta);
         CategoryAssignment assignment = resolve("tconstruct:seared_stone", meta, ItemFacet.PLACEABLE);
 
         assertEquals("", meta.getOrDefault(SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, ""));
@@ -93,7 +93,7 @@ class ModularGearCompatTest {
                 "slimeknights.tconstruct.smeltery.block.SearedBlock");
         meta.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.PLACEABLE)));
 
-        ModularGearCompat.enrichItem(new ResourceLocation("tconstruct", "seared_table"), meta);
+        ModularGearCompat.enrichItem(new Identifier("tconstruct", "seared_table"), meta);
         CategoryAssignment assignment = resolve("tconstruct:seared_table", meta, ItemFacet.PLACEABLE);
 
         assertEquals("stations", meta.get(SearchNodeKeys.MODULAR_GEAR_ITEM_KIND));
@@ -107,8 +107,8 @@ class ModularGearCompatTest {
         Map<String, String> mobHead = meta("tconstruct", "Tinkers' World",
                 "net.minecraft.world.item.StandingAndWallBlockItem", "");
 
-        ModularGearCompat.enrichItem(new ResourceLocation("tconstruct", "greenheart_pressure_plate"), pressurePlate);
-        ModularGearCompat.enrichItem(new ResourceLocation("tconstruct", "blaze_head"), mobHead);
+        ModularGearCompat.enrichItem(new Identifier("tconstruct", "greenheart_pressure_plate"), pressurePlate);
+        ModularGearCompat.enrichItem(new Identifier("tconstruct", "blaze_head"), mobHead);
 
         assertEquals("", pressurePlate.getOrDefault(SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, ""));
         assertEquals("", pressurePlate.getOrDefault(SearchNodeKeys.MODULAR_GEAR_PART, ""));
@@ -120,7 +120,7 @@ class ModularGearCompatTest {
     void tinkersReinforcementsRouteToModifiers() {
         Map<String, String> meta = meta("tconstruct", "Tinkers' General Items", "net.minecraft.world.item.Item", "");
 
-        ModularGearCompat.enrichItem(new ResourceLocation("tconstruct", "emerald_reinforcement"), meta);
+        ModularGearCompat.enrichItem(new Identifier("tconstruct", "emerald_reinforcement"), meta);
         CategoryAssignment assignment = resolve("tconstruct:emerald_reinforcement", meta);
 
         assertEquals("modifiers", meta.get(SearchNodeKeys.MODULAR_GEAR_ITEM_KIND));
@@ -133,7 +133,7 @@ class ModularGearCompatTest {
         Map<String, String> meta = meta("tconstruct", "Tinkers' General Items",
                 "slimeknights.tconstruct.tools.item.CreativeSlotItem", "");
 
-        ModularGearCompat.enrichItem(new ResourceLocation("tconstruct", "creative_slot"), meta);
+        ModularGearCompat.enrichItem(new Identifier("tconstruct", "creative_slot"), meta);
         CategoryAssignment assignment = resolve("tconstruct:creative_slot", meta);
 
         assertEquals("modifiers", meta.get(SearchNodeKeys.MODULAR_GEAR_ITEM_KIND));
@@ -146,7 +146,7 @@ class ModularGearCompatTest {
         Map<String, String> meta = meta("tconstruct", "Tinkers' Smeltery",
                 "slimeknights.tconstruct.smeltery.item.CopperCanItem", "");
 
-        ModularGearCompat.enrichItem(new ResourceLocation("tconstruct", "copper_can"), meta);
+        ModularGearCompat.enrichItem(new Identifier("tconstruct", "copper_can"), meta);
 
         assertEquals("", meta.getOrDefault(SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, ""));
     }
@@ -155,7 +155,7 @@ class ModularGearCompatTest {
     void modularGearPathFactsUseExactTokens() {
         Map<String, String> meta = meta("tconstruct", "Tinkers' Construct", "", "");
 
-        ModularGearCompat.enrichItem(new ResourceLocation("tconstruct", "gearbox"), meta);
+        ModularGearCompat.enrichItem(new Identifier("tconstruct", "gearbox"), meta);
 
         assertEquals("", meta.getOrDefault(SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, ""));
         assertEquals("", meta.getOrDefault(SearchNodeKeys.MODULAR_GEAR_PART, ""));
@@ -166,7 +166,7 @@ class ModularGearCompatTest {
         Map<String, String> meta = meta("tconstruct", "Tinkers' Construct",
                 "slimeknights.tconstruct.library.tools.item.ModifiablePickaxeItem", "");
 
-        ModularGearCompat.enrichItem(new ResourceLocation("tconstruct", "manyullyn_pickaxe"), meta);
+        ModularGearCompat.enrichItem(new Identifier("tconstruct", "manyullyn_pickaxe"), meta);
         CategoryAssignment assignment = resolve("tconstruct:manyullyn_pickaxe", meta, ItemFacet.HARVEST_TOOL);
 
         assertEquals("tools", meta.get(SearchNodeKeys.MODULAR_GEAR_ITEM_KIND));
@@ -182,7 +182,7 @@ class ModularGearCompatTest {
         meta.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.BOOK, ItemFacet.GUIDE_BOOK)));
         meta.put(SearchNodeKeys.GUIDE_BOOK_SYSTEM, "silentgear_materials");
 
-        ModularGearCompat.enrichItem(new ResourceLocation("silentgear", "material_book"), meta);
+        ModularGearCompat.enrichItem(new Identifier("silentgear", "material_book"), meta);
         CategoryAssignment assignment = resolve("silentgear:material_book", meta, ItemFacet.BOOK, ItemFacet.GUIDE_BOOK);
 
         assertEquals("silent_gear", meta.get(SearchNodeKeys.MODULAR_GEAR_FAMILY));
@@ -200,7 +200,7 @@ class ModularGearCompatTest {
             Map<String, String> meta = meta("silentgear", "Silent Gear",
                     "net.silentchaos512.gear.item.GearPickaxeItem", "");
 
-            ModularGearCompat.enrichItem(new ResourceLocation("silentgear", "crimson_iron_pickaxe"), meta);
+            ModularGearCompat.enrichItem(new Identifier("silentgear", "crimson_iron_pickaxe"), meta);
             CategoryAssignment assignment = resolve("silentgear:crimson_iron_pickaxe", meta, ItemFacet.HARVEST_TOOL);
 
             assertEquals("modular_gear", assignment.categoryId());
@@ -214,7 +214,7 @@ class ModularGearCompatTest {
     void unrelatedGearWordsDoNotGetFamilyMetadata() {
         Map<String, String> meta = meta("minecraft", "Combat", "", "");
 
-        ModularGearCompat.enrichItem(new ResourceLocation("minecraft", "iron_pickaxe"), meta);
+        ModularGearCompat.enrichItem(new Identifier("minecraft", "iron_pickaxe"), meta);
 
         assertEquals("", meta.getOrDefault(SearchNodeKeys.MODULAR_GEAR_FAMILY, ""));
         assertEquals("", meta.getOrDefault(SearchNodeKeys.MODULAR_GEAR_ITEM_KIND, ""));
@@ -251,7 +251,7 @@ class ModularGearCompatTest {
 
     private static CategoryAssignment resolve(String id, Map<String, String> meta, ItemFacet... facets) {
         return PrimaryCategoryResolver.resolve(
-                new ResourceLocation(id),
+                new Identifier(id),
                 new FacetProfile(facets.length == 0 ? EnumSet.noneOf(ItemFacet.class) : EnumSet.of(facets[0], facets), meta)
         );
     }

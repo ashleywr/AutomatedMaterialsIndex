@@ -5,7 +5,7 @@ import com.sanhiruzu.ami.index.AmiGuideSearchIndex;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +25,7 @@ class ResultsViewProjectorGuideTest {
     @Test
     void projectionIncludesGuideRowsWithoutChangingItemTree() {
         SearchNode item = new SearchNode(
-                new ResourceLocation("botania", "mana_spreader"),
+                new Identifier("botania", "mana_spreader"),
                 NodeType.ITEM,
                 "Mana Spreader",
                 0,
@@ -33,13 +33,13 @@ class ResultsViewProjectorGuideTest {
                 Map.of()
         );
         AmiGuideDocument guide = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/botania/mana_spreader"),
+                        new Identifier("ami", "guide/botania/mana_spreader"),
                         "patchouli",
                         "botania",
                         "Mana Spreaders"
                 )
                 .chapter("Basics")
-                .referencedItem(new ResourceLocation("botania", "mana_spreader"))
+                .referencedItem(new Identifier("botania", "mana_spreader"))
                 .build();
         AmiGuideSearchIndex guideIndex = new AmiGuideSearchIndex(List.of(guide),
                 AmiGuideSearchIndex.GuideIndexingMode.TITLES);
@@ -66,7 +66,7 @@ class ResultsViewProjectorGuideTest {
     @Test
     void compactAndFavoritesProjectionsSuppressGuideRows() {
         AmiGuideDocument guide = AmiGuideDocument.builder(
-                new ResourceLocation("ami", "guide/example"),
+                new Identifier("ami", "guide/example"),
                 "plugin",
                 "example",
                 "Example Guide"
@@ -83,7 +83,7 @@ class ResultsViewProjectorGuideTest {
     @Test
     void fullGridProjectionStillIncludesGuideRows() {
         AmiGuideDocument guide = AmiGuideDocument.builder(
-                new ResourceLocation("ami", "guide/example"),
+                new Identifier("ami", "guide/example"),
                 "plugin",
                 "example",
                 "Example Guide"

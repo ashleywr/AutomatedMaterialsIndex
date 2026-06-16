@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index.metrics;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
@@ -28,7 +28,7 @@ public final class StorageMetricAdapters {
         ADAPTERS.add(adapter);
     }
 
-    public static synchronized OptionalLong estimate(ItemStack stack, ResourceLocation id, @org.jetbrains.annotations.Nullable net.minecraft.world.level.Level level) {
+    public static synchronized OptionalLong estimate(ItemStack stack, Identifier id, @org.jetbrains.annotations.Nullable net.minecraft.world.level.Level level) {
         for (StorageMetricAdapter adapter : ADAPTERS) {
             OptionalLong estimate = adapter.estimate(stack, id, level);
             if (estimate.isPresent()) return estimate;

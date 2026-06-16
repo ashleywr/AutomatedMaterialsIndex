@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.List;
 import java.util.Locale;
@@ -132,7 +132,7 @@ public final class CobblemonCompat {
     private CobblemonCompat() {
     }
 
-    public static void enrichItem(ResourceLocation id, Map<String, String> meta) {
+    public static void enrichItem(Identifier id, Map<String, String> meta) {
         if (id == null) {
             return;
         }
@@ -534,7 +534,7 @@ public final class CobblemonCompat {
         return false;
     }
 
-    private record ItemContext(ResourceLocation id, String path, String creativeTab, String itemClass, String tags,
+    private record ItemContext(Identifier id, String path, String creativeTab, String itemClass, String tags,
                                Map<String, String> meta) {
         private boolean inTab(String text) {
             return creativeTab.contains(text);

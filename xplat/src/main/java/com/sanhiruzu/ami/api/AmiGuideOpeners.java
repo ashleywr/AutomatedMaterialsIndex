@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.api;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.lang.reflect.Method;
 import java.util.*;
@@ -39,10 +39,10 @@ public final class AmiGuideOpeners {
      * Opens a Patchouli-based guidebook to a specific entry page.
      * Falls back to opening the book cover if the entry-specific method is not found.
      *
-     * @param bookId the book's ResourceLocation (e.g. {@code botania:lexicon})
+     * @param bookId the book's Identifier (e.g. {@code botania:lexicon})
      * @param pageId the entry path within the book namespace (e.g. {@code basics/mana_spreader})
      */
-    public static Runnable patchouli(ResourceLocation bookId, String pageId) {
+    public static Runnable patchouli(Identifier bookId, String pageId) {
         return () -> openPatchouliBook(bookId, pageId);
     }
 
@@ -54,16 +54,16 @@ public final class AmiGuideOpeners {
      * @param bookIds candidate book IDs to try in order
      * @param pageId  the entry path within the book namespace (e.g. {@code basics/mana_spreader})
      */
-    public static Runnable patchouli(Collection<ResourceLocation> bookIds, String pageId) {
+    public static Runnable patchouli(Collection<Identifier> bookIds, String pageId) {
         return () -> openPatchouliBook(bookIds, pageId);
     }
 
     /**
      * Opens a Patchouli-based guidebook to its cover or last-visited page.
      *
-     * @param bookId the book's ResourceLocation
+     * @param bookId the book's Identifier
      */
-    public static Runnable patchouli(ResourceLocation bookId) {
+    public static Runnable patchouli(Identifier bookId) {
         return () -> openPatchouliBook(bookId == null ? List.of() : List.of(bookId), null);
     }
 
@@ -73,19 +73,19 @@ public final class AmiGuideOpeners {
      * Opens a GuideME guide (used by Applied Energistics 2 and other mods)
      * to the guide's root page.
      *
-     * @param bookId the guide's ResourceLocation (e.g. {@code ae2:guide})
+     * @param bookId the guide's Identifier (e.g. {@code ae2:guide})
      */
-    public static Runnable guideME(ResourceLocation bookId) {
+    public static Runnable guideME(Identifier bookId) {
         return () -> tryOpenGuideME(bookId, null);
     }
 
     /**
      * Opens a GuideME guide to a specific page.
      *
-     * @param bookId the guide's ResourceLocation
+     * @param bookId the guide's Identifier
      * @param pageId the page path within the guide namespace
      */
-    public static Runnable guideME(ResourceLocation bookId, String pageId) {
+    public static Runnable guideME(Identifier bookId, String pageId) {
         return () -> tryOpenGuideME(bookId, pageId);
     }
 
@@ -94,7 +94,7 @@ public final class AmiGuideOpeners {
      *
      * @return {@code true} when a compatible GuideME open method was invoked
      */
-    public static boolean tryOpenGuideME(ResourceLocation bookId, String pageId) {
+    public static boolean tryOpenGuideME(Identifier bookId, String pageId) {
         return openGuideMEBook(bookId, pageId);
     }
 
@@ -103,22 +103,22 @@ public final class AmiGuideOpeners {
     /**
      * Opens a Modonomicon book to a specific category/entry page.
      *
-     * @param bookId     the book's ResourceLocation (e.g. {@code spectrum:guidebook})
+     * @param bookId     the book's Identifier (e.g. {@code spectrum:guidebook})
      * @param categoryId the category id within the book namespace
      * @param entryId    the entry id within the book namespace
      * @param page       zero-based page number
      */
-    public static Runnable modonomicon(ResourceLocation bookId, ResourceLocation categoryId,
-                                       ResourceLocation entryId, int page) {
+    public static Runnable modonomicon(Identifier bookId, Identifier categoryId,
+                                       Identifier entryId, int page) {
         return () -> openModonomiconBook(bookId, categoryId, entryId, page);
     }
 
     /**
      * Opens a Modonomicon book to its default screen.
      *
-     * @param bookId the book's ResourceLocation
+     * @param bookId the book's Identifier
      */
-    public static Runnable modonomicon(ResourceLocation bookId) {
+    public static Runnable modonomicon(Identifier bookId) {
         return () -> openModonomiconBook(bookId, null, null, 0);
     }
 
@@ -129,7 +129,7 @@ public final class AmiGuideOpeners {
      *
      * @param materialId the Silent Gear material id, or {@code null} for the material book home
      */
-    public static Runnable silentGearMaterialBook(ResourceLocation materialId) {
+    public static Runnable silentGearMaterialBook(Identifier materialId) {
         return () -> openSilentGearMaterialBook(materialId);
     }
 
@@ -138,7 +138,7 @@ public final class AmiGuideOpeners {
      *
      * @return {@code true} when a compatible Silent Gear material-book screen was created
      */
-    public static boolean tryOpenSilentGearMaterialBook(ResourceLocation materialId) {
+    public static boolean tryOpenSilentGearMaterialBook(Identifier materialId) {
         return openSilentGearMaterialBook(materialId);
     }
 
@@ -187,7 +187,7 @@ public final class AmiGuideOpeners {
      * @param bookId the Hexerei book item id
      * @param pageId the page_location string, or {@code null} to open the cover
      */
-    public static Runnable hexereiBook(ResourceLocation bookId, String pageId) {
+    public static Runnable hexereiBook(Identifier bookId, String pageId) {
         return () -> openHexereiBook(bookId, pageId);
     }
 
@@ -196,7 +196,7 @@ public final class AmiGuideOpeners {
     /**
      * Opens a Mantle/Tinkers-style book to a named page when the book data is available.
      */
-    public static Runnable mantleBook(ResourceLocation bookId, String pageId) {
+    public static Runnable mantleBook(Identifier bookId, String pageId) {
         return () -> openMantleBook(bookId, pageId);
     }
 
@@ -210,32 +210,32 @@ public final class AmiGuideOpeners {
     /**
      * Opens Alex's Caves' cave book to the requested entry JSON.
      */
-    public static Runnable alexsCavesBook(ResourceLocation pageJson) {
+    public static Runnable alexsCavesBook(Identifier pageJson) {
         return () -> openAlexsCavesBook(pageJson);
     }
 
     // ── Internal ──────────────────────────────────────────────────────────────
 
-    private static void openPatchouliBook(Iterable<ResourceLocation> bookIds, String pageId) {
+    private static void openPatchouliBook(Iterable<Identifier> bookIds, String pageId) {
         if (bookIds == null) {
             return;
         }
-        LinkedHashSet<ResourceLocation> deduped = new LinkedHashSet<>();
-        for (ResourceLocation bookId : bookIds) {
+        LinkedHashSet<Identifier> deduped = new LinkedHashSet<>();
+        for (Identifier bookId : bookIds) {
             if (bookId == null) {
                 continue;
             }
             deduped.add(bookId);
         }
-        List<ResourceLocation> candidates = patchouliBookCandidates(deduped);
+        List<Identifier> candidates = patchouliBookCandidates(deduped);
 
         if (pageId != null && !pageId.isBlank()) {
-            for (ResourceLocation bookId : candidates) {
+            for (Identifier bookId : candidates) {
                 if (openPatchouliBookEntry(bookId, pageId)) {
                     return;
                 }
             }
-            for (ResourceLocation bookId : candidates) {
+            for (Identifier bookId : candidates) {
                 if (openPatchouliBook(bookId)) {
                     return;
                 }
@@ -243,14 +243,14 @@ public final class AmiGuideOpeners {
             return;
         }
 
-        for (ResourceLocation bookId : candidates) {
+        for (Identifier bookId : candidates) {
             if (openPatchouliBook(bookId)) {
                 return;
             }
         }
     }
 
-    private static void openPatchouliBook(ResourceLocation bookId, String pageId) {
+    private static void openPatchouliBook(Identifier bookId, String pageId) {
         if (bookId == null) {
             return;
         }
@@ -261,7 +261,7 @@ public final class AmiGuideOpeners {
         openPatchouliBook(List.of(bookId), pageId);
     }
 
-    private static boolean openPatchouliBook(ResourceLocation bookId) {
+    private static boolean openPatchouliBook(Identifier bookId) {
         if (bookId == null) {
             return false;
         }
@@ -286,7 +286,7 @@ public final class AmiGuideOpeners {
         return false;
     }
 
-    private static boolean openPatchouliBookEntry(ResourceLocation bookId, String pageId) {
+    private static boolean openPatchouliBookEntry(Identifier bookId, String pageId) {
         if (bookId == null || pageId == null || pageId.isBlank()) {
             return false;
         }
@@ -297,7 +297,7 @@ public final class AmiGuideOpeners {
             if (mc.player == null) {
                 return false;
             }
-            for (ResourceLocation entryId : patchouliEntryCandidates(bookId, pageId)) {
+            for (Identifier entryId : patchouliEntryCandidates(bookId, pageId)) {
                 if (tryInvokePatchouliOpen(api, "openBookEntry", bookId, mc.player, bookId, entryId, 0) ||
                         tryInvokePatchouliOpen(api, "openBookEntry", bookId, bookId, entryId, 0) ||
                         tryInvokePatchouliOpen(api, "openBookGui", bookId, mc.player, bookId, entryId, 0) ||
@@ -314,23 +314,23 @@ public final class AmiGuideOpeners {
         return false;
     }
 
-    static ResourceLocation patchouliEntryId(ResourceLocation bookId, String pageId) {
+    static Identifier patchouliEntryId(Identifier bookId, String pageId) {
         if (pageId != null && pageId.contains(":")) {
-            ResourceLocation parsed = ResourceLocation.tryParse(pageId);
+            Identifier parsed = Identifier.tryParse(pageId);
             if (parsed != null) {
                 return parsed;
             }
         }
-        return ResourceLocation.fromNamespaceAndPath(bookId.getNamespace(), pageId == null ? "" : pageId);
+        return Identifier.fromNamespaceAndPath(bookId.getNamespace(), pageId == null ? "" : pageId);
     }
 
-    static List<ResourceLocation> patchouliEntryCandidates(ResourceLocation bookId, String pageId) {
+    static List<Identifier> patchouliEntryCandidates(Identifier bookId, String pageId) {
         if (bookId == null || pageId == null || pageId.isBlank()) {
             return List.of();
         }
 
-        ResourceLocation requested = patchouliEntryId(bookId, pageId);
-        LinkedHashSet<ResourceLocation> candidates = new LinkedHashSet<>();
+        Identifier requested = patchouliEntryId(bookId, pageId);
+        LinkedHashSet<Identifier> candidates = new LinkedHashSet<>();
         candidates.add(requested);
 
         Map<?, ?> entries = patchouliBookEntries(bookId);
@@ -340,8 +340,8 @@ public final class AmiGuideOpeners {
 
         String requestedPath = requested.getPath();
         entries.keySet().stream()
-                .filter(ResourceLocation.class::isInstance)
-                .map(ResourceLocation.class::cast)
+                .filter(Identifier.class::isInstance)
+                .map(Identifier.class::cast)
                 .map(entryId -> new ScoredEntryCandidate(entryId, scorePatchouliEntryCandidate(requestedPath, entryId.getPath())))
                 .filter(candidate -> candidate.score() > 0)
                 .sorted((a, b) -> {
@@ -354,7 +354,7 @@ public final class AmiGuideOpeners {
         return List.copyOf(candidates);
     }
 
-    public static boolean patchouliEntryVisible(ResourceLocation bookId, String pageId) {
+    public static boolean patchouliEntryVisible(Identifier bookId, String pageId) {
         if (bookId == null || pageId == null || pageId.isBlank()) {
             return true;
         }
@@ -363,7 +363,7 @@ public final class AmiGuideOpeners {
             if (entries.isEmpty()) {
                 return true;
             }
-            for (ResourceLocation entryId : patchouliEntryCandidates(bookId, pageId)) {
+            for (Identifier entryId : patchouliEntryCandidates(bookId, pageId)) {
                 Object entry = entries.get(entryId);
                 if (entry != null) {
                     return patchouliEntryVisible(entry);
@@ -437,10 +437,10 @@ public final class AmiGuideOpeners {
         return idx >= 0 ? path.substring(idx + 1) : path;
     }
 
-    private static List<ResourceLocation> patchouliBookCandidates(Iterable<ResourceLocation> requestedBooks) {
-        LinkedHashSet<ResourceLocation> candidates = new LinkedHashSet<>();
+    private static List<Identifier> patchouliBookCandidates(Iterable<Identifier> requestedBooks) {
+        LinkedHashSet<Identifier> candidates = new LinkedHashSet<>();
         if (requestedBooks != null) {
-            for (ResourceLocation requestedBook : requestedBooks) {
+            for (Identifier requestedBook : requestedBooks) {
                 if (requestedBook == null) {
                     continue;
                 }
@@ -451,7 +451,7 @@ public final class AmiGuideOpeners {
         return List.copyOf(candidates);
     }
 
-    private static List<ResourceLocation> installedPatchouliBookCandidates(ResourceLocation requestedBook) {
+    private static List<Identifier> installedPatchouliBookCandidates(Identifier requestedBook) {
         if (requestedBook == null) {
             return List.of();
         }
@@ -460,10 +460,10 @@ public final class AmiGuideOpeners {
             return List.of();
         }
 
-        List<ResourceLocation> exactNamespace = new ArrayList<>();
-        List<ResourceLocation> guideLike = new ArrayList<>();
+        List<Identifier> exactNamespace = new ArrayList<>();
+        List<Identifier> guideLike = new ArrayList<>();
         for (Object key : books.keySet()) {
-            if (!(key instanceof ResourceLocation bookId)) {
+            if (!(key instanceof Identifier bookId)) {
                 continue;
             }
             if (!bookId.getNamespace().equals(requestedBook.getNamespace())) {
@@ -497,7 +497,7 @@ public final class AmiGuideOpeners {
         return Map.of();
     }
 
-    private static Map<?, ?> patchouliBookEntries(ResourceLocation bookId) {
+    private static Map<?, ?> patchouliBookEntries(Identifier bookId) {
         Object book = patchouliBookRegistryBooks().get(bookId);
         if (book == null) {
             return Map.of();
@@ -514,7 +514,7 @@ public final class AmiGuideOpeners {
         return Map.of();
     }
 
-    private static boolean tryInvokePatchouliOpen(Object api, String methodName, ResourceLocation expectedBook, Object... args) {
+    private static boolean tryInvokePatchouliOpen(Object api, String methodName, Identifier expectedBook, Object... args) {
         if (!tryInvokePatchouli(api, methodName, args)) {
             return false;
         }
@@ -522,14 +522,14 @@ public final class AmiGuideOpeners {
         return open == null || open;
     }
 
-    private static Boolean isPatchouliBookOpen(Object api, ResourceLocation expectedBook) {
+    private static Boolean isPatchouliBookOpen(Object api, Identifier expectedBook) {
         if (api == null || expectedBook == null) {
             return null;
         }
         try {
             Method method = api.getClass().getMethod("getOpenBookGui");
             Object result = method.invoke(api);
-            if (result instanceof ResourceLocation openBook) {
+            if (result instanceof Identifier openBook) {
                 return expectedBook.equals(openBook);
             }
             return false;
@@ -601,7 +601,7 @@ public final class AmiGuideOpeners {
         return false;
     }
 
-    private static boolean openGuideMEBook(ResourceLocation bookId, String pageId) {
+    private static boolean openGuideMEBook(Identifier bookId, String pageId) {
         try {
             Minecraft mc = Minecraft.getInstance();
             if (mc.player == null) return false;
@@ -609,7 +609,7 @@ public final class AmiGuideOpeners {
             Class<?> guidesCommon = Class.forName("guideme.GuidesCommon");
 
             if (pageId != null && !pageId.isBlank()) {
-                ResourceLocation pageLocation = guideMEPageLocation(bookId, pageId);
+                Identifier pageLocation = guideMEPageLocation(bookId, pageId);
                 Object pageAnchor = guideMEPageAnchor(pageLocation);
                 for (Method m : guidesCommon.getMethods()) {
                     if ("openGuide".equals(m.getName()) && m.getParameterCount() == 3) {
@@ -634,33 +634,33 @@ public final class AmiGuideOpeners {
         return false;
     }
 
-    private static Object guideMEPageAnchor(ResourceLocation pageLocation) {
+    private static Object guideMEPageAnchor(Identifier pageLocation) {
         if (pageLocation == null) {
             return null;
         }
         try {
             Class<?> pageAnchorClass = Class.forName("guideme.PageAnchor");
-            return pageAnchorClass.getMethod("page", ResourceLocation.class).invoke(null, pageLocation);
+            return pageAnchorClass.getMethod("page", Identifier.class).invoke(null, pageLocation);
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
             LOGGER.log(Level.FINE, "AMI: GuideME page anchor unavailable for " + pageLocation, e);
             return null;
         }
     }
 
-    static ResourceLocation guideMEPageLocation(ResourceLocation bookId, String pageId) {
-        ResourceLocation requested = ResourceLocation.fromNamespaceAndPath(bookId.getNamespace(), pageId);
-        ResourceLocation runtimeMatch = guideMERuntimePageLocation(bookId, pageId);
+    static Identifier guideMEPageLocation(Identifier bookId, String pageId) {
+        Identifier requested = Identifier.fromNamespaceAndPath(bookId.getNamespace(), pageId);
+        Identifier runtimeMatch = guideMERuntimePageLocation(bookId, pageId);
         return runtimeMatch == null ? requested : runtimeMatch;
     }
 
-    private static ResourceLocation guideMERuntimePageLocation(ResourceLocation bookId, String pageId) {
+    private static Identifier guideMERuntimePageLocation(Identifier bookId, String pageId) {
         if (bookId == null || pageId == null || pageId.isBlank()) {
             return null;
         }
         try {
             Class<?> proxyClass = Class.forName("guideme.internal.GuideMEProxy");
             Object proxy = proxyClass.getMethod("instance").invoke(null);
-            Method method = proxyClass.getMethod("getAvailablePages", ResourceLocation.class);
+            Method method = proxyClass.getMethod("getAvailablePages", Identifier.class);
             Object result = method.invoke(proxy, bookId);
             if (!(result instanceof Stream<?> stream)) {
                 return null;
@@ -668,8 +668,8 @@ public final class AmiGuideOpeners {
             try (stream) {
                 String normalizedPageId = normalizeGuideMEPagePath(pageId);
                 return stream
-                        .filter(ResourceLocation.class::isInstance)
-                        .map(ResourceLocation.class::cast)
+                        .filter(Identifier.class::isInstance)
+                        .map(Identifier.class::cast)
                         .filter(candidate -> isGuideMEPageMatch(candidate, normalizedPageId))
                         .findFirst()
                         .orElse(null);
@@ -680,7 +680,7 @@ public final class AmiGuideOpeners {
         }
     }
 
-    static boolean isGuideMEPageMatch(ResourceLocation candidate, String normalizedPageId) {
+    static boolean isGuideMEPageMatch(Identifier candidate, String normalizedPageId) {
         if (candidate == null || normalizedPageId == null || normalizedPageId.isBlank()) {
             return false;
         }
@@ -701,7 +701,7 @@ public final class AmiGuideOpeners {
         return value;
     }
 
-    private static Object guideMEPageArgument(Class<?> parameterType, ResourceLocation pageLocation, Object pageAnchor) {
+    private static Object guideMEPageArgument(Class<?> parameterType, Identifier pageLocation, Object pageAnchor) {
         if (parameterType == null) {
             return null;
         }
@@ -714,8 +714,8 @@ public final class AmiGuideOpeners {
         return null;
     }
 
-    private static void openModonomiconBook(ResourceLocation bookId, ResourceLocation categoryId,
-                                            ResourceLocation entryId, int page) {
+    private static void openModonomiconBook(Identifier bookId, Identifier categoryId,
+                                            Identifier entryId, int page) {
         if (bookId == null) {
             return;
         }
@@ -725,14 +725,14 @@ public final class AmiGuideOpeners {
             if (categoryId != null && entryId != null) {
                 address = addressClass.getMethod(
                                 "ignoreSaved",
-                                ResourceLocation.class,
-                                ResourceLocation.class,
-                                ResourceLocation.class,
+                                Identifier.class,
+                                Identifier.class,
+                                Identifier.class,
                                 int.class
                         )
                         .invoke(null, bookId, categoryId, entryId, Math.max(0, page));
             } else {
-                address = addressClass.getMethod("defaultFor", ResourceLocation.class).invoke(null, bookId);
+                address = addressClass.getMethod("defaultFor", Identifier.class).invoke(null, bookId);
             }
 
             Class<?> managerClass = Class.forName("com.klikli_dev.modonomicon.client.gui.BookGuiManager");
@@ -743,7 +743,7 @@ public final class AmiGuideOpeners {
         }
     }
 
-    private static boolean openSilentGearMaterialBook(ResourceLocation materialId) {
+    private static boolean openSilentGearMaterialBook(Identifier materialId) {
         try {
             Minecraft mc = Minecraft.getInstance();
             Object screen;
@@ -771,11 +771,11 @@ public final class AmiGuideOpeners {
         }
     }
 
-    private static Object resolveSilentGearMaterial(Object materialManager, ResourceLocation materialId) throws ReflectiveOperationException {
+    private static Object resolveSilentGearMaterial(Object materialManager, Identifier materialId) throws ReflectiveOperationException {
         if (materialManager == null || materialId == null) {
             return null;
         }
-        Method get = materialManager.getClass().getMethod("get", ResourceLocation.class);
+        Method get = materialManager.getClass().getMethod("get", Identifier.class);
         Object result = get.invoke(materialManager, materialId);
         if (result instanceof Optional<?> optional) {
             return optional.orElse(null);
@@ -788,7 +788,7 @@ public final class AmiGuideOpeners {
         return screenClass.getConstructor().newInstance();
     }
 
-    private static void openMantleBook(ResourceLocation bookId, String pageId) {
+    private static void openMantleBook(Identifier bookId, String pageId) {
         if (bookId == null) {
             return;
         }
@@ -817,7 +817,7 @@ public final class AmiGuideOpeners {
         }
     }
 
-    private static Object mantleBookData(ResourceLocation bookId) throws ReflectiveOperationException {
+    private static Object mantleBookData(Identifier bookId) throws ReflectiveOperationException {
         String path = bookId.getPath();
         if ("tconstruct".equals(bookId.getNamespace())) {
             String fieldName = switch (path) {
@@ -949,7 +949,7 @@ public final class AmiGuideOpeners {
         }
     }
 
-    private static void openHexereiBook(ResourceLocation bookId, String pageId) {
+    private static void openHexereiBook(Identifier bookId, String pageId) {
         try {
             Minecraft mc = Minecraft.getInstance();
             if (mc.player == null) {
@@ -959,10 +959,10 @@ public final class AmiGuideOpeners {
             Class<?> screenClass = Class.forName("net.joefoxe.hexerei.screen.BookOfShadowsScreen");
             Object screen = null;
             if (pageId != null && !pageId.isBlank()) {
-                ResourceLocation pageLocation = ResourceLocation.tryParse(pageId);
+                Identifier pageLocation = Identifier.tryParse(pageId);
                 if (pageLocation != null) {
                     try {
-                        screen = screenClass.getConstructor(ResourceLocation.class).newInstance(pageLocation);
+                        screen = screenClass.getConstructor(Identifier.class).newInstance(pageLocation);
                     } catch (ReflectiveOperationException ignored) {
                     }
                 }
@@ -988,8 +988,8 @@ public final class AmiGuideOpeners {
             Minecraft mc = Minecraft.getInstance();
             Class<?> screenClass = Class.forName("com.github.alexthe666.alexsmobs.client.gui.GUIAnimalDictionary");
             net.minecraft.world.item.Item item = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(
-                    ResourceLocation.fromNamespaceAndPath("alexsmobs", "animal_dictionary")
-            );
+                    Identifier.fromNamespaceAndPath("alexsmobs", "animal_dictionary")
+            ).map(net.minecraft.core.Holder::value).orElse(net.minecraft.world.item.Items.AIR);
             net.minecraft.world.item.ItemStack stack = new net.minecraft.world.item.ItemStack(item);
             Object screen = pageJson == null || pageJson.isBlank()
                     ? screenClass.getConstructor(net.minecraft.world.item.ItemStack.class).newInstance(stack)
@@ -1000,7 +1000,7 @@ public final class AmiGuideOpeners {
         }
     }
 
-    private static void openAlexsCavesBook(ResourceLocation pageJson) {
+    private static void openAlexsCavesBook(Identifier pageJson) {
         try {
             Minecraft mc = Minecraft.getInstance();
             Class<?> screenClass = Class.forName("com.github.alexmodguy.alexscaves.client.gui.book.CaveBookScreen");
@@ -1024,6 +1024,6 @@ public final class AmiGuideOpeners {
         }
     }
 
-    private record ScoredEntryCandidate(ResourceLocation entryId, int score) {
+    private record ScoredEntryCandidate(Identifier entryId, int score) {
     }
 }

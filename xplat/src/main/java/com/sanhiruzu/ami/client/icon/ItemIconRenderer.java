@@ -5,10 +5,10 @@ import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
@@ -28,21 +28,21 @@ public class ItemIconRenderer implements IIconRenderer {
      * Stacks for synthetic nodes (potions, enchanted books) registered during indexing.
      * These are NOT cleared on invalidate because they cannot be recovered from the registry.
      */
-    private static final Map<ResourceLocation, ItemStack> persistentStacks = new HashMap<>();
+    private static final Map<Identifier, ItemStack> persistentStacks = new HashMap<>();
 
     /**
      * Lazy cache for regular items; cleared on resource reload.
      */
-    private static final Map<ResourceLocation, ItemStack> lazyCache = new HashMap<>();
+    private static final Map<Identifier, ItemStack> lazyCache = new HashMap<>();
 
     /**
      * Pre-register a custom ItemStack for a synthetic node id (e.g. subtype nodes).
      */
-    public static void registerStack(ResourceLocation id, ItemStack stack) {
+    public static void registerStack(Identifier id, ItemStack stack) {
         persistentStacks.put(id, stack.copy());
     }
 
-    public static ItemStack resolveStack(ResourceLocation id) {
+    public static ItemStack resolveStack(Identifier id) {
         ItemStack persistent = persistentStacks.get(id);
         if (persistent != null) return persistent;
 
@@ -121,7 +121,7 @@ public class ItemIconRenderer implements IIconRenderer {
     }
 
     @Override
-    public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
+    public void render(GuiGraphicsExtractor g, SearchNode node, int x, int y, int size, boolean hovered) {
         ItemStack stack = resolveStack(node.id());
         if (stack.isEmpty()) {
             FallbackTextRenderer.renderFallback(g, node, x, y, size);
@@ -129,20 +129,18 @@ public class ItemIconRenderer implements IIconRenderer {
         }
 
         if (size == 16) {
-            // ItemIconCache has a Z-projection bug (near/far=[1000,3000] clips item geometry at Z≈100),
-            // producing transparent-black framebuffers. Bypass until projection is fixed.
-            g.renderItem(stack, x, y);
+            g.item(stack, x, y);
             return;
         }
 
         // Scale item rendering to requested size
         var poses = g.pose();
-        poses.pushPose();
-        poses.translate(x, y, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
+        poses.pushMatrix();
+        poses.translate(x, y);
         float s = size / 16f;
-        poses.scale(s, s, 1f);
-        g.renderItem(stack, 0, 0);
-        poses.popPose();
+        poses.scale(s, s);
+        g.item(stack, 0, 0);
+        poses.popMatrix();
     }
 
     @Override

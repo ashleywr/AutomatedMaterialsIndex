@@ -1,13 +1,13 @@
 package com.sanhiruzu.ami.client.widget;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 public interface AmiDropdownPopup {
     boolean isOpen();
 
     void close();
 
-    void renderDropdownList(GuiGraphics g, int mouseX, int mouseY, float partialTick);
+    void renderDropdownList(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick);
 
     boolean mouseClicked(double mouseX, double mouseY, int button);
 

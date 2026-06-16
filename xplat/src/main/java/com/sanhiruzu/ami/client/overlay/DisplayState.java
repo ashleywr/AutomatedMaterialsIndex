@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.client.overlay;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -11,12 +11,12 @@ import java.util.Set;
  */
 public final class DisplayState {
     private final Set<String> expandedNodeIds;
-    private final ResourceLocation selectedNodeId;
+    private final Identifier selectedNodeId;
     private final double scrollY;
     private final String viewMode;
     private final Set<String> activeFacets;
 
-    public DisplayState(Set<String> expandedNodeIds, ResourceLocation selectedNodeId,
+    public DisplayState(Set<String> expandedNodeIds, Identifier selectedNodeId,
                        double scrollY, String viewMode, Set<String> activeFacets) {
         this.expandedNodeIds = new HashSet<>(expandedNodeIds);
         this.selectedNodeId = selectedNodeId;
@@ -29,7 +29,7 @@ public final class DisplayState {
         return new HashSet<>(expandedNodeIds);
     }
 
-    public ResourceLocation selectedNodeId() {
+    public Identifier selectedNodeId() {
         return selectedNodeId;
     }
 

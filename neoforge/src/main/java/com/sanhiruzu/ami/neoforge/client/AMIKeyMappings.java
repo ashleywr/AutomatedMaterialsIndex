@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.neoforge.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.settings.KeyConflictContext;
@@ -9,7 +10,9 @@ import net.neoforged.neoforge.client.settings.KeyModifier;
 import org.lwjgl.glfw.GLFW;
 
 public class AMIKeyMappings {
-    public static final String CATEGORY = "key.categories.ami";
+    @SuppressWarnings("deprecation")
+    public static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(
+            Identifier.fromNamespaceAndPath("ami", "ami"));
 
     public static final KeyMapping FAVORITE = new KeyMapping(
             "key.ami.favorite",

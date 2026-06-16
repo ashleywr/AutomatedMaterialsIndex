@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client.tooltip;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 
@@ -42,7 +42,7 @@ public final class PokemonStatBarsComponent implements TooltipComponent, ClientT
     }
 
     @Override
-    public int getHeight() {
+    public int getHeight(Font font) {
         // 6 stat rows + 1 BST divider row + top padding
         return TOP_PAD + 7 * ROW_H;
     }
@@ -55,7 +55,7 @@ public final class PokemonStatBarsComponent implements TooltipComponent, ClientT
     }
 
     @Override
-    public void renderImage(Font font, int x, int y, GuiGraphics g) {
+    public void extractImage(Font font, int x, int y, int mouseX, int mouseY, GuiGraphicsExtractor g) {
         Row[] rows = {
             new Row("HP",  hp,  C_HP),
             new Row("ATK", atk, C_ATK),
@@ -76,7 +76,7 @@ public final class PokemonStatBarsComponent implements TooltipComponent, ClientT
             int barY = cy + (ROW_H - BAR_H) / 2;
 
             // Label — right-aligned inside its column
-            g.drawString(font, row.label(), x + labelW - font.width(row.label()), ty, 0xFF999999, false);
+            g.text(font, row.label(), x + labelW - font.width(row.label()), ty, 0xFF999999, false);
 
             // Bar track + fill
             g.fill(barX, barY, barX + BAR_MAX_W, barY + BAR_H, 0xFF2A2A2A);
@@ -86,7 +86,7 @@ public final class PokemonStatBarsComponent implements TooltipComponent, ClientT
             }
 
             // Value — left-aligned in number column
-            g.drawString(font, String.valueOf(row.value()), numX, ty, 0xFFCCCCCC, false);
+            g.text(font, String.valueOf(row.value()), numX, ty, 0xFFCCCCCC, false);
 
             cy += ROW_H;
         }
@@ -95,8 +95,8 @@ public final class PokemonStatBarsComponent implements TooltipComponent, ClientT
         int divY = cy + (ROW_H - 1) / 2;
         g.fill(barX, divY, barX + BAR_MAX_W, divY + 1, 0xFF444444);
         int ty = cy + (ROW_H - font.lineHeight) / 2;
-        g.drawString(font, "BST", x + labelW - font.width("BST"), ty, 0xFF999999, false);
-        g.drawString(font, String.valueOf(bst), numX, ty, 0xFFEEEEEE, false);
+        g.text(font, "BST", x + labelW - font.width("BST"), ty, 0xFF999999, false);
+        g.text(font, String.valueOf(bst), numX, ty, 0xFFEEEEEE, false);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

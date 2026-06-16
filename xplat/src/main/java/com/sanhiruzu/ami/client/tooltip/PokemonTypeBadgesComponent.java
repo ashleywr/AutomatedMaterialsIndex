@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client.tooltip;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
@@ -30,7 +30,7 @@ public final class PokemonTypeBadgesComponent implements TooltipComponent, Clien
     }
 
     @Override
-    public int getHeight() {
+    public int getHeight(Font font) {
         return TOP_PAD + BADGE_H;
     }
 
@@ -45,7 +45,7 @@ public final class PokemonTypeBadgesComponent implements TooltipComponent, Clien
     }
 
     @Override
-    public void renderImage(Font font, int x, int y, GuiGraphics g) {
+    public void extractImage(Font font, int x, int y, int mouseX, int mouseY, GuiGraphicsExtractor g) {
         int cx = x;
         int by = y + TOP_PAD;
         for (String type : types) {
@@ -57,7 +57,7 @@ public final class PokemonTypeBadgesComponent implements TooltipComponent, Clien
 
             // +1 accounts for the 1px line-gap included in font.lineHeight
             int textY = by + (BADGE_H - font.lineHeight + 1) / 2;
-            g.drawString(font, label, cx + PAD_X, textY, 0xFFFFFFFF, false);
+            g.text(font, label, cx + PAD_X, textY, 0xFFFFFFFF, false);
 
             cx += bw + BADGE_GAP;
         }

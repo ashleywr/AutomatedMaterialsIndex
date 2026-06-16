@@ -6,7 +6,7 @@ import com.sanhiruzu.ami.neoforge.AMI;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -26,13 +26,13 @@ public class AmiDevModeHandler {
         if (stack.isEmpty()) return;
 
         // 1. Registry Name
-        ResourceLocation itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
+        Identifier itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
         if (AmiConfig.devMode) {
             event.getToolTip().add(Component.translatable("ami.dev.id", itemId.toString()).withStyle(ChatFormatting.DARK_GRAY));
         }
 
         // 2. Tags
-        var tags = stack.getTags()
+        var tags = stack.getItem().builtInRegistryHolder().tags()
                 .map(tagKey -> tagKey.location().toString())
                 .sorted()
                 .toList();
@@ -43,7 +43,7 @@ public class AmiDevModeHandler {
         // 3. Data Components
         java.util.List<String> components = new java.util.ArrayList<>();
         for (var typed : stack.getComponents()) {
-            ResourceLocation compId = net.minecraft.core.registries.BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(typed.type());
+            Identifier compId = net.minecraft.core.registries.BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(typed.type());
             components.add(compId.toString());
         }
         appendMetadataLines(event.getToolTip(), "ami.dev.comp", components.stream().sorted().toList());
@@ -60,13 +60,13 @@ public class AmiDevModeHandler {
     private static void appendMetadataLines(java.util.List<Component> tooltip, String key, java.util.List<String> values) {
         if (values.isEmpty()) return;
 
-        int limit = Screen.hasShiftDown() ? MAX_EXPANDED_METADATA_SHOWN : PREVIEW_METADATA_SHOWN;
+        int limit = net.minecraft.client.Minecraft.getInstance().hasShiftDown() ? MAX_EXPANDED_METADATA_SHOWN : PREVIEW_METADATA_SHOWN;
         int shown = Math.min(values.size(), limit);
         for (int i = 0; i < shown; i++) {
             tooltip.add(Component.translatable(key, values.get(i)).withStyle(ChatFormatting.DARK_GRAY));
         }
         if (values.size() > shown) {
-            String moreKey = Screen.hasShiftDown() ? "ami.tooltip.more_entries" : "ami.tooltip.more_entries_shift";
+            String moreKey = net.minecraft.client.Minecraft.getInstance().hasShiftDown() ? "ami.tooltip.more_entries" : "ami.tooltip.more_entries_shift";
             tooltip.add(Component.translatable(moreKey, values.size() - shown).withStyle(ChatFormatting.DARK_GRAY));
         }
     }

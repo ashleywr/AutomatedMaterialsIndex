@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.compat.GregTechCompat;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -223,13 +223,13 @@ class StructuredCompatSearchTest {
     }
 
     private static SearchNode item(String namespace, String path, String displayName, Map<String, String> metadata) {
-        return new SearchNode(new ResourceLocation(namespace, path), NodeType.ITEM, displayName, 0, 0, metadata);
+        return new SearchNode(new Identifier(namespace, path), NodeType.ITEM, displayName, 0, 0, metadata);
     }
 
     private static SearchNode enrichedGregTechItem(String path, String displayName, Map<String, String> metadata) {
         Map<String, String> mutable = new HashMap<>(metadata);
         mutable.putIfAbsent(SearchNodeKeys.MOD_ID, "gtceu");
-        ResourceLocation id = new ResourceLocation("gtceu", path);
+        Identifier id = new Identifier("gtceu", path);
         GregTechCompat.enrichItem(id, mutable);
         return new SearchNode(id, NodeType.ITEM, displayName, 0, 0, Map.copyOf(mutable));
     }

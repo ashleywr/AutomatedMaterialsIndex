@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
@@ -21,7 +21,7 @@ class ClassificationGoldSetEvaluationTest {
     private static final String VANILLA_GOLD_SET_RESOURCE = "ami/vanilla_classification_gold_set.jsonl";
 
     private static Evaluation evaluate(List<GoldLabel> labels, List<SearchNode> nodes) {
-        Map<ResourceLocation, SearchNode> byId = nodes.stream()
+        Map<Identifier, SearchNode> byId = nodes.stream()
                 .filter(node -> node.type() == NodeType.ITEM)
                 .collect(Collectors.toMap(SearchNode::id, node -> node, (first, second) -> first, LinkedHashMap::new));
 
@@ -76,7 +76,7 @@ class ClassificationGoldSetEvaluationTest {
                 lineNumber++;
                 if (line.isBlank()) continue;
                 JsonObject object = JsonParser.parseString(line).getAsJsonObject();
-                ResourceLocation id = ResourceLocation.tryParse(required(object, "id", lineNumber));
+                Identifier id = Identifier.tryParse(required(object, "id", lineNumber));
                 if (id == null) {
                     throw new IOException("Invalid id in gold set line " + lineNumber + ": " + object.get("id"));
                 }
@@ -177,7 +177,7 @@ class ClassificationGoldSetEvaluationTest {
         assertTrue(Files.exists(reportPath), "Expected classification report at " + reportPath.toAbsolutePath());
     }
 
-    private record GoldLabel(ResourceLocation id, String category, String subcategory, String confidence, String notes) {
+    private record GoldLabel(Identifier id, String category, String subcategory, String confidence, String notes) {
     }
 
     private record Match(GoldLabel expected, SearchNode actual) {

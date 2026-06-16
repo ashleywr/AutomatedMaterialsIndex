@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.compat.AE2Compat;
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
 import com.sanhiruzu.ami.config.AmiConfig;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -19,7 +19,7 @@ class AE2CompatTest {
     void ae2NamespaceGetsFamilyPolicy() {
         Map<String, String> meta = meta("ae2", "Applied Energistics 2", "appeng.items.misc.MaterialItem", "");
 
-        CompatFamilyDetector.detect(new ResourceLocation("ae2", "logic_processor"), meta);
+        CompatFamilyDetector.detect(new Identifier("ae2", "logic_processor"), meta);
 
         assertEquals("ae2", meta.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
     }
@@ -29,7 +29,7 @@ class AE2CompatTest {
         Map<String, String> meta = meta("ae2", "Applied Energistics 2",
                 "appeng.items.tools.powered.WirelessTerminalItem", "");
 
-        AE2Compat.enrichItem(new ResourceLocation("ae2", "wireless_terminal"), meta);
+        AE2Compat.enrichItem(new Identifier("ae2", "wireless_terminal"), meta);
         CategoryAssignment assignment = resolve("ae2:wireless_terminal", meta, ItemFacet.HAS_ENERGY, ItemFacet.CURIO);
 
         assertEquals("terminals", meta.get(SearchNodeKeys.AE2_ITEM_KIND));
@@ -43,7 +43,7 @@ class AE2CompatTest {
         Map<String, String> meta = meta("ae2", "Applied Energistics 2",
                 "appeng.items.tools.powered.PortableCellItem", "");
 
-        AE2Compat.enrichItem(new ResourceLocation("ae2", "portable_item_cell_64k"), meta);
+        AE2Compat.enrichItem(new Identifier("ae2", "portable_item_cell_64k"), meta);
         CategoryAssignment assignment = resolve("ae2:portable_item_cell_64k", meta, ItemFacet.HAS_ENERGY, ItemFacet.CURIO);
 
         assertEquals("storage", meta.get(SearchNodeKeys.AE2_ITEM_KIND));
@@ -59,7 +59,7 @@ class AE2CompatTest {
                 "appeng.items.parts.PartItem", "");
         meta.put(SearchNodeKeys.TAGS, "ae2:smart_cable,ae2:p2p_attunements/me_p2p_tunnel");
 
-        AE2Compat.enrichItem(new ResourceLocation("ae2", "white_smart_cable"), meta);
+        AE2Compat.enrichItem(new Identifier("ae2", "white_smart_cable"), meta);
         CategoryAssignment assignment = resolve("ae2:white_smart_cable", meta, ItemFacet.CABLE, ItemFacet.TECH_COMPONENT);
 
         assertEquals("channels", meta.get(SearchNodeKeys.AE2_ITEM_KIND));
@@ -74,7 +74,7 @@ class AE2CompatTest {
         meta.put(SearchNodeKeys.TAGS, "ae2:all_certus_quartz,c:gems/certus_quartz,c:gems");
         meta.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.GEM)));
 
-        AE2Compat.enrichItem(new ResourceLocation("ae2", "certus_quartz_crystal"), meta);
+        AE2Compat.enrichItem(new Identifier("ae2", "certus_quartz_crystal"), meta);
         CategoryAssignment assignment = resolve("ae2:certus_quartz_crystal", meta, ItemFacet.GEM);
 
         assertEquals("materials", meta.get(SearchNodeKeys.AE2_ITEM_KIND));
@@ -87,7 +87,7 @@ class AE2CompatTest {
         Map<String, String> meta = meta("ae2", "Applied Energistics 2",
                 "appeng.items.tools.quartz.QuartzSwordItem", "");
 
-        AE2Compat.enrichItem(new ResourceLocation("ae2", "certus_quartz_sword"), meta);
+        AE2Compat.enrichItem(new Identifier("ae2", "certus_quartz_sword"), meta);
         CategoryAssignment assignment = resolve("ae2:certus_quartz_sword", meta,
                 ItemFacet.MELEE_WEAPON, ItemFacet.UTILITY_TOOL);
 
@@ -102,7 +102,7 @@ class AE2CompatTest {
                 "net.minecraft.world.item.BlockItem", "net.minecraft.world.level.block.SlabBlock");
         meta.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.SLAB)));
 
-        AE2Compat.enrichItem(new ResourceLocation("ae2", "sky_stone_slab"), meta);
+        AE2Compat.enrichItem(new Identifier("ae2", "sky_stone_slab"), meta);
         CategoryAssignment assignment = resolve("ae2:sky_stone_slab", meta, ItemFacet.PLACEABLE, ItemFacet.SLAB);
 
         assertEquals("building", meta.get(SearchNodeKeys.AE2_ITEM_KIND));
@@ -115,7 +115,7 @@ class AE2CompatTest {
         Map<String, String> meta = meta("ae2", "Applied Energistics 2",
                 "appeng.items.materials.MaterialItem", "");
 
-        AE2Compat.enrichItem(new ResourceLocation("ae2", "matter_ball"), meta);
+        AE2Compat.enrichItem(new Identifier("ae2", "matter_ball"), meta);
         CategoryAssignment assignment = resolve("ae2:matter_ball", meta);
 
         assertEquals("materials", meta.get(SearchNodeKeys.AE2_ITEM_KIND));
@@ -129,7 +129,7 @@ class AE2CompatTest {
         Map<String, String> meta = meta("ae2", "Applied Energistics 2",
                 "net.minecraft.world.item.Item", "");
 
-        AE2Compat.enrichItem(new ResourceLocation("ae2", "white_lumen_paint_ball"), meta);
+        AE2Compat.enrichItem(new Identifier("ae2", "white_lumen_paint_ball"), meta);
         CategoryAssignment assignment = resolve("ae2:white_lumen_paint_ball", meta);
 
         assertEquals("utility", meta.get(SearchNodeKeys.AE2_ITEM_KIND));
@@ -142,8 +142,8 @@ class AE2CompatTest {
         Map<String, String> meta = meta("appmek", "Applied Mekanistics",
                 "me.ramidzkh.mekae2.item.ChemicalStorageCell", "");
 
-        CompatFamilyDetector.detect(new ResourceLocation("appmek", "chemical_storage_cell_64k"), meta);
-        AE2Compat.enrichItem(new ResourceLocation("appmek", "chemical_storage_cell_64k"), meta);
+        CompatFamilyDetector.detect(new Identifier("appmek", "chemical_storage_cell_64k"), meta);
+        AE2Compat.enrichItem(new Identifier("appmek", "chemical_storage_cell_64k"), meta);
         CategoryAssignment assignment = resolve("appmek:chemical_storage_cell_64k", meta);
 
         assertEquals("ae2", meta.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
@@ -160,8 +160,8 @@ class AE2CompatTest {
         Map<String, String> meta = meta("appmek", "Applied Mekanistics",
                 "me.ramidzkh.mekae2.item.ChemicalPortableCellItem", "");
 
-        CompatFamilyDetector.detect(new ResourceLocation("appmek", "portable_chemical_cell_256k"), meta);
-        AE2Compat.enrichItem(new ResourceLocation("appmek", "portable_chemical_cell_256k"), meta);
+        CompatFamilyDetector.detect(new Identifier("appmek", "portable_chemical_cell_256k"), meta);
+        AE2Compat.enrichItem(new Identifier("appmek", "portable_chemical_cell_256k"), meta);
         CategoryAssignment assignment = resolve("appmek:portable_chemical_cell_256k", meta);
 
         assertEquals("storage", meta.get(SearchNodeKeys.AE2_ITEM_KIND));
@@ -176,8 +176,8 @@ class AE2CompatTest {
         Map<String, String> meta = meta("appmek", "Applied Mekanistics",
                 "appeng.items.parts.PartItem", "");
 
-        CompatFamilyDetector.detect(new ResourceLocation("appmek", "chemical_p2p_tunnel"), meta);
-        AE2Compat.enrichItem(new ResourceLocation("appmek", "chemical_p2p_tunnel"), meta);
+        CompatFamilyDetector.detect(new Identifier("appmek", "chemical_p2p_tunnel"), meta);
+        AE2Compat.enrichItem(new Identifier("appmek", "chemical_p2p_tunnel"), meta);
         CategoryAssignment assignment = resolve("appmek:chemical_p2p_tunnel", meta);
 
         assertEquals("channels", meta.get(SearchNodeKeys.AE2_ITEM_KIND));
@@ -191,7 +191,7 @@ class AE2CompatTest {
         Map<String, String> meta = meta("ae2", "Applied Energistics 2",
                 "appeng.items.tools.GuideItem", "");
 
-        AE2Compat.enrichItem(new ResourceLocation("ae2", "guide"), meta);
+        AE2Compat.enrichItem(new Identifier("ae2", "guide"), meta);
 
         assertEquals("true", meta.get(SearchNodeKeys.GUIDE_BOOK_CANDIDATE));
         assertEquals("guideme", meta.get(SearchNodeKeys.GUIDE_BOOK_SYSTEM));
@@ -207,7 +207,7 @@ class AE2CompatTest {
             Map<String, String> meta = meta("ae2", "Applied Energistics 2",
                     "appeng.items.tools.powered.WirelessTerminalItem", "");
 
-            AE2Compat.enrichItem(new ResourceLocation("ae2", "wireless_terminal"), meta);
+            AE2Compat.enrichItem(new Identifier("ae2", "wireless_terminal"), meta);
             CategoryAssignment assignment = resolve("ae2:wireless_terminal", meta, ItemFacet.HAS_ENERGY, ItemFacet.CURIO);
 
             assertEquals("terminals", meta.get(SearchNodeKeys.AE2_ITEM_KIND));
@@ -233,7 +233,7 @@ class AE2CompatTest {
 
     private static CategoryAssignment resolve(String id, Map<String, String> meta, ItemFacet... facets) {
         return PrimaryCategoryResolver.resolve(
-                new ResourceLocation(id),
+                new Identifier(id),
                 new FacetProfile(facets.length == 0 ? EnumSet.noneOf(ItemFacet.class) : EnumSet.of(facets[0], facets), meta)
         );
     }

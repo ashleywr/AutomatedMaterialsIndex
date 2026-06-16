@@ -2,7 +2,7 @@ package net.minecraft.world.item;
 
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
@@ -72,11 +72,11 @@ public final class Items {
     }
 
     private static Item register(String path, Item item) {
-        BuiltInRegistries.itemRegistry().register(ResourceLocation.fromNamespaceAndPath("minecraft", path), item);
+        BuiltInRegistries.itemRegistry().register(Identifier.of("minecraft", path), item);
         return item;
     }
 
     private static TagKey<Item> itemTag(String namespace, String path) {
-        return TagKey.create(null, ResourceLocation.fromNamespaceAndPath(namespace, path));
+        return TagKey.create(null, Identifier.of(namespace, path));
     }
 }

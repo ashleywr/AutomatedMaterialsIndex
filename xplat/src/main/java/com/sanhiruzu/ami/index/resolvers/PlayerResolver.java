@@ -8,7 +8,7 @@ import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.player.PlayerWaypointContext;
 import com.sanhiruzu.ami.player.PlayerWaypointProviders;
 import com.sanhiruzu.ami.util.AmiColors;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
 
 import java.util.*;
@@ -169,8 +169,8 @@ public final class PlayerResolver implements IQueryResolver {
             List<String> entries = new ArrayList<>();
             for (var info : conn.getOnlinePlayers()) {
                 GameProfile profile = info.getProfile();
-                String name = profile.getName();
-                UUID uuid = profile.getId();
+                String name = profile.name();
+                UUID uuid = profile.id();
                 if (name == null || uuid == null) {
                     continue;
                 }
@@ -179,7 +179,7 @@ public final class PlayerResolver implements IQueryResolver {
                 String uuidStr = uuid.toString();
                 entry.append(name.toLowerCase(Locale.ROOT)).append('|').append(uuidStr);
                 nearbyPlayer(uuidStr).ifPresent(player -> entry
-                        .append('|').append(player.level().dimension().location())
+                        .append('|').append(player.level().dimension().identifier())
                         .append('|').append(player.blockPosition().getX())
                         .append('|').append(player.blockPosition().getY())
                         .append('|').append(player.blockPosition().getZ()));
@@ -241,16 +241,16 @@ public final class PlayerResolver implements IQueryResolver {
             List<SearchNode> matches = new ArrayList<>();
             for (var info : conn.getOnlinePlayers()) {
                 GameProfile profile = info.getProfile();
-                String name = profile.getName();
+                String name = profile.name();
                 if (name == null || !name.toLowerCase(Locale.ROOT).contains(lower)) {
                     continue;
                 }
-                UUID uuid = profile.getId();
+                UUID uuid = profile.id();
                 if (uuid == null) {
                     continue;
                 }
                 String uuidStr = uuid.toString();
-                ResourceLocation id = Services.PLATFORM.rl("ami", "player/" + uuidStr.replace("-", ""));
+                Identifier id = Services.PLATFORM.rl("ami", "player/" + uuidStr.replace("-", ""));
 
                 matches.add(new SearchNode(
                         id,
@@ -300,7 +300,7 @@ public final class PlayerResolver implements IQueryResolver {
                 for (var info : conn.getOnlinePlayers()) {
                     if (out.size() >= limit) return;
                     GameProfile profile = info.getProfile();
-                    String name = profile.getName();
+                    String name = profile.name();
                     if (name == null || containsName(out, name)) continue;
                     String normalized = name.toLowerCase(Locale.ROOT);
                     boolean matches = prefixPass
@@ -359,7 +359,7 @@ public final class PlayerResolver implements IQueryResolver {
         }
 
         private static SearchNode playerHeadNode(String name, GameProfile profile, String query) {
-            ResourceLocation id = Services.PLATFORM.rl("ami", "player_head/" + safePlayerPath(name));
+            Identifier id = Services.PLATFORM.rl("ami", "player_head/" + safePlayerPath(name));
             if (profile != null) {
                 ItemIconRenderer.registerStack(id, Services.PLATFORM.createPlayerHeadStack(profile));
             } else {
@@ -371,10 +371,10 @@ public final class PlayerResolver implements IQueryResolver {
             meta.put(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_CREATIVE);
             meta.put(SearchNodeKeys.PLAYER_HEAD_NAME, name);
             meta.put(SearchNodeKeys.PLAYER_HEAD_SOURCE, profile == null ? "typed_or_history" : "online_player");
-            if (profile != null && profile.getId() != null) {
-                meta.put(SearchNodeKeys.PLAYER_UUID, profile.getId().toString());
+            if (profile != null && profile.id() != null) {
+                meta.put(SearchNodeKeys.PLAYER_UUID, profile.id().toString());
                 meta.put(SearchNodeKeys.PLAYER_ONLINE, "true");
-                enrichPlayerMeta(meta, name, profile.getId().toString());
+                enrichPlayerMeta(meta, name, profile.id().toString());
             }
             String lowerName = name.toLowerCase(Locale.ROOT);
             int weight = lowerName.equals(query) ? 160 : lowerName.startsWith(query) ? 145 : 125;
@@ -405,7 +405,7 @@ public final class PlayerResolver implements IQueryResolver {
                 meta.put(SearchNodeKeys.PLAYER_X, Integer.toString(player.blockPosition().getX()));
                 meta.put(SearchNodeKeys.PLAYER_Y, Integer.toString(player.blockPosition().getY()));
                 meta.put(SearchNodeKeys.PLAYER_Z, Integer.toString(player.blockPosition().getZ()));
-                meta.put(SearchNodeKeys.PLAYER_DIMENSION, player.level().dimension().location().toString());
+                meta.put(SearchNodeKeys.PLAYER_DIMENSION, player.level().dimension().identifier().toString());
                 meta.put(SearchNodeKeys.PLAYER_COORD_SOURCE, "client_entity");
             });
             PlayerWaypointProviders.enrich(new PlayerWaypointContext(playerName, uuidStr, meta), meta);

@@ -38,13 +38,13 @@ import com.sanhiruzu.searchableitems.api.SearchableItemActionContext;
 import com.sanhiruzu.searchableitems.api.SearchableItemActionProvider;
 import com.sanhiruzu.searchableitems.api.SearchableItemActionProviders;
 import net.minecraft.client.Minecraft;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -149,8 +149,8 @@ public class ResultContextMenuActionBuilder {
     public static final String MENU_DEVELOPER = "ami:menu_developer";
     private static final int MAX_GROUP_AUTHORING_ITEMS = 64;
     private static final int MAX_GROUP_REPORT_ITEMS = 512;
-    private static final ResourceLocation AE2_GUIDE_BOOK = ResourceLocation.fromNamespaceAndPath("ae2", "guide");
-    private static final ResourceLocation SILENT_GEAR_MATERIAL_BOOK = ResourceLocation.fromNamespaceAndPath("silentgear", "material_book");
+    private static final Identifier AE2_GUIDE_BOOK = Identifier.fromNamespaceAndPath("ae2", "guide");
+    private static final Identifier SILENT_GEAR_MATERIAL_BOOK = Identifier.fromNamespaceAndPath("silentgear", "material_book");
 
     public static final Set<String> KNOWN_ACTIONS = Set.of(
             COPY_TOOLTIP, CRAFT_ONE, CRAFT_STACK, RECIPES, USES, FAVORITE, CHAT, WIKI, LOCATE,
@@ -283,7 +283,7 @@ public class ResultContextMenuActionBuilder {
             addLiveWaypointActions(actions, policy, context, node, cheatEnabled.getAsBoolean());
             return actions;
         }
-        ResourceLocation id = resolvedItemId(node);
+        Identifier id = resolvedItemId(node);
         ItemStack stack = context.stack() == null ? ItemStack.EMPTY : context.stack().copy();
         boolean hasStack = !stack.isEmpty();
         List<AmiQuestItemMatch> questMatches = AmiConfig.searchIncludeQuests && node.type() == NodeType.ITEM
@@ -405,7 +405,7 @@ public class ResultContextMenuActionBuilder {
                         () -> context.tokenInject().accept("?ability:" + ability)
                 ));
             }
-            for (ResourceLocation dropItemId : pokemonDropItemIds(node)) {
+            for (Identifier dropItemId : pokemonDropItemIds(node)) {
                 String itemName = itemDisplayName(dropItemId);
                 if (policy.allows(node, SEARCH_POKEMON_DROP_ITEM) && context.tokenInject() != null) {
                     actions.add(ResultContextMenu.Action.enabled(
@@ -427,7 +427,7 @@ public class ResultContextMenuActionBuilder {
                 }
             }
             if (policy.allows(node, COPY_POKEMON_SPECIES)) {
-                ResourceLocation speciesId = pokemonSpeciesId(node);
+                Identifier speciesId = pokemonSpeciesId(node);
                 if (speciesId != null) {
                     actions.add(ResultContextMenu.Action.enabled(
                             COPY_POKEMON_SPECIES,
@@ -873,7 +873,7 @@ public class ResultContextMenuActionBuilder {
                                         ResultContextMenuActionPolicy policy,
                                         ItemContext context,
                                         SearchNode node,
-                                        ResourceLocation id,
+                                        Identifier id,
                                         List<AmiQuestItemMatch> questMatches) {
         if (actions == null || policy == null || context == null || node == null || id == null || node.type() != NodeType.ITEM) {
             return;
@@ -956,7 +956,7 @@ public class ResultContextMenuActionBuilder {
         }
     }
 
-    static String ftbItemTaskTemplate(ResourceLocation itemId, long count) {
+    static String ftbItemTaskTemplate(Identifier itemId, long count) {
         if (itemId == null) {
             return "";
         }
@@ -1007,7 +1007,7 @@ public class ResultContextMenuActionBuilder {
         return out.toString();
     }
 
-    static String kubeJsRecipeStub(ResourceLocation outputId) {
+    static String kubeJsRecipeStub(Identifier outputId) {
         if (outputId == null) {
             return "";
         }
@@ -1147,7 +1147,7 @@ public class ResultContextMenuActionBuilder {
         }
     }
 
-    static String gameStageConditionStub(ResourceLocation outputId) {
+    static String gameStageConditionStub(Identifier outputId) {
         if (outputId == null) {
             return "";
         }
@@ -1209,7 +1209,7 @@ public class ResultContextMenuActionBuilder {
         JsonArray ids = new JsonArray();
         items.stream()
                 .map(SearchNode::id)
-                .map(ResourceLocation::toString)
+                .map(Identifier::toString)
                 .sorted()
                 .forEach(ids::add);
         match.add("ids", ids);
@@ -1230,7 +1230,7 @@ public class ResultContextMenuActionBuilder {
         return JSON.toJson(root);
     }
 
-    static String questMatchesSummary(ResourceLocation itemId, List<AmiQuestItemMatch> matches) {
+    static String questMatchesSummary(Identifier itemId, List<AmiQuestItemMatch> matches) {
         StringBuilder out = new StringBuilder();
         out.append("Quests for ").append(itemId == null ? "item" : itemId.toString());
         if (matches == null || matches.isEmpty()) {
@@ -1344,7 +1344,7 @@ public class ResultContextMenuActionBuilder {
     }
 
     private void addCheatActions(List<ResultContextMenu.Action> actions, ResultContextMenuActionPolicy policy,
-                                 SearchNode node, ResourceLocation id, ItemStack stack, boolean hasStack) {
+                                 SearchNode node, Identifier id, ItemStack stack, boolean hasStack) {
         if (actions == null || policy == null || node == null || id == null) return;
 
         if (node.type() == NodeType.ITEM && hasStack) {
@@ -1601,7 +1601,7 @@ public class ResultContextMenuActionBuilder {
         if (node.displayName() != null && !node.displayName().isBlank()) {
             return node.displayName();
         }
-        ResourceLocation id = node.id();
+        Identifier id = node.id();
         return id == null ? "AMI Quest" : id.getPath().replace('_', ' ');
     }
 
@@ -1859,7 +1859,7 @@ public class ResultContextMenuActionBuilder {
     static String chatText(SearchNode node) {
         if (node == null) return "";
         if (node.type() == NodeType.WAYPOINT) return waypointChatText(node);
-        ResourceLocation resolved = resolvedItemId(node);
+        Identifier resolved = resolvedItemId(node);
         if (resolved != null) return resolved.toString();
         String name = node.displayName();
         return name == null ? "" : name;
@@ -1884,7 +1884,7 @@ public class ResultContextMenuActionBuilder {
                 && !node.meta(SearchNodeKeys.WAYPOINT_Z, "").isBlank();
     }
 
-    private static ResourceLocation resolvedItemId(SearchNode node) {
+    private static Identifier resolvedItemId(SearchNode node) {
         return FavoriteEntry.resolvedId(node);
     }
 
@@ -1912,7 +1912,7 @@ public class ResultContextMenuActionBuilder {
 
     private static SearchNode resolvedNodeForFix(SearchNode node) {
         if (node == null) return null;
-        ResourceLocation resolved = resolvedItemId(node);
+        Identifier resolved = resolvedItemId(node);
         if (resolved == null || resolved.equals(node.id())) return node;
         return new SearchNode(resolved, node.type(), node.displayName(), node.color(), node.searchWeight(), node.metadata());
     }
@@ -1940,7 +1940,7 @@ public class ResultContextMenuActionBuilder {
         if (node == null) {
             return false;
         }
-        ResourceLocation id = node.id();
+        Identifier id = node.id();
         return (id != null && ("gtceu".equals(id.getNamespace()) || "gregtech".equals(id.getNamespace())))
                 || containsMetadataToken(node.meta(SearchNodeKeys.COMPAT_FAMILIES, ""), "gregtech")
                 || "gregtech".equalsIgnoreCase(node.meta(SearchNodeKeys.PRIMARY_COMPAT_FAMILY, ""))
@@ -1979,14 +1979,14 @@ public class ResultContextMenuActionBuilder {
         return List.copyOf(values);
     }
 
-    private static List<ResourceLocation> pokemonDropItemIds(SearchNode node) {
+    private static List<Identifier> pokemonDropItemIds(SearchNode node) {
         if (node == null) {
             return List.of();
         }
 
-        LinkedHashSet<ResourceLocation> values = new LinkedHashSet<>();
+        LinkedHashSet<Identifier> values = new LinkedHashSet<>();
         for (String raw : node.meta(SearchNodeKeys.POKEMON_DROP_ITEM, "").split(",")) {
-            ResourceLocation itemId = ResourceLocation.tryParse(raw.trim());
+            Identifier itemId = Identifier.tryParse(raw.trim());
             if (isUsableItemId(itemId)) {
                 values.add(itemId);
             }
@@ -1994,14 +1994,14 @@ public class ResultContextMenuActionBuilder {
         return List.copyOf(values);
     }
 
-    private static ItemStack stackForItem(ResourceLocation itemId) {
+    private static ItemStack stackForItem(Identifier itemId) {
         if (!isUsableItemId(itemId)) {
             return ItemStack.EMPTY;
         }
 
         try {
-            var item = BuiltInRegistries.ITEM.get(itemId);
-            if (item == Items.AIR) {
+            var item = BuiltInRegistries.ITEM.getValue(itemId);
+            if (item == null || item == Items.AIR) {
                 return ItemStack.EMPTY;
             }
             return defaultStackForItem(item, itemId);
@@ -2011,7 +2011,7 @@ public class ResultContextMenuActionBuilder {
         }
     }
 
-    private static ItemStack defaultStackForItem(Object item, ResourceLocation itemId) {
+    private static ItemStack defaultStackForItem(Object item, Identifier itemId) {
         try {
             Object stack = item.getClass().getMethod("getDefaultInstance").invoke(item);
             if (stack instanceof ItemStack itemStack) {
@@ -2034,11 +2034,11 @@ public class ResultContextMenuActionBuilder {
         return ItemStack.EMPTY;
     }
 
-    private static String itemDisplayName(ResourceLocation itemId) {
+    private static String itemDisplayName(Identifier itemId) {
         return itemId == null ? "" : titleCaseUnderscorePath(itemId.getPath());
     }
 
-    private static String dropSearchQuery(ResourceLocation itemId) {
+    private static String dropSearchQuery(Identifier itemId) {
         if (itemId == null) {
             return "";
         }
@@ -2048,27 +2048,29 @@ public class ResultContextMenuActionBuilder {
         return itemId.toString();
     }
 
-    private static boolean isUsableItemId(ResourceLocation itemId) {
+    private static boolean isUsableItemId(Identifier itemId) {
         if (itemId == null || itemId.getPath().isBlank()) {
             return false;
         }
         try {
-            return BuiltInRegistries.ITEM.get(itemId) != Items.AIR;
+            var item = BuiltInRegistries.ITEM.getValue(itemId);
+            return item != null && item != Items.AIR;
         } catch (RuntimeException e) {
             LOGGER.log(Level.FINE, "AMI: Ignoring unresolved item id " + itemId, e);
             return false;
         }
     }
 
-    private static boolean hasSpawnEgg(ResourceLocation entityId) {
+    private static boolean hasSpawnEgg(Identifier entityId) {
         if (entityId == null) return false;
 
         try {
-            ResourceLocation spawnEggId = ResourceLocation.fromNamespaceAndPath(
+            Identifier spawnEggId = Identifier.fromNamespaceAndPath(
                     entityId.getNamespace(),
                     entityId.getPath() + "_spawn_egg"
             );
-            return BuiltInRegistries.ITEM.get(spawnEggId) != Items.AIR;
+            var spawnEgg = BuiltInRegistries.ITEM.getValue(spawnEggId);
+            return spawnEgg != null && spawnEgg != Items.AIR;
         } catch (RuntimeException e) {
             LOGGER.log(Level.WARNING, "AMI: Failed to resolve spawn egg for " + entityId, e);
             return false;
@@ -2115,7 +2117,7 @@ public class ResultContextMenuActionBuilder {
     }
 
     static Optional<AmiGuideDocument> ae2GuideDocumentForNode(SearchNode node, AmiGuideSearchIndex guideIndex) {
-        ResourceLocation id = resolvedItemId(node);
+        Identifier id = resolvedItemId(node);
         if (id == null || guideIndex == null || !"ae2".equals(id.getNamespace())) {
             return Optional.empty();
         }
@@ -2143,7 +2145,7 @@ public class ResultContextMenuActionBuilder {
         return document != null && AE2_GUIDE_BOOK.equals(document.bookId()) && !document.pageId().isBlank();
     }
 
-    private static int ae2GuideDocumentScore(AmiGuideDocument document, ResourceLocation itemId) {
+    private static int ae2GuideDocumentScore(AmiGuideDocument document, Identifier itemId) {
         if (document == null || itemId == null) {
             return 0;
         }
@@ -2222,7 +2224,7 @@ public class ResultContextMenuActionBuilder {
             return new DocumentationTarget(DocumentationKind.WEB_SEARCH, Component.translatable("ami.context.search_web"), null, null);
         }
 
-        ResourceLocation id = resolvedItemId(node);
+        Identifier id = resolvedItemId(node);
         String query = wikiQueryText(node);
         if (isPokemonSpecies(node)) {
             return new DocumentationTarget(
@@ -2286,7 +2288,7 @@ public class ResultContextMenuActionBuilder {
                 + URLEncoder.encode(query, StandardCharsets.UTF_8));
     }
 
-    private static boolean isSilentGearMaterialBookNode(SearchNode node, ResourceLocation id) {
+    private static boolean isSilentGearMaterialBookNode(SearchNode node, Identifier id) {
         return SILENT_GEAR_MATERIAL_BOOK.equals(id)
                 || (node != null
                 && node.meta(SearchNodeKeys.ITEM_CLASS, "").toLowerCase(Locale.ROOT)
@@ -2305,7 +2307,7 @@ public class ResultContextMenuActionBuilder {
     }
 
     private static String cobblemonPokemonToolsSlug(SearchNode node) {
-        ResourceLocation speciesId = pokemonSpeciesId(node);
+        Identifier speciesId = pokemonSpeciesId(node);
         String path = speciesId == null ? "" : speciesId.getPath();
         if (!path.isBlank()) {
             return path.toLowerCase(Locale.ROOT);
@@ -2315,22 +2317,22 @@ public class ResultContextMenuActionBuilder {
         return fallback.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
     }
 
-    private static ResourceLocation pokemonSpeciesId(SearchNode node) {
+    private static Identifier pokemonSpeciesId(SearchNode node) {
         if (node == null) {
             return null;
         }
 
         String species = node.meta(SearchNodeKeys.POKEMON_SPECIES, "");
         if (!species.isBlank()) {
-            ResourceLocation parsed = ResourceLocation.tryParse(species);
+            Identifier parsed = Identifier.tryParse(species);
             if (parsed != null) return parsed;
         }
 
-        ResourceLocation id = node.id();
+        Identifier id = node.id();
         if (id != null && "cobblemon".equals(id.getNamespace())) {
             String path = id.getPath();
             if (path.startsWith("species/")) {
-                return ResourceLocation.fromNamespaceAndPath("cobblemon", path.substring("species/".length()));
+                return Identifier.fromNamespaceAndPath("cobblemon", path.substring("species/".length()));
             }
         }
 
@@ -2358,7 +2360,7 @@ public class ResultContextMenuActionBuilder {
     }
 
     private static String modSearchText(SearchNode node) {
-        ResourceLocation id = resolvedItemId(node);
+        Identifier id = resolvedItemId(node);
         String namespace = id == null ? "" : id.getNamespace();
         if (namespace.isBlank()) return "";
 
@@ -2379,7 +2381,7 @@ public class ResultContextMenuActionBuilder {
 
     private static String wikiPageTitle(SearchNode node, String fallbackQuery) {
         String raw = fallbackQuery;
-        ResourceLocation id = node.id();
+        Identifier id = node.id();
         if ((raw == null || raw.isBlank()) && id != null) {
             raw = id.getPath();
         }
@@ -2394,7 +2396,7 @@ public class ResultContextMenuActionBuilder {
     private static String wikiQueryText(SearchNode node) {
         String query = node.displayName();
         if (query == null || query.isBlank()) {
-            ResourceLocation id = node.id();
+            Identifier id = node.id();
             query = id == null ? "" : id.getPath().replace('_', ' ');
         }
         return query == null ? "" : query.trim();
@@ -2542,7 +2544,7 @@ public class ResultContextMenuActionBuilder {
         if (action == null) return;
 
         try {
-            Minecraft.getInstance().tell(action);
+            Minecraft.getInstance().execute(action);
         } catch (RuntimeException | LinkageError e) {
             LOGGER.log(Level.WARNING, "AMI: Failed to schedule context menu action", e);
         }
@@ -2555,8 +2557,13 @@ public class ResultContextMenuActionBuilder {
             Object minecraft = Minecraft.getInstance();
             Object player = publicFieldValue(minecraft, "player");
             if (player != null) {
-                player.getClass().getMethod("displayClientMessage", Component.class, boolean.class)
-                        .invoke(player, message, true);
+                try {
+                    player.getClass().getMethod("sendSystemMessage", Component.class)
+                            .invoke(player, message);
+                } catch (NoSuchMethodException e) {
+                    player.getClass().getMethod("displayClientMessage", Component.class, boolean.class)
+                            .invoke(player, message, true);
+                }
                 return;
             }
 

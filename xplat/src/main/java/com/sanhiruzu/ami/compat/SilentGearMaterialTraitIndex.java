@@ -9,7 +9,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 
@@ -38,7 +38,7 @@ public final class SilentGearMaterialTraitIndex {
         ClientResourceAccess.applyToIndex(index);
     }
 
-    static MaterialRecord materialRecord(ResourceLocation resourceId, JsonObject json) {
+    static MaterialRecord materialRecord(Identifier resourceId, JsonObject json) {
         String material = materialPath(resourceId);
         LinkedHashSet<IngredientRef> ingredients = new LinkedHashSet<>();
         LinkedHashSet<String> traits = new LinkedHashSet<>();
@@ -175,7 +175,7 @@ public final class SilentGearMaterialTraitIndex {
     }
 
     private static void addIngredient(Set<IngredientRef> out, String value, boolean tag) {
-        ResourceLocation id = parseId(value);
+        Identifier id = parseId(value);
         if (id == null) {
             return;
         }
@@ -196,7 +196,7 @@ public final class SilentGearMaterialTraitIndex {
         return parent.getAsJsonObject(key);
     }
 
-    private static String materialPath(ResourceLocation resourceId) {
+    private static String materialPath(Identifier resourceId) {
         String path = resourceId.getPath();
         if (path.startsWith(MATERIAL_RESOURCE_PATH + "/")) {
             path = path.substring((MATERIAL_RESOURCE_PATH + "/").length());
@@ -207,11 +207,11 @@ public final class SilentGearMaterialTraitIndex {
         return path.replace('/', '_').toLowerCase(Locale.ROOT);
     }
 
-    private static ResourceLocation parseId(String raw) {
+    private static Identifier parseId(String raw) {
         if (raw == null || raw.isBlank()) {
             return null;
         }
-        return ResourceLocation.tryParse(raw.toLowerCase(Locale.ROOT));
+        return Identifier.tryParse(raw.toLowerCase(Locale.ROOT));
     }
 
     private static String simplifyId(String id) {
@@ -282,12 +282,12 @@ public final class SilentGearMaterialTraitIndex {
         }
     }
 
-    record IngredientRef(ResourceLocation id, boolean tag) {
-        static IngredientRef item(ResourceLocation id) {
+    record IngredientRef(Identifier id, boolean tag) {
+        static IngredientRef item(Identifier id) {
             return new IngredientRef(id, false);
         }
 
-        static IngredientRef tag(ResourceLocation id) {
+        static IngredientRef tag(Identifier id) {
             return new IngredientRef(id, true);
         }
 
@@ -325,7 +325,7 @@ public final class SilentGearMaterialTraitIndex {
         }
 
         private static List<MaterialRecord> materialRecords(ResourceManager resourceManager) {
-            Map<ResourceLocation, Resource> resources = resourceManager.listResources(MATERIAL_RESOURCE_PATH,
+            Map<Identifier, Resource> resources = resourceManager.listResources(MATERIAL_RESOURCE_PATH,
                     id -> "silentgear".equals(id.getNamespace()) && id.getPath().endsWith(".json"));
             List<MaterialRecord> out = new ArrayList<>();
             resources.entrySet().stream()
@@ -343,7 +343,7 @@ public final class SilentGearMaterialTraitIndex {
             return minecraft.getResourceManager();
         }
 
-        private static void readMaterial(List<MaterialRecord> out, ResourceLocation id, Resource resource) {
+        private static void readMaterial(List<MaterialRecord> out, Identifier id, Resource resource) {
             try (BufferedReader reader = resource.openAsReader()) {
                 JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
                 MaterialRecord record = materialRecord(id, json);

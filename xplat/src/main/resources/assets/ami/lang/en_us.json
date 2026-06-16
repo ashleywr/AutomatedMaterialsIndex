@@ -1,5 +1,5 @@
 {
-  "key.categories.ami": "Automated Materials Index",
+  "key.category.ami.ami": "Automated Materials Index",
   "key.ami.open": "Open AMI",
   "ami.debugCommands": "AMI Debug Commands",
   "ami.debugBuild": "AMI Debug Build",

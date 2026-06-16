@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.index;
 
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
@@ -38,7 +38,7 @@ public final class TooltipSearchTokens {
      * Used for plain search so attribute/stat lines don't pollute name-based queries.
      */
     public static String extractDescription(Collection<Component> tooltipLines, String displayName,
-                                            ResourceLocation id, String modName) {
+                                            Identifier id, String modName) {
         if (tooltipLines == null || tooltipLines.isEmpty()) {
             return "";
         }
@@ -65,7 +65,7 @@ public final class TooltipSearchTokens {
     }
 
     public static String extract(Collection<Component> tooltipLines, String displayName,
-                                 ResourceLocation id, String modName) {
+                                 Identifier id, String modName) {
         if (tooltipLines == null || tooltipLines.isEmpty()) {
             return "";
         }

@@ -1,10 +1,8 @@
 package com.sanhiruzu.ami.client;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.sanhiruzu.ami.platform.Services;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
 import org.joml.Matrix4f;
 
 import java.util.ArrayList;
@@ -20,9 +18,9 @@ import java.util.List;
 public final class TexturedQuadBatch {
     private final List<Quad> quads = new ArrayList<>();
     private int count;
-    private ResourceLocation texture;
+    private Identifier texture;
 
-    public void setTexture(ResourceLocation texture) {
+    public void setTexture(Identifier texture) {
         if (this.texture != null && !this.texture.equals(texture) && count > 0) {
             throw new IllegalStateException("Cannot change AMI texture batch texture before flush");
         }
@@ -51,18 +49,12 @@ public final class TexturedQuadBatch {
         quad.set(x, y, x + width, y + height, u0, v0, u1, v1, color);
     }
 
-    public void flush(GuiGraphics graphics) {
+    public void flush(GuiGraphicsExtractor graphics) {
         if (count == 0 || texture == null) return;
 
-        graphics.flush();
         RenderStateSnapshot state = RenderStateSnapshot.capture();
         try {
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-            RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
-            RenderSystem.setShaderTexture(0, texture);
-
-            Matrix4f matrix = graphics.pose().last().pose();
+            Matrix4f matrix = new Matrix4f();
             Object buffer = Services.PLATFORM.beginGuiQuadBatch(true);
             for (int i = 0; i < count; i++) {
                 Quad quad = quads.get(i);

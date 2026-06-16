@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.api;
 
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.Map;
@@ -22,7 +22,7 @@ import java.util.function.Consumer;
  * </ul>
  */
 public record AmiItemContext(
-        ResourceLocation id,
+        Identifier id,
         String type,
         Component displayName,
         ItemStack stack,

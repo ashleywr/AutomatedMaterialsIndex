@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.client.results;
 import com.sanhiruzu.ami.index.AmiRegistryDocumentIndex;
 import com.sanhiruzu.ami.index.RegistryDocument;
 import com.sanhiruzu.ami.index.RegistryDocumentKind;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -16,7 +16,7 @@ class RegistryDocumentResultsProjectorTest {
     private static RegistryDocument doc(RegistryDocumentKind kind, String name) {
         return new RegistryDocument(
                 kind,
-                new ResourceLocation("minecraft", name.toLowerCase().replace(' ', '_')),
+                new Identifier("minecraft", name.toLowerCase().replace(' ', '_')),
                 name,
                 "Description of " + name,
                 "minecraft",

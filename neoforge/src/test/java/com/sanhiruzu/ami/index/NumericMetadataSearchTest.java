@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +22,7 @@ public class NumericMetadataSearchTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode sword = new SearchNode(
-                new ResourceLocation("minecraft:diamond_sword"),
+                new Identifier("minecraft:diamond_sword"),
                 NodeType.ITEM,
                 "Diamond Sword",
                 0,
@@ -30,7 +30,7 @@ public class NumericMetadataSearchTest {
                 Map.of(SearchNodeKeys.DPS, "11.2")
         );
         SearchNode chest = new SearchNode(
-                new ResourceLocation("minecraft:chest"),
+                new Identifier("minecraft:chest"),
                 NodeType.ITEM,
                 "Chest",
                 0,
@@ -38,7 +38,7 @@ public class NumericMetadataSearchTest {
                 Map.of(SearchNodeKeys.ESM_CAPACITY, "1728")
         );
         SearchNode barrel = new SearchNode(
-                new ResourceLocation("minecraft:barrel"),
+                new Identifier("minecraft:barrel"),
                 NodeType.ITEM,
                 "Barrel",
                 0,
@@ -46,7 +46,7 @@ public class NumericMetadataSearchTest {
                 Map.of(SearchNodeKeys.ESM_CAPACITY, "1728")
         );
         SearchNode energyCell = new SearchNode(
-                new ResourceLocation("example:energy_cell"),
+                new Identifier("example:energy_cell"),
                 NodeType.ITEM,
                 "Energy Cell",
                 0,
@@ -54,7 +54,7 @@ public class NumericMetadataSearchTest {
                 Map.of(SearchNodeKeys.ENERGY_CAPACITY, "100000")
         );
         SearchNode generator = new SearchNode(
-                new ResourceLocation("example:generator"),
+                new Identifier("example:generator"),
                 NodeType.ITEM,
                 "Generator",
                 0,
@@ -62,7 +62,7 @@ public class NumericMetadataSearchTest {
                 Map.of(SearchNodeKeys.ENERGY_GENERATION, "80")
         );
         SearchNode fluidTank = new SearchNode(
-                new ResourceLocation("example:fluid_tank"),
+                new Identifier("example:fluid_tank"),
                 NodeType.ITEM,
                 "Fluid Tank",
                 0,
@@ -70,7 +70,7 @@ public class NumericMetadataSearchTest {
                 Map.of(SearchNodeKeys.FLUID_CAPACITY, "16")
         );
         SearchNode pickaxe = new SearchNode(
-                new ResourceLocation("example:pickaxe"),
+                new Identifier("example:pickaxe"),
                 NodeType.ITEM,
                 "Pickaxe",
                 0,
@@ -78,7 +78,7 @@ public class NumericMetadataSearchTest {
                 Map.of(SearchNodeKeys.TOOL_SPEED, "8")
         );
         SearchNode cardboardSword = new SearchNode(
-                new ResourceLocation("create:cardboard_sword"),
+                new Identifier("create:cardboard_sword"),
                 NodeType.ITEM,
                 "Cardboard Sword",
                 0,
@@ -86,7 +86,7 @@ public class NumericMetadataSearchTest {
                 Map.of(SearchNodeKeys.MAX_DURABILITY, "13")
         );
         SearchNode gtGenerator = new SearchNode(
-                new ResourceLocation("gtceu:hv_combustion"),
+                new Identifier("gtceu:hv_combustion"),
                 NodeType.ITEM,
                 "HV Combustion Generator",
                 0,
@@ -94,7 +94,7 @@ public class NumericMetadataSearchTest {
                 Map.of(SearchNodeKeys.GREGTECH_EU_GENERATION, "512")
         );
         SearchNode gtMachine = new SearchNode(
-                new ResourceLocation("gtceu:lv_macerator"),
+                new Identifier("gtceu:lv_macerator"),
                 NodeType.ITEM,
                 "LV Macerator",
                 0,
@@ -102,7 +102,7 @@ public class NumericMetadataSearchTest {
                 Map.of(SearchNodeKeys.GREGTECH_EU_CONSUMPTION, "32")
         );
         SearchNode gtInputHatch = new SearchNode(
-                new ResourceLocation("gtceu:ev_energy_input_hatch_4a"),
+                new Identifier("gtceu:ev_energy_input_hatch_4a"),
                 NodeType.ITEM,
                 "EV Energy Input Hatch (4A)",
                 0,
@@ -113,7 +113,7 @@ public class NumericMetadataSearchTest {
                 )
         );
         SearchNode gtOutputHatch = new SearchNode(
-                new ResourceLocation("gtceu:ev_energy_output_hatch_16a"),
+                new Identifier("gtceu:ev_energy_output_hatch_16a"),
                 NodeType.ITEM,
                 "EV Energy Output Hatch (16A)",
                 0,

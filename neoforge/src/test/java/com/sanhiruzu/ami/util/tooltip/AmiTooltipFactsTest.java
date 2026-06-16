@@ -6,7 +6,7 @@ import com.sanhiruzu.ami.index.AmiGuideSearchIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -19,7 +19,7 @@ public class AmiTooltipFactsTest {
 
     private static SearchNode node(Map<String, String> metadata) {
         return new SearchNode(
-                new ResourceLocation("create:cardboard_sword"),
+                new Identifier("create:cardboard_sword"),
                 NodeType.ITEM,
                 "Cardboard Sword",
                 0,
@@ -70,11 +70,11 @@ public class AmiTooltipFactsTest {
     void guideBookTooltipShowsIndexedPageCountWhenBookMatchesGuideIndex() {
         AmiGuideSearchIndex index = new AmiGuideSearchIndex(java.util.List.of(
                 AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/apotheosis/enchanting"),
+                        new Identifier("ami", "guide/apotheosis/enchanting"),
                         "patchouli",
                         "apotheosis",
                         "Enchanting")
-                        .bookId(new ResourceLocation("apotheosis", "apoth_chronicle"))
+                        .bookId(new Identifier("apotheosis", "apoth_chronicle"))
                         .build()
         ), AmiGuideSearchIndex.GuideIndexingMode.TITLES);
         SearchNode node = node(Map.of(

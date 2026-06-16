@@ -23,7 +23,9 @@ public final class CobblemonServerCheats {
         return parseProperties(species).flatMap(properties -> createPokemonEntity(properties, player.level()))
                 .map(entity -> {
                     Vec3 pos = player.position().add(player.getLookAngle().normalize().scale(2.0));
-                    entity.moveTo(pos.x, pos.y, pos.z, player.getYRot(), player.getXRot());
+                    entity.setPos(pos.x, pos.y, pos.z);
+                    entity.setYRot(player.getYRot());
+                    entity.setXRot(player.getXRot());
                     boolean spawned = player.level().addFreshEntity(entity);
                     if (spawned) {
                         AmiCore.LOGGER.debug("AMI cheat spawned Cobblemon Pokemon {} for {}",

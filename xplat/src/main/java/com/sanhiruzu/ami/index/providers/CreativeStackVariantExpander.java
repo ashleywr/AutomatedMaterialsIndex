@@ -9,7 +9,7 @@ import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
@@ -40,7 +40,7 @@ public final class CreativeStackVariantExpander {
     }
 
     public static List<SubtypeExpander.SubtypeEntry> expand(
-            ResourceLocation baseId,
+            Identifier baseId,
             List<ItemFilter.CreativeStackInfo> creativeStacks,
             @Nullable Level level
     ) {
@@ -69,7 +69,7 @@ public final class CreativeStackVariantExpander {
         int hiddenDuplicateSkips = 0;
 
         List<SubtypeExpander.SubtypeEntry> result = new ArrayList<>();
-        Set<ResourceLocation> emittedIds = new HashSet<>();
+        Set<Identifier> emittedIds = new HashSet<>();
         int cap = SubtypeExpander.capFor(baseId.getPath());
         for (VisibleStack visibleStack : visibleStacks) {
             if (result.size() >= cap) {
@@ -109,7 +109,7 @@ public final class CreativeStackVariantExpander {
                 extra.put("variantAccessReason", "prefilled_creative_stack");
             }
 
-            ResourceLocation syntheticId = syntheticId(baseId, displayName, visibleStack.identityHash(baseId));
+            Identifier syntheticId = syntheticId(baseId, displayName, visibleStack.identityHash(baseId));
             int collisionOrdinal = 1;
             while (!emittedIds.add(syntheticId)) {
                 syntheticId = Services.PLATFORM.rl(baseId.getNamespace(), syntheticId.getPath() + "_" + collisionOrdinal++);
@@ -164,7 +164,7 @@ public final class CreativeStackVariantExpander {
                 || normalized.contains("effect");
     }
 
-    private static boolean isSuppressedComponentBackedFamily(ResourceLocation baseId) {
+    private static boolean isSuppressedComponentBackedFamily(Identifier baseId) {
         return IndexingHotItemPolicy.shouldHideComponentBackedVariantsByDefault(baseId);
     }
 
@@ -205,7 +205,7 @@ public final class CreativeStackVariantExpander {
     }
 
     private static String distinctStackIdentity(ItemStack stack) {
-        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
         String componentKey = reflectedStackDetail(stack, "getComponentsPatch");
         if (componentKey.isBlank()) {
             componentKey = reflectedStackDetail(stack, "getTag");
@@ -225,7 +225,7 @@ public final class CreativeStackVariantExpander {
         return false;
     }
 
-    private static void logHiddenDuplicateSkip(ResourceLocation baseId, List<VisibleStack> existingStacks, VisibleStack candidate) {
+    private static void logHiddenDuplicateSkip(Identifier baseId, List<VisibleStack> existingStacks, VisibleStack candidate) {
         if (!AmiConfig.devMode) {
             return;
         }
@@ -284,7 +284,7 @@ public final class CreativeStackVariantExpander {
         }
     }
 
-    public static String stackIdentityHash(ResourceLocation baseId, ItemStack stack, @Nullable Level level) {
+    public static String stackIdentityHash(Identifier baseId, ItemStack stack, @Nullable Level level) {
         if (stack == null || stack.isEmpty()) {
             return shortHash(String.valueOf(baseId));
         }
@@ -297,10 +297,10 @@ public final class CreativeStackVariantExpander {
         );
     }
 
-    private static String stackIdentityHash(ResourceLocation baseId, ItemStack stack, String displayKey,
+    private static String stackIdentityHash(Identifier baseId, ItemStack stack, String displayKey,
                                             boolean positiveStoredResource, List<String> tooltipSignature) {
         StringBuilder key = new StringBuilder();
-        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
         key.append(baseId).append('\n');
         key.append(itemId == null ? "unknown" : itemId).append('\n');
         key.append(displayKey).append('\n');
@@ -347,7 +347,7 @@ public final class CreativeStackVariantExpander {
         }
     }
 
-    private static ResourceLocation syntheticId(ResourceLocation baseId, String displayName, String identityHash) {
+    private static Identifier syntheticId(Identifier baseId, String displayName, String identityHash) {
         String slug = slug(displayName);
         if (slug.isBlank()) {
             slug = "variant";
@@ -355,7 +355,7 @@ public final class CreativeStackVariantExpander {
         return Services.PLATFORM.rl(baseId.getNamespace(), baseId.getPath() + "/variant/" + slug + "_" + identityHash);
     }
 
-    private static String variantAxes(ResourceLocation baseId, String displayName) {
+    private static String variantAxes(Identifier baseId, String displayName) {
         LinkedHashSet<String> axes = new LinkedHashSet<>();
         if (!colorBucket(baseId, displayName).isBlank()) {
             axes.add("color");
@@ -469,7 +469,7 @@ public final class CreativeStackVariantExpander {
         }
     }
 
-    private static String colorBucket(ResourceLocation baseId, String displayName) {
+    private static String colorBucket(Identifier baseId, String displayName) {
         String fromDisplay = GroupingEngine.classifyColorFromPath(slug(displayName));
         if (!fromDisplay.isBlank()) {
             return fromDisplay;
@@ -557,7 +557,7 @@ public final class CreativeStackVariantExpander {
             return tooltipSignature;
         }
 
-        String identityHash(ResourceLocation baseId) {
+        String identityHash(Identifier baseId) {
             if (identityHash == null) {
                 identityHash = CreativeStackVariantExpander.stackIdentityHash(
                         baseId,

@@ -5,7 +5,7 @@ import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.AfterEach;
@@ -26,8 +26,8 @@ class RecipeLookupStackResolverTest {
 
     @Test
     void includesSubtypeStacksForBaseItemLookups() {
-        ResourceLocation baseId = new ResourceLocation("minecraft", "diamond_pickaxe");
-        ResourceLocation variantId = new ResourceLocation("minecraft", "diamond_pickaxe/variant/sun_0");
+        Identifier baseId = new Identifier("minecraft", "diamond_pickaxe");
+        Identifier variantId = new Identifier("minecraft", "diamond_pickaxe/variant/sun_0");
 
         SearchNode baseNode = new SearchNode(baseId, NodeType.ITEM, "Etching", 0, 0, Map.of());
         SearchNode variantNode = new SearchNode(

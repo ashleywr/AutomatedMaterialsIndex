@@ -16,6 +16,4 @@ plugins {
 rootProject.name = 'AutomatedMaterialsIndex'
 
 include 'xplat'
-include 'forge'
 include 'neoforge'
-include 'fabric'

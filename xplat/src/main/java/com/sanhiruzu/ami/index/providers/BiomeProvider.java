@@ -24,10 +24,10 @@ public class BiomeProvider implements IAmiDataProvider {
         if (level == null) return;
 
         List<SearchNode> nodes = new ArrayList<>();
-        level.registryAccess().registry(Registries.BIOME).ifPresent(reg ->
-                reg.holders().forEach(holder -> {
-                    var id = holder.key().location();
-                    int waterColor = holder.value().getSpecialEffects().getWaterColor();
+        level.registryAccess().lookup(Registries.BIOME).ifPresent(reg ->
+                reg.listElements().forEach(holder -> {
+                    var id = holder.key().identifier();
+                    int waterColor = holder.value().getSpecialEffects().waterColor();
 
                     String dimension = "overworld";
                     if (holder.is(BiomeTags.IS_NETHER)) dimension = "nether";
@@ -45,9 +45,8 @@ public class BiomeProvider implements IAmiDataProvider {
                     meta.put(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "biomes");
                     meta.put(SearchNodeKeys.TEMPERATURE, String.format("%.3f", temperature));
                     meta.put(SearchNodeKeys.DOWNFALL, String.format("%.2f", downfall));
-                    meta.put(SearchNodeKeys.FOG_COLOR, String.valueOf(effects.getFogColor()));
-                    effects.getFoliageColorOverride().ifPresent(c -> meta.put(SearchNodeKeys.FOLIAGE_COLOR, String.valueOf(c)));
-                    effects.getGrassColorOverride().ifPresent(c -> meta.put(SearchNodeKeys.GRASS_COLOR, String.valueOf(c)));
+                    effects.foliageColorOverride().ifPresent(c -> meta.put(SearchNodeKeys.FOLIAGE_COLOR, String.valueOf(c)));
+                    effects.grassColorOverride().ifPresent(c -> meta.put(SearchNodeKeys.GRASS_COLOR, String.valueOf(c)));
                     if (frozen) {
                         meta.put(SearchNodeKeys.TEMPERATURE_MODIFIER, "frozen");
                     }
@@ -56,6 +55,7 @@ public class BiomeProvider implements IAmiDataProvider {
                             id, NodeType.BIOME,
                             Component.translatable("ami.gui.biome_suffix", RegistryUtils.formatPath(id.getPath())).getString(),
                             0xFF000000 | waterColor, 0, meta));
+
                 })
         );
 

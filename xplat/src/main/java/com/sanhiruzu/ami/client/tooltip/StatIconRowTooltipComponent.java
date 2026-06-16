@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client.tooltip;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
@@ -32,7 +32,7 @@ public final class StatIconRowTooltipComponent implements TooltipComponent, Clie
     }
 
     @Override
-    public int getHeight() {
+    public int getHeight(Font font) {
         return TOP_PAD + ICON_SIZE;
     }
 
@@ -42,13 +42,13 @@ public final class StatIconRowTooltipComponent implements TooltipComponent, Clie
     }
 
     @Override
-    public void renderImage(Font font, int x, int y, GuiGraphics g) {
+    public void extractImage(Font font, int x, int y, int w, int h, GuiGraphicsExtractor g) {
         int iconY = y + TOP_PAD;
 
-        g.renderItem(icon, x, iconY);
+        g.item(icon, x, iconY);
 
         int textX = x + ICON_SIZE + ICON_GAP;
         int textY = iconY + (ICON_SIZE - font.lineHeight) / 2;
-        g.drawString(font, label, textX, textY, labelColor, false);
+        g.text(font, label, textX, textY, labelColor, false);
     }
 }

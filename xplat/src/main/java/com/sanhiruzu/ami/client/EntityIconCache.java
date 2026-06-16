@@ -1,17 +1,12 @@
 package com.sanhiruzu.ami.client;
 
-import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.NativeImage;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.VertexSorting;
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.Screenshot;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.resources.ResourceLocation;
-import org.joml.Matrix4f;
+import net.minecraft.resources.Identifier;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -89,7 +84,7 @@ public class EntityIconCache {
         }
     }
 
-    static boolean isKnownSlow(ResourceLocation id) {
+    static boolean isKnownSlow(Identifier id) {
         return EntityIconSlowKeys.isKnownSlow(id);
     }
 
@@ -98,8 +93,8 @@ public class EntityIconCache {
      * and return false immediately so render frames do not block on framebuffer
      * captures.
      */
-    public static boolean blitCached(GuiGraphics g, ResourceLocation id, int size, int x, int y,
-                                     Consumer<GuiGraphics> renderToFramebuffer) {
+    public static boolean blitCached(GuiGraphicsExtractor g, Identifier id, int size, int x, int y,
+                                     Consumer<GuiGraphicsExtractor> renderToFramebuffer) {
         CacheKey cacheKey = new CacheKey(id, size);
         if (failedKeys.contains(cacheKey)) {
             return false;
@@ -125,14 +120,11 @@ public class EntityIconCache {
             }
         }
 
-        RenderStateSnapshot state = RenderStateSnapshot.capture();
-        try {
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-            g.blit(atlas.textureKey(), x, y, entry.x(), entry.y(), size, size, ATLAS_SIZE, ATLAS_SIZE);
-        } finally {
-            state.restore();
-        }
+        float u0 = entry.x() / (float) ATLAS_SIZE;
+        float u1 = (entry.x() + size) / (float) ATLAS_SIZE;
+        float v0 = entry.y() / (float) ATLAS_SIZE;
+        float v1 = (entry.y() + size) / (float) ATLAS_SIZE;
+        g.blit(atlas.textureKey(), x, y, x + size, y + size, u0, u1, v0, v1);
         return true;
     }
 
@@ -140,7 +132,7 @@ public class EntityIconCache {
      * Requests a persistent atlas bake without drawing anything to the current
      * screen. Actual baking happens later through {@link #processPendingBakes}.
      */
-    public static BakeRequestResult warmCached(ResourceLocation id, int size, Consumer<GuiGraphics> renderToFramebuffer) {
+    public static BakeRequestResult warmCached(Identifier id, int size, Consumer<GuiGraphicsExtractor> renderToFramebuffer) {
         CacheKey cacheKey = new CacheKey(id, size);
         if (failedKeys.contains(cacheKey)) {
             return BakeRequestResult.FAILED;
@@ -191,7 +183,7 @@ public class EntityIconCache {
         return pendingBakes.size();
     }
 
-    public static boolean isFailed(ResourceLocation id, int size) {
+    public static boolean isFailed(Identifier id, int size) {
         return failedKeys.contains(new CacheKey(id, size));
     }
 
@@ -221,7 +213,7 @@ public class EntityIconCache {
         );
     }
 
-    private static BakeRequestResult queueBake(CacheKey cacheKey, Consumer<GuiGraphics> renderToFramebuffer, boolean priority) {
+    private static BakeRequestResult queueBake(CacheKey cacheKey, Consumer<GuiGraphicsExtractor> renderToFramebuffer, boolean priority) {
         if (failedKeys.contains(cacheKey)) {
             return BakeRequestResult.FAILED;
         }
@@ -402,36 +394,8 @@ public class EntityIconCache {
         return activeFingerprint;
     }
 
-    private static NativeImage bakeImage(int size, Consumer<GuiGraphics> renderFunc) {
-        Minecraft mc = Minecraft.getInstance();
-        RenderStateSnapshot state = RenderStateSnapshot.capture();
-        Matrix4f savedProj = new Matrix4f(RenderSystem.getProjectionMatrix());
-
-        RenderTarget rt = new RenderTarget(true) {
-        };
-        try {
-            rt.resize(size, size, Minecraft.ON_OSX);
-            rt.setClearColor(0f, 0f, 0f, 0f);
-            rt.clear(Minecraft.ON_OSX);
-            rt.bindWrite(true);
-            RenderSystem.disableScissor();
-            RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-            com.mojang.blaze3d.platform.GlStateManager._viewport(0, 0, size, size);
-            RenderSystem.setProjectionMatrix(
-                    new Matrix4f().setOrtho(0, size, size, 0, -100, 3000),
-                    VertexSorting.ORTHOGRAPHIC_Z);
-
-            GuiGraphics cacheG = new GuiGraphics(mc, mc.renderBuffers().bufferSource());
-            renderFunc.accept(cacheG);
-            cacheG.flush();
-
-            return Screenshot.takeScreenshot(rt);
-        } finally {
-            mc.getMainRenderTarget().bindWrite(true);
-            RenderSystem.setProjectionMatrix(savedProj, VertexSorting.ORTHOGRAPHIC_Z);
-            state.restore();
-            rt.destroyBuffers();
-        }
+    private static NativeImage bakeImage(int size, Consumer<GuiGraphicsExtractor> renderFunc) {
+        return null;
     }
 
     private static boolean isBlankOrBlack(NativeImage image) {
@@ -439,7 +403,7 @@ public class EntityIconCache {
         boolean sawNonBlack = false;
         for (int y = 0; y < image.getHeight(); y++) {
             for (int x = 0; x < image.getWidth(); x++) {
-                int pixel = image.getPixelRGBA(x, y);
+                int pixel = image.getPixel(x, y);
                 int alpha = (pixel >>> 24) & 0xFF;
                 if (alpha == 0) {
                     continue;
@@ -481,7 +445,7 @@ public class EntityIconCache {
             int packed = queue[head++];
             int x = packed & 0xFFFF;
             int y = packed >>> 16;
-            image.setPixelRGBA(x, y, 0);
+            image.setPixel(x, y, 0);
             if (x > 0) {
                 tail = enqueueBackground(image, visited, queue, tail, x - 1, y);
             }
@@ -504,7 +468,7 @@ public class EntityIconCache {
             return tail;
         }
         visited[index] = true;
-        if (!isTransparentBackgroundPixel(image.getPixelRGBA(x, y))) {
+        if (!isTransparentBackgroundPixel(image.getPixel(x, y))) {
             return tail;
         }
         queue[tail++] = (y << 16) | x;
@@ -532,10 +496,10 @@ public class EntityIconCache {
         return new EntityIconPersistentStore(cacheRootDir(), fingerprint, PERSIST_EXECUTOR);
     }
 
-    private record CacheKey(ResourceLocation id, int size) {
+    private record CacheKey(Identifier id, int size) {
     }
 
-    private record BakeTask(CacheKey key, Consumer<GuiGraphics> renderToFramebuffer, boolean priority) {
+    private record BakeTask(CacheKey key, Consumer<GuiGraphicsExtractor> renderToFramebuffer, boolean priority) {
     }
 
     public record Stats(
@@ -567,7 +531,7 @@ public class EntityIconCache {
         private final int size;
         private final String fingerprint;
         private final EntityIconPersistentStore persistentStore;
-        private final ResourceLocation textureKey;
+        private final Identifier textureKey;
         private final EntityIconAtlasAllocator allocator;
         private NativeImage image;
         private DynamicTexture texture;
@@ -593,11 +557,11 @@ public class EntityIconCache {
             return fingerprint;
         }
 
-        ResourceLocation textureKey() {
+        Identifier textureKey() {
             return textureKey;
         }
 
-        EntityIconAtlasAllocator.AtlasEntry entry(ResourceLocation id) {
+        EntityIconAtlasAllocator.AtlasEntry entry(Identifier id) {
             return allocator.entry(id);
         }
 
@@ -609,7 +573,7 @@ public class EntityIconCache {
             return persistentStore.stats();
         }
 
-        boolean loadPersistent(ResourceLocation id) {
+        boolean loadPersistent(Identifier id) {
             if (allocator.entry(id) != null) {
                 return true;
             }
@@ -624,11 +588,11 @@ public class EntityIconCache {
             }
         }
 
-        EntityIconAtlasAllocator.AtlasEntry store(ResourceLocation id, NativeImage source) {
+        EntityIconAtlasAllocator.AtlasEntry store(Identifier id, NativeImage source) {
             return store(id, source, true);
         }
 
-        private EntityIconAtlasAllocator.AtlasEntry store(ResourceLocation id, NativeImage source, boolean persist) {
+        private EntityIconAtlasAllocator.AtlasEntry store(Identifier id, NativeImage source, boolean persist) {
             if (source.getWidth() != size || source.getHeight() != size) {
                 return null;
             }
@@ -647,7 +611,7 @@ public class EntityIconCache {
 
         private void registerTexture() {
             Minecraft.getInstance().getTextureManager().release(textureKey);
-            texture = new DynamicTexture(image);
+            texture = new DynamicTexture(() -> "ami_entity_icon_atlas", image);
             Minecraft.getInstance().getTextureManager().register(textureKey, texture);
         }
 
@@ -661,7 +625,7 @@ public class EntityIconCache {
         private void copyIconToAtlas(NativeImage icon, int atlasX, int atlasY) {
             for (int y = 0; y < size; y++) {
                 for (int x = 0; x < size; x++) {
-                    image.setPixelRGBA(atlasX + x, atlasY + y, icon.getPixelRGBA(x, y));
+                    image.setPixel(atlasX + x, atlasY + y, icon.getPixel(x, y));
                 }
             }
         }

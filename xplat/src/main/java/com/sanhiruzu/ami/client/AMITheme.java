@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client;
 
 import com.sanhiruzu.ami.config.AmiConfig;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
  * Central palette for all AMI UI colours.
@@ -260,7 +260,7 @@ public final class AMITheme {
     /**
      * Draws a 1px border around a 2px-radius rounded rectangle.
      */
-    public static void drawRoundedBorder(GuiGraphics g, int x, int y, int w, int h, int backgroundColor, int borderColor) {
+    public static void drawRoundedBorder(GuiGraphicsExtractor g, int x, int y, int w, int h, int backgroundColor, int borderColor) {
         fillPixelCornerBorder(g, x, y, w, h, backgroundColor, borderColor);
     }
 
@@ -268,7 +268,7 @@ public final class AMITheme {
      * Fills a rectangle with 2px-radius rounded corners (3 fill calls, corner pixels omitted).
      * Falls back to a plain fill when the rectangle is too small to round.
      */
-    public static void fillRounded(GuiGraphics g, int x, int y, int w, int h, int color) {
+    public static void fillRounded(GuiGraphicsExtractor g, int x, int y, int w, int h, int color) {
         if (w <= 0 || h <= 0 || (color >>> 24) == 0) return;
         if (w < 5 || h < 5) {
             g.fill(x, y, x + w, y + h, color);
@@ -282,7 +282,7 @@ public final class AMITheme {
         g.fill(x + w - 1, y + 2, x + w, y + h - 2, color); // Right edge
     }
 
-    public static void fillPixelPopup(GuiGraphics g, int x, int y, int w, int h, int fill, int border, int shadow, int accent) {
+    public static void fillPixelPopup(GuiGraphicsExtractor g, int x, int y, int w, int h, int fill, int border, int shadow, int accent) {
         if (w <= 0 || h <= 0) return;
         if ((shadow >>> 24) != 0) {
             fillPixelCorner(g, x + 2, y + 2, w, h, shadow);
@@ -293,7 +293,7 @@ public final class AMITheme {
         }
     }
 
-    public static void fillSuggestionPopup(GuiGraphics g, int x, int y, int w, int h) {
+    public static void fillSuggestionPopup(GuiGraphicsExtractor g, int x, int y, int w, int h) {
         if (w <= 0 || h <= 0) return;
         fillPixelCorner(g, x, y, w, h, solidPopupColor(DROPDOWN_LIST_BG));
         fillVisible(g, x + 1, y, x + w - 1, y + 1, BORDER_LIGHT);
@@ -302,7 +302,7 @@ public final class AMITheme {
         fillVisible(g, x + w - 1, y + 1, x + w, y + h - 1, BORDER_DARK);
     }
 
-    public static void fillPixelCornerBorder(GuiGraphics g, int x, int y, int w, int h, int fill, int border) {
+    public static void fillPixelCornerBorder(GuiGraphicsExtractor g, int x, int y, int w, int h, int fill, int border) {
         if (w <= 0 || h <= 0) return;
         if (w < 4 || h < 4) {
             fillBorderedRect(g, x, y, w, h, fill, border);
@@ -315,7 +315,7 @@ public final class AMITheme {
         fillVisible(g, x + w - 1, y + 1, x + w, y + h - 1, border);
     }
 
-    public static void fillPixelCorner(GuiGraphics g, int x, int y, int w, int h, int color) {
+    public static void fillPixelCorner(GuiGraphicsExtractor g, int x, int y, int w, int h, int color) {
         if (w <= 0 || h <= 0) return;
         if (w < 3 || h < 3) {
             fillVisible(g, x, y, x + w, y + h, color);
@@ -326,7 +326,7 @@ public final class AMITheme {
         fillVisible(g, x + w - 1, y + 1, x + w, y + h - 1, color);
     }
 
-    public static void fillPanelChrome(GuiGraphics g, int x, int y, int w, int h) {
+    public static void fillPanelChrome(GuiGraphicsExtractor g, int x, int y, int w, int h) {
         if (w <= 0 || h <= 0) return;
         fillVisible(g, x, y, x + w, y + h, PANEL_BG);
         fillVisible(g, x, y, x + w, y + 1, CONTROL_EDGE_LIGHT);
@@ -335,7 +335,7 @@ public final class AMITheme {
         fillVisible(g, x + w - 1, y, x + w, y + h, CONTROL_EDGE_DARK);
     }
 
-    public static void fillInsetRect(GuiGraphics g, int x, int y, int w, int h, int fill, boolean pressed) {
+    public static void fillInsetRect(GuiGraphicsExtractor g, int x, int y, int w, int h, int fill, boolean pressed) {
         if (w <= 0 || h <= 0) return;
         fillVisible(g, x, y, x + w, y + h, fill);
         fillPixelTexture(g, x + 1, y + 1, w - 2, h - 2);
@@ -348,7 +348,7 @@ public final class AMITheme {
         fillVisible(g, x + w - 1, y, x + w, y + h, bottom);
     }
 
-    public static void fillBorderedRect(GuiGraphics g, int x, int y, int w, int h, int fill, int border) {
+    public static void fillBorderedRect(GuiGraphicsExtractor g, int x, int y, int w, int h, int fill, int border) {
         if (w <= 0 || h <= 0) return;
         fillVisible(g, x, y, x + w, y + h, fill);
         fillVisible(g, x, y, x + w, y + 1, border);
@@ -357,7 +357,7 @@ public final class AMITheme {
         fillVisible(g, x + w - 1, y, x + w, y + h, border);
     }
 
-    public static void fillControlChrome(GuiGraphics g, int x, int y, int w, int h, int fill, boolean pressed) {
+    public static void fillControlChrome(GuiGraphicsExtractor g, int x, int y, int w, int h, int fill, boolean pressed) {
         if (w <= 0 || h <= 0) return;
         if (!pressed && (CONTROL_SHADOW >>> 24) != 0) {
             fillVisible(g, x + 1, y + 1, x + w + 1, y + h + 1, CONTROL_SHADOW);
@@ -368,7 +368,7 @@ public final class AMITheme {
         }
     }
 
-    public static void fillPanelHeaderChrome(GuiGraphics g, int x, int y, int w, int h) {
+    public static void fillPanelHeaderChrome(GuiGraphicsExtractor g, int x, int y, int w, int h) {
         if (w <= 0 || h <= 0) return;
         fillVisible(g, x, y, x + w, y + h, PANEL_HEADER_BG);
         fillVisible(g, x, y, x + w, y + 1, CONTROL_EDGE_LIGHT);
@@ -377,7 +377,7 @@ public final class AMITheme {
         fillVisible(g, x + w - 1, y, x + w, y + h, CONTROL_EDGE_DARK);
     }
 
-    public static void fillContentChrome(GuiGraphics g, int x, int y, int w, int h) {
+    public static void fillContentChrome(GuiGraphicsExtractor g, int x, int y, int w, int h) {
         if (w <= 0 || h <= 0) return;
         fillVisible(g, x, y, x + w, y + h, PANEL_CONTENT_BORDER);
         if (w <= 2 || h <= 2) return;
@@ -388,12 +388,12 @@ public final class AMITheme {
         fillVisible(g, x + w - 2, y + 1, x + w - 1, y + h - 1, CONTROL_EDGE_LIGHT);
     }
 
-    public static void fillPixelTexture(GuiGraphics g, int x, int y, int w, int h) {
-        // Per-pixel GuiGraphics.fill calls force costly GUI buffer flushes on 1.21.1.
+    public static void fillPixelTexture(GuiGraphicsExtractor g, int x, int y, int w, int h) {
+        // Per-pixel GuiGraphicsExtractor.fill calls force costly GUI buffer flushes on 1.21.1.
         // Keep panel chrome flat; borders and translucent surfaces provide the depth.
     }
 
-    private static void fillVisible(GuiGraphics g, int x1, int y1, int x2, int y2, int color) {
+    private static void fillVisible(GuiGraphicsExtractor g, int x1, int y1, int x2, int y2, int color) {
         if (x2 <= x1 || y2 <= y1 || (color >>> 24) == 0) return;
         g.fill(x1, y1, x2, y2, color);
     }

@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client;
 
 import com.google.gson.JsonParser;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -12,7 +12,7 @@ public class ThemeResourceLoaderTest {
         int oldBand = AMITheme.GRID_GROUP_BAND;
         int oldPadding = AMITheme.GLOBAL_PADDING;
         try {
-            boolean applied = ThemeResourceStyles.apply(new ResourceLocation("ami:test"), JsonParser.parseString("""
+            boolean applied = ThemeResourceStyles.apply(new Identifier("ami:test"), JsonParser.parseString("""
                     {
                       "layout": {
                         "global-padding": 9
@@ -39,7 +39,7 @@ public class ThemeResourceLoaderTest {
         int oldBand = AMITheme.GRID_GROUP_BAND;
         try {
             AMITheme.GRID_GROUP_BAND = 0x12345678;
-            boolean applied = ThemeResourceStyles.apply(new ResourceLocation("ami:test"), JsonParser.parseString("""
+            boolean applied = ThemeResourceStyles.apply(new Identifier("ami:test"), JsonParser.parseString("""
                     {
                       "grid": {
                         "group": {
@@ -62,7 +62,7 @@ public class ThemeResourceLoaderTest {
         int oldSearchBg = AMITheme.SEARCH_BAR_BG;
         int oldSearchBorder = AMITheme.SEARCH_BAR_BORDER;
         try {
-            boolean applied = ThemeResourceStyles.apply(new ResourceLocation("ami:test"), JsonParser.parseString("""
+            boolean applied = ThemeResourceStyles.apply(new Identifier("ami:test"), JsonParser.parseString("""
                     {
                       "accent-blue": "#A02020",
                       "search": {

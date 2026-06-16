@@ -6,7 +6,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.util.StorageDisplayFormatter;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -63,7 +63,7 @@ public class ResultsProcessorTest {
 
     private static SearchNode item(String path, String displayName, Map<String, String> metadata) {
         return new SearchNode(
-                new ResourceLocation("minecraft:" + path),
+                new Identifier("minecraft:" + path),
                 NodeType.ITEM,
                 displayName,
                 0,
@@ -78,7 +78,7 @@ public class ResultsProcessorTest {
                 .replaceAll("[^a-z0-9]+", "_")
                 .replaceAll("^_+|_+$", "");
         return new SearchNode(
-                new ResourceLocation("patchouli", "guide_book/variant/" + slug),
+                new Identifier("patchouli", "guide_book/variant/" + slug),
                 NodeType.ITEM,
                 displayName,
                 0,
@@ -99,7 +99,7 @@ public class ResultsProcessorTest {
 
     private static SearchNode pokemon(String species, String displayName, int dexNumber) {
         return new SearchNode(
-                new ResourceLocation("cobblemon", "species/" + species),
+                new Identifier("cobblemon", "species/" + species),
                 NodeType.ENTITY,
                 displayName,
                 0,
@@ -114,7 +114,7 @@ public class ResultsProcessorTest {
 
     private static SearchNode virtualEntity(String namespace, String path, String displayName) {
         return new SearchNode(
-                new ResourceLocation(namespace, path),
+                new Identifier(namespace, path),
                 NodeType.ENTITY,
                 displayName,
                 0,
@@ -126,7 +126,7 @@ public class ResultsProcessorTest {
     private static SearchNode node(NodeType type, String namespace, String path, String displayName,
                                    Map<String, String> metadata) {
         return new SearchNode(
-                new ResourceLocation(namespace, path),
+                new Identifier(namespace, path),
                 type,
                 displayName,
                 0,
@@ -820,7 +820,7 @@ public class ResultsProcessorTest {
     void damageFieldIncludesItemsAndEntitiesWithAttackDamage() {
         SearchNode mace = item("mace", "Mace", Map.of(SearchNodeKeys.ATTACK_DAMAGE, "6.0"));
         SearchNode zombie = new SearchNode(
-                new ResourceLocation("minecraft:zombie"),
+                new Identifier("minecraft:zombie"),
                 NodeType.ENTITY,
                 "Zombie",
                 0,

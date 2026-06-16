@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -59,7 +59,7 @@ public final class GregTechCompat {
     private GregTechCompat() {
     }
 
-    public static void enrichItem(ResourceLocation id, Map<String, String> meta) {
+    public static void enrichItem(Identifier id, Map<String, String> meta) {
         if (id == null || meta == null) {
             return;
         }
@@ -109,7 +109,7 @@ public final class GregTechCompat {
         }
     }
 
-    private static boolean isGregTechFamilyItem(ResourceLocation id, Map<String, String> meta) {
+    private static boolean isGregTechFamilyItem(Identifier id, Map<String, String> meta) {
         return "gtceu".equals(id.getNamespace())
                 || "gregtech".equals(id.getNamespace())
                 || CompatFamilyDetector.hasFamily(meta, CompatFamilyDetector.GREGTECH);
@@ -455,7 +455,7 @@ public final class GregTechCompat {
         final String facets;
         final Map<String, String> meta;
 
-        Context(ResourceLocation id, Map<String, String> meta) {
+        Context(Identifier id, Map<String, String> meta) {
             this.path = id.getPath().toLowerCase(Locale.ROOT);
             this.itemClass = meta.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
             this.blockClass = meta.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "");

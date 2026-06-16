@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.compat.CreateCompat;
 import com.sanhiruzu.ami.config.AmiConfig;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -22,7 +22,7 @@ class CreateCompatTest {
         meta.put(SearchNodeKeys.RECIPE_CATEGORIES, "pressing");
         meta.put(SearchNodeKeys.RECIPE_USE_CATEGORIES, "pressing");
 
-        CreateCompat.enrichItem(new ResourceLocation("create", "mechanical_press"), meta);
+        CreateCompat.enrichItem(new Identifier("create", "mechanical_press"), meta);
         CategoryAssignment assignment = resolve("create:mechanical_press", meta,
                 ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.MACHINE);
 
@@ -43,7 +43,7 @@ class CreateCompatTest {
         meta.put(SearchNodeKeys.TAGS, "c:ingots,c:ingots/zinc");
         meta.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.INGOT)));
 
-        CreateCompat.enrichItem(new ResourceLocation("create", "zinc_ingot"), meta);
+        CreateCompat.enrichItem(new Identifier("create", "zinc_ingot"), meta);
         CategoryAssignment assignment = resolve("create:zinc_ingot", meta, ItemFacet.INGOT);
 
         assertEquals("materials", meta.get(SearchNodeKeys.CREATE_ITEM_KIND));
@@ -58,7 +58,7 @@ class CreateCompatTest {
         meta.put(SearchNodeKeys.RECIPE_USE_CATEGORIES, "crafting");
         meta.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.TECH_COMPONENT)));
 
-        CreateCompat.enrichItem(new ResourceLocation("createdeco", "zinc_sheet"), meta);
+        CreateCompat.enrichItem(new Identifier("createdeco", "zinc_sheet"), meta);
         CategoryAssignment assignment = resolve("createdeco:zinc_sheet", meta, ItemFacet.TECH_COMPONENT);
 
         assertEquals("materials", meta.get(SearchNodeKeys.CREATE_ITEM_KIND));
@@ -74,7 +74,7 @@ class CreateCompatTest {
         meta.put(SearchNodeKeys.RECIPE_CATEGORIES, "sequenced_assembly");
         meta.put(SearchNodeKeys.RECIPE_USE_CATEGORIES, "mechanical_crafting,crafting");
 
-        CreateCompat.enrichItem(new ResourceLocation("create", "precision_mechanism"), meta);
+        CreateCompat.enrichItem(new Identifier("create", "precision_mechanism"), meta);
         CategoryAssignment assignment = resolve("create:precision_mechanism", meta);
 
         assertEquals("materials", meta.get(SearchNodeKeys.CREATE_ITEM_KIND));
@@ -89,7 +89,7 @@ class CreateCompatTest {
         Map<String, String> meta = meta("createdieselgenerators", "Create Diesel Generators",
                 "com.jesz.createdieselgenerators.content.tools.OilScannerItem", "");
 
-        CreateCompat.enrichItem(new ResourceLocation("createdieselgenerators", "oil_scanner"), meta);
+        CreateCompat.enrichItem(new Identifier("createdieselgenerators", "oil_scanner"), meta);
         CategoryAssignment assignment = resolve("createdieselgenerators:oil_scanner", meta);
 
         assertEquals("tools", meta.get(SearchNodeKeys.CREATE_ITEM_KIND));
@@ -102,7 +102,7 @@ class CreateCompatTest {
         Map<String, String> meta = meta("createoreexcavation", "Create Ore Excavation",
                 "net.minecraft.world.item.Item", "");
 
-        CreateCompat.enrichItem(new ResourceLocation("createoreexcavation", "diamond_drill"), meta);
+        CreateCompat.enrichItem(new Identifier("createoreexcavation", "diamond_drill"), meta);
         CategoryAssignment assignment = resolve("createoreexcavation:diamond_drill", meta);
 
         assertEquals("machines", meta.get(SearchNodeKeys.CREATE_ITEM_KIND));
@@ -117,7 +117,7 @@ class CreateCompatTest {
         coupling.put(SearchNodeKeys.COMPAT_FAMILIES, "create");
         coupling.put(SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "create");
 
-        CreateCompat.enrichItem(new ResourceLocation("simulated", "rope_coupling"), coupling);
+        CreateCompat.enrichItem(new Identifier("simulated", "rope_coupling"), coupling);
         CategoryAssignment couplingAssignment = resolve("simulated:rope_coupling", coupling);
 
         assertEquals("materials", coupling.get(SearchNodeKeys.CREATE_ITEM_KIND));
@@ -128,7 +128,7 @@ class CreateCompatTest {
         Map<String, String> amulet = meta("createaddition", "Create Crafts & Additions",
                 "net.minecraft.world.item.Item", "");
 
-        CreateCompat.enrichItem(new ResourceLocation("createaddition", "electrum_amulet"), amulet);
+        CreateCompat.enrichItem(new Identifier("createaddition", "electrum_amulet"), amulet);
         CategoryAssignment amuletAssignment = resolve("createaddition:electrum_amulet", amulet);
 
         assertEquals("tools", amulet.get(SearchNodeKeys.CREATE_ITEM_KIND));
@@ -141,7 +141,7 @@ class CreateCompatTest {
         Map<String, String> meta = meta("create_confectionery", "Create Confectionery",
                 "net.minecraft.world.item.Item", "");
 
-        CreateCompat.enrichItem(new ResourceLocation("create_confectionery", "create_confectionery_icon"), meta);
+        CreateCompat.enrichItem(new Identifier("create_confectionery", "create_confectionery_icon"), meta);
         CategoryAssignment assignment = resolve("create_confectionery:create_confectionery_icon", meta);
 
         assertEquals("misc", meta.get(SearchNodeKeys.CREATE_ITEM_KIND));
@@ -159,7 +159,7 @@ class CreateCompatTest {
                 ItemFacet.DECORATIVE_BLOCK
         )));
 
-        CreateCompat.enrichItem(new ResourceLocation("createdeco", "verdant_bricks"), meta);
+        CreateCompat.enrichItem(new Identifier("createdeco", "verdant_bricks"), meta);
         CategoryAssignment assignment = resolve("createdeco:verdant_bricks", meta,
                 ItemFacet.PLACEABLE, ItemFacet.DECORATIVE_BLOCK);
 
@@ -174,7 +174,7 @@ class CreateCompatTest {
                 "net.minecraft.world.item.Item", "");
         meta.put(SearchNodeKeys.ENERGY_CAPACITY, "10000");
 
-        CreateCompat.enrichItem(new ResourceLocation("create_jetpack", "jetpack"), meta);
+        CreateCompat.enrichItem(new Identifier("create_jetpack", "jetpack"), meta);
         CategoryAssignment assignment = resolve("create_jetpack:jetpack", meta, ItemFacet.EQUIPPABLE);
 
         assertTrue(meta.getOrDefault(SearchNodeKeys.CREATE_FACTS, "").contains("stores_fe"));
@@ -188,7 +188,7 @@ class CreateCompatTest {
                 "com.simibubi.create.content.logistics.box.PackageItem", "");
         meta.put(SearchNodeKeys.TAGS, "create:packages");
 
-        CreateCompat.enrichItem(new ResourceLocation("create", "cardboard_package"), meta);
+        CreateCompat.enrichItem(new Identifier("create", "cardboard_package"), meta);
         CategoryAssignment assignment = resolve("create:cardboard_package", meta);
 
         assertEquals("logistics", meta.get(SearchNodeKeys.CREATE_ITEM_KIND));
@@ -210,7 +210,7 @@ class CreateCompatTest {
                 ItemFacet.MACHINE
         )));
 
-        CreateCompat.enrichItem(new ResourceLocation("createaddition", "alternator"), meta);
+        CreateCompat.enrichItem(new Identifier("createaddition", "alternator"), meta);
         CategoryAssignment assignment = resolve("createaddition:alternator", meta,
                 ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.HAS_ENERGY);
 
@@ -229,7 +229,7 @@ class CreateCompatTest {
                     "net.minecraft.world.item.BlockItem",
                     "com.simibubi.create.content.kinetics.press.MechanicalPressBlock");
 
-            CreateCompat.enrichItem(new ResourceLocation("create", "mechanical_press"), meta);
+            CreateCompat.enrichItem(new Identifier("create", "mechanical_press"), meta);
             CategoryAssignment assignment = resolve("create:mechanical_press", meta,
                     ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.MACHINE);
 
@@ -256,7 +256,7 @@ class CreateCompatTest {
 
     private static CategoryAssignment resolve(String id, Map<String, String> meta, ItemFacet... facets) {
         return PrimaryCategoryResolver.resolve(
-                new ResourceLocation(id),
+                new Identifier(id),
                 new FacetProfile(facets.length == 0 ? EnumSet.noneOf(ItemFacet.class) : EnumSet.of(facets[0], facets), meta)
         );
     }

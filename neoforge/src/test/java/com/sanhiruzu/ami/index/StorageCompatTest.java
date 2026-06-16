@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.compat.StorageCompat;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -19,7 +19,7 @@ class StorageCompatTest {
         meta.put(SearchNodeKeys.FACETS, "storage");
         meta.put(SearchNodeKeys.ESM_CAPACITY, "4096");
 
-        StorageCompat.enrichItem(new ResourceLocation("somefuturestorage", "oak_crate"), meta);
+        StorageCompat.enrichItem(new Identifier("somefuturestorage", "oak_crate"), meta);
 
         assertEquals("storage", meta.get(SearchNodeKeys.STORAGE_ITEM_KIND));
         assertTrue(meta.getOrDefault(SearchNodeKeys.STORAGE_FACTS, "").contains("capacity_indexed"));
@@ -30,7 +30,7 @@ class StorageCompatTest {
         Map<String, String> meta = new HashMap<>();
         meta.put(SearchNodeKeys.MOD_ID, "chestnutfoods");
 
-        StorageCompat.enrichItem(new ResourceLocation("chestnutfoods", "chestnut_pie"), meta);
+        StorageCompat.enrichItem(new Identifier("chestnutfoods", "chestnut_pie"), meta);
 
         assertFalse(meta.containsKey(SearchNodeKeys.STORAGE_ITEM_KIND));
         assertFalse(meta.containsKey(SearchNodeKeys.STORAGE_FACTS));
@@ -45,7 +45,7 @@ class StorageCompatTest {
         meta.put(SearchNodeKeys.ITEM_CLASS, "net.minecraft.world.item.BlockItem");
         meta.put(SearchNodeKeys.BLOCK_CLASS, "net.minecraft.world.level.block.FurnaceBlock");
 
-        StorageCompat.enrichItem(new ResourceLocation("minecraft", "furnace"), meta);
+        StorageCompat.enrichItem(new Identifier("minecraft", "furnace"), meta);
 
         assertFalse(meta.containsKey(SearchNodeKeys.STORAGE_ITEM_KIND));
         assertFalse(meta.containsKey(SearchNodeKeys.STORAGE_FACTS));
@@ -63,7 +63,7 @@ class StorageCompatTest {
 
         meta.put(SearchNodeKeys.FACETS, "placeable,has_block_entity,storage,machine,workstation");
         meta.put(SearchNodeKeys.BLOCK_CLASS, "net.minecraft.world.level.block.FurnaceBlock");
-        StorageCompat.enrichItem(new ResourceLocation("minecraft", "furnace"), meta);
+        StorageCompat.enrichItem(new Identifier("minecraft", "furnace"), meta);
 
         assertFalse(meta.containsKey(SearchNodeKeys.STORAGE_ITEM_KIND));
         assertFalse(meta.containsKey(SearchNodeKeys.STORAGE_FACTS));
@@ -76,7 +76,7 @@ class StorageCompatTest {
         meta.put(SearchNodeKeys.MOD_ID, "cobblemon");
         meta.put(SearchNodeKeys.FACETS, "placeable,has_block_entity,storage,crop");
 
-        StorageCompat.enrichItem(new ResourceLocation("cobblemon", "chesto_berry"), meta);
+        StorageCompat.enrichItem(new Identifier("cobblemon", "chesto_berry"), meta);
 
         assertFalse(meta.containsKey(SearchNodeKeys.STORAGE_ITEM_KIND));
         assertFalse(meta.containsKey(SearchNodeKeys.STORAGE_FACTS));
@@ -89,7 +89,7 @@ class StorageCompatTest {
         meta.put(SearchNodeKeys.FACETS, "placeable,has_block_entity,storage");
         meta.put(SearchNodeKeys.ESM_CAPACITY, "3456");
 
-        StorageCompat.enrichItem(new ResourceLocation("somefuturestorage", "oak_cabinet"), meta);
+        StorageCompat.enrichItem(new Identifier("somefuturestorage", "oak_cabinet"), meta);
 
         assertEquals("storage", meta.get(SearchNodeKeys.STORAGE_ITEM_KIND));
         assertTrue(meta.getOrDefault(SearchNodeKeys.STORAGE_FACTS, "").contains("capacity_indexed"));
@@ -101,7 +101,7 @@ class StorageCompatTest {
         meta.put(SearchNodeKeys.MOD_ID, "furnituremod");
         meta.put(SearchNodeKeys.FACETS, "placeable,decorative_block");
 
-        StorageCompat.enrichItem(new ResourceLocation("furnituremod", "oak_cabinet"), meta);
+        StorageCompat.enrichItem(new Identifier("furnituremod", "oak_cabinet"), meta);
 
         assertFalse(meta.containsKey(SearchNodeKeys.STORAGE_ITEM_KIND));
         assertFalse(meta.containsKey(SearchNodeKeys.STORAGE_FACTS));
@@ -112,7 +112,7 @@ class StorageCompatTest {
         Map<String, String> meta = new HashMap<>();
         meta.put(SearchNodeKeys.MOD_ID, "ironchest");
 
-        StorageCompat.enrichItem(new ResourceLocation("ironchest", "diamond_chest"), meta);
+        StorageCompat.enrichItem(new Identifier("ironchest", "diamond_chest"), meta);
 
         assertEquals("chest", meta.get(SearchNodeKeys.STORAGE_ITEM_KIND));
         assertEquals("diamond", meta.get(SearchNodeKeys.STORAGE_TIER));
@@ -124,7 +124,7 @@ class StorageCompatTest {
         Map<String, String> meta = new HashMap<>();
         meta.put(SearchNodeKeys.MOD_ID, "refinedstorage");
 
-        StorageCompat.enrichItem(new ResourceLocation("refinedstorage", "64k_storage_disk"), meta);
+        StorageCompat.enrichItem(new Identifier("refinedstorage", "64k_storage_disk"), meta);
 
         assertEquals("disk", meta.get(SearchNodeKeys.STORAGE_ITEM_KIND));
         assertEquals("64k", meta.get(SearchNodeKeys.STORAGE_TIER));
@@ -138,7 +138,7 @@ class StorageCompatTest {
         meta.put(SearchNodeKeys.MOD_ID, "refinedstorage");
         meta.put(SearchNodeKeys.BLOCK_CLASS, "com.refinedmods.refinedstorage.block.ImporterBlock");
 
-        StorageCompat.enrichItem(new ResourceLocation("refinedstorage", "importer"), meta);
+        StorageCompat.enrichItem(new Identifier("refinedstorage", "importer"), meta);
 
         assertEquals("network_device", meta.get(SearchNodeKeys.STORAGE_ITEM_KIND));
         assertTrue(meta.getOrDefault(SearchNodeKeys.STORAGE_FACTS, "").contains("network_device"));

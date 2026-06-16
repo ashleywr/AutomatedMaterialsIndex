@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -24,10 +24,10 @@ class InventorySearchHighlighterTest {
     @Test
     void resolvesMatchingItemIdsWithAmiSearchSyntax() {
         GlobalIndex index = GlobalIndex.getInstance();
-        ResourceLocation mixerId = new ResourceLocation("create", "mechanical_mixer");
-        ResourceLocation pressId = new ResourceLocation("create", "mechanical_press");
-        ResourceLocation cableId = new ResourceLocation("ae2", "fluix_glass_cable");
-        ResourceLocation entityId = new ResourceLocation("minecraft", "zombie");
+        Identifier mixerId = new Identifier("create", "mechanical_mixer");
+        Identifier pressId = new Identifier("create", "mechanical_press");
+        Identifier cableId = new Identifier("ae2", "fluix_glass_cable");
+        Identifier entityId = new Identifier("minecraft", "zombie");
 
         index.addNode(item(mixerId, "Mechanical Mixer", Map.of(
                 SearchNodeKeys.CREATE_FACTS, "kinetic,mixing",
@@ -63,7 +63,7 @@ class InventorySearchHighlighterTest {
         assertTrue(highlighter.isActive());
     }
 
-    private static SearchNode item(ResourceLocation id, String displayName, Map<String, String> metadata) {
+    private static SearchNode item(Identifier id, String displayName, Map<String, String> metadata) {
         return new SearchNode(id, NodeType.ITEM, displayName, 0, 0, metadata);
     }
 }

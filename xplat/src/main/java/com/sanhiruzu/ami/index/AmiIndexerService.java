@@ -12,7 +12,7 @@ import com.sanhiruzu.ami.index.query.SearchSuggestions;
 import com.sanhiruzu.ami.index.runtime.RuntimeSearchProviders;
 import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.index.providers.AmiRegistryDocumentBuilders;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.world.level.Level;
 

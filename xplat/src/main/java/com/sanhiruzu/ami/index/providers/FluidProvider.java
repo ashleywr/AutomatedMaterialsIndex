@@ -5,7 +5,7 @@ import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -30,7 +30,7 @@ public class FluidProvider implements IAmiDataProvider {
             if (fluid == Fluids.EMPTY) continue;
             if (!fluid.isSource(fluid.defaultFluidState())) continue;
 
-            ResourceLocation id = BuiltInRegistries.FLUID.getKey(fluid);
+            Identifier id = BuiltInRegistries.FLUID.getKey(fluid);
             if (id == null) continue;
 
             String displayName = resolveDisplayName(fluid);
@@ -54,7 +54,7 @@ public class FluidProvider implements IAmiDataProvider {
         AmiCore.LOGGER.info("AMI indexing: FluidProvider indexed {} source fluids", count);
     }
 
-    public static void registerBucketIcon(ResourceLocation fluidId, Fluid fluid) {
+    public static void registerBucketIcon(Identifier fluidId, Fluid fluid) {
         Item bucket = fluid.getBucket();
         if (bucket != Items.AIR && bucket != Items.BUCKET) {
             ItemIconRenderer.registerStack(fluidId, new ItemStack(bucket));

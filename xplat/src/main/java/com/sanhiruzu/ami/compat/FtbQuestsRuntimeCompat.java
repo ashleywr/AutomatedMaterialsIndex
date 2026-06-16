@@ -7,7 +7,7 @@ import com.sanhiruzu.ami.api.AmiQuestsApi;
 import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.lang.reflect.Field;
@@ -30,8 +30,8 @@ public final class FtbQuestsRuntimeCompat {
     private static final String SOURCE_ID = "ftbquests";
     private static final int REFRESH_INTERVAL_TICKS = 40;
     private static final int FILTER_ITEM_CAP = 32;
-    private static final ResourceLocation FTB_SMART_FILTER_ITEM =
-            ResourceLocation.fromNamespaceAndPath("ftbfiltersystem", "smart_filter");
+    private static final Identifier FTB_SMART_FILTER_ITEM =
+            Identifier.fromNamespaceAndPath("ftbfiltersystem", "smart_filter");
     private static final java.util.regex.Pattern FTB_FILTER_ITEM_PATTERN =
             java.util.regex.Pattern.compile("(?<![a-zA-Z0-9_:-])item\\(([a-z0-9_.-]+:[a-z0-9_./-]+)\\)");
     private static final java.util.regex.Pattern FTB_FILTER_TAG_PATTERN =
@@ -123,7 +123,11 @@ public final class FtbQuestsRuntimeCompat {
             clearIfNeeded();
             if (!warnedUnavailable) {
                 warnedUnavailable = true;
-                AmiCore.LOGGER.warn("AMI: FTB Quests runtime bridge unavailable", e);
+                if (e instanceof ClassNotFoundException) {
+                    AmiCore.LOGGER.warn("AMI: FTB Quests runtime bridge unavailable ({})", e.getMessage());
+                } else {
+                    AmiCore.LOGGER.warn("AMI: FTB Quests runtime bridge unavailable", e);
+                }
             }
         }
     }
@@ -198,7 +202,7 @@ public final class FtbQuestsRuntimeCompat {
             return null;
         }
         long taskId = longId(reflection, task);
-        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
         FilterItems filterItems = filterItems(stack, itemId);
         AmiQuestTaskDocument.Builder builder = AmiQuestTaskDocument
                 .builder(questDocumentId + "/task/" + codeString(reflection, task, taskId),
@@ -222,7 +226,7 @@ public final class FtbQuestsRuntimeCompat {
         return builder.build();
     }
 
-    static FilterItems filterItems(ItemStack stack, ResourceLocation itemId) {
+    static FilterItems filterItems(ItemStack stack, Identifier itemId) {
         if (itemId == null || !FTB_SMART_FILTER_ITEM.equals(itemId)) {
             return new FilterItems(itemId == null ? List.of() : List.of(itemId), false, List.of());
         }
@@ -234,12 +238,12 @@ public final class FtbQuestsRuntimeCompat {
         return parseFtbFilterString(filterString, itemId);
     }
 
-    static FilterItems parseFtbFilterString(String filterString, ResourceLocation fallbackItemId) {
+    static FilterItems parseFtbFilterString(String filterString, Identifier fallbackItemId) {
         if (filterString == null || filterString.isBlank()) {
             return new FilterItems(fallbackItemId == null ? List.of() : List.of(fallbackItemId), true, List.of("ftb_filter_empty"));
         }
 
-        List<ResourceLocation> itemIds = new ArrayList<>();
+        List<Identifier> itemIds = new ArrayList<>();
         java.util.regex.Matcher itemMatcher = FTB_FILTER_ITEM_PATTERN.matcher(filterString);
         int totalItems = 0;
         while (itemMatcher.find()) {
@@ -247,7 +251,7 @@ public final class FtbQuestsRuntimeCompat {
             if (itemIds.size() >= FILTER_ITEM_CAP) {
                 continue;
             }
-            ResourceLocation parsed = ResourceLocation.tryParse(itemMatcher.group(1));
+            Identifier parsed = Identifier.tryParse(itemMatcher.group(1));
             if (parsed != null && !itemIds.contains(parsed)) {
                 itemIds.add(parsed);
             }
@@ -292,7 +296,7 @@ public final class FtbQuestsRuntimeCompat {
             return null;
         }
         long rewardId = longId(reflection, reward);
-        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
         return AmiQuestTaskDocument
                 .builder(questDocumentId + "/reward/" + codeString(reflection, reward, rewardId),
                         questDocumentId,
@@ -416,7 +420,7 @@ public final class FtbQuestsRuntimeCompat {
         return value == null || value.isBlank() ? fallback : value;
     }
 
-    record FilterItems(List<ResourceLocation> itemIds, boolean highCardinality, List<String> tags) {
+    record FilterItems(List<Identifier> itemIds, boolean highCardinality, List<String> tags) {
         FilterItems {
             itemIds = itemIds == null ? List.of() : List.copyOf(itemIds);
             tags = tags == null ? List.of() : List.copyOf(tags);

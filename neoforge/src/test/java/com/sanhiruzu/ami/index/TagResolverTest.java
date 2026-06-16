@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.index.resolvers.TagResolver;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -12,7 +12,7 @@ class TagResolverTest {
     @Test
     void resolvesItemAndBlockTags() {
         SearchNode cable = new SearchNode(
-                new ResourceLocation("example", "cable"),
+                new Identifier("example", "cable"),
                 NodeType.ITEM,
                 "Cable",
                 0,

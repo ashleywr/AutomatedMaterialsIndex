@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.client.results;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -75,7 +75,7 @@ class ResultsExpansionDefaultsTest {
     }
 
     private static TreeNode leaf(String id, String label) {
-        SearchNode node = new SearchNode(ResourceLocation.parse(id), NodeType.ITEM, label, 0, 0, Map.of());
+        SearchNode node = new SearchNode(Identifier.parse(id), NodeType.ITEM, label, 0, 0, Map.of());
         return new TreeNode(Component.literal(label), node);
     }
 }

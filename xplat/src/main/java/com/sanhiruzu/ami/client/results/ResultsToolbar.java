@@ -6,7 +6,7 @@ import com.sanhiruzu.ami.client.overlay.OverlayLayers;
 import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
 import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
 import java.util.*;
@@ -153,16 +153,16 @@ public class ResultsToolbar implements SearchState.Listener {
         this.collapseAllNext = expandedByDefault;
     }
 
-    public void render(GuiGraphics g, int mouseX, int mouseY) {
+    public void render(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         updateLensOptions();
         updateGroupOptions();
         boolean anyOpen = isAnyDropdownOpen();
         int renderMouseX = anyOpen ? -1 : mouseX + scrollOffset;
 
         g.enableScissor(x, y, x + width, y + TOOLBAR_HEIGHT);
-        g.pose().pushPose();
+        g.pose().pushMatrix();
         try {
-            g.pose().translate(-scrollOffset, 0, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
+            g.pose().translate(-scrollOffset, 0);
 
             // ── Row 1 ──────────────────────────────────────────────────────────
             if (state.getViewMode() == ViewMode.LIST) {
@@ -192,7 +192,7 @@ public class ResultsToolbar implements SearchState.Listener {
                 AmiGuiIcons.expandAll(g, collapseCx, collapseCy, collapseIconColor);
             }
         } finally {
-            g.pose().popPose();
+            g.pose().popMatrix();
             g.disableScissor();
         }
 
@@ -200,7 +200,7 @@ public class ResultsToolbar implements SearchState.Listener {
         renderHoveredTooltip(g, anyOpen ? -1 : mouseX, mouseY);
     }
 
-    private void renderHoveredTooltip(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderHoveredTooltip(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (mouseX < 0 || isAnyDropdownOpen()) return;
 
         List<Component> tooltip = null;
@@ -233,7 +233,7 @@ public class ResultsToolbar implements SearchState.Listener {
         }
     }
 
-    private void drawButton(GuiGraphics g, int bx, int by, int bw, int bh, boolean hovered) {
+    private void drawButton(GuiGraphicsExtractor g, int bx, int by, int bw, int bh, boolean hovered) {
         int bgColor = hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
         AMITheme.fillControlChrome(g, bx, by, bw, bh, bgColor, false);
     }
@@ -284,12 +284,10 @@ public class ResultsToolbar implements SearchState.Listener {
         return false;
     }
 
-    public void renderOpenDropdownLists(GuiGraphics g, int mouseX, int mouseY) {
-        g.flush();
-        g.pose().pushPose();
+    public void renderOpenDropdownLists(GuiGraphicsExtractor g, int mouseX, int mouseY) {
+        g.pose().pushMatrix();
         try {
-            g.pose().translate(0, 0, OverlayLayers.DROPDOWN);
-            g.pose().translate(-scrollOffset, 0, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
+            g.pose().translate(-scrollOffset, 0);
             if (state.getViewMode() == ViewMode.LIST) {
                 lensDropdown.renderList(g, mouseX + scrollOffset, mouseY);
                 sortFieldDropdown.renderList(g, mouseX + scrollOffset, mouseY);
@@ -297,8 +295,7 @@ public class ResultsToolbar implements SearchState.Listener {
                 groupByDropdown.renderList(g, mouseX + scrollOffset, mouseY);
             }
         } finally {
-            g.pose().popPose();
-            g.flush();
+            g.pose().popMatrix();
         }
     }
 
@@ -346,18 +343,18 @@ public class ResultsToolbar implements SearchState.Listener {
         return state.getListLens().sortFields();
     }
 
-    private void renderScrollIndicators(GuiGraphics g) {
+    private void renderScrollIndicators(GuiGraphicsExtractor g) {
         if (contentWidth <= width) return;
         var font = Minecraft.getInstance().font;
         int indicatorW = 10;
         int top = y + ROW1_Y;
         if (scrollOffset > 0) {
             g.fill(x, top, x + indicatorW, top + BUTTON_H, AMITheme.SCROLL_INDICATOR_BG);
-            g.drawCenteredString(font, "<", x + indicatorW / 2, top + 3, AMITheme.TEXT_SUBTLE);
+            g.centeredText(font, "<", x + indicatorW / 2, top + 3, AMITheme.TEXT_SUBTLE);
         }
         if (scrollOffset < contentWidth - width) {
             g.fill(x + width - indicatorW, top, x + width, top + BUTTON_H, AMITheme.SCROLL_INDICATOR_BG);
-            g.drawCenteredString(font, ">", x + width - indicatorW / 2, top + 3, AMITheme.TEXT_SUBTLE);
+            g.centeredText(font, ">", x + width - indicatorW / 2, top + 3, AMITheme.TEXT_SUBTLE);
         }
     }
 

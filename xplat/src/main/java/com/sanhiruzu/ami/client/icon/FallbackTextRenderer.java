@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
@@ -14,7 +14,7 @@ public class FallbackTextRenderer implements IIconRenderer {
     /**
      * Static helper so other renderers can delegate without holding an instance.
      */
-    public static void renderFallback(GuiGraphics g, SearchNode node, int x, int y, int size) {
+    public static void renderFallback(GuiGraphicsExtractor g, SearchNode node, int x, int y, int size) {
         int bg = AmiConfig.devMode ? AMITheme.FALLBACK_BG_DEV : bgFor(node);
         g.fill(x, y, x + size, y + size, bg);
 
@@ -24,7 +24,7 @@ public class FallbackTextRenderer implements IIconRenderer {
         var font = Minecraft.getInstance().font;
         int textX = x + (size - font.width(letter)) / 2;
         int textY = y + (size - font.lineHeight) / 2;
-        g.drawString(font, letter, textX, textY, AMITheme.WHITE, false);
+        g.text(font, letter, textX, textY, AMITheme.WHITE, false);
     }
 
     private static int bgFor(SearchNode node) {
@@ -54,7 +54,7 @@ public class FallbackTextRenderer implements IIconRenderer {
     }
 
     @Override
-    public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
+    public void render(GuiGraphicsExtractor g, SearchNode node, int x, int y, int size, boolean hovered) {
         renderFallback(g, node, x, y, size);
     }
 

@@ -4,16 +4,19 @@ import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.recipe.special.*;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.context.ContextMap;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.ShapedRecipe;
+import net.minecraft.world.item.crafting.display.SlotDisplayContext;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public final class RecipeDisplayHelper {
     private RecipeDisplayHelper() {
@@ -32,7 +35,7 @@ public final class RecipeDisplayHelper {
         int outputX, outputY;
         int arrowX, arrowY;
 
-        ResourceLocation backgroundTexture = null;
+        Identifier backgroundTexture = null;
         int bgX = 0, bgY = 0, bgW = 0, bgH = 0;
         int bgRenderX = 0, bgRenderY = 0;
         boolean drawSlotBackground = true;
@@ -44,36 +47,32 @@ public final class RecipeDisplayHelper {
             int gridOriginX = 4;
             int gridOriginY = 4;
 
-            List<Ingredient> ingredients = recipe.getIngredients();
-            List<Ingredient> padded = new ArrayList<>();
-            int cols = 3, rows = 3;
             if (recipe instanceof ShapedRecipe shaped) {
-                cols = shaped.getWidth();
-                rows = shaped.getHeight();
-                for (int y = 0; y < rows; y++) {
-                    for (int x = 0; x < cols; x++) {
-                        padded.add(ingredients.get(y * cols + x));
-                    }
+                gridW = shaped.getWidth();
+                gridH = shaped.getHeight();
+                List<Optional<Ingredient>> ingList = shaped.getIngredients();
+                for (int i = 0; i < gridH * gridW; i++) {
+                    int col = i % gridW;
+                    int row = i / gridW;
+                    Optional<Ingredient> ingOpt = i < ingList.size() ? ingList.get(i) : Optional.empty();
+                    Ingredient ing = ingOpt.orElse(null);
+                    List<ItemStack> alternatives = (ing == null || ing.isEmpty()) ? List.of() : ing.items().map(ItemStack::new).toList();
+                    inputs.add(new SlotPosition(gridOriginX + col * 18, gridOriginY + row * 18, alternatives));
                 }
             } else {
-                cols = 3; rows = 3;
+                gridW = 3; gridH = 3;
+                List<Ingredient> ingList = recipe.placementInfo().ingredients();
                 for (int i = 0; i < 9; i++) {
-                    padded.add(i < ingredients.size() ? ingredients.get(i) : Ingredient.EMPTY);
+                    int col = i % gridW;
+                    int row = i / gridW;
+                    Ingredient ing = i < ingList.size() ? ingList.get(i) : null;
+                    List<ItemStack> alternatives = (ing == null || ing.isEmpty()) ? List.of() : ing.items().map(ItemStack::new).toList();
+                    inputs.add(new SlotPosition(gridOriginX + col * 18, gridOriginY + row * 18, alternatives));
                 }
             }
 
-            for (int i = 0; i < padded.size(); i++) {
-                int col = i % cols;
-                int row = i / cols;
-                Ingredient ing = padded.get(i);
-                List<ItemStack> alternatives = ing.isEmpty() ? List.of() : List.of(ing.getItems());
-                inputs.add(new SlotPosition(gridOriginX + col * 18, gridOriginY + row * 18, alternatives));
-            }
-
-            gridW = cols;
-            gridH = rows;
-            int gridEndX = gridOriginX + cols * 18;
-            int gridMidY = gridOriginY + rows * 9 - 9;
+            int gridEndX = gridOriginX + gridW * 18;
+            int gridMidY = gridOriginY + gridH * 9 - 9;
             arrowX = gridEndX + 4;
             arrowY = gridMidY;
             outputX = arrowX + 26;
@@ -89,9 +88,9 @@ public final class RecipeDisplayHelper {
             bgRenderY = 4;
             drawSlotBackground = false;
 
-            List<Ingredient> ingredients = recipe.getIngredients();
+            List<Ingredient> ingredients = recipe.placementInfo().ingredients();
             if (!ingredients.isEmpty()) {
-                inputs.add(new SlotPosition(bgRenderX, bgRenderY, List.of(ingredients.get(0).getItems())));
+                inputs.add(new SlotPosition(bgRenderX, bgRenderY, ingredients.get(0).items().map(ItemStack::new).toList()));
             } else {
                 inputs.add(new SlotPosition(bgRenderX, bgRenderY, List.of()));
             }
@@ -114,10 +113,10 @@ public final class RecipeDisplayHelper {
             bgRenderY = 18;
             drawSlotBackground = false;
 
-            List<Ingredient> ingredients = recipe.getIngredients();
+            List<Ingredient> ingredients = recipe.placementInfo().ingredients();
             for (int i = 0; i < 3; i++) {
-                Ingredient ing = (i < ingredients.size()) ? ingredients.get(i) : Ingredient.EMPTY;
-                inputs.add(new SlotPosition(bgRenderX + i * 18, bgRenderY, ing.isEmpty() ? List.of() : List.of(ing.getItems())));
+                Ingredient ing = (i < ingredients.size()) ? ingredients.get(i) : null;
+                inputs.add(new SlotPosition(bgRenderX + i * 18, bgRenderY, (ing == null || ing.isEmpty()) ? List.of() : ing.items().map(ItemStack::new).toList()));
             }
 
             gridW = 3;
@@ -137,9 +136,9 @@ public final class RecipeDisplayHelper {
             bgRenderY = 18;
             drawSlotBackground = false;
 
-            List<Ingredient> ingredients = recipe.getIngredients();
+            List<Ingredient> ingredients = recipe.placementInfo().ingredients();
             if (!ingredients.isEmpty()) {
-                inputs.add(new SlotPosition(bgRenderX, bgRenderY, List.of(ingredients.get(0).getItems())));
+                inputs.add(new SlotPosition(bgRenderX, bgRenderY, ingredients.get(0).items().map(ItemStack::new).toList()));
             }
 
             gridW = 1;
@@ -161,7 +160,7 @@ public final class RecipeDisplayHelper {
 
             if (recipe instanceof PotionBrewingRecipeView pbr) {
                 inputs.add(new SlotPosition(bgRenderX + 39, bgRenderY + 36, List.of(pbr.getInput())));
-                inputs.add(new SlotPosition(bgRenderX + 62, bgRenderY + 2, List.of(pbr.getIngredient().getItems())));
+                inputs.add(new SlotPosition(bgRenderX + 62, bgRenderY + 2, pbr.getIngredient().items().map(ItemStack::new).toList()));
             }
             inputs.add(new SlotPosition(bgRenderX, bgRenderY + 2, List.of()));
 
@@ -206,7 +205,7 @@ public final class RecipeDisplayHelper {
 
             if (recipe instanceof AnvilRepairRecipeView arr) {
                 inputs.add(new SlotPosition(bgRenderX, bgRenderY, List.of(arr.getTool())));
-                inputs.add(new SlotPosition(bgRenderX + 49, bgRenderY, List.of(arr.getMaterial().getItems())));
+                inputs.add(new SlotPosition(bgRenderX + 49, bgRenderY, arr.getMaterial().items().map(ItemStack::new).toList()));
             }
 
             gridW = 2;
@@ -288,7 +287,7 @@ public final class RecipeDisplayHelper {
         } else {
             // Generic fallback for unknown/mod recipe types.
             // Filter empty ingredients first so layout math is based on real slots.
-            List<Ingredient> ingredients = recipe.getIngredients();
+            List<Ingredient> ingredients = recipe.placementInfo().ingredients();
             List<Ingredient> nonEmpty = new ArrayList<>();
             for (Ingredient ing : ingredients) {
                 if (!ing.isEmpty()) nonEmpty.add(ing);
@@ -304,7 +303,7 @@ public final class RecipeDisplayHelper {
 
             } else if (inputCount == 1) {
                 // Single input: furnace-style horizontal  [in] → [out]
-                inputs.add(new SlotPosition(0, 0, List.of(nonEmpty.get(0).getItems())));
+                inputs.add(new SlotPosition(0, 0, nonEmpty.get(0).items().map(ItemStack::new).toList()));
                 gridW = 1; gridH = 1;
                 arrowX = 24; arrowY = 4;
                 outputX = 50; outputY = 0;
@@ -312,7 +311,7 @@ public final class RecipeDisplayHelper {
             } else if (inputCount <= 3) {
                 // One row of up to 3 slots, then arrow, then output.
                 for (int i = 0; i < inputCount; i++) {
-                    inputs.add(new SlotPosition(i * 18, 0, List.of(nonEmpty.get(i).getItems())));
+                    inputs.add(new SlotPosition(i * 18, 0, nonEmpty.get(i).items().map(ItemStack::new).toList()));
                 }
                 gridW = inputCount; gridH = 1;
                 int rowPx = inputCount * 18;
@@ -328,7 +327,7 @@ public final class RecipeDisplayHelper {
                 for (int i = 0; i < inputCount; i++) {
                     int col = i % cols;
                     int row = i / cols;
-                    inputs.add(new SlotPosition(col * 18, row * 18, List.of(nonEmpty.get(i).getItems())));
+                    inputs.add(new SlotPosition(col * 18, row * 18, nonEmpty.get(i).items().map(ItemStack::new).toList()));
                 }
                 gridW = cols; gridH = rows;
                 int gridPxW = cols * 18;
@@ -370,25 +369,27 @@ public final class RecipeDisplayHelper {
             String name = com.sanhiruzu.ami.recipe.AmiRecipeIndex.getEmiCategoryName(type);
             return name != null ? name : type.toString();
         }
-        ResourceLocation key = BuiltInRegistries.RECIPE_TYPE.getKey(type);
+        Identifier key = BuiltInRegistries.RECIPE_TYPE.getKey(type);
         if (key == null) return type.toString().toLowerCase();
         return "minecraft".equals(key.getNamespace()) ? key.getPath() : key.toString();
     }
 
     private static ItemStack getResultSafe(Recipe<?> recipe, net.minecraft.core.RegistryAccess registryAccess) {
         try {
-            return recipe.getResultItem(registryAccess);
-        } catch (Exception e) {
-            return ItemStack.EMPTY;
+            var displays = recipe.display();
+            if (!displays.isEmpty()) {
+                ContextMap ctx = new ContextMap.Builder()
+                        .withParameter(SlotDisplayContext.REGISTRIES, registryAccess)
+                        .create(SlotDisplayContext.CONTEXT);
+                List<ItemStack> stacks = displays.get(0).result().resolveForStacks(ctx);
+                if (!stacks.isEmpty()) return stacks.get(0);
+            }
+        } catch (Exception ignored) {
         }
+        return ItemStack.EMPTY;
     }
 
     private static ItemStack getCategoryIcon(Recipe<?> recipe, net.minecraft.core.RegistryAccess registryAccess) {
-        try {
-            ItemStack icon = recipe.getToastSymbol();
-            if (icon != null && !icon.isEmpty()) return icon;
-        } catch (Exception ignored) {
-        }
         return ItemStack.EMPTY;
     }
 
@@ -397,7 +398,7 @@ public final class RecipeDisplayHelper {
             String name = com.sanhiruzu.ami.recipe.AmiRecipeIndex.getEmiCategoryName(type);
             return name != null ? Component.literal(name) : Component.literal(type.toString());
         }
-        ResourceLocation key = BuiltInRegistries.RECIPE_TYPE.getKey(type);
+        Identifier key = BuiltInRegistries.RECIPE_TYPE.getKey(type);
         if (key == null) {
             String raw = type.toString();
             if (raw.startsWith("ami:")) {
@@ -417,7 +418,7 @@ public final class RecipeDisplayHelper {
             String name = com.sanhiruzu.ami.recipe.AmiRecipeIndex.getEmiCategoryName(type);
             if (name != null) return name.length() > 8 ? name.substring(0, 8) : name;
         }
-        ResourceLocation key = BuiltInRegistries.RECIPE_TYPE.getKey(type);
+        Identifier key = BuiltInRegistries.RECIPE_TYPE.getKey(type);
         if (key == null) {
             String raw = type.toString();
             if (raw.startsWith("ami:")) {
@@ -493,7 +494,7 @@ public final class RecipeDisplayHelper {
     }
 
     public record RecipeLayout(
-            ResourceLocation recipeId,
+            Identifier recipeId,
             ItemStack categoryIcon,
             String categoryName,
             List<SlotPosition> inputs,
@@ -505,7 +506,7 @@ public final class RecipeDisplayHelper {
             int outputY,
             int arrowX,
             int arrowY,
-            @Nullable ResourceLocation backgroundTexture,
+            @Nullable Identifier backgroundTexture,
             int bgX,
             int bgY,
             int bgW,

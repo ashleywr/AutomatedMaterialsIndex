@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.index.AmiGuideSearchIndex;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -16,7 +16,7 @@ class PatchouliGuideFixtureAdapterTest {
     @Test
     void parsesEntryIntoGuideDocument() {
         List<AmiGuideDocument> documents = PatchouliGuideFixtureAdapter.parse(
-                new ResourceLocation("botania", "lexicon"),
+                new Identifier("botania", "lexicon"),
                 bookJson(),
                 Map.of("en_us/categories/basics.json", """
                         {
@@ -43,15 +43,15 @@ class PatchouliGuideFixtureAdapterTest {
 
         assertEquals(1, documents.size());
         AmiGuideDocument document = documents.getFirst();
-        assertEquals(new ResourceLocation("ami", "guide/patchouli/botania/lexicon/basics/mana_spreader"),
+        assertEquals(new Identifier("ami", "guide/patchouli/botania/lexicon/basics/mana_spreader"),
                 document.id());
         assertEquals("patchouli", document.sourceType());
         assertEquals("botania", document.modId());
-        assertEquals(new ResourceLocation("botania", "lexicon"), document.bookId());
+        assertEquals(new Identifier("botania", "lexicon"), document.bookId());
         assertEquals("basics/mana_spreader", document.pageId());
         assertEquals("Mana Spreaders", document.title());
         assertEquals("Basics", document.chapter());
-        assertEquals(List.of(new ResourceLocation("botania", "mana_spreader")), document.referencedItems());
+        assertEquals(List.of(new Identifier("botania", "mana_spreader")), document.referencedItems());
         assertEquals(List.of("patchouli", "basics"), document.tags());
         assertTrue(document.summaryText().contains("Moving Mana"));
         assertTrue(document.summaryText().contains("Mana Spreaders move mana into pools."));
@@ -61,7 +61,7 @@ class PatchouliGuideFixtureAdapterTest {
     @Test
     void supportsArrayAndObjectItemReferences() {
         List<AmiGuideDocument> documents = PatchouliGuideFixtureAdapter.parse(
-                new ResourceLocation("example", "manual"),
+                new Identifier("example", "manual"),
                 "",
                 Map.of(),
                 Map.of("machines.json", """
@@ -83,16 +83,16 @@ class PatchouliGuideFixtureAdapterTest {
                         """));
 
         assertEquals(List.of(
-                new ResourceLocation("example", "press"),
-                new ResourceLocation("example", "cutter"),
-                new ResourceLocation("example", "lathe")
+                new Identifier("example", "press"),
+                new Identifier("example", "cutter"),
+                new Identifier("example", "lathe")
         ), documents.getFirst().referencedItems());
     }
 
     @Test
     void documentsWorkWithGuideIndexModes() {
         List<AmiGuideDocument> documents = PatchouliGuideFixtureAdapter.parse(
-                new ResourceLocation("ae2", "guide"),
+                new Identifier("ae2", "guide"),
                 bookJson(),
                 Map.of("channels.json", "{ \"name\": \"Channels\" }"),
                 Map.of("networks/controller.json", """
@@ -122,7 +122,7 @@ class PatchouliGuideFixtureAdapterTest {
     @Test
     void untranslatedKeysFallBackToReadableLabels() {
         List<AmiGuideDocument> documents = PatchouliGuideFixtureAdapter.parse(
-                new ResourceLocation("cobblepedia", "cobblepedia"),
+                new Identifier("cobblepedia", "cobblepedia"),
                 """
                         { "name": "book.cobblepedia" }
                         """,
@@ -151,7 +151,7 @@ class PatchouliGuideFixtureAdapterTest {
     @Test
     void unresolvedModScopedPageKeysDoNotLeakIntoSummaryText() {
         List<AmiGuideDocument> documents = PatchouliGuideFixtureAdapter.parse(
-                new ResourceLocation("ars_nouveau", "worn_notebook"),
+                new Identifier("ars_nouveau", "worn_notebook"),
                 """
                         { "name": "item.ars_nouveau.worn_notebook" }
                         """,

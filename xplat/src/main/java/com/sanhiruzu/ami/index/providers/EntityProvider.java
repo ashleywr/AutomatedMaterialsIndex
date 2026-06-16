@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.index.sniffers.EntityDataSniffer;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -32,7 +32,7 @@ public class EntityProvider implements IAmiDataProvider {
         return category == MobCategory.MONSTER ? "hostile" : "passive";
     }
 
-    private static boolean isInternalMarkerEntity(net.minecraft.resources.ResourceLocation id) {
+    private static boolean isInternalMarkerEntity(net.minecraft.resources.Identifier id) {
         String path = id.getPath();
         return path.equals("marker") || path.endsWith("_marker");
     }
@@ -52,15 +52,15 @@ public class EntityProvider implements IAmiDataProvider {
         return tags.stream().distinct().collect(Collectors.joining(","));
     }
 
-    static Map<ResourceLocation, Set<String>> collectSpawnEggSearchAliases() {
-        Map<ResourceLocation, Set<String>> aliases = new HashMap<>();
+    static Map<Identifier, Set<String>> collectSpawnEggSearchAliases() {
+        Map<Identifier, Set<String>> aliases = new HashMap<>();
         for (Item item : BuiltInRegistries.ITEM) {
             if (!(item instanceof SpawnEggItem egg)) {
                 continue;
             }
 
             ItemStack stack = new ItemStack(egg);
-            ResourceLocation entityId = Services.PLATFORM.getSpawnEggEntityTypeId(egg, stack);
+            Identifier entityId = Services.PLATFORM.getSpawnEggEntityTypeId(egg, stack);
             if (entityId == null) {
                 continue;
             }
@@ -96,10 +96,10 @@ public class EntityProvider implements IAmiDataProvider {
     public void populate(GlobalIndex index, @Nullable Level level) {
         List<SearchNode> nodes = new ArrayList<>();
         EntityDataSniffer entityDataSniffer = new EntityDataSniffer();
-        Map<ResourceLocation, Set<String>> spawnEggAliases = collectSpawnEggSearchAliases();
+        Map<Identifier, Set<String>> spawnEggAliases = collectSpawnEggSearchAliases();
 
         BuiltInRegistries.ENTITY_TYPE.entrySet().forEach(e -> {
-            var id = e.getKey().location();
+            var id = e.getKey().identifier();
             // Skip entities that have a direct item equivalent — they're already indexed as items.
             if (BuiltInRegistries.ITEM.containsKey(id)) return;
             if (isInternalMarkerEntity(id)) return;

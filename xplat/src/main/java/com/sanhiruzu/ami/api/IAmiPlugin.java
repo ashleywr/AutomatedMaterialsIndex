@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.api;
 
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.Rect2i;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
@@ -72,7 +72,7 @@ public interface IAmiPlugin {
      * @param level    world/level context (optional, may be null)
      * @param metadata mutable metadata map to enrich in-place
      */
-    default void enrichItemMeta(ResourceLocation id, ItemStack stack, Level level, Map<String, String> metadata) {
+    default void enrichItemMeta(Identifier id, ItemStack stack, Level level, Map<String, String> metadata) {
     }
 
     /**

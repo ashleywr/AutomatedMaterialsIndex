@@ -136,7 +136,7 @@ public class MixinConfigTest {
         }) {
             String jsonContent = Files.readString(mixinConfigPath, StandardCharsets.UTF_8);
             assertFalse(jsonContent.contains("\"GuiGraphicsInvoker\""),
-                    "Private GuiGraphics invoker must not be registered in " + mixinConfigPath);
+                    "Private GuiGraphicsExtractor invoker must not be registered in " + mixinConfigPath);
         }
     }
 }

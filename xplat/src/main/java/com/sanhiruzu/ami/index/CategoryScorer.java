@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.*;
 
@@ -11,15 +11,15 @@ final class CategoryScorer {
     private CategoryScorer() {
     }
 
-    static Optional<CategoryAssignment> resolve(ResourceLocation id, FacetProfile profile) {
+    static Optional<CategoryAssignment> resolve(Identifier id, FacetProfile profile) {
         return resolve(id, profile, MIN_FALLBACK_SCORE);
     }
 
-    static Optional<CategoryAssignment> resolveStrong(ResourceLocation id, FacetProfile profile) {
+    static Optional<CategoryAssignment> resolveStrong(Identifier id, FacetProfile profile) {
         return resolve(id, profile, MIN_STRONG_SCORE);
     }
 
-    private static Optional<CategoryAssignment> resolve(ResourceLocation id, FacetProfile profile, int minScore) {
+    private static Optional<CategoryAssignment> resolve(Identifier id, FacetProfile profile, int minScore) {
         List<ClassificationEvidence> evidence = EvidenceCollector.collect(id, profile);
         if (evidence.isEmpty()) {
             return Optional.empty();

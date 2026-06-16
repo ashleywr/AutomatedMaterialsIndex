@@ -11,7 +11,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -63,14 +63,14 @@ public final class AmiDataFixes {
         }
     }
 
-    public static boolean hasUserFix(ResourceLocation id, NodeType type) {
+    public static boolean hasUserFix(Identifier id, NodeType type) {
         if (id == null || type == null) return false;
         synchronized (LOCK) {
             return userFixes.containsKey(new NodeKey(id.toString(), type));
         }
     }
 
-    public static Optional<Map<String, String>> userMetadata(ResourceLocation id, NodeType type) {
+    public static Optional<Map<String, String>> userMetadata(Identifier id, NodeType type) {
         if (id == null || type == null) return Optional.empty();
         synchronized (LOCK) {
             FixEntry entry = userFixes.get(new NodeKey(id.toString(), type));
@@ -78,7 +78,7 @@ public final class AmiDataFixes {
         }
     }
 
-    public static void putUserMetadataFix(ResourceLocation id, NodeType type, Map<String, String> metadata) {
+    public static void putUserMetadataFix(Identifier id, NodeType type, Map<String, String> metadata) {
         if (id == null || type == null || metadata == null || metadata.isEmpty()) return;
         synchronized (LOCK) {
             Map<NodeKey, FixEntry> mutable = new LinkedHashMap<>(userFixes);
@@ -96,7 +96,7 @@ public final class AmiDataFixes {
         }
     }
 
-    public static void removeUserFix(ResourceLocation id, NodeType type) {
+    public static void removeUserFix(Identifier id, NodeType type) {
         if (id == null || type == null) return;
         synchronized (LOCK) {
             Map<NodeKey, FixEntry> mutable = new LinkedHashMap<>(userFixes);
@@ -107,7 +107,7 @@ public final class AmiDataFixes {
         }
     }
 
-    public static Optional<SearchNode> applyUserMetadataFixToRuntimeIndex(ResourceLocation id, NodeType type,
+    public static Optional<SearchNode> applyUserMetadataFixToRuntimeIndex(Identifier id, NodeType type,
                                                                           Map<String, String> metadata) {
         if (id == null || type == null || metadata == null || metadata.isEmpty()) {
             return Optional.empty();
@@ -117,7 +117,7 @@ public final class AmiDataFixes {
         return updateRuntimeNode(id, type, node -> node.withMetadata(apply(id, type, node.metadata())));
     }
 
-    public static Optional<SearchNode> clearUserFixFromRuntimeIndex(ResourceLocation id, NodeType type) {
+    public static Optional<SearchNode> clearUserFixFromRuntimeIndex(Identifier id, NodeType type) {
         if (id == null || type == null) {
             return Optional.empty();
         }
@@ -126,7 +126,7 @@ public final class AmiDataFixes {
         return updateRuntimeNode(id, type, AmiDataFixes::runtimeNodeWithoutUserCategoryFix);
     }
 
-    public static Map<String, String> apply(ResourceLocation id, NodeType type, Map<String, String> metadata) {
+    public static Map<String, String> apply(Identifier id, NodeType type, Map<String, String> metadata) {
         if (id == null || type == null || metadata == null) return metadata;
         synchronized (LOCK) {
             FixEntry entry = mergedFixes.get(new NodeKey(id.toString(), type));
@@ -269,7 +269,7 @@ public final class AmiDataFixes {
         return Map.copyOf(merged);
     }
 
-    private static Optional<SearchNode> updateRuntimeNode(ResourceLocation id, NodeType type,
+    private static Optional<SearchNode> updateRuntimeNode(Identifier id, NodeType type,
                                                           java.util.function.Function<SearchNode, SearchNode> updater) {
         if (id == null || type == null || updater == null) {
             return Optional.empty();

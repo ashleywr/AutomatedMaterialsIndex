@@ -15,7 +15,7 @@ import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Recipe;
@@ -53,7 +53,7 @@ class JeiRecipeBridge {
         JeiRuntimeAccessor.withRuntime(runtime -> show(node, runtime, RecipeIngredientRole.INPUT));
     }
 
-    static boolean openJustEnoughAdvancement(ResourceLocation advancementId) {
+    static boolean openJustEnoughAdvancement(Identifier advancementId) {
         if (advancementId == null) {
             return false;
         }
@@ -131,10 +131,10 @@ class JeiRecipeBridge {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private static boolean showJustEnoughAdvancement(IJeiRuntime runtime, ResourceLocation advancementId) {
+    private static boolean showJustEnoughAdvancement(IJeiRuntime runtime, Identifier advancementId) {
         try {
             Class<?> clientAdvancementsClass = Class.forName("de.melanx.jea.client.ClientAdvancements");
-            Object info = clientAdvancementsClass.getMethod("getInfo", ResourceLocation.class).invoke(null, advancementId);
+            Object info = clientAdvancementsClass.getMethod("getInfo", Identifier.class).invoke(null, advancementId);
             if (info == null) {
                 return false;
             }
@@ -229,11 +229,19 @@ class JeiRecipeBridge {
         }
         return runtime.getIngredientManager()
                 .getIngredientTypeForUid(typeUid)
-                .flatMap(type -> ((IIngredientType) type) == null
-                        ? Optional.empty()
-                        : runtime.getIngredientManager()
-                                .getIngredientByUid((IIngredientType) type, ingredientUid)
-                                .map(ingredient -> new FocusTarget((IIngredientType<Object>) type, ingredient)));
+                .flatMap(type -> {
+                    var manager = runtime.getIngredientManager();
+                    var helper = manager.getIngredientHelper((IIngredientType) type);
+                    return manager.getAllTypedIngredients((IIngredientType) type)
+                            .stream()
+                            .filter(typed -> {
+                                var loc = helper.getResourceLocation(((mezz.jei.api.ingredients.ITypedIngredient) typed).getIngredient());
+                                return loc != null && ingredientUid.equals(loc.toString());
+                            })
+                            .findFirst()
+                            .map(typed -> new FocusTarget((IIngredientType<Object>) type,
+                                    ((mezz.jei.api.ingredients.ITypedIngredient) typed).getIngredient()));
+                });
     }
 
     static boolean transferStack(ItemStack stack, Screen screen, boolean maxTransfer) {
@@ -389,7 +397,7 @@ class JeiRecipeBridge {
     private static Optional<IRecipeLayoutDrawable<?>> createLayout(mezz.jei.api.runtime.IJeiRuntime runtime,
                                                                   com.sanhiruzu.ami.util.AmiRecipeHolder<?> recipe) {
         net.minecraft.world.item.crafting.RecipeType<?> vanillaType = recipe.value().getType();
-        net.minecraft.resources.ResourceLocation typeId = BuiltInRegistries.RECIPE_TYPE.getKey(vanillaType);
+        net.minecraft.resources.Identifier typeId = BuiltInRegistries.RECIPE_TYPE.getKey(vanillaType);
         if (typeId == null) {
             return Optional.empty();
         }
@@ -404,9 +412,9 @@ class JeiRecipeBridge {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static <R> Optional<IRecipeLayoutDrawable<?>> createLayoutUnchecked(
             mezz.jei.api.runtime.IJeiRuntime runtime,
-            mezz.jei.api.recipe.RecipeType<?> jeiType,
+            mezz.jei.api.recipe.types.IRecipeType<?> jeiType,
             Object recipe) {
-        IRecipeCategory<R> category = runtime.getRecipeManager().getRecipeCategory((mezz.jei.api.recipe.RecipeType<R>) jeiType);
+        IRecipeCategory<R> category = runtime.getRecipeManager().getRecipeCategory((mezz.jei.api.recipe.types.IRecipeType<R>) jeiType);
         if (!isHandled(category, recipe)) {
             return Optional.empty();
         }
@@ -427,23 +435,23 @@ class JeiRecipeBridge {
     }
 
     private static RecipeTypeAndRecipe createJeiRecipe(
-            net.minecraft.resources.ResourceLocation typeId,
+            net.minecraft.resources.Identifier typeId,
             com.sanhiruzu.ami.util.AmiRecipeHolder<?> recipe) {
         Optional<RecipeTypeAndRecipe> holderRecipe = createHolderRecipe(typeId, recipe);
         if (holderRecipe.isPresent()) {
             return holderRecipe.get();
         }
 
-        mezz.jei.api.recipe.RecipeType<?> legacyType = legacyRecipeType(typeId, recipe.value());
+        mezz.jei.api.recipe.types.IRecipeType<?> legacyType = legacyRecipeType(typeId, recipe.value());
         return new RecipeTypeAndRecipe(legacyType, recipe.value());
     }
 
     private static Optional<RecipeTypeAndRecipe> createHolderRecipe(
-            net.minecraft.resources.ResourceLocation typeId,
+            net.minecraft.resources.Identifier typeId,
             com.sanhiruzu.ami.util.AmiRecipeHolder<?> recipe) {
         try {
             Method createHolderType = mezz.jei.api.recipe.RecipeType.class
-                    .getMethod("createRecipeHolderType", net.minecraft.resources.ResourceLocation.class);
+                    .getMethod("createRecipeHolderType", net.minecraft.resources.Identifier.class);
             Object jeiType = createHolderType.invoke(null, typeId);
             // RecipeHolder (MC 1.21+) does not exist in 1.20.1, so we cannot reference it directly from
             // xplat. Constructing it via Class.forName(Mojmap-name) failed on Fabric's intermediary
@@ -454,14 +462,14 @@ class JeiRecipeBridge {
             if (holder == null) {
                 return Optional.empty();
             }
-            return Optional.of(new RecipeTypeAndRecipe((mezz.jei.api.recipe.RecipeType<?>) jeiType, holder));
+            return Optional.of(new RecipeTypeAndRecipe((mezz.jei.api.recipe.types.IRecipeType<?>) jeiType, holder));
         } catch (ReflectiveOperationException | RuntimeException ignored) {
             return Optional.empty();
         }
     }
 
-    private static mezz.jei.api.recipe.RecipeType<?> legacyRecipeType(
-            net.minecraft.resources.ResourceLocation typeId,
+    private static mezz.jei.api.recipe.types.IRecipeType<?> legacyRecipeType(
+            net.minecraft.resources.Identifier typeId,
             Recipe<?> recipe) {
         net.minecraft.world.item.crafting.RecipeType<?> type = recipe.getType();
         if (type == net.minecraft.world.item.crafting.RecipeType.CRAFTING) return RecipeTypes.CRAFTING;
@@ -471,11 +479,11 @@ class JeiRecipeBridge {
         if (type == net.minecraft.world.item.crafting.RecipeType.BLASTING) return RecipeTypes.BLASTING;
         if (type == net.minecraft.world.item.crafting.RecipeType.CAMPFIRE_COOKING) return RecipeTypes.CAMPFIRE_COOKING;
         if (type == net.minecraft.world.item.crafting.RecipeType.SMITHING) return RecipeTypes.SMITHING;
-        return mezz.jei.api.recipe.RecipeType.create(
-                typeId.getNamespace(), typeId.getPath(), (Class) recipe.getClass());
+        return mezz.jei.api.recipe.types.IRecipeType.create(
+                typeId, (Class) recipe.getClass());
     }
 
-    private record RecipeTypeAndRecipe(mezz.jei.api.recipe.RecipeType<?> type, Object recipe) {
+    private record RecipeTypeAndRecipe(mezz.jei.api.recipe.types.IRecipeType<?> type, Object recipe) {
     }
 
     private record FocusTarget(IIngredientType<Object> type, Object ingredient) {

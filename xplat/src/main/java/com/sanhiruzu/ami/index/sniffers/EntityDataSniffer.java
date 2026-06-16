@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.index.sniffers;
 
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -23,11 +23,11 @@ import java.util.stream.Collectors;
  * after load, so a bounded concurrent map is simpler and safer than tooltip-time recomputation.</p>
  */
 public final class EntityDataSniffer {
-    public static final ResourceLocation AMI_TAMABLE_TAG = Services.PLATFORM.rl("ami", "tamable");
-    public static final ResourceLocation AMI_MOUNTABLE_TAG = Services.PLATFORM.rl("ami", "mountable");
-    public static final ResourceLocation AMI_TRUSTS_PLAYER_TAG = Services.PLATFORM.rl("ami", "trusts_player");
+    public static final Identifier AMI_TAMABLE_TAG = Services.PLATFORM.rl("ami", "tamable");
+    public static final Identifier AMI_MOUNTABLE_TAG = Services.PLATFORM.rl("ami", "mountable");
+    public static final Identifier AMI_TRUSTS_PLAYER_TAG = Services.PLATFORM.rl("ami", "trusts_player");
 
-    private static final Set<ResourceLocation> VANILLA_MOUNTABLE = Set.of(
+    private static final Set<Identifier> VANILLA_MOUNTABLE = Set.of(
             mc("camel"),
             mc("donkey"),
             mc("horse"),
@@ -40,7 +40,7 @@ public final class EntityDataSniffer {
             mc("zombie_horse")
     );
 
-    private static final Map<ResourceLocation, List<String>> VANILLA_TAMING_ITEMS = Map.of(
+    private static final Map<Identifier, List<String>> VANILLA_TAMING_ITEMS = Map.of(
             mc("cat"), List.of("minecraft:cod", "minecraft:salmon"),
             mc("horse"), List.of(),
             mc("donkey"), List.of(),
@@ -51,7 +51,7 @@ public final class EntityDataSniffer {
             mc("wolf"), List.of("minecraft:bone")
     );
 
-    private static final Map<ResourceLocation, List<String>> VANILLA_TRUST_ITEMS = Map.of(
+    private static final Map<Identifier, List<String>> VANILLA_TRUST_ITEMS = Map.of(
             mc("fox"), List.of("minecraft:sweet_berries", "minecraft:glow_berries"),
             mc("ocelot"), List.of("minecraft:cod", "minecraft:salmon")
     );
@@ -61,7 +61,7 @@ public final class EntityDataSniffer {
 
     private static List<String> extractUncached(EntityType<?> entityType) {
         LinkedHashSet<String> tags = new LinkedHashSet<>();
-        ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(entityType);
+        Identifier id = BuiltInRegistries.ENTITY_TYPE.getKey(entityType);
         if (id == null) {
             return List.of();
         }
@@ -137,11 +137,11 @@ public final class EntityDataSniffer {
         return DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) entityType);
     }
 
-    private static boolean isMountable(EntityType<?> entityType, ResourceLocation id) {
+    private static boolean isMountable(EntityType<?> entityType, Identifier id) {
         return VANILLA_MOUNTABLE.contains(id) || hasAmiEntityTag(entityType, AMI_MOUNTABLE_TAG);
     }
 
-    private static boolean hasAmiEntityTag(EntityType<?> entityType, ResourceLocation tagId) {
+    private static boolean hasAmiEntityTag(EntityType<?> entityType, Identifier tagId) {
         return BuiltInRegistries.ENTITY_TYPE.wrapAsHolder(entityType).tags()
                 .anyMatch(tag -> tag.location().equals(tagId));
     }
@@ -162,7 +162,7 @@ public final class EntityDataSniffer {
     private static List<String> tagItems(TagKey<Item> tag) {
         List<String> ids = new ArrayList<>();
         for (var holder : BuiltInRegistries.ITEM.getTagOrEmpty(tag)) {
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(holder.value());
+            Identifier id = BuiltInRegistries.ITEM.getKey(holder.value());
             if (id != null) {
                 ids.add(id.toString());
             }
@@ -170,7 +170,7 @@ public final class EntityDataSniffer {
         return ids.stream().distinct().sorted().collect(Collectors.toUnmodifiableList());
     }
 
-    private static ResourceLocation mc(String path) {
+    private static Identifier mc(String path) {
         return Services.PLATFORM.rl("minecraft", path);
     }
 

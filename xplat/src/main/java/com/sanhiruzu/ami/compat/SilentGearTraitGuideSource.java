@@ -7,7 +7,7 @@ import com.google.gson.JsonParser;
 import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 
@@ -34,9 +34,9 @@ public final class SilentGearTraitGuideSource {
         ClientResourceAccess.registerGuideDocuments(documents);
     }
 
-    static AmiGuideDocument traitDocument(ResourceLocation resourceId, JsonObject json) {
+    static AmiGuideDocument traitDocument(Identifier resourceId, JsonObject json) {
         String traitPath = traitPath(resourceId);
-        ResourceLocation traitId = ResourceLocation.fromNamespaceAndPath(resourceId.getNamespace(), traitPath);
+        Identifier traitId = Identifier.fromNamespaceAndPath(resourceId.getNamespace(), traitPath);
         String name = componentText(json.get("name"), "trait." + traitId.getNamespace() + "." + traitPath, humanize(traitPath));
         String description = componentText(json.get("description"), "trait." + traitId.getNamespace() + "." + traitPath + ".desc", "");
         int maxLevel = json.has("max_level") && json.get("max_level").isJsonPrimitive()
@@ -56,7 +56,7 @@ public final class SilentGearTraitGuideSource {
 
         String pageId = "trait/" + traitPath;
         return AmiGuideDocument.builder(
-                        ResourceLocation.fromNamespaceAndPath("ami", "guide/silentgear/trait/" + traitPath),
+                        Identifier.fromNamespaceAndPath("ami", "guide/silentgear/trait/" + traitPath),
                         SOURCE_TYPE,
                         "silentgear",
                         name + " Trait"
@@ -124,7 +124,7 @@ public final class SilentGearTraitGuideSource {
         return fallbackText == null ? "" : fallbackText;
     }
 
-    private static String traitPath(ResourceLocation resourceId) {
+    private static String traitPath(Identifier resourceId) {
         String path = resourceId.getPath();
         if (path.startsWith(TRAIT_RESOURCE_PATH + "/")) {
             path = path.substring((TRAIT_RESOURCE_PATH + "/").length());
@@ -188,7 +188,7 @@ public final class SilentGearTraitGuideSource {
             if (resourceManager == null) {
                 return;
             }
-            Map<ResourceLocation, Resource> resources = resourceManager.listResources(TRAIT_RESOURCE_PATH,
+            Map<Identifier, Resource> resources = resourceManager.listResources(TRAIT_RESOURCE_PATH,
                     id -> "silentgear".equals(id.getNamespace()) && id.getPath().endsWith(".json"));
             resources.entrySet().stream()
                     .sorted(Comparator.comparing(entry -> entry.getKey().toString()))
@@ -204,7 +204,7 @@ public final class SilentGearTraitGuideSource {
             return minecraft.getResourceManager();
         }
 
-        private static void registerTraitDocument(Consumer<AmiGuideDocument> documents, ResourceLocation id, Resource resource) {
+        private static void registerTraitDocument(Consumer<AmiGuideDocument> documents, Identifier id, Resource resource) {
             try (BufferedReader reader = resource.openAsReader()) {
                 JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
                 documents.accept(traitDocument(id, json));

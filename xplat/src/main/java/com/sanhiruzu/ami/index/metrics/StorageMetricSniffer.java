@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index.metrics;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
@@ -17,7 +17,7 @@ public final class StorageMetricSniffer {
     private StorageMetricSniffer() {
     }
 
-    public static OptionalLong estimate(ItemStack stack, ResourceLocation id, @Nullable Level level) {
+    public static OptionalLong estimate(ItemStack stack, Identifier id, @Nullable Level level) {
         if (stack == null || stack.isEmpty()) return OptionalLong.empty();
         return StorageMetricAdapters.estimate(stack, id, level);
     }

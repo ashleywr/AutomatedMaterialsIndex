@@ -3,12 +3,12 @@ package com.sanhiruzu.ami.client.results;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 final class DiscoveryVisuals {
     private static final int ICON_SIZE = 16;
     private static final GeneratedGuiSprite UNDISCOVERED_ICON = new GeneratedGuiSprite(
-            ResourceLocation.fromNamespaceAndPath("ami", "generated/discovery_undiscovered"),
+            Identifier.fromNamespaceAndPath("ami", "generated/discovery_undiscovered"),
             ICON_SIZE,
             ICON_SIZE,
             () -> 1,
@@ -27,7 +27,7 @@ final class DiscoveryVisuals {
             }
     );
     private static final GeneratedGuiSprite DISCOVERED_ICON = new GeneratedGuiSprite(
-            ResourceLocation.fromNamespaceAndPath("ami", "generated/discovery_discovered"),
+            Identifier.fromNamespaceAndPath("ami", "generated/discovery_discovered"),
             ICON_SIZE,
             ICON_SIZE,
             () -> 1,
@@ -74,11 +74,11 @@ final class DiscoveryVisuals {
         return isUndiscovered(node) ? 0xFF777777 : fallback;
     }
 
-    static void renderIconMask(net.minecraft.client.gui.GuiGraphics g, int x, int y, int size) {
+    static void renderIconMask(net.minecraft.client.gui.GuiGraphicsExtractor g, int x, int y, int size) {
         UNDISCOVERED_ICON.blit(g, x, y);
     }
 
-    static void renderIconOverlay(net.minecraft.client.gui.GuiGraphics g, SearchNode node, int x, int y, int size) {
+    static void renderIconOverlay(net.minecraft.client.gui.GuiGraphicsExtractor g, SearchNode node, int x, int y, int size) {
         if (isUndiscovered(node)) {
             UNDISCOVERED_ICON.blit(g, x, y);
         } else if (isDiscovered(node)) {

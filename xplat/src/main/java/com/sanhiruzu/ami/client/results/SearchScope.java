@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.client.results;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchService;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.*;
 
@@ -23,7 +23,7 @@ public final class SearchScope {
             return queried;
         }
 
-        Set<ResourceLocation> allowedIds = new HashSet<>();
+        Set<Identifier> allowedIds = new HashSet<>();
         for (SearchNode node : source) {
             allowedIds.add(node.id());
         }

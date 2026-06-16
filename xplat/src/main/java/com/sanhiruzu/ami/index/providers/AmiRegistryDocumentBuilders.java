@@ -10,13 +10,13 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
-import net.minecraft.world.entity.decoration.PaintingVariant;
+import net.minecraft.world.entity.decoration.painting.PaintingVariant;
 import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +27,7 @@ public final class AmiRegistryDocumentBuilders {
 
     public static List<RegistryDocument> buildEnchantmentDocuments(RegistryAccess registryAccess) {
         List<RegistryDocument> docs = new ArrayList<>();
-        var registry = registryAccess.registry(Registries.ENCHANTMENT).orElse(null);
+        var registry = registryAccess.lookup(Registries.ENCHANTMENT).orElse(null);
         if (registry == null) return docs;
         // EnchantmentTags.CURSE / TREASURE constants (net.minecraft.tags.EnchantmentTags) exist in
         // MC 1.21+, but that class is absent in MC 1.20.1. Building the TagKey manually gives
@@ -37,9 +37,9 @@ public final class AmiRegistryDocumentBuilders {
                 Services.PLATFORM.rl("minecraft", "curse"));
         TagKey<Enchantment> treasureTag = TagKey.create(Registries.ENCHANTMENT,
                 Services.PLATFORM.rl("minecraft", "treasure"));
-        for (Holder.Reference<Enchantment> holder : registry.holders().toList()) {
+        for (Holder.Reference<Enchantment> holder : registry.listElements().toList()) {
             Enchantment enchantment = holder.value();
-            ResourceLocation id = holder.key().location();
+            Identifier id = holder.key().identifier();
             String name = Component.translatable(
                     "enchantment." + id.getNamespace() + "." + id.getPath()).getString();
             int maxLevel = enchantment.getMaxLevel();
@@ -77,7 +77,7 @@ public final class AmiRegistryDocumentBuilders {
     public static List<RegistryDocument> buildMobEffectDocuments() {
         List<RegistryDocument> docs = new ArrayList<>();
         for (var entry : BuiltInRegistries.MOB_EFFECT.entrySet()) {
-            ResourceLocation id = entry.getKey().location();
+            Identifier id = entry.getKey().identifier();
             MobEffect effect = entry.getValue();
             String name = Component.translatable(effect.getDescriptionId()).getString();
             MobEffectCategory category = effect.getCategory();
@@ -106,10 +106,10 @@ public final class AmiRegistryDocumentBuilders {
 
     public static List<RegistryDocument> buildPaintingDocuments(RegistryAccess registryAccess) {
         List<RegistryDocument> docs = new ArrayList<>();
-        var registry = registryAccess.registry(Registries.PAINTING_VARIANT).orElse(null);
+        var registry = registryAccess.lookup(Registries.PAINTING_VARIANT).orElse(null);
         if (registry == null) return docs;
-        registry.holders().forEach(holder -> {
-            ResourceLocation id = holder.key().location();
+        registry.listElements().forEach(holder -> {
+            Identifier id = holder.key().identifier();
             PaintingVariant variant = holder.value();
             String rawName = id.getPath().replace('_', ' ');
             String name = Character.toUpperCase(rawName.charAt(0)) + rawName.substring(1);
@@ -137,42 +137,42 @@ public final class AmiRegistryDocumentBuilders {
 
     public static List<RegistryDocument> buildGameRuleDocuments() {
         List<RegistryDocument> docs = new ArrayList<>();
-        GameRules.visitGameRuleTypes(new GameRules.GameRuleTypeVisitor() {
-            @Override
-            public <T extends GameRules.Value<T>> void visit(GameRules.Key<T> key, GameRules.Type<T> type) {
-                String ruleName = key.getId();
-                ResourceLocation id = Services.PLATFORM.rl("minecraft", ruleName);
-                T rule = type.createRule();
-                String defaultVal = rule.serialize();
-                String typeName;
-                if (defaultVal.equals("true") || defaultVal.equals("false")) {
-                    typeName = "boolean";
-                } else {
-                    try {
-                        Integer.parseInt(defaultVal);
-                        typeName = "integer";
-                    } catch (NumberFormatException e) {
-                        typeName = "value";
+        new GameRules(net.minecraft.world.flag.FeatureFlags.VANILLA_SET)
+                .visitGameRuleTypes(new net.minecraft.world.level.gamerules.GameRuleTypeVisitor() {
+                    @Override
+                    public <T> void visit(net.minecraft.world.level.gamerules.GameRule<T> rule) {
+                        String ruleName = rule.id();
+                        Identifier id = Services.PLATFORM.rl("minecraft", ruleName);
+                        String defaultVal = rule.serialize(rule.defaultValue());
+                        String typeName;
+                        if ("true".equals(defaultVal) || "false".equals(defaultVal)) {
+                            typeName = "boolean";
+                        } else {
+                            try {
+                                Integer.parseInt(defaultVal);
+                                typeName = "integer";
+                            } catch (NumberFormatException e) {
+                                typeName = "value";
+                            }
+                        }
+
+                        List<String> tokens = new ArrayList<>();
+                        tokens.add(RegistryDocumentKind.GAME_RULE.categoryToken());
+                        tokens.add("gamerule");
+                        tokens.add(typeName);
+                        tokens.add(ruleName.toLowerCase(Locale.ROOT));
+
+                        String description = typeName + " • Default: " + defaultVal;
+                        docs.add(new RegistryDocument(
+                                RegistryDocumentKind.GAME_RULE,
+                                id,
+                                ruleName,
+                                description,
+                                "minecraft",
+                                tokens
+                        ));
                     }
-                }
-
-                List<String> tokens = new ArrayList<>();
-                tokens.add(RegistryDocumentKind.GAME_RULE.categoryToken());
-                tokens.add("gamerule");
-                tokens.add(typeName);
-                tokens.add(ruleName.toLowerCase(Locale.ROOT));
-
-                String description = typeName + " • Default: " + defaultVal;
-                docs.add(new RegistryDocument(
-                        RegistryDocumentKind.GAME_RULE,
-                        id,
-                        ruleName,
-                        description,
-                        "minecraft",
-                        tokens
-                ));
-            }
-        });
+                });
         return docs;
     }
 
@@ -193,7 +193,7 @@ public final class AmiRegistryDocumentBuilders {
         if (lookup == null) return;
         lookup.listTags().forEach(named -> {
             var tagKey = named.key();
-            ResourceLocation tagId = tagKey.location();
+            Identifier tagId = tagKey.location();
             int memberCount = (int) named.stream().count();
 
             List<String> tokens = new ArrayList<>();

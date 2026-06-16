@@ -1,5 +1,5 @@
 {
-  "key.categories.ami": "Automated Materials Index",
+  "key.category.ami.ami": "Automated Materials Index",
   "key.ami.open": "Открыть AMI",
   "ami.debugCommands": "Команды отладки AMI",
   "ami.debugBuild": "Отладочная сборка AMI",

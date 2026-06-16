@@ -1,10 +1,10 @@
 package com.sanhiruzu.ami.compat;
 
-import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.ClientRecipeBook;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.recipebook.RecipeCollection;
-import net.minecraft.world.entity.player.StackedContents;
+import net.minecraft.util.context.ContextMap;
+import net.minecraft.world.entity.player.StackedItemContents;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
@@ -12,12 +12,9 @@ import java.util.List;
 
 /**
  * Determines craftable items using vanilla Minecraft's {@link ClientRecipeBook}
- * and {@link StackedContents}, with no dependency on EMI or JEI.
+ * and {@link StackedItemContents}, with no dependency on EMI or JEI.
  */
 public class VanillaCraftablesService {
-    private static final int CRAFTING_GRID_WIDTH = 3;
-    private static final int CRAFTING_GRID_HEIGHT = 3;
-
     private static List<ItemStack> cached = List.of();
     private static int lastInventoryVersion = -1;
 
@@ -36,20 +33,19 @@ public class VanillaCraftablesService {
         List<RecipeCollection> collections = recipeBook.getCollections();
         if (collections.isEmpty()) return cached = List.of();
 
-        StackedContents stackedContents = new StackedContents();
+        StackedItemContents stackedContents = new StackedItemContents();
         mc.player.getInventory().fillStackedContents(stackedContents);
 
-        var registryAccess = mc.level.registryAccess();
         List<ItemStack> result = new ArrayList<>();
 
         for (RecipeCollection collection : collections) {
-            collection.canCraft(stackedContents, CRAFTING_GRID_WIDTH, CRAFTING_GRID_HEIGHT, recipeBook);
+            collection.selectRecipes(stackedContents, display -> true);
             if (!collection.hasCraftable()) continue;
 
-            List<?> craftable = collection.getRecipes(true);
+            var craftable = collection.getSelectedRecipes(RecipeCollection.CraftableStatus.CRAFTABLE);
             if (craftable.isEmpty()) continue;
 
-            ItemStack output = Services.PLATFORM.getRecipeResultItem(craftable.get(0), registryAccess);
+            ItemStack output = craftable.get(0).display().result().resolveForFirstStack(ContextMap.EMPTY);
             if (output.isEmpty()) continue;
 
             result.add(output.copy());
@@ -59,4 +55,3 @@ public class VanillaCraftablesService {
         return result;
     }
 }
-

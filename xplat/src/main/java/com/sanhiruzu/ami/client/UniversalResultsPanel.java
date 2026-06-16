@@ -26,10 +26,10 @@ import com.sanhiruzu.ami.player.PlayerWaypointProviders;
 import com.sanhiruzu.ami.util.AmiClipboardHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
@@ -467,15 +467,13 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
     }
 
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void render(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         AmiRenderPhase.requireBase("UniversalResultsPanel.render");
         try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("panel.render")) {
             checkPlayerStateChanged();
             refreshIndexProgressIfNeeded();
 
             try (AmiRenderProfiler.Section chrome = AmiRenderProfiler.section("panel.chrome")) {
-                com.mojang.blaze3d.systems.RenderSystem.enableBlend();
-                com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
                 if (isFavoritesPanel && (AMITheme.PANEL_BG & 0xFF000000) != 0xFF000000) {
                     g.fill(x, y, x + width, y + height, (AMITheme.PANEL_BG & 0x00FFFFFF) | 0xFF000000);
                 }
@@ -486,7 +484,6 @@ public class UniversalResultsPanel implements SearchState.Listener {
                     g.fill(x + 2, y + 1, x + width - 2, y + 2, AMITheme.BORDER_LIGHT);
                     g.fill(x + 2, y + height - 2, x + width - 2, y + height - 1, AMITheme.CONTROL_EDGE_DARK);
                 }
-                com.mojang.blaze3d.systems.RenderSystem.disableBlend();
             }
 
             boolean compact = isCompactLayout();
@@ -523,7 +520,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 if (hasCollapseButton()) titleRight = Math.min(titleRight, collapseBtnX() - AMITheme.ELEMENT_GAP);
                 if (hasSidebarAlternate()) titleRight = Math.min(titleRight, sidebarSwapX() - AMITheme.ELEMENT_GAP);
                 String titleText = truncate(font, title.getString(), Math.max(0, titleRight - titleX));
-                g.drawString(font, titleText, titleX, titleY, AMITheme.TEXT_HEADER, false);
+                g.text(font, titleText, titleX, titleY, AMITheme.TEXT_HEADER, false);
 
                 if (hasSidebarAlternate()) {
                     renderSidebarToggle(g, mouseX, mouseY);
@@ -558,7 +555,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 int countX = toggleX + TOGGLE_W + AMITheme.ELEMENT_GAP;
                 int countRight = compactControlsFit() ? compactSortX - AMITheme.ELEMENT_GAP : x + width - AMITheme.GLOBAL_PADDING;
                 String clippedCount = truncate(font, countStr, Math.max(0, countRight - countX));
-                g.drawString(font, clippedCount, countX, textY, AMITheme.TEXT_SUBTLE, false);
+                g.text(font, clippedCount, countX, textY, AMITheme.TEXT_SUBTLE, false);
 
                 renderToggleBtn(g, mouseX, mouseY);
                 renderCompactControls(g, mouseX, mouseY);
@@ -609,7 +606,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
     }
 
-    private void renderPanelSurfaces(GuiGraphics g, int headerY, int headerH, int contentY) {
+    private void renderPanelSurfaces(GuiGraphicsExtractor g, int headerY, int headerH, int contentY) {
         try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("panel.surfaces")) {
             int panelX = x + 3;
             int panelW = width - 6;
@@ -637,7 +634,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         refreshTree();
     }
 
-    private void renderCompactIndexingProgress(GuiGraphics g, int contentY) {
+    private void renderCompactIndexingProgress(GuiGraphicsExtractor g, int contentY) {
         var font = Minecraft.getInstance().font;
         AmiIndexProgress progress = AmiIndexerService.getInstance().progress();
         int maxW = Math.max(0, width - (AMITheme.GLOBAL_PADDING * 2));
@@ -646,11 +643,11 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (!stats.isBlank()) {
             text = text + "  " + stats;
         }
-        g.drawString(font, truncate(font, text, maxW), x + AMITheme.GLOBAL_PADDING, contentY, AMITheme.TEXT_SUBTLE, false);
+        g.text(font, truncate(font, text, maxW), x + AMITheme.GLOBAL_PADDING, contentY, AMITheme.TEXT_SUBTLE, false);
         renderIndexProgressBar(g, x + AMITheme.GLOBAL_PADDING, contentY + font.lineHeight + 3, maxW, 6, progress.percent());
     }
 
-    private void renderIndexingProgress(GuiGraphics g, int contentY) {
+    private void renderIndexingProgress(GuiGraphicsExtractor g, int contentY) {
         var font = Minecraft.getInstance().font;
         AmiIndexProgress progress = AmiIndexerService.getInstance().progress();
         int contentH = height - (contentY - y) - AMITheme.GLOBAL_PADDING;
@@ -721,7 +718,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         return minutes + "m " + remainingSeconds + "s";
     }
 
-    private static void renderIndexProgressBar(GuiGraphics g, int barX, int barY, int barW, int barH, int percent) {
+    private static void renderIndexProgressBar(GuiGraphicsExtractor g, int barX, int barY, int barW, int barH, int percent) {
         if (percent < 0 || barW <= 0 || barH <= 0) {
             return;
         }
@@ -742,7 +739,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         return (AMITheme.ACCENT_BLUE & 0xFF000000) == 0 ? 0xFF4FA3FF : AMITheme.ACCENT_BLUE;
     }
 
-    private void renderFavoritesSurfaces(GuiGraphics g) {
+    private void renderFavoritesSurfaces(GuiGraphicsExtractor g) {
         try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("panel.surfaces")) {
             int panelX = x + 3;
             int panelW = width - 6;
@@ -758,7 +755,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
     }
 
-    private void renderSidebarRailSurfaces(GuiGraphics g) {
+    private void renderSidebarRailSurfaces(GuiGraphicsExtractor g) {
         try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("panel.surfaces")) {
             int panelX = x + 2;
             int panelW = width - 4;
@@ -767,13 +764,13 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
     }
 
-    public void renderOverlay(GuiGraphics g, int mouseX, int mouseY) {
+    public void renderOverlay(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         toolbar.renderOpenDropdownLists(g, mouseX, mouseY);
         contextMenu.render(g, mouseX, mouseY);
         renderResultTooltipOverlay(g, mouseX, mouseY);
     }
 
-    private void renderResultTooltipOverlay(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderResultTooltipOverlay(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (toolbar.isAnyDropdownOpen() || contextMenu.isOpen()) {
             return;
         }
@@ -785,7 +782,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
     }
 
-    private void renderSidebarToggle(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderSidebarToggle(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         int tx = sidebarSwapX();
         int ty = sidebarSwapY();
         boolean hovered = isOverSidebarSwap(mouseX, mouseY);
@@ -797,7 +794,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         AmiGuiIcons.swap(g, tx + SIDEBAR_HEADER_CONTROL_W / 2, ty + SIDEBAR_HEADER_CONTROL_H / 2, color);
     }
 
-    private void renderSidebarEmptyState(GuiGraphics g) {
+    private void renderSidebarEmptyState(GuiGraphicsExtractor g) {
         var font = Minecraft.getInstance().font;
         int contentTop = y + FAV_HEADER_H;
         int contentBottom = y + height - AMITheme.GLOBAL_PADDING;
@@ -823,17 +820,17 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 Math.min(3, remainingHintLines));
     }
 
-    private static void drawCenteredTruncated(GuiGraphics g, net.minecraft.client.gui.Font font, String text,
+    private static void drawCenteredTruncated(GuiGraphicsExtractor g, net.minecraft.client.gui.Font font, String text,
                                               int centerX, int y, int maxWidth, int color) {
         String clipped = truncate(font, text, maxWidth);
-        g.drawString(font, clipped, centerX - font.width(clipped) / 2, y, color, false);
+        g.text(font, clipped, centerX - font.width(clipped) / 2, y, color, false);
     }
 
-    private static int drawCenteredWrapped(GuiGraphics g, net.minecraft.client.gui.Font font, String text,
+    private static int drawCenteredWrapped(GuiGraphicsExtractor g, net.minecraft.client.gui.Font font, String text,
                                            int centerX, int y, int maxWidth, int color, int maxLines) {
         int lineY = y;
         for (String line : wrapText(font, text, maxWidth, maxLines)) {
-            g.drawString(font, line, centerX - font.width(line) / 2, lineY, color, false);
+            g.text(font, line, centerX - font.width(line) / 2, lineY, color, false);
             lineY += font.lineHeight + 2;
         }
         return lineY;
@@ -908,7 +905,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         return width;
     }
 
-    private void renderSidebarHeaderDivider(GuiGraphics g) {
+    private void renderSidebarHeaderDivider(GuiGraphicsExtractor g) {
         int controlWidth = sidebarHeaderControlGroupWidth();
         if (controlWidth <= 0) {
             return;
@@ -936,7 +933,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 && mouseY >= by && mouseY < by + SIDEBAR_HEADER_CONTROL_H;
     }
 
-    private void renderSidebarCollapseBtn(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderSidebarCollapseBtn(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         int bx = collapseBtnX();
         int by = sidebarSwapY();
         boolean hovered = isOverCollapseBtn(mouseX, mouseY);
@@ -975,7 +972,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 && mouseY >= compactCollapseY && mouseY < compactCollapseY + COMPACT_CONTROL_H;
     }
 
-    private void renderCompactControls(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderCompactControls(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (!compactControlsFit()) return;
 
         renderCompactIconButton(g, compactSortX, compactSortY, COMPACT_CONTROL_W, COMPACT_CONTROL_H,
@@ -992,7 +989,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 });
     }
 
-    private void renderCompactIconButton(GuiGraphics g, int bx, int by, int bw, int bh, boolean hovered,
+    private void renderCompactIconButton(GuiGraphicsExtractor g, int bx, int by, int bw, int bh, boolean hovered,
                                          IconPainter icon) {
         int bgColor = hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
         AMITheme.fillControlChrome(g, bx, by, bw, bh, bgColor, false);
@@ -1000,7 +997,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         icon.paint(bx + bw / 2, by + bh / 2, color);
     }
 
-    private void renderToggleBtn(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderToggleBtn(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         boolean compact = isCompactLayout();
         boolean alternateActive = externalModeToggleActive != null && externalModeToggleActive.getAsBoolean();
         boolean hovered = mouseX >= toggleX && mouseX < toggleX + TOGGLE_W
@@ -1015,7 +1012,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         AmiGuiIcons.resultBook(g, cx, cy, contentColor, isGridActive());
     }
 
-    private void renderToggleTooltip(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderToggleTooltip(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (!isOverToggle(mouseX, mouseY)) return;
         List<Component> lines;
         if (isForcedCompactActive()) {
@@ -1032,7 +1029,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         AmiTooltipRenderer.render(g, Minecraft.getInstance().font, lines, Optional.empty(), mouseX, mouseY);
     }
 
-    private void renderCompactControlTooltips(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderCompactControlTooltips(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (isOverCompactSort(mouseX, mouseY)) {
             AmiTooltipRenderer.render(g, Minecraft.getInstance().font, List.of(
                     Component.translatable("ami.gui.tooltip.sort_direction", sortDirectionLabel()),
@@ -1056,7 +1053,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 : (state.isAscending() ? "A-Z" : "Z-A");
     }
 
-    private void renderGuideRows(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderGuideRows(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (!shouldShowGuideRows()) return;
 
         var font = Minecraft.getInstance().font;
@@ -1070,7 +1067,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         try {
             g.fill(innerX, topY, innerX + innerW, topY + GUIDE_HEADER_H, AMITheme.GROUP_HEADER_BG);
             DocumentRowIconSprites.guide(g, innerX + 2, topY + 1, true);
-            g.drawString(font, Component.translatable("ami.gui.guides").getString(), innerX + 18, topY + 2, AMITheme.TEXT_HEADER, false);
+            g.text(font, Component.translatable("ami.gui.guides").getString(), innerX + 18, topY + 2, AMITheme.TEXT_HEADER, false);
 
             int rowY = topY + GUIDE_HEADER_H;
             for (int i = 0; i < rowCount; i++) {
@@ -1086,9 +1083,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 int iconY = rowY + 2;
                 ItemStack bookStack = guideBookStack(row.document());
                 if (!bookStack.isEmpty()) {
-                    g.pose().pushPose();
-                    g.renderItem(bookStack, iconX, iconY);
-                    g.pose().popPose();
+                    g.pose().pushMatrix();
+                    g.item(bookStack, iconX, iconY);
+                    g.pose().popMatrix();
                 } else {
                     int bx = iconX + 2;
                     int by = iconY + 2;
@@ -1104,8 +1101,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 int maxTextW = innerX + innerW - textX - 4;
                 String title = truncate(font, row.title(), maxTextW);
                 String subtitle = truncate(font, row.sourceLine() + " - " + row.provenanceLine(), maxTextW);
-                g.drawString(font, title, textX, rowY + 2, AMITheme.TEXT_PRIMARY, false);
-                g.drawString(font, subtitle, textX, rowY + 11, AMITheme.TEXT_SUBTLE, false);
+                g.text(font, title, textX, rowY + 2, AMITheme.TEXT_PRIMARY, false);
+                g.text(font, subtitle, textX, rowY + 11, AMITheme.TEXT_SUBTLE, false);
                 rowY += GUIDE_ROW_H;
             }
 
@@ -1116,7 +1113,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
     }
 
-    private void renderAdvancementRows(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderAdvancementRows(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (!shouldShowAdvancementRows()) return;
 
         var font = Minecraft.getInstance().font;
@@ -1130,7 +1127,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         try {
             g.fill(innerX, topY, innerX + innerW, topY + GUIDE_HEADER_H, AMITheme.GROUP_HEADER_BG);
             DocumentRowIconSprites.advancement(g, innerX + 2, topY + 1, true);
-            g.drawString(font, Component.translatable("ami.gui.advancement_results").getString(), innerX + 18, topY + 2, AMITheme.TEXT_HEADER, false);
+            g.text(font, Component.translatable("ami.gui.advancement_results").getString(), innerX + 18, topY + 2, AMITheme.TEXT_HEADER, false);
 
             int rowY = topY + GUIDE_HEADER_H;
             for (int i = 0; i < rowCount; i++) {
@@ -1146,9 +1143,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 int iconY = rowY + 2;
                 ItemStack iconStack = advancementIconStack(row.document());
                 if (!iconStack.isEmpty()) {
-                    g.pose().pushPose();
-                    g.renderItem(iconStack, iconX, iconY);
-                    g.pose().popPose();
+                    g.pose().pushMatrix();
+                    g.item(iconStack, iconX, iconY);
+                    g.pose().popMatrix();
                 } else {
                     int bx = iconX + 2;
                     int by = iconY + 2;
@@ -1165,8 +1162,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 int maxTextW = innerX + innerW - textX - 4;
                 String title = truncate(font, row.title(), maxTextW);
                 String subtitle = truncate(font, row.sourceLine() + " - " + row.provenanceLine(), maxTextW);
-                g.drawString(font, title, textX, rowY + 2, AMITheme.TEXT_PRIMARY, false);
-                g.drawString(font, subtitle, textX, rowY + 11, AMITheme.TEXT_SUBTLE, false);
+                g.text(font, title, textX, rowY + 2, AMITheme.TEXT_PRIMARY, false);
+                g.text(font, subtitle, textX, rowY + 11, AMITheme.TEXT_SUBTLE, false);
                 rowY += GUIDE_ROW_H;
             }
 
@@ -1177,11 +1174,11 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
     }
 
-    private void renderAdvancementStatusIcon(GuiGraphics g, AmiAdvancementDocument document, int x, int y) {
+    private void renderAdvancementStatusIcon(GuiGraphicsExtractor g, AmiAdvancementDocument document, int x, int y) {
         DocumentRowIconSprites.advancementStatus(g, document.progressStatus(), x, y);
     }
 
-    private void renderQuestRows(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderQuestRows(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (!shouldShowQuestRows()) return;
 
         var font = Minecraft.getInstance().font;
@@ -1195,7 +1192,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         try {
             g.fill(innerX, topY, innerX + innerW, topY + GUIDE_HEADER_H, AMITheme.GROUP_HEADER_BG);
             DocumentRowIconSprites.quest(g, innerX + 2, topY + 1, true);
-            g.drawString(font, Component.translatable("ami.gui.quest_results").getString(), innerX + 18, topY + 2, AMITheme.TEXT_HEADER, false);
+            g.text(font, Component.translatable("ami.gui.quest_results").getString(), innerX + 18, topY + 2, AMITheme.TEXT_HEADER, false);
 
             int rowY = topY + GUIDE_HEADER_H;
             for (int i = 0; i < rowCount; i++) {
@@ -1220,8 +1217,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 int maxTextW = innerX + innerW - textX - 4;
                 String title = truncate(font, row.title(), maxTextW);
                 String subtitle = truncate(font, row.sourceLine() + " - " + row.provenanceLine(), maxTextW);
-                g.drawString(font, title, textX, rowY + 2, AMITheme.TEXT_PRIMARY, false);
-                g.drawString(font, subtitle, textX, rowY + 11, AMITheme.TEXT_SUBTLE, false);
+                g.text(font, title, textX, rowY + 2, AMITheme.TEXT_PRIMARY, false);
+                g.text(font, subtitle, textX, rowY + 11, AMITheme.TEXT_SUBTLE, false);
                 rowY += GUIDE_ROW_H;
             }
 
@@ -1232,7 +1229,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
     }
 
-    private void renderGuideTooltip(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderGuideTooltip(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         GuideResultRow row = guideRowAt(mouseX, mouseY);
         if (row == null) return;
 
@@ -1254,7 +1251,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         AmiTooltipRenderer.render(g, Minecraft.getInstance().font, lines, Optional.empty(), mouseX, mouseY);
     }
 
-    private void renderRegistryDocumentRows(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderRegistryDocumentRows(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (!shouldShowRegistryDocumentRows()) return;
 
         var font = Minecraft.getInstance().font;
@@ -1268,7 +1265,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         try {
             g.fill(innerX, topY, innerX + innerW, topY + GUIDE_HEADER_H, AMITheme.GROUP_HEADER_BG);
             DocumentRowIconSprites.guide(g, innerX + 2, topY + 1, true);
-            g.drawString(font, Component.translatable("ami.gui.registry_results").getString(), innerX + 18, topY + 2, AMITheme.TEXT_HEADER, false);
+            g.text(font, Component.translatable("ami.gui.registry_results").getString(), innerX + 18, topY + 2, AMITheme.TEXT_HEADER, false);
 
             int rowY = topY + GUIDE_HEADER_H;
             for (int i = 0; i < rowCount; i++) {
@@ -1293,8 +1290,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 int maxTextW = innerX + innerW - textX - 4;
                 String title = truncate(font, row.title(), maxTextW);
                 String subtitle = truncate(font, row.subtitleLine(), maxTextW);
-                g.drawString(font, title, textX, rowY + 2, AMITheme.TEXT_PRIMARY, false);
-                g.drawString(font, subtitle, textX, rowY + 11, AMITheme.TEXT_SUBTLE, false);
+                g.text(font, title, textX, rowY + 2, AMITheme.TEXT_PRIMARY, false);
+                g.text(font, subtitle, textX, rowY + 11, AMITheme.TEXT_SUBTLE, false);
                 rowY += GUIDE_ROW_H;
             }
 
@@ -1305,7 +1302,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
     }
 
-    private void renderRegistryDocumentTooltip(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderRegistryDocumentTooltip(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         RegistryDocumentRow row = registryDocumentRowAt(mouseX, mouseY);
         if (row == null) return;
 
@@ -1315,7 +1312,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         AmiTooltipRenderer.render(g, Minecraft.getInstance().font, lines, Optional.empty(), mouseX, mouseY);
     }
 
-    private void renderQuestTooltip(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderQuestTooltip(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         QuestResultRow row = questRowAt(mouseX, mouseY);
         if (row == null) return;
 
@@ -1330,7 +1327,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         AmiTooltipRenderer.render(g, Minecraft.getInstance().font, lines, Optional.empty(), mouseX, mouseY);
     }
 
-    private void renderAdvancementTooltip(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderAdvancementTooltip(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         AdvancementResultRow row = advancementRowAt(mouseX, mouseY);
         if (row == null) return;
 
@@ -1781,7 +1778,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             try { document.open(); } catch (RuntimeException ignored) {}
             return;
         }
-        ResourceLocation bookId = document.bookId();
+        Identifier bookId = document.bookId();
         if (bookId != null) {
             AmiGuideOpeners.patchouli(bookId, document.pageId()).run();
         }
@@ -1797,7 +1794,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             return iconStack;
         }
 
-        ItemStack directBook = new ItemStack(BuiltInRegistries.ITEM.get(document.bookId()));
+        ItemStack directBook = BuiltInRegistries.ITEM.get(document.bookId()).map(ItemStack::new).orElse(ItemStack.EMPTY);
         if (!directBook.isEmpty()) {
             return directBook;
         }
@@ -1819,7 +1816,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     private static ItemStack guideIconStack(AmiGuideDocument document) {
-        ResourceLocation iconItemId = document.iconItemId();
+        Identifier iconItemId = document.iconItemId();
         if (iconItemId == null) {
             return ItemStack.EMPTY;
         }
@@ -1832,9 +1829,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
             }
             try {
                 ItemStack stack = com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node);
-                return stack.isEmpty() ? new ItemStack(BuiltInRegistries.ITEM.get(iconItemId)) : stack;
+                return stack.isEmpty() ? BuiltInRegistries.ITEM.get(iconItemId).map(ItemStack::new).orElse(ItemStack.EMPTY) : stack;
             } catch (RuntimeException ignored) {
-                return new ItemStack(BuiltInRegistries.ITEM.get(iconItemId));
+                return BuiltInRegistries.ITEM.get(iconItemId).map(ItemStack::new).orElse(ItemStack.EMPTY);
             }
         }
         return ItemStack.EMPTY;
@@ -1844,7 +1841,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         if (document == null || document.iconItemId() == null) {
             return ItemStack.EMPTY;
         }
-        return new ItemStack(BuiltInRegistries.ITEM.get(document.iconItemId()));
+        return BuiltInRegistries.ITEM.get(document.iconItemId()).map(ItemStack::new).orElse(ItemStack.EMPTY);
     }
 
     private static String truncate(net.minecraft.client.gui.Font font, String text, int maxWidth) {
@@ -1884,8 +1881,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
 
         ItemStack stack = com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node);
-        boolean shiftDown = net.minecraft.client.gui.screens.Screen.hasShiftDown();
-        boolean controlDown = net.minecraft.client.gui.screens.Screen.hasControlDown();
+        boolean shiftDown = net.minecraft.client.Minecraft.getInstance().hasShiftDown();
+        boolean controlDown = net.minecraft.client.Minecraft.getInstance().hasControlDown();
         if (!stack.isEmpty() && shouldOpenLookup(node, stack, button, shiftDown, controlDown)) {
             RecipeViewerBridge.handleItemClick(stack, button, shiftDown, controlDown);
             return;
@@ -2169,7 +2166,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 if (hovered.type() == NodeType.ITEM) {
                     ItemStack stack = com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(hovered);
                     if (stack.isEmpty()) {
-                        stack = new ItemStack(BuiltInRegistries.ITEM.get(hovered.id()));
+                        stack = BuiltInRegistries.ITEM.get(hovered.id()).map(ItemStack::new).orElse(ItemStack.EMPTY);
                     }
                     if (AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().cheatGiveStack(), mouseKey)) {
                         AMICheatMode.giveStack(stack);

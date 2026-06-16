@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -12,19 +12,19 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * Mutable SearchNode that supports lazy, non-blocking edge resolution.
  */
 public class SearchNode {
-    private final ResourceLocation id;
+    private final Identifier id;
     private final NodeType type; // ITEM, BIOME, MOB
     private final String displayName;
     private final int color;
     private final int searchWeight;
     private final Map<String, String> metadata;
 
-    // Unresolved edges are stored as target ResourceLocation ids. Thread-safe collections.
-    private final ConcurrentMap<EdgeType, CopyOnWriteArrayList<ResourceLocation>> unresolvedEdges = new ConcurrentHashMap<>();
+    // Unresolved edges are stored as target Identifier ids. Thread-safe collections.
+    private final ConcurrentMap<EdgeType, CopyOnWriteArrayList<Identifier>> unresolvedEdges = new ConcurrentHashMap<>();
     // Resolved edges cache
     private final ConcurrentMap<EdgeType, CopyOnWriteArrayList<SearchNode>> resolvedEdges = new ConcurrentHashMap<>();
 
-    public SearchNode(ResourceLocation id, NodeType type, String displayName, int color, int searchWeight, Map<String, String> metadata) {
+    public SearchNode(Identifier id, NodeType type, String displayName, int color, int searchWeight, Map<String, String> metadata) {
         this.id = id;
         this.type = type;
         this.displayName = displayName;
@@ -33,7 +33,7 @@ public class SearchNode {
         this.metadata = metadata == null ? new HashMap<>() : new HashMap<>(metadata);
     }
 
-    public ResourceLocation id() {
+    public Identifier id() {
         return id;
     }
 
@@ -80,11 +80,11 @@ public class SearchNode {
     }
 
     // Edge API
-    public void addUnresolvedEdge(EdgeType type, ResourceLocation target) {
+    public void addUnresolvedEdge(EdgeType type, Identifier target) {
         unresolvedEdges.computeIfAbsent(type, k -> new CopyOnWriteArrayList<>()).add(target);
     }
 
-    public List<ResourceLocation> getUnresolvedEdgeIds(EdgeType type) {
+    public List<Identifier> getUnresolvedEdgeIds(EdgeType type) {
         var list = unresolvedEdges.get(type);
         return list == null ? Collections.emptyList() : Collections.unmodifiableList(list);
     }
@@ -107,7 +107,7 @@ public class SearchNode {
 
         GlobalIndex gi = GlobalIndex.getInstance();
         List<SearchNode> resolvedNow = new ArrayList<>();
-        for (ResourceLocation rid : ids) {
+        for (Identifier rid : ids) {
             gi.getNode(rid).ifPresent(resolvedNow::add);
         }
 
@@ -119,7 +119,7 @@ public class SearchNode {
         // Schedule asynchronous resolution for later (non-blocking)
         CompletableFuture.runAsync(() -> {
             List<SearchNode> batch = new ArrayList<>();
-            for (ResourceLocation rid : ids) {
+            for (Identifier rid : ids) {
                 gi.getNode(rid).ifPresent(batch::add);
             }
             if (!batch.isEmpty()) {

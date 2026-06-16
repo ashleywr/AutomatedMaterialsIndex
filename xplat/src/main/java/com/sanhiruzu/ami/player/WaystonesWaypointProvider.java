@@ -195,7 +195,7 @@ final class WaystonesWaypointProvider implements PlayerWaypointProvider {
         try {
             var player = Minecraft.getInstance().player;
             if (player != null) {
-                player.displayClientMessage(Component.translatable("ami.waystones.no-compatible-map-mod"), false);
+                player.sendSystemMessage(Component.translatable("ami.waystones.no-compatible-map-mod"));
             }
         } catch (RuntimeException e) {
             LOGGER.log(Level.WARNING, "AMI: Failed to show waypoints fallback message", e);

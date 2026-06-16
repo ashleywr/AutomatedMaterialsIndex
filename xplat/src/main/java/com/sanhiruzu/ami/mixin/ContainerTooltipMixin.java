@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.mixin;
 
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -20,8 +20,8 @@ public class ContainerTooltipMixin {
         }
     }
 
-    @Inject(method = "renderTooltip(Lnet/minecraft/client/gui/GuiGraphics;II)V", at = @At("HEAD"), cancellable = true, remap = false)
-    private void suppressSlotTooltipBehindAmi(GuiGraphics guiGraphics, int x, int y, CallbackInfo ci) {
+    @Inject(method = "renderTooltip(Lnet/minecraft/client/gui/GuiGraphicsExtractor;II)V", at = @At("HEAD"), cancellable = true, remap = false)
+    private void suppressSlotTooltipBehindAmi(GuiGraphicsExtractor GuiGraphicsExtractor, int x, int y, CallbackInfo ci) {
         if (InventoryOverlayHandler.isMouseOverAmiOverlay(x, y)) {
             ci.cancel();
         }

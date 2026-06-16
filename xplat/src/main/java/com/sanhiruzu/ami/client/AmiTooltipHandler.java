@@ -5,7 +5,7 @@ import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
 
@@ -19,7 +19,7 @@ public final class AmiTooltipHandler {
 
         // 1. Entity info for Spawn Eggs
         if (stack.getItem() instanceof SpawnEggItem egg) {
-            ResourceLocation entityId = com.sanhiruzu.ami.platform.Services.PLATFORM.getSpawnEggEntityTypeId(egg, stack);
+            Identifier entityId = com.sanhiruzu.ami.platform.Services.PLATFORM.getSpawnEggEntityTypeId(egg, stack);
             if (entityId != null) {
                 GlobalIndex.getInstance().getNode(entityId).ifPresent(node -> {
                     appendEntityInfo(node, lines);

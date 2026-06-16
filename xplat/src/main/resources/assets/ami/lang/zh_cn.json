@@ -1,5 +1,5 @@
 {
-  "key.categories.ami": "自动化材料索引（AMI）",
+  "key.category.ami.ami": "自动化材料索引（AMI）",
   "key.ami.open": "打开AMI",
   "ami.debugCommands": "AMI调试命令",
   "ami.debugBuild": "AMI调试版本",

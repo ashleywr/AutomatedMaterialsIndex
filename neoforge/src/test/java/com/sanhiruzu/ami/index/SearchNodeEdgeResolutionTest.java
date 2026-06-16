@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -21,8 +21,8 @@ public class SearchNodeEdgeResolutionTest {
     public void unresolvedEdgesResolveSyncWhenNodePresent() {
         GlobalIndex gi = GlobalIndex.getInstance();
 
-        var itemId = new ResourceLocation("minecraft:gunpowder");
-        var entityId = new ResourceLocation("minecraft:creeper");
+        var itemId = new Identifier("minecraft:gunpowder");
+        var entityId = new Identifier("minecraft:creeper");
 
         var itemNode = new SearchNode(itemId, NodeType.ITEM, "Gunpowder", 0, 0, new HashMap<>());
         var entityNode = new SearchNode(entityId, NodeType.ENTITY, "Creeper", 0, 0, new HashMap<>());

@@ -1,15 +1,15 @@
 package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.client.AMITheme;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
 import com.sanhiruzu.ami.config.AmiConfig;
 
 final class ScrollbarSpriteRenderer {
     private static final int WIDTH = 6;
     private static final int HEIGHT = 16;
     private static final GeneratedGuiSprite TRACK = new GeneratedGuiSprite(
-            ResourceLocation.fromNamespaceAndPath("ami", "generated/scrollbar_track"),
+            Identifier.fromNamespaceAndPath("ami", "generated/scrollbar_track"),
             WIDTH,
             HEIGHT,
             ScrollbarSpriteRenderer::trackSignature,
@@ -21,17 +21,17 @@ final class ScrollbarSpriteRenderer {
     private ScrollbarSpriteRenderer() {
     }
 
-    static void renderTrack(GuiGraphics g, int x, int y, int width, int height) {
+    static void renderTrack(GuiGraphicsExtractor g, int x, int y, int width, int height) {
         TRACK.blit(g, x, y, width, height);
     }
 
-    static void renderThumb(GuiGraphics g, int x, int y, int width, int height, boolean active) {
+    static void renderThumb(GuiGraphicsExtractor g, int x, int y, int width, int height, boolean active) {
         (active ? THUMB_ACTIVE : THUMB).blit(g, x, y, width, height);
     }
 
     private static GeneratedGuiSprite thumb(String name, boolean active) {
         return new GeneratedGuiSprite(
-                ResourceLocation.fromNamespaceAndPath("ami", "generated/scrollbar_" + name),
+                Identifier.fromNamespaceAndPath("ami", "generated/scrollbar_" + name),
                 WIDTH,
                 HEIGHT,
                 () -> thumbSignature(active),

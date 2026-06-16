@@ -14,10 +14,10 @@ import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.util.AmiClipboardHelper;
 import com.sanhiruzu.ami.util.AmiTooltipComposer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
@@ -39,9 +39,9 @@ public class ItemGridView {
     private static final int HEADER_INDENT = 12;
     private static final int GRID_LEFT_PAD = 1;
     private static final int ICON_CACHE_PRIME_BUDGET = 12;
-    private static final ResourceLocation VANILLA_SCROLLER =
+    private static final Identifier VANILLA_SCROLLER =
             Services.PLATFORM.rl("minecraft", "widget/scroller");
-    private static final ResourceLocation VANILLA_SCROLLER_BACKGROUND =
+    private static final Identifier VANILLA_SCROLLER_BACKGROUND =
             Services.PLATFORM.rl("minecraft", "widget/scroller_background");
     private static final boolean TEXTURE_ITEM_ICON_CACHE_ENABLED = Boolean.getBoolean("ami." + "itemIconCache");
     private Object itemIconBatchRenderer;
@@ -218,7 +218,7 @@ public class ItemGridView {
         this.onTokenInject = callback;
     }
 
-    public void render(GuiGraphics g, int mouseX, int mouseY, boolean toolbarDropdownOpen) {
+    public void render(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean toolbarDropdownOpen) {
         AmiRenderPhase.requireBase("ItemGridView.render");
         try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("grid.render")) {
         pendingTooltip = null;
@@ -253,8 +253,8 @@ public class ItemGridView {
 
         if (rootNodes.isEmpty()) {
             if (topContentHeight <= 0) {
-                g.drawString(Minecraft.getInstance().font,
-                        Component.translatable("ami.gui.no_results"), x + AMITheme.GLOBAL_PADDING, y + AMITheme.GLOBAL_PADDING, AMITheme.GRID_NO_RESULTS_TEXT, false);
+                g.text(Minecraft.getInstance().font,
+                        Component.translatable("ami.gui.no_results").getString(), x + AMITheme.GLOBAL_PADDING, y + AMITheme.GLOBAL_PADDING, AMITheme.GRID_NO_RESULTS_TEXT, false);
             }
             renderScrollbar(g, totalH, contentY, contentH, mouseX, mouseY);
             return;
@@ -308,7 +308,7 @@ public class ItemGridView {
         }
     }
 
-    public void renderPendingTooltip(GuiGraphics g, int mouseX, int mouseY) {
+    public void renderPendingTooltip(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         try (AmiRenderProfiler.Section tooltipSection = AmiRenderProfiler.section("grid.tooltip")) {
             var font = Minecraft.getInstance().font;
             if (pendingTextTooltip != null) {
@@ -320,7 +320,7 @@ public class ItemGridView {
         }
     }
 
-    private void renderHeader(GuiGraphics g, HeaderRow hr, int drawY, int mouseX, int mouseY) {
+    private void renderHeader(GuiGraphicsExtractor g, HeaderRow hr, int drawY, int mouseX, int mouseY) {
         int rowH = hr.height();
         boolean hovered = mouseX >= x && mouseX < x + width - SCROLLBAR_W
                 && mouseY >= drawY && mouseY < drawY + rowH;
@@ -351,7 +351,7 @@ public class ItemGridView {
         if (hr.toggleable()) {
             int caretColor = hovered ? AMITheme.ACCENT_BLUE : AMITheme.TEXT_SUBTLE;
             String marker = hr.node().isExpanded() ? "▼" : "▶";
-            g.drawString(font, marker, rowX, textY, caretColor, false);
+            g.text(font, marker, rowX, textY, caretColor, false);
             rowX += 10;
         }
 
@@ -361,15 +361,15 @@ public class ItemGridView {
         int labelMaxW = Math.max(0, countX - rowX - 6);
         String label = truncate(font, hr.node().getLabel().getString(), labelMaxW);
         int labelColor = hr.depth() == 0 ? AMITheme.ACCENT_GOLD : AMITheme.TEXT_HEADER;
-        g.drawString(font, label, rowX, textY, labelColor, false);
-        g.drawString(font, count, countX, textY, AMITheme.TEXT_SUBTLE, false);
+        g.text(font, label, rowX, textY, labelColor, false);
+        g.text(font, count, countX, textY, AMITheme.TEXT_SUBTLE, false);
     }
 
     // =========================================================
     // Rendering
     // =========================================================
 
-    private void renderItemRow(GuiGraphics g, ItemRow ir, int drawY, int mouseX, int mouseY) {
+    private void renderItemRow(GuiGraphicsExtractor g, ItemRow ir, int drawY, int mouseX, int mouseY) {
         renderGroupContext(g, ir.depth(), drawY, ir.alternateBand());
         renderRowSlotBackgrounds(g, drawY, ir.items().size());
         queueExpandedGroupOutlines(ir, drawY);
@@ -381,7 +381,7 @@ public class ItemGridView {
 
             SearchNode entry = null;
             ItemStack overrideStack = null;
-            ResourceLocation overrideId = null;
+            Identifier overrideId = null;
 
             if (node.isLeaf()) {
                 entry = node.getEntry();
@@ -390,9 +390,9 @@ public class ItemGridView {
                 String key = node.getKey();
                 if (key.startsWith("cardinality:")) {
                     String baseIdStr = key.substring(12);
-                    ResourceLocation baseLoc = ResourceLocation.tryParse(baseIdStr);
+                    Identifier baseLoc = Identifier.tryParse(baseIdStr);
                     if (baseLoc != null) {
-                        net.minecraft.world.item.Item baseItem = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(baseLoc);
+                        net.minecraft.world.item.Item baseItem = net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(baseLoc);
                         if (baseItem != null && baseItem != net.minecraft.world.item.Items.AIR) {
                             overrideStack = new ItemStack(baseItem);
                             overrideId = baseLoc;
@@ -482,7 +482,7 @@ public class ItemGridView {
         }
     }
 
-    private void queueItemIcon(SearchNode entry, ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
+    private void queueItemIcon(SearchNode entry, Identifier itemId, ItemStack stack, int x, int y, boolean hovered) {
         if (TEXTURE_ITEM_ICON_CACHE_ENABLED
                 || hovered
                 || cachedDragging) {
@@ -503,7 +503,7 @@ public class ItemGridView {
         pendingGroupOutlineCount = 0;
     }
 
-    private void queueDirectItemIcon(SearchNode entry, ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
+    private void queueDirectItemIcon(SearchNode entry, Identifier itemId, ItemStack stack, int x, int y, boolean hovered) {
         PendingItemIcon icon;
         if (pendingDirectItemIconCount < pendingDirectItemIcons.size()) {
             icon = pendingDirectItemIcons.get(pendingDirectItemIconCount);
@@ -554,7 +554,7 @@ public class ItemGridView {
         marker.set(entry, cellX, cellY);
     }
 
-    private void renderItemIconBatch(GuiGraphics g) {
+    private void renderItemIconBatch(GuiGraphicsExtractor g) {
         try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("grid.iconBatch")) {
             if (itemIconBatchRenderer instanceof ItemIconBatchRenderer renderer) {
                 renderer.render(g);
@@ -581,7 +581,7 @@ public class ItemGridView {
         }
     }
 
-    private void renderPendingDirectIcons(GuiGraphics g) {
+    private void renderPendingDirectIcons(GuiGraphicsExtractor g) {
         try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("grid.directIcons")) {
             AmiRenderProfiler.add("grid.renderedDirectIcons", pendingDirectItemIconCount);
             AmiRenderProfiler.add("grid.renderedRendererIcons", pendingRendererIconCount);
@@ -596,7 +596,7 @@ public class ItemGridView {
         }
     }
 
-    private void renderPendingIconOverlays(GuiGraphics g) {
+    private void renderPendingIconOverlays(GuiGraphicsExtractor g) {
         try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("grid.iconOverlays")) {
             AmiRenderProfiler.add("grid.iconOverlays", pendingIconOverlayCount);
             for (int i = 0; i < pendingIconOverlayCount; i++) {
@@ -610,7 +610,7 @@ public class ItemGridView {
         }
     }
 
-    private void renderPendingGroupOutlines(GuiGraphics g) {
+    private void renderPendingGroupOutlines(GuiGraphicsExtractor g) {
         try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("grid.groupOutlines")) {
             AmiRenderProfiler.add("grid.groupOutlines", pendingGroupOutlineCount);
             for (int i = 0; i < pendingGroupOutlineCount; i++) {
@@ -626,7 +626,7 @@ public class ItemGridView {
         }
     }
 
-    private void renderPendingQuestMarkers(GuiGraphics g) {
+    private void renderPendingQuestMarkers(GuiGraphicsExtractor g) {
         try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("grid.questMarkers")) {
             AmiRenderProfiler.add("grid.questMarkers", pendingQuestMarkerCount);
             for (int i = 0; i < pendingQuestMarkerCount; i++) {
@@ -636,7 +636,7 @@ public class ItemGridView {
         }
     }
 
-    private void renderQuestMarker(GuiGraphics g, SearchNode entry, int cellX, int cellY) {
+    private void renderQuestMarker(GuiGraphicsExtractor g, SearchNode entry, int cellX, int cellY) {
         QuestItemEvidence evidence = QuestItemEvidenceProjector.project(entry);
         if (!evidence.hasMatches()) {
             return;
@@ -646,39 +646,39 @@ public class ItemGridView {
         QuestMarkerSpriteRenderer.render(g, markerX, markerY, evidence.hasRequirement(), evidence.totalCount() > 1);
     }
 
-    private void renderIconWithWiggle(GuiGraphics g, ItemStack stack, int x, int y, boolean hovered) {
+    private void renderIconWithWiggle(GuiGraphicsExtractor g, ItemStack stack, int x, int y, boolean hovered) {
         renderIconWithWiggle(g, null, stack, x, y, hovered);
     }
 
-    private void renderIconWithWiggle(GuiGraphics g, ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
+    private void renderIconWithWiggle(GuiGraphicsExtractor g, Identifier itemId, ItemStack stack, int x, int y, boolean hovered) {
         if (TEXTURE_ITEM_ICON_CACHE_ENABLED && !hovered && !cachedDragging && itemId != null && ItemIconCache.isCached(itemId)) {
             ItemIconCache.blit(g, itemId, x, y);
             return;
         }
-        g.pose().pushPose();
-        g.pose().translate(x + 8, y + 8, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
+        g.pose().pushMatrix();
+        g.pose().translate(x + 8, y + 8);
         if (cachedDragging || hovered) {
-            g.pose().scale(1.1f + cachedWiggle, 1.1f + cachedWiggle, 1.1f);
+            g.pose().scale(1.1f + cachedWiggle, 1.1f + cachedWiggle);
             if (cachedDragging) {
-                g.pose().mulPose(com.mojang.math.Axis.ZP.rotationDegrees(cachedRotation));
+                g.pose().rotate((float) Math.toRadians(cachedRotation));
             }
         }
-        g.renderItem(stack, -8, -8);
-        g.pose().popPose();
+        g.item(stack, -8, -8);
+        g.pose().popMatrix();
     }
 
-    private void renderRendererWithWiggle(GuiGraphics g, SearchNode entry, int x, int y, boolean hovered) {
+    private void renderRendererWithWiggle(GuiGraphicsExtractor g, SearchNode entry, int x, int y, boolean hovered) {
         boolean playerModelRenderer = usesPlayerModelRenderer(entry);
         boolean needsCellClip = !hovered && (playerModelRenderer || needsRendererCellClip(entry.type()));
         if (needsCellClip) {
             g.enableScissor(x, y, x + 16, y + 16);
         }
-        g.pose().pushPose();
-        g.pose().translate(x + 8, y + 8, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
+        g.pose().pushMatrix();
+        g.pose().translate(x + 8, y + 8);
         if (cachedDragging || hovered) {
-            g.pose().scale(1.1f + cachedWiggle, 1.1f + cachedWiggle, 1.1f);
+            g.pose().scale(1.1f + cachedWiggle, 1.1f + cachedWiggle);
             if (cachedDragging) {
-                g.pose().mulPose(com.mojang.math.Axis.ZP.rotationDegrees(cachedRotation));
+                g.pose().rotate((float) Math.toRadians(cachedRotation));
             }
         }
         try {
@@ -687,7 +687,7 @@ public class ItemGridView {
                     : com.sanhiruzu.ami.client.icon.RendererRegistry.get(entry.type());
             renderer.render(g, entry, -8, -8, 16, hovered);
         } finally {
-            g.pose().popPose();
+            g.pose().popMatrix();
             if (needsCellClip) {
                 g.disableScissor();
             }
@@ -705,13 +705,13 @@ public class ItemGridView {
                 && !entry.meta(com.sanhiruzu.ami.index.SearchNodeKeys.PLAYER_HEAD_NAME, "").isBlank();
     }
 
-    private void primeIconCache(GuiGraphics g, List<VirtualRow> rows, int contentY) {
-        List<Map.Entry<ResourceLocation, ItemStack>> uncached = new ArrayList<>();
+    private void primeIconCache(GuiGraphicsExtractor g, List<VirtualRow> rows, int contentY) {
+        List<Map.Entry<Identifier, ItemStack>> uncached = new ArrayList<>();
         int drawY = contentY - pixelScrollOffset + topContentHeight;
         for (VirtualRow row : rows) {
             if (drawY + row.height() > contentY && drawY < y + height && row instanceof ItemRow ir) {
                 for (TreeNode node : ir.items()) {
-                    ResourceLocation overrideId = null;
+                    Identifier overrideId = null;
                     ItemStack overrideStack = null;
                     SearchNode entry = null;
 
@@ -722,9 +722,9 @@ public class ItemGridView {
                         String key = node.getKey();
                         if (key.startsWith("cardinality:")) {
                             String baseIdStr = key.substring(12);
-                            ResourceLocation baseLoc = ResourceLocation.tryParse(baseIdStr);
+                            Identifier baseLoc = Identifier.tryParse(baseIdStr);
                             if (baseLoc != null) {
-                                net.minecraft.world.item.Item baseItem = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(baseLoc);
+                                net.minecraft.world.item.Item baseItem = net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(baseLoc);
                                 if (baseItem != null && baseItem != net.minecraft.world.item.Items.AIR) {
                                     overrideStack = new ItemStack(baseItem);
                                     overrideId = baseLoc;
@@ -819,7 +819,7 @@ public class ItemGridView {
         }
     }
 
-    private void renderHeaderContext(GuiGraphics g, int depth, int drawY, int rowH, boolean alternateBand) {
+    private void renderHeaderContext(GuiGraphicsExtractor g, int depth, int drawY, int rowH, boolean alternateBand) {
         int contentX = x;
         int contentRight = x + width - SCROLLBAR_W;
         int color = depth == 0 ? AMITheme.GRID_GROUP_ROOT_BG : AMITheme.GRID_GROUP_CHILD_BG;
@@ -831,13 +831,13 @@ public class ItemGridView {
         }
     }
 
-    private void renderGroupContext(GuiGraphics g, int depth, int drawY, boolean alternateBand) {
+    private void renderGroupContext(GuiGraphicsExtractor g, int depth, int drawY, boolean alternateBand) {
         int contentX = x;
         int contentRight = x + width - SCROLLBAR_W;
         g.fill(contentX, drawY, contentRight, drawY + CELL_SIZE, groupBandColor(alternateBand));
     }
 
-    private void renderRowSlotBackgrounds(GuiGraphics g, int rowY, int itemCount) {
+    private void renderRowSlotBackgrounds(GuiGraphicsExtractor g, int rowY, int itemCount) {
         if ((AMITheme.SLOT_BG >>> 24) == 0) return;
         if (itemCount <= 0) return;
         AmiRenderProfiler.add("grid.slotBackgrounds", itemCount);
@@ -847,7 +847,7 @@ public class ItemGridView {
         }
     }
 
-    private void renderStickyContext(GuiGraphics g, StickyContext context) {
+    private void renderStickyContext(GuiGraphicsExtractor g, StickyContext context) {
         int contentRight = x + width - SCROLLBAR_W;
         int headerBottom = y + STICKY_CONTEXT_H;
         g.fill(x, y, contentRight, headerBottom, AMITheme.GRID_HEADER_DARKEN);
@@ -859,7 +859,7 @@ public class ItemGridView {
         if (font.width(label) > maxWidth) {
             label = font.plainSubstrByWidth(label, Math.max(0, maxWidth - font.width("..."))) + "...";
         }
-        g.drawString(font, label, x + 4, y + 3, AMITheme.TEXT_HEADER, false);
+        g.text(font, label, x + 4, y + 3, AMITheme.TEXT_HEADER, false);
     }
 
     private static String truncate(net.minecraft.client.gui.Font font, String text, int maxW) {
@@ -979,7 +979,7 @@ public class ItemGridView {
         return x + GRID_LEFT_PAD;
     }
 
-    private void renderScrollbar(GuiGraphics g, int totalH, int contentY, int contentH, int mouseX, int mouseY) {
+    private void renderScrollbar(GuiGraphicsExtractor g, int totalH, int contentY, int contentH, int mouseX, int mouseY) {
         if (totalH <= contentH) return;
         try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("grid.scrollbar")) {
             AmiRenderProfiler.count("grid.scrollbars");
@@ -1114,7 +1114,7 @@ public class ItemGridView {
                 return true;
             }
         }
-        if (keyCode == GLFW.GLFW_KEY_C && Screen.hasControlDown()) {
+        if (keyCode == GLFW.GLFW_KEY_C && Minecraft.getInstance().hasControlDown()) {
             if (pendingTextTooltip != null && !pendingTextTooltip.isEmpty()) {
                 AmiClipboardHelper.copyComponentsToClipboard(pendingTextTooltip);
                 return true;
@@ -1243,13 +1243,13 @@ public class ItemGridView {
 
     private static final class PendingItemIcon {
         private SearchNode entry;
-        private ResourceLocation itemId;
+        private Identifier itemId;
         private ItemStack stack = ItemStack.EMPTY;
         private int x;
         private int y;
         private boolean hovered;
 
-        private void set(SearchNode entry, ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
+        private void set(SearchNode entry, Identifier itemId, ItemStack stack, int x, int y, boolean hovered) {
             this.entry = entry;
             this.itemId = itemId;
             this.stack = stack;

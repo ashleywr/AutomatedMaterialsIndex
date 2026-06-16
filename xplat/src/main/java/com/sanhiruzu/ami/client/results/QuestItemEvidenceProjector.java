@@ -7,7 +7,7 @@ import com.sanhiruzu.ami.api.AmiQuestsApi;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -136,7 +136,7 @@ public final class QuestItemEvidenceProjector {
         return String.join(" > ", parts);
     }
 
-    private static String taskSuffix(AmiQuestTaskDocument task, ResourceLocation itemId) {
+    private static String taskSuffix(AmiQuestTaskDocument task, Identifier itemId) {
         List<String> parts = new ArrayList<>();
         if (task.requiredCount() > 1) {
             parts.add(task.requiredCount() + "x");
@@ -152,7 +152,7 @@ public final class QuestItemEvidenceProjector {
         return parts.isEmpty() ? "" : " (" + String.join(", ", parts) + ")";
     }
 
-    private static String formatId(ResourceLocation id) {
+    private static String formatId(Identifier id) {
         if (id == null) {
             return "";
         }

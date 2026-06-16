@@ -2,7 +2,7 @@ package net.minecraft.core.registries;
 
 import net.minecraft.core.DefaultedRegistry;
 import net.minecraft.core.Holder;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 
@@ -21,31 +21,31 @@ public class BuiltInRegistries {
     }
 
     public static final class TestItemRegistry implements DefaultedRegistry<Item> {
-        private final Map<Item, ResourceLocation> ids = new LinkedHashMap<>();
-        private final Map<ResourceLocation, Item> itemsById = new LinkedHashMap<>();
+        private final Map<Item, Identifier> ids = new LinkedHashMap<>();
+        private final Map<Identifier, Item> itemsById = new LinkedHashMap<>();
 
-        public void register(ResourceLocation id, Item item) {
+        public void register(Identifier id, Item item) {
             ids.put(item, id);
             itemsById.put(id, item);
         }
 
         @Override
-        public ResourceLocation getKey(Item item) {
-            return ids.getOrDefault(item, new ResourceLocation("minecraft:item"));
+        public Identifier getKey(Item item) {
+            return ids.getOrDefault(item, new Identifier("minecraft:item"));
         }
 
         @Override
-        public Optional<Item> getOptional(ResourceLocation id) {
+        public Optional<Item> getOptional(Identifier id) {
             return Optional.ofNullable(itemsById.get(id));
         }
 
         @Override
-        public Item get(ResourceLocation id) {
+        public Item get(Identifier id) {
             return itemsById.getOrDefault(id, net.minecraft.world.item.Items.AIR);
         }
 
         @Override
-        public boolean containsKey(ResourceLocation id) {
+        public boolean containsKey(Identifier id) {
             return itemsById.containsKey(id);
         }
 

@@ -16,6 +16,8 @@ import com.sanhiruzu.ami.neoforge.AMI;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.Rect2i;
@@ -800,11 +802,7 @@ public class OverlayWidgetManager {
     }
 
     private int computeRecipeBookWidth(AbstractContainerScreen<?> screen, int screenW) {
-        if (AmiConfig.recipeBookAction != AmiConfig.RecipeBookAction.OPEN_VANILLA_BOOK) return 0;
-        if (!(screen instanceof net.minecraft.client.gui.screens.recipebook.RecipeUpdateListener rl)) return 0;
-        if (!rl.getRecipeBookComponent().isVisible()) return 0;
-        int naturalLeft = (screenW - screen.getXSize()) / 2;
-        return Math.max(0, screen.getGuiLeft() - naturalLeft);
+        return 0;
     }
 
     private void toggleLeftAlternate() {
@@ -864,7 +862,7 @@ public class OverlayWidgetManager {
         }
     }
 
-    public void renderAll(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
+    public void renderAll(net.minecraft.client.gui.GuiGraphicsExtractor g, int mx, int my, float pt) {
         AmiRenderProfiler.beginFrame();
         try {
             try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("overlay.renderAll")) {
@@ -880,7 +878,7 @@ public class OverlayWidgetManager {
         if (pendingEmiReinit) {
             pendingEmiReinit = false;
             var mc = Minecraft.getInstance();
-            if (mc.screen != null) mc.screen.init(mc, mc.screen.width, mc.screen.height);
+            if (mc.screen != null) mc.screen.init(mc.screen.width, mc.screen.height);
         }
     }
 
@@ -889,16 +887,13 @@ public class OverlayWidgetManager {
      * search bars, and layout UI. Container screens use the same post-render stack
      * as JEI; AMI-owned tooltips are drawn afterward by renderTopLayer().
      */
-    public void renderBase(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
+    public void renderBase(net.minecraft.client.gui.GuiGraphicsExtractor g, int mx, int my, float pt) {
         try (AmiRenderPhase.Scope phase = AmiRenderPhase.enter(AmiRenderPhase.Phase.BASE);
              AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("overlay.renderBase")) {
             com.sanhiruzu.ami.client.AMITheme.sync();
-            g.flush();
-            com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
-            g.pose().pushPose();
-            g.pose().translate(0, 0, OverlayLayers.SCREEN);
+            g.pose().pushMatrix();
 
-            amiButton.render(g, mx, my, pt);
+            amiButton.extractRenderState(g, mx, my, pt);
 
             if (panelVisible) {
                 Screen screen = Minecraft.getInstance().screen;
@@ -910,22 +905,12 @@ public class OverlayWidgetManager {
             }
 
             if (inLayoutMode) {
-                g.pose().pushPose();
-                g.pose().translate(0, 0, OverlayLayers.LAYOUT_MODE);
+                g.pose().pushMatrix();
                 renderLayoutMode(g, mx, my, pt);
-                g.pose().popPose();
+                g.pose().popMatrix();
             }
 
-            g.pose().popPose();
-            g.flush();
-
-            // AMI result icons are drawn via g.renderItem, which writes real 3D model depth;
-            // block models reach past the vanilla tooltip's z (~400). Clear the base layer's
-            // depth residue so the vanilla/status tooltip drawn after the container foreground
-            // is never occluded by a result icon. Upholds IconRenderState's "no depth residue"
-            // promise at the whole-layer level instead of relying on a 3D icon being visible.
-            com.mojang.blaze3d.systems.RenderSystem.clear(
-                    org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
+            g.pose().popMatrix();
         }
     }
 
@@ -933,12 +918,10 @@ public class OverlayWidgetManager {
      * Renders only AMI-owned transient UI: AMI tooltips, dropdowns, context menus,
      * and hints. This phase must not render result-panel bodies or result icons.
      */
-    public void renderTopLayer(net.minecraft.client.gui.GuiGraphics g, int mx, int my) {
+    public void renderTopLayer(net.minecraft.client.gui.GuiGraphicsExtractor g, int mx, int my) {
         try (AmiRenderPhase.Scope phase = AmiRenderPhase.enter(AmiRenderPhase.Phase.TOP);
              AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("overlay.renderTopLayer")) {
-            g.flush();
-            com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
-            g.pose().pushPose();
+            g.pose().pushMatrix();
 
             amiButton.renderTooltip(g, mx, my);
             if (panelVisible) {
@@ -949,20 +932,16 @@ public class OverlayWidgetManager {
                 renderCheatDeleteHint(g, mx, my, renderingSlots);
             }
 
-            g.pose().popPose();
-            g.flush();
+            g.pose().popMatrix();
         }
     }
 
-    public void renderPanels(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
+    public void renderPanels(net.minecraft.client.gui.GuiGraphicsExtractor g, int mx, int my, float pt) {
         if (!panelVisible) return;
         try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("overlay.renderPanels")) {
             List<PanelSlot> renderingSlots = activeSlotsSnapshot();
             AmiRenderProfiler.add("overlay.panelSlots", renderingSlots.size());
-            g.flush();
-            com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
-            g.pose().pushPose();
-            g.pose().translate(0, 0, OverlayLayers.PANEL);
+            g.pose().pushMatrix();
 
             for (PanelSlot slot : renderingSlots) {
                 slot.render(g, mx, my, pt);
@@ -972,27 +951,21 @@ public class OverlayWidgetManager {
             }
 
             if (AmiConfig.highlightExclusionAreas) {
-                g.pose().pushPose();
-                g.pose().translate(0, 0, OverlayLayers.DEBUG);
+                g.pose().pushMatrix();
                 renderExclusionHighlights(g, renderingSlots);
-                g.pose().popPose();
+                g.pose().popMatrix();
             }
 
-            g.pose().popPose();
-            g.flush();
+            g.pose().popMatrix();
         }
     }
 
-    public void renderSearchBar(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
+    public void renderSearchBar(net.minecraft.client.gui.GuiGraphicsExtractor g, int mx, int my, float pt) {
         if (!panelVisible || searchBar == null) return;
         try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("overlay.searchBar")) {
-            g.flush();
-            com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
-            g.pose().pushPose();
-            g.pose().translate(0, 0, OverlayLayers.SEARCH_BAR);
-            searchBar.render(g, mx, my, pt);
-            g.pose().popPose();
-            g.flush();
+            g.pose().pushMatrix();
+            searchBar.extractRenderState(g, mx, my, pt);
+            g.pose().popMatrix();
         }
     }
 
@@ -1000,20 +973,20 @@ public class OverlayWidgetManager {
         return new ArrayList<>(activeSlots);
     }
 
-    private void renderCheatDeleteHint(net.minecraft.client.gui.GuiGraphics g, int mx, int my, List<PanelSlot> slots) {
+    private void renderCheatDeleteHint(net.minecraft.client.gui.GuiGraphicsExtractor g, int mx, int my, List<PanelSlot> slots) {
         if (!com.sanhiruzu.ami.client.AMICheatMode.isEnabled()) return;
         if (!com.sanhiruzu.ami.client.AMICheatMode.hasCarriedItem()) return;
         for (PanelSlot slot : slots) {
             if (slot.results.visible && slot.results.isMouseOver(mx, my)) {
                 var font = net.minecraft.client.Minecraft.getInstance().font;
                 var msg = net.minecraft.network.chat.Component.translatable("ami.cheat.drop_to_delete");
-                g.renderTooltip(font, List.of(msg), java.util.Optional.empty(), mx, my);
+                g.setTooltipForNextFrame(font, List.of(msg), java.util.Optional.empty(), mx, my);
                 break;
             }
         }
     }
 
-    private void renderLeftPanelBar(net.minecraft.client.gui.GuiGraphics g, int mx, int my) {
+    private void renderLeftPanelBar(net.minecraft.client.gui.GuiGraphicsExtractor g, int mx, int my) {
         int bx = leftPanelBarBounds.x(), by = leftPanelBarBounds.y();
         int bw = leftPanelBarBounds.width(), bh = leftPanelBarBounds.height();
         com.sanhiruzu.ami.client.AMITheme.fillPanelChrome(g, bx, by, bw, bh);
@@ -1032,7 +1005,7 @@ public class OverlayWidgetManager {
                 net.minecraft.world.item.ItemStack stack =
                         com.sanhiruzu.ami.client.icon.ItemIconRenderer.resolveStack(nodes.get(i).id());
                 if (!stack.isEmpty()) {
-                    g.renderItem(stack, iconX + i * BAR_ICON_CELL, iconY);
+                    g.item(stack, iconX + i * BAR_ICON_CELL, iconY);
                 }
             }
         }
@@ -1050,7 +1023,7 @@ public class OverlayWidgetManager {
         }
     }
 
-    private void renderExclusionHighlights(net.minecraft.client.gui.GuiGraphics g, List<PanelSlot> slots) {
+    private void renderExclusionHighlights(net.minecraft.client.gui.GuiGraphicsExtractor g, List<PanelSlot> slots) {
         // Render panel bounds in blue (matching EMI's debug style)
         for (PanelSlot slot : slots) {
             if (slot.results.visible) {
@@ -1176,8 +1149,9 @@ public class OverlayWidgetManager {
         if (inLayoutMode) {
             Minecraft mc = Minecraft.getInstance();
             ensureLayoutButtons(mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight());
-            if (layoutDoneButton != null && layoutDoneButton.mouseClicked(mouseX, mouseY, button)) return true;
-            if (layoutResetButton != null && layoutResetButton.mouseClicked(mouseX, mouseY, button)) return true;
+            MouseButtonEvent mbEvent = new MouseButtonEvent(mouseX, mouseY, new MouseButtonInfo(button, 0));
+            if (layoutDoneButton != null && layoutDoneButton.mouseClicked(mbEvent, false)) return true;
+            if (layoutResetButton != null && layoutResetButton.mouseClicked(mbEvent, false)) return true;
             return tryStartDrag(mouseX, mouseY, button);
         }
         for (PanelSlot slot : activeSlotsSnapshot()) {
@@ -1210,21 +1184,21 @@ public class OverlayWidgetManager {
         }
     }
 
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (inLayoutMode && keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        if (inLayoutMode && event.key() == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
             cancelLayout();
             return true;
         }
         if (inLayoutMode) return true;
         for (PanelSlot slot : activeSlotsSnapshot()) {
-            if (slot.keyPressed(keyCode, scanCode, modifiers)) return true;
+            if (slot.keyPressed(event)) return true;
         }
         return false;
     }
 
-    public boolean charTyped(char codePoint, int modifiers) {
+    public boolean charTyped(net.minecraft.client.input.CharacterEvent event) {
         for (PanelSlot slot : activeSlotsSnapshot()) {
-            if (slot.charTyped(codePoint, modifiers)) return true;
+            if (slot.charTyped(event)) return true;
         }
         return false;
     }
@@ -1678,7 +1652,7 @@ public class OverlayWidgetManager {
         layoutDirty = true;
     }
 
-    private void renderLayoutMode(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
+    private void renderLayoutMode(net.minecraft.client.gui.GuiGraphicsExtractor g, int mx, int my, float pt) {
         Minecraft mc = Minecraft.getInstance();
         int sw = mc.getWindow().getGuiScaledWidth();
         int sh = mc.getWindow().getGuiScaledHeight();
@@ -1691,15 +1665,15 @@ public class OverlayWidgetManager {
         int hintX = sw / 2 - hintW / 2;
         int hintY = 4;
         g.fill(hintX - 4, hintY - 2, hintX + hintW + 4, hintY + font.lineHeight + 2, 0xCC000000);
-        g.drawString(font, hint, hintX, hintY, 0xFFFFFFFF, false);
+        g.text(font, hint, hintX, hintY, 0xFFFFFFFF, false);
 
         renderLayoutDragHandles(g);
 
-        layoutDoneButton.render(g, mx, my, pt);
-        layoutResetButton.render(g, mx, my, pt);
+        layoutDoneButton.extractRenderState(g, mx, my, pt);
+        layoutResetButton.extractRenderState(g, mx, my, pt);
     }
 
-    private void renderLayoutDragHandles(net.minecraft.client.gui.GuiGraphics g) {
+    private void renderLayoutDragHandles(net.minecraft.client.gui.GuiGraphicsExtractor g) {
         int accent = com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE;
         int accentDim = 0x88_4A90D9;
 
@@ -1715,7 +1689,7 @@ public class OverlayWidgetManager {
                 g.fill(cx, cy + dy, cx + 2, cy + dy + 2, gripColor);
                 g.fill(cx + 4, cy + dy, cx + 6, cy + dy + 2, gripColor);
             }
-            if (dragging) g.renderOutline(b.x(), b.y(), b.width(), b.height(), accent);
+            if (dragging) g.outline(b.x(), b.y(), b.width(), b.height(), accent);
         }
 
         // Panels: colored strip across the top
@@ -1723,14 +1697,14 @@ public class OverlayWidgetManager {
         renderPanelDragStrip(g, rightSlotPool, "right_panel", accent, accentDim);
     }
 
-    private void renderPanelDragStrip(net.minecraft.client.gui.GuiGraphics g, List<PanelSlot> pool,
+    private void renderPanelDragStrip(net.minecraft.client.gui.GuiGraphicsExtractor g, List<PanelSlot> pool,
                                       String panelId, int accent, int accentDim) {
         WidgetBounds panelBounds = panelWindowBounds(pool);
         if (panelBounds == null) return;
 
         boolean dragging = panelId.equals(draggedWidgetId);
         int fillColor = dragging ? accent : accentDim;
-        g.renderOutline(panelBounds.x(), panelBounds.y(), panelBounds.width(), panelBounds.height(), fillColor);
+        g.outline(panelBounds.x(), panelBounds.y(), panelBounds.width(), panelBounds.height(), fillColor);
         int h = PANEL_HANDLE_HITBOX;
         int x1 = panelBounds.x();
         int y1 = panelBounds.y();
@@ -1750,7 +1724,7 @@ public class OverlayWidgetManager {
             for (PanelSlot slot : pool) {
                 AbstractWidget w = slot.visibleWidget();
                 if (w == null || !w.visible) continue;
-                g.renderOutline(w.getX(), w.getY(), w.getWidth(), w.getHeight(), accent);
+                g.outline(w.getX(), w.getY(), w.getWidth(), w.getHeight(), accent);
             }
         }
     }
@@ -1908,12 +1882,12 @@ public class OverlayWidgetManager {
             sidebar.visible = false;
         }
 
-        void render(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
-            if (results.visible) results.render(g, mx, my, pt);
-            if (sidebar.visible) sidebar.render(g, mx, my, pt);
+        void render(net.minecraft.client.gui.GuiGraphicsExtractor g, int mx, int my, float pt) {
+            if (results.visible) results.extractRenderState(g, mx, my, pt);
+            if (sidebar.visible) sidebar.extractRenderState(g, mx, my, pt);
         }
 
-        void renderOverlay(net.minecraft.client.gui.GuiGraphics g, int mx, int my) {
+        void renderOverlay(net.minecraft.client.gui.GuiGraphicsExtractor g, int mx, int my) {
             if (results.visible) results.renderOverlay(g, mx, my);
             if (sidebar.visible) sidebar.renderOverlay(g, mx, my);
         }
@@ -1925,8 +1899,9 @@ public class OverlayWidgetManager {
 
         boolean mouseClicked(double mouseX, double mouseY, int button) {
             AbstractWidget widget = activeWidget();
-            return widget != null && widget.visible && (widget.isMouseOver(mouseX, mouseY) || hasOpenContextMenu(widget))
-                    && widget.mouseClicked(mouseX, mouseY, button);
+            if (widget == null || !widget.visible) return false;
+            if (!widget.isMouseOver(mouseX, mouseY) && !hasOpenContextMenu(widget)) return false;
+            return widget.mouseClicked(new MouseButtonEvent(mouseX, mouseY, new MouseButtonInfo(button, 0)), false);
         }
 
         private boolean hasOpenContextMenu(AbstractWidget widget) {
@@ -1941,22 +1916,24 @@ public class OverlayWidgetManager {
 
         boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
             AbstractWidget widget = activeWidget();
-            return widget != null && widget.visible && widget.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+            if (widget == null || !widget.visible) return false;
+            return widget.mouseDragged(new MouseButtonEvent(mouseX, mouseY, new MouseButtonInfo(button, 0)), dragX, dragY);
         }
 
         void mouseReleased(double mouseX, double mouseY, int button) {
-            if (results.visible) results.mouseReleased(mouseX, mouseY, button);
-            if (sidebar.visible) sidebar.mouseReleased(mouseX, mouseY, button);
+            MouseButtonEvent event = new MouseButtonEvent(mouseX, mouseY, new MouseButtonInfo(button, 0));
+            if (results.visible) results.mouseReleased(event);
+            if (sidebar.visible) sidebar.mouseReleased(event);
         }
 
-        boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
             AbstractWidget widget = activeWidget();
-            return widget != null && widget.visible && widget.keyPressed(keyCode, scanCode, modifiers);
+            return widget != null && widget.visible && widget.keyPressed(event);
         }
 
-        boolean charTyped(char codePoint, int modifiers) {
+        boolean charTyped(net.minecraft.client.input.CharacterEvent event) {
             AbstractWidget widget = activeWidget();
-            return widget != null && widget.visible && widget.charTyped(codePoint, modifiers);
+            return widget != null && widget.visible && widget.charTyped(event);
         }
 
         boolean hasOpenContextMenu() {

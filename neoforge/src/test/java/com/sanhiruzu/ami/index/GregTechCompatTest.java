@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
 import com.sanhiruzu.ami.compat.GregTechCompat;
 import com.sanhiruzu.ami.config.AmiConfig;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -19,7 +19,7 @@ class GregTechCompatTest {
         Map<String, String> meta = meta("gtceu");
         meta.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.INGOT)));
 
-        CompatFamilyDetector.detect(new ResourceLocation("gtceu", "copper_ingot"), meta);
+        CompatFamilyDetector.detect(new Identifier("gtceu", "copper_ingot"), meta);
         CategoryAssignment assignment = resolve("gtceu:copper_ingot", meta, ItemFacet.INGOT);
 
         assertEquals("gregtech", meta.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
@@ -32,12 +32,12 @@ class GregTechCompatTest {
     void gregTechMachinesAndCircuitsStayInsideGregTech() {
         Map<String, String> machine = meta("gtceu");
         machine.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.MACHINE)));
-        CompatFamilyDetector.detect(new ResourceLocation("gtceu", "lv_macerator"), machine);
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "lv_macerator"), machine);
+        CompatFamilyDetector.detect(new Identifier("gtceu", "lv_macerator"), machine);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "lv_macerator"), machine);
 
         Map<String, String> circuit = meta("gtceu");
-        CompatFamilyDetector.detect(new ResourceLocation("gtceu", "good_electronic_circuit"), circuit);
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "good_electronic_circuit"), circuit);
+        CompatFamilyDetector.detect(new Identifier("gtceu", "good_electronic_circuit"), circuit);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "good_electronic_circuit"), circuit);
 
         assertEquals("machines", machine.get(SearchNodeKeys.GREGTECH_ITEM_KIND));
         assertEquals("lv", machine.get(SearchNodeKeys.GREGTECH_TIER));
@@ -51,11 +51,11 @@ class GregTechCompatTest {
     void gregTechCircuitTiersComeFromCircuitTagsAndGradesFromRegistryIds() {
         Map<String, String> basic = meta("gtceu");
         basic.put(SearchNodeKeys.TAGS, "gtceu:circuits,gtceu:circuits/lv");
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "basic_electronic_circuit"), basic);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "basic_electronic_circuit"), basic);
 
         Map<String, String> good = meta("gtceu");
         good.put(SearchNodeKeys.TAGS, "gtceu:circuits,gtceu:circuits/mv");
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "good_electronic_circuit"), good);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "good_electronic_circuit"), good);
 
         assertEquals("circuits", basic.get(SearchNodeKeys.GREGTECH_ITEM_KIND));
         assertEquals("lv", basic.get(SearchNodeKeys.GREGTECH_TIER));
@@ -70,10 +70,10 @@ class GregTechCompatTest {
     @Test
     void gregTechKnownCircuitIdsFillTierAndGradeWhenTagsAreMissing() {
         Map<String, String> good = meta("gtceu");
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "good_electronic_circuit"), good);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "good_electronic_circuit"), good);
 
         Map<String, String> wetware = meta("gtceu");
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "wetware_processor_mainframe"), wetware);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "wetware_processor_mainframe"), wetware);
 
         assertEquals("circuits", good.get(SearchNodeKeys.GREGTECH_ITEM_KIND));
         assertEquals("mv", good.get(SearchNodeKeys.GREGTECH_TIER));
@@ -92,7 +92,7 @@ class GregTechCompatTest {
         battery.put(SearchNodeKeys.TAGS, "gtceu:batteries,gtceu:batteries/hv");
         battery.put(SearchNodeKeys.ENERGY_CAPACITY, "1600000");
 
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "hv_lapotron_crystal"), battery);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "hv_lapotron_crystal"), battery);
 
         assertEquals("power", battery.get(SearchNodeKeys.GREGTECH_ITEM_KIND));
         assertEquals("hv", battery.get(SearchNodeKeys.GREGTECH_TIER));
@@ -106,16 +106,16 @@ class GregTechCompatTest {
     @Test
     void gregTechEnergyFactsUseEuVoltageTiersRolesAndAmperage() {
         Map<String, String> macerator = meta("gtceu");
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "lv_macerator"), macerator);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "lv_macerator"), macerator);
 
         Map<String, String> combustion = meta("gtceu");
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "hv_combustion"), combustion);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "hv_combustion"), combustion);
 
         Map<String, String> inputHatch = meta("gtceu");
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "ev_energy_input_hatch_4a"), inputHatch);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "ev_energy_input_hatch_4a"), inputHatch);
 
         Map<String, String> outputHatch = meta("gtceu");
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "ev_energy_output_hatch_16a"), outputHatch);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "ev_energy_output_hatch_16a"), outputHatch);
 
         assertEquals("consumes_eu", macerator.get(SearchNodeKeys.GREGTECH_ENERGY_ROLE));
         assertEquals("32", macerator.get(SearchNodeKeys.GREGTECH_EU_CONSUMPTION));
@@ -137,10 +137,10 @@ class GregTechCompatTest {
     @Test
     void gregTechEnrichmentHandlesSteamAndHighTiers() {
         Map<String, String> bronze = meta("gtceu");
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "bronze_steam_macerator"), bronze);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "bronze_steam_macerator"), bronze);
 
         Map<String, String> max = meta("gtceu");
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "max_transformer"), max);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "max_transformer"), max);
 
         assertEquals("steam", bronze.get(SearchNodeKeys.GREGTECH_TIER));
         assertEquals("machines", bronze.get(SearchNodeKeys.GREGTECH_ITEM_KIND));
@@ -153,14 +153,14 @@ class GregTechCompatTest {
         Map<String, String> metaMachine = meta("gtceu");
         metaMachine.put(SearchNodeKeys.ITEM_CLASS, "com.gregtechceu.gtceu.api.item.MetaMachineItem");
         metaMachine.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY)));
-        CompatFamilyDetector.detect(new ResourceLocation("gtceu", "lv_alloy_smelter"), metaMachine);
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "lv_alloy_smelter"), metaMachine);
+        CompatFamilyDetector.detect(new Identifier("gtceu", "lv_alloy_smelter"), metaMachine);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "lv_alloy_smelter"), metaMachine);
 
         Map<String, String> metaMachineBlock = meta("gtceu");
         metaMachineBlock.put(SearchNodeKeys.BLOCK_CLASS, "com.gregtechceu.gtceu.api.block.MetaMachineBlock");
         metaMachineBlock.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY)));
-        CompatFamilyDetector.detect(new ResourceLocation("gtceu", "mv_chemical_reactor"), metaMachineBlock);
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "mv_chemical_reactor"), metaMachineBlock);
+        CompatFamilyDetector.detect(new Identifier("gtceu", "mv_chemical_reactor"), metaMachineBlock);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "mv_chemical_reactor"), metaMachineBlock);
 
         assertEquals("machines", metaMachine.get(SearchNodeKeys.GREGTECH_ITEM_KIND));
         assertEquals("lv", metaMachine.get(SearchNodeKeys.GREGTECH_TIER));
@@ -177,14 +177,14 @@ class GregTechCompatTest {
         Map<String, String> bucket = meta("gtceu");
         bucket.put(SearchNodeKeys.ITEM_CLASS, "com.gregtechceu.gtceu.api.item.GTBucketItem");
         bucket.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.FLUID_CONTAINER, ItemFacet.UTILITY_MISC)));
-        CompatFamilyDetector.detect(new ResourceLocation("gtceu", "aluminium_bucket"), bucket);
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "aluminium_bucket"), bucket);
+        CompatFamilyDetector.detect(new Identifier("gtceu", "aluminium_bucket"), bucket);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "aluminium_bucket"), bucket);
 
         Map<String, String> surfaceRock = meta("gtceu");
         surfaceRock.put(SearchNodeKeys.ITEM_CLASS, "com.gregtechceu.gtceu.api.item.SurfaceRockBlockItem");
         surfaceRock.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.PLACEABLE)));
-        CompatFamilyDetector.detect(new ResourceLocation("gtceu", "aluminium_indicator"), surfaceRock);
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "aluminium_indicator"), surfaceRock);
+        CompatFamilyDetector.detect(new Identifier("gtceu", "aluminium_indicator"), surfaceRock);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "aluminium_indicator"), surfaceRock);
 
         assertEquals("materials", bucket.get(SearchNodeKeys.GREGTECH_ITEM_KIND));
         assertEquals("materials", surfaceRock.get(SearchNodeKeys.GREGTECH_ITEM_KIND));
@@ -197,18 +197,18 @@ class GregTechCompatTest {
     @Test
     void gregTechFoodArmorWeaponsAndHarvestToolsUseSemanticCategories() {
         Map<String, String> food = meta("gtceu");
-        CompatFamilyDetector.detect(new ResourceLocation("gtceu", "chocolate_bar"), food);
+        CompatFamilyDetector.detect(new Identifier("gtceu", "chocolate_bar"), food);
 
         Map<String, String> armor = meta("gtceu");
-        CompatFamilyDetector.detect(new ResourceLocation("gtceu", "nano_chestplate"), armor);
+        CompatFamilyDetector.detect(new Identifier("gtceu", "nano_chestplate"), armor);
 
         Map<String, String> weapon = meta("gtceu");
-        CompatFamilyDetector.detect(new ResourceLocation("gtceu", "nano_saber"), weapon);
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "nano_saber"), weapon);
+        CompatFamilyDetector.detect(new Identifier("gtceu", "nano_saber"), weapon);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "nano_saber"), weapon);
 
         Map<String, String> tool = meta("gtceu");
-        CompatFamilyDetector.detect(new ResourceLocation("gtceu", "lv_drill"), tool);
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "lv_drill"), tool);
+        CompatFamilyDetector.detect(new Identifier("gtceu", "lv_drill"), tool);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "lv_drill"), tool);
 
         assertEquals("nature", resolve("gtceu:chocolate_bar", food, ItemFacet.EDIBLE).categoryId());
         assertEquals("armor", resolve("gtceu:nano_chestplate", armor, ItemFacet.ARMOR_CHEST).categoryId());
@@ -223,16 +223,16 @@ class GregTechCompatTest {
     @Test
     void gregTechWorkUtilityToolsRouteToGregTechToolsFromConcreteFamilyFacts() {
         Map<String, String> screwdriver = meta("gtceu");
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "screwdriver"), screwdriver);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "screwdriver"), screwdriver);
 
         Map<String, String> wireCutters = meta("gtceu");
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "wire_cutters"), wireCutters);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "wire_cutters"), wireCutters);
 
         Map<String, String> mortar = meta("gtceu");
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "flint_mortar"), mortar);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "flint_mortar"), mortar);
 
         Map<String, String> saw = meta("gtceu");
-        GregTechCompat.enrichItem(new ResourceLocation("gtceu", "steel_saw"), saw);
+        GregTechCompat.enrichItem(new Identifier("gtceu", "steel_saw"), saw);
 
         assertEquals("tools", screwdriver.get(SearchNodeKeys.GREGTECH_ITEM_KIND));
         assertEquals("tools", wireCutters.get(SearchNodeKeys.GREGTECH_ITEM_KIND));
@@ -255,7 +255,7 @@ class GregTechCompatTest {
             AmiConfig.gregtechCategoryPolicy = AmiConfig.CompatCategoryPolicy.SEMANTIC;
             Map<String, String> meta = meta("gtceu");
             meta.put(SearchNodeKeys.FACETS, FacetCodec.encode(EnumSet.of(ItemFacet.INGOT)));
-            CompatFamilyDetector.detect(new ResourceLocation("gtceu", "copper_ingot"), meta);
+            CompatFamilyDetector.detect(new Identifier("gtceu", "copper_ingot"), meta);
 
             CategoryAssignment assignment = resolve("gtceu:copper_ingot", meta, ItemFacet.INGOT);
 
@@ -275,7 +275,7 @@ class GregTechCompatTest {
 
     private static CategoryAssignment resolve(String id, Map<String, String> meta, ItemFacet... facets) {
         return PrimaryCategoryResolver.resolve(
-                new ResourceLocation(id),
+                new Identifier(id),
                 new FacetProfile(facets.length == 0 ? EnumSet.noneOf(ItemFacet.class) : EnumSet.of(facets[0], facets), meta)
         );
     }

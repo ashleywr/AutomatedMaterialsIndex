@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.client;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -15,26 +15,26 @@ class EntityIconSlowKeysTest {
 
     @Test
     void entityNotSlowByDefault() {
-        assertFalse(EntityIconSlowKeys.isKnownSlow(ResourceLocation.parse("minecraft:zombie")));
+        assertFalse(EntityIconSlowKeys.isKnownSlow(Identifier.parse("minecraft:zombie")));
     }
 
     @Test
     void entityMarkedSlowWhenBakeExceedsThreshold() {
-        ResourceLocation id = ResourceLocation.parse("test:heavy_mob");
+        Identifier id = Identifier.parse("test:heavy_mob");
         EntityIconSlowKeys.recordBakeElapsed(id, EntityIconSlowKeys.SLOW_ENTITY_THRESHOLD_NANOS + 1);
         assertTrue(EntityIconSlowKeys.isKnownSlow(id));
     }
 
     @Test
     void entityNotMarkedSlowWhenBakeEqualsThreshold() {
-        ResourceLocation id = ResourceLocation.parse("test:borderline_mob");
+        Identifier id = Identifier.parse("test:borderline_mob");
         EntityIconSlowKeys.recordBakeElapsed(id, EntityIconSlowKeys.SLOW_ENTITY_THRESHOLD_NANOS);
         assertFalse(EntityIconSlowKeys.isKnownSlow(id));
     }
 
     @Test
     void entityNotMarkedSlowWhenBakeBelowThreshold() {
-        ResourceLocation id = ResourceLocation.parse("test:fast_mob");
+        Identifier id = Identifier.parse("test:fast_mob");
         EntityIconSlowKeys.recordBakeElapsed(id, EntityIconSlowKeys.SLOW_ENTITY_THRESHOLD_NANOS - 1);
         assertFalse(EntityIconSlowKeys.isKnownSlow(id));
     }

@@ -8,7 +8,7 @@ import com.sanhiruzu.ami.network.AmiCheatPokemonPacket;
 import com.sanhiruzu.ami.network.AmiNetworkState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -34,7 +34,7 @@ public final class AMICheatMode {
         var mc = Minecraft.getInstance();
         if (mc.player == null) return false;
         if (mc.hasSingleplayerServer()) return true;           // singleplayer or LAN host
-        return mc.player.hasPermissions(2);                    // OP on dedicated server
+        return mc.player.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER);  // OP on dedicated server
     }
 
     /**
@@ -51,11 +51,11 @@ public final class AMICheatMode {
      * In creative mode without AMI server: sets the cursor client-side.
      * Otherwise: falls back to /give (item goes to inventory).
      */
-    public static void giveItem(ResourceLocation itemId) {
+    public static void giveItem(Identifier itemId) {
         var mc = Minecraft.getInstance();
         if (mc.player == null) return;
 
-        Item item = BuiltInRegistries.ITEM.get(itemId);
+        Item item = BuiltInRegistries.ITEM.getValue(itemId);
         if (item == null || item == Items.AIR) return;
 
         giveItem(new ItemStack(item), itemId);
@@ -63,14 +63,14 @@ public final class AMICheatMode {
 
     public static void giveItem(ItemStack source) {
         if (source == null || source.isEmpty()) return;
-        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(source.getItem());
+        Identifier itemId = BuiltInRegistries.ITEM.getKey(source.getItem());
         if (itemId == null) return;
         ItemStack stack = source.copy();
         stack.setCount(1);
         giveItem(stack, itemId);
     }
 
-    private static void giveItem(ItemStack stack, ResourceLocation itemId) {
+    private static void giveItem(ItemStack stack, Identifier itemId) {
         var mc = Minecraft.getInstance();
         if (mc.player == null || stack.isEmpty()) return;
 
@@ -79,7 +79,7 @@ public final class AMICheatMode {
         } else if (AmiNetworkState.onServer) {
             // Survival OP with AMI on server: use the give-mode preference.
             if (AmiConfig.cheatGiveMode == CheatGiveMode.CURSOR) {
-                PacketDistributor.sendToServer(new AmiCheatGivePacket(stack.copy()));
+                net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(new AmiCheatGivePacket(stack.copy()));
             } else {
                 sendCommand("give @s " + itemId);
             }
@@ -93,11 +93,11 @@ public final class AMICheatMode {
      * Give a full stack of an item to the local player.
      * Creative: cursor client-side. Survival OP + AMI server: respects give-mode setting.
      */
-    public static void giveStack(ResourceLocation itemId) {
+    public static void giveStack(Identifier itemId) {
         var mc = Minecraft.getInstance();
         if (mc.player == null) return;
 
-        Item item = BuiltInRegistries.ITEM.get(itemId);
+        Item item = BuiltInRegistries.ITEM.getValue(itemId);
         if (item == null || item == Items.AIR) return;
 
         ItemStack stack = new ItemStack(item);
@@ -107,14 +107,14 @@ public final class AMICheatMode {
 
     public static void giveStack(ItemStack source) {
         if (source == null || source.isEmpty()) return;
-        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(source.getItem());
+        Identifier itemId = BuiltInRegistries.ITEM.getKey(source.getItem());
         if (itemId == null) return;
         ItemStack stack = source.copy();
         stack.setCount(stack.getMaxStackSize());
         giveStack(stack, itemId);
     }
 
-    private static void giveStack(ItemStack stack, ResourceLocation itemId) {
+    private static void giveStack(ItemStack stack, Identifier itemId) {
         var mc = Minecraft.getInstance();
         if (mc.player == null || stack.isEmpty()) return;
 
@@ -122,7 +122,7 @@ public final class AMICheatMode {
             giveCursorStack(stack.copy());
         } else if (AmiNetworkState.onServer) {
             if (AmiConfig.cheatGiveMode == CheatGiveMode.CURSOR) {
-                PacketDistributor.sendToServer(new AmiCheatGivePacket(stack.copy()));
+                net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(new AmiCheatGivePacket(stack.copy()));
             } else {
                 sendCommand("give @s " + itemId + " 64");
             }
@@ -147,14 +147,14 @@ public final class AMICheatMode {
     /**
      * Locate the nearest biome via /locate biome.
      */
-    public static void locateBiome(ResourceLocation biomeId) {
+    public static void locateBiome(Identifier biomeId) {
         sendCommand("locate biome " + biomeId);
     }
 
     /**
      * Locate the nearest structure via /locate structure.
      */
-    public static void locateStructure(ResourceLocation structureId) {
+    public static void locateStructure(Identifier structureId) {
         sendCommand("locate structure " + structureId);
     }
 
@@ -167,8 +167,8 @@ public final class AMICheatMode {
      * Give one spawn egg for the specified entity type to the local player.
      * If the entity has a spawn egg, gives the spawn egg; otherwise does nothing.
      */
-    public static void giveEntityAsSpawnEgg(ResourceLocation entityId) {
-        ResourceLocation spawnEggId = entityToSpawnEggId(entityId);
+    public static void giveEntityAsSpawnEgg(Identifier entityId) {
+        Identifier spawnEggId = entityToSpawnEggId(entityId);
         if (spawnEggId != null) {
             giveItem(spawnEggId);
         }
@@ -178,8 +178,8 @@ public final class AMICheatMode {
      * Give a full stack of spawn eggs for the specified entity type to the local player.
      * If the entity has a spawn egg, gives a full stack of spawn eggs; otherwise does nothing.
      */
-    public static void giveEntityStackAsSpawnEgg(ResourceLocation entityId) {
-        ResourceLocation spawnEggId = entityToSpawnEggId(entityId);
+    public static void giveEntityStackAsSpawnEgg(Identifier entityId) {
+        Identifier spawnEggId = entityToSpawnEggId(entityId);
         if (spawnEggId != null) {
             giveStack(spawnEggId);
         }
@@ -190,12 +190,12 @@ public final class AMICheatMode {
      * Returns null if the spawn egg does not exist.
      * Example: minecraft:cow -> minecraft:cow_spawn_egg
      */
-    private static ResourceLocation entityToSpawnEggId(ResourceLocation entityId) {
-        ResourceLocation spawnEggId = ResourceLocation.fromNamespaceAndPath(
+    private static Identifier entityToSpawnEggId(Identifier entityId) {
+        Identifier spawnEggId = Identifier.fromNamespaceAndPath(
                 entityId.getNamespace(),
                 entityId.getPath() + "_spawn_egg"
         );
-        if (BuiltInRegistries.ITEM.get(spawnEggId) != Items.AIR) {
+        if (BuiltInRegistries.ITEM.containsKey(spawnEggId)) {
             return spawnEggId;
         }
         return null;
@@ -205,12 +205,12 @@ public final class AMICheatMode {
      * Spawns a Cobblemon Pokémon species in the world in front of the player.
      * Entity ID is expected in the form cobblemon:species/pancham.
      */
-    public static void spawnPokemon(ResourceLocation entityId) {
+    public static void spawnPokemon(Identifier entityId) {
         String species = extractSpeciesName(entityId);
         var mc = Minecraft.getInstance();
         if (mc.player == null) return;
         if (AmiNetworkState.onServer || mc.hasSingleplayerServer()) {
-            PacketDistributor.sendToServer(new AmiCheatPokemonPacket(entityId, AmiCheatPokemonPacket.Action.SPAWN));
+            net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(new AmiCheatPokemonPacket(entityId, AmiCheatPokemonPacket.Action.SPAWN));
         } else {
             sendCommand("spawnpokemonat ^ ^ ^2 " + species);
         }
@@ -219,18 +219,18 @@ public final class AMICheatMode {
     /**
      * Adds a Cobblemon Pokémon species directly to the player's party.
      */
-    public static void pokemonToParty(ResourceLocation entityId) {
+    public static void pokemonToParty(Identifier entityId) {
         String species = extractSpeciesName(entityId);
         var mc = Minecraft.getInstance();
         if (mc.player == null) return;
         if (AmiNetworkState.onServer || mc.hasSingleplayerServer()) {
-            PacketDistributor.sendToServer(new AmiCheatPokemonPacket(entityId, AmiCheatPokemonPacket.Action.PARTY));
+            net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(new AmiCheatPokemonPacket(entityId, AmiCheatPokemonPacket.Action.PARTY));
         } else {
             sendCommand("givepokemon " + species);
         }
     }
 
-    private static String extractSpeciesName(ResourceLocation entityId) {
+    private static String extractSpeciesName(Identifier entityId) {
         String path = entityId.getPath();
         return path.startsWith("species/") ? path.substring("species/".length()) : path;
     }
@@ -240,7 +240,7 @@ public final class AMICheatMode {
         if (mc.player == null) return;
         mc.player.containerMenu.setCarried(stack.copy());
         if (AmiNetworkState.onServer || mc.hasSingleplayerServer()) {
-            PacketDistributor.sendToServer(new AmiCheatGivePacket(stack.copy()));
+            net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(new AmiCheatGivePacket(stack.copy()));
         }
     }
 

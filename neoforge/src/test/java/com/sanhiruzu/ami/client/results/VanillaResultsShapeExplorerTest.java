@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.client.results;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.sanhiruzu.ami.index.*;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -106,7 +106,7 @@ public class VanillaResultsShapeExplorerTest {
     }
 
     private static SearchNode node(String path, String displayName) {
-        ResourceLocation id = new ResourceLocation("minecraft:" + path);
+        Identifier id = new Identifier("minecraft:" + path);
         EnumSet<ItemFacet> facets = facets(path);
         Map<String, String> attributes = attributes(path, facets);
         CategoryAssignment assignment = PrimaryCategoryResolver.resolve(id, new FacetProfile(facets, attributes));

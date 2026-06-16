@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -76,11 +76,11 @@ class TreeNodeShapeTest {
     }
 
     private static TreeNode leaf(String id, String label) {
-        return leaf(id, label, Map.of(SearchNodeKeys.MOD_ID, ResourceLocation.parse(id).getNamespace()));
+        return leaf(id, label, Map.of(SearchNodeKeys.MOD_ID, Identifier.parse(id).getNamespace()));
     }
 
     private static TreeNode leaf(String id, String label, Map<String, String> metadata) {
-        ResourceLocation itemId = ResourceLocation.parse(id);
+        Identifier itemId = Identifier.parse(id);
         SearchNode node = new SearchNode(itemId, NodeType.ITEM, label, 0, 0, metadata);
         return new TreeNode(Component.literal(label), node);
     }

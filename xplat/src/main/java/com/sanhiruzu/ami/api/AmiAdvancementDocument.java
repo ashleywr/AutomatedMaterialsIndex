@@ -1,19 +1,19 @@
 package com.sanhiruzu.ami.api;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /**
  * Searchable client-visible advancement document.
  */
 public record AmiAdvancementDocument(
-        ResourceLocation id,
+        Identifier id,
         String sourceId,
         String tabTitle,
         String title,
         String description,
         String type,
         ProgressStatus progressStatus,
-        ResourceLocation iconItemId,
+        Identifier iconItemId,
         Runnable openAction
 ) {
     public AmiAdvancementDocument {
@@ -28,7 +28,7 @@ public record AmiAdvancementDocument(
         progressStatus = progressStatus == null ? ProgressStatus.UNKNOWN : progressStatus;
     }
 
-    public static Builder builder(ResourceLocation id, String title) {
+    public static Builder builder(Identifier id, String title) {
         return new Builder(id, title);
     }
 
@@ -64,17 +64,17 @@ public record AmiAdvancementDocument(
     }
 
     public static final class Builder {
-        private final ResourceLocation id;
+        private final Identifier id;
         private final String title;
         private String sourceId = "minecraft";
         private String tabTitle = "";
         private String description = "";
         private String type = "";
         private ProgressStatus progressStatus = ProgressStatus.UNKNOWN;
-        private ResourceLocation iconItemId;
+        private Identifier iconItemId;
         private Runnable openAction;
 
-        private Builder(ResourceLocation id, String title) {
+        private Builder(Identifier id, String title) {
             this.id = id;
             this.title = title;
             if (id != null) {
@@ -107,7 +107,7 @@ public record AmiAdvancementDocument(
             return this;
         }
 
-        public Builder iconItemId(ResourceLocation iconItemId) {
+        public Builder iconItemId(Identifier iconItemId) {
             this.iconItemId = iconItemId;
             return this;
         }

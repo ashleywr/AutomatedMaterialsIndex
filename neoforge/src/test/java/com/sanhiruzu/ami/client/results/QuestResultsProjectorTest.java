@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.client.results;
 import com.sanhiruzu.ami.api.AmiQuestDocument;
 import com.sanhiruzu.ami.api.AmiQuestTaskDocument;
 import com.sanhiruzu.ami.index.AmiQuestSearchIndex;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -22,13 +22,13 @@ class QuestResultsProjectorTest {
                                 AmiQuestTaskDocument.Role.REQUIREMENT)
                         .taskType("ftb:item")
                         .title("4x Redstone Dust")
-                        .itemId(new ResourceLocation("minecraft", "redstone"))
+                        .itemId(new Identifier("minecraft", "redstone"))
                         .requiredCount(4)
                         .build())
                 .task(AmiQuestTaskDocument.builder("ftbquests:runtime_test/reward", "ftbquests:runtime_test",
                                 AmiQuestTaskDocument.Role.REWARD)
                         .taskType("ftb:item_reward")
-                        .itemId(new ResourceLocation("minecraft", "diamond"))
+                        .itemId(new Identifier("minecraft", "diamond"))
                         .requiredCount(1)
                         .build())
                 .build();

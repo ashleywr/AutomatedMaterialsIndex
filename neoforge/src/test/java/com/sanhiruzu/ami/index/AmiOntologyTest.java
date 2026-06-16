@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -13,7 +13,7 @@ public class AmiOntologyTest {
     void testClassifyItemByTag() {
         // Mock a node with "sword" tag
         SearchNode sword = new SearchNode(
-                new ResourceLocation("minecraft:iron_sword"),
+                new Identifier("minecraft:iron_sword"),
                 NodeType.ITEM,
                 "Iron Sword",
                 0, 0,
@@ -28,7 +28,7 @@ public class AmiOntologyTest {
     void testClassifyItemByPath() {
         // Mock a node with "apple" in path
         SearchNode apple = new SearchNode(
-                new ResourceLocation("minecraft:apple"),
+                new Identifier("minecraft:apple"),
                 NodeType.ITEM,
                 "Apple",
                 0, 0,
@@ -43,7 +43,7 @@ public class AmiOntologyTest {
     void testClassifyEggAsIngredient() {
         // Mock an egg
         SearchNode egg = new SearchNode(
-                new ResourceLocation("minecraft:egg"),
+                new Identifier("minecraft:egg"),
                 NodeType.ITEM,
                 "Egg",
                 0, 0,
@@ -59,7 +59,7 @@ public class AmiOntologyTest {
         // MASONRY items are always pre-computed at index time by OntologyClassifier,
         // so the runtime classifier needs pre-computed metadata to route here.
         SearchNode bricks = new SearchNode(
-                new ResourceLocation("minecraft:bricks"),
+                new Identifier("minecraft:bricks"),
                 NodeType.ITEM,
                 "Bricks",
                 0, 0,
@@ -74,7 +74,7 @@ public class AmiOntologyTest {
     @Test
     void testClassifyEnvironmentTypes() {
         SearchNode biome = new SearchNode(
-                new ResourceLocation("minecraft:plains"),
+                new Identifier("minecraft:plains"),
                 NodeType.BIOME,
                 "Plains",
                 0, 0, Map.of()
@@ -82,7 +82,7 @@ public class AmiOntologyTest {
         assertEquals(AmiOntology.ENVIRONMENT, AmiOntology.classifyNode(biome));
 
         SearchNode structure = new SearchNode(
-                new ResourceLocation("minecraft:village"),
+                new Identifier("minecraft:village"),
                 NodeType.STRUCTURE,
                 "Village",
                 0, 0, Map.of()
@@ -90,7 +90,7 @@ public class AmiOntologyTest {
         assertEquals(AmiOntology.ENVIRONMENT, AmiOntology.classifyNode(structure));
 
         SearchNode waypoint = new SearchNode(
-                new ResourceLocation("ami:waypoint/waystones/demo"),
+                new Identifier("ami:waypoint/waystones/demo"),
                 NodeType.WAYPOINT,
                 "Demo Waypoint",
                 0, 0, Map.of()

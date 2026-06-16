@@ -1,6 +1,6 @@
 package com.sanhiruzu.searchableitems.api;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
@@ -29,7 +29,7 @@ public interface SearchableItemProvider {
     /**
      * Add structured metadata for a concrete indexed item stack.
      */
-    default void enrichItemMetadata(ResourceLocation id,
+    default void enrichItemMetadata(Identifier id,
                                     ItemStack stack,
                                     @Nullable Level level,
                                     Map<String, String> metadata) {

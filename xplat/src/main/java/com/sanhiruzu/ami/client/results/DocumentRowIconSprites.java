@@ -2,8 +2,8 @@ package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.api.AmiAdvancementDocument;
 import com.sanhiruzu.ami.client.AMITheme;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
 
 /**
  * Generated sprites for document-result row icons.
@@ -27,19 +27,19 @@ public final class DocumentRowIconSprites {
     private DocumentRowIconSprites() {
     }
 
-    public static void guide(GuiGraphics g, int x, int y, boolean header) {
+    public static void guide(GuiGraphicsExtractor g, int x, int y, boolean header) {
         (header ? GUIDE_HEADER : GUIDE_ACCENT).blit(g, x, y);
     }
 
-    public static void quest(GuiGraphics g, int x, int y, boolean header) {
+    public static void quest(GuiGraphicsExtractor g, int x, int y, boolean header) {
         (header ? QUEST_HEADER : QUEST_ACCENT).blit(g, x, y);
     }
 
-    public static void advancement(GuiGraphics g, int x, int y, boolean header) {
+    public static void advancement(GuiGraphicsExtractor g, int x, int y, boolean header) {
         (header ? ADVANCEMENT_HEADER : ADVANCEMENT_ACCENT).blit(g, x, y);
     }
 
-    public static void advancementStatus(GuiGraphics g, AmiAdvancementDocument.ProgressStatus status, int x, int y) {
+    public static void advancementStatus(GuiGraphicsExtractor g, AmiAdvancementDocument.ProgressStatus status, int x, int y) {
         switch (status == null ? AmiAdvancementDocument.ProgressStatus.UNKNOWN : status) {
             case COMPLETED -> STATUS_COMPLETED.blit(g, x, y);
             case IN_PROGRESS -> STATUS_IN_PROGRESS.blit(g, x, y);
@@ -50,7 +50,7 @@ public final class DocumentRowIconSprites {
 
     private static GeneratedGuiSprite documentSprite(String name, DocumentPainter painter, java.util.function.IntSupplier colorSupplier) {
         return new GeneratedGuiSprite(
-                ResourceLocation.fromNamespaceAndPath("ami", "generated/document_row_" + name),
+                Identifier.fromNamespaceAndPath("ami", "generated/document_row_" + name),
                 DOC_SIZE,
                 DOC_SIZE,
                 colorSupplier,
@@ -60,7 +60,7 @@ public final class DocumentRowIconSprites {
 
     private static GeneratedGuiSprite statusSprite(String name, java.util.function.IntSupplier colorSupplier, DocumentPainter painter) {
         return new GeneratedGuiSprite(
-                ResourceLocation.fromNamespaceAndPath("ami", "generated/advancement_status_" + name),
+                Identifier.fromNamespaceAndPath("ami", "generated/advancement_status_" + name),
                 STATUS_SIZE,
                 STATUS_SIZE,
                 () -> signature(colorSupplier.getAsInt()),

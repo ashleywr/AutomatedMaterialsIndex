@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.client.results;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.overlay.OverlayLayers;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
@@ -99,13 +99,11 @@ public class ResultContextMenu {
         return false;
     }
 
-    public void render(GuiGraphics g, int mouseX, int mouseY) {
+    public void render(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (!open || g == null) return;
 
         var font = Minecraft.getInstance().font;
-        g.flush();
-        g.pose().pushPose();
-        g.pose().translate(0, 0, OverlayLayers.CONTEXT_MENU);
+        g.pose().pushMatrix();
         AMITheme.fillPixelPopup(g, x, y, width, height,
                 AMITheme.DROPDOWN_LIST_BG, AMITheme.SECTION_SEP, AMITheme.GRADIENT_SHADOW, 0);
 
@@ -122,15 +120,14 @@ public class ResultContextMenu {
             String label = action.label().getString();
             int textX = x + PADDING_X;
             int textY = rowY + (ROW_HEIGHT - font.lineHeight) / 2;
-            g.drawString(font, label, textX, textY, color, false);
+            g.text(font, label, textX, textY, color, false);
             underlineMnemonic(g, font, label, action.mnemonic(), textX, textY, color);
             if (action.isSubmenu()) {
                 String arrow = ">";
-                g.drawString(font, arrow, x + width - PADDING_X - font.width(arrow), textY, color, false);
+                g.text(font, arrow, x + width - PADDING_X - font.width(arrow), textY, color, false);
             }
         }
-        g.pose().popPose();
-        g.flush();
+        g.pose().popMatrix();
     }
 
     int getX() {
@@ -310,7 +307,7 @@ public class ResultContextMenu {
         return null;
     }
 
-    private static void underlineMnemonic(GuiGraphics g, net.minecraft.client.gui.Font font, String label,
+    private static void underlineMnemonic(GuiGraphicsExtractor g, net.minecraft.client.gui.Font font, String label,
                                           Character mnemonic, int textX, int textY, int color) {
         if (g == null || font == null || label == null || label.isEmpty() || mnemonic == null) return;
 

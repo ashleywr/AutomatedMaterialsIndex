@@ -1,10 +1,10 @@
 package com.sanhiruzu.ami.api;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public record AmiQuestItemMatch(
         AmiQuestDocument quest,
         AmiQuestTaskDocument task,
-        ResourceLocation itemId
+        Identifier itemId
 ) {
 }

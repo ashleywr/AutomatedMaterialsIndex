@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +25,7 @@ class CobblemonSpeciesProviderTest {
         new CobblemonSpeciesProvider().populate(index, null);
 
         SearchNode node = index
-                .getNode(ResourceLocation.fromNamespaceAndPath("cobblemon", "species/bulbasaur"), NodeType.ENTITY)
+                .getNode(Identifier.of("cobblemon", "species/bulbasaur"), NodeType.ENTITY)
                 .orElseThrow();
         assertEquals("Bulbasaur", node.displayName());
         assertEquals("cobblemon", node.meta(SearchNodeKeys.ONTOLOGY_CATEGORY, ""));

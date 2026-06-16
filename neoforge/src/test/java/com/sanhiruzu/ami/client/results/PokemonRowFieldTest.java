@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.client.results;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -15,7 +15,7 @@ class PokemonRowFieldTest {
     @Test
     void pokemonFieldsExtractExistingMetadata() {
         SearchNode node = new SearchNode(
-                ResourceLocation.fromNamespaceAndPath("cobblemon", "species/pikachu"),
+                Identifier.of("cobblemon", "species/pikachu"),
                 NodeType.ENTITY,
                 "Pikachu",
                 0,
@@ -36,7 +36,7 @@ class PokemonRowFieldTest {
     @Test
     void pokemonHealingFieldExtractsMedicineMetadata() {
         SearchNode node = new SearchNode(
-                ResourceLocation.fromNamespaceAndPath("cobblemon", "hyper_potion"),
+                Identifier.of("cobblemon", "hyper_potion"),
                 NodeType.ITEM,
                 "Hyper Potion",
                 0,

@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.index.AmiGuideSearchIndex;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -16,11 +16,11 @@ class SilentGearMaterialBookGuideSourceTest {
     @Test
     void materialDocumentsAreOpenableMaterialBookPages() {
         AmiGuideDocument document = SilentGearMaterialBookGuideSource.materialDocument(
-                new ResourceLocation("silentgear", "silentgear_materials/crimson_steel.json"),
+                new Identifier("silentgear", "silentgear_materials/crimson_steel.json"),
                 materialJson());
 
-        assertEquals(new ResourceLocation("silentgear", "material_book"), document.bookId());
-        assertEquals(new ResourceLocation("silentgear", "material_book"), document.iconItemId());
+        assertEquals(new Identifier("silentgear", "material_book"), document.bookId());
+        assertEquals(new Identifier("silentgear", "material_book"), document.iconItemId());
         assertEquals("crimson_steel", document.pageId());
         assertEquals("Crimson Steel", document.title());
         assertEquals("Materials", document.chapter());

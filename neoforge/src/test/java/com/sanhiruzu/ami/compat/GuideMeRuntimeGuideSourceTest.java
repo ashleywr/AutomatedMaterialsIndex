@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.api.AmiGuideDocument;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
@@ -14,8 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GuideMeRuntimeGuideSourceTest {
     @Test
     void buildsOpenableDocumentsFromGuideMeMarkdown() {
-        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("ae2", "ae2guide/items-blocks-machines/import_bus.md"), """
+        Map<Identifier, String> resources = new LinkedHashMap<>();
+        resources.put(new Identifier("ae2", "ae2guide/items-blocks-machines/import_bus.md"), """
                 ---
                 navigation:
                   parent: items-blocks-machines/items-blocks-machines-index.md
@@ -37,12 +37,12 @@ class GuideMeRuntimeGuideSourceTest {
 
         assertEquals(1, documents.size());
         AmiGuideDocument document = documents.getFirst();
-        assertEquals(new ResourceLocation("ae2", "guide"), document.bookId());
+        assertEquals(new Identifier("ae2", "guide"), document.bookId());
         assertEquals("items-blocks-machines/import_bus", document.pageId());
         assertEquals("ME Import Bus", document.title());
         assertEquals("Devices", document.chapter());
-        assertTrue(document.referencedItems().contains(new ResourceLocation("ae2", "import_bus")));
-        assertTrue(document.referencedItems().contains(new ResourceLocation("ae2", "speed_card")));
+        assertTrue(document.referencedItems().contains(new Identifier("ae2", "import_bus")));
+        assertTrue(document.referencedItems().contains(new Identifier("ae2", "speed_card")));
         assertTrue(document.tags().contains("devices"));
         assertTrue(document.tags().contains("import_export_storage"));
         assertTrue(document.summaryText().contains("The Import Bus"));
@@ -51,16 +51,16 @@ class GuideMeRuntimeGuideSourceTest {
 
     @Test
     void ignoresNonGuideMeMarkdownPaths() {
-        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("example", "otherguide/page.md"), "# Other");
+        Map<Identifier, String> resources = new LinkedHashMap<>();
+        resources.put(new Identifier("example", "otherguide/page.md"), "# Other");
 
         assertTrue(GuideMeRuntimeGuideSource.documentsFromResources(resources).isEmpty());
     }
 
     @Test
     void ae2ProcessorPageIndexesSiliconFromFrontMatter() {
-        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("ae2", "ae2guide/items-blocks-machines/processors.md"), """
+        Map<Identifier, String> resources = new LinkedHashMap<>();
+        resources.put(new Identifier("ae2", "ae2guide/items-blocks-machines/processors.md"), """
                 ---
                 navigation:
                   title: Processors
@@ -81,9 +81,9 @@ class GuideMeRuntimeGuideSourceTest {
 
         assertEquals(1, documents.size());
         AmiGuideDocument document = documents.getFirst();
-        assertEquals(new ResourceLocation("ae2", "guide"), document.bookId());
+        assertEquals(new Identifier("ae2", "guide"), document.bookId());
         assertEquals("items-blocks-machines/processors", document.pageId());
-        assertTrue(document.referencedItems().contains(new ResourceLocation("ae2", "silicon")));
+        assertTrue(document.referencedItems().contains(new Identifier("ae2", "silicon")));
         assertTrue(document.canOpen());
     }
 }

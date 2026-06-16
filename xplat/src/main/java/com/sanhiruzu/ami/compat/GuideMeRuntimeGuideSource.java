@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.api.AmiGuideOpeners;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 
@@ -50,7 +50,7 @@ public final class GuideMeRuntimeGuideSource {
         }
     }
 
-    static List<AmiGuideDocument> documentsFromResources(Map<ResourceLocation, String> markdownById) {
+    static List<AmiGuideDocument> documentsFromResources(Map<Identifier, String> markdownById) {
         if (markdownById == null || markdownById.isEmpty()) {
             return List.of();
         }
@@ -62,7 +62,7 @@ public final class GuideMeRuntimeGuideSource {
         return List.copyOf(documents);
     }
 
-    private static Optional<AmiGuideDocument> documentFromMarkdown(ResourceLocation resourceId, String markdown) {
+    private static Optional<AmiGuideDocument> documentFromMarkdown(Identifier resourceId, String markdown) {
         GuideMeResource resource = parseResource(resourceId).orElse(null);
         if (resource == null || markdown == null || markdown.isBlank()) {
             return Optional.empty();
@@ -73,8 +73,8 @@ public final class GuideMeRuntimeGuideSource {
                 ? parsed.navigationTitle()
                 : !parsed.firstHeading().isBlank() ? parsed.firstHeading() : humanize(resource.pageId());
         String chapter = chapter(resource.pageId(), parsed);
-        ResourceLocation bookId = ResourceLocation.fromNamespaceAndPath(resource.namespace(), "guide");
-        ResourceLocation documentId = ResourceLocation.fromNamespaceAndPath(
+        Identifier bookId = Identifier.fromNamespaceAndPath(resource.namespace(), "guide");
+        Identifier documentId = Identifier.fromNamespaceAndPath(
                 "ami",
                 "guide/guideme/" + resource.namespace() + "/" + safePath(resource.pageId())
         );
@@ -94,7 +94,7 @@ public final class GuideMeRuntimeGuideSource {
     private static ParsedMarkdown parseMarkdown(String markdown, String namespace) {
         Map<String, String> frontMatter = new LinkedHashMap<>();
         List<String> categories = new ArrayList<>();
-        List<ResourceLocation> items = new ArrayList<>();
+        List<Identifier> items = new ArrayList<>();
         String firstHeading = "";
         StringBuilder summary = new StringBuilder();
         boolean inFrontMatter = false;
@@ -159,7 +159,7 @@ public final class GuideMeRuntimeGuideSource {
         );
     }
 
-    private static void collectInlineItems(String line, String namespace, List<ResourceLocation> items) {
+    private static void collectInlineItems(String line, String namespace, List<Identifier> items) {
         Matcher matcher = ITEM_TAG.matcher(line);
         while (matcher.find()) {
             parseItemId(matcher.group(1), namespace).ifPresent(items::add);
@@ -229,7 +229,7 @@ public final class GuideMeRuntimeGuideSource {
         return "";
     }
 
-    private static Optional<ResourceLocation> parseItemId(String raw, String namespace) {
+    private static Optional<Identifier> parseItemId(String raw, String namespace) {
         if (raw == null || raw.isBlank()) {
             return Optional.empty();
         }
@@ -237,10 +237,10 @@ public final class GuideMeRuntimeGuideSource {
         if (!id.contains(":")) {
             id = namespace + ":" + id;
         }
-        return Optional.ofNullable(ResourceLocation.tryParse(id));
+        return Optional.ofNullable(Identifier.tryParse(id));
     }
 
-    private static List<ResourceLocation> dedupeItems(List<ResourceLocation> values) {
+    private static List<Identifier> dedupeItems(List<Identifier> values) {
         return new ArrayList<>(new LinkedHashSet<>(values));
     }
 
@@ -296,8 +296,8 @@ public final class GuideMeRuntimeGuideSource {
         return text.length() <= SUMMARY_CAP ? text : text.substring(0, SUMMARY_CAP);
     }
 
-    private static Map<ResourceLocation, String> readGuideMeMarkdown(ResourceManager resourceManager) {
-        Map<ResourceLocation, String> out = new LinkedHashMap<>();
+    private static Map<Identifier, String> readGuideMeMarkdown(ResourceManager resourceManager) {
+        Map<Identifier, String> out = new LinkedHashMap<>();
         resourceManager.listResources(ROOT, id -> id.getPath().endsWith(".md"))
                 .entrySet()
                 .stream()
@@ -322,7 +322,7 @@ public final class GuideMeRuntimeGuideSource {
         }
     }
 
-    private static Optional<GuideMeResource> parseResource(ResourceLocation id) {
+    private static Optional<GuideMeResource> parseResource(Identifier id) {
         if (id == null) {
             return Optional.empty();
         }
@@ -345,7 +345,7 @@ public final class GuideMeRuntimeGuideSource {
     private record ParsedMarkdown(
             String navigationTitle,
             String firstHeading,
-            List<ResourceLocation> referencedItems,
+            List<Identifier> referencedItems,
             List<String> tags,
             String summary,
             boolean hadFrontMatter

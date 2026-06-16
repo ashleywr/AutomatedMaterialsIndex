@@ -5,7 +5,7 @@ import com.sanhiruzu.ami.index.FacetProfile;
 import com.sanhiruzu.ami.index.ItemFilter;
 import com.sanhiruzu.ami.index.ItemFacet;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import org.junit.jupiter.api.AfterEach;
@@ -39,7 +39,7 @@ public class CreativeStackVariantExpanderTest {
         ItemFilter.CreativeTabInfo relics = new ItemFilter.CreativeTabInfo("relics:relics", "Relics");
 
         List<SubtypeExpander.SubtypeEntry> entries = CreativeStackVariantExpander.expand(
-                new ResourceLocation("artifacts", "charm_of_shrinking"),
+                new Identifier("artifacts", "charm_of_shrinking"),
                 List.of(
                         new ItemFilter.CreativeStackInfo(new ItemStack(charm).withComponentSignature("compat-a"), relics),
                         new ItemFilter.CreativeStackInfo(new ItemStack(charm).withComponentSignature("compat-b"), relics)
@@ -59,7 +59,7 @@ public class CreativeStackVariantExpanderTest {
         ItemFilter.CreativeTabInfo relics = new ItemFilter.CreativeTabInfo("relics:relics", "Relics");
 
         List<SubtypeExpander.SubtypeEntry> entries = CreativeStackVariantExpander.expand(
-                new ResourceLocation("artifacts", "charm_of_shrinking"),
+                new Identifier("artifacts", "charm_of_shrinking"),
                 List.of(
                         new ItemFilter.CreativeStackInfo(new ItemStack(charm).withComponentSignature("compat-a"), relics),
                         new ItemFilter.CreativeStackInfo(new ItemStack(charm).withComponentSignature("compat-b"), relics)
@@ -77,7 +77,7 @@ public class CreativeStackVariantExpanderTest {
         ItemFilter.CreativeTabInfo storage = new ItemFilter.CreativeTabInfo("test:storage", "Storage");
 
         List<SubtypeExpander.SubtypeEntry> entries = CreativeStackVariantExpander.expand(
-                new ResourceLocation("test", "shulker_box"),
+                new Identifier("test", "shulker_box"),
                 List.of(
                         new ItemFilter.CreativeStackInfo(new ItemStack(shulkerBox).withComponentSignature("white"), storage),
                         new ItemFilter.CreativeStackInfo(new ItemStack(shulkerBox).withComponentSignature("orange"), storage),
@@ -104,7 +104,7 @@ public class CreativeStackVariantExpanderTest {
                 .toList();
 
         List<SubtypeExpander.SubtypeEntry> entries = CreativeStackVariantExpander.expand(
-                new ResourceLocation("minecraft", "enchanted_book"),
+                new Identifier("minecraft", "enchanted_book"),
                 stacks,
                 null
         );
@@ -118,7 +118,7 @@ public class CreativeStackVariantExpanderTest {
         ItemFilter.CreativeTabInfo storage = new ItemFilter.CreativeTabInfo("test:storage", "Storage");
 
         List<SubtypeExpander.SubtypeEntry> entries = CreativeStackVariantExpander.expand(
-                new ResourceLocation("test", "barrel"),
+                new Identifier("test", "barrel"),
                 List.of(
                         new ItemFilter.CreativeStackInfo(new ItemStack(barrel)
                                 .withComponentSignature("oak")
@@ -144,16 +144,16 @@ public class CreativeStackVariantExpanderTest {
                 .withComponentSignature("spruce")
                 .withHoverName("Spruce Barrel"), storage);
 
-        Set<ResourceLocation> firstOrder = CreativeStackVariantExpander.expand(
-                        new ResourceLocation("test", "barrel"),
+        Set<Identifier> firstOrder = CreativeStackVariantExpander.expand(
+                        new Identifier("test", "barrel"),
                         List.of(oak, spruce),
                         null
                 )
                 .stream()
                 .map(SubtypeExpander.SubtypeEntry::id)
                 .collect(Collectors.toSet());
-        Set<ResourceLocation> secondOrder = CreativeStackVariantExpander.expand(
-                        new ResourceLocation("test", "barrel"),
+        Set<Identifier> secondOrder = CreativeStackVariantExpander.expand(
+                        new Identifier("test", "barrel"),
                         List.of(spruce, oak),
                         null
                 )
@@ -171,7 +171,7 @@ public class CreativeStackVariantExpanderTest {
         ItemFilter.CreativeTabInfo facades = new ItemFilter.CreativeTabInfo("ae2:facades", "AE2 Facades");
 
         List<SubtypeExpander.SubtypeEntry> entries = CreativeStackVariantExpander.expand(
-                new ResourceLocation("ae2", "facade"),
+                new Identifier("ae2", "facade"),
                 List.of(
                         new ItemFilter.CreativeStackInfo(new ItemStack(facade)
                                 .withComponentSignature("minecraft:oak_log")
@@ -205,7 +205,7 @@ public class CreativeStackVariantExpanderTest {
         meta.put(SearchNodeKeys.FACETS, ItemFacet.FLUID_CONTAINER.id());
 
         ItemProvider.applyPrimaryCategoryMeta(
-                new ResourceLocation("tconstruct", "copper_can"),
+                new Identifier("tconstruct", "copper_can"),
                 copperCan,
                 new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of()),
                 meta
@@ -222,7 +222,7 @@ public class CreativeStackVariantExpanderTest {
         ItemFilter.CreativeTabInfo facades = new ItemFilter.CreativeTabInfo("ae2:facades", "AE2 Facades");
 
         List<SubtypeExpander.SubtypeEntry> entries = CreativeStackVariantExpander.expand(
-                new ResourceLocation("ae2", "facade"),
+                new Identifier("ae2", "facade"),
                 List.of(
                         new ItemFilter.CreativeStackInfo(new ItemStack(facade)
                                 .withComponentSignature("minecraft:oak_log")

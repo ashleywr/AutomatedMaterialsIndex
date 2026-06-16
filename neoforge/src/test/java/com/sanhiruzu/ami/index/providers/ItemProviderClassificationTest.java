@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.index.providers;
 import com.sanhiruzu.ami.index.FacetProfile;
 import com.sanhiruzu.ami.index.ItemFacet;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -19,7 +19,7 @@ class ItemProviderClassificationTest {
         metalComponent.put(SearchNodeKeys.FACETS, ItemFacet.TECH_COMPONENT.id() + "," + ItemFacet.INGREDIENT_MINERAL.id());
 
         ItemProvider.applyPrimaryCategoryMeta(
-                new ResourceLocation("swem", "plate_copper"),
+                new Identifier("swem", "plate_copper"),
                 null,
                 new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of()),
                 metalComponent);
@@ -34,7 +34,7 @@ class ItemProviderClassificationTest {
         utility.put(SearchNodeKeys.FACETS, ItemFacet.UTILITY_MISC.id());
 
         ItemProvider.applyPrimaryCategoryMeta(
-                new ResourceLocation("swem", "horse_whistle"),
+                new Identifier("swem", "horse_whistle"),
                 null,
                 new FacetProfile(EnumSet.noneOf(ItemFacet.class), Map.of()),
                 utility);

@@ -5,7 +5,7 @@ import dev.latvian.mods.kubejs.event.EventGroupRegistry;
 import dev.latvian.mods.kubejs.event.EventHandler;
 import dev.latvian.mods.kubejs.plugin.KubeJSPlugin;
 import dev.latvian.mods.kubejs.script.ScriptManager;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -15,7 +15,7 @@ public class AmiKubeJSPlugin implements KubeJSPlugin {
     public static final EventHandler MARK_DEV_ONLY = GROUP.startup("markDevOnly", () -> KubeJSMarkDevOnlyEvent.class);
 
     // Written once at startup-script time; read later from indexing threads.
-    private static volatile Set<ResourceLocation> devOnlyItems = Set.of();
+    private static volatile Set<Identifier> devOnlyItems = Set.of();
 
     @Override
     public void registerEvents(EventGroupRegistry registry) {
@@ -27,12 +27,12 @@ public class AmiKubeJSPlugin implements KubeJSPlugin {
         if (!manager.scriptType.isStartup()) {
             return;
         }
-        Set<ResourceLocation> collected = new LinkedHashSet<>();
+        Set<Identifier> collected = new LinkedHashSet<>();
         MARK_DEV_ONLY.post(new KubeJSMarkDevOnlyEvent(collected));
         devOnlyItems = Set.copyOf(collected);
     }
 
-    public static Set<ResourceLocation> getDevOnlyItems() {
+    public static Set<Identifier> getDevOnlyItems() {
         return devOnlyItems;
     }
 }

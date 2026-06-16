@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.AmiGuiIcons;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
@@ -60,7 +60,7 @@ public class SingleSelectDropdown<T> implements Dropdown {
         }
     }
 
-    public void render(GuiGraphics g, int mouseX, int mouseY) {
+    public void render(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         boolean canOpen = options != null && options.size() > 1;
         boolean hovered = canOpen && Dropdown.contains(mouseX, mouseY, x, y, width, HEIGHT);
         int bgColor = (open || hovered) ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
@@ -85,14 +85,14 @@ public class SingleSelectDropdown<T> implements Dropdown {
                 displayText = font.plainSubstrByWidth(displayText, maxTextW);
             }
         }
-        g.drawString(font, displayText, x + 3, y + 2, canOpen ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
+        g.text(font, displayText, x + 3, y + 2, canOpen ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
     }
 
-    public void renderList(GuiGraphics g, int mouseX, int mouseY) {
+    public void renderList(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (open && options != null && options.size() > 1) renderDropdown(g, mouseX, mouseY);
     }
 
-    private void renderDropdown(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderDropdown(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         var font = Minecraft.getInstance().font;
         ensureOptionCache(font);
         int listWidth = cachedListWidth;
@@ -114,7 +114,7 @@ public class SingleSelectDropdown<T> implements Dropdown {
             }
 
             Component labelComp = optionLabels.get(i);
-            g.drawString(font, labelComp, x + 8, itemY + 1, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
+            g.text(font, labelComp.getVisualOrderText(), x + 8, itemY + 1, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
             itemY += ITEM_HEIGHT;
         }
     }

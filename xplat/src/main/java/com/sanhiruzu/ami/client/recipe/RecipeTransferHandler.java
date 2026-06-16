@@ -6,7 +6,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractFurnaceMenu;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.inventory.ItemCombinerMenu;
 import net.minecraft.world.inventory.Slot;
@@ -18,6 +18,7 @@ import net.minecraft.world.item.crafting.ShapedRecipe;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public final class RecipeTransferHandler {
     private RecipeTransferHandler() {
@@ -56,8 +57,8 @@ public final class RecipeTransferHandler {
         for (int slotIdx : plan.inputSlots()) {
             Slot slot = menu.getSlot(slotIdx);
             if (slot.hasItem()) {
-                mc.gameMode.handleInventoryMouseClick(
-                        containerId, slotIdx, 0, ClickType.QUICK_MOVE, mc.player);
+                mc.gameMode.handleContainerInput(
+                        containerId, slotIdx, 0, ContainerInput.QUICK_MOVE, mc.player);
             }
         }
         for (int slotIdx : plan.inputSlots()) {
@@ -89,8 +90,8 @@ public final class RecipeTransferHandler {
             for (int i = playerSlots.length - 1; i >= 0; i--) {
                 Slot slot = menu.getSlot(playerSlots[i]);
                 if (!slot.hasItem()) {
-                    mc.gameMode.handleInventoryMouseClick(
-                            containerId, playerSlots[i], 0, ClickType.PICKUP, mc.player);
+                    mc.gameMode.handleContainerInput(
+                            containerId, playerSlots[i], 0, ContainerInput.PICKUP, mc.player);
                     break;
                 }
             }
@@ -107,19 +108,19 @@ public final class RecipeTransferHandler {
         }
 
         if (RecipeDisplayHelper.isFurnaceType(type) && menu instanceof AbstractFurnaceMenu) {
-            List<Ingredient> ingredients = recipe.getIngredients();
+            List<Ingredient> ingredients = recipe.placementInfo().ingredients();
             if (ingredients.isEmpty() || ingredients.get(0).isEmpty()) return null;
             return new TransferPlan(new int[]{0}, List.of(ingredients.get(0)));
         }
 
         if (type == RecipeType.STONECUTTING && menu instanceof StonecutterMenu) {
-            List<Ingredient> ingredients = recipe.getIngredients();
+            List<Ingredient> ingredients = recipe.placementInfo().ingredients();
             if (ingredients.isEmpty() || ingredients.get(0).isEmpty()) return null;
             return new TransferPlan(new int[]{0}, List.of(ingredients.get(0)));
         }
 
         if (type == RecipeType.SMITHING && menu instanceof ItemCombinerMenu) {
-            List<Ingredient> ingredients = recipe.getIngredients();
+            List<Ingredient> ingredients = recipe.placementInfo().ingredients();
             if (ingredients.isEmpty()) return null;
             List<Integer> inputs = new ArrayList<>();
             for (int menuSlot = 0; menuSlot < menu.slots.size(); menuSlot++) {
@@ -156,22 +157,25 @@ public final class RecipeTransferHandler {
         int gridHeight = craftingContainer.getHeight();
         if (gridWidth <= 0 || gridHeight <= 0 || slots.size() < gridWidth * gridHeight) return null;
 
-        List<Ingredient> recipeIngredients = recipe.getIngredients();
         List<Ingredient> gridIngredients = new ArrayList<>(gridWidth * gridHeight);
         for (int i = 0; i < gridWidth * gridHeight; i++) {
-            gridIngredients.add(Ingredient.EMPTY);
+            gridIngredients.add(null);
         }
 
         if (recipe instanceof ShapedRecipe shaped) {
-            if (!shaped.canCraftInDimensions(gridWidth, gridHeight)) return null;
+            if (shaped.getWidth() > gridWidth || shaped.getHeight() > gridHeight) return null;
             int recipeWidth = shaped.getWidth();
             int recipeHeight = shaped.getHeight();
+            List<Optional<Ingredient>> shapedIngs = shaped.getIngredients();
             for (int y = 0; y < recipeHeight; y++) {
                 for (int x = 0; x < recipeWidth; x++) {
-                    gridIngredients.set(x + y * gridWidth, recipeIngredients.get(x + y * recipeWidth));
+                    int idx = x + y * recipeWidth;
+                    Ingredient ing = idx < shapedIngs.size() ? shapedIngs.get(idx).orElse(null) : null;
+                    gridIngredients.set(x + y * gridWidth, ing);
                 }
             }
         } else {
+            List<Ingredient> recipeIngredients = recipe.placementInfo().ingredients();
             if (recipeIngredients.size() > gridIngredients.size()) return null;
             for (int i = 0; i < recipeIngredients.size(); i++) {
                 gridIngredients.set(i, recipeIngredients.get(i));
@@ -186,8 +190,10 @@ public final class RecipeTransferHandler {
         if (index < 0 || index >= ingredients.size() || ingredients.get(index).isEmpty()) {
             return net.minecraft.world.item.ItemStack.EMPTY;
         }
-        net.minecraft.world.item.ItemStack[] items = ingredients.get(index).getItems();
-        return items.length == 0 ? net.minecraft.world.item.ItemStack.EMPTY : items[0];
+        return ingredients.get(index).items()
+                .findFirst()
+                .map(h -> new net.minecraft.world.item.ItemStack(h))
+                .orElse(net.minecraft.world.item.ItemStack.EMPTY);
     }
 
     private static boolean canPlaceOneBatch(AbstractContainerMenu menu, List<Ingredient> ingredients, int[] inputSlots,
@@ -204,7 +210,7 @@ public final class RecipeTransferHandler {
 
         for (int i = 0; i < ingredients.size(); i++) {
             Ingredient ingredient = ingredients.get(i);
-            if (ingredient.isEmpty()) continue;
+            if (ingredient == null || ingredient.isEmpty()) continue;
 
             Slot target = menu.getSlot(inputSlots[i]);
             if (checkTargetCapacity && target.hasItem()
@@ -235,15 +241,15 @@ public final class RecipeTransferHandler {
         int containerId = menu.containerId;
         for (int i = 0; i < ingredients.size(); i++) {
             Ingredient ingredient = ingredients.get(i);
-            if (ingredient.isEmpty()) continue;
+            if (ingredient == null || ingredient.isEmpty()) continue;
             int fromSlot = findMatchingPlayerSlot(menu, playerSlots, ingredient);
             if (fromSlot == -1) {
                 return false;
             }
             int toSlot = inputSlots[i];
-            mc.gameMode.handleInventoryMouseClick(containerId, fromSlot, 0, ClickType.PICKUP, mc.player);
-            mc.gameMode.handleInventoryMouseClick(containerId, toSlot, 1, ClickType.PICKUP, mc.player);
-            mc.gameMode.handleInventoryMouseClick(containerId, fromSlot, 0, ClickType.PICKUP, mc.player);
+            mc.gameMode.handleContainerInput(containerId, fromSlot, 0, ContainerInput.PICKUP, mc.player);
+            mc.gameMode.handleContainerInput(containerId, toSlot, 1, ContainerInput.PICKUP, mc.player);
+            mc.gameMode.handleContainerInput(containerId, fromSlot, 0, ContainerInput.PICKUP, mc.player);
         }
         return true;
     }
@@ -264,7 +270,7 @@ public final class RecipeTransferHandler {
             Slot slot = menu.slots.get(menuSlot);
             // Player inventory and hotbar (not armor, not crafting result/input)
             if (slot.container instanceof Inventory inventory
-                    && slot.index < inventory.items.size()) {
+                    && slot.index < inventory.getContainerSize()) {
                 slots.add(menuSlot);
             }
         }

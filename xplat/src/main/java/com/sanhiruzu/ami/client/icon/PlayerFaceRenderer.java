@@ -5,10 +5,10 @@ import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,7 +21,7 @@ import java.util.UUID;
  */
 public class PlayerFaceRenderer implements IIconRenderer {
 
-    private static ResourceLocation resolveSkin(SearchNode node) {
+    private static Identifier resolveSkin(SearchNode node) {
         String uuidStr = node.meta(SearchNodeKeys.PLAYER_UUID);
         if (uuidStr.isEmpty()) return null;
 
@@ -54,8 +54,8 @@ public class PlayerFaceRenderer implements IIconRenderer {
     }
 
     @Override
-    public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
-        ResourceLocation skin = resolveSkin(node);
+    public void render(GuiGraphicsExtractor g, SearchNode node, int x, int y, int size, boolean hovered) {
+        Identifier skin = resolveSkin(node);
         if (skin == null) {
             FallbackTextRenderer.renderFallback(g, node, x, y, size);
             return;
@@ -67,12 +67,12 @@ public class PlayerFaceRenderer implements IIconRenderer {
         // Skin face region: 8×8 at UV (8, 8) in a 64×64 texture.
         // Scale using the pose matrix so every pixel maps cleanly.
         var poses = g.pose();
-        poses.pushPose();
-        poses.translate(x, y, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
+        poses.pushMatrix();
+        poses.translate(x, y);
         float s = size / 8f;
-        poses.scale(s, s, 1f);
-        g.blit(skin, 0, 0, 8.0f, 8.0f, 8, 8, 64, 64);
-        poses.popPose();
+        poses.scale(s, s);
+        g.blit(skin, 0, 0, 8, 8, 8.0f / 64f, 16.0f / 64f, 8.0f / 64f, 16.0f / 64f);
+        poses.popMatrix();
     }
 
     @Override

@@ -3,28 +3,29 @@ package com.sanhiruzu.ami.client.results;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.resources.Identifier;
 
 final class AccessLevelOverlayRenderer {
     private static final int CROSS_SHADOW = 0xCC160000;
     private static final int CROSS_RED = 0xFFFF3030;
     private static final int CROSS_HIGHLIGHT = 0xFFFFD0D0;
     private static final int SPRITE_SIZE = 16;
-    private static final ResourceLocation SPRITE_TEXTURE =
-            ResourceLocation.fromNamespaceAndPath("ami", "generated/access_level_overlay");
+    private static final Identifier SPRITE_TEXTURE =
+            Identifier.fromNamespaceAndPath("ami", "generated/access_level_overlay");
     private static boolean spriteRegistered;
 
     private AccessLevelOverlayRenderer() {
     }
 
-    static void renderIconOverlay(GuiGraphics g, SearchNode node, int x, int y, int size) {
+    static void renderIconOverlay(GuiGraphicsExtractor g, SearchNode node, int x, int y, int size) {
         if (!AccessLevelVisuals.hasDevOnlyMarker(node)) {
             return;
         }
         ensureSpriteRegistered();
-        g.blit(SPRITE_TEXTURE, x, y, size, size, 0.0f, 0.0f, SPRITE_SIZE, SPRITE_SIZE, SPRITE_SIZE, SPRITE_SIZE);
+        g.blit(RenderPipelines.GUI_TEXTURED, SPRITE_TEXTURE, x, y, 0.0f, 0.0f, size, size, SPRITE_SIZE, SPRITE_SIZE, SPRITE_SIZE, SPRITE_SIZE);
     }
 
     private static void appendIconOverlay(RectSink sink, int x, int y, int size) {
@@ -75,11 +76,11 @@ final class AccessLevelOverlayRenderer {
             int rgba = argbToNativeRgba(color);
             for (int y = Math.max(0, y1); y < Math.min(SPRITE_SIZE, y2); y++) {
                 for (int x = Math.max(0, x1); x < Math.min(SPRITE_SIZE, x2); x++) {
-                    image.setPixelRGBA(x, y, rgba);
+                    image.setPixelABGR(x, y, rgba);
                 }
             }
         }, 0, 0, SPRITE_SIZE);
-        Minecraft.getInstance().getTextureManager().register(SPRITE_TEXTURE, new DynamicTexture(image));
+        Minecraft.getInstance().getTextureManager().register(SPRITE_TEXTURE, new DynamicTexture(() -> "ami:access_level_overlay", image));
         spriteRegistered = true;
     }
 

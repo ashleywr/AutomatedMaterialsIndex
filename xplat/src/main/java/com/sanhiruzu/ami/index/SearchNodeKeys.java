@@ -68,7 +68,7 @@ public final class SearchNodeKeys {
     public static final String VARIANT_COLLAPSE_MODE = "variantCollapseMode"; // auto, default_collapsed, or never
     public static final String VARIANT_SUPPRESSION_REASON = "variantSuppressionReason"; // why component-backed variants were hidden
     public static final String VARIANT_SUPPRESSED_COUNT = "variantSuppressedCount"; // number of creative-tab stacks represented by base node
-    public static final String POTION_EFFECT = "potionEffect";  // full ResourceLocation of the potion effect (e.g. "minecraft:fire_resistance")
+    public static final String POTION_EFFECT = "potionEffect";  // full Identifier of the potion effect (e.g. "minecraft:fire_resistance")
     public static final String COLLAPSE_FAMILY = "collapseFamily"; // stable UI grouping key for explicit family collapse
     public static final String COLLAPSE_LABEL = "collapseLabel";  // user-facing label for explicit family collapse
     public static final String BLOCKS_MATERIAL = "blocksMaterial"; // material family for block subcategory (shape/material toggle)

@@ -5,7 +5,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.SearchService;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -17,8 +17,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ApotheosisVariantVisibilityTest {
-    private static final ResourceLocation TWILIGHT_FOREST_GEM_ID =
-            new ResourceLocation("apotheosis", "gem/variant/gem_of_the_twilight_forest_101");
+    private static final Identifier TWILIGHT_FOREST_GEM_ID =
+            new Identifier("apotheosis", "gem/variant/gem_of_the_twilight_forest_101");
 
     @BeforeEach
     void setUp() {
@@ -59,10 +59,10 @@ class ApotheosisVariantVisibilityTest {
     }
 
     private static SearchNode gemVariant(String variantPath, String displayName) {
-        return gemVariant(new ResourceLocation("apotheosis", "gem/variant/" + variantPath), displayName);
+        return gemVariant(new Identifier("apotheosis", "gem/variant/" + variantPath), displayName);
     }
 
-    private static SearchNode gemVariant(ResourceLocation id, String displayName) {
+    private static SearchNode gemVariant(Identifier id, String displayName) {
         return new SearchNode(
                 id,
                 NodeType.ITEM,
@@ -80,13 +80,13 @@ class ApotheosisVariantVisibilityTest {
         );
     }
 
-    private static List<ResourceLocation> projectedLeafIds(List<TreeNode> roots) {
-        List<ResourceLocation> result = new ArrayList<>();
+    private static List<Identifier> projectedLeafIds(List<TreeNode> roots) {
+        List<Identifier> result = new ArrayList<>();
         collectProjectedLeafIds(roots, result);
         return result;
     }
 
-    private static void collectProjectedLeafIds(List<TreeNode> nodes, List<ResourceLocation> result) {
+    private static void collectProjectedLeafIds(List<TreeNode> nodes, List<Identifier> result) {
         for (TreeNode node : nodes) {
             if (node.isLeaf()) {
                 result.add(node.getEntry().id());

@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
 import com.sanhiruzu.ami.config.AmiConfig;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -18,8 +18,8 @@ class BotaniaCompatTest {
         Map<String, String> pool = meta("botania", "net.minecraft.world.item.BlockItem");
         Map<String, String> rune = meta("botania", "net.minecraft.world.item.Item");
 
-        CompatFamilyDetector.detect(new ResourceLocation("botania", "mana_pool"), pool);
-        CompatFamilyDetector.detect(new ResourceLocation("botania", "rune_water"), rune);
+        CompatFamilyDetector.detect(new Identifier("botania", "mana_pool"), pool);
+        CompatFamilyDetector.detect(new Identifier("botania", "rune_water"), rune);
 
         assertEquals("botania", pool.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
         assertEquals("mana", resolve("botania:mana_pool", pool, ItemFacet.PLACEABLE).subcategoryId());
@@ -31,8 +31,8 @@ class BotaniaCompatTest {
         Map<String, String> endoflame = meta("botania", "net.minecraft.world.item.BlockItem");
         Map<String, String> hopperhock = meta("botania", "net.minecraft.world.item.BlockItem");
 
-        CompatFamilyDetector.detect(new ResourceLocation("botania", "endoflame"), endoflame);
-        CompatFamilyDetector.detect(new ResourceLocation("botania", "hopperhock"), hopperhock);
+        CompatFamilyDetector.detect(new Identifier("botania", "endoflame"), endoflame);
+        CompatFamilyDetector.detect(new Identifier("botania", "hopperhock"), hopperhock);
 
         assertEquals("generating_flowers", resolve("botania:endoflame", endoflame, ItemFacet.PLACEABLE).subcategoryId());
         assertEquals("functional_flowers", resolve("botania:hopperhock", hopperhock, ItemFacet.PLACEABLE).subcategoryId());
@@ -44,9 +44,9 @@ class BotaniaCompatTest {
         Map<String, String> wand = meta("botania", "vazkii.botania.common.item.WandOfTheForestItem");
         Map<String, String> ingot = meta("botania", "net.minecraft.world.item.Item");
 
-        CompatFamilyDetector.detect(new ResourceLocation("botania", "aura_ring"), ring);
-        CompatFamilyDetector.detect(new ResourceLocation("botania", "twig_wand"), wand);
-        CompatFamilyDetector.detect(new ResourceLocation("botania", "manasteel_ingot"), ingot);
+        CompatFamilyDetector.detect(new Identifier("botania", "aura_ring"), ring);
+        CompatFamilyDetector.detect(new Identifier("botania", "twig_wand"), wand);
+        CompatFamilyDetector.detect(new Identifier("botania", "manasteel_ingot"), ingot);
 
         assertEquals("baubles", resolve("botania:aura_ring", ring, ItemFacet.CURIO).subcategoryId());
         assertEquals("tools", resolve("botania:twig_wand", wand, ItemFacet.UTILITY_TOOL).subcategoryId());
@@ -57,7 +57,7 @@ class BotaniaCompatTest {
     void knownBotaniaAddonsJoinBotaniaFamily() {
         Map<String, String> alfsteel = meta("mythicbotany", "net.minecraft.world.item.Item");
 
-        CompatFamilyDetector.detect(new ResourceLocation("mythicbotany", "alfsteel_ingot"), alfsteel);
+        CompatFamilyDetector.detect(new Identifier("mythicbotany", "alfsteel_ingot"), alfsteel);
         CategoryAssignment assignment = resolve("mythicbotany:alfsteel_ingot", alfsteel, ItemFacet.INGOT);
 
         assertEquals("botania", alfsteel.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
@@ -71,7 +71,7 @@ class BotaniaCompatTest {
         try {
             AmiConfig.botaniaCategoryPolicy = AmiConfig.CompatCategoryPolicy.SEMANTIC;
             Map<String, String> meta = meta("botania", "net.minecraft.world.item.Item");
-            CompatFamilyDetector.detect(new ResourceLocation("botania", "manasteel_ingot"), meta);
+            CompatFamilyDetector.detect(new Identifier("botania", "manasteel_ingot"), meta);
 
             CategoryAssignment assignment = resolve("botania:manasteel_ingot", meta, ItemFacet.INGOT);
 
@@ -89,10 +89,10 @@ class BotaniaCompatTest {
         Map<String, String> incense = meta("botania", "vazkii.botania.common.item.brew.IncenseStickItem");
         Map<String, String> flask = meta("botania", "net.minecraft.world.item.Item");
 
-        CompatFamilyDetector.detect(new ResourceLocation("botania", "brew_vial"), brew);
-        CompatFamilyDetector.detect(new ResourceLocation("botania", "vial"), vial);
-        CompatFamilyDetector.detect(new ResourceLocation("botania", "incense_stick"), incense);
-        CompatFamilyDetector.detect(new ResourceLocation("botania", "flask"), flask);
+        CompatFamilyDetector.detect(new Identifier("botania", "brew_vial"), brew);
+        CompatFamilyDetector.detect(new Identifier("botania", "vial"), vial);
+        CompatFamilyDetector.detect(new Identifier("botania", "incense_stick"), incense);
+        CompatFamilyDetector.detect(new Identifier("botania", "flask"), flask);
 
         assertEquals("botania", brew.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
         assertEquals("brews", resolve("botania:brew_vial", brew, ItemFacet.FOOD_DRINK).subcategoryId());
@@ -107,9 +107,9 @@ class BotaniaCompatTest {
         Map<String, String> brick = meta("botania", "net.minecraft.world.item.BlockItem");
         Map<String, String> glimmering = meta("botania", "net.minecraft.world.item.BlockItem");
 
-        CompatFamilyDetector.detect(new ResourceLocation("botania", "shimmerrock"), shimmering);
-        CompatFamilyDetector.detect(new ResourceLocation("botania", "livingrock_brick"), brick);
-        CompatFamilyDetector.detect(new ResourceLocation("botania", "glimmering_white_flower"), glimmering);
+        CompatFamilyDetector.detect(new Identifier("botania", "shimmerrock"), shimmering);
+        CompatFamilyDetector.detect(new Identifier("botania", "livingrock_brick"), brick);
+        CompatFamilyDetector.detect(new Identifier("botania", "glimmering_white_flower"), glimmering);
 
         assertEquals("decoration", resolve("botania:shimmerrock", shimmering, ItemFacet.PLACEABLE, ItemFacet.STONE_BLOCK).subcategoryId());
         assertEquals("decoration", resolve("botania:livingrock_brick", brick, ItemFacet.PLACEABLE, ItemFacet.DECORATIVE_BLOCK).subcategoryId());
@@ -122,9 +122,9 @@ class BotaniaCompatTest {
         Map<String, String> shard = meta("botania", "vazkii.botania.common.item.LaputaShardItem");
         Map<String, String> pattern = meta("botania", "vazkii.botania.common.item.CraftingPatternItem");
 
-        CompatFamilyDetector.detect(new ResourceLocation("botania", "grass_seeds"), seeds);
-        CompatFamilyDetector.detect(new ResourceLocation("botania", "laputa_shard"), shard);
-        CompatFamilyDetector.detect(new ResourceLocation("botania", "pattern_1_1"), pattern);
+        CompatFamilyDetector.detect(new Identifier("botania", "grass_seeds"), seeds);
+        CompatFamilyDetector.detect(new Identifier("botania", "laputa_shard"), shard);
+        CompatFamilyDetector.detect(new Identifier("botania", "pattern_1_1"), pattern);
 
         assertEquals("materials", resolve("botania:grass_seeds", seeds).subcategoryId());
         assertEquals("materials", resolve("botania:laputa_shard", shard).subcategoryId());
@@ -141,7 +141,7 @@ class BotaniaCompatTest {
 
     private static CategoryAssignment resolve(String id, Map<String, String> meta, ItemFacet... facets) {
         return PrimaryCategoryResolver.resolve(
-                new ResourceLocation(id),
+                new Identifier(id),
                 new FacetProfile(facets.length == 0 ? EnumSet.noneOf(ItemFacet.class) : EnumSet.of(facets[0], facets), meta)
         );
     }

@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.recipe;
 
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import com.sanhiruzu.ami.platform.Services;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentMap;
 public abstract class AmiRecipeIndexBase {
     private final ConcurrentMap<Item, List<AmiRecipeHolder<?>>> recipesByOutput = new ConcurrentHashMap<>();
     private final ConcurrentMap<Item, List<AmiRecipeHolder<?>>> recipesByInput = new ConcurrentHashMap<>();
-    private final ConcurrentMap<ResourceLocation, ItemStack> outputByRecipe = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Identifier, ItemStack> outputByRecipe = new ConcurrentHashMap<>();
     private volatile boolean built;
 
     public boolean isBuilt() {
@@ -57,9 +57,7 @@ public abstract class AmiRecipeIndexBase {
     }
 
     protected void addIngredientInputs(Ingredient ingredient, AmiRecipeHolder<?> holder) {
-        for (ItemStack stack : ingredient.getItems()) {
-            addInput(stack, holder);
-        }
+        ingredient.items().map(net.minecraft.core.Holder::value).map(net.minecraft.world.item.ItemStack::new).forEach(stack -> addInput(stack, holder));
     }
 
     public List<AmiRecipeHolder<?>> getRecipesFor(ItemStack stack) {
@@ -113,7 +111,7 @@ public abstract class AmiRecipeIndexBase {
     @SuppressWarnings("unchecked")
     public <T extends Recipe<?>> List<AmiRecipeHolder<T>> getAllRecipesOfType(RecipeType<T> type) {
         List<AmiRecipeHolder<T>> result = new ArrayList<>();
-        Set<ResourceLocation> seen = new HashSet<>();
+        Set<Identifier> seen = new HashSet<>();
         for (List<AmiRecipeHolder<?>> holders : recipesByOutput.values()) {
             for (AmiRecipeHolder<?> holder : holders) {
                 if (holder.value().getType() == type && seen.add(holder.id())) {

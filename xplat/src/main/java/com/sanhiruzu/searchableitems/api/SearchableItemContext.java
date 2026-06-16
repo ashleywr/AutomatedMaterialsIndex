@@ -1,6 +1,6 @@
 package com.sanhiruzu.searchableitems.api;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
  * Viewer-neutral context for an item or generated item-stack result.
  */
 public record SearchableItemContext(
-        ResourceLocation id,
+        Identifier id,
         ItemStack stack,
         @Nullable Level level
 ) {

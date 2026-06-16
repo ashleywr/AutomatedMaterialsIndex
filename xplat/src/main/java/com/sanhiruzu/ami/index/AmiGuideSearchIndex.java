@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.query.QueryParser;
 import com.sanhiruzu.ami.index.query.SearchSyntax;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,7 +31,7 @@ public final class AmiGuideSearchIndex {
     private final int summaryTextCap;
     private final List<AmiGuideDocument> documents = new ArrayList<>();
     private final Map<AmiGuideDocument, String> searchableText = new LinkedHashMap<>();
-    private final Map<ResourceLocation, Integer> indexedPageCountsByBook = new LinkedHashMap<>();
+    private final Map<Identifier, Integer> indexedPageCountsByBook = new LinkedHashMap<>();
 
     public AmiGuideSearchIndex(Collection<AmiGuideDocument> documents, GuideIndexingMode mode) {
         this(documents, mode, DEFAULT_SUMMARY_TEXT_CAP);
@@ -124,14 +124,14 @@ public final class AmiGuideSearchIndex {
         return List.copyOf(visible);
     }
 
-    public int indexedPageCountForBook(ResourceLocation bookId) {
+    public int indexedPageCountForBook(Identifier bookId) {
         if (bookId == null || mode == GuideIndexingMode.OFF) {
             return 0;
         }
         return indexedPageCountsByBook.getOrDefault(bookId, 0);
     }
 
-    public Map<ResourceLocation, Integer> indexedPageCountsByBook() {
+    public Map<Identifier, Integer> indexedPageCountsByBook() {
         return Map.copyOf(indexedPageCountsByBook);
     }
 
@@ -148,7 +148,7 @@ public final class AmiGuideSearchIndex {
         fields.add(document.pageId());
         fields.add(document.title());
         fields.add(document.chapter());
-        for (ResourceLocation itemId : document.referencedItems()) {
+        for (Identifier itemId : document.referencedItems()) {
             fields.add(itemId.toString());
             fields.add(itemId.getNamespace());
             fields.add(itemId.getPath());
@@ -173,7 +173,7 @@ public final class AmiGuideSearchIndex {
         if (contains(document.chapter(), token)) score += 30;
         if (contains(document.modId(), token)) score += 20;
         if (document.bookId() != null && contains(document.bookId().toString(), token)) score += 20;
-        for (ResourceLocation itemId : document.referencedItems()) {
+        for (Identifier itemId : document.referencedItems()) {
             if (contains(itemId.toString(), token) || contains(itemId.getPath(), token)) {
                 score += 25;
                 break;

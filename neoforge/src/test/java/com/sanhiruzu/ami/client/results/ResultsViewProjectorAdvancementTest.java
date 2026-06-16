@@ -6,7 +6,7 @@ import com.sanhiruzu.ami.index.AmiAdvancementSearchIndex;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,7 +33,7 @@ class ResultsViewProjectorAdvancementTest {
     @Test
     void projectionIncludesAdvancementRowsWithoutChangingItemTree() {
         SearchNode item = new SearchNode(
-                new ResourceLocation("minecraft", "stone"),
+                new Identifier("minecraft", "stone"),
                 NodeType.ITEM,
                 "Stone",
                 0,
@@ -119,16 +119,16 @@ class ResultsViewProjectorAdvancementTest {
     }
 
     private static AmiAdvancementDocument advancement() {
-        return AmiAdvancementDocument.builder(new ResourceLocation("minecraft", "story/mine_stone"), "Stone Age")
+        return AmiAdvancementDocument.builder(new Identifier("minecraft", "story/mine_stone"), "Stone Age")
                 .sourceId("minecraft")
                 .tabTitle("Minecraft")
                 .description("Mine stone with your new pickaxe")
                 .type("task")
-                .iconItemId(new ResourceLocation("minecraft", "stone"))
+                .iconItemId(new Identifier("minecraft", "stone"))
                 .build();
     }
 
     private static SearchNode node(NodeType type, String namespace, String path, String name) {
-        return new SearchNode(new ResourceLocation(namespace, path), type, name, 0, 0, Map.of());
+        return new SearchNode(new Identifier(namespace, path), type, name, 0, 0, Map.of());
     }
 }

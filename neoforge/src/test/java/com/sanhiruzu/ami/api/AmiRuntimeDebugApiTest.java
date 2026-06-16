@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
@@ -18,7 +18,7 @@ class AmiRuntimeDebugApiTest {
     @Test
     void nodeSummaryIncludesMetadataWithoutCompatFieldAllowList() throws Exception {
         SearchNode node = new SearchNode(
-                new ResourceLocation("futurecompat", "planning_tool"),
+                new Identifier("futurecompat", "planning_tool"),
                 NodeType.ITEM,
                 "Planning Tool",
                 0,

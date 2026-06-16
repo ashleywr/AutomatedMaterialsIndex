@@ -23,9 +23,9 @@ public class SpawnProvider implements IAmiDataProvider {
         AmiCore.LOGGER.debug("SpawnProvider: scanning biome spawns...");
 
         try {
-            level.registryAccess().registry(Registries.BIOME).ifPresent(reg ->
-                    reg.holders().forEach(holder -> {
-                        var biomeId = holder.key().location();
+            level.registryAccess().lookup(Registries.BIOME).ifPresent(reg ->
+                    reg.listElements().forEach(holder -> {
+                        var biomeId = holder.key().identifier();
                         try {
                             // Attempt to access MobSpawnSettings via known getter
                             var mobSettings = holder.value().getMobSettings();

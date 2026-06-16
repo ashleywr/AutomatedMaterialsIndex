@@ -5,7 +5,7 @@ import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.ingredients.ITypedIngredient;
 import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.lang.reflect.Field;
@@ -24,7 +24,7 @@ public final class JeiFavoritesBridge {
     private JeiFavoritesBridge() {
     }
 
-    public static boolean isFavorite(ResourceLocation id) {
+    public static boolean isFavorite(Identifier id) {
         return getFavoriteIds().contains(id);
     }
 
@@ -55,19 +55,19 @@ public final class JeiFavoritesBridge {
         });
     }
 
-    public static List<ResourceLocation> getFavoriteIds() {
+    public static List<Identifier> getFavoriteIds() {
         return JeiRuntimeAccessor.withRuntime(runtime -> {
             Object bookmarkList = getBookmarkList(runtime);
             Object rawList = getFieldValue(bookmarkList, "bookmarksList");
             if (!(rawList instanceof Iterable<?> bookmarks)) {
-                return List.<ResourceLocation>of();
+                return List.<Identifier>of();
             }
 
-            List<ResourceLocation> ids = new ArrayList<>();
+            List<Identifier> ids = new ArrayList<>();
             for (Object bookmark : bookmarks) {
                 ItemStack stack = getBookmarkStack(bookmark);
                 if (!stack.isEmpty()) {
-                    ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                    Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
                     if (id != null) {
                         ids.add(id);
                     }
@@ -90,7 +90,7 @@ public final class JeiFavoritesBridge {
                 ItemStack stack = getBookmarkStack(bookmark);
                 if (stack.isEmpty()) continue;
 
-                ResourceLocation recipeId = getRecipeId(bookmark);
+                Identifier recipeId = getRecipeId(bookmark);
                 FavoriteEntry entry = recipeId == null
                         ? FavoriteEntry.item(stack, "jei")
                         : FavoriteEntry.recipe(stack, recipeId, "jei");
@@ -167,20 +167,20 @@ public final class JeiFavoritesBridge {
         return ItemStack.EMPTY;
     }
 
-    private static ResourceLocation getRecipeId(Object bookmark) {
+    private static Identifier getRecipeId(Object bookmark) {
         if (bookmark == null || !bookmark.getClass().getName().endsWith("RecipeBookmark")) {
             return null;
         }
 
         Object recipeUid = getFieldValue(bookmark, "recipeUid");
-        if (recipeUid instanceof ResourceLocation id) {
+        if (recipeUid instanceof Identifier id) {
             return id;
         }
 
         Object category = invokeAny(bookmark, "getRecipeCategory");
         Object recipe = invokeAny(bookmark, "getRecipe");
         Object id = invokeAny(category, "getRegistryName", recipe);
-        return id instanceof ResourceLocation location ? location : null;
+        return id instanceof Identifier location ? location : null;
     }
 
     private static Object getFieldValue(Object target, String fieldName) {

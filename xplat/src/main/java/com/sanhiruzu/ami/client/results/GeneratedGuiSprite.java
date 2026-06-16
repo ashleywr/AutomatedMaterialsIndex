@@ -2,22 +2,23 @@ package com.sanhiruzu.ami.client.results;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.resources.Identifier;
 
 import java.util.function.Consumer;
 import java.util.function.IntSupplier;
 
 final class GeneratedGuiSprite {
-    private final ResourceLocation texture;
+    private final Identifier texture;
     private final int width;
     private final int height;
     private final IntSupplier signatureSupplier;
     private final Consumer<Canvas> painter;
     private int registeredSignature = Integer.MIN_VALUE;
 
-    GeneratedGuiSprite(ResourceLocation texture, int width, int height,
+    GeneratedGuiSprite(Identifier texture, int width, int height,
                        IntSupplier signatureSupplier, Consumer<Canvas> painter) {
         this.texture = texture;
         this.width = width;
@@ -26,17 +27,17 @@ final class GeneratedGuiSprite {
         this.painter = painter;
     }
 
-    void blit(GuiGraphics g, int x, int y) {
+    void blit(GuiGraphicsExtractor g, int x, int y) {
         ensureRegistered();
-        g.blit(texture, x, y, 0.0f, 0.0f, width, height, width, height);
+        g.blit(texture, x, y, width, height, 0.0f, 0.0f, (float) width, (float) height);
     }
 
-    void blit(GuiGraphics g, int x, int y, int targetWidth, int targetHeight) {
+    void blit(GuiGraphicsExtractor g, int x, int y, int targetWidth, int targetHeight) {
         if (targetWidth <= 0 || targetHeight <= 0) {
             return;
         }
         ensureRegistered();
-        g.blit(texture, x, y, targetWidth, targetHeight, 0.0f, 0.0f, width, height, width, height);
+        g.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 0.0f, 0.0f, targetWidth, targetHeight, width, height, width, height);
     }
 
     private void ensureRegistered() {
@@ -46,7 +47,7 @@ final class GeneratedGuiSprite {
         }
         NativeImage image = new NativeImage(width, height, true);
         painter.accept(new Canvas(image, width, height));
-        Minecraft.getInstance().getTextureManager().register(texture, new DynamicTexture(image));
+        Minecraft.getInstance().getTextureManager().register(texture, new DynamicTexture(() -> "ami:generated_sprite", image));
         registeredSignature = signature;
     }
 
@@ -68,7 +69,7 @@ final class GeneratedGuiSprite {
             int rgba = argbToNativeRgba(argb);
             for (int y = Math.max(0, y1); y < Math.min(height, y2); y++) {
                 for (int x = Math.max(0, x1); x < Math.min(width, x2); x++) {
-                    image.setPixelRGBA(x, y, rgba);
+                    image.setPixelABGR(x, y, rgba);
                 }
             }
         }

@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.index;
 
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -23,7 +23,7 @@ public class TooltipSearchTokensTest {
                         Component.literal("Cobblemon")
                 ),
                 "Poke Ball",
-                new ResourceLocation("cobblemon:poke_ball"),
+                new Identifier("cobblemon:poke_ball"),
                 "Cobblemon"
         );
 
@@ -52,7 +52,7 @@ public class TooltipSearchTokensTest {
                         Component.literal("[Middle Button] give one")
                 ),
                 "Redstone Dust",
-                new ResourceLocation("minecraft:redstone"),
+                new Identifier("minecraft:redstone"),
                 "Minecraft"
         );
 
@@ -75,7 +75,7 @@ public class TooltipSearchTokensTest {
                         Component.literal("Tinkers' Construct")
                 ),
                 "Encyclopedia of Tinkering",
-                new ResourceLocation("tconstruct:encyclopedia"),
+                new Identifier("tconstruct:encyclopedia"),
                 "Tinkers' Construct"
         );
 

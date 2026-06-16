@@ -2,8 +2,10 @@ package com.sanhiruzu.ami.client.favorites;
 
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.RecipeViewerScreen;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
@@ -59,7 +61,7 @@ public class AmiFavoritesScreen extends Screen {
     // ── Render ────────────────────────────────────────────────────────────
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
         AMITheme.sync();
 
         int bg    = AMITheme.RECIPE_PANEL;
@@ -73,7 +75,7 @@ public class AmiFavoritesScreen extends Screen {
         g.fill(guiLeft, guiTop, guiLeft + GUI_WIDTH, guiTop + 1, AMITheme.RECIPE_TAB_ACTIVE);
 
         // Header
-        g.drawCenteredString(font, title,
+        g.centeredText(font, title,
                 guiLeft + GUI_WIDTH / 2, guiTop + (HEADER_H - font.lineHeight) / 2,
                 AMITheme.RECIPE_TEXT_TITLE);
         g.fill(guiLeft + 4, guiTop + HEADER_H, guiLeft + GUI_WIDTH - 4, guiTop + HEADER_H + 1,
@@ -89,7 +91,7 @@ public class AmiFavoritesScreen extends Screen {
         g.fill(gridX - 1, gridTop, gridX + COLS * SLOT + 1, gridTop + contentH, inner);
 
         if (favorites.isEmpty()) {
-            g.drawCenteredString(font,
+            g.centeredText(font,
                     Component.translatable("ami.favorites.empty"),
                     guiLeft + GUI_WIDTH / 2,
                     gridTop + contentH / 2 - font.lineHeight,
@@ -111,8 +113,8 @@ public class AmiFavoritesScreen extends Screen {
                 boolean hov = isHovering(mouseX, mouseY, sx, sy, SLOT - 2, SLOT - 2);
                 if (hov) g.fill(sx, sy, sx + SLOT - 2, sy + SLOT - 2, AMITheme.RECIPE_TAB_HOVER);
 
-                g.renderItem(stack, sx, sy);
-                g.renderItemDecorations(font, stack, sx, sy);
+                g.item(stack, sx, sy);
+                g.itemDecorations(font, stack, sx, sy);
 
                 if (hov) {
                     List<Component> tip = new java.util.ArrayList<>(
@@ -121,7 +123,7 @@ public class AmiFavoritesScreen extends Screen {
                             .withStyle(net.minecraft.ChatFormatting.GRAY));
                     tip.add(Component.translatable("ami.favorites.right_click_remove")
                             .withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
-                    g.renderTooltip(font, tip, java.util.Optional.empty(), mouseX, mouseY);
+                    g.setTooltipForNextFrame(font, tip, java.util.Optional.empty(), mouseX, mouseY);
                 }
             }
 
@@ -137,7 +139,7 @@ public class AmiFavoritesScreen extends Screen {
         }
 
         // Footer hint
-        g.drawCenteredString(font,
+        g.centeredText(font,
                 Component.translatable("ami.favorites.footer_hint"),
                 guiLeft + GUI_WIDTH / 2,
                 guiTop + GUI_HEIGHT - FOOTER_H + 2,
@@ -147,7 +149,11 @@ public class AmiFavoritesScreen extends Screen {
     // ── Input ─────────────────────────────────────────────────────────────
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button    = event.button();
+
         int gridX   = guiLeft + (GUI_WIDTH - COLS * SLOT) / 2;
         int gridTop = guiTop + HEADER_H + 4;
         int vis     = visibleRows();
@@ -163,13 +169,11 @@ public class AmiFavoritesScreen extends Screen {
             if (isHovering(mouseX, mouseY, sx, sy, SLOT - 2, SLOT - 2)) {
                 AmiFavoritesHandler.RecipeFavoriteEntry entry = favorites.get(idx);
                 if (button == 0) {
-                    // Open recipe viewer for this item's output
                     if (minecraft != null) {
                         minecraft.setScreen(new RecipeViewerScreen(entry.stack(), parent, true));
                     }
                     return true;
                 } else if (button == 1) {
-                    // Remove from favorites
                     AmiFavoritesHandler.getInstance().removeRecipeFavorite(entry.recipeId(), entry.stack());
                     reload();
                     return true;
@@ -177,20 +181,11 @@ public class AmiFavoritesScreen extends Screen {
             }
         }
 
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
-    // NeoForge 1.21.1+ 4-param variant — no @Override (Forge only knows the 3-param)
+    @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        return handleScroll(scrollY);
-    }
-
-    // Forge 1.20.1 compat 3-param variant — no @Override (NeoForge only knows the 4-param)
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
-        return handleScroll(scrollY);
-    }
-
-    private boolean handleScroll(double scrollY) {
         int maxRow = Math.max(0, totalRows() - visibleRows());
         if (maxRow == 0) return false;
         scrollOffset = Math.max(0, Math.min(scrollOffset + (scrollY > 0 ? -1 : 1), maxRow));
@@ -198,9 +193,9 @@ public class AmiFavoritesScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == GLFW.GLFW_KEY_ESCAPE) { onClose(); return true; }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+    public boolean keyPressed(KeyEvent event) {
+        if (event.key() == GLFW.GLFW_KEY_ESCAPE) { onClose(); return true; }
+        return super.keyPressed(event);
     }
 
     @Override

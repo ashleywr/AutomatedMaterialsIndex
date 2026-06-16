@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.mixin;
 import mezz.jei.gui.input.ClientInputHandler;
 import mezz.jei.gui.input.UserInput;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
@@ -11,8 +12,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Suppresses JEI's overlay input handling when AMI is active. NeoForge targets
- * Minecraft 1.21.1 / JEI 19, where mouse scroll has horizontal and vertical deltas.
+ * Suppresses JEI's overlay input handling when AMI is active. NeoForge 26.1.2 / JEI 29
+ * changed charTyped callbacks to pass a CharacterEvent instead of raw char+int.
  */
 @Pseudo
 @Mixin(ClientInputHandler.class)
@@ -58,14 +59,14 @@ public class JeiClientInputHandlerMixin {
     }
 
     @Inject(method = "onKeyboardCharTypedPre", at = @At("HEAD"), cancellable = true, remap = false)
-    private void suppressCharTypedPre(Screen screen, char codePoint, int modifiers, CallbackInfoReturnable<Boolean> cir) {
+    private void suppressCharTypedPre(Screen screen, CharacterEvent event, CallbackInfoReturnable<Boolean> cir) {
         if (ami$shouldSuppressJeiInput()) {
             cir.setReturnValue(false);
         }
     }
 
     @Inject(method = "onKeyboardCharTypedPost", at = @At("HEAD"), cancellable = true, remap = false)
-    private void suppressCharTypedPost(Screen screen, char codePoint, int modifiers, CallbackInfo ci) {
+    private void suppressCharTypedPost(Screen screen, CharacterEvent event, CallbackInfo ci) {
         if (ami$shouldSuppressJeiInput()) {
             ci.cancel();
         }

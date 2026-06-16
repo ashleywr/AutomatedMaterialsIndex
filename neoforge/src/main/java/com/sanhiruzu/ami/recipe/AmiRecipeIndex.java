@@ -1,11 +1,13 @@
 package com.sanhiruzu.ami.recipe;
 
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
@@ -49,18 +51,23 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
     };
     private static final AmiRecipeIndex INSTANCE = new AmiRecipeIndex();
 
+    private static final RecipeInput EMPTY_RECIPE_INPUT = new RecipeInput() {
+        @Override public ItemStack getItem(int index) { return ItemStack.EMPTY; }
+        @Override public int size() { return 0; }
+    };
+
     static {
         try {
             net.minecraft.core.Registry.register(net.minecraft.core.registries.BuiltInRegistries.RECIPE_TYPE,
-                    net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("ami", "brewing"), BREWING);
+                    net.minecraft.resources.Identifier.fromNamespaceAndPath("ami", "brewing"), BREWING);
             net.minecraft.core.Registry.register(net.minecraft.core.registries.BuiltInRegistries.RECIPE_TYPE,
-                    net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("ami", "grinding"), GRINDING);
+                    net.minecraft.resources.Identifier.fromNamespaceAndPath("ami", "grinding"), GRINDING);
             net.minecraft.core.Registry.register(net.minecraft.core.registries.BuiltInRegistries.RECIPE_TYPE,
-                    net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("ami", "anvil_repairing"), ANVIL_REPAIRING);
+                    net.minecraft.resources.Identifier.fromNamespaceAndPath("ami", "anvil_repairing"), ANVIL_REPAIRING);
             net.minecraft.core.Registry.register(net.minecraft.core.registries.BuiltInRegistries.RECIPE_TYPE,
-                    net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("ami", "composting"), COMPOSTING);
+                    net.minecraft.resources.Identifier.fromNamespaceAndPath("ami", "composting"), COMPOSTING);
             net.minecraft.core.Registry.register(net.minecraft.core.registries.BuiltInRegistries.RECIPE_TYPE,
-                    net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("ami", "fuel"), FUEL);
+                    net.minecraft.resources.Identifier.fromNamespaceAndPath("ami", "fuel"), FUEL);
         } catch (Exception ignored) {
         }
     }
@@ -68,7 +75,7 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
     private AmiRecipeIndex() {
     }
 
-    public static RecipeType<?> getEmiCategoryType(ResourceLocation categoryId, String categoryName) {
+    public static RecipeType<?> getEmiCategoryType(Identifier categoryId, String categoryName) {
         return AmiRecipeCategoryRegistry.getEmiCategoryType(
                 categoryId,
                 categoryName,
@@ -95,24 +102,38 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
         return INSTANCE;
     }
 
+    private static ResourceKey<net.minecraft.world.item.crafting.Recipe<?>> recipeKey(Identifier id) {
+        return ResourceKey.create(net.minecraft.core.registries.Registries.RECIPE, id);
+    }
+
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static AmiRecipeHolder<?> wrap(RecipeHolder<?> holder) {
-        return new AmiRecipeHolder(holder.id(), holder.value());
+        return new AmiRecipeHolder(holder.id().identifier(), holder.value());
+    }
+
+    private static <T extends net.minecraft.world.item.crafting.Recipe<RecipeInput>>
+    AmiRecipeHolder<T> wrapSpecial(Identifier id, T recipe) {
+        @SuppressWarnings("unchecked")
+        AmiRecipeHolder<T> holder = new AmiRecipeHolder(id, recipe);
+        return holder;
     }
 
     public void rebuild(@Nullable Level level) {
         if (level == null) return;
+        if (!(level instanceof net.minecraft.server.level.ServerLevel)) return;
+        var recipeManager = ((net.minecraft.server.level.ServerLevel) level).getServer().getRecipeManager();
         beginRebuild();
 
         try {
-            Map<Item, Set<ResourceLocation>> seenInputs = new HashMap<>();
-            Map<Item, Set<ResourceLocation>> seenOutputs = new HashMap<>();
+            Map<Item, Set<Identifier>> seenInputs = new HashMap<>();
+            Map<Item, Set<Identifier>> seenOutputs = new HashMap<>();
 
-            for (RecipeHolder<?> entry : level.getRecipeManager().getRecipes()) {
-                ResourceLocation id = entry.id();
+            for (RecipeHolder<?> entry : recipeManager.getRecipes()) {
+                Identifier id = entry.id().identifier();
                 AmiRecipeHolder<?> holder = wrap(entry);
                 try {
-                    ItemStack result = entry.value().getResultItem(level.registryAccess());
+                    @SuppressWarnings("unchecked")
+                    ItemStack result = ((net.minecraft.world.item.crafting.Recipe<RecipeInput>)(Object)entry.value()).assemble(EMPTY_RECIPE_INPUT);
                     if (!result.isEmpty()) {
                         Item key = result.getItem();
                         if (seenOutputs.computeIfAbsent(key, k -> new HashSet<>()).add(id)) {
@@ -123,15 +144,13 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
                 }
 
                 try {
-                    for (var ingredient : entry.value().getIngredients()) {
-                        for (ItemStack stack : ingredient.getItems()) {
-                            if (!stack.isEmpty()) {
-                                Item key = stack.getItem();
-                                if (seenInputs.computeIfAbsent(key, k -> new HashSet<>()).add(id)) {
-                                    addInput(key, holder);
-                                }
+                    for (var ingredient : entry.value().placementInfo().ingredients()) {
+                        ingredient.items().forEach(itemHolder -> {
+                            Item key = itemHolder.value();
+                            if (seenInputs.computeIfAbsent(key, k -> new HashSet<>()).add(id)) {
+                                addInput(key, holder);
                             }
-                        }
+                        });
                     }
                 } catch (Exception ignored) {
                 }
@@ -141,7 +160,7 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
             indexBrewing(level);
             indexRepairs(level);
             indexComposting();
-            indexFuels();
+            indexFuels(level);
             indexDisenchanting(level);
             indexEnchanting(level);
 
@@ -194,11 +213,9 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
                         @SuppressWarnings("unchecked")
                         ItemStack outStack = net.minecraft.world.item.alchemy.PotionContents.createItemStack(container, (net.minecraft.core.Holder<net.minecraft.world.item.alchemy.Potion>) toHolder);
 
+                        Identifier id = Identifier.fromNamespaceAndPath("ami", "brewing_potion_" + idCounter++);
                         var recipe = new com.sanhiruzu.ami.neoforge.recipe.special.PotionBrewingRecipe(inStack, ingredient, outStack, BREWING);
-                        AmiRecipeHolder<?> holder = wrap(new RecipeHolder<>(
-                                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("ami", "brewing_potion_" + idCounter++),
-                                recipe
-                        ));
+                        AmiRecipeHolder<?> holder = wrapSpecial(id, recipe);
 
                         addOutput(outStack, holder);
                         addInput(inStack, holder);
@@ -225,15 +242,13 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
                     Item fromItem = (Item) fromHolder.value();
                     Item toItem = (Item) toHolder.value();
 
-                    for (net.minecraft.core.Holder.Reference<net.minecraft.world.item.alchemy.Potion> potionRef : net.minecraft.core.registries.BuiltInRegistries.POTION.holders().toList()) {
+                    for (net.minecraft.core.Holder.Reference<net.minecraft.world.item.alchemy.Potion> potionRef : net.minecraft.core.registries.BuiltInRegistries.POTION.listElements().toList()) {
                         ItemStack inStack = net.minecraft.world.item.alchemy.PotionContents.createItemStack(fromItem, potionRef);
                         ItemStack outStack = net.minecraft.world.item.alchemy.PotionContents.createItemStack(toItem, potionRef);
 
+                        Identifier id = Identifier.fromNamespaceAndPath("ami", "brewing_container_" + idCounter++);
                         var recipe = new com.sanhiruzu.ami.neoforge.recipe.special.PotionBrewingRecipe(inStack, ingredient, outStack, BREWING);
-                        AmiRecipeHolder<?> holder = wrap(new RecipeHolder<>(
-                                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("ami", "brewing_container_" + idCounter++),
-                                recipe
-                        ));
+                        AmiRecipeHolder<?> holder = wrapSpecial(id, recipe);
 
                         addOutput(outStack, holder);
                         addInput(inStack, holder);
@@ -256,20 +271,11 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
                 int maxDamage = defaultStack.getMaxDamage();
                 if (maxDamage <= 0) continue;
 
-                // 1. Material-based Anvil Repair
+                // Use REPAIRABLE component to find repair materials (replaces ArmorItem/TieredItem checks)
                 Ingredient repairMaterial = null;
-                if (item instanceof net.minecraft.world.item.ArmorItem ai) {
-                    if (ai.getMaterial() != null && ai.getMaterial().value().repairIngredient() != null) {
-                        repairMaterial = ai.getMaterial().value().repairIngredient().get();
-                    }
-                } else if (item instanceof net.minecraft.world.item.TieredItem ti) {
-                    if (ti.getTier() != null && ti.getTier().getRepairIngredient() != null) {
-                        repairMaterial = ti.getTier().getRepairIngredient();
-                    }
-                } else if (item == net.minecraft.world.item.Items.ELYTRA) {
-                    repairMaterial = Ingredient.of(net.minecraft.world.item.Items.PHANTOM_MEMBRANE);
-                } else if (item == net.minecraft.world.item.Items.SHIELD) {
-                    repairMaterial = Ingredient.of(net.minecraft.tags.ItemTags.PLANKS);
+                net.minecraft.world.item.enchantment.Repairable repairable = defaultStack.get(net.minecraft.core.component.DataComponents.REPAIRABLE);
+                if (repairable != null && repairable.items().size() > 0) {
+                    repairMaterial = Ingredient.of(repairable.items());
                 }
 
                 if (repairMaterial != null && !repairMaterial.isEmpty()) {
@@ -279,18 +285,16 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
                     ItemStack repairedOutput = defaultStack.copy();
                     repairedOutput.setDamageValue((int) (maxDamage * 0.2));
 
+                    Identifier id = Identifier.fromNamespaceAndPath("ami", "anvil_material_repair_" + idCounter++);
                     var anvilRecipe = new com.sanhiruzu.ami.neoforge.recipe.special.AnvilRepairRecipe(damagedInput, repairMaterial, repairedOutput, ANVIL_REPAIRING);
-                    AmiRecipeHolder<?> holder = wrap(new RecipeHolder<>(
-                            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("ami", "anvil_material_repair_" + idCounter++),
-                            anvilRecipe
-                    ));
+                    AmiRecipeHolder<?> holder = wrapSpecial(id, anvilRecipe);
 
                     addOutput(item, holder);
                     addInput(item, holder);
                     addIngredientInputs(repairMaterial, holder);
                 }
 
-                // 2. Tool combining (Anvil and Grindstone)
+                // Tool combining (Anvil and Grindstone)
                 ItemStack damaged1 = defaultStack.copy();
                 damaged1.setDamageValue((int) (maxDamage * 0.7));
 
@@ -300,17 +304,13 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
                 ItemStack combinedRepaired = defaultStack.copy();
                 combinedRepaired.setDamageValue((int) (maxDamage * 0.2));
 
-                var anvilToolRecipe = new com.sanhiruzu.ami.neoforge.recipe.special.AnvilRepairRecipe(damaged1, Ingredient.of(damaged2), combinedRepaired, ANVIL_REPAIRING);
-                AmiRecipeHolder<?> anvilHolder = wrap(new RecipeHolder<>(
-                        net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("ami", "anvil_tool_repair_" + idCounter++),
-                        anvilToolRecipe
-                ));
+                Identifier anvilId = Identifier.fromNamespaceAndPath("ami", "anvil_tool_repair_" + idCounter++);
+                var anvilToolRecipe = new com.sanhiruzu.ami.neoforge.recipe.special.AnvilRepairRecipe(damaged1, Ingredient.of(item), combinedRepaired, ANVIL_REPAIRING);
+                AmiRecipeHolder<?> anvilHolder = wrapSpecial(anvilId, anvilToolRecipe);
 
+                Identifier grindId = Identifier.fromNamespaceAndPath("ami", "grindstone_tool_repair_" + idCounter++);
                 var grindstoneRecipe = new com.sanhiruzu.ami.neoforge.recipe.special.GrindstoneRepairRecipe(damaged1, damaged2, combinedRepaired, GRINDING);
-                AmiRecipeHolder<?> grindstoneHolder = wrap(new RecipeHolder<>(
-                        net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("ami", "grindstone_tool_repair_" + idCounter++),
-                        grindstoneRecipe
-                ));
+                AmiRecipeHolder<?> grindstoneHolder = wrapSpecial(grindId, grindstoneRecipe);
 
                 addOutput(item, anvilHolder);
                 addInput(item, anvilHolder);
@@ -332,11 +332,9 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
                 float chance = entry.getValue();
 
                 ItemStack stack = item.getDefaultInstance();
+                Identifier id = Identifier.fromNamespaceAndPath("ami", "composting_" + idCounter++);
                 var recipe = new com.sanhiruzu.ami.neoforge.recipe.special.CompostingRecipe(stack, chance, COMPOSTING);
-                AmiRecipeHolder<?> holder = wrap(new RecipeHolder<>(
-                        net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("ami", "composting_" + idCounter++),
-                        recipe
-                ));
+                AmiRecipeHolder<?> holder = wrapSpecial(id, recipe);
 
                 addOutput(net.minecraft.world.item.Items.BONE_MEAL, holder);
                 addInput(item, holder);
@@ -346,29 +344,19 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
         }
     }
 
-    private void indexFuels() {
+    private void indexFuels(Level level) {
         try {
             int idCounter = 0;
+            net.minecraft.world.level.block.entity.FuelValues fuelValues = level.fuelValues();
 
             for (Item item : net.minecraft.core.registries.BuiltInRegistries.ITEM) {
                 ItemStack stack = item.getDefaultInstance();
-                int burnTime = 0;
-                try {
-                    burnTime = stack.getBurnTime(RecipeType.SMELTING);
-                } catch (Throwable ignored) {
-                    if (item == net.minecraft.world.item.Items.COAL || item == net.minecraft.world.item.Items.CHARCOAL) {
-                        burnTime = 1600;
-                    } else if (item == net.minecraft.world.item.Items.LAVA_BUCKET) {
-                        burnTime = 20000;
-                    }
-                }
+                int burnTime = fuelValues.burnDuration(stack);
 
                 if (burnTime > 0) {
+                    Identifier id = Identifier.fromNamespaceAndPath("ami", "fuel_" + idCounter++);
                     var recipe = new com.sanhiruzu.ami.neoforge.recipe.special.FuelRecipe(stack, burnTime, FUEL);
-                    AmiRecipeHolder<?> holder = wrap(new RecipeHolder<>(
-                            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("ami", "fuel_" + idCounter++),
-                            recipe
-                    ));
+                    AmiRecipeHolder<?> holder = wrapSpecial(id, recipe);
 
                     addInput(item, holder);
                 }
@@ -381,8 +369,8 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
     private void indexDisenchanting(Level level) {
         try {
             int idCounter = 0;
-            var enchantmentRegistry = level.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
-            var firstEnchantOpt = enchantmentRegistry.holders().findFirst();
+            var enchantmentRegistry = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
+            var firstEnchantOpt = enchantmentRegistry.listElements().findFirst();
 
             for (Item item : net.minecraft.core.registries.BuiltInRegistries.ITEM) {
                 ItemStack defaultStack = item.getDefaultInstance();
@@ -394,11 +382,9 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
                     enchantedInput.enchant(firstEnchantOpt.get(), 1);
                 }
 
+                Identifier id = Identifier.fromNamespaceAndPath("ami", "disenchanting_tool_" + idCounter++);
                 var recipe = new com.sanhiruzu.ami.neoforge.recipe.special.GrindstoneDisenchantingRecipe(enchantedInput, defaultStack, GRINDING);
-                AmiRecipeHolder<?> holder = wrap(new RecipeHolder<>(
-                        net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("ami", "disenchanting_tool_" + idCounter++),
-                        recipe
-                ));
+                AmiRecipeHolder<?> holder = wrapSpecial(id, recipe);
 
                 addOutput(item, holder);
                 addInput(item, holder);
@@ -410,11 +396,9 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
             }
             ItemStack normalBook = new ItemStack(net.minecraft.world.item.Items.BOOK);
 
+            Identifier bookId = Identifier.fromNamespaceAndPath("ami", "disenchanting_book_" + idCounter++);
             var bookRecipe = new com.sanhiruzu.ami.neoforge.recipe.special.GrindstoneDisenchantingRecipe(enchantedBook, normalBook, GRINDING);
-            AmiRecipeHolder<?> bookHolder = wrap(new RecipeHolder<>(
-                    net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("ami", "disenchanting_book_" + idCounter++),
-                    bookRecipe
-            ));
+            AmiRecipeHolder<?> bookHolder = wrapSpecial(bookId, bookRecipe);
 
             addOutput(net.minecraft.world.item.Items.BOOK, bookHolder);
             addInput(net.minecraft.world.item.Items.ENCHANTED_BOOK, bookHolder);
@@ -427,13 +411,13 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
     private void indexEnchanting(Level level) {
         try {
             int idCounter = 0;
-            var enchantmentRegistry = level.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
+            var enchantmentRegistry = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
 
             for (Item item : net.minecraft.core.registries.BuiltInRegistries.ITEM) {
                 ItemStack toolStack = item.getDefaultInstance();
                 if (!toolStack.isEnchantable() && toolStack.getMaxDamage() <= 0) continue;
 
-                for (net.minecraft.core.Holder.Reference<net.minecraft.world.item.enchantment.Enchantment> enchantRef : enchantmentRegistry.holders().toList()) {
+                for (net.minecraft.core.Holder.Reference<net.minecraft.world.item.enchantment.Enchantment> enchantRef : enchantmentRegistry.listElements().toList()) {
                     net.minecraft.world.item.enchantment.Enchantment enchantment = enchantRef.value();
 
                     if (enchantment.canEnchant(toolStack)) {
@@ -445,11 +429,9 @@ public final class AmiRecipeIndex extends AmiRecipeIndexBase {
                         ItemStack enchantedTool = toolStack.copy();
                         enchantedTool.enchant(enchantRef, maxLevel);
 
+                        Identifier id = Identifier.fromNamespaceAndPath("ami", "enchanting_" + idCounter++);
                         var recipe = new com.sanhiruzu.ami.neoforge.recipe.special.AnvilEnchantingRecipe(toolStack, enchantedBook, enchantedTool, ANVIL_REPAIRING);
-                        AmiRecipeHolder<?> holder = wrap(new RecipeHolder<>(
-                                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("ami", "enchanting_" + idCounter++),
-                                recipe
-                        ));
+                        AmiRecipeHolder<?> holder = wrapSpecial(id, recipe);
 
                         addOutput(item, holder);
                         addInput(item, holder);

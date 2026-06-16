@@ -7,7 +7,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.SearchService;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -42,7 +42,7 @@ class SilentGearMaterialTraitIndexTest {
         index.addNode(finishedRod);
 
         SilentGearMaterialTraitIndex.MaterialRecord record = SilentGearMaterialTraitIndex.materialRecord(
-                new ResourceLocation("silentgear", "silentgear_materials/crimson_steel.json"),
+                new Identifier("silentgear", "silentgear_materials/crimson_steel.json"),
                 materialJson());
         assertEquals(1, SilentGearMaterialTraitIndex.applyMaterialRecords(index, List.of(record)));
 
@@ -90,6 +90,6 @@ class SilentGearMaterialTraitIndexTest {
     }
 
     private static SearchNode item(String namespace, String path, String displayName, Map<String, String> metadata) {
-        return new SearchNode(new ResourceLocation(namespace, path), NodeType.ITEM, displayName, 0, 0, metadata);
+        return new SearchNode(new Identifier(namespace, path), NodeType.ITEM, displayName, 0, 0, metadata);
     }
 }

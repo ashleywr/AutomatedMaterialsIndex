@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.api;
 import com.sanhiruzu.searchableguides.api.SearchableGuideDocument;
 import com.sanhiruzu.searchableguides.api.SearchableGuideProvider;
 import com.sanhiruzu.searchableguides.api.SearchableGuideProviders;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.*;
 import java.util.logging.Level;
@@ -15,7 +15,7 @@ import java.util.logging.Logger;
  */
 public final class AmiGuideRegistry {
     private static final Logger LOGGER = Logger.getLogger(AmiGuideRegistry.class.getName());
-    private static final Map<ResourceLocation, AmiGuideDocument> DOCUMENTS = new LinkedHashMap<>();
+    private static final Map<Identifier, AmiGuideDocument> DOCUMENTS = new LinkedHashMap<>();
 
     private AmiGuideRegistry() {
     }

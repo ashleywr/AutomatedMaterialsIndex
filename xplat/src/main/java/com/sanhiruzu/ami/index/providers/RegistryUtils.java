@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.index.providers;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.util.AmiColors;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.ItemStack;
 
@@ -73,7 +73,7 @@ public final class RegistryUtils {
         };
     }
 
-    public static int dimensionColor(ResourceLocation id) {
+    public static int dimensionColor(Identifier id) {
         return switch (id.toString()) {
             case "minecraft:overworld" -> AmiColors.DIM_OVERWORLD;
             case "minecraft:the_nether" -> AmiColors.DIM_NETHER;
@@ -84,8 +84,8 @@ public final class RegistryUtils {
 
     public static int getAverageColor(ItemStack stack) {
         if (stack.isEmpty()) return 0xFF808080;
-        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        int hash = id != null ? id.toString().hashCode() : stack.getDescriptionId().hashCode();
+        Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        int hash = id != null ? id.toString().hashCode() : stack.getHoverName().getString().hashCode();
         int r = 64 + ((hash >> 16) & 0xBF);
         int g = 64 + ((hash >> 8) & 0xBF);
         int b = 64 + (hash & 0xBF);

@@ -1,21 +1,13 @@
 package com.sanhiruzu.ami.client;
 
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.sanhiruzu.ami.platform.Services;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.GameRenderer;
-import org.joml.Matrix4f;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Batches flat GUI rectangles into one POSITION_COLOR draw. This avoids many
- * tiny GuiGraphics.fill calls on dense AMI result grids.
- *
- * <p>The vertex-buffer plumbing (begin/vertex/build/draw) lives behind
- * {@link Services#PLATFORM} because the API differs between MC versions and, on Fabric,
- * must be called directly (not via reflection by name) so Loom remaps it to intermediary.
+ * Batches flat GUI rectangles into one draw call. Falls back to GuiGraphicsExtractor.fill()
+ * in MC 26.x where the vertex-buffer plumbing was removed.
  */
 public final class ColoredQuadBatch {
     private final List<Rect> rects = new ArrayList<>();
@@ -50,34 +42,13 @@ public final class ColoredQuadBatch {
         fill(x + width - 1, y + 1, x + width, y + height - 1, color);
     }
 
-    public void flush(GuiGraphics graphics) {
+    public void flush(GuiGraphicsExtractor graphics) {
         if (count == 0) return;
-
-        graphics.flush();
-        RenderStateSnapshot state = RenderStateSnapshot.capture();
-        try {
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-            RenderSystem.setShader(GameRenderer::getPositionColorShader);
-
-            Matrix4f matrix = graphics.pose().last().pose();
-            Object buffer = Services.PLATFORM.beginGuiQuadBatch(false);
-            for (int i = 0; i < count; i++) {
-                Rect rect = rects.get(i);
-                float a = ((rect.color >>> 24) & 0xFF) / 255.0f;
-                float r = ((rect.color >>> 16) & 0xFF) / 255.0f;
-                float g = ((rect.color >>> 8) & 0xFF) / 255.0f;
-                float b = (rect.color & 0xFF) / 255.0f;
-                Services.PLATFORM.guiQuadVertex(buffer, matrix, rect.x1, rect.y2, 0f, 0f, r, g, b, a, false);
-                Services.PLATFORM.guiQuadVertex(buffer, matrix, rect.x2, rect.y2, 0f, 0f, r, g, b, a, false);
-                Services.PLATFORM.guiQuadVertex(buffer, matrix, rect.x2, rect.y1, 0f, 0f, r, g, b, a, false);
-                Services.PLATFORM.guiQuadVertex(buffer, matrix, rect.x1, rect.y1, 0f, 0f, r, g, b, a, false);
-            }
-            Services.PLATFORM.endAndDrawGuiQuadBatch(buffer);
-        } finally {
-            state.restore();
-            clear();
+        for (int i = 0; i < count; i++) {
+            Rect rect = rects.get(i);
+            graphics.fill(rect.x1, rect.y1, rect.x2, rect.y2, rect.color);
         }
+        clear();
     }
 
     private static final class Rect {

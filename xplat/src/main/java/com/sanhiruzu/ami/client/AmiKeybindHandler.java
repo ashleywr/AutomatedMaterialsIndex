@@ -46,7 +46,9 @@ public class AmiKeybindHandler {
 
         var keys = Services.PLATFORM.keyMappings();
 
-        InputConstants.Key pressedKey = InputConstants.getKey(keyCode, scanCode);
+        InputConstants.Key pressedKey = keyCode == -1
+                ? InputConstants.Type.SCANCODE.getOrCreate(scanCode)
+                : InputConstants.Type.KEYSYM.getOrCreate(keyCode);
 
         if (AmiKeybinds.activeAndMatches(keys.favorite(), pressedKey)) {
             return handleFavoriteKey();
@@ -82,9 +84,10 @@ public class AmiKeybindHandler {
     }
 
     public static boolean isToggleViewerKey(int keyCode, int scanCode) {
-        return AmiKeybinds.activeAndMatches(
-                Services.PLATFORM.keyMappings().toggleViewer(),
-                InputConstants.getKey(keyCode, scanCode));
+        InputConstants.Key key = keyCode == -1
+                ? InputConstants.Type.SCANCODE.getOrCreate(scanCode)
+                : InputConstants.Type.KEYSYM.getOrCreate(keyCode);
+        return AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().toggleViewer(), key);
     }
 
     private static boolean handleRecipeLookup(boolean showRecipes, boolean allowAmiResultLookup, boolean allowSlotFallback) {

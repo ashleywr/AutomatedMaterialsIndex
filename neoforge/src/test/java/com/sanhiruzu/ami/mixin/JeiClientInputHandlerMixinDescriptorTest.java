@@ -50,20 +50,9 @@ public class JeiClientInputHandlerMixinDescriptorTest {
     }
 
     @Test
-    void forgeMouseScrollInjectorMatchesJei15Signature() throws Exception {
+    void neoForgeMouseScrollInjectorMatchesJei29Signature() throws Exception {
         assertVendorSourceMatches(
-                "../vendor-sources/resolved/jei/forge-1.20.1/runtime/mezz/jei/gui/input/ClientInputHandler.java",
-                Pattern.compile("public\\s+boolean\\s+onGuiMouseScroll\\s*\\(\\s*double\\s+mouseX\\s*,\\s*double\\s+mouseY\\s*,\\s*double\\s+scrollDelta\\s*\\)"));
-
-        assertInjectorDescriptor(
-                "../forge/build/classes/java/main/" + MIXIN_CLASS_FILE,
-                "(DDDLorg/spongepowered/asm/mixin/injection/callback/CallbackInfoReturnable;)V");
-    }
-
-    @Test
-    void neoForgeMouseScrollInjectorMatchesJei19Signature() throws Exception {
-        assertVendorSourceMatches(
-                "../vendor-sources/resolved/jei/neoforge-1.21.1/runtime/mezz/jei/gui/input/ClientInputHandler.java",
+                "../vendor-sources/resolved/jei/neoforge-26.1.2/runtime/mezz/jei/gui/input/ClientInputHandler.java",
                 Pattern.compile("public\\s+boolean\\s+onGuiMouseScroll\\s*\\(\\s*double\\s+mouseX\\s*,\\s*double\\s+mouseY\\s*,\\s*double\\s+scrollDeltaX\\s*,\\s*double\\s+scrollDeltaY\\s*\\)"));
 
         assertInjectorDescriptor(

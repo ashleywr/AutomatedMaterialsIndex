@@ -15,11 +15,11 @@ import com.sanhiruzu.ami.util.AmiClipboardHelper;
 import com.sanhiruzu.ami.util.AmiColors;
 import com.sanhiruzu.ami.util.AmiTooltipComposer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -43,9 +43,9 @@ public class ResultsTreeView {
     private static final int INDENT = 12;
     private static final int SCROLLBAR_W = 6;
     private static final int HEADER_LABEL_H = 16; // height reserved for the optional pinned header (column row)
-    private static final ResourceLocation VANILLA_SCROLLER =
+    private static final Identifier VANILLA_SCROLLER =
             Services.PLATFORM.rl("minecraft", "widget/scroller");
-    private static final ResourceLocation VANILLA_SCROLLER_BACKGROUND =
+    private static final Identifier VANILLA_SCROLLER_BACKGROUND =
             Services.PLATFORM.rl("minecraft", "widget/scroller_background");
 
     // Swatch dots for variant collapsing
@@ -98,12 +98,12 @@ public class ResultsTreeView {
         return (int) Math.ceil(font.width(text) * scale);
     }
 
-    private static void drawBadgeText(GuiGraphics g, net.minecraft.client.gui.Font font, String text, int x, int y,
+    private static void drawBadgeText(GuiGraphicsExtractor g, net.minecraft.client.gui.Font font, String text, int x, int y,
                                       float scale, int color, boolean shadow) {
-        g.pose().pushPose();
-        g.pose().scale(scale, scale, 1.0f);
-        g.drawString(font, text, Math.round(x / scale), Math.round(y / scale), color, shadow);
-        g.pose().popPose();
+        g.pose().pushMatrix();
+        g.pose().scale(scale, scale);
+        g.text(font, text, Math.round(x / scale), Math.round(y / scale), color, shadow);
+        g.pose().popMatrix();
     }
 
     private static String truncate(net.minecraft.client.gui.Font font, String text, int maxW) {
@@ -208,7 +208,7 @@ public class ResultsTreeView {
      * @param sectionLabel Optional label drawn as a sticky header above the scroll region
      *                     (e.g. "Pinned & Discover"). Pass null to omit.
      */
-    public void render(GuiGraphics g, int mouseX, int mouseY, boolean toolbarDropdownOpen,
+    public void render(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean toolbarDropdownOpen,
                        Component sectionLabel, SearchState state) {
         AmiRenderPhase.requireBase("ResultsTreeView.render");
         pendingTooltipLines = null;
@@ -222,8 +222,8 @@ public class ResultsTreeView {
 
         int topOffset = 0;
         if (sectionLabel != null) {
-            g.drawString(Minecraft.getInstance().font,
-                    sectionLabel, x + AMITheme.GLOBAL_PADDING, y + 3, AMITheme.TEXT_HEADER, false);
+            g.text(Minecraft.getInstance().font,
+                    sectionLabel.getString(), x + AMITheme.GLOBAL_PADDING, y + 3, AMITheme.TEXT_HEADER, false);
             topOffset = HEADER_LABEL_H;
         }
 
@@ -234,8 +234,8 @@ public class ResultsTreeView {
 
         if (rootNodes.isEmpty()) {
             if (topContentHeight <= 0) {
-                g.drawString(Minecraft.getInstance().font,
-                        Component.translatable("ami.gui.no_results"), x + AMITheme.GLOBAL_PADDING, y + topOffset + AMITheme.GLOBAL_PADDING, AMITheme.TEXT_SUBTLE, false);
+                g.text(Minecraft.getInstance().font,
+                        Component.translatable("ami.gui.no_results").getString(), x + AMITheme.GLOBAL_PADDING, y + topOffset + AMITheme.GLOBAL_PADDING, AMITheme.TEXT_SUBTLE, false);
             }
             renderScrollbar(g, totalH, contentH, y + topOffset, mouseX, mouseY);
             return;
@@ -257,7 +257,7 @@ public class ResultsTreeView {
 
     }
 
-    public void renderPendingTooltip(GuiGraphics g, int mouseX, int mouseY) {
+    public void renderPendingTooltip(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         var font = Minecraft.getInstance().font;
         if (pendingTooltipLines != null) {
             ItemStack stackContext = (pendingItemStack != null) ? pendingItemStack : ItemStack.EMPTY;
@@ -270,7 +270,7 @@ public class ResultsTreeView {
     /**
      * Backwards-compatible overload used when no section label is needed.
      */
-    public void render(GuiGraphics g, int mouseX, int mouseY, boolean toolbarDropdownOpen, SearchState state) {
+    public void render(GuiGraphicsExtractor g, int mouseX, int mouseY, boolean toolbarDropdownOpen, SearchState state) {
         render(g, mouseX, mouseY, toolbarDropdownOpen, (Component) null, state);
     }
 
@@ -280,7 +280,7 @@ public class ResultsTreeView {
      * @param originY  top of the scrollable content region (y + topOffset)
      * @param contentH height of the scrollable content region
      */
-    private int renderNode(GuiGraphics g, TreeNode node, int depth, int rowIdx,
+    private int renderNode(GuiGraphicsExtractor g, TreeNode node, int depth, int rowIdx,
                            int mouseX, int mouseY, int originY, int contentH, String currentQuery, Set<String> selectedMods) {
         int drawY = originY - pixelScrollOffset + topContentHeight + rowIdx * AMITheme.ROW_HEIGHT;
 
@@ -334,7 +334,7 @@ public class ResultsTreeView {
         return rowIdx;
     }
 
-    private void renderLeaf(GuiGraphics g, TreeNode node, int depth, int drawY, boolean hovered, String currentQuery, Set<String> selectedMods) {
+    private void renderLeaf(GuiGraphicsExtractor g, TreeNode node, int depth, int drawY, boolean hovered, String currentQuery, Set<String> selectedMods) {
         var font = Minecraft.getInstance().font;
         SearchNode entry = node.getEntry();
 
@@ -342,22 +342,22 @@ public class ResultsTreeView {
         int iconY = drawY + (AMITheme.ROW_HEIGHT - AMITheme.ICON_SIZE) / 2;
 
         // Z-lift prevents dark-background clipping on 3D item models
-        g.pose().pushPose();
-        g.pose().translate(iconX + 8, iconY + 8, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
+        g.pose().pushMatrix();
+        g.pose().translate(iconX + 8, iconY + 8);
 
         boolean dragging = com.sanhiruzu.ami.compat.RecipeViewerBridge.isDragging();
         if (dragging || hovered) {
             float time = (System.currentTimeMillis() % 1000) / 1000f;
             float wiggle = (float) Math.sin(time * Math.PI * 2) * 0.05f;
-            g.pose().scale(1.1f + wiggle, 1.1f + wiggle, 1.1f);
+            g.pose().scale(1.1f + wiggle, 1.1f + wiggle);
             if (dragging) {
-                g.pose().mulPose(com.mojang.math.Axis.ZP.rotationDegrees((float) Math.sin(time * Math.PI * 4) * 2f));
+                g.pose().rotate((float) Math.toRadians((float) Math.sin(time * Math.PI * 4) * 2f));
             }
         }
 
         var renderer = usesPlayerModelRenderer(entry) ? RendererRegistry.PLAYER_MODEL : RendererRegistry.get(entry.type());
         renderer.render(g, entry, -8, -8, AMITheme.ICON_SIZE, hovered);
-        g.pose().popPose();
+        g.pose().popMatrix();
         DiscoveryVisuals.renderIconOverlay(g, entry, iconX, iconY, AMITheme.ICON_SIZE);
         AccessLevelOverlayRenderer.renderIconOverlay(g, entry, iconX, iconY, AMITheme.ICON_SIZE);
 
@@ -374,12 +374,12 @@ public class ResultsTreeView {
         String name = truncate(font, node.getLabel().getString(), (int) (availScreenPx / currentLabelScale));
 
         int screenTextY = drawY + (int) ((AMITheme.ROW_HEIGHT - font.lineHeight * currentLabelScale) / 2);
-        g.pose().pushPose();
-        g.pose().scale(currentLabelScale, currentLabelScale, 1f);
-        g.drawString(font, name,
+        g.pose().pushMatrix();
+        g.pose().scale(currentLabelScale, currentLabelScale);
+        g.text(font, name,
                 Math.round(textX / currentLabelScale), Math.round(screenTextY / currentLabelScale),
                 DiscoveryVisuals.primaryTextColor(entry, AMITheme.TEXT_PRIMARY), currentLabelScale >= 1f);
-        g.pose().popPose();
+        g.pose().popMatrix();
 
         // Mod name (on the second line, right aligned)
         // Check for @modid match in query or in selectedMods context object
@@ -417,7 +417,7 @@ public class ResultsTreeView {
 
     // ── Group header ──────────────────────────────────────────────────────────
 
-    private void renderBadges(GuiGraphics g, net.minecraft.client.gui.Font font,
+    private void renderBadges(GuiGraphicsExtractor g, net.minecraft.client.gui.Font font,
                               SearchNode entry, int drawY, int rightEdge, int modNameColor, boolean dropShadow) {
         int currentX = rightEdge;
         float badgeScale = currentLabelScale;
@@ -426,20 +426,20 @@ public class ResultsTreeView {
         // Tool Requirement Badge — 12×12, vertically centred
         String reqToolStr = entry.meta(SearchNodeKeys.REQUIRED_TOOL, "");
         if (!reqToolStr.isEmpty()) {
-            ResourceLocation toolId = ResourceLocation.tryParse(reqToolStr);
+            Identifier toolId = Identifier.tryParse(reqToolStr);
             if (toolId != null) {
-                Item toolItem = BuiltInRegistries.ITEM.get(toolId);
+                Item toolItem = BuiltInRegistries.ITEM.getValue(toolId);
                 if (toolItem != null && toolItem != net.minecraft.world.item.Items.AIR) {
                     ItemStack toolStack = new ItemStack(toolItem);
                     int TOOL_ICON_SIZE = 12;
                     int iconX = currentX - TOOL_ICON_SIZE;
                     int iconY = drawY + (AMITheme.ROW_HEIGHT - TOOL_ICON_SIZE) / 2;
-                    g.pose().pushPose();
-                    g.pose().translate(iconX + TOOL_ICON_SIZE / 2.0, iconY + TOOL_ICON_SIZE / 2.0, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
+                    g.pose().pushMatrix();
+                    g.pose().translate((float)(iconX + TOOL_ICON_SIZE / 2.0), (float)(iconY + TOOL_ICON_SIZE / 2.0));
                     float toolScale = TOOL_ICON_SIZE / 16.0f;
-                    g.pose().scale(toolScale, toolScale, 1.0f);
-                    g.renderItem(toolStack, -8, -8);
-                    g.pose().popPose();
+                    g.pose().scale(toolScale, toolScale);
+                    g.item(toolStack, -8, -8);
+                    g.pose().popMatrix();
                 }
             }
         }
@@ -498,7 +498,7 @@ public class ResultsTreeView {
         }
     }
 
-    private int renderQuestBadge(GuiGraphics g, net.minecraft.client.gui.Font font,
+    private int renderQuestBadge(GuiGraphicsExtractor g, net.minecraft.client.gui.Font font,
                                  QuestItemEvidence evidence, int currentX, int drawY, float scale) {
         String label = evidence.badgeLabel();
         int textW = scaledBadgeWidth(font, label, scale);
@@ -542,7 +542,7 @@ public class ResultsTreeView {
         return w;
     }
 
-    private void renderGroup(GuiGraphics g, TreeNode node, int depth, int drawY, boolean hovered) {
+    private void renderGroup(GuiGraphicsExtractor g, TreeNode node, int depth, int drawY, boolean hovered) {
         var font = Minecraft.getInstance().font;
         int indent = depth * INDENT;
         int rowX = x + AMITheme.GLOBAL_PADDING + indent;
@@ -550,17 +550,16 @@ public class ResultsTreeView {
         // Expansion Toggle — brighter than text to show importance
         String arrow = node.isExpanded() ? "▼" : "▶";
         int caretY = drawY + (AMITheme.ROW_HEIGHT - font.lineHeight) / 2;
-        g.drawString(font, arrow, rowX, caretY, AMITheme.TEXT_PRIMARY, false);
+        g.text(font, arrow, rowX, caretY, AMITheme.TEXT_PRIMARY, false);
 
         // Group icon
         ItemStack icon = resolveGroupIcon(node);
         if (!icon.isEmpty()) {
             int iconX = rowX + 12;
             int iconY = drawY + 1;
-            g.pose().pushPose();
-            g.pose().translate(0, 0, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
-            g.renderItem(icon, iconX, iconY);
-            g.pose().popPose();
+            g.pose().pushMatrix();
+            g.item(icon, iconX, iconY);
+            g.pose().popMatrix();
         }
 
         // Count Badge — just the number, no repeated label
@@ -579,28 +578,28 @@ public class ResultsTreeView {
         String label = truncate(font, labelStr, Math.max(0, (int) (labelMaxW / currentLabelScale)));
 
         int screenLabelY = drawY + (int) ((AMITheme.ROW_HEIGHT - font.lineHeight * currentLabelScale) / 2);
-        g.pose().pushPose();
-        g.pose().scale(currentLabelScale, currentLabelScale, 1f);
+        g.pose().pushMatrix();
+        g.pose().scale(currentLabelScale, currentLabelScale);
 
         int labelColor = depth == 0 ? AMITheme.TEXT_PRIMARY : node.isModGroup() ? AmiColors.MOD_COLOR : AMITheme.TEXT_HEADER;
         if (node.isHighCardinality()) {
             labelColor = AMITheme.GRID_GOLD_BORDER; // Gold for high-cardinality groups
         }
 
-        g.drawString(font, label,
+        g.text(font, label,
                 Math.round((rowX + 32) / currentLabelScale), Math.round(screenLabelY / currentLabelScale),
                 labelColor, depth == 0 && currentLabelScale >= 1f);
-        g.pose().popPose();
+        g.pose().popMatrix();
 
         // Render badge at the same scale as the group label — higher contrast for visibility
         int badgeY = drawY + (int) ((AMITheme.ROW_HEIGHT - font.lineHeight * currentLabelScale) / 2);
-        g.pose().pushPose();
-        g.pose().scale(currentLabelScale, currentLabelScale, 1f);
-        g.drawString(font, badge,
+        g.pose().pushMatrix();
+        g.pose().scale(currentLabelScale, currentLabelScale);
+        g.text(font, badge,
                 Math.round(badgeX / currentLabelScale),
                 Math.round(badgeY / currentLabelScale),
                 AMITheme.TEXT_PRIMARY, false);
-        g.pose().popPose();
+        g.pose().popMatrix();
     }
 
     private ItemStack resolveGroupIcon(TreeNode node) {
@@ -608,9 +607,9 @@ public class ResultsTreeView {
             String key = node.getKey();
             if (key.startsWith("cardinality:")) {
                 String baseIdStr = key.substring(12);
-                ResourceLocation baseLoc = ResourceLocation.tryParse(baseIdStr);
+                Identifier baseLoc = Identifier.tryParse(baseIdStr);
                 if (baseLoc != null) {
-                    Item item = BuiltInRegistries.ITEM.get(baseLoc);
+                    Item item = BuiltInRegistries.ITEM.getValue(baseLoc);
                     if (item != null && item != net.minecraft.world.item.Items.AIR) {
                         return new ItemStack(item);
                     }
@@ -621,9 +620,9 @@ public class ResultsTreeView {
         // Category-level nodes use the ontology's designated icon item.
         if (AmiOntology.isDefinedCategoryId(node.getKey())) {
             AmiOntology.Category cat = AmiOntology.categoryForId(node.getKey());
-            ResourceLocation iconId = ResourceLocation.tryParse(cat.iconItemId);
+            Identifier iconId = Identifier.tryParse(cat.iconItemId);
             if (iconId != null) {
-                Item item = BuiltInRegistries.ITEM.get(iconId);
+                Item item = BuiltInRegistries.ITEM.getValue(iconId);
                 if (item != null && item != net.minecraft.world.item.Items.AIR) {
                     return new ItemStack(item);
                 }
@@ -674,7 +673,7 @@ public class ResultsTreeView {
     /**
      * Draws up to MAX_SWATCHES coloured dots as a subtitle for group rows.
      */
-    private void renderSwatches(GuiGraphics g, TreeNode group, int drawY, int depth) {
+    private void renderSwatches(GuiGraphicsExtractor g, TreeNode group, int drawY, int depth) {
         List<Integer> swatchColors = collectSwatchColors(group, MAX_SWATCHES);
         if (swatchColors.isEmpty()) return;
 
@@ -722,7 +721,7 @@ public class ResultsTreeView {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private void renderScrollbar(GuiGraphics g, int totalH, int contentH, int originY,
+    private void renderScrollbar(GuiGraphicsExtractor g, int totalH, int contentH, int originY,
                                  int mouseX, int mouseY) {
         if (totalH <= contentH) return;
 
@@ -848,13 +847,13 @@ public class ResultsTreeView {
     }
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (com.sanhiruzu.ami.client.AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().favorite(), com.mojang.blaze3d.platform.InputConstants.getKey(keyCode, scanCode))) {
+        if (com.sanhiruzu.ami.client.AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().favorite(), com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM.getOrCreate(keyCode))) {
             if (hoveredNode != null) {
                 com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().toggleFavorite(hoveredNode);
                 return true;
             }
         }
-        if (keyCode == GLFW.GLFW_KEY_C && Screen.hasControlDown()) {
+        if (keyCode == GLFW.GLFW_KEY_C && Minecraft.getInstance().hasControlDown()) {
             if (pendingItemStack != null && !pendingItemStack.isEmpty()) {
                 AmiClipboardHelper.copyItemTooltipToClipboard(pendingItemStack);
                 return true;

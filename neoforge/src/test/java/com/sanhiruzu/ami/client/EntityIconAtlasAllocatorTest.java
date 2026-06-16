@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.client;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -10,9 +10,9 @@ class EntityIconAtlasAllocatorTest {
     void allocatesDeterministicSlotsByInsertionOrder() {
         EntityIconAtlasAllocator allocator = new EntityIconAtlasAllocator(32, 16);
 
-        EntityIconAtlasAllocator.AtlasEntry first = allocator.allocate(ResourceLocation.parse("minecraft:zombie"));
-        EntityIconAtlasAllocator.AtlasEntry second = allocator.allocate(ResourceLocation.parse("minecraft:skeleton"));
-        EntityIconAtlasAllocator.AtlasEntry third = allocator.allocate(ResourceLocation.parse("minecraft:creeper"));
+        EntityIconAtlasAllocator.AtlasEntry first = allocator.allocate(Identifier.parse("minecraft:zombie"));
+        EntityIconAtlasAllocator.AtlasEntry second = allocator.allocate(Identifier.parse("minecraft:skeleton"));
+        EntityIconAtlasAllocator.AtlasEntry third = allocator.allocate(Identifier.parse("minecraft:creeper"));
 
         assertEquals(new EntityIconAtlasAllocator.AtlasEntry(0, 0), first);
         assertEquals(new EntityIconAtlasAllocator.AtlasEntry(16, 0), second);
@@ -23,7 +23,7 @@ class EntityIconAtlasAllocatorTest {
     @Test
     void duplicateAllocationReturnsExistingEntry() {
         EntityIconAtlasAllocator allocator = new EntityIconAtlasAllocator(32, 16);
-        ResourceLocation id = ResourceLocation.parse("minecraft:zombie");
+        Identifier id = Identifier.parse("minecraft:zombie");
 
         EntityIconAtlasAllocator.AtlasEntry first = allocator.allocate(id);
         EntityIconAtlasAllocator.AtlasEntry second = allocator.allocate(id);
@@ -36,11 +36,11 @@ class EntityIconAtlasAllocatorTest {
     void returnsNullWhenAtlasIsFull() {
         EntityIconAtlasAllocator allocator = new EntityIconAtlasAllocator(32, 16);
 
-        assertNotNull(allocator.allocate(ResourceLocation.parse("minecraft:a")));
-        assertNotNull(allocator.allocate(ResourceLocation.parse("minecraft:b")));
-        assertNotNull(allocator.allocate(ResourceLocation.parse("minecraft:c")));
-        assertNotNull(allocator.allocate(ResourceLocation.parse("minecraft:d")));
+        assertNotNull(allocator.allocate(Identifier.parse("minecraft:a")));
+        assertNotNull(allocator.allocate(Identifier.parse("minecraft:b")));
+        assertNotNull(allocator.allocate(Identifier.parse("minecraft:c")));
+        assertNotNull(allocator.allocate(Identifier.parse("minecraft:d")));
 
-        assertNull(allocator.allocate(ResourceLocation.parse("minecraft:e")));
+        assertNull(allocator.allocate(Identifier.parse("minecraft:e")));
     }
 }

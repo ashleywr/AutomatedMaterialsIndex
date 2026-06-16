@@ -8,7 +8,7 @@ import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.api.AmiGuideOpeners;
 import com.sanhiruzu.ami.index.GlobalIndexCache;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 
@@ -42,15 +42,15 @@ public final class ResourceBookRuntimeGuideSource {
         ResourceManager resourceManager = resourceManager();
         ResourceManager clientResources = clientResourceManager();
         String language = GlobalIndexCache.currentClientLanguageCacheKey();
-        Map<ResourceLocation, String> textById = readGuideTextResources(resourceManager, clientResources);
-        Map<ResourceLocation, String> langById = readGuideLanguageResources(clientResources, language);
+        Map<Identifier, String> textById = readGuideTextResources(resourceManager, clientResources);
+        Map<Identifier, String> langById = readGuideLanguageResources(clientResources, language);
         for (AmiGuideDocument document : documentsFromResources(textById, langById, language)) {
             documents.accept(document);
         }
     }
 
-    private static Map<ResourceLocation, String> readGuideTextResources(ResourceManager resourceManager, ResourceManager clientResources) {
-        Map<ResourceLocation, String> out = new LinkedHashMap<>();
+    private static Map<Identifier, String> readGuideTextResources(ResourceManager resourceManager, ResourceManager clientResources) {
+        Map<Identifier, String> out = new LinkedHashMap<>();
         if (resourceManager != null) {
             readGuideTextResourcesInto(out, resourceManager);
         }
@@ -60,14 +60,14 @@ public final class ResourceBookRuntimeGuideSource {
         return out;
     }
 
-    private static void readGuideTextResourcesInto(Map<ResourceLocation, String> target, ResourceManager resourceManager) {
+    private static void readGuideTextResourcesInto(Map<Identifier, String> target, ResourceManager resourceManager) {
         for (String root : GUIDE_TEXT_ROOTS) {
             target.putAll(readResources(resourceManager, root, ResourceBookRuntimeGuideSource::isRelevantResource));
         }
     }
 
-    private static Map<ResourceLocation, String> readGuideLanguageResources(ResourceManager resourceManager, String selectedLanguage) {
-        Map<ResourceLocation, String> out = new LinkedHashMap<>();
+    private static Map<Identifier, String> readGuideLanguageResources(ResourceManager resourceManager, String selectedLanguage) {
+        Map<Identifier, String> out = new LinkedHashMap<>();
         if (resourceManager == null) {
             return out;
         }
@@ -78,7 +78,7 @@ public final class ResourceBookRuntimeGuideSource {
     }
 
     private static void targetLanguageResources(ResourceManager resourceManager,
-                                               Map<ResourceLocation, String> out,
+                                               Map<Identifier, String> out,
                                                String languagePath) {
         readResources(resourceManager, languagePath, id -> id.getPath().endsWith(".json"))
                 .entrySet()
@@ -97,8 +97,8 @@ public final class ResourceBookRuntimeGuideSource {
         return out;
     }
 
-    static List<AmiGuideDocument> documentsFromResources(Map<ResourceLocation, String> resourceTextById,
-                                                         Map<ResourceLocation, String> langJsonById,
+    static List<AmiGuideDocument> documentsFromResources(Map<Identifier, String> resourceTextById,
+                                                         Map<Identifier, String> langJsonById,
                                                          String selectedLanguage) {
         if (resourceTextById == null || resourceTextById.isEmpty()) {
             return List.of();
@@ -115,8 +115,8 @@ public final class ResourceBookRuntimeGuideSource {
         return List.copyOf(documents);
     }
 
-    private static List<AmiGuideDocument> mantleDocuments(Map<ResourceLocation, String> resources, String selectedLanguage) {
-        Map<ResourceLocation, MantleBookResources> books = new LinkedHashMap<>();
+    private static List<AmiGuideDocument> mantleDocuments(Map<Identifier, String> resources, String selectedLanguage) {
+        Map<Identifier, MantleBookResources> books = new LinkedHashMap<>();
         resources.entrySet().stream()
                 .sorted(Comparator.comparing(entry -> entry.getKey().toString()))
                 .forEach(entry -> parseMantleResource(entry.getKey()).ifPresent(resource -> {
@@ -128,13 +128,13 @@ public final class ResourceBookRuntimeGuideSource {
                 }));
 
         List<AmiGuideDocument> out = new ArrayList<>();
-        for (Map.Entry<ResourceLocation, MantleBookResources> entry : books.entrySet()) {
+        for (Map.Entry<Identifier, MantleBookResources> entry : books.entrySet()) {
             out.addAll(mantleBookDocuments(entry.getKey(), entry.getValue()));
         }
         return out;
     }
 
-    private static List<AmiGuideDocument> mantleBookDocuments(ResourceLocation bookId, MantleBookResources book) {
+    private static List<AmiGuideDocument> mantleBookDocuments(Identifier bookId, MantleBookResources book) {
         List<AmiGuideDocument> out = new ArrayList<>();
         Set<String> emittedPages = new LinkedHashSet<>();
         List<MantleSectionRef> sectionRefs = parseMantleSectionRefs(book.indexJson());
@@ -162,7 +162,7 @@ public final class ResourceBookRuntimeGuideSource {
         return out;
     }
 
-    private static Optional<AmiGuideDocument> mantleDocument(ResourceLocation bookId, String pageId,
+    private static Optional<AmiGuideDocument> mantleDocument(Identifier bookId, String pageId,
                                                             String chapter, String pageJson) {
         if (pageJson == null || pageJson.isBlank()) {
             return Optional.empty();
@@ -171,7 +171,7 @@ public final class ResourceBookRuntimeGuideSource {
         if (page.summary().isBlank()) {
             return Optional.empty();
         }
-        ResourceLocation documentId = ResourceLocation.fromNamespaceAndPath(
+        Identifier documentId = Identifier.fromNamespaceAndPath(
                 "ami",
                 "guide/mantle/" + bookId.getNamespace() + "/" + safePath(bookId.getPath()) + "/" + safePath(pageId)
         );
@@ -189,12 +189,12 @@ public final class ResourceBookRuntimeGuideSource {
                 .build());
     }
 
-    private static List<AmiGuideDocument> alexStyleDocuments(Map<ResourceLocation, String> resources,
+    private static List<AmiGuideDocument> alexStyleDocuments(Map<Identifier, String> resources,
                                                             Map<String, String> translations,
                                                             String selectedLanguage) {
         List<AmiGuideDocument> out = new ArrayList<>();
-        Map<ResourceLocation, String> pages = new LinkedHashMap<>();
-        for (ResourceLocation id : resources.keySet()) {
+        Map<Identifier, String> pages = new LinkedHashMap<>();
+        for (Identifier id : resources.keySet()) {
             if (isAlexStylePage(id)) {
                 pages.put(id, resources.get(id));
             }
@@ -206,9 +206,9 @@ public final class ResourceBookRuntimeGuideSource {
         return out;
     }
 
-    private static Optional<AmiGuideDocument> alexStyleDocument(ResourceLocation pageId,
+    private static Optional<AmiGuideDocument> alexStyleDocument(Identifier pageId,
                                                                String pageJson,
-                                                               Map<ResourceLocation, String> resources,
+                                                               Map<Identifier, String> resources,
                                                                Map<String, String> translations,
                                                                String selectedLanguage) {
         JsonObject json = parseObject(pageJson);
@@ -225,13 +225,13 @@ public final class ResourceBookRuntimeGuideSource {
         }
         String title = translated(string(json, "title"), translations, humanize(leaf(pagePath)));
         String textResource = string(json, "text");
-        ResourceLocation localizedTextId = ResourceLocation.fromNamespaceAndPath(
+        Identifier localizedTextId = Identifier.fromNamespaceAndPath(
                 pageId.getNamespace(),
                 book.textRoot() + "/" + normalizeLanguage(selectedLanguage) + "/" + normalizeRelativeTextPath(pagePath, textResource)
         );
         String text = resources.get(localizedTextId);
         if (text == null && !DEFAULT_LANGUAGE.equals(normalizeLanguage(selectedLanguage))) {
-            localizedTextId = ResourceLocation.fromNamespaceAndPath(
+            localizedTextId = Identifier.fromNamespaceAndPath(
                     pageId.getNamespace(),
                     book.textRoot() + "/" + DEFAULT_LANGUAGE + "/" + normalizeRelativeTextPath(pagePath, textResource)
             );
@@ -241,9 +241,9 @@ public final class ResourceBookRuntimeGuideSource {
         if (summary.isBlank()) {
             return Optional.empty();
         }
-        Set<ResourceLocation> referencedItems = new LinkedHashSet<>();
+        Set<Identifier> referencedItems = new LinkedHashSet<>();
         collectItems(json, referencedItems);
-        ResourceLocation documentId = ResourceLocation.fromNamespaceAndPath(
+        Identifier documentId = Identifier.fromNamespaceAndPath(
                 "ami",
                 "guide/resource_book/" + pageId.getNamespace() + "/" + safePath(book.bookId().getPath()) + "/" + safePath(pagePath)
         );
@@ -260,7 +260,7 @@ public final class ResourceBookRuntimeGuideSource {
                 .build());
     }
 
-    private static List<AmiGuideDocument> mnaGuideDocuments(Map<ResourceLocation, String> resources, String selectedLanguage) {
+    private static List<AmiGuideDocument> mnaGuideDocuments(Map<Identifier, String> resources, String selectedLanguage) {
         List<AmiGuideDocument> out = new ArrayList<>();
         resources.entrySet().stream()
                 .filter(entry -> isMnaGuideResource(entry.getKey(), selectedLanguage))
@@ -269,7 +269,7 @@ public final class ResourceBookRuntimeGuideSource {
         return out;
     }
 
-    private static List<AmiGuideDocument> mnaGuideFileDocuments(ResourceLocation id, String jsonText) {
+    private static List<AmiGuideDocument> mnaGuideFileDocuments(Identifier id, String jsonText) {
         JsonObject json = parseObject(jsonText);
         if (json == null) {
             return List.of();
@@ -287,16 +287,16 @@ public final class ResourceBookRuntimeGuideSource {
             if (summary.isBlank()) {
                 continue;
             }
-            Set<ResourceLocation> referencedItems = new LinkedHashSet<>();
+            Set<Identifier> referencedItems = new LinkedHashSet<>();
             collectItems(guideEntry, referencedItems);
             String pageId = id.getNamespace() + ":" + packPath + "#" + entry.getKey();
-            ResourceLocation documentId = ResourceLocation.fromNamespaceAndPath(
+            Identifier documentId = Identifier.fromNamespaceAndPath(
                     "ami",
                     "guide/mna/" + id.getNamespace() + "/" + safePath(packPath) + "/" + safePath(entry.getKey())
             );
             out.add(AmiGuideDocument.builder(documentId, "mna_guide_json", id.getNamespace(), title)
-                    .bookId(ResourceLocation.fromNamespaceAndPath("mna", "guide_book"))
-                    .iconItemId(ResourceLocation.fromNamespaceAndPath("mna", "guide_book"))
+                    .bookId(Identifier.fromNamespaceAndPath("mna", "guide_book"))
+                    .iconItemId(Identifier.fromNamespaceAndPath("mna", "guide_book"))
                     .pageId(pageId)
                     .chapter(humanize(category))
                     .referencedItems(List.copyOf(referencedItems))
@@ -309,7 +309,7 @@ public final class ResourceBookRuntimeGuideSource {
         return out;
     }
 
-    private static List<AmiGuideDocument> immersiveEngineeringDocuments(Map<ResourceLocation, String> resources, String selectedLanguage) {
+    private static List<AmiGuideDocument> immersiveEngineeringDocuments(Map<Identifier, String> resources, String selectedLanguage) {
         List<AmiGuideDocument> out = new ArrayList<>();
         String language = normalizeLanguage(selectedLanguage);
         resources.entrySet().stream()
@@ -319,7 +319,7 @@ public final class ResourceBookRuntimeGuideSource {
         return out;
     }
 
-    private static Optional<AmiGuideDocument> ieManualDocument(ResourceLocation id, String text) {
+    private static Optional<AmiGuideDocument> ieManualDocument(Identifier id, String text) {
         String path = id.getPath();
         String prefix = "manual/";
         int languageEnd = path.indexOf('/', prefix.length());
@@ -337,8 +337,8 @@ public final class ResourceBookRuntimeGuideSource {
         if (summary.isBlank()) {
             summary = String.join("\n", lines);
         }
-        ResourceLocation bookId = ResourceLocation.fromNamespaceAndPath("immersiveengineering", "manual");
-        ResourceLocation documentId = ResourceLocation.fromNamespaceAndPath("ami", "guide/ie_manual/" + safePath(page));
+        Identifier bookId = Identifier.fromNamespaceAndPath("immersiveengineering", "manual");
+        Identifier documentId = Identifier.fromNamespaceAndPath("ami", "guide/ie_manual/" + safePath(page));
         return Optional.of(AmiGuideDocument.builder(documentId, "immersiveengineering_manual", "immersiveengineering", title)
                 .bookId(bookId)
                 .iconItemId(bookId)
@@ -350,13 +350,13 @@ public final class ResourceBookRuntimeGuideSource {
                 .build());
     }
 
-    private static List<AmiGuideDocument> hexereiDocuments(Map<ResourceLocation, String> resources,
+    private static List<AmiGuideDocument> hexereiDocuments(Map<Identifier, String> resources,
                                                            Map<String, String> translations) {
         List<AmiGuideDocument> out = new ArrayList<>();
         // Each hexerei book has its root at hexerei:book/{bookname}/{bookname}.json.
         // There is no single aggregate file; scan for individual roots instead.
-        for (Map.Entry<ResourceLocation, String> entry : resources.entrySet()) {
-            ResourceLocation id = entry.getKey();
+        for (Map.Entry<Identifier, String> entry : resources.entrySet()) {
+            Identifier id = entry.getKey();
             if (!"hexerei".equals(id.getNamespace()) || !isHexereiBookRoot(id.getPath())) {
                 continue;
             }
@@ -364,7 +364,7 @@ public final class ResourceBookRuntimeGuideSource {
             if (bookName.isBlank()) {
                 continue;
             }
-            ResourceLocation bookId = ResourceLocation.fromNamespaceAndPath("hexerei", bookName);
+            Identifier bookId = Identifier.fromNamespaceAndPath("hexerei", bookName);
             out.addAll(hexereiBookDocuments(bookId, entry.getValue(), resources, translations));
         }
         return out;
@@ -384,9 +384,9 @@ public final class ResourceBookRuntimeGuideSource {
         return parts.length >= 2 ? parts[1] : "";
     }
 
-    private static List<AmiGuideDocument> hexereiBookDocuments(ResourceLocation bookId,
+    private static List<AmiGuideDocument> hexereiBookDocuments(Identifier bookId,
                                                                String bookJson,
-                                                               Map<ResourceLocation, String> resources,
+                                                               Map<Identifier, String> resources,
                                                                Map<String, String> translations) {
         JsonObject bookObject = parseObject(bookJson);
         if (bookObject == null || !(bookObject.get("chapters") instanceof JsonArray chapters)) {
@@ -407,11 +407,11 @@ public final class ResourceBookRuntimeGuideSource {
                     continue;
                 }
                 String pageLocation = string(pageElement.getAsJsonObject(), "page_location");
-                ResourceLocation pageId = ResourceLocation.tryParse(pageLocation);
+                Identifier pageId = Identifier.tryParse(pageLocation);
                 if (pageId == null) {
                     continue;
                 }
-                String pageJson = resources.get(ResourceLocation.fromNamespaceAndPath(
+                String pageJson = resources.get(Identifier.fromNamespaceAndPath(
                         pageId.getNamespace(),
                         "book/" + pageId.getPath() + ".json"
                 ));
@@ -421,8 +421,8 @@ public final class ResourceBookRuntimeGuideSource {
         return out;
     }
 
-    private static Optional<AmiGuideDocument> hexereiDocument(ResourceLocation bookId,
-                                                              ResourceLocation pageId,
+    private static Optional<AmiGuideDocument> hexereiDocument(Identifier bookId,
+                                                              Identifier pageId,
                                                               String pageJson,
                                                               String chapter,
                                                               Map<String, String> translations) {
@@ -456,10 +456,10 @@ public final class ResourceBookRuntimeGuideSource {
         if (summary.isBlank()) {
             return Optional.empty();
         }
-        Set<ResourceLocation> referencedItems = new LinkedHashSet<>();
+        Set<Identifier> referencedItems = new LinkedHashSet<>();
         collectItems(page, referencedItems);
         String title = firstNonBlankLine(summary).orElse(humanize(leaf(pageId.getPath())));
-        ResourceLocation documentId = ResourceLocation.fromNamespaceAndPath(
+        Identifier documentId = Identifier.fromNamespaceAndPath(
                 "ami",
                 "guide/hexerei/" + safePath(bookId.getPath()) + "/" + safePath(stripJsonExtension(pageId.getPath()))
         );
@@ -477,7 +477,7 @@ public final class ResourceBookRuntimeGuideSource {
                 .build());
     }
 
-    private static Optional<MantleResource> parseMantleResource(ResourceLocation id) {
+    private static Optional<MantleResource> parseMantleResource(Identifier id) {
         String path = id.getPath().replace('\\', '/');
         if (!path.startsWith("book/") || !path.endsWith(".json")) {
             return Optional.empty();
@@ -487,7 +487,7 @@ public final class ResourceBookRuntimeGuideSource {
         if (parts.length < 2) {
             return Optional.empty();
         }
-        ResourceLocation bookId = ResourceLocation.fromNamespaceAndPath(id.getNamespace(), parts[0]);
+        Identifier bookId = Identifier.fromNamespaceAndPath(id.getNamespace(), parts[0]);
         if (parts.length == 2 && "index.json".equals(parts[1])) {
             return Optional.of(new MantleResource(bookId, DEFAULT_LANGUAGE, MantleKind.INDEX, ""));
         }
@@ -550,7 +550,7 @@ public final class ResourceBookRuntimeGuideSource {
         if (title.isBlank()) {
             title = humanize(fallbackTitle);
         }
-        Set<ResourceLocation> referencedItems = new LinkedHashSet<>();
+        Set<Identifier> referencedItems = new LinkedHashSet<>();
         collectItems(object, referencedItems);
         String summary = cleanWhitespace(textFromJson(object.get("text")));
         String effects = cleanWhitespace(textFromJson(object.get("effects")));
@@ -564,7 +564,7 @@ public final class ResourceBookRuntimeGuideSource {
         return new MantlePage(title, summary, List.copyOf(referencedItems));
     }
 
-    private static boolean isAlexStylePage(ResourceLocation id) {
+    private static boolean isAlexStylePage(Identifier id) {
         String path = id.getPath();
         return (path.startsWith("book/animal_dictionary/") || path.startsWith("books/"))
                 && path.endsWith(".json")
@@ -573,20 +573,20 @@ public final class ResourceBookRuntimeGuideSource {
                 && !path.endsWith("/root.json");
     }
 
-    private static AlexBook alexBook(ResourceLocation pageId) {
+    private static AlexBook alexBook(Identifier pageId) {
         String path = pageId.getPath();
         if ("alexsmobs".equals(pageId.getNamespace()) && path.startsWith("book/animal_dictionary/")) {
             return new AlexBook(
-                    ResourceLocation.fromNamespaceAndPath("alexsmobs", "animal_dictionary"),
-                    ResourceLocation.fromNamespaceAndPath("alexsmobs", "animal_dictionary"),
+                    Identifier.fromNamespaceAndPath("alexsmobs", "animal_dictionary"),
+                    Identifier.fromNamespaceAndPath("alexsmobs", "animal_dictionary"),
                     "book/animal_dictionary",
                     "alexsmobs_dictionary"
             );
         }
         if ("alexscaves".equals(pageId.getNamespace()) && path.startsWith("books/")) {
             return new AlexBook(
-                    ResourceLocation.fromNamespaceAndPath("alexscaves", "cave_codex"),
-                    ResourceLocation.fromNamespaceAndPath("alexscaves", "cave_codex"),
+                    Identifier.fromNamespaceAndPath("alexscaves", "cave_codex"),
+                    Identifier.fromNamespaceAndPath("alexscaves", "cave_codex"),
                     "books",
                     "alexscaves_book"
             );
@@ -594,7 +594,7 @@ public final class ResourceBookRuntimeGuideSource {
         return null;
     }
 
-    private static String alexPagePath(AlexBook book, ResourceLocation pageId) {
+    private static String alexPagePath(AlexBook book, Identifier pageId) {
         String path = pageId.getPath();
         String prefix = book.textRoot() + "/";
         if (!path.startsWith(prefix) || !path.endsWith(".json")) {
@@ -603,7 +603,7 @@ public final class ResourceBookRuntimeGuideSource {
         return stripJsonExtension(path.substring(prefix.length()));
     }
 
-    private static boolean isMnaGuideResource(ResourceLocation id, String selectedLanguage) {
+    private static boolean isMnaGuideResource(Identifier id, String selectedLanguage) {
         String path = id.getPath();
         if (!path.startsWith("guide/") || !path.endsWith(".json")) {
             return false;
@@ -613,7 +613,7 @@ public final class ResourceBookRuntimeGuideSource {
         return shouldIndexLanguage(language, normalizeLanguage(selectedLanguage));
     }
 
-    private static String mnaGuidePackPath(ResourceLocation id) {
+    private static String mnaGuidePackPath(Identifier id) {
         String path = id.getPath();
         if (!path.startsWith("guide/")) {
             return "";
@@ -623,13 +623,13 @@ public final class ResourceBookRuntimeGuideSource {
         return slash < 0 ? id.getNamespace() : rest.substring(0, slash);
     }
 
-    private static boolean isIeManualText(ResourceLocation id, String language) {
+    private static boolean isIeManualText(Identifier id, String language) {
         return "immersiveengineering".equals(id.getNamespace())
                 && id.getPath().startsWith("manual/" + normalizeLanguage(language) + "/")
                 && id.getPath().endsWith(".txt");
     }
 
-    private static boolean isRelevantResource(ResourceLocation id) {
+    private static boolean isRelevantResource(Identifier id) {
         String path = id.getPath();
         return (path.startsWith("book/") && path.endsWith(".json"))
                 || (path.startsWith("book/") && path.endsWith(".txt"))
@@ -638,14 +638,14 @@ public final class ResourceBookRuntimeGuideSource {
                 || (path.startsWith("manual/") && (path.endsWith(".json") || path.endsWith(".txt")));
     }
 
-    private static Map<ResourceLocation, String> readResources(ResourceManager resourceManager,
+    private static Map<Identifier, String> readResources(ResourceManager resourceManager,
                                                                String root,
-                                                               java.util.function.Predicate<ResourceLocation> filter) {
-        Map<ResourceLocation, String> out = new LinkedHashMap<>();
+                                                               java.util.function.Predicate<Identifier> filter) {
+        Map<Identifier, String> out = new LinkedHashMap<>();
         if (resourceManager == null) {
             return out;
         }
-        Map<ResourceLocation, Resource> listed = safeResourceListing(root, () -> resourceManager.listResources(root, filter));
+        Map<Identifier, Resource> listed = safeResourceListing(root, () -> resourceManager.listResources(root, filter));
         listed.entrySet()
                 .stream()
                 .sorted(Comparator.comparing(entry -> entry.getKey().toString()))
@@ -680,7 +680,7 @@ public final class ResourceBookRuntimeGuideSource {
         }
     }
 
-    private static Map<String, String> translations(Map<ResourceLocation, String> langJsonById, String selectedLanguage) {
+    private static Map<String, String> translations(Map<Identifier, String> langJsonById, String selectedLanguage) {
         if (langJsonById == null || langJsonById.isEmpty()) {
             return Map.of();
         }
@@ -691,7 +691,7 @@ public final class ResourceBookRuntimeGuideSource {
     }
 
     private static void addTranslations(Map<String, String> out,
-                                        Map<ResourceLocation, String> langJsonById,
+                                        Map<Identifier, String> langJsonById,
                                         String language) {
         String langPath = "lang/" + normalizeLanguage(language) + ".json";
         langJsonById.entrySet().stream()
@@ -710,7 +710,7 @@ public final class ResourceBookRuntimeGuideSource {
                 });
     }
 
-    private static void collectItems(JsonElement element, Set<ResourceLocation> out) {
+    private static void collectItems(JsonElement element, Set<Identifier> out) {
         if (element == null || element.isJsonNull()) {
             return;
         }
@@ -729,7 +729,7 @@ public final class ResourceBookRuntimeGuideSource {
             if (value.isBlank()) {
                 continue;
             }
-            ResourceLocation parsed = ResourceLocation.tryParse(value);
+            Identifier parsed = Identifier.tryParse(value);
             if (parsed != null) {
                 out.add(parsed);
             }
@@ -976,7 +976,7 @@ public final class ResourceBookRuntimeGuideSource {
         PAGE
     }
 
-    private record MantleResource(ResourceLocation bookId, String language, MantleKind kind, String key) {
+    private record MantleResource(Identifier bookId, String language, MantleKind kind, String key) {
     }
 
     private record MantleSectionRef(String name, String data) {
@@ -985,19 +985,19 @@ public final class ResourceBookRuntimeGuideSource {
     private record MantlePageRef(String name, String data) {
     }
 
-    private record MantlePage(String title, String summary, List<ResourceLocation> referencedItems) {
+    private record MantlePage(String title, String summary, List<Identifier> referencedItems) {
     }
 
     private record LocalizedText(String language, String text) {
     }
 
-    private record AlexBook(ResourceLocation bookId, ResourceLocation iconItemId, String textRoot, String sourceType) {
+    private record AlexBook(Identifier bookId, Identifier iconItemId, String textRoot, String sourceType) {
         private Runnable openAction(String pagePath) {
             if ("alexsmobs_dictionary".equals(sourceType)) {
                 return AmiGuideOpeners.alexsMobsAnimalDictionary(pagePath + ".json");
             }
             if ("alexscaves_book".equals(sourceType)) {
-                return AmiGuideOpeners.alexsCavesBook(ResourceLocation.fromNamespaceAndPath("alexscaves", pagePath + ".json"));
+                return AmiGuideOpeners.alexsCavesBook(Identifier.fromNamespaceAndPath("alexscaves", pagePath + ".json"));
             }
             return null;
         }

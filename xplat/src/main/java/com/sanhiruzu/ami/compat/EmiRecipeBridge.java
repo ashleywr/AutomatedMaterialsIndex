@@ -15,12 +15,30 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
+import net.minecraft.resources.Identifier;
 
 /**
  * Direct EMI API calls — only referenced behind a ModList.isLoaded("emi") guard
  * so this class is never loaded when EMI is absent.
  */
 class EmiRecipeBridge {
+    // ResourceLocation is inaccessible in 26.x compile context; use reflection for getRecipe().
+    private static EmiRecipe emiGetRecipeById(Identifier id) {
+        if (id == null) return null;
+        try {
+            var mgr = EmiApi.getRecipeManager();
+            String idStr = id.toString();
+            for (java.lang.reflect.Method m : mgr.getClass().getMethods()) {
+                if (m.getName().equals("getRecipe") && m.getParameterCount() == 1) {
+                    Class<?> paramType = m.getParameterTypes()[0];
+                    Object rl = paramType.getMethod("parse", String.class).invoke(null, idStr);
+                    Object result = m.invoke(mgr, rl);
+                    return result instanceof EmiRecipe r ? r : null;
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
     static void openRecipes(ItemStack stack) {
         EmiApi.displayRecipes(EmiStack.of(firstRecipeStack(stack)));
     }
@@ -183,7 +201,7 @@ class EmiRecipeBridge {
         if (!(screen instanceof AbstractContainerScreen<?> containerScreen)) {
             return false;
         }
-        EmiRecipe emiRecipe = EmiApi.getRecipeManager().getRecipe(recipe.id());
+        EmiRecipe emiRecipe = emiGetRecipeById(recipe.id());
         if (emiRecipe == null) {
             return false;
         }
@@ -235,7 +253,7 @@ class EmiRecipeBridge {
         if (!(screen instanceof AbstractContainerScreen<?> containerScreen)) {
             return false;
         }
-        EmiRecipe emiRecipe = EmiApi.getRecipeManager().getRecipe(recipe.id());
+        EmiRecipe emiRecipe = emiGetRecipeById(recipe.id());
         if (emiRecipe == null) {
             return false;
         }

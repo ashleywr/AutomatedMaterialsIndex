@@ -6,7 +6,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.SearchService;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -55,7 +55,7 @@ class CollapseLabelSearchTest {
 
     private static SearchNode shard(String color, String displayName) {
         return new SearchNode(
-                new ResourceLocation("quark", color + "_shard"),
+                new Identifier("quark", color + "_shard"),
                 NodeType.ITEM,
                 displayName,
                 0,

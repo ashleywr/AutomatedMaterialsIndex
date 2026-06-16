@@ -10,7 +10,7 @@ base {
     archivesName = "${mod_id}-neoforge-${neoforge_minecraft_version}"
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
 def xplatProject = project(':xplat')
 def runDirectory = rootProject.ext.minecraftRunDirectory
@@ -19,11 +19,6 @@ def amiEffectiveModVersion = amiDebugBuild ? "${mod_version}-debug" : mod_versio
 
 neoForge {
     version = neoforge_version
-
-    parchment {
-        minecraftVersion = neoforge_parchment_minecraft_version
-        mappingsVersion = neoforge_parchment_mappings_version
-    }
 
     runs {
         client {
@@ -121,10 +116,9 @@ configurations {
 dependencies {
     compileOnly "mezz.jei:jei-${neoforge_minecraft_version}-neoforge-api:${neoforge_jei_version}"
     compileOnly "mezz.jei:jei-${neoforge_minecraft_version}-neoforge:${neoforge_jei_version}"
-    compileOnly "dev.emi:emi-neoforge:${neoforge_emi_version}+${neoforge_minecraft_version}"
+    compileOnly "dev.emi:emi-neoforge:1.1.24+1.21.1"
 
     devRuntimeJeiViewerMods "mezz.jei:jei-${neoforge_minecraft_version}-neoforge:${neoforge_jei_version}"
-    devRuntimeEmiViewerMods "dev.emi:emi-neoforge:${neoforge_emi_version}+${neoforge_minecraft_version}"
 
     compileOnly "dev.latvian.mods:kubejs-neoforge:${neoforge_kubejs_version}"
 
@@ -133,7 +127,7 @@ dependencies {
     testImplementation "org.junit.jupiter:junit-jupiter:5.9.3"
     testImplementation "it.unimi.dsi:fastutil:8.5.9"
     testImplementation "org.spongepowered:mixin:0.8.5"
-    testImplementation "org.ow2.asm:asm-tree:9.7.1"
+    testImplementation "org.ow2.asm:asm-tree:9.8"
     testImplementation "mezz.jei:jei-${neoforge_minecraft_version}-neoforge-api:${neoforge_jei_version}"
     testImplementation "com.google.code.gson:gson:2.10.1"
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.9.3"
@@ -143,7 +137,6 @@ dependencies {
 tasks.named('test', Test).configure {
     useJUnitPlatform()
     workingDir = xplatProject.projectDir
-    dependsOn ':forge:compileJava'
 }
 
 def registerRecipeViewerModSync = { String taskName, List<String> configurationNames, String runDirName ->

@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.index.AmiGuideSearchIndex;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -14,14 +14,14 @@ class GuideResultsProjectorTest {
     @Test
     void guideRowsExposeSourceAndProvenance() {
         AmiGuideDocument document = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/botania/mana_spreader"),
+                        new Identifier("ami", "guide/botania/mana_spreader"),
                         "patchouli",
                         "botania",
                         "Mana Spreaders"
                 )
-                .bookId(new ResourceLocation("botania", "lexicon"))
+                .bookId(new Identifier("botania", "lexicon"))
                 .chapter("Basics")
-                .referencedItem(new ResourceLocation("botania", "mana_spreader"))
+                .referencedItem(new Identifier("botania", "mana_spreader"))
                 .tag("mana")
                 .build();
         AmiGuideSearchIndex index = new AmiGuideSearchIndex(List.of(document),
@@ -42,7 +42,7 @@ class GuideResultsProjectorTest {
     @Test
     void summaryMatchesCarryLazySnippetEvidence() {
         AmiGuideDocument document = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/botania/routing"),
+                        new Identifier("ami", "guide/botania/routing"),
                         "patchouli",
                         "botania",
                         "Routing"
@@ -72,14 +72,14 @@ class GuideResultsProjectorTest {
     @Test
     void guidebookFilterQueryReturnsAllRows() {
         AmiGuideDocument guide = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/one"),
+                        new Identifier("ami", "guide/one"),
                         "patchouli",
                         "example",
                         "Guide One"
                 )
                 .build();
         AmiGuideDocument recipe = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/two"),
+                        new Identifier("ami", "guide/two"),
                         "patchouli",
                         "example",
                         "Guide Two"

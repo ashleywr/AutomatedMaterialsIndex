@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.client.results;
 
 import com.sanhiruzu.ami.api.AmiAdvancementDocument;
 import com.sanhiruzu.ami.index.AmiAdvancementSearchIndex;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -14,13 +14,13 @@ class AdvancementResultsProjectorTest {
     @Test
     void advancementRowsExposeSourceTypeAndDescriptionEvidence() {
         AmiAdvancementDocument document = AmiAdvancementDocument
-                .builder(new ResourceLocation("minecraft", "story/mine_stone"), "Stone Age")
+                .builder(new Identifier("minecraft", "story/mine_stone"), "Stone Age")
                 .sourceId("minecraft")
                 .tabTitle("Minecraft")
                 .description("Mine stone with your new pickaxe")
                 .type("task")
                 .progressStatus(AmiAdvancementDocument.ProgressStatus.IN_PROGRESS)
-                .iconItemId(new ResourceLocation("minecraft", "stone"))
+                .iconItemId(new Identifier("minecraft", "stone"))
                 .build();
         AmiAdvancementSearchIndex index = new AmiAdvancementSearchIndex(List.of(document));
 
@@ -45,11 +45,11 @@ class AdvancementResultsProjectorTest {
     @Test
     void unfinishedAdvancementsSortBeforeCompletedWhenScoresTie() {
         AmiAdvancementDocument completed = AmiAdvancementDocument
-                .builder(new ResourceLocation("minecraft", "story/a_completed_stone"), "Stone")
+                .builder(new Identifier("minecraft", "story/a_completed_stone"), "Stone")
                 .progressStatus(AmiAdvancementDocument.ProgressStatus.COMPLETED)
                 .build();
         AmiAdvancementDocument inProgress = AmiAdvancementDocument
-                .builder(new ResourceLocation("minecraft", "story/z_in_progress_stone"), "Stone")
+                .builder(new Identifier("minecraft", "story/z_in_progress_stone"), "Stone")
                 .progressStatus(AmiAdvancementDocument.ProgressStatus.IN_PROGRESS)
                 .build();
         AmiAdvancementSearchIndex index = new AmiAdvancementSearchIndex(List.of(completed, inProgress));

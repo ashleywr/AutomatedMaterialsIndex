@@ -4,9 +4,10 @@ import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
@@ -39,7 +40,7 @@ public class AmiButtonWidget extends AbstractWidget {
     }
 
     @Override
-    protected void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         boolean panelOpen = isPanelVisible.getAsBoolean();
         boolean hovered = isMouseOver(mouseX, mouseY);
         boolean isVanilla = AmiConfig.theme == AmiConfig.Theme.VANILLA;
@@ -68,9 +69,9 @@ public class AmiButtonWidget extends AbstractWidget {
             g.fill(getX() + 1, getY() + 1, getX() + 2, getY() + height - 1, 0x66000000);
         }
 
-        g.renderOutline(getX(), getY(), width, height, borderColor);
+        g.outline(getX(), getY(), width, height, borderColor);
         if (elevatedMode) {
-            g.renderOutline(getX() + 1, getY() + 1, width - 2, height - 2, modeAccent);
+            g.outline(getX() + 1, getY() + 1, width - 2, height - 2, modeAccent);
         }
 
         if (panelOpen || hovered) {
@@ -92,14 +93,14 @@ public class AmiButtonWidget extends AbstractWidget {
         var font = Minecraft.getInstance().font;
         int textY = getY() + (height - font.lineHeight) / 2 + (isDown ? 2 : 1);
 
-        g.pose().pushPose();
+        g.pose().pushMatrix();
         float scale = 1.05f;
-        g.pose().translate(getX() + width / 2f, textY, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
-        g.pose().scale(scale, scale, 1.0f);
+        g.pose().translate(getX() + width / 2f, textY);
+        g.pose().scale(scale, scale);
         Component label = Component.translatable("ami.gui.ami_button");
         int labelW = font.width(label);
-        g.drawString(font, label, -labelW / 2, 0, textColor, false);
-        g.pose().popPose();
+        g.text(font, label, -labelW / 2, 0, textColor, false);
+        g.pose().popMatrix();
 
         if (elevatedMode) {
             String badge = devMode ? "DEV" : "CHT";
@@ -110,16 +111,16 @@ public class AmiButtonWidget extends AbstractWidget {
             g.fill(badgeX, badgeY, badgeX + badgeW, badgeY + badgeH, 0xEE000000 | (modeAccent & 0xFFFFFF));
             g.fill(badgeX, badgeY + badgeH - 1, badgeX + badgeW, badgeY + badgeH, 0xAA000000);
             float badgeScale = 0.55f;
-            g.pose().pushPose();
-            g.pose().translate(badgeX + 2, badgeY + 1, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
-            g.pose().scale(badgeScale, badgeScale, 1.0f);
-            g.drawString(font, badge, 0, 0, 0xFFFFFFFF, false);
-            g.pose().popPose();
+            g.pose().pushMatrix();
+            g.pose().translate(badgeX + 2, badgeY + 1);
+            g.pose().scale(badgeScale, badgeScale);
+            g.text(font, badge, 0, 0, 0xFFFFFFFF, false);
+            g.pose().popMatrix();
         }
 
     }
 
-    public void renderTooltip(GuiGraphics g, int mouseX, int mouseY) {
+    public void renderTooltip(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (!isMouseOver(mouseX, mouseY)) return;
 
         List<Component> tooltip = new ArrayList<>();
@@ -132,14 +133,14 @@ public class AmiButtonWidget extends AbstractWidget {
         } else if (AmiConfig.cheatMode) {
             tooltip.add(Component.translatable("ami.gui.ami_button.cheat_mode"));
         }
-        g.renderTooltip(Minecraft.getInstance().font, tooltip, java.util.Optional.empty(), mouseX, mouseY);
+        g.setTooltipForNextFrame(Minecraft.getInstance().font, tooltip, java.util.Optional.empty(), mouseX, mouseY);
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && isMouseOver(mouseX, mouseY)) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (event.button() == 0 && isMouseOver(event.x(), event.y())) {
             isDown = true;
-            boolean altDown = net.minecraft.client.gui.screens.Screen.hasAltDown();
+            boolean altDown = Minecraft.getInstance().hasAltDown();
             if (altDown) {
                 if (onAltClickCallback != null) onAltClickCallback.run();
             } else {
@@ -151,9 +152,9 @@ public class AmiButtonWidget extends AbstractWidget {
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+    public boolean mouseReleased(MouseButtonEvent event) {
         isDown = false;
-        return super.mouseReleased(mouseX, mouseY, button);
+        return super.mouseReleased(event);
     }
 
     @Override

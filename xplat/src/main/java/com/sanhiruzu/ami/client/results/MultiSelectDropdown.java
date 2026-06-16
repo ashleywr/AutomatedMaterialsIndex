@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.AmiGuiIcons;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
@@ -43,7 +43,7 @@ public class MultiSelectDropdown<T> implements Dropdown {
         }
     }
 
-    public void render(GuiGraphics g, int mouseX, int mouseY) {
+    public void render(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         boolean canOpen = options != null && !options.isEmpty();
         boolean hovered = canOpen && Dropdown.contains(mouseX, mouseY, x, y, width, HEIGHT);
         AMITheme.fillControlChrome(g, x, y, width, HEIGHT,
@@ -65,14 +65,14 @@ public class MultiSelectDropdown<T> implements Dropdown {
                 countLabel = font.plainSubstrByWidth(countLabel, maxTextW);
             }
         }
-        g.drawString(font, countLabel, x + 3, y + 2, canOpen ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
+        g.text(font, countLabel, x + 3, y + 2, canOpen ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
     }
 
-    public void renderList(GuiGraphics g, int mouseX, int mouseY) {
+    public void renderList(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (open && options != null && !options.isEmpty()) renderDropdown(g, mouseX, mouseY);
     }
 
-    private void renderDropdown(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderDropdown(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         var font = Minecraft.getInstance().font;
         ensureOptionCache(font);
         int listWidth = cachedListWidth;
@@ -97,7 +97,7 @@ public class MultiSelectDropdown<T> implements Dropdown {
                 g.fill(x + 2, itemY + 2, x + 4, itemY + ITEM_HEIGHT - 2, com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE);
             }
 
-            g.drawString(font, optionLabels.get(i), x + 8, itemY + 1, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
+            g.text(font, optionLabels.get(i), x + 8, itemY + 1, isSelected ? AMITheme.TEXT_HEADER : AMITheme.TEXT_SUBTLE, false);
             itemY += ITEM_HEIGHT;
         }
     }

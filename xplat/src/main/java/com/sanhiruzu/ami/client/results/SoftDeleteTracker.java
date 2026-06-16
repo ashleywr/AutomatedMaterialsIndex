@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.client.results;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -20,7 +20,7 @@ public final class SoftDeleteTracker {
      * Mark a node for soft deletion (visual fade, then removal).
      * Returns the fade progress (0.0 = full opacity, 1.0 = fully faded).
      */
-    public static void markSoftDeleted(ResourceLocation nodeId) {
+    public static void markSoftDeleted(Identifier nodeId) {
         if (nodeId == null) return;
         cleanExpiredEntries();
         softDeletedNodes.removeIf(entry -> entry.nodeId.equals(nodeId));
@@ -31,7 +31,7 @@ public final class SoftDeleteTracker {
      * Get fade progress for a node (0.0 = visible, 1.0 = fully faded).
      * Returns 0.0 if node is not being soft-deleted.
      */
-    public static float getFadeProgress(ResourceLocation nodeId) {
+    public static float getFadeProgress(Identifier nodeId) {
         if (nodeId == null) return 0.0f;
         cleanExpiredEntries();
         for (SoftDeleteEntry entry : softDeletedNodes) {
@@ -46,14 +46,14 @@ public final class SoftDeleteTracker {
     /**
      * Check if a node is currently soft-deleted and fully faded out.
      */
-    public static boolean isFullyFaded(ResourceLocation nodeId) {
+    public static boolean isFullyFaded(Identifier nodeId) {
         return getFadeProgress(nodeId) >= 1.0f;
     }
 
     /**
      * Check if a node has any soft-delete fade in progress.
      */
-    public static boolean isSoftDeleting(ResourceLocation nodeId) {
+    public static boolean isSoftDeleting(Identifier nodeId) {
         if (nodeId == null) return false;
         cleanExpiredEntries();
         return softDeletedNodes.stream().anyMatch(entry -> entry.nodeId.equals(nodeId));
@@ -72,10 +72,10 @@ public final class SoftDeleteTracker {
     }
 
     private static class SoftDeleteEntry {
-        final ResourceLocation nodeId;
+        final Identifier nodeId;
         final long createdAtMs;
 
-        SoftDeleteEntry(ResourceLocation nodeId, long createdAtMs) {
+        SoftDeleteEntry(Identifier nodeId, long createdAtMs) {
             this.nodeId = nodeId;
             this.createdAtMs = createdAtMs;
         }

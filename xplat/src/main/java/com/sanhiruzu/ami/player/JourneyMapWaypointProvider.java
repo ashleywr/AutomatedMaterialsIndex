@@ -293,7 +293,7 @@ final class JourneyMapWaypointProvider implements PlayerWaypointProvider {
 
     private static void softDeleteWaypoint(LiveWaypoint waypoint) {
         try {
-            net.minecraft.resources.ResourceLocation nodeId = Services.PLATFORM.rl("ami", "waypoint/" + safePath(waypoint.providerId()) + "/" + safePath(waypoint.id()));
+            net.minecraft.resources.Identifier nodeId = Services.PLATFORM.rl("ami", "waypoint/" + safePath(waypoint.providerId()) + "/" + safePath(waypoint.id()));
             AmiApi.notifyItemDeleted(nodeId);
 
             // If there's a matching Waystones waypoint at the same location, delete it too

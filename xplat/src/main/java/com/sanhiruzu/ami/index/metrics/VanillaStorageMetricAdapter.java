@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.index.metrics;
 
 import com.sanhiruzu.ami.platform.Services;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
@@ -25,7 +25,7 @@ final class VanillaStorageMetricAdapter implements StorageMetricAdapter {
         return Services.PLATFORM.getBlockItemHandlerCapacity(stack, level);
     }
 
-    private static OptionalLong estimateVanillaContainer(ItemStack stack, ResourceLocation id) {
+    private static OptionalLong estimateVanillaContainer(ItemStack stack, Identifier id) {
         if (id == null || !"minecraft".equals(id.getNamespace())) {
             return OptionalLong.empty();
         }
@@ -56,7 +56,7 @@ final class VanillaStorageMetricAdapter implements StorageMetricAdapter {
     }
 
     @Override
-    public OptionalLong estimate(ItemStack stack, ResourceLocation id, @Nullable Level level) {
+    public OptionalLong estimate(ItemStack stack, Identifier id, @Nullable Level level) {
         OptionalLong componentCapacity = estimateContainerComponent(stack);
         if (componentCapacity.isPresent()) return componentCapacity;
 

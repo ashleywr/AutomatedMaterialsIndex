@@ -7,7 +7,7 @@ import com.google.gson.JsonParser;
 import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.api.AmiGuideOpeners;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 
@@ -29,7 +29,7 @@ import java.util.function.Consumer;
 public final class SilentGearMaterialBookGuideSource {
     private static final String MATERIAL_RESOURCE_PATH = "silentgear_materials";
     private static final String SOURCE_TYPE = "silentgear_materials";
-    private static final ResourceLocation BOOK_ID = ResourceLocation.fromNamespaceAndPath("silentgear", "material_book");
+    private static final Identifier BOOK_ID = Identifier.fromNamespaceAndPath("silentgear", "material_book");
 
     private SilentGearMaterialBookGuideSource() {
     }
@@ -42,19 +42,19 @@ public final class SilentGearMaterialBookGuideSource {
         if (resourceManager == null) {
             return;
         }
-        Map<ResourceLocation, Resource> resources = resourceManager.listResources(MATERIAL_RESOURCE_PATH,
+        Map<Identifier, Resource> resources = resourceManager.listResources(MATERIAL_RESOURCE_PATH,
                 id -> "silentgear".equals(id.getNamespace()) && id.getPath().endsWith(".json"));
         resources.entrySet().stream()
                 .sorted(Comparator.comparing(entry -> entry.getKey().toString()))
                 .forEach(entry -> registerMaterialDocument(documents, entry.getKey(), entry.getValue()));
     }
 
-    static AmiGuideDocument materialDocument(ResourceLocation resourceId, JsonObject json) {
+    static AmiGuideDocument materialDocument(Identifier resourceId, JsonObject json) {
         String materialPath = materialPath(resourceId);
-        ResourceLocation materialId = ResourceLocation.fromNamespaceAndPath(resourceId.getNamespace(), materialPath);
+        Identifier materialId = Identifier.fromNamespaceAndPath(resourceId.getNamespace(), materialPath);
         MaterialSummary summary = materialSummary(materialId, json);
         return AmiGuideDocument.builder(
-                        ResourceLocation.fromNamespaceAndPath("ami", "guide/silentgear/material/" + safePath(materialPath)),
+                        Identifier.fromNamespaceAndPath("ami", "guide/silentgear/material/" + safePath(materialPath)),
                         SOURCE_TYPE,
                         "silentgear",
                         summary.name())
@@ -73,13 +73,13 @@ public final class SilentGearMaterialBookGuideSource {
                 .build();
     }
 
-    private static MaterialSummary materialSummary(ResourceLocation materialId, JsonObject json) {
+    private static MaterialSummary materialSummary(Identifier materialId, JsonObject json) {
         JsonObject display = object(json, "display");
         String name = componentText(display == null ? null : display.get("name"),
                 "material." + materialId.getNamespace() + "." + materialId.getPath().replace('/', '.'),
                 humanize(materialId.getPath()));
         List<String> tags = new ArrayList<>();
-        Set<ResourceLocation> referencedItems = new LinkedHashSet<>();
+        Set<Identifier> referencedItems = new LinkedHashSet<>();
         List<String> summaryParts = new ArrayList<>();
         add(summaryParts, name);
 
@@ -176,7 +176,7 @@ public final class SilentGearMaterialBookGuideSource {
         }
     }
 
-    private static void collectItems(JsonElement element, Set<ResourceLocation> out) {
+    private static void collectItems(JsonElement element, Set<Identifier> out) {
         if (element == null || element.isJsonNull()) {
             return;
         }
@@ -196,11 +196,11 @@ public final class SilentGearMaterialBookGuideSource {
         }
     }
 
-    private static void collectItemId(JsonElement element, Set<ResourceLocation> out) {
+    private static void collectItemId(JsonElement element, Set<Identifier> out) {
         if (element == null || !element.isJsonPrimitive()) {
             return;
         }
-        ResourceLocation id = ResourceLocation.tryParse(element.getAsString());
+        Identifier id = Identifier.tryParse(element.getAsString());
         if (id != null) {
             out.add(id);
         }
@@ -228,7 +228,7 @@ public final class SilentGearMaterialBookGuideSource {
         return fallbackText == null ? "" : fallbackText;
     }
 
-    private static void registerMaterialDocument(Consumer<AmiGuideDocument> documents, ResourceLocation id, Resource resource) {
+    private static void registerMaterialDocument(Consumer<AmiGuideDocument> documents, Identifier id, Resource resource) {
         try (BufferedReader reader = resource.openAsReader()) {
             JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
             documents.accept(materialDocument(id, json));
@@ -253,7 +253,7 @@ public final class SilentGearMaterialBookGuideSource {
         return parent.getAsJsonObject(key);
     }
 
-    private static String materialPath(ResourceLocation resourceId) {
+    private static String materialPath(Identifier resourceId) {
         String path = resourceId.getPath();
         if (path.startsWith(MATERIAL_RESOURCE_PATH + "/")) {
             path = path.substring((MATERIAL_RESOURCE_PATH + "/").length());
@@ -328,7 +328,7 @@ public final class SilentGearMaterialBookGuideSource {
     }
 
     private record MaterialSummary(String name,
-                                   List<ResourceLocation> referencedItems,
+                                   List<Identifier> referencedItems,
                                    List<String> tags,
                                    String summaryText) {
     }

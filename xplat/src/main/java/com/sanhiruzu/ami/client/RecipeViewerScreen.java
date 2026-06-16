@@ -9,11 +9,12 @@ import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeType;
@@ -27,11 +28,11 @@ import java.util.Map;
 public class RecipeViewerScreen extends Screen {
 
     // ── Sprite sheet (per-theme, same UV layout) ────────────────────────────
-    private static final ResourceLocation WIDGETS_VANILLA     = Services.PLATFORM.rl("ami", "textures/gui/recipe_viewer_vanilla.png");
-    private static final ResourceLocation WIDGETS_MODERN      = Services.PLATFORM.rl("ami", "textures/gui/recipe_viewer_modern.png");
-    private static final ResourceLocation WIDGETS_TRANSPARENT = Services.PLATFORM.rl("ami", "textures/gui/recipe_viewer_transparent.png");
+    private static final Identifier WIDGETS_VANILLA     = Services.PLATFORM.rl("ami", "textures/gui/recipe_viewer_vanilla.png");
+    private static final Identifier WIDGETS_MODERN      = Services.PLATFORM.rl("ami", "textures/gui/recipe_viewer_modern.png");
+    private static final Identifier WIDGETS_TRANSPARENT = Services.PLATFORM.rl("ami", "textures/gui/recipe_viewer_transparent.png");
 
-    private static ResourceLocation widgets() {
+    private static Identifier widgets() {
         return switch (com.sanhiruzu.ami.config.AmiConfig.theme) {
             case VANILLA     -> WIDGETS_VANILLA;
             case TRANSPARENT -> WIDGETS_TRANSPARENT;
@@ -347,7 +348,7 @@ public class RecipeViewerScreen extends Screen {
     // ── Render ────────────────────────────────────────────────────────────
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
         AMITheme.sync();
         syncPalette();
 
@@ -378,7 +379,7 @@ public class RecipeViewerScreen extends Screen {
             int tw = font.width(catTitle);
             int tx = guiLeft + GUI_WIDTH / 2 - tw / 2;
             if (isHovering(mouseX, mouseY, tx, ty, tw, font.lineHeight)) {
-                g.renderTooltip(font,
+                g.setTooltipForNextFrame(font,
                         Component.translatable("ami.recipe_viewer.category_show_all"), mouseX, mouseY);
             }
         }
@@ -418,7 +419,7 @@ public class RecipeViewerScreen extends Screen {
 
     // ── Panel chrome ──────────────────────────────────────────────────────
 
-    private void drawPanel(GuiGraphics g) {
+    private void drawPanel(GuiGraphicsExtractor g) {
         int x = guiLeft, y = guiTop, w = GUI_WIDTH, h = guiHeight;
         g.fill(x - 1, y - 1, x + w + 1, y + h + 1, COL_BORDER);
         g.fill(x, y, x + w, y + h, COL_PANEL);
@@ -429,7 +430,7 @@ public class RecipeViewerScreen extends Screen {
         g.fill(guiLeft + 4, contentTop, guiLeft + GUI_WIDTH - 4, contentBot, COL_PANEL_INNER);
     }
 
-    private void drawHeader(GuiGraphics g, int mx, int my) {
+    private void drawHeader(GuiGraphicsExtractor g, int mx, int my) {
         // JEI-style: two nav button rows inside the header
         // Row 1 y: titleH - SMALL_BTN_H + NAV_PAD  (= 15 - 13 + 2 = 4)
         int titleH = font.lineHeight + BORDER_PAD;
@@ -473,7 +474,7 @@ public class RecipeViewerScreen extends Screen {
         g.fill(guiLeft, guiTop + HEADER_H, guiLeft + GUI_WIDTH, guiTop + HEADER_H + 1, COL_HEADER_LINE);
     }
 
-    private void drawNavBtn(GuiGraphics g, int mx, int my, int x, int y, boolean isPrev, boolean active) {
+    private void drawNavBtn(GuiGraphicsExtractor g, int mx, int my, int x, int y, boolean isPrev, boolean active) {
         if (!active) {
             drawCentered(g, isPrev ? "❮" : "❯",
                     x + SMALL_BTN_W / 2, y + (SMALL_BTN_H - font.lineHeight) / 2, COL_TAB_TEXT_I);
@@ -484,7 +485,7 @@ public class RecipeViewerScreen extends Screen {
         boolean hov = isHovering(mx, my, x, y, SMALL_BTN_W, SMALL_BTN_H);
         int sx = x + (SMALL_BTN_W - 9) / 2;
         int sy = y + (SMALL_BTN_H - 9) / 2;
-        g.blit(widgets(), sx, sy, 9, 9, uvX, uvY, 9, 9, 256, 256);
+        g.blit(RenderPipelines.GUI_TEXTURED, widgets(), sx, sy, (float)uvX, (float)uvY, 9, 9, 256, 256);
         if (hov) g.fill(x, y, x + SMALL_BTN_W, y + SMALL_BTN_H, 0x30FFFFFF);
     }
 
@@ -492,7 +493,7 @@ public class RecipeViewerScreen extends Screen {
 
     private int tabTopY() { return guiTop - TAB_H + TAB_GUI_OVERLAP; }
 
-    private void drawTabBar(GuiGraphics g, int mouseX, int mouseY) {
+    private void drawTabBar(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (tabs.isEmpty()) return;
         int ty = tabTopY();
         int startX = guiLeft + 4;  // 4px inset — matches mouseClicked hit-test
@@ -504,12 +505,12 @@ public class RecipeViewerScreen extends Screen {
             int arrowRX = guiLeft + GUI_WIDTH - 4 - TAB_ARROW_W;
             int arrowMidY = ty + (TAB_H - 9) / 2;
             if (canL) {
-                g.blit(widgets(), arrowLX + (TAB_ARROW_W - 9) / 2, arrowMidY, 9, 9, UV_BTN_PREV_X, UV_BTN_PREV_Y, 9, 9, 256, 256);
+                g.blit(RenderPipelines.GUI_TEXTURED, widgets(), arrowLX + (TAB_ARROW_W - 9) / 2, arrowMidY, (float)UV_BTN_PREV_X, (float)UV_BTN_PREV_Y, 9, 9, 256, 256);
             } else {
                 drawCentered(g, "❮", arrowLX + TAB_ARROW_W / 2, ty + (TAB_H - font.lineHeight) / 2, COL_TAB_TEXT_I);
             }
             if (canR) {
-                g.blit(widgets(), arrowRX + (TAB_ARROW_W - 9) / 2, arrowMidY, 9, 9, UV_BTN_NEXT_X, UV_BTN_NEXT_Y, 9, 9, 256, 256);
+                g.blit(RenderPipelines.GUI_TEXTURED, widgets(), arrowRX + (TAB_ARROW_W - 9) / 2, arrowMidY, (float)UV_BTN_NEXT_X, (float)UV_BTN_NEXT_Y, 9, 9, 256, 256);
             } else {
                 drawCentered(g, "❯", arrowRX + TAB_ARROW_W / 2, ty + (TAB_H - font.lineHeight) / 2, COL_TAB_TEXT_I);
             }
@@ -527,20 +528,20 @@ public class RecipeViewerScreen extends Screen {
         }
     }
 
-    private void drawSingleTab(GuiGraphics g, int mx, int my, int tabIdx, int tx, int ty) {
+    private void drawSingleTab(GuiGraphicsExtractor g, int mx, int my, int tabIdx, int tx, int ty) {
         boolean active  = (tabIdx == selectedTab);
         boolean hovered = isHovering(mx, my, tx, ty, TAB_W, TAB_H);
         int uvX = active ? UV_TAB_SEL_X : UV_TAB_UNS_X;
         int uvY = active ? UV_TAB_SEL_Y : UV_TAB_UNS_Y;
-        g.blit(widgets(), tx, ty, TAB_W, TAB_H, uvX, uvY, TAB_W, TAB_H, 256, 256);
+        g.blit(RenderPipelines.GUI_TEXTURED, widgets(), tx, ty, (float)uvX, (float)uvY, TAB_W, TAB_H, 256, 256);
         if (hovered && !active) g.fill(tx, ty, tx + TAB_W, ty + TAB_H, 0x30FFFFFF);
 
         ItemStack icon = tabs.get(tabIdx).icon();
         if (icon != null && !icon.isEmpty()) {
-            g.renderItem(icon, tx + (TAB_W - 16) / 2, ty + (TAB_H - 16) / 2);
+            g.item(icon, tx + (TAB_W - 16) / 2, ty + (TAB_H - 16) / 2);
         } else {
             String label = tabs.get(tabIdx).shortLabel();
-            g.drawString(font, label,
+            g.text(font, label,
                     tx + (TAB_W - font.width(label)) / 2, ty + (TAB_H - font.lineHeight) / 2,
                     active ? COL_TAB_TEXT_A : COL_TAB_TEXT_I, false);
         }
@@ -550,14 +551,14 @@ public class RecipeViewerScreen extends Screen {
             tabTip.add(tabs.get(tabIdx).label());
             tabTip.add(Component.translatable("ami.recipe_viewer.tab_count", tabs.get(tabIdx).recipes().size())
                     .withStyle(ChatFormatting.GRAY));
-            g.renderTooltip(font, tabTip, java.util.Optional.empty(), mx, my);
+            g.setTooltipForNextFrame(font, tabTip, java.util.Optional.empty(), mx, my);
         }
     }
 
 
     // ── Content ───────────────────────────────────────────────────────────
 
-    private void drawNoRecipes(GuiGraphics g) {
+    private void drawNoRecipes(GuiGraphicsExtractor g) {
         drawCentered(g,
                 Component.translatable("ami.recipe_viewer.no_recipes"),
                 guiLeft + GUI_WIDTH / 2,
@@ -565,7 +566,7 @@ public class RecipeViewerScreen extends Screen {
                 COL_TEXT_CAT);
     }
 
-    private void drawContent(GuiGraphics g, int mouseX, int mouseY) {
+    private void drawContent(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         Tab tab = tabs.get(selectedTab);
         int tabSize = tab.recipes().size();
         if (tabSize == 0) return;
@@ -607,9 +608,8 @@ public class RecipeViewerScreen extends Screen {
                 g.fill(bx - 1, by + bh, bx + bw + 1, by + bh + 1, COL_SLOT_BORDER);
                 g.fill(bx - 1, by,      bx,           by + bh,     COL_SLOT_BORDER);
                 g.fill(bx + bw, by,     bx + bw + 1,  by + bh,     COL_SLOT_BORDER);
-                g.blit(layout.backgroundTexture(),
-                        bx, by, bw, bh,
-                        layout.bgX(), layout.bgY(), bw, bh,
+                g.blit(RenderPipelines.GUI_TEXTURED, layout.backgroundTexture(),
+                        bx, by, (float)layout.bgX(), (float)layout.bgY(), bw, bh,
                         256, 256);
             }
 
@@ -620,9 +620,9 @@ public class RecipeViewerScreen extends Screen {
                 int bx = cardX + cardW - bw - 3;
                 int by = cardY + 3;
                 AMITheme.fillRounded(g, bx, by, bw, font.lineHeight + 3, COL_SHAPELESS);
-                g.drawString(font, badge, bx + 2, by + 2, 0xFFFFFFFF, false);
+                g.text(font, badge, bx + 2, by + 2, 0xFFFFFFFF, false);
                 if (isHovering(mouseX, mouseY, bx, by, bw, font.lineHeight + 3)) {
-                    g.renderTooltip(font, Component.translatable("ami.recipe_viewer.shapeless"), mouseX, mouseY);
+                    g.setTooltipForNextFrame(font, Component.translatable("ami.recipe_viewer.shapeless"), mouseX, mouseY);
                 }
             }
 
@@ -635,12 +635,12 @@ public class RecipeViewerScreen extends Screen {
                 AMITheme.fillRounded(g, favX, favY, 14, 14,
                         favorite ? COL_TAB_ACTIVE : favHov ? COL_TAB_HOVER : COL_TAB_IDLE);
                 String star = "★";
-                g.drawString(font, star,
+                g.text(font, star,
                         favX + (14 - font.width(star)) / 2,
                         favY + (14 - font.lineHeight) / 2,
                         favorite ? 0xFFFFFFFF : COL_TAB_TEXT_I, false);
                 if (favHov) {
-                    g.renderTooltip(font, Component.translatable(favorite
+                    g.setTooltipForNextFrame(font, Component.translatable(favorite
                             ? "ami.recipe_viewer.unfavorite"
                             : "ami.recipe_viewer.favorite"), mouseX, mouseY);
                 }
@@ -653,7 +653,7 @@ public class RecipeViewerScreen extends Screen {
                     && !layout.categoryName().isEmpty()) {
                 String catLabel = layout.categoryName();
                 if (catLabel.length() > 20) catLabel = catLabel.substring(0, 18) + "…";
-                g.drawString(font, catLabel, rx, cardY + 3, COL_TEXT_CAT, false);
+                g.text(font, catLabel, rx, cardY + 3, COL_TEXT_CAT, false);
             }
 
             // Input slots
@@ -668,8 +668,8 @@ public class RecipeViewerScreen extends Screen {
                     String slotKey = recipe.id().toString() + "_" + slotIdx;
                     int altIdx     = getSlotAltIndex(slotKey, slot.alternatives().size());
                     ItemStack stack = slot.alternatives().get(altIdx);
-                    g.renderItem(stack, sx + 1, sy + 1);
-                    g.renderItemDecorations(font, stack, sx + 1, sy + 1);
+                    g.item(stack, sx + 1, sy + 1);
+                    g.itemDecorations(font, stack, sx + 1, sy + 1);
                     if (isHovering(mouseX, mouseY, sx, sy, 18, 18)) {
                         renderIngredientTooltip(g, slot, altIdx, mouseX, mouseY);
                     }
@@ -696,10 +696,10 @@ public class RecipeViewerScreen extends Screen {
                 drawOutputSlot(g, outX, outY);
             }
             if (!layout.output().isEmpty()) {
-                g.renderItem(layout.output(), outX + 1, outY + 1);
-                g.renderItemDecorations(font, layout.output(), outX + 1, outY + 1);
+                g.item(layout.output(), outX + 1, outY + 1);
+                g.itemDecorations(font, layout.output(), outX + 1, outY + 1);
                 if (isHovering(mouseX, mouseY, outX, outY, 18, 18)) {
-                    g.renderTooltip(font, layout.output(), mouseX, mouseY);
+                    g.setTooltipForNextFrame(font, layout.output(), mouseX, mouseY);
                 }
             }
 
@@ -713,7 +713,7 @@ public class RecipeViewerScreen extends Screen {
                 drawCentered(g, Component.translatable("ami.recipe_viewer.transfer_icon"),
                         btnX + 9, btnY + 2, 0xFFFFFFFF);
                 if (bHov) {
-                    g.renderTooltip(font,
+                    g.setTooltipForNextFrame(font,
                             Component.translatable("ami.recipe_viewer.transfer"), mouseX, mouseY);
                 }
             }
@@ -740,10 +740,10 @@ public class RecipeViewerScreen extends Screen {
         return RecipeDisplayHelper.getLayout(recipe, minecraft.level.registryAccess());
     }
 
-    private void renderIngredientTooltip(GuiGraphics g, SlotPosition slot, int altIdx, int mouseX, int mouseY) {
+    private void renderIngredientTooltip(GuiGraphicsExtractor g, SlotPosition slot, int altIdx, int mouseX, int mouseY) {
         ItemStack stack = slot.alternatives().get(altIdx);
         if (slot.alternatives().size() <= 1) {
-            g.renderTooltip(font, stack, mouseX, mouseY);
+            g.setTooltipForNextFrame(font, stack, mouseX, mouseY);
             return;
         }
         List<Component> lines = new ArrayList<>(
@@ -752,10 +752,10 @@ public class RecipeViewerScreen extends Screen {
         lines.add(Component.translatable("ami.recipe_viewer.ingredient_cycle",
                 altIdx + 1, slot.alternatives().size())
                 .withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
-        g.renderTooltip(font, lines, java.util.Optional.empty(), mouseX, mouseY);
+        g.setTooltipForNextFrame(font, lines, java.util.Optional.empty(), mouseX, mouseY);
     }
 
-    private void renderAnimatedBackground(GuiGraphics g, int rx, int ry,
+    private void renderAnimatedBackground(GuiGraphicsExtractor g, int rx, int ry,
                                           RecipeLayout layout, RecipeType<?> rType,
                                           AmiRecipeHolder<?> recipe) {
         long elapsed = System.currentTimeMillis() - animStart;
@@ -764,60 +764,54 @@ public class RecipeViewerScreen extends Screen {
             float flameProgress = 1.0f - ((elapsed % 4000) / 4000f);
             int flameHeight = (int) (14 * flameProgress);
             if (flameHeight > 0) {
-                g.blit(layout.backgroundTexture(),
-                        rx + 37, ry + 24 + (14 - flameHeight), 14, flameHeight,
-                        176, 14 - flameHeight, 14, flameHeight, 256, 256);
+                g.blit(RenderPipelines.GUI_TEXTURED, layout.backgroundTexture(),
+                        rx + 37, ry + 24 + (14 - flameHeight), 176f, (float)(14 - flameHeight), 14, flameHeight, 256, 256);
             }
             float cookProgress = (elapsed % 2000) / 2000f;
             int arrowWidth = (int) (24 * cookProgress);
             if (arrowWidth > 0) {
-                g.blit(layout.backgroundTexture(),
-                        rx + 60, ry + 22, arrowWidth, 17,
-                        176, 14, arrowWidth, 17, 256, 256);
+                g.blit(RenderPipelines.GUI_TEXTURED, layout.backgroundTexture(),
+                        rx + 60, ry + 22, 176f, 14f, arrowWidth, 17, 256, 256);
             }
         } else if (rType.toString().equals("ami:brewing")) {
             float bubbleProgress = (elapsed % 1500) / 1500f;
             int bubbleHeight = (int) (29 * bubbleProgress);
             if (bubbleHeight > 0) {
-                g.blit(layout.backgroundTexture(),
-                        rx + 75, ry + 4 + (29 - bubbleHeight), 12, bubbleHeight,
-                        185, 29 - bubbleHeight, 12, bubbleHeight, 256, 256);
+                g.blit(RenderPipelines.GUI_TEXTURED, layout.backgroundTexture(),
+                        rx + 75, ry + 4 + (29 - bubbleHeight), 185f, (float)(29 - bubbleHeight), 12, bubbleHeight, 256, 256);
             }
             float brewProgress = (elapsed % 3000) / 3000f;
             int brewHeight = (int) (28 * brewProgress);
             if (brewHeight > 0) {
-                g.blit(layout.backgroundTexture(),
-                        rx + 109, ry + 6, 9, brewHeight,
-                        176, 0, 9, brewHeight, 256, 256);
+                g.blit(RenderPipelines.GUI_TEXTURED, layout.backgroundTexture(),
+                        rx + 109, ry + 6, 176f, 0f, 9, brewHeight, 256, 256);
             }
         } else if (rType == RecipeType.STONECUTTING) {
             int frame = (int) ((elapsed / 100) % 2);
             int srcX  = 176 + frame * 16;
-            g.blit(layout.backgroundTexture(),
-                    rx + 39, ry + 17, 16, 16,
-                    srcX, 0, 16, 16, 256, 256);
+            g.blit(RenderPipelines.GUI_TEXTURED, layout.backgroundTexture(),
+                    rx + 39, ry + 17, (float)srcX, 0f, 16, 16, 256, 256);
         } else if (rType.toString().equals("ami:composting")) {
             if (recipe.value() instanceof com.sanhiruzu.ami.recipe.special.CompostingRecipeView cr) {
                 String chanceStr = String.format(java.util.Locale.ROOT, "%.0f%%", cr.getChance() * 100);
-                g.drawString(font, chanceStr, rx + 32, ry + 5, 0xFFFFFFFF, false);
-                g.drawString(font, "x7", rx + 74, ry + 5, COL_TEXT_NAV, false);
+                g.text(font, chanceStr, rx + 32, ry + 5, 0xFFFFFFFF, false);
+                g.text(font, "x7", rx + 74, ry + 5, COL_TEXT_NAV, false);
                 drawArrow(g, rx + 46, ry + 5);
             }
         } else if (rType.toString().equals("ami:fuel")) {
             if (recipe.value() instanceof com.sanhiruzu.ami.recipe.special.FuelRecipeView fr) {
                 float itemsSmelted = fr.getTime() / 200f;
                 String fuelStr = String.format(java.util.Locale.ROOT, "smelts %.1f items", itemsSmelted);
-                g.drawString(font, fuelStr, rx + 38, ry + 5, 0xFFFFFFFF, false);
-                g.blit(Services.PLATFORM.rl("minecraft", "textures/gui/container/furnace.png"),
-                        rx + 12, ry + 2, 14, 14,
-                        176, 0, 14, 14, 256, 256);
+                g.text(font, fuelStr, rx + 38, ry + 5, 0xFFFFFFFF, false);
+                g.blit(RenderPipelines.GUI_TEXTURED, Services.PLATFORM.rl("minecraft", "textures/gui/container/furnace.png"),
+                        rx + 12, ry + 2, 176f, 0f, 14, 14, 256, 256);
             }
         }
     }
 
     // ── Workstation / catalyst panel ─────────────────────────────────────
 
-    private void drawWorkstationPanel(GuiGraphics g, int mouseX, int mouseY) {
+    private void drawWorkstationPanel(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (tabs.isEmpty() || selectedTab >= tabs.size()) return;
         List<ItemStack> workstations = tabs.get(selectedTab).workstations();
         if (workstations.isEmpty()) return;
@@ -839,30 +833,30 @@ public class RecipeViewerScreen extends Screen {
             int sx = px + padH;
             int sy = py + padV + i * slotOuter;
             drawSlot(g, sx, sy);
-            g.renderItem(ws, sx + 1, sy + 1);
-            g.renderItemDecorations(font, ws, sx + 1, sy + 1);
+            g.item(ws, sx + 1, sy + 1);
+            g.itemDecorations(font, ws, sx + 1, sy + 1);
             if (isHovering(mouseX, mouseY, sx, sy, 18, 18)) {
-                g.renderTooltip(font, ws, mouseX, mouseY);
+                g.setTooltipForNextFrame(font, ws, mouseX, mouseY);
             }
         }
     }
 
     // ── Slot / arrow drawing ──────────────────────────────────────────────
 
-    private void drawSlot(GuiGraphics g, int x, int y) {
-        g.blit(widgets(), x, y, 18, 18, UV_SLOT_X, UV_SLOT_Y, 18, 18, 256, 256);
+    private void drawSlot(GuiGraphicsExtractor g, int x, int y) {
+        g.blit(RenderPipelines.GUI_TEXTURED, widgets(), x, y, (float)UV_SLOT_X, (float)UV_SLOT_Y, 18, 18, 256, 256);
     }
 
-    private void drawOutputSlot(GuiGraphics g, int x, int y) {
+    private void drawOutputSlot(GuiGraphicsExtractor g, int x, int y) {
         // Output sprite is 26×26; inner 18×18 item area starts at (4,4) in sprite space
-        g.blit(widgets(), x - 4, y - 4, 26, 26, UV_OUT_X, UV_OUT_Y, 26, 26, 256, 256);
+        g.blit(RenderPipelines.GUI_TEXTURED, widgets(), x - 4, y - 4, (float)UV_OUT_X, (float)UV_OUT_Y, 26, 26, 256, 256);
     }
 
-    private void drawArrow(GuiGraphics g, int x, int y) {
-        g.blit(widgets(), x, y, 22, 16, UV_ARROW_X, UV_ARROW_Y, 22, 16, 256, 256);
+    private void drawArrow(GuiGraphicsExtractor g, int x, int y) {
+        g.blit(RenderPipelines.GUI_TEXTURED, widgets(), x, y, (float)UV_ARROW_X, (float)UV_ARROW_Y, 22, 16, 256, 256);
     }
 
-    private void drawAnimatedArrow(GuiGraphics g, int x, int y) {
+    private void drawAnimatedArrow(GuiGraphicsExtractor g, int x, int y) {
         long elapsed  = System.currentTimeMillis() - animStart;
         float progress = (elapsed % 2500) / 2500f;
         int shaft     = (int) (20 * progress);
@@ -875,8 +869,10 @@ public class RecipeViewerScreen extends Screen {
     // ── Input handling ────────────────────────────────────────────────────
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        InputConstants.Key pressedKey = InputConstants.getKey(keyCode, scanCode);
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        int keyCode = event.key();
+        int scanCode = event.scancode();
+        InputConstants.Key pressedKey = InputConstants.getKey(event);
         if (AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().favorite(), pressedKey)
                 && tryToggleFavoriteUnderMouse()) {
             return true;
@@ -894,21 +890,21 @@ public class RecipeViewerScreen extends Screen {
             goBack();
             return true;
         }
-        if (tabs.isEmpty()) return super.keyPressed(keyCode, scanCode, modifiers);
+        if (tabs.isEmpty()) return super.keyPressed(event);
 
         if (keyCode == GLFW.GLFW_KEY_LEFT) {
-            if (hasShiftDown()) prevPage(); else prevTab();
+            if (event.hasShiftDown()) prevPage(); else prevTab();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_RIGHT) {
-            if (hasShiftDown()) nextPage(); else nextTab();
+            if (event.hasShiftDown()) nextPage(); else nextTab();
             return true;
         }
         if ((keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) && canTransfer) {
-            doTransfer();
+            doTransfer(event.hasShiftDown());
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     private boolean tryToggleFavoriteUnderMouse() {
@@ -1060,8 +1056,11 @@ public class RecipeViewerScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (tabs.isEmpty()) return super.mouseClicked(mouseX, mouseY, button);
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean bl) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
+        if (tabs.isEmpty()) return super.mouseClicked(event, bl);
 
         Tab tab     = tabs.get(selectedTab);
         int tabSize = tab.recipes().size();
@@ -1203,7 +1202,7 @@ public class RecipeViewerScreen extends Screen {
                 int btnX = cardX + cardW - 22;
                 int btnY = cardY + (cardH - 14) / 2;
                 if (isHovering(mouseX, mouseY, btnX, btnY, 18, 14)) {
-                    doTransfer(recipe, hasShiftDown());
+                    doTransfer(recipe, event.hasShiftDown());
                     return true;
                 }
             }
@@ -1230,7 +1229,7 @@ public class RecipeViewerScreen extends Screen {
                 int outX = rx + layout.outputX();
                 int outY = ry + layout.outputY();
                 if (isHovering(mouseX, mouseY, outX, outY, 18, 18) && !layout.output().isEmpty()) {
-                    if (recipeCanTransfer && hasShiftDown() && button == 0) {
+                    if (recipeCanTransfer && net.minecraft.client.Minecraft.getInstance().hasShiftDown() && button == 0) {
                         doTransfer(recipe, true);
                     } else {
                         navigateTo(layout.output(), button == 0);
@@ -1240,7 +1239,7 @@ public class RecipeViewerScreen extends Screen {
             }
         }
 
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, bl);
     }
 
     // ── Navigation helpers ────────────────────────────────────────────────
@@ -1269,11 +1268,11 @@ public class RecipeViewerScreen extends Screen {
         if (total > 1) { pageIndex = (pageIndex + 1) % total; refreshLayout(); }
     }
 
-    private void doTransfer() {
+    private void doTransfer(boolean maxTransfer) {
         if (minecraft == null) return;
         Tab tab = tabs.get(selectedTab);
         int firstIdx = pageIndex * recipesPerPage;
-        if (firstIdx < tab.recipes().size()) doTransfer(tab.recipes().get(firstIdx), hasShiftDown());
+        if (firstIdx < tab.recipes().size()) doTransfer(tab.recipes().get(firstIdx), maxTransfer);
     }
 
     private void doTransfer(AmiRecipeHolder<?> recipe, boolean maxTransfer) {
@@ -1310,12 +1309,12 @@ public class RecipeViewerScreen extends Screen {
         return com.sanhiruzu.ami.config.AmiConfig.theme != com.sanhiruzu.ami.config.AmiConfig.Theme.VANILLA;
     }
 
-    private void drawCentered(GuiGraphics g, Component text, int cx, int y, int color) {
-        g.drawString(font, text, cx - font.width(text) / 2, y, color, shadow());
+    private void drawCentered(GuiGraphicsExtractor g, Component text, int cx, int y, int color) {
+        g.text(font, text, cx - font.width(text) / 2, y, color, shadow());
     }
 
-    private void drawCentered(GuiGraphics g, String text, int cx, int y, int color) {
-        g.drawString(font, text, cx - font.width(text) / 2, y, color, shadow());
+    private void drawCentered(GuiGraphicsExtractor g, String text, int cx, int y, int color) {
+        g.text(font, text, cx - font.width(text) / 2, y, color, shadow());
     }
 
     // ── Records ───────────────────────────────────────────────────────────

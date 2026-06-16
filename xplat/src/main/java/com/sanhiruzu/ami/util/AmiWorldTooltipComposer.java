@@ -4,13 +4,13 @@ import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.Screen;
+
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeSpecialEffects;
 
@@ -25,7 +25,7 @@ import java.util.Map;
  */
 public final class AmiWorldTooltipComposer {
     // Lazy cache: biome ID → list of structure display names that generate there
-    private static Map<ResourceLocation, List<String>> biomeStructureCache = null;
+    private static Map<Identifier, List<String>> biomeStructureCache = null;
 
     private AmiWorldTooltipComposer() {
     }
@@ -34,22 +34,22 @@ public final class AmiWorldTooltipComposer {
         biomeStructureCache = null;
     }
 
-    private static Map<ResourceLocation, List<String>> getBiomeStructureMap() {
+    private static Map<Identifier, List<String>> getBiomeStructureMap() {
         if (biomeStructureCache != null) return biomeStructureCache;
         biomeStructureCache = new HashMap<>();
         var mc = Minecraft.getInstance();
         if (mc.level == null) return biomeStructureCache;
 
-        mc.level.registryAccess().registry(Registries.STRUCTURE).ifPresent(structReg -> {
-            for (var entry : structReg.entrySet()) {
-                var structure = entry.getValue();
+        mc.level.registryAccess().lookup(Registries.STRUCTURE).ifPresent(structReg -> {
+            structReg.listElements().forEach(holder -> {
+                var structure = holder.value();
                 var biomes = structure.biomes();
-                String structName = entry.getKey().location().toString();
+                String structName = holder.key().identifier().toString();
                 for (Holder<Biome> biomeHolder : biomes) {
                     biomeHolder.unwrapKey().ifPresent(key ->
-                            biomeStructureCache.computeIfAbsent(key.location(), k -> new ArrayList<>()).add(structName));
+                            biomeStructureCache.computeIfAbsent(key.identifier(), k -> new ArrayList<>()).add(structName));
                 }
-            }
+            });
         });
         return biomeStructureCache;
     }
@@ -86,8 +86,8 @@ public final class AmiWorldTooltipComposer {
         }
 
         var biomeKey = ResourceKey.create(Registries.BIOME, entry.id());
-        mc.level.registryAccess().registry(Registries.BIOME).ifPresent(reg ->
-                reg.getHolder(biomeKey).ifPresent(holder -> {
+        mc.level.registryAccess().lookup(Registries.BIOME).ifPresent(reg ->
+                reg.get(biomeKey).ifPresent(holder -> {
                     Biome biome = holder.value();
                     BiomeSpecialEffects effects = biome.getSpecialEffects();
                     Component precip = !biome.hasPrecipitation()
@@ -99,16 +99,9 @@ public final class AmiWorldTooltipComposer {
                             .append(Component.literal(": ").append(precip)
                                     .withStyle(s -> s.withColor(AMITheme.ACCENT_BLUE))));
                     lines.add(Component.translatable("ami.tooltip.water_color")
-                            .append(colorSwatch(effects.getWaterColor())));
+                            .append(colorSwatch(effects.waterColor())));
 
-                    if (Screen.hasShiftDown()) {
-                        lines.add(Component.translatable("ami.tooltip.sky_color")
-                                .append(colorSwatch(effects.getSkyColor())));
-
-                        int fogColor = effects.getFogColor();
-                        lines.add(Component.translatable("ami.tooltip.fog_color")
-                                .append(colorSwatch(fogColor)));
-
+                    if (Minecraft.getInstance().hasShiftDown()) {
                         String foliageStr = entry.meta(SearchNodeKeys.FOLIAGE_COLOR, "");
                         if (!foliageStr.isBlank()) {
                             lines.add(Component.translatable("ami.tooltip.foliage_color")
@@ -138,7 +131,7 @@ public final class AmiWorldTooltipComposer {
                                     total).withStyle(s -> s.withColor(AMITheme.ACCENT_BLUE)));
                             for (int i = 0; i < Math.min(total, maxShow); i++) {
                                 String structId = sorted.get(i);
-                                ResourceLocation sl = ResourceLocation.tryParse(structId);
+                                Identifier sl = Identifier.tryParse(structId);
                                 String display = sl != null
                                         ? com.sanhiruzu.ami.index.providers.RegistryUtils.formatPath(sl.getPath())
                                         : structId;
@@ -191,9 +184,9 @@ public final class AmiWorldTooltipComposer {
         }
 
         var key = ResourceKey.create(Registries.STRUCTURE, entry.id());
-        mc.level.registryAccess().registry(Registries.STRUCTURE).ifPresent(reg ->
-                reg.getHolder(key).ifPresent(holder -> {
-                    if (Screen.hasShiftDown()) {
+        mc.level.registryAccess().lookup(Registries.STRUCTURE).ifPresent(reg ->
+                reg.get(key).ifPresent(holder -> {
+                    if (Minecraft.getInstance().hasShiftDown()) {
                         var tags = holder.tags().limit(6).toList();
                         if (!tags.isEmpty()) {
                             lines.add(Component.translatable("ami.tooltip.tags")
@@ -221,7 +214,7 @@ public final class AmiWorldTooltipComposer {
         if (label != null) {
             lines.add(Component.literal(label).withStyle(s -> s.withColor(AMITheme.TEXT_SUBTLE)));
         }
-        if (!Screen.hasShiftDown()) {
+        if (!Minecraft.getInstance().hasShiftDown()) {
             addShiftHint(lines);
         }
     }

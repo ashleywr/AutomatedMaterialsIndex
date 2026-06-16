@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.api.AmiGuideDocument;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
@@ -14,14 +14,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ModonomiconRuntimeGuideSourceTest {
     @Test
     void buildsOpenableDocumentsFromModonomiconResourcesAndLangKeys() {
-        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("spectrum", "modonomicon/books/guidebook/book.json"), """
+        Map<Identifier, String> resources = new LinkedHashMap<>();
+        resources.put(new Identifier("spectrum", "modonomicon/books/guidebook/book.json"), """
                 { "name": "item.spectrum.guidebook" }
                 """);
-        resources.put(new ResourceLocation("spectrum", "modonomicon/books/guidebook/categories/cuisine.json"), """
+        resources.put(new Identifier("spectrum", "modonomicon/books/guidebook/categories/cuisine.json"), """
                 { "name": "book.spectrum.guidebook.category.cuisine.name" }
                 """);
-        resources.put(new ResourceLocation("spectrum", "modonomicon/books/guidebook/entries/cuisine/cookbooks/brewers_handbook.json"), """
+        resources.put(new Identifier("spectrum", "modonomicon/books/guidebook/entries/cuisine/cookbooks/brewers_handbook.json"), """
                 {
                   "name": "item.spectrum.brewers_handbook",
                   "icon": { "item": "spectrum:brewers_handbook" },
@@ -39,8 +39,8 @@ class ModonomiconRuntimeGuideSourceTest {
                   ]
                 }
                 """);
-        Map<ResourceLocation, String> lang = new LinkedHashMap<>();
-        lang.put(new ResourceLocation("spectrum", "lang/en_us.json"), """
+        Map<Identifier, String> lang = new LinkedHashMap<>();
+        lang.put(new Identifier("spectrum", "lang/en_us.json"), """
                 {
                   "item.spectrum.guidebook": "Guidebook",
                   "book.spectrum.guidebook.category.cuisine.name": "Cuisine",
@@ -54,14 +54,14 @@ class ModonomiconRuntimeGuideSourceTest {
 
         assertEquals(1, documents.size());
         AmiGuideDocument document = documents.getFirst();
-        assertEquals(new ResourceLocation("spectrum", "guidebook"), document.bookId());
-        assertEquals(new ResourceLocation("spectrum", "brewers_handbook"), document.iconItemId());
+        assertEquals(new Identifier("spectrum", "guidebook"), document.bookId());
+        assertEquals(new Identifier("spectrum", "brewers_handbook"), document.iconItemId());
         assertEquals("cuisine/cookbooks/brewers_handbook", document.pageId());
         assertEquals("Brewer's Handbook", document.title());
         assertEquals("Cuisine", document.chapter());
         assertEquals(List.of(
-                new ResourceLocation("spectrum", "brewers_handbook"),
-                new ResourceLocation("spectrum", "potion_workshop")
+                new Identifier("spectrum", "brewers_handbook"),
+                new Identifier("spectrum", "potion_workshop")
         ), document.referencedItems());
         assertTrue(document.summaryText().contains("Brewing Basics"));
         assertTrue(document.summaryText().contains("Use the Potion Workshop"));
@@ -70,15 +70,15 @@ class ModonomiconRuntimeGuideSourceTest {
 
     @Test
     void selectedLanguageOverridesDefaultTranslations() {
-        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("example", "modonomicon/books/manual/entries/basics/press.json"), """
+        Map<Identifier, String> resources = new LinkedHashMap<>();
+        resources.put(new Identifier("example", "modonomicon/books/manual/entries/basics/press.json"), """
                 { "name": "guide.example.press", "pages": [ { "text": "guide.example.body" } ] }
                 """);
-        Map<ResourceLocation, String> lang = new LinkedHashMap<>();
-        lang.put(new ResourceLocation("example", "lang/en_us.json"), """
+        Map<Identifier, String> lang = new LinkedHashMap<>();
+        lang.put(new Identifier("example", "lang/en_us.json"), """
                 { "guide.example.press": "Press", "guide.example.body": "English body" }
                 """);
-        lang.put(new ResourceLocation("example", "lang/de_de.json"), """
+        lang.put(new Identifier("example", "lang/de_de.json"), """
                 { "guide.example.press": "Lokalisierte Presse", "guide.example.body": "Lokalisierter Text" }
                 """);
 
@@ -91,9 +91,9 @@ class ModonomiconRuntimeGuideSourceTest {
 
     @Test
     void malformedEntryDoesNotBlockOtherEntries() {
-        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("example", "modonomicon/books/manual/entries/broken.json"), "{");
-        resources.put(new ResourceLocation("example", "modonomicon/books/manual/entries/working.json"), """
+        Map<Identifier, String> resources = new LinkedHashMap<>();
+        resources.put(new Identifier("example", "modonomicon/books/manual/entries/broken.json"), "{");
+        resources.put(new Identifier("example", "modonomicon/books/manual/entries/working.json"), """
                 { "name": "Working" }
                 """);
 
@@ -105,8 +105,8 @@ class ModonomiconRuntimeGuideSourceTest {
 
     @Test
     void unresolvedTranslationKeysDoNotLeakIntoTitles() {
-        Map<ResourceLocation, String> resources = new LinkedHashMap<>();
-        resources.put(new ResourceLocation("spectrum", "modonomicon/books/guidebook/entries/creating_life/bloodstone.json"), """
+        Map<Identifier, String> resources = new LinkedHashMap<>();
+        resources.put(new Identifier("spectrum", "modonomicon/books/guidebook/entries/creating_life/bloodstone.json"), """
                 {
                   "name": "book.spectrum.guidebook.bloodstone.name",
                   "category": "spectrum:creating_life",

@@ -6,7 +6,7 @@ import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
@@ -30,8 +30,8 @@ public final class CobblemonPokedexOpener {
     private static CuriosBridge curiosBridge;
     private static boolean curiosUnavailable;
     private static final int MAX_OPEN_FAILURE_LOGS = 8;
-    private static final Set<ResourceLocation> LOGGED_COBBLEDEX_OPEN_FAILURES = new HashSet<>();
-    private static final Set<ResourceLocation> LOGGED_POKEDEX_OPEN_FAILURES = new HashSet<>();
+    private static final Set<Identifier> LOGGED_COBBLEDEX_OPEN_FAILURES = new HashSet<>();
+    private static final Set<Identifier> LOGGED_POKEDEX_OPEN_FAILURES = new HashSet<>();
     private static int openFailureLogCount;
 
     private CobblemonPokedexOpener() {
@@ -68,7 +68,7 @@ public final class CobblemonPokedexOpener {
             return false;
         }
 
-        ResourceLocation speciesId = speciesId(node);
+        Identifier speciesId = speciesId(node);
         if (speciesId == null) {
             return true;
         }
@@ -106,11 +106,11 @@ public final class CobblemonPokedexOpener {
         }
 
         Inventory inventory = realPlayer.getInventory();
-        Object type = findPokedexType(api, inventory.items);
-        if (type != null) return type;
-        type = findPokedexType(api, inventory.offhand);
-        if (type != null) return type;
-        type = findPokedexType(api, inventory.armor);
+        List<ItemStack> allSlots = new java.util.ArrayList<>(inventory.getContainerSize());
+        for (int i = 0; i < inventory.getContainerSize(); i++) {
+            allSlots.add(inventory.getItem(i));
+        }
+        Object type = findPokedexType(api, allSlots);
         if (type != null) return type;
         return findCuriosPokedexType(api, player);
     }
@@ -164,7 +164,7 @@ public final class CobblemonPokedexOpener {
         return null;
     }
 
-    private static boolean tryOpenCobbledex(Minecraft mc, ResourceLocation speciesId) {
+    private static boolean tryOpenCobbledex(Minecraft mc, Identifier speciesId) {
         CobbledexApi api = cobbledexApi();
         if (api == null) {
             return false;
@@ -191,15 +191,15 @@ public final class CobblemonPokedexOpener {
         }
     }
 
-    private static ResourceLocation speciesId(SearchNode node) {
+    private static Identifier speciesId(SearchNode node) {
         String species = node.meta(SearchNodeKeys.POKEMON_SPECIES, "");
         if (!species.isBlank()) {
-            ResourceLocation parsed = ResourceLocation.tryParse(species);
+            Identifier parsed = Identifier.tryParse(species);
             if (parsed != null) return parsed;
         }
 
         if ("cobblemon".equals(node.id().getNamespace()) && node.id().getPath().startsWith("species/")) {
-            return ResourceLocation.fromNamespaceAndPath("cobblemon", node.id().getPath().substring("species/".length()));
+            return Identifier.fromNamespaceAndPath("cobblemon", node.id().getPath().substring("species/".length()));
         }
 
         return null;
@@ -221,7 +221,7 @@ public final class CobblemonPokedexOpener {
 
             Field instance = pokemonSpecies.getField("INSTANCE");
             Object pokemonSpeciesInstance = instance.get(null);
-            Method getByIdentifier = ReflectiveCompat.findMethod(pokemonSpecies, "getByIdentifier", ResourceLocation.class).orElseThrow();
+            Method getByIdentifier = ReflectiveCompat.findMethod(pokemonSpecies, "getByIdentifier", Identifier.class).orElseThrow();
             Method getStandardForm = ReflectiveCompat.findMethod(species, "getStandardForm").orElseThrow();
             Constructor<?> guiCtor = ReflectiveCompat.findConstructor(cobbledexGui, formData, Set.class).orElseThrow();
 
@@ -255,29 +255,29 @@ public final class CobblemonPokedexOpener {
             Constructor<?> guiCtor = null;
             GuiCtorVariant ctorVariant = null;
 
-            // Shape 1: primary — PokedexGUI(PokedexType, ResourceLocation, BlockPos)
+            // Shape 1: primary — PokedexGUI(PokedexType, Identifier, BlockPos)
             try {
-                guiCtor = pokedexGui.getDeclaredConstructor(pokedexType, ResourceLocation.class, BlockPos.class);
+                guiCtor = pokedexGui.getDeclaredConstructor(pokedexType, Identifier.class, BlockPos.class);
                 guiCtor.setAccessible(true);
                 ctorVariant = GuiCtorVariant.THREE_ARG;
             } catch (Throwable ignored) {
             }
 
-            // Shape 2: @JvmOverloads secondary — PokedexGUI(PokedexType, ResourceLocation)
+            // Shape 2: @JvmOverloads secondary — PokedexGUI(PokedexType, Identifier)
             if (guiCtor == null) {
-                var c2 = ReflectiveCompat.findConstructor(pokedexGui, pokedexType, ResourceLocation.class);
+                var c2 = ReflectiveCompat.findConstructor(pokedexGui, pokedexType, Identifier.class);
                 if (c2.isPresent()) {
                     guiCtor = c2.get();
                     ctorVariant = GuiCtorVariant.TWO_ARG;
                 }
             }
 
-            // Shape 3: Kotlin synthetic bridge — PokedexGUI(PokedexType, ResourceLocation, BlockPos, DefaultConstructorMarker)
+            // Shape 3: Kotlin synthetic bridge — PokedexGUI(PokedexType, Identifier, BlockPos, DefaultConstructorMarker)
             if (guiCtor == null) {
                 try {
                     Class<?> dcm = Class.forName("kotlin.jvm.internal.DefaultConstructorMarker");
                     Constructor<?> c4 = pokedexGui.getDeclaredConstructor(
-                            pokedexType, ResourceLocation.class, BlockPos.class, dcm);
+                            pokedexType, Identifier.class, BlockPos.class, dcm);
                     c4.setAccessible(true);
                     guiCtor = c4;
                     ctorVariant = GuiCtorVariant.FOUR_ARG_MARKER;
@@ -285,12 +285,12 @@ public final class CobblemonPokedexOpener {
                 }
             }
 
-            // Shape 4: Kotlin default-args synthetic — PokedexGUI(PokedexType, ResourceLocation, BlockPos, int, DefaultConstructorMarker)
+            // Shape 4: Kotlin default-args synthetic — PokedexGUI(PokedexType, Identifier, BlockPos, int, DefaultConstructorMarker)
             if (guiCtor == null) {
                 try {
                     Class<?> dcm = Class.forName("kotlin.jvm.internal.DefaultConstructorMarker");
                     Constructor<?> c5 = pokedexGui.getDeclaredConstructor(
-                            pokedexType, ResourceLocation.class, BlockPos.class, int.class, dcm);
+                            pokedexType, Identifier.class, BlockPos.class, int.class, dcm);
                     c5.setAccessible(true);
                     guiCtor = c5;
                     ctorVariant = GuiCtorVariant.FIVE_ARG;
@@ -343,7 +343,7 @@ public final class CobblemonPokedexOpener {
             GuiCtorVariant ctorVariant,
             Object defaultPokedexType
     ) {
-        Object createGui(Object type, ResourceLocation speciesId) throws ReflectiveOperationException {
+        Object createGui(Object type, Identifier speciesId) throws ReflectiveOperationException {
             return switch (ctorVariant) {
                 case THREE_ARG -> pokedexGuiCtor.newInstance(type, speciesId, null);
                 case TWO_ARG -> pokedexGuiCtor.newInstance(type, speciesId);
@@ -365,7 +365,7 @@ public final class CobblemonPokedexOpener {
     private record CuriosBridge(Method getCuriosInventory, Method findFirstCurio, Method slotResultStack) {
     }
 
-    private static void logOpenFailure(String apiName, ResourceLocation speciesId, Throwable e, Set<ResourceLocation> loggedSpecies) {
+    private static void logOpenFailure(String apiName, Identifier speciesId, Throwable e, Set<Identifier> loggedSpecies) {
         if (!loggedSpecies.add(speciesId)) {
             return;
         }

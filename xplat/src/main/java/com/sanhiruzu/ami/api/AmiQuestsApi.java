@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.api;
 
 import com.sanhiruzu.ami.index.AmiQuestSearchIndex;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,8 +23,8 @@ import java.util.logging.Logger;
  *     "ftbquests:basic_circuits",
  *     Component.literal("Basic Circuits"),
  *     List.of(
- *         new AmiQuestEntry(new ResourceLocation("redstone"), 12),
- *         new AmiQuestEntry(new ResourceLocation("iron_ingot"), 6)
+ *         new AmiQuestEntry(new Identifier("redstone"), 12),
+ *         new AmiQuestEntry(new Identifier("iron_ingot"), 6)
  *     )
  * ));
  * }</pre>
@@ -149,7 +149,7 @@ public class AmiQuestsApi {
         return questSearchIndex;
     }
 
-    public static List<AmiQuestItemMatch> getQuestMatchesForItem(ResourceLocation itemId) {
+    public static List<AmiQuestItemMatch> getQuestMatchesForItem(Identifier itemId) {
         return questSearchIndex.findItem(itemId);
     }
 

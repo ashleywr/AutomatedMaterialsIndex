@@ -2,9 +2,12 @@ package com.sanhiruzu.ami.client.overlay;
 
 import com.sanhiruzu.ami.client.UniversalResultsPanel;
 import com.sanhiruzu.ami.config.AmiConfig;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 public class ResultsPanelWidget extends AbstractWidget {
@@ -70,7 +73,7 @@ public class ResultsPanelWidget extends AbstractWidget {
     }
 
     @Override
-    protected void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         if (panel == null || width <= 0 || height <= 0) return;
         panel.render(g, mouseX, mouseY, partialTick);
     }
@@ -78,14 +81,17 @@ public class ResultsPanelWidget extends AbstractWidget {
     /**
      * Renders dropdowns and tooltips that must draw above everything else.
      */
-    public void renderOverlay(GuiGraphics g, int mouseX, int mouseY) {
+    public void renderOverlay(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (panel == null) return;
         panel.renderOverlay(g, mouseX, mouseY);
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (panel == null || !this.visible) return false;
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         if (!isMouseOver(mouseX, mouseY) && !panel.isContextMenuOpen()) return false;
         if (isMouseOver(mouseX, mouseY)) {
             panel.mouseClickedScrollbar(mouseX, mouseY, button);
@@ -101,15 +107,15 @@ public class ResultsPanelWidget extends AbstractWidget {
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
         if (panel == null) return false;
-        return panel.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        return panel.mouseDragged(event.x(), event.y(), event.button(), dragX, dragY);
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+    public boolean mouseReleased(MouseButtonEvent event) {
         if (panel == null) return false;
-        panel.mouseReleased(mouseX, mouseY, button);
+        panel.mouseReleased(event.x(), event.y(), event.button());
         return false;
     }
 
@@ -120,15 +126,15 @@ public class ResultsPanelWidget extends AbstractWidget {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(KeyEvent event) {
         if (panel == null) return false;
-        return panel.keyPressed(keyCode, scanCode, modifiers);
+        return panel.keyPressed(event.key(), event.scancode(), event.modifiers());
     }
 
     @Override
-    public boolean charTyped(char codePoint, int modifiers) {
+    public boolean charTyped(CharacterEvent event) {
         if (panel == null) return false;
-        return panel.charTyped(codePoint, modifiers);
+        return panel.charTyped((char) event.codepoint(), 0);
     }
 
     @Override

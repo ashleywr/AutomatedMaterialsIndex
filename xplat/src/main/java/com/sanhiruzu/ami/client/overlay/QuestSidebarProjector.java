@@ -9,7 +9,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -25,20 +25,20 @@ public final class QuestSidebarProjector {
     }
 
     public static List<TreeNode> project(List<AmiQuestGroup> groups,
-                                         Function<ResourceLocation, Optional<SearchNode>> nodeResolver) {
+                                         Function<Identifier, Optional<SearchNode>> nodeResolver) {
         return project(groups, List.of(), nodeResolver);
     }
 
     public static List<TreeNode> project(List<AmiQuestGroup> groups,
                                          List<AmiQuestDocument> documents,
-                                         Function<ResourceLocation, Optional<SearchNode>> nodeResolver) {
+                                         Function<Identifier, Optional<SearchNode>> nodeResolver) {
         boolean hasGroups = groups != null && !groups.isEmpty();
         boolean hasDocuments = documents != null && !documents.isEmpty();
         if (!hasGroups && !hasDocuments) {
             return List.of();
         }
 
-        Function<ResourceLocation, Optional<SearchNode>> resolver =
+        Function<Identifier, Optional<SearchNode>> resolver =
                 nodeResolver == null ? ignored -> Optional.empty() : nodeResolver;
 
         List<TreeNode> roots = new ArrayList<>();
@@ -48,7 +48,7 @@ public final class QuestSidebarProjector {
     }
 
     private static List<TreeNode> projectGroups(List<AmiQuestGroup> groups,
-                                                Function<ResourceLocation, Optional<SearchNode>> resolver) {
+                                                Function<Identifier, Optional<SearchNode>> resolver) {
         if (groups == null || groups.isEmpty()) {
             return List.of();
         }
@@ -58,10 +58,10 @@ public final class QuestSidebarProjector {
             if (group == null) {
                 continue;
             }
-            Map<ResourceLocation, Integer> counts = aggregateCounts(group.entries());
+            Map<Identifier, Integer> counts = aggregateCounts(group.entries());
             TreeNode groupNode = new TreeNode(group.id(), group.label());
             groupNode.setExpanded(true);
-            for (Map.Entry<ResourceLocation, Integer> entry : counts.entrySet()) {
+            for (Map.Entry<Identifier, Integer> entry : counts.entrySet()) {
                 SearchNode node = resolver.apply(entry.getKey())
                         .orElseGet(() -> fallbackNode(entry.getKey()));
                 groupNode.addChild(new TreeNode(labelFor(node, entry.getValue()), node));
@@ -74,7 +74,7 @@ public final class QuestSidebarProjector {
     }
 
     private static List<TreeNode> projectDocuments(List<AmiQuestDocument> documents,
-                                                   Function<ResourceLocation, Optional<SearchNode>> resolver) {
+                                                   Function<Identifier, Optional<SearchNode>> resolver) {
         if (documents == null || documents.isEmpty()) {
             return List.of();
         }
@@ -106,12 +106,12 @@ public final class QuestSidebarProjector {
     }
 
     private static TreeNode questNode(AmiQuestDocument document,
-                                      Function<ResourceLocation, Optional<SearchNode>> resolver) {
+                                      Function<Identifier, Optional<SearchNode>> resolver) {
         TreeNode questNode = new TreeNode(document.id(), Component.literal(questLabel(document)));
         questNode.setExpanded(true);
 
-        Map<ResourceLocation, Integer> counts = aggregateDocumentRequirements(document);
-        for (Map.Entry<ResourceLocation, Integer> entry : counts.entrySet()) {
+        Map<Identifier, Integer> counts = aggregateDocumentRequirements(document);
+        for (Map.Entry<Identifier, Integer> entry : counts.entrySet()) {
             SearchNode node = resolver.apply(entry.getKey())
                     .orElseGet(() -> fallbackNode(entry.getKey()));
             questNode.addChild(new TreeNode(labelFor(node, entry.getValue()), node));
@@ -119,14 +119,14 @@ public final class QuestSidebarProjector {
         return questNode;
     }
 
-    private static Map<ResourceLocation, Integer> aggregateDocumentRequirements(AmiQuestDocument document) {
-        Map<ResourceLocation, Integer> counts = new LinkedHashMap<>();
+    private static Map<Identifier, Integer> aggregateDocumentRequirements(AmiQuestDocument document) {
+        Map<Identifier, Integer> counts = new LinkedHashMap<>();
         for (AmiQuestTaskDocument task : document.tasks()) {
             if (task.role() != AmiQuestTaskDocument.Role.REQUIREMENT) {
                 continue;
             }
             int requiredCount = safeCount(task.requiredCount());
-            for (ResourceLocation itemId : task.itemIds()) {
+            for (Identifier itemId : task.itemIds()) {
                 counts.merge(itemId, requiredCount, Integer::sum);
             }
         }
@@ -154,8 +154,8 @@ public final class QuestSidebarProjector {
         return document.title().isBlank() ? document.id() : document.title();
     }
 
-    private static Map<ResourceLocation, Integer> aggregateCounts(List<AmiQuestEntry> entries) {
-        Map<ResourceLocation, Integer> counts = new LinkedHashMap<>();
+    private static Map<Identifier, Integer> aggregateCounts(List<AmiQuestEntry> entries) {
+        Map<Identifier, Integer> counts = new LinkedHashMap<>();
         if (entries == null) {
             return counts;
         }
@@ -175,7 +175,7 @@ public final class QuestSidebarProjector {
         return Component.literal(node.displayName());
     }
 
-    private static SearchNode fallbackNode(ResourceLocation itemId) {
+    private static SearchNode fallbackNode(Identifier itemId) {
         Map<String, String> metadata = Map.of(
                 SearchNodeKeys.MOD_ID, itemId.getNamespace(),
                 QUEST_FALLBACK, "true"

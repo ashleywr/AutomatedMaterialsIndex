@@ -8,7 +8,7 @@ import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
@@ -51,13 +51,13 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
     }
 
     private static SearchNode buildSpeciesNode(SpeciesApi api, Object species) throws ReflectiveOperationException {
-        ResourceLocation speciesId = (ResourceLocation) api.getResourceIdentifier.invoke(species);
+        Identifier speciesId = (Identifier) api.getResourceIdentifier.invoke(species);
         if (speciesId == null) {
             return null;
         }
 
         String speciesPath = speciesId.getPath();
-        ResourceLocation nodeId = ResourceLocation.fromNamespaceAndPath("cobblemon", "species/" + speciesPath);
+        Identifier nodeId = Identifier.fromNamespaceAndPath("cobblemon", "species/" + speciesPath);
         String displayName = componentString(api.getTranslatedName.invoke(species), fallbackName(speciesPath));
 
         Map<String, String> meta = new LinkedHashMap<>();
@@ -215,9 +215,9 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
         List<String> maximums = new ArrayList<>();
         for (Object entry : entries) {
             Object rawItem = invokeNoArg(entry, "getItem");
-            ResourceLocation itemId = rawItem instanceof ResourceLocation resourceLocation
-                    ? resourceLocation
-                    : ResourceLocation.tryParse(rawItem == null ? "" : rawItem.toString());
+            Identifier itemId = rawItem instanceof Identifier Identifier
+                    ? Identifier
+                    : Identifier.tryParse(rawItem == null ? "" : rawItem.toString());
             if (!isUsableDropItemId(itemId)) {
                 continue;
             }
@@ -325,7 +325,7 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
 
         StringBuilder out = new StringBuilder();
         for (String part : raw.split(",")) {
-            ResourceLocation id = ResourceLocation.tryParse(part.trim());
+            Identifier id = Identifier.tryParse(part.trim());
             if (id == null) continue;
             out.append(' ')
                     .append(id.getNamespace())
@@ -335,12 +335,12 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
         return out.toString();
     }
 
-    private static boolean isUsableDropItemId(ResourceLocation itemId) {
+    private static boolean isUsableDropItemId(Identifier itemId) {
         if (itemId == null || itemId.getPath().isBlank()) {
             return false;
         }
         try {
-            return BuiltInRegistries.ITEM.get(itemId) != Items.AIR;
+            return BuiltInRegistries.ITEM.getValue(itemId) != Items.AIR;
         } catch (RuntimeException e) {
             AmiCore.LOGGER.debug("Ignoring unresolved Cobblemon drop item {}", itemId, e);
             return false;

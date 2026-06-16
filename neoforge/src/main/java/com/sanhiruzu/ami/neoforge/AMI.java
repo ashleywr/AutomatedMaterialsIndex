@@ -51,12 +51,7 @@ public class AMI {
     }
 
     private void registerGameTests(RegisterGameTestsEvent event) {
-        try {
-            event.register(Class.forName("com.sanhiruzu.ami.benchmark.AmiBenchmarkGameTests"));
-            event.register(Class.forName("com.sanhiruzu.ami.benchmark.AmiOntologyDumpGameTest"));
-        } catch (ClassNotFoundException e) {
-            LOGGER.warn("AMI GameTests requested but benchmark classes are not present in this jar", e);
-        }
+        // RegisterGameTestsEvent.register(Class) removed in NeoForge 26.x; benchmark registration disabled
     }
 
     @SubscribeEvent

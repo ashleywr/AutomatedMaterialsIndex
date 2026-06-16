@@ -7,7 +7,7 @@ import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
@@ -27,7 +27,7 @@ final class RecipeLookupStackResolver {
         List<ItemStack> candidates = new ArrayList<>();
         addUnique(candidates, requested);
 
-        ResourceLocation baseItemId = BuiltInRegistries.ITEM.getKey(requested.getItem());
+        Identifier baseItemId = BuiltInRegistries.ITEM.getKey(requested.getItem());
         if (baseItemId == null) {
             return List.copyOf(candidates);
         }

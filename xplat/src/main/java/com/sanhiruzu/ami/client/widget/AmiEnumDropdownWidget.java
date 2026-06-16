@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.client.widget;
 
 import com.sanhiruzu.ami.client.AMITheme;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
@@ -39,7 +39,7 @@ public class AmiEnumDropdownWidget extends AbstractWidget implements AmiDropdown
     }
 
     @Override
-    public void renderDropdownList(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void renderDropdownList(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         if (!open || constants == null || constants.length == 0) return;
 
         int listX = getX();
@@ -48,8 +48,7 @@ public class AmiEnumDropdownWidget extends AbstractWidget implements AmiDropdown
         int listH = visible * OPTION_HEIGHT + 2;
         int listY = dropdownY(listH);
 
-        g.pose().pushPose();
-        g.pose().translate(0, 0, com.sanhiruzu.ami.client.overlay.OverlayLayers.DROPDOWN);
+        g.pose().pushMatrix();
         AMITheme.fillPixelPopup(g, listX, listY, listW, listH,
                 AMITheme.DROPDOWN_LIST_BG, AMITheme.BORDER_LIGHT, AMITheme.CONTROL_SHADOW, 0);
 
@@ -71,21 +70,21 @@ public class AmiEnumDropdownWidget extends AbstractWidget implements AmiDropdown
             if (font.width(text) > maxTextW) {
                 text = font.plainSubstrByWidth(text, Math.max(0, maxTextW - 8)) + "..";
             }
-            g.drawString(font, text, listX + 4, optionY + 5,
+            g.text(font, text, listX + 4, optionY + 5,
                     active ? AMITheme.TEXT_HIGHLIGHT : AMITheme.TEXT_PRIMARY, false);
 
             if (hovered) {
                 Component optionTooltip = AmiWidgetFactory.enumConstantOptionTooltip(constants[i]);
                 if (optionTooltip != null) {
-                    g.renderTooltip(font, optionTooltip, mouseX, mouseY);
+                    g.setTooltipForNextFrame(font, optionTooltip, mouseX, mouseY);
                 }
             }
         }
-        g.pose().popPose();
+        g.pose().popMatrix();
     }
 
     @Override
-    protected void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         boolean hovered = active && isMouseOver(mouseX, mouseY);
         int fill = (open || hovered) ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
         AMITheme.fillControlChrome(g, getX(), getY(), width, height, fill, open);
@@ -98,8 +97,8 @@ public class AmiEnumDropdownWidget extends AbstractWidget implements AmiDropdown
             text = font.plainSubstrByWidth(text, Math.max(0, maxTextW - 8)) + "..";
         }
         int textY = getY() + (height - font.lineHeight) / 2 + 1;
-        g.drawString(font, text, getX() + 4, textY, active ? AMITheme.CONFIG_TEXT_PRIMARY : AMITheme.CONFIG_TEXT_MUTED, false);
-        g.drawString(font, open ? "^" : "v", getX() + width - arrowW - 4, textY, AMITheme.CONFIG_TEXT_SECONDARY, false);
+        g.text(font, text, getX() + 4, textY, active ? AMITheme.CONFIG_TEXT_PRIMARY : AMITheme.CONFIG_TEXT_MUTED, false);
+        g.text(font, open ? "^" : "v", getX() + width - arrowW - 4, textY, AMITheme.CONFIG_TEXT_SECONDARY, false);
     }
 
     @Override

@@ -5,7 +5,7 @@ import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchService;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -27,7 +27,7 @@ public class FavoritesSearchScopeTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode ironIngot = new SearchNode(
-                new ResourceLocation("minecraft:iron_ingot"),
+                new Identifier("minecraft:iron_ingot"),
                 NodeType.ITEM,
                 "Iron Ingot",
                 0,
@@ -35,7 +35,7 @@ public class FavoritesSearchScopeTest {
                 Map.of()
         );
         SearchNode goldIngot = new SearchNode(
-                new ResourceLocation("minecraft:gold_ingot"),
+                new Identifier("minecraft:gold_ingot"),
                 NodeType.ITEM,
                 "Gold Ingot",
                 0,
@@ -60,7 +60,7 @@ public class FavoritesSearchScopeTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode ironIngot = new SearchNode(
-                new ResourceLocation("minecraft:iron_ingot"),
+                new Identifier("minecraft:iron_ingot"),
                 NodeType.ITEM,
                 "Iron Ingot",
                 0,
@@ -68,7 +68,7 @@ public class FavoritesSearchScopeTest {
                 Map.of()
         );
         SearchNode goldIngot = new SearchNode(
-                new ResourceLocation("minecraft:gold_ingot"),
+                new Identifier("minecraft:gold_ingot"),
                 NodeType.ITEM,
                 "Gold Ingot",
                 0,

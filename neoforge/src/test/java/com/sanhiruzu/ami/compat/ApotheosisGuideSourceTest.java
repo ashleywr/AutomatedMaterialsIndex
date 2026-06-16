@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.compat;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.sanhiruzu.ami.api.AmiGuideDocument;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,7 +30,7 @@ class ApotheosisGuideSourceTest {
                 """).getAsJsonObject();
 
         AmiGuideDocument document = ApotheosisGuideSource.affixDocument(
-                ResourceLocation.fromNamespaceAndPath("apotheosis", "affixes/melee/attribute/vampiric.json"),
+                Identifier.of("apotheosis", "affixes/melee/attribute/vampiric.json"),
                 json);
 
         assertEquals("Vampiric Affix", document.title());
@@ -59,11 +59,11 @@ class ApotheosisGuideSourceTest {
                 """).getAsJsonObject();
 
         AmiGuideDocument document = ApotheosisGuideSource.enchantingStatsDocument(
-                ResourceLocation.fromNamespaceAndPath("apothic_enchanting", "enchanting_stats/hellshelf.json"),
+                Identifier.of("apothic_enchanting", "enchanting_stats/hellshelf.json"),
                 json);
 
         assertEquals("Hellshelf Enchanting Stats", document.title());
-        assertEquals(ResourceLocation.fromNamespaceAndPath("apothic_enchanting", "hellshelf"),
+        assertEquals(Identifier.of("apothic_enchanting", "hellshelf"),
                 document.referencedItems().get(0));
         assertTrue(document.canOpen());
         assertEquals("enchanting/table/stats", document.pageId());
@@ -85,7 +85,7 @@ class ApotheosisGuideSourceTest {
                 """).getAsJsonObject();
 
         AmiGuideDocument document = ApotheosisGuideSource.enchantmentDocument(
-                ResourceLocation.fromNamespaceAndPath("apothic_enchanting", "enchantment/life_mending.json"),
+                Identifier.of("apothic_enchanting", "enchantment/life_mending.json"),
                 json);
 
         assertTrue(document.title().contains("Enchantment"));

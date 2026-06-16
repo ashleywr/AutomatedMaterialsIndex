@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.index.AmiOntology;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -77,7 +77,7 @@ class AmiCustomTaxonomyTest {
     @Test
     void ruleMatcherCanTargetModAndTags() {
         SearchNode node = new SearchNode(
-                ResourceLocation.parse("example:scanner"),
+                Identifier.parse("example:scanner"),
                 NodeType.ITEM,
                 "Scanner",
                 0,

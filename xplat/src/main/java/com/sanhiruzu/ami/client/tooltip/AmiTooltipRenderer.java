@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.client.tooltip;
 
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
@@ -19,21 +19,21 @@ public final class AmiTooltipRenderer {
         return RENDERING_AMI_TOOLTIP.get();
     }
 
-    public static void render(GuiGraphics g, Font font, ItemStack stack, int mouseX, int mouseY) {
-        renderAtTooltipLayer(g, () -> g.renderTooltip(font, stack, mouseX, mouseY));
+    public static void render(GuiGraphicsExtractor g, Font font, ItemStack stack, int mouseX, int mouseY) {
+        renderAtTooltipLayer(g, () -> g.setTooltipForNextFrame(font, stack, mouseX, mouseY));
     }
 
-    public static void render(GuiGraphics g, Font font, List<Component> lines,
+    public static void render(GuiGraphicsExtractor g, Font font, List<Component> lines,
                               Optional<TooltipComponent> image, int mouseX, int mouseY) {
         if (image.isPresent()) {
-            renderAtTooltipLayer(g, () -> g.renderTooltip(font, lines, image, mouseX, mouseY));
+            renderAtTooltipLayer(g, () -> g.setTooltipForNextFrame(font, lines, image, mouseX, mouseY));
             return;
         }
 
         renderText(g, font, lines, mouseX, mouseY);
     }
 
-    public static void render(GuiGraphics g, Font font, ItemStack stack, List<Component> lines,
+    public static void render(GuiGraphicsExtractor g, Font font, ItemStack stack, List<Component> lines,
                               Optional<TooltipComponent> image, int mouseX, int mouseY) {
         if (image.isPresent()) {
             renderAtTooltipLayer(g, () -> Services.PLATFORM.renderItemTooltip(g, font, lines, image, stack, mouseX, mouseY));
@@ -43,11 +43,11 @@ public final class AmiTooltipRenderer {
         renderText(g, font, lines, mouseX, mouseY);
     }
 
-    private static void renderText(GuiGraphics g, Font font, List<Component> lines, int mouseX, int mouseY) {
-        renderAtTooltipLayer(g, () -> g.renderTooltip(font, lines, Optional.empty(), mouseX, mouseY));
+    private static void renderText(GuiGraphicsExtractor g, Font font, List<Component> lines, int mouseX, int mouseY) {
+        renderAtTooltipLayer(g, () -> g.setTooltipForNextFrame(font, lines, Optional.empty(), mouseX, mouseY));
     }
 
-    private static void renderAtTooltipLayer(GuiGraphics g, Runnable renderer) {
+    private static void renderAtTooltipLayer(GuiGraphicsExtractor g, Runnable renderer) {
         RENDERING_AMI_TOOLTIP.set(true);
         try {
             renderer.run();

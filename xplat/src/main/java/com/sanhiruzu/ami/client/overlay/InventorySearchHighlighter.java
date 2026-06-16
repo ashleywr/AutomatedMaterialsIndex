@@ -6,10 +6,10 @@ import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchService;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
@@ -74,7 +74,7 @@ public final class InventorySearchHighlighter {
         return active;
     }
 
-    public void render(AbstractContainerScreen<?> screen, GuiGraphics graphics) {
+    public void render(AbstractContainerScreen<?> screen, GuiGraphicsExtractor graphics) {
         if (!active || requestedQuery.isBlank()) {
             return;
         }
@@ -91,8 +91,7 @@ public final class InventorySearchHighlighter {
             try (AmiRenderProfiler.Section draw = AmiRenderProfiler.section("inventoryHighlighter.draw")) {
                 AmiRenderProfiler.add("inventoryHighlighter.dimRuns", overlays.dimRuns().size());
                 AmiRenderProfiler.add("inventoryHighlighter.matchBorders", overlays.matches().size());
-                graphics.pose().pushPose();
-                graphics.pose().translate(0, 0, OverlayLayers.PANEL - 1);
+                graphics.pose().pushMatrix();
                 try {
                     for (DimRun run : overlays.dimRuns()) {
                         graphics.fill(left + run.x(), top + run.y(),
@@ -102,7 +101,7 @@ public final class InventorySearchHighlighter {
                         drawMatchBorder(graphics, left + match.x(), top + match.y());
                     }
                 } finally {
-                    graphics.pose().popPose();
+                    graphics.pose().popMatrix();
                 }
             }
         }
@@ -164,7 +163,7 @@ public final class InventorySearchHighlighter {
         return signature * 0x100000001b3L;
     }
 
-    private static OverlayBatch buildOverlayBatch(List<Slot> slots, Set<ResourceLocation> matchingItems) {
+    private static OverlayBatch buildOverlayBatch(List<Slot> slots, Set<Identifier> matchingItems) {
         List<SlotOverlay> dimSlots = new ArrayList<>();
         List<SlotOverlay> matches = new ArrayList<>();
         for (Slot slot : slots) {
@@ -176,7 +175,7 @@ public final class InventorySearchHighlighter {
             ItemStack stack = slot.getItem();
             if (!stack.isEmpty()) {
                 Item item = stack.getItem();
-                ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(item);
+                Identifier itemId = BuiltInRegistries.ITEM.getKey(item);
                 if (matchingItems.contains(itemId)) {
                     matches.add(new SlotOverlay(x, y));
                     continue;
@@ -276,12 +275,12 @@ public final class InventorySearchHighlighter {
                 matchingItems(index, revision, query), true), MATCH_EXECUTOR);
     }
 
-    static Set<ResourceLocation> matchingItems(GlobalIndex index, String query) {
+    static Set<Identifier> matchingItems(GlobalIndex index, String query) {
         return matchingItems(index, index.revision(), query);
     }
 
-    private static Set<ResourceLocation> matchingItems(GlobalIndex index, long revision, String query) {
-        Set<ResourceLocation> matches = new HashSet<>();
+    private static Set<Identifier> matchingItems(GlobalIndex index, long revision, String query) {
+        Set<Identifier> matches = new HashSet<>();
         SearchService service = searchService(index, revision);
         List<SearchNode> nodes = service.query(query).getOrDefault(NodeType.ITEM, List.of());
         for (SearchNode node : nodes) {
@@ -305,7 +304,7 @@ public final class InventorySearchHighlighter {
         return query == null ? "" : query.trim();
     }
 
-    private static void drawMatchBorder(GuiGraphics graphics, int x, int y) {
+    private static void drawMatchBorder(GuiGraphicsExtractor graphics, int x, int y) {
         graphics.fill(x, y, x + SLOT_OVERLAY_SIZE, y + 1, MATCH_BORDER_COLOR);
         graphics.fill(x, y + SLOT_OVERLAY_SIZE - 1, x + SLOT_OVERLAY_SIZE, y + SLOT_OVERLAY_SIZE, MATCH_BORDER_COLOR);
         graphics.fill(x, y, x + 1, y + SLOT_OVERLAY_SIZE, MATCH_BORDER_COLOR);
@@ -322,7 +321,7 @@ public final class InventorySearchHighlighter {
     private record DimRun(int x, int y, int width) {
     }
 
-    private record MatchResult(String query, long revision, Set<ResourceLocation> matches, boolean ready) {
+    private record MatchResult(String query, long revision, Set<Identifier> matches, boolean ready) {
         private static final MatchResult EMPTY = new MatchResult("", Long.MIN_VALUE, Set.of(), false);
     }
 }

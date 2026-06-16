@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.config.AmiConfig;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,15 +20,15 @@ class AmiGuideSearchIndexTest {
     @Test
     void titleChapterTagsModBookAndReferencesAreSearchable() {
         AmiGuideDocument manaSpreader = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/botania/mana_spreader"),
+                        new Identifier("ami", "guide/botania/mana_spreader"),
                         "patchouli",
                         "botania",
                         "Mana Spreaders"
                 )
-                .bookId(new ResourceLocation("botania", "lexicon"))
+                .bookId(new Identifier("botania", "lexicon"))
                 .pageId("basics/mana_spreader")
                 .chapter("Basics")
-                .referencedItem(new ResourceLocation("botania", "mana_spreader"))
+                .referencedItem(new Identifier("botania", "mana_spreader"))
                 .tag("mana")
                 .build();
         AmiGuideSearchIndex index = new AmiGuideSearchIndex(List.of(manaSpreader),
@@ -44,14 +44,14 @@ class AmiGuideSearchIndexTest {
     @Test
     void guidebookFilterQueryReturnsAllIndexedDocuments() {
         AmiGuideDocument documentOne = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/book_one"),
+                        new Identifier("ami", "guide/book_one"),
                         "patchouli",
                         "example",
                         "Guide One"
                 )
                 .build();
         AmiGuideDocument documentTwo = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/book_two"),
+                        new Identifier("ami", "guide/book_two"),
                         "patchouli",
                         "example",
                         "Guide Two"
@@ -71,18 +71,18 @@ class AmiGuideSearchIndexTest {
     @Test
     void hiddenDocumentsStayIndexedButDoNotSearch() {
         AmiGuideDocument visible = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/visible"),
+                        new Identifier("ami", "guide/visible"),
                         "patchouli",
                         "example",
                         "Visible Aura")
-                .bookId(new ResourceLocation("example", "book"))
+                .bookId(new Identifier("example", "book"))
                 .build();
         AmiGuideDocument hidden = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/hidden"),
+                        new Identifier("ami", "guide/hidden"),
                         "patchouli",
                         "example",
                         "Hidden Aura")
-                .bookId(new ResourceLocation("example", "book"))
+                .bookId(new Identifier("example", "book"))
                 .visibility(() -> false)
                 .build();
         AmiGuideSearchIndex index = new AmiGuideSearchIndex(List.of(visible, hidden),
@@ -90,29 +90,29 @@ class AmiGuideSearchIndexTest {
 
         assertEquals(List.of(visible), index.search("aura"));
         assertEquals(List.of(visible), index.search("guidebooks"));
-        assertEquals(2, index.indexedPageCountForBook(new ResourceLocation("example", "book")));
+        assertEquals(2, index.indexedPageCountForBook(new Identifier("example", "book")));
     }
 
 
     @Test
     void exposesIndexedPageCountsByBookId() {
-        ResourceLocation bookId = new ResourceLocation("apotheosis", "apoth_chronicle");
+        Identifier bookId = new Identifier("apotheosis", "apoth_chronicle");
         AmiGuideDocument documentOne = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/one"),
+                        new Identifier("ami", "guide/one"),
                         "patchouli",
                         "apotheosis",
                         "One")
                 .bookId(bookId)
                 .build();
         AmiGuideDocument documentTwo = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/two"),
+                        new Identifier("ami", "guide/two"),
                         "patchouli",
                         "apotheosis",
                         "Two")
                 .bookId(bookId)
                 .build();
         AmiGuideDocument documentWithoutBook = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/derived"),
+                        new Identifier("ami", "guide/derived"),
                         "silentgear_traits",
                         "silentgear",
                         "Derived")
@@ -122,20 +122,20 @@ class AmiGuideSearchIndexTest {
                 AmiGuideSearchIndex.GuideIndexingMode.TITLES);
 
         assertEquals(2, index.indexedPageCountForBook(bookId));
-        assertEquals(0, index.indexedPageCountForBook(new ResourceLocation("silentgear", "guide_book")));
+        assertEquals(0, index.indexedPageCountForBook(new Identifier("silentgear", "guide_book")));
     }
 
     @Test
     void titleMatchesRankAboveSummaryOnlyMatches() {
         AmiGuideDocument titleMatch = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/title"),
+                        new Identifier("ami", "guide/title"),
                         "patchouli",
                         "example",
                         "Mana Automation"
                 )
                 .build();
         AmiGuideDocument summaryMatch = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/summary"),
+                        new Identifier("ami", "guide/summary"),
                         "patchouli",
                         "example",
                         "Flower Fuel"
@@ -151,7 +151,7 @@ class AmiGuideSearchIndexTest {
     @Test
     void titlesModeDoesNotSearchSummaryText() {
         AmiGuideDocument document = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/hidden_summary"),
+                        new Identifier("ami", "guide/hidden_summary"),
                         "patchouli",
                         "example",
                         "Visible Title"
@@ -167,7 +167,7 @@ class AmiGuideSearchIndexTest {
     @Test
     void summaryTextIsCappedBeforeSearch() {
         AmiGuideDocument document = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/capped"),
+                        new Identifier("ami", "guide/capped"),
                         "patchouli",
                         "example",
                         "Capped"
@@ -185,7 +185,7 @@ class AmiGuideSearchIndexTest {
     @Test
     void offModeReturnsNoGuideResults() {
         AmiGuideDocument document = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/off"),
+                        new Identifier("ami", "guide/off"),
                         "patchouli",
                         "example",
                         "Visible Title"
@@ -201,7 +201,7 @@ class AmiGuideSearchIndexTest {
     @Test
     void fromConfigUsesConfiguredModeAndTextCap() {
         AmiGuideDocument document = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/config"),
+                        new Identifier("ami", "guide/config"),
                         "patchouli",
                         "example",
                         "Configurable"
@@ -225,7 +225,7 @@ class AmiGuideSearchIndexTest {
     @Test
     void defaultConfigSearchesSummaryText() {
         AmiGuideDocument document = AmiGuideDocument.builder(
-                        new ResourceLocation("ami", "guide/default_summary"),
+                        new Identifier("ami", "guide/default_summary"),
                         "patchouli",
                         "example",
                         "Default Summary")

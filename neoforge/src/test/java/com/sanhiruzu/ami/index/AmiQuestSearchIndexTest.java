@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.api.AmiQuestDocument;
 import com.sanhiruzu.ami.api.AmiQuestTaskDocument;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -17,20 +17,20 @@ class AmiQuestSearchIndexTest {
                 "ftbquests:power",
                 "Basic Power",
                 "Generators unlock early automation.",
-                new ResourceLocation("minecraft", "redstone")
+                new Identifier("minecraft", "redstone")
         );
         AmiQuestDocument storage = quest(
                 "ftbquests:storage",
                 "Storage",
                 "Drawers and chests.",
-                new ResourceLocation("minecraft", "chest")
+                new Identifier("minecraft", "chest")
         );
         AmiQuestSearchIndex index = new AmiQuestSearchIndex(List.of(storage, power));
 
         assertEquals(List.of(power), index.search("basic power"));
         assertEquals(List.of(power), index.search("minecraft redstone"));
         assertEquals(List.of(storage), index.search("drawers"));
-        assertEquals(List.of(power), index.findItem(new ResourceLocation("minecraft", "redstone"))
+        assertEquals(List.of(power), index.findItem(new Identifier("minecraft", "redstone"))
                 .stream()
                 .map(match -> match.quest())
                 .toList());
@@ -42,14 +42,14 @@ class AmiQuestSearchIndexTest {
                 "ftbquests:test",
                 "Test",
                 "",
-                new ResourceLocation("minecraft", "apple")
+                new Identifier("minecraft", "apple")
         )));
 
         assertTrue(index.search("").isEmpty());
-        assertTrue(index.findItem(new ResourceLocation("minecraft", "stone")).isEmpty());
+        assertTrue(index.findItem(new Identifier("minecraft", "stone")).isEmpty());
     }
 
-    private static AmiQuestDocument quest(String id, String title, String description, ResourceLocation itemId) {
+    private static AmiQuestDocument quest(String id, String title, String description, Identifier itemId) {
         return AmiQuestDocument.builder(id, "ftbquests", title)
                 .sourceId("ftbquests")
                 .chapterId("getting_started")

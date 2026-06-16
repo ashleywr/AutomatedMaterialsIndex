@@ -9,7 +9,6 @@ import com.sanhiruzu.ami.neoforge.AMI;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.gui.screens.inventory.EffectRenderingInventoryScreen;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.neoforged.api.distmarker.Dist;
@@ -134,9 +133,6 @@ public class InventoryOverlayHandler {
     }
 
     private static boolean isVanillaRecipeBookVisible(net.minecraft.client.gui.screens.Screen screen) {
-        if (screen instanceof net.minecraft.client.gui.screens.recipebook.RecipeUpdateListener listener) {
-            return listener.getRecipeBookComponent().isVisible();
-        }
         return false;
     }
 
@@ -145,10 +141,6 @@ public class InventoryOverlayHandler {
     private static void syncVanillaRecipeBookVisibility(net.minecraft.client.gui.screens.Screen screen) {
         if (!isAmiScreen(screen)) return;
         if (AmiConfig.recipeBookAction == AmiConfig.RecipeBookAction.OPEN_VANILLA_BOOK) return;
-        boolean visible = isVanillaRecipeBookVisible(screen);
-        if (visible && screen instanceof net.minecraft.client.gui.screens.recipebook.RecipeUpdateListener listener) {
-            listener.getRecipeBookComponent().toggleVisibility();
-        }
     }
 
     @SubscribeEvent
@@ -239,7 +231,7 @@ public class InventoryOverlayHandler {
             pendingScreenReinit = false;
             Minecraft mc = Minecraft.getInstance();
             if (mc.screen != null) {
-                mc.screen.init(mc, mc.screen.width, mc.screen.height);
+                mc.screen.init(mc.screen.width, mc.screen.height);
             }
         }
     }
@@ -251,7 +243,7 @@ public class InventoryOverlayHandler {
             return;
         }
 
-        net.minecraft.client.gui.GuiGraphics g = event.getGuiGraphics();
+        net.minecraft.client.gui.GuiGraphicsExtractor g = event.getGuiGraphics();
         int mouseX = event.getMouseX();
         int mouseY = event.getMouseY();
         manager.tick();
@@ -261,10 +253,10 @@ public class InventoryOverlayHandler {
 
         // Undo the container's leftPos/topPos translation so AMI renders in screen space,
         // matching the Render.Post coordinate space its layouts are computed in.
-        g.pose().pushPose();
-        g.pose().translate(-screen.getGuiLeft(), -screen.getGuiTop(), 0);
+        g.pose().pushMatrix();
+        g.pose().translate(-screen.getGuiLeft(), -screen.getGuiTop());
         manager.renderBase(g, amiMouseX, amiMouseY, lastContainerPartialTick);
-        g.pose().popPose();
+        g.pose().popMatrix();
         frameBaseRendered = true;
     }
 
@@ -332,7 +324,7 @@ public class InventoryOverlayHandler {
         event.setCanceled(true);
     }
 
-    private static void renderPendingExternalTooltip(net.minecraft.client.gui.GuiGraphics graphics) {
+    private static void renderPendingExternalTooltip(net.minecraft.client.gui.GuiGraphicsExtractor graphics) {
         PendingExternalTooltip tooltip = pendingExternalTooltip;
         pendingExternalTooltip = null;
         if (tooltip == null || (tooltip.stack().isEmpty() && tooltip.elements().isEmpty())) return;
@@ -340,16 +332,14 @@ public class InventoryOverlayHandler {
         com.sanhiruzu.ami.client.RenderStateSnapshot state = com.sanhiruzu.ami.client.RenderStateSnapshot.capture();
         try {
             renderingExternalTooltip = true;
-            graphics.pose().pushPose();
-            graphics.pose().translate(0, 0, com.sanhiruzu.ami.client.overlay.OverlayLayers.TRANSIENT_TOOLTIP);
+            graphics.pose().pushMatrix();
             if (tooltip.elements().isEmpty()) {
-                graphics.renderTooltip(tooltip.font(), tooltip.stack(), tooltip.x(), tooltip.y());
+                graphics.setTooltipForNextFrame(tooltip.font(), tooltip.stack(), tooltip.x(), tooltip.y());
             } else {
-                graphics.renderComponentTooltipFromElements(
+                graphics.setComponentTooltipFromElementsForNextFrame(
                         tooltip.font(), tooltip.elements(), tooltip.x(), tooltip.y(), tooltip.stack());
             }
-            graphics.pose().popPose();
-            graphics.flush();
+            graphics.pose().popMatrix();
         } finally {
             renderingExternalTooltip = false;
             state.restore();
@@ -370,7 +360,7 @@ public class InventoryOverlayHandler {
     }
 
     private static void renderOverlayFrame(net.minecraft.client.gui.screens.Screen screen,
-                                           net.minecraft.client.gui.GuiGraphics guiGraphics,
+                                           net.minecraft.client.gui.GuiGraphicsExtractor GuiGraphicsExtractor,
                                            int mouseX,
                                            int mouseY,
                                            float partialTick) {
@@ -379,8 +369,8 @@ public class InventoryOverlayHandler {
         boolean statusEffectsHovered = updateStatusEffectsHoverOwnership(screen, mouseX, mouseY);
         int amiMouseX = statusEffectsHovered ? Integer.MIN_VALUE : mouseX;
         int amiMouseY = statusEffectsHovered ? Integer.MIN_VALUE : mouseY;
-        manager.renderBase(guiGraphics, amiMouseX, amiMouseY, partialTick);
-        manager.renderTopLayer(guiGraphics, amiMouseX, amiMouseY);
+        manager.renderBase(GuiGraphicsExtractor, amiMouseX, amiMouseY, partialTick);
+        manager.renderTopLayer(GuiGraphicsExtractor, amiMouseX, amiMouseY);
     }
 
     private static boolean prepareOverlayFrame(net.minecraft.client.gui.screens.Screen screen) {
@@ -442,7 +432,7 @@ public class InventoryOverlayHandler {
         if (!isAmiScreen(event.getScreen())) return;
 
         if (OverlayInputController.charTyped(event.getScreen(), manager, currentLayer == VisibleLayer.AMI,
-                event.getCodePoint(), event.getModifiers())) {
+                event.getCharacterEvent())) {
             event.setCanceled(true);
         }
     }
@@ -452,7 +442,7 @@ public class InventoryOverlayHandler {
         if (!isAmiScreen(event.getScreen())) return;
 
         if (OverlayInputController.keyPressed(event.getScreen(), manager, currentLayer == VisibleLayer.AMI,
-                event.getKeyCode(), event.getScanCode(), event.getModifiers())) {
+                event.getKeyEvent())) {
             event.setCanceled(true);
         }
     }
@@ -473,15 +463,15 @@ public class InventoryOverlayHandler {
     }
 
     private static boolean isMouseOverStatusEffects(net.minecraft.client.gui.screens.Screen screen, int mouseX, int mouseY) {
-        if (!(screen instanceof EffectRenderingInventoryScreen<?> effectScreen)) return false;
+        if (!(screen instanceof net.minecraft.client.gui.screens.inventory.InventoryScreen inventoryScreen)) return false;
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.player.getActiveEffects().isEmpty()) return false;
-        if (!effectScreen.canSeeEffects()) return false;
+        if (!inventoryScreen.showsActiveEffects()) return false;
 
         try {
-            int leftPos = reflectedContainerInt(effectScreen, "leftPos");
-            int topPos = reflectedContainerInt(effectScreen, "topPos");
-            int imageWidth = reflectedContainerInt(effectScreen, "imageWidth");
+            int leftPos = reflectedContainerInt(inventoryScreen, "leftPos");
+            int topPos = reflectedContainerInt(inventoryScreen, "topPos");
+            int imageWidth = reflectedContainerInt(inventoryScreen, "imageWidth");
             int renderX = leftPos + imageWidth + 2;
             int availableWidth = screen.width - renderX;
             if (availableWidth < 32) return false;

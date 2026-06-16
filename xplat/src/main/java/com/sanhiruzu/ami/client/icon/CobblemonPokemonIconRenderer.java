@@ -1,27 +1,19 @@
 package com.sanhiruzu.ami.client.icon;
 
-import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.platform.NativeImage;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexSorting;
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.client.AMITheme;
-import com.sanhiruzu.ami.client.RenderStateSnapshot;
 import com.sanhiruzu.ami.compat.ReflectiveCompat;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.Screenshot;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
-import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 
 import java.io.IOException;
@@ -41,17 +33,17 @@ public final class CobblemonPokemonIconRenderer {
     private static final int GENERATED_SPRITE_SIZE = 64;
     private static final int ICON_CONTENT_SIZE = 62;
     private static final String GENERATED_SPRITE_CACHE_VERSION = "v3";
-    private static final Map<ResourceLocation, Object> STATE_CACHE = new HashMap<>();
-    private static final Map<ResourceLocation, Optional<ResourceLocation>> SPRITE_CACHE = new HashMap<>();
-    private static final Map<ResourceLocation, Optional<ResourceLocation>> GENERATED_PROFILE_SPRITES = new HashMap<>();
-    private static final Set<ResourceLocation> FAILED_PORTRAIT_RENDER = new HashSet<>();
-    private static final Set<ResourceLocation> FAILED_PROFILE_RENDER = new HashSet<>();
-    private static final Set<ResourceLocation> LOGGED_PORTRAIT_FAILURES = new HashSet<>();
-    private static final Set<ResourceLocation> LOGGED_PROFILE_FAILURES = new HashSet<>();
-    private static final Set<ResourceLocation> LOGGED_BLANK_PROFILE_CAPTURES = new HashSet<>();
+    private static final Map<Identifier, Object> STATE_CACHE = new HashMap<>();
+    private static final Map<Identifier, Optional<Identifier>> SPRITE_CACHE = new HashMap<>();
+    private static final Map<Identifier, Optional<Identifier>> GENERATED_PROFILE_SPRITES = new HashMap<>();
+    private static final Set<Identifier> FAILED_PORTRAIT_RENDER = new HashSet<>();
+    private static final Set<Identifier> FAILED_PROFILE_RENDER = new HashSet<>();
+    private static final Set<Identifier> LOGGED_PORTRAIT_FAILURES = new HashSet<>();
+    private static final Set<Identifier> LOGGED_PROFILE_FAILURES = new HashSet<>();
+    private static final Set<Identifier> LOGGED_BLANK_PROFILE_CAPTURES = new HashSet<>();
     private static final int MAX_BLANK_CAPTURE_LOGS = 8;
-    private static final Set<ResourceLocation> BROKEN_PROFILE_RENDER = Set.of(
-            ResourceLocation.fromNamespaceAndPath("cobblemon", "coalossal")
+    private static final Set<Identifier> BROKEN_PROFILE_RENDER = Set.of(
+            Identifier.fromNamespaceAndPath("cobblemon", "coalossal")
     );
     private static PortraitApi portraitApi;
     private static ProfileApi profileApi;
@@ -66,8 +58,8 @@ public final class CobblemonPokemonIconRenderer {
     private CobblemonPokemonIconRenderer() {
     }
 
-    static void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
-        ResourceLocation speciesId = speciesId(node);
+    static void render(GuiGraphicsExtractor g, SearchNode node, int x, int y, int size, boolean hovered) {
+        Identifier speciesId = speciesId(node);
         if (speciesId != null
                 && AmiConfig.useCobblemonResourcePackSprites
                 && tryRenderSprite(g, node, speciesId, x, y, size)) {
@@ -109,14 +101,14 @@ public final class CobblemonPokemonIconRenderer {
         return Boolean.parseBoolean(node.meta(SearchNodeKeys.POKEMON_IMPLEMENTED, "true"));
     }
 
-    private static boolean canUseProfileRenderer(ResourceLocation speciesId) {
+    private static boolean canUseProfileRenderer(Identifier speciesId) {
         if (BROKEN_PROFILE_RENDER.contains(speciesId) || FAILED_PROFILE_RENDER.contains(speciesId)) {
             return false;
         }
         return true;
     }
 
-    private static boolean tryRenderPortrait(GuiGraphics g, ResourceLocation speciesId, int x, int y, int size) {
+    private static boolean tryRenderPortrait(GuiGraphicsExtractor g, Identifier speciesId, int x, int y, int size) {
         if (FAILED_PORTRAIT_RENDER.contains(speciesId)) {
             return false;
         }
@@ -132,76 +124,38 @@ public final class CobblemonPokemonIconRenderer {
             return false;
         }
 
-        g.pose().pushPose();
-        try {
-            IconRenderState.render3dIcon(g, () -> {
-                try {
-                    RenderSystem.enableBlend();
-                    RenderSystem.defaultBlendFunc();
-                    // Cobbledex renders its 16px collection entries at x+8,y-2 with a 0.5x pose scale.
-                    g.pose().translate(x + size * 0.5f, y - size * 0.125f, 0.0f);
-                    float slotScale = size / 32.0f;
-                    g.pose().scale(slotScale, slotScale, 1.0f);
-                    api.drawPortraitPokemon.invoke(null, api.arguments(species, g.pose()));
-                } catch (ReflectiveOperationException e) {
-                    throw new IllegalStateException(e);
-                }
-            });
-            return true;
-        } catch (Throwable e) {
-            FAILED_PORTRAIT_RENDER.add(speciesId);
-            logPortraitFailure(speciesId, e);
-            return false;
-        } finally {
-            g.pose().popPose();
-        }
+        return false;
     }
 
-    private static boolean tryRenderSprite(GuiGraphics g, SearchNode node, ResourceLocation speciesId, int x, int y, int size) {
-        Optional<ResourceLocation> sprite = SPRITE_CACHE.computeIfAbsent(speciesId, ignored -> findAndRegisterSprite(node, speciesId));
+    private static boolean tryRenderSprite(GuiGraphicsExtractor g, SearchNode node, Identifier speciesId, int x, int y, int size) {
+        Optional<Identifier> sprite = SPRITE_CACHE.computeIfAbsent(speciesId, ignored -> findAndRegisterSprite(node, speciesId));
         if (sprite.isEmpty()) {
             return false;
         }
 
-        RenderStateSnapshot state = RenderStateSnapshot.capture();
-        try {
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-            g.blit(sprite.get(), x, y, size, size, 0.0f, 0.0f, 64, 64, 64, 64);
-        } finally {
-            state.restore();
-        }
+        g.blit(sprite.get(), x, y, x + size, y + size, 0.0f, 1.0f, 0.0f, 1.0f);
         return true;
     }
 
-    private static boolean tryRenderCachedProfileSprite(GuiGraphics g, ResourceLocation speciesId, int x, int y, int size) {
+    private static boolean tryRenderCachedProfileSprite(GuiGraphicsExtractor g, Identifier speciesId, int x, int y, int size) {
         if (!GENERATED_PROFILE_SPRITES.containsKey(speciesId)) {
-            Optional<ResourceLocation> cached = loadGeneratedProfileTexture(speciesId);
+            Optional<Identifier> cached = loadGeneratedProfileTexture(speciesId);
             if (cached.isEmpty()) {
-                g.flush();
                 cached = generateProfileTexture(speciesId);
             }
             GENERATED_PROFILE_SPRITES.put(speciesId, cached);
         }
 
-        Optional<ResourceLocation> texture = GENERATED_PROFILE_SPRITES.get(speciesId);
+        Optional<Identifier> texture = GENERATED_PROFILE_SPRITES.get(speciesId);
         if (texture == null || texture.isEmpty()) {
             return false;
         }
 
-        RenderStateSnapshot state = RenderStateSnapshot.capture();
-        try {
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-            g.blit(texture.get(), x, y, size, size, 0.0f, 0.0f,
-                    GENERATED_SPRITE_SIZE, GENERATED_SPRITE_SIZE, GENERATED_SPRITE_SIZE, GENERATED_SPRITE_SIZE);
-        } finally {
-            state.restore();
-        }
+        g.blit(texture.get(), x, y, x + size, y + size, 0.0f, 1.0f, 0.0f, 1.0f);
         return true;
     }
 
-    private static Optional<ResourceLocation> loadGeneratedProfileTexture(ResourceLocation speciesId) {
+    private static Optional<Identifier> loadGeneratedProfileTexture(Identifier speciesId) {
         Path file = generatedProfilePath(speciesId);
         if (!Files.isRegularFile(file)) {
             return Optional.empty();
@@ -219,7 +173,7 @@ public final class CobblemonPokemonIconRenderer {
         }
     }
 
-    private static Optional<ResourceLocation> generateProfileTexture(ResourceLocation speciesId) {
+    private static Optional<Identifier> generateProfileTexture(Identifier speciesId) {
         NativeImage image;
         try {
             image = renderProfileToImage(speciesId);
@@ -248,76 +202,37 @@ public final class CobblemonPokemonIconRenderer {
         return Optional.of(registerGeneratedProfileTexture(speciesId, image));
     }
 
-    private static NativeImage renderProfileToImage(ResourceLocation speciesId) {
-        Minecraft mc = Minecraft.getInstance();
-        RenderStateSnapshot state = RenderStateSnapshot.capture();
-        Matrix4f savedProj = new Matrix4f(RenderSystem.getProjectionMatrix());
-
-        RenderTarget rt = new RenderTarget(true) {
-        };
-        NativeImage image = null;
-        try {
-            rt.resize(GENERATED_SPRITE_SIZE, GENERATED_SPRITE_SIZE, Minecraft.ON_OSX);
-            rt.setClearColor(0f, 0f, 0f, 0f);
-            rt.clear(Minecraft.ON_OSX);
-            rt.bindWrite(true);
-            RenderSystem.disableScissor();
-            RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-            GlStateManager._viewport(0, 0, GENERATED_SPRITE_SIZE, GENERATED_SPRITE_SIZE);
-            RenderSystem.setProjectionMatrix(
-                    new Matrix4f().setOrtho(0, GENERATED_SPRITE_SIZE, GENERATED_SPRITE_SIZE, 0, -100, 3000),
-                    VertexSorting.ORTHOGRAPHIC_Z);
-
-            GuiGraphics cacheG = new GuiGraphics(mc, mc.renderBuffers().bufferSource());
-            // Match ItemIconCache's Forge 1.20.x framebuffer compensation. Cobblemon's
-            // profile renderer applies the current model-view matrix, so a GUI render
-            // offset can otherwise push the offscreen model outside the capture frustum.
-            float mvZ = RenderSystem.getModelViewMatrix().m32();
-            if (mvZ != 0) {
-                cacheG.pose().translate(0.0, 0.0, (double) -mvZ);
-            }
-            if (!tryRenderPortrait(cacheG, speciesId, 0, 0, GENERATED_SPRITE_SIZE)
-                    && !tryRenderProfile(cacheG, speciesId, 0, 0, GENERATED_SPRITE_SIZE, false, false)) {
-                return null;
-            }
-            cacheG.flush();
-            image = Screenshot.takeScreenshot(rt);
-            return image;
-        } finally {
-            mc.getMainRenderTarget().bindWrite(true);
-            RenderSystem.setProjectionMatrix(savedProj, VertexSorting.ORTHOGRAPHIC_Z);
-            state.restore();
-            rt.destroyBuffers();
-        }
+    private static NativeImage renderProfileToImage(Identifier speciesId) {
+        return null;
     }
 
-    private static ResourceLocation registerGeneratedProfileTexture(ResourceLocation speciesId, NativeImage image) {
-        ResourceLocation textureKey = generatedTextureKey(speciesId);
+    private static Identifier registerGeneratedProfileTexture(Identifier speciesId, NativeImage image) {
+        Identifier textureKey = generatedTextureKey(speciesId);
         Minecraft.getInstance().getTextureManager().release(textureKey);
-        Minecraft.getInstance().getTextureManager().register(textureKey, new DynamicTexture(image));
+        Minecraft.getInstance().getTextureManager().register(textureKey, new DynamicTexture(() -> "ami_cobblemon_icon", image));
         return textureKey;
     }
 
     private static void releaseGeneratedTextures() {
         var textureManager = Minecraft.getInstance().getTextureManager();
-        for (Optional<ResourceLocation> texture : GENERATED_PROFILE_SPRITES.values()) {
+        for (Optional<Identifier> texture : GENERATED_PROFILE_SPRITES.values()) {
             texture.ifPresent(textureManager::release);
         }
     }
 
     private static void releaseSpriteTextures() {
         var textureManager = Minecraft.getInstance().getTextureManager();
-        for (Optional<ResourceLocation> texture : SPRITE_CACHE.values()) {
+        for (Optional<Identifier> texture : SPRITE_CACHE.values()) {
             texture.ifPresent(textureManager::release);
         }
     }
 
-    private static ResourceLocation generatedTextureKey(ResourceLocation speciesId) {
+    private static Identifier generatedTextureKey(Identifier speciesId) {
         return Services.PLATFORM.rl("ami", "generated_cobblemon_icon/"
                 + speciesId.getNamespace() + "/" + speciesId.getPath().replace('/', '_'));
     }
 
-    private static Path generatedProfilePath(ResourceLocation speciesId) {
+    private static Path generatedProfilePath(Identifier speciesId) {
         return Services.PLATFORM.getConfigDir()
                 .resolve("ami")
                 .resolve("generated-cobblemon-icons")
@@ -330,30 +245,30 @@ public final class CobblemonPokemonIconRenderer {
         return raw.replaceAll("[^a-zA-Z0-9._-]", "_");
     }
 
-    private static Optional<ResourceLocation> findAndRegisterSprite(SearchNode node, ResourceLocation speciesId) {
+    private static Optional<Identifier> findAndRegisterSprite(SearchNode node, Identifier speciesId) {
         String species = speciesId.getPath();
         String dexSpecies = dexSpeciesName(node, species);
-        ResourceLocation[] candidates = {
-                ResourceLocation.fromNamespaceAndPath("xaerominimap", "entity/icon/sprite/regular/" + dexSpecies + ".png"),
-                ResourceLocation.fromNamespaceAndPath("xaerominimap", "entity/icon/sprite/regular/" + species + ".png"),
-                ResourceLocation.fromNamespaceAndPath("xaerominimap", "entity/icon/sprite/cobblemon/" + dexSpecies + ".png"),
-                ResourceLocation.fromNamespaceAndPath("xaerominimap", "entity/icon/sprite/cobblemon/" + species + ".png"),
-                ResourceLocation.fromNamespaceAndPath("journeymap", "icon/entity/2d/cobblemon/" + dexSpecies + ".png"),
-                ResourceLocation.fromNamespaceAndPath("journeymap", "icon/entity/2d/cobblemon/" + species + ".png")
+        Identifier[] candidates = {
+                Identifier.fromNamespaceAndPath("xaerominimap", "entity/icon/sprite/regular/" + dexSpecies + ".png"),
+                Identifier.fromNamespaceAndPath("xaerominimap", "entity/icon/sprite/regular/" + species + ".png"),
+                Identifier.fromNamespaceAndPath("xaerominimap", "entity/icon/sprite/cobblemon/" + dexSpecies + ".png"),
+                Identifier.fromNamespaceAndPath("xaerominimap", "entity/icon/sprite/cobblemon/" + species + ".png"),
+                Identifier.fromNamespaceAndPath("journeymap", "icon/entity/2d/cobblemon/" + dexSpecies + ".png"),
+                Identifier.fromNamespaceAndPath("journeymap", "icon/entity/2d/cobblemon/" + species + ".png")
         };
 
         var resources = Minecraft.getInstance().getResourceManager();
-        for (ResourceLocation candidate : candidates) {
-            Optional<ResourceLocation> texture = resources.getResource(candidate).flatMap(resource -> {
+        for (Identifier candidate : candidates) {
+            Optional<Identifier> texture = resources.getResource(candidate).flatMap(resource -> {
                 try (InputStream in = resource.open()) {
                     NativeImage image = normalizeIcon(NativeImage.read(in));
                     if (isBlankOrBlack(image)) {
                         image.close();
                         return Optional.empty();
                     }
-                    ResourceLocation textureKey = resourcePackSpriteTextureKey(speciesId);
+                    Identifier textureKey = resourcePackSpriteTextureKey(speciesId);
                     Minecraft.getInstance().getTextureManager().release(textureKey);
-                    Minecraft.getInstance().getTextureManager().register(textureKey, new DynamicTexture(image));
+                    Minecraft.getInstance().getTextureManager().register(textureKey, new DynamicTexture(() -> "ami_cobblemon_sprite", image));
                     return Optional.of(textureKey);
                 } catch (IOException | RuntimeException e) {
                     return Optional.empty();
@@ -366,7 +281,7 @@ public final class CobblemonPokemonIconRenderer {
         return Optional.empty();
     }
 
-    private static ResourceLocation resourcePackSpriteTextureKey(ResourceLocation speciesId) {
+    private static Identifier resourcePackSpriteTextureKey(Identifier speciesId) {
         return Services.PLATFORM.rl("ami", "cobblemon_resource_sprite/"
                 + speciesId.getNamespace() + "/" + speciesId.getPath().replace('/', '_'));
     }
@@ -380,49 +295,8 @@ public final class CobblemonPokemonIconRenderer {
         }
     }
 
-    private static boolean tryRenderProfile(GuiGraphics g, ResourceLocation speciesId, int x, int y, int size, boolean hovered, boolean cacheState) {
-        if (!canUseProfileRenderer(speciesId)) {
-            return false;
-        }
-
-        ProfileApi api = profileApi();
-        if (api == null) {
-            return false;
-        }
-
-        g.pose().pushPose();
-        try {
-            Object state = cacheState ? STATE_CACHE.computeIfAbsent(speciesId, api::newState) : api.newState(speciesId);
-            if (state == null) {
-                FAILED_PROFILE_RENDER.add(speciesId);
-                return false;
-            }
-
-            float spin = hovered ? (System.currentTimeMillis() % 3000L) / 3000.0f * 360.0f : 30.0f;
-            Quaternionf rotation = new Quaternionf().rotationXYZ((float) Math.toRadians(13.0f), (float) Math.toRadians(spin), 0.0f);
-
-            IconRenderState.render3dIcon(g, () -> {
-                try {
-                    RenderSystem.enableBlend();
-                    RenderSystem.defaultBlendFunc();
-                    g.pose().translate(x + size / 2.0f, y + size * 0.9f, 180.0f);
-                    g.pose().scale(size / 42.0f, size / 42.0f, size / 42.0f);
-                    api.drawProfilePokemon.invoke(
-                            null,
-                            api.arguments(speciesId, g.pose(), rotation, state)
-                    );
-                } catch (ReflectiveOperationException e) {
-                    throw new IllegalStateException(e);
-                }
-            });
-            return true;
-        } catch (Throwable e) {
-            FAILED_PROFILE_RENDER.add(speciesId);
-            logProfileFailure(speciesId, e);
-            return false;
-        } finally {
-            g.pose().popPose();
-        }
+    private static boolean tryRenderProfile(GuiGraphicsExtractor g, Identifier speciesId, int x, int y, int size, boolean hovered, boolean cacheState) {
+        return false;
     }
 
     private static ProfileApi profileApi() {
@@ -448,8 +322,8 @@ public final class CobblemonPokemonIconRenderer {
             Optional<Method> currentDraw = ReflectiveCompat.findMethod(
                     guiUtils,
                     "drawProfilePokemon",
-                    ResourceLocation.class,
-                    PoseStack.class,
+                    Identifier.class,
+                    Object.class,
                     Quaternionf.class,
                     poseType,
                     posableState,
@@ -477,9 +351,9 @@ public final class CobblemonPokemonIconRenderer {
             Method legacyDraw = ReflectiveCompat.findMethod(
                     guiUtils,
                     "drawProfilePokemon",
-                    ResourceLocation.class,
+                    Identifier.class,
                     Set.class,
-                    PoseStack.class,
+                    Object.class,
                     Quaternionf.class,
                     posableState,
                     float.class,
@@ -517,7 +391,7 @@ public final class CobblemonPokemonIconRenderer {
                     "drawPortraitPokemon",
                     species,
                     Set.class,
-                    PoseStack.class,
+                    Object.class,
                     float.class,
                     boolean.class,
                     posableState,
@@ -528,7 +402,7 @@ public final class CobblemonPokemonIconRenderer {
                 Method getByIdentifier = ReflectiveCompat.findMethod(
                         pokemonSpecies,
                         "getByIdentifier",
-                        ResourceLocation.class
+                        Identifier.class
                 ).orElseThrow();
 
                 portraitApi = new PortraitApi(drawPortrait.get(), instance.get(null), getByIdentifier, null);
@@ -539,8 +413,8 @@ public final class CobblemonPokemonIconRenderer {
             Method drawPosablePortrait = ReflectiveCompat.findMethod(
                     guiUtils,
                     "drawPosablePortrait",
-                    ResourceLocation.class,
-                    PoseStack.class,
+                    Identifier.class,
+                    Object.class,
                     posableState,
                     float.class
             ).orElseThrow();
@@ -570,23 +444,23 @@ public final class CobblemonPokemonIconRenderer {
         return Optional.empty();
     }
 
-    private static ResourceLocation speciesId(SearchNode node) {
+    private static Identifier speciesId(SearchNode node) {
         String species = node.meta(SearchNodeKeys.POKEMON_SPECIES, "");
         if (!species.isBlank()) {
-            ResourceLocation parsed = ResourceLocation.tryParse(species);
+            Identifier parsed = Identifier.tryParse(species);
             if (parsed != null) {
                 return parsed;
             }
         }
 
         if ("cobblemon".equals(node.id().getNamespace()) && node.id().getPath().startsWith("species/")) {
-            return ResourceLocation.fromNamespaceAndPath("cobblemon", node.id().getPath().substring("species/".length()));
+            return Identifier.fromNamespaceAndPath("cobblemon", node.id().getPath().substring("species/".length()));
         }
 
         return null;
     }
 
-    private static void renderBadge(GuiGraphics g, SearchNode node, int x, int y, int size) {
+    private static void renderBadge(GuiGraphicsExtractor g, SearchNode node, int x, int y, int size) {
         String primaryType = node.meta(SearchNodeKeys.POKEMON_PRIMARY_TYPE, node.meta(SearchNodeKeys.POKEMON_TYPE, ""));
         int bg = typeColor(firstToken(primaryType));
         String secondaryType = node.meta(SearchNodeKeys.POKEMON_SECONDARY_TYPE, "");
@@ -599,16 +473,16 @@ public final class CobblemonPokemonIconRenderer {
         g.fill(x + size - 1, y, x + size, y + size, border);
 
         ItemStack ball = BuiltInRegistries.ITEM
-                .getOptional(ResourceLocation.fromNamespaceAndPath("cobblemon", "poke_ball"))
+                .getOptional(Identifier.fromNamespaceAndPath("cobblemon", "poke_ball"))
                 .map(ItemStack::new)
                 .orElse(ItemStack.EMPTY);
         if (!ball.isEmpty() && size >= 14) {
-            g.pose().pushPose();
-            g.pose().translate(x + size / 2.0f, y + size / 2.0f, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
+            g.pose().pushMatrix();
+            g.pose().translate(x + size / 2.0f, y + size / 2.0f);
             float scale = size / 18.0f;
-            g.pose().scale(scale, scale, 1.0f);
-            g.renderItem(ball, -8, -8);
-            g.pose().popPose();
+            g.pose().scale(scale, scale);
+            g.item(ball, -8, -8);
+            g.pose().popMatrix();
             return;
         }
 
@@ -616,7 +490,7 @@ public final class CobblemonPokemonIconRenderer {
         var font = Minecraft.getInstance().font;
         int textX = x + (size - font.width(letter)) / 2;
         int textY = y + (size - font.lineHeight) / 2;
-        g.drawString(font, letter, textX, textY, AMITheme.WHITE, false);
+        g.text(font, letter, textX, textY, AMITheme.WHITE, false);
     }
 
     private static String firstToken(String raw) {
@@ -640,7 +514,7 @@ public final class CobblemonPokemonIconRenderer {
         boolean sawNonBlack = false;
         for (int y = 0; y < image.getHeight(); y++) {
             for (int x = 0; x < image.getWidth(); x++) {
-                int pixel = image.getPixelRGBA(x, y);
+                int pixel = image.getPixel(x, y);
                 int alpha = (pixel >>> 24) & 0xFF;
                 if (alpha == 0) {
                     continue;
@@ -683,7 +557,7 @@ public final class CobblemonPokemonIconRenderer {
             int offsetY = (GENERATED_SPRITE_SIZE - targetHeight) / 2;
             for (int y = 0; y < targetHeight; y++) {
                 for (int x = 0; x < targetWidth; x++) {
-                    normalized.setPixelRGBA(offsetX + x, offsetY + y, scaled.getPixelRGBA(x, y));
+                    normalized.setPixel(offsetX + x, offsetY + y, scaled.getPixel(x, y));
                 }
             }
             return normalized;
@@ -701,7 +575,7 @@ public final class CobblemonPokemonIconRenderer {
 
         for (int y = 0; y < image.getHeight(); y++) {
             for (int x = 0; x < image.getWidth(); x++) {
-                int alpha = (image.getPixelRGBA(x, y) >>> 24) & 0xFF;
+                int alpha = (image.getPixel(x, y) >>> 24) & 0xFF;
                 if (alpha <= 8) {
                     continue;
                 }
@@ -729,7 +603,7 @@ public final class CobblemonPokemonIconRenderer {
     }
 
     private record ProfileApi(Method drawProfilePokemon, Constructor<?> stateCtor, Object profilePose, boolean legacy) {
-        private Object newState(ResourceLocation ignored) {
+        private Object newState(Identifier ignored) {
             try {
                 return stateCtor.newInstance();
             } catch (ReflectiveOperationException e) {
@@ -737,7 +611,7 @@ public final class CobblemonPokemonIconRenderer {
             }
         }
 
-        private Object[] arguments(ResourceLocation speciesId, PoseStack pose, Quaternionf rotation, Object state) {
+        private Object[] arguments(Identifier speciesId, Object pose, Quaternionf rotation, Object state) {
             if (legacy) {
                 return new Object[]{
                         speciesId,
@@ -776,7 +650,7 @@ public final class CobblemonPokemonIconRenderer {
             Method getByIdentifier,
             Constructor<?> stateCtor
     ) {
-        private Object species(ResourceLocation speciesId) {
+        private Object species(Identifier speciesId) {
             if (getByIdentifier == null) {
                 return speciesId;
             }
@@ -787,7 +661,7 @@ public final class CobblemonPokemonIconRenderer {
             }
         }
 
-        private Object[] arguments(Object species, PoseStack pose) throws ReflectiveOperationException {
+        private Object[] arguments(Object species, Object pose) throws ReflectiveOperationException {
             if (getByIdentifier != null) {
                 return new Object[]{
                         species,
@@ -832,17 +706,17 @@ public final class CobblemonPokemonIconRenderer {
         AmiCore.LOGGER.warn("AMI Cobblemon 3D Pokémon icons: profile renderer API unavailable", e);
     }
 
-    private static void logPortraitFailure(ResourceLocation speciesId, Throwable e) {
+    private static void logPortraitFailure(Identifier speciesId, Throwable e) {
         if (!LOGGED_PORTRAIT_FAILURES.add(speciesId)) return;
         AmiCore.LOGGER.warn("AMI Cobblemon 3D Pokémon icons: failed to render portrait {}", speciesId, e);
     }
 
-    private static void logProfileFailure(ResourceLocation speciesId, Throwable e) {
+    private static void logProfileFailure(Identifier speciesId, Throwable e) {
         if (!LOGGED_PROFILE_FAILURES.add(speciesId)) return;
         AmiCore.LOGGER.warn("AMI Cobblemon 3D Pokémon icons: failed to render {}", speciesId, e);
     }
 
-    private static void logBlankProfileCapture(ResourceLocation speciesId) {
+    private static void logBlankProfileCapture(Identifier speciesId) {
         if (!LOGGED_BLANK_PROFILE_CAPTURES.add(speciesId)) return;
         if (blankProfileCaptureLogCount < MAX_BLANK_CAPTURE_LOGS) {
             AmiCore.LOGGER.warn("AMI Cobblemon 3D Pokémon icons: profile capture was blank for {}; using live render fallback", speciesId);

@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.compat;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class FtbQuestsRuntimeCompatTest {
     @Test
     void parsesSmartFilterItemExpressionsWithoutIndexingTheFilterItem() {
-        ResourceLocation fallback = new ResourceLocation("ftbfiltersystem", "smart_filter");
+        Identifier fallback = new Identifier("ftbfiltersystem", "smart_filter");
 
         FtbQuestsRuntimeCompat.FilterItems items = FtbQuestsRuntimeCompat.parseFtbFilterString(
                 "or(item(minecraft:torch)item(minecraft:soul_torch)item(minecraft:torch))",
@@ -20,8 +20,8 @@ class FtbQuestsRuntimeCompatTest {
         );
 
         assertEquals(List.of(
-                new ResourceLocation("minecraft", "torch"),
-                new ResourceLocation("minecraft", "soul_torch")
+                new Identifier("minecraft", "torch"),
+                new Identifier("minecraft", "soul_torch")
         ), items.itemIds());
         assertFalse(items.highCardinality());
         assertTrue(items.tags().isEmpty());
@@ -29,7 +29,7 @@ class FtbQuestsRuntimeCompatTest {
 
     @Test
     void marksTagAndCappedSmartFiltersAsHighCardinality() {
-        ResourceLocation fallback = new ResourceLocation("ftbfiltersystem", "smart_filter");
+        Identifier fallback = new Identifier("ftbfiltersystem", "smart_filter");
         StringBuilder filter = new StringBuilder("or(ftbfiltersystem:item_tag(minecraft:logs)");
         for (int i = 0; i < 40; i++) {
             filter.append("item(example:item_").append(i).append(")");

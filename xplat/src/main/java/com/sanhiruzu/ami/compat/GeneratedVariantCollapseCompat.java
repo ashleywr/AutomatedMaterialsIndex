@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.Locale;
 import java.util.Map;
@@ -11,7 +11,7 @@ public final class GeneratedVariantCollapseCompat {
     private GeneratedVariantCollapseCompat() {
     }
 
-    public static void enrichItem(ResourceLocation id, Map<String, String> meta) {
+    public static void enrichItem(Identifier id, Map<String, String> meta) {
         if (id == null || meta == null) {
             return;
         }
@@ -40,7 +40,7 @@ public final class GeneratedVariantCollapseCompat {
         CompatMetaUtil.addSearchToken(meta, "generated_variant");
     }
 
-    private static Optional<String> generatedVariantBase(ResourceLocation id, Map<String, String> meta) {
+    private static Optional<String> generatedVariantBase(Identifier id, Map<String, String> meta) {
         String path = id.getPath();
         int variant = path.indexOf("/variant/");
         if (variant >= 0) {

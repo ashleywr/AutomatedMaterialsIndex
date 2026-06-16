@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
 import com.sanhiruzu.ami.config.AmiConfig;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.*;
 import java.util.function.Function;
@@ -490,13 +490,13 @@ public final class PrimaryCategoryResolver {
     private PrimaryCategoryResolver() {
     }
 
-    public static CategoryAssignment resolve(ResourceLocation id, FacetProfile profile) {
+    public static CategoryAssignment resolve(Identifier id, FacetProfile profile) {
         return resolve(id,
                 profile == null ? Set.of() : profile.facets(),
                 profile == null ? Map.of() : profile.attributes());
     }
 
-    public static CategoryAssignment resolve(ResourceLocation id, Set<ItemFacet> profileFacets,
+    public static CategoryAssignment resolve(Identifier id, Set<ItemFacet> profileFacets,
                                              Map<String, String> profileAttributes) {
         /*
          * Classification routing rule:
@@ -3600,7 +3600,7 @@ public final class PrimaryCategoryResolver {
         DECOR
     }
 
-    private record ResolveContext(ResourceLocation id,
+    private record ResolveContext(Identifier id,
                                   String modId,
                                   String path,
                                   Set<ItemFacet> facets,

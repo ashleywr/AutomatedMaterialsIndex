@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.compat;
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.index.providers.IRecipeViewerPlugin;
 import mezz.jei.api.runtime.IIngredientManager;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.Collection;
@@ -65,7 +65,7 @@ public class JeiIngredientBridge implements IRecipeViewerPlugin {
             return;
         }
 
-        ResourceLocation typeId = classNameToTypeId(typeUid);
+        Identifier typeId = classNameToTypeId(typeUid);
         registration.register(
                 new TypeAdapter<>(jeiType, typeId),
                 ingredients,
@@ -98,18 +98,18 @@ public class JeiIngredientBridge implements IRecipeViewerPlugin {
     }
 
     // "net.minecraft.world.item.ItemStack" → jei:net/minecraft/world/item/itemstack
-    private static ResourceLocation classNameToTypeId(String className) {
+    private static Identifier classNameToTypeId(String className) {
         String path = className.replace('.', '/').replace('$', '_').toLowerCase(Locale.ROOT);
-        return ResourceLocation.fromNamespaceAndPath("jei", path);
+        return Identifier.fromNamespaceAndPath("jei", path);
     }
 
     private record TypeAdapter<V>(
             mezz.jei.api.ingredients.IIngredientType<V> jeiType,
-            ResourceLocation typeId
+            Identifier typeId
     ) implements IRecipeViewerPlugin.IIngredientType<V> {
 
         @Override
-        public ResourceLocation getTypeId() {
+        public Identifier getTypeId() {
             return typeId;
         }
 
@@ -133,11 +133,11 @@ public class JeiIngredientBridge implements IRecipeViewerPlugin {
         }
 
         @Override
-        public ResourceLocation getResourceLocation(V ingredient) {
+        public Identifier getResourceLocation(V ingredient) {
             try {
                 return jeiHelper.getResourceLocation(ingredient);
             } catch (Throwable t) {
-                return ResourceLocation.fromNamespaceAndPath("unknown", "unknown");
+                return Identifier.fromNamespaceAndPath("unknown", "unknown");
             }
         }
 

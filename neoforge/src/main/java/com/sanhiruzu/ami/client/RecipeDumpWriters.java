@@ -20,7 +20,7 @@ import mezz.jei.api.recipe.IRecipeManager;
 import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.category.IRecipeCategory;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.item.ItemStack;
@@ -28,6 +28,7 @@ import net.minecraft.world.item.crafting.AbstractCookingRecipe;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.display.SlotDisplayContext;
 import net.minecraft.world.level.Level;
 
 import java.io.BufferedReader;
@@ -143,25 +144,33 @@ final class RecipeDumpWriters {
 
     private static List<RuntimeRecipeSnapshot> collectRuntimeRecipes(Level level) {
         List<RuntimeRecipeSnapshot> snapshots = new ArrayList<>();
-        for (RecipeHolder<?> holder : level.getRecipeManager().getRecipes()) {
+        if (!(level instanceof net.minecraft.server.level.ServerLevel serverLevel)) return snapshots;
+        for (RecipeHolder<?> holder : serverLevel.recipeAccess().getRecipes()) {
             Recipe<?> recipe = holder.value();
             List<List<StackSnapshot>> inputs = new ArrayList<>();
             try {
-                for (Ingredient ingredient : recipe.getIngredients()) {
-                    inputs.add(stackSnapshots(ingredient.getItems(), level));
+                for (Ingredient ingredient : recipe.placementInfo().ingredients()) {
+                    inputs.add(stackSnapshots(ingredient.items().map(ItemStack::new).toArray(ItemStack[]::new), level));
                 }
             } catch (RuntimeException | LinkageError ignored) {
             }
 
             StackSnapshot result = StackSnapshot.empty();
             try {
-                result = stackSnapshot(recipe.getResultItem(level.registryAccess()), level);
+                var displays = recipe.display();
+                if (!displays.isEmpty()) {
+                    var resultStacks = displays.get(0).result().resolveForStacks(SlotDisplayContext.fromLevel(level));
+                    if (!resultStacks.isEmpty()) {
+                        result = stackSnapshot(resultStacks.get(0), level);
+                    }
+                }
             } catch (RuntimeException | LinkageError ignored) {
             }
 
+            String recipeId = holder.id().identifier().toString();
             snapshots.add(new RuntimeRecipeSnapshot(
-                    holder.id().toString(),
-                    holder.id().getNamespace(),
+                    recipeId,
+                    holder.id().identifier().getNamespace(),
                     recipeTypeId(recipe),
                     recipeSerializerId(recipe),
                     recipe.getClass().getName(),
@@ -169,7 +178,7 @@ final class RecipeDumpWriters {
                     result,
                     cookingTime(recipe),
                     cookingExperience(recipe),
-                    runtimeKubeJsHints(holder.id().toString(), recipeTypeId(recipe), result.itemId())
+                    runtimeKubeJsHints(recipeId, recipeTypeId(recipe), result.itemId())
             ));
         }
         snapshots.sort(Comparator.comparing(RuntimeRecipeSnapshot::recipeType)
@@ -221,7 +230,7 @@ final class RecipeDumpWriters {
         return snapshots;
     }
 
-    private static void readLootTable(String root, ResourceLocation resourceId, Resource resource,
+    private static void readLootTable(String root, Identifier resourceId, Resource resource,
                                       List<LootTableSnapshot> snapshots) {
         try (BufferedReader reader = resource.openAsReader()) {
             JsonElement json = JsonParser.parseReader(reader);
@@ -316,22 +325,28 @@ final class RecipeDumpWriters {
         String backingRecipeId = "";
 
         if (recipe instanceof RecipeHolder<?> holder) {
-            backingRecipeId = holder.id().toString();
+            backingRecipeId = holder.id().identifier().toString();
             if (recipeId.isBlank()) {
                 recipeId = backingRecipeId;
             }
             try {
-                inputs = holder.value().getIngredients().stream()
+                inputs = holder.value().placementInfo().ingredients().stream()
                         .map(ingredient -> new IngredientSnapshot(
                                 "minecraft_ingredient",
                                 "",
-                                stackSnapshots(ingredient.getItems(), level)
+                                stackSnapshots(ingredient.items().map(ItemStack::new).toArray(ItemStack[]::new), level)
                         ))
                         .toList();
-                ItemStack output = holder.value().getResultItem(level.registryAccess());
-                outputs = output.isEmpty()
-                        ? List.of()
-                        : List.of(new IngredientSnapshot("item_stack", output.getHoverName().getString(), List.of(stackSnapshot(output, level))));
+                var displays = holder.value().display();
+                if (!displays.isEmpty()) {
+                    var resultStacks = displays.get(0).result().resolveForStacks(SlotDisplayContext.fromLevel(level));
+                    if (!resultStacks.isEmpty()) {
+                        ItemStack output = resultStacks.get(0);
+                        outputs = output.isEmpty()
+                                ? List.of()
+                                : List.of(new IngredientSnapshot("item_stack", output.getHoverName().getString(), List.of(stackSnapshot(output, level))));
+                    }
+                }
             } catch (RuntimeException | LinkageError ignored) {
             }
         }
@@ -354,13 +369,26 @@ final class RecipeDumpWriters {
 
     private static ViewerRecipeSnapshot emiRecipeSnapshot(EmiRecipe recipe, Level level) {
         EmiRecipeCategory category = recipe.getCategory();
-        String categoryId = category == null ? "" : category.getId().toString();
+        String categoryId = "";
+        if (category != null) {
+            try {
+                java.lang.reflect.Method getIdMethod = category.getClass().getMethod("getId");
+                Object id = getIdMethod.invoke(category);
+                categoryId = id == null ? "" : id.toString();
+            } catch (ReflectiveOperationException | LinkageError ignored) {}
+        }
         String categoryTitle = category == null ? "" : safeComponentString(category.getName());
+        String recipeId = "";
+        try {
+            java.lang.reflect.Method getIdMethod = recipe.getClass().getMethod("getId");
+            Object id = getIdMethod.invoke(recipe);
+            recipeId = id == null ? "" : id.toString();
+        } catch (ReflectiveOperationException | LinkageError ignored) {}
         String backingRecipeId = "";
         try {
             RecipeHolder<?> backing = recipe.getBackingRecipe();
             if (backing != null) {
-                backingRecipeId = backing.id().toString();
+                backingRecipeId = backing.id().identifier().toString();
             }
         } catch (RuntimeException | LinkageError ignored) {
         }
@@ -368,7 +396,7 @@ final class RecipeDumpWriters {
         return new ViewerRecipeSnapshot(
                 "emi",
                 "all",
-                resourceLocationString(recipe.getId()),
+                recipeId,
                 categoryId,
                 categoryTitle,
                 recipe.getClass().getName(),
@@ -442,7 +470,7 @@ final class RecipeDumpWriters {
         if (stack == null || stack.isEmpty()) {
             return StackSnapshot.empty();
         }
-        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
         String itemIdString = itemId == null ? "" : itemId.toString();
         String exactHash = itemId == null ? "" : CreativeStackVariantExpander.stackIdentityHash(itemId, stack, level);
         String exactKey = itemIdString.isBlank() || exactHash.isBlank() ? "" : itemIdString + "|" + exactHash;
@@ -463,12 +491,12 @@ final class RecipeDumpWriters {
     }
 
     private static String recipeTypeId(Recipe<?> recipe) {
-        ResourceLocation id = BuiltInRegistries.RECIPE_TYPE.getKey(recipe.getType());
+        Identifier id = BuiltInRegistries.RECIPE_TYPE.getKey(recipe.getType());
         return id == null ? String.valueOf(recipe.getType()) : id.toString();
     }
 
     private static String recipeSerializerId(Recipe<?> recipe) {
-        ResourceLocation id = BuiltInRegistries.RECIPE_SERIALIZER.getKey(recipe.getSerializer());
+        Identifier id = BuiltInRegistries.RECIPE_SERIALIZER.getKey(recipe.getSerializer());
         return id == null ? String.valueOf(recipe.getSerializer()) : id.toString();
     }
 
@@ -600,11 +628,11 @@ final class RecipeDumpWriters {
     }
 
     private static String cookingTime(Recipe<?> recipe) {
-        return recipe instanceof AbstractCookingRecipe cooking ? String.valueOf(cooking.getCookingTime()) : "";
+        return recipe instanceof AbstractCookingRecipe cooking ? String.valueOf(cooking.cookingTime()) : "";
     }
 
     private static String cookingExperience(Recipe<?> recipe) {
-        return recipe instanceof AbstractCookingRecipe cooking ? String.valueOf(cooking.getExperience()) : "";
+        return recipe instanceof AbstractCookingRecipe cooking ? String.valueOf(cooking.experience()) : "";
     }
 
     private static String lootKubeJsHint(String tableId, String kind) {
@@ -638,7 +666,7 @@ final class RecipeDumpWriters {
         }
     }
 
-    private static String normalizeLootTableId(String root, ResourceLocation resourceId) {
+    private static String normalizeLootTableId(String root, Identifier resourceId) {
         String path = resourceId.getPath();
         String prefix = root + "/";
         if (path.startsWith(prefix)) {
@@ -658,7 +686,7 @@ final class RecipeDumpWriters {
                 + ".jsonl";
     }
 
-    private static String resourceLocationString(ResourceLocation id) {
+    private static String resourceLocationString(Identifier id) {
         return id == null ? "" : id.toString();
     }
 

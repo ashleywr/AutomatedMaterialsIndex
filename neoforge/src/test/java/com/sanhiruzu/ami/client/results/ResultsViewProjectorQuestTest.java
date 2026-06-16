@@ -6,7 +6,7 @@ import com.sanhiruzu.ami.index.AmiQuestSearchIndex;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -26,7 +26,7 @@ class ResultsViewProjectorQuestTest {
     @Test
     void projectionIncludesQuestRowsWithoutChangingItemTree() {
         SearchNode item = new SearchNode(
-                new ResourceLocation("minecraft", "redstone"),
+                new Identifier("minecraft", "redstone"),
                 NodeType.ITEM,
                 "Redstone Dust",
                 0,
@@ -72,7 +72,7 @@ class ResultsViewProjectorQuestTest {
                 .task(AmiQuestTaskDocument.builder("ftbquests:runtime_test/task", "ftbquests:runtime_test",
                                 AmiQuestTaskDocument.Role.REQUIREMENT)
                         .taskType("ftb:item")
-                        .itemId(new ResourceLocation("minecraft", "redstone"))
+                        .itemId(new Identifier("minecraft", "redstone"))
                         .requiredCount(4)
                         .build())
                 .build();

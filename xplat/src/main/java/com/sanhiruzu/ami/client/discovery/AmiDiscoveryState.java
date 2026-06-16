@@ -14,7 +14,7 @@ import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.ItemStack;
@@ -47,9 +47,9 @@ public final class AmiDiscoveryState {
     private static boolean persistenceEnabled = true;
     private static Path testRoot = null;
 
-    private final Set<ResourceLocation> discoveredBiomes = new HashSet<>();
-    private final Set<ResourceLocation> discoveredStructures = new HashSet<>();
-    private final Set<ResourceLocation> tastedFoods = new HashSet<>();
+    private final Set<Identifier> discoveredBiomes = new HashSet<>();
+    private final Set<Identifier> discoveredStructures = new HashSet<>();
+    private final Set<Identifier> tastedFoods = new HashSet<>();
     private String loadedScope = "";
     private int tickCounter = 0;
     private long revision = 0;
@@ -82,17 +82,17 @@ public final class AmiDiscoveryState {
         INSTANCE.revision = 0;
     }
 
-    public static void markBiomeDiscoveredForTests(ResourceLocation id) {
+    public static void markBiomeDiscoveredForTests(Identifier id) {
         INSTANCE.discoveredBiomes.add(id);
         INSTANCE.revision++;
     }
 
-    public static void markStructureDiscoveredForTests(ResourceLocation id) {
+    public static void markStructureDiscoveredForTests(Identifier id) {
         INSTANCE.discoveredStructures.add(id);
         INSTANCE.revision++;
     }
 
-    public static void markFoodTastedForTests(ResourceLocation id) {
+    public static void markFoodTastedForTests(Identifier id) {
         INSTANCE.tastedFoods.add(id);
         INSTANCE.revision++;
     }
@@ -119,7 +119,7 @@ public final class AmiDiscoveryState {
         mc.level.getBiome(mc.player.blockPosition())
                 .unwrapKey()
                 .filter(key -> key.isFor(Registries.BIOME))
-                .ifPresent(key -> markBiomeDiscovered(scope, key.location()));
+                .ifPresent(key -> markBiomeDiscovered(scope, key.identifier()));
 
         if (mc.getSingleplayerServer() != null) {
             ServerLevel serverLevel = mc.getSingleplayerServer().getLevel(mc.level.dimension());
@@ -192,7 +192,7 @@ public final class AmiDiscoveryState {
         return "untracked";
     }
 
-    private void markBiomeDiscovered(String scope, ResourceLocation biomeId) {
+    private void markBiomeDiscovered(String scope, Identifier biomeId) {
         if (biomeId == null) {
             return;
         }
@@ -203,7 +203,7 @@ public final class AmiDiscoveryState {
         }
     }
 
-    private void markStructureDiscovered(String scope, ResourceLocation structureId) {
+    private void markStructureDiscovered(String scope, Identifier structureId) {
         if (structureId == null) {
             return;
         }
@@ -214,7 +214,7 @@ public final class AmiDiscoveryState {
         }
     }
 
-    private void markFoodTasted(String scope, ResourceLocation foodId) {
+    private void markFoodTasted(String scope, Identifier foodId) {
         if (foodId == null) {
             return;
         }
@@ -252,7 +252,7 @@ public final class AmiDiscoveryState {
                     ? root.getAsJsonArray("biomes")
                     : new JsonArray();
             for (JsonElement element : biomes) {
-                ResourceLocation id = ResourceLocation.tryParse(element.getAsString());
+                Identifier id = Identifier.tryParse(element.getAsString());
                 if (id != null) {
                     discoveredBiomes.add(id);
                 }
@@ -261,7 +261,7 @@ public final class AmiDiscoveryState {
                     ? root.getAsJsonArray("structures")
                     : new JsonArray();
             for (JsonElement element : structures) {
-                ResourceLocation id = ResourceLocation.tryParse(element.getAsString());
+                Identifier id = Identifier.tryParse(element.getAsString());
                 if (id != null) {
                     discoveredStructures.add(id);
                 }
@@ -270,7 +270,7 @@ public final class AmiDiscoveryState {
                     ? root.getAsJsonArray("foods")
                     : new JsonArray();
             for (JsonElement element : foods) {
-                ResourceLocation id = ResourceLocation.tryParse(element.getAsString());
+                Identifier id = Identifier.tryParse(element.getAsString());
                 if (id != null) {
                     tastedFoods.add(id);
                 }
@@ -292,19 +292,19 @@ public final class AmiDiscoveryState {
         root.addProperty("version", FORMAT_VERSION);
         JsonArray biomes = new JsonArray();
         discoveredBiomes.stream()
-                .map(ResourceLocation::toString)
+                .map(Identifier::toString)
                 .sorted()
                 .forEach(biomes::add);
         root.add("biomes", biomes);
         JsonArray structures = new JsonArray();
         discoveredStructures.stream()
-                .map(ResourceLocation::toString)
+                .map(Identifier::toString)
                 .sorted()
                 .forEach(structures::add);
         root.add("structures", structures);
         JsonArray foods = new JsonArray();
         tastedFoods.stream()
-                .map(ResourceLocation::toString)
+                .map(Identifier::toString)
                 .sorted()
                 .forEach(foods::add);
         root.add("foods", foods);
@@ -339,16 +339,16 @@ public final class AmiDiscoveryState {
         } catch (RuntimeException ignored) {
         }
 
-        String dimension = mc.level == null ? "unknown_dimension" : mc.level.dimension().location().toString();
+        String dimension = mc.level == null ? "unknown_dimension" : mc.level.dimension().identifier().toString();
         UUID playerId = mc.player == null ? null : mc.player.getUUID();
         return world + "|" + dimension + "|" + (playerId == null ? "unknown_player" : playerId);
     }
 
-    private static ResourceLocation structureId(ServerLevel level, Structure structure) {
+    private static Identifier structureId(ServerLevel level, Structure structure) {
         if (level == null || structure == null) {
             return null;
         }
-        return level.registryAccess().registryOrThrow(Registries.STRUCTURE).getKey(structure);
+        return level.registryAccess().lookupOrThrow(Registries.STRUCTURE).getKey(structure);
     }
 
     private static String sanitizeScope(String scope) {

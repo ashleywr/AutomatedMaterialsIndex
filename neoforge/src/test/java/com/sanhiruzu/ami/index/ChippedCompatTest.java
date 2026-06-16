@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.compat.ChippedCompat;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -20,7 +20,7 @@ class ChippedCompatTest {
         meta.put(SearchNodeKeys.ITEM_CLASS, "net.minecraft.world.item.BlockItem");
         meta.put(SearchNodeKeys.BLOCK_CLASS, "net.minecraft.world.level.block.Block");
 
-        ChippedCompat.enrichItem(new ResourceLocation("chipped:brick_bordered_andesite"), meta);
+        ChippedCompat.enrichItem(new Identifier("chipped:brick_bordered_andesite"), meta);
 
         assertEquals("chipped:andesite", meta.get(SearchNodeKeys.COLLAPSE_FAMILY));
         assertEquals("Andesite", meta.get(SearchNodeKeys.COLLAPSE_LABEL));
@@ -34,7 +34,7 @@ class ChippedCompatTest {
         meta.put(SearchNodeKeys.FACETS, "placeable");
         meta.put(SearchNodeKeys.ITEM_CLASS, "net.minecraft.world.item.BlockItem");
 
-        ChippedCompat.enrichItem(new ResourceLocation("chipped:ornate_oak_planks_stairs"), meta);
+        ChippedCompat.enrichItem(new Identifier("chipped:ornate_oak_planks_stairs"), meta);
 
         assertFalse(meta.containsKey(SearchNodeKeys.COLLAPSE_FAMILY));
     }
@@ -44,7 +44,7 @@ class ChippedCompatTest {
         Map<String, String> meta = new HashMap<>();
         meta.put(SearchNodeKeys.ITEM_CLASS, "earth.terrarium.chipped.common.items.WorkbenchItem");
 
-        ChippedCompat.enrichItem(new ResourceLocation("chipped:saw"), meta);
+        ChippedCompat.enrichItem(new Identifier("chipped:saw"), meta);
 
         assertEquals("tools", meta.get(SearchNodeKeys.ONTOLOGY_CATEGORY));
         assertEquals("utility", meta.get(SearchNodeKeys.ONTOLOGY_SUBCATEGORY));
@@ -56,7 +56,7 @@ class ChippedCompatTest {
         meta.put(SearchNodeKeys.TAGS, "chipped:andesite");
         meta.put(SearchNodeKeys.FACETS, "placeable");
 
-        ChippedCompat.enrichItem(new ResourceLocation("other:brick_bordered_andesite"), meta);
+        ChippedCompat.enrichItem(new Identifier("other:brick_bordered_andesite"), meta);
 
         assertFalse(meta.containsKey(SearchNodeKeys.COLLAPSE_FAMILY));
     }

@@ -4,7 +4,7 @@ import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.PathTokens;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
@@ -83,7 +83,7 @@ public final class ModularGearCompat {
     private ModularGearCompat() {
     }
 
-    public static void enrichItem(ResourceLocation id, Map<String, String> meta) {
+    public static void enrichItem(Identifier id, Map<String, String> meta) {
         if (id == null || meta == null) {
             return;
         }
@@ -134,7 +134,7 @@ public final class ModularGearCompat {
         }
     }
 
-    public static void enrichRuntimeStack(ResourceLocation id, ItemStack stack, @Nullable Level level, Map<String, String> meta) {
+    public static void enrichRuntimeStack(Identifier id, ItemStack stack, @Nullable Level level, Map<String, String> meta) {
         if (id == null || stack == null || stack.isEmpty() || meta == null) {
             return;
         }
@@ -214,7 +214,7 @@ public final class ModularGearCompat {
         return new RuntimeFacts(List.copyOf(materials), List.copyOf(traits), List.copyOf(stats));
     }
 
-    private static String family(ResourceLocation id, Map<String, String> meta) {
+    private static String family(Identifier id, Map<String, String> meta) {
         String namespace = id.getNamespace().toLowerCase(Locale.ROOT);
         if ("tconstruct".equals(namespace)) {
             return CompatFamilyDetector.TINKERS;
@@ -543,7 +543,7 @@ public final class ModularGearCompat {
         final String family;
         final PathTokens pathTokens;
 
-        Context(ResourceLocation id, Map<String, String> meta) {
+        Context(Identifier id, Map<String, String> meta) {
             this.path = id.getPath().toLowerCase(Locale.ROOT);
             this.itemClass = meta.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
             this.blockClass = meta.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "");

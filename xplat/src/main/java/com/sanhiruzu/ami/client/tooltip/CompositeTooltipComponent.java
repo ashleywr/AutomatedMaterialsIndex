@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.client.tooltip;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 
@@ -22,8 +22,8 @@ public final class CompositeTooltipComponent implements TooltipComponent, Client
     }
 
     @Override
-    public int getHeight() {
-        return children.stream().mapToInt(ClientTooltipComponent::getHeight).sum();
+    public int getHeight(Font font) {
+        return children.stream().mapToInt(c -> c.getHeight(font)).sum();
     }
 
     @Override
@@ -32,11 +32,11 @@ public final class CompositeTooltipComponent implements TooltipComponent, Client
     }
 
     @Override
-    public void renderImage(Font font, int x, int y, GuiGraphics g) {
+    public void extractImage(Font font, int x, int y, int mouseX, int mouseY, GuiGraphicsExtractor g) {
         int cy = y;
         for (ClientTooltipComponent child : children) {
-            child.renderImage(font, x, cy, g);
-            cy += child.getHeight();
+            child.extractImage(font, x, cy, mouseX, mouseY, g);
+            cy += child.getHeight(font);
         }
     }
 }

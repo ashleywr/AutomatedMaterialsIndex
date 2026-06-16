@@ -13,19 +13,18 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
 
 import java.util.*;
 
@@ -49,68 +48,42 @@ public class EntityIconRenderer implements IIconRenderer {
     private static final int ENTITY_ICON_ATLAS_WARMUP_SIZE = 16;
     private static final int MAX_ENTITY_INSTANCE_CACHE =
             Math.max(16, Integer.getInteger("ami.entityIconEntityCacheLimit", 128));
-    private static final Map<ResourceLocation, LivingEntity> entityCache = new LinkedHashMap<>(MAX_ENTITY_INSTANCE_CACHE, 0.75f, true) {
+    private static final Map<Identifier, LivingEntity> entityCache = new LinkedHashMap<>(MAX_ENTITY_INSTANCE_CACHE, 0.75f, true) {
         @Override
-        protected boolean removeEldestEntry(Map.Entry<ResourceLocation, LivingEntity> eldest) {
+        protected boolean removeEldestEntry(Map.Entry<Identifier, LivingEntity> eldest) {
             return size() > MAX_ENTITY_INSTANCE_CACHE;
         }
     };
-    private static final Set<ResourceLocation> failedRenderers = new HashSet<>();
+    private static final Set<Identifier> failedRenderers = new HashSet<>();
     private static List<SearchNode> warmupQueue = List.of();
     private static long warmupRevision = -1L;
     private static int warmupIndex = 0;
 
-    private static void renderStaticEntity(GuiGraphics g, int x, int y, int size, int scale, LivingEntity entity) {
+    private static void renderStaticEntity(GuiGraphicsExtractor g, int x, int y, int size, int scale, LivingEntity entity) {
         renderEntityWithRotation(g, x, y, size, scale, entity, EntityFacingConstants.STATIC_ENTITY_Y_ROT);
     }
 
-    private static void renderSpinningEntity(GuiGraphics g, int x, int y, int size, int scale, LivingEntity entity) {
+    private static void renderSpinningEntity(GuiGraphicsExtractor g, int x, int y, int size, int scale, LivingEntity entity) {
         float spinDeg = (System.currentTimeMillis() % 3000L) / 3000.0f * 360.0f;
         renderEntityWithRotation(g, x, y, size, scale, entity, EntityFacingConstants.STATIC_ENTITY_Y_ROT + spinDeg);
     }
 
-    private static void renderEntityWithRotation(GuiGraphics g, int x, int y, int size, int scale, LivingEntity entity, float yRot) {
-        float savedBodyRot = entity.yBodyRot;
-        float savedYRot = entity.getYRot();
-        float savedXRot = entity.getXRot();
-        float savedHeadRotO = entity.yHeadRotO;
-        float savedHeadRot = entity.yHeadRot;
-
-        entity.yBodyRot = yRot;
-        entity.setYRot(yRot);
-        entity.setXRot(0.0f);
-        entity.yHeadRot = entity.getYRot();
-        entity.yHeadRotO = entity.getYRot();
-
+    private static void renderEntityWithRotation(GuiGraphicsExtractor g, int x, int y, int size, int scale, LivingEntity entity, float yRot) {
         float entityScale = entity.getScale();
         float renderScale = scale / entityScale;
-        float centerX = x + size / 2.0f;
-        float centerY = y + size / 2.0f;
-        Vector3f translate = new Vector3f(0.0f, entity.getBbHeight() / 2.0f, 0.0f);
-        Quaternionf pose = new Quaternionf().rotateZ((float) Math.PI);
-        g.pose().pushPose();
+        float xAngle = (yRot - 180.0f) / 20.0f;
+        float offsetY = entity.getBbHeight() / 2.0f;
+        g.pose().pushMatrix();
         try {
-            try {
-                IconRenderState.render3dIcon(g, () ->
-                        InventoryScreen.renderEntityInInventory(g, centerX, centerY, renderScale, translate, pose, new Quaternionf(), entity)
-                );
-            } catch (RuntimeException e) {
-                // renderEntityInInventory pushes before dispatching to entity renderers; if a modded renderer
-                // throws, vanilla never pops that frame. Pop the leaked vanilla frame before unwinding ours.
-                g.pose().popPose();
-                throw e;
-            }
+            IconRenderState.render3dIcon(g, () ->
+                    InventoryScreen.renderEntityInInventoryFollowsAngle(g, x, y, x + size, y + size, (int) renderScale, offsetY, xAngle, 0.0f, entity)
+            );
         } finally {
-            g.pose().popPose();
-            entity.yBodyRot = savedBodyRot;
-            entity.setYRot(savedYRot);
-            entity.setXRot(savedXRot);
-            entity.yHeadRotO = savedHeadRotO;
-            entity.yHeadRot = savedHeadRot;
+            g.pose().popMatrix();
         }
     }
 
-    private static LivingEntity resolveEntity(ResourceLocation id) {
+    private static LivingEntity resolveEntity(Identifier id) {
         // Return cached instance if already created.
         if (entityCache.containsKey(id)) return entityCache.get(id);
 
@@ -125,7 +98,7 @@ public class EntityIconRenderer implements IIconRenderer {
 
         LivingEntity entity = null;
         try {
-            Entity e = type.create(mc.level);
+            Entity e = type.create(mc.level, EntitySpawnReason.COMMAND);
             if (e instanceof LivingEntity le) entity = le;
         } catch (Exception ignored) {
             // Some entity types require server-side state; skip them gracefully.
@@ -151,7 +124,7 @@ public class EntityIconRenderer implements IIconRenderer {
         try {
             int dmg = Integer.parseInt(s);
             ItemStack sword = new ItemStack(BuiltInRegistries.ITEM
-                    .getOptional(ResourceLocation.withDefaultNamespace("iron_sword"))
+                    .getOptional(Identifier.withDefaultNamespace("iron_sword"))
                     .orElse(Items.AIR));
             return new StatIconRowTooltipComponent(sword, Component.translatable("ami.tooltip.entity.damage", dmg).getString(), AMITheme.ENTITY_DAMAGE_COLOR);
         } catch (NumberFormatException e) {
@@ -191,7 +164,7 @@ public class EntityIconRenderer implements IIconRenderer {
             }
 
             try {
-                Entity e = type.create(mc.level);
+                Entity e = type.create(mc.level, EntitySpawnReason.COMMAND);
                 if (!(e instanceof LivingEntity)) {
                     continue;
                 }
@@ -276,7 +249,7 @@ public class EntityIconRenderer implements IIconRenderer {
     }
 
     @Override
-    public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
+    public void render(GuiGraphicsExtractor g, SearchNode node, int x, int y, int size, boolean hovered) {
         if (EntityIconTooltipSupport.isPokemonSpecies(node)) {
             CobblemonPokemonIconRenderer.render(g, node, x, y, size, hovered);
             return;

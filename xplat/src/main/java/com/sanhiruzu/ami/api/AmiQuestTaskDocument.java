@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.api;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +17,7 @@ public record AmiQuestTaskDocument(
         Role role,
         String taskType,
         String title,
-        List<ResourceLocation> itemIds,
+        List<Identifier> itemIds,
         long requiredCount,
         long progress,
         boolean consumesItems,
@@ -51,12 +51,12 @@ public record AmiQuestTaskDocument(
         return value == null ? "" : value.trim();
     }
 
-    private static List<ResourceLocation> cleanItems(List<ResourceLocation> values) {
+    private static List<Identifier> cleanItems(List<Identifier> values) {
         if (values == null || values.isEmpty()) {
             return List.of();
         }
-        List<ResourceLocation> cleaned = new ArrayList<>();
-        for (ResourceLocation value : values) {
+        List<Identifier> cleaned = new ArrayList<>();
+        for (Identifier value : values) {
             if (value != null && !cleaned.contains(value)) {
                 cleaned.add(value);
             }
@@ -88,7 +88,7 @@ public record AmiQuestTaskDocument(
         private final String id;
         private final String questId;
         private final Role role;
-        private final List<ResourceLocation> itemIds = new ArrayList<>();
+        private final List<Identifier> itemIds = new ArrayList<>();
         private final List<String> tags = new ArrayList<>();
         private String taskType = "";
         private String title = "";
@@ -114,16 +114,16 @@ public record AmiQuestTaskDocument(
             return this;
         }
 
-        public Builder itemId(ResourceLocation itemId) {
+        public Builder itemId(Identifier itemId) {
             if (itemId != null && !itemIds.contains(itemId)) {
                 itemIds.add(itemId);
             }
             return this;
         }
 
-        public Builder itemIds(List<ResourceLocation> itemIds) {
+        public Builder itemIds(List<Identifier> itemIds) {
             if (itemIds != null) {
-                for (ResourceLocation itemId : itemIds) {
+                for (Identifier itemId : itemIds) {
                     itemId(itemId);
                 }
             }

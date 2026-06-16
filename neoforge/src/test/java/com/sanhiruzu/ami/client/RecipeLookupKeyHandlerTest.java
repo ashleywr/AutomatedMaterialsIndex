@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.client;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import org.junit.jupiter.api.Test;
@@ -29,7 +29,7 @@ class RecipeLookupKeyHandlerTest {
     @Test
     void nonItemNodesDoNotMasqueradeAsStacks() {
         SearchNode oxygen = new SearchNode(
-                new ResourceLocation("mekanism", "oxygen/rv/test"),
+                new Identifier("mekanism", "oxygen/rv/test"),
                 NodeType.INGREDIENT,
                 "Oxygen",
                 0,
@@ -42,6 +42,6 @@ class RecipeLookupKeyHandlerTest {
     }
 
     private static Item stone() {
-        return BuiltInRegistries.ITEM.get(new ResourceLocation("minecraft:stone"));
+        return BuiltInRegistries.ITEM.get(new Identifier("minecraft:stone"));
     }
 }

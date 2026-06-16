@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.compat.AlexsMobsCompat;
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -17,7 +17,7 @@ class AlexsMobsCompatTest {
     void alexsMobsNamespaceGetsFamilyPolicy() {
         Map<String, String> meta = meta("net.minecraft.world.item.Item");
 
-        CompatFamilyDetector.detect(new ResourceLocation("alexsmobs", "bear_fur"), meta);
+        CompatFamilyDetector.detect(new Identifier("alexsmobs", "bear_fur"), meta);
 
         assertEquals("alexsmobs", meta.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
     }
@@ -27,7 +27,7 @@ class AlexsMobsCompatTest {
         Map<String, String> meta = meta("net.minecraft.world.item.Item");
         meta.put(SearchNodeKeys.TAGS, "alexsmobs:animal_dictionary_ingredient");
 
-        AlexsMobsCompat.enrichItem(new ResourceLocation("alexsmobs", "bear_fur"), meta);
+        AlexsMobsCompat.enrichItem(new Identifier("alexsmobs", "bear_fur"), meta);
         CategoryAssignment assignment = resolve("alexsmobs:bear_fur", meta);
 
         assertEquals("organic_drops", meta.get(SearchNodeKeys.ALEXS_MOBS_ITEM_KIND));
@@ -42,7 +42,7 @@ class AlexsMobsCompatTest {
         Map<String, String> meta = meta("net.minecraft.world.item.Item");
         meta.put(SearchNodeKeys.TAGS, "alexsmobs:platypus_foodstuffs,alexsmobs:seal_breedables");
 
-        AlexsMobsCompat.enrichItem(new ResourceLocation("alexsmobs", "lobster_tail"), meta);
+        AlexsMobsCompat.enrichItem(new Identifier("alexsmobs", "lobster_tail"), meta);
         CategoryAssignment assignment = resolve("alexsmobs:lobster_tail", meta);
 
         assertEquals("protein_foods", meta.get(SearchNodeKeys.ALEXS_MOBS_ITEM_KIND));
@@ -54,11 +54,11 @@ class AlexsMobsCompatTest {
     @Test
     void customUtilityClassesRouteToExpectedToolBuckets() {
         Map<String, String> locator = meta("com.github.alexthe666.alexsmobs.item.ItemEcholocator");
-        AlexsMobsCompat.enrichItem(new ResourceLocation("alexsmobs", "pupfish_locator"), locator);
+        AlexsMobsCompat.enrichItem(new Identifier("alexsmobs", "pupfish_locator"), locator);
         CategoryAssignment locatorAssignment = resolve("alexsmobs:pupfish_locator", locator);
 
         Map<String, String> blaster = meta("com.github.alexthe666.alexsmobs.item.ItemHemolymphBlaster");
-        AlexsMobsCompat.enrichItem(new ResourceLocation("alexsmobs", "hemolymph_blaster"), blaster);
+        AlexsMobsCompat.enrichItem(new Identifier("alexsmobs", "hemolymph_blaster"), blaster);
         CategoryAssignment blasterAssignment = resolve("alexsmobs:hemolymph_blaster", blaster);
 
         assertEquals("navigation_tools", locator.get(SearchNodeKeys.ALEXS_MOBS_ITEM_KIND));
@@ -72,11 +72,11 @@ class AlexsMobsCompatTest {
     @Test
     void transportAndArmorClassesRouteSemantically() {
         Map<String, String> board = meta("com.github.alexthe666.alexsmobs.item.ItemStraddleboard");
-        AlexsMobsCompat.enrichItem(new ResourceLocation("alexsmobs", "straddleboard"), board);
+        AlexsMobsCompat.enrichItem(new Identifier("alexsmobs", "straddleboard"), board);
         CategoryAssignment boardAssignment = resolve("alexsmobs:straddleboard", board);
 
         Map<String, String> shoes = meta("com.github.alexthe666.alexsmobs.item.ItemPigshoes");
-        AlexsMobsCompat.enrichItem(new ResourceLocation("alexsmobs", "pigshoes"), shoes);
+        AlexsMobsCompat.enrichItem(new Identifier("alexsmobs", "pigshoes"), shoes);
         CategoryAssignment shoesAssignment = resolve("alexsmobs:pigshoes", shoes);
 
         assertEquals("transport", board.get(SearchNodeKeys.ALEXS_MOBS_ITEM_KIND));
@@ -93,7 +93,7 @@ class AlexsMobsCompatTest {
         meta.put(SearchNodeKeys.ACCESS_LEVEL, "dev");
         meta.put(SearchNodeKeys.VISIBILITY, "hidden");
 
-        AlexsMobsCompat.enrichItem(new ResourceLocation("alexsmobs", "falconry_glove_inventory"), meta);
+        AlexsMobsCompat.enrichItem(new Identifier("alexsmobs", "falconry_glove_inventory"), meta);
         CategoryAssignment assignment = resolve("alexsmobs:falconry_glove_inventory", meta);
 
         assertEquals("internal_items", meta.get(SearchNodeKeys.ALEXS_MOBS_ITEM_KIND));
@@ -113,7 +113,7 @@ class AlexsMobsCompatTest {
 
     private static CategoryAssignment resolve(String id, Map<String, String> meta, ItemFacet... facets) {
         return PrimaryCategoryResolver.resolve(
-                new ResourceLocation(id),
+                new Identifier(id),
                 facets.length == 0 ? EnumSet.noneOf(ItemFacet.class) : EnumSet.of(facets[0], facets),
                 meta
         );

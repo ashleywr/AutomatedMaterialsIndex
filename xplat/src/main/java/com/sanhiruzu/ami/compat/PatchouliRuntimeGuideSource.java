@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.compat;
 import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.api.AmiGuideOpeners;
 import com.sanhiruzu.ami.index.GlobalIndexCache;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 
@@ -40,7 +40,7 @@ public final class PatchouliRuntimeGuideSource {
             return;
         }
         String language = GlobalIndexCache.currentClientLanguageCacheKey();
-        Map<ResourceLocation, String> resourceJson = readPatchouliResourceJson(resourceManager);
+        Map<Identifier, String> resourceJson = readPatchouliResourceJson(resourceManager);
         ResourceManager clientResources = clientResourceManager();
         if (clientResources != resourceManager) {
             resourceJson.putAll(readPatchouliResourceJson(clientResources));
@@ -53,13 +53,13 @@ public final class PatchouliRuntimeGuideSource {
         }
     }
 
-    static List<AmiGuideDocument> documentsFromResources(Map<ResourceLocation, String> resourceJsonById,
+    static List<AmiGuideDocument> documentsFromResources(Map<Identifier, String> resourceJsonById,
                                                          String selectedLanguage) {
         return documentsFromResources(resourceJsonById, Map.of(), selectedLanguage);
     }
 
-    static List<AmiGuideDocument> documentsFromResources(Map<ResourceLocation, String> resourceJsonById,
-                                                         Map<ResourceLocation, String> langJsonById,
+    static List<AmiGuideDocument> documentsFromResources(Map<Identifier, String> resourceJsonById,
+                                                         Map<Identifier, String> langJsonById,
                                                          String selectedLanguage) {
         if (resourceJsonById == null || resourceJsonById.isEmpty()) {
             return List.of();
@@ -67,7 +67,7 @@ public final class PatchouliRuntimeGuideSource {
 
         String language = normalizeLanguage(selectedLanguage);
         Map<String, String> translations = translations(langJsonById, language);
-        Map<ResourceLocation, BookResources> books = new LinkedHashMap<>();
+        Map<Identifier, BookResources> books = new LinkedHashMap<>();
         resourceJsonById.entrySet().stream()
                 .sorted(Comparator.comparing(entry -> entry.getKey().toString()))
                 .forEach(entry -> parseResource(entry.getKey()).ifPresent(resource -> {
@@ -79,8 +79,8 @@ public final class PatchouliRuntimeGuideSource {
                 }));
 
         List<AmiGuideDocument> documents = new ArrayList<>();
-        for (Map.Entry<ResourceLocation, BookResources> entry : books.entrySet()) {
-            ResourceLocation bookId = entry.getKey();
+        for (Map.Entry<Identifier, BookResources> entry : books.entrySet()) {
+            Identifier bookId = entry.getKey();
             BookResources resources = entry.getValue();
             List<AmiGuideDocument> parsed;
             try {
@@ -102,8 +102,8 @@ public final class PatchouliRuntimeGuideSource {
         return List.copyOf(documents);
     }
 
-    private static Map<ResourceLocation, String> readPatchouliResourceJson(ResourceManager resourceManager) {
-        Map<ResourceLocation, String> out = new LinkedHashMap<>();
+    private static Map<Identifier, String> readPatchouliResourceJson(ResourceManager resourceManager) {
+        Map<Identifier, String> out = new LinkedHashMap<>();
         if (resourceManager == null) {
             return out;
         }
@@ -115,8 +115,8 @@ public final class PatchouliRuntimeGuideSource {
         return out;
     }
 
-    private static Map<ResourceLocation, String> readLangResources(ResourceManager resourceManager, String selectedLanguage) {
-        Map<ResourceLocation, String> out = new LinkedHashMap<>();
+    private static Map<Identifier, String> readLangResources(ResourceManager resourceManager, String selectedLanguage) {
+        Map<Identifier, String> out = new LinkedHashMap<>();
         if (resourceManager == null) {
             return out;
         }
@@ -170,7 +170,7 @@ public final class PatchouliRuntimeGuideSource {
                 .build();
     }
 
-    private static Optional<PatchouliResource> parseResource(ResourceLocation id) {
+    private static Optional<PatchouliResource> parseResource(Identifier id) {
         if (id == null) {
             return Optional.empty();
         }
@@ -187,14 +187,14 @@ public final class PatchouliRuntimeGuideSource {
 
         String bookPath = parts[0];
         if (parts.length == 2 && "book.json".equals(parts[1])) {
-            ResourceLocation bookId = ResourceLocation.fromNamespaceAndPath(id.getNamespace(), bookPath);
+            Identifier bookId = Identifier.fromNamespaceAndPath(id.getNamespace(), bookPath);
             return Optional.of(new PatchouliResource(bookId, DEFAULT_LANGUAGE, ResourceKind.BOOK, ""));
         }
         if (parts.length < 3) {
             return Optional.empty();
         }
         String language = normalizeLanguage(parts[1]);
-        ResourceLocation bookId = ResourceLocation.fromNamespaceAndPath(id.getNamespace(), bookPath);
+        Identifier bookId = Identifier.fromNamespaceAndPath(id.getNamespace(), bookPath);
         if ("book.json".equals(parts[2])) {
             return Optional.of(new PatchouliResource(bookId, language, ResourceKind.BOOK, ""));
         }
@@ -233,7 +233,7 @@ public final class PatchouliRuntimeGuideSource {
         return language.isBlank() ? DEFAULT_LANGUAGE : language;
     }
 
-    private static Map<String, String> translations(Map<ResourceLocation, String> langJsonById, String selectedLanguage) {
+    private static Map<String, String> translations(Map<Identifier, String> langJsonById, String selectedLanguage) {
         if (langJsonById == null || langJsonById.isEmpty()) {
             return Map.of();
         }
@@ -244,7 +244,7 @@ public final class PatchouliRuntimeGuideSource {
     }
 
     private static void addTranslations(Map<String, String> out,
-                                        Map<ResourceLocation, String> langJsonById,
+                                        Map<Identifier, String> langJsonById,
                                         String language) {
         String langPath = "lang/" + normalizeLanguage(language) + ".json";
         langJsonById.entrySet().stream()
@@ -286,7 +286,7 @@ public final class PatchouliRuntimeGuideSource {
         ENTRY
     }
 
-    private record PatchouliResource(ResourceLocation bookId, String language, ResourceKind kind, String key) {
+    private record PatchouliResource(Identifier bookId, String language, ResourceKind kind, String key) {
     }
 
     private record LocalizedJson(String language, String json) {

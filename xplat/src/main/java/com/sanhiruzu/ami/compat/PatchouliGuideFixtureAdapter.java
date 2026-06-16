@@ -5,7 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.sanhiruzu.ami.api.AmiGuideDocument;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -28,20 +28,20 @@ public final class PatchouliGuideFixtureAdapter {
     private PatchouliGuideFixtureAdapter() {
     }
 
-    public static List<AmiGuideDocument> parse(ResourceLocation bookId,
+    public static List<AmiGuideDocument> parse(Identifier bookId,
                                                Map<String, String> categoryJsonById,
                                                Map<String, String> entryJsonById) {
         return parse(bookId, "", categoryJsonById, entryJsonById);
     }
 
-    public static List<AmiGuideDocument> parse(ResourceLocation bookId,
+    public static List<AmiGuideDocument> parse(Identifier bookId,
                                                String bookJson,
                                                Map<String, String> categoryJsonById,
                                                Map<String, String> entryJsonById) {
         return parse(bookId, bookJson, categoryJsonById, entryJsonById, Map.of());
     }
 
-    public static List<AmiGuideDocument> parse(ResourceLocation bookId,
+    public static List<AmiGuideDocument> parse(Identifier bookId,
                                                String bookJson,
                                                Map<String, String> categoryJsonById,
                                                Map<String, String> entryJsonById,
@@ -57,7 +57,7 @@ public final class PatchouliGuideFixtureAdapter {
                 .flatMap(object -> firstString(object, safeTranslations, "name", "title"))
                 .orElse(bookId.toString());
         // Fall-back icon for the whole book (used when entries have no per-entry icon).
-        ResourceLocation bookFallbackIcon = bookObject
+        Identifier bookFallbackIcon = bookObject
                 .flatMap(object -> parseIconItemId(object, "index_icon"))
                 .orElse(null);
 
@@ -75,7 +75,7 @@ public final class PatchouliGuideFixtureAdapter {
                     .map(value -> normalizeCategoryReference(bookId, value))
                     .orElse("");
             String chapter = categoryLabels.getOrDefault(categoryKey, categoryKey);
-            Set<ResourceLocation> referencedItems = new LinkedHashSet<>();
+            Set<Identifier> referencedItems = new LinkedHashSet<>();
             List<String> summaryParts = new ArrayList<>();
 
             add(summaryParts, bookTitle);
@@ -84,7 +84,7 @@ public final class PatchouliGuideFixtureAdapter {
             collectEntrySummary(object, safeTranslations, summaryParts);
             collectReferencedItems(object, referencedItems);
 
-            ResourceLocation entryIcon = parseIconItemId(object, "icon").orElse(bookFallbackIcon);
+            Identifier entryIcon = parseIconItemId(object, "icon").orElse(bookFallbackIcon);
 
             AmiGuideDocument document = AmiGuideDocument.builder(documentId(bookId, pageId),
                             SOURCE_TYPE,
@@ -103,7 +103,7 @@ public final class PatchouliGuideFixtureAdapter {
         return List.copyOf(documents);
     }
 
-    private static Map<String, String> parseCategoryLabels(ResourceLocation bookId,
+    private static Map<String, String> parseCategoryLabels(Identifier bookId,
                                                            Map<String, String> categoryJsonById,
                                                            Map<String, String> translations) {
         if (categoryJsonById == null || categoryJsonById.isEmpty()) {
@@ -136,7 +136,7 @@ public final class PatchouliGuideFixtureAdapter {
         }
     }
 
-    private static void collectReferencedItems(JsonObject object, Set<ResourceLocation> referencedItems) {
+    private static void collectReferencedItems(JsonObject object, Set<Identifier> referencedItems) {
         collectReferencedItems(object.get("icon"), referencedItems);
         JsonElement pages = object.get("pages");
         if (pages instanceof JsonArray array) {
@@ -146,7 +146,7 @@ public final class PatchouliGuideFixtureAdapter {
         }
     }
 
-    private static void collectPageItems(JsonElement element, Set<ResourceLocation> referencedItems) {
+    private static void collectPageItems(JsonElement element, Set<Identifier> referencedItems) {
         if (element == null || element.isJsonNull()) {
             return;
         }
@@ -161,7 +161,7 @@ public final class PatchouliGuideFixtureAdapter {
         }
     }
 
-    private static void collectReferencedItems(JsonElement element, Set<ResourceLocation> referencedItems) {
+    private static void collectReferencedItems(JsonElement element, Set<Identifier> referencedItems) {
         if (element == null || element.isJsonNull()) {
             return;
         }
@@ -182,11 +182,11 @@ public final class PatchouliGuideFixtureAdapter {
         }
     }
 
-    private static Optional<ResourceLocation> parseIconItemId(JsonObject object, String... fieldNames) {
+    private static Optional<Identifier> parseIconItemId(JsonObject object, String... fieldNames) {
         for (String fieldName : fieldNames) {
             JsonElement el = object.get(fieldName);
             if (el != null && el.isJsonPrimitive()) {
-                Optional<ResourceLocation> id = itemId(el.getAsString());
+                Optional<Identifier> id = itemId(el.getAsString());
                 if (id.isPresent()) {
                     return id;
                 }
@@ -195,7 +195,7 @@ public final class PatchouliGuideFixtureAdapter {
         return Optional.empty();
     }
 
-    private static Optional<ResourceLocation> itemId(String raw) {
+    private static Optional<Identifier> itemId(String raw) {
         if (raw == null) {
             return Optional.empty();
         }
@@ -207,7 +207,7 @@ public final class PatchouliGuideFixtureAdapter {
         if (cut >= 0) {
             value = value.substring(0, cut);
         }
-        ResourceLocation parsed = ResourceLocation.tryParse(value);
+        Identifier parsed = Identifier.tryParse(value);
         return parsed == null ? Optional.empty() : Optional.of(parsed);
     }
 
@@ -296,8 +296,8 @@ public final class PatchouliGuideFixtureAdapter {
         return List.copyOf(tags);
     }
 
-    private static ResourceLocation documentId(ResourceLocation bookId, String pageId) {
-        return ResourceLocation.fromNamespaceAndPath("ami",
+    private static Identifier documentId(Identifier bookId, String pageId) {
+        return Identifier.fromNamespaceAndPath("ami",
                 "guide/patchouli/" + bookId.getNamespace() + "/" + safePath(bookId.getPath()) + "/" + safePath(pageId));
     }
 
@@ -310,10 +310,10 @@ public final class PatchouliGuideFixtureAdapter {
         return value.isEmpty() ? "entry" : value;
     }
 
-    private static String normalizeCategoryReference(ResourceLocation bookId, String raw) {
+    private static String normalizeCategoryReference(Identifier bookId, String raw) {
         String value = normalizePathKey(raw);
         if (value.contains(":")) {
-            ResourceLocation parsed = ResourceLocation.tryParse(value);
+            Identifier parsed = Identifier.tryParse(value);
             if (parsed != null && !parsed.getNamespace().equals(bookId.getNamespace())) {
                 return parsed.toString();
             }

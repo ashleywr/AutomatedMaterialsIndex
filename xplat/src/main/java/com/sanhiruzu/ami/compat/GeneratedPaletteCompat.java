@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -17,7 +17,7 @@ public final class GeneratedPaletteCompat {
         if (familyTag.isBlank()) {
             return false;
         }
-        ResourceLocation familyId = ResourceLocation.tryParse(familyTag);
+        Identifier familyId = Identifier.tryParse(familyTag);
         if (familyId == null) {
             return false;
         }
@@ -25,7 +25,7 @@ public final class GeneratedPaletteCompat {
         return true;
     }
 
-    public static boolean collapseByPathRoot(ResourceLocation id, Map<String, String> meta, String rootPath,
+    public static boolean collapseByPathRoot(Identifier id, Map<String, String> meta, String rootPath,
                                              boolean pluralizeLabel) {
         if (id == null || rootPath == null || rootPath.isBlank() || rootPath.equals(id.getPath())) {
             return false;
@@ -85,7 +85,7 @@ public final class GeneratedPaletteCompat {
         addTags(tags, meta.getOrDefault(SearchNodeKeys.BLOCK_TAGS, ""));
 
         for (String tag : tags) {
-            ResourceLocation tagId = ResourceLocation.tryParse(tag);
+            Identifier tagId = Identifier.tryParse(tag);
             if (tagId == null || !namespace.equals(tagId.getNamespace())) {
                 continue;
             }

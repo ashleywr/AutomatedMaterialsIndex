@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.client.overlay;
 import com.sanhiruzu.ami.client.UniversalResultsPanel;
 import com.sanhiruzu.ami.client.results.SearchState;
 import com.sanhiruzu.ami.client.results.TreeNode;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.HashSet;
 import java.util.List;

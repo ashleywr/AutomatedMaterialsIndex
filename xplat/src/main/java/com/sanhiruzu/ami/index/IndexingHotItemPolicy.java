@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.config.AmiConfig;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;
@@ -28,25 +28,25 @@ public final class IndexingHotItemPolicy {
     private IndexingHotItemPolicy() {
     }
 
-    public static boolean shouldDeferUntilTail(ResourceLocation id) {
+    public static boolean shouldDeferUntilTail(Identifier id) {
         return DEFER_FACADE_ITEMS && isFacadeLike(id);
     }
 
-    public static boolean shouldCollapseCreativeStacks(ResourceLocation id) {
+    public static boolean shouldCollapseCreativeStacks(Identifier id) {
         return shouldUseFastFacadeIndex(id);
     }
 
-    public static boolean shouldHideComponentBackedVariantsByDefault(ResourceLocation id) {
+    public static boolean shouldHideComponentBackedVariantsByDefault(Identifier id) {
         return !AmiConfig.devMode && isFacadeLike(id);
     }
 
-    public static String componentBackedVariantSuppressionReason(ResourceLocation id) {
+    public static String componentBackedVariantSuppressionReason(Identifier id) {
         return shouldHideComponentBackedVariantsByDefault(id)
                 ? "facade_variants_hidden_by_default"
                 : "";
     }
 
-    public static boolean shouldUseFastFacadeIndex(ResourceLocation id) {
+    public static boolean shouldUseFastFacadeIndex(Identifier id) {
         return FAST_FACADE_INDEX && !AmiConfig.devMode && isFacadeLike(id);
     }
 
@@ -54,7 +54,7 @@ public final class IndexingHotItemPolicy {
         return !DEFERRED_INDEX_NAMESPACES.isEmpty();
     }
 
-    public static boolean shouldDeferFullIndex(ResourceLocation id) {
+    public static boolean shouldDeferFullIndex(Identifier id) {
         return id != null && DEFERRED_INDEX_NAMESPACES.contains(id.getNamespace().toLowerCase(Locale.ROOT));
     }
 
@@ -77,7 +77,7 @@ public final class IndexingHotItemPolicy {
         return ICON_AUDIT;
     }
 
-    public static boolean isFacadeLike(ResourceLocation id) {
+    public static boolean isFacadeLike(Identifier id) {
         if (id == null) return false;
         String namespace = id.getNamespace();
         String path = id.getPath();

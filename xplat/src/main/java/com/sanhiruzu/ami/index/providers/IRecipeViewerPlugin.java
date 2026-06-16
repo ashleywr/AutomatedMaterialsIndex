@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index.providers;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.Collection;
@@ -34,7 +34,7 @@ public interface IRecipeViewerPlugin {
      */
     interface IIngredientType<V> {
         /** Stable unique ID for this type, e.g. "mekanism:gas" */
-        ResourceLocation getTypeId();
+        Identifier getTypeId();
 
         /** The Java class of the ingredient */
         Class<? extends V> getIngredientClass();
@@ -47,7 +47,7 @@ public interface IRecipeViewerPlugin {
     interface IIngredientHelper<V> {
         String getDisplayName(V ingredient);
 
-        ResourceLocation getResourceLocation(V ingredient);
+        Identifier getResourceLocation(V ingredient);
 
         default String getDisplayModId(V ingredient) {
             return getResourceLocation(ingredient).getNamespace();

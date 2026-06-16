@@ -5,7 +5,7 @@ import com.sanhiruzu.ami.index.ItemFilter;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -69,6 +69,6 @@ class AccessLevelVisualsTest {
         if (!visibility.isBlank()) {
             metadata.put(SearchNodeKeys.VISIBILITY, visibility);
         }
-        return new SearchNode(new ResourceLocation("test", accessLevel + "_item"), NodeType.ITEM, "Test Item", 0, 0, metadata);
+        return new SearchNode(new Identifier("test", accessLevel + "_item"), NodeType.ITEM, "Test Item", 0, 0, metadata);
     }
 }

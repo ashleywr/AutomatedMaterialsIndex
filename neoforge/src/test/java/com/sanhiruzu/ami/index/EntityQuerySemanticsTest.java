@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +22,7 @@ public class EntityQuerySemanticsTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode wolf = new SearchNode(
-                new ResourceLocation("minecraft:wolf"),
+                new Identifier("minecraft:wolf"),
                 NodeType.ENTITY,
                 "Wolf",
                 0,
@@ -30,7 +30,7 @@ public class EntityQuerySemanticsTest {
                 Map.of(SearchNodeKeys.ENTITY_HEALTH, "8", SearchNodeKeys.ENTITY_ATTACK_DAMAGE, "4")
         );
         SearchNode warden = new SearchNode(
-                new ResourceLocation("minecraft:warden"),
+                new Identifier("minecraft:warden"),
                 NodeType.ENTITY,
                 "Warden",
                 0,
@@ -56,7 +56,7 @@ public class EntityQuerySemanticsTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode wolf = new SearchNode(
-                new ResourceLocation("minecraft:wolf"),
+                new Identifier("minecraft:wolf"),
                 NodeType.ENTITY,
                 "Wolf",
                 0,
@@ -68,7 +68,7 @@ public class EntityQuerySemanticsTest {
                 )
         );
         SearchNode cat = new SearchNode(
-                new ResourceLocation("minecraft:cat"),
+                new Identifier("minecraft:cat"),
                 NodeType.ENTITY,
                 "Cat",
                 0,
@@ -80,7 +80,7 @@ public class EntityQuerySemanticsTest {
                 )
         );
         SearchNode wolfArmor = new SearchNode(
-                new ResourceLocation("example:wolf_armor"),
+                new Identifier("example:wolf_armor"),
                 NodeType.ITEM,
                 "Wolf Armor",
                 0,
@@ -109,7 +109,7 @@ public class EntityQuerySemanticsTest {
         GlobalIndex index = GlobalIndex.getInstance();
 
         SearchNode wolf = new SearchNode(
-                new ResourceLocation("minecraft:wolf"),
+                new Identifier("minecraft:wolf"),
                 NodeType.ENTITY,
                 "Wolf",
                 0,
@@ -117,7 +117,7 @@ public class EntityQuerySemanticsTest {
                 Map.of(SearchNodeKeys.TAGS, "ami:tamable", SearchNodeKeys.SEARCH_TOKENS, "tamable")
         );
         SearchNode creeper = new SearchNode(
-                new ResourceLocation("minecraft:creeper"),
+                new Identifier("minecraft:creeper"),
                 NodeType.ENTITY,
                 "Creeper",
                 0,

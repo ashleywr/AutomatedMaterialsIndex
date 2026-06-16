@@ -5,9 +5,12 @@ import com.sanhiruzu.ami.client.UniversalResultsPanel;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.SearchNode;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
@@ -87,19 +90,22 @@ public class SidebarPanelWidget extends AbstractWidget {
     }
 
     @Override
-    protected void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         if (!this.visible) return;
         panel.render(g, mouseX, mouseY, partialTick);
     }
 
-    public void renderOverlay(GuiGraphics g, int mouseX, int mouseY) {
+    public void renderOverlay(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (!this.visible) return;
         panel.renderOverlay(g, mouseX, mouseY);
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (!this.visible) return false;
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         if (!panel.isMouseOver(mouseX, mouseY) && !panel.isContextMenuOpen()) return false;
         if (panel.isMouseOver(mouseX, mouseY)) {
             panel.mouseClickedScrollbar(mouseX, mouseY, button);
@@ -112,16 +118,16 @@ public class SidebarPanelWidget extends AbstractWidget {
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+    public boolean mouseReleased(MouseButtonEvent event) {
         if (!this.visible) return false;
-        panel.mouseReleased(mouseX, mouseY, button);
+        panel.mouseReleased(event.x(), event.y(), event.button());
         return false;
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
         if (!this.visible) return false;
-        return panel.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        return panel.mouseDragged(event.x(), event.y(), event.button(), dragX, dragY);
     }
 
     @Override
@@ -131,15 +137,15 @@ public class SidebarPanelWidget extends AbstractWidget {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(KeyEvent event) {
         if (!this.visible) return false;
-        return panel.keyPressed(keyCode, scanCode, modifiers);
+        return panel.keyPressed(event.key(), event.scancode(), event.modifiers());
     }
 
     @Override
-    public boolean charTyped(char codePoint, int modifiers) {
+    public boolean charTyped(CharacterEvent event) {
         if (!this.visible) return false;
-        return panel.charTyped(codePoint, modifiers);
+        return panel.charTyped((char) event.codepoint(), 0);
     }
 
     @Override

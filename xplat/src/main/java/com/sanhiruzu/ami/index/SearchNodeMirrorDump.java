@@ -7,7 +7,7 @@ import com.google.gson.JsonParser;
 import com.sanhiruzu.ami.client.AmiDebugSettings;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.config.ConfigValue;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -135,7 +135,7 @@ public final class SearchNodeMirrorDump {
 
     private static void copyUnresolvedEdges(SearchNode source, SearchNode target) {
         for (EdgeType edgeType : EdgeType.values()) {
-            for (ResourceLocation edgeId : source.getUnresolvedEdgeIds(edgeType)) {
+            for (Identifier edgeId : source.getUnresolvedEdgeIds(edgeType)) {
                 target.addUnresolvedEdge(edgeType, edgeId);
             }
         }
@@ -208,7 +208,7 @@ public final class SearchNodeMirrorDump {
             Map<String, List<String>> edges = new LinkedHashMap<>();
             for (EdgeType edgeType : EdgeType.values()) {
                 List<String> ids = node.getUnresolvedEdgeIds(edgeType).stream()
-                        .map(ResourceLocation::toString)
+                        .map(Identifier::toString)
                         .sorted()
                         .toList();
                 if (!ids.isEmpty()) {
@@ -227,7 +227,7 @@ public final class SearchNodeMirrorDump {
         }
 
         SearchNode toNode() {
-            ResourceLocation parsedId = ResourceLocation.tryParse(id);
+            Identifier parsedId = Identifier.tryParse(id);
             if (parsedId == null) {
                 throw new IllegalArgumentException("Invalid SearchNode id in mirror dump: " + id);
             }
@@ -248,7 +248,7 @@ public final class SearchNodeMirrorDump {
                         .sorted(Map.Entry.comparingByKey(Comparator.comparing(Enum::name)))
                         .forEach(entry -> {
                             for (String target : entry.getValue()) {
-                                ResourceLocation parsedTarget = ResourceLocation.tryParse(target);
+                                Identifier parsedTarget = Identifier.tryParse(target);
                                 if (parsedTarget != null) {
                                     node.addUnresolvedEdge(entry.getKey(), parsedTarget);
                                 }

@@ -2,48 +2,28 @@ package com.sanhiruzu.ami.benchmark;
 
 import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.neoforge.AMI;
-import net.minecraft.gametest.framework.GameTest;
-import net.minecraft.gametest.framework.GameTestHelper;
 import net.neoforged.fml.loading.FMLPaths;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.nio.file.Path;
 
-@PrefixGameTestTemplate(false)
 public class AmiOntologyDumpGameTest {
 
-    @GameTest(templateNamespace = AMI.MODID, template = "ami_benchmark_empty", setupTicks = 1L, timeoutTicks = 12000)
-    public static void dumpOntology(GameTestHelper helper) {
+    public static void dumpOntology(Runnable onSucceed, java.util.function.Consumer<String> onFail) {
         boolean ontologyDumpMode = "true".equals(System.getProperty("ami.ontology_dump_mode"));
         boolean fallbackDumpMode = "true".equals(System.getProperty("ami.fallback_dump_mode"));
         boolean materialDumpMode = "true".equals(System.getProperty("ami.material_dump_mode"));
         if (!ontologyDumpMode && !fallbackDumpMode && !materialDumpMode) {
-            helper.succeed();
+            onSucceed.run();
             return;
         }
 
         try {
             AMI.LOGGER.info("Starting headless ontology/material dump...");
-            AmiIndexerService indexer = AmiIndexerService.getInstance();
-            indexer.rebuild(helper.getLevel());
-            helper.succeedWhen(() -> {
-                Throwable failure = indexer.getLastRebuildFailure();
-                if (failure != null) {
-                    AMI.LOGGER.error("Failed to dump ontology headlessly during index rebuild", failure);
-                    helper.fail("AMI index rebuild failed: " + failure.getMessage());
-                }
-                helper.assertTrue(indexer.isReady(), "AMI index rebuild is still running");
-
-                try {
-                    runDump(ontologyDumpMode, fallbackDumpMode, materialDumpMode);
-                } catch (Exception e) {
-                    AMI.LOGGER.error("Failed to dump ontology headlessly", e);
-                    helper.fail(e.getMessage());
-                }
-            });
+            runDump(ontologyDumpMode, fallbackDumpMode, materialDumpMode);
+            onSucceed.run();
         } catch (Exception e) {
             AMI.LOGGER.error("Failed to dump ontology headlessly", e);
-            helper.fail(e.getMessage());
+            onFail.accept(e.getMessage());
         }
     }
 

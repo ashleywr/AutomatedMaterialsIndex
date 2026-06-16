@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.client.icon;
 
 final class EntityFacingConstants {
     /*
-     * NeoForge's InventoryScreen.renderEntityInInventory(GuiGraphics, float, float,
+     * NeoForge's InventoryScreen.renderEntityInInventory(GuiGraphicsExtractor, float, float,
      * int, Vector3f translate, Quaternionf poseQuat, Quaternionf cameraQuat, LivingEntity)
      * passes rotateZ(PI) as the *model pose* quaternion (poseQuat), which rotates the
      * entity's local frame. An entity with yBodyRot=180 faces -Z in world space; after

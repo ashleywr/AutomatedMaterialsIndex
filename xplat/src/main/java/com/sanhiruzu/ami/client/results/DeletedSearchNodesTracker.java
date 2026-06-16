@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.client.results;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -20,7 +20,7 @@ public final class DeletedSearchNodesTracker {
      * Mark a search node as deleted, removing it from results instantly.
      * The deletion is temporary and expires after 10 seconds.
      */
-    public static void markDeleted(ResourceLocation nodeId) {
+    public static void markDeleted(Identifier nodeId) {
         if (nodeId == null) return;
         cleanExpiredEntries();
         deletedNodes.removeIf(entry -> entry.nodeId.equals(nodeId));
@@ -30,7 +30,7 @@ public final class DeletedSearchNodesTracker {
     /**
      * Check if a node is currently marked as deleted.
      */
-    public static boolean isDeleted(ResourceLocation nodeId) {
+    public static boolean isDeleted(Identifier nodeId) {
         if (nodeId == null) return false;
         cleanExpiredEntries();
         return deletedNodes.stream().anyMatch(entry -> entry.nodeId.equals(nodeId));
@@ -49,10 +49,10 @@ public final class DeletedSearchNodesTracker {
     }
 
     private static class DeletedNodeEntry {
-        final ResourceLocation nodeId;
+        final Identifier nodeId;
         final long createdAtMs;
 
-        DeletedNodeEntry(ResourceLocation nodeId, long createdAtMs) {
+        DeletedNodeEntry(Identifier nodeId, long createdAtMs) {
             this.nodeId = nodeId;
             this.createdAtMs = createdAtMs;
         }

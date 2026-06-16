@@ -9,7 +9,7 @@ import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class QuestSidebarProjectorTest {
     @Test
     void projectsQuestGroupsIntoExpandedTreeNodes() {
-        ResourceLocation iron = new ResourceLocation("minecraft", "iron_ingot");
+        Identifier iron = new Identifier("minecraft", "iron_ingot");
         SearchNode ironNode = item(iron, "Iron Ingot");
         AmiQuestGroup group = new AmiQuestGroup(
                 "ftbquests:chapter/start",
@@ -31,7 +31,7 @@ class QuestSidebarProjectorTest {
                 List.of(
                         new AmiQuestEntry(iron, 2),
                         new AmiQuestEntry(iron, 3),
-                        new AmiQuestEntry(new ResourceLocation("example", "missing_machine"), 1)
+                        new AmiQuestEntry(new Identifier("example", "missing_machine"), 1)
                 ),
                 0
         );
@@ -52,7 +52,7 @@ class QuestSidebarProjectorTest {
         assertEquals("ami.tooltip.quest_item_count", ironLeaf.getLabel().getString());
 
         TreeNode fallbackLeaf = root.getChildren().get(1);
-        assertEquals(new ResourceLocation("example", "missing_machine"), fallbackLeaf.getEntry().id());
+        assertEquals(new Identifier("example", "missing_machine"), fallbackLeaf.getEntry().id());
         assertEquals("example:missing_machine", fallbackLeaf.getLabel().getString());
         assertEquals("example", fallbackLeaf.getEntry().meta(SearchNodeKeys.MOD_ID));
         assertEquals("true", fallbackLeaf.getEntry().meta(QuestSidebarProjector.QUEST_FALLBACK));
@@ -68,7 +68,7 @@ class QuestSidebarProjectorTest {
 
     @Test
     void fallbackSingleCountUsesItemIdLabel() {
-        ResourceLocation itemId = new ResourceLocation("minecraft", "lodestone");
+        Identifier itemId = new Identifier("minecraft", "lodestone");
         AmiQuestGroup group = new AmiQuestGroup("ftbquests:test", Component.literal("Test"), List.of(
                 new AmiQuestEntry(itemId, 1)
         ));
@@ -84,7 +84,7 @@ class QuestSidebarProjectorTest {
 
     @Test
     void projectsRichQuestDocumentsIntoChapterQuestRequirementTree() {
-        ResourceLocation redstone = new ResourceLocation("minecraft", "redstone");
+        Identifier redstone = new Identifier("minecraft", "redstone");
         SearchNode redstoneNode = item(redstone, "Redstone Dust");
         AmiQuestDocument document = AmiQuestDocument.builder("ftbquests:quest/redstone", "ftbquests", "Make Power")
                 .sourceId("ftbquests")
@@ -97,7 +97,7 @@ class QuestSidebarProjectorTest {
                         .build())
                 .task(AmiQuestTaskDocument.builder("ftbquests:quest/redstone/reward", "ftbquests:quest/redstone",
                                 AmiQuestTaskDocument.Role.REWARD)
-                        .itemId(new ResourceLocation("minecraft", "diamond"))
+                        .itemId(new Identifier("minecraft", "diamond"))
                         .requiredCount(1)
                         .build())
                 .build();
@@ -118,7 +118,7 @@ class QuestSidebarProjectorTest {
         assertEquals("ami.tooltip.quest_item_count", redstoneLeaf.getLabel().getString());
     }
 
-    private static SearchNode item(ResourceLocation id, String displayName) {
+    private static SearchNode item(Identifier id, String displayName) {
         return new SearchNode(id, NodeType.ITEM, displayName, 0, 0, Map.of(SearchNodeKeys.MOD_ID, id.getNamespace()));
     }
 }

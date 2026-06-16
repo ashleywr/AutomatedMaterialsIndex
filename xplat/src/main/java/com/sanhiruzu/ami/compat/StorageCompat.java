@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -45,7 +45,7 @@ public final class StorageCompat {
     private StorageCompat() {
     }
 
-    public static void enrichItem(ResourceLocation id, Map<String, String> meta) {
+    public static void enrichItem(Identifier id, Map<String, String> meta) {
         clearGenericStorageMetadata(meta);
         if (id == null || meta == null || !isStorageFamilyItem(id, meta)) {
             return;
@@ -75,7 +75,7 @@ public final class StorageCompat {
         }
     }
 
-    private static boolean isStorageFamilyItem(ResourceLocation id, Map<String, String> meta) {
+    private static boolean isStorageFamilyItem(Identifier id, Map<String, String> meta) {
         Context context = new Context(id, meta);
         return isKnownStorageFamily(context.namespace)
                 || hasStorageIdentity(context);
@@ -375,7 +375,7 @@ public final class StorageCompat {
     }
 
     private static final class Context {
-        final ResourceLocation id;
+        final Identifier id;
         final Map<String, String> meta;
         final String path;
         final String itemClass;
@@ -388,7 +388,7 @@ public final class StorageCompat {
         final String componentFacts;
         final String namespace;
 
-        Context(ResourceLocation id, Map<String, String> meta) {
+        Context(Identifier id, Map<String, String> meta) {
             this.id = id;
             this.meta = meta;
             this.namespace = id.getNamespace();

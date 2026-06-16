@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -15,7 +15,7 @@ final class CategoryRouteTrace {
     private final StringJoiner steps = new StringJoiner(" -> ");
     private final StringJoiner trace = new StringJoiner(" | ");
 
-    private CategoryRouteTrace(ResourceLocation id, String modFamily, Set<ItemFacet> facets, Map<String, String> attributes) {
+    private CategoryRouteTrace(Identifier id, String modFamily, Set<ItemFacet> facets, Map<String, String> attributes) {
         includeTrace = IndexingHotItemPolicy.shouldRecordClassificationTrace();
         StringBuilder input = new StringBuilder("input[")
                 .append(id == null ? "null" : id)
@@ -35,7 +35,7 @@ final class CategoryRouteTrace {
         }
     }
 
-    static CategoryRouteTrace start(ResourceLocation id, String modFamily, Set<ItemFacet> facets, Map<String, String> attributes) {
+    static CategoryRouteTrace start(Identifier id, String modFamily, Set<ItemFacet> facets, Map<String, String> attributes) {
         return new CategoryRouteTrace(id, modFamily, facets, attributes == null ? Map.of() : attributes);
     }
 

@@ -2,7 +2,7 @@ package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -173,7 +173,7 @@ public final class CompatFamilyDetector {
     private CompatFamilyDetector() {
     }
 
-    public static void detect(ResourceLocation id, Map<String, String> meta) {
+    public static void detect(Identifier id, Map<String, String> meta) {
         if (id == null || meta == null) {
             return;
         }
@@ -358,7 +358,7 @@ public final class CompatFamilyDetector {
     }
 
     private static final class Context {
-        final ResourceLocation id;
+        final Identifier id;
         final String namespace;
         final String path;
         final String creativeTab;
@@ -366,7 +366,7 @@ public final class CompatFamilyDetector {
         final String tags;
         final String modMetadata;
 
-        Context(ResourceLocation id, Map<String, String> meta) {
+        Context(Identifier id, Map<String, String> meta) {
             this.id = id;
             this.namespace = normalize(id.getNamespace());
             this.path = id.getPath();

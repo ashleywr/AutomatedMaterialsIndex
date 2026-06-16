@@ -1,7 +1,7 @@
 package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.index.SearchNodeKeys;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -13,7 +13,7 @@ public final class SophisticatedCompat {
     private SophisticatedCompat() {
     }
 
-    public static void enrichItem(ResourceLocation id, Map<String, String> meta) {
+    public static void enrichItem(Identifier id, Map<String, String> meta) {
         if (id == null || meta == null) {
             return;
         }
@@ -53,7 +53,7 @@ public final class SophisticatedCompat {
         }
     }
 
-    private static boolean isSophisticatedFamilyItem(ResourceLocation id, Map<String, String> meta) {
+    private static boolean isSophisticatedFamilyItem(Identifier id, Map<String, String> meta) {
         return id.getNamespace().equals("sophisticatedbackpacks")
                 || id.getNamespace().equals("sophisticatedstorage")
                 || id.getNamespace().equals("sophisticatedcore")
@@ -189,7 +189,7 @@ public final class SophisticatedCompat {
         final String tags;
         final String facets;
 
-        Context(ResourceLocation id, Map<String, String> meta) {
+        Context(Identifier id, Map<String, String> meta) {
             this.path = id.getPath().toLowerCase(Locale.ROOT);
             this.itemClass = meta.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
             this.blockClass = meta.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "");

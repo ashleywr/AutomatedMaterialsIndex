@@ -6,7 +6,7 @@ import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.api.AmiGuideOpeners;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 
@@ -69,7 +69,7 @@ public final class CrittersCrawlersGuideSource {
             }
         }
 
-        ResourceLocation bookItemId = ResourceLocation.fromNamespaceAndPath(MOD_ID, "field_guide");
+        Identifier bookItemId = Identifier.fromNamespaceAndPath(MOD_ID, "field_guide");
         for (String creatureId : creatureIds) {
             String classSuffix = toClassSuffix(creatureId);
             if (!screenClassExists(classSuffix)) {
@@ -78,7 +78,7 @@ public final class CrittersCrawlersGuideSource {
             String title = resolveTitle(creatureId, classSuffix, lang);
             String description = resolveDescription(creatureId, lang);
             String summary = description.isBlank() ? title : title + "\n" + description;
-            ResourceLocation docId = ResourceLocation.fromNamespaceAndPath(
+            Identifier docId = Identifier.fromNamespaceAndPath(
                     "ami", "guide/cnc/" + creatureId);
             documents.accept(AmiGuideDocument.builder(docId, "cnc_field_guide", MOD_ID, title)
                     .bookId(bookItemId)
@@ -188,7 +188,7 @@ public final class CrittersCrawlersGuideSource {
         try {
             ResourceManager rm = Minecraft.getInstance().getResourceManager();
             Optional<Resource> resource = rm.getResource(
-                    ResourceLocation.fromNamespaceAndPath(MOD_ID, "lang/en_us.json"));
+                    Identifier.fromNamespaceAndPath(MOD_ID, "lang/en_us.json"));
             if (resource.isEmpty()) {
                 return Map.of();
             }

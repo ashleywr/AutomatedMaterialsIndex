@@ -6,7 +6,7 @@ import com.sanhiruzu.ami.client.results.SoftDeleteTracker;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +27,7 @@ public final class ItemDeletionHandler {
      * Handle a deleted item. Called by AmiApi.notifyItemDeleted().
      * Seamlessly removes the item from all visible displays.
      */
-    public static void handleItemDeleted(ResourceLocation nodeId) {
+    public static void handleItemDeleted(Identifier nodeId) {
         if (nodeId == null) return;
 
         LOGGER.log(Level.INFO, "ItemDeletionHandler.handleItemDeleted: " + nodeId);
@@ -58,7 +58,7 @@ public final class ItemDeletionHandler {
      * Remove the deleted item from all visible result panel displays.
      * This is seamless - just removes the item without a full refresh.
      */
-    private static void removeFromVisiblePanels(ResourceLocation nodeId) {
+    private static void removeFromVisiblePanels(Identifier nodeId) {
         try {
             OverlayWidgetManager manager = InventoryOverlayHandler.getManager();
             if (manager == null) return;
@@ -76,7 +76,7 @@ public final class ItemDeletionHandler {
     /**
      * Remove the deleted SearchNode from a single result panel's display.
      */
-    private static void removeFromPanel(UniversalResultsPanel panel, ResourceLocation nodeId) {
+    private static void removeFromPanel(UniversalResultsPanel panel, Identifier nodeId) {
         try {
             // Use reflection to access currentResults
             var currentResultsField = UniversalResultsPanel.class.getDeclaredField("currentResults");

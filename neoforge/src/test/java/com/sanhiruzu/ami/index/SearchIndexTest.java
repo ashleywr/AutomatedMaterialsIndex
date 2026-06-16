@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.index;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -24,9 +24,9 @@ public class SearchIndexTest {
     public void prefixAndSubstringSearchWork() {
         SearchIndex idx = new SearchIndex();
 
-        var nodeA = new SearchNode(new ResourceLocation("ami:pack"), NodeType.ITEM, "Pack", 0, 0, new HashMap<>());
-        var nodeB = new SearchNode(new ResourceLocation("ami:packable_box"), NodeType.ITEM, "Packable Box", 0, 0, new HashMap<>());
-        var nodeC = new SearchNode(new ResourceLocation("ami:soph_backpack"), NodeType.ITEM, "Sophisticated Backpack", 0, 0, new HashMap<>());
+        var nodeA = new SearchNode(new Identifier("ami:pack"), NodeType.ITEM, "Pack", 0, 0, new HashMap<>());
+        var nodeB = new SearchNode(new Identifier("ami:packable_box"), NodeType.ITEM, "Packable Box", 0, 0, new HashMap<>());
+        var nodeC = new SearchNode(new Identifier("ami:soph_backpack"), NodeType.ITEM, "Sophisticated Backpack", 0, 0, new HashMap<>());
 
         idx.addNode(nodeA);
         idx.addNode(nodeB);
@@ -46,7 +46,7 @@ public class SearchIndexTest {
         SearchIndex idx = new SearchIndex();
 
         var oakStairs = new SearchNode(
-                new ResourceLocation("minecraft:oak_stairs"),
+                new Identifier("minecraft:oak_stairs"),
                 NodeType.ITEM,
                 "Oak Stairs",
                 0,
@@ -142,7 +142,7 @@ public class SearchIndexTest {
         SearchIndex idx = new SearchIndex(false);
 
         var magentaShard = new SearchNode(
-                new ResourceLocation("quark:magenta_shard"),
+                new Identifier("quark:magenta_shard"),
                 NodeType.ITEM,
                 "Magenta Glass Shard",
                 0,
@@ -243,7 +243,7 @@ public class SearchIndexTest {
         SearchIndex idx = new SearchIndex();
 
         var cricket = new SearchNode(
-                new ResourceLocation("zen_amphibia:cricket"),
+                new Identifier("zen_amphibia:cricket"),
                 NodeType.ENTITY,
                 "Cricket",
                 0,
@@ -262,7 +262,7 @@ public class SearchIndexTest {
     public void globalIndexGetNodesReturnsStableSnapshot() {
         GlobalIndex index = GlobalIndex.getInstance();
         var codBucket = new SearchNode(
-                new ResourceLocation("minecraft:cod_bucket"),
+                new Identifier("minecraft:cod_bucket"),
                 NodeType.ITEM,
                 "Bucket of Cod",
                 0,
@@ -287,7 +287,7 @@ public class SearchIndexTest {
     public void globalIndexAddNodeReplacesDuplicateIds() {
         GlobalIndex index = GlobalIndex.getInstance();
         var first = new SearchNode(
-                new ResourceLocation("minecraft:stone"),
+                new Identifier("minecraft:stone"),
                 NodeType.ITEM,
                 "Stone",
                 0,
@@ -306,6 +306,6 @@ public class SearchIndexTest {
     }
 
     private static SearchNode item(String namespace, String path, String displayName, Map<String, String> metadata) {
-        return new SearchNode(new ResourceLocation(namespace, path), NodeType.ITEM, displayName, 0, 0, metadata);
+        return new SearchNode(new Identifier(namespace, path), NodeType.ITEM, displayName, 0, 0, metadata);
     }
 }

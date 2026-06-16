@@ -3,7 +3,7 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.compat.CobblemonCompat;
 import com.sanhiruzu.ami.compat.CompatFamilyDetector;
 import com.sanhiruzu.ami.config.AmiConfig;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -276,7 +276,7 @@ class CobblemonCompatTest {
         Map<String, String> pokeBallPress = new HashMap<>();
         pokeBallPress.put(SearchNodeKeys.CREATIVE_TAB_LABEL, "Create Cobblemon");
         pokeBallPress.put(SearchNodeKeys.ITEM_CLASS, "com.example.createcobblemon.PokeBallPressBlockItem");
-        CompatFamilyDetector.detect(new ResourceLocation("createcobblemon", "poke_ball_press"), pokeBallPress);
+        CompatFamilyDetector.detect(new Identifier("createcobblemon", "poke_ball_press"), pokeBallPress);
 
         assertEquals("cobblemon,create", pokeBallPress.get(SearchNodeKeys.COMPAT_FAMILIES));
         assertEquals("cobblemon", pokeBallPress.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
@@ -284,7 +284,7 @@ class CobblemonCompatTest {
         Map<String, String> pokemonCasing = new HashMap<>();
         pokemonCasing.put(SearchNodeKeys.CREATIVE_TAB_LABEL, "Create Cobblemon");
         pokemonCasing.put(SearchNodeKeys.ITEM_CLASS, "com.example.createaddon.CreateCasingBlockItem");
-        CompatFamilyDetector.detect(new ResourceLocation("createcobblemon", "pokemon_casing"), pokemonCasing);
+        CompatFamilyDetector.detect(new Identifier("createcobblemon", "pokemon_casing"), pokemonCasing);
 
         assertEquals("create,cobblemon", pokemonCasing.get(SearchNodeKeys.COMPAT_FAMILIES));
         assertEquals("create", pokemonCasing.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
@@ -298,13 +298,13 @@ class CobblemonCompatTest {
         omegaUpgrade.put(SearchNodeKeys.ITEM_CLASS, "net.p3pp3rf1y.sophisticatedcore.upgrades.stack.StackUpgradeItem");
         omegaUpgrade.put(SearchNodeKeys.TAGS, "sophisticatedbackpacks:upgrade");
 
-        CompatFamilyDetector.detect(new ResourceLocation("sophisticatedbackpacks", "stack_upgrade_omega_tier"), omegaUpgrade);
+        CompatFamilyDetector.detect(new Identifier("sophisticatedbackpacks", "stack_upgrade_omega_tier"), omegaUpgrade);
 
         assertEquals("sophisticated", omegaUpgrade.getOrDefault(SearchNodeKeys.COMPAT_FAMILIES, ""));
         assertEquals("sophisticated", omegaUpgrade.getOrDefault(SearchNodeKeys.PRIMARY_COMPAT_FAMILY, ""));
         assertEquals("sophisticated", omegaUpgrade.getOrDefault(SearchNodeKeys.COMPAT_FAMILY, ""));
 
-        CobblemonCompat.enrichItem(new ResourceLocation("sophisticatedbackpacks", "stack_upgrade_omega_tier"), omegaUpgrade);
+        CobblemonCompat.enrichItem(new Identifier("sophisticatedbackpacks", "stack_upgrade_omega_tier"), omegaUpgrade);
         assertEquals("", omegaUpgrade.getOrDefault(SearchNodeKeys.COBBLEMON_ITEM_KIND, ""));
     }
 
@@ -318,7 +318,7 @@ class CobblemonCompatTest {
         shulkerBox.put(SearchNodeKeys.BLOCK_CLASS, "net.minecraft.world.level.block.ShulkerBoxBlock");
         shulkerBox.put(SearchNodeKeys.TAGS, "c:shulker_boxes,cobblemon:held/blacklisted_items_to_hold,cobblemon:held/container_held_items");
 
-        ResourceLocation id = new ResourceLocation("minecraft", "magenta_shulker_box");
+        Identifier id = new Identifier("minecraft", "magenta_shulker_box");
         CompatFamilyDetector.detect(id, shulkerBox);
         CobblemonCompat.enrichItem(id, shulkerBox);
 
@@ -344,14 +344,14 @@ class CobblemonCompatTest {
         andesite.put(SearchNodeKeys.MOD_ID, "minecraft");
         andesite.put(SearchNodeKeys.CREATIVE_TAB_LABEL, "Building Blocks");
         andesite.put(SearchNodeKeys.ITEM_CLASS, "net.minecraft.world.item.BlockItem");
-        CompatFamilyDetector.detect(new ResourceLocation("minecraft", "andesite"), andesite);
+        CompatFamilyDetector.detect(new Identifier("minecraft", "andesite"), andesite);
         assertEquals("", andesite.getOrDefault(SearchNodeKeys.COMPAT_FAMILIES, ""));
 
         Map<String, String> ae2Press = new HashMap<>();
         ae2Press.put(SearchNodeKeys.MOD_ID, "ae2");
         ae2Press.put(SearchNodeKeys.CREATIVE_TAB_LABEL, "Applied Energistics 2");
         ae2Press.put(SearchNodeKeys.ITEM_CLASS, "appeng.items.materials.MaterialItem");
-        CompatFamilyDetector.detect(new ResourceLocation("ae2", "calculation_processor_press"), ae2Press);
+        CompatFamilyDetector.detect(new Identifier("ae2", "calculation_processor_press"), ae2Press);
         assertEquals("ae2", ae2Press.getOrDefault(SearchNodeKeys.COMPAT_FAMILIES, ""));
         assertTrue(!ae2Press.getOrDefault(SearchNodeKeys.COMPAT_FAMILIES, "").contains("create"));
 
@@ -359,7 +359,7 @@ class CobblemonCompatTest {
         ae2NamePress.put(SearchNodeKeys.MOD_ID, "ae2");
         ae2NamePress.put(SearchNodeKeys.CREATIVE_TAB_LABEL, "Applied Energistics 2");
         ae2NamePress.put(SearchNodeKeys.ITEM_CLASS, "appeng.items.materials.NamePressItem");
-        CompatFamilyDetector.detect(new ResourceLocation("ae2", "name_press"), ae2NamePress);
+        CompatFamilyDetector.detect(new Identifier("ae2", "name_press"), ae2NamePress);
         assertEquals("ae2", ae2NamePress.getOrDefault(SearchNodeKeys.COMPAT_FAMILIES, ""));
         assertTrue(!ae2NamePress.getOrDefault(SearchNodeKeys.COMPAT_FAMILIES, "").contains("create"));
 
@@ -367,7 +367,7 @@ class CobblemonCompatTest {
         gtCasing.put(SearchNodeKeys.MOD_ID, "gtceu");
         gtCasing.put(SearchNodeKeys.CREATIVE_TAB_LABEL, "GTCEu Decoration Blocks");
         gtCasing.put(SearchNodeKeys.ITEM_CLASS, "net.minecraft.world.item.BlockItem");
-        CompatFamilyDetector.detect(new ResourceLocation("gtceu", "steam_machine_casing"), gtCasing);
+        CompatFamilyDetector.detect(new Identifier("gtceu", "steam_machine_casing"), gtCasing);
         assertEquals("gregtech", gtCasing.getOrDefault(SearchNodeKeys.COMPAT_FAMILIES, ""));
         assertTrue(!gtCasing.getOrDefault(SearchNodeKeys.COMPAT_FAMILIES, "").contains("create"));
 
@@ -375,8 +375,8 @@ class CobblemonCompatTest {
         sweetBerryCheesecake.put(SearchNodeKeys.MOD_ID, "farmersdelight");
         sweetBerryCheesecake.put(SearchNodeKeys.CREATIVE_TAB_LABEL, "Farmer's Delight");
         sweetBerryCheesecake.put(SearchNodeKeys.ITEM_CLASS, "vectorwing.farmersdelight.common.item.PlaceableItem");
-        CompatFamilyDetector.detect(new ResourceLocation("farmersdelight", "sweet_berry_cheesecake"), sweetBerryCheesecake);
-        CobblemonCompat.enrichItem(new ResourceLocation("farmersdelight", "sweet_berry_cheesecake"), sweetBerryCheesecake);
+        CompatFamilyDetector.detect(new Identifier("farmersdelight", "sweet_berry_cheesecake"), sweetBerryCheesecake);
+        CobblemonCompat.enrichItem(new Identifier("farmersdelight", "sweet_berry_cheesecake"), sweetBerryCheesecake);
         assertEquals("", sweetBerryCheesecake.getOrDefault(SearchNodeKeys.COMPAT_FAMILIES, ""));
         assertEquals("", sweetBerryCheesecake.getOrDefault(SearchNodeKeys.COBBLEMON_ITEM_KIND, ""));
     }
@@ -394,7 +394,7 @@ class CobblemonCompatTest {
             meta.put(SearchNodeKeys.CREATIVE_TAB_LABEL, "Example " + term);
             meta.put(SearchNodeKeys.ITEM_CLASS, "com.example." + term + ".ExampleItem");
 
-            CompatFamilyDetector.detect(new ResourceLocation("examplemod", term), meta);
+            CompatFamilyDetector.detect(new Identifier("examplemod", term), meta);
 
             assertEquals("", meta.getOrDefault(SearchNodeKeys.COMPAT_FAMILIES, ""), term);
         }
@@ -404,12 +404,12 @@ class CobblemonCompatTest {
     void observedCobblemonAddonNamespacesStillClaimCobblemonFamily() {
         Map<String, String> manufactory = new HashMap<>();
         manufactory.put(SearchNodeKeys.CREATIVE_TAB_LABEL, "Cobblemon Manufactory");
-        CompatFamilyDetector.detect(new ResourceLocation("cobblemon_manufactory", "ancient_black_ball_lid"), manufactory);
+        CompatFamilyDetector.detect(new Identifier("cobblemon_manufactory", "ancient_black_ball_lid"), manufactory);
         assertTrue(CompatFamilyDetector.hasFamily(manufactory, CompatFamilyDetector.COBBLEMON));
 
         Map<String, String> cobblemore = new HashMap<>();
         cobblemore.put(SearchNodeKeys.CREATIVE_TAB_LABEL, "Cobblemore Ball Lids");
-        CompatFamilyDetector.detect(new ResourceLocation("cobblemore_lib", "ancient_poke_ball_lid"), cobblemore);
+        CompatFamilyDetector.detect(new Identifier("cobblemore_lib", "ancient_poke_ball_lid"), cobblemore);
         assertTrue(CompatFamilyDetector.hasFamily(cobblemore, CompatFamilyDetector.COBBLEMON));
     }
 
@@ -559,7 +559,7 @@ class CobblemonCompatTest {
         Map<String, String> journeyMapWaypoint = new HashMap<>();
         journeyMapWaypoint.put(SearchNodeKeys.MOD_ID, "journeymap");
         journeyMapWaypoint.put(SearchNodeKeys.CREATIVE_TAB_LABEL, "JourneyMap");
-        CompatFamilyDetector.detect(new ResourceLocation("journeymap", "waypoint_manager"), journeyMapWaypoint);
+        CompatFamilyDetector.detect(new Identifier("journeymap", "waypoint_manager"), journeyMapWaypoint);
 
         assertEquals("mapping", journeyMapWaypoint.get(SearchNodeKeys.COMPAT_FAMILY));
         assertEquals("mapping", journeyMapWaypoint.get(SearchNodeKeys.PRIMARY_COMPAT_FAMILY));
@@ -568,14 +568,14 @@ class CobblemonCompatTest {
         Map<String, String> vanillaMap = new HashMap<>();
         vanillaMap.put(SearchNodeKeys.MOD_ID, "minecraft");
         vanillaMap.put(SearchNodeKeys.CREATIVE_TAB_LABEL, "Tools & Utilities");
-        CompatFamilyDetector.detect(new ResourceLocation("minecraft", "filled_map"), vanillaMap);
+        CompatFamilyDetector.detect(new Identifier("minecraft", "filled_map"), vanillaMap);
 
         assertEquals("", vanillaMap.getOrDefault(SearchNodeKeys.COMPAT_FAMILIES, ""));
 
         Map<String, String> ftbQuestBook = new HashMap<>();
         ftbQuestBook.put(SearchNodeKeys.MOD_ID, "ftbquests");
         ftbQuestBook.put(SearchNodeKeys.CREATIVE_TAB_LABEL, "FTB Quests");
-        CompatFamilyDetector.detect(new ResourceLocation("ftbquests", "book"), ftbQuestBook);
+        CompatFamilyDetector.detect(new Identifier("ftbquests", "book"), ftbQuestBook);
 
         assertEquals("", ftbQuestBook.getOrDefault(SearchNodeKeys.COMPAT_FAMILIES, ""));
     }
@@ -680,13 +680,13 @@ class CobblemonCompatTest {
             meta.put(SearchNodeKeys.ITEM_CLASS, itemClass);
         }
         meta.putAll(extra);
-        CobblemonCompat.enrichItem(new ResourceLocation(id), meta);
+        CobblemonCompat.enrichItem(new Identifier(id), meta);
         return meta;
     }
 
     private static CategoryAssignment resolve(String id, Map<String, String> meta, ItemFacet... facets) {
         return PrimaryCategoryResolver.resolve(
-                new ResourceLocation(id),
+                new Identifier(id),
                 new FacetProfile(facets.length == 0 ? EnumSet.noneOf(ItemFacet.class) : EnumSet.of(facets[0], facets), meta)
         );
     }

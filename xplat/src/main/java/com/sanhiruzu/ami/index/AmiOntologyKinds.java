@@ -233,7 +233,7 @@ public final class AmiOntologyKinds {
     }
 
     private record ClassifyKey(NodeType type,
-                               net.minecraft.resources.ResourceLocation id,
+                               net.minecraft.resources.Identifier id,
                                String category,
                                String subcategory,
                                int metadataHash) {
