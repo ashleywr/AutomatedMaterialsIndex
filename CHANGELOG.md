@@ -2,9 +2,9 @@
 
 User-facing changes are recorded here.
 
-## Unreleased
+## 1.7.0 - 2026-06-17
 
-Current branch work for the NeoForge/Minecraft `26.1.2` update.
+AMI 1.7.0 ports the active NeoForge line to Minecraft/NeoForge `26.1.2` and updates AMI's overlay, rendering, and classification behavior for the new client/runtime APIs.
 
 ### Changed
 

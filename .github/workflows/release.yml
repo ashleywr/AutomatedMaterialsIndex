@@ -14,14 +14,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Forge needs Java 17; NeoForge needs Java 21.
-      # Installing both lets Gradle toolchains find them without downloading.
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: 17
-          distribution: temurin
-
       - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
@@ -75,9 +67,6 @@ jobs:
       - name: Build NeoForge
         run: ./gradlew :neoforge:build
 
-      - name: Build Forge
-        run: ./gradlew :forge:build
-
       - name: Verify Release Artifacts
         run: ./gradlew verifyReleaseArtifacts
 
@@ -86,20 +75,10 @@ jobs:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
         run: ./gradlew --no-configuration-cache :neoforge:modrinth
 
-      - name: Publish Forge to Modrinth
-        env:
-          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
-        run: ./gradlew --no-configuration-cache :forge:modrinth
-
       - name: Publish NeoForge to CurseForge
         env:
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
         run: ./gradlew --no-configuration-cache :neoforge:curseforge
-
-      - name: Publish Forge to CurseForge
-        env:
-          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
-        run: ./gradlew --no-configuration-cache :forge:curseforge
 
       - name: Create GitHub Release
         env:
@@ -112,13 +91,11 @@ jobs:
               --title "AMI ${{ steps.version.outputs.mod_version }}" \
               --notes-file release-notes.md
             gh release upload "$tag" --clobber \
-              "neoforge/build/libs/ami-neoforge-1.21.1-${{ steps.version.outputs.mod_version }}.jar" \
-              "forge/build/release/ami-forge-1.20.1-${{ steps.version.outputs.mod_version }}.jar"
+              "neoforge/build/libs/ami-neoforge-1.21.1-${{ steps.version.outputs.mod_version }}.jar"
           else
             gh release create "$tag" \
               --target "$GITHUB_SHA" \
               --title "AMI ${{ steps.version.outputs.mod_version }}" \
               --notes-file release-notes.md \
-              "neoforge/build/libs/ami-neoforge-1.21.1-${{ steps.version.outputs.mod_version }}.jar" \
-              "forge/build/release/ami-forge-1.20.1-${{ steps.version.outputs.mod_version }}.jar"
+              "neoforge/build/libs/ami-neoforge-1.21.1-${{ steps.version.outputs.mod_version }}.jar"
           fi
