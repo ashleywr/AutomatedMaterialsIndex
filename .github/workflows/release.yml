@@ -91,11 +91,11 @@ jobs:
               --title "AMI ${{ steps.version.outputs.mod_version }}" \
               --notes-file release-notes.md
             gh release upload "$tag" --clobber \
-              "neoforge/build/libs/ami-neoforge-1.21.1-${{ steps.version.outputs.mod_version }}.jar"
+              "neoforge/build/libs/ami-neoforge-26.1.2-${{ steps.version.outputs.mod_version }}.jar"
           else
             gh release create "$tag" \
               --target "$GITHUB_SHA" \
               --title "AMI ${{ steps.version.outputs.mod_version }}" \
               --notes-file release-notes.md \
-              "neoforge/build/libs/ami-neoforge-1.21.1-${{ steps.version.outputs.mod_version }}.jar"
+              "neoforge/build/libs/ami-neoforge-26.1.2-${{ steps.version.outputs.mod_version }}.jar"
           fi
