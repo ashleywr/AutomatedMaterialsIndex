@@ -129,8 +129,8 @@ public class ItemIconRenderer implements IIconRenderer {
         }
 
         if (size == 16) {
-            // ItemIconCache has a Z-projection bug (near/far=[1000,3000] clips item geometry at Z≈100),
-            // producing transparent-black framebuffers. Bypass until projection is fixed.
+            // Real item stacks stay on Minecraft's normal item renderer. AMI caches
+            // resolved stacks/models around this path; it does not screenshot them.
             g.renderItem(stack, x, y);
             return;
         }

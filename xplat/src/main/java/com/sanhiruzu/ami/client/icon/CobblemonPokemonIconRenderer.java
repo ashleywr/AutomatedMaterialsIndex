@@ -269,9 +269,9 @@ public final class CobblemonPokemonIconRenderer {
                     VertexSorting.ORTHOGRAPHIC_Z);
 
             GuiGraphics cacheG = new GuiGraphics(mc, mc.renderBuffers().bufferSource());
-            // Match ItemIconCache's Forge 1.20.x framebuffer compensation. Cobblemon's
-            // profile renderer applies the current model-view matrix, so a GUI render
-            // offset can otherwise push the offscreen model outside the capture frustum.
+            // Cobblemon's profile renderer applies the current model-view matrix, so a
+            // GUI render offset can otherwise push the offscreen model outside the
+            // capture frustum.
             float mvZ = RenderSystem.getModelViewMatrix().m32();
             if (mvZ != 0) {
                 cacheG.pose().translate(0.0, 0.0, (double) -mvZ);

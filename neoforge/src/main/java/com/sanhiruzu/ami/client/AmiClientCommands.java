@@ -4,7 +4,6 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.sanhiruzu.ami.client.EntityIconCache;
-import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.results.*;
 import com.sanhiruzu.ami.index.*;
 import com.sanhiruzu.ami.index.providers.RecipeViewerItemAudit;
@@ -267,7 +266,6 @@ public class AmiClientCommands {
     }
 
     private static void invalidateRuntimeCaches() {
-        ItemIconCache.invalidate();
         RendererRegistry.invalidateAll();
         EntityIconCache.invalidateAndPurgePersistentCache();
     }

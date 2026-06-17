@@ -2,7 +2,6 @@ package com.sanhiruzu.ami.neoforge;
 
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.AmiClientTelemetry;
-import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.ThemeResourceLoader;
 import com.sanhiruzu.ami.client.icon.EntityIconRenderer;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
@@ -88,7 +87,6 @@ public class AMIClient {
 
     @SubscribeEvent
     static void onPlayerLogout(ClientPlayerNetworkEvent.LoggingOut event) {
-        ItemIconCache.invalidate();
         ItemGridView.clearStackCache();
         RendererRegistry.invalidateAll();
         InventoryOverlayHandler.resetSessionState();

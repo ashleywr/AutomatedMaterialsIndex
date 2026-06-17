@@ -3,7 +3,6 @@ package com.sanhiruzu.ami.fabric;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.AmiClientTelemetry;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
-import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.ThemeResourceLoader;
 import com.sanhiruzu.ami.client.discovery.AmiDiscoveryState;
 import com.sanhiruzu.ami.client.icon.EntityIconRenderer;
@@ -232,7 +231,6 @@ public class AmiFabricClient implements ClientModInitializer {
 
     private void registerPlayerLogoutEvents() {
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
-            ItemIconCache.invalidate();
             ItemGridView.clearStackCache();
             RendererRegistry.invalidateAll();
             InventoryOverlayHandler.resetSessionState();

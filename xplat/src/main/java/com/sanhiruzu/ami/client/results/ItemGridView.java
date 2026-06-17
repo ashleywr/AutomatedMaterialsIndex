@@ -4,7 +4,6 @@ import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.AmiRenderProfiler;
 import com.sanhiruzu.ami.client.AmiRenderPhase;
 import com.sanhiruzu.ami.client.ItemIconBatchRenderer;
-import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
 import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
 import com.sanhiruzu.ami.config.AmiConfig;
@@ -38,12 +37,10 @@ public class ItemGridView {
     private static final int SCROLLBAR_W = 6;
     private static final int HEADER_INDENT = 12;
     private static final int GRID_LEFT_PAD = 1;
-    private static final int ICON_CACHE_PRIME_BUDGET = 12;
     private static final ResourceLocation VANILLA_SCROLLER =
             Services.PLATFORM.rl("minecraft", "widget/scroller");
     private static final ResourceLocation VANILLA_SCROLLER_BACKGROUND =
             Services.PLATFORM.rl("minecraft", "widget/scroller_background");
-    private static final boolean TEXTURE_ITEM_ICON_CACHE_ENABLED = Boolean.getBoolean("ami." + "itemIconCache");
     private Object itemIconBatchRenderer;
     private final List<PendingItemIcon> pendingDirectItemIcons = new ArrayList<>();
     private final List<PendingRendererIcon> pendingRendererIcons = new ArrayList<>();
@@ -266,11 +263,6 @@ public class ItemGridView {
 
         g.enableScissor(x, contentY, x + width, y + height);
         try {
-            if (TEXTURE_ITEM_ICON_CACHE_ENABLED && !cachedDragging) {
-                try (AmiRenderProfiler.Section icons = AmiRenderProfiler.section("grid.iconCachePrime")) {
-                    primeIconCache(g, rows, contentY);
-                }
-            }
 
             try (AmiRenderProfiler.Section rowsSection = AmiRenderProfiler.section("grid.rows")) {
                 int drawY = contentY - pixelScrollOffset + topContentHeight;
@@ -483,8 +475,7 @@ public class ItemGridView {
     }
 
     private void queueItemIcon(SearchNode entry, ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
-        if (TEXTURE_ITEM_ICON_CACHE_ENABLED
-                || hovered
+        if (hovered
                 || cachedDragging) {
             AmiRenderProfiler.count("grid.queuedDirectIcons");
             queueDirectItemIcon(entry, itemId, stack, x, y, hovered);
@@ -651,10 +642,6 @@ public class ItemGridView {
     }
 
     private void renderIconWithWiggle(GuiGraphics g, ResourceLocation itemId, ItemStack stack, int x, int y, boolean hovered) {
-        if (TEXTURE_ITEM_ICON_CACHE_ENABLED && !hovered && !cachedDragging && itemId != null && ItemIconCache.isCached(itemId)) {
-            ItemIconCache.blit(g, itemId, x, y);
-            return;
-        }
         g.pose().pushPose();
         g.pose().translate(x + 8, y + 8, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
         if (cachedDragging || hovered) {
@@ -703,47 +690,6 @@ public class ItemGridView {
                 && entry != null
                 && entry.type() == NodeType.ITEM
                 && !entry.meta(com.sanhiruzu.ami.index.SearchNodeKeys.PLAYER_HEAD_NAME, "").isBlank();
-    }
-
-    private void primeIconCache(GuiGraphics g, List<VirtualRow> rows, int contentY) {
-        List<Map.Entry<ResourceLocation, ItemStack>> uncached = new ArrayList<>();
-        int drawY = contentY - pixelScrollOffset + topContentHeight;
-        for (VirtualRow row : rows) {
-            if (drawY + row.height() > contentY && drawY < y + height && row instanceof ItemRow ir) {
-                for (TreeNode node : ir.items()) {
-                    ResourceLocation overrideId = null;
-                    ItemStack overrideStack = null;
-                    SearchNode entry = null;
-
-                    if (node.isLeaf()) {
-                        entry = node.getEntry();
-                    } else if (node.isHighCardinality()) {
-                        entry = node.getChildren().get(0).getEntry();
-                        String key = node.getKey();
-                        if (key.startsWith("cardinality:")) {
-                            String baseIdStr = key.substring(12);
-                            ResourceLocation baseLoc = ResourceLocation.tryParse(baseIdStr);
-                            if (baseLoc != null) {
-                                net.minecraft.world.item.Item baseItem = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(baseLoc);
-                                if (baseItem != null && baseItem != net.minecraft.world.item.Items.AIR) {
-                                    overrideStack = new ItemStack(baseItem);
-                                    overrideId = baseLoc;
-                                }
-                            }
-                        }
-                    }
-
-                    if (overrideStack != null && overrideId != null && !com.sanhiruzu.ami.client.ItemIconCache.isCached(overrideId)) {
-                        uncached.add(Map.entry(overrideId, overrideStack));
-                    } else if (entry != null && entry.type() == com.sanhiruzu.ami.index.NodeType.ITEM && !com.sanhiruzu.ami.client.ItemIconCache.isCached(entry.id())) {
-                        ItemStack stack = resolveStack(entry);
-                        if (!stack.isEmpty()) uncached.add(Map.entry(entry.id(), stack));
-                    }
-                }
-            }
-            drawY += row.height();
-        }
-        if (!uncached.isEmpty()) ItemIconCache.primeVisible(g, uncached, ICON_CACHE_PRIME_BUDGET);
     }
 
     private List<VirtualRow> getVirtualRows(int cols) {

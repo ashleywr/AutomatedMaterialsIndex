@@ -3,7 +3,6 @@ package com.sanhiruzu.ami.fabric.client;
 import com.mojang.brigadier.CommandDispatcher;
 import com.sanhiruzu.ami.client.EntityIconCache;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
-import com.sanhiruzu.ami.client.ItemIconCache;
 import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.fabric.AmiFabric;
@@ -253,7 +252,6 @@ public final class AmiFabricClientHooks {
             boolean deleted = GlobalIndexCache.invalidateCurrent();
             boolean accepted = AmiIndexerService.getInstance().rebuild(true);
             if (accepted) {
-                ItemIconCache.invalidate();
                 RendererRegistry.invalidateAll();
                 EntityIconCache.invalidateAndPurgePersistentCache();
                 source.sendFeedback(Component.literal("AMI index cache "
