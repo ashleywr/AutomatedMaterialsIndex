@@ -45,6 +45,9 @@ loom {
 tasks.withType(net.fabricmc.loom.task.RunGameTask).configureEach {
     notCompatibleWithConfigurationCache('Fabric Loom run tasks are not configuration-cache compatible')
 }
+tasks.matching { it.name in ['remapJar', 'remapSourcesJar'] }.configureEach {
+    notCompatibleWithConfigurationCache('Fabric Loom remap tasks are not configuration-cache compatible')
+}
 
 dependencies {
     minecraft "com.mojang:minecraft:${fabric_minecraft_version}"
@@ -88,11 +91,13 @@ tasks.named('test', Test).configure {
     useJUnitPlatform()
 }
 
+def fabricResourceProperties = [version: project.version.toString()]
+
 processResources {
-    inputs.property 'version', project.version
+    inputs.properties(fabricResourceProperties)
 
     filesMatching('fabric.mod.json') {
-        expand version: project.version
+        expand fabricResourceProperties
     }
 }
 

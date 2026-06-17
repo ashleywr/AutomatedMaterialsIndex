@@ -2,6 +2,25 @@
 
 User-facing changes are recorded here.
 
+## 1.7.0 - 2026-06-17
+
+AMI 1.7.0 finalizes Fabric release prep, keeps loader packaging aligned across Fabric, Forge, and NeoForge, and tightens recent Fabric-side UI behavior before publication.
+
+### Added
+
+- Added Fabric 1.21.1 to AMI's normal release-prep pipeline so the release workflow builds, publishes, and uploads Fabric artifacts alongside Forge and NeoForge.
+- Added a compatibility support matrix documenting the exact tested recipe-viewer dependency versions and the current support level for key AMI compat families.
+
+### Changed
+
+- Changed release metadata to `1.7.0` across the shared build so all loader manifests, publishing tasks, and GitHub release assets resolve from the same version source.
+- Changed release verification expectations to treat Fabric as a first-class release artifact instead of a local-only loader build.
+
+### Fixed
+
+- Fixed Fabric inventory-result scrollbar rendering so the loader now matches the current AMI panel behavior expected on the release line.
+- Fixed recent Fabric favorites persistence debugging work so release-prep validation covers the current saved-favorites path before publishing.
+
 ## 1.6.0 - 2026-06-13
 
 AMI 1.6.0 adds advancement search, expands document-result controls, and improves large-modpack entity icon performance and release profiling.

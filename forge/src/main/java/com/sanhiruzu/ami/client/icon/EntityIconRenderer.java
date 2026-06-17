@@ -59,7 +59,21 @@ public class EntityIconRenderer implements IIconRenderer {
     private static long warmupRevision = -1L;
     private static int warmupIndex = 0;
 
-    private static void renderEntity(GuiGraphics g, int x, int y, int scale, float angleX, float angleY, LivingEntity entity) {
+    private static void renderStaticEntity(GuiGraphics g, int x, int y, int scale, float angleX, float angleY, LivingEntity entity) {
+        IconRenderState.render3dIcon(g, () ->
+                InventoryScreen.renderEntityInInventoryFollowsAngle(
+                        g,
+                        x,
+                        y,
+                        scale,
+                        angleX,
+                        angleY,
+                        entity
+                )
+        );
+    }
+
+    private static void renderEntityWithRotation(GuiGraphics g, int x, int y, int scale, LivingEntity entity) {
         IconRenderState.render3dIcon(g, () ->
                 InventoryScreen.renderEntityInInventory(
                         g,
@@ -251,29 +265,9 @@ public class EntityIconRenderer implements IIconRenderer {
     }
 
     private static EntityIconCache.BakeRequestResult warmStaticEntity(ResourceLocation id, LivingEntity entity, int scale) {
-        float savedBodyRot = entity.yBodyRot;
-        float savedYRot = entity.getYRot();
-        float savedXRot = entity.getXRot();
-        float savedHeadRotO = entity.yHeadRotO;
-        float savedHeadRot = entity.yHeadRot;
-
-        entity.yBodyRot = EntityFacingConstants.STATIC_ENTITY_Y_ROT;
-        entity.setYRot(EntityFacingConstants.STATIC_ENTITY_Y_ROT);
-        entity.setXRot(0f);
-        entity.yHeadRot = entity.getYRot();
-        entity.yHeadRotO = entity.getYRot();
-
-        try {
-            return EntityIconCache.warmCached(id, ENTITY_ICON_ATLAS_WARMUP_SIZE,
-                    cacheG -> renderEntity(cacheG, ENTITY_ICON_ATLAS_WARMUP_SIZE / 2,
-                            ENTITY_ICON_ATLAS_WARMUP_SIZE - 1, scale, 0f, 0f, entity));
-        } finally {
-            entity.yBodyRot = savedBodyRot;
-            entity.setYRot(savedYRot);
-            entity.setXRot(savedXRot);
-            entity.yHeadRotO = savedHeadRotO;
-            entity.yHeadRot = savedHeadRot;
-        }
+        return EntityIconCache.warmCached(id, ENTITY_ICON_ATLAS_WARMUP_SIZE,
+                cacheG -> renderStaticEntity(cacheG, ENTITY_ICON_ATLAS_WARMUP_SIZE / 2,
+                        ENTITY_ICON_ATLAS_WARMUP_SIZE - 1, scale, 0f, 0f, entity));
     }
 
     @Override
@@ -324,7 +318,7 @@ public class EntityIconRenderer implements IIconRenderer {
         try {
             if (!hovered && ENTITY_ICON_ATLAS_ENABLED) {
                 if (EntityIconCache.blitCached(g, node.id(), size, x, y,
-                        cacheG -> renderEntity(cacheG, size / 2, size - 1, scale, 0f, 0f, entity))) {
+                        cacheG -> renderStaticEntity(cacheG, size / 2, size - 1, scale, 0f, 0f, entity))) {
                     return;
                 }
                 if (EntityIconCache.isFailed(node.id(), size)) {
@@ -332,8 +326,10 @@ public class EntityIconRenderer implements IIconRenderer {
                     return;
                 }
                 // Cache miss: atlas bake pending — fall through to live render
+                renderStaticEntity(g, cx, cy, scale, 0f, 0f, entity);
+                return;
             }
-            renderEntity(g, cx, cy, scale, 0f, 0f, entity);
+            renderEntityWithRotation(g, cx, cy, scale, entity);
         } catch (RuntimeException e) {
             if (failedRenderers.add(node.id())) {
                 AmiCore.LOGGER.warn("AMI: disabling entity icon renderer for {} after render failure", node.id(), e);

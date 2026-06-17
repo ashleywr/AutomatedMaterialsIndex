@@ -321,14 +321,9 @@ tasks.register('verifyForgeReleaseJarReobfuscated') {
                 throw new GradleException("Forge release jar contains reflective Minecraft.tell lookup; context menu actions will fail in production Forge")
             }
 
-            def texturedQuadBatch = readClass('com/sanhiruzu/ami/client/TexturedQuadBatch.class')
-            if (!texturedQuadBatch.contains('m_85915_') || !texturedQuadBatch.contains('m_231202_')) {
-                throw new GradleException("Forge release jar is missing SRG fallbacks for reflective TexturedQuadBatch rendering")
-            }
-
-            def coloredQuadBatch = readClass('com/sanhiruzu/ami/client/ColoredQuadBatch.class')
-            if (!coloredQuadBatch.contains('m_85915_') || !coloredQuadBatch.contains('m_231202_')) {
-                throw new GradleException("Forge release jar is missing SRG fallbacks for reflective ColoredQuadBatch rendering")
+            def forgePlatformHelper = readClass('com/sanhiruzu/ami/forge/ForgePlatformHelper.class')
+            if (!forgePlatformHelper.contains('m_85915_') || !forgePlatformHelper.contains('m_231202_')) {
+                throw new GradleException("Forge release jar is missing SRG-safe GUI quad batch rendering calls in ForgePlatformHelper")
             }
         } finally {
             zip.close()
