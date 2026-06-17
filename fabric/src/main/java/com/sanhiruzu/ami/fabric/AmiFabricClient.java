@@ -46,7 +46,7 @@ import java.util.concurrent.Executor;
  * AMI client entrypoint for Fabric.
  * <p>
  * Responsibilities:
- * - Register all eight AMI key bindings via Fabric's KeyBindingHelper.
+ * - Register the AMI key bindings that are supported on Fabric via Fabric's KeyBindingHelper.
  * - Load config and sync the theme palette on client startup.
  * - Register the ThemeResourceLoader as a client reload listener.
  * - Register the client-side receiver for AmiServerPingPacket (S2C).
@@ -106,17 +106,22 @@ public class AmiFabricClient implements ClientModInitializer {
     // -------------------------------------------------------------------------
 
     /**
-     * Registers all AMI key bindings with Fabric's KeyBindingHelper.
+     * Registers the AMI key bindings that Fabric actually supports.
      * The KeyMapping instances live in FabricPlatformHelper.KEY_MAPPINGS (a singleton
      * FabricAmiKeyMappings), so the same objects are both registered here and returned
      * by Services.PLATFORM.keyMappings().
      */
     private void registerKeyBindings() {
         FabricAmiKeyMappings keyMappings = (FabricAmiKeyMappings) Services.PLATFORM.keyMappings();
+        int registeredCount = 0;
         for (var km : keyMappings.all()) {
+            if ("key.ami.debug_tooltips".equals(km.getName()) && !Services.PLATFORM.supportsDebugTooltipToggle()) {
+                continue;
+            }
             KeyBindingHelper.registerKeyBinding(km);
+            registeredCount++;
         }
-        AmiFabric.LOGGER.debug("AMI: registered {} key bindings", keyMappings.all().length);
+        AmiFabric.LOGGER.debug("AMI: registered {} key bindings", registeredCount);
     }
 
     // -------------------------------------------------------------------------

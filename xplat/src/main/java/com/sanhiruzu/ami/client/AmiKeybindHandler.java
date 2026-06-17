@@ -21,7 +21,9 @@ public class AmiKeybindHandler {
     private static boolean debugTooltipsActive = false;
 
     public static boolean isDebugTooltipsActive() {
-        return AmiConfig.devMode && debugTooltipsActive;
+        return AmiConfig.devMode
+                && Services.PLATFORM.supportsDebugTooltipToggle()
+                && debugTooltipsActive;
     }
 
     /**
@@ -48,11 +50,13 @@ public class AmiKeybindHandler {
 
         InputConstants.Key pressedKey = InputConstants.getKey(keyCode, scanCode);
 
-        if (AmiKeybinds.activeAndMatches(keys.favorite(), pressedKey)) {
+        if (AmiKeybinds.activeAndMatches(keys.favorite(), pressedKey, modifiers)) {
             return handleFavoriteKey();
         }
 
-        if (AmiConfig.devMode && AmiKeybinds.activeAndMatches(keys.debugTooltips(), pressedKey)) {
+        if (AmiConfig.devMode
+                && Services.PLATFORM.supportsDebugTooltipToggle()
+                && AmiKeybinds.activeAndMatches(keys.debugTooltips(), pressedKey, modifiers)) {
             debugTooltipsActive = !debugTooltipsActive;
             return true;
         }
@@ -62,19 +66,19 @@ public class AmiKeybindHandler {
             return true;
         }
 
-        if (AmiKeybinds.activeAndMatches(keys.showRecipes(), pressedKey)) {
+        if (AmiKeybinds.activeAndMatches(keys.showRecipes(), pressedKey, modifiers)) {
             return handleRecipeLookup(true, allowAmiResultLookup, allowRecipeSlotFallback);
         }
 
-        if (AmiKeybinds.activeAndMatches(keys.showUses(), pressedKey)) {
+        if (AmiKeybinds.activeAndMatches(keys.showUses(), pressedKey, modifiers)) {
             return handleRecipeLookup(false, allowAmiResultLookup, allowRecipeSlotFallback);
         }
 
-        if (AmiKeybinds.activeAndMatches(keys.cheatGiveStack(), pressedKey)) {
+        if (AmiKeybinds.activeAndMatches(keys.cheatGiveStack(), pressedKey, modifiers)) {
             return handleGive(true);
         }
 
-        if (AmiKeybinds.activeAndMatches(keys.cheatGiveOne(), pressedKey)) {
+        if (AmiKeybinds.activeAndMatches(keys.cheatGiveOne(), pressedKey, modifiers)) {
             return handleGive(false);
         }
 

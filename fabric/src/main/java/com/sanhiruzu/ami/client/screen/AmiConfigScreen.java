@@ -378,6 +378,10 @@ public class AmiConfigScreen extends Screen {
                 continue;
             }
 
+            if ("key.ami.debug_tooltips".equals(keybindName) && !Services.PLATFORM.supportsDebugTooltipToggle()) {
+                continue;
+            }
+
             Component keyLabel = Component.translatable(keybindName);
             if (searchQuery.isEmpty() || keyLabel.getString().toLowerCase().contains(searchQuery)) {
                 list.publicAddEntry(list.new KeybindEntry(keyLabel, keyMapping));

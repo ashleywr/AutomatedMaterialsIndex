@@ -1,6 +1,8 @@
 package com.sanhiruzu.ami.client.results;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.sanhiruzu.ami.client.AMITheme;
+import com.sanhiruzu.ami.client.AmiKeybinds;
 import com.sanhiruzu.ami.client.AmiRenderProfiler;
 import com.sanhiruzu.ami.client.AmiRenderPhase;
 import com.sanhiruzu.ami.client.ItemIconBatchRenderer;
@@ -1069,7 +1071,8 @@ public class ItemGridView {
     // =========================================================
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == GLFW.GLFW_KEY_A) {
+        if (AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().favorite(),
+                InputConstants.getKey(keyCode, scanCode), modifiers)) {
             if (hoveredNode != null) {
                 com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().toggleFavorite(hoveredNode);
                 return true;

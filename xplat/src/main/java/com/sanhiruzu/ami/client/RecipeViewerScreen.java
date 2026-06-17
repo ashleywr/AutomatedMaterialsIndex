@@ -877,7 +877,7 @@ public class RecipeViewerScreen extends Screen {
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         InputConstants.Key pressedKey = InputConstants.getKey(keyCode, scanCode);
-        if (AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().favorite(), pressedKey)
+        if (AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().favorite(), pressedKey, modifiers)
                 && tryToggleFavoriteUnderMouse()) {
             return true;
         }

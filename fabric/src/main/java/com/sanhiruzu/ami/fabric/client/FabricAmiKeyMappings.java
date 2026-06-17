@@ -15,21 +15,21 @@ public class FabricAmiKeyMappings implements IAmiKeyMappings {
     private final KeyMapping favorite = new KeyMapping(
             "key.ami.favorite",
             InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_A,
+            GLFW.GLFW_KEY_V,
             CATEGORY
     );
 
     private final KeyMapping debugTooltips = new KeyMapping(
             "key.ami.debug_tooltips",
             InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_A,
+            InputConstants.UNKNOWN.getValue(),
             CATEGORY
     );
 
     private final KeyMapping toggleViewer = new KeyMapping(
             "key.ami.toggle_viewer",
             InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_V,
+            GLFW.GLFW_KEY_B,
             CATEGORY
     );
 

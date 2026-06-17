@@ -71,6 +71,10 @@ public class EntityIconRenderer implements IIconRenderer {
         renderEntityWithRotation(g, x, y, size, scale, entity, EntityFacingConstants.STATIC_ENTITY_Y_ROT + spinDeg);
     }
 
+    static boolean spinHoveredEntityIcons() {
+        return false;
+    }
+
     private static void renderEntityWithRotation(GuiGraphics g, int x, int y, int size, int scale, LivingEntity entity, float yRot) {
         float savedBodyRot = entity.yBodyRot;
         float savedYRot = entity.getYRot();
@@ -339,7 +343,11 @@ public class EntityIconRenderer implements IIconRenderer {
                 return;
             }
 
-            renderSpinningEntity(g, x, y, size, scale, entity);
+            if (spinHoveredEntityIcons()) {
+                renderSpinningEntity(g, x, y, size, scale, entity);
+            } else {
+                renderStaticEntity(g, x, y, size, scale, entity);
+            }
         } catch (RuntimeException e) {
             if (failedRenderers.add(node.id())) {
                 AmiCore.LOGGER.warn("AMI: disabling entity icon renderer for {} after render failure", node.id(), e);

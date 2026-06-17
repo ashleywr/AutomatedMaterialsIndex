@@ -186,12 +186,20 @@ public interface IPlatformHelper {
 
     IAmiKeyMappings keyMappings();
 
+    default boolean supportsDebugTooltipToggle() {
+        return true;
+    }
+
     /**
      * Returns true if the given KeyMapping is active and matches the given key.
      * Delegates to {@code KeyMapping.isActiveAndMatches()} which is patched in by Forge/NeoForge
      * and does not exist in vanilla/Fabric.
      */
     boolean keyActiveAndMatches(KeyMapping mapping, InputConstants.Key key);
+
+    default boolean keyActiveAndMatches(KeyMapping mapping, InputConstants.Key key, int modifiers) {
+        return keyActiveAndMatches(mapping, key);
+    }
 
     /**
      * Returns the slot currently under the mouse in an AbstractContainerScreen, or null.

@@ -20,4 +20,12 @@ public final class AmiKeybinds {
     public static boolean activeAndMatches(KeyMapping mapping, InputConstants.Key key) {
         return Services.PLATFORM.keyActiveAndMatches(mapping, key);
     }
+
+    /**
+     * Returns true if {@code mapping} is active and matches {@code key}, including any
+     * platform-specific modifier handling attached to the originating key event.
+     */
+    public static boolean activeAndMatches(KeyMapping mapping, InputConstants.Key key, int modifiers) {
+        return Services.PLATFORM.keyActiveAndMatches(mapping, key, modifiers);
+    }
 }

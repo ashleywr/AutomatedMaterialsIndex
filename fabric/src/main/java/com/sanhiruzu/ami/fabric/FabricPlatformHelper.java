@@ -184,6 +184,11 @@ public class FabricPlatformHelper implements IPlatformHelper {
         return KEY_MAPPINGS;
     }
 
+    @Override
+    public boolean supportsDebugTooltipToggle() {
+        return false;
+    }
+
     /**
      * Vanilla equivalent of NeoForge's {@code KeyMapping.isActiveAndMatches(key)}.
      * NeoForge patches in conflict-context awareness; on Fabric we approximate with

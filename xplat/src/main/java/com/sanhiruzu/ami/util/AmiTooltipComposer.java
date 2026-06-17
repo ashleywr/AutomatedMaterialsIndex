@@ -215,7 +215,7 @@ public final class AmiTooltipComposer {
 
         appendCheatGiveHints(hints, entry);
 
-        if (AmiConfig.devMode) {
+        if (AmiConfig.devMode && Services.PLATFORM.supportsDebugTooltipToggle()) {
             String keybindName = Services.PLATFORM.keyMappings().debugTooltips().getTranslatedKeyMessage().getString();
             if (AmiKeybindHandler.isDebugTooltipsActive()) {
                 hints.add(Component.translatable("ami.gui.debug_hint_active", keybindName)

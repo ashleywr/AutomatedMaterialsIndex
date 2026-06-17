@@ -855,7 +855,8 @@ public class ResultsTreeView {
     }
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (com.sanhiruzu.ami.client.AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().favorite(), com.mojang.blaze3d.platform.InputConstants.getKey(keyCode, scanCode))) {
+        if (com.sanhiruzu.ami.client.AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().favorite(),
+                com.mojang.blaze3d.platform.InputConstants.getKey(keyCode, scanCode), modifiers)) {
             if (hoveredNode != null) {
                 com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().toggleFavorite(hoveredNode);
                 return true;
