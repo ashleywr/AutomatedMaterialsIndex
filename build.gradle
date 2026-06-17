@@ -327,6 +327,7 @@ tasks.register('verifyReleaseArtifacts') {
     dependsOn ':forge:verifyForgeReleaseJarReobfuscated'
     dependsOn ':neoforge:build'
     dependsOn 'test'
+    dependsOn 'verifyLauncherMetadata'
 
     def fabricReleaseJar = project(':fabric').layout.buildDirectory.file(
             "libs/${mod_id}-fabric-${fabric_minecraft_version}-${amiEffectiveModVersion}.jar"
@@ -344,6 +345,47 @@ tasks.register('verifyReleaseArtifacts') {
             def jar = jarProvider.get().asFile
             if (!jar.isFile()) {
                 throw new GradleException("Missing release artifact: ${jar}")
+            }
+        }
+    }
+}
+
+tasks.register('verifyLauncherMetadata') {
+    group = 'verification'
+    description = 'Verifies mod metadata exposes launcher icons and public project links.'
+
+    def sharedIcon = file('xplat/src/main/resources/icon.png')
+    def fabricMetadata = file('fabric/src/main/resources/fabric.mod.json')
+    def forgeMetadata = file('forge/src/main/resources/META-INF/mods.toml')
+    def neoForgeMetadata = file('xplat/src/main/templates/META-INF/neoforge.mods.toml')
+    inputs.files(sharedIcon, fabricMetadata, forgeMetadata, neoForgeMetadata)
+
+    doLast {
+        if (!sharedIcon.isFile()) {
+            throw new GradleException("Missing launcher icon: ${sharedIcon}")
+        }
+
+        def fabric = new groovy.json.JsonSlurper().parse(fabricMetadata)
+        if (fabric.icon != 'icon.png') {
+            throw new GradleException('fabric.mod.json must declare "icon": "icon.png"')
+        }
+        ['homepage', 'sources', 'issues'].each { key ->
+            if (!(fabric.contact instanceof Map) || !fabric.contact[key]) {
+                throw new GradleException("fabric.mod.json must declare contact.${key}")
+            }
+        }
+
+        def forgeText = forgeMetadata.text
+        ['logoFile = "icon.png"', 'logoBlur = false', 'issueTrackerURL = "https://github.com/ashleywr/AutomatedMaterialsIndex/issues"', 'displayURL = "https://github.com/ashleywr/AutomatedMaterialsIndex"'].each { expected ->
+            if (!forgeText.contains(expected)) {
+                throw new GradleException("mods.toml must contain: ${expected}")
+            }
+        }
+
+        def neoForgeText = neoForgeMetadata.text
+        ['logoFile = "icon.png"', 'logoBlur = false', 'issueTrackerURL = "https://github.com/ashleywr/AutomatedMaterialsIndex/issues"', 'displayURL = "https://github.com/ashleywr/AutomatedMaterialsIndex"'].each { expected ->
+            if (!neoForgeText.contains(expected)) {
+                throw new GradleException("neoforge.mods.toml must contain: ${expected}")
             }
         }
     }

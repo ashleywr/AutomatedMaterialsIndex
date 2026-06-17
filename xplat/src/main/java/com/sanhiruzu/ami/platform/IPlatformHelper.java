@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.platform;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.datafixers.util.Either;
 import com.sanhiruzu.ami.index.metrics.FoodStats;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import net.minecraft.client.KeyMapping;
@@ -11,6 +12,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FormattedText;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
@@ -275,6 +277,12 @@ public interface IPlatformHelper {
                            Optional<TooltipComponent> image, ItemStack stack, int x, int y);
 
     /**
+     * Renders a tooltip from the same mixed text/component element list used by the native tooltip pipeline.
+     */
+    void renderTooltipElements(GuiGraphics g, Font font, List<Either<FormattedText, TooltipComponent>> elements,
+                               ItemStack stack, int x, int y);
+
+    /**
      * Begins a GUI quad batch on the shared {@code Tesselator}, returning the loader's buffer object.
      * xplat cannot call this API directly because the vertex-buffer API differs between MC 1.20.1
      * (Tesselator.getBuilder + BufferBuilder.begin/vertex/uv/color/endVertex/end) and 1.21.1
@@ -296,11 +304,6 @@ public interface IPlatformHelper {
     default void renderVanillaScrollbar(Object guiGraphics, ResourceLocation scroller, ResourceLocation scrollerBackground,
                                         int x, int y, int width, int height, int thumbY, int thumbHeight) {
         throw new UnsupportedOperationException("Vanilla scrollbar rendering is client-only");
-    }
-
-    /** Returns true if the off-screen framebuffer item icon cache is stable on this platform/MC version. */
-    default boolean supportsItemIconCache() {
-        return false;
     }
 
     default ResourceLocation rl(String namespaceAndPath) {

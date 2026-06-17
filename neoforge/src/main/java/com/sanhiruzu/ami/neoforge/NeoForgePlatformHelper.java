@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.neoforge;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.datafixers.util.Either;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
@@ -23,6 +24,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.FormattedText;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.entity.EntityType;
@@ -141,11 +143,6 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     @Override
     public boolean isClient() {
         return FMLEnvironment.dist.isClient();
-    }
-
-    @Override
-    public boolean supportsItemIconCache() {
-        return true;
     }
 
     @Override
@@ -288,6 +285,12 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     public void renderItemTooltip(GuiGraphics g, Font font, java.util.List<net.minecraft.network.chat.Component> lines,
                                   java.util.Optional<TooltipComponent> image, ItemStack stack, int x, int y) {
         g.renderTooltip(font, lines, image, stack, x, y);
+    }
+
+    @Override
+    public void renderTooltipElements(GuiGraphics g, Font font, List<Either<FormattedText, TooltipComponent>> elements,
+                                      ItemStack stack, int x, int y) {
+        g.renderComponentTooltipFromElements(font, elements, x, y, stack);
     }
 
     @Override

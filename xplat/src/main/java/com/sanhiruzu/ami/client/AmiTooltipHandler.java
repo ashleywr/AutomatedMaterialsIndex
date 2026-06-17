@@ -3,7 +3,10 @@ package com.sanhiruzu.ami.client;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.platform.Services;
+import com.sanhiruzu.ami.util.TooltipLineMatcher;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -26,6 +29,17 @@ public final class AmiTooltipHandler {
                 });
             }
         }
+
+        removeDuplicateModName(lines, stack);
+    }
+
+    private static void removeDuplicateModName(List<Component> lines, ItemStack stack) {
+        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (itemId == null) {
+            return;
+        }
+        Services.PLATFORM.getModName(itemId.getNamespace())
+                .ifPresent(modName -> TooltipLineMatcher.removeDuplicateLinesMatching(lines, modName));
     }
 
     private static void appendEntityInfo(SearchNode node, List<Component> lines) {

@@ -2,24 +2,57 @@ package com.sanhiruzu.ami.util;
 
 import net.minecraft.network.chat.Component;
 
+import java.util.Iterator;
 import java.util.List;
 
-final class TooltipLineMatcher {
+public final class TooltipLineMatcher {
     private TooltipLineMatcher() {
     }
 
-    static boolean containsLine(List<Component> lines, String text) {
-        String needle = stripFormatting(text).trim();
+    public static boolean containsLine(List<Component> lines, String text) {
+        String needle = normalizedLine(text);
         if (needle.isEmpty()) {
             return false;
         }
 
         for (Component line : lines) {
-            if (line != null && needle.equals(stripFormatting(line.getString()).trim())) {
+            if (line != null && needle.equals(normalizedLine(line.getString()))) {
                 return true;
             }
         }
         return false;
+    }
+
+    public static void removeAllLinesMatching(List<Component> lines, String text) {
+        String needle = normalizedLine(text);
+        if (needle.isEmpty()) {
+            return;
+        }
+        lines.removeIf(line -> line != null && needle.equals(normalizedLine(line.getString())));
+    }
+
+    public static void removeDuplicateLinesMatching(List<Component> lines, String text) {
+        String needle = normalizedLine(text);
+        if (needle.isEmpty()) {
+            return;
+        }
+
+        boolean seen = false;
+        for (Iterator<Component> iterator = lines.iterator(); iterator.hasNext(); ) {
+            Component line = iterator.next();
+            if (line == null || !needle.equals(normalizedLine(line.getString()))) {
+                continue;
+            }
+            if (seen) {
+                iterator.remove();
+            } else {
+                seen = true;
+            }
+        }
+    }
+
+    private static String normalizedLine(String value) {
+        return stripFormatting(value).trim();
     }
 
     private static String stripFormatting(String value) {

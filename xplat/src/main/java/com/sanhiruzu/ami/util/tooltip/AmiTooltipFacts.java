@@ -8,7 +8,6 @@ import java.util.List;
 
 public final class AmiTooltipFacts {
     private static final List<AmiTooltipFact> FACTS = List.of(
-            new RequiredToolTooltipFact(),
             new StorageTooltipFact(),
             new FluidTooltipFact(),
             new EnergyTooltipFact(),

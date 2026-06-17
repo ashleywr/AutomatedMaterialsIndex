@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.fabric;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.datafixers.util.Either;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
@@ -30,6 +31,7 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FormattedText;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.entity.EntityType;
@@ -310,6 +312,26 @@ public class FabricPlatformHelper implements IPlatformHelper {
     @Override
     public void renderItemTooltip(GuiGraphics g, Font font, List<Component> lines,
                                   Optional<TooltipComponent> image, ItemStack stack, int x, int y) {
+        g.renderTooltip(font, lines, image, x, y);
+    }
+
+    @Override
+    public void renderTooltipElements(GuiGraphics g, Font font, List<Either<FormattedText, TooltipComponent>> elements,
+                                      ItemStack stack, int x, int y) {
+        List<Component> lines = new ArrayList<>();
+        Optional<TooltipComponent> image = Optional.empty();
+        for (Either<FormattedText, TooltipComponent> element : elements) {
+            Optional<FormattedText> text = element.left();
+            if (text.isPresent()) {
+                FormattedText formatted = text.get();
+                lines.add(formatted instanceof Component component ? component : Component.empty());
+                continue;
+            }
+            Optional<TooltipComponent> component = element.right();
+            if (component.isPresent() && image.isEmpty()) {
+                image = component;
+            }
+        }
         g.renderTooltip(font, lines, image, x, y);
     }
 

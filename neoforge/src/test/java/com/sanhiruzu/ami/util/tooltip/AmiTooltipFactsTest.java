@@ -10,9 +10,12 @@ import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AmiTooltipFactsTest {
@@ -64,6 +67,14 @@ public class AmiTooltipFactsTest {
                 java.util.List.of("minecraft:logs", "minecraft:mineable/axe"),
                 TagTooltipFact.parseTags(node.meta(SearchNodeKeys.BLOCK_TAGS, ""))
         );
+    }
+
+    @Test
+    void requiredToolMetadataDoesNotRenderAsTooltipFact() throws Exception {
+        String source = Files.readString(Path.of("..", "xplat", "src", "main", "java", "com", "sanhiruzu",
+                "ami", "util", "tooltip", "AmiTooltipFacts.java"));
+
+        assertFalse(source.contains("RequiredToolTooltipFact"));
     }
 
     @Test

@@ -44,6 +44,8 @@ public class EntityIconRenderer implements IIconRenderer {
             Math.max(0, Integer.getInteger("ami.entityIconAtlasWarmupPerTick", 8));
     private static final int ENTITY_ICON_ATLAS_BAKE_PER_TICK =
             Math.max(0, Integer.getInteger("ami.entityIconAtlasBakePerTick", 4));
+    private static final int ENTITY_ICON_ATLAS_DISK_HYDRATE_PER_TICK =
+            Math.max(0, Integer.getInteger("ami.entityIconAtlasDiskHydratePerTick", 64));
     private static final long ENTITY_ICON_ATLAS_BAKE_BUDGET_NANOS =
             Math.max(1L, Long.getLong("ami.entityIconAtlasBakeBudgetMs", 8L)) * 1_000_000L;
     private static final int ENTITY_ICON_ATLAS_WARMUP_SIZE = 16;
@@ -239,7 +241,12 @@ public class EntityIconRenderer implements IIconRenderer {
         }
 
         int warmed = 0;
-        while (warmupIndex < warmupQueue.size() && warmed < ENTITY_ICON_ATLAS_WARMUP_PER_TICK) {
+        int diskHydrated = 0;
+        while (warmupIndex < warmupQueue.size()) {
+            if (warmed >= ENTITY_ICON_ATLAS_WARMUP_PER_TICK && diskHydrated >= ENTITY_ICON_ATLAS_DISK_HYDRATE_PER_TICK) {
+                break;
+            }
+
             SearchNode node = warmupQueue.get(warmupIndex);
             LivingEntity entity = resolveEntity(node.id());
             if (entity == null || failedRenderers.contains(node.id())) {
@@ -247,6 +254,18 @@ public class EntityIconRenderer implements IIconRenderer {
                 EntityIconWarmupMetrics.recordSkipped();
                 continue;
             }
+
+            // Disk loads are cheap — try persistent store before queuing a framebuffer bake.
+            if (diskHydrated < ENTITY_ICON_ATLAS_DISK_HYDRATE_PER_TICK
+                    && EntityIconCache.tryHydratePersistent(node.id(), ENTITY_ICON_ATLAS_WARMUP_SIZE)) {
+                warmupIndex++;
+                diskHydrated++;
+                EntityIconWarmupMetrics.recordQueuedOrCached();
+                continue;
+            }
+
+            // Disk miss — queue for framebuffer bake (costs a warmed slot).
+            if (warmed >= ENTITY_ICON_ATLAS_WARMUP_PER_TICK) break;
 
             float maxBounds = Math.max(entity.getBbHeight(), entity.getBbWidth());
             int scale = Math.max(1, (int) Math.min(
@@ -272,6 +291,9 @@ public class EntityIconRenderer implements IIconRenderer {
                 EntityIconWarmupMetrics.recordRenderFailure();
             }
             warmed++;
+        }
+        if (diskHydrated > 0) {
+            EntityIconCache.flushAtlasUploads();
         }
     }
 
@@ -312,7 +334,6 @@ public class EntityIconRenderer implements IIconRenderer {
                         EntityIconFallbacks.renderFailure(g, node.id(), x, y, size);
                         return;
                     }
-                    // Cache miss: atlas bake pending — fall through to live render
                 }
                 renderStaticEntity(g, x, y, size, scale, entity);
                 return;

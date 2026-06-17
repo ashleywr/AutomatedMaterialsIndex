@@ -2,6 +2,21 @@
 
 User-facing changes are recorded here.
 
+## 1.7.1 - 2026-06-17
+
+### Changed
+
+- Item icons in the grid and tree views now render through Minecraft's normal item rendering path, improving visual consistency with inventory icons.
+- AMI's tooltip additions (stats, quest evidence, hints) now append to the end of the vanilla item tooltip rather than replacing it, so other mods' tooltip lines are preserved.
+- Tooltip event priority changed to `LOWEST` on Forge and NeoForge so AMI's lines always appear after other mods.
+- Entity icon atlas cache misses now show a placeholder instead of falling through to a live render, preventing flicker during atlas bake.
+- Added mod icon, homepage, source, and issue tracker links to all loader metadata files (Fabric, Forge, NeoForge).
+
+### Fixed
+
+- Removed three broken EMI mixin inject targets (`mouseMoved`, `charTyped`, `tick`) that no longer exist in EMI 1.1.24, fixing a mixin resolution error on startup.
+- Mod name is now always shown on item tooltips in AMI results, whether or not JEI/EMI is present to add it. Duplicate mod name lines from other mods are deduplicated.
+
 ## 1.7.0 - 2026-06-17
 
 AMI 1.7.0 prepares the cross-loader release line with updated release automation and compatibility checks for Fabric, Forge, and NeoForge.

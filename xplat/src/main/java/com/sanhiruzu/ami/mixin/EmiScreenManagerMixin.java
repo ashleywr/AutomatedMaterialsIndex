@@ -89,13 +89,6 @@ public class EmiScreenManagerMixin {
         }
     }
 
-    @Inject(method = "mouseMoved", at = @At("HEAD"), remap = false, cancellable = true)
-    private static void suppressMouseMovedWhenAmiActive(double mouseX, double mouseY, CallbackInfo ci) {
-        if (shouldSuppressEmiInput()) {
-            ci.cancel();
-        }
-    }
-
     @Inject(method = "keyPressed", at = @At("HEAD"), remap = false, cancellable = true)
     private static void suppressKeyPressedWhenAmiActive(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
         if (InventoryOverlayHandler.isAmiEnabled()
@@ -107,20 +100,6 @@ public class EmiScreenManagerMixin {
         }
         if (shouldSuppressEmiInput()) {
             cir.setReturnValue(false);
-        }
-    }
-
-    @Inject(method = "charTyped", at = @At("HEAD"), remap = false, cancellable = true)
-    private static void suppressCharTypedWhenAmiActive(char codePoint, int modifiers, CallbackInfoReturnable<Boolean> cir) {
-        if (shouldSuppressEmiInput()) {
-            cir.setReturnValue(false);
-        }
-    }
-
-    @Inject(method = "tick", at = @At("HEAD"), remap = false, cancellable = true)
-    private static void suppressTickWhenAmiActive(Screen screen, CallbackInfo ci) {
-        if (shouldSuppressEmiChrome()) {
-            ci.cancel();
         }
     }
 

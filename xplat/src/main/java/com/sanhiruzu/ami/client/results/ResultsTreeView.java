@@ -263,7 +263,7 @@ public class ResultsTreeView {
             ItemStack stackContext = (pendingItemStack != null) ? pendingItemStack : ItemStack.EMPTY;
             AmiTooltipRenderer.render(g, font, stackContext, pendingTooltipLines, pendingTooltipImage, mouseX, mouseY);
         } else if (pendingItemStack != null && !pendingItemStack.isEmpty()) {
-            AmiTooltipRenderer.render(g, font, pendingItemStack, mouseX, mouseY);
+            AmiTooltipRenderer.renderResultItemTooltip(g, font, pendingItemStack, hoveredNode, mouseX, mouseY);
         }
     }
 
@@ -398,11 +398,18 @@ public class ResultsTreeView {
 
         if (hovered) {
             hoveredNode = entry;
-            pendingTooltipLines = AmiTooltipComposer.buildTooltip(entry);
-            pendingTooltipImage = AmiTooltipComposer.getTooltipImage(entry);
             if (entry.type() == NodeType.ITEM) {
                 pendingItemStack = ItemIconRenderer.resolveStack(entry.id());
+                if (pendingItemStack != null && !pendingItemStack.isEmpty()) {
+                    pendingTooltipLines = null;
+                    pendingTooltipImage = Optional.empty();
+                } else {
+                    pendingTooltipLines = AmiTooltipComposer.buildTooltip(entry);
+                    pendingTooltipImage = AmiTooltipComposer.getTooltipImage(entry);
+                }
             } else {
+                pendingTooltipLines = AmiTooltipComposer.buildTooltip(entry);
+                pendingTooltipImage = AmiTooltipComposer.getTooltipImage(entry);
                 pendingItemStack = null;
             }
         }

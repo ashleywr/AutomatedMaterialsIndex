@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -45,6 +47,26 @@ class AmiTooltipComposerTest {
                 List.of(Component.literal("Created item")),
                 "Create"
         ));
+    }
+
+    @Test
+    void duplicateModNameCleanupKeepsFirstFormattedMatchOnly() {
+        List<Component> lines = new java.util.ArrayList<>(List.of(
+                Component.literal("Golden Carrot"),
+                Component.literal("\u00A79\u00A7oMinecraft"),
+                Component.literal("Fulfilling Meal"),
+                Component.literal("Minecraft"),
+                Component.literal("Right-click gives one")
+        ));
+
+        TooltipLineMatcher.removeDuplicateLinesMatching(lines, "Minecraft");
+
+        assertEquals(List.of(
+                "Golden Carrot",
+                "\u00A79\u00A7oMinecraft",
+                "Fulfilling Meal",
+                "Right-click gives one"
+        ), lines.stream().map(Component::getString).toList());
     }
 
     @Test
@@ -116,6 +138,23 @@ class AmiTooltipComposerTest {
     }
 
     @Test
+    void genericRightClickActionsHintIsNotAddedToResultTooltips() throws Exception {
+        String source = Files.readString(Path.of("..", "xplat", "src", "main", "java", "com", "sanhiruzu",
+                "ami", "util", "AmiTooltipComposer.java"));
+
+        assertFalse(source.contains("hintLine(\"ami.gui.hint.right_click\", \"ami.gui.hint.action.actions\")"));
+    }
+
+    @Test
+    void itemTooltipFooterDoesNotAddModNameBranding() {
+        String footerBody = methodBody("buildItemTooltipFooter");
+
+        assertFalse(footerBody.contains("appendModNameIfMissing"));
+        assertFalse(footerBody.contains("modDisplayName"));
+        assertFalse(footerBody.contains("SearchNodeKeys.MOD_ID"));
+    }
+
+    @Test
     void discoveryTooltipShowsFoodChecklistStateWhenEnabled() {
         AmiConfig.enableDiscoveryChecklist = true;
         SearchNode apple = new SearchNode(
@@ -154,5 +193,35 @@ class AmiTooltipComposerTest {
         List<String> lines = new DiscoveryTooltipFact().build(apple).stream().map(Component::getString).toList();
 
         assertTrue(lines.isEmpty());
+    }
+
+    private static String methodBody(String methodName) {
+        try {
+            String source = Files.readString(Path.of("..", "xplat", "src", "main", "java", "com", "sanhiruzu",
+                    "ami", "util", "AmiTooltipComposer.java"));
+            int nameIndex = source.indexOf(methodName);
+            if (nameIndex < 0) {
+                throw new AssertionError("Missing method: " + methodName);
+            }
+            int bodyStart = source.indexOf('{', nameIndex);
+            if (bodyStart < 0) {
+                throw new AssertionError("Missing method body: " + methodName);
+            }
+            int depth = 0;
+            for (int i = bodyStart; i < source.length(); i++) {
+                char c = source.charAt(i);
+                if (c == '{') {
+                    depth++;
+                } else if (c == '}') {
+                    depth--;
+                    if (depth == 0) {
+                        return source.substring(bodyStart + 1, i);
+                    }
+                }
+            }
+            throw new AssertionError("Unclosed method body: " + methodName);
+        } catch (Exception e) {
+            throw new AssertionError("Unable to read AmiTooltipComposer source", e);
+        }
     }
 }

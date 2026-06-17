@@ -66,11 +66,7 @@ public final class AmiTooltipComposer {
         }
 
         // 2. Details Section (Common metadata: Storage, FE, DPS, etc.)
-        List<Component> amiDetails = buildAmiDetails(entry);
-        if (!amiDetails.isEmpty()) {
-            lines.add(Component.empty());
-            lines.addAll(amiDetails);
-        }
+        appendAmiDetailsSection(lines, entry);
 
         // 3. Branding & Identification (Unified mod name highlight)
         if (entry.type() != NodeType.ITEM) {
@@ -82,19 +78,23 @@ public final class AmiTooltipComposer {
         }
 
         // 4. Quest provenance for item hits
-        QuestItemEvidence questEvidence = QuestItemEvidenceProjector.project(entry);
-        if (questEvidence.hasMatches()) {
-            lines.add(Component.empty());
-            for (int i = 0; i < questEvidence.tooltipLines().size(); i++) {
-                String line = questEvidence.tooltipLines().get(i);
-                int color = i == 0 ? AMITheme.TEXT_HIGHLIGHT : AMITheme.TEXT_SUBTLE;
-                lines.add(Component.literal(line).withStyle(style -> style.withColor(color)));
-            }
-        }
+        appendQuestEvidence(lines, entry);
 
         // 5. Interaction Hints (Footer)
         appendHints(lines, entry);
 
+        return normalizeTooltipLines(lines);
+    }
+
+    public static List<Component> buildItemTooltipFooter(SearchNode entry) {
+        if (entry == null || entry.type() != NodeType.ITEM) {
+            return List.of();
+        }
+
+        List<Component> lines = new ArrayList<>();
+        appendAmiDetailsSection(lines, entry);
+        appendQuestEvidence(lines, entry);
+        appendHints(lines, entry);
         return normalizeTooltipLines(lines);
     }
 
@@ -132,7 +132,7 @@ public final class AmiTooltipComposer {
                 .replace("\\n", "\n");
     }
 
-    private static void appendModNameIfMissing(List<Component> lines, SearchNode entry) {
+    public static void appendModNameIfMissing(List<Component> lines, SearchNode entry) {
         ResourceLocation resolvedId = FavoriteEntry.resolvedId(entry);
         String namespace = resolvedId != null ? resolvedId.getNamespace() : "";
         String modId = entry.meta(SearchNodeKeys.MOD_ID, namespace);
@@ -186,13 +186,28 @@ public final class AmiTooltipComposer {
         return AmiTooltipFacts.build(entry);
     }
 
+    private static void appendAmiDetailsSection(List<Component> lines, SearchNode entry) {
+        List<Component> amiDetails = buildAmiDetails(entry);
+        if (!amiDetails.isEmpty()) {
+            lines.add(Component.empty());
+            lines.addAll(amiDetails);
+        }
+    }
+
+    private static void appendQuestEvidence(List<Component> lines, SearchNode entry) {
+        QuestItemEvidence questEvidence = QuestItemEvidenceProjector.project(entry);
+        if (questEvidence.hasMatches()) {
+            lines.add(Component.empty());
+            for (int i = 0; i < questEvidence.tooltipLines().size(); i++) {
+                String line = questEvidence.tooltipLines().get(i);
+                int color = i == 0 ? AMITheme.TEXT_HIGHLIGHT : AMITheme.TEXT_SUBTLE;
+                lines.add(Component.literal(line).withStyle(style -> style.withColor(color)));
+            }
+        }
+    }
+
     private static void appendHints(List<Component> lines, SearchNode entry) {
         List<Component> hints = new ArrayList<>();
-
-        if (entry.type() == NodeType.ITEM || entry.type() == NodeType.ENTITY
-                || entry.type() == NodeType.BIOME || entry.type() == NodeType.STRUCTURE) {
-            hints.add(hintLine("ami.gui.hint.right_click", "ami.gui.hint.action.actions"));
-        }
 
         if ((entry.type() == NodeType.BIOME || entry.type() == NodeType.STRUCTURE) && AMICheatMode.isEnabled()) {
             hints.add(Component.translatable("ami.tooltip.cheat_locate").withStyle(ChatFormatting.GOLD));

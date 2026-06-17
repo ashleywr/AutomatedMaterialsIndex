@@ -2,11 +2,15 @@
 modLoader = "javafml" #mandatory
 loaderVersion = "${loader_version_range}" #mandatory
 license = "${mod_license}"
+issueTrackerURL = "https://github.com/ashleywr/AutomatedMaterialsIndex/issues"
 
 [[mods]] #mandatory
 modId = "${mod_id}" #mandatory
 version = "${mod_version}" #mandatory
 displayName = "${mod_name}" #mandatory
+displayURL = "https://github.com/ashleywr/AutomatedMaterialsIndex"
+logoFile = "icon.png"
+logoBlur = false
 credits = "Ashley" #optional
 authors = "Ashley"
 description = '''

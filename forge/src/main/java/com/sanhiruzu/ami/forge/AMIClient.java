@@ -18,6 +18,7 @@ import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
 import net.minecraftforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
@@ -100,7 +101,7 @@ public class AMIClient {
             }
         }
 
-        @SubscribeEvent
+        @SubscribeEvent(priority = EventPriority.LOWEST)
         public static void onItemTooltip(net.minecraftforge.event.entity.player.ItemTooltipEvent event) {
             com.sanhiruzu.ami.client.AmiTooltipHandler.appendTooltip(event.getItemStack(), event.getToolTip());
         }

@@ -16,6 +16,7 @@ import com.sanhiruzu.ami.config.AmiConfigStore;
 import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.index.GlobalIndexCache;
 import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.ModList;
@@ -119,7 +120,7 @@ public class AMIClient {
         AmiClientTelemetry.recordFrame();
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     static void onItemTooltip(net.neoforged.neoforge.event.entity.player.ItemTooltipEvent event) {
         com.sanhiruzu.ami.client.AmiTooltipHandler.appendTooltip(event.getItemStack(), event.getToolTip());
     }

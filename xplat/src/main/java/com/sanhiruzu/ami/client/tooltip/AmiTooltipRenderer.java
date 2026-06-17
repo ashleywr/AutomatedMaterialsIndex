@@ -1,5 +1,8 @@
 package com.sanhiruzu.ami.client.tooltip;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.sanhiruzu.ami.client.RenderStateSnapshot;
+import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -21,6 +24,12 @@ public final class AmiTooltipRenderer {
 
     public static void render(GuiGraphics g, Font font, ItemStack stack, int mouseX, int mouseY) {
         renderAtTooltipLayer(g, () -> g.renderTooltip(font, stack, mouseX, mouseY));
+    }
+
+    public static void renderResultItemTooltip(GuiGraphics g, Font font, ItemStack stack, SearchNode entry,
+                                               int mouseX, int mouseY) {
+        renderAtTooltipLayer(g, () -> Services.PLATFORM.renderTooltipElements(g, font,
+                AmiResultTooltipElements.buildItemTooltip(stack, entry), stack, mouseX, mouseY));
     }
 
     public static void render(GuiGraphics g, Font font, List<Component> lines,
@@ -48,11 +57,19 @@ public final class AmiTooltipRenderer {
     }
 
     private static void renderAtTooltipLayer(GuiGraphics g, Runnable renderer) {
+        g.flush();
+        RenderStateSnapshot state = RenderStateSnapshot.capture();
         RENDERING_AMI_TOOLTIP.set(true);
         try {
+            RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
+            RenderSystem.enableDepthTest();
             renderer.run();
+            g.flush();
         } finally {
             RENDERING_AMI_TOOLTIP.set(false);
+            state.restore();
         }
     }
 }

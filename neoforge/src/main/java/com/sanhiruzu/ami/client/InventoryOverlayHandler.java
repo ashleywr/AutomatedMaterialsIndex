@@ -22,6 +22,7 @@ import net.neoforged.neoforge.client.event.RenderTooltipEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.List;
 
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
@@ -310,7 +311,7 @@ public class InventoryOverlayHandler {
         if (currentLayer != VisibleLayer.AMI || !manager.isPanelVisible() || AmiApi.shouldSuppressAmi(screen)) return;
         pendingGatheredTooltip = new PendingGatheredTooltip(
                 event.getItemStack().copy(),
-                List.copyOf(event.getTooltipElements()));
+                new ArrayList<>(event.getTooltipElements()));
     }
 
     @SubscribeEvent
@@ -465,9 +466,7 @@ public class InventoryOverlayHandler {
             return false;
         }
 
-        if (!statusEffectsHoverOwned && !wasMouseOverStatusEffects && !isMouseOverAmiOverlay(mouseX, mouseY)) {
-            statusEffectsHoverOwned = true;
-        }
+        statusEffectsHoverOwned = true;
         wasMouseOverStatusEffects = true;
         return statusEffectsHoverOwned;
     }

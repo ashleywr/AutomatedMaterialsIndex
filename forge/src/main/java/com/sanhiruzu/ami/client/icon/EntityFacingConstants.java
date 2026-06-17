@@ -1,6 +1,6 @@
 package com.sanhiruzu.ami.client.icon;
 
-final class EntityFacingConstants {
+public final class EntityFacingConstants {
     /*
      * Forge's InventoryScreen.renderEntityInInventory(GuiGraphics, int, int, int,
      * Quaternionf cameraOrientation, Quaternionf entityOrientation, LivingEntity)
@@ -14,7 +14,7 @@ final class EntityFacingConstants {
      * NeoForge uses a different API signature where rotateZ(PI) is a *model pose*
      * transform, not a camera orientation; its EntityFacingConstants uses 180f.
      */
-    static final float STATIC_ENTITY_Y_ROT = 0f;
+    public static final float STATIC_ENTITY_Y_ROT = 0f;
 
     private EntityFacingConstants() {}
 }

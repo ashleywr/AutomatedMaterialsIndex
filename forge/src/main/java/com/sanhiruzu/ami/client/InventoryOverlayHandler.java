@@ -22,6 +22,7 @@ import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.List;
 
 @Mod.EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
@@ -308,7 +309,7 @@ public class InventoryOverlayHandler {
         if (currentLayer != VisibleLayer.AMI || !manager.isPanelVisible() || AmiApi.shouldSuppressAmi(screen)) return;
         pendingGatheredTooltip = new PendingGatheredTooltip(
                 event.getItemStack().copy(),
-                List.copyOf(event.getTooltipElements()));
+                new ArrayList<>(event.getTooltipElements()));
     }
 
     @SubscribeEvent
@@ -463,9 +464,7 @@ public class InventoryOverlayHandler {
             return false;
         }
 
-        if (!statusEffectsHoverOwned && !wasMouseOverStatusEffects && !isMouseOverAmiOverlay(mouseX, mouseY)) {
-            statusEffectsHoverOwned = true;
-        }
+        statusEffectsHoverOwned = true;
         wasMouseOverStatusEffects = true;
         return statusEffectsHoverOwned;
     }

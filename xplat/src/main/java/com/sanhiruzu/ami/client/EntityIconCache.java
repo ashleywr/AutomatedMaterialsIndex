@@ -47,9 +47,6 @@ public class EntityIconCache {
     // Queue entries retain render lambdas, which can retain entity instances. Keep this intentionally small.
     private static final int MAX_PENDING_BAKES =
             Math.max(1, Integer.getInteger("ami.entityIconAtlasPendingBakeLimit", 64));
-    private static final long PER_FRAME_FAST_BAKE_BUDGET_NANOS =
-            Math.max(0L, Long.getLong("ami.entityIconFastBakeBudgetMs", 8L)) * 1_000_000L;
-    private static final long FRAME_RESET_INTERVAL_NANOS = 8_000_000L;
     private static final AmiClientWorkScheduler.Lane BAKE_LANE = AmiClientWorkScheduler.lane(
             "entityIconAtlasBake",
             new AdaptiveTickScheduler.Config(
@@ -69,8 +66,6 @@ public class EntityIconCache {
     private static long renderedBakeCount;
     private static long persistentLoadCount;
     private static long failedBakeCount;
-    private static long frameBudgetRemainingNanos = 0L;
-    private static long frameResetTimestamp = 0L;
     private static final ExecutorService PERSIST_EXECUTOR = Executors.newSingleThreadExecutor(task -> {
         Thread thread = new Thread(task, "AMI Entity Icon Atlas Writer");
         thread.setDaemon(true);
@@ -79,18 +74,6 @@ public class EntityIconCache {
     });
 
     private EntityIconCache() {
-    }
-
-    private static void refreshFrameBudget() {
-        long now = System.nanoTime();
-        if (now - frameResetTimestamp >= FRAME_RESET_INTERVAL_NANOS) {
-            frameBudgetRemainingNanos = PER_FRAME_FAST_BAKE_BUDGET_NANOS;
-            frameResetTimestamp = now;
-        }
-    }
-
-    static boolean isKnownSlow(ResourceLocation id) {
-        return EntityIconSlowKeys.isKnownSlow(id);
     }
 
     /**
@@ -108,31 +91,15 @@ public class EntityIconCache {
         Atlas atlas = atlas(size);
         EntityIconAtlasAllocator.AtlasEntry entry = atlas.entry(id);
         if (entry == null) {
-            refreshFrameBudget();
-            if (!EntityIconSlowKeys.isKnownSlow(id) && frameBudgetRemainingNanos > 0) {
-                long t0 = System.nanoTime();
-                bakeNow(new BakeTask(cacheKey, renderToFramebuffer, true));
-                long elapsed = System.nanoTime() - t0;
-                frameBudgetRemainingNanos = Math.max(0L, frameBudgetRemainingNanos - elapsed);
-                EntityIconSlowKeys.recordBakeElapsed(id, elapsed);
-                entry = atlas.entry(id);
+            if (!failedKeys.contains(cacheKey)) {
+                queueBake(cacheKey, renderToFramebuffer, true);
             }
-            if (entry == null) {
-                if (!failedKeys.contains(cacheKey)) {
-                    queueBake(cacheKey, renderToFramebuffer, true);
-                }
-                return false;
-            }
+            return false;
         }
 
-        RenderStateSnapshot state = RenderStateSnapshot.capture();
-        try {
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-            g.blit(atlas.textureKey(), x, y, entry.x(), entry.y(), size, size, ATLAS_SIZE, ATLAS_SIZE);
-        } finally {
-            state.restore();
-        }
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        g.blit(atlas.textureKey(), x, y, entry.x(), entry.y(), size, size, ATLAS_SIZE, ATLAS_SIZE);
         return true;
     }
 
@@ -173,6 +140,28 @@ public class EntityIconCache {
             if (System.nanoTime() - startedAt >= maxNanos) {
                 break;
             }
+        }
+        flushAtlasUploads();
+    }
+
+    /**
+     * Loads a cached icon from disk directly into the atlas without going through
+     * the framebuffer bake queue. Returns true if the icon was already in the atlas
+     * or was successfully loaded from persistent storage. Callers must call
+     * {@link #flushAtlasUploads()} after batching multiple hydration calls.
+     */
+    public static boolean tryHydratePersistent(ResourceLocation id, int size) {
+        CacheKey cacheKey = new CacheKey(id, size);
+        if (failedKeys.contains(cacheKey)) return false;
+        Atlas atlas = atlas(size);
+        if (atlas.entry(id) != null) return true;
+        return atlas.loadPersistent(id);
+    }
+
+    /** Uploads all dirty atlas textures to the GPU in a single batch. */
+    public static void flushAtlasUploads() {
+        for (Atlas atlas : atlases.values()) {
+            atlas.flushUploads();
         }
     }
 
@@ -343,8 +332,6 @@ public class EntityIconCache {
         persistentLoadCount = 0L;
         failedBakeCount = 0L;
         EntityIconSlowKeys.clear();
-        frameBudgetRemainingNanos = 0L;
-        frameResetTimestamp = 0L;
     }
 
     /**
@@ -572,6 +559,8 @@ public class EntityIconCache {
         private NativeImage image;
         private DynamicTexture texture;
 
+        private boolean dirty = false;
+
         private Atlas(int size, String fingerprint, EntityIconPersistentStore persistentStore, NativeImage image) {
             this.size = size;
             this.fingerprint = fingerprint;
@@ -638,11 +627,18 @@ public class EntityIconCache {
             }
 
             copyIconToAtlas(source, entry.x(), entry.y());
-            upload();
+            dirty = true;
             if (persist) {
                 persistentStore.enqueueWrite(id, size, source);
             }
             return entry;
+        }
+
+        void flushUploads() {
+            if (dirty) {
+                upload();
+                dirty = false;
+            }
         }
 
         private void registerTexture() {

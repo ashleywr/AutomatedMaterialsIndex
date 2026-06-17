@@ -3,7 +3,15 @@
   "id": "ami",
   "version": "${version}",
   "name": "Automated Materials Index",
+  "description": "Search, recipe browsing, and content indexing for large modded Minecraft packs.",
+  "authors": ["Ashley"],
+  "contact": {
+    "homepage": "https://github.com/ashleywr/AutomatedMaterialsIndex",
+    "sources": "https://github.com/ashleywr/AutomatedMaterialsIndex",
+    "issues": "https://github.com/ashleywr/AutomatedMaterialsIndex/issues"
+  },
   "license": "MIT",
+  "icon": "icon.png",
   "environment": "*",
   "accessWidener": "ami.accesswidener",
   "entrypoints": {

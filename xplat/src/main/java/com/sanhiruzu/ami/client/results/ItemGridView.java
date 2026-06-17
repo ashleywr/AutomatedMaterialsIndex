@@ -263,7 +263,6 @@ public class ItemGridView {
 
         g.enableScissor(x, contentY, x + width, y + height);
         try {
-
             try (AmiRenderProfiler.Section rowsSection = AmiRenderProfiler.section("grid.rows")) {
                 int drawY = contentY - pixelScrollOffset + topContentHeight;
                 for (VirtualRow row : rows) {
@@ -292,7 +291,7 @@ public class ItemGridView {
             g.disableScissor();
             clearGridCellSpriteRenderer();
             clearItemIconBatchRenderer();
-            clearPendingQueues();
+            clearPendingRenderQueues();
         }
 
         renderScrollbar(g, totalH, contentY, contentH, mouseX, mouseY);
@@ -307,7 +306,7 @@ public class ItemGridView {
                 ItemStack stackContext = (pendingTooltip != null) ? pendingTooltip : ItemStack.EMPTY;
                 AmiTooltipRenderer.render(g, font, stackContext, pendingTextTooltip, pendingTooltipImage, mouseX, mouseY);
             } else if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
-                AmiTooltipRenderer.render(g, font, pendingTooltip, mouseX, mouseY);
+                AmiTooltipRenderer.renderResultItemTooltip(g, font, pendingTooltip, hoveredNode, mouseX, mouseY);
             }
         }
     }
@@ -416,14 +415,19 @@ public class ItemGridView {
                 } else if (com.sanhiruzu.ami.client.AmiKeybindHandler.isDebugTooltipsActive()) {
                     pendingTextTooltip = AmiTooltipComposer.normalizeTooltipLines(DebugTooltip.build(entry));
                     pendingTooltipImage = Optional.empty();
+                } else if (entry.type() == com.sanhiruzu.ami.index.NodeType.ITEM) {
+                    pendingTooltip = resolveStack(entry);
+                    if (pendingTooltip != null && !pendingTooltip.isEmpty()) {
+                        pendingTextTooltip = null;
+                        pendingTooltipImage = Optional.empty();
+                    } else {
+                        pendingTextTooltip = AmiTooltipComposer.buildTooltip(entry);
+                        pendingTooltipImage = AmiTooltipComposer.getTooltipImage(entry);
+                    }
                 } else {
                     pendingTextTooltip = AmiTooltipComposer.buildTooltip(entry);
                     pendingTooltipImage = AmiTooltipComposer.getTooltipImage(entry);
-                    if (entry.type() == com.sanhiruzu.ami.index.NodeType.ITEM) {
-                        pendingTooltip = resolveStack(entry);
-                    } else {
-                        pendingTooltip = null;
-                    }
+                    pendingTooltip = null;
                 }
             }
 
@@ -487,6 +491,10 @@ public class ItemGridView {
     }
 
     private void clearPendingQueues() {
+        clearPendingRenderQueues();
+    }
+
+    private void clearPendingRenderQueues() {
         pendingDirectItemIconCount = 0;
         pendingRendererIconCount = 0;
         pendingIconOverlayCount = 0;
@@ -580,9 +588,16 @@ public class ItemGridView {
                 PendingItemIcon icon = pendingDirectItemIcons.get(i);
                 renderIconWithWiggle(g, icon.itemId, icon.stack, icon.x, icon.y, icon.hovered);
             }
-            for (int i = 0; i < pendingRendererIconCount; i++) {
-                PendingRendererIcon icon = pendingRendererIcons.get(i);
-                renderRendererWithWiggle(g, icon.entry, icon.x, icon.y, icon.hovered);
+            if (pendingRendererIconCount > 0) {
+                com.sanhiruzu.ami.client.icon.IconRenderState.begin3dBatch(g);
+                try {
+                    for (int i = 0; i < pendingRendererIconCount; i++) {
+                        PendingRendererIcon icon = pendingRendererIcons.get(i);
+                        renderRendererWithWiggle(g, icon.entry, icon.x, icon.y, icon.hovered);
+                    }
+                } finally {
+                    com.sanhiruzu.ami.client.icon.IconRenderState.end3dBatch(g);
+                }
             }
         }
     }
@@ -657,18 +672,18 @@ public class ItemGridView {
     private void renderRendererWithWiggle(GuiGraphics g, SearchNode entry, int x, int y, boolean hovered) {
         boolean playerModelRenderer = usesPlayerModelRenderer(entry);
         boolean needsCellClip = !hovered && (playerModelRenderer || needsRendererCellClip(entry.type()));
+        g.pose().pushPose();
         if (needsCellClip) {
             g.enableScissor(x, y, x + 16, y + 16);
         }
-        g.pose().pushPose();
-        g.pose().translate(x + 8, y + 8, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
-        if (cachedDragging || hovered) {
-            g.pose().scale(1.1f + cachedWiggle, 1.1f + cachedWiggle, 1.1f);
-            if (cachedDragging) {
-                g.pose().mulPose(com.mojang.math.Axis.ZP.rotationDegrees(cachedRotation));
-            }
-        }
         try {
+            g.pose().translate(x + 8, y + 8, com.sanhiruzu.ami.client.overlay.OverlayLayers.SCREEN);
+            if (cachedDragging || hovered) {
+                g.pose().scale(1.1f + cachedWiggle, 1.1f + cachedWiggle, 1.1f);
+                if (cachedDragging) {
+                    g.pose().mulPose(com.mojang.math.Axis.ZP.rotationDegrees(cachedRotation));
+                }
+            }
             var renderer = playerModelRenderer
                     ? com.sanhiruzu.ami.client.icon.RendererRegistry.PLAYER_MODEL
                     : com.sanhiruzu.ami.client.icon.RendererRegistry.get(entry.type());
