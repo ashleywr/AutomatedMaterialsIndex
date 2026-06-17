@@ -1,12 +1,14 @@
 package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.platform.Services;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.*;
 import net.minecraft.world.item.ItemUseAnimation;
+import net.minecraft.world.item.equipment.Equippable;
 import net.minecraft.world.level.block.ComposterBlock;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -411,6 +413,32 @@ public final class FacetIndexer {
                 }
             }
         });
+        // MC 1.21.4+ armor uses Equippable component instead of ArmorItem.getEquipmentSlot()
+        if (!hasAnyArmorSlotFacet(facets)) {
+            Equippable eq = stack.get(DataComponents.EQUIPPABLE);
+            if (eq != null && !isNonPlayerArmorItem(item, path)) {
+                facets.add(ItemFacet.EQUIPPABLE);
+                switch (eq.slot()) {
+                    case HEAD -> facets.add(ItemFacet.ARMOR_HEAD);
+                    case CHEST -> facets.add(ItemFacet.ARMOR_CHEST);
+                    case LEGS -> facets.add(ItemFacet.ARMOR_LEGS);
+                    case FEET -> facets.add(ItemFacet.ARMOR_FEET);
+                    case BODY -> {
+                        if (isAnimalArmorPath(path)) facets.add(ItemFacet.ARMOR_ANIMAL);
+                    }
+                    case OFFHAND -> facets.add(ItemFacet.UTILITY_MISC);
+                    default -> { }
+                }
+            }
+        }
+    }
+
+    private static boolean hasAnyArmorSlotFacet(EnumSet<ItemFacet> facets) {
+        return facets.contains(ItemFacet.ARMOR_HEAD)
+                || facets.contains(ItemFacet.ARMOR_CHEST)
+                || facets.contains(ItemFacet.ARMOR_LEGS)
+                || facets.contains(ItemFacet.ARMOR_FEET)
+                || facets.contains(ItemFacet.ARMOR_ANIMAL);
     }
 
     private static boolean isAnimalArmorPath(String path) {
@@ -624,7 +652,8 @@ public final class FacetIndexer {
             if (isCurioTag(tag)) {
                 facets.add(ItemFacet.CURIO);
             }
-            if (tag.endsWith(":melee_weapons") || tag.endsWith("/melee_weapons")) {
+            if (tag.endsWith(":melee_weapons") || tag.endsWith("/melee_weapons")
+                    || tag.endsWith(":melee_weapon") || tag.endsWith("/melee_weapon")) {
                 facets.add(ItemFacet.MELEE_WEAPON);
             }
             if (isMeleeToolTag(tag)) {
@@ -639,10 +668,11 @@ public final class FacetIndexer {
             if (isRangedWeaponTag(tag)) {
                 facets.add(ItemFacet.RANGED_WEAPON);
             }
-            if (tag.startsWith("c:armors/helmets")) facets.add(ItemFacet.ARMOR_HEAD);
-            if (tag.startsWith("c:armors/chestplates")) facets.add(ItemFacet.ARMOR_CHEST);
-            if (tag.startsWith("c:armors/leggings")) facets.add(ItemFacet.ARMOR_LEGS);
-            if (tag.startsWith("c:armors/boots")) facets.add(ItemFacet.ARMOR_FEET);
+            if (tag.startsWith("c:armors/helmets") || tag.equals("minecraft:head_armor")) facets.add(ItemFacet.ARMOR_HEAD);
+            if (tag.startsWith("c:armors/chestplates") || tag.equals("minecraft:chest_armor")) facets.add(ItemFacet.ARMOR_CHEST);
+            if (tag.startsWith("c:armors/leggings") || tag.equals("minecraft:leg_armor")) facets.add(ItemFacet.ARMOR_LEGS);
+            if (tag.startsWith("c:armors/boots") || tag.equals("minecraft:feet_armor")) facets.add(ItemFacet.ARMOR_FEET);
+            if (tag.equals("c:bricks") || tag.startsWith("c:bricks/")) facets.add(ItemFacet.INGREDIENT_MINERAL);
             if (tag.equals("minecraft:music_discs")
                     || tag.endsWith(":film_rolls")
                     || tag.endsWith(":developed_film_rolls")
@@ -784,7 +814,10 @@ public final class FacetIndexer {
                 || tag.endsWith(":tools/swords")
                 || tag.endsWith("/tools/swords")
                 || tag.endsWith(":weapons/swords")
-                || tag.endsWith("/weapons/swords");
+                || tag.endsWith("/weapons/swords")
+                || tag.equals("minecraft:swords")
+                || tag.startsWith("c:tools/melee_weapon")
+                || tag.startsWith("c:tools/melee_weapons");
     }
 
     private static boolean isUtilityToolTag(String tag) {

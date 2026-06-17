@@ -6,6 +6,8 @@ public final class DataComponents {
     public static final DataComponentType<Object> MAX_DAMAGE = new DataComponentType<>();
     public static final DataComponentType<Object> DAMAGE = new DataComponentType<>();
     public static final DataComponentType<Object> TOOL = new DataComponentType<>();
+    public static final DataComponentType<Object> WEAPON = new DataComponentType<>();
+    public static final DataComponentType<Object> EQUIPPABLE = new DataComponentType<>();
     public static final DataComponentType<Object> FOOD = new DataComponentType<>();
     public static final DataComponentType<Object> POTION_CONTENTS = new DataComponentType<>();
     public static final DataComponentType<Object> ENCHANTMENTS = new DataComponentType<>();

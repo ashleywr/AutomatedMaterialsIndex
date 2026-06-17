@@ -3,12 +3,10 @@ package com.sanhiruzu.ami.client.icon;
 import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.client.AMITheme;
 import com.sanhiruzu.ami.client.EntityIconCache;
-import com.sanhiruzu.ami.client.EntityIconWarmupMetrics;
 import com.sanhiruzu.ami.client.tooltip.CompositeTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.HeartBarTooltipComponent;
 import com.sanhiruzu.ami.client.tooltip.StatIconRowTooltipComponent;
 import com.sanhiruzu.ami.index.GlobalIndex;
-import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
@@ -29,23 +27,11 @@ import net.minecraft.world.item.Items;
 import java.util.*;
 
 /**
- * Renders 3D mob miniatures using InventoryScreen.renderEntityInInventory.
- * Falls back to FallbackTextRenderer at small sizes (< 12px) where 3D rendering
- * is imperceptible and expensive.
+ * Entity icon renderer: spawn egg item icon by default, spinning 3D entity on hover.
+ * Falls back to FallbackTextRenderer at small sizes (< 12px).
  */
 public class EntityIconRenderer implements IIconRenderer {
 
-    private static final boolean ENTITY_ICON_ATLAS_ENABLED =
-            Boolean.parseBoolean(System.getProperty("ami.entityIconAtlas", "true"));
-    private static final boolean ENTITY_ICON_ATLAS_WARMUP_ENABLED =
-            Boolean.parseBoolean(System.getProperty("ami.entityIconAtlasWarmup", "true"));
-    private static final int ENTITY_ICON_ATLAS_WARMUP_PER_TICK =
-            Math.max(0, Integer.getInteger("ami.entityIconAtlasWarmupPerTick", 8));
-    private static final int ENTITY_ICON_ATLAS_BAKE_PER_TICK =
-            Math.max(0, Integer.getInteger("ami.entityIconAtlasBakePerTick", 4));
-    private static final long ENTITY_ICON_ATLAS_BAKE_BUDGET_NANOS =
-            Math.max(1L, Long.getLong("ami.entityIconAtlasBakeBudgetMs", 8L)) * 1_000_000L;
-    private static final int ENTITY_ICON_ATLAS_WARMUP_SIZE = 16;
     private static final int MAX_ENTITY_INSTANCE_CACHE =
             Math.max(16, Integer.getInteger("ami.entityIconEntityCacheLimit", 128));
     private static final Map<Identifier, LivingEntity> entityCache = new LinkedHashMap<>(MAX_ENTITY_INSTANCE_CACHE, 0.75f, true) {
@@ -55,13 +41,6 @@ public class EntityIconRenderer implements IIconRenderer {
         }
     };
     private static final Set<Identifier> failedRenderers = new HashSet<>();
-    private static List<SearchNode> warmupQueue = List.of();
-    private static long warmupRevision = -1L;
-    private static int warmupIndex = 0;
-
-    private static void renderStaticEntity(GuiGraphicsExtractor g, int x, int y, int size, int scale, LivingEntity entity) {
-        renderEntityWithRotation(g, x, y, size, scale, entity, EntityFacingConstants.STATIC_ENTITY_Y_ROT);
-    }
 
     private static void renderSpinningEntity(GuiGraphicsExtractor g, int x, int y, int size, int scale, LivingEntity entity) {
         float spinDeg = (System.currentTimeMillis() % 3000L) / 3000.0f * 360.0f;
@@ -72,15 +51,21 @@ public class EntityIconRenderer implements IIconRenderer {
         float entityScale = entity.getScale();
         float renderScale = scale / entityScale;
         float xAngle = (yRot - 180.0f) / 20.0f;
-        float offsetY = entity.getBbHeight() / 2.0f;
-        g.pose().pushMatrix();
-        try {
-            IconRenderState.render3dIcon(g, () ->
-                    InventoryScreen.renderEntityInInventoryFollowsAngle(g, x, y, x + size, y + size, (int) renderScale, offsetY, xAngle, 0.0f, entity)
-            );
-        } finally {
-            g.pose().popMatrix();
-        }
+        float offsetY = 0.0f;
+        // GuiGraphicsExtractor.entity() (1.21.5 PIP system) stores x0/y0/x1/y1 as screen-absolute
+        // GUI coordinates, unlike fill/blit which capture and apply the 2D pose. The caller pushes
+        // translate(cellCenterX, cellCenterY) before calling render(-8,-8,16,...), so we must
+        // apply the current pose to the pose-relative bounds before passing them to the PIP call.
+        org.joml.Matrix3x2f pose = g.pose();
+        float sx0 = pose.m00 * x + pose.m10 * y + pose.m20;
+        float sy0 = pose.m01 * x + pose.m11 * y + pose.m21;
+        float sx1 = pose.m00 * (x + size) + pose.m10 * (y + size) + pose.m20;
+        float sy1 = pose.m01 * (x + size) + pose.m11 * (y + size) + pose.m21;
+        int ix0 = (int) Math.min(sx0, sx1);
+        int iy0 = (int) Math.min(sy0, sy1);
+        int ix1 = (int) Math.ceil(Math.max(sx0, sx1));
+        int iy1 = (int) Math.ceil(Math.max(sy0, sy1));
+        InventoryScreen.renderEntityInInventoryFollowsAngle(g, ix0, iy0, ix1, iy1, (int) renderScale, offsetY, xAngle, 0.0f, entity);
     }
 
     private static LivingEntity resolveEntity(Identifier id) {
@@ -178,74 +163,8 @@ public class EntityIconRenderer implements IIconRenderer {
     }
 
     public static void tickAtlasWarmup() {
-        if (!ENTITY_ICON_ATLAS_ENABLED) {
-            return;
-        }
-
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || mc.player == null) {
-            return;
-        }
-
-        if (AmiIndexerService.getInstance().isBusy()) {
-            return;
-        }
-
-        if (ENTITY_ICON_ATLAS_BAKE_PER_TICK > 0) {
-            EntityIconCache.processPendingBakesAdaptive(ENTITY_ICON_ATLAS_BAKE_PER_TICK,
-                    ENTITY_ICON_ATLAS_BAKE_BUDGET_NANOS);
-        }
-
-        if (!ENTITY_ICON_ATLAS_WARMUP_ENABLED || ENTITY_ICON_ATLAS_WARMUP_PER_TICK <= 0
-                || !GlobalIndex.getInstance().isIndexReady()) {
-            return;
-        }
-
-        long revision = GlobalIndex.getInstance().revision();
-        if (revision != warmupRevision) {
-            warmupRevision = revision;
-            warmupQueue = GlobalIndex.getInstance().getNodes(NodeType.ENTITY).stream()
-                    .filter(node -> !EntityIconTooltipSupport.isPokemonSpecies(node))
-                    .toList();
-            warmupIndex = 0;
-            EntityIconWarmupMetrics.reset(revision, warmupQueue.size());
-        }
-
-        int warmed = 0;
-        while (warmupIndex < warmupQueue.size() && warmed < ENTITY_ICON_ATLAS_WARMUP_PER_TICK) {
-            SearchNode node = warmupQueue.get(warmupIndex);
-            LivingEntity entity = resolveEntity(node.id());
-            if (entity == null || failedRenderers.contains(node.id())) {
-                warmupIndex++;
-                EntityIconWarmupMetrics.recordSkipped();
-                continue;
-            }
-
-            float maxBounds = Math.max(entity.getBbHeight(), entity.getBbWidth());
-            int scale = Math.max(1, (int) Math.min(
-                    ENTITY_ICON_ATLAS_WARMUP_SIZE - 4,
-                    (ENTITY_ICON_ATLAS_WARMUP_SIZE - 2) / maxBounds));
-            try {
-                EntityIconCache.BakeRequestResult result = EntityIconCache.warmCached(node.id(), ENTITY_ICON_ATLAS_WARMUP_SIZE,
-                        cacheG -> renderStaticEntity(cacheG, 0, 0, ENTITY_ICON_ATLAS_WARMUP_SIZE, scale, entity));
-                if (result == EntityIconCache.BakeRequestResult.QUEUE_FULL) {
-                    break;
-                }
-                warmupIndex++;
-                if (result == EntityIconCache.BakeRequestResult.FAILED) {
-                    EntityIconWarmupMetrics.recordSkipped();
-                    continue;
-                }
-                EntityIconWarmupMetrics.recordQueuedOrCached();
-            } catch (RuntimeException e) {
-                warmupIndex++;
-                if (failedRenderers.add(node.id())) {
-                    AmiCore.LOGGER.warn("AMI: disabling entity icon renderer for {} after warmup failure", node.id(), e);
-                }
-                EntityIconWarmupMetrics.recordRenderFailure();
-            }
-            warmed++;
-        }
+        // Entity icon default view now uses spawn egg item icons rather than atlas-baked
+        // 3D renders, so atlas warmup is not needed. No-op until atlas baking is re-enabled.
     }
 
     @Override
@@ -260,8 +179,15 @@ public class EntityIconRenderer implements IIconRenderer {
             return;
         }
 
+        if (!hovered) {
+            // Default: show spawn egg item icon (fast, no 3D PIP rendering).
+            EntityIconFallbacks.renderFailure(g, node.id(), x, y, size);
+            return;
+        }
+
+        // Hovered: show spinning live 3D entity render.
         LivingEntity entity = resolveEntity(node.id());
-        if (entity == null) {
+        if (entity == null || failedRenderers.contains(node.id())) {
             EntityIconFallbacks.renderFailure(g, node.id(), x, y, size);
             return;
         }
@@ -269,28 +195,7 @@ public class EntityIconRenderer implements IIconRenderer {
         float maxBounds = Math.max(entity.getBbHeight(), entity.getBbWidth());
         int scale = Math.max(1, (int) Math.min(size - 4, (size - 2) / maxBounds));
 
-        if (failedRenderers.contains(node.id())) {
-            EntityIconFallbacks.renderFailure(g, node.id(), x, y, size);
-            return;
-        }
-
         try {
-            if (!hovered) {
-                if (ENTITY_ICON_ATLAS_ENABLED) {
-                    if (EntityIconCache.blitCached(g, node.id(), size, x, y,
-                        cacheG -> renderStaticEntity(cacheG, 0, 0, size, scale, entity))) {
-                        return;
-                    }
-                    if (EntityIconCache.isFailed(node.id(), size)) {
-                        EntityIconFallbacks.renderFailure(g, node.id(), x, y, size);
-                        return;
-                    }
-                    // Cache miss: atlas bake pending — fall through to live render
-                }
-                renderStaticEntity(g, x, y, size, scale, entity);
-                return;
-            }
-
             renderSpinningEntity(g, x, y, size, scale, entity);
         } catch (RuntimeException e) {
             if (failedRenderers.add(node.id())) {
@@ -349,9 +254,6 @@ public class EntityIconRenderer implements IIconRenderer {
         entityCache.clear();
         EntityIconFallbacks.clear();
         failedRenderers.clear();
-        warmupQueue = List.of();
-        warmupRevision = -1L;
-        warmupIndex = 0;
         EntityIconCache.invalidate();
         CobblemonPokemonIconRenderer.invalidate();
     }

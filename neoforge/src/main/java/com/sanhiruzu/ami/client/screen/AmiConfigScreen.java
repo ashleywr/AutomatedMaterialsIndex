@@ -660,7 +660,6 @@ public class AmiConfigScreen extends Screen {
             super(mc, width, height, top, itemHeight);
         }
 
-        @Override
         protected int scrollBarX() {
             return this.getX() + this.width - 4;
         }
@@ -769,7 +768,6 @@ public class AmiConfigScreen extends Screen {
             return Math.min(320, this.width - 25);
         }
 
-        @Override
         protected int scrollBarX() {
             return AmiConfigScreen.this.listX + this.width - 6;
         }

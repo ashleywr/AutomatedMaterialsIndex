@@ -2,6 +2,21 @@
 
 User-facing changes are recorded here.
 
+## Unreleased
+
+Current branch work for the NeoForge/Minecraft `26.1.2` update.
+
+### Changed
+
+- Updated NeoForge data-generation runs to use the current `clientData` and `serverData` entry points expected by the `26.1.2` toolchain.
+- Updated NeoForge overlay/container access, player/entity preview rendering, and config dropdown input handling for `26.1.2` screen, pose, and widget API changes.
+
+### Fixed
+
+- Fixed inventory overlay positioning and AMI-owned tooltip submission on `26.1.2` container screens so overlays still render in the correct screen-space layer after the deferred-tooltip pipeline changes.
+- Fixed item fluid-capacity probing to fail closed when a capability throws, with focused regression coverage for the shared positive-sum helper.
+- Fixed classification for `26.1.2` item metadata changes, including Equippable-based armor, component/tag-based swords, `c:bricks` ingredients, and `c:drinks/magic` items such as ominous bottles.
+
 ## 1.6.0 - 2026-06-13
 
 AMI 1.6.0 adds advancement search, expands document-result controls, and improves large-modpack entity icon performance and release profiling.

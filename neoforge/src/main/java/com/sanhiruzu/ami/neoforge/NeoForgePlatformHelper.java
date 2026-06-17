@@ -54,6 +54,7 @@ import org.objectweb.asm.Type;
 
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.IntToLongFunction;
 import java.util.stream.StreamSupport;
 
 public class NeoForgePlatformHelper implements IPlatformHelper {
@@ -107,6 +108,21 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
             };
         }
     };
+
+    static OptionalLong sumPositiveLongs(int slots, IntToLongFunction reader) {
+        if (slots <= 0) {
+            return OptionalLong.empty();
+        }
+        try {
+            long total = 0L;
+            for (int index = 0; index < slots; index++) {
+                total += Math.max(0L, reader.applyAsLong(index));
+            }
+            return total > 0L ? OptionalLong.of(total) : OptionalLong.empty();
+        } catch (RuntimeException | LinkageError ignored) {
+            return OptionalLong.empty();
+        }
+    }
 
     private static ItemAttributeKind attackAttributeKind(Holder<Attribute> attribute) {
         if (sameAttribute(attribute, Attributes.ATTACK_DAMAGE)) return ItemAttributeKind.ATTACK_DAMAGE;
@@ -229,17 +245,37 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
 
     @Override
     public Slot getHoveredSlot(AbstractContainerScreen<?> screen) {
-        return screen.getSlotUnderMouse();
+        return containerFieldSlot(screen, "hoveredSlot");
     }
 
     @Override
     public int getGuiLeft(AbstractContainerScreen<?> screen) {
-        return screen.getGuiLeft();
+        return containerFieldInt(screen, "leftPos");
     }
 
     @Override
     public int getGuiTop(AbstractContainerScreen<?> screen) {
-        return screen.getGuiTop();
+        return containerFieldInt(screen, "topPos");
+    }
+
+    private static int containerFieldInt(AbstractContainerScreen<?> screen, String name) {
+        try {
+            java.lang.reflect.Field f = AbstractContainerScreen.class.getDeclaredField(name);
+            f.setAccessible(true);
+            return f.getInt(screen);
+        } catch (ReflectiveOperationException e) {
+            return 0;
+        }
+    }
+
+    private static Slot containerFieldSlot(AbstractContainerScreen<?> screen, String name) {
+        try {
+            java.lang.reflect.Field f = AbstractContainerScreen.class.getDeclaredField(name);
+            f.setAccessible(true);
+            return (Slot) f.get(screen);
+        } catch (ReflectiveOperationException e) {
+            return null;
+        }
     }
 
     @Override
@@ -304,22 +340,16 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
 
         static OptionalLong getItemFluidCapacity(ItemStack stack) {
             ResourceHandler<FluidResource> handler = Capabilities.Fluid.ITEM.getCapability(stack, null);
-            if (handler == null || handler.size() <= 0) return OptionalLong.empty();
-            long capacity = 0L;
-            for (int tank = 0; tank < handler.size(); tank++) {
-                capacity += Math.max(0, handler.getCapacityAsLong(tank, FluidResource.EMPTY));
-            }
-            return capacity > 0 ? OptionalLong.of(capacity) : OptionalLong.empty();
+            return handler == null
+                    ? OptionalLong.empty()
+                    : sumPositiveLongs(handler.size(), tank -> handler.getCapacityAsLong(tank, FluidResource.EMPTY));
         }
 
         static OptionalLong getItemFluidAmount(ItemStack stack) {
             ResourceHandler<FluidResource> handler = Capabilities.Fluid.ITEM.getCapability(stack, null);
-            if (handler == null || handler.size() <= 0) return OptionalLong.empty();
-            long amount = 0L;
-            for (int tank = 0; tank < handler.size(); tank++) {
-                amount += Math.max(0, handler.getAmountAsLong(tank));
-            }
-            return amount > 0 ? OptionalLong.of(amount) : OptionalLong.empty();
+            return handler == null
+                    ? OptionalLong.empty()
+                    : sumPositiveLongs(handler.size(), handler::getAmountAsLong);
         }
 
         static OptionalLong getItemHandlerCapacity(ItemStack stack) {

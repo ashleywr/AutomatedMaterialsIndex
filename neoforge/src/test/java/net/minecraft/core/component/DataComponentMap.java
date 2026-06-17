@@ -5,6 +5,10 @@ import java.util.Set;
 public interface DataComponentMap {
     boolean has(DataComponentType<?> component);
 
+    default <T> T get(DataComponentType<T> component) {
+        return null;
+    }
+
     final class Impl implements DataComponentMap {
         private final Set<Object> components;
 

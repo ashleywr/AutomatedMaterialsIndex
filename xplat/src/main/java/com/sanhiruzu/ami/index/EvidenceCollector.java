@@ -291,6 +291,9 @@ final class EvidenceCollector {
         if (hasTrustedTag(tags, "c:foods") || hasTrustedTag(tags, "forge:foods")) {
             evidence.add(e("tag.foods", "trusted_tag", "nature", "snacks", 70, "c/forge foods tag"));
         }
+        if (hasTrustedTag(tags, "c:drinks/magic")) {
+            evidence.add(e("tag.magic_drink", "trusted_tag", "magic", "potions", 120, "c drinks/magic tag"));
+        }
         if (hasTrustedTag(tags, "c:seeds") || hasTrustedTag(tags, "forge:seeds")) {
             evidence.add(e("tag.seeds", "trusted_tag", "nature", "seeds", 80, "c/forge seeds tag"));
         }

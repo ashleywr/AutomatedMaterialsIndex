@@ -43,7 +43,7 @@
 {"id":"minecraft:charcoal","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"charcoal is a mineral/organic ingredient; INGREDIENT_MINERAL facet replaces DUST"}
 {"id":"minecraft:rose_bush","category":"nature","subcategory":"flora","confidence":"certain","notes":"Tall flower (TallFlowerBlock): flower facet should beat the _bush path heuristic in isCropLikePlaceable"}
 {"id":"minecraft:golden_carrot","category":"nature","subcategory":"snacks","confidence":"certain","notes":"Crafted food (carrot+gold): not a farmable crop; CROP facet came from isProduceFoodTag c:foods/vegetable which was too broad"}
-{"id":"minecraft:ominous_bottle/variant/ominous_bottle_75a9abdfd088","category":"utility","subcategory":"misc","confidence":"certain","notes":"Bad-omen effect item; c:drinks/ominous tag marks it non-nutritional; utility/misc should beat EDIBLE"}
+{"id":"minecraft:ominous_bottle/variant/ominous_bottle_75a9abdfd088","category":"magic","subcategory":"potions","confidence":"certain","notes":"Ominous bottle has c:foods tag causing false food score; c:drinks/magic now scores magic/potions at 120 (beats food 115)"}
 {"id":"minecraft:candle","category":"decoration","subcategory":"lighting","confidence":"certain","notes":"plain candle is the root of the colorized candle family; should share collapseFamily with colored candles"}
 {"id":"minecraft:oak_sign","category":"decoration","subcategory":"furniture","confidence":"certain","notes":"flammable-wood sign; fuel rule removed, DECORATIVE_BLOCK facet routes to decoration/furniture"}
 {"id":"minecraft:bamboo_sign","category":"decoration","subcategory":"furniture","confidence":"certain","notes":"flammable-wood sign; same fix as oak_sign"}
@@ -66,3 +66,14 @@
 {"id":"minecraft:netherite_scrap","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"path match now also sets INGREDIENT_MINERAL alongside RAW_MATERIAL"}
 {"id":"minecraft:gold_nugget","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"c:nuggets tag now also sets INGREDIENT_MINERAL"}
 {"id":"minecraft:iron_nugget","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"c:nuggets tag"}
+{"id":"minecraft:resin_brick","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"c:bricks tag check in applyTagFacts now assigns INGREDIENT_MINERAL; resin_brick was falling through to fallback:unknown in 26.1.2"}
+{"id":"minecraft:copper_helmet","category":"armor","subcategory":"head","confidence":"certain","notes":"MC 1.21.5 armor items use Equippable component not ArmorItem; added DataComponents.EQUIPPABLE fallback + minecraft:head_armor tag in applyTagFacts"}
+{"id":"minecraft:iron_helmet","category":"armor","subcategory":"head","confidence":"certain","notes":"MC 1.21.5: Equippable component fix"}
+{"id":"minecraft:diamond_helmet","category":"armor","subcategory":"head","confidence":"certain","notes":"MC 1.21.5: Equippable component fix"}
+{"id":"minecraft:turtle_helmet","category":"armor","subcategory":"head","confidence":"certain","notes":"MC 1.21.5: Equippable component fix"}
+{"id":"minecraft:chainmail_chestplate","category":"armor","subcategory":"chest","confidence":"certain","notes":"MC 1.21.5: Equippable component fix"}
+{"id":"minecraft:iron_leggings","category":"armor","subcategory":"legs","confidence":"certain","notes":"MC 1.21.5: Equippable component fix"}
+{"id":"minecraft:diamond_boots","category":"armor","subcategory":"feet","confidence":"certain","notes":"MC 1.21.5: Equippable component fix"}
+{"id":"minecraft:copper_sword","category":"tools","subcategory":"melee","confidence":"certain","notes":"MC 1.21.5 swords are plain Item with WEAPON component, not SwordItem; added minecraft:swords and c:tools/melee_weapon to isMeleeToolTag"}
+{"id":"minecraft:iron_sword","category":"tools","subcategory":"melee","confidence":"certain","notes":"MC 1.21.5 swords: WEAPON component not SwordItem"}
+{"id":"minecraft:diamond_sword","category":"tools","subcategory":"melee","confidence":"certain","notes":"MC 1.21.5 swords: WEAPON component not SwordItem"}

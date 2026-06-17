@@ -254,7 +254,14 @@ public class InventoryOverlayHandler {
         // Undo the container's leftPos/topPos translation so AMI renders in screen space,
         // matching the Render.Post coordinate space its layouts are computed in.
         g.pose().pushMatrix();
-        g.pose().translate(-screen.getGuiLeft(), -screen.getGuiTop());
+        int leftPos, topPos;
+        try {
+            leftPos = reflectedContainerInt(screen, "leftPos");
+            topPos  = reflectedContainerInt(screen, "topPos");
+        } catch (ReflectiveOperationException e) {
+            leftPos = topPos = 0;
+        }
+        g.pose().translate(-leftPos, -topPos);
         manager.renderBase(g, amiMouseX, amiMouseY, lastContainerPartialTick);
         g.pose().popMatrix();
         frameBaseRendered = true;
@@ -265,19 +272,30 @@ public class InventoryOverlayHandler {
         net.minecraft.client.gui.screens.Screen screen = event.getScreen();
         if (!isAmiScreen(screen)) return;
 
+        net.minecraft.client.gui.GuiGraphicsExtractor graphics = event.getGuiGraphics();
         if (isContainerScreen(screen)) {
             // Durable body already drew in the foreground; only AMI-owned transient UI here.
             if (!frameBaseRendered || currentLayer != VisibleLayer.AMI) return;
             int amiMouseX = frameStatusEffectsHovered ? Integer.MIN_VALUE : event.getMouseX();
             int amiMouseY = frameStatusEffectsHovered ? Integer.MIN_VALUE : event.getMouseY();
-            manager.renderTopLayer(event.getGuiGraphics(), amiMouseX, amiMouseY);
+            manager.renderTopLayer(graphics, amiMouseX, amiMouseY);
         } else if (isRecipeScreen(screen)) {
             // AMI owns recipe/custom screens: render base + top together. External recipe viewers
             // (JEI/EMI) draw their own tooltip during their render(), which AMI's base would cover,
             // so AMI re-hosts the captured external tooltip on top.
-            renderOverlayFrame(screen, event.getGuiGraphics(), event.getMouseX(), event.getMouseY(), event.getPartialTick());
-            renderPendingExternalTooltip(event.getGuiGraphics());
+            renderOverlayFrame(screen, graphics, event.getMouseX(), event.getMouseY(), event.getPartialTick());
+            renderPendingExternalTooltip(graphics);
+        } else {
+            return;
         }
+
+        // MC 26.1.2: Screen.extractRenderStateWithTooltipAndSubtitles() flushes deferred GUI
+        // elements (tooltips) via GuiGraphics.extractDeferredElements() BEFORE ScreenEvent.Render.Post
+        // fires (see ClientHooks.drawScreenInternal). AMI sets its tooltips here in Render.Post via
+        // setTooltipForNextFrame, so they miss that flush and never draw. Flush again now so AMI-owned
+        // tooltips are submitted this frame. Vanilla's deferred tooltip was already consumed (nulled)
+        // by the first flush, so this only emits AMI's pending tooltip.
+        graphics.extractDeferredElements(event.getMouseX(), event.getMouseY(), event.getPartialTick());
     }
 
     @SubscribeEvent

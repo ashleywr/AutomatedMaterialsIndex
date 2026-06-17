@@ -60,6 +60,10 @@ public class ItemStack {
         return item != null && item.components().has(component);
     }
 
+    public <T> T get(DataComponentType<T> component) {
+        return item != null ? item.components().get(component) : null;
+    }
+
     public boolean is(TagKey<Item> tag) {
         return item != null && item.builtInRegistryHolder().is(tag);
     }

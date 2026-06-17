@@ -251,8 +251,8 @@ public class OverlayWidgetManager {
         int panelY = PANEL_MARGIN_V + (usableH - panelH) / 2;
         int panelBottom = panelY + panelH;
 
-        int containerLeftEdge = containerScreen.getGuiLeft();
-        int containerRightEdge = containerScreen.getGuiLeft() + containerScreen.getXSize();
+        int containerLeftEdge = containerFieldInt(containerScreen, "leftPos");
+        int containerRightEdge = containerLeftEdge + containerFieldInt(containerScreen, "imageWidth");
 
         int recipeBookW = computeRecipeBookWidth(containerScreen, screenW);
         int adjustedContainerLeftEdge = containerLeftEdge - recipeBookW;
@@ -712,10 +712,10 @@ public class OverlayWidgetManager {
         int guiHeight = -1;
         RecipeViewerBridge.RecipeViewerBounds viewerBounds = RecipeViewerBridge.getActiveRecipeViewerBounds();
         if (screen instanceof AbstractContainerScreen<?> containerScreen) {
-            guiLeft = containerScreen.getGuiLeft();
-            guiTop = containerScreen.getGuiTop();
-            guiWidth = containerScreen.getXSize();
-            guiHeight = containerScreen.getYSize();
+            guiLeft   = containerFieldInt(containerScreen, "leftPos");
+            guiTop    = containerFieldInt(containerScreen, "topPos");
+            guiWidth  = containerFieldInt(containerScreen, "imageWidth");
+            guiHeight = containerFieldInt(containerScreen, "imageHeight");
         }
         return Objects.hash(
                 System.identityHashCode(screen),
@@ -1965,6 +1965,16 @@ public class OverlayWidgetManager {
 
         AbstractWidget visibleWidget() {
             return activeWidget();
+        }
+    }
+
+    private static int containerFieldInt(AbstractContainerScreen<?> screen, String name) {
+        try {
+            java.lang.reflect.Field f = AbstractContainerScreen.class.getDeclaredField(name);
+            f.setAccessible(true);
+            return f.getInt(screen);
+        } catch (ReflectiveOperationException e) {
+            return 0;
         }
     }
 }

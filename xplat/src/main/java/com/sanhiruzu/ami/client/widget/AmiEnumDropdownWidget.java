@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 import java.lang.reflect.Field;
@@ -99,6 +100,11 @@ public class AmiEnumDropdownWidget extends AbstractWidget implements AmiDropdown
         int textY = getY() + (height - font.lineHeight) / 2 + 1;
         g.text(font, text, getX() + 4, textY, active ? AMITheme.CONFIG_TEXT_PRIMARY : AMITheme.CONFIG_TEXT_MUTED, false);
         g.text(font, open ? "^" : "v", getX() + width - arrowW - 4, textY, AMITheme.CONFIG_TEXT_SECONDARY, false);
+    }
+
+    @Override
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        return mouseClicked(event.x(), event.y(), event.button());
     }
 
     @Override

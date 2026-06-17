@@ -61,8 +61,16 @@ neoForge {
             systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
         }
 
-        data {
-            data()
+        clientData {
+            clientData()
+            gameDirectory = runDirectory('neoforge-data')
+            programArguments.addAll '--mod', mod_id, '--all',
+                    '--output', file('src/generated/resources/').absolutePath,
+                    '--existing', xplatProject.file('src/main/resources/').absolutePath
+        }
+
+        serverData {
+            serverData()
             gameDirectory = runDirectory('neoforge-data')
             programArguments.addAll '--mod', mod_id, '--all',
                     '--output', file('src/generated/resources/').absolutePath,

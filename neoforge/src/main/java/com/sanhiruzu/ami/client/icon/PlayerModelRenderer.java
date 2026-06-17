@@ -66,15 +66,17 @@ public class PlayerModelRenderer implements IIconRenderer {
     private static void renderPlayer(GuiGraphicsExtractor g, int x, int y, int size, RemotePlayer player, float yRot) {
         float renderScale = Math.max(1.0f, (size - 2.0f) / Math.max(0.1f, player.getBbHeight()));
         float xAngle = (yRot - 180.0f) / 20.0f;
-        float offsetY = player.getBbHeight() / 2.0f;
-        g.pose().pushMatrix();
-        try {
-            IconRenderState.render3dIcon(g, () ->
-                    InventoryScreen.renderEntityInInventoryFollowsAngle(g, x, y, x + size, y + size, (int) renderScale, offsetY, xAngle, 0.0f, player)
-            );
-        } finally {
-            g.pose().popMatrix();
-        }
+        float offsetY = 0.0f;
+        org.joml.Matrix3x2f pose = g.pose();
+        float sx0 = pose.m00 * x + pose.m10 * y + pose.m20;
+        float sy0 = pose.m01 * x + pose.m11 * y + pose.m21;
+        float sx1 = pose.m00 * (x + size) + pose.m10 * (y + size) + pose.m20;
+        float sy1 = pose.m01 * (x + size) + pose.m11 * (y + size) + pose.m21;
+        int ix0 = (int) Math.min(sx0, sx1);
+        int iy0 = (int) Math.min(sy0, sy1);
+        int ix1 = (int) Math.ceil(Math.max(sx0, sx1));
+        int iy1 = (int) Math.ceil(Math.max(sy0, sy1));
+        InventoryScreen.renderEntityInInventoryFollowsAngle(g, ix0, iy0, ix1, iy1, (int) renderScale, offsetY, xAngle, 0.0f, player);
     }
 
     @Override
