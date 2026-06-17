@@ -323,8 +323,30 @@ tasks.register('deployPrismCompatJars') {
 tasks.register('verifyReleaseArtifacts') {
     group = 'verification'
     description = 'Builds and verifies release artifacts before publishing.'
+    dependsOn ':fabric:build'
     dependsOn ':forge:verifyForgeReleaseJarReobfuscated'
+    dependsOn ':neoforge:build'
     dependsOn 'test'
+
+    def fabricReleaseJar = project(':fabric').layout.buildDirectory.file(
+            "libs/${mod_id}-fabric-${fabric_minecraft_version}-${amiEffectiveModVersion}.jar"
+    )
+    def forgeReleaseJar = project(':forge').layout.buildDirectory.file(
+            "release/${mod_id}-forge-${forge_minecraft_version}-${amiEffectiveModVersion}.jar"
+    )
+    def neoforgeReleaseJar = project(':neoforge').layout.buildDirectory.file(
+            "libs/${mod_id}-neoforge-${neoforge_minecraft_version}-${amiEffectiveModVersion}.jar"
+    )
+    inputs.files(fabricReleaseJar, forgeReleaseJar, neoforgeReleaseJar)
+
+    doLast {
+        [fabricReleaseJar, forgeReleaseJar, neoforgeReleaseJar].each { jarProvider ->
+            def jar = jarProvider.get().asFile
+            if (!jar.isFile()) {
+                throw new GradleException("Missing release artifact: ${jar}")
+            }
+        }
+    }
 }
 
 ext.synesthesiaLocalModKey = 'ami'

@@ -75,6 +75,9 @@ jobs:
       - name: Build NeoForge
         run: ./gradlew :neoforge:build
 
+      - name: Build Fabric
+        run: ./gradlew :fabric:build
+
       - name: Build Forge
         run: ./gradlew :forge:build
 
@@ -86,6 +89,11 @@ jobs:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
         run: ./gradlew --no-configuration-cache :neoforge:modrinth
 
+      - name: Publish Fabric to Modrinth
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: ./gradlew --no-configuration-cache :fabric:modrinth
+
       - name: Publish Forge to Modrinth
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
@@ -95,6 +103,11 @@ jobs:
         env:
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
         run: ./gradlew --no-configuration-cache :neoforge:curseforge
+
+      - name: Publish Fabric to CurseForge
+        env:
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+        run: ./gradlew --no-configuration-cache :fabric:curseforge
 
       - name: Publish Forge to CurseForge
         env:
@@ -112,6 +125,7 @@ jobs:
               --title "AMI ${{ steps.version.outputs.mod_version }}" \
               --notes-file release-notes.md
             gh release upload "$tag" --clobber \
+              "fabric/build/libs/ami-fabric-1.21.1-${{ steps.version.outputs.mod_version }}.jar" \
               "neoforge/build/libs/ami-neoforge-1.21.1-${{ steps.version.outputs.mod_version }}.jar" \
               "forge/build/release/ami-forge-1.20.1-${{ steps.version.outputs.mod_version }}.jar"
           else
@@ -119,6 +133,7 @@ jobs:
               --target "$GITHUB_SHA" \
               --title "AMI ${{ steps.version.outputs.mod_version }}" \
               --notes-file release-notes.md \
+              "fabric/build/libs/ami-fabric-1.21.1-${{ steps.version.outputs.mod_version }}.jar" \
               "neoforge/build/libs/ami-neoforge-1.21.1-${{ steps.version.outputs.mod_version }}.jar" \
               "forge/build/release/ami-forge-1.20.1-${{ steps.version.outputs.mod_version }}.jar"
           fi

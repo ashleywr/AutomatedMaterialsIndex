@@ -13,6 +13,8 @@ base {
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 def xplatProject = project(':xplat')
+def amiDebugBuild = providers.gradleProperty('ami_debug_build').map { it.toBoolean() }.getOrElse(false)
+def amiEffectiveModVersion = amiDebugBuild ? "${mod_version}-debug" : mod_version
 
 sourceSets {
     main {
@@ -44,6 +46,12 @@ loom {
 // of failing — mirrors how the root build.gradle handles its Prism deploy tasks.
 tasks.withType(net.fabricmc.loom.task.RunGameTask).configureEach {
     notCompatibleWithConfigurationCache('Fabric Loom run tasks are not configuration-cache compatible')
+}
+tasks.withType(net.fabricmc.loom.task.RemapJarTask).configureEach {
+    notCompatibleWithConfigurationCache('Fabric Loom remap tasks are not configuration-cache compatible')
+}
+tasks.matching { it.name == 'remapSourcesJar' }.configureEach {
+    notCompatibleWithConfigurationCache('Fabric Loom remap sources tasks are not configuration-cache compatible')
 }
 
 dependencies {
@@ -88,11 +96,13 @@ tasks.named('test', Test).configure {
     useJUnitPlatform()
 }
 
+def fabricResourceProperties = [version: amiEffectiveModVersion]
+
 processResources {
-    inputs.property 'version', project.version
+    inputs.properties fabricResourceProperties
 
     filesMatching('fabric.mod.json') {
-        expand version: project.version
+        expand fabricResourceProperties
     }
 }
 

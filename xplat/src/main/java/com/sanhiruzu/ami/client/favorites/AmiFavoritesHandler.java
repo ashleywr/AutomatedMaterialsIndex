@@ -41,8 +41,8 @@ import java.util.Optional;
  */
 public class AmiFavoritesHandler {
     private static boolean persistenceEnabled = true;
-    private static final AmiFavoritesHandler INSTANCE = new AmiFavoritesHandler();
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final AmiFavoritesHandler INSTANCE = new AmiFavoritesHandler();
     private static final String FILE_NAME = "favorites.json";
     private static final int FORMAT_VERSION = 2;
 
@@ -50,10 +50,8 @@ public class AmiFavoritesHandler {
     private Runnable onChange;
 
     private AmiFavoritesHandler() {
-        AmiCore.LOGGER.info("AMI favorites INSTANCE: constructing, persistenceEnabled={}", persistenceEnabled);
         loadState();
         mergeExternalFavorites(false);
-        AmiCore.LOGGER.info("AMI favorites INSTANCE: constructed, records={}", records.size());
     }
 
     public static AmiFavoritesHandler getInstance() {
@@ -221,8 +219,6 @@ public class AmiFavoritesHandler {
                         record.kind(), record.itemId(), record.nodeId());
             }
         }
-        // TEMP diagnostic (remove once persistence confirmed on Fabric).
-        AmiCore.LOGGER.info("AMI favorites getFavorites: {} records -> {} nodes", records.size(), out.size());
         return List.copyOf(out);
     }
 
@@ -449,13 +445,10 @@ public class AmiFavoritesHandler {
     }
 
     private void loadState() {
-        AmiCore.LOGGER.info("AMI favorites loadState: ENTER persistenceEnabled={}", persistenceEnabled);
         if (!persistenceEnabled) {
             return;
         }
         Path file = resolveFile();
-        // TEMP diagnostic (remove once persistence confirmed on Fabric).
-        AmiCore.LOGGER.info("AMI favorites loadState: file={} exists={}", file, file != null && Files.exists(file));
         if (file == null || !Files.exists(file)) {
             return;
         }
@@ -463,7 +456,6 @@ public class AmiFavoritesHandler {
             JsonObject root = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonObject();
             if (root.has("records")) {
                 loadCanonicalState(root.getAsJsonArray("records"));
-                AmiCore.LOGGER.info("AMI favorites loadState: loaded {} records", records.size());
                 return;
             }
             loadLegacyState(root);
@@ -519,8 +511,6 @@ public class AmiFavoritesHandler {
         try {
             Files.createDirectories(file.getParent());
             Files.writeString(file, GSON.toJson(root), StandardCharsets.UTF_8);
-            // TEMP diagnostic (remove once persistence confirmed on Fabric).
-            AmiCore.LOGGER.info("AMI favorites persistState: wrote {} records to {}", records.size(), file);
         } catch (IOException e) {
             AmiCore.LOGGER.warn("AMI: Failed to save favorites store: {}", e.getMessage());
         }
@@ -695,7 +685,6 @@ public class AmiFavoritesHandler {
         SearchNode toFavoriteNode() {
             ItemStack renderStack = renderStack();
             if (renderStack.isEmpty() || itemId == null || nodeId == null) {
-                // TEMP diagnostic (remove once persistence confirmed on Fabric).
                 AmiCore.LOGGER.warn("AMI favorites toFavoriteNode: null (stackEmpty={} itemId={} nodeId={})",
                         renderStack.isEmpty(), itemId, nodeId);
                 return null;

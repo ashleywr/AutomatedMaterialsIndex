@@ -78,9 +78,15 @@ public class InventoryOverlayHandler {
         if (!Services.PLATFORM.isModLoaded("roughlyenoughitems")) {
             return;
         }
-        boolean amiActive = currentLayer == VisibleLayer.AMI
-                && isAmiScreen(Minecraft.getInstance().screen);
-        com.sanhiruzu.ami.fabric.compat.ReiOverlayController.setAmiActive(amiActive);
+        Screen screen = Minecraft.getInstance().screen;
+        boolean takeOverRuntimeOverlay = RecipeViewerSuppressionPolicy.shouldTakeOverReiRuntimeOverlay(
+                currentLayer == VisibleLayer.AMI,
+                isReiDisplayScreen(screen));
+        if (takeOverRuntimeOverlay) {
+            com.sanhiruzu.ami.fabric.compat.ReiOverlayController.setAmiActive(true);
+        } else {
+            com.sanhiruzu.ami.fabric.compat.ReiOverlayController.release();
+        }
     }
 
     public static boolean isContainerScreen(Screen screen) {
@@ -99,6 +105,10 @@ public class InventoryOverlayHandler {
         }
         // REI's recipe/display screens implement the DisplayScreen API interface (the concrete classes
         // are internal). Detected via the reflection helper so this stays safe when REI is absent.
+        return Services.PLATFORM.isInstanceOf(screen, "me.shedaniel.rei.api.client.gui.screen.DisplayScreen");
+    }
+
+    private static boolean isReiDisplayScreen(Screen screen) {
         return Services.PLATFORM.isInstanceOf(screen, "me.shedaniel.rei.api.client.gui.screen.DisplayScreen");
     }
 

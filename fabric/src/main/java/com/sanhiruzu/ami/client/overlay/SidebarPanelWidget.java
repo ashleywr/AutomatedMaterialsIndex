@@ -1,6 +1,5 @@
 package com.sanhiruzu.ami.client.overlay;
 
-import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.api.AmiQuestsApi;
 import com.sanhiruzu.ami.client.UniversalResultsPanel;
 import com.sanhiruzu.ami.config.AmiConfig;
@@ -68,10 +67,6 @@ public class SidebarPanelWidget extends AbstractWidget {
             return;
         }
         List<SearchNode> nodes = AmiSidebarSyncHandler.getNodesForContent(contentType);
-        // TEMP diagnostic (remove once persistence confirmed on Fabric).
-        if (contentType == AmiConfig.PanelContent.FAVORITES) {
-            AmiCore.LOGGER.info("AMI favorites sidebar refresh: {} nodes", nodes.size());
-        }
         panel.setEntries(nodes);
     }
 

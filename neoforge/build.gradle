@@ -146,13 +146,24 @@ tasks.named('test', Test).configure {
     dependsOn ':forge:compileJava'
 }
 
-def registerRecipeViewerModSync = { String taskName, List<String> configurationNames, String runDirName ->
+def registerRecipeViewerModCleanup = { String taskName, String runDirName ->
+    tasks.register(taskName, Delete) {
+        def modsDir = runDirectory(runDirName).toPath().resolve('mods').toFile()
+        delete fileTree(modsDir) {
+            include 'emi-*.jar'
+            include 'jei-*.jar'
+        }
+    }
+}
+
+def registerRecipeViewerModSync = { String taskName, List<String> configurationNames, String runDirName, TaskProvider<Delete> cleanupTask ->
     def viewerConfigurations = configurationNames.collect { configName ->
         configurations.named(configName).get()
     }
 
     tasks.register(taskName, Copy) {
         def modsDir = runDirectory(runDirName).toPath().resolve('mods').toFile()
+        dependsOn cleanupTask
         viewerConfigurations.each { configuration ->
             inputs.files(configuration)
         }
@@ -162,27 +173,39 @@ def registerRecipeViewerModSync = { String taskName, List<String> configurationN
     }
 }
 
-def cleanClientRecipeViewerMods = tasks.register('cleanClientRecipeViewerMods', Delete) {
-    def modsDir = runDirectory('neoforge').toPath().resolve('mods').toFile()
-    delete fileTree(modsDir) {
-        include 'emi-*.jar'
-        include 'jei-*.jar'
-    }
-}
+def cleanClientRecipeViewerMods = registerRecipeViewerModCleanup(
+        'cleanClientRecipeViewerMods',
+        'neoforge'
+)
+def cleanClientJeiRecipeViewerMods = registerRecipeViewerModCleanup(
+        'cleanClientJeiRecipeViewerMods',
+        'neoforge-jei'
+)
+def cleanClientEmiRecipeViewerMods = registerRecipeViewerModCleanup(
+        'cleanClientEmiRecipeViewerMods',
+        'neoforge-emi'
+)
+def cleanClientJeiEmiRecipeViewerMods = registerRecipeViewerModCleanup(
+        'cleanClientJeiEmiRecipeViewerMods',
+        'neoforge-jei-emi'
+)
 def syncClientJeiRecipeViewerMods = registerRecipeViewerModSync(
         'syncClientJeiRecipeViewerMods',
         ['devRuntimeJeiViewerMods'],
-        'neoforge-jei'
+        'neoforge-jei',
+        cleanClientJeiRecipeViewerMods
 )
 def syncClientEmiRecipeViewerMods = registerRecipeViewerModSync(
         'syncClientEmiRecipeViewerMods',
         ['devRuntimeEmiViewerMods'],
-        'neoforge-emi'
+        'neoforge-emi',
+        cleanClientEmiRecipeViewerMods
 )
 def syncClientJeiEmiRecipeViewerMods = registerRecipeViewerModSync(
         'syncClientJeiEmiRecipeViewerMods',
         ['devRuntimeJeiViewerMods', 'devRuntimeEmiViewerMods'],
-        'neoforge-jei-emi'
+        'neoforge-jei-emi',
+        cleanClientJeiEmiRecipeViewerMods
 )
 
 tasks.matching { it.name == 'prepareClientRun' }.configureEach {
@@ -285,7 +308,7 @@ if (System.getenv('CURSEFORGE_TOKEN')) {
             changelog = changelogText()
             addGameVersion neoforge_minecraft_version
             addGameVersion 'NeoForge'
-            mainArtifact(tasks.jar) {
+            mainArtifact(tasks.named('jar').get().archiveFile.get().asFile) {
                 displayName = "AMI ${mod_version} (NeoForge ${neoforge_minecraft_version})"
             }
         }

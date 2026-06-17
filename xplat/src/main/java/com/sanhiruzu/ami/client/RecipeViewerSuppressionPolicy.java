@@ -65,4 +65,11 @@ public final class RecipeViewerSuppressionPolicy {
         }
         return amiEnabled || recipeBookHidesRecipeViewers;
     }
+
+    public static boolean shouldTakeOverReiRuntimeOverlay(
+            boolean amiEnabled,
+            boolean currentScreenIsReiDisplayScreen
+    ) {
+        return amiEnabled && currentScreenIsReiDisplayScreen;
+    }
 }

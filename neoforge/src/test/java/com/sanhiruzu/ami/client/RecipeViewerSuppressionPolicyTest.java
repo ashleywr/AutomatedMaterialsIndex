@@ -45,6 +45,13 @@ class RecipeViewerSuppressionPolicyTest {
     }
 
     @Test
+    void reiRuntimeOverlayTakeoverIsLimitedToReiDisplayScreens() {
+        assertFalse(RecipeViewerSuppressionPolicy.shouldTakeOverReiRuntimeOverlay(true, false));
+        assertTrue(RecipeViewerSuppressionPolicy.shouldTakeOverReiRuntimeOverlay(true, true));
+        assertFalse(RecipeViewerSuppressionPolicy.shouldTakeOverReiRuntimeOverlay(false, true));
+    }
+
+    @Test
     void screenVisibilityMatrixStaysConsistent() {
         record Row(
                 String name,

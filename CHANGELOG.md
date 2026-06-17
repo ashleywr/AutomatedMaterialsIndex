@@ -2,6 +2,23 @@
 
 User-facing changes are recorded here.
 
+## 1.7.0 - 2026-06-17
+
+AMI 1.7.0 prepares the cross-loader release line with updated release automation and compatibility checks for Fabric, Forge, and NeoForge.
+
+### Changed
+
+- Bumped the release line to 1.7.0 for Fabric, Forge, and NeoForge artifacts.
+- Expanded release verification and publishing automation so all supported loaders are built and uploaded from the release workflow.
+- Added Fabric release publishing through Loom's remapped production jar path and verified Fabric + REI startup in a clean instance.
+- Cleaned up temporary favorites/sidebar diagnostics from the Fabric validation pass.
+
+### Fixed
+
+- Restored the Compat Watch script used by the scheduled dependency-monitoring workflow so it no longer fails immediately on missing script errors.
+- Fixed release publishing task wiring for loader-specific artifact uploads, including Fabric remap output and NeoForge CurseForge artifact resolution.
+- Fixed Fabric + REI overlay ownership so AMI only toggles REI's runtime overlay visibility while AMI is active on REI display screens.
+
 ## 1.6.0 - 2026-06-13
 
 AMI 1.6.0 adds advancement search, expands document-result controls, and improves large-modpack entity icon performance and release profiling.
