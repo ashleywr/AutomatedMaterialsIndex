@@ -2,17 +2,12 @@ package com.sanhiruzu.ami.client.icon;
 
 import org.junit.jupiter.api.Test;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class EntityFacingConstantsTest {
-    private static final Path SOURCE = repoRoot().resolve(Path.of(
-            "forge", "src", "main", "java", "com", "sanhiruzu", "ami", "client", "icon", "EntityFacingConstants.java"));
 
     @Test
-    void staticEntityYRotIsZeroForForge() throws Exception {
+    void staticEntityYRotIsZeroForForge() {
         /*
          * Forge's InventoryScreen.renderEntityInInventory applies rotateZ(PI) as
          * the *camera orientation* quaternion. This orients the camera to look in the
@@ -27,14 +22,9 @@ class EntityFacingConstantsTest {
          * correct for NeoForge's different API where rotateZ(PI) is a model pose
          * transform rather than a camera orientation.
          */
-        String source = Files.readString(SOURCE);
-        assertTrue(source.contains("static final float STATIC_ENTITY_Y_ROT = 0f;"),
+        assertEquals(0f, EntityFacingConstants.STATIC_ENTITY_Y_ROT,
                 "Forge entity icons must use yBodyRot=0: Forge's renderEntityInInventory " +
                 "uses rotateZ(PI) as camera orientation (not model pose), so yBodyRot=0 " +
                 "faces the camera. Using 180f renders entities backwards.");
-    }
-
-    private static Path repoRoot() {
-        return Path.of("").toAbsolutePath().getParent();
     }
 }

@@ -95,21 +95,6 @@ public class PlayerModelRenderer implements IIconRenderer {
         }
     }
 
-    private static void renderStaticPlayer(GuiGraphics g, int x, int y, int size, RemotePlayer player) {
-        int renderScale = Math.max(1, Math.round((size - 2.0f) / Math.max(0.1f, player.getBbHeight())));
-        IconRenderState.render3dIcon(g, () ->
-                InventoryScreen.renderEntityInInventoryFollowsAngle(
-                        g,
-                        x + size / 2,
-                        y + size,
-                        renderScale,
-                        0f,
-                        0f,
-                        player
-                )
-        );
-    }
-
     @Override
     public void render(GuiGraphics g, SearchNode node, int x, int y, int size, boolean hovered) {
         if (size < 12) {
@@ -126,13 +111,11 @@ public class PlayerModelRenderer implements IIconRenderer {
             FallbackTextRenderer.renderFallback(g, node, x, y, size);
             return;
         }
+        float yRot = 180.0f;
+        if (hovered) {
+            yRot += (System.currentTimeMillis() % 3000L) / 3000.0f * 360.0f;
+        }
         try {
-            if (!hovered) {
-                renderStaticPlayer(g, x, y, size, player);
-                return;
-            }
-            float yRot = EntityFacingConstants.STATIC_ENTITY_Y_ROT
-                    + (System.currentTimeMillis() % 3000L) / 3000.0f * 360.0f;
             renderPlayer(g, x, y, size, player, yRot);
         } catch (RuntimeException e) {
             FallbackTextRenderer.renderFallback(g, node, x, y, size);

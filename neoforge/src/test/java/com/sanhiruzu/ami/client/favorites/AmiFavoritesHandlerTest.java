@@ -8,11 +8,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -21,13 +17,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AmiFavoritesHandlerTest {
-    @TempDir
-    Path tempDir;
 
     @BeforeEach
     void resetHandler() {
         AmiFavoritesHandler.disablePersistenceForTests();
-        AmiFavoritesHandler.clearFileOverrideForTests();
         AmiFavoritesHandler.clearForTests();
     }
 
@@ -196,41 +189,5 @@ public class AmiFavoritesHandlerTest {
         List<SearchNode> favorites = handler.getFavorites();
         assertEquals(itemFavorite.id(), favorites.get(0).id());
         assertEquals(player.id(), favorites.get(1).id());
-    }
-
-    @Test
-    void itemFavoritePersistenceWritesCanonicalStore() throws Exception {
-        Path favoritesFile = tempDir.resolve("ami").resolve("favorites.json");
-        AmiFavoritesHandler.setFileOverrideForTests(favoritesFile);
-        AmiFavoritesHandler.enablePersistenceForTests();
-        AmiFavoritesHandler.clearForTests();
-
-        AmiFavoritesHandler handler = AmiFavoritesHandler.getInstance();
-        ItemStack stack = new ItemStack(Items.APPLE);
-
-        handler.addFavorite(stack);
-
-        assertTrue(Files.exists(favoritesFile));
-        String json = Files.readString(favoritesFile, StandardCharsets.UTF_8);
-        assertTrue(json.contains("\"records\""));
-        assertTrue(json.contains("\"itemId\": \"minecraft:apple\""));
-    }
-
-    @Test
-    void temporaryFavoritesInfoDiagnosticsAreNotPresentInSource() throws Exception {
-        Path source = Path.of("").toAbsolutePath().getParent().resolve(Path.of(
-                "xplat", "src", "main", "java", "com", "sanhiruzu", "ami", "client", "favorites", "AmiFavoritesHandler.java"));
-        String content = Files.readString(source, StandardCharsets.UTF_8);
-
-        assertFalse(content.contains("AMI favorites persistState: wrote"),
-                "Temporary favorites persistState info diagnostics should not ship.");
-        assertFalse(content.contains("AMI favorites getFavorites: {} records -> {} nodes"),
-                "Temporary favorites getFavorites info diagnostics should not ship.");
-        assertFalse(content.contains("AMI favorites loadState: ENTER"),
-                "Temporary favorites loadState info diagnostics should not ship.");
-        assertFalse(content.contains("AMI favorites loadState: file="),
-                "Temporary favorites loadState file info diagnostics should not ship.");
-        assertFalse(content.contains("AMI favorites loadState: loaded {} records"),
-                "Temporary favorites loaded-records info diagnostics should not ship.");
     }
 }

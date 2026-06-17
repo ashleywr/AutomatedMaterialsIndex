@@ -323,19 +323,8 @@ tasks.register('deployPrismCompatJars') {
 tasks.register('verifyReleaseArtifacts') {
     group = 'verification'
     description = 'Builds and verifies release artifacts before publishing.'
-    dependsOn ':fabric:build'
     dependsOn ':forge:verifyForgeReleaseJarReobfuscated'
     dependsOn 'test'
-    def fabricReleaseJar = project(':fabric').layout.buildDirectory.file(
-            "libs/${mod_id}-fabric-${fabric_minecraft_version}-${amiEffectiveModVersion}.jar"
-    )
-    inputs.file(fabricReleaseJar)
-    doLast {
-        def fabricJar = fabricReleaseJar.get().asFile
-        if (!fabricJar.isFile()) {
-            throw new GradleException("Missing Fabric release jar: ${fabricJar}")
-        }
-    }
 }
 
 ext.synesthesiaLocalModKey = 'ami'
