@@ -10,6 +10,9 @@ User-facing changes are recorded here.
 - AMI's tooltip additions (stats, quest evidence, hints) now append to the end of the vanilla item tooltip rather than replacing it, so other mods' tooltip lines are preserved.
 - Tooltip event priority changed to `LOWEST` on Forge and NeoForge so AMI's lines always appear after other mods.
 - Entity icon atlas cache misses now show a placeholder instead of falling through to a live render, preventing flicker during atlas bake.
+- Entity icon disk hydration, GPU bake scheduling, and 3D render-state setup were reworked to reduce cold-start warmup cost and avoid per-frame render-state churn while icons are prepared.
+- Added a cross-loader entity icon render-policy guard so unsupported render paths fail closed instead of attempting unstable live rendering.
+- Fabric overlay toggle and keybind ownership now follow the same visibility/input policy used on Forge and NeoForge, including config-screen and recipe-viewer edge cases.
 - Added mod icon, homepage, source, and issue tracker links to all loader metadata files (Fabric, Forge, NeoForge).
 
 ### Fixed

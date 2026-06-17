@@ -57,6 +57,7 @@ internal/
 
 ### Local Development ###
 dev/
+tools/
 font_issue.png
 release-assets/
 profile-runs/
