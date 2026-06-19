@@ -2,6 +2,12 @@
 
 User-facing changes are recorded here.
 
+## 1.8.0 - Unreleased
+
+### Changed
+
+- Bumped the AMI minor release line to 1.8.0 for upcoming cross-loader feature and compat work.
+
 ## 1.7.1 - 2026-06-17
 
 ### Changed

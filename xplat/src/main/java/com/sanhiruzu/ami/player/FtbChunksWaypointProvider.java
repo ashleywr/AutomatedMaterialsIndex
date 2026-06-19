@@ -126,6 +126,7 @@ final class FtbChunksWaypointProvider implements PlayerWaypointProvider {
             Method addWaypointAt = manager.getClass().getMethod("addWaypointAt", BlockPos.class, String.class);
             addWaypointAt.invoke(manager, blockPos(context), waypointName(context));
             requestMinimapRefresh();
+            PlayerWaypointProviders.invalidateLiveWaypointCache();
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
             LOGGER.log(Level.WARNING, "AMI: Failed to add FTB Chunks waypoint for " + context.playerName(), e);
         }
@@ -198,6 +199,7 @@ final class FtbChunksWaypointProvider implements PlayerWaypointProvider {
             Class<?> waypointClass = Class.forName("dev.ftb.mods.ftbchunks.api.client.waypoint.Waypoint");
             manager.getClass().getMethod("removeWaypoint", waypointClass).invoke(manager, waypoint);
             requestMinimapRefresh();
+            PlayerWaypointProviders.invalidateLiveWaypointCache();
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
             LOGGER.log(Level.WARNING, "AMI: Failed to delete FTB Chunks waypoint", e);
         }

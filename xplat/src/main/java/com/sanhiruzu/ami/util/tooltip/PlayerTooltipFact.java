@@ -17,9 +17,15 @@ import java.util.Optional;
 
 public final class PlayerTooltipFact implements AmiTooltipFact {
     private static final int MAX_PROVIDER_PREVIEW = 3;
+    private static final String WAYPOINT_PRIMARY_PROVIDER_LABEL = "waypointPrimaryProviderLabel";
+    private static final String WAYPOINT_MERGED_PROVIDER_LABELS = "waypointMergedProviderLabels";
 
     private static boolean isSocialPlayerNode(SearchNode entry) {
         return entry.type() == NodeType.PLAYER || !entry.meta(SearchNodeKeys.PLAYER_HEAD_NAME, "").isBlank();
+    }
+
+    private static boolean isWaypointNode(SearchNode entry) {
+        return entry.type() == NodeType.WAYPOINT;
     }
 
     private static void appendStatus(List<Component> lines, SearchNode entry) {
@@ -52,6 +58,20 @@ public final class PlayerTooltipFact implements AmiTooltipFact {
     }
 
     private static void appendLocation(List<Component> lines, SearchNode entry) {
+        if (isWaypointNode(entry)) {
+            String x = entry.meta(SearchNodeKeys.WAYPOINT_X, "");
+            String y = entry.meta(SearchNodeKeys.WAYPOINT_Y, "");
+            String z = entry.meta(SearchNodeKeys.WAYPOINT_Z, "");
+            if (x.isBlank() || y.isBlank() || z.isBlank()) {
+                return;
+            }
+            String dimension = prettyDimension(entry.meta(SearchNodeKeys.WAYPOINT_DIMENSION, ""));
+            String location = dimension.isBlank()
+                    ? String.format(Locale.ROOT, "%s, %s, %s", x, y, z)
+                    : dimension + " @ " + String.format(Locale.ROOT, "%s, %s, %s", x, y, z);
+            lines.add(Component.literal("Location: " + location));
+            return;
+        }
         String x = entry.meta(SearchNodeKeys.PLAYER_X, "");
         String y = entry.meta(SearchNodeKeys.PLAYER_Y, "");
         String z = entry.meta(SearchNodeKeys.PLAYER_Z, "");
@@ -66,6 +86,28 @@ public final class PlayerTooltipFact implements AmiTooltipFact {
     }
 
     private static void appendWaypointProviders(List<Component> lines, SearchNode entry) {
+        if (isWaypointNode(entry)) {
+            String primaryProvider = TooltipFactSupport.firstNonBlank(
+                    entry.meta(WAYPOINT_PRIMARY_PROVIDER_LABEL, ""),
+                    entry.meta(SearchNodeKeys.WAYPOINT_PROVIDER_LABEL, "")
+            );
+            if (!primaryProvider.isBlank()) {
+                lines.add(Component.literal("Primary provider: " + primaryProvider));
+            }
+
+            String mergedProviders = entry.meta(WAYPOINT_MERGED_PROVIDER_LABELS, "");
+            if (!mergedProviders.isBlank()) {
+                lines.add(Component.literal("Waypoint providers: " + mergedProviders));
+            }
+            if ("true".equals(entry.meta("waypointDeathpoint", ""))) {
+                lines.add(Component.literal("Deathpoint"));
+            }
+            if ("true".equals(entry.meta("waypointTransient", ""))) {
+                lines.add(Component.literal("Transient waypoint"));
+            }
+            return;
+        }
+
         String rawProviders = entry.meta(SearchNodeKeys.PLAYER_WAYPOINT_PROVIDER_LABELS, "");
         if (rawProviders.isBlank()) return;
 
@@ -111,13 +153,17 @@ public final class PlayerTooltipFact implements AmiTooltipFact {
         if (parsed == null) {
             return rawDimension;
         }
-        if ("minecraft".equals(parsed.getNamespace())) {
-            return switch (parsed.getPath()) {
-                case "overworld" -> Component.translatable("ami.dimension.overworld").getString();
-                case "the_nether" -> Component.translatable("ami.dimension.nether").getString();
-                case "the_end" -> Component.translatable("ami.dimension.end").getString();
-                default -> RegistryUtils.formatPath(parsed.getPath());
-            };
+        try {
+            if ("minecraft".equals(parsed.getNamespace())) {
+                return switch (parsed.getPath()) {
+                    case "overworld" -> Component.translatable("ami.dimension.overworld").getString();
+                    case "the_nether" -> Component.translatable("ami.dimension.nether").getString();
+                    case "the_end" -> Component.translatable("ami.dimension.end").getString();
+                    default -> RegistryUtils.formatPath(parsed.getPath());
+                };
+            }
+        } catch (RuntimeException | LinkageError ignored) {
+            // Test/runtime environments may differ on component linkage; fall back to plain formatting.
         }
         return RegistryUtils.formatPath(parsed.getPath()) + " (" + parsed.getNamespace() + ")";
     }
@@ -135,7 +181,7 @@ public final class PlayerTooltipFact implements AmiTooltipFact {
 
     @Override
     public List<Component> build(SearchNode entry) {
-        if (entry == null || !isSocialPlayerNode(entry)) {
+        if (entry == null || (!isSocialPlayerNode(entry) && !isWaypointNode(entry))) {
             return List.of();
         }
 

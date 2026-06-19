@@ -14,6 +14,10 @@ import com.sanhiruzu.ami.index.AmiGuideSearchIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.SearchNode;
+import com.sanhiruzu.ami.player.LiveWaypointContext;
+import com.sanhiruzu.ami.player.PlayerWaypointAction;
+import com.sanhiruzu.ami.player.PlayerWaypointProvider;
+import com.sanhiruzu.ami.player.PlayerWaypointProviders;
 import com.sanhiruzu.searchableitems.api.SearchableItemAction;
 import com.sanhiruzu.searchableitems.api.SearchableItemActionContext;
 import com.sanhiruzu.searchableitems.api.SearchableItemActionProvider;
@@ -183,6 +187,101 @@ class ResultContextMenuActionBuilderTest {
         );
 
         assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.FAVORITE));
+
+        favorites.removeFavorite(waypoint);
+    }
+
+    @Test
+    void mergedWaypointContextMenuShowsProviderSpecificActions() {
+        PlayerWaypointProviders.register(new PlayerWaypointProvider() {
+            @Override
+            public String id() {
+                return "mockftb";
+            }
+
+            @Override
+            public String label() {
+                return "Mock FTB";
+            }
+
+            @Override
+            public boolean isAvailable() {
+                return true;
+            }
+
+            @Override
+            public java.util.Optional<PlayerWaypointAction> openLiveWaypointAction(LiveWaypointContext context) {
+                return java.util.Optional.of(new PlayerWaypointAction("ami:open_mock_ftb", "Open Mock FTB", 'o', () -> {
+                }));
+            }
+
+            @Override
+            public List<PlayerWaypointAction> liveWaypointActions(LiveWaypointContext context) {
+                return List.of(new PlayerWaypointAction("ami:delete_mock_ftb", "Delete Mock FTB", 'd', () -> {
+                }));
+            }
+        });
+        PlayerWaypointProviders.register(new PlayerWaypointProvider() {
+            @Override
+            public String id() {
+                return "mockjourney";
+            }
+
+            @Override
+            public String label() {
+                return "Mock Journey";
+            }
+
+            @Override
+            public boolean isAvailable() {
+                return true;
+            }
+
+            @Override
+            public java.util.Optional<PlayerWaypointAction> openLiveWaypointAction(LiveWaypointContext context) {
+                return java.util.Optional.of(new PlayerWaypointAction("ami:open_mock_journey", "Open Mock Journey", 'j', () -> {
+                }));
+            }
+
+            @Override
+            public List<PlayerWaypointAction> liveWaypointActions(LiveWaypointContext context) {
+                return List.of(new PlayerWaypointAction("ami:edit_mock_journey", "Edit Mock Journey", 'e', () -> {
+                }));
+            }
+        });
+        ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder(() -> false);
+        com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler favorites =
+                com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance();
+        SearchNode waypoint = new SearchNode(
+                new ResourceLocation("ami:waypoint/merged/home"),
+                NodeType.WAYPOINT,
+                "Home",
+                0,
+                0,
+                Map.ofEntries(
+                        Map.entry(SearchNodeKeys.WAYPOINT_PROVIDER, "mockftb"),
+                        Map.entry(SearchNodeKeys.WAYPOINT_PROVIDER_LABEL, "Mock FTB"),
+                        Map.entry(SearchNodeKeys.WAYPOINT_ID, "ftb-home"),
+                        Map.entry(SearchNodeKeys.WAYPOINT_NAME, "Home"),
+                        Map.entry(SearchNodeKeys.WAYPOINT_DIMENSION, "minecraft:overworld"),
+                        Map.entry(SearchNodeKeys.WAYPOINT_X, "10"),
+                        Map.entry(SearchNodeKeys.WAYPOINT_Y, "64"),
+                        Map.entry(SearchNodeKeys.WAYPOINT_Z, "-20"),
+                        Map.entry("waypointPrimaryProvider", "mockftb"),
+                        Map.entry("waypointPrimaryProviderLabel", "Mock FTB"),
+                        Map.entry("waypointMergedProviders", "mockftb,mockjourney"),
+                        Map.entry("waypointMergedProviderLabels", "Mock FTB,Mock Journey"),
+                        Map.entry("waypointMergedProviderIds", "ftb-home,jm-home")
+                )
+        );
+
+        List<ResultContextMenu.Action> actions = builder.forItem(
+                new ResultContextMenuActionBuilder.ItemContext(waypoint, ItemStack.EMPTY, favorites, ignored -> {
+                })
+        );
+
+        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.OPEN_WAYPOINT));
+        assertTrue(labels(actions).stream().anyMatch(label -> label.contains("Mock FTB")));
 
         favorites.removeFavorite(waypoint);
     }

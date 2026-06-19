@@ -131,6 +131,35 @@ class AmiTooltipComposerTest {
     }
 
     @Test
+    void mergedWaypointTooltipShowsPrimaryProviderAndContributors() {
+        SearchNode waypoint = new SearchNode(
+                new ResourceLocation("ami:waypoint/merged/home"),
+                NodeType.WAYPOINT,
+                "Home",
+                0xFFFFFF,
+                1,
+                Map.of(
+                        SearchNodeKeys.WAYPOINT_PROVIDER, "ftbchunks",
+                        SearchNodeKeys.WAYPOINT_PROVIDER_LABEL, "FTB Chunks",
+                        "waypointPrimaryProvider", "ftbchunks",
+                        "waypointPrimaryProviderLabel", "FTB Chunks",
+                        "waypointMergedProviderLabels", "FTB Chunks,JourneyMap",
+                        SearchNodeKeys.WAYPOINT_DIMENSION, "minecraft:overworld",
+                        SearchNodeKeys.WAYPOINT_X, "10",
+                        SearchNodeKeys.WAYPOINT_Y, "64",
+                        SearchNodeKeys.WAYPOINT_Z, "20",
+                        "waypointDeathpoint", "true"
+                )
+        );
+
+        List<Component> tooltip = new com.sanhiruzu.ami.util.tooltip.PlayerTooltipFact().build(waypoint);
+        List<String> lines = tooltip.stream().map(Component::getString).toList();
+
+        assertTrue(lines.stream().anyMatch(line -> line.contains("Primary provider")));
+        assertTrue(lines.stream().anyMatch(line -> line.contains("FTB Chunks,JourneyMap")));
+    }
+
+    @Test
     void playerTypeLabelIsSuppressedBecauseRendererProvidesSubtitle() {
         assertFalse(AmiTooltipComposer.shouldShowTypeLabel(NodeType.PLAYER));
         assertFalse(AmiTooltipComposer.shouldShowTypeLabel(NodeType.ENTITY));

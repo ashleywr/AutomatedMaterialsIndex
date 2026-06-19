@@ -1,6 +1,8 @@
 package com.sanhiruzu.ami.player;
 
+import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -9,8 +11,15 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PlayerWaypointProvidersTest {
+    @AfterEach
+    void resetWaypointConfig() {
+        com.sanhiruzu.ami.config.AmiConfig.resetToDefaults();
+        PlayerWaypointProviders.resetLiveWaypointStateForTests();
+    }
+
     @Test
     void availabilityFailuresFailClosed() {
         List<PlayerWaypointProvider> providers = List.of(
@@ -202,6 +211,99 @@ class PlayerWaypointProvidersTest {
         assertEquals("waypoints", nodes.get(0).meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, ""));
     }
 
+    @Test
+    void liveWaypointNodesMergeEquivalentProviderWaypoints() {
+        PlayerWaypointProvider ftb = providerWithWaypoints("ftbchunks", "FTB Chunks", List.of(
+                new LiveWaypoint("ftbchunks", "FTB Chunks", "ftb-home", "Home",
+                        "minecraft:overworld", 10, 64, 20,
+                        Map.of(SearchNodeKeys.WAYPOINT_VISIBLE, "true", "waypointDeathpoint", "false"))
+        ));
+        PlayerWaypointProvider journey = providerWithWaypoints("journeymap", "JourneyMap", List.of(
+                new LiveWaypoint("journeymap", "JourneyMap", "jm-home", "Home",
+                        "minecraft:overworld", 10, 64, 20,
+                        Map.of("waypoint_origin", "ftbchunks"))
+        ));
+
+        var nodes = PlayerWaypointProviders.liveWaypointNodesForTests(List.of(ftb, journey));
+
+        assertEquals(1, nodes.size());
+        assertEquals("Home", nodes.get(0).displayName());
+        assertEquals("ftbchunks", nodes.get(0).meta("waypointPrimaryProvider", ""));
+        assertEquals("ftbchunks,journeymap", nodes.get(0).meta("waypointMergedProviders", ""));
+    }
+
+    @Test
+    void liveWaypointNodesKeepDistinctNamesSeparateAtSameCoordinates() {
+        PlayerWaypointProvider provider = providerWithWaypoints("ftbchunks", "FTB Chunks", List.of(
+                new LiveWaypoint("ftbchunks", "FTB Chunks", "home-a", "Home",
+                        "minecraft:overworld", 10, 64, 20, Map.of()),
+                new LiveWaypoint("ftbchunks", "FTB Chunks", "mine-b", "Mine",
+                        "minecraft:overworld", 10, 64, 20, Map.of())
+        ));
+
+        var nodes = PlayerWaypointProviders.liveWaypointNodesForTests(List.of(provider));
+
+        assertEquals(2, nodes.size());
+    }
+
+    @Test
+    void mergedWaypointsPreferConfiguredPrimaryProvider() {
+        com.sanhiruzu.ami.config.AmiConfig.waypointOpenProviderPriority = "journeymap,ftbchunks,xaero,manual";
+        PlayerWaypointProvider ftb = providerWithWaypoints("ftbchunks", "FTB Chunks", List.of(
+                new LiveWaypoint("ftbchunks", "FTB Chunks", "ftb-home", "Home",
+                        "minecraft:overworld", 10, 64, 20, Map.of())
+        ));
+        PlayerWaypointProvider journey = providerWithWaypoints("journeymap", "JourneyMap", List.of(
+                new LiveWaypoint("journeymap", "JourneyMap", "jm-home", "Home",
+                        "minecraft:overworld", 10, 64, 20, Map.of())
+        ));
+
+        SearchNode node = PlayerWaypointProviders.liveWaypointNodesForTests(List.of(ftb, journey)).get(0);
+
+        assertEquals("journeymap", node.meta("waypointPrimaryProvider", ""));
+    }
+
+    @Test
+    void invalidateLiveWaypointCacheForcesRevisionChange() {
+        PlayerWaypointProviders.resetLiveWaypointStateForTests();
+        long before = PlayerWaypointProviders.liveWaypointRevisionForTests(List.of(
+                providerWithWaypoints("ftbchunks", "FTB Chunks", List.of(
+                        new LiveWaypoint("ftbchunks", "FTB Chunks", "home", "Home",
+                                "minecraft:overworld", 10, 64, 20, Map.of())
+                ))
+        ));
+
+        PlayerWaypointProviders.invalidateLiveWaypointCache();
+        long after = PlayerWaypointProviders.liveWaypointRevisionForTests(List.of(
+                providerWithWaypoints("ftbchunks", "FTB Chunks", List.of(
+                        new LiveWaypoint("ftbchunks", "FTB Chunks", "mine", "Mine",
+                                "minecraft:overworld", 10, 64, 20, Map.of())
+                ))
+        ));
+
+        assertTrue(after > before);
+    }
+
+    @Test
+    void mergedNodesPreserveFtbChunksWaypointStateMetadata() {
+        PlayerWaypointProvider ftb = providerWithWaypoints("ftbchunks", "FTB Chunks", List.of(
+                new LiveWaypoint("ftbchunks", "FTB Chunks", "home", "Home",
+                        "minecraft:overworld", 10, 64, 20,
+                        Map.of(
+                                SearchNodeKeys.WAYPOINT_VISIBLE, "false",
+                                "waypointDeathpoint", "true",
+                                "waypointTransient", "true",
+                                SearchNodeKeys.WAYPOINT_COLOR, "16711680"
+                        ))
+        ));
+
+        SearchNode node = PlayerWaypointProviders.liveWaypointNodesForTests(List.of(ftb)).get(0);
+
+        assertEquals("false", node.meta(SearchNodeKeys.WAYPOINT_VISIBLE, ""));
+        assertEquals("true", node.meta("waypointDeathpoint", ""));
+        assertEquals("true", node.meta("waypointTransient", ""));
+    }
+
     private static PlayerWaypointProvider provider(String id, boolean available) {
         return new PlayerWaypointProvider() {
             @Override
@@ -236,6 +338,30 @@ class PlayerWaypointProvidersTest {
             @Override
             public boolean isAvailable() {
                 throw new IllegalStateException("boom");
+            }
+        };
+    }
+
+    private static PlayerWaypointProvider providerWithWaypoints(String id, String label, List<LiveWaypoint> waypoints) {
+        return new PlayerWaypointProvider() {
+            @Override
+            public String id() {
+                return id;
+            }
+
+            @Override
+            public String label() {
+                return label;
+            }
+
+            @Override
+            public boolean isAvailable() {
+                return true;
+            }
+
+            @Override
+            public List<LiveWaypoint> liveWaypoints() {
+                return waypoints;
             }
         };
     }

@@ -152,6 +152,23 @@ public class AmiConfig {
     public static String defaultWaypointMapHandler = "auto";
 
     @ConfigHidden
+    @ConfigValue("waypoints.merge-duplicate-providers")
+    public static boolean waypointMergeDuplicateProviders = true;
+
+    @ConfigHidden
+    @ConfigSlider(min = 1, max = 30, step = 1)
+    @ConfigValue("waypoints.refresh-interval-seconds")
+    public static int waypointRefreshIntervalSeconds = 5;
+
+    @ConfigHidden
+    @ConfigValue("waypoints.open-provider-priority")
+    public static String waypointOpenProviderPriority = "ftbchunks,journeymap,xaero,waystones,manual";
+
+    @ConfigHidden
+    @ConfigValue("waypoints.tooltip-provider-details")
+    public static String waypointTooltipProviderDetailsMode = "shift";
+
+    @ConfigHidden
     @ConfigValue("ui.context-menu.enabled-actions")
     public static String contextMenuEnabledActions = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,ami:open_pokedex,ami:filter_pokemon_type,ami:filter_pokemon_secondary_type,ami:filter_pokemon_generation,ami:filter_pokemon_egg_group,ami:filter_pokemon_ability,ami:search_pokemon_drop_item,ami:recipes_pokemon_drop_item,ami:copy_pokemon_species,ami:copy_pokemon_dex_number,ami:filter_gregtech_tier,ami:filter_gregtech_kind,ami:filter_gregtech_fact,ami:filter_gregtech_circuit_grade,ami:copy_player_name,ami:cheat_give_player_head,ami:copy_player_waypoint,ami:teleport_to_player,ami:teleport_player_here,ami:group_toggle,ami:filter_category,ami:copy_group_key,ami:start_category_fix,ami:apply_category_fix,ami:clear_item_fix,ami:quests_for_item,ami:open_quest,ami:copy_quest_matches";
 
@@ -375,6 +392,10 @@ public class AmiConfig {
         confirmExternalLinks = true;
         guideSummaryTextCap = 4096;
         defaultWaypointMapHandler = "auto";
+        waypointMergeDuplicateProviders = true;
+        waypointRefreshIntervalSeconds = 5;
+        waypointOpenProviderPriority = "ftbchunks,journeymap,xaero,waystones,manual";
+        waypointTooltipProviderDetailsMode = "shift";
         contextMenuEnabledActions = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,ami:open_pokedex,ami:filter_pokemon_type,ami:filter_pokemon_secondary_type,ami:filter_pokemon_generation,ami:filter_pokemon_egg_group,ami:filter_pokemon_ability,ami:search_pokemon_drop_item,ami:recipes_pokemon_drop_item,ami:copy_pokemon_species,ami:copy_pokemon_dex_number,ami:filter_gregtech_tier,ami:filter_gregtech_kind,ami:filter_gregtech_fact,ami:filter_gregtech_circuit_grade,ami:copy_player_name,ami:cheat_give_player_head,ami:copy_player_waypoint,ami:teleport_to_player,ami:teleport_player_here,ami:group_toggle,ami:filter_category,ami:copy_group_key,ami:start_category_fix,ami:apply_category_fix,ami:clear_item_fix,ami:quests_for_item,ami:open_quest,ami:copy_quest_matches";
         contextMenuDisabledByMod = "";
         contextMenuDisabledByType = "";

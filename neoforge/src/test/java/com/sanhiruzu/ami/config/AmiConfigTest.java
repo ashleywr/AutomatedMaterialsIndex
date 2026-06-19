@@ -67,4 +67,14 @@ public class AmiConfigTest {
             }
         }
     }
+
+    @Test
+    void waypointCompatSettingsHaveStableDefaults() {
+        AmiConfig.resetToDefaults();
+
+        assertTrue(AmiConfig.waypointMergeDuplicateProviders);
+        assertEquals(5, AmiConfig.waypointRefreshIntervalSeconds);
+        assertEquals("ftbchunks,journeymap,xaero,waystones,manual", AmiConfig.waypointOpenProviderPriority);
+        assertEquals("shift", AmiConfig.waypointTooltipProviderDetailsMode);
+    }
 }
