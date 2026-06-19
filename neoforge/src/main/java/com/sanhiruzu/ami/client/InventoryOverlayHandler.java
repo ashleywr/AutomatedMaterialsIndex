@@ -2,6 +2,7 @@ package com.sanhiruzu.ami.client;
 
 import com.sanhiruzu.ami.api.AmiApi;
 import com.sanhiruzu.ami.client.RecipeViewerSuppressionPolicy.VisibleLayer;
+import com.sanhiruzu.ami.client.overlay.OverlayLayers;
 import com.sanhiruzu.ami.client.overlay.OverlayWidgetManager;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.AmiIndexerService;
@@ -10,12 +11,18 @@ import com.mojang.datafixers.util.Either;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.EffectRenderingInventoryScreen;
+import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffectUtil;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.ClientHooks;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ContainerScreenEvent;
 import net.neoforged.neoforge.client.event.RenderTooltipEvent;
@@ -24,6 +31,7 @@ import net.neoforged.neoforge.client.event.ScreenEvent;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @EventBusSubscriber(modid = AMI.MODID, value = Dist.CLIENT)
 public class InventoryOverlayHandler {
@@ -47,6 +55,7 @@ public class InventoryOverlayHandler {
     private static boolean indexingRequested = false;
     private static boolean statusEffectsHoverOwned = false;
     private static boolean wasMouseOverStatusEffects = false;
+    private static boolean reRenderingEffectsTooltip = false;
     private static PendingGatheredTooltip pendingGatheredTooltip = null;
     private static PendingExternalTooltip pendingExternalTooltip = null;
     private static boolean renderingExternalTooltip = false;
@@ -280,6 +289,14 @@ public class InventoryOverlayHandler {
             int amiMouseX = frameStatusEffectsHovered ? Integer.MIN_VALUE : event.getMouseX();
             int amiMouseY = frameStatusEffectsHovered ? Integer.MIN_VALUE : event.getMouseY();
             manager.renderTopLayer(event.getGuiGraphics(), amiMouseX, amiMouseY);
+            if (frameStatusEffectsHovered) {
+                // The effects tooltip renders inside EffectRenderingInventoryScreen.renderEffects()
+                // before this Post handler runs, and AMI's panel body (drawn in ContainerForeground)
+                // visually covers it. Re-render it here at TRANSIENT_TOOLTIP Z so it appears above
+                // AMI's panel regardless of depth-buffer state.
+                renderEffectsTooltipAboveAmi(screen, event.getGuiGraphics(),
+                        event.getMouseX(), event.getMouseY());
+            }
         } else if (isRecipeScreen(screen)) {
             // AMI owns recipe/custom screens: render base + top together. External recipe viewers
             // (JEI/EMI) draw their own tooltip during their render(), which AMI's base would cover,
@@ -317,7 +334,16 @@ public class InventoryOverlayHandler {
     @SubscribeEvent
     static void onRenderTooltip(RenderTooltipEvent.Pre event) {
         net.minecraft.client.gui.screens.Screen screen = Minecraft.getInstance().screen;
-        if (screen == null || !isExternalRecipeScreen(screen)) return;
+        if (screen == null) return;
+        // Suppress the vanilla effects tooltip when AMI is about to re-render it above its panel.
+        // The guard prevents canceling our own re-render call in renderEffectsTooltipAboveAmi.
+        if (isContainerScreen(screen) && frameStatusEffectsHovered && !reRenderingEffectsTooltip
+                && currentLayer == VisibleLayer.AMI && manager.isPanelVisible()
+                && !AmiApi.shouldSuppressAmi(screen)) {
+            event.setCanceled(true);
+            return;
+        }
+        if (!isExternalRecipeScreen(screen)) return;
         if (com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer.isRenderingAmiTooltip()) return;
         if (renderingExternalTooltip) return;
         if (currentLayer != VisibleLayer.AMI || !manager.isPanelVisible() || AmiApi.shouldSuppressAmi(screen)) return;
@@ -494,6 +520,95 @@ public class InventoryOverlayHandler {
         } catch (ReflectiveOperationException | RuntimeException e) {
             return false;
         }
+    }
+
+    /**
+     * Re-renders the hovered status effect tooltip above AMI's panel.
+     *
+     * WHY THIS EXISTS — tooltip Z-ordering problem:
+     * EffectRenderingInventoryScreen.renderEffects() is called after super.render(), which fires
+     * ContainerScreenEvent.Render.Foreground where AMI draws its base layer (Z=200). The effects
+     * tooltip (rendered inside renderEffects via guiGraphics.renderTooltip at Z=400) therefore
+     * commits to the GPU before ScreenEvent.Render.Post fires. Despite being at Z=400 (higher than
+     * AMI's Z=200), it ends up visually behind AMI's panel — exact reason unclear, possibly an
+     * interaction between the depth-clear AMI issues in renderBase and GuiGraphics batch ordering.
+     *
+     * APPROACH — suppress and re-render:
+     * 1. RenderTooltipEvent.Pre cancels the vanilla effects tooltip render (keyed on
+     *    frameStatusEffectsHovered, guarded by reRenderingEffectsTooltip so we don't block ourselves).
+     * 2. After renderTopLayer in ScreenEvent.Render.Post (LOWEST), we re-render the tooltip here
+     *    at Z=TRANSIENT_TOOLTIP so it is guaranteed to be above everything AMI draws.
+     * 3. The tooltip components are recomputed from live game state each frame — no capture/replay,
+     *    no stutter risk.
+     *
+     * If tooltip rendering breaks again in this area, check:
+     * - frameStatusEffectsHovered set correctly in onContainerForeground
+     * - RenderTooltipEvent.Pre handler (onRenderTooltip) canceling at the right time
+     * - reRenderingEffectsTooltip guard allowing our call through
+     * - LegendaryTooltips fixLayering mixin (applies Z corrections inside renderTooltipInternal)
+     */
+    private static void renderEffectsTooltipAboveAmi(
+            net.minecraft.client.gui.screens.Screen screen,
+            net.minecraft.client.gui.GuiGraphics g,
+            int mouseX, int mouseY) {
+        if (!(screen instanceof EffectRenderingInventoryScreen<?> effectScreen)) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null) return;
+
+        int leftPos, topPos, imageWidth;
+        try {
+            leftPos = reflectedContainerInt(effectScreen, "leftPos");
+            topPos = reflectedContainerInt(effectScreen, "topPos");
+            imageWidth = reflectedContainerInt(effectScreen, "imageWidth");
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            return;
+        }
+
+        int renderX = leftPos + imageWidth + 2;
+        if (mouseX < renderX || mouseX > renderX + 33) return;
+
+        var effects = mc.player.getActiveEffects();
+        if (effects.isEmpty()) return;
+
+        int effectCount = effects.size();
+        int rowStep = effectCount > 5 ? 132 / Math.max(1, effectCount - 1) : 33;
+
+        List<MobEffectInstance> sorted = effects.stream()
+                .filter(ClientHooks::shouldRenderEffect)
+                .sorted()
+                .toList();
+
+        int l = topPos;
+        MobEffectInstance hovered = null;
+        for (MobEffectInstance effect : sorted) {
+            if (mouseY >= l && mouseY <= l + rowStep) {
+                hovered = effect;
+            }
+            l += rowStep;
+        }
+        if (hovered == null) return;
+
+        MutableComponent name = hovered.getEffect().value().getDisplayName().copy();
+        if (hovered.getAmplifier() >= 1 && hovered.getAmplifier() <= 9) {
+            name.append(CommonComponents.SPACE)
+               .append(Component.translatable("enchantment.level." + (hovered.getAmplifier() + 1)));
+        }
+        List<Component> lines = new ArrayList<>(List.of(
+                name,
+                MobEffectUtil.formatDuration(hovered, 1.0F, mc.level.tickRateManager().tickrate())));
+        lines = ClientHooks.getEffectTooltip(effectScreen, hovered, lines);
+
+        g.flush();
+        g.pose().pushPose();
+        g.pose().translate(0, 0, OverlayLayers.TRANSIENT_TOOLTIP);
+        reRenderingEffectsTooltip = true;
+        try {
+            g.renderTooltip(mc.font, lines, Optional.empty(), mouseX, mouseY);
+        } finally {
+            reRenderingEffectsTooltip = false;
+        }
+        g.pose().popPose();
+        g.flush();
     }
 
     private static int reflectedContainerInt(AbstractContainerScreen<?> screen, String name)
