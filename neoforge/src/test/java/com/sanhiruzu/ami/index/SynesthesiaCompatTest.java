@@ -5,7 +5,6 @@ import com.sanhiruzu.ami.compat.CataclysmCompat;
 import com.sanhiruzu.ami.compat.DatanessenceCompat;
 import com.sanhiruzu.ami.compat.DoggyTalentsCompat;
 import com.sanhiruzu.ami.compat.CgsCompat;
-import com.sanhiruzu.ami.compat.CncCompat;
 import com.sanhiruzu.ami.compat.EnigmaticLegacyPlusCompat;
 import com.sanhiruzu.ami.compat.EternalStarlightCompat;
 import com.sanhiruzu.ami.compat.ForbiddenArcanusCompat;
@@ -763,31 +762,6 @@ class SynesthesiaCompatTest {
         assertEquals("ship_token", ship.get("hpmItemKind"));
         assertEquals("hpm", shipAssignment.categoryId());
         assertEquals("ships", shipAssignment.subcategoryId());
-    }
-
-    @Test
-    void cncUnknownFamiliesGainOrganicAndArtifactFacts() {
-        Map<String, String> buckskin = meta("cnc", "net.imasillylittleguy.cnc.item.DeerLeatherItem");
-        CncCompat.enrichItem(new ResourceLocation("cnc", "buckskin"), buckskin);
-        CategoryAssignment buckskinAssignment = resolve("cnc:buckskin", buckskin);
-
-        Map<String, String> wishbone = meta("cnc", "net.imasillylittleguy.cnc.item.WishboneItem");
-        CncCompat.enrichItem(new ResourceLocation("cnc", "wishbone"), wishbone);
-        CategoryAssignment wishboneAssignment = resolve("cnc:wishbone", wishbone);
-
-        Map<String, String> pot = meta("cnc", "net.imasillylittleguy.cnc.item.PotofmouseItem");
-        CncCompat.enrichItem(new ResourceLocation("cnc", "potofmouse"), pot);
-        CategoryAssignment potAssignment = resolve("cnc:potofmouse", pot);
-
-        assertEquals("organic_material", buckskin.get("cncItemKind"));
-        assertEquals("ingredients", buckskinAssignment.categoryId());
-        assertEquals("organic", buckskinAssignment.subcategoryId());
-        assertEquals("organic_material", wishbone.get("cncItemKind"));
-        assertEquals("ingredients", wishboneAssignment.categoryId());
-        assertEquals("organic", wishboneAssignment.subcategoryId());
-        assertEquals("artifact", pot.get("cncItemKind"));
-        assertEquals("magic", potAssignment.categoryId());
-        assertEquals("artifacts", potAssignment.subcategoryId());
     }
 
     @Test

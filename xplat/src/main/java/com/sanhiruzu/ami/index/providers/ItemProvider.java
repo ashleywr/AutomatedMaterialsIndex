@@ -472,9 +472,6 @@ public class ItemProvider implements IAmiDataProvider {
         if (namespaceIs(id, "hpm")) {
             ItemProviderCompatHooks.runCompatSafely("HpmCompat", () -> HpmCompat.enrichItem(id, meta));
         }
-        if (namespaceIs(id, "cnc")) {
-            ItemProviderCompatHooks.runCompatSafely("CncCompat", () -> CncCompat.enrichItem(id, meta));
-        }
         if (namespaceIs(id, "mctradepost")) {
             ItemProviderCompatHooks.runCompatSafely("McTradePostCompat", () -> McTradePostCompat.enrichItem(id, meta));
         }
