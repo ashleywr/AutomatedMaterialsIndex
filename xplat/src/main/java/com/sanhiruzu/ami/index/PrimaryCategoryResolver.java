@@ -509,13 +509,24 @@ public final class PrimaryCategoryResolver {
                 : EnumSet.copyOf(profileFacets);
         var attributes = new HashMap<>(profileAttributes == null ? Map.of() : profileAttributes);
         java.util.Optional<ClassificationOverride> itemOverride = ClassificationOverrides.forItem(id);
+        Optional<ModPatternRule> patternRule = ClassificationOverrides.patternFor(modId, path);
         if (itemOverride.isPresent()) {
             ClassificationOverride o = itemOverride.get();
             facets.addAll(o.addFacets());
             facets.removeAll(o.removeFacets());
-            if (!o.addFacets().isEmpty() || !o.removeFacets().isEmpty()) {
-                attributes.put(SearchNodeKeys.FACETS, FacetCodec.encode(facets));
-            }
+        }
+        if (patternRule.isPresent()) {
+            ModPatternRule r = patternRule.get();
+            facets.addAll(r.addFacets());
+            facets.removeAll(r.removeFacets());
+        }
+        boolean overrideTouchedFacets =
+                (itemOverride.isPresent()
+                        && (!itemOverride.get().addFacets().isEmpty() || !itemOverride.get().removeFacets().isEmpty()))
+                || (patternRule.isPresent()
+                        && (!patternRule.get().addFacets().isEmpty() || !patternRule.get().removeFacets().isEmpty()));
+        if (overrideTouchedFacets) {
+            attributes.put(SearchNodeKeys.FACETS, FacetCodec.encode(facets));
         }
         PrimaryCategoryModFamily modFamily = PrimaryCategoryModFamilies.classify(modId);
         AmiConfig.CompatCategoryPolicy categoryPolicy = CompatCategoryPolicyResolver.resolve(attributes);
@@ -535,13 +546,13 @@ public final class PrimaryCategoryResolver {
             return route.finish("classification_override", "item_override",
                     new CategoryAssignment(o.forceCategory(), o.subcategoryOrEmpty(), attributes));
         }
-        Optional<ModPatternRule> patternRule = ClassificationOverrides.patternFor(modId, path);
-        if (patternRule.isPresent()) {
+        if (patternRule.isPresent() && patternRule.get().hasCategory()) {
             ModPatternRule r = patternRule.get();
             return route.finish("classification_override", "mod_pattern",
                     new CategoryAssignment(r.category(), r.subcategory(), attributes));
         }
-        route.skipped("classification_override", "no override matched");
+        route.skipped("classification_override",
+                patternRule.isPresent() ? "mod_pattern facets-only" : "no override matched");
 
         if (shouldUseEarlyCompatRouteMetadata(context)) {
             return route.finish("compat_route", "explicit metadata", compatRouteAssignment(context));
