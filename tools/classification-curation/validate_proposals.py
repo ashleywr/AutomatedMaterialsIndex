@@ -1,0 +1,71 @@
+"""Guard: verify proposals.jsonl conforms to the proposal schema before apply."""
+import sys
+
+import schema
+
+SCOPES = {"item", "modPattern"}
+DECISIONS = {"pending", "approve", "reject"}
+
+
+def _is_str_list(value):
+    return isinstance(value, list) and all(isinstance(v, str) for v in value)
+
+
+def validate_proposal(row):
+    errors = []
+    rid = row.get("id")
+    if not isinstance(rid, str) or ":" not in rid:
+        errors.append("id must be a namespaced string")
+    scope = row.get("scope")
+    if scope not in SCOPES:
+        errors.append(f"scope must be one of {sorted(SCOPES)}")
+    if row.get("decision") not in DECISIONS:
+        errors.append(f"decision must be one of {sorted(DECISIONS)}")
+    override = row.get("override")
+    if not isinstance(override, dict):
+        errors.append("override must be an object")
+        return errors
+
+    if scope == "item":
+        category = override.get("category")
+        if category is not None and (not isinstance(category, str) or not category.strip()):
+            errors.append("item category, when present, must be a non-empty string")
+        add = override.get("addFacets", [])
+        rem = override.get("removeFacets", [])
+        if not _is_str_list(add) or not _is_str_list(rem):
+            errors.append("addFacets/removeFacets must be string arrays")
+        if not (category and category.strip()) and not add and not rem:
+            errors.append("item override must change category, addFacets, or removeFacets")
+    elif scope == "modPattern":
+        mod = override.get("mod")
+        if not isinstance(mod, str) or not mod.strip():
+            errors.append("modPattern mod must be a non-empty string")
+        tokens = override.get("pathTokens")
+        if not _is_str_list(tokens) or not tokens:
+            errors.append("pathTokens must be a non-empty string array")
+        else:
+            for token in tokens:
+                if "_" in token or "/" in token:
+                    errors.append(f"pathToken '{token}' must be a single token (no '_' or '/')")
+        category = override.get("category")
+        if not isinstance(category, str) or not category.strip():
+            errors.append("modPattern category must be a non-empty string")
+    return errors
+
+
+def validate_file(path):
+    all_errors = []
+    for index, row in enumerate(schema.read_jsonl(path), start=1):
+        for error in validate_proposal(row):
+            all_errors.append(f"line {index} ({row.get('id', '?')}): {error}")
+    return all_errors
+
+
+if __name__ == "__main__":
+    errors = validate_file(sys.argv[1])
+    for error in errors:
+        print(error)
+    if errors:
+        print(f"{len(errors)} error(s)")
+        sys.exit(1)
+    print("proposals valid")
