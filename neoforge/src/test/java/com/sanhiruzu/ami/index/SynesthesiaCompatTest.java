@@ -1,13 +1,10 @@
 package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.compat.DatanessenceCompat;
-import com.sanhiruzu.ami.compat.DoggyTalentsCompat;
 import com.sanhiruzu.ami.compat.EnigmaticLegacyPlusCompat;
 import com.sanhiruzu.ami.compat.EternalStarlightCompat;
 import com.sanhiruzu.ami.compat.ForbiddenArcanusCompat;
 import com.sanhiruzu.ami.compat.GeneratedVariantCollapseCompat;
-import com.sanhiruzu.ami.compat.HexaliaCompat;
-import com.sanhiruzu.ami.compat.HexereiCompat;
 import com.sanhiruzu.ami.compat.MalumCompat;
 import com.sanhiruzu.ami.compat.PastelCompat;
 import com.sanhiruzu.ami.compat.PowerGridCompat;
@@ -113,117 +110,6 @@ class SynesthesiaCompatTest {
         assertTrue(meta.getOrDefault(SearchNodeKeys.FACETS, "").contains(ItemFacet.MAGIC_ARTIFACT.id()));
         assertEquals("pastel", assignment.categoryId());
         assertEquals("magic", assignment.subcategoryId());
-    }
-
-    @Test
-    @Disabled("intended routing pending override layer; see docs/superpowers/specs/2026-06-22-classification-override-and-curation-design.md")
-    void doggyTalentsRepeatedUnknownFamiliesRouteSemantically() {
-        Map<String, String> treat = meta("doggytalents", "doggytalents.common.item.TreatItem");
-        treat.put(SearchNodeKeys.TAGS, "doggytalents:treats");
-        DoggyTalentsCompat.enrichItem(new ResourceLocation("doggytalents", "training_treat"), treat);
-        CategoryAssignment treatAssignment = resolve("doggytalents:training_treat", treat);
-
-        Map<String, String> tracker = meta("doggytalents", "doggytalents.common.item.CanineTrackerItem");
-        DoggyTalentsCompat.enrichItem(new ResourceLocation("doggytalents", "canine_tracker"), tracker);
-        CategoryAssignment trackerAssignment = resolve("doggytalents:canine_tracker", tracker);
-
-        Map<String, String> toy = meta("doggytalents", "doggytalents.common.item.FrisbeeItem");
-        DoggyTalentsCompat.enrichItem(new ResourceLocation("doggytalents", "frisbee"), toy);
-        CategoryAssignment toyAssignment = resolve("doggytalents:frisbee", toy);
-
-        Map<String, String> decor = meta("doggytalents", "doggytalents.common.item.PianoItem");
-        DoggyTalentsCompat.enrichItem(new ResourceLocation("doggytalents", "grand_piano_white_item"), decor);
-        CategoryAssignment decorAssignment = resolve("doggytalents:grand_piano_white_item", decor);
-
-        Map<String, String> accessory = meta("doggytalents", "doggytalents.common.entity.accessory.FlatCap$FlatCapItem");
-        DoggyTalentsCompat.enrichItem(new ResourceLocation("doggytalents", "flatcap"), accessory);
-        CategoryAssignment accessoryAssignment = resolve("doggytalents:flatcap", accessory);
-
-        assertEquals("treat", treat.get("doggyTalentsItemKind"));
-        assertEquals("nature", treatAssignment.categoryId());
-        assertEquals("snacks", treatAssignment.subcategoryId());
-        assertEquals("tracker", tracker.get("doggyTalentsItemKind"));
-        assertEquals("utility", trackerAssignment.categoryId());
-        assertEquals("navigation", trackerAssignment.subcategoryId());
-        assertEquals("toy_tool", toy.get("doggyTalentsItemKind"));
-        assertEquals("tools", toyAssignment.categoryId());
-        assertEquals("utility", toyAssignment.subcategoryId());
-        assertEquals("decor", decor.get("doggyTalentsItemKind"));
-        assertEquals("decoration", decorAssignment.categoryId());
-        assertEquals("furniture", decorAssignment.subcategoryId());
-        assertEquals("pet_accessory", accessory.get("doggyTalentsItemKind"));
-        assertTrue(accessory.getOrDefault(SearchNodeKeys.FACETS, "").contains(ItemFacet.CURIO.id()));
-        assertEquals("armor", accessoryAssignment.categoryId());
-        assertEquals("curios", accessoryAssignment.subcategoryId());
-    }
-
-    @Test
-    void hexereiUnknownFamiliesGainSemanticFacts() {
-        Map<String, String> broom = meta("hexerei", "net.joefoxe.hexerei.item.ModItems$4");
-        HexereiCompat.enrichItem(new ResourceLocation("hexerei", "mahogany_broom"), broom);
-        CategoryAssignment broomAssignment = resolve("hexerei:mahogany_broom", broom);
-
-        Map<String, String> herb = meta("hexerei", "net.minecraft.world.item.Item");
-        herb.put(SearchNodeKeys.TAGS, "hexerei:herbs");
-        HexereiCompat.enrichItem(new ResourceLocation("hexerei", "sage"), herb);
-        CategoryAssignment herbAssignment = resolve("hexerei:sage", herb);
-
-        Map<String, String> sigil = meta("hexerei", "net.minecraft.world.item.Item");
-        sigil.put(SearchNodeKeys.TAGS, "hexerei:sigils");
-        HexereiCompat.enrichItem(new ResourceLocation("hexerei", "blood_sigil"), sigil);
-        CategoryAssignment sigilAssignment = resolve("hexerei:blood_sigil", sigil);
-
-        Map<String, String> rod = meta("hexerei", "net.joefoxe.hexerei.item.custom.DowsingRodItem");
-        HexereiCompat.enrichItem(new ResourceLocation("hexerei", "dowsing_rod"), rod);
-        CategoryAssignment rodAssignment = resolve("hexerei:dowsing_rod", rod);
-
-        assertEquals("broom_tool", broom.get("hexereiItemKind"));
-        assertEquals("tech", broomAssignment.categoryId());
-        assertEquals("transport", broomAssignment.subcategoryId());
-        assertEquals("organic_reagent", herb.get("hexereiItemKind"));
-        assertEquals("ingredients", herbAssignment.categoryId());
-        assertEquals("organic", herbAssignment.subcategoryId());
-        assertEquals("magic_artifact", sigil.get("hexereiItemKind"));
-        assertEquals("magic", sigilAssignment.categoryId());
-        assertEquals("artifacts", sigilAssignment.subcategoryId());
-        assertEquals("navigation_tool", rod.get("hexereiItemKind"));
-        assertEquals("utility", rodAssignment.categoryId());
-        assertEquals("navigation", rodAssignment.subcategoryId());
-    }
-
-    @Test
-    @Disabled("intended routing pending override layer; see docs/superpowers/specs/2026-06-22-classification-override-and-curation-design.md")
-    void hexaliaUnknownFamiliesGainSemanticFacts() {
-        Map<String, String> focus = meta("hexalia", "net.astralya.hexalia.item.custom.HexFocusItem");
-        focus.put(SearchNodeKeys.TAGS, "hexalia:offhand_equipment");
-        HexaliaCompat.enrichItem(new ResourceLocation("hexalia", "hex_focus"), focus);
-        CategoryAssignment focusAssignment = resolve("hexalia:hex_focus", focus);
-
-        Map<String, String> sac = meta("hexalia", "net.astralya.hexalia.item.custom.ThrownSacItem");
-        HexaliaCompat.enrichItem(new ResourceLocation("hexalia", "foul_sac"), sac);
-        CategoryAssignment sacAssignment = resolve("hexalia:foul_sac", sac);
-
-        Map<String, String> athame = meta("hexalia", "net.astralya.hexalia.item.custom.AthameItem");
-        HexaliaCompat.enrichItem(new ResourceLocation("hexalia", "athame"), athame);
-        CategoryAssignment athameAssignment = resolve("hexalia:athame", athame);
-
-        Map<String, String> powder = meta("hexalia", "net.minecraft.world.item.Item");
-        powder.put(SearchNodeKeys.TAGS, "hexalia:crushed_herbs");
-        HexaliaCompat.enrichItem(new ResourceLocation("hexalia", "spirit_powder"), powder);
-        CategoryAssignment powderAssignment = resolve("hexalia:spirit_powder", powder);
-
-        assertEquals("magic_artifact", focus.get("hexaliaItemKind"));
-        assertEquals("magic", focusAssignment.categoryId());
-        assertEquals("artifacts", focusAssignment.subcategoryId());
-        assertEquals("projectile_sac", sac.get("hexaliaItemKind"));
-        assertEquals("tools", sacAssignment.categoryId());
-        assertEquals("ammo", sacAssignment.subcategoryId());
-        assertEquals("melee_tool", athame.get("hexaliaItemKind"));
-        assertEquals("tools", athameAssignment.categoryId());
-        assertEquals("melee", athameAssignment.subcategoryId());
-        assertEquals("magic_reagent", powder.get("hexaliaItemKind"));
-        assertEquals("magic", powderAssignment.categoryId());
-        assertEquals("reagents", powderAssignment.subcategoryId());
     }
 
     @Test

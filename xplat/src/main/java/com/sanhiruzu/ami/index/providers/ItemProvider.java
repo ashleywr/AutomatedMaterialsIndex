@@ -421,15 +421,6 @@ public class ItemProvider implements IAmiDataProvider {
         if (namespaceIs(id, "datanessence")) {
             ItemProviderCompatHooks.runCompatSafely("DatanessenceCompat", () -> DatanessenceCompat.enrichItem(id, meta));
         }
-        if (namespaceIs(id, "doggytalents")) {
-            ItemProviderCompatHooks.runCompatSafely("DoggyTalentsCompat", () -> DoggyTalentsCompat.enrichItem(id, meta));
-        }
-        if (namespaceIs(id, "hexerei")) {
-            ItemProviderCompatHooks.runCompatSafely("HexereiCompat", () -> HexereiCompat.enrichItem(id, meta));
-        }
-        if (namespaceIs(id, "hexalia")) {
-            ItemProviderCompatHooks.runCompatSafely("HexaliaCompat", () -> HexaliaCompat.enrichItem(id, meta));
-        }
         if (namespaceIs(id, "tide")) {
             ItemProviderCompatHooks.runCompatSafely("TideCompat", () -> TideCompat.enrichItem(id, meta));
         }

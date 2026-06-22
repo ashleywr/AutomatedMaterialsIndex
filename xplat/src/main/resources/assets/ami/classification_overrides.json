@@ -30,6 +30,26 @@
     { "mod": "cnc", "pathTokens": ["potofmouse", "kill"], "addFacets": ["magic_artifact"] },
     { "mod": "cnc", "pathTokens": ["buckskin", "antler", "tusk", "wishbone"], "addFacets": ["ingredient_organic"] },
 
+    { "mod": "doggytalents", "classTokens": ["doggytalents.common.entity.accessory.", "accessoryitem", "dualaccessoryitem", "dyeableaccessoryitem", "doggycontactsitem", "demonhornsitem", "deerantlersitem", "bunnyearsitem", "dogpresentcostumeitem"], "addFacets": ["curio"] },
+    { "mod": "doggytalents", "classTokens": ["whistleitem", "caninetrackeritem", "locatororbitem", "dyableorbitem", "emptylocatororbitem"], "pathTokens": ["tracker", "orb", "whistle"], "addFacets": ["utility_navigation"] },
+    { "mod": "doggytalents", "classTokens": ["throwableitem", "frisbeeitem", "droolboneitem", "frisbeedroolitem", "energizerstickitem"], "pathTokens": ["frisbee"], "addFacets": ["utility_tool"] },
+    { "mod": "doggytalents", "classTokens": ["treatitem", "scenttreatitem", "droolscenttreatitem"], "pathTokens": ["treat"], "category": "nature", "subcategory": "snacks" },
+    { "mod": "doggytalents", "classTokens": ["pianoitem", "dogplushieitem", "samoyedplushieitem"], "pathTokens": ["plushie", "piano"], "category": "decoration", "subcategory": "furniture" },
+
+    { "mod": "hexalia", "classTokens": ["hexfocusitem", "weatheridolitem", "purityidolitem"], "pathTokens": ["idol", "focus", "pendant"], "addFacets": ["magic_artifact"] },
+    { "mod": "hexalia", "classTokens": ["thrownsacitem"], "pathTokens": ["sac"], "addFacets": ["projectile"] },
+    { "mod": "hexalia", "classTokens": ["athameitem"], "addFacets": ["melee_weapon"] },
+    { "mod": "hexalia", "classTokens": ["purifyingsacitem", "spiritroottetheritem"], "pathTokens": ["tether", "purifying"], "addFacets": ["utility_tool"] },
+    { "mod": "hexalia", "pathTokens": ["powder", "paste", "node"], "addFacets": ["magic_reagent"] },
+    { "mod": "hexalia", "pathTokens": ["resin"], "addFacets": ["ingredient_organic"] },
+
+    { "mod": "hexerei", "classTokens": ["hexereibookitem"], "addFacets": ["book", "guide_book"] },
+    { "mod": "hexerei", "pathTokens": ["sigil"], "addFacets": ["magic_artifact"] },
+    { "mod": "hexerei", "classTokens": ["whistleitem", "dowsingroditem"], "pathTokens": ["dowsing", "whistle"], "addFacets": ["utility_navigation"] },
+    { "mod": "hexerei", "pathTokens": ["broom"], "addFacets": ["transport"] },
+    { "mod": "hexerei", "classTokens": ["crowfluteitem", "waxingkititem", "keychainitem"], "pathTokens": ["flute"], "addFacets": ["utility_tool"] },
+    { "mod": "hexerei", "classTokens": ["floweroutputitem", "blenditem"], "pathTokens": ["sage", "mandrake", "moon", "wax"], "addFacets": ["ingredient_organic"] },
+
     { "mod": "hpm", "pathTokens": ["cannonball"], "addFacets": ["projectile"] },
     { "mod": "hpm", "pathTokens": ["mortar"], "addFacets": ["ranged_weapon"] },
     { "mod": "hpm", "pathTokens": ["hull", "mast"], "addFacets": ["transport"] },
