@@ -345,6 +345,22 @@ final class EvidenceCollector {
         if (hasTagEnding(tags, "power_bottles")) {
             evidence.add(e("tag.power_bottles", "trusted_tag", "magic", "artifacts", 110, "power bottles tag"));
         }
+        if (hasTrustedTag(tags, "minecraft:enchantable/sharp_weapon")
+                || hasTrustedTag(tags, "minecraft:enchantable/mace")
+                || hasTrustedTag(tags, "minecraft:enchantable/trident")) {
+            evidence.add(e("tag.enchantable_melee", "trusted_tag", "tools", "melee", 85, "enchantable melee-weapon tag"));
+        }
+        if (hasTrustedTag(tags, "minecraft:enchantable/bow")
+                || hasTrustedTag(tags, "minecraft:enchantable/crossbow")) {
+            evidence.add(e("tag.enchantable_ranged", "trusted_tag", "tools", "ranged", 85, "enchantable ranged-weapon tag"));
+        }
+        if (hasTrustedTag(tags, "minecraft:enchantable/mining")
+                || hasTrustedTag(tags, "minecraft:enchantable/mining_loot")) {
+            evidence.add(e("tag.enchantable_mining", "trusted_tag", "tools", "harvest", 80, "enchantable mining tag"));
+        }
+        if (hasTrustedTag(tags, "minecraft:enchantable/armor")) {
+            evidence.add(e("tag.enchantable_armor", "trusted_tag", "armor", "", 80, "enchantable armor tag"));
+        }
     }
 
     private static void addRecipeEvidence(Map<String, String> attributes, List<ClassificationEvidence> evidence) {
