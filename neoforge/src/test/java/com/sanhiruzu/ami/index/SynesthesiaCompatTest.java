@@ -5,6 +5,7 @@ import com.sanhiruzu.ami.compat.CataclysmCompat;
 import com.sanhiruzu.ami.compat.DatanessenceCompat;
 import com.sanhiruzu.ami.compat.DoggyTalentsCompat;
 import com.sanhiruzu.ami.compat.CgsCompat;
+import com.sanhiruzu.ami.compat.CncCompat;
 import com.sanhiruzu.ami.compat.EnigmaticLegacyPlusCompat;
 import com.sanhiruzu.ami.compat.EternalStarlightCompat;
 import com.sanhiruzu.ami.compat.ForbiddenArcanusCompat;
