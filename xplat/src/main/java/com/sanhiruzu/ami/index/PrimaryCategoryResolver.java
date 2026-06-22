@@ -508,6 +508,15 @@ public final class PrimaryCategoryResolver {
                 ? EnumSet.noneOf(ItemFacet.class)
                 : EnumSet.copyOf(profileFacets);
         var attributes = new HashMap<>(profileAttributes == null ? Map.of() : profileAttributes);
+        java.util.Optional<ClassificationOverride> itemOverride = ClassificationOverrides.forItem(id);
+        if (itemOverride.isPresent()) {
+            ClassificationOverride o = itemOverride.get();
+            facets.addAll(o.addFacets());
+            facets.removeAll(o.removeFacets());
+            if (!o.addFacets().isEmpty() || !o.removeFacets().isEmpty()) {
+                attributes.put(SearchNodeKeys.FACETS, FacetCodec.encode(facets));
+            }
+        }
         PrimaryCategoryModFamily modFamily = PrimaryCategoryModFamilies.classify(modId);
         AmiConfig.CompatCategoryPolicy categoryPolicy = CompatCategoryPolicyResolver.resolve(attributes);
         if (hasCompatFamily(attributes)) {
@@ -520,6 +529,19 @@ public final class PrimaryCategoryResolver {
         }
         ResolveContext context = new ResolveContext(id, modId, path, facets, attributes, modFamily, categoryPolicy);
         CategoryRouteTrace route = CategoryRouteTrace.start(id, modFamily.name().toLowerCase(Locale.ROOT), facets, attributes);
+
+        if (itemOverride.isPresent() && itemOverride.get().hasForcedCategory()) {
+            ClassificationOverride o = itemOverride.get();
+            return route.finish("classification_override", "item_override",
+                    new CategoryAssignment(o.forceCategory(), o.subcategoryOrEmpty(), attributes));
+        }
+        Optional<ModPatternRule> patternRule = ClassificationOverrides.patternFor(modId, path);
+        if (patternRule.isPresent()) {
+            ModPatternRule r = patternRule.get();
+            return route.finish("classification_override", "mod_pattern",
+                    new CategoryAssignment(r.category(), r.subcategory(), attributes));
+        }
+        route.skipped("classification_override", "no override matched");
 
         if (shouldUseEarlyCompatRouteMetadata(context)) {
             return route.finish("compat_route", "explicit metadata", compatRouteAssignment(context));
