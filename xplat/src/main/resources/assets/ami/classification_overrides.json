@@ -35,6 +35,12 @@
     { "mod": "hpm", "pathTokens": ["hull", "mast"], "addFacets": ["transport"] },
     { "mod": "hpm", "pathTokens": ["cutter", "swashbuckler", "corvette", "pirate"], "category": "hpm", "subcategory": "ships" },
 
+    { "mod": "mctradepost", "classTokens": ["advancedclipboarditem", "currencyexchangeitem", "outpostclaimmarkeritem"], "addFacets": ["utility_tool"] },
+    { "mod": "mctradepost", "classTokens": ["souveniritem"], "addFacets": ["utility_misc"] },
+    { "mod": "mctradepost", "pathTokens": ["wish"], "addFacets": ["magic_artifact"] },
+    { "mod": "mctradepost", "pathTokens": ["napkin", "mortar"], "addFacets": ["ingredient_mineral"] },
+    { "mod": "mctradepost", "pathTokens": ["nugget"], "addFacets": ["utility_currency"] },
+
     { "mod": "minecolonies", "classTokens": ["supplychestdeployer", "supplycampdeployer"], "category": "minecolonies", "subcategory": "settlements" },
     { "mod": "minecolonies", "classTokens": ["itemscananalyzer", "itemscepterpermission", "itemscepterguard", "itemscepterlumberjack", "itemscepterbeekeeper", "itemassistanthammer"], "addFacets": ["utility_tool"] },
     { "mod": "minecolonies", "classTokens": ["itemfirearrow"], "addFacets": ["projectile"] },
@@ -42,12 +48,6 @@
     { "mod": "minecolonies", "classTokens": ["itemcompost", "itemmistletoe"], "addFacets": ["ingredient_organic"] },
     { "mod": "minecolonies", "classTokens": ["itemsiftermesh"], "addFacets": ["tech_component"] },
     { "mod": "minecolonies", "classTokens": ["itemadventuretoken"], "addFacets": ["utility_misc"] },
-
-    { "mod": "mctradepost", "classTokens": ["advancedclipboarditem", "currencyexchangeitem", "outpostclaimmarkeritem"], "addFacets": ["utility_tool"] },
-    { "mod": "mctradepost", "classTokens": ["souveniritem"], "addFacets": ["utility_misc"] },
-    { "mod": "mctradepost", "pathTokens": ["wish"], "addFacets": ["magic_artifact"] },
-    { "mod": "mctradepost", "pathTokens": ["napkin", "mortar"], "addFacets": ["ingredient_mineral"] },
-    { "mod": "mctradepost", "pathTokens": ["nugget"], "addFacets": ["utility_currency"] },
 
     { "mod": "mowziesmobs", "classTokens": ["itemdart"], "addFacets": ["projectile"] },
     { "mod": "mowziesmobs", "classTokens": ["itembluffrod", "itemsandrake", "itemmobremover"], "addFacets": ["utility_tool"] },
