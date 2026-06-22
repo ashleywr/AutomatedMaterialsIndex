@@ -514,6 +514,10 @@ public final class PrimaryCategoryResolver {
             attributes.put(SearchNodeKeys.COMPAT_CATEGORY_POLICY, categoryPolicy.name().toLowerCase(Locale.ROOT));
         }
         FacetProfile routedProfile = new FacetProfile(facets, attributes);
+        String candidateSummary = CategoryScorer.candidateSummary(id, routedProfile);
+        if (!candidateSummary.isBlank()) {
+            attributes.put(SearchNodeKeys.CLASSIFICATION_CANDIDATES, candidateSummary);
+        }
         ResolveContext context = new ResolveContext(id, modId, path, facets, attributes, modFamily, categoryPolicy);
         CategoryRouteTrace route = CategoryRouteTrace.start(id, modFamily.name().toLowerCase(Locale.ROOT), facets, attributes);
 

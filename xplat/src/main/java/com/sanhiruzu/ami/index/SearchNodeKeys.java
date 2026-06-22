@@ -16,6 +16,7 @@ public final class SearchNodeKeys {
     public static final String CLASSIFICATION_TRACE = "classificationTrace"; // Step-by-step resolver trace for debug UI.
     public static final String CLASSIFICATION_ROUTE_PHASE = "classificationRoutePhase"; // Final resolver gate.
     public static final String CLASSIFICATION_ROUTE_RULE = "classificationRouteRule"; // Final rule/scorer id.
+    public static final String CLASSIFICATION_CANDIDATES = "classificationCandidates";
     public static final String DATA_FIX_SOURCE = "amiDataFixSource"; // user or pack metadata override source.
     public static final String CUSTOM_TAXONOMY_SOURCE = "amiCustomTaxonomySource"; // user or pack rule source.
     // Item-specific

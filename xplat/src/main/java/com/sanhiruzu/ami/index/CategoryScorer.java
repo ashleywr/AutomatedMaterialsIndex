@@ -50,6 +50,19 @@ final class CategoryScorer {
         return Optional.of(new CategoryAssignment(best.categoryId, best.subcategoryId, attributes));
     }
 
+    static String candidateSummary(ResourceLocation id, FacetProfile profile) {
+        List<ClassificationEvidence> evidence = EvidenceCollector.collect(id, profile);
+        if (evidence.isEmpty()) {
+            return "";
+        }
+        Map<String, Score> scores = new LinkedHashMap<>();
+        for (ClassificationEvidence item : evidence) {
+            scores.computeIfAbsent(item.categoryKey(), ignored -> new Score(item.categoryId(), item.subcategoryId()))
+                    .add(item);
+        }
+        return scoreSummary(scores.values());
+    }
+
     private static String scoreSummary(Iterable<Score> scores) {
         List<Score> sorted = new ArrayList<>();
         scores.forEach(sorted::add);
