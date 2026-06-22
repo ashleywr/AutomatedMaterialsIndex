@@ -43,6 +43,28 @@ class ApplyTest(unittest.TestCase):
             apply.merge(ov, [{"id": "a:b", "scope": "item", "decision": "approve",
                               "override": {"subcategory": "x"}, "rationale": "x"}])
 
+    def test_merge_mod_pattern_carries_facets(self):
+        ov = {"items": {}, "modPatterns": []}
+        updated, _ = apply.merge(ov, [
+            {"id": "cnc:potofmouse", "scope": "modPattern", "decision": "approve",
+             "override": {"mod": "cnc", "pathTokens": ["potofmouse"], "addFacets": ["magic_artifact"]},
+             "rationale": "x"},
+        ])
+        self.assertEqual(updated["modPatterns"], [
+            {"mod": "cnc", "pathTokens": ["potofmouse"], "addFacets": ["magic_artifact"]},
+        ])
+
+    def test_merge_facet_pattern_dedups_distinct_facets(self):
+        ov = {"items": {}, "modPatterns": []}
+        base = {"id": "cnc:a", "scope": "modPattern", "decision": "approve",
+                "override": {"mod": "cnc", "pathTokens": ["a"], "addFacets": ["magic_artifact"]},
+                "rationale": "x"}
+        other = {"id": "cnc:a", "scope": "modPattern", "decision": "approve",
+                 "override": {"mod": "cnc", "pathTokens": ["a"], "addFacets": ["ingredient_organic"]},
+                 "rationale": "x"}
+        updated, _ = apply.merge(ov, [base, dict(base), other])
+        self.assertEqual(len(updated["modPatterns"]), 2)  # same tokens, different facets => not duplicate
+
     def test_run_writes_files(self):
         with tempfile.TemporaryDirectory() as d:
             proposals = os.path.join(d, "proposals.jsonl")

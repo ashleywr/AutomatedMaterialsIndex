@@ -34,7 +34,9 @@ def _item_entry(override):
 
 def _pattern_key(pattern):
     return (pattern["mod"], tuple(sorted(pattern["pathTokens"])),
-            pattern.get("category", ""), pattern.get("subcategory", ""))
+            pattern.get("category", ""), pattern.get("subcategory", ""),
+            tuple(sorted(pattern.get("addFacets", []))),
+            tuple(sorted(pattern.get("removeFacets", []))))
 
 
 def merge(overrides, proposals):
@@ -57,12 +59,17 @@ def merge(overrides, proposals):
         if row["scope"] == "item":
             overrides["items"][row["id"]] = _item_entry(override)
         else:
-            pattern = {
-                "mod": override["mod"],
-                "pathTokens": list(override["pathTokens"]),
-                "category": override.get("category", ""),
-                "subcategory": override.get("subcategory", ""),
-            }
+            pattern = {"mod": override["mod"], "pathTokens": list(override["pathTokens"])}
+            category = override.get("category")
+            if category and category.strip():
+                pattern["category"] = category
+            subcategory = override.get("subcategory")
+            if subcategory and subcategory.strip():
+                pattern["subcategory"] = subcategory
+            if override.get("addFacets"):
+                pattern["addFacets"] = list(override["addFacets"])
+            if override.get("removeFacets"):
+                pattern["removeFacets"] = list(override["removeFacets"])
             key = _pattern_key(pattern)
             if key not in existing_pattern_keys:
                 existing_pattern_keys.add(key)

@@ -48,8 +48,15 @@ def validate_proposal(row):
                 if "_" in token or "/" in token:
                     errors.append(f"pathToken '{token}' must be a single token (no '_' or '/')")
         category = override.get("category")
-        if not isinstance(category, str) or not category.strip():
-            errors.append("modPattern category must be a non-empty string")
+        add = override.get("addFacets", [])
+        rem = override.get("removeFacets", [])
+        if not _is_str_list(add) or not _is_str_list(rem):
+            errors.append("addFacets/removeFacets must be string arrays")
+        has_category = isinstance(category, str) and bool(category.strip())
+        if category is not None and not has_category:
+            errors.append("modPattern category, when present, must be a non-empty string")
+        if not has_category and not add and not rem:
+            errors.append("modPattern must set category, addFacets, or removeFacets")
     return errors
 
 

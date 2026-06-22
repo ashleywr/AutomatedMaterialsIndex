@@ -37,6 +37,19 @@ class ValidateTest(unittest.TestCase):
                "override": {"category": "tools"}}
         self.assertTrue(vp.validate_proposal(row))
 
+    def test_mod_pattern_facets_only_is_valid(self):
+        row = {"id": "cnc:potofmouse", "scope": "modPattern", "decision": "approve",
+               "override": {"mod": "cnc", "pathTokens": ["potofmouse"], "addFacets": ["magic_artifact"]},
+               "rationale": "x"}
+        self.assertEqual(vp.validate_proposal(row), [])
+
+    def test_mod_pattern_requires_category_or_facets(self):
+        row = {"id": "cnc:x", "scope": "modPattern", "decision": "approve",
+               "override": {"mod": "cnc", "pathTokens": ["x"]},
+               "rationale": "x"}
+        self.assertIn("modPattern must set category, addFacets, or removeFacets",
+                      vp.validate_proposal(row))
+
     def test_validate_file(self):
         with tempfile.TemporaryDirectory() as d:
             p = os.path.join(d, "proposals.jsonl")
