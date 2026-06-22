@@ -41,6 +41,34 @@ class ClassificationOverridesParseTest {
     }
 
     @Test
+    void parsesModPatternFacets() {
+        String json = """
+            {
+              "items": {},
+              "modPatterns": [
+                { "mod": "cnc", "pathTokens": ["buckskin", "antler"], "addFacets": ["ingredient_organic"] },
+                { "mod": "cnc", "pathTokens": ["potofmouse"], "addFacets": ["magic_artifact"],
+                  "removeFacets": ["decorative_block"], "category": "magic", "subcategory": "artifacts" }
+              ]
+            }
+            """;
+
+        ClassificationOverrides.parseAndInstall(json);
+
+        ModPatternRule organic = ClassificationOverrides.patternFor("cnc", "buckskin").orElseThrow();
+        assertTrue(organic.addFacets().contains(ItemFacet.INGREDIENT_ORGANIC));
+        assertTrue(organic.removeFacets().isEmpty());
+        assertEquals("", organic.category() == null ? "" : organic.category());
+        assertEquals(false, organic.hasCategory());
+
+        ModPatternRule artifact = ClassificationOverrides.patternFor("cnc", "potofmouse").orElseThrow();
+        assertTrue(artifact.addFacets().contains(ItemFacet.MAGIC_ARTIFACT));
+        assertTrue(artifact.removeFacets().contains(ItemFacet.DECORATIVE_BLOCK));
+        assertEquals(true, artifact.hasCategory());
+        assertEquals("magic", artifact.category());
+    }
+
+    @Test
     void blankOrMalformedJsonInstallsEmpty() {
         ClassificationOverrides.parseAndInstall("not json");
         assertTrue(ClassificationOverrides.forItem(new ResourceLocation("examplemod:widget")).isEmpty());

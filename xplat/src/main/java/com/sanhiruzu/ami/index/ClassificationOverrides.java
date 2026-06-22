@@ -141,6 +141,7 @@ public final class ClassificationOverrides {
             }
             out.computeIfAbsent(mod.toLowerCase(Locale.ROOT), ignored -> new ArrayList<>())
                     .add(new ModPatternRule(mod.toLowerCase(Locale.ROOT), tokens,
+                            parseFacets(entry, "addFacets"), parseFacets(entry, "removeFacets"),
                             optString(entry, "category"), optString(entry, "subcategory")));
         }
     }
