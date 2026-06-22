@@ -1,4 +1,9 @@
 {
-  "items": {},
-  "modPatterns": []
+  "items": {
+    "cnc:raw_turkey": { "addFacets": ["ingredient_organic"] }
+  },
+  "modPatterns": [
+    { "mod": "cnc", "pathTokens": ["potofmouse", "kill"], "addFacets": ["magic_artifact"] },
+    { "mod": "cnc", "pathTokens": ["buckskin", "antler", "tusk", "wishbone"], "addFacets": ["ingredient_organic"] }
+  ]
 }
