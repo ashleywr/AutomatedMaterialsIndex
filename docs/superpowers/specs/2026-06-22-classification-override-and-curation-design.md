@@ -89,16 +89,36 @@ The accidental-vs-intentional distinction is the crux: a mod-name bucket is a *s
 
 ## Component 3 — Offline curation pipeline
 
-- **Input:** `search_nodes.jsonl` + `recipes_runtime.jsonl`.
-- **Detectors** flag candidates:
-  - route phase in `fallback`/`evidence_fallback`/`compat_fallback`/`unknown`/`<none>`;
-  - empty facets;
-  - cross-signal contradiction (tab vs category, recipe-role vs category, facet vs category);
-  - mod-name pseudo-categories.
-- **Evidence assembly:** per candidate, gather recipe-graph neighbors (`OUTPUT_OF` / `USED_IN`), creative tab, tags, current route + runner-up.
-- **LLM proposal:** grounded in that evidence, proposes either a per-item correction or a mod-promotion.
-- **Review queue:** proposals land in an editable artifact; the human bulk-approves/rejects. Approved entries are written into the bundled JSON. Rejections are remembered so they are not re-proposed.
-- **Seed batch:** the 13 string-matching plugins' rules become the first proposals — each a per-mod *disperse vs promote* decision.
+A **dev-time authoring tool** in `tools/classification-curation/`. Six file-connected stages: Python does the deterministic plumbing, a Claude Code agent does the judgment, a Java replay-diff is the correctness gate. All handoffs are diffable JSONL/JSON files — no stage holds another's data in memory.
+
+```
+ami_dumps
+   │
+1. detect.py     search_nodes.jsonl → candidates.jsonl
+   │              (fallback/unknown phase · empty facets ·
+   │               cross-signal contradiction · mod-name pseudo-categories)
+2. evidence.py   candidates + recipe edges (OUTPUT_OF/USED_IN) + tab + tags
+   │              + current route + runner-up  → evidence_batch.jsonl
+3. PROPOSE       Claude Code agent reads evidence_batch.jsonl, proposes a
+   │  (Claude)    per-item or per-mod-pattern override + rationale
+   │              → proposals.jsonl  (each: decision="pending")
+4. REVIEW (human) flip decision → approve/reject in proposals.jsonl (bulk);
+   │              rejects appended to a reject ledger → never re-proposed
+5. apply.py      fold approvals → bundled classification_overrides.json
+   │
+6. VERIFY (Java) replay-diff: load override JSON + dump item-facts, re-run the
+                  REAL resolver, diff vs baseline → targeted items change as
+                  intended, zero unintended regressions in the confident ~17k
+```
+
+- **Stage 1 — `detect.py`:** detectors over `search_nodes.jsonl` flag candidates — route phase in `fallback`/`evidence_fallback`/`compat_fallback`/`unknown`/`<none>`; empty facets; cross-signal contradiction (tab vs category, recipe-role vs category, facet vs category); mod-name pseudo-categories. Output `candidates.jsonl` (one record per flagged item: id, current category/route, facets, tab, tags).
+- **Stage 2 — `evidence.py`:** per candidate, join recipe-graph neighbors (`OUTPUT_OF`/`USED_IN` from the node's `unresolvedEdges`, ingredient detail from `recipes_runtime.jsonl`), creative tab, tags, current route + runner-up candidates. Output `evidence_batch.jsonl` (candidate + its evidence bundle).
+- **Stage 3 — proposal (Claude Code agent/skill):** reads `evidence_batch.jsonl`; for each candidate proposes an override grounded in the evidence — per-item `add`/`remove`/`forceCategory`/`forceSubcategory`, a per-mod pattern rule, or a mod-promotion. Output `proposals.jsonl` (candidate id + proposed override + rationale + `decision: "pending"`).
+- **Stage 4 — review (human):** edit `proposals.jsonl`, bulk-flipping `decision` to `approve`/`reject`. Rejected proposals are appended to a reject ledger so the detectors/proposer skip them on later rounds.
+- **Stage 5 — `apply.py`:** fold approved proposals into the bundled `classification_overrides.json`, merging per-item + per-mod-pattern entries (dedup; reject-ledger honored).
+- **Stage 6 — verification (Java replay-diff):** extend the existing `ClassificationReplayDiffReportTest`/`ClassificationGoldSetEvaluationTest` infra to load the updated override JSON plus the dump's captured item facts, re-run the **real** `PrimaryCategoryResolver`, and diff resolved categories against the pre-override baseline. Gate before committing data: every confident item keeps its category; flagged items change only as proposed. This same gate later protects code deletion in Component 4.
+- **Loop:** detect → … → verify, iterating; the reject ledger plus already-applied overrides shrink the candidate pool each round (loop-until-dry over the ~3–4k).
+- **Seed batch:** the string-matching plugins' rules become the first proposals — each a per-mod *disperse vs promote* decision.
 
 ## Component 4 — Plugin migration
 
@@ -124,8 +144,10 @@ Migration targets **two code sites** (both pure string-matching):
 - **Migrated-plugin tests:** convert existing `*CompatTest`s from "plugin asserts facet" to "override data asserts facet" fixtures.
 - **Schema guardrail:** every override id resolves to a real item/mod; JSON validates.
 
-## Open sub-decisions (resolve during planning)
+## Resolved sub-decisions
 
-- Offline tool language/runtime: standalone Python script vs Gradle/Java task.
-- Review-queue artifact format (editable JSONL, generated Markdown, or minimal TUI).
-- Exact override JSON schema shape and how `promoteMod` declares seed subcategories vs deriving them.
+- **Offline tool runtime:** Python in `tools/classification-curation/` for the deterministic stages (detect, evidence assembly, apply); a Claude Code agent/skill for the proposal stage; Java for the replay-diff verification. Not a Gradle/Java task — the deterministic plumbing is text-munging over JSONL, better suited to Python, and the judgment stage needs an LLM, not a build task.
+- **Proposal step:** runs **inside Claude Code** (agent/workflow reading `evidence_batch.jsonl`), not an external API call. Keeps the human, the evidence, and the proposer in one loop.
+- **Verification:** **Java replay-diff over the dump**, reusing the existing replay/golden-set test infra to re-run the real classifier and diff before/after. This is the correctness gate for both new override data and (in Component 4) code deletion.
+- **Review-queue format:** editable `proposals.jsonl` with a `decision` field, plus a persistent reject ledger.
+- **`promoteMod` subcategories:** derived by default from facets/recipe-role, with optional `subcategoryHints` for items where derivation is wrong (see Component 2).
