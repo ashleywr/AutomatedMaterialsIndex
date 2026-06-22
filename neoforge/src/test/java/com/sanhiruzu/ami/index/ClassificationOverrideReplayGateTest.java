@@ -58,11 +58,15 @@ class ClassificationOverrideReplayGateTest {
                 .toList();
     }
 
-    private static Map<String, String> categoryById(List<SearchNode> nodes) {
+    private static Map<String, String> signatureById(List<SearchNode> nodes) {
         Map<String, String> result = new LinkedHashMap<>();
         for (SearchNode node : nodes) {
+            String[] facets = node.meta(SearchNodeKeys.FACETS, "").split(",");
+            java.util.Arrays.sort(facets);
             result.put(node.id().toString(),
-                    node.meta(SearchNodeKeys.ONTOLOGY_CATEGORY, "") + "/" + node.meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, ""));
+                    node.meta(SearchNodeKeys.ONTOLOGY_CATEGORY, "") + "/"
+                  + node.meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, "") + "|"
+                  + String.join(",", facets));
         }
         return result;
     }
@@ -81,14 +85,14 @@ class ClassificationOverrideReplayGateTest {
         List<SearchNode> source = items(dump);
         try {
             ClassificationOverrides.clear();
-            Map<String, String> baseline = categoryById(SearchNodeMirrorDump.reclassifyItemOntology(source));
+            Map<String, String> baseline = signatureById(SearchNodeMirrorDump.reclassifyItemOntology(source));
 
             ClassificationOverrides.parseAndInstall(
                     "{\"items\":{\"minecraft:dirt\":{\"category\":\"weapon\",\"subcategory\":\"throwable\"}},\"modPatterns\":[]}");
             List<SearchNode> after = SearchNodeMirrorDump.reclassifyItemOntology(source);
-            Map<String, String> afterById = categoryById(after);
+            Map<String, String> afterById = signatureById(after);
 
-            assertEquals("weapon/throwable", afterById.get("minecraft:dirt"),
+            assertTrue(afterById.get("minecraft:dirt").startsWith("weapon/throwable|"),
                     "forced override must win for the targeted item");
 
             List<String> unexplained = new ArrayList<>();
@@ -124,11 +128,11 @@ class ClassificationOverrideReplayGateTest {
         long changed;
         try {
             ClassificationOverrides.clear();
-            Map<String, String> baseline = categoryById(SearchNodeMirrorDump.reclassifyItemOntology(source));
+            Map<String, String> baseline = signatureById(SearchNodeMirrorDump.reclassifyItemOntology(source));
 
             ClassificationOverrides.parseAndInstall(json);
             List<SearchNode> after = SearchNodeMirrorDump.reclassifyItemOntology(source);
-            Map<String, String> afterById = categoryById(after);
+            Map<String, String> afterById = signatureById(after);
 
             changed = 0;
             for (SearchNode node : after) {
@@ -160,6 +164,45 @@ class ClassificationOverrideReplayGateTest {
         if (Boolean.getBoolean("ami.overrideGateStrict")) {
             assertFalse(!unexplained.isEmpty(),
                     () -> "Overrides changed untargeted items. See " + reportPath.toAbsolutePath());
+        }
+    }
+
+    @Test
+    void detectsExplainedFacetOnlyChange() throws IOException {
+        Path dump = locateDump();
+        assumeTrue(Files.exists(dump),
+                "no search_nodes dump available locally; the real-data test writes the no-data report");
+        List<SearchNode> source = items(dump);
+        try {
+            ClassificationOverrides.clear();
+            Map<String, String> baseline = signatureById(SearchNodeMirrorDump.reclassifyItemOntology(source));
+
+            // facet-only item override: minecraft:pig_spawn_egg gains magic_artifact.
+            // Spawn eggs are classified by the "spawn eggs and mob buckets" primary rule which
+            // fires before the "magic facets" rule, so the category stays bestiary/spawn_eggs.
+            ClassificationOverrides.parseAndInstall(
+                    "{\"items\":{\"minecraft:pig_spawn_egg\":{\"addFacets\":[\"magic_artifact\"]}},"
+                  + "\"modPatterns\":[]}");
+            List<SearchNode> after = SearchNodeMirrorDump.reclassifyItemOntology(source);
+            Map<String, String> afterById = signatureById(after);
+
+            assertTrue(afterById.get("minecraft:pig_spawn_egg").contains(ItemFacet.MAGIC_ARTIFACT.id()),
+                    "facet-only override must add the facet to the targeted item");
+            assertEquals(baseline.get("minecraft:pig_spawn_egg").split("\\|")[0],
+                    afterById.get("minecraft:pig_spawn_egg").split("\\|")[0],
+                    "facet-only override must not change the targeted item's category");
+
+            List<String> unexplained = new ArrayList<>();
+            for (SearchNode node : after) {
+                String id = node.id().toString();
+                if (!baseline.get(id).equals(afterById.get(id)) && !explained(node)) {
+                    unexplained.add(id);
+                }
+            }
+            assertTrue(unexplained.isEmpty(),
+                    "a facet-only override changed unexplained items: " + unexplained);
+        } finally {
+            ClassificationOverrides.loadBundledDefaults();
         }
     }
 }
