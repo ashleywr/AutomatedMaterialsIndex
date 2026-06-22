@@ -1,0 +1,4 @@
+{"id":"swem:english_saddle","modId":"swem","inputs":[[{"itemId":"minecraft:leather","displayName":"Leather","count":3}]],"output":{"itemId":"swem:saddle","displayName":"English Saddle","count":1}}
+{"id":"minecraft:stone_bricks","modId":"minecraft","inputs":[[{"itemId":"minecraft:stone","displayName":"Stone","count":4}]],"output":{"itemId":"minecraft:stone_bricks","displayName":"Stone Bricks","count":4}}
+{"id":"minecraft:stone_from_smelting","modId":"minecraft","inputs":[[{"itemId":"minecraft:cobblestone","displayName":"Cobblestone","count":1}]],"output":{"itemId":"minecraft:stone","displayName":"Stone","count":1}}
+{"id":"farmersdelight:cabbage_rolls","modId":"farmersdelight","inputs":[[{"itemId":"farmersdelight:cabbage","displayName":"Cabbage","count":1}]],"output":{"itemId":"farmersdelight:cabbage_rolls","displayName":"Cabbage Rolls","count":1}}
