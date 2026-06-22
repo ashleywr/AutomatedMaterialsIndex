@@ -3,9 +3,6 @@
     "cnc:raw_turkey": { "addFacets": ["ingredient_organic"] }
   },
   "modPatterns": [
-    { "mod": "cnc", "pathTokens": ["potofmouse", "kill"], "addFacets": ["magic_artifact"] },
-    { "mod": "cnc", "pathTokens": ["buckskin", "antler", "tusk", "wishbone"], "addFacets": ["ingredient_organic"] },
-
     { "mod": "born_in_chaos_v1", "pathTokens": ["bomb", "charge"], "addFacets": ["projectile"] },
     { "mod": "born_in_chaos_v1", "pathTokens": ["structure"], "addFacets": ["utility_misc"] },
     { "mod": "born_in_chaos_v1", "pathTokens": ["charmof", "charm", "totem", "icon", "orb"], "addFacets": ["magic_artifact"] },
@@ -14,6 +11,29 @@
     { "mod": "born_in_chaos_v1", "pathTokens": ["nugget"], "addFacets": ["ingredient_mineral", "nugget"] },
     { "mod": "born_in_chaos_v1", "pathTokens": ["metal", "plate"], "addFacets": ["ingredient_mineral"] },
     { "mod": "born_in_chaos_v1", "pathTokens": ["claw", "skin", "flesh", "stomach", "fang", "bone", "horn"], "addFacets": ["ingredient_organic"] },
-    { "mod": "born_in_chaos_v1", "pathTokens": ["bag", "gift", "evilometer"], "addFacets": ["utility_tool"] }
+    { "mod": "born_in_chaos_v1", "pathTokens": ["bag", "gift", "evilometer"], "addFacets": ["utility_tool"] },
+
+    { "mod": "cgs", "classTokens": ["gatlingitem"], "addFacets": ["ranged_weapon"] },
+    { "mod": "cgs", "classTokens": ["scopeitem", "attachmentitem", "barrelitem"], "addFacets": ["tech_component", "upgrade"] },
+
+    { "mod": "cnc", "pathTokens": ["potofmouse", "kill"], "addFacets": ["magic_artifact"] },
+    { "mod": "cnc", "pathTokens": ["buckskin", "antler", "tusk", "wishbone"], "addFacets": ["ingredient_organic"] },
+
+    { "mod": "minecolonies", "classTokens": ["supplychestdeployer", "supplycampdeployer"], "category": "minecolonies", "subcategory": "settlements" },
+    { "mod": "minecolonies", "classTokens": ["itemscananalyzer", "itemscepterpermission", "itemscepterguard", "itemscepterlumberjack", "itemscepterbeekeeper", "itemassistanthammer"], "addFacets": ["utility_tool"] },
+    { "mod": "minecolonies", "classTokens": ["itemfirearrow"], "addFacets": ["projectile"] },
+    { "mod": "minecolonies", "classTokens": ["itemmagicpotion"], "addFacets": ["potion"] },
+    { "mod": "minecolonies", "classTokens": ["itemcompost", "itemmistletoe"], "addFacets": ["ingredient_organic"] },
+    { "mod": "minecolonies", "classTokens": ["itemsiftermesh"], "addFacets": ["tech_component"] },
+    { "mod": "minecolonies", "classTokens": ["itemadventuretoken"], "addFacets": ["utility_misc"] },
+
+    { "mod": "mowziesmobs", "classTokens": ["itemdart"], "addFacets": ["projectile"] },
+    { "mod": "mowziesmobs", "classTokens": ["itembluffrod", "itemsandrake", "itemmobremover"], "addFacets": ["utility_tool"] },
+    { "mod": "mowziesmobs", "classTokens": ["itemelokosapaw", "itemgrantsunsblessing", "itemcapturedgrottol"], "addFacets": ["magic_artifact"] },
+    { "mod": "mowziesmobs", "classTokens": ["itemnagafang"], "addFacets": ["ingredient_organic"] },
+
+    { "mod": "ntgl", "classTokens": ["chassisarmor"], "category": "ntgl", "subcategory": "power_armor" },
+    { "mod": "ntgl", "classTokens": ["weaponitem"], "addFacets": ["ranged_weapon"] },
+    { "mod": "ntgl", "classTokens": ["scopeitem", "stockitem", "gripitem", "magazineitem", "barrelitem", "chassisitem"], "addFacets": ["tech_component", "upgrade"] }
   ]
 }

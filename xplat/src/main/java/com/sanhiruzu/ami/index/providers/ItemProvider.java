@@ -451,20 +451,8 @@ public class ItemProvider implements IAmiDataProvider {
         if (namespaceIs(id, "enigmaticlegacyplus")) {
             ItemProviderCompatHooks.runCompatSafely("EnigmaticLegacyPlusCompat", () -> EnigmaticLegacyPlusCompat.enrichItem(id, meta));
         }
-        if (namespaceIs(id, "ntgl")) {
-            ItemProviderCompatHooks.runCompatSafely("NtglCompat", () -> NtglCompat.enrichItem(id, meta));
-        }
-        if (namespaceIs(id, "cgs")) {
-            ItemProviderCompatHooks.runCompatSafely("CgsCompat", () -> CgsCompat.enrichItem(id, meta));
-        }
-        if (namespaceIs(id, "minecolonies")) {
-            ItemProviderCompatHooks.runCompatSafely("MinecoloniesCompat", () -> MinecoloniesCompat.enrichItem(id, meta));
-        }
         if (namespaceIs(id, "zen_colony")) {
             ItemProviderCompatHooks.runCompatSafely("ZenColonyCompat", () -> ZenColonyCompat.enrichItem(id, meta));
-        }
-        if (namespaceIs(id, "mowziesmobs")) {
-            ItemProviderCompatHooks.runCompatSafely("MowziesMobsCompat", () -> MowziesMobsCompat.enrichItem(id, meta));
         }
         if (namespaceIs(id, "hpm")) {
             ItemProviderCompatHooks.runCompatSafely("HpmCompat", () -> HpmCompat.enrichItem(id, meta));

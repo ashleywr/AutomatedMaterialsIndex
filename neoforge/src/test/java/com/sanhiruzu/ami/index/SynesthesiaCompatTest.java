@@ -3,7 +3,6 @@ package com.sanhiruzu.ami.index;
 import com.sanhiruzu.ami.compat.CataclysmCompat;
 import com.sanhiruzu.ami.compat.DatanessenceCompat;
 import com.sanhiruzu.ami.compat.DoggyTalentsCompat;
-import com.sanhiruzu.ami.compat.CgsCompat;
 import com.sanhiruzu.ami.compat.EnigmaticLegacyPlusCompat;
 import com.sanhiruzu.ami.compat.EternalStarlightCompat;
 import com.sanhiruzu.ami.compat.ForbiddenArcanusCompat;
@@ -13,9 +12,6 @@ import com.sanhiruzu.ami.compat.HexereiCompat;
 import com.sanhiruzu.ami.compat.HpmCompat;
 import com.sanhiruzu.ami.compat.MalumCompat;
 import com.sanhiruzu.ami.compat.McTradePostCompat;
-import com.sanhiruzu.ami.compat.MinecoloniesCompat;
-import com.sanhiruzu.ami.compat.MowziesMobsCompat;
-import com.sanhiruzu.ami.compat.NtglCompat;
 import com.sanhiruzu.ami.compat.PastelCompat;
 import com.sanhiruzu.ami.compat.PowerGridCompat;
 import com.sanhiruzu.ami.compat.SilentGemsCompat;
@@ -569,75 +565,6 @@ class SynesthesiaCompatTest {
 
     @Test
     @Disabled("intended routing pending override layer; see docs/superpowers/specs/2026-06-22-classification-override-and-curation-design.md")
-    void ntglUnknownFamiliesGainWeaponAndAttachmentFacts() {
-        Map<String, String> weapon = meta("ntgl", "com.nukateam.ntgl.common.foundation.item.WeaponItem");
-        NtglCompat.enrichItem(new ResourceLocation("ntgl", "pistol10mm"), weapon);
-        CategoryAssignment weaponAssignment = resolve("ntgl:pistol10mm", weapon);
-
-        Map<String, String> scope = meta("ntgl", "com.nukateam.ntgl.common.foundation.item.attachment.ScopeItem");
-        NtglCompat.enrichItem(new ResourceLocation("ntgl", "holographic_sight"), scope);
-        CategoryAssignment scopeAssignment = resolve("ntgl:holographic_sight", scope);
-
-        Map<String, String> armor = meta("ntgl", "com.nukateam.chassis_core.common.foundation.item.ChassisArmor");
-        NtglCompat.enrichItem(new ResourceLocation("ntgl", "t45_body"), armor);
-        CategoryAssignment armorAssignment = resolve("ntgl:t45_body", armor);
-
-        assertEquals("weapon", weapon.get("ntglItemKind"));
-        assertEquals("tools", weaponAssignment.categoryId());
-        assertEquals("ranged", weaponAssignment.subcategoryId());
-        assertEquals("attachment", scope.get("ntglItemKind"));
-        assertEquals("tech", scopeAssignment.categoryId());
-        assertEquals("upgrades", scopeAssignment.subcategoryId());
-        assertEquals("power_armor", armor.get("ntglItemKind"));
-        assertEquals("ntgl", armorAssignment.categoryId());
-        assertEquals("power_armor", armorAssignment.subcategoryId());
-    }
-
-    @Test
-    void cgsUnknownFamiliesGainWeaponAndAttachmentFacts() {
-        Map<String, String> weapon = meta("cgs", "com.nukateam.cgs.common.faundation.item.guns.GatlingItem");
-        CgsCompat.enrichItem(new ResourceLocation("cgs", "gatling"), weapon);
-        CategoryAssignment weaponAssignment = resolve("cgs:gatling", weapon);
-
-        Map<String, String> attachment = meta("cgs", "com.nukateam.ntgl.common.foundation.item.attachment.ScopeItem");
-        CgsCompat.enrichItem(new ResourceLocation("cgs", "scope"), attachment);
-        CategoryAssignment attachmentAssignment = resolve("cgs:scope", attachment);
-
-        assertEquals("weapon", weapon.get("cgsItemKind"));
-        assertEquals("tools", weaponAssignment.categoryId());
-        assertEquals("ranged", weaponAssignment.subcategoryId());
-        assertEquals("attachment", attachment.get("cgsItemKind"));
-        assertEquals("tech", attachmentAssignment.categoryId());
-        assertEquals("upgrades", attachmentAssignment.subcategoryId());
-    }
-
-    @Test
-    void minecoloniesUnknownFamiliesGainColonyToolFacts() {
-        Map<String, String> deployer = meta("minecolonies", "com.minecolonies.core.items.ItemSupplyChestDeployer");
-        MinecoloniesCompat.enrichItem(new ResourceLocation("minecolonies", "supplychestdeployer"), deployer);
-        CategoryAssignment deployerAssignment = resolve("minecolonies:supplychestdeployer", deployer);
-
-        Map<String, String> scepter = meta("minecolonies", "com.minecolonies.core.items.ItemScepterPermission");
-        MinecoloniesCompat.enrichItem(new ResourceLocation("minecolonies", "scepterpermission"), scepter);
-        CategoryAssignment scepterAssignment = resolve("minecolonies:scepterpermission", scepter);
-
-        Map<String, String> potion = meta("minecolonies", "com.minecolonies.core.items.ItemMagicPotion");
-        MinecoloniesCompat.enrichItem(new ResourceLocation("minecolonies", "magicpotion"), potion);
-        CategoryAssignment potionAssignment = resolve("minecolonies:magicpotion", potion);
-
-        assertEquals("deployer", deployer.get("minecoloniesItemKind"));
-        assertEquals("minecolonies", deployerAssignment.categoryId());
-        assertEquals("settlements", deployerAssignment.subcategoryId());
-        assertEquals("colony_tool", scepter.get("minecoloniesItemKind"));
-        assertEquals("tools", scepterAssignment.categoryId());
-        assertEquals("utility", scepterAssignment.subcategoryId());
-        assertEquals("potion", potion.get("minecoloniesItemKind"));
-        assertEquals("magic", potionAssignment.categoryId());
-        assertEquals("potions", potionAssignment.subcategoryId());
-    }
-
-    @Test
-    @Disabled("intended routing pending override layer; see docs/superpowers/specs/2026-06-22-classification-override-and-curation-design.md")
     void zenColonyUnknownFamiliesGainSupplyPackFacts() {
         Map<String, String> pack = meta("zen_colony", "net.minecraft.world.item.Item");
         pack.put(SearchNodeKeys.TAGS, "zen_colony:basic_supply_packs,zen_colony:supply_packs");
@@ -654,32 +581,6 @@ class SynesthesiaCompatTest {
         assertEquals("focus", focus.get("zenColonyItemKind"));
         assertEquals("magic", focusAssignment.categoryId());
         assertEquals("artifacts", focusAssignment.subcategoryId());
-    }
-
-    @Test
-    @Disabled("intended routing pending override layer; see docs/superpowers/specs/2026-06-22-classification-override-and-curation-design.md")
-    void mowziesMobsUnknownFamiliesGainArtifactAndAmmoFacts() {
-        Map<String, String> dart = meta("mowziesmobs", "com.bobmowzie.mowziesmobs.server.item.ItemDart");
-        MowziesMobsCompat.enrichItem(new ResourceLocation("mowziesmobs", "dart"), dart);
-        CategoryAssignment dartAssignment = resolve("mowziesmobs:dart", dart);
-
-        Map<String, String> rod = meta("mowziesmobs", "com.bobmowzie.mowziesmobs.server.item.ItemBluffRod");
-        MowziesMobsCompat.enrichItem(new ResourceLocation("mowziesmobs", "bluff_rod"), rod);
-        CategoryAssignment rodAssignment = resolve("mowziesmobs:bluff_rod", rod);
-
-        Map<String, String> paw = meta("mowziesmobs", "com.bobmowzie.mowziesmobs.server.item.ItemElokosaPaw");
-        MowziesMobsCompat.enrichItem(new ResourceLocation("mowziesmobs", "elokosa_paw_full"), paw);
-        CategoryAssignment pawAssignment = resolve("mowziesmobs:elokosa_paw_full", paw);
-
-        assertEquals("ammo", dart.get("mowziesMobsItemKind"));
-        assertEquals("tools", dartAssignment.categoryId());
-        assertEquals("ammo", dartAssignment.subcategoryId());
-        assertEquals("tool", rod.get("mowziesMobsItemKind"));
-        assertEquals("tools", rodAssignment.categoryId());
-        assertEquals("utility", rodAssignment.subcategoryId());
-        assertEquals("artifact", paw.get("mowziesMobsItemKind"));
-        assertEquals("magic", pawAssignment.categoryId());
-        assertEquals("artifacts", pawAssignment.subcategoryId());
     }
 
     @Test
