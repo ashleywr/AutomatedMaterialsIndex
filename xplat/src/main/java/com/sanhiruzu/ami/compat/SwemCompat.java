@@ -50,6 +50,8 @@ public final class SwemCompat {
                 "WhistleItem", "BreedingToken", "VetCheckBag")) facts.add("horse_care");
         if (CompatMetaUtil.containsAny(context.itemClass, "FeedItem", "GrainFeedItem", "ScoopFeedItem", "ShavingsItem")) facts.add("horse_feed");
         if (CompatMetaUtil.containsAny(context.itemClass, "EggJumpItem", "TackBoxBlockItem", "ConeBlockItem")) facts.add("stable_equipment");
+        if (CompatMetaUtil.containsAny(context.itemClass, "FenceToolItem", "PitchforkTool", "HoseItem", "MeasurementTool", "TrackerItem", "PestleMortarItem")) facts.add("horse_care");
+        if (CompatMetaUtil.containsAny(context.itemClass, "MedicalItem", "HorseTransformItem")) facts.add("horse_potion");
         if (CompatMetaUtil.containsAny(context.itemClass, "RidingHelmet", "CowboyHat")) facts.add("head_armor");
         if (CompatMetaUtil.containsAny(context.itemClass, "RidingBoots")) facts.add("feet_armor");
         if (CompatMetaUtil.containsAny(context.blockClass, "GrainBinBlock")) facts.add("horse_feed");
@@ -81,6 +83,7 @@ public final class SwemCompat {
         if (CompatMetaUtil.containsAny(path, "stall_horse", "pasture_", "tack_box", "wheelbarrow", "jump_xc")
                 || path.startsWith("spawn_structure")
                 || path.startsWith("spawn_structures")) facts.add("stable_equipment");
+        if (CompatMetaUtil.containsAny(path, "tracker", "measurement", "pestle_mortar", "fence_tool", "pitchfork", "hose")) facts.add("horse_care");
         if (CompatMetaUtil.containsAny(path, "offering", "cantazarite", "star_worm")) facts.add("magic_reagent");
     }
 

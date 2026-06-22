@@ -1,20 +1,17 @@
-### Gradle ###
-.gradle
+### Build ###
+.gradle/
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/**/build/
 
-### IntelliJ IDEA ###
+### IDEs ###
 .idea/
 *.iws
 *.iml
 *.ipr
 out/
 !**/src/**/out/
-
 .run/
-
-### Eclipse ###
 .apt_generated
 .classpath
 .eclipse/
@@ -25,14 +22,12 @@ out/
 .sts4-cache
 bin/
 !**/src/**/bin/
-
-### VS Code ###
 .vscode/
 
-### Mac OS ###
+### OS ###
 .DS_Store
 
-### Minecraft Modding ###
+### Minecraft runtime ###
 run/
 run-*/
 !**/src/**/run/
@@ -42,6 +37,7 @@ repo/
 .mixin.out/
 .pg-native/
 logs/
+*.log
 crash-reports/
 config/
 !**/src/main/java/**/config/
@@ -51,21 +47,18 @@ config/
 defaultconfigs/
 anomaly_report.md
 
-### Third-party sources (for reference only) ###
-vendor-sources/
-internal/
-
-### Local Development ###
+### Local development ###
 dev/
 tools/
 font_issue.png
 release-assets/
 profile-runs/
 test.java
-*.log
-.geminiignore
 
-### Local extracted reference sources / artifacts ###
+### Reference sources and extracted artifacts ###
+vendor-sources/
+internal/
+
 /META-INF/
 /assets/
 /com/
@@ -82,16 +75,3 @@ test.java
 /url.png
 /reports/
 /skills/
-
-### Agent/Codex/docs files (not to be committed) ###
-/docs/
-/scripts/
-/.codex/
-/AGENTS.md
-
-### Dot directories (keep only .gitignore) ###
-.*
-!.gitignore
-!.gitattributes
-!.github/
-!.github/**

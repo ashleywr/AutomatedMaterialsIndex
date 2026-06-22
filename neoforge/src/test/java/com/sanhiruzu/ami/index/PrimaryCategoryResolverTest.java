@@ -277,6 +277,20 @@ class PrimaryCategoryResolverTest {
 
         assertEquals("utility", assignment.categoryId());
         assertEquals("misc", assignment.subcategoryId());
+
+        CategoryAssignment largeBottleAssignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecolonies:large_empty_bottle"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.FLUID_CONTAINER),
+                        Map.of(
+                                SearchNodeKeys.MOD_ID, "minecolonies",
+                                SearchNodeKeys.ITEM_CLASS, "com.minecolonies.core.items.ItemLargeBottle"
+                        )
+                )
+        );
+
+        assertEquals("utility", largeBottleAssignment.categoryId());
+        assertEquals("misc", largeBottleAssignment.subcategoryId());
     }
 
     @Test

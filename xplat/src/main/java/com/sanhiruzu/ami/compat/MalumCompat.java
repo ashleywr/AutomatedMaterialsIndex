@@ -45,6 +45,8 @@ public final class MalumCompat {
         if (CompatMetaUtil.containsAny(context.itemClass, "augment")) facts.add("augment");
         if (CompatMetaUtil.containsAny(context.itemClass, "Encyclopedia")) facts.add("guide_book");
         if (CompatMetaUtil.containsAny(context.itemClass, "TinkeringToolItem")) facts.add("utility_tool");
+        if (CompatMetaUtil.containsAny(context.itemClass, "LamplightersTongsItem", "CatalystLobberItem")) facts.add("utility_tool");
+        if (CompatMetaUtil.containsAny(context.itemClass, "WindNucleusItem")) facts.add("artifact");
     }
 
     private static void addTagFacts(Context context, Set<String> facts) {
@@ -53,6 +55,7 @@ public final class MalumCompat {
             if (tag.startsWith("malum:augments")) facts.add("augment");
             if (tag.startsWith("malum:impetus") || tag.startsWith("malum:fractured_impetus")) facts.add("impetus");
             if (tag.startsWith("malum:materials") || tag.startsWith("malum:minerals")) facts.add("material");
+            if (tag.startsWith("malum:sapballs")) facts.add("organic_material");
         }
     }
 
@@ -62,6 +65,9 @@ public final class MalumCompat {
         if (CompatMetaUtil.containsAny(path, "spirit", "soul_stained", "runewood", "soulwood")) facts.add("spirit_reagent");
         if (CompatMetaUtil.containsAny(path, "ingot", "nugget", "chunk", "quartz", "crystal")) facts.add("material");
         if (path.contains("rune")) facts.add("rune");
+        if (CompatMetaUtil.containsAny(path, "sapball", "weave", "spool", "lens", "nucleus", "poppet")) facts.add("artifact");
+        if (CompatMetaUtil.containsAny(path, "sapball")) facts.add("organic_material");
+        if (CompatMetaUtil.containsAny(path, "weave", "spool")) facts.add("textile");
     }
 
     private static String classifyKind(Set<String> facts) {
@@ -69,7 +75,10 @@ public final class MalumCompat {
         if (facts.contains("geas")) return "geasa";
         if (facts.contains("impetus")) return "impetus";
         if (facts.contains("augment")) return "augments";
+        if (facts.contains("textile")) return "textiles";
+        if (facts.contains("artifact")) return "artifacts";
         if (facts.contains("rune") || facts.contains("spirit_reagent")) return "reagents";
+        if (facts.contains("organic_material")) return "organic_materials";
         if (facts.contains("material")) return "materials";
         if (facts.contains("utility_tool")) return "tools";
         return "";
@@ -97,6 +106,15 @@ public final class MalumCompat {
             case "reagents" -> {
                 CompatMetaUtil.addFacet(meta, ItemFacet.MAGIC_REAGENT);
                 route(meta, "spirits");
+            }
+            case "artifacts" -> {
+                CompatMetaUtil.addFacet(meta, ItemFacet.MAGIC_ARTIFACT);
+                route(meta, "artifacts");
+            }
+            case "textiles" -> route(meta, "weaves");
+            case "organic_materials" -> {
+                CompatMetaUtil.addFacet(meta, ItemFacet.INGREDIENT_ORGANIC);
+                route(meta, "materials");
             }
             case "materials" -> {
                 if (context.path.contains("nugget")) CompatMetaUtil.addFacet(meta, ItemFacet.NUGGET);

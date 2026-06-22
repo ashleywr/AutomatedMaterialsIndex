@@ -148,6 +148,9 @@ final class EvidenceCollector {
                 ItemFacet.BOOK, ItemFacet.GUIDE_BOOK, ItemFacet.UTILITY_MISC)) {
             evidence.add(e("facet.utility", "facet", "utility", utilitySubcategory(facets), 65, "utility facet"));
         }
+        if (facets.contains(ItemFacet.FLUID_CONTAINER) && !hasStrongerContainerContext(facets)) {
+            evidence.add(e("facet.fluid_container", "facet", "utility", "misc", 85, "standalone fluid container facet"));
+        }
         if (hasAny(facets, ItemFacet.POTION, ItemFacet.ENCHANTED_BOOK, ItemFacet.MAGIC_ARTIFACT, ItemFacet.MAGIC_REAGENT)) {
             evidence.add(e("facet.magic", "facet", "magic", magicSubcategory(facets), 70, "magic facet"));
         }

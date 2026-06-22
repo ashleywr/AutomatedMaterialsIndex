@@ -42,6 +42,7 @@ public final class BornInChaosCompat {
         if (CompatMetaUtil.containsAny(path, "claw", "skin", "flesh", "stomach", "fang", "bone", "horn")) facts.add("organic_drop");
         if (CompatMetaUtil.containsAny(path, "dust", "spirit", "soul", "seedof_chaos")) facts.add("magic_reagent");
         if (CompatMetaUtil.containsAny(path, "bomb", "dark_charge")) facts.add("projectile");
+        if (CompatMetaUtil.containsAny(path, "bag", "gift", "evilometer")) facts.add("utility_tool");
         if (CompatMetaUtil.containsAny(context.itemClass, "Sword", "Dagger", "Scythe", "Axe", "Saber", "Crusher")) facts.add("melee_weapon");
         if (CompatMetaUtil.containsAny(context.itemClass, "ArmorItem", "Helmet", "Chestplate", "Leggings", "Boots")) facts.add("armor");
         if (CompatMetaUtil.containsAny(context.itemClass, "Elixir", "Decoction", "Bottle")) facts.add("drink");
@@ -56,6 +57,7 @@ public final class BornInChaosCompat {
         if (facts.contains("magic_reagent")) return "reagents";
         if (facts.contains("metal_material")) return "materials";
         if (facts.contains("organic_drop")) return "organic_drops";
+        if (facts.contains("utility_tool")) return "utility_tools";
         if (facts.contains("drink")) return "drinks";
         return "";
     }
@@ -74,6 +76,7 @@ public final class BornInChaosCompat {
                 CompatMetaUtil.addFacet(meta, ItemFacet.INGREDIENT_MINERAL);
             }
             case "organic_drops" -> CompatMetaUtil.addFacet(meta, ItemFacet.INGREDIENT_ORGANIC);
+            case "utility_tools" -> CompatMetaUtil.addFacet(meta, ItemFacet.UTILITY_TOOL);
             case "drinks" -> {
                 CompatMetaUtil.addFacet(meta, ItemFacet.EDIBLE);
                 CompatMetaUtil.addFacet(meta, ItemFacet.FOOD_DRINK);

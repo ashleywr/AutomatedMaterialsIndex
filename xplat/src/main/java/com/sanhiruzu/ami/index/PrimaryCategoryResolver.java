@@ -291,18 +291,6 @@ public final class PrimaryCategoryResolver {
     private static final Set<String> GEOLOGY_SOIL_DECORATION_TOKENS = Set.of(
             "terracotta", "concrete", "nylium", "mycelium", "moss", "fungi", "fungus"
     );
-    private static final Set<String> PORTABLE_STORAGE_FAMILY_MOD_IDS = Set.of(
-            "sophisticatedbackpacks"
-    );
-    private static final Set<String> STORAGE_FAMILY_MOD_IDS = Set.of(
-            "ae2",
-            "functionalstorage",
-            "ironchest",
-            "merequester",
-            "refinedstorage",
-            "sophisticatedstorage",
-            "storagedrawers"
-    );
     private static final List<PrimaryRule> PRIMARY_RULES = List.of(
             rule("compat route metadata",
                     PrimaryCategoryResolver::shouldUseCompatRouteMetadata,
@@ -520,7 +508,7 @@ public final class PrimaryCategoryResolver {
                 ? EnumSet.noneOf(ItemFacet.class)
                 : EnumSet.copyOf(profileFacets);
         var attributes = new HashMap<>(profileAttributes == null ? Map.of() : profileAttributes);
-        ModFamily modFamily = classifyModFamily(modId);
+        PrimaryCategoryModFamily modFamily = PrimaryCategoryModFamilies.classify(modId);
         AmiConfig.CompatCategoryPolicy categoryPolicy = CompatCategoryPolicyResolver.resolve(attributes);
         if (hasCompatFamily(attributes)) {
             attributes.put(SearchNodeKeys.COMPAT_CATEGORY_POLICY, categoryPolicy.name().toLowerCase(Locale.ROOT));
@@ -569,8 +557,8 @@ public final class PrimaryCategoryResolver {
         // Ore blocks: c:ores is a concrete runtime tag on all ore blocks.
         // Checked before CategoryScorer so redstone_ore (which also has redstone path tokens)
         // and normal ores (blocksMaterial=other_building) both land in geology/stone.
-        if (hasMetadataToken(context.attributes, SearchNodeKeys.TAGS, "c:ores")
-                || hasMetadataToken(context.attributes, SearchNodeKeys.BLOCK_TAGS, "c:ores")) {
+        if (PrimaryCategoryTextMatchers.hasMetadataToken(context.attributes, SearchNodeKeys.TAGS, "c:ores")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(context.attributes, SearchNodeKeys.BLOCK_TAGS, "c:ores")) {
             return Optional.of(identityAssignment(
                     "geology", "stone", context.attributes,
                     "identity.ore_block", "c:ores tag"));
@@ -736,7 +724,7 @@ public final class PrimaryCategoryResolver {
         }
 
         if (context.facets.contains(ItemFacet.DECORATIVE_BLOCK)
-                && containsPathToken(context.path, TEXTILE_TOKENS)) {
+                && PrimaryCategoryTextMatchers.containsPathToken(context.path, TEXTILE_TOKENS)) {
             return Optional.of(identityAssignment(
                     "decoration",
                     "textiles",
@@ -787,7 +775,7 @@ public final class PrimaryCategoryResolver {
         }
 
         if (context.facets.contains(ItemFacet.UTILITY_MISC)
-                && hasMetadataToken(context.attributes, SearchNodeKeys.TAGS, "c:drinks/ominous")) {
+                && PrimaryCategoryTextMatchers.hasMetadataToken(context.attributes, SearchNodeKeys.TAGS, "c:drinks/ominous")) {
             return Optional.of(identityAssignment(
                     "utility",
                     "misc",
@@ -881,15 +869,15 @@ public final class PrimaryCategoryResolver {
 
     private static Optional<CategoryAssignment> resolveWaystonesIdentity(ResolveContext context) {
         if (!"waystones".equals(context.modId)
-                && !containsAny(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "net.blay09.mods.waystones.")
-                && !containsAny(context.attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, ""), "net.blay09.mods.waystones.")
-                && !hasMetadataToken(context.attributes, SearchNodeKeys.BLOCK_TAGS, "waystones:is_teleport_target")) {
+                && !PrimaryCategoryTextMatchers.containsAnyIgnoreCase(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "net.blay09.mods.waystones.")
+                && !PrimaryCategoryTextMatchers.containsAnyIgnoreCase(context.attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, ""), "net.blay09.mods.waystones.")
+                && !PrimaryCategoryTextMatchers.hasMetadataToken(context.attributes, SearchNodeKeys.BLOCK_TAGS, "waystones:is_teleport_target")) {
             return Optional.empty();
         }
         PathTokens pathTokens = PathTokens.of(context.path);
 
         if (pathTokens.containsAny(WAYSTONES_REAGENT_TOKENS)
-                || containsAny(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "ShardItem", "WarpDustItem")) {
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "ShardItem", "WarpDustItem")) {
             return Optional.of(identityAssignment(
                     "magic",
                     "reagents",
@@ -899,10 +887,10 @@ public final class PrimaryCategoryResolver {
             ));
         }
 
-        if (hasMetadataToken(context.attributes, SearchNodeKeys.BLOCK_TAGS, "waystones:is_teleport_target")
+        if (PrimaryCategoryTextMatchers.hasMetadataToken(context.attributes, SearchNodeKeys.BLOCK_TAGS, "waystones:is_teleport_target")
                 || pathTokens.containsAny(WAYSTONES_ARTIFACT_TOKENS)
-                || containsAny(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "WarpStoneItem", "ScrollItem")
-                || containsAny(context.attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, ""), "WaystoneBlock", "PortstoneBlock", "SharestoneBlock", "WarpPlateBlock")) {
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "WarpStoneItem", "ScrollItem")
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(context.attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, ""), "WaystoneBlock", "PortstoneBlock", "SharestoneBlock", "WarpPlateBlock")) {
             return Optional.of(identityAssignment(
                     "magic",
                     "artifacts",
@@ -1315,8 +1303,8 @@ public final class PrimaryCategoryResolver {
         String itemClass = context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
         String blockClass = context.attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "");
         if (pathTokens.containsAny("multiblock", "multiblocks")
-                || containsAny(itemClass, "multiblock")
-                || containsAny(blockClass, "multiblock")) {
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(itemClass, "multiblock")
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(blockClass, "multiblock")) {
             return "multiblocks";
         }
         if (pathTokens.containsAny("cover", "covers")) {
@@ -1329,8 +1317,8 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.HARVEST_TOOL, ItemFacet.UTILITY_TOOL)) {
             return "tools";
         }
-        if (containsAny(itemClass, ".MetaMachineItem")
-                || containsAny(blockClass, ".MetaMachineBlock")) {
+        if (PrimaryCategoryTextMatchers.containsAnyIgnoreCase(itemClass, ".MetaMachineItem")
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(blockClass, ".MetaMachineBlock")) {
             return "machines";
         }
         if (hasAny(context.facets, ItemFacet.MACHINE, ItemFacet.WORKSTATION)
@@ -1341,7 +1329,7 @@ public final class PrimaryCategoryResolver {
                 || pathTokens.containsAny(GREGTECH_POWER_TOKENS)) {
             return "power";
         }
-        if (containsAny(itemClass, ".GTBucketItem", ".SurfaceRockBlockItem")) {
+        if (PrimaryCategoryTextMatchers.containsAnyIgnoreCase(itemClass, ".GTBucketItem", ".SurfaceRockBlockItem")) {
             return "materials";
         }
         if (hasAny(context.facets, ItemFacet.INGOT, ItemFacet.NUGGET, ItemFacet.DUST,
@@ -1399,34 +1387,34 @@ public final class PrimaryCategoryResolver {
 
         if ("apothic_enchanting".equals(context.modId)
                 || pathTokens.containsAny(APOTHEOSIS_ENCHANTING_TOKENS)
-                || containsAny(itemClass, "tomeitem", "shelf", "enchlibrary", "enderlead")
-                || containsAny(blockClass, "shelf", "enchlibrary")) {
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(itemClass, "tomeitem", "shelf", "enchlibrary", "enderlead")
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(blockClass, "shelf", "enchlibrary")) {
             return "enchanting";
         }
         if (pathTokens.containsAny(APOTHEOSIS_BOSS_TOKENS)
-                || containsAny(tags, "boss_music_discs")
-                || containsAny(itemClass, "bosssummoner")) {
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(tags, "boss_music_discs")
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(itemClass, "bosssummoner")) {
             return "bosses";
         }
         if (pathTokens.containsAny(APOTHEOSIS_SPAWNER_TOKENS)
-                || containsAny(itemClass, "spawner")
-                || containsAny(blockClass, "spawner")) {
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(itemClass, "spawner")
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(blockClass, "spawner")) {
             return "spawners";
         }
         if (pathTokens.containsAny(APOTHEOSIS_SOCKET_TOKENS)
-                || containsAny(itemClass, "potioncharm")
-                || hasMetadataToken(context.attributes, SearchNodeKeys.TAGS, "curios:charm")) {
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(itemClass, "potioncharm")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(context.attributes, SearchNodeKeys.TAGS, "curios:charm")) {
             return "sockets";
         }
         if (pathTokens.containsAny(APOTHEOSIS_GEM_TOKENS)
-                || containsAny(itemClass, "gemitem")
-                || containsAny(blockClass, "gem")) {
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(itemClass, "gemitem")
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(blockClass, "gem")) {
             return "gems";
         }
         if (pathTokens.containsAny(APOTHEOSIS_AFFIX_TOKENS)
-                || containsAny(itemClass, "salvageitem", "tooltipitem")
-                || containsAny(blockClass, "reforging", "salvaging", "augmenting")
-                || containsAny(tags, "rarity_materials")) {
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(itemClass, "salvageitem", "tooltipitem")
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(blockClass, "reforging", "salvaging", "augmenting")
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(tags, "rarity_materials")) {
             return "affixes";
         }
         return "misc";
@@ -1463,7 +1451,7 @@ public final class PrimaryCategoryResolver {
             return "runes";
         }
         if (pathTokens.containsAny(BOTANIA_MANA_TOKENS)
-                || containsAny(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "mana")) {
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "mana")) {
             return "mana";
         }
         if (isBotaniaGeneratingFlower(context.path)) {
@@ -1487,7 +1475,7 @@ public final class PrimaryCategoryResolver {
         if (hasAny(context.facets, ItemFacet.DECORATIVE_BLOCK, ItemFacet.GLASS_BLOCK,
                 ItemFacet.STONE_BLOCK, ItemFacet.FLOWER, ItemFacet.FUNGI)
                 || (hasAny(context.facets, ItemFacet.PLACEABLE)
-                && containsAny(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "blockitem"))) {
+                && PrimaryCategoryTextMatchers.containsAnyIgnoreCase(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""), "blockitem"))) {
             return "decoration";
         }
         if (hasAny(context.facets, ItemFacet.INGOT, ItemFacet.NUGGET, ItemFacet.DUST,
@@ -1496,7 +1484,7 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.TEMPLATE)
                 || pathTokens.containsAny(BOTANIA_MATERIAL_TOKENS)
                 || pathTokens.containsAny("seed", "seeds", "shard")
-                || containsAny(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""),
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, ""),
                 "grassseeds", "laputashard")) {
             return "materials";
         }
@@ -1504,11 +1492,11 @@ public final class PrimaryCategoryResolver {
     }
 
     private static boolean isBotaniaGeneratingFlower(String path) {
-        return containsPathToken(path, BOTANIA_GENERATING_FLOWER_TOKENS);
+        return PrimaryCategoryTextMatchers.containsPathToken(path, BOTANIA_GENERATING_FLOWER_TOKENS);
     }
 
     private static boolean isBotaniaFunctionalFlower(String path) {
-        return containsPathToken(path, BOTANIA_FUNCTIONAL_FLOWER_TOKENS);
+        return PrimaryCategoryTextMatchers.containsPathToken(path, BOTANIA_FUNCTIONAL_FLOWER_TOKENS);
     }
 
     private static Optional<CategoryAssignment> resolveSophisticatedIdentity(ResolveContext context) {
@@ -2047,7 +2035,7 @@ public final class PrimaryCategoryResolver {
     }
 
     private static boolean shouldResolveFoodFamilyCookingStation(ResolveContext context) {
-        if (context.modFamily != ModFamily.FOOD
+        if (context.modFamily != PrimaryCategoryModFamily.FOOD
                 || !context.facets.contains(ItemFacet.PLACEABLE)
                 || !context.facets.contains(ItemFacet.HAS_BLOCK_ENTITY)) {
             return false;
@@ -2071,8 +2059,8 @@ public final class PrimaryCategoryResolver {
         String itemClass = context.attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
         String blockClass = context.attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "");
         return PathTokens.of(context.path).containsAny(FOOD_COOKING_STATION_TOKENS)
-                || containsAny(itemClass, "SkilletItem", "CookingPotItem", "StoveItem")
-                || containsAny(blockClass, "SkilletBlock", "CookingPotBlock", "StoveBlock");
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(itemClass, "SkilletItem", "CookingPotItem", "StoveItem")
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(blockClass, "SkilletBlock", "CookingPotBlock", "StoveBlock");
     }
 
     private static boolean shouldResolveEdibleMagicReagentBeforeFood(ResolveContext context) {
@@ -2081,97 +2069,26 @@ public final class PrimaryCategoryResolver {
             return false;
         }
         return "spider_eye".equals(context.path)
-                || containsPathToken(context.path, Set.of("spider_eye"))
-                || hasMetadataToken(context.attributes, SearchNodeKeys.RECIPE_USE_CATEGORIES, "ami:brewing")
-                || hasMetadataToken(context.attributes, SearchNodeKeys.RECIPE_USE_CATEGORIES, "potion_workshop_brewing");
+                || PrimaryCategoryTextMatchers.containsPathToken(context.path, Set.of("spider_eye"))
+                || PrimaryCategoryTextMatchers.hasMetadataToken(context.attributes, SearchNodeKeys.RECIPE_USE_CATEGORIES, "ami:brewing")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(context.attributes, SearchNodeKeys.RECIPE_USE_CATEGORIES, "potion_workshop_brewing");
     }
 
     private static boolean hasProjectileToolContext(String path, Map<String, String> attributes) {
         String itemClass = attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
-        return containsPathToken(path, Set.of(
+        return PrimaryCategoryTextMatchers.containsPathToken(path, Set.of(
                 "arrow", "arrows", "bolt", "bolts", "bullet", "bullets", "round", "rounds",
                 "cartridge", "cartridges", "rocket", "ammo", "gun", "shotgun", "cannon",
                 "autocannon", "artillery", "mortar", "munition", "munitions"))
-                || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:arrows")
-                || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "createbigcannons:big_cannon_projectiles")
-                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "createbigcannons:big_cannon_projectiles")
-                || containsAny(itemClass, "SnowballItem", "BombItem");
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:arrows")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.TAGS, "createbigcannons:big_cannon_projectiles")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "createbigcannons:big_cannon_projectiles")
+                || PrimaryCategoryTextMatchers.containsAnyIgnoreCase(itemClass, "SnowballItem", "BombItem");
     }
 
     private static boolean hasActualFoodIdentity(Set<ItemFacet> facets, Map<String, String> attributes) {
         return hasAny(facets, ItemFacet.EDIBLE, ItemFacet.PLACEABLE_FOOD)
-                || hasCsvToken(attributes.getOrDefault(SearchNodeKeys.COMPONENT_FACTS, ""), "food");
-    }
-
-    private static ModFamily classifyModFamily(String modId) {
-        if (modId == null || modId.isBlank()) {
-            return ModFamily.GENERIC;
-        }
-        if (isPortableStorageFamilyMod(modId)) {
-            return ModFamily.PORTABLE_STORAGE;
-        }
-        if (isStorageFamilyMod(modId)) {
-            return ModFamily.STORAGE;
-        }
-        if (modId.contains("delight")
-                || modId.equals("croptopia")
-                || modId.equals("createfood")
-                || modId.equals("bountifulfares")) {
-            return ModFamily.FOOD;
-        }
-        if (isCreateFamilyMod(modId)) {
-            return ModFamily.CREATE;
-        }
-        if (isAutomationFamilyMod(modId)) {
-            return ModFamily.AUTOMATION;
-        }
-        if (isDecorFamilyMod(modId)) {
-            return ModFamily.DECOR;
-        }
-        return ModFamily.GENERIC;
-    }
-
-    private static boolean isCreateFamilyMod(String modId) {
-        if (modId.equals("create")
-                || modId.startsWith("create")
-                || modId.equals("railways")
-                || modId.equals("copycats")
-                || modId.equals("sliceanddice")
-                || modId.equals("bellsandwhistles")) {
-            return true;
-        }
-        return false;
-    }
-
-    private static boolean isPortableStorageFamilyMod(String modId) {
-        return PORTABLE_STORAGE_FAMILY_MOD_IDS.contains(modId);
-    }
-
-    private static boolean isStorageFamilyMod(String modId) {
-        return STORAGE_FAMILY_MOD_IDS.contains(modId);
-    }
-
-    private static boolean isDecorFamilyMod(String modId) {
-        if (modId.startsWith("mcw")
-                || modId.equals("cfm")
-                || modId.equals("cfm_wap")
-                || modId.equals("redeco")
-                || modId.equals("another_furniture")
-                || modId.equals("moa_decor_bath")
-                || modId.equals("refurbished_furniture")
-                || modId.equals("arts_and_crafts")) {
-            return true;
-        }
-        return false;
-    }
-
-    private static boolean isAutomationFamilyMod(String modId) {
-        return modId.equals("pneumaticcraft")
-                || modId.startsWith("pneumaticcraft")
-                || modId.equals("securitycraft")
-                || modId.contains("projectred")
-                || modId.equals("laserio")
-                || modId.equals("enderio");
+                || PrimaryCategoryTextMatchers.hasCsvToken(attributes.getOrDefault(SearchNodeKeys.COMPONENT_FACTS, ""), "food");
     }
 
     private static CategoryAssignment fallback() {
@@ -2257,7 +2174,7 @@ public final class PrimaryCategoryResolver {
 
     private static boolean isNonPlayerArmorClass(Map<String, String> attributes) {
         String itemClass = attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, "").toLowerCase(Locale.ROOT);
-        return containsAny(itemClass,
+        return PrimaryCategoryTextMatchers.containsAnyIgnoreCase(itemClass,
                 "animalarmoritem",
                 "horsearmoritem",
                 "wolfarmoritem",
@@ -2378,9 +2295,9 @@ public final class PrimaryCategoryResolver {
 
     private static boolean isSapling(String path, Map<String, String> attributes) {
         String blockClass = attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "");
-        return containsPathToken(path, Set.of("sapling", "saplings"))
-                || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:saplings")
-                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "minecraft:saplings")
+        return PrimaryCategoryTextMatchers.containsPathToken(path, Set.of("sapling", "saplings"))
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:saplings")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "minecraft:saplings")
                 || blockClass.endsWith("SaplingBlock")
                 || blockClass.contains(".SaplingBlock");
     }
@@ -2390,8 +2307,8 @@ public final class PrimaryCategoryResolver {
             return false;
         }
         if (facets.contains(ItemFacet.LEAVES)
-                || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:leaves")
-                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "minecraft:leaves")) {
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:leaves")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "minecraft:leaves")) {
             return true;
         }
         // Path-based fallback: only apply when blockShape is not explicitly structural.
@@ -2400,7 +2317,7 @@ public final class PrimaryCategoryResolver {
         if ("partial".equals(blockShape)) {
             return false;
         }
-        return containsPathToken(path, Set.of("leaf", "leaves"));
+        return PrimaryCategoryTextMatchers.containsPathToken(path, Set.of("leaf", "leaves"));
     }
 
     private static boolean isWoodBlock(String path, Set<ItemFacet> facets, Map<String, String> attributes) {
@@ -2408,10 +2325,10 @@ public final class PrimaryCategoryResolver {
             return false;
         }
         return facets.contains(ItemFacet.WOOD_BLOCK)
-                || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:planks")
-                || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:logs")
-                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "minecraft:planks")
-                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "minecraft:logs")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:planks")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:logs")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "minecraft:planks")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "minecraft:logs")
                 || PathTokens.of(path).endsWith("planks")
                 || PathTokens.of(path).endsWith("log")
                 || PathTokens.of(path).endsWith("wood")
@@ -2435,9 +2352,9 @@ public final class PrimaryCategoryResolver {
             return false;
         }
         if (!facets.contains(ItemFacet.SEED)
-                && !hasMetadataToken(attributes, SearchNodeKeys.TAGS, "c:seeds")
-                && !hasMetadataToken(attributes, SearchNodeKeys.TAGS, "forge:seeds")
-                && !containsPathToken(path, Set.of("seed", "seeds"))) {
+                && !PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.TAGS, "c:seeds")
+                && !PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.TAGS, "forge:seeds")
+                && !PrimaryCategoryTextMatchers.containsPathToken(path, Set.of("seed", "seeds"))) {
             return false;
         }
         PathTokens tokens = PathTokens.of(path);
@@ -2459,38 +2376,13 @@ public final class PrimaryCategoryResolver {
             return false;
         }
         return facets.contains(ItemFacet.CROP)
-                || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "c:crops")
-                || hasMetadataToken(attributes, SearchNodeKeys.TAGS, "forge:crops")
-                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "c:crops")
-                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "forge:crops")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.TAGS, "c:crops")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.TAGS, "forge:crops")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "c:crops")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "forge:crops")
                 || PathTokens.of(path).containsAny("crop", "bush")
                 || blockClass.contains("crop")
                 || blockClass.contains("bush");
-    }
-
-    private static boolean hasMetadataToken(Map<String, String> attributes, String key, String expected) {
-        String encoded = attributes.getOrDefault(key, "");
-        if (encoded.isBlank()) {
-            return false;
-        }
-        for (String token : encoded.split(",")) {
-            if (expected.equals(token.trim())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean hasCsvToken(String encoded, String expected) {
-        if (encoded == null || encoded.isBlank()) {
-            return false;
-        }
-        for (String token : encoded.split(",")) {
-            if (expected.equals(token.trim())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static String classifyIngredientSubcategory(Set<ItemFacet> facets) {
@@ -2523,18 +2415,18 @@ public final class PrimaryCategoryResolver {
     }
 
     private static boolean isPrimaryLightingPath(String path) {
-        return containsPathToken(path, LIGHTING_TOKENS)
-                || containsPathToken(path, Set.of("torch", "torches", "candle", "candles", "glowstone", "shroomlight", "froglight", "beacon"));
+        return PrimaryCategoryTextMatchers.containsPathToken(path, LIGHTING_TOKENS)
+                || PrimaryCategoryTextMatchers.containsPathToken(path, Set.of("torch", "torches", "candle", "candles", "glowstone", "shroomlight", "froglight", "beacon"));
     }
 
     private static String classifyLexicalDecorationSubcategory(String path, Set<ItemFacet> facets) {
-        if (facets.contains(ItemFacet.LIGHT_SOURCE) || containsPathToken(path, LIGHTING_TOKENS)) {
+        if (facets.contains(ItemFacet.LIGHT_SOURCE) || PrimaryCategoryTextMatchers.containsPathToken(path, LIGHTING_TOKENS)) {
             return "lighting";
         }
-        if (containsPathToken(path, TEXTILE_TOKENS)) {
+        if (PrimaryCategoryTextMatchers.containsPathToken(path, TEXTILE_TOKENS)) {
             return "textiles";
         }
-        if (containsPathToken(path, DISPLAY_TOKENS)) {
+        if (PrimaryCategoryTextMatchers.containsPathToken(path, DISPLAY_TOKENS)) {
             return "furniture";
         }
         return classifyDecorationSubcategory(facets);
@@ -2550,14 +2442,14 @@ public final class PrimaryCategoryResolver {
         if (facets.contains(ItemFacet.REDSTONE_LOGIC) || facets.contains(ItemFacet.REDSTONE_SIGNAL)) {
             return "redstone";
         }
-        if (containsPathToken(path, Set.of("terminal", "controller", "processor"))) {
+        if (PrimaryCategoryTextMatchers.containsPathToken(path, Set.of("terminal", "controller", "processor"))) {
             return "parts";
         }
         return classifyTechSubcategory(path, facets);
     }
 
-    private static boolean shouldBiasCreateFamilyToDecoration(ModFamily modFamily, Set<ItemFacet> facets) {
-        return modFamily == ModFamily.CREATE
+    private static boolean shouldBiasCreateFamilyToDecoration(PrimaryCategoryModFamily modFamily, Set<ItemFacet> facets) {
+        return modFamily == PrimaryCategoryModFamily.CREATE
                 && facets.contains(ItemFacet.PLACEABLE)
                 && hasAny(facets, ItemFacet.DECORATIVE_BLOCK, ItemFacet.LIGHT_SOURCE)
                 && !hasAny(facets,
@@ -2586,7 +2478,7 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.LOG,
                 ItemFacet.LEAVES,
                 ItemFacet.FLOWER)
-                && containsPathToken(path, DECOR_TOKENS);
+                && PrimaryCategoryTextMatchers.containsPathToken(path, DECOR_TOKENS);
     }
 
     private static boolean shouldResolveNaturalBeforeTech(Set<ItemFacet> facets, String path) {
@@ -2595,7 +2487,7 @@ public final class PrimaryCategoryResolver {
     }
 
     private static boolean shouldBiasLexicalWorkstationToTech(Set<ItemFacet> facets, String path) {
-        return containsPathToken(path, WORKSTATION_TOKENS)
+        return PrimaryCategoryTextMatchers.containsPathToken(path, WORKSTATION_TOKENS)
                 && facets.contains(ItemFacet.PLACEABLE)
                 && hasAny(facets,
                 ItemFacet.INTERACTIVE_BLOCK,
@@ -2617,8 +2509,8 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.LIGHT_SOURCE);
     }
 
-    private static boolean shouldBiasCreateFamilyToTech(ModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
-        return modFamily == ModFamily.CREATE
+    private static boolean shouldBiasCreateFamilyToTech(PrimaryCategoryModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
+        return modFamily == PrimaryCategoryModFamily.CREATE
                 && facets.contains(ItemFacet.PLACEABLE)
                 && !hasAny(facets,
                 ItemFacet.DECORATIVE_BLOCK,
@@ -2652,8 +2544,8 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.TEMPLATE,
                 ItemFacet.TECH_COMPONENT,
                 ItemFacet.MECHANICAL_COMPONENT)
-                || containsPathToken(path, CREATE_PART_TOKENS)
-                || containsPathToken(path, CREATE_MACHINE_TOKENS)
+                || PrimaryCategoryTextMatchers.containsPathToken(path, CREATE_PART_TOKENS)
+                || PrimaryCategoryTextMatchers.containsPathToken(path, CREATE_MACHINE_TOKENS)
                 || isCreateAddonTechPath(path))
                 && !hasAny(facets,
                 ItemFacet.STAIRS,
@@ -2667,26 +2559,26 @@ public final class PrimaryCategoryResolver {
                 && !shouldBeGeology(facets, path, attributes);
     }
 
-    private static boolean shouldBiasCreateFamilyHandheldToTools(ModFamily modFamily, String path) {
-        return modFamily == ModFamily.CREATE
-                && (containsPathToken(path, CREATE_HANDHELD_TOOL_TOKENS)
+    private static boolean shouldBiasCreateFamilyHandheldToTools(PrimaryCategoryModFamily modFamily, String path) {
+        return modFamily == PrimaryCategoryModFamily.CREATE
+                && (PrimaryCategoryTextMatchers.containsPathToken(path, CREATE_HANDHELD_TOOL_TOKENS)
                 || path.equals("wand_of_symmetry")
-                || endsWithPathToken(path, "gun"));
+                || PrimaryCategoryTextMatchers.endsWithPathToken(path, "gun"));
     }
 
-    private static boolean shouldBiasCreateFamilyHandheldToUtility(ModFamily modFamily, String path) {
-        return modFamily == ModFamily.CREATE
-                && (containsPathToken(path, CREATE_HANDHELD_UTILITY_TOKENS)
+    private static boolean shouldBiasCreateFamilyHandheldToUtility(PrimaryCategoryModFamily modFamily, String path) {
+        return modFamily == PrimaryCategoryModFamily.CREATE
+                && (PrimaryCategoryTextMatchers.containsPathToken(path, CREATE_HANDHELD_UTILITY_TOKENS)
                 || path.equals("shopping_list"));
     }
 
     private static boolean shouldBiasCreateEnchantingFamilyToMagic(String modId, String path) {
         return modId.equals("create_enchantment_industry")
-                && containsPathToken(path, CREATE_ENCHANTING_EXPERIENCE_TOKENS);
+                && PrimaryCategoryTextMatchers.containsPathToken(path, CREATE_ENCHANTING_EXPERIENCE_TOKENS);
     }
 
-    private static boolean shouldBiasDecorFamilyToDecoration(ModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
-        return modFamily == ModFamily.DECOR
+    private static boolean shouldBiasDecorFamilyToDecoration(PrimaryCategoryModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
+        return modFamily == PrimaryCategoryModFamily.DECOR
                 && facets.contains(ItemFacet.PLACEABLE)
                 && !hasAny(facets,
                 ItemFacet.MACHINE,
@@ -2720,21 +2612,21 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.LOG,
                 ItemFacet.LEAVES,
                 ItemFacet.LIGHT_SOURCE)
-                && containsPathToken(path, ARCHITECTURAL_BUILDING_TOKENS);
+                && PrimaryCategoryTextMatchers.containsPathToken(path, ARCHITECTURAL_BUILDING_TOKENS);
     }
 
-    private static boolean shouldBiasPortableStorageFamilyToArmor(ModFamily modFamily, String path) {
-        return modFamily == ModFamily.PORTABLE_STORAGE
-                && containsPathToken(path, PORTABLE_STORAGE_ARMOR_TOKENS);
+    private static boolean shouldBiasPortableStorageFamilyToArmor(PrimaryCategoryModFamily modFamily, String path) {
+        return modFamily == PrimaryCategoryModFamily.PORTABLE_STORAGE
+                && PrimaryCategoryTextMatchers.containsPathToken(path, PORTABLE_STORAGE_ARMOR_TOKENS);
     }
 
-    private static boolean shouldBiasPortableStorageFamilyToTech(ModFamily modFamily, String path) {
-        return modFamily == ModFamily.PORTABLE_STORAGE
-                && containsPathToken(path, PORTABLE_STORAGE_TECH_TOKENS);
+    private static boolean shouldBiasPortableStorageFamilyToTech(PrimaryCategoryModFamily modFamily, String path) {
+        return modFamily == PrimaryCategoryModFamily.PORTABLE_STORAGE
+                && PrimaryCategoryTextMatchers.containsPathToken(path, PORTABLE_STORAGE_TECH_TOKENS);
     }
 
-    private static boolean shouldBiasStorageFamilyToTech(ModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
-        return modFamily == ModFamily.STORAGE
+    private static boolean shouldBiasStorageFamilyToTech(PrimaryCategoryModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
+        return modFamily == PrimaryCategoryModFamily.STORAGE
                 && !hasStructuralBuildingShape(facets)
                 && !hasAny(facets,
                 ItemFacet.DECORATIVE_BLOCK,
@@ -2768,13 +2660,13 @@ public final class PrimaryCategoryResolver {
                         ItemFacet.TEMPLATE,
                         ItemFacet.TECH_COMPONENT,
                         ItemFacet.MECHANICAL_COMPONENT)
-                        || containsPathToken(path, STORAGE_FAMILY_ROUTE_TOKENS)
+                        || PrimaryCategoryTextMatchers.containsPathToken(path, STORAGE_FAMILY_ROUTE_TOKENS)
         )
                 && !shouldBeGeology(facets, path, attributes);
     }
 
-    private static boolean shouldBiasFoodFamilyToNature(ModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
-        return modFamily == ModFamily.FOOD
+    private static boolean shouldBiasFoodFamilyToNature(PrimaryCategoryModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
+        return modFamily == PrimaryCategoryModFamily.FOOD
                 && facets.contains(ItemFacet.PLACEABLE)
                 && (
                 hasAny(facets,
@@ -2815,8 +2707,8 @@ public final class PrimaryCategoryResolver {
                 && !shouldBiasUncraftableFullBlockToTerrain(facets, attributes);
     }
 
-    private static boolean shouldBiasFoodFamilyPlaceableToNature(ModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
-        return modFamily == ModFamily.FOOD
+    private static boolean shouldBiasFoodFamilyPlaceableToNature(PrimaryCategoryModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
+        return modFamily == PrimaryCategoryModFamily.FOOD
                 && facets.contains(ItemFacet.PLACEABLE)
                 && !hasAny(facets,
                 ItemFacet.MACHINE,
@@ -2851,8 +2743,8 @@ public final class PrimaryCategoryResolver {
         return classifyNatureSubcategory(path, facets);
     }
 
-    private static boolean shouldBiasFoodFamilyToIngredients(ModFamily modFamily, Set<ItemFacet> facets, String path) {
-        return modFamily == ModFamily.FOOD
+    private static boolean shouldBiasFoodFamilyToIngredients(PrimaryCategoryModFamily modFamily, Set<ItemFacet> facets, String path) {
+        return modFamily == PrimaryCategoryModFamily.FOOD
                 && !facets.contains(ItemFacet.PLACEABLE)
                 && !hasAny(facets,
                 ItemFacet.UTILITY_TOOL,
@@ -2863,12 +2755,12 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.MAGIC_ARTIFACT,
                 ItemFacet.MAGIC_REAGENT)
                 && (
-                containsPathToken(path, FOOD_FAMILY_INGREDIENT_TOKENS)
+                PrimaryCategoryTextMatchers.containsPathToken(path, FOOD_FAMILY_INGREDIENT_TOKENS)
         );
     }
 
-    private static boolean shouldBiasFoodFamilyToPreparedFood(ModFamily modFamily, Set<ItemFacet> facets, String path) {
-        return modFamily == ModFamily.FOOD
+    private static boolean shouldBiasFoodFamilyToPreparedFood(PrimaryCategoryModFamily modFamily, Set<ItemFacet> facets, String path) {
+        return modFamily == PrimaryCategoryModFamily.FOOD
                 && !hasAny(facets,
                 ItemFacet.UTILITY_TOOL,
                 ItemFacet.MELEE_WEAPON,
@@ -2884,7 +2776,7 @@ public final class PrimaryCategoryResolver {
         );
     }
 
-    private static boolean shouldResolveFoodLikeBeforePassiveRedstone(ModFamily modFamily, Set<ItemFacet> facets, String path) {
+    private static boolean shouldResolveFoodLikeBeforePassiveRedstone(PrimaryCategoryModFamily modFamily, Set<ItemFacet> facets, String path) {
         if (!isPassiveComparatorOnly(facets)) {
             return false;
         }
@@ -2908,10 +2800,10 @@ public final class PrimaryCategoryResolver {
                 ItemFacet.FOOD_DRINK,
                 ItemFacet.FOOD_PROTEIN,
                 ItemFacet.COMPOSTABLE)
-                || (modFamily == ModFamily.FOOD && hasPreparedFoodPath(path));
+                || (modFamily == PrimaryCategoryModFamily.FOOD && hasPreparedFoodPath(path));
     }
 
-    private static boolean shouldResolveDecorLikeBeforePassiveRedstone(ModFamily modFamily, Set<ItemFacet> facets, Map<String, String> attributes) {
+    private static boolean shouldResolveDecorLikeBeforePassiveRedstone(PrimaryCategoryModFamily modFamily, Set<ItemFacet> facets, Map<String, String> attributes) {
         if (!isPassiveComparatorOnly(facets)) {
             return false;
         }
@@ -2941,7 +2833,7 @@ public final class PrimaryCategoryResolver {
             return false;
         }
         return facets.contains(ItemFacet.DECORATIVE_BLOCK)
-                || (modFamily == ModFamily.DECOR
+                || (modFamily == PrimaryCategoryModFamily.DECOR
                 && facets.contains(ItemFacet.PLACEABLE)
                 && !shouldBeGeology(facets, "", attributes));
     }
@@ -2954,12 +2846,12 @@ public final class PrimaryCategoryResolver {
                 || facets.contains(ItemFacet.REDSTONE_SIGNAL);
     }
 
-    private static boolean shouldBiasAutomationFamilyToTech(ModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
+    private static boolean shouldBiasAutomationFamilyToTech(PrimaryCategoryModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
         // Exclude plain decorative glass (glass without a block entity means it's not a functional machine component).
         if (facets.contains(ItemFacet.GLASS_BLOCK) && !facets.contains(ItemFacet.HAS_BLOCK_ENTITY)) {
             return false;
         }
-        return modFamily == ModFamily.AUTOMATION
+        return modFamily == PrimaryCategoryModFamily.AUTOMATION
                 && !hasAny(facets,
                 ItemFacet.DECORATIVE_BLOCK,
                 ItemFacet.LIGHT_SOURCE,
@@ -2990,7 +2882,7 @@ public final class PrimaryCategoryResolver {
                         ItemFacet.REDSTONE_LOGIC,
                         ItemFacet.REDSTONE_SIGNAL,
                         ItemFacet.TRANSPORT)
-                        || containsPathToken(path, AUTOMATION_ROUTE_TOKENS)
+                        || PrimaryCategoryTextMatchers.containsPathToken(path, AUTOMATION_ROUTE_TOKENS)
         )
                 && !shouldBeGeology(facets, path, attributes)
                 && !shouldBiasUncraftableFullBlockToTerrain(facets, attributes);
@@ -3033,39 +2925,39 @@ public final class PrimaryCategoryResolver {
 
     private static String classifyCreateFamilyTechSubcategory(String modId, String path, Set<ItemFacet> facets) {
         if (modId.equals("railways")) {
-            if (containsPathToken(path, RAILWAYS_TRANSPORT_TOKENS)) {
+            if (PrimaryCategoryTextMatchers.containsPathToken(path, RAILWAYS_TRANSPORT_TOKENS)) {
                 return "transport";
             }
-            if (containsPathToken(path, RAILWAYS_PART_TOKENS)) {
+            if (PrimaryCategoryTextMatchers.containsPathToken(path, RAILWAYS_PART_TOKENS)) {
                 return "parts";
             }
         }
         if (modId.equals("createaddition")
                 || modId.equals("create_new_age")
                 || modId.equals("new_age")) {
-            if (containsPathToken(path, CREATE_ADDON_MACHINE_TOKENS)) {
+            if (PrimaryCategoryTextMatchers.containsPathToken(path, CREATE_ADDON_MACHINE_TOKENS)) {
                 return "machines";
             }
             if (facets.contains(ItemFacet.CABLE)) {
                 return "cables";
             }
-            if (containsPathToken(path, CREATE_ADDON_PART_TOKENS)) {
+            if (PrimaryCategoryTextMatchers.containsPathToken(path, CREATE_ADDON_PART_TOKENS)) {
                 return "parts";
             }
         }
         if (modId.equals("create_winery")) {
-            if (containsPathToken(path, Set.of("bottle"))) {
+            if (PrimaryCategoryTextMatchers.containsPathToken(path, Set.of("bottle"))) {
                 return "transport";
             }
-            if (containsPathToken(path, CREATE_WINERY_MACHINE_TOKENS)) {
+            if (PrimaryCategoryTextMatchers.containsPathToken(path, CREATE_WINERY_MACHINE_TOKENS)) {
                 return "machines";
             }
         }
         if (modId.equals("createoreexcavation")) {
-            if (containsPathToken(path, CREATE_ORE_MACHINE_TOKENS)) {
+            if (PrimaryCategoryTextMatchers.containsPathToken(path, CREATE_ORE_MACHINE_TOKENS)) {
                 return "machines";
             }
-            if (containsPathToken(path, CREATE_ORE_PART_TOKENS)) {
+            if (PrimaryCategoryTextMatchers.containsPathToken(path, CREATE_ORE_PART_TOKENS)) {
                 return "parts";
             }
         }
@@ -3075,7 +2967,7 @@ public final class PrimaryCategoryResolver {
         if (facets.contains(ItemFacet.REDSTONE_LOGIC) || facets.contains(ItemFacet.REDSTONE_SIGNAL)) {
             return "redstone";
         }
-        if (facets.contains(ItemFacet.UPGRADE) || containsPathToken(path, Set.of("upgrade"))) {
+        if (facets.contains(ItemFacet.UPGRADE) || PrimaryCategoryTextMatchers.containsPathToken(path, Set.of("upgrade"))) {
             return "upgrades";
         }
         if (facets.contains(ItemFacet.TEMPLATE) || isTemplatePath(path)) {
@@ -3084,10 +2976,10 @@ public final class PrimaryCategoryResolver {
         if (facets.contains(ItemFacet.CABLE)) {
             return "cables";
         }
-        if (containsPathToken(path, CREATE_PART_TOKENS)) {
+        if (PrimaryCategoryTextMatchers.containsPathToken(path, CREATE_PART_TOKENS)) {
             return "parts";
         }
-        if (containsPathToken(path, CREATE_MACHINE_TOKENS)) {
+        if (PrimaryCategoryTextMatchers.containsPathToken(path, CREATE_MACHINE_TOKENS)) {
             return "machines";
         }
         return classifyTechSubcategory(path, facets);
@@ -3104,7 +2996,7 @@ public final class PrimaryCategoryResolver {
                 || hasPreparedMealPath(path)) {
             return "meals";
         }
-        if (facets.contains(ItemFacet.FOOD_DRINK) || containsPathToken(path, Set.of("bottle"))) {
+        if (facets.contains(ItemFacet.FOOD_DRINK) || PrimaryCategoryTextMatchers.containsPathToken(path, Set.of("bottle"))) {
             return "drinks";
         }
         if (facets.contains(ItemFacet.FOOD_PROTEIN)) {
@@ -3126,7 +3018,7 @@ public final class PrimaryCategoryResolver {
     }
 
     private static boolean isFoodStorageBlockPath(String path) {
-        return containsPathToken(path, FOOD_STORAGE_TOKENS);
+        return PrimaryCategoryTextMatchers.containsPathToken(path, FOOD_STORAGE_TOKENS);
     }
 
     private static String classifyAutomationSubcategory(String path, Set<ItemFacet> facets) {
@@ -3176,13 +3068,13 @@ public final class PrimaryCategoryResolver {
             return false;
         }
         return facets.contains(ItemFacet.FUNGI)
-                || containsPathToken(path, GEOLOGY_SURFACE_ORGANIC_TOKENS)
-                || (blocksMaterial.equals("soil") && containsPathToken(path, Set.of("grass")));
+                || PrimaryCategoryTextMatchers.containsPathToken(path, GEOLOGY_SURFACE_ORGANIC_TOKENS)
+                || (blocksMaterial.equals("soil") && PrimaryCategoryTextMatchers.containsPathToken(path, Set.of("grass")));
     }
 
     private static String classifyOrganicSurfaceBlockSubcategory(String path, Set<ItemFacet> facets) {
         if (facets.contains(ItemFacet.FUNGI)
-                || containsPathToken(path, GEOLOGY_FUNGI_TOKENS)) {
+                || PrimaryCategoryTextMatchers.containsPathToken(path, GEOLOGY_FUNGI_TOKENS)) {
             return "fungi";
         }
         return "flora";
@@ -3213,9 +3105,9 @@ public final class PrimaryCategoryResolver {
             return false;
         }
         String blocksMaterial = attributes.getOrDefault(SearchNodeKeys.BLOCKS_MATERIAL, "");
-        return containsPathToken(path, GEOLOGY_DECORATION_TOKENS)
-                || containsPathToken(path, DECOR_TOKENS)
-                || (facets.contains(ItemFacet.PANE) && (blocksMaterial.equals("glass") || containsPathToken(path, Set.of("glass"))));
+        return PrimaryCategoryTextMatchers.containsPathToken(path, GEOLOGY_DECORATION_TOKENS)
+                || PrimaryCategoryTextMatchers.containsPathToken(path, DECOR_TOKENS)
+                || (facets.contains(ItemFacet.PANE) && (blocksMaterial.equals("glass") || PrimaryCategoryTextMatchers.containsPathToken(path, Set.of("glass"))));
     }
 
     private static boolean shouldBiasGeologyFamilyToMasonry(Set<ItemFacet> facets, String path, Map<String, String> attributes) {
@@ -3255,7 +3147,7 @@ public final class PrimaryCategoryResolver {
                 || blockShape.equals("pane")
                 || blockShape.equals("door")
                 || blockShape.equals("trapdoor")
-                || containsPathToken(path, GEOLOGY_MASONRY_TOKENS);
+                || PrimaryCategoryTextMatchers.containsPathToken(path, GEOLOGY_MASONRY_TOKENS);
     }
 
     private static boolean isLikelyPartialBuildingPlaceable(Set<ItemFacet> facets, String path, Map<String, String> attributes) {
@@ -3323,16 +3215,16 @@ public final class PrimaryCategoryResolver {
         if (hasAny(facets, ItemFacet.NATURE_MISC, ItemFacet.LEAVES, ItemFacet.FLOWER, ItemFacet.FUNGI)) {
             return true;
         }
-        if (hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:leaves")
-                || hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "minecraft:leaves")) {
+        if (PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.TAGS, "minecraft:leaves")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "minecraft:leaves")) {
             return true;
         }
         String encodedProperties = attributes.getOrDefault(SearchNodeKeys.BLOCK_STATE_PROPERTIES, "");
-        if (hasCsvToken(encodedProperties, "moisture") || hasCsvToken(encodedProperties, "layers")) {
+        if (PrimaryCategoryTextMatchers.hasCsvToken(encodedProperties, "moisture") || PrimaryCategoryTextMatchers.hasCsvToken(encodedProperties, "layers")) {
             return true;
         }
         String normalizedClass = attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "").toLowerCase(Locale.ROOT);
-        return containsPathToken(path, MICRO_PARTIAL_NATURE_PATH_HINTS)
+        return PrimaryCategoryTextMatchers.containsPathToken(path, MICRO_PARTIAL_NATURE_PATH_HINTS)
                 || hasMicroPartialNatureClassSignals(normalizedClass);
     }
 
@@ -3367,7 +3259,7 @@ public final class PrimaryCategoryResolver {
     }
 
     private static boolean hasMicroPartialPathOrClassSignals(String path, String blockClass) {
-        if (containsPathToken(path, MICRO_PARTIAL_PATH_HINTS)) {
+        if (PrimaryCategoryTextMatchers.containsPathToken(path, MICRO_PARTIAL_PATH_HINTS)) {
             return true;
         }
         String normalizedClass = blockClass.toLowerCase(Locale.ROOT);
@@ -3375,7 +3267,7 @@ public final class PrimaryCategoryResolver {
     }
 
     private static boolean hasMicroPartialTechSignals(String path, String blockClass) {
-        if (containsPathToken(path, MICRO_PARTIAL_TECH_HINTS)) {
+        if (PrimaryCategoryTextMatchers.containsPathToken(path, MICRO_PARTIAL_TECH_HINTS)) {
             return true;
         }
         String normalizedClass = blockClass.toLowerCase(Locale.ROOT);
@@ -3388,23 +3280,6 @@ public final class PrimaryCategoryResolver {
         }
         String blockShape = attributes.getOrDefault("blockShape", "");
         return !"partial".equals(blockShape);
-    }
-
-    private static boolean containsPathToken(String path, Set<String> expectedTokens) {
-        return PathTokens.of(path).containsAny(expectedTokens);
-    }
-
-    private static boolean containsAny(String value, String... needles) {
-        if (value == null || value.isBlank()) {
-            return false;
-        }
-        String normalized = value.toLowerCase(Locale.ROOT);
-        for (String needle : needles) {
-            if (normalized.contains(needle.toLowerCase(Locale.ROOT))) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static boolean isCablePath(String path) {
@@ -3424,17 +3299,13 @@ public final class PrimaryCategoryResolver {
     }
 
     private static boolean isCreateAddonTechPath(String path) {
-        return containsPathToken(path, RAILWAYS_TRANSPORT_TOKENS)
-                || containsPathToken(path, RAILWAYS_PART_TOKENS)
-                || containsPathToken(path, CREATE_ADDON_MACHINE_TOKENS)
-                || containsPathToken(path, CREATE_ADDON_PART_TOKENS)
-                || containsPathToken(path, CREATE_WINERY_MACHINE_TOKENS)
-                || containsPathToken(path, CREATE_ORE_MACHINE_TOKENS)
-                || containsPathToken(path, CREATE_ORE_PART_TOKENS);
-    }
-
-    private static boolean endsWithPathToken(String path, String token) {
-        return PathTokens.of(path).endsWith(token);
+        return PrimaryCategoryTextMatchers.containsPathToken(path, RAILWAYS_TRANSPORT_TOKENS)
+                || PrimaryCategoryTextMatchers.containsPathToken(path, RAILWAYS_PART_TOKENS)
+                || PrimaryCategoryTextMatchers.containsPathToken(path, CREATE_ADDON_MACHINE_TOKENS)
+                || PrimaryCategoryTextMatchers.containsPathToken(path, CREATE_ADDON_PART_TOKENS)
+                || PrimaryCategoryTextMatchers.containsPathToken(path, CREATE_WINERY_MACHINE_TOKENS)
+                || PrimaryCategoryTextMatchers.containsPathToken(path, CREATE_ORE_MACHINE_TOKENS)
+                || PrimaryCategoryTextMatchers.containsPathToken(path, CREATE_ORE_PART_TOKENS);
     }
 
     private static boolean shouldBeGeology(Set<ItemFacet> facets, String path, Map<String, String> attributes) {
@@ -3449,10 +3320,10 @@ public final class PrimaryCategoryResolver {
                     ItemFacet.PANE,
                     ItemFacet.DOOR,
                     ItemFacet.TRAPDOOR)
-                    && !containsPathToken(path, GEOLOGY_STONE_DECORATION_TOKENS);
+                    && !PrimaryCategoryTextMatchers.containsPathToken(path, GEOLOGY_STONE_DECORATION_TOKENS);
         }
         if (facets.contains(ItemFacet.SOIL_BLOCK)) {
-            return !containsPathToken(path, GEOLOGY_SOIL_DECORATION_TOKENS);
+            return !PrimaryCategoryTextMatchers.containsPathToken(path, GEOLOGY_SOIL_DECORATION_TOKENS);
         }
         return false;
     }
@@ -3590,22 +3461,12 @@ public final class PrimaryCategoryResolver {
                 context.attributes);
     }
 
-    private enum ModFamily {
-        GENERIC,
-        CREATE,
-        FOOD,
-        STORAGE,
-        AUTOMATION,
-        PORTABLE_STORAGE,
-        DECOR
-    }
-
     private record ResolveContext(ResourceLocation id,
                                   String modId,
                                   String path,
                                   Set<ItemFacet> facets,
                                   Map<String, String> attributes,
-                                  ModFamily modFamily,
+                                  PrimaryCategoryModFamily modFamily,
                                   AmiConfig.CompatCategoryPolicy categoryPolicy) {
     }
 

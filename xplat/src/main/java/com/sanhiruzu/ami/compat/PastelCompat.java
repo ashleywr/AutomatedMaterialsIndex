@@ -42,6 +42,7 @@ public final class PastelCompat {
         if (CompatMetaUtil.containsAny(context.itemClass, "StructurePlacerItem")) facts.add("structure_placer");
         if (CompatMetaUtil.containsAny(context.itemClass, "BeverageItem", "DrinkItem", "JadeWineItem")) facts.add("drink");
         if (CompatMetaUtil.containsAny(context.itemClass, "InkFlaskItem")) facts.add("ink_container");
+        if (CompatMetaUtil.containsAny(context.itemClass, "DecayPlacerItem")) facts.add("decay_magic");
         if (CompatMetaUtil.containsAny(context.itemClass, "PigmentItem")) facts.add("pigment");
         if (CompatMetaUtil.containsAny(context.itemClass, "UpgradeBlockItem")) facts.add("node_upgrade");
         if (CompatMetaUtil.containsAny(context.itemClass, "GemstonePowderItem", "FloatItem")) facts.add("mineral_resource");
@@ -58,6 +59,9 @@ public final class PastelCompat {
             if (tag.startsWith("pastel:trinkets")) facts.add("curio_or_armor");
             if (tag.startsWith("pastel:drinkable_spirits") || tag.startsWith("pastel:alcohols")) facts.add("drink");
         }
+        for (String tag : CompatMetaUtil.splitCsv(context.blockTags)) {
+            if (tag.startsWith("pastel:decay/")) facts.add("decay_magic");
+        }
     }
 
     private static void addPathFacts(Context context, Set<String> facts) {
@@ -67,6 +71,7 @@ public final class PastelCompat {
                 || CompatMetaUtil.containsAny(path, "gem", "fragments", "flake", "chunk", "shard")) facts.add("mineral_resource");
         if (CompatMetaUtil.containsAny(path, "petal", "orchid")) facts.add("organic_reagent");
         if (CompatMetaUtil.containsAny(path, "pigment", "dye")) facts.add("pigment");
+        if (path.contains("bottle_of_")) facts.add("decay_magic");
         if (path.contains("ink_flask")) facts.add("ink_container");
         if (path.contains("midnight_aberration")) facts.add("magic_artifact");
     }
@@ -75,6 +80,7 @@ public final class PastelCompat {
         if (facts.contains("guide_book")) return "guide_books";
         if (facts.contains("structure_placer")) return "structure_placers";
         if (facts.contains("node_upgrade")) return "node_upgrades";
+        if (facts.contains("decay_magic")) return "decay_magic";
         if (facts.contains("ink_container")) return "ink_containers";
         if (facts.contains("pigment")) return "pigments";
         if (facts.contains("drink")) return "drinks";
@@ -103,6 +109,10 @@ public final class PastelCompat {
                 CompatMetaUtil.addFacet(meta, ItemFacet.UPGRADE);
                 CompatMetaUtil.addFacet(meta, ItemFacet.TECH_COMPONENT);
                 route(meta, "progression");
+            }
+            case "decay_magic" -> {
+                CompatMetaUtil.addFacet(meta, ItemFacet.MAGIC_ARTIFACT);
+                route(meta, "magic");
             }
             case "ink_containers" -> {
                 CompatMetaUtil.addFacet(meta, ItemFacet.FLUID_CONTAINER);
@@ -149,11 +159,13 @@ public final class PastelCompat {
         final String path;
         final String itemClass;
         final String tags;
+        final String blockTags;
 
         Context(ResourceLocation id, Map<String, String> meta) {
             this.path = id.getPath().toLowerCase(Locale.ROOT);
             this.itemClass = meta.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
             this.tags = meta.getOrDefault(SearchNodeKeys.TAGS, "").toLowerCase(Locale.ROOT);
+            this.blockTags = meta.getOrDefault(SearchNodeKeys.BLOCK_TAGS, "").toLowerCase(Locale.ROOT);
         }
     }
 }
