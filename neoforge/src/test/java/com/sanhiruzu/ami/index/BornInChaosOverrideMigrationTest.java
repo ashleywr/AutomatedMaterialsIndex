@@ -101,6 +101,14 @@ class BornInChaosOverrideMigrationTest {
     }
 
     @Test
+    void projectileItemsGainProjectileFacet() {
+        // dark_charge -> tokens [dark, charge]; "charge" pattern fires -> PROJECTILE
+        CategoryAssignment a = resolveBare("born_in_chaos_v1:dark_charge",
+                meta("born_in_chaos_v1", "net.minecraft.world.item.Item"));
+        assertTrue(hasFacet(a, ItemFacet.PROJECTILE));
+    }
+
+    @Test
     void unmatchedItemsGainNoOverrideFacets() {
         // unknown_gem -> tokens [unknown, gem]; no born_in_chaos pattern matches
         CategoryAssignment a = resolveBare("born_in_chaos_v1:unknown_gem",

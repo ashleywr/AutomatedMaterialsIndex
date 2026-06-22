@@ -499,7 +499,7 @@ public final class PrimaryCategoryResolver {
          * Create terms claiming AE2 presses/GTCEu casings, and andesite becoming Create-owned.
          */
         if (id == null) {
-            return fallback();
+            return fallback(Map.of());
         }
 
         String modId = id.getNamespace().toLowerCase(Locale.ROOT);
@@ -587,7 +587,7 @@ public final class PrimaryCategoryResolver {
             return route.finish("compat_fallback", "recognized_compat_kind", compatFallback.get());
         }
         route.skipped("compat_fallback", "no recognized compat fallback");
-        return route.finish("fallback", "unknown", fallback());
+        return route.finish("fallback", "unknown", fallback(attributes));
     }
 
     private static Optional<CategoryAssignment> resolveVanillaIdentity(ResolveContext context) {
@@ -2128,8 +2128,8 @@ public final class PrimaryCategoryResolver {
                 || PrimaryCategoryTextMatchers.hasCsvToken(attributes.getOrDefault(SearchNodeKeys.COMPONENT_FACTS, ""), "food");
     }
 
-    private static CategoryAssignment fallback() {
-        return new CategoryAssignment("misc", "unknown", Map.of());
+    private static CategoryAssignment fallback(Map<String, String> attributes) {
+        return new CategoryAssignment("misc", "unknown", attributes);
     }
 
     private static boolean hasCompatFamily(Map<String, String> attributes) {
