@@ -421,17 +421,32 @@ public class ItemProvider implements IAmiDataProvider {
         if (namespaceIs(id, "datanessence")) {
             ItemProviderCompatHooks.runCompatSafely("DatanessenceCompat", () -> DatanessenceCompat.enrichItem(id, meta));
         }
-        if (namespaceIs(id, "forbidden_arcanus")) {
-            ItemProviderCompatHooks.runCompatSafely("ForbiddenArcanusCompat", () -> ForbiddenArcanusCompat.enrichItem(id, meta));
+        if (namespaceIs(id, "born_in_chaos_v1")) {
+            ItemProviderCompatHooks.runCompatSafely("BornInChaosCompat", () -> BornInChaosCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "cataclysm")) {
+            ItemProviderCompatHooks.runCompatSafely("CataclysmCompat", () -> CataclysmCompat.enrichItem(id, meta));
         }
         if (namespaceIs(id, "eternal_starlight")) {
             ItemProviderCompatHooks.runCompatSafely("EternalStarlightCompat", () -> EternalStarlightCompat.enrichItem(id, meta));
         }
-        if (namespaceIs(id, "enigmaticlegacyplus")) {
-            ItemProviderCompatHooks.runCompatSafely("EnigmaticLegacyPlusCompat", () -> EnigmaticLegacyPlusCompat.enrichItem(id, meta));
+        if (namespaceIs(id, "ntgl")) {
+            ItemProviderCompatHooks.runCompatSafely("NtglCompat", () -> NtglCompat.enrichItem(id, meta));
         }
-        if (namespaceIs(id, "zen_colony")) {
-            ItemProviderCompatHooks.runCompatSafely("ZenColonyCompat", () -> ZenColonyCompat.enrichItem(id, meta));
+        if (namespaceIs(id, "cgs")) {
+            ItemProviderCompatHooks.runCompatSafely("CgsCompat", () -> CgsCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "minecolonies")) {
+            ItemProviderCompatHooks.runCompatSafely("MinecoloniesCompat", () -> MinecoloniesCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "mowziesmobs")) {
+            ItemProviderCompatHooks.runCompatSafely("MowziesMobsCompat", () -> MowziesMobsCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "hpm")) {
+            ItemProviderCompatHooks.runCompatSafely("HpmCompat", () -> HpmCompat.enrichItem(id, meta));
+        }
+        if (namespaceIs(id, "mctradepost")) {
+            ItemProviderCompatHooks.runCompatSafely("McTradePostCompat", () -> McTradePostCompat.enrichItem(id, meta));
         }
         if (namespaceIs(id, "silentgear", "tconstruct") || hasCompatFamily(meta, CompatFamilyDetector.MODULAR_GEAR)
                 || hasCompatFamily(meta, CompatFamilyDetector.TINKERS) || hasCompatFamily(meta, CompatFamilyDetector.SILENT_GEAR)) {

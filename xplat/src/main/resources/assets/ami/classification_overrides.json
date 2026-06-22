@@ -36,6 +36,18 @@
     { "mod": "doggytalents", "classTokens": ["treatitem", "scenttreatitem", "droolscenttreatitem"], "pathTokens": ["treat"], "category": "nature", "subcategory": "snacks" },
     { "mod": "doggytalents", "classTokens": ["pianoitem", "dogplushieitem", "samoyedplushieitem"], "pathTokens": ["plushie", "piano"], "category": "decoration", "subcategory": "furniture" },
 
+    { "mod": "enigmaticlegacyplus", "classTokens": ["antiquebag"], "pathTokens": ["bag"], "addFacets": ["storage"] },
+    { "mod": "enigmaticlegacyplus", "pathTokens": ["ring"], "addFacets": ["curio", "magic_artifact"] },
+    { "mod": "enigmaticlegacyplus", "classTokens": ["mendingmixture", "loreinscriber", "blessstone", "cursedstone", "earthheart", "extradimensionaleye", "twistedheart", "twistedmirror", "voidstone", "guardianheart", "pureheart", "abyssalheart"], "pathTokens": ["heart", "eye", "stone", "mirror", "inscriber", "bless"], "addFacets": ["magic_artifact"] },
+    { "mod": "enigmaticlegacyplus", "pathTokens": ["mixture", "droplet", "fragment", "glass"], "addFacets": ["magic_reagent"] },
+
+    { "mod": "forbidden_arcanus", "classTokens": ["quantumcatcheritem", "soulextractoritem"], "pathTokens": ["catcher", "extractor"], "addFacets": ["utility_tool"] },
+    { "mod": "forbidden_arcanus", "classTokens": ["aurealtankitem"], "pathTokens": ["tank"], "addFacets": ["utility_misc"] },
+    { "mod": "forbidden_arcanus", "classTokens": ["xpetrifiedorbitem", "whirlwindprismitem", "smelterprismitem", "dracoarcanusscepteritem"], "pathTokens": ["stella", "orb", "wardstone", "prism", "scepter", "pact", "moon", "elementarium", "stellarite", "crimson"], "addFacets": ["magic_artifact"] },
+    { "mod": "forbidden_arcanus", "classTokens": ["ferrogneticmixtureitem", "edelwoodoilitem", "darkmatteritem", "darksoulitem"], "pathTokens": ["soul", "matter", "oil", "mixture"], "addFacets": ["magic_reagent"] },
+    { "mod": "forbidden_arcanus", "pathTokens": ["stick", "wax"], "addFacets": ["ingredient_organic"] },
+    { "mod": "forbidden_arcanus", "pathTokens": ["scrap"], "addFacets": ["ingredient_mineral"] },
+
     { "mod": "hexalia", "classTokens": ["hexfocusitem", "weatheridolitem", "purityidolitem"], "pathTokens": ["idol", "focus", "pendant"], "addFacets": ["magic_artifact"] },
     { "mod": "hexalia", "classTokens": ["thrownsacitem"], "pathTokens": ["sac"], "addFacets": ["projectile"] },
     { "mod": "hexalia", "classTokens": ["athameitem"], "addFacets": ["melee_weapon"] },
@@ -94,6 +106,10 @@
     { "mod": "witchery", "classTokens": ["poppetitem", "voodoopoppetitem", "seerstoneitem", "attunedstoneitem", "leonardsurnitem", "deathhanditem", "witcheshanditem", "debugwand"], "pathTokens": ["poppet", "seer", "attuned", "necromantic", "catalyst", "hand", "urn", "tarot", "contract", "page", "ring"], "addFacets": ["magic_artifact"] },
     { "mod": "witchery", "classTokens": ["mutandisitem", "parasiticlouseitem"], "pathTokens": ["dust", "oil", "ointment", "mutandis", "animus", "ghost", "soul", "spirit", "breath", "whiff", "fume", "tear", "exhale", "hint", "reek", "odor", "drop", "dew", "blood", "hunger", "fear", "will"], "addFacets": ["magic_reagent"] },
     { "mod": "witchery", "pathTokens": ["tongue", "toe", "wing", "fabric", "twine", "cruor", "louse"], "addFacets": ["ingredient_organic"] },
-    { "mod": "witchery", "pathTokens": ["jar"], "addFacets": ["utility_misc"] }
+    { "mod": "witchery", "pathTokens": ["jar"], "addFacets": ["utility_misc"] },
+
+    { "mod": "zen_colony", "pathTokens": ["pack"], "category": "minecolonies", "subcategory": "supply_packs", "addFacets": ["storage"] },
+    { "mod": "zen_colony", "pathTokens": ["focus"], "addFacets": ["magic_artifact"] },
+    { "mod": "zen_colony", "pathTokens": ["material"], "addFacets": ["ingredient_mineral"] }
   ]
 }
