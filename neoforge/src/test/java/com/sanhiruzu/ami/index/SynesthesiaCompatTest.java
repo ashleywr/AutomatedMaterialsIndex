@@ -1,6 +1,5 @@
 package com.sanhiruzu.ami.index;
 
-import com.sanhiruzu.ami.compat.BornInChaosCompat;
 import com.sanhiruzu.ami.compat.CataclysmCompat;
 import com.sanhiruzu.ami.compat.DatanessenceCompat;
 import com.sanhiruzu.ami.compat.DoggyTalentsCompat;
@@ -363,24 +362,6 @@ class SynesthesiaCompatTest {
     }
 
     @Test
-    void bornInChaosMaterialsAndCharmsRouteSemantically() {
-        Map<String, String> material = meta("born_in_chaos_v1", "net.mcreator.borninchaosv.item.DarkMetalIngotItem");
-        BornInChaosCompat.enrichItem(new ResourceLocation("born_in_chaos_v1", "dark_metal_ingot"), material);
-        CategoryAssignment materialAssignment = resolve("born_in_chaos_v1:dark_metal_ingot", material);
-
-        Map<String, String> charm = meta("born_in_chaos_v1", "net.mcreator.borninchaosv.item.CharmofPowerItem");
-        BornInChaosCompat.enrichItem(new ResourceLocation("born_in_chaos_v1", "charmof_power"), charm);
-        CategoryAssignment charmAssignment = resolve("born_in_chaos_v1:charmof_power", charm);
-
-        assertEquals("materials", material.get("bornInChaosItemKind"));
-        assertEquals("ingredients", materialAssignment.categoryId());
-        assertEquals("mineral", materialAssignment.subcategoryId());
-        assertEquals("artifacts", charm.get("bornInChaosItemKind"));
-        assertEquals("magic", charmAssignment.categoryId());
-        assertEquals("artifacts", charmAssignment.subcategoryId());
-    }
-
-    @Test
     void cataclysmDungeonEyesAndIngotsRouteSemantically() {
         Map<String, String> eye = meta("cataclysm", "com.github.L_Ender.cataclysm.items.DungeonEyeItem");
         CataclysmCompat.enrichItem(new ResourceLocation("cataclysm", "mech_eye"), eye);
@@ -699,24 +680,6 @@ class SynesthesiaCompatTest {
         assertEquals("artifact", paw.get("mowziesMobsItemKind"));
         assertEquals("magic", pawAssignment.categoryId());
         assertEquals("artifacts", pawAssignment.subcategoryId());
-    }
-
-    @Test
-    void bornInChaosUnknownFamiliesExtendExistingCompatFacts() {
-        Map<String, String> bag = meta("born_in_chaos_v1", "net.mcreator.borninchaosv.item.KrampussBagItem");
-        BornInChaosCompat.enrichItem(new ResourceLocation("born_in_chaos_v1", "krampuss_bag"), bag);
-        CategoryAssignment bagAssignment = resolve("born_in_chaos_v1:krampuss_bag", bag);
-
-        Map<String, String> meter = meta("born_in_chaos_v1", "net.mcreator.borninchaosv.item.EvilometerItem");
-        BornInChaosCompat.enrichItem(new ResourceLocation("born_in_chaos_v1", "evilometer"), meter);
-        CategoryAssignment meterAssignment = resolve("born_in_chaos_v1:evilometer", meter);
-
-        assertEquals("utility_tools", bag.get("bornInChaosItemKind"));
-        assertEquals("tools", bagAssignment.categoryId());
-        assertEquals("utility", bagAssignment.subcategoryId());
-        assertEquals("utility_tools", meter.get("bornInChaosItemKind"));
-        assertEquals("tools", meterAssignment.categoryId());
-        assertEquals("utility", meterAssignment.subcategoryId());
     }
 
     @Test

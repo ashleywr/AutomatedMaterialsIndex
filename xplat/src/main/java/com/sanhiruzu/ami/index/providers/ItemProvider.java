@@ -421,9 +421,6 @@ public class ItemProvider implements IAmiDataProvider {
         if (namespaceIs(id, "datanessence")) {
             ItemProviderCompatHooks.runCompatSafely("DatanessenceCompat", () -> DatanessenceCompat.enrichItem(id, meta));
         }
-        if (namespaceIs(id, "born_in_chaos_v1")) {
-            ItemProviderCompatHooks.runCompatSafely("BornInChaosCompat", () -> BornInChaosCompat.enrichItem(id, meta));
-        }
         if (namespaceIs(id, "cataclysm")) {
             ItemProviderCompatHooks.runCompatSafely("CataclysmCompat", () -> CataclysmCompat.enrichItem(id, meta));
         }
