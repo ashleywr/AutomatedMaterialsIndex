@@ -286,6 +286,15 @@ final class EvidenceCollector {
         if (containsAny(combined, "ingredient", "ingredients")) {
             evidence.add(e("creative_tab.ingredients", "creative_tab", "ingredients", "mineral", 35, "creative tab=" + tabLabel));
         }
+        if (containsAny(combined, "combat", "weapon", "weapons", "warfare")) {
+            evidence.add(e("creative_tab.combat", "creative_tab", "tools", "melee", 50, "creative tab=" + tabLabel));
+        }
+        if (containsAny(combined, "armor", "armour", "clothing", "apparel", "wearable")) {
+            evidence.add(e("creative_tab.armor", "creative_tab", "armor", "", 50, "creative tab=" + tabLabel));
+        }
+        if (containsAny(combined, "redstone")) {
+            evidence.add(e("creative_tab.redstone", "creative_tab", "tech", "redstone", 50, "creative tab=" + tabLabel));
+        }
     }
 
     private static void addTrustedTagEvidence(Map<String, String> attributes, List<ClassificationEvidence> evidence) {
