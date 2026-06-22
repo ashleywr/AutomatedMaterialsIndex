@@ -55,7 +55,8 @@ class ApplyTest(unittest.TestCase):
             ])
             approved, rejected = apply.run(proposals, overrides, reject)
             self.assertEqual((approved, rejected), (1, 1))
-            data = json.load(open(overrides, encoding="utf-8"))
+            with open(overrides, encoding="utf-8") as f:
+                data = json.load(f)
             self.assertEqual(data["items"]["minecraft:fire_charge"], {"category": "tools"})
             self.assertEqual(schema.read_jsonl(reject), [{"id": "a:b", "scope": "item", "key": "a:b"}])
 
