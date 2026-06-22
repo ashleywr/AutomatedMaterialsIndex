@@ -1,0 +1,4 @@
+# Generated pipeline artifacts (root-anchored so fixtures + ledger stay tracked)
+/candidates.jsonl
+/evidence_batch.jsonl
+/proposals.jsonl
