@@ -70,7 +70,7 @@ class ClassificationOverrideRoutingTest {
         ClassificationOverrides.install(
                 Map.of(),
                 Map.of("cnc", List.of(new ModPatternRule(
-                        "cnc", Set.of("potofmouse"),
+                        "cnc", Set.of("potofmouse"), Set.of(),
                         EnumSet.of(ItemFacet.MAGIC_ARTIFACT), EnumSet.noneOf(ItemFacet.class),
                         null, null))));
 
@@ -90,7 +90,7 @@ class ClassificationOverrideRoutingTest {
         ClassificationOverrides.install(
                 Map.of(),
                 Map.of("examplemod", List.of(new ModPatternRule(
-                        "examplemod", Set.of("widget"),
+                        "examplemod", Set.of("widget"), Set.of(),
                         EnumSet.noneOf(ItemFacet.class), EnumSet.noneOf(ItemFacet.class),
                         "decoration", "furniture"))));
 

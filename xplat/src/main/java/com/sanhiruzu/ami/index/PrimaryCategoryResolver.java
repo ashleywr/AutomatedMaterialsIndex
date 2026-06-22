@@ -509,7 +509,8 @@ public final class PrimaryCategoryResolver {
                 : EnumSet.copyOf(profileFacets);
         var attributes = new HashMap<>(profileAttributes == null ? Map.of() : profileAttributes);
         java.util.Optional<ClassificationOverride> itemOverride = ClassificationOverrides.forItem(id);
-        Optional<ModPatternRule> patternRule = ClassificationOverrides.patternFor(modId, path);
+        String itemClass = attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, "").toLowerCase(Locale.ROOT);
+        Optional<ModPatternRule> patternRule = ClassificationOverrides.patternFor(modId, path, itemClass);
         if (itemOverride.isPresent()) {
             ClassificationOverride o = itemOverride.get();
             facets.addAll(o.addFacets());

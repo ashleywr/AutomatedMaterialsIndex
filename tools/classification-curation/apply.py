@@ -33,7 +33,9 @@ def _item_entry(override):
 
 
 def _pattern_key(pattern):
-    return (pattern["mod"], tuple(sorted(pattern["pathTokens"])),
+    return (pattern["mod"],
+            tuple(sorted(pattern.get("pathTokens", []))),
+            tuple(sorted(pattern.get("classTokens", []))),
             pattern.get("category", ""), pattern.get("subcategory", ""),
             tuple(sorted(pattern.get("addFacets", []))),
             tuple(sorted(pattern.get("removeFacets", []))))
@@ -59,7 +61,11 @@ def merge(overrides, proposals):
         if row["scope"] == "item":
             overrides["items"][row["id"]] = _item_entry(override)
         else:
-            pattern = {"mod": override["mod"], "pathTokens": list(override["pathTokens"])}
+            pattern = {"mod": override["mod"]}
+            if override.get("pathTokens"):
+                pattern["pathTokens"] = list(override["pathTokens"])
+            if override.get("classTokens"):
+                pattern["classTokens"] = list(override["classTokens"])
             category = override.get("category")
             if category and category.strip():
                 pattern["category"] = category

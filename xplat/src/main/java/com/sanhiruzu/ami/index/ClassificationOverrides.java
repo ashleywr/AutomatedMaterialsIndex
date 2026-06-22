@@ -10,6 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -45,6 +46,10 @@ public final class ClassificationOverrides {
     }
 
     public static Optional<ModPatternRule> patternFor(String modId, String path) {
+        return patternFor(modId, path, "");
+    }
+
+    public static Optional<ModPatternRule> patternFor(String modId, String path, String itemClass) {
         if (modId == null || path == null) {
             return Optional.empty();
         }
@@ -52,11 +57,19 @@ public final class ClassificationOverrides {
         if (rules == null) {
             return Optional.empty();
         }
+        String normClass = itemClass == null ? "" : itemClass.toLowerCase(Locale.ROOT);
         String[] tokens = path.toLowerCase(Locale.ROOT).split("[_/]");
         for (ModPatternRule rule : rules) {
             for (String token : tokens) {
-                if (rule.pathTokens().contains(token)) {
+                if (!rule.pathTokens().isEmpty() && rule.pathTokens().contains(token)) {
                     return Optional.of(rule);
+                }
+            }
+            if (!rule.classTokens().isEmpty()) {
+                for (String ct : rule.classTokens()) {
+                    if (normClass.contains(ct)) {
+                        return Optional.of(rule);
+                    }
                 }
             }
         }
@@ -136,11 +149,22 @@ public final class ClassificationOverrides {
             Set<String> tokens = new LinkedHashSet<>();
             if (entry.has("pathTokens") && entry.get("pathTokens").isJsonArray()) {
                 for (JsonElement t : entry.getAsJsonArray("pathTokens")) {
-                    tokens.add(t.getAsString().toLowerCase(Locale.ROOT));
+                    if (t.isJsonPrimitive()) {
+                        tokens.add(t.getAsString().toLowerCase(Locale.ROOT));
+                    }
+                }
+            }
+            Set<String> classTokens = new LinkedHashSet<>();
+            if (entry.has("classTokens") && entry.get("classTokens").isJsonArray()) {
+                for (JsonElement t : entry.getAsJsonArray("classTokens")) {
+                    if (t.isJsonPrimitive()) {
+                        classTokens.add(t.getAsString().toLowerCase(Locale.ROOT));
+                    }
                 }
             }
             out.computeIfAbsent(mod.toLowerCase(Locale.ROOT), ignored -> new ArrayList<>())
                     .add(new ModPatternRule(mod.toLowerCase(Locale.ROOT), tokens,
+                            Collections.unmodifiableSet(classTokens),
                             parseFacets(entry, "addFacets"), parseFacets(entry, "removeFacets"),
                             optString(entry, "category"), optString(entry, "subcategory")));
         }

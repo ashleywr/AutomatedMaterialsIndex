@@ -40,13 +40,18 @@ def validate_proposal(row):
         mod = override.get("mod")
         if not isinstance(mod, str) or not mod.strip():
             errors.append("modPattern mod must be a non-empty string")
-        tokens = override.get("pathTokens")
-        if not _is_str_list(tokens) or not tokens:
-            errors.append("pathTokens must be a non-empty string array")
+        path_tokens = override.get("pathTokens", [])
+        class_tokens = override.get("classTokens", [])
+        if not _is_str_list(path_tokens):
+            errors.append("pathTokens must be a string array")
         else:
-            for token in tokens:
+            for token in path_tokens:
                 if "_" in token or "/" in token:
                     errors.append(f"pathToken '{token}' must be a single token (no '_' or '/')")
+        if not _is_str_list(class_tokens):
+            errors.append("classTokens must be a string array")
+        if not path_tokens and not class_tokens:
+            errors.append("modPattern must have at least one pathToken or classToken")
         category = override.get("category")
         add = override.get("addFacets", [])
         rem = override.get("removeFacets", [])
