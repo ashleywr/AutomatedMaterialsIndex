@@ -7,6 +7,8 @@ import com.google.gson.JsonParser;
 
 import net.minecraft.resources.ResourceLocation;
 
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
@@ -59,6 +61,26 @@ public final class ClassificationOverrides {
             }
         }
         return Optional.empty();
+    }
+
+    public static void loadBundledDefaults() {
+        try (var stream = ClassificationOverrides.class.getClassLoader()
+                .getResourceAsStream("assets/ami/classification_overrides.json")) {
+            if (stream == null) {
+                return;
+            }
+            StringBuilder sb = new StringBuilder();
+            try (var reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
+                char[] buffer = new char[4096];
+                int read;
+                while ((read = reader.read(buffer)) != -1) {
+                    sb.append(buffer, 0, read);
+                }
+            }
+            parseAndInstall(sb.toString());
+        } catch (RuntimeException | java.io.IOException ignored) {
+            // Missing or unreadable defaults must not break indexing.
+        }
     }
 
     public static void parseAndInstall(String json) {

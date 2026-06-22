@@ -726,6 +726,7 @@ public class ItemProvider implements IAmiDataProvider {
     }
 
     private void populateItems(GlobalIndex index, @Nullable Level level, ItemIndexPass pass) {
+        ClassificationOverrides.loadBundledDefaults();
         long started = System.currentTimeMillis();
         long setupStart = started;
         ItemProviderCompatHooks.clearDisabledCompatHooks();
