@@ -15,6 +15,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class ClassificationOverrideReplayGateTest {
 
@@ -57,7 +58,7 @@ class ClassificationOverrideReplayGateTest {
                 .toList();
     }
 
-    private static Map<String, String> categoryByid(List<SearchNode> nodes) {
+    private static Map<String, String> categoryById(List<SearchNode> nodes) {
         Map<String, String> result = new LinkedHashMap<>();
         for (SearchNode node : nodes) {
             result.put(node.id().toString(),
@@ -75,18 +76,17 @@ class ClassificationOverrideReplayGateTest {
     @Test
     void detectsExplainedChangeAndLeavesOthersUntouched() throws IOException {
         Path dump = locateDump();
-        if (!Files.exists(dump)) {
-            return; // no dump locally; the real-data test writes the no-data report
-        }
+        assumeTrue(Files.exists(dump),
+                "no search_nodes dump available locally; the real-data test writes the no-data report");
         List<SearchNode> source = items(dump);
         try {
             ClassificationOverrides.clear();
-            Map<String, String> baseline = categoryByid(SearchNodeMirrorDump.reclassifyItemOntology(source));
+            Map<String, String> baseline = categoryById(SearchNodeMirrorDump.reclassifyItemOntology(source));
 
             ClassificationOverrides.parseAndInstall(
                     "{\"items\":{\"minecraft:dirt\":{\"category\":\"weapon\",\"subcategory\":\"throwable\"}},\"modPatterns\":[]}");
             List<SearchNode> after = SearchNodeMirrorDump.reclassifyItemOntology(source);
-            Map<String, String> afterById = categoryByid(after);
+            Map<String, String> afterById = categoryById(after);
 
             assertEquals("weapon/throwable", afterById.get("minecraft:dirt"),
                     "forced override must win for the targeted item");
@@ -124,11 +124,11 @@ class ClassificationOverrideReplayGateTest {
         long changed;
         try {
             ClassificationOverrides.clear();
-            Map<String, String> baseline = categoryByid(SearchNodeMirrorDump.reclassifyItemOntology(source));
+            Map<String, String> baseline = categoryById(SearchNodeMirrorDump.reclassifyItemOntology(source));
 
             ClassificationOverrides.parseAndInstall(json);
             List<SearchNode> after = SearchNodeMirrorDump.reclassifyItemOntology(source);
-            Map<String, String> afterById = categoryByid(after);
+            Map<String, String> afterById = categoryById(after);
 
             changed = 0;
             for (SearchNode node : after) {
