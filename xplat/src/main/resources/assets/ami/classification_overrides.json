@@ -4,6 +4,16 @@
   },
   "modPatterns": [
     { "mod": "cnc", "pathTokens": ["potofmouse", "kill"], "addFacets": ["magic_artifact"] },
-    { "mod": "cnc", "pathTokens": ["buckskin", "antler", "tusk", "wishbone"], "addFacets": ["ingredient_organic"] }
+    { "mod": "cnc", "pathTokens": ["buckskin", "antler", "tusk", "wishbone"], "addFacets": ["ingredient_organic"] },
+
+    { "mod": "born_in_chaos_v1", "pathTokens": ["bomb", "charge"], "addFacets": ["projectile"] },
+    { "mod": "born_in_chaos_v1", "pathTokens": ["structure"], "addFacets": ["utility_misc"] },
+    { "mod": "born_in_chaos_v1", "pathTokens": ["charmof", "charm", "totem", "icon", "orb"], "addFacets": ["magic_artifact"] },
+    { "mod": "born_in_chaos_v1", "pathTokens": ["dust", "spirit", "soul", "seedof"], "addFacets": ["magic_reagent"] },
+    { "mod": "born_in_chaos_v1", "pathTokens": ["ingot"], "addFacets": ["ingredient_mineral", "ingot"] },
+    { "mod": "born_in_chaos_v1", "pathTokens": ["nugget"], "addFacets": ["ingredient_mineral", "nugget"] },
+    { "mod": "born_in_chaos_v1", "pathTokens": ["metal", "plate"], "addFacets": ["ingredient_mineral"] },
+    { "mod": "born_in_chaos_v1", "pathTokens": ["claw", "skin", "flesh", "stomach", "fang", "bone", "horn"], "addFacets": ["ingredient_organic"] },
+    { "mod": "born_in_chaos_v1", "pathTokens": ["bag", "gift", "evilometer"], "addFacets": ["utility_tool"] }
   ]
 }
