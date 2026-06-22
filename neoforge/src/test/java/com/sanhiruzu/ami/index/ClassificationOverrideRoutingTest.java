@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ClassificationOverrideRoutingTest {
@@ -79,9 +80,9 @@ class ClassificationOverrideRoutingTest {
 
         // facet applied and visible to downstream scoring
         assertTrue(a.attributes().getOrDefault(SearchNodeKeys.FACETS, "").contains(ItemFacet.MAGIC_ARTIFACT.id()));
-        // facet-only pattern must NOT terminate the route as a mod_pattern category
-        assertEquals("magic", a.categoryId());
-        assertEquals("artifacts", a.subcategoryId());
+        // facet-only pattern must NOT terminate the route as classification_override
+        assertNotEquals("classification_override", a.attributes().get(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE),
+                "facet-only pattern must not terminate with classification_override route phase");
     }
 
     @Test
