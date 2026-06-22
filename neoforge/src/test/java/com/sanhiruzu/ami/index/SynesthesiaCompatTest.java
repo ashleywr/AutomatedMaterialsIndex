@@ -1,6 +1,5 @@
 package com.sanhiruzu.ami.index;
 
-import com.sanhiruzu.ami.compat.CataclysmCompat;
 import com.sanhiruzu.ami.compat.DatanessenceCompat;
 import com.sanhiruzu.ami.compat.DoggyTalentsCompat;
 import com.sanhiruzu.ami.compat.EnigmaticLegacyPlusCompat;
@@ -9,9 +8,7 @@ import com.sanhiruzu.ami.compat.ForbiddenArcanusCompat;
 import com.sanhiruzu.ami.compat.GeneratedVariantCollapseCompat;
 import com.sanhiruzu.ami.compat.HexaliaCompat;
 import com.sanhiruzu.ami.compat.HexereiCompat;
-import com.sanhiruzu.ami.compat.HpmCompat;
 import com.sanhiruzu.ami.compat.MalumCompat;
-import com.sanhiruzu.ami.compat.McTradePostCompat;
 import com.sanhiruzu.ami.compat.PastelCompat;
 import com.sanhiruzu.ami.compat.PowerGridCompat;
 import com.sanhiruzu.ami.compat.SilentGemsCompat;
@@ -358,24 +355,6 @@ class SynesthesiaCompatTest {
     }
 
     @Test
-    void cataclysmDungeonEyesAndIngotsRouteSemantically() {
-        Map<String, String> eye = meta("cataclysm", "com.github.L_Ender.cataclysm.items.DungeonEyeItem");
-        CataclysmCompat.enrichItem(new ResourceLocation("cataclysm", "mech_eye"), eye);
-        CategoryAssignment eyeAssignment = resolve("cataclysm:mech_eye", eye);
-
-        Map<String, String> ingot = meta("cataclysm", "net.minecraft.world.item.Item");
-        CataclysmCompat.enrichItem(new ResourceLocation("cataclysm", "witherite_ingot"), ingot);
-        CategoryAssignment ingotAssignment = resolve("cataclysm:witherite_ingot", ingot);
-
-        assertEquals("dungeon_eyes", eye.get("cataclysmItemKind"));
-        assertEquals("cataclysm", eyeAssignment.categoryId());
-        assertEquals("dungeon_eyes", eyeAssignment.subcategoryId());
-        assertEquals("materials", ingot.get("cataclysmItemKind"));
-        assertEquals("ingredients", ingotAssignment.categoryId());
-        assertEquals("mineral", ingotAssignment.subcategoryId());
-    }
-
-    @Test
     void tideFishingGadgetsRouteSemantically() {
         Map<String, String> hook = meta("tide", "com.li64.tide.registries.items.FishingHookItem");
         TideCompat.enrichItem(new ResourceLocation("tide", "fishing_hook"), hook);
@@ -600,57 +579,6 @@ class SynesthesiaCompatTest {
         assertEquals("horse_care", mortar.get("swemItemKind"));
         assertEquals("swem", mortarAssignment.categoryId());
         assertEquals("care", mortarAssignment.subcategoryId());
-    }
-
-    @Test
-    @Disabled("intended routing pending override layer; see docs/superpowers/specs/2026-06-22-classification-override-and-curation-design.md")
-    void hpmUnknownFamiliesGainShipAndAmmoFacts() {
-        Map<String, String> ammo = meta("hpm", "hal.studios.hpm.item.CannonballItem");
-        HpmCompat.enrichItem(new ResourceLocation("hpm", "cannonball"), ammo);
-        CategoryAssignment ammoAssignment = resolve("hpm:cannonball", ammo);
-
-        Map<String, String> hull = meta("hpm", "hal.studios.hpm.item.SmallhullItem");
-        HpmCompat.enrichItem(new ResourceLocation("hpm", "smallhull"), hull);
-        CategoryAssignment hullAssignment = resolve("hpm:smallhull", hull);
-
-        Map<String, String> ship = meta("hpm", "hal.studios.hpm.item.CutteritemItem");
-        HpmCompat.enrichItem(new ResourceLocation("hpm", "cutteritem"), ship);
-        CategoryAssignment shipAssignment = resolve("hpm:cutteritem", ship);
-
-        assertEquals("ammo", ammo.get("hpmItemKind"));
-        assertEquals("tools", ammoAssignment.categoryId());
-        assertEquals("ammo", ammoAssignment.subcategoryId());
-        assertEquals("ship_part", hull.get("hpmItemKind"));
-        assertEquals("tech", hullAssignment.categoryId());
-        assertEquals("transport", hullAssignment.subcategoryId());
-        assertEquals("ship_token", ship.get("hpmItemKind"));
-        assertEquals("hpm", shipAssignment.categoryId());
-        assertEquals("ships", shipAssignment.subcategoryId());
-    }
-
-    @Test
-    void mcTradePostUnknownFamiliesGainUtilityAndWishFacts() {
-        Map<String, String> clipboard = meta("mctradepost", "com.deathfrog.mctradepost.item.AdvancedClipboardItem");
-        McTradePostCompat.enrichItem(new ResourceLocation("mctradepost", "advanced_clipboard"), clipboard);
-        CategoryAssignment clipboardAssignment = resolve("mctradepost:advanced_clipboard", clipboard);
-
-        Map<String, String> wish = meta("mctradepost", "net.minecraft.world.item.Item");
-        McTradePostCompat.enrichItem(new ResourceLocation("mctradepost", "wish_plenty"), wish);
-        CategoryAssignment wishAssignment = resolve("mctradepost:wish_plenty", wish);
-
-        Map<String, String> exchange = meta("mctradepost", "com.deathfrog.mctradepost.item.CurrencyExchangeItem");
-        McTradePostCompat.enrichItem(new ResourceLocation("mctradepost", "currency_exchange"), exchange);
-        CategoryAssignment exchangeAssignment = resolve("mctradepost:currency_exchange", exchange);
-
-        assertEquals("utility_tool", clipboard.get("mcTradePostItemKind"));
-        assertEquals("tools", clipboardAssignment.categoryId());
-        assertEquals("utility", clipboardAssignment.subcategoryId());
-        assertEquals("wish", wish.get("mcTradePostItemKind"));
-        assertEquals("magic", wishAssignment.categoryId());
-        assertEquals("artifacts", wishAssignment.subcategoryId());
-        assertEquals("utility_tool", exchange.get("mcTradePostItemKind"));
-        assertEquals("tools", exchangeAssignment.categoryId());
-        assertEquals("utility", exchangeAssignment.subcategoryId());
     }
 
     @Test

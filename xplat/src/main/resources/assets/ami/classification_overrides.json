@@ -13,11 +13,27 @@
     { "mod": "born_in_chaos_v1", "pathTokens": ["claw", "skin", "flesh", "stomach", "fang", "bone", "horn"], "addFacets": ["ingredient_organic"] },
     { "mod": "born_in_chaos_v1", "pathTokens": ["bag", "gift", "evilometer"], "addFacets": ["utility_tool"] },
 
+    { "mod": "cataclysm", "classTokens": ["laser", "shoulder_weapon", "bow"], "addFacets": ["ranged_weapon"], "category": "cataclysm", "subcategory": "weapons" },
+    { "mod": "cataclysm", "classTokens": ["sword", "spear", "bardiche", "athame", "incinerator", "annihilator", "immolator"], "addFacets": ["melee_weapon"], "category": "cataclysm", "subcategory": "weapons" },
+    { "mod": "cataclysm", "classTokens": ["shield", "targe", "bulwark", "gauntlet"], "addFacets": ["magic_artifact"], "category": "cataclysm", "subcategory": "artifacts" },
+    { "mod": "cataclysm", "classTokens": ["dungeoneye"], "addFacets": ["magic_artifact"], "category": "cataclysm", "subcategory": "dungeon_eyes" },
+    { "mod": "cataclysm", "pathTokens": ["eye"], "addFacets": ["magic_artifact"], "category": "cataclysm", "subcategory": "dungeon_eyes" },
+    { "mod": "cataclysm", "pathTokens": ["lacrima", "void", "ember", "ashes", "horn"], "addFacets": ["magic_reagent"] },
+    { "mod": "cataclysm", "pathTokens": ["ingot"], "addFacets": ["ingredient_mineral", "ingot"] },
+    { "mod": "cataclysm", "pathTokens": ["nugget"], "addFacets": ["ingredient_mineral", "nugget"] },
+    { "mod": "cataclysm", "classTokens": ["iteminventoryonly"], "addFacets": ["tech_component"] },
+    { "mod": "cataclysm", "classTokens": ["curiositem"], "addFacets": ["curio"], "category": "cataclysm", "subcategory": "artifacts" },
+
     { "mod": "cgs", "classTokens": ["gatlingitem"], "addFacets": ["ranged_weapon"] },
     { "mod": "cgs", "classTokens": ["scopeitem", "attachmentitem", "barrelitem"], "addFacets": ["tech_component", "upgrade"] },
 
     { "mod": "cnc", "pathTokens": ["potofmouse", "kill"], "addFacets": ["magic_artifact"] },
     { "mod": "cnc", "pathTokens": ["buckskin", "antler", "tusk", "wishbone"], "addFacets": ["ingredient_organic"] },
+
+    { "mod": "hpm", "pathTokens": ["cannonball"], "addFacets": ["projectile"] },
+    { "mod": "hpm", "pathTokens": ["mortar"], "addFacets": ["ranged_weapon"] },
+    { "mod": "hpm", "pathTokens": ["hull", "mast"], "addFacets": ["transport"] },
+    { "mod": "hpm", "pathTokens": ["cutter", "swashbuckler", "corvette", "pirate"], "category": "hpm", "subcategory": "ships" },
 
     { "mod": "minecolonies", "classTokens": ["supplychestdeployer", "supplycampdeployer"], "category": "minecolonies", "subcategory": "settlements" },
     { "mod": "minecolonies", "classTokens": ["itemscananalyzer", "itemscepterpermission", "itemscepterguard", "itemscepterlumberjack", "itemscepterbeekeeper", "itemassistanthammer"], "addFacets": ["utility_tool"] },
@@ -26,6 +42,12 @@
     { "mod": "minecolonies", "classTokens": ["itemcompost", "itemmistletoe"], "addFacets": ["ingredient_organic"] },
     { "mod": "minecolonies", "classTokens": ["itemsiftermesh"], "addFacets": ["tech_component"] },
     { "mod": "minecolonies", "classTokens": ["itemadventuretoken"], "addFacets": ["utility_misc"] },
+
+    { "mod": "mctradepost", "classTokens": ["advancedclipboarditem", "currencyexchangeitem", "outpostclaimmarkeritem"], "addFacets": ["utility_tool"] },
+    { "mod": "mctradepost", "classTokens": ["souveniritem"], "addFacets": ["utility_misc"] },
+    { "mod": "mctradepost", "pathTokens": ["wish"], "addFacets": ["magic_artifact"] },
+    { "mod": "mctradepost", "pathTokens": ["napkin", "mortar"], "addFacets": ["ingredient_mineral"] },
+    { "mod": "mctradepost", "pathTokens": ["nugget"], "addFacets": ["utility_currency"] },
 
     { "mod": "mowziesmobs", "classTokens": ["itemdart"], "addFacets": ["projectile"] },
     { "mod": "mowziesmobs", "classTokens": ["itembluffrod", "itemsandrake", "itemmobremover"], "addFacets": ["utility_tool"] },

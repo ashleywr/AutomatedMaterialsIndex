@@ -421,9 +421,6 @@ public class ItemProvider implements IAmiDataProvider {
         if (namespaceIs(id, "datanessence")) {
             ItemProviderCompatHooks.runCompatSafely("DatanessenceCompat", () -> DatanessenceCompat.enrichItem(id, meta));
         }
-        if (namespaceIs(id, "cataclysm")) {
-            ItemProviderCompatHooks.runCompatSafely("CataclysmCompat", () -> CataclysmCompat.enrichItem(id, meta));
-        }
         if (namespaceIs(id, "doggytalents")) {
             ItemProviderCompatHooks.runCompatSafely("DoggyTalentsCompat", () -> DoggyTalentsCompat.enrichItem(id, meta));
         }
@@ -453,12 +450,6 @@ public class ItemProvider implements IAmiDataProvider {
         }
         if (namespaceIs(id, "zen_colony")) {
             ItemProviderCompatHooks.runCompatSafely("ZenColonyCompat", () -> ZenColonyCompat.enrichItem(id, meta));
-        }
-        if (namespaceIs(id, "hpm")) {
-            ItemProviderCompatHooks.runCompatSafely("HpmCompat", () -> HpmCompat.enrichItem(id, meta));
-        }
-        if (namespaceIs(id, "mctradepost")) {
-            ItemProviderCompatHooks.runCompatSafely("McTradePostCompat", () -> McTradePostCompat.enrichItem(id, meta));
         }
         if (namespaceIs(id, "silentgear", "tconstruct") || hasCompatFamily(meta, CompatFamilyDetector.MODULAR_GEAR)
                 || hasCompatFamily(meta, CompatFamilyDetector.TINKERS) || hasCompatFamily(meta, CompatFamilyDetector.SILENT_GEAR)) {
