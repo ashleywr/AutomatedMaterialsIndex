@@ -77,11 +77,12 @@ Ships to every AMI user; lands first to shrink the review queue before curation 
 ## Component 2 — Override layer (runtime)
 
 - **Bundled resource:** `data/ami/classification_overrides/<mod>.json`, one file per mod, loaded by a new `ClassificationOverrides` consumer.
-- **Applied as the final classification step**, after the runtime classifier and capability compat.
-- **Two scopes:**
+- **Insertion point — TOP of `PrimaryCategoryResolver.resolve()`** (not the bottom). To actually win over the runtime gates, the override is checked *before* `compat_route`/`hard_identity`, in this order: (1) apply per-item `add`/`remove` to the facet set; (2) per-item `forceCategory`/`forceSubcategory` → short-circuit return; (3) `promoteMod` match → return promoted category + derived subcategory; (4) per-mod pattern rule match → return; else fall through to the existing gates. (A bottom insertion would only catch fall-throughs and could not override a confident wrong classification.)
+- **Three scopes:**
   - **Per-item:** `add` / `remove` facets, `forceCategory`, `forceSubcategory`.
-  - **Mod promotion:** `promoteMod: <id> → <newTopLevelCategory>`. The mod's items default into the new category, but their **subcategory is still derived** from facets/recipe-role (Create → kinetics / logistics / materials / decoration) — promoted as a domain, never flattened into a heap. Per-item overrides can pull individual items back out.
-- **Precedence (most specific wins):** per-item → mod-promotion → runtime classifier.
+  - **Mod promotion:** `promoteMod: <id> → <newTopLevelCategory>`. The mod's items default into the new category, but their **subcategory is still derived** from facets/recipe-role (Create → kinetics / logistics / materials / decoration) — promoted as a domain, never flattened into a heap. Optional `subcategoryHints` for items where derivation is wrong. Per-item overrides can pull individual items back out.
+  - **Per-mod pattern rule:** `mod + pathToken set [+ optional itemClass/tag guards] → category/subcategory`. This is the data form that replaces the pure-path-token per-mod blocks currently hardcoded in `PrimaryCategoryResolver` (`resolveBotaniaIdentity`, `resolveWaystonesIdentity`, `resolveGregTechIdentity`, `resolveApotheosisIdentity`, the `BOTANIA_*`/`GREGTECH_*`/`WAYSTONES_*`/`APOTHEOSIS_*` token `Set`s, etc.).
+- **Precedence (most specific wins):** per-item → mod-promotion → per-mod pattern rule → runtime classifier.
 - **Dynamic categories:** override data can introduce **new top-level categories**. The consumer and the category-tree UI must accept dynamically-declared nodes, reusing the same category registry as the WORKFLOW-dimension ontology work.
 
 The accidental-vs-intentional distinction is the crux: a mod-name bucket is a *smell* only when it is a fallback flat dump. A deliberate `promoteMod` with preserved subcategories is the correct treatment for a large, cohesive mod.
@@ -101,9 +102,13 @@ The accidental-vs-intentional distinction is the crux: a mod-name bucket is a *s
 
 ## Component 4 — Plugin migration
 
-- Lift the **facet-assignment** rules out of the 13 string-matchers into override data; **delete** those plugins.
-- **Preserve** their non-classification behaviors (display-name fixes, family detection, search tokens) — keep in code or relocate; not dropped.
-- **Keep** capability-extracting compat untouched.
+Migration targets **two code sites** (both pure string-matching):
+
+1. **Compat plugins** (`compat/*Compat.java`): lift the **facet-assignment** rules out into override data; **delete** those plugins. Scope grew during design — as of 2026-06-22 the modpack carries **~30** string-matching plugins (the original ~13 plus 17 added in-flight: Cgs, Cnc, DoggyTalents, EnigmaticLegacyPlus, EternalStarlight, ForbiddenArcanus, Hexalia, Hexerei, Hpm, McTradePost, Minecolonies, MowziesMobs, Ntgl, PowerGrid, Tide, Witchery, ZenColony). All audited as cap=0 → all migrate.
+2. **In-resolver per-mod blocks** (`PrimaryCategoryResolver`, ~3,478 lines): the pure-path-token identity resolvers (`resolveBotaniaIdentity`, `resolveWaystonesIdentity`, `resolveGregTechIdentity`, `resolveApotheosisIdentity`, `resolveSpectrum/NaturesAura/AlexsMobs/AlexsCaves/Tacz/Mna/ArsNouveau`) and their token `Set`s become **per-mod pattern rules** in override data; delete the blocks. This shrinks the resolver toward pure facet/capability logic.
+
+- **Preserve** non-classification behaviors (display-name fixes, family detection, search tokens) — keep in code or relocate; not dropped.
+- **Keep** capability-extracting compat and the capability-backed identity resolvers (`*_ITEM_KIND`: Create, Cobblemon, Mekanism, Sophisticated, modular-gear) untouched.
 
 ## Data flow & sequencing
 
