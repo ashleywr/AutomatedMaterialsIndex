@@ -177,12 +177,13 @@ class ClassificationOverrideReplayGateTest {
             ClassificationOverrides.clear();
             Map<String, String> baseline = signatureById(SearchNodeMirrorDump.reclassifyItemOntology(source));
 
-            // facet-only item override: minecraft:pig_spawn_egg gains magic_artifact.
-            // Spawn eggs are classified by the "spawn eggs and mob buckets" primary rule which
-            // fires before the "magic facets" rule, so the category stays bestiary/spawn_eggs.
+            // facet-only modPattern override: items with path token "pig" (i.e. minecraft:pig_spawn_egg)
+            // gain magic_artifact. Spawn eggs are classified by the "spawn eggs and mob buckets"
+            // primary rule which fires before the "magic facets" rule, so the category stays
+            // bestiary/spawn_eggs. This exercises the modPattern facet-injection path.
             ClassificationOverrides.parseAndInstall(
-                    "{\"items\":{\"minecraft:pig_spawn_egg\":{\"addFacets\":[\"magic_artifact\"]}},"
-                  + "\"modPatterns\":[]}");
+                    "{\"items\":{},\"modPatterns\":[{\"mod\":\"minecraft\",\"pathTokens\":[\"pig\"],"
+                  + "\"addFacets\":[\"magic_artifact\"]}]}");
             List<SearchNode> after = SearchNodeMirrorDump.reclassifyItemOntology(source);
             Map<String, String> afterById = signatureById(after);
 
