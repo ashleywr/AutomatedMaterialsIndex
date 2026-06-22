@@ -76,6 +76,24 @@
 
     { "mod": "ntgl", "classTokens": ["chassisarmor"], "category": "ntgl", "subcategory": "power_armor" },
     { "mod": "ntgl", "classTokens": ["weaponitem"], "addFacets": ["ranged_weapon"] },
-    { "mod": "ntgl", "classTokens": ["scopeitem", "stockitem", "gripitem", "magazineitem", "barrelitem", "chassisitem"], "addFacets": ["tech_component", "upgrade"] }
+    { "mod": "ntgl", "classTokens": ["scopeitem", "stockitem", "gripitem", "magazineitem", "barrelitem", "chassisitem"], "addFacets": ["tech_component", "upgrade"] },
+
+    { "mod": "powergrid", "classTokens": ["electrozapperitem", "multimeteritem"], "pathTokens": ["electrozapper", "multimeter"], "addFacets": ["utility_tool"] },
+    { "mod": "powergrid", "classTokens": ["punchcarditem"], "pathTokens": ["punch"], "addFacets": ["tech_component", "utility_misc"] },
+    { "mod": "powergrid", "classTokens": ["corditem", "windingitem", "lightbulb"], "pathTokens": ["cord", "coil", "magnet", "gizmo", "resistor", "diode", "vfet", "bjt", "capacitor", "potentiometer", "bulb", "varistor"], "addFacets": ["tech_component"] },
+
+    { "mod": "tide", "classTokens": ["fishingjournalitem", "fishynoteitem"], "pathTokens": ["journal", "note"], "addFacets": ["book", "guide_book"] },
+    { "mod": "tide", "classTokens": ["pocketwatchitem", "enchantedpocketwatchitem", "lunarcalendaritem", "climategaugeitem", "depthmeteritem", "weatherradioitem", "voidseekeritem"], "pathTokens": ["watch", "calendar", "gauge", "meter", "radio", "voidseeker"], "addFacets": ["utility_navigation"] },
+    { "mod": "tide", "classTokens": ["fishinghookitem", "fishinglineitem"], "pathTokens": ["hook", "line"], "addFacets": ["utility_tool"] },
+    { "mod": "tide", "classTokens": ["fishsatchelitem"], "pathTokens": ["satchel"], "addFacets": ["utility_misc"] },
+    { "mod": "tide", "classTokens": ["fishingbobberitem"], "addFacets": ["utility_misc"] },
+
+    { "mod": "witchery", "classTokens": ["broomitem"], "pathTokens": ["broom"], "addFacets": ["transport"] },
+    { "mod": "witchery", "classTokens": ["woodenstakeitem"], "pathTokens": ["stake"], "addFacets": ["melee_weapon"] },
+    { "mod": "witchery", "classTokens": ["tarotdeckitem", "tornpageitem", "covencontractitem"], "addFacets": ["book", "guide_book"] },
+    { "mod": "witchery", "classTokens": ["poppetitem", "voodoopoppetitem", "seerstoneitem", "attunedstoneitem", "leonardsurnitem", "deathhanditem", "witcheshanditem", "debugwand"], "pathTokens": ["poppet", "seer", "attuned", "necromantic", "catalyst", "hand", "urn", "tarot", "contract", "page", "ring"], "addFacets": ["magic_artifact"] },
+    { "mod": "witchery", "classTokens": ["mutandisitem", "parasiticlouseitem"], "pathTokens": ["dust", "oil", "ointment", "mutandis", "animus", "ghost", "soul", "spirit", "breath", "whiff", "fume", "tear", "exhale", "hint", "reek", "odor", "drop", "dew", "blood", "hunger", "fear", "will"], "addFacets": ["magic_reagent"] },
+    { "mod": "witchery", "pathTokens": ["tongue", "toe", "wing", "fabric", "twine", "cruor", "louse"], "addFacets": ["ingredient_organic"] },
+    { "mod": "witchery", "pathTokens": ["jar"], "addFacets": ["utility_misc"] }
   ]
 }

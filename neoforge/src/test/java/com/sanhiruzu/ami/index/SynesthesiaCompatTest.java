@@ -7,11 +7,8 @@ import com.sanhiruzu.ami.compat.ForbiddenArcanusCompat;
 import com.sanhiruzu.ami.compat.GeneratedVariantCollapseCompat;
 import com.sanhiruzu.ami.compat.MalumCompat;
 import com.sanhiruzu.ami.compat.PastelCompat;
-import com.sanhiruzu.ami.compat.PowerGridCompat;
 import com.sanhiruzu.ami.compat.SilentGemsCompat;
 import com.sanhiruzu.ami.compat.SwemCompat;
-import com.sanhiruzu.ami.compat.TideCompat;
-import com.sanhiruzu.ami.compat.WitcheryCompat;
 import com.sanhiruzu.ami.compat.ZenColonyCompat;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Disabled;
@@ -113,38 +110,6 @@ class SynesthesiaCompatTest {
     }
 
     @Test
-    void witcheryUnknownFamiliesGainSemanticFacts() {
-        Map<String, String> broom = meta("witchery", "dev.sterner.witchery.content.item.BroomItem");
-        WitcheryCompat.enrichItem(new ResourceLocation("witchery", "broom/variant/broom_a22400b68762"), broom);
-        CategoryAssignment broomAssignment = resolve("witchery:broom/variant/broom_a22400b68762", broom);
-
-        Map<String, String> mutandis = meta("witchery", "dev.sterner.witchery.content.item.MutandisItem");
-        WitcheryCompat.enrichItem(new ResourceLocation("witchery", "mutandis"), mutandis);
-        CategoryAssignment mutandisAssignment = resolve("witchery:mutandis", mutandis);
-
-        Map<String, String> stone = meta("witchery", "dev.sterner.witchery.content.item.SeerStoneItem");
-        WitcheryCompat.enrichItem(new ResourceLocation("witchery", "seer_stone"), stone);
-        CategoryAssignment stoneAssignment = resolve("witchery:seer_stone", stone);
-
-        Map<String, String> stake = meta("witchery", "dev.sterner.witchery.content.item.WoodenStakeItem");
-        WitcheryCompat.enrichItem(new ResourceLocation("witchery", "wooden_oak_stake"), stake);
-        CategoryAssignment stakeAssignment = resolve("witchery:wooden_oak_stake", stake);
-
-        assertEquals("broom_tool", broom.get("witcheryItemKind"));
-        assertEquals("tech", broomAssignment.categoryId());
-        assertEquals("transport", broomAssignment.subcategoryId());
-        assertEquals("magic_reagent", mutandis.get("witcheryItemKind"));
-        assertEquals("magic", mutandisAssignment.categoryId());
-        assertEquals("reagents", mutandisAssignment.subcategoryId());
-        assertEquals("magic_artifact", stone.get("witcheryItemKind"));
-        assertEquals("magic", stoneAssignment.categoryId());
-        assertEquals("artifacts", stoneAssignment.subcategoryId());
-        assertEquals("melee_tool", stake.get("witcheryItemKind"));
-        assertEquals("tools", stakeAssignment.categoryId());
-        assertEquals("melee", stakeAssignment.subcategoryId());
-    }
-
-    @Test
     void silentGemsTreatsGemNamesAsColorAxisForGeneratedBlocks() {
         Map<String, String> roseQuartz = meta("silentgems", "net.silentchaos512.gems.item.GemBlockItem");
         Map<String, String> ammolite = meta("silentgems", "net.silentchaos512.gems.item.GemBlockItem");
@@ -238,31 +203,6 @@ class SynesthesiaCompatTest {
         assertTrue(meta.get(SearchNodeKeys.FACETS).contains(ItemFacet.GUIDE_BOOK.id()));
         assertEquals("utility", assignment.categoryId());
         assertEquals("books", assignment.subcategoryId());
-    }
-
-    @Test
-    void tideFishingGadgetsRouteSemantically() {
-        Map<String, String> hook = meta("tide", "com.li64.tide.registries.items.FishingHookItem");
-        TideCompat.enrichItem(new ResourceLocation("tide", "fishing_hook"), hook);
-        CategoryAssignment hookAssignment = resolve("tide:fishing_hook", hook);
-
-        Map<String, String> meter = meta("tide", "com.li64.tide.registries.items.DepthMeterItem");
-        TideCompat.enrichItem(new ResourceLocation("tide", "depth_meter"), meter);
-        CategoryAssignment meterAssignment = resolve("tide:depth_meter", meter);
-
-        Map<String, String> journal = meta("tide", "com.li64.tide.registries.items.FishingJournalItem");
-        TideCompat.enrichItem(new ResourceLocation("tide", "fishing_journal"), journal);
-        CategoryAssignment journalAssignment = resolve("tide:fishing_journal", journal);
-
-        assertEquals("fishing_tackle", hook.get("tideItemKind"));
-        assertEquals("tools", hookAssignment.categoryId());
-        assertEquals("utility", hookAssignment.subcategoryId());
-        assertEquals("navigation_gadget", meter.get("tideItemKind"));
-        assertEquals("utility", meterAssignment.categoryId());
-        assertEquals("navigation", meterAssignment.subcategoryId());
-        assertEquals("reference", journal.get("tideItemKind"));
-        assertEquals("utility", journalAssignment.categoryId());
-        assertEquals("books", journalAssignment.subcategoryId());
     }
 
     @Test
@@ -366,33 +306,6 @@ class SynesthesiaCompatTest {
         assertEquals("artifacts", nucleus.get("malumItemKind"));
         assertEquals("malum", nucleusAssignment.categoryId());
         assertEquals("artifacts", nucleusAssignment.subcategoryId());
-    }
-
-    @Test
-    @Disabled("intended routing pending override layer; see docs/superpowers/specs/2026-06-22-classification-override-and-curation-design.md")
-    void powerGridUnknownFamiliesGainTechComponentFacts() {
-        Map<String, String> resistor = meta("powergrid", "net.minecraft.world.item.Item");
-        resistor.put(SearchNodeKeys.TAGS, "powergrid:circuit_component");
-        PowerGridCompat.enrichItem(new ResourceLocation("powergrid", "resistor"), resistor);
-        CategoryAssignment resistorAssignment = resolve("powergrid:resistor", resistor);
-
-        Map<String, String> meter = meta("powergrid", "org.patryk3211.powergrid.equipment.multimeter.MultimeterItem");
-        PowerGridCompat.enrichItem(new ResourceLocation("powergrid", "multimeter"), meter);
-        CategoryAssignment meterAssignment = resolve("powergrid:multimeter", meter);
-
-        Map<String, String> card = meta("powergrid", "org.patryk3211.powergrid.kinetics.punchcard.PunchCardItem");
-        PowerGridCompat.enrichItem(new ResourceLocation("powergrid", "punch_card"), card);
-        CategoryAssignment cardAssignment = resolve("powergrid:punch_card", card);
-
-        assertEquals("components", resistor.get("powerGridItemKind"));
-        assertEquals("tech", resistorAssignment.categoryId());
-        assertEquals("components", resistorAssignment.subcategoryId());
-        assertEquals("tools", meter.get("powerGridItemKind"));
-        assertEquals("tools", meterAssignment.categoryId());
-        assertEquals("utility", meterAssignment.subcategoryId());
-        assertEquals("programming", card.get("powerGridItemKind"));
-        assertEquals("tech", cardAssignment.categoryId());
-        assertEquals("components", cardAssignment.subcategoryId());
     }
 
     @Test
