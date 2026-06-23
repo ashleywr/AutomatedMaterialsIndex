@@ -499,7 +499,7 @@ public final class PrimaryCategoryResolver {
          * Create terms claiming AE2 presses/GTCEu casings, and andesite becoming Create-owned.
          */
         if (id == null) {
-            return fallback(Map.of());
+            return fallback();
         }
 
         String modId = id.getNamespace().toLowerCase(Locale.ROOT);
@@ -509,7 +509,7 @@ public final class PrimaryCategoryResolver {
                 : EnumSet.copyOf(profileFacets);
         var attributes = new HashMap<>(profileAttributes == null ? Map.of() : profileAttributes);
         java.util.Optional<ClassificationOverride> itemOverride = ClassificationOverrides.forItem(id);
-        String itemClass = attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, "").toLowerCase(Locale.ROOT);
+        String itemClass = attributes.getOrDefault(SearchNodeKeys.ITEM_CLASS, "");
         Optional<ModPatternRule> patternRule = ClassificationOverrides.patternFor(modId, path, itemClass);
         if (itemOverride.isPresent()) {
             ClassificationOverride o = itemOverride.get();
@@ -520,6 +520,14 @@ public final class PrimaryCategoryResolver {
             ModPatternRule r = patternRule.get();
             facets.addAll(r.addFacets());
             facets.removeAll(r.removeFacets());
+            if (r.hasCollapse()) {
+                attributes.putIfAbsent(SearchNodeKeys.COLLAPSE_FAMILY, r.collapseFamily());
+                attributes.putIfAbsent(SearchNodeKeys.COLLAPSE_LABEL,
+                        r.collapseLabel() != null ? r.collapseLabel() : r.collapseFamily());
+                if (r.collapseMode() != null) {
+                    attributes.putIfAbsent(SearchNodeKeys.VARIANT_COLLAPSE_MODE, r.collapseMode());
+                }
+            }
         }
         boolean overrideTouchedFacets =
                 (itemOverride.isPresent()
@@ -588,7 +596,7 @@ public final class PrimaryCategoryResolver {
             return route.finish("compat_fallback", "recognized_compat_kind", compatFallback.get());
         }
         route.skipped("compat_fallback", "no recognized compat fallback");
-        return route.finish("fallback", "unknown", fallback(attributes));
+        return route.finish("fallback", "unknown", new CategoryAssignment("misc", "unknown", attributes));
     }
 
     private static Optional<CategoryAssignment> resolveVanillaIdentity(ResolveContext context) {
@@ -2129,8 +2137,8 @@ public final class PrimaryCategoryResolver {
                 || PrimaryCategoryTextMatchers.hasCsvToken(attributes.getOrDefault(SearchNodeKeys.COMPONENT_FACTS, ""), "food");
     }
 
-    private static CategoryAssignment fallback(Map<String, String> attributes) {
-        return new CategoryAssignment("misc", "unknown", attributes);
+    private static CategoryAssignment fallback() {
+        return new CategoryAssignment("misc", "unknown", Map.of());
     }
 
     private static boolean hasCompatFamily(Map<String, String> attributes) {
