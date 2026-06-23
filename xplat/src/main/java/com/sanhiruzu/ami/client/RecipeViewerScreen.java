@@ -9,6 +9,7 @@ import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -114,6 +115,9 @@ public class RecipeViewerScreen extends Screen {
     private int guiLeft, guiTop;
     private RecipeLayout currentLayout;
     private List<RecipeLayout> cachedLayouts = new ArrayList<>();
+    private List<VisibleEntry> visibleEntries = List.of();
+    private RecipeViewerVisiblePageWindow.Window visiblePageWindow =
+            RecipeViewerVisiblePageWindow.compute(0, recipesPerPage, 0);
     private boolean loggedLayoutCacheDrift;
     private long animStart;
     private boolean canTransfer;
@@ -185,8 +189,7 @@ public class RecipeViewerScreen extends Screen {
         int effectiveTop = guiTop - TAB_H + TAB_GUI_OVERLAP;
         int totalH = guiHeight + (guiTop - effectiveTop);
         // Extend left to cover the workstation panel (28px wide, 4px overlaps main panel)
-        boolean hasCatalysts = !tabs.isEmpty() && selectedTab < tabs.size()
-                && !tabs.get(selectedTab).workstations().isEmpty();
+        boolean hasCatalysts = !currentPageWorkstations().isEmpty();
         int catalystPad = hasCatalysts ? 24 : 0;
         return new com.sanhiruzu.ami.compat.RecipeViewerBridge.RecipeViewerBounds(
                 guiLeft - catalystPad, effectiveTop, GUI_WIDTH + catalystPad, totalH);
@@ -268,11 +271,7 @@ public class RecipeViewerScreen extends Screen {
 
             this.selectedTab = Math.min(entry.selectedTab(), Math.max(0, tabs.size() - 1));
             ensureSelectedTabVisible();
-            if (selectedTab >= 0 && selectedTab < tabs.size()) {
-                int total = tabs.get(selectedTab).recipes().size();
-                int pages = Math.max(1, (int) Math.ceil((double) total / recipesPerPage));
-                this.pageIndex = Math.min(entry.pageIndex(), pages - 1);
-            }
+            this.pageIndex = Math.max(0, entry.pageIndex());
             refreshLayout();
         } else {
             onClose();
@@ -284,23 +283,14 @@ public class RecipeViewerScreen extends Screen {
         slotOffsets.clear();
         currentLayout = null;
         cachedLayouts = new ArrayList<>();
+        visibleEntries = List.of();
+        visiblePageWindow = RecipeViewerVisiblePageWindow.compute(pageIndex, recipesPerPage, 0);
         loggedLayoutCacheDrift = false;
 
         if (!tabs.isEmpty() && minecraft != null && minecraft.level != null) {
             Tab tab = tabs.get(selectedTab);
-            if (!tab.recipes().isEmpty()) {
-                int totalRecipes = tab.recipes().size();
-                int totalPages   = Math.max(1, (int) Math.ceil((double) totalRecipes / recipesPerPage));
-                pageIndex = Math.min(Math.max(pageIndex, 0), totalPages - 1);
-
-                int firstIdx = pageIndex * recipesPerPage;
-                if (firstIdx < totalRecipes) {
-                    currentLayout = RecipeDisplayHelper.getLayout(
-                            tab.recipes().get(firstIdx), minecraft.level.registryAccess());
-                    canTransfer = RecipeViewerBridge.canTransferRecipe(
-                            tab.recipes().get(firstIdx), parentScreen);
-                }
-            }
+            visibleEntries = buildVisibleEntries(tab);
+            updateVisiblePageState();
         }
 
         // Recompute recipesPerPage if card height changed — panel geometry stays fixed.
@@ -308,17 +298,7 @@ public class RecipeViewerScreen extends Screen {
         if (newCardH != currentCardH) {
             currentCardH = newCardH;
             recomputeRecipesPerPage();
-        }
-
-        // Cache layouts for all visible recipes using the now-final recipesPerPage value.
-        if (!tabs.isEmpty() && minecraft != null && minecraft.level != null) {
-            Tab tab = tabs.get(selectedTab);
-            int firstIdx = pageIndex * recipesPerPage;
-            int endIdx   = Math.min(firstIdx + recipesPerPage, tab.recipes().size());
-            for (int i = firstIdx; i < endIdx; i++) {
-                cachedLayouts.add(RecipeDisplayHelper.getLayout(
-                        tab.recipes().get(i), minecraft.level.registryAccess()));
-            }
+            updateVisiblePageState();
         }
     }
 
@@ -356,7 +336,7 @@ public class RecipeViewerScreen extends Screen {
         drawTabBar(g, mouseX, mouseY);
         drawHeader(g, mouseX, mouseY);
 
-        if (tabs.isEmpty()) {
+        if (tabs.isEmpty() || visibleEntries.isEmpty()) {
             drawNoRecipes(g);
         } else {
             drawContent(g, mouseX, mouseY);
@@ -462,8 +442,7 @@ public class RecipeViewerScreen extends Screen {
 
             // Row 2: page prev/next + page number (or item name if single page)
             int btnY2 = btnY1 + SMALL_BTN_H + NAV_PAD;
-            Tab tab = tabs.get(selectedTab);
-            int totalPages = (int) Math.ceil((double) tab.recipes().size() / Math.max(1, recipesPerPage));
+            int totalPages = visiblePageWindow.totalPages();
             if (totalPages > 1) {
                 drawNavBtn(g, mx, my, btnL, btnY2, true,  pageIndex > 0);
                 drawNavBtn(g, mx, my, btnR, btnY2, false, pageIndex < totalPages - 1);
@@ -572,13 +551,7 @@ public class RecipeViewerScreen extends Screen {
     }
 
     private void drawContent(GuiGraphics g, int mouseX, int mouseY) {
-        Tab tab = tabs.get(selectedTab);
-        int tabSize = tab.recipes().size();
-        if (tabSize == 0) return;
-
-        int totalPages = (int) Math.ceil((double) tabSize / recipesPerPage);
-        int startIdx   = pageIndex * recipesPerPage;
-        int endIdx     = Math.min(startIdx + recipesPerPage, tabSize);
+        if (visibleEntries.isEmpty()) return;
 
         int cardW = GUI_WIDTH - 8;
         int cardH = currentCardH;
@@ -586,12 +559,14 @@ public class RecipeViewerScreen extends Screen {
         int cardX = guiLeft + 4;
         int singleOffset = 6;                           // fixed top padding — JEI top-aligns recipes
 
-        for (int i = startIdx; i < endIdx; i++) {
-            AmiRecipeHolder<?> recipe = tab.recipes().get(i);
-            RecipeLayout layout = getLayoutForDisplay(i - startIdx, recipe);
+        List<VisibleEntry> pageEntries = currentPageEntries();
+        for (int i = 0; i < pageEntries.size(); i++) {
+            VisibleEntry entry = pageEntries.get(i);
+            AmiRecipeHolder<?> recipe = entry.recipe();
+            RecipeLayout layout = getLayoutForDisplay(i, entry);
             if (layout == null) continue;
 
-            int cardY = guiTop + CONTENT_Y + (i - startIdx) * slotH + singleOffset;
+            int cardY = guiTop + CONTENT_Y + i * slotH + singleOffset;
 
             g.fill(cardX - 1, cardY - 1, cardX + cardW + 1, cardY + cardH + 1, COL_BORDER);
             g.fill(cardX, cardY, cardX + cardW, cardY + cardH, COL_PANEL);
@@ -727,7 +702,7 @@ public class RecipeViewerScreen extends Screen {
 
     }
 
-    private RecipeLayout getLayoutForDisplay(int displayIndex, AmiRecipeHolder<?> recipe) {
+    private RecipeLayout getLayoutForDisplay(int displayIndex, VisibleEntry entry) {
         if (displayIndex >= 0 && displayIndex < cachedLayouts.size()) {
             return cachedLayouts.get(displayIndex);
         }
@@ -740,10 +715,10 @@ public class RecipeViewerScreen extends Screen {
                     + ", selectedTab=" + selectedTab
                     + ", pageIndex=" + pageIndex);
         }
-        if (recipe == null || minecraft == null || minecraft.level == null) {
+        if (entry == null) {
             return null;
         }
-        return RecipeDisplayHelper.getLayout(recipe, minecraft.level.registryAccess());
+        return entry.layout();
     }
 
     private void renderIngredientTooltip(GuiGraphics g, SlotPosition slot, int altIdx, int mouseX, int mouseY) {
@@ -861,7 +836,7 @@ public class RecipeViewerScreen extends Screen {
 
     private void drawWorkstationPanel(GuiGraphics g, int mouseX, int mouseY) {
         if (tabs.isEmpty() || selectedTab >= tabs.size()) return;
-        List<ItemStack> workstations = tabs.get(selectedTab).workstations();
+        List<ItemStack> workstations = currentPageWorkstations();
         if (workstations.isEmpty()) return;
 
         int slotOuter = 20;   // 18px slot + 1px border each side
@@ -967,25 +942,23 @@ public class RecipeViewerScreen extends Screen {
             return false;
         }
 
-        Tab tab     = tabs.get(selectedTab);
-        int tabSize = tab.recipes().size();
-        if (tabSize == 0) {
+        if (visibleEntries.isEmpty()) {
             return false;
         }
 
-        int startIdx = pageIndex * recipesPerPage;
-        int endIdx   = Math.min(startIdx + recipesPerPage, tabSize);
         int cardH    = currentCardH;
         int slotH    = cardH + 4;
         int cardX    = guiLeft + 4;
         int singleOffset = 6;
 
-        for (int i = startIdx; i < endIdx; i++) {
-            AmiRecipeHolder<?> recipe = tab.recipes().get(i);
-            RecipeLayout layout = getLayoutForDisplay(i - startIdx, recipe);
+        List<VisibleEntry> pageEntries = currentPageEntries();
+        for (int i = 0; i < pageEntries.size(); i++) {
+            VisibleEntry entry = pageEntries.get(i);
+            AmiRecipeHolder<?> recipe = entry.recipe();
+            RecipeLayout layout = getLayoutForDisplay(i, entry);
             if (layout == null) continue;
 
-            int cardY = guiTop + CONTENT_Y + (i - startIdx) * slotH + singleOffset;
+            int cardY = guiTop + CONTENT_Y + i * slotH + singleOffset;
             int rx = RecipeViewerLayoutPlacement.layoutOriginX(cardX, layout);
             int layoutHeight = layout.backgroundTexture() != null
                     ? layout.bgRenderY() + layout.bgH()
@@ -1050,24 +1023,21 @@ public class RecipeViewerScreen extends Screen {
             return true;
         }
 
-        Tab tab     = tabs.get(selectedTab);
-        int tabSize = tab.recipes().size();
-        if (tabSize == 0) return false;
-
-        int startIdx = pageIndex * recipesPerPage;
-        int endIdx   = Math.min(startIdx + recipesPerPage, tabSize);
+        if (visibleEntries.isEmpty()) return false;
         int cardH    = currentCardH;
         int slotH    = cardH + 4;
         int cardX        = guiLeft + 4;
         int singleOffset2 = 6;
 
         // Scroll over an ingredient slot → cycle alternatives
-        for (int i = startIdx; i < endIdx; i++) {
-            AmiRecipeHolder<?> recipe = tab.recipes().get(i);
-            RecipeLayout layout = getLayoutForDisplay(i - startIdx, recipe);
+        List<VisibleEntry> pageEntries = currentPageEntries();
+        for (int i = 0; i < pageEntries.size(); i++) {
+            VisibleEntry entry = pageEntries.get(i);
+            AmiRecipeHolder<?> recipe = entry.recipe();
+            RecipeLayout layout = getLayoutForDisplay(i, entry);
             if (layout == null) continue;
 
-            int cardY = guiTop + CONTENT_Y + (i - startIdx) * slotH + singleOffset2;
+            int cardY = guiTop + CONTENT_Y + i * slotH + singleOffset2;
             int rx = RecipeViewerLayoutPlacement.layoutOriginX(cardX, layout);
             int layoutHeight = layout.backgroundTexture() != null
                     ? layout.bgRenderY() + layout.bgH()
@@ -1092,8 +1062,7 @@ public class RecipeViewerScreen extends Screen {
         }
 
         // Scroll anywhere else → page
-        int totalPages = (int) Math.ceil((double) tabSize / recipesPerPage);
-        if (totalPages > 1) {
+        if (visiblePageWindow.totalPages() > 1) {
             if (scrollY > 0) prevPage(); else nextPage();
             return true;
         }
@@ -1104,8 +1073,6 @@ public class RecipeViewerScreen extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (tabs.isEmpty()) return super.mouseClicked(mouseX, mouseY, button);
 
-        Tab tab     = tabs.get(selectedTab);
-        int tabSize = tab.recipes().size();
         int tabY    = tabTopY();
 
         // Header nav buttons — row 1: category prev/next; row 2: page prev/next
@@ -1183,39 +1150,38 @@ public class RecipeViewerScreen extends Screen {
         }
 
         // Workstation panel click → navigate to the workstation item
-        if (!tab.workstations().isEmpty() && (button == 0 || button == 1)) {
+        List<ItemStack> pageWorkstations = currentPageWorkstations();
+        if (!pageWorkstations.isEmpty() && (button == 0 || button == 1)) {
             int slotOuter = 20;
             int padH = 4, padV = 5;
             int panelW = slotOuter + 2 * padH;
             int overlap = 4;
             int px = guiLeft - panelW + overlap;
             int py = guiTop + CONTENT_Y;
-            List<ItemStack> ws = tab.workstations();
-            for (int i = 0; i < ws.size(); i++) {
+            for (int i = 0; i < pageWorkstations.size(); i++) {
                 int sx = px + padH;
                 int sy = py + padV + i * slotOuter;
                 if (isHovering(mouseX, mouseY, sx, sy, 18, 18)) {
-                    navigateTo(ws.get(i), button == 0);
+                    navigateTo(pageWorkstations.get(i), button == 0);
                     return true;
                 }
             }
         }
 
-        int totalPages = (int) Math.ceil((double) tabSize / recipesPerPage);
-        int startIdx   = pageIndex * recipesPerPage;
-        int endIdx     = Math.min(startIdx + recipesPerPage, tabSize);
         int cardW      = GUI_WIDTH - 8;
         int cardH      = currentCardH;
         int slotH      = cardH + 4;
         int cardX      = guiLeft + 4;
         int singleOffset = 6;
 
-        for (int i = startIdx; i < endIdx; i++) {
-            AmiRecipeHolder<?> recipe = tab.recipes().get(i);
-            RecipeLayout layout = getLayoutForDisplay(i - startIdx, recipe);
+        List<VisibleEntry> pageEntries = currentPageEntries();
+        for (int i = 0; i < pageEntries.size(); i++) {
+            VisibleEntry entry = pageEntries.get(i);
+            AmiRecipeHolder<?> recipe = entry.recipe();
+            RecipeLayout layout = getLayoutForDisplay(i, entry);
             if (layout == null) continue;
 
-            int cardY = guiTop + CONTENT_Y + (i - startIdx) * slotH + singleOffset;
+            int cardY = guiTop + CONTENT_Y + i * slotH + singleOffset;
             int rx    = RecipeViewerLayoutPlacement.layoutOriginX(cardX, layout);
             int layoutHeight = layout.backgroundTexture() != null
                     ? layout.bgRenderY() + layout.bgH()
@@ -1301,20 +1267,21 @@ public class RecipeViewerScreen extends Screen {
     }
 
     private void prevPage() {
-        int total = (int) Math.ceil((double) tabs.get(selectedTab).recipes().size() / recipesPerPage);
+        int total = visiblePageWindow.totalPages();
         if (total > 1) { pageIndex = (pageIndex - 1 + total) % total; refreshLayout(); }
     }
 
     private void nextPage() {
-        int total = (int) Math.ceil((double) tabs.get(selectedTab).recipes().size() / recipesPerPage);
+        int total = visiblePageWindow.totalPages();
         if (total > 1) { pageIndex = (pageIndex + 1) % total; refreshLayout(); }
     }
 
     private void doTransfer() {
         if (minecraft == null) return;
-        Tab tab = tabs.get(selectedTab);
-        int firstIdx = pageIndex * recipesPerPage;
-        if (firstIdx < tab.recipes().size()) doTransfer(tab.recipes().get(firstIdx), hasShiftDown());
+        VisibleEntry firstVisibleEntry = currentFirstVisibleEntry();
+        if (firstVisibleEntry != null) {
+            doTransfer(firstVisibleEntry.recipe(), hasShiftDown());
+        }
     }
 
     private void doTransfer(AmiRecipeHolder<?> recipe, boolean maxTransfer) {
@@ -1343,6 +1310,82 @@ public class RecipeViewerScreen extends Screen {
         return ((timeIdx + slotOffsets.getOrDefault(slotKey, 0)) % size + size) % size;
     }
 
+    private void updateVisiblePageState() {
+        visiblePageWindow = RecipeViewerVisiblePageWindow.compute(pageIndex, recipesPerPage, visibleEntries.size());
+        pageIndex = visiblePageWindow.pageIndex();
+        currentLayout = null;
+        canTransfer = false;
+        cachedLayouts = new ArrayList<>();
+
+        for (VisibleEntry entry : currentPageEntries()) {
+            cachedLayouts.add(entry.layout());
+        }
+
+        VisibleEntry firstVisibleEntry = currentFirstVisibleEntry();
+        if (firstVisibleEntry != null) {
+            currentLayout = firstVisibleEntry.layout();
+            canTransfer = RecipeViewerBridge.canTransferRecipe(firstVisibleEntry.recipe(), parentScreen);
+        }
+    }
+
+    private List<VisibleEntry> buildVisibleEntries(Tab tab) {
+        if (minecraft == null || minecraft.level == null || tab == null || tab.recipes().isEmpty()) {
+            return List.of();
+        }
+
+        ResourceLocation typeId = recipeTypeId(tab.type());
+        List<CandidateMapping> candidateMappings = new ArrayList<>(tab.recipes().size());
+        List<RecipeViewerDisplayEntryPolicy.Candidate> candidates = new ArrayList<>(tab.recipes().size());
+        List<ItemStack> rawWorkstations = tab.workstations();
+        List<ItemStack> canonicalWorkstations =
+                RecipeViewerDisplayEntryPolicy.canonicalWorkstations(typeId, rawWorkstations);
+        for (AmiRecipeHolder<?> recipe : tab.recipes()) {
+            RecipeLayout layout = RecipeDisplayHelper.getLayout(recipe, minecraft.level.registryAccess());
+            candidates.add(new RecipeViewerDisplayEntryPolicy.Candidate(typeId, typeId, layout, rawWorkstations));
+            candidateMappings.add(new CandidateMapping(
+                    recipe,
+                    new RecipeViewerDisplayEntryPolicy.DisplayEntry(typeId, typeId, layout, canonicalWorkstations)));
+        }
+
+        List<RecipeViewerDisplayEntryPolicy.DisplayEntry> filteredEntries =
+                RecipeViewerDisplayEntryPolicy.visibleEntries(candidates);
+        boolean[] usedMappings = new boolean[candidateMappings.size()];
+        List<VisibleEntry> resolvedEntries = new ArrayList<>(filteredEntries.size());
+        for (RecipeViewerDisplayEntryPolicy.DisplayEntry filteredEntry : filteredEntries) {
+            for (int i = 0; i < candidateMappings.size(); i++) {
+                CandidateMapping mapping = candidateMappings.get(i);
+                if (!usedMappings[i] && mapping.displayEntry().equals(filteredEntry)) {
+                    usedMappings[i] = true;
+                    resolvedEntries.add(new VisibleEntry(mapping.recipe(), filteredEntry));
+                    break;
+                }
+            }
+        }
+        return List.copyOf(resolvedEntries);
+    }
+
+    private List<VisibleEntry> currentPageEntries() {
+        if (visibleEntries.isEmpty()) {
+            return List.of();
+        }
+        return visibleEntries.subList(visiblePageWindow.startIndex(), visiblePageWindow.endIndexExclusive());
+    }
+
+    private VisibleEntry currentFirstVisibleEntry() {
+        List<VisibleEntry> pageEntries = currentPageEntries();
+        return pageEntries.isEmpty() ? null : pageEntries.get(0);
+    }
+
+    private List<ItemStack> currentPageWorkstations() {
+        VisibleEntry visibleEntry = currentFirstVisibleEntry();
+        return visibleEntry == null ? List.of() : visibleEntry.workstations();
+    }
+
+    private static ResourceLocation recipeTypeId(RecipeType<?> type) {
+        ResourceLocation typeId = BuiltInRegistries.RECIPE_TYPE.getKey(type);
+        return typeId != null ? typeId : ResourceLocation.parse(type.toString());
+    }
+
     private boolean isHovering(double mx, double my, int x, int y, int w, int h) {
         return mx >= x && mx < x + w && my >= y && my < y + h;
     }
@@ -1367,4 +1410,22 @@ public class RecipeViewerScreen extends Screen {
     private record Tab(RecipeType<?> type, Component label, String shortLabel,
                        List<AmiRecipeHolder<?>> recipes,
                        ItemStack icon, List<ItemStack> workstations) {}
+
+    private record CandidateMapping(
+            AmiRecipeHolder<?> recipe,
+            RecipeViewerDisplayEntryPolicy.DisplayEntry displayEntry
+    ) {}
+
+    private record VisibleEntry(
+            AmiRecipeHolder<?> recipe,
+            RecipeViewerDisplayEntryPolicy.DisplayEntry displayEntry
+    ) {
+        private RecipeLayout layout() {
+            return displayEntry.layout();
+        }
+
+        private List<ItemStack> workstations() {
+            return displayEntry.workstations();
+        }
+    }
 }
