@@ -150,6 +150,38 @@ class RecipeViewerDisplayEntryPolicyTest {
     }
 
     @Test
+    void visibleEntriesIgnoreSlotListOrderingInSignature() {
+        Candidate first = candidate(
+                "minecraft:smelting",
+                "minecraft:smelting",
+                layout(
+                        List.of(
+                                new SlotPosition(0, 0, List.of(stack("ami_test:input_a"))),
+                                new SlotPosition(49, 0, List.of(stack("ami_test:input_b")))
+                        ),
+                        stack("ami_test:output"),
+                        ResourceLocation.parse("ami:textures/gui/furnace.png"),
+                        82,
+                        54),
+                List.of(stack("ami_test:alpha")));
+        Candidate reordered = candidate(
+                "minecraft:smelting",
+                "minecraft:smelting",
+                layout(
+                        List.of(
+                                new SlotPosition(49, 0, List.of(stack("ami_test:input_b"))),
+                                new SlotPosition(0, 0, List.of(stack("ami_test:input_a")))
+                        ),
+                        stack("ami_test:output"),
+                        ResourceLocation.parse("ami:textures/gui/furnace.png"),
+                        82,
+                        54),
+                List.of(stack("ami_test:alpha")));
+
+        assertEquals(1, RecipeViewerDisplayEntryPolicy.visibleEntries(List.of(first, reordered)).size());
+    }
+
+    @Test
     void visibleEntriesKeepDistinctLayoutsWhenVisibleSlotsDiffer() {
         Candidate first = candidate(
                 "ami:anvil_repairing",

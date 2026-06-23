@@ -113,11 +113,11 @@ final class RecipeViewerDisplayEntryPolicy {
         signature.append(Objects.toString(entry.displayFamily(), entry.typeId() == null ? "" : entry.typeId().toString()));
         signature.append('|').append(outputId(entry.layout().output()));
         signature.append('|');
+        TreeSet<String> slotSignatures = new TreeSet<>();
         for (SlotPosition slot : entry.layout().inputs()) {
-            signature.append(slot.x()).append(',').append(slot.y()).append(':');
-            signature.append(String.join(",", visibleAlternativeIds(slot.alternatives())));
-            signature.append(';');
+            slotSignatures.add(slot.x() + "," + slot.y() + ":" + String.join(",", visibleAlternativeIds(slot.alternatives())));
         }
+        signature.append(String.join(";", slotSignatures));
         signature.append('|');
         signature.append(String.join(",", visibleAlternativeIds(entry.workstations())));
         return signature.toString();
