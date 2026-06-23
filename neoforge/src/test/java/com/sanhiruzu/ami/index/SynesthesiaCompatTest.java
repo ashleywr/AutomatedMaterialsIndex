@@ -2,7 +2,6 @@ package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.compat.DatanessenceCompat;
 import com.sanhiruzu.ami.compat.GeneratedVariantCollapseCompat;
-import com.sanhiruzu.ami.compat.MalumCompat;
 import com.sanhiruzu.ami.compat.PastelCompat;
 import com.sanhiruzu.ami.compat.SilentGemsCompat;
 import net.minecraft.resources.ResourceLocation;
@@ -17,20 +16,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SynesthesiaCompatTest {
-    @Test
-    void malumGeasRoutesToMagicAndCollapses() {
-        Map<String, String> meta = meta("malum", "com.sammy.malum.common.item.GeasItem");
-        meta.put(SearchNodeKeys.SUBTYPE_OF, "malum:geas");
-
-        MalumCompat.enrichItem(new ResourceLocation("malum", "geas/variant/geas_b28b0afe76f1"), meta);
-        CategoryAssignment assignment = resolve("malum:geas/variant/geas_b28b0afe76f1", meta);
-
-        assertEquals("geasa", meta.get("malumItemKind"));
-        assertEquals("malum:geas", meta.get(SearchNodeKeys.COLLAPSE_FAMILY));
-        assertEquals("malum", assignment.categoryId());
-        assertEquals("geasa", assignment.subcategoryId());
-    }
-
     @Test
     void pastelStructurePlacersRouteToUtility() {
         Map<String, String> meta = meta("pastel", "earth.terrarium.pastel.items.StructurePlacerItem");
@@ -151,40 +136,6 @@ class SynesthesiaCompatTest {
         assertTrue(meta.get(SearchNodeKeys.FACETS).contains(ItemFacet.GUIDE_BOOK.id()));
         assertEquals("utility", assignment.categoryId());
         assertEquals("books", assignment.subcategoryId());
-    }
-
-    @Test
-    @Disabled("intended routing pending override layer; see docs/superpowers/specs/2026-06-22-classification-override-and-curation-design.md")
-    void malumUnknownFamiliesExtendExistingCompatRoutes() {
-        Map<String, String> sapball = meta("malum", "net.minecraft.world.item.Item");
-        sapball.put(SearchNodeKeys.TAGS, "malum:sapballs");
-        MalumCompat.enrichItem(new ResourceLocation("malum", "runic_sapball"), sapball);
-        CategoryAssignment sapballAssignment = resolve("malum:runic_sapball", sapball);
-
-        Map<String, String> lobber = meta("malum", "com.sammy.malum.common.item.curiosities.tools.CatalystLobberItem");
-        MalumCompat.enrichItem(new ResourceLocation("malum", "catalyst_lobber"), lobber);
-        CategoryAssignment lobberAssignment = resolve("malum:catalyst_lobber", lobber);
-
-        Map<String, String> weave = meta("malum", "net.minecraft.world.item.Item");
-        MalumCompat.enrichItem(new ResourceLocation("malum", "ancient_weave"), weave);
-        CategoryAssignment weaveAssignment = resolve("malum:ancient_weave", weave);
-
-        Map<String, String> nucleus = meta("malum", "com.sammy.malum.common.item.WindNucleusItem");
-        MalumCompat.enrichItem(new ResourceLocation("malum", "wind_nucleus"), nucleus);
-        CategoryAssignment nucleusAssignment = resolve("malum:wind_nucleus", nucleus);
-
-        assertEquals("organic_materials", sapball.get("malumItemKind"));
-        assertEquals("malum", sapballAssignment.categoryId());
-        assertEquals("materials", sapballAssignment.subcategoryId());
-        assertEquals("tools", lobber.get("malumItemKind"));
-        assertEquals("malum", lobberAssignment.categoryId());
-        assertEquals("equipment", lobberAssignment.subcategoryId());
-        assertEquals("textiles", weave.get("malumItemKind"));
-        assertEquals("malum", weaveAssignment.categoryId());
-        assertEquals("weaves", weaveAssignment.subcategoryId());
-        assertEquals("artifacts", nucleus.get("malumItemKind"));
-        assertEquals("malum", nucleusAssignment.categoryId());
-        assertEquals("artifacts", nucleusAssignment.subcategoryId());
     }
 
     @Test
