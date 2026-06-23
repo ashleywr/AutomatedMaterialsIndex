@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.TreeSet;
 
 final class RecipeViewerDisplayEntryPolicy {
     private static final ResourceLocation ANVIL_REPAIRING = ResourceLocation.parse("ami:anvil_repairing");
@@ -123,7 +124,7 @@ final class RecipeViewerDisplayEntryPolicy {
     }
 
     private static List<String> visibleAlternativeIds(List<ItemStack> stacks) {
-        LinkedHashSet<String> ids = new LinkedHashSet<>();
+        TreeSet<String> ids = new TreeSet<>();
         for (ItemStack stack : stacks == null ? List.<ItemStack>of() : stacks) {
             if (stack == null || stack.isEmpty()) {
                 continue;
