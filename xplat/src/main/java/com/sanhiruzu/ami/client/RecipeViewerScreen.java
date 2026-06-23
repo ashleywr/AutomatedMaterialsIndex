@@ -363,7 +363,7 @@ public class RecipeViewerScreen extends Screen {
         }
 
         drawCentered(g,
-                Component.translatable("ami.recipe_viewer.go_back"),
+                recipeBackHint(),
                 guiLeft + GUI_WIDTH / 2,
                 guiTop + guiHeight - FOOTER_H + 4,
                 COL_TEXT_FOOTER);
@@ -414,6 +414,12 @@ public class RecipeViewerScreen extends Screen {
         COL_COUNT_BADGE         = AMITheme.RECIPE_COUNT_BADGE;
         COL_COUNT_BADGE_TEXT    = AMITheme.RECIPE_COUNT_BADGE_TEXT;
         COL_OUTPUT_SLOT_BORDER  = AMITheme.RECIPE_OUTPUT_SLOT_BORDER;
+    }
+
+    private Component recipeBackHint() {
+        return Component.translatable(
+                "ami.recipe_viewer.go_back",
+                Services.PLATFORM.keyMappings().recipeBack().getTranslatedKeyMessage());
     }
 
     // ── Panel chrome ──────────────────────────────────────────────────────
@@ -597,6 +603,7 @@ public class RecipeViewerScreen extends Screen {
                     : 14 + layout.gridHeight() * 18;
             int yOffset = Math.max(4, (cardH - layoutHeight) / 2);
             int ry = cardY + yOffset;
+            boolean recipeCanTransfer = RecipeViewerBridge.canTransferRecipe(recipe, parentScreen);
 
             if (layout.backgroundTexture() != null) {
                 int bx = rx + layout.bgRenderX();
@@ -699,12 +706,11 @@ public class RecipeViewerScreen extends Screen {
                 g.renderItem(layout.output(), outX + 1, outY + 1);
                 g.renderItemDecorations(font, layout.output(), outX + 1, outY + 1);
                 if (isHovering(mouseX, mouseY, outX, outY, 18, 18)) {
-                    g.renderTooltip(font, layout.output(), mouseX, mouseY);
+                    renderOutputTooltip(g, layout.output(), recipeCanTransfer, mouseX, mouseY);
                 }
             }
 
             // Transfer button
-            boolean recipeCanTransfer = RecipeViewerBridge.canTransferRecipe(recipe, parentScreen);
             if (recipeCanTransfer) {
                 int btnX    = cardX + cardW - 22;
                 int btnY    = cardY + (cardH - 14) / 2;
@@ -752,7 +758,43 @@ public class RecipeViewerScreen extends Screen {
         lines.add(Component.translatable("ami.recipe_viewer.ingredient_cycle",
                 altIdx + 1, slot.alternatives().size())
                 .withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
+        appendHoverHints(lines, RecipeViewerHoverHintPolicy.ingredientHints(slot), slot);
         g.renderTooltip(font, lines, java.util.Optional.empty(), mouseX, mouseY);
+    }
+
+    private void renderOutputTooltip(GuiGraphics g, ItemStack stack, boolean recipeCanTransfer,
+                                     int mouseX, int mouseY) {
+        List<Component> lines = new ArrayList<>(
+                net.minecraft.client.gui.screens.Screen.getTooltipFromItem(minecraft, stack));
+        appendHoverHints(lines, RecipeViewerHoverHintPolicy.outputHints(recipeCanTransfer), null);
+        g.renderTooltip(font, lines, java.util.Optional.empty(), mouseX, mouseY);
+    }
+
+    private void renderWorkstationTooltip(GuiGraphics g, ItemStack stack, int mouseX, int mouseY) {
+        List<Component> lines = new ArrayList<>(
+                net.minecraft.client.gui.screens.Screen.getTooltipFromItem(minecraft, stack));
+        appendHoverHints(lines, RecipeViewerHoverHintPolicy.workstationHints(), null);
+        g.renderTooltip(font, lines, java.util.Optional.empty(), mouseX, mouseY);
+    }
+
+    private void appendHoverHints(List<Component> lines, List<RecipeViewerHoverHintPolicy.Hint> hints,
+                                  SlotPosition slot) {
+        if (hints.isEmpty()) {
+            return;
+        }
+        lines.add(Component.empty());
+        for (RecipeViewerHoverHintPolicy.Hint hint : hints) {
+            var hintLine = switch (hint) {
+                case INGREDIENT_SCROLL -> Component.translatable(
+                        "ami.recipe_viewer.ingredient_variants_scroll",
+                        slot.alternatives().size());
+                case TRANSFER_BUTTON -> Component.translatable("ami.recipe_viewer.transfer");
+                case OUTPUT_SHIFT_TRANSFER -> Component.translatable("ami.recipe_viewer.output_shift_transfer");
+                case WORKSTATION_LEFT_CLICK -> Component.translatable("ami.recipe_viewer.workstation_left_click");
+                case WORKSTATION_RIGHT_CLICK -> Component.translatable("ami.recipe_viewer.workstation_right_click");
+            };
+            lines.add(hintLine.withStyle(ChatFormatting.DARK_GRAY));
+        }
     }
 
     private void renderAnimatedBackground(GuiGraphics g, int rx, int ry,
@@ -842,7 +884,7 @@ public class RecipeViewerScreen extends Screen {
             g.renderItem(ws, sx + 1, sy + 1);
             g.renderItemDecorations(font, ws, sx + 1, sy + 1);
             if (isHovering(mouseX, mouseY, sx, sy, 18, 18)) {
-                g.renderTooltip(font, ws, mouseX, mouseY);
+                renderWorkstationTooltip(g, ws, mouseX, mouseY);
             }
         }
     }
@@ -889,8 +931,7 @@ public class RecipeViewerScreen extends Screen {
             onClose();
             return true;
         }
-        if (AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().recipeBack(), pressedKey)
-                || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+        if (AmiKeybinds.activeAndMatches(Services.PLATFORM.keyMappings().recipeBack(), pressedKey)) {
             goBack();
             return true;
         }
