@@ -7,6 +7,7 @@ import com.sanhiruzu.ami.client.recipe.RecipeDisplayHelper.SlotPosition;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -47,6 +48,7 @@ public class RecipeViewerScreen extends Screen {
     private static final int UV_TAB_UNS_X   = 24, UV_TAB_UNS_Y   = 26; // 24×24 tab unselected
     private static final int UV_BTN_PREV_X  = 48, UV_BTN_PREV_Y  = 26; //  9×9  arrow prev
     private static final int UV_BTN_NEXT_X  = 57, UV_BTN_NEXT_Y  = 26; //  9×9  arrow next
+    private static final int UV_FAVORITE_X  = 66, UV_FAVORITE_Y  =  0; //  9×9  favorite star
 
     // ── Layout constants ────────────────────────────────────────────────────
     private static final int GUI_WIDTH        = 240;
@@ -59,6 +61,8 @@ public class RecipeViewerScreen extends Screen {
     private static final int SMALL_BTN_H      = 13;   // JEI smallButtonHeight
     private static final int BORDER_PAD       = 6;    // JEI borderPadding
     private static final int NAV_PAD          = 2;    // JEI navBarPadding
+    private static final int FAVORITE_BADGE_SIZE = 14;
+    private static final int FAVORITE_SPRITE_SIZE = 9;
     private static final int CONTENT_Y        = HEADER_H + 4; // 36
     private static final int FOOTER_H         = 18;
     private static final int CHROME_OVERHEAD  = CONTENT_Y + 8 + FOOTER_H; // 62
@@ -616,14 +620,14 @@ public class RecipeViewerScreen extends Screen {
                 int favX = cardX + 6;
                 int favY = cardY + 4;
                 boolean favorite = AmiFavoritesHandler.getInstance().isRecipeFavorite(recipe.id(), layout.output());
-                boolean favHov   = isHovering(mouseX, mouseY, favX, favY, 14, 14);
-                AMITheme.fillRounded(g, favX, favY, 14, 14,
+                boolean favHov   = isHovering(mouseX, mouseY, favX, favY, FAVORITE_BADGE_SIZE, FAVORITE_BADGE_SIZE);
+                AMITheme.fillRounded(g, favX, favY, FAVORITE_BADGE_SIZE, FAVORITE_BADGE_SIZE,
                         favorite ? COL_TAB_ACTIVE : favHov ? COL_TAB_HOVER : COL_TAB_IDLE);
-                String star = "★";
-                g.drawString(font, star,
-                        favX + (14 - font.width(star)) / 2,
-                        favY + (14 - font.lineHeight) / 2,
-                        favorite ? 0xFFFFFFFF : COL_TAB_TEXT_I, false);
+                drawFavoriteSprite(
+                        g,
+                        RecipeViewerChromeLayout.centeredSpriteOrigin(favX, FAVORITE_BADGE_SIZE, FAVORITE_SPRITE_SIZE),
+                        RecipeViewerChromeLayout.centeredSpriteOrigin(favY, FAVORITE_BADGE_SIZE, FAVORITE_SPRITE_SIZE),
+                        favorite ? 0xFFFFFFFF : COL_TAB_TEXT_I);
                 if (favHov) {
                     g.renderTooltip(font, Component.translatable(favorite
                             ? "ami.recipe_viewer.unfavorite"
@@ -856,7 +860,7 @@ public class RecipeViewerScreen extends Screen {
 
         for (int i = 0; i < workstations.size(); i++) {
             ItemStack ws = workstations.get(i);
-            int sx = px + padH;
+            int sx = RecipeViewerChromeLayout.centeredSlotX(px, panelW);
             int sy = py + padV + i * slotOuter;
             drawSlot(g, sx, sy);
             g.renderItem(ws, sx + 1, sy + 1);
@@ -871,6 +875,19 @@ public class RecipeViewerScreen extends Screen {
 
     private void drawSlot(GuiGraphics g, int x, int y) {
         g.blit(widgets(), x, y, 18, 18, UV_SLOT_X, UV_SLOT_Y, 18, 18, 256, 256);
+    }
+
+    private void drawFavoriteSprite(GuiGraphics g, int x, int y, int color) {
+        float red = ((color >> 16) & 0xFF) / 255.0f;
+        float green = ((color >> 8) & 0xFF) / 255.0f;
+        float blue = (color & 0xFF) / 255.0f;
+        float alpha = ((color >> 24) & 0xFF) / 255.0f;
+        RenderSystem.setShaderColor(red, green, blue, alpha);
+        g.blit(widgets(), x, y, FAVORITE_SPRITE_SIZE, FAVORITE_SPRITE_SIZE,
+                UV_FAVORITE_X, UV_FAVORITE_Y,
+                FAVORITE_SPRITE_SIZE, FAVORITE_SPRITE_SIZE,
+                256, 256);
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
     }
 
     private void drawOutputSlot(GuiGraphics g, int x, int y) {
@@ -1162,7 +1179,7 @@ public class RecipeViewerScreen extends Screen {
             int px = guiLeft - panelW + overlap;
             int py = guiTop + CONTENT_Y;
             for (int i = 0; i < pageWorkstations.size(); i++) {
-                int sx = px + padH;
+                int sx = RecipeViewerChromeLayout.centeredSlotX(px, panelW);
                 int sy = py + padV + i * slotOuter;
                 if (isHovering(mouseX, mouseY, sx, sy, 18, 18)) {
                     navigateTo(pageWorkstations.get(i), button == 0);
@@ -1197,7 +1214,7 @@ public class RecipeViewerScreen extends Screen {
             if (!layout.output().isEmpty() && button == 0) {
                 int favX = cardX + 6;
                 int favY = cardY + 4;
-                if (isHovering(mouseX, mouseY, favX, favY, 14, 14)) {
+                if (isHovering(mouseX, mouseY, favX, favY, FAVORITE_BADGE_SIZE, FAVORITE_BADGE_SIZE)) {
                     AmiFavoritesHandler favorites = AmiFavoritesHandler.getInstance();
                     if (favorites.isRecipeFavorite(recipe.id(), layout.output())) {
                         favorites.removeRecipeFavorite(recipe.id(), layout.output());
