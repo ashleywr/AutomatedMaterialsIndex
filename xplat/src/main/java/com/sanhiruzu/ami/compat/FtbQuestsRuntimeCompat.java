@@ -69,6 +69,10 @@ public final class FtbQuestsRuntimeCompat {
     }
 
     public static void refreshNow() {
+        if (!modLoaded) {
+            clearIfNeeded();
+            return;
+        }
         if (!AmiConfig.searchIncludeQuests) {
             clearIfNeeded();
             return;
@@ -123,7 +127,7 @@ public final class FtbQuestsRuntimeCompat {
             clearIfNeeded();
             if (!warnedUnavailable) {
                 warnedUnavailable = true;
-                AmiCore.LOGGER.warn("AMI: FTB Quests runtime bridge unavailable", e);
+                AmiCore.LOGGER.debug("AMI: FTB Quests runtime bridge unavailable", e);
             }
         }
     }
