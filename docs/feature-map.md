@@ -332,15 +332,19 @@
   - `neoforge/src/main/java/com/sanhiruzu/ami/client/overlay/OverlayWidgetManager.java`
   - `neoforge/src/main/java/com/sanhiruzu/ami/client/overlay/SidebarPanelWidget.java`
 - Tests:
-  - `.\gradlew.bat :neoforge:test --tests "*AmiSidebarSyncHandlerTest"`
+  - `.\gradlew.bat :neoforge:test --tests "*AmiSidebarSyncHandlerTest" --tests "*VanillaCraftablesServiceTest" --tests "*ResultContextMenuActionBuilderTest"`
 - State contract:
   - The craftable source is Minecraft's current client recipe-book craftability state, resolved from the local player's
-    actual inventory contents.
+    actual inventory contents plus the open menu's recipe-book craft slots. For non-recipe-book container screens, AMI
+    also accounts active, non-player slots that contain an item accepted by that slot, so nearby chest/storage contents
+    can affect the Craftables scope without double-counting the player's inventory or output-only slots.
   - AMI filters craftable outputs to survival-visible item nodes only; creative, cheat, dev, and hidden indexed nodes are
     not shown in Craftables even while the player is in Creative mode or AMI cheat/dev visibility is enabled.
   - Blank Craftables output order is deterministic and alphabetical by display name.
   - When the AMI search bar has a query, sidebar panels receive the same query/search service as main result panels, so
     Craftables is narrowed by the active search while retaining the current craftable source as the scope.
+  - Craftables item clicks and context-menu craft actions use the shared `RecipeViewerBridge.handleItemClick` /
+    transfer helper path used by normal AMI item results; the sidebar does not maintain a separate craft action.
 
 ## Static JEI Plugin Compat
 
