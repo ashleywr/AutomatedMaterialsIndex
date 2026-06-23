@@ -153,6 +153,9 @@ public class RecipeViewerScreen extends Screen {
             refreshLayout();
         }
         recomputePanelSize();
+        if (!tabs.isEmpty()) {
+            updateVisiblePageState();
+        }
     }
 
     // Returns the natural card height for a recipe layout.
@@ -1334,32 +1337,18 @@ public class RecipeViewerScreen extends Screen {
         }
 
         ResourceLocation typeId = recipeTypeId(tab.type());
-        List<CandidateMapping> candidateMappings = new ArrayList<>(tab.recipes().size());
         List<RecipeViewerDisplayEntryPolicy.Candidate> candidates = new ArrayList<>(tab.recipes().size());
         List<ItemStack> rawWorkstations = tab.workstations();
-        List<ItemStack> canonicalWorkstations =
-                RecipeViewerDisplayEntryPolicy.canonicalWorkstations(typeId, rawWorkstations);
         for (AmiRecipeHolder<?> recipe : tab.recipes()) {
             RecipeLayout layout = RecipeDisplayHelper.getLayout(recipe, minecraft.level.registryAccess());
             candidates.add(new RecipeViewerDisplayEntryPolicy.Candidate(typeId, typeId, layout, rawWorkstations));
-            candidateMappings.add(new CandidateMapping(
-                    recipe,
-                    new RecipeViewerDisplayEntryPolicy.DisplayEntry(typeId, typeId, layout, canonicalWorkstations)));
         }
 
         List<RecipeViewerDisplayEntryPolicy.DisplayEntry> filteredEntries =
                 RecipeViewerDisplayEntryPolicy.visibleEntries(candidates);
-        boolean[] usedMappings = new boolean[candidateMappings.size()];
         List<VisibleEntry> resolvedEntries = new ArrayList<>(filteredEntries.size());
-        for (RecipeViewerDisplayEntryPolicy.DisplayEntry filteredEntry : filteredEntries) {
-            for (int i = 0; i < candidateMappings.size(); i++) {
-                CandidateMapping mapping = candidateMappings.get(i);
-                if (!usedMappings[i] && mapping.displayEntry().equals(filteredEntry)) {
-                    usedMappings[i] = true;
-                    resolvedEntries.add(new VisibleEntry(mapping.recipe(), filteredEntry));
-                    break;
-                }
-            }
+        for (Integer candidateIndex : RecipeViewerVisiblePageWindow.resolveVisibleCandidateIndexes(candidates, filteredEntries)) {
+            resolvedEntries.add(new VisibleEntry(tab.recipes().get(candidateIndex), filteredEntries.get(resolvedEntries.size())));
         }
         return List.copyOf(resolvedEntries);
     }
@@ -1410,11 +1399,6 @@ public class RecipeViewerScreen extends Screen {
     private record Tab(RecipeType<?> type, Component label, String shortLabel,
                        List<AmiRecipeHolder<?>> recipes,
                        ItemStack icon, List<ItemStack> workstations) {}
-
-    private record CandidateMapping(
-            AmiRecipeHolder<?> recipe,
-            RecipeViewerDisplayEntryPolicy.DisplayEntry displayEntry
-    ) {}
 
     private record VisibleEntry(
             AmiRecipeHolder<?> recipe,
