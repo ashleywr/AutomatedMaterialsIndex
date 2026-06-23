@@ -6,7 +6,6 @@ import com.sanhiruzu.ami.compat.GeneratedVariantCollapseCompat;
 import com.sanhiruzu.ami.compat.MalumCompat;
 import com.sanhiruzu.ami.compat.PastelCompat;
 import com.sanhiruzu.ami.compat.SilentGemsCompat;
-import com.sanhiruzu.ami.compat.SwemCompat;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -19,53 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SynesthesiaCompatTest {
-    @Test
-    void swemMetalComponentsNoLongerFallBackUnknown() {
-        Map<String, String> meta = meta("swem", "net.minecraft.world.item.Item");
-
-        SwemCompat.enrichItem(new ResourceLocation("swem", "rivet_copper"), meta);
-        CategoryAssignment assignment = resolve("swem:rivet_copper", meta);
-
-        assertEquals("components", meta.get("swemItemKind"));
-        assertTrue(meta.getOrDefault(SearchNodeKeys.FACETS, "").contains(ItemFacet.TECH_COMPONENT.id()));
-        assertEquals("ingredients", assignment.categoryId());
-        assertEquals("mineral", assignment.subcategoryId());
-    }
-
-    @Test
-    void swemHorseSpecificItemsPreferSwemHeaderOverGenericRoutes() {
-        Map<String, String> armor = meta("swem", "com.alaharranhonor.swem.item.tack.TackItem");
-        armor.put(SearchNodeKeys.FACETS, "armor_animal");
-        SwemCompat.enrichItem(new ResourceLocation("swem", "horse_armor_cloth"), armor);
-        CategoryAssignment armorAssignment = resolve("swem:horse_armor_cloth", armor);
-
-        Map<String, String> ridingHelmet = meta("swem", "com.alaharranhonor.swem.item.armor.RidingHelmet");
-        ridingHelmet.put(SearchNodeKeys.FACETS, "equippable,armor_head");
-        SwemCompat.enrichItem(new ResourceLocation("swem", "helmet_riding"), ridingHelmet);
-        CategoryAssignment helmetAssignment = resolve("swem:helmet_riding", ridingHelmet);
-
-        Map<String, String> feeder = meta("swem", "net.minecraft.world.item.BlockItem");
-        feeder.put(SearchNodeKeys.BLOCK_CLASS, "com.alaharranhonor.swem.block.GrainBinBlock");
-        feeder.put(SearchNodeKeys.FACETS, "placeable,has_block_entity");
-        feeder.put(SearchNodeKeys.TAGS, "swem:grain_bins");
-        SwemCompat.enrichItem(new ResourceLocation("swem", "bin_grain_white"), feeder);
-        CategoryAssignment feederAssignment = resolve("swem:bin_grain_white", feeder);
-
-        Map<String, String> jump = meta("swem", "com.alaharranhonor.swem.item.EggJumpItem");
-        SwemCompat.enrichItem(new ResourceLocation("swem", "jump_xc_bronze"), jump);
-        CategoryAssignment jumpAssignment = resolve("swem:jump_xc_bronze", jump);
-
-        assertEquals("horse_armor", armor.get("swemItemKind"));
-        assertEquals("swem", armorAssignment.categoryId());
-        assertEquals("horse_armor", armorAssignment.subcategoryId());
-        assertEquals("swem", helmetAssignment.categoryId());
-        assertEquals("riding_gear", helmetAssignment.subcategoryId());
-        assertEquals("swem", feederAssignment.categoryId());
-        assertEquals("feed", feederAssignment.subcategoryId());
-        assertEquals("swem", jumpAssignment.categoryId());
-        assertEquals("stable", jumpAssignment.subcategoryId());
-    }
-
     @Test
     void malumGeasRoutesToMagicAndCollapses() {
         Map<String, String> meta = meta("malum", "com.sammy.malum.common.item.GeasItem");
@@ -270,25 +222,6 @@ class SynesthesiaCompatTest {
         assertEquals("artifacts", nucleus.get("malumItemKind"));
         assertEquals("malum", nucleusAssignment.categoryId());
         assertEquals("artifacts", nucleusAssignment.subcategoryId());
-    }
-
-    @Test
-    void swemUnknownFamiliesExtendHorseCareFacts() {
-        Map<String, String> tracker = meta("swem", "com.alaharranhonor.swem.item.TrackerItem");
-        SwemCompat.enrichItem(new ResourceLocation("swem", "tracker"), tracker);
-        CategoryAssignment trackerAssignment = resolve("swem:tracker", tracker);
-
-        Map<String, String> mortar = meta("swem", "com.alaharranhonor.swem.item.PestleMortarItem");
-        mortar.put(SearchNodeKeys.TAGS, "swem:pestle_mortar");
-        SwemCompat.enrichItem(new ResourceLocation("swem", "pestle_mortar"), mortar);
-        CategoryAssignment mortarAssignment = resolve("swem:pestle_mortar", mortar);
-
-        assertEquals("horse_care", tracker.get("swemItemKind"));
-        assertEquals("swem", trackerAssignment.categoryId());
-        assertEquals("care", trackerAssignment.subcategoryId());
-        assertEquals("horse_care", mortar.get("swemItemKind"));
-        assertEquals("swem", mortarAssignment.categoryId());
-        assertEquals("care", mortarAssignment.subcategoryId());
     }
 
     @Test

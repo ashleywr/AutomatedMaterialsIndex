@@ -406,9 +406,6 @@ public class ItemProvider implements IAmiDataProvider {
                 || hasCompatFamily(meta, CompatFamilyDetector.SOPHISTICATED)) {
             ItemProviderCompatHooks.runCompatSafely("SophisticatedCompat", () -> SophisticatedCompat.enrichItem(id, meta));
         }
-        if (namespaceIs(id, "swem")) {
-            ItemProviderCompatHooks.runCompatSafely("SwemCompat", () -> SwemCompat.enrichItem(id, meta));
-        }
         if (namespaceIs(id, "malum")) {
             ItemProviderCompatHooks.runCompatSafely("MalumCompat", () -> MalumCompat.enrichItem(id, meta));
         }
