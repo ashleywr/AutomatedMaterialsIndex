@@ -1,6 +1,8 @@
 package com.sanhiruzu.ami.client;
 
 import com.sanhiruzu.ami.client.recipe.RecipeDisplayHelper.SlotPosition;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 
 import java.util.List;
 
@@ -16,8 +18,12 @@ final class RecipeViewerHoverHintPolicy {
     private RecipeViewerHoverHintPolicy() {
     }
 
-    static List<Hint> ingredientHints(SlotPosition slot) {
-        return slot.alternatives().size() > 1 ? List.of(Hint.INGREDIENT_SCROLL) : List.of();
+    static List<Hint> ingredientHints(SlotPosition slot, boolean shiftHeld) {
+        return shiftHeld && slot.alternatives().size() > 1 ? List.of(Hint.INGREDIENT_SCROLL) : List.of();
+    }
+
+    static MutableComponent ingredientCycleCounter(int altIndex, int totalAlternatives) {
+        return Component.literal((altIndex + 1) + "/" + totalAlternatives);
     }
 
     static List<Hint> transferButtonHints() {

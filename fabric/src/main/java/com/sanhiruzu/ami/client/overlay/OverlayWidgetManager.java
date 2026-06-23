@@ -140,9 +140,6 @@ public class OverlayWidgetManager {
         configureResultsCallbacks(slot.results);
         Runnable refreshSidebars = this::refreshSidebars;
         slot.sidebar.getInnerPanel().setOnReset(refreshSidebars);
-        if (leftSide) {
-            slot.sidebar.setOnCollapse(this::toggleLeftPanelCollapsed);
-        }
         if (hasAlternateContent(leftSide)) {
             slot.setOnModeToggle(leftSide ? this::toggleLeftAlternate : this::toggleRightAlternate,
                     leftSide ? () -> leftAlternateActive : () -> rightAlternateActive);

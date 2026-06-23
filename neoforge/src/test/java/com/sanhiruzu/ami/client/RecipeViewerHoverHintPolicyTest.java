@@ -22,14 +22,14 @@ class RecipeViewerHoverHintPolicyTest {
         ));
 
         assertEquals(List.of(Hint.INGREDIENT_SCROLL),
-                RecipeViewerHoverHintPolicy.ingredientHints(slot));
+                RecipeViewerHoverHintPolicy.ingredientHints(slot, true));
     }
 
     @Test
     void singleVariantIngredientSlotGetsNoExtraHint() {
         SlotPosition slot = new SlotPosition(4, 4, List.of(new ItemStack(Items.APPLE)));
 
-        assertEquals(List.of(), RecipeViewerHoverHintPolicy.ingredientHints(slot));
+        assertEquals(List.of(), RecipeViewerHoverHintPolicy.ingredientHints(slot, true));
     }
 
     @Test

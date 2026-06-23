@@ -202,6 +202,7 @@ public class ResultsToolbar implements SearchState.Listener {
 
     private void renderHoveredTooltip(GuiGraphics g, int mouseX, int mouseY) {
         if (mouseX < 0 || isAnyDropdownOpen()) return;
+        if (!Dropdown.contains(mouseX, mouseY, x, y, width, TOOLBAR_HEIGHT)) return;
 
         List<Component> tooltip = null;
         if (Dropdown.contains(mouseX + scrollOffset, mouseY, sortDirX, sortDirY, SORT_DIR_W, BUTTON_H)) {

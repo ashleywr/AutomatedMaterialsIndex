@@ -167,10 +167,10 @@ public class RecipeViewerScreen extends Screen {
     // never from recipe navigation. This keeps the panel from jumping size as recipes change.
     private void recomputePanelSize() {
         int screenH = minecraft != null ? minecraft.getWindow().getGuiScaledHeight() : height;
-        // Match JEI: height = screen - 76, clamped to [minH, 420]
-        int minH = CHROME_OVERHEAD + 102;   // enough for one standard recipe card
-        this.guiHeight = Math.max(minH, Math.min(screenH - 76, 420));
-        this.guiTop    = (screenH - guiHeight) / 2;
+        int minH = Math.max(175, CHROME_OVERHEAD + 102);
+        RecipeViewerScreenGeometry.Geometry geometry = RecipeViewerScreenGeometry.compute(screenH, minH);
+        this.guiHeight = geometry.guiHeight();
+        this.guiTop = geometry.guiTop();
         recomputeRecipesPerPage();
     }
 
@@ -755,10 +755,9 @@ public class RecipeViewerScreen extends Screen {
         List<Component> lines = new ArrayList<>(
                 net.minecraft.client.gui.screens.Screen.getTooltipFromItem(minecraft, stack));
         lines.add(Component.empty());
-        lines.add(Component.translatable("ami.recipe_viewer.ingredient_cycle",
-                altIdx + 1, slot.alternatives().size())
+        lines.add(RecipeViewerHoverHintPolicy.ingredientCycleCounter(altIdx, slot.alternatives().size())
                 .withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
-        appendHoverHints(lines, RecipeViewerHoverHintPolicy.ingredientHints(slot), slot);
+        appendHoverHints(lines, RecipeViewerHoverHintPolicy.ingredientHints(slot, hasShiftDown()), slot);
         g.renderTooltip(font, lines, java.util.Optional.empty(), mouseX, mouseY);
     }
 

@@ -16,6 +16,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class RecipeDisplayHelper {
+    private static final int CRAFTING_GRID_ORIGIN_X = 4;
+    private static final int CRAFTING_GRID_ORIGIN_Y = 4;
+    private static final int CRAFTING_GRID_SIZE = 3;
+
     private RecipeDisplayHelper() {
     }
 
@@ -41,39 +45,23 @@ public final class RecipeDisplayHelper {
             shapeless = !(recipe instanceof ShapedRecipe);
             // No vanilla texture — use AMI-styled slots for visual consistency.
             // drawSlotBackground stays true (default).
-            int gridOriginX = 4;
-            int gridOriginY = 4;
-
             List<Ingredient> ingredients = recipe.getIngredients();
-            List<Ingredient> padded = new ArrayList<>();
-            int cols = 3, rows = 3;
+            List<List<ItemStack>> ingredientAlternatives = new ArrayList<>(ingredients.size());
+            int recipeWidth = 0;
+            int recipeHeight = 0;
             if (recipe instanceof ShapedRecipe shaped) {
-                cols = shaped.getWidth();
-                rows = shaped.getHeight();
-                for (int y = 0; y < rows; y++) {
-                    for (int x = 0; x < cols; x++) {
-                        padded.add(ingredients.get(y * cols + x));
-                    }
-                }
-            } else {
-                cols = 3; rows = 3;
-                for (int i = 0; i < 9; i++) {
-                    padded.add(i < ingredients.size() ? ingredients.get(i) : Ingredient.EMPTY);
-                }
+                recipeWidth = shaped.getWidth();
+                recipeHeight = shaped.getHeight();
             }
-
-            for (int i = 0; i < padded.size(); i++) {
-                int col = i % cols;
-                int row = i / cols;
-                Ingredient ing = padded.get(i);
-                List<ItemStack> alternatives = ing.isEmpty() ? List.of() : List.of(ing.getItems());
-                inputs.add(new SlotPosition(gridOriginX + col * 18, gridOriginY + row * 18, alternatives));
+            for (Ingredient ingredient : ingredients) {
+                ingredientAlternatives.add(ingredient.isEmpty() ? List.of() : List.of(ingredient.getItems()));
             }
+            inputs.addAll(createCraftingGridSlots(ingredientAlternatives, recipeWidth, recipeHeight));
 
-            gridW = cols;
-            gridH = rows;
-            int gridEndX = gridOriginX + cols * 18;
-            int gridMidY = gridOriginY + rows * 9 - 9;
+            gridW = CRAFTING_GRID_SIZE;
+            gridH = CRAFTING_GRID_SIZE;
+            int gridEndX = CRAFTING_GRID_ORIGIN_X + CRAFTING_GRID_SIZE * 18;
+            int gridMidY = CRAFTING_GRID_ORIGIN_Y + CRAFTING_GRID_SIZE * 9 - 9;
             arrowX = gridEndX + 4;
             arrowY = gridMidY;
             outputX = arrowX + 26;
@@ -345,6 +333,65 @@ public final class RecipeDisplayHelper {
         return new GenericFallbackLayout(inputs, cols, rows, outputX, outputY, arrowX, arrowY);
     }
 
+    static List<SlotPosition> createCraftingGridSlots(List<List<ItemStack>> ingredientAlternatives, int width, int height) {
+        List<List<ItemStack>> alternativesBySlot = new ArrayList<>(CRAFTING_GRID_SIZE * CRAFTING_GRID_SIZE);
+        for (int i = 0; i < CRAFTING_GRID_SIZE * CRAFTING_GRID_SIZE; i++) {
+            alternativesBySlot.add(List.of());
+        }
+
+        for (int i = 0; i < ingredientAlternatives.size(); i++) {
+            int slotIndex = craftingGridIndex(i, width, height);
+            if (slotIndex < 0 || slotIndex >= alternativesBySlot.size()) {
+                continue;
+            }
+            List<ItemStack> alternatives = ingredientAlternatives.get(i);
+            alternativesBySlot.set(slotIndex, alternatives == null ? List.of() : alternatives);
+        }
+
+        List<SlotPosition> slots = new ArrayList<>(alternativesBySlot.size());
+        for (int i = 0; i < alternativesBySlot.size(); i++) {
+            int col = i % CRAFTING_GRID_SIZE;
+            int row = i / CRAFTING_GRID_SIZE;
+            slots.add(new SlotPosition(
+                    CRAFTING_GRID_ORIGIN_X + col * 18,
+                    CRAFTING_GRID_ORIGIN_Y + row * 18,
+                    alternativesBySlot.get(i)));
+        }
+        return slots;
+    }
+
+    private static int craftingGridIndex(int ingredientIndex, int width, int height) {
+        if (width <= 0 || height <= 0) {
+            return ingredientIndex;
+        }
+        if (width == 1) {
+            if (height == 3) {
+                return ingredientIndex * 3 + 1;
+            }
+            if (height == 2) {
+                return ingredientIndex * 3 + 1;
+            }
+            return 4;
+        }
+        if (height == 1) {
+            return ingredientIndex + 3;
+        }
+        if (width == 2) {
+            int index = ingredientIndex;
+            if (ingredientIndex > 1) {
+                index++;
+                if (ingredientIndex > 3) {
+                    index++;
+                }
+            }
+            return index;
+        }
+        if (height == 2) {
+            return ingredientIndex + 3;
+        }
+        return ingredientIndex;
+    }
+
     /** Returns true for recipe types that have a dedicated bespoke renderer (no generic fallback). */
     public static boolean hasDedicatedLayout(RecipeType<?> type) {
         if (type == RecipeType.CRAFTING || type == RecipeType.SMITHING || type == RecipeType.STONECUTTING)
@@ -525,4 +572,3 @@ public final class RecipeDisplayHelper {
     ) {
     }
 }
-

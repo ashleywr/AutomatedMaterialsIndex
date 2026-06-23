@@ -118,8 +118,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         super.setFocused(focused);
         if (!focused) {
             resetInventoryFilterDoubleClick();
-            suggestions = List.of();
-            suggestionScrollOffset = 0;
+            dismissSuggestionsPopup();
         } else {
             updateSuggestions();
         }
@@ -276,8 +275,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
 
     private void toggleSearchHelp() {
         helpOpen = !helpOpen;
-        suggestions = List.of();
-        suggestionScrollOffset = 0;
+        dismissSuggestionsPopup();
         helpScrollOffset = 0;
     }
 
@@ -378,8 +376,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
                 return true;
             }
             if (hasVisibleSuggestions()) {
-                suggestions = List.of();
-                suggestionScrollOffset = 0;
+                dismissSuggestionsPopup();
                 return true;
             }
             unfocus();
@@ -456,15 +453,13 @@ public abstract class AbstractSearchBarWidget extends EditBox {
 
     public void submitAndUnfocus() {
         queryHistory.submit(getValue());
-        suggestions = List.of();
-        suggestionScrollOffset = 0;
+        dismissSuggestionsPopup();
         helpOpen = false;
         unfocus();
     }
 
     public void unfocus() {
-        suggestions = List.of();
-        suggestionScrollOffset = 0;
+        dismissSuggestionsPopup();
         helpOpen = false;
         setFocused(false);
         Screen screen = Minecraft.getInstance().screen;
@@ -485,6 +480,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         setValue("");
         focusForInput();
         doMoveCursorToEnd();
+        dismissSuggestionsPopup();
     }
 
     public void toggleToken(String token) {
@@ -565,6 +561,12 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         ensureSelectedSuggestionVisible();
     }
 
+    private void dismissSuggestionsPopup() {
+        suggestions = List.of();
+        selectedSuggestion = 0;
+        suggestionScrollOffset = 0;
+    }
+
     private boolean acceptSelectedSuggestion() {
         if (!hasVisibleSuggestions()) {
             return false;
@@ -577,9 +579,7 @@ public abstract class AbstractSearchBarWidget extends EditBox {
         if (suggestion.replacement().endsWith(":")) {
             updateSuggestions();
         } else {
-            suggestions = List.of();
-            selectedSuggestion = 0;
-            suggestionScrollOffset = 0;
+            dismissSuggestionsPopup();
         }
         return true;
     }
