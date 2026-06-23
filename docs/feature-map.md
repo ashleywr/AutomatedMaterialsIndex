@@ -4,7 +4,7 @@
 
 - User surface: right-clicking an item result can open a dedicated `Sources: <item>` list that explains direct and
   shallow indirect acquisition routes instead of filtering the normal search results. The same view is addressable from
-  the search bar with `?sources=<item>`, such as `?sources=minecraft:leather` or `?sources=leather`.
+  the search bar with `?sources:<item>`, such as `?sources:minecraft:leather` or `?sources:leather`.
 - Main files:
   - `xplat/src/main/java/com/sanhiruzu/ami/client/sources/ItemSourceResolver.java`
   - `xplat/src/main/java/com/sanhiruzu/ami/client/sources/ItemSourceViewProjector.java`
@@ -92,13 +92,63 @@
     drop data is unavailable on this client, server datapacks exposed no loot table JSON, no entity loot tables matched,
     or loot item references did not match indexed AMI nodes.
   - The source list is route-backed panel state. Opening `Sources` from a context menu replaces the search bar with
-    `?sources=<registry id>` while remembering the previous query for the source-view back button. Clicking a linked row
+    `?sources:<registry id>` while remembering the previous query for the source-view back button. Clicking a linked row
     replaces the query with that node's registry id for normal AMI navigation/search.
-  - Pasting or typing a `?sources=<target>` route into the search bar bypasses the normal search debounce on every loader
+  - Pasting or typing a `?sources:<target>` route into the search bar bypasses the normal search debounce on every loader
     so the panel enters the source view immediately instead of briefly treating the route as ordinary search text.
-  - Search suggestions/help treat `?sources=` as static route syntax, not warmed source data. Typing `?s` can suggest
-    `?sources=`, and the help popup advertises `?sources=leather`; this does not require item-source cache prefill or
-    source-index warmup.
+    Older pasted `?sources=<target>` routes are accepted as a legacy alias, but newly formatted routes use the colon
+    form so they match the rest of AMI's query prefixes.
+  - Search suggestions/help treat `?sources:` as route syntax, not warmed source data. Typing `?s` can suggest
+    `?sources:`, the help popup advertises `?sources:leather`, and typing after the colon suggests canonical item route
+    targets plus namespace filters such as `?sources:minecraft:` from the already-indexed visible item vocabulary. Empty
+    `?sources:` target completion suggests namespaces only, not item targets. Item target completion uses a dedicated
+    cached source-route suggestion index with pre-normalized item records and a bounded top-N scan, so large packs do not
+    sort every matching item or walk the generic alias map on each keystroke. This does not require item-source cache
+    prefill or source-index warmup.
+
+## Entity Details View
+
+- User surface: right-clicking an entity/mob result can open a route-backed `Mob: <entity>` view with the compact facts
+  AMI already knows: stats, spawn biomes, and known drops. The same view is addressable from the search bar with
+  `?entity:<entity>`; `?mob:<entity>` is accepted as a player-friendly alias.
+- Main files:
+  - `xplat/src/main/java/com/sanhiruzu/ami/client/entitydetails/EntityDetailsQuery.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/client/entitydetails/EntityDetailsResolver.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/client/entitydetails/EntityDetailsViewProjector.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/client/entitydetails/EntityDetailsListView.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/client/UniversalResultsPanel.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/client/results/ResultContextMenuActionBuilder.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/index/query/SearchSuggestions.java`
+- Tests:
+  - `.\gradlew.bat :neoforge:test --tests "*EntityDetails*Test" --tests "*SearchSuggestionsTest" --tests "*ItemSourceOverlayRouteContractTest" --tests "*ResultContextMenuActionBuilderTest" --tests "*AmiConfigTest"`
+- State contract:
+  - The context action is `ami:entity_details` and is visible for `NodeType.ENTITY` rows when the owning panel can open
+    the entity details view. Existing default context-menu configs are treated as default configs so updating AMI exposes
+    the new action without requiring users to delete config files.
+  - `?entity:<target>` is the canonical route and `?mob:<target>` is an alias. Bare `entity:<target>` and
+    `mob:<target>` remain normal search text, matching the collision-avoidance rule used by `?sources:`.
+  - Short targets such as `?entity:cow` resolve only when the path/display-name match is unique among indexed entity
+    nodes; ambiguous short names do not guess.
+  - The resolver reads only indexed data: `SearchNodeKeys.ENTITY_HEALTH`, `ENTITY_ATTACK_DAMAGE`, `ENTITY_CATEGORY`,
+    `FIRE_IMMUNE`, `ENTITY_TRAITS`, `ENTITY --SPAWNS_IN--> BIOME`, and `ENTITY --DROPS--> ITEM`. It canonicalizes copied
+    result nodes back to the live indexed node and resolves unresolved edge IDs from the indexed node collection.
+  - Drop rows are honest known-drop rows. AMI does not show percentages until the loot index records evaluated pool,
+    condition, function, and looting metadata.
+  - The list renderer follows the Sources separation: resolver data goes into `EntityDetailsViewProjector`, which emits
+    immutable rows and hit targets; `EntityDetailsListView` only renders and dispatches. Biome rows left-click locate and
+    right-click open the normal context menu. Drop rows left-click open recipes for that item and right-click open the
+    normal item context menu.
+  - Mob Info uses a dedicated projected detail layout rather than normal search-result cards: stat rows collapse into a
+    compact overview tile grid with structured stat kinds for health, damage, effects, and traits, while spawns/drops
+    stay as linked icon rows with fixed geometry and clipped hit targets. Health is shown in hearts, damage uses combat
+    language, generic entity categories are not shown as stat text, and drop rows do not include placeholder chance copy.
+    This keeps tall fact lists from overflowing the panel and keeps visual polish in `EntityDetailsListView` while
+    geometry and navigation remain testable in `EntityDetailsViewProjector`.
+  - Opening an entity route demand-starts the existing deferred source enrichment path for loot drops and spawn biomes.
+    While source phases are pending, the entity details list shows a loading row and refreshes when the global graph
+    revision or source loading state changes.
+  - Search suggestions/help treat `?entity:` and `?mob:` as route syntax, not source graph warmup. Typing after the colon
+    suggests canonical entity route targets and namespace filters from a dedicated cached visible-entity route index.
 
 ## Release Artifact Metadata
 

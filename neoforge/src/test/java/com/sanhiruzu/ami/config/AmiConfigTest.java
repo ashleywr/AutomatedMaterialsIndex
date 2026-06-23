@@ -35,6 +35,7 @@ public class AmiConfigTest {
         assertFalse(AmiConfig.startHidden);
         assertFalse(AmiConfig.disableAutoCompact);
         assertTrue(AmiConfig.resultsExpandedByDefault);
+        assertTrue(AmiConfig.contextMenuEnabledActions.contains("ami:entity_details"));
     }
 
     @Test

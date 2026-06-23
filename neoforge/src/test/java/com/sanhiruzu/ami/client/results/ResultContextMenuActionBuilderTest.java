@@ -144,6 +144,34 @@ class ResultContextMenuActionBuilderTest {
     }
 
     @Test
+    void entityNodesExposeMobInfoActionWhenPanelCanOpenEntityDetailsView() {
+        ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder();
+        AtomicReference<SearchNode> opened = new AtomicReference<>();
+        SearchNode cow = new SearchNode(new ResourceLocation("minecraft:cow"), NodeType.ENTITY,
+                "Cow", 0, 0, Map.of());
+
+        List<ResultContextMenu.Action> actions = builder.forItem(
+                new ResultContextMenuActionBuilder.ItemContext(
+                        cow,
+                        ItemStack.EMPTY,
+                        null,
+                        ignored -> {
+                        },
+                        null,
+                        null,
+                        opened::set
+                )
+        );
+
+        ResultContextMenu.Action details = firstAction(actions, ResultContextMenuActionBuilder.ENTITY_DETAILS);
+        assertEquals("ami.context.mob_info", details.label().getString());
+
+        details.onClick().run();
+
+        assertEquals(cow, opened.get());
+    }
+
+    @Test
     void playerNodesUsePlayerSpecificActionsAndGateAdminCommands() {
         ResultContextMenuActionBuilder regularBuilder = new ResultContextMenuActionBuilder(() -> false);
         com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler favorites =
@@ -1043,6 +1071,15 @@ class ResultContextMenuActionBuilderTest {
     }
 
     @Test
+    void preEntityDetailsDefaultContextMenuConfigPicksUpEntityDetailsAction() {
+        String preEntityDetailsDefault = ResultContextMenuActionBuilder.DEFAULT_ACTIONS
+                .replace(ResultContextMenuActionBuilder.ENTITY_DETAILS + ",", "");
+
+        assertTrue(ResultContextMenuActionPolicy.parseEnabledActionIds(preEntityDetailsDefault)
+                .contains(ResultContextMenuActionBuilder.ENTITY_DETAILS));
+    }
+
+    @Test
     void preQuestLegacyDefaultContextMenuConfigPicksUpNewDefaultActions() {
         String legacyDefault = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,"
                 + "ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,"
@@ -1069,6 +1106,7 @@ class ResultContextMenuActionBuilderTest {
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.WIKI));
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.CHAT));
         assertTrue(!enabled.contains(ResultContextMenuActionBuilder.SOURCES));
+        assertTrue(!enabled.contains(ResultContextMenuActionBuilder.ENTITY_DETAILS));
     }
 
     @Test

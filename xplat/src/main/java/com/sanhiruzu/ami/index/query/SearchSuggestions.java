@@ -266,6 +266,7 @@ public final class SearchSuggestions {
         if (separator < 0) {
             List<Suggestion> suggestions = new ArrayList<>();
             addSuggestions(suggestions, sourceRouteSuggestions(token, body, limit), limit);
+            addSuggestions(suggestions, entityRouteSuggestions(token, body, limit), limit);
             addSuggestions(suggestions, fieldSuggestions(vocabulary, query, token, body, limit), limit);
             if (isExactPropertyFieldAlias(body)) {
                 return filterAmiPropertySuggestions(vocabulary, suggestions);
@@ -275,6 +276,15 @@ public final class SearchSuggestions {
         }
 
         String rawField = body.substring(0, separator);
+        if (isSourcesRouteField(rawField)) {
+            return sourceRouteTargetSuggestions(vocabulary, token, body.substring(separator + 1), limit);
+        }
+        if (isEntityDetailsRouteField(rawField)) {
+            String routePrefix = SearchSyntax.MOB_DETAILS_ROUTE_FIELD.equals(normalizeField(rawField))
+                    ? SearchSyntax.MOB_DETAILS_ROUTE_PREFIX
+                    : SearchSyntax.ENTITY_DETAILS_ROUTE_PREFIX;
+            return entityRouteTargetSuggestions(vocabulary, token, body.substring(separator + 1), limit, routePrefix);
+        }
         String field = SearchSyntax.propertyField(rawField)
                 .map(SearchSyntax.PropertyField::id)
                 .orElseGet(() -> normalizeField(rawField));
@@ -287,16 +297,99 @@ public final class SearchSuggestions {
     }
 
     private static List<Suggestion> sourceRouteSuggestions(ActiveToken token, String prefix, int limit) {
+        return staticRouteSuggestions(token, prefix, limit, SearchSyntax.SOURCES_ROUTE_PREFIX);
+    }
+
+    private static List<Suggestion> entityRouteSuggestions(ActiveToken token, String prefix, int limit) {
+        List<Suggestion> suggestions = new ArrayList<>();
+        addSuggestions(suggestions, staticRouteSuggestions(token, prefix, limit, SearchSyntax.ENTITY_DETAILS_ROUTE_PREFIX), limit);
+        addSuggestions(suggestions, staticRouteSuggestions(token, prefix, limit, SearchSyntax.MOB_DETAILS_ROUTE_PREFIX), limit);
+        return suggestions;
+    }
+
+    private static List<Suggestion> staticRouteSuggestions(ActiveToken token, String prefix, int limit, String routePrefix) {
         if (token.negated() || limit <= 0) {
             return List.of();
         }
         String body = normalizeValuePrefix(prefix);
-        String routeBody = SearchSyntax.SOURCES_ROUTE_PREFIX.substring(1);
+        String routeBody = routePrefix.substring(1);
         if (!routeBody.startsWith(body)) {
             return List.of();
         }
-        return List.of(new Suggestion(SearchSyntax.SOURCES_ROUTE_PREFIX, SearchSyntax.SOURCES_ROUTE_PREFIX, "route",
+        return List.of(new Suggestion(routePrefix, routePrefix, "route",
                 token.start(), token.end(), Kind.PROPERTY, false));
+    }
+
+    private static boolean isSourcesRouteField(String rawField) {
+        return SearchSyntax.SOURCES_ROUTE_FIELD.equals(normalizeField(rawField));
+    }
+
+    private static boolean isEntityDetailsRouteField(String rawField) {
+        String normalized = normalizeField(rawField);
+        return SearchSyntax.ENTITY_DETAILS_ROUTE_FIELD.equals(normalized)
+                || SearchSyntax.MOB_DETAILS_ROUTE_FIELD.equals(normalized);
+    }
+
+    private static List<Suggestion> sourceRouteTargetSuggestions(Vocabulary vocabulary, ActiveToken token, String typedTarget, int limit) {
+        if (token.negated() || limit <= 0) {
+            return List.of();
+        }
+        List<Suggestion> suggestions = new ArrayList<>();
+        addSuggestions(suggestions, sourceRouteNamespaceSuggestions(vocabulary, token, typedTarget, limit), limit);
+        addSuggestions(suggestions, sourceRouteItemSuggestions(vocabulary, token, typedTarget, limit), limit);
+        return suggestions;
+    }
+
+    private static List<Suggestion> entityRouteTargetSuggestions(Vocabulary vocabulary, ActiveToken token,
+                                                                 String typedTarget, int limit, String routePrefix) {
+        if (token.negated() || limit <= 0) {
+            return List.of();
+        }
+        List<Suggestion> suggestions = new ArrayList<>();
+        addSuggestions(suggestions, routeNamespaceSuggestions(vocabulary.entityRouteIndex, token, typedTarget, limit, routePrefix), limit);
+        addSuggestions(suggestions, routeNodeSuggestions(vocabulary.entityRouteIndex, token, typedTarget, limit, routePrefix), limit);
+        return suggestions;
+    }
+
+    private static List<Suggestion> sourceRouteNamespaceSuggestions(Vocabulary vocabulary, ActiveToken token, String typedTarget, int limit) {
+        return routeNamespaceSuggestions(vocabulary.sourceRouteIndex, token, typedTarget, limit, SearchSyntax.SOURCES_ROUTE_PREFIX);
+    }
+
+    private static List<Suggestion> routeNamespaceSuggestions(SourceRouteSuggestionIndex routeIndex, ActiveToken token,
+                                                              String typedTarget, int limit, String routePrefix) {
+        if (typedTarget == null || typedTarget.contains(":")) {
+            return List.of();
+        }
+        List<SourceRouteNamespaceMatch> matches = routeIndex.namespaceMatches(typedTarget, limit);
+        if (matches.isEmpty()) {
+            return List.of();
+        }
+        List<Suggestion> suggestions = new ArrayList<>(matches.size());
+        for (SourceRouteNamespaceMatch match : matches) {
+            String replacement = routePrefix + match.namespace() + ":";
+            suggestions.add(new Suggestion(replacement, replacement, countDetail(match.count()),
+                    token.start(), token.end(), Kind.MOD, false));
+        }
+        return suggestions;
+    }
+
+    private static List<Suggestion> sourceRouteItemSuggestions(Vocabulary vocabulary, ActiveToken token, String typedTarget, int limit) {
+        return routeNodeSuggestions(vocabulary.sourceRouteIndex, token, typedTarget, limit, SearchSyntax.SOURCES_ROUTE_PREFIX);
+    }
+
+    private static List<Suggestion> routeNodeSuggestions(SourceRouteSuggestionIndex routeIndex, ActiveToken token,
+                                                         String typedTarget, int limit, String routePrefix) {
+        List<SourceRouteItemMatch> matches = routeIndex.itemMatches(typedTarget, limit);
+        if (matches.isEmpty()) {
+            return List.of();
+        }
+        List<Suggestion> suggestions = new ArrayList<>(Math.min(limit, matches.size()));
+        for (SourceRouteItemMatch match : matches) {
+            String replacement = routePrefix + match.id();
+            suggestions.add(new Suggestion(replacement, replacement, match.displayName(),
+                    token.start(), token.end(), Kind.PROPERTY, false));
+        }
+        return suggestions;
     }
 
     private static List<Suggestion> filterAmiPropertySuggestions(Vocabulary vocabulary, List<Suggestion> suggestions) {
@@ -635,6 +728,12 @@ public final class SearchSuggestions {
     private record ValueCount(String value, int count) {
     }
 
+    private record SourceRouteNamespaceMatch(String namespace, int count, int rank) {
+    }
+
+    private record SourceRouteItemMatch(String id, String displayName, int rank) {
+    }
+
     private static final class Vocabulary {
         final CountedValues mods = new CountedValues();
         final CountedValues tags = new CountedValues();
@@ -665,6 +764,8 @@ public final class SearchSuggestions {
         final CountedValues pokemonEggGroups = new CountedValues();
         final CountedValues meta = new CountedValues();
         final CountedValues numericFields = new CountedValues();
+        final SourceRouteSuggestionIndex sourceRouteIndex = new SourceRouteSuggestionIndex();
+        final SourceRouteSuggestionIndex entityRouteIndex = new SourceRouteSuggestionIndex();
         final boolean devMode;
 
         Vocabulary() {
@@ -723,6 +824,12 @@ public final class SearchSuggestions {
         }
 
         private void add(SearchNode node, boolean includeDebugTokens) {
+            if (node.type() == NodeType.ITEM) {
+                sourceRouteIndex.addItem(node);
+            }
+            if (node.type() == NodeType.ENTITY) {
+                entityRouteIndex.addItem(node);
+            }
             categories.add(AmiOntology.classifyNode(node).id);
             ami.add(AmiOntology.classifyNode(node).id);
             addTokens(ami, node.meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY, ""));
@@ -1026,5 +1133,145 @@ public final class SearchSuggestions {
             }
             return 1;
         }
+    }
+
+    private static final class SourceRouteSuggestionIndex {
+        private final Map<String, Integer> namespaceCounts = new LinkedHashMap<>();
+        private final List<SourceRouteItemEntry> items = new ArrayList<>();
+
+        void addItem(SearchNode node) {
+            String namespace = cleanToken(node.id().getNamespace());
+            String path = cleanToken(node.id().getPath());
+            String id = namespace + ":" + path;
+            if (namespace.isBlank() || path.isBlank()) {
+                return;
+            }
+            namespaceCounts.merge(namespace, 1, Integer::sum);
+            items.add(new SourceRouteItemEntry(id, node.displayName(), namespace, path,
+                    normalizeValuePrefix(id), normalizeValuePrefix(node.displayName())));
+        }
+
+        List<SourceRouteNamespaceMatch> namespaceMatches(String typedTarget, int limit) {
+            if (limit <= 0) {
+                return List.of();
+            }
+            String prefix = normalizeValuePrefix(typedTarget);
+            List<SourceRouteNamespaceMatch> matches = new ArrayList<>(Math.min(limit, namespaceCounts.size()));
+            for (var entry : namespaceCounts.entrySet()) {
+                int rank = namespaceMatchRank(entry.getKey(), prefix);
+                if (rank >= 0) {
+                    insertNamespaceMatch(matches, new SourceRouteNamespaceMatch(entry.getKey(), entry.getValue(), rank), limit);
+                }
+            }
+            return matches;
+        }
+
+        List<SourceRouteItemMatch> itemMatches(String typedTarget, int limit) {
+            if (limit <= 0) {
+                return List.of();
+            }
+            String normalized = normalizeValuePrefix(typedTarget);
+            if (normalized.isBlank()) {
+                return List.of();
+            }
+
+            String namespacePrefix = "";
+            String itemPrefix = normalized;
+            int separator = normalized.indexOf(':');
+            if (separator >= 0) {
+                namespacePrefix = normalized.substring(0, separator);
+                itemPrefix = normalized.substring(separator + 1);
+            }
+
+            List<SourceRouteItemMatch> matches = new ArrayList<>(Math.min(limit, items.size()));
+            for (SourceRouteItemEntry item : items) {
+                int rank = itemMatchRank(item, namespacePrefix, itemPrefix, normalized, separator >= 0);
+                if (rank >= 0) {
+                    insertItemMatch(matches, new SourceRouteItemMatch(item.id(), item.displayName(), rank), limit);
+                }
+            }
+            return matches;
+        }
+
+        private int namespaceMatchRank(String namespace, String prefix) {
+            if (prefix.isBlank()) {
+                return 0;
+            }
+            if (namespace.startsWith(prefix)) {
+                return 0;
+            }
+            return namespace.contains(prefix) ? 1 : -1;
+        }
+
+        private int itemMatchRank(SourceRouteItemEntry item, String namespacePrefix, String itemPrefix,
+                                  String fullPrefix, boolean hasNamespacePrefix) {
+            if (hasNamespacePrefix && !item.namespace().startsWith(namespacePrefix)) {
+                return -1;
+            }
+            if (itemPrefix.isBlank()) {
+                return hasNamespacePrefix ? 0 : -1;
+            }
+            if (item.path().startsWith(itemPrefix) || item.normalizedDisplayName().startsWith(itemPrefix)) {
+                return 0;
+            }
+            if (hasNamespacePrefix && item.normalizedId().startsWith(fullPrefix)) {
+                return 0;
+            }
+            if (item.path().contains(itemPrefix) || item.normalizedDisplayName().contains(itemPrefix)) {
+                return 1;
+            }
+            if (item.normalizedId().contains(fullPrefix)) {
+                return 2;
+            }
+            return -1;
+        }
+
+        private void insertNamespaceMatch(List<SourceRouteNamespaceMatch> matches,
+                                          SourceRouteNamespaceMatch candidate,
+                                          int limit) {
+            int index = 0;
+            while (index < matches.size() && compareNamespace(matches.get(index), candidate) <= 0) {
+                index++;
+            }
+            if (index >= limit) {
+                return;
+            }
+            matches.add(index, candidate);
+            if (matches.size() > limit) {
+                matches.remove(matches.size() - 1);
+            }
+        }
+
+        private int compareNamespace(SourceRouteNamespaceMatch left, SourceRouteNamespaceMatch right) {
+            int byRank = Integer.compare(left.rank(), right.rank());
+            if (byRank != 0) return byRank;
+            int byCount = Integer.compare(right.count(), left.count());
+            if (byCount != 0) return byCount;
+            return left.namespace().compareTo(right.namespace());
+        }
+
+        private void insertItemMatch(List<SourceRouteItemMatch> matches, SourceRouteItemMatch candidate, int limit) {
+            int index = 0;
+            while (index < matches.size() && compareItem(matches.get(index), candidate) <= 0) {
+                index++;
+            }
+            if (index >= limit) {
+                return;
+            }
+            matches.add(index, candidate);
+            if (matches.size() > limit) {
+                matches.remove(matches.size() - 1);
+            }
+        }
+
+        private int compareItem(SourceRouteItemMatch left, SourceRouteItemMatch right) {
+            int byRank = Integer.compare(left.rank(), right.rank());
+            if (byRank != 0) return byRank;
+            return left.id().compareTo(right.id());
+        }
+    }
+
+    private record SourceRouteItemEntry(String id, String displayName, String namespace, String path,
+                                        String normalizedId, String normalizedDisplayName) {
     }
 }

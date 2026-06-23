@@ -248,9 +248,111 @@ class SearchSuggestionsTest {
         GlobalIndex index = GlobalIndex.getInstance();
         index.addNode(item("minecraft", "stone", "Stone", Map.of()));
 
-        assertSuggests(index, "?s", "?sources=");
-        assertSuggests(index, "?sources", "?sources=");
-        assertTrue(helpExamples(index).contains("?sources=leather"));
+        assertSuggests(index, "?s", "?sources:");
+        assertSuggests(index, "?sources", "?sources:");
+        assertTrue(helpExamples(index).contains("?sources:leather"));
+    }
+
+    @Test
+    void suggestsSourcesRouteItemTargetsFromVisibleItems() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("minecraft", "leather", "Leather", Map.of()));
+        index.addNode(item("minecraft", "leather_horse_armor", "Leather Horse Armor", Map.of()));
+        index.addNode(item("examplemod", "raw_leather_strip", "Raw Leather Strip", Map.of(
+                SearchNodeKeys.MOD_ID, "examplemod"
+        )));
+
+        assertSuggestion(index, "?sources:leath", "?sources:minecraft:leather", "?sources:minecraft:leather");
+        assertSuggestion(index, "?sources:minecraft:leath", "?sources:minecraft:leather", "?sources:minecraft:leather");
+        assertSuggestion(index, "?sources:raw", "?sources:examplemod:raw_leather_strip", "?sources:examplemod:raw_leather_strip");
+    }
+
+    @Test
+    void suggestsSourcesRouteModNamespacesBeforeItemTargets() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("minecraft", "leather", "Leather", Map.of()));
+        index.addNode(item("examplemod", "leather_patch", "Leather Patch", Map.of(
+                SearchNodeKeys.MOD_ID, "examplemod"
+        )));
+
+        assertSuggestion(index, "?sources:mine", "?sources:minecraft:", "?sources:minecraft:");
+        assertSuggestion(index, "?sources:example", "?sources:examplemod:", "?sources:examplemod:");
+    }
+
+    @Test
+    void emptySourcesRouteTargetOnlySuggestsNamespaces() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("minecraft", "leather", "Leather", Map.of()));
+        index.addNode(item("examplemod", "leather_patch", "Leather Patch", Map.of(
+                SearchNodeKeys.MOD_ID, "examplemod"
+        )));
+
+        List<String> displays = suggestionDisplays(index, "?sources:");
+
+        assertTrue(displays.contains("?sources:minecraft:"));
+        assertTrue(displays.contains("?sources:examplemod:"));
+        assertFalse(displays.contains("?sources:minecraft:leather"));
+        assertFalse(displays.contains("?sources:examplemod:leather_patch"));
+    }
+
+    @Test
+    void suggestsStaticEntityDetailsRouteWithoutSourceWarmup() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(node("minecraft", "cow", NodeType.ENTITY, "Cow", Map.of()));
+
+        assertSuggests(index, "?e", "?entity:");
+        assertSuggests(index, "?entity", "?entity:");
+        assertSuggests(index, "?m", "?mob:");
+        assertTrue(helpExamples(index).contains("?entity:cow"));
+    }
+
+    @Test
+    void suggestsEntityDetailsRouteTargetsFromVisibleEntities() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(node("minecraft", "cow", NodeType.ENTITY, "Cow", Map.of()));
+        index.addNode(node("minecraft", "mooshroom", NodeType.ENTITY, "Mooshroom", Map.of()));
+        index.addNode(node("examplemod", "highland_cow", NodeType.ENTITY, "Highland Cow", Map.of(
+                SearchNodeKeys.MOD_ID, "examplemod"
+        )));
+
+        assertSuggestion(index, "?entity:c", "?entity:minecraft:cow", "?entity:minecraft:cow");
+        assertSuggestion(index, "?entity:high", "?entity:examplemod:highland_cow", "?entity:examplemod:highland_cow");
+        assertSuggestion(index, "?mob:moo", "?mob:minecraft:mooshroom", "?mob:minecraft:mooshroom");
+        assertSuggestion(index, "?entity:mine", "?entity:minecraft:", "?entity:minecraft:");
+    }
+
+    @Test
+    void emptyEntityDetailsRouteTargetOnlySuggestsNamespaces() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(node("minecraft", "cow", NodeType.ENTITY, "Cow", Map.of()));
+        index.addNode(node("examplemod", "highland_cow", NodeType.ENTITY, "Highland Cow", Map.of(
+                SearchNodeKeys.MOD_ID, "examplemod"
+        )));
+
+        List<String> displays = suggestionDisplays(index, "?entity:");
+
+        assertTrue(displays.contains("?entity:minecraft:"));
+        assertTrue(displays.contains("?entity:examplemod:"));
+        assertFalse(displays.contains("?entity:minecraft:cow"));
+        assertFalse(displays.contains("?entity:examplemod:highland_cow"));
+    }
+
+    @Test
+    void entityDetailsRouteTargetSuggestionsRespectVisibility() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(node("minecraft", "cow", NodeType.ENTITY, "Cow", Map.of()));
+        index.addNode(node("examplemod", "debug_cow", NodeType.ENTITY, "Debug Cow", Map.of(
+                SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_DEV
+        )));
+
+        assertSuggestion(index, "?entity:c", "?entity:minecraft:cow", "?entity:minecraft:cow");
+        assertDoesNotSuggest(index, "?entity:debug", "?entity:examplemod:debug_cow");
+        assertDoesNotSuggest(index, "?mob:debug", "?mob:examplemod:debug_cow");
+
+        AmiConfig.devMode = true;
+
+        assertSuggestion(index, "?entity:debug", "?entity:examplemod:debug_cow", "?entity:examplemod:debug_cow");
+        assertSuggestion(index, "?mob:debug", "?mob:examplemod:debug_cow", "?mob:examplemod:debug_cow");
     }
 
     @Test

@@ -9,7 +9,13 @@ import java.util.Optional;
  * and token kinds here so the search UI does not drift from parser behavior.
  */
 public final class SearchSyntax {
-    public static final String SOURCES_ROUTE_PREFIX = "?sources=";
+    public static final String SOURCES_ROUTE_FIELD = "sources";
+    public static final String SOURCES_ROUTE_PREFIX = "?sources:";
+    public static final String SOURCES_ROUTE_LEGACY_PREFIX = "?sources=";
+    public static final String ENTITY_DETAILS_ROUTE_FIELD = "entity";
+    public static final String ENTITY_DETAILS_ROUTE_PREFIX = "?entity:";
+    public static final String MOB_DETAILS_ROUTE_FIELD = "mob";
+    public static final String MOB_DETAILS_ROUTE_PREFIX = "?mob:";
     public static final List<PropertyField> PROPERTY_FIELDS = List.of(
             new PropertyField("energy", List.of("power", "fe", "rf"), "ami.gui.search.help.property_energy", SearchSuggestions.Kind.PROPERTY),
             new PropertyField("fluid", List.of("fluids", "liquid", "tank"), "ami.gui.search.help.property_fluid", SearchSuggestions.Kind.PROPERTY),
@@ -55,7 +61,8 @@ public final class SearchSyntax {
                     new Example("?energy", "ami.gui.search.help.property_simple", SearchSuggestions.Kind.PROPERTY),
                     new Example("?kind:machines", "ami.gui.search.help.property_field", SearchSuggestions.Kind.PROPERTY),
                     new Example("?color:red", "ami.gui.search.help.property_color", SearchSuggestions.Kind.PROPERTY),
-                    new Example("?sources=leather", "ami.gui.search.help.sources", SearchSuggestions.Kind.PROPERTY),
+                    new Example("?sources:leather", "ami.gui.search.help.sources", SearchSuggestions.Kind.PROPERTY),
+                    new Example("?entity:cow", "ami.gui.search.help.entity", SearchSuggestions.Kind.PROPERTY),
                     new Example("^Steve", "ami.gui.search.help.player", SearchSuggestions.Kind.PLAYER),
                     new Example("$tech", "ami.gui.search.help.category", SearchSuggestions.Kind.CATEGORY),
                     new Example(">energy:10000", "ami.gui.search.help.greater", SearchSuggestions.Kind.NUMERIC),

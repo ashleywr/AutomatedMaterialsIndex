@@ -20,8 +20,10 @@ class ItemSourceQueryTest {
 
     @Test
     void parsesSourcesRouteTargets() {
-        assertEquals("leather", ItemSourceQuery.parseTarget("?sources=leather").orElseThrow());
-        assertEquals("minecraft:leather", ItemSourceQuery.parseTarget("?sources=minecraft:leather").orElseThrow());
+        assertEquals("leather", ItemSourceQuery.parseTarget("?sources:leather").orElseThrow());
+        assertEquals("minecraft:leather", ItemSourceQuery.parseTarget("?sources:minecraft:leather").orElseThrow());
+        assertEquals("leather", ItemSourceQuery.parseTarget("?sources=leather").orElseThrow(),
+                "Legacy equals routes should keep working when pasted from older AMI builds");
         assertTrue(ItemSourceQuery.parseTarget("leather").isEmpty());
         assertTrue(ItemSourceQuery.parseTarget("sources:leather").isEmpty(),
                 "sources: should remain normal search text so item names cannot collide with source routes");
@@ -31,7 +33,7 @@ class ItemSourceQueryTest {
     void formatsCanonicalItemRoutes() {
         SearchNode leather = item("leather", "Leather");
 
-        assertEquals("?sources=minecraft:leather", ItemSourceQuery.queryFor(leather));
+        assertEquals("?sources:minecraft:leather", ItemSourceQuery.queryFor(leather));
     }
 
     @Test
@@ -39,7 +41,17 @@ class ItemSourceQueryTest {
         SearchNode leather = item("leather", "Leather");
         GlobalIndex.getInstance().addNode(leather);
 
+        assertEquals(leather, ItemSourceQuery.resolveTarget("?sources:leather", null).orElseThrow());
         assertEquals(leather, ItemSourceQuery.resolveTarget("?sources=leather", null).orElseThrow());
+    }
+
+    @Test
+    void doesNotGuessShortPathWhenMultipleItemsMatch() {
+        GlobalIndex.getInstance().addNode(item("leather", "Leather"));
+        GlobalIndex.getInstance().addNode(new SearchNode(new ResourceLocation("examplemod:leather"), NodeType.ITEM,
+                "Leather", 0, 0, Map.of()));
+
+        assertTrue(ItemSourceQuery.resolveTarget("?sources:leather", null).isEmpty());
     }
 
     private static SearchNode item(String path, String name) {

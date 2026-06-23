@@ -83,6 +83,7 @@ public class ResultContextMenuActionBuilder {
     public static final String RECIPES = "ami:recipes";
     public static final String USES = "ami:uses";
     public static final String SOURCES = "ami:sources";
+    public static final String ENTITY_DETAILS = "ami:entity_details";
     public static final String FAVORITE = "ami:favorite";
     public static final String CHAT = "ami:chat";
     public static final String WIKI = "ami:wiki";
@@ -154,7 +155,7 @@ public class ResultContextMenuActionBuilder {
     private static final ResourceLocation SILENT_GEAR_MATERIAL_BOOK = ResourceLocation.fromNamespaceAndPath("silentgear", "material_book");
 
     public static final Set<String> KNOWN_ACTIONS = Set.of(
-            COPY_TOOLTIP, CRAFT_ONE, CRAFT_STACK, RECIPES, USES, SOURCES, FAVORITE, CHAT, WIKI, LOCATE,
+            COPY_TOOLTIP, CRAFT_ONE, CRAFT_STACK, RECIPES, USES, SOURCES, ENTITY_DETAILS, FAVORITE, CHAT, WIKI, LOCATE,
             CHEAT_GIVE_ONE, CHEAT_GIVE_STACK, CHEAT_SPAWN_EGG, CHEAT_SPAWN_EGG_STACK,
             CHEAT_SPAWN_POKEMON, CHEAT_POKEMON_PARTY,
             OPEN_POKEDEX, FILTER_POKEMON_TYPE, FILTER_POKEMON_SECONDARY_TYPE,
@@ -181,6 +182,7 @@ public class ResultContextMenuActionBuilder {
             RECIPES,
             USES,
             SOURCES,
+            ENTITY_DETAILS,
             FAVORITE,
             CHAT,
             WIKI,
@@ -342,6 +344,14 @@ public class ResultContextMenuActionBuilder {
                     Component.translatable("ami.context.sources"),
                     's',
                     () -> context.openSources().accept(node)
+            ));
+        }
+        if (policy.allows(node, ENTITY_DETAILS) && node.type() == NodeType.ENTITY && context.openEntityDetails() != null) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    ENTITY_DETAILS,
+                    Component.translatable("ami.context.mob_info"),
+                    'i',
+                    () -> context.openEntityDetails().accept(node)
             ));
         }
 
@@ -2595,13 +2605,14 @@ public class ResultContextMenuActionBuilder {
             com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler favorites,
             Consumer<String> tokenInject,
             Runnable onDataFixApplied,
-            Consumer<SearchNode> openSources
+            Consumer<SearchNode> openSources,
+            Consumer<SearchNode> openEntityDetails
     ) {
         public ItemContext(SearchNode node,
                            ItemStack stack,
                            com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler favorites,
                            Consumer<String> tokenInject) {
-            this(node, stack, favorites, tokenInject, null, null);
+            this(node, stack, favorites, tokenInject, null, null, null);
         }
 
         public ItemContext(SearchNode node,
@@ -2609,7 +2620,16 @@ public class ResultContextMenuActionBuilder {
                            com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler favorites,
                            Consumer<String> tokenInject,
                            Runnable onDataFixApplied) {
-            this(node, stack, favorites, tokenInject, onDataFixApplied, null);
+            this(node, stack, favorites, tokenInject, onDataFixApplied, null, null);
+        }
+
+        public ItemContext(SearchNode node,
+                           ItemStack stack,
+                           com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler favorites,
+                           Consumer<String> tokenInject,
+                           Runnable onDataFixApplied,
+                           Consumer<SearchNode> openSources) {
+            this(node, stack, favorites, tokenInject, onDataFixApplied, openSources, null);
         }
     }
 

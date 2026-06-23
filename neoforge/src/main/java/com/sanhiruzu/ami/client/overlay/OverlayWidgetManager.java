@@ -1089,7 +1089,8 @@ public class OverlayWidgetManager {
             searchBar.setInventoryVisualFilterActive(inventorySearchHighlighter.isActive());
         }
         if (SEARCH_DEBOUNCE_MS <= 0L || query == null || query.isBlank()
-                || com.sanhiruzu.ami.client.sources.ItemSourceQuery.isRoute(query)) {
+                || com.sanhiruzu.ami.client.sources.ItemSourceQuery.isRoute(query)
+                || com.sanhiruzu.ami.client.entitydetails.EntityDetailsQuery.isRoute(query)) {
             pendingSearchQuery = null;
             pendingSearchDeadlineMs = -1L;
             applySearchQuery(query == null ? "" : query);
@@ -1122,6 +1123,7 @@ public class OverlayWidgetManager {
         }
         if (RecipeViewerBridge.supportsSearchSync()
                 && !com.sanhiruzu.ami.client.sources.ItemSourceQuery.isRoute(query)
+                && !com.sanhiruzu.ami.client.entitydetails.EntityDetailsQuery.isRoute(query)
                 && !query.equals(lastSyncedQuery)) {
             lastSyncedQuery = query;
             RecipeViewerBridge.setSearchText(query);

@@ -5,6 +5,10 @@ import com.sanhiruzu.ami.api.AmiAdvancementDocument;
 import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.api.AmiGuideOpeners;
 import com.sanhiruzu.ami.api.AmiQuestsApi;
+import com.sanhiruzu.ami.client.entitydetails.EntityDetailsListView;
+import com.sanhiruzu.ami.client.entitydetails.EntityDetailsQuery;
+import com.sanhiruzu.ami.client.entitydetails.EntityDetailsReport;
+import com.sanhiruzu.ami.client.entitydetails.EntityDetailsResolver;
 import com.sanhiruzu.ami.client.sources.ItemSourceQuery;
 import com.sanhiruzu.ami.client.sources.ItemSourceListView;
 import com.sanhiruzu.ami.client.sources.ItemSourceReport;
@@ -87,6 +91,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private ResultsTreeView treeView;
     private ItemGridView gridView;
     private ItemSourceListView sourceView;
+    private EntityDetailsListView entityDetailsView;
     private final ResultContextMenu contextMenu = new ResultContextMenu();
     private final ResultContextMenuActionBuilder contextMenuActions = new ResultContextMenuActionBuilder();
     private static final long LENS_DEBOUNCE_MS = 2000;
@@ -121,6 +126,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private ItemSourceReport activeSourceReport = null;
     private String sourceReturnQuery = null;
     private long activeSourceRevision = Long.MIN_VALUE;
+    private EntityDetailsReport activeEntityDetailsReport = null;
+    private String entityDetailsReturnQuery = null;
+    private long activeEntityDetailsRevision = Long.MIN_VALUE;
     // Displayed item count shown in the compact header (updated in refreshTree)
     private int displayedItemCount = 0;
     private SearchNode pressedNode = null;
@@ -267,6 +275,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
         this.sourceView = new ItemSourceListView(innerX, contentY, innerW, contentH);
         this.sourceView.setActionHandler(this::handleSourceAction);
         this.sourceView.setEntityInfoAvailable(RecipeViewerBridge::hasEntityInfo);
+        this.entityDetailsView = new EntityDetailsListView(innerX, contentY, innerW, contentH);
+        this.entityDetailsView.setActionHandler(this::handleEntityDetailsAction);
         this.gridView.setItemClickCallback(this::onItemClicked);
         this.treeView.setItemClickCallback(this::onItemClicked);
         this.gridView.setGroupClickCallback(this::onGroupClicked);
@@ -459,6 +469,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             treeView.updateLayout(innerX, contentY, innerW, contentH);
             gridView.updateLayout(innerX, contentY, innerW, contentH);
             sourceView.updateLayout(innerX, contentY, innerW, contentH);
+            entityDetailsView.updateLayout(innerX, contentY, innerW, contentH);
         } else if (isFavoritesPanel) {
             int contentY = y + FAV_HEADER_H + FAV_CONTENT_TOP_PAD;
             int contentH = height - FAV_HEADER_H - FAV_CONTENT_TOP_PAD - AMITheme.GLOBAL_PADDING;
@@ -467,6 +478,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             treeView.updateLayout(innerX, contentY, innerW, contentH);
             gridView.updateLayout(innerX, contentY, innerW, contentH);
             sourceView.updateLayout(innerX, contentY, innerW, contentH);
+            entityDetailsView.updateLayout(innerX, contentY, innerW, contentH);
         } else {
             int headerH = isCompactLayout() ? COMPACT_HEADER_H : HEADER_H;
             int contentY = y + AMITheme.GLOBAL_PADDING + headerH + AMITheme.ELEMENT_GAP;
@@ -476,6 +488,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 gridView.setTopContentHeight(0);
                 gridView.updateLayout(innerX, contentY, innerW, contentH);
                 sourceView.updateLayout(innerX, contentY, innerW, contentH);
+                entityDetailsView.updateLayout(innerX, contentY, innerW, contentH);
             } else {
                 boolean embeddedSearch = supportsEmbeddedSearch(new WidgetBounds(x, y, width, height));
                 int toolbarX = embeddedSearch ? embeddedToolbarX(innerX, innerW) : narrowToolbarX(innerX);
@@ -496,6 +509,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             checkPlayerStateChanged();
             refreshIndexProgressIfNeeded();
             refreshSourceRouteIfNeeded();
+            refreshEntityDetailsRouteIfNeeded();
 
             try (AmiRenderProfiler.Section chrome = AmiRenderProfiler.section("panel.chrome")) {
                 com.mojang.blaze3d.systems.RenderSystem.enableBlend();
@@ -575,6 +589,10 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
             if (activeSourceReport != null) {
                 renderSourceView(g, mouseX, mouseY, headerY, headerH, sepY);
+                return;
+            }
+            if (activeEntityDetailsReport != null) {
+                renderEntityDetailsView(g, mouseX, mouseY, headerY, headerH, sepY);
                 return;
             }
 
@@ -668,6 +686,20 @@ public class UniversalResultsPanel implements SearchState.Listener {
         sourceView.render(g, mouseX, mouseY);
     }
 
+    private void renderEntityDetailsView(GuiGraphics g, int mouseX, int mouseY, int headerY, int headerH, int sepY) {
+        var font = Minecraft.getInstance().font;
+        renderSourceBackButton(g, mouseX, mouseY);
+
+        int titleX = toggleX + TOGGLE_W + AMITheme.ELEMENT_GAP;
+        int titleRight = x + width - AMITheme.GLOBAL_PADDING;
+        String title = activeEntityDetailsReport == null ? "" : activeEntityDetailsReport.title().getString();
+        int textY = headerY + (headerH - font.lineHeight) / 2;
+        g.drawString(font, truncate(font, title, Math.max(0, titleRight - titleX)), titleX, textY,
+                AMITheme.TEXT_HEADER, false);
+        g.fill(x + 3, sepY, x + width - 3, sepY + 1, AMITheme.SECTION_SEP);
+        entityDetailsView.render(g, mouseX, mouseY);
+    }
+
     private void renderSourceBackButton(GuiGraphics g, int mouseX, int mouseY) {
         boolean hovered = isOverToggle(mouseX, mouseY);
         int bg = hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
@@ -699,6 +731,17 @@ public class UniversalResultsPanel implements SearchState.Listener {
         long indexRevision = GlobalIndex.getInstance().revision();
         boolean loadingChanged = activeSourceReport.loading() != AmiIndexerService.getInstance().isSourceIndexingPending();
         if (indexRevision != activeSourceRevision || loadingChanged) {
+            refreshTree(true);
+        }
+    }
+
+    private void refreshEntityDetailsRouteIfNeeded() {
+        if (activeEntityDetailsReport == null || isFavoritesPanel || !EntityDetailsQuery.isRoute(state.getQuery())) {
+            return;
+        }
+        long indexRevision = GlobalIndex.getInstance().revision();
+        boolean loadingChanged = activeEntityDetailsReport.loading() != AmiIndexerService.getInstance().isSourceIndexingPending();
+        if (indexRevision != activeEntityDetailsRevision || loadingChanged) {
             refreshTree(true);
         }
     }
@@ -1552,8 +1595,21 @@ public class UniversalResultsPanel implements SearchState.Listener {
             setViewRoots(List.of(), incrementalUpdate);
             return;
         }
+        if (!isFavoritesPanel && openEntityDetailsRoute(state.getQuery())) {
+            displayedItemCount = 0;
+            currentAdvancementRows = List.of();
+            currentGuideRows = List.of();
+            currentQuestRows = List.of();
+            currentRegistryDocumentRows = List.of();
+            updateResultViewLayouts();
+            setViewRoots(List.of(), incrementalUpdate);
+            return;
+        }
         if (activeSourceReport != null) {
             closeSourceView();
+        }
+        if (activeEntityDetailsReport != null) {
+            closeEntityDetailsView();
         }
 
         ResultsViewProjector.Projection projection = projectResults();
@@ -1692,6 +1748,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             treeView.updateLayout(innerX, contentY, innerW, contentH);
             gridView.updateLayout(innerX, contentY, innerW, contentH);
             sourceView.updateLayout(innerX, contentY, innerW, contentH);
+            entityDetailsView.updateLayout(innerX, contentY, innerW, contentH);
             return;
         }
 
@@ -1708,6 +1765,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         treeView.updateLayout(innerX, contentY, innerW, contentH);
         gridView.updateLayout(innerX, contentY, innerW, contentH);
         sourceView.updateLayout(innerX, contentY, innerW, contentH);
+        entityDetailsView.updateLayout(innerX, contentY, innerW, contentH);
     }
 
     private int contentY() {
@@ -2002,7 +2060,8 @@ public class UniversalResultsPanel implements SearchState.Listener {
                         com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance(),
                         onTokenInject,
                         this::refreshAfterDataFixApplied,
-                        this::openSourceView
+                        this::openSourceView,
+                        this::openEntityDetailsView
                 )
         ));
     }
@@ -2018,11 +2077,23 @@ public class UniversalResultsPanel implements SearchState.Listener {
         openSourceRoute(route);
     }
 
+    private void openEntityDetailsView(SearchNode node) {
+        if (node == null || node.type() != NodeType.ENTITY) return;
+        String route = EntityDetailsQuery.queryFor(node);
+        if (!route.equals(state.getQuery())) {
+            entityDetailsReturnQuery = state.getQuery();
+            replaceQuery(route);
+            return;
+        }
+        openEntityDetailsRoute(route);
+    }
+
     private boolean openSourceRoute(String query) {
         var targetText = ItemSourceQuery.parseTarget(query);
         if (targetText.isEmpty()) {
             return false;
         }
+        closeEntityDetailsView();
         activeSourceReport = ItemSourceQuery.resolveTarget(query, searchService)
                 .map(node -> {
                     boolean loading = AmiIndexerService.getInstance().ensureSourcesForItem(node.id());
@@ -2039,6 +2110,50 @@ public class UniversalResultsPanel implements SearchState.Listener {
         activeSourceRevision = GlobalIndex.getInstance().revision();
         sourceView.setReport(activeSourceReport);
         return true;
+    }
+
+    private boolean openEntityDetailsRoute(String query) {
+        var targetText = EntityDetailsQuery.parseTarget(query);
+        if (targetText.isEmpty()) {
+            return false;
+        }
+        closeSourceView();
+        activeEntityDetailsReport = EntityDetailsQuery.resolveTarget(query, searchService)
+                .map(node -> {
+                    boolean loading = AmiIndexerService.getInstance().ensureSourcesForItem(node.id());
+                    EntityDetailsReport report = EntityDetailsResolver.fromGlobalIndex().resolve(node);
+                    List<Component> diagnostics = !loading ? entityDetailsDiagnostics(report) : List.of();
+                    return report.withState(loading, diagnostics);
+                })
+                .orElseGet(() -> new EntityDetailsReport(
+                        Component.literal("Mob: " + targetText.get()),
+                        List.of(),
+                        AmiIndexerService.getInstance().isSourceIndexingPending(),
+                        List.of(Component.translatable("ami.entity_details.diagnostic.target_not_found", targetText.get()))
+                ));
+        activeEntityDetailsRevision = GlobalIndex.getInstance().revision();
+        entityDetailsView.setReport(activeEntityDetailsReport);
+        return true;
+    }
+
+    private List<Component> entityDetailsDiagnostics(EntityDetailsReport report) {
+        List<Component> diagnostics = new ArrayList<>();
+        if (report == null || report.groupOrder().isEmpty()) {
+            diagnostics.add(Component.translatable("ami.entity_details.diagnostic.no_rows"));
+        }
+        boolean missingSpawnRows = report != null && report.rows(com.sanhiruzu.ami.client.entitydetails.EntityDetailsSection.SPAWNS).isEmpty();
+        boolean missingDropRows = report != null && report.rows(com.sanhiruzu.ami.client.entitydetails.EntityDetailsSection.DROPS).isEmpty();
+        if (missingSpawnRows) {
+            diagnostics.add(Component.translatable(AmiConfig.sourceIndexSpawnBiomes
+                    ? "ami.entity_details.diagnostic.spawn.no_biomes"
+                    : "ami.sources.diagnostic.spawn.disabled"));
+        }
+        if (missingDropRows) {
+            diagnostics.add(Component.translatable(AmiConfig.sourceIndexLootDrops
+                    ? "ami.entity_details.diagnostic.loot.no_drops"
+                    : "ami.sources.diagnostic.loot.disabled"));
+        }
+        return diagnostics;
     }
 
     private List<Component> sourceViewDiagnostics(ResourceLocation itemId, ItemSourceReport report) {
@@ -2078,10 +2193,25 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
     }
 
+    private void closeEntityDetailsView() {
+        activeEntityDetailsReport = null;
+        activeEntityDetailsRevision = Long.MIN_VALUE;
+        if (entityDetailsView != null) {
+            entityDetailsView.setReport(null);
+        }
+    }
+
     private void exitSourceView() {
         String returnQuery = sourceReturnQuery == null ? "" : sourceReturnQuery;
         sourceReturnQuery = null;
         closeSourceView();
+        replaceQuery(returnQuery);
+    }
+
+    private void exitEntityDetailsView() {
+        String returnQuery = entityDetailsReturnQuery == null ? "" : entityDetailsReturnQuery;
+        entityDetailsReturnQuery = null;
+        closeEntityDetailsView();
         replaceQuery(returnQuery);
     }
 
@@ -2138,6 +2268,24 @@ public class UniversalResultsPanel implements SearchState.Listener {
             AMICheatMode.locateBiome(node.id());
         }
         return true;
+    }
+
+    private boolean handleEntityDetailsAction(SearchNode node, EntityDetailsListView.EntityAction action, int mouseX, int mouseY) {
+        if (node == null || action == null) {
+            return false;
+        }
+        return switch (action) {
+            case LOCATE_BIOME -> locateSourceBiome(node);
+            case OPEN_CONTEXT -> {
+                openItemContextMenu(node, mouseX, mouseY);
+                yield true;
+            }
+            case OPEN_ITEM_RECIPES -> {
+                RecipeViewerBridge.openRecipes(node);
+                yield true;
+            }
+            case OPEN_EXTERNAL_INFO -> RecipeViewerBridge.openEntityInfo(node);
+        };
     }
 
     private void openGroupContextMenu(TreeNode node, int mouseX, int mouseY) {
@@ -2435,6 +2583,13 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 return true;
             }
             return sourceView.mouseClicked(mouseX, mouseY, button);
+        }
+        if (activeEntityDetailsReport != null) {
+            if (button == 0 && isOverToggle(mouseX, mouseY)) {
+                exitEntityDetailsView();
+                return true;
+            }
+            return entityDetailsView.mouseClicked(mouseX, mouseY, button);
         }
 
         pressedNode = null;

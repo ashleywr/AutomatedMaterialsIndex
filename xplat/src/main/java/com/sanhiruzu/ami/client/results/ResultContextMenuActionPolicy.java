@@ -129,12 +129,18 @@ public final class ResultContextMenuActionPolicy {
         String canonical = canonicalActionList(raw);
         return canonical.equals(canonicalActionList(LEGACY_DEFAULT_ACTIONS))
                 || canonical.equals(canonicalActionList(PRE_QUEST_LEGACY_DEFAULT_ACTIONS))
-                || canonical.equals(canonicalActionList(preSourcesDefaultActions()));
+                || canonical.equals(canonicalActionList(preSourcesDefaultActions()))
+                || canonical.equals(canonicalActionList(preEntityDetailsDefaultActions()));
     }
 
     private static String preSourcesDefaultActions() {
         return ResultContextMenuActionBuilder.DEFAULT_ACTIONS
                 .replace(ResultContextMenuActionBuilder.SOURCES + ",", "");
+    }
+
+    private static String preEntityDetailsDefaultActions() {
+        return ResultContextMenuActionBuilder.DEFAULT_ACTIONS
+                .replace(ResultContextMenuActionBuilder.ENTITY_DETAILS + ",", "");
     }
 
     static Map<String, Set<String>> parseScopedDisables(String raw) {
