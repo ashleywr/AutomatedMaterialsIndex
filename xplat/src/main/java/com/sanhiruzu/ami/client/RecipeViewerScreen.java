@@ -596,7 +596,7 @@ public class RecipeViewerScreen extends Screen {
             g.fill(cardX - 1, cardY - 1, cardX + cardW + 1, cardY + cardH + 1, COL_BORDER);
             g.fill(cardX, cardY, cardX + cardW, cardY + cardH, COL_PANEL);
 
-            int rx = cardX + 24;
+            int rx = RecipeViewerLayoutPlacement.layoutOriginX(cardX, layout);
 
             int layoutHeight = layout.backgroundTexture() != null
                     ? layout.bgRenderY() + layout.bgH()
@@ -986,7 +986,7 @@ public class RecipeViewerScreen extends Screen {
             if (layout == null) continue;
 
             int cardY = guiTop + CONTENT_Y + (i - startIdx) * slotH + singleOffset;
-            int rx = cardX + 24;
+            int rx = RecipeViewerLayoutPlacement.layoutOriginX(cardX, layout);
             int layoutHeight = layout.backgroundTexture() != null
                     ? layout.bgRenderY() + layout.bgH()
                     : 14 + layout.gridHeight() * 18;
@@ -1068,7 +1068,7 @@ public class RecipeViewerScreen extends Screen {
             if (layout == null) continue;
 
             int cardY = guiTop + CONTENT_Y + (i - startIdx) * slotH + singleOffset2;
-            int rx = cardX + 24;
+            int rx = RecipeViewerLayoutPlacement.layoutOriginX(cardX, layout);
             int layoutHeight = layout.backgroundTexture() != null
                     ? layout.bgRenderY() + layout.bgH()
                     : 14 + layout.gridHeight() * 18;
@@ -1216,7 +1216,7 @@ public class RecipeViewerScreen extends Screen {
             if (layout == null) continue;
 
             int cardY = guiTop + CONTENT_Y + (i - startIdx) * slotH + singleOffset;
-            int rx    = cardX + 24;
+            int rx    = RecipeViewerLayoutPlacement.layoutOriginX(cardX, layout);
             int layoutHeight = layout.backgroundTexture() != null
                     ? layout.bgRenderY() + layout.bgH()
                     : 14 + layout.gridHeight() * 18;
