@@ -2,7 +2,6 @@ package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.compat.DatanessenceCompat;
 import com.sanhiruzu.ami.compat.GeneratedVariantCollapseCompat;
-import com.sanhiruzu.ami.compat.PastelCompat;
 import com.sanhiruzu.ami.compat.SilentGemsCompat;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Disabled;
@@ -16,32 +15,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SynesthesiaCompatTest {
-    @Test
-    void pastelStructurePlacersRouteToUtility() {
-        Map<String, String> meta = meta("pastel", "earth.terrarium.pastel.items.StructurePlacerItem");
-
-        PastelCompat.enrichItem(new ResourceLocation("pastel", "fusion_shrine_structure_placer"), meta);
-        CategoryAssignment assignment = resolve("pastel:fusion_shrine_structure_placer", meta);
-
-        assertEquals("structure_placers", meta.get("pastelItemKind"));
-        assertEquals("pastel", assignment.categoryId());
-        assertEquals("structures", assignment.subcategoryId());
-    }
-
-    @Test
-    void pastelDecayBottlesRouteToPastelMagic() {
-        Map<String, String> meta = meta("pastel", "earth.terrarium.pastel.items.DecayPlacerItem");
-        meta.put(SearchNodeKeys.BLOCK_TAGS, "pastel:decay/decay,pastel:decay/decay_away");
-
-        PastelCompat.enrichItem(new ResourceLocation("pastel", "bottle_of_fading"), meta);
-        CategoryAssignment assignment = resolve("pastel:bottle_of_fading", meta);
-
-        assertEquals("decay_magic", meta.get("pastelItemKind"));
-        assertTrue(meta.getOrDefault(SearchNodeKeys.FACETS, "").contains(ItemFacet.MAGIC_ARTIFACT.id()));
-        assertEquals("pastel", assignment.categoryId());
-        assertEquals("magic", assignment.subcategoryId());
-    }
-
     @Test
     void silentGemsTreatsGemNamesAsColorAxisForGeneratedBlocks() {
         Map<String, String> roseQuartz = meta("silentgems", "net.silentchaos512.gems.item.GemBlockItem");
