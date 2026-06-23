@@ -72,7 +72,7 @@ class ClassificationOverrideRoutingTest {
                 Map.of("cnc", List.of(new ModPatternRule(
                         "cnc", Set.of("potofmouse"), Set.of(),
                         EnumSet.of(ItemFacet.MAGIC_ARTIFACT), EnumSet.noneOf(ItemFacet.class),
-                        null, null))));
+                        null, null, null, null, null))));
 
         CategoryAssignment a = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("cnc:potofmouse"),
@@ -92,7 +92,7 @@ class ClassificationOverrideRoutingTest {
                 Map.of("examplemod", List.of(new ModPatternRule(
                         "examplemod", Set.of("widget"), Set.of(),
                         EnumSet.noneOf(ItemFacet.class), EnumSet.noneOf(ItemFacet.class),
-                        "decoration", "furniture"))));
+                        "decoration", "furniture", null, null, null))));
 
         CategoryAssignment a = PrimaryCategoryResolver.resolve(
                 new ResourceLocation("examplemod:widget"),
