@@ -49,7 +49,7 @@ final class RecipeViewerDisplayEntryPolicy {
                     return List.of(workstation.copy());
                 }
             }
-            return List.of();
+            return List.of(stackForItemId(ANVIL));
         }
 
         LinkedHashSet<ResourceLocation> seen = new LinkedHashSet<>();
@@ -138,6 +138,23 @@ final class RecipeViewerDisplayEntryPolicy {
             return "";
         }
         return BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+    }
+
+    private static ItemStack stackForItemId(ResourceLocation itemId) {
+        Object item = BuiltInRegistries.ITEM.get(itemId);
+        try {
+            return ItemStack.class
+                    .getConstructor(Class.forName("net.minecraft.world.level.ItemLike"))
+                    .newInstance(item);
+        } catch (ReflectiveOperationException ignored) {
+            try {
+                return ItemStack.class
+                        .getConstructor(Class.forName("net.minecraft.world.item.Item"))
+                        .newInstance(item);
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException("Could not create ItemStack for " + itemId, e);
+            }
+        }
     }
 
     private static List<ItemStack> copyStacks(List<ItemStack> stacks) {

@@ -34,6 +34,23 @@ class RecipeViewerDisplayEntryPolicyTest {
     }
 
     @Test
+    void canonicalWorkstationsMaterializeRegularAnvilWhenSpecialFamilyInputHasNoAnvil() {
+        List<ItemStack> workstations = List.of(
+                stack("ami_test:alpha"),
+                stack("ami_test:beta")
+        );
+
+        assertEquals(List.of(id("minecraft:anvil")),
+                itemIds(RecipeViewerDisplayEntryPolicy.canonicalWorkstations(
+                        ResourceLocation.parse("ami:anvil_repairing"),
+                        workstations)));
+        assertEquals(List.of(id("minecraft:anvil")),
+                itemIds(RecipeViewerDisplayEntryPolicy.canonicalWorkstations(
+                        ResourceLocation.parse("ami:enchanting"),
+                        workstations)));
+    }
+
+    @Test
     void canonicalWorkstationsDeduplicateNonEmptyEntriesByItemId() {
         List<ItemStack> workstations = List.of(
                 stack("ami_test:alpha"),
