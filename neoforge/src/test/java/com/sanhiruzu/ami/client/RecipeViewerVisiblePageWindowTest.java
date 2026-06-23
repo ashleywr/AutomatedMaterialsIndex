@@ -73,6 +73,36 @@ class RecipeViewerVisiblePageWindowTest {
                 RecipeViewerVisiblePageWindow.resolveVisibleCandidateIndexes(candidates, visibleEntries));
     }
 
+    @Test
+    void resolveVisibleCandidateIndexesSkipsBlankAndNullLayoutCandidatesBeforeVisibleMatch() {
+        Candidate blank = candidate(
+                "ami:test",
+                "ami:shared",
+                layout(List.of(), ItemStack.EMPTY, null, 0, 0),
+                List.of());
+        Candidate nullLayout = candidate(
+                "ami:test",
+                "ami:shared",
+                null,
+                List.of());
+        Candidate visible = candidate(
+                "ami:test",
+                "ami:shared",
+                layout(
+                        List.of(new SlotPosition(0, 0, List.of(stack("ami_test:input_a")))),
+                        stack("ami_test:output"),
+                        ResourceLocation.parse("ami:textures/gui/test.png"),
+                        32,
+                        18),
+                List.of());
+
+        List<Candidate> candidates = List.of(blank, nullLayout, visible);
+        List<DisplayEntry> visibleEntries = RecipeViewerDisplayEntryPolicy.visibleEntries(candidates);
+
+        assertEquals(List.of(2),
+                RecipeViewerVisiblePageWindow.resolveVisibleCandidateIndexes(candidates, visibleEntries));
+    }
+
     private static Candidate candidate(String typeId, String displayFamily, RecipeLayout layout, List<ItemStack> workstations) {
         return new Candidate(ResourceLocation.parse(typeId), ResourceLocation.parse(displayFamily), layout, workstations);
     }

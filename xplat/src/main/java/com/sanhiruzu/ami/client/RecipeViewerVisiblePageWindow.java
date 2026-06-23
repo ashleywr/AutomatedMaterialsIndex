@@ -1,9 +1,7 @@
 package com.sanhiruzu.ami.client;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 final class RecipeViewerVisiblePageWindow {
     private RecipeViewerVisiblePageWindow() {
@@ -29,25 +27,11 @@ final class RecipeViewerVisiblePageWindow {
             return List.of();
         }
 
-        Map<String, Integer> firstIndexByKey = new LinkedHashMap<>();
-        for (int i = 0; i < candidates.size(); i++) {
-            RecipeViewerDisplayEntryPolicy.Candidate candidate = candidates.get(i);
-            if (candidate == null) {
-                continue;
-            }
-            firstIndexByKey.putIfAbsent(
-                    RecipeViewerDisplayEntryPolicy.visibleSignature(
-                            RecipeViewerDisplayEntryPolicy.displayEntry(candidate)),
-                    i);
-        }
-
-        List<Integer> resolvedIndexes = new ArrayList<>(visibleEntries.size());
-        for (RecipeViewerDisplayEntryPolicy.DisplayEntry visibleEntry : visibleEntries) {
-            Integer candidateIndex = firstIndexByKey.remove(
-                    RecipeViewerDisplayEntryPolicy.visibleSignature(visibleEntry));
-            if (candidateIndex != null) {
-                resolvedIndexes.add(candidateIndex);
-            }
+        List<RecipeViewerDisplayEntryPolicy.VisibleCandidate> visibleCandidates =
+                RecipeViewerDisplayEntryPolicy.visibleCandidates(candidates);
+        List<Integer> resolvedIndexes = new ArrayList<>(Math.min(visibleEntries.size(), visibleCandidates.size()));
+        for (int i = 0; i < visibleEntries.size() && i < visibleCandidates.size(); i++) {
+            resolvedIndexes.add(visibleCandidates.get(i).candidateIndex());
         }
         return List.copyOf(resolvedIndexes);
     }

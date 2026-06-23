@@ -1344,11 +1344,13 @@ public class RecipeViewerScreen extends Screen {
             candidates.add(new RecipeViewerDisplayEntryPolicy.Candidate(typeId, typeId, layout, rawWorkstations));
         }
 
-        List<RecipeViewerDisplayEntryPolicy.DisplayEntry> filteredEntries =
-                RecipeViewerDisplayEntryPolicy.visibleEntries(candidates);
-        List<VisibleEntry> resolvedEntries = new ArrayList<>(filteredEntries.size());
-        for (Integer candidateIndex : RecipeViewerVisiblePageWindow.resolveVisibleCandidateIndexes(candidates, filteredEntries)) {
-            resolvedEntries.add(new VisibleEntry(tab.recipes().get(candidateIndex), filteredEntries.get(resolvedEntries.size())));
+        List<RecipeViewerDisplayEntryPolicy.VisibleCandidate> visibleCandidates =
+                RecipeViewerDisplayEntryPolicy.visibleCandidates(candidates);
+        List<VisibleEntry> resolvedEntries = new ArrayList<>(visibleCandidates.size());
+        for (RecipeViewerDisplayEntryPolicy.VisibleCandidate visibleCandidate : visibleCandidates) {
+            resolvedEntries.add(new VisibleEntry(
+                    tab.recipes().get(visibleCandidate.candidateIndex()),
+                    visibleCandidate.entry()));
         }
         return List.copyOf(resolvedEntries);
     }

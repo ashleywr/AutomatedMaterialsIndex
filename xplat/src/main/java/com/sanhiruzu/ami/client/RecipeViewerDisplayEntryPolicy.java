@@ -42,6 +42,12 @@ final class RecipeViewerDisplayEntryPolicy {
         }
     }
 
+    record VisibleCandidate(
+            int candidateIndex,
+            DisplayEntry entry
+    ) {
+    }
+
     static List<ItemStack> canonicalWorkstations(ResourceLocation typeId, List<ItemStack> workstations) {
         if (ANVIL_REPAIRING.equals(typeId) || ENCHANTING.equals(typeId)) {
             for (ItemStack workstation : workstations == null ? List.<ItemStack>of() : workstations) {
@@ -68,20 +74,25 @@ final class RecipeViewerDisplayEntryPolicy {
     }
 
     static List<DisplayEntry> visibleEntries(List<Candidate> candidates) {
+        return visibleCandidates(candidates).stream().map(VisibleCandidate::entry).toList();
+    }
+
+    static List<VisibleCandidate> visibleCandidates(List<Candidate> candidates) {
         if (candidates == null || candidates.isEmpty()) {
             return List.of();
         }
 
         LinkedHashSet<String> seenSignatures = new LinkedHashSet<>();
-        List<DisplayEntry> visible = new ArrayList<>();
-        for (Candidate candidate : candidates) {
+        List<VisibleCandidate> visible = new ArrayList<>();
+        for (int i = 0; i < candidates.size(); i++) {
+            Candidate candidate = candidates.get(i);
             if (candidate == null || !isMeaningfullyRenderable(candidate.layout())) {
                 continue;
             }
 
             DisplayEntry entry = displayEntry(candidate);
             if (seenSignatures.add(visibleSignature(entry))) {
-                visible.add(entry);
+                visible.add(new VisibleCandidate(i, entry));
             }
         }
         return List.copyOf(visible);
