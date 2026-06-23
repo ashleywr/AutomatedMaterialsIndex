@@ -213,6 +213,29 @@ class RecipeViewerDisplayEntryPolicyTest {
         assertEquals(2, RecipeViewerDisplayEntryPolicy.visibleEntries(List.of(first, second)).size());
     }
 
+    @Test
+    void visibleSignatureUsesTheSameCanonicalDisplayEntryForCandidateResolution() {
+        Candidate candidate = candidate(
+                "ami:anvil_repairing",
+                "ami:anvil_repairing",
+                layout(
+                        List.of(
+                                new SlotPosition(0, 0, List.of(stack("ami_test:input_a"))),
+                                new SlotPosition(49, 0, List.of(stack("ami_test:input_b")))
+                        ),
+                        stack("ami_test:output"),
+                        ResourceLocation.parse("ami:textures/gui/anvil.png"),
+                        126,
+                        20),
+                List.of(stack("minecraft:anvil"), stack("ami_test:alpha")));
+
+        DisplayEntry displayEntry = RecipeViewerDisplayEntryPolicy.visibleEntries(List.of(candidate)).getFirst();
+
+        assertEquals(
+                RecipeViewerDisplayEntryPolicy.visibleSignature(displayEntry),
+                RecipeViewerDisplayEntryPolicy.visibleSignature(RecipeViewerDisplayEntryPolicy.displayEntry(candidate)));
+    }
+
     private static Candidate candidate(String typeId, String displayFamily, RecipeLayout layout, List<ItemStack> workstations) {
         return new Candidate(ResourceLocation.parse(typeId), ResourceLocation.parse(displayFamily), layout, workstations);
     }

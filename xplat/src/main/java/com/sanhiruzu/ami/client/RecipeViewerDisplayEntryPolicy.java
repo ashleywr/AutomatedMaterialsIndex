@@ -79,16 +79,20 @@ final class RecipeViewerDisplayEntryPolicy {
                 continue;
             }
 
-            DisplayEntry entry = new DisplayEntry(
-                    candidate.typeId(),
-                    candidate.displayFamily(),
-                    candidate.layout(),
-                    canonicalWorkstations(candidate.typeId(), candidate.workstations()));
+            DisplayEntry entry = displayEntry(candidate);
             if (seenSignatures.add(visibleSignature(entry))) {
                 visible.add(entry);
             }
         }
         return List.copyOf(visible);
+    }
+
+    static DisplayEntry displayEntry(Candidate candidate) {
+        return new DisplayEntry(
+                candidate.typeId(),
+                candidate.displayFamily(),
+                candidate.layout(),
+                canonicalWorkstations(candidate.typeId(), candidate.workstations()));
     }
 
     private static boolean isMeaningfullyRenderable(RecipeLayout layout) {
@@ -108,7 +112,7 @@ final class RecipeViewerDisplayEntryPolicy {
         return layout.backgroundTexture() != null && layout.bgW() > 0 && layout.bgH() > 0;
     }
 
-    private static String visibleSignature(DisplayEntry entry) {
+    static String visibleSignature(DisplayEntry entry) {
         StringBuilder signature = new StringBuilder();
         signature.append(Objects.toString(entry.displayFamily(), entry.typeId() == null ? "" : entry.typeId().toString()));
         signature.append('|').append(outputId(entry.layout().output()));
