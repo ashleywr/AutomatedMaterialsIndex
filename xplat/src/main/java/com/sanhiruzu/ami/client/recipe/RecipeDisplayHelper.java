@@ -287,57 +287,17 @@ public final class RecipeDisplayHelper {
 
         } else {
             // Generic fallback for unknown/mod recipe types.
-            // Filter empty ingredients first so layout math is based on real slots.
-            List<Ingredient> ingredients = recipe.getIngredients();
-            List<Ingredient> nonEmpty = new ArrayList<>();
-            for (Ingredient ing : ingredients) {
-                if (!ing.isEmpty()) nonEmpty.add(ing);
-            }
-
-            int inputCount = nonEmpty.size();
-
-            if (inputCount == 0) {
-                // No inputs — just show the output centred.
-                gridW = 0; gridH = 0;
-                arrowX = 20; arrowY = 4;
-                outputX = 44; outputY = 0;
-
-            } else if (inputCount == 1) {
-                // Single input: furnace-style horizontal  [in] → [out]
-                inputs.add(new SlotPosition(0, 0, List.of(nonEmpty.get(0).getItems())));
-                gridW = 1; gridH = 1;
-                arrowX = 24; arrowY = 4;
-                outputX = 50; outputY = 0;
-
-            } else if (inputCount <= 3) {
-                // One row of up to 3 slots, then arrow, then output.
-                for (int i = 0; i < inputCount; i++) {
-                    inputs.add(new SlotPosition(i * 18, 0, List.of(nonEmpty.get(i).getItems())));
-                }
-                gridW = inputCount; gridH = 1;
-                int rowPx = inputCount * 18;
-                arrowX = rowPx + 6;
-                arrowY = 4;
-                outputX = rowPx + 32;  // arrowX + arrow_width(22) + output_sprite_margin(4)
-                outputY = 0;
-
-            } else {
-                // Grid layout: max 3 columns, as many rows as needed.
-                int cols = inputCount <= 4 ? 2 : 3;
-                int rows = (int) Math.ceil((double) inputCount / cols);
-                for (int i = 0; i < inputCount; i++) {
-                    int col = i % cols;
-                    int row = i / cols;
-                    inputs.add(new SlotPosition(col * 18, row * 18, List.of(nonEmpty.get(i).getItems())));
-                }
-                gridW = cols; gridH = rows;
-                int gridPxW = cols * 18;
-                int gridPxH = rows * 18;
-                arrowX = gridPxW + 6;
-                arrowY = Math.max(0, (gridPxH - 9) / 2);
-                outputX = gridPxW + 32;  // arrowX + arrow_width(22) + output_sprite_margin(4)
-                outputY = Math.max(0, (gridPxH - 18) / 2);
-            }
+            GenericFallbackLayout fallbackLayout = createGenericFallbackLayout(
+                    recipe.getIngredients().stream()
+                            .map(ingredient -> List.of(ingredient.getItems()))
+                            .toList());
+            inputs.addAll(fallbackLayout.inputs());
+            gridW = fallbackLayout.gridWidth();
+            gridH = fallbackLayout.gridHeight();
+            outputX = fallbackLayout.outputX();
+            outputY = fallbackLayout.outputY();
+            arrowX = fallbackLayout.arrowX();
+            arrowY = fallbackLayout.arrowY();
         }
 
         return new RecipeLayout(
@@ -345,6 +305,44 @@ public final class RecipeDisplayHelper {
                 outputX, outputY, arrowX, arrowY,
                 backgroundTexture, bgX, bgY, bgW, bgH, bgRenderX, bgRenderY, drawSlotBackground
         );
+    }
+
+    static GenericFallbackLayout createGenericFallbackLayout(List<List<ItemStack>> ingredientAlternatives) {
+        List<List<ItemStack>> nonEmpty = new ArrayList<>();
+        for (List<ItemStack> alternatives : ingredientAlternatives) {
+            if (alternatives != null && !alternatives.isEmpty()) {
+                nonEmpty.add(alternatives);
+            }
+        }
+
+        if (nonEmpty.isEmpty()) {
+            return new GenericFallbackLayout(List.of(), 0, 0, 44, 0, 20, 4);
+        }
+
+        int inputCount = nonEmpty.size();
+        int cols = switch (inputCount) {
+            case 1 -> 1;
+            case 2, 3 -> inputCount;
+            case 4 -> 2;
+            default -> 3;
+        };
+        int rows = (int) Math.ceil((double) inputCount / cols);
+
+        List<SlotPosition> inputs = new ArrayList<>();
+        for (int i = 0; i < inputCount; i++) {
+            int col = i % cols;
+            int row = i / cols;
+            inputs.add(new SlotPosition(col * 18, row * 18, nonEmpty.get(i)));
+        }
+
+        int inputAreaWidth = cols * 18;
+        int inputAreaHeight = rows * 18;
+        int arrowX = inputAreaWidth + 4;
+        int arrowY = Math.max(0, (inputAreaHeight - 16) / 2);
+        int outputX = arrowX + 26;
+        int outputY = Math.max(0, (inputAreaHeight - 18) / 2);
+
+        return new GenericFallbackLayout(inputs, cols, rows, outputX, outputY, arrowX, arrowY);
     }
 
     /** Returns true for recipe types that have a dedicated bespoke renderer (no generic fallback). */
@@ -490,6 +488,17 @@ public final class RecipeDisplayHelper {
     }
 
     public record SlotPosition(int x, int y, List<ItemStack> alternatives) {
+    }
+
+    record GenericFallbackLayout(
+            List<SlotPosition> inputs,
+            int gridWidth,
+            int gridHeight,
+            int outputX,
+            int outputY,
+            int arrowX,
+            int arrowY
+    ) {
     }
 
     public record RecipeLayout(
