@@ -261,6 +261,11 @@ public class ForgePlatformHelper implements IPlatformHelper {
                 == Biome.TemperatureModifier.FROZEN;
     }
 
+    @Override
+    public net.minecraft.world.level.biome.MobSpawnSettings getBiomeMobSpawnSettings(Biome biome) {
+        return biome.getMobSettings();
+    }
+
     /**
      * MC 1.20.1 {@code PaintingVariant} is a plain class with {@code getWidth()}/{@code getHeight()}.
      */

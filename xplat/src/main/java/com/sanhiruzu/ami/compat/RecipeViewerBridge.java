@@ -124,6 +124,24 @@ public class RecipeViewerBridge {
         return false;
     }
 
+    public static boolean hasEntityInfo(SearchNode node) {
+        return node != null
+                && node.type() == NodeType.ENTITY
+                && (hasRecipes(node) || hasUses(node));
+    }
+
+    public static boolean openEntityInfo(SearchNode node) {
+        if (!hasEntityInfo(node)) {
+            return false;
+        }
+        if (hasRecipes(node)) {
+            openRecipes(node);
+        } else {
+            openUses(node);
+        }
+        return true;
+    }
+
     public static boolean supportsSearchSync() {
         if (isEmiSelectedExternalViewer()) return EmiSearchSyncBridge.isAvailable();
         if (isJeiSelectedExternalViewer()) return JeiSearchSyncBridge.isAvailable();

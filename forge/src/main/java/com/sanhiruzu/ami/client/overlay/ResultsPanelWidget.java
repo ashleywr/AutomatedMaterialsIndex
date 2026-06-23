@@ -12,6 +12,7 @@ public class ResultsPanelWidget extends AbstractWidget {
     private java.util.function.Consumer<String> modClickCallback;
     private Runnable resetCallback;
     private java.util.function.Consumer<String> tokenInjectCallback;
+    private java.util.function.Consumer<String> queryReplaceCallback;
     private Runnable modeToggleCallback;
     private java.util.function.BooleanSupplier modeToggleActive;
     private AmiConfig.PanelContent contentType = AmiConfig.PanelContent.GRID;
@@ -33,6 +34,11 @@ public class ResultsPanelWidget extends AbstractWidget {
     public void setOnTokenInject(java.util.function.Consumer<String> callback) {
         this.tokenInjectCallback = callback;
         if (panel != null) panel.setOnTokenInject(callback);
+    }
+
+    public void setOnQueryReplace(java.util.function.Consumer<String> callback) {
+        this.queryReplaceCallback = callback;
+        if (panel != null) panel.setOnQueryReplace(callback);
     }
 
     public void setOnModeToggle(Runnable callback, java.util.function.BooleanSupplier activeSupplier) {
@@ -57,6 +63,7 @@ public class ResultsPanelWidget extends AbstractWidget {
             if (modClickCallback != null) panel.setOnModClick(modClickCallback);
             if (resetCallback != null) panel.setOnReset(resetCallback);
             if (tokenInjectCallback != null) panel.setOnTokenInject(tokenInjectCallback);
+            if (queryReplaceCallback != null) panel.setOnQueryReplace(queryReplaceCallback);
             if (modeToggleCallback != null) panel.setOnModeToggle(modeToggleCallback, modeToggleActive);
             panel.configureView(contentType);
         } else {

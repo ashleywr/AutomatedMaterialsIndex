@@ -150,6 +150,31 @@ public final class ProviderRegistry {
         }
     }
 
+    public static void indexRecipeGraphDeferred(Level level) {
+        try {
+            AmiIndexerService.getInstance().beginProgress("Indexing recipe graph");
+            new RecipeGraphProvider().populate(GlobalIndex.getInstance(), level);
+        } catch (Exception e) {
+            AmiCore.LOGGER.error("Deferred RecipeGraphProvider failed", e);
+        }
+    }
+
+    public static void indexSpawnGraphDeferred(Level level) {
+        if (!AmiConfig.sourceIndexSpawnBiomes) {
+            AmiCore.LOGGER.info("AMI indexing: SpawnProvider skipped by config");
+            return;
+        }
+        try {
+            AmiIndexerService.getInstance().beginProgress("Indexing mob spawn biomes");
+            new SpawnProvider().populate(GlobalIndex.getInstance(), level);
+            if (level != null) {
+                GlobalIndex.getInstance().markGraphChanged();
+            }
+        } catch (Exception e) {
+            AmiCore.LOGGER.error("Deferred SpawnProvider failed", e);
+        }
+    }
+
     public static int indexDeferredItems(Level level) {
         if (!IndexingHotItemPolicy.hasDeferredIndexNamespaces()) {
             return 0;
@@ -171,6 +196,23 @@ public final class ProviderRegistry {
         return added;
     }
 
+    public static LootTableProvider.DeferredDropIndexingResult indexLootTablesDeferred() {
+        long started = System.currentTimeMillis();
+        LootTableProvider.DeferredDropIndexingResult result =
+                new LootTableProvider().indexDeferredDrops(GlobalIndex.getInstance());
+        if (result.edgesAdded() > 0) {
+            GlobalIndex.getInstance().markGraphChanged();
+        }
+        AmiCore.LOGGER.info(
+                "AMI indexing: Deferred loot source indexing finished in {}ms; scanned {} resources, {} entity tables, {} item refs, added {} drop edges.",
+                System.currentTimeMillis() - started,
+                result.resourcesScanned(),
+                result.entityTables(),
+                result.itemRefs(),
+                result.edgesAdded());
+        return result;
+    }
+
     private static String providerName(IAmiDataProvider provider) {
         String name = provider.getClass().getSimpleName();
         return name.endsWith("Provider") ? name.substring(0, name.length() - "Provider".length()) : name;
@@ -179,6 +221,9 @@ public final class ProviderRegistry {
     private static boolean shouldRunProvider(IAmiDataProvider provider) {
         if (provider instanceof EntityProvider || provider instanceof CobblemonSpeciesProvider) {
             return AmiConfig.searchIncludeEntities;
+        }
+        if (provider instanceof SpawnProvider) {
+            return AmiConfig.sourceIndexSpawnBiomes;
         }
         return true;
     }

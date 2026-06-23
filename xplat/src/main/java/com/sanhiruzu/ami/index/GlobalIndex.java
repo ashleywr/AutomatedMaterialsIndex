@@ -170,6 +170,10 @@ public class GlobalIndex {
         return revision.get();
     }
 
+    public void markGraphChanged() {
+        revision.incrementAndGet();
+    }
+
     public void markIndexReady() {
         this.indexReady = true;
         revision.incrementAndGet();

@@ -105,7 +105,7 @@ public final class ResultContextMenuActionPolicy {
 
     static Set<String> parseEnabledActionIds(String raw) {
         if (raw == null || raw.isBlank()) return ResultContextMenuActionBuilder.KNOWN_ACTIONS;
-        if (isLegacyDefaultActionList(raw)) {
+        if (isKnownDefaultActionList(raw)) {
             raw = ResultContextMenuActionBuilder.DEFAULT_ACTIONS;
         }
 
@@ -125,10 +125,16 @@ public final class ResultContextMenuActionPolicy {
         return enabled.isEmpty() ? ResultContextMenuActionBuilder.KNOWN_ACTIONS : Set.copyOf(enabled);
     }
 
-    private static boolean isLegacyDefaultActionList(String raw) {
+    private static boolean isKnownDefaultActionList(String raw) {
         String canonical = canonicalActionList(raw);
         return canonical.equals(canonicalActionList(LEGACY_DEFAULT_ACTIONS))
-                || canonical.equals(canonicalActionList(PRE_QUEST_LEGACY_DEFAULT_ACTIONS));
+                || canonical.equals(canonicalActionList(PRE_QUEST_LEGACY_DEFAULT_ACTIONS))
+                || canonical.equals(canonicalActionList(preSourcesDefaultActions()));
+    }
+
+    private static String preSourcesDefaultActions() {
+        return ResultContextMenuActionBuilder.DEFAULT_ACTIONS
+                .replace(ResultContextMenuActionBuilder.SOURCES + ",", "");
     }
 
     static Map<String, Set<String>> parseScopedDisables(String raw) {

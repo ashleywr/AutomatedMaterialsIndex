@@ -265,6 +265,7 @@ public final class SearchSuggestions {
         int separator = body.indexOf(':');
         if (separator < 0) {
             List<Suggestion> suggestions = new ArrayList<>();
+            addSuggestions(suggestions, sourceRouteSuggestions(token, body, limit), limit);
             addSuggestions(suggestions, fieldSuggestions(vocabulary, query, token, body, limit), limit);
             if (isExactPropertyFieldAlias(body)) {
                 return filterAmiPropertySuggestions(vocabulary, suggestions);
@@ -283,6 +284,19 @@ public final class SearchSuggestions {
         Kind kind = SearchSyntax.propertyField(rawField).map(SearchSyntax.PropertyField::kind).orElse(Kind.PROPERTY);
         return filterAmiPropertySuggestions(vocabulary,
                 valueSuggestions(values, query, token, propertyPrefix, prefix, limit, kind));
+    }
+
+    private static List<Suggestion> sourceRouteSuggestions(ActiveToken token, String prefix, int limit) {
+        if (token.negated() || limit <= 0) {
+            return List.of();
+        }
+        String body = normalizeValuePrefix(prefix);
+        String routeBody = SearchSyntax.SOURCES_ROUTE_PREFIX.substring(1);
+        if (!routeBody.startsWith(body)) {
+            return List.of();
+        }
+        return List.of(new Suggestion(SearchSyntax.SOURCES_ROUTE_PREFIX, SearchSyntax.SOURCES_ROUTE_PREFIX, "route",
+                token.start(), token.end(), Kind.PROPERTY, false));
     }
 
     private static List<Suggestion> filterAmiPropertySuggestions(Vocabulary vocabulary, List<Suggestion> suggestions) {

@@ -258,6 +258,11 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     }
 
     @Override
+    public net.minecraft.world.level.biome.MobSpawnSettings getBiomeMobSpawnSettings(Biome biome) {
+        return biome.modifiableBiomeInfo().get().mobSpawnSettings();
+    }
+
+    @Override
     public int[] getPaintingSize(net.minecraft.world.entity.decoration.PaintingVariant variant) {
         return new int[]{variant.width(), variant.height()};
     }

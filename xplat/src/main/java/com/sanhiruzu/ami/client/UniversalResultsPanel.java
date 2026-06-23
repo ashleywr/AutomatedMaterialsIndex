@@ -5,6 +5,10 @@ import com.sanhiruzu.ami.api.AmiAdvancementDocument;
 import com.sanhiruzu.ami.api.AmiGuideDocument;
 import com.sanhiruzu.ami.api.AmiGuideOpeners;
 import com.sanhiruzu.ami.api.AmiQuestsApi;
+import com.sanhiruzu.ami.client.sources.ItemSourceQuery;
+import com.sanhiruzu.ami.client.sources.ItemSourceListView;
+import com.sanhiruzu.ami.client.sources.ItemSourceReport;
+import com.sanhiruzu.ami.client.sources.ItemSourceResolver;
 import com.sanhiruzu.ami.client.results.*;
 import com.sanhiruzu.ami.index.AmiRegistryDocumentIndex;
 import com.sanhiruzu.ami.client.overlay.WidgetBounds;
@@ -18,6 +22,7 @@ import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.index.AmiGuideSearchIndex;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
+import com.sanhiruzu.ami.index.RegistryDocumentKind;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.index.SearchService;
@@ -81,6 +86,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private ResultsToolbar toolbar;
     private ResultsTreeView treeView;
     private ItemGridView gridView;
+    private ItemSourceListView sourceView;
     private final ResultContextMenu contextMenu = new ResultContextMenu();
     private final ResultContextMenuActionBuilder contextMenuActions = new ResultContextMenuActionBuilder();
     private static final long LENS_DEBOUNCE_MS = 2000;
@@ -100,6 +106,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private List<RegistryDocumentRow> currentRegistryDocumentRows = List.of();
     private Runnable externalResetCallback;
     private java.util.function.Consumer<String> onTokenInject;
+    private java.util.function.Consumer<String> onQueryReplace;
     private Runnable externalModeToggleCallback;
     private java.util.function.BooleanSupplier externalModeToggleActive;
     private boolean isFavoritesPanel = false;
@@ -111,6 +118,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private boolean chromeOnly = false;
     private Component panelTitle = null;
     private Runnable onCollapseSidebarCallback;
+    private ItemSourceReport activeSourceReport = null;
+    private String sourceReturnQuery = null;
+    private long activeSourceRevision = Long.MIN_VALUE;
     // Displayed item count shown in the compact header (updated in refreshTree)
     private int displayedItemCount = 0;
     private SearchNode pressedNode = null;
@@ -254,6 +264,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         this.treeView = new ResultsTreeView(innerX, contentY, innerW, contentH);
         this.gridView = new ItemGridView(innerX, contentY, innerW, contentH);
+        this.sourceView = new ItemSourceListView(innerX, contentY, innerW, contentH);
+        this.sourceView.setActionHandler(this::handleSourceAction);
+        this.sourceView.setEntityInfoAvailable(RecipeViewerBridge::hasEntityInfo);
         this.gridView.setItemClickCallback(this::onItemClicked);
         this.treeView.setItemClickCallback(this::onItemClicked);
         this.gridView.setGroupClickCallback(this::onGroupClicked);
@@ -282,6 +295,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     public void setEntries(List<SearchNode> entries, boolean incrementalUpdate) {
+        closeSourceView();
         this.currentResults = entries;
         invalidateProjectionCache();
         if (incrementalUpdate) {
@@ -325,7 +339,12 @@ public class UniversalResultsPanel implements SearchState.Listener {
         this.onTokenInject = callback;
     }
 
+    public void setOnQueryReplace(java.util.function.Consumer<String> callback) {
+        this.onQueryReplace = callback;
+    }
+
     public void setSearchResults(Map<NodeType, List<SearchNode>> results, String query) {
+        closeSourceView();
         List<SearchNode> flat = new ArrayList<>();
         for (List<SearchNode> list : results.values()) flat.addAll(list);
         this.currentResults = flat;
@@ -402,6 +421,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
     }
 
     public void reset() {
+        closeSourceView();
         state.reset();
         if (externalResetCallback != null) externalResetCallback.run();
     }
@@ -438,6 +458,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             gridView.setTopContentHeight(0);
             treeView.updateLayout(innerX, contentY, innerW, contentH);
             gridView.updateLayout(innerX, contentY, innerW, contentH);
+            sourceView.updateLayout(innerX, contentY, innerW, contentH);
         } else if (isFavoritesPanel) {
             int contentY = y + FAV_HEADER_H + FAV_CONTENT_TOP_PAD;
             int contentH = height - FAV_HEADER_H - FAV_CONTENT_TOP_PAD - AMITheme.GLOBAL_PADDING;
@@ -445,6 +466,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             gridView.setTopContentHeight(0);
             treeView.updateLayout(innerX, contentY, innerW, contentH);
             gridView.updateLayout(innerX, contentY, innerW, contentH);
+            sourceView.updateLayout(innerX, contentY, innerW, contentH);
         } else {
             int headerH = isCompactLayout() ? COMPACT_HEADER_H : HEADER_H;
             int contentY = y + AMITheme.GLOBAL_PADDING + headerH + AMITheme.ELEMENT_GAP;
@@ -453,6 +475,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 treeView.setTopContentHeight(0);
                 gridView.setTopContentHeight(0);
                 gridView.updateLayout(innerX, contentY, innerW, contentH);
+                sourceView.updateLayout(innerX, contentY, innerW, contentH);
             } else {
                 boolean embeddedSearch = supportsEmbeddedSearch(new WidgetBounds(x, y, width, height));
                 int toolbarX = embeddedSearch ? embeddedToolbarX(innerX, innerW) : narrowToolbarX(innerX);
@@ -472,6 +495,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         try (AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("panel.render")) {
             checkPlayerStateChanged();
             refreshIndexProgressIfNeeded();
+            refreshSourceRouteIfNeeded();
 
             try (AmiRenderProfiler.Section chrome = AmiRenderProfiler.section("panel.chrome")) {
                 com.mojang.blaze3d.systems.RenderSystem.enableBlend();
@@ -549,6 +573,11 @@ public class UniversalResultsPanel implements SearchState.Listener {
             int sepY = headerY + headerH;
             int contentY = sepY + AMITheme.ELEMENT_GAP;
 
+            if (activeSourceReport != null) {
+                renderSourceView(g, mouseX, mouseY, headerY, headerH, sepY);
+                return;
+            }
+
             if (compact) {
                 var font = Minecraft.getInstance().font;
 
@@ -625,6 +654,32 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
     }
 
+    private void renderSourceView(GuiGraphics g, int mouseX, int mouseY, int headerY, int headerH, int sepY) {
+        var font = Minecraft.getInstance().font;
+        renderSourceBackButton(g, mouseX, mouseY);
+
+        int titleX = toggleX + TOGGLE_W + AMITheme.ELEMENT_GAP;
+        int titleRight = x + width - AMITheme.GLOBAL_PADDING;
+        String title = activeSourceReport == null ? "" : activeSourceReport.title().getString();
+        int textY = headerY + (headerH - font.lineHeight) / 2;
+        g.drawString(font, truncate(font, title, Math.max(0, titleRight - titleX)), titleX, textY,
+                AMITheme.TEXT_HEADER, false);
+        g.fill(x + 3, sepY, x + width - 3, sepY + 1, AMITheme.SECTION_SEP);
+        sourceView.render(g, mouseX, mouseY);
+    }
+
+    private void renderSourceBackButton(GuiGraphics g, int mouseX, int mouseY) {
+        boolean hovered = isOverToggle(mouseX, mouseY);
+        int bg = hovered ? AMITheme.DROPDOWN_BG_ACTIVE : AMITheme.DROPDOWN_BG;
+        g.fill(toggleX, toggleY, toggleX + TOGGLE_W, toggleY + TOGGLE_H, bg);
+        g.fill(toggleX, toggleY, toggleX + TOGGLE_W, toggleY + 1, AMITheme.CONTROL_EDGE_LIGHT);
+        g.fill(toggleX, toggleY + TOGGLE_H - 1, toggleX + TOGGLE_W, toggleY + TOGGLE_H, AMITheme.CONTROL_EDGE_DARK);
+        var font = Minecraft.getInstance().font;
+        String label = "<";
+        g.drawString(font, label, toggleX + (TOGGLE_W - font.width(label)) / 2,
+                toggleY + (TOGGLE_H - font.lineHeight) / 2, AMITheme.TEXT_HEADER, false);
+    }
+
     private void refreshIndexProgressIfNeeded() {
         if (AmiIndexerService.getInstance().isReady()) {
             return;
@@ -635,6 +690,17 @@ public class UniversalResultsPanel implements SearchState.Listener {
         }
         lastIndexProgressRefreshMs = now;
         refreshTree();
+    }
+
+    private void refreshSourceRouteIfNeeded() {
+        if (activeSourceReport == null || isFavoritesPanel || !ItemSourceQuery.isRoute(state.getQuery())) {
+            return;
+        }
+        long indexRevision = GlobalIndex.getInstance().revision();
+        boolean loadingChanged = activeSourceReport.loading() != AmiIndexerService.getInstance().isSourceIndexingPending();
+        if (indexRevision != activeSourceRevision || loadingChanged) {
+            refreshTree(true);
+        }
     }
 
     private void renderCompactIndexingProgress(GuiGraphics g, int contentY) {
@@ -1476,6 +1542,20 @@ public class UniversalResultsPanel implements SearchState.Listener {
         var manager = com.sanhiruzu.ami.client.InventoryOverlayHandler.getManager();
         if (manager != null && !manager.isPanelVisible() && !isFavoritesPanel) return;
 
+        if (!isFavoritesPanel && openSourceRoute(state.getQuery())) {
+            displayedItemCount = 0;
+            currentAdvancementRows = List.of();
+            currentGuideRows = List.of();
+            currentQuestRows = List.of();
+            currentRegistryDocumentRows = List.of();
+            updateResultViewLayouts();
+            setViewRoots(List.of(), incrementalUpdate);
+            return;
+        }
+        if (activeSourceReport != null) {
+            closeSourceView();
+        }
+
         ResultsViewProjector.Projection projection = projectResults();
         displayedItemCount = projection.displayedItemCount();
         currentAdvancementRows = projection.advancementRows();
@@ -1611,6 +1691,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
             gridView.setTopContentHeight(0);
             treeView.updateLayout(innerX, contentY, innerW, contentH);
             gridView.updateLayout(innerX, contentY, innerW, contentH);
+            sourceView.updateLayout(innerX, contentY, innerW, contentH);
             return;
         }
 
@@ -1626,6 +1707,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
         gridView.setTopContentHeight(sourceSectionsH);
         treeView.updateLayout(innerX, contentY, innerW, contentH);
         gridView.updateLayout(innerX, contentY, innerW, contentH);
+        sourceView.updateLayout(innerX, contentY, innerW, contentH);
     }
 
     private int contentY() {
@@ -1919,9 +2001,143 @@ public class UniversalResultsPanel implements SearchState.Listener {
                         resolveStackForContextMenu(node),
                         com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance(),
                         onTokenInject,
-                        this::refreshAfterDataFixApplied
+                        this::refreshAfterDataFixApplied,
+                        this::openSourceView
                 )
         ));
+    }
+
+    private void openSourceView(SearchNode node) {
+        if (node == null || node.type() != NodeType.ITEM) return;
+        String route = ItemSourceQuery.queryFor(node);
+        if (!route.equals(state.getQuery())) {
+            sourceReturnQuery = state.getQuery();
+            replaceQuery(route);
+            return;
+        }
+        openSourceRoute(route);
+    }
+
+    private boolean openSourceRoute(String query) {
+        var targetText = ItemSourceQuery.parseTarget(query);
+        if (targetText.isEmpty()) {
+            return false;
+        }
+        activeSourceReport = ItemSourceQuery.resolveTarget(query, searchService)
+                .map(node -> {
+                    boolean loading = AmiIndexerService.getInstance().ensureSourcesForItem(node.id());
+                    ItemSourceReport report = ItemSourceResolver.fromGlobalIndex().resolve(node);
+                    List<Component> diagnostics = !loading ? sourceViewDiagnostics(node.id(), report) : List.of();
+                    return report.withState(loading, diagnostics);
+                })
+                .orElseGet(() -> new ItemSourceReport(
+                        Component.literal("Sources: " + targetText.get()),
+                        List.of(),
+                        AmiIndexerService.getInstance().isSourceIndexingPending(),
+                        List.of(Component.translatable("ami.sources.diagnostic.target_not_found", targetText.get()))
+                ));
+        activeSourceRevision = GlobalIndex.getInstance().revision();
+        sourceView.setReport(activeSourceReport);
+        return true;
+    }
+
+    private List<Component> sourceViewDiagnostics(ResourceLocation itemId, ItemSourceReport report) {
+        if (report == null) {
+            return AmiIndexerService.getInstance().sourceDiagnostics(itemId);
+        }
+        List<Component> diagnostics = new ArrayList<>();
+        if (report.groupOrder().isEmpty()) {
+            diagnostics.addAll(AmiIndexerService.getInstance().sourceDiagnostics(itemId));
+        }
+        if (mobDropRowsMissingBiomeLinks(report)) {
+            diagnostics.add(Component.translatable(AmiConfig.sourceIndexSpawnBiomes
+                    ? "ami.sources.diagnostic.spawn.no_biomes"
+                    : "ami.sources.diagnostic.spawn.disabled"));
+        }
+        return diagnostics;
+    }
+
+    private static boolean mobDropRowsMissingBiomeLinks(ItemSourceReport report) {
+        boolean hasMobDropRows = !report.rows(com.sanhiruzu.ami.client.sources.ItemSourceType.MOB_DROP).isEmpty();
+        if (!hasMobDropRows) {
+            return false;
+        }
+        for (var row : report.rows(com.sanhiruzu.ami.client.sources.ItemSourceType.MOB_DROP)) {
+            if (!row.biomeLinks().isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void closeSourceView() {
+        activeSourceReport = null;
+        activeSourceRevision = Long.MIN_VALUE;
+        if (sourceView != null) {
+            sourceView.setReport(null);
+        }
+    }
+
+    private void exitSourceView() {
+        String returnQuery = sourceReturnQuery == null ? "" : sourceReturnQuery;
+        sourceReturnQuery = null;
+        closeSourceView();
+        replaceQuery(returnQuery);
+    }
+
+    private void replaceQuery(String query) {
+        if (onQueryReplace != null) {
+            onQueryReplace.accept(query == null ? "" : query);
+        } else {
+            state.setQuery(query == null ? "" : query);
+        }
+    }
+
+    private void openSourceLink(SearchNode node) {
+        if (node == null) return;
+        sourceReturnQuery = null;
+        closeSourceView();
+        if (onQueryReplace != null) {
+            onQueryReplace.accept(node.id().toString());
+        } else if (onTokenInject != null) {
+            onTokenInject.accept(node.id().toString());
+        }
+    }
+
+    private boolean handleSourceAction(SearchNode node, ItemSourceListView.SourceAction action, int mouseX, int mouseY) {
+        if (node == null || action == null) {
+            return false;
+        }
+        return switch (action) {
+            case OPEN_LINK -> {
+                openSourceLink(node);
+                yield true;
+            }
+            case OPEN_OUTPUT_RECIPES -> {
+                RecipeViewerBridge.openRecipes(node);
+                yield true;
+            }
+            case OPEN_OUTPUT_CONTEXT -> {
+                openItemContextMenu(node, mouseX, mouseY);
+                yield true;
+            }
+            case LOCATE_BIOME -> locateSourceBiome(node);
+            case OPEN_BIOME_CONTEXT -> {
+                openItemContextMenu(node, mouseX, mouseY);
+                yield true;
+            }
+            case OPEN_ENTITY_INFO -> RecipeViewerBridge.openEntityInfo(node);
+        };
+    }
+
+    private boolean locateSourceBiome(SearchNode node) {
+        if (node == null || node.type() != NodeType.BIOME) {
+            return false;
+        }
+        if (AMICheatMode.isAllowed()) {
+            AMICheatMode.locateBiome(node.id());
+        }
+        return true;
     }
 
     private void openGroupContextMenu(TreeNode node, int mouseX, int mouseY) {
@@ -2213,6 +2429,14 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         if (button != 0 && button != 1) return false;
 
+        if (activeSourceReport != null) {
+            if (button == 0 && isOverToggle(mouseX, mouseY)) {
+                exitSourceView();
+                return true;
+            }
+            return sourceView.mouseClicked(mouseX, mouseY, button);
+        }
+
         pressedNode = null;
         if (button == 0) {
             if (isGridActive()) {
@@ -2342,6 +2566,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
         RegistryDocumentRow registryDocumentRow = registryDocumentRowAt(mouseX, mouseY);
         if (registryDocumentRow != null) {
+            if (button == 0 && registryDocumentRow.document().kind() == RegistryDocumentKind.TAG) {
+                replaceQuery("#" + registryDocumentRow.document().id());
+            }
             return true;
         }
 

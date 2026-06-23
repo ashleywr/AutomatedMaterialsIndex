@@ -7,6 +7,7 @@
   the search bar with `?sources=<item>`, such as `?sources=minecraft:leather` or `?sources=leather`.
 - Main files:
   - `xplat/src/main/java/com/sanhiruzu/ami/client/sources/ItemSourceResolver.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/client/sources/ItemSourceViewProjector.java`
   - `xplat/src/main/java/com/sanhiruzu/ami/client/sources/ItemSourceListView.java`
   - `xplat/src/main/java/com/sanhiruzu/ami/client/UniversalResultsPanel.java`
   - `xplat/src/main/java/com/sanhiruzu/ami/client/results/ResultContextMenuActionBuilder.java`
@@ -14,16 +15,26 @@
   - `xplat/src/main/java/com/sanhiruzu/ami/index/providers/LootTableProvider.java`
   - `xplat/src/main/java/com/sanhiruzu/ami/index/providers/LootTableDropIndexer.java`
   - `xplat/src/main/java/com/sanhiruzu/ami/index/providers/SpawnProvider.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/config/AmiConfig.java`
 - Tests:
-  - `.\gradlew.bat :neoforge:test --tests "*ItemSourceResolverTest" --tests "*ItemSourceListViewTest" --tests "*ItemSourceQueryTest" --tests "*GlobalIndexGraphRevisionTest" --tests "*AmiIndexerServiceRecipeGraphSourceTest" --tests "*AmiIndexerServiceSourceDemandSourceTest" --tests "*ProviderRegistryLootRevisionSourceTest" --tests "*ResultContextMenuActionBuilderTest.itemNodesExposeSourcesActionWhenPanelCanOpenSourcesView" --tests "*SpawnProviderSourceTest" --tests "*LootTableDropIndexerTest" --tests "*LootTableProviderDeferredSourceTest"`
+  - `.\gradlew.bat :neoforge:test --tests "*AmiConfigTest" --tests "*ItemSourceResolverTest" --tests "*ItemSourceListViewTest" --tests "*ItemSourceQueryTest" --tests "*GlobalIndexGraphRevisionTest" --tests "*AmiIndexerServiceRecipeGraphSourceTest" --tests "*AmiIndexerServiceSourceDemandSourceTest" --tests "*ProviderRegistryLootRevisionSourceTest" --tests "*ResultContextMenuActionBuilderTest.itemNodesExposeSourcesActionWhenPanelCanOpenSourcesView" --tests "*SpawnProviderSourceTest" --tests "*LootTableDropIndexerTest" --tests "*LootTableProviderDeferredSourceTest"`
 - State contract:
   - `Sources` is a normal context-menu action (`ami:sources`) gated by the existing context-menu policy and visible for
     item nodes when the owning panel can open the source view.
   - Source rows render as route cards, not plain filtered search rows: the primary source node owns the icon/name and
     card click target, the route line uses a compact action label plus output icon/name for the acquisition hop, and
-    biome annotations render as separate icon chips instead of being folded into the mob text. Left-clicking a biome
-    chip attempts AMI's normal `/locate biome` action when the player has command permission; right-clicking opens the
-    normal AMI context menu for that biome node. Biome locate is permission-gated, not AMI cheat-mode-gated.
+    biome annotations render as separate icon chips instead of being folded into the mob text. Source-list rendering is
+    clipped to the panel bounds; mob cards do not repeat a `Biomes` label on every row, and biome chips start at the
+    text column so biome names have enough room to scan. Source-only biome chip labels strip redundant trailing
+    `Biome` words (for example `Savanna Biome` displays as `Savanna`). Source group headers reuse live `AMITheme` row
+    metrics and normal result group chrome instead of ad hoc section text. `ItemSourceListView` does not own source
+    grouping or row stacking; it renders and dispatches the immutable row/hit-target model produced by
+    `ItemSourceViewProjector`.
+    Left-clicking a biome chip attempts AMI's normal
+    `/locate biome` action when the player has command permission; right-clicking opens the normal AMI context menu for
+    that biome node. Biome locate is permission-gated, not AMI cheat-mode-gated.
+    The output item on a route line is its own hit target: left-click opens recipes for that item, and right-click opens
+    the normal item context menu.
     Recipe rows are grouped under `Recipes` and show the recipe method/workstation/category as the primary icon/name
     (`Crafting Table`, `Smoker`, modded station block when AMI can identify one) instead of listing recipe ingredients.
   - Mob-drop rows should keep the player in the Sources view unless a specific biome chip is clicked. Clicking the
@@ -38,13 +49,21 @@
     target item to avoid recipe loops.
   - Source resolving canonicalizes clicked/search result nodes back to the live indexed node before reading graph edges,
     so projected UI nodes and copied result nodes do not lose `OUTPUT_OF`, `DROPS`, or spawn edges.
+    It also resolves unresolved recipe graph edge IDs from the indexed node collection so recipe source rows appear even
+    before `SearchNode#getEdges` has populated its resolved-edge cache. If the target item is missing the reverse
+    `OUTPUT_OF` edge, the resolver also scans recipe nodes for `PRODUCES` edges that point at the target, which keeps
+    recipe source rows visible for items such as leather whose recipe graph may only expose the forward output edge.
   - Mob spawn biome text comes from `ENTITY --SPAWNS_IN--> BIOME` edges populated from live biome spawn settings by
     `SpawnProvider`. Cached index restores must rebuild these graph-only spawn edges before source rows are resolved, so
     mob-drop rows keep their biome chips after a normal cached launch. If the initial AMI rebuild/restore happened
     before a client `Level` was available, opening a Sources route retries the spawn graph in the deferred Sources
     loading path and refreshes the open view when those biome edges arrive. `SpawnProvider` attaches both unresolved
     edge IDs and resolved biome nodes, and logs normal-run counts for scanned biomes, spawn entries, and recorded
-    entity-to-biome edges.
+    entity-to-biome edges. On NeoForge, spawn settings must come from the platform helper's effective modified biome
+    info (`biome.modifiableBiomeInfo().get().mobSpawnSettings()`); raw registry `Biome#getMobSettings()` was observed
+    to scan biomes but produce zero spawn entries after a cached client restore. If the client biome registry produces
+    zero spawn entries, `SpawnProvider` retries the matching integrated server level's biome registry so singleplayer
+    Sources rows can use the server's effective datapack/modifier spawn data.
   - If mob-drop rows exist but no mob-drop row has biome links, the Sources view shows a concise diagnostic above the
     groups (`Mob drops found, but no spawn biomes are indexed.`). This keeps partial source data visible while making
     the missing enrichment layer explicit.
@@ -62,6 +81,10 @@
     pending it is started when a client level is available; if deferred loot source indexing has not run yet, it is
     started immediately rather than waiting for the passive tail task. While those source indexes are still pending, the
     source list renders a loading row.
+  - Source enrichment has two config gates: `sources.index-loot-drops` controls deferred entity loot-table scanning, and
+    `sources.index-spawn-biomes` controls biome spawn-list scanning. Both default on. When disabled, the corresponding
+    source phase is marked complete instead of leaving `Sources` in a loading state; empty/partial source reports add a
+    concise disabled diagnostic.
   - Deferred graph-only source edges call `GlobalIndex.markGraphChanged()` when edges are added so an already-open source
     route can refresh after loot/source data arrives.
   - Empty source reports should explain why AMI thinks the panel is empty. The report carries diagnostic text rows under

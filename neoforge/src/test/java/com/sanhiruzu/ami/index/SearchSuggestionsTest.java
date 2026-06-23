@@ -244,6 +244,16 @@ class SearchSuggestionsTest {
     }
 
     @Test
+    void suggestsStaticSourcesRouteWithoutIndexedSourceWarmup() {
+        GlobalIndex index = GlobalIndex.getInstance();
+        index.addNode(item("minecraft", "stone", "Stone", Map.of()));
+
+        assertSuggests(index, "?s", "?sources=");
+        assertSuggests(index, "?sources", "?sources=");
+        assertTrue(helpExamples(index).contains("?sources=leather"));
+    }
+
+    @Test
     void playerHeadSuggestionsPreferOnlineMatchesBeforeHistoryAndTypedFallback() {
         GlobalIndex index = GlobalIndex.getInstance();
         PlayerResolver.installTestHooksForTests(

@@ -118,6 +118,32 @@ class ResultContextMenuActionBuilderTest {
     }
 
     @Test
+    void itemNodesExposeSourcesActionWhenPanelCanOpenSourcesView() {
+        ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder();
+        AtomicReference<SearchNode> opened = new AtomicReference<>();
+        SearchNode leather = item("leather", "Leather");
+
+        List<ResultContextMenu.Action> actions = builder.forItem(
+                new ResultContextMenuActionBuilder.ItemContext(
+                        leather,
+                        ItemStack.EMPTY,
+                        null,
+                        ignored -> {
+                        },
+                        null,
+                        opened::set
+                )
+        );
+
+        ResultContextMenu.Action sources = firstAction(actions, ResultContextMenuActionBuilder.SOURCES);
+        assertEquals("ami.context.sources", sources.label().getString());
+
+        sources.onClick().run();
+
+        assertEquals(leather, opened.get());
+    }
+
+    @Test
     void playerNodesUsePlayerSpecificActionsAndGateAdminCommands() {
         ResultContextMenuActionBuilder regularBuilder = new ResultContextMenuActionBuilder(() -> false);
         com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler favorites =
@@ -991,25 +1017,33 @@ class ResultContextMenuActionBuilderTest {
     }
 
     @Test
-    void legacyDefaultContextMenuConfigPicksUpPokemonActions() {
+    void legacyDefaultContextMenuConfigPicksUpNewDefaultActions() {
         String legacyDefault = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,"
                 + "ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,"
                 + "ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,ami:group_toggle,"
                 + "ami:filter_category,ami:copy_group_key,ami:start_category_fix,ami:apply_category_fix,"
                 + "ami:clear_item_fix,ami:quests_for_item,ami:open_quest,ami:copy_quest_matches";
 
-        assertTrue(ResultContextMenuActionPolicy.parseEnabledActionIds(legacyDefault)
-                .contains(ResultContextMenuActionBuilder.FILTER_POKEMON_GENERATION));
-        assertTrue(ResultContextMenuActionPolicy.parseEnabledActionIds(legacyDefault)
-                .contains(ResultContextMenuActionBuilder.RECIPES_POKEMON_DROP_ITEM));
-        assertTrue(ResultContextMenuActionPolicy.parseEnabledActionIds(legacyDefault)
-                .contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_TIER));
-        assertTrue(ResultContextMenuActionPolicy.parseEnabledActionIds(legacyDefault)
-                .contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_CIRCUIT_GRADE));
+        Set<String> enabled = ResultContextMenuActionPolicy.parseEnabledActionIds(legacyDefault);
+
+        assertTrue(enabled.contains(ResultContextMenuActionBuilder.SOURCES));
+        assertTrue(enabled.contains(ResultContextMenuActionBuilder.FILTER_POKEMON_GENERATION));
+        assertTrue(enabled.contains(ResultContextMenuActionBuilder.RECIPES_POKEMON_DROP_ITEM));
+        assertTrue(enabled.contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_TIER));
+        assertTrue(enabled.contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_CIRCUIT_GRADE));
     }
 
     @Test
-    void preQuestLegacyDefaultContextMenuConfigPicksUpPokemonActions() {
+    void preSourcesDefaultContextMenuConfigPicksUpSourcesAction() {
+        String preSourcesDefault = ResultContextMenuActionBuilder.DEFAULT_ACTIONS
+                .replace(ResultContextMenuActionBuilder.SOURCES + ",", "");
+
+        assertTrue(ResultContextMenuActionPolicy.parseEnabledActionIds(preSourcesDefault)
+                .contains(ResultContextMenuActionBuilder.SOURCES));
+    }
+
+    @Test
+    void preQuestLegacyDefaultContextMenuConfigPicksUpNewDefaultActions() {
         String legacyDefault = "ami:copy_tooltip,ami:craft_one,ami:craft_stack,ami:recipes,ami:uses,ami:favorite,"
                 + "ami:chat,ami:wiki,ami:locate,ami:cheat_give_one,ami:cheat_give_stack,ami:cheat_spawn_egg,"
                 + "ami:cheat_spawn_egg_stack,ami:cheat_spawn_pokemon,ami:cheat_pokemon_party,ami:group_toggle,"
@@ -1018,6 +1052,7 @@ class ResultContextMenuActionBuilderTest {
 
         Set<String> enabled = ResultContextMenuActionPolicy.parseEnabledActionIds(legacyDefault);
 
+        assertTrue(enabled.contains(ResultContextMenuActionBuilder.SOURCES));
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.OPEN_POKEDEX));
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.SEARCH_POKEMON_DROP_ITEM));
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.RECIPES_POKEMON_DROP_ITEM));
@@ -1025,6 +1060,15 @@ class ResultContextMenuActionBuilderTest {
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_KIND));
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_CIRCUIT_GRADE));
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.COPY_QUEST_MATCHES));
+    }
+
+    @Test
+    void customContextMenuAllowListDoesNotPickUpNewDefaultActions() {
+        Set<String> enabled = ResultContextMenuActionPolicy.parseEnabledActionIds("ami:wiki,ami:chat");
+
+        assertTrue(enabled.contains(ResultContextMenuActionBuilder.WIKI));
+        assertTrue(enabled.contains(ResultContextMenuActionBuilder.CHAT));
+        assertTrue(!enabled.contains(ResultContextMenuActionBuilder.SOURCES));
     }
 
     @Test

@@ -246,6 +246,11 @@ public class FabricPlatformHelper implements IPlatformHelper {
         return biome.climateSettings.temperatureModifier() == Biome.TemperatureModifier.FROZEN;
     }
 
+    @Override
+    public net.minecraft.world.level.biome.MobSpawnSettings getBiomeMobSpawnSettings(Biome biome) {
+        return biome.getMobSettings();
+    }
+
     /**
      * MC 1.21.1 {@code PaintingVariant} is a record, so the accessors are {@code width()}/{@code height()}.
      */

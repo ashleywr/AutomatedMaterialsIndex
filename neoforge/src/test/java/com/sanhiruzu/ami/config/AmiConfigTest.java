@@ -77,4 +77,16 @@ public class AmiConfigTest {
         assertEquals("ftbchunks,journeymap,xaero,waystones,manual", AmiConfig.waypointOpenProviderPriority);
         assertEquals("shift", AmiConfig.waypointTooltipProviderDetailsMode);
     }
+
+    @Test
+    void sourceIndexingSettingsHaveStableDefaults() throws Exception {
+        AmiConfig.resetToDefaults();
+
+        assertTrue(AmiConfig.sourceIndexLootDrops);
+        assertTrue(AmiConfig.sourceIndexSpawnBiomes);
+        assertEquals("sources.index-loot-drops",
+                AmiConfig.class.getField("sourceIndexLootDrops").getAnnotation(ConfigValue.class).value());
+        assertEquals("sources.index-spawn-biomes",
+                AmiConfig.class.getField("sourceIndexSpawnBiomes").getAnnotation(ConfigValue.class).value());
+    }
 }

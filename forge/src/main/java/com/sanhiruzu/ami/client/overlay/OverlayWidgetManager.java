@@ -161,6 +161,10 @@ public class OverlayWidgetManager {
     private void configureResultsCallbacks(ResultsPanelWidget panel) {
         panel.setOnReset(searchBar::clear);
         panel.setOnTokenInject(token -> searchBar.toggleToken(token));
+        panel.setOnQueryReplace(query -> {
+            searchBar.setQuery(query);
+            applySearchQuery(query);
+        });
         panel.setOnModClick(token -> {
             searchBar.toggleToken(token);
             String modId = token.startsWith("@") ? token.substring(1) : token;
@@ -910,7 +914,8 @@ public class OverlayWidgetManager {
         if (searchBar != null) {
             searchBar.setInventoryVisualFilterActive(inventorySearchHighlighter.isActive());
         }
-        if (SEARCH_DEBOUNCE_MS <= 0L || query == null || query.isBlank()) {
+        if (SEARCH_DEBOUNCE_MS <= 0L || query == null || query.isBlank()
+                || com.sanhiruzu.ami.client.sources.ItemSourceQuery.isRoute(query)) {
             pendingSearchQuery = null;
             pendingSearchDeadlineMs = -1L;
             applySearchQuery(query == null ? "" : query);
@@ -938,7 +943,9 @@ public class OverlayWidgetManager {
         for (ResultsPanelWidget panel : getResultPanels()) {
             if (panel.getInnerPanel() != null) panel.getInnerPanel().getState().setQuery(query);
         }
-        if (RecipeViewerBridge.supportsSearchSync() && !query.equals(lastSyncedQuery)) {
+        if (RecipeViewerBridge.supportsSearchSync()
+                && !com.sanhiruzu.ami.client.sources.ItemSourceQuery.isRoute(query)
+                && !query.equals(lastSyncedQuery)) {
             lastSyncedQuery = query;
             RecipeViewerBridge.setSearchText(query);
         }

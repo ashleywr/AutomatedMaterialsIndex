@@ -61,6 +61,8 @@ public final class SearchNodeKeys {
     public static final String RECIPE_USE_COUNT = "recipeUseCount"; // count of indexed recipes using this item as input
     // Recipe node metadata (NodeType.RECIPE)
     public static final String RECIPE_TYPE_ID = "recipeTypeId"; // recipe type registry key path, e.g. "crafting", "smelting"
+    public static final String RECIPE_METHOD_ICON_ITEM_ID = "recipeMethodIconItemId"; // representative station/category icon item id.
+    public static final String RECIPE_METHOD_LABEL = "recipeMethodLabel"; // friendly recipe method/category label.
     public static final String CREATIVE_TAB_ID = "creativeTabId";
     public static final String CREATIVE_TAB_LABEL = "creativeTabLabel";
     public static final String SUBTYPE_OF = "subtypeOf";     // base item id for subtype nodes

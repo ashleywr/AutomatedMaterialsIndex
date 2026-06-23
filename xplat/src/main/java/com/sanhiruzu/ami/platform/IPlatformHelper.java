@@ -232,6 +232,12 @@ public interface IPlatformHelper {
     boolean isBiomeTemperatureFrozen(net.minecraft.world.level.biome.Biome biome);
 
     /**
+     * Returns the effective mob spawn settings for a biome. Forge/NeoForge apply biome modifiers into modified
+     * biome info; Fabric falls back to the vanilla biome spawn settings.
+     */
+    net.minecraft.world.level.biome.MobSpawnSettings getBiomeMobSpawnSettings(net.minecraft.world.level.biome.Biome biome);
+
+    /**
      * Returns the painting's {@code {width, height}} in tiles. The accessor names diverge across
      * versions: MC 1.20.1 exposes {@code getWidth()}/{@code getHeight()} on the {@code PaintingVariant}
      * class, while MC 1.21.1 exposes the record accessors {@code width()}/{@code height()}. Implemented

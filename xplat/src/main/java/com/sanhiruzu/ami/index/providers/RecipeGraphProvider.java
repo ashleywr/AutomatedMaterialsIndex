@@ -7,6 +7,7 @@ import com.sanhiruzu.ami.index.IAmiDataProvider;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.recipe.AmiRecipeCategoryRegistry;
 import com.sanhiruzu.ami.recipe.AmiRecipeIndex;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -64,7 +65,8 @@ public class RecipeGraphProvider implements IAmiDataProvider {
                 ResourceLocation recipeId = recipe.id();
                 if (!emitted.add(recipeId)) continue;
 
-                String typeId = recipeTypeId(recipe);
+                RecipeType<?> recipeType = recipe.value().getType();
+                String typeId = recipeTypeId(recipeType);
                 String displayName = index.getNode(itemId, NodeType.ITEM)
                         .map(SearchNode::displayName)
                         .orElse(itemId.getPath());
@@ -72,6 +74,7 @@ public class RecipeGraphProvider implements IAmiDataProvider {
                 Map<String, String> meta = new LinkedHashMap<>();
                 meta.put(SearchNodeKeys.RECIPE_TYPE_ID, typeId);
                 meta.put(SearchNodeKeys.MOD_ID, recipeId.getNamespace());
+                putRecipeMethodMetadata(meta, recipeType);
 
                 SearchNode recipeNode = new SearchNode(recipeId, NodeType.RECIPE,
                         displayName, 0xFFFFFFFF, 0, meta);
@@ -122,10 +125,12 @@ public class RecipeGraphProvider implements IAmiDataProvider {
                 ResourceLocation recipeId = recipe.id();
                 if (!emitted.add(recipeId)) continue;
 
-                String typeId = recipeTypeId(recipe);
+                RecipeType<?> recipeType = recipe.value().getType();
+                String typeId = recipeTypeId(recipeType);
                 Map<String, String> meta = new LinkedHashMap<>();
                 meta.put(SearchNodeKeys.RECIPE_TYPE_ID, typeId);
                 meta.put(SearchNodeKeys.MOD_ID, recipeId.getNamespace());
+                putRecipeMethodMetadata(meta, recipeType);
 
                 SearchNode recipeNode = new SearchNode(recipeId, NodeType.RECIPE,
                         typeId, 0xFFFFFFFF, 0, meta);
@@ -145,10 +150,24 @@ public class RecipeGraphProvider implements IAmiDataProvider {
                 nodeCount, edgeCount, System.currentTimeMillis() - start);
     }
 
-    private static String recipeTypeId(AmiRecipeHolder<?> recipe) {
-        RecipeType<?> type = recipe.value().getType();
+    private static String recipeTypeId(RecipeType<?> type) {
         ResourceLocation key = BuiltInRegistries.RECIPE_TYPE.getKey(type);
         if (key != null) return key.getPath();
         return type.toString().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private static void putRecipeMethodMetadata(Map<String, String> meta, RecipeType<?> type) {
+        String name = AmiRecipeCategoryRegistry.getEmiCategoryName(type);
+        if (name != null && !name.isBlank()) {
+            meta.put(SearchNodeKeys.RECIPE_METHOD_LABEL, name);
+        }
+
+        ItemStack icon = AmiRecipeCategoryRegistry.getEmiCategoryIcon(type);
+        if (!icon.isEmpty()) {
+            ResourceLocation iconId = BuiltInRegistries.ITEM.getKey(icon.getItem());
+            if (iconId != null) {
+                meta.put(SearchNodeKeys.RECIPE_METHOD_ICON_ITEM_ID, iconId.toString());
+            }
+        }
     }
 }

@@ -82,6 +82,7 @@ public class ResultContextMenuActionBuilder {
     public static final String CRAFT_STACK = "ami:craft_stack";
     public static final String RECIPES = "ami:recipes";
     public static final String USES = "ami:uses";
+    public static final String SOURCES = "ami:sources";
     public static final String FAVORITE = "ami:favorite";
     public static final String CHAT = "ami:chat";
     public static final String WIKI = "ami:wiki";
@@ -153,7 +154,7 @@ public class ResultContextMenuActionBuilder {
     private static final ResourceLocation SILENT_GEAR_MATERIAL_BOOK = ResourceLocation.fromNamespaceAndPath("silentgear", "material_book");
 
     public static final Set<String> KNOWN_ACTIONS = Set.of(
-            COPY_TOOLTIP, CRAFT_ONE, CRAFT_STACK, RECIPES, USES, FAVORITE, CHAT, WIKI, LOCATE,
+            COPY_TOOLTIP, CRAFT_ONE, CRAFT_STACK, RECIPES, USES, SOURCES, FAVORITE, CHAT, WIKI, LOCATE,
             CHEAT_GIVE_ONE, CHEAT_GIVE_STACK, CHEAT_SPAWN_EGG, CHEAT_SPAWN_EGG_STACK,
             CHEAT_SPAWN_POKEMON, CHEAT_POKEMON_PARTY,
             OPEN_POKEDEX, FILTER_POKEMON_TYPE, FILTER_POKEMON_SECONDARY_TYPE,
@@ -179,6 +180,7 @@ public class ResultContextMenuActionBuilder {
             CRAFT_STACK,
             RECIPES,
             USES,
+            SOURCES,
             FAVORITE,
             CHAT,
             WIKI,
@@ -332,6 +334,14 @@ public class ResultContextMenuActionBuilder {
                     Component.translatable("ami.context.uses"),
                     'u',
                     () -> openUsesLater(stack)
+            ));
+        }
+        if (policy.allows(node, SOURCES) && node.type() == NodeType.ITEM && context.openSources() != null) {
+            actions.add(ResultContextMenu.Action.enabled(
+                    SOURCES,
+                    Component.translatable("ami.context.sources"),
+                    's',
+                    () -> context.openSources().accept(node)
             ));
         }
 
@@ -519,14 +529,14 @@ public class ResultContextMenuActionBuilder {
             ));
         }
 
-        if (policy.allows(node, LOCATE) && id != null && node.type() == NodeType.BIOME && AMICheatMode.isEnabled()) {
+        if (policy.allows(node, LOCATE) && id != null && node.type() == NodeType.BIOME && AMICheatMode.isAllowed()) {
             actions.add(ResultContextMenu.Action.enabled(
                     LOCATE,
                     Component.translatable("ami.context.locate_biome"),
                     'n',
                     () -> AMICheatMode.locateBiome(id)
             ));
-        } else if (policy.allows(node, LOCATE) && id != null && node.type() == NodeType.STRUCTURE && AMICheatMode.isEnabled()) {
+        } else if (policy.allows(node, LOCATE) && id != null && node.type() == NodeType.STRUCTURE && AMICheatMode.isAllowed()) {
             actions.add(ResultContextMenu.Action.enabled(
                     LOCATE,
                     Component.translatable("ami.context.locate_structure"),
@@ -2584,13 +2594,22 @@ public class ResultContextMenuActionBuilder {
             ItemStack stack,
             com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler favorites,
             Consumer<String> tokenInject,
-            Runnable onDataFixApplied
+            Runnable onDataFixApplied,
+            Consumer<SearchNode> openSources
     ) {
         public ItemContext(SearchNode node,
                            ItemStack stack,
                            com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler favorites,
                            Consumer<String> tokenInject) {
-            this(node, stack, favorites, tokenInject, null);
+            this(node, stack, favorites, tokenInject, null, null);
+        }
+
+        public ItemContext(SearchNode node,
+                           ItemStack stack,
+                           com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler favorites,
+                           Consumer<String> tokenInject,
+                           Runnable onDataFixApplied) {
+            this(node, stack, favorites, tokenInject, onDataFixApplied, null);
         }
     }
 

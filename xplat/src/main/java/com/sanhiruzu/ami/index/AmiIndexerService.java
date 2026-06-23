@@ -12,6 +12,9 @@ import com.sanhiruzu.ami.index.query.SearchSuggestions;
 import com.sanhiruzu.ami.index.runtime.RuntimeSearchProviders;
 import com.sanhiruzu.ami.platform.Services;
 import com.sanhiruzu.ami.index.providers.AmiRegistryDocumentBuilders;
+import com.sanhiruzu.ami.index.providers.LootTableProvider;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.Util;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.world.level.Level;
@@ -29,6 +32,10 @@ public final class AmiIndexerService {
     private static final AmiIndexerService INSTANCE = new AmiIndexerService();
     private final AtomicBoolean isRebuilding = new AtomicBoolean(false);
     private final AtomicBoolean isDeferredIndexing = new AtomicBoolean(false);
+    private final AtomicBoolean isDeferredLootIndexing = new AtomicBoolean(false);
+    private final AtomicBoolean deferredLootIndexComplete = new AtomicBoolean(false);
+    private final AtomicBoolean isSpawnGraphIndexing = new AtomicBoolean(false);
+    private final AtomicBoolean spawnGraphComplete = new AtomicBoolean(false);
     private final AtomicBoolean isDeferredGuideIndexing = new AtomicBoolean(false);
     private final AtomicBoolean isDeferredRegistryDocumentIndexing = new AtomicBoolean(false);
     private final AtomicBoolean pendingRecipeIndexRebuild = new AtomicBoolean(false);
@@ -42,6 +49,8 @@ public final class AmiIndexerService {
     private volatile AmiIndexProgress progress = AmiIndexProgress.idle();
     private volatile String indexedLanguageCode = "";
     private volatile String pendingLanguageRebuildCode = "";
+    private volatile LootTableProvider.DeferredDropIndexingResult lastDeferredLootIndexResult =
+            LootTableProvider.DeferredDropIndexingResult.empty();
 
     private AmiIndexerService() {
     }
@@ -66,10 +75,70 @@ public final class AmiIndexerService {
     public boolean isBusy() {
         return isRebuilding.get()
                 || isDeferredIndexing.get()
+                || isDeferredLootIndexing.get()
                 || isDeferredGuideIndexing.get()
                 || isDeferredRegistryDocumentIndexing.get()
                 || isRecipeIndexRebuilding.get()
                 || pendingRecipeIndexRebuild.get();
+    }
+
+    public boolean ensureSourcesForItem(ResourceLocation itemId) {
+        ensurePendingRecipeIndexBuild();
+        ensureSpawnGraphBuilt();
+        if (AmiConfig.sourceIndexLootDrops
+                && !isRebuilding.get()
+                && !isDeferredIndexing.get()
+                && !deferredLootIndexComplete.get()) {
+            scheduleDeferredLootIndex();
+        }
+        return isSourceIndexingPending();
+    }
+
+    public boolean isSourceIndexingPending() {
+        return isRebuilding.get()
+                || isDeferredIndexing.get()
+                || isDeferredLootIndexing.get()
+                || isSpawnGraphIndexing.get()
+                || isRecipeIndexRebuilding.get()
+                || pendingRecipeIndexRebuild.get()
+                || (AmiConfig.sourceIndexLootDrops && !deferredLootIndexComplete.get());
+    }
+
+    public List<Component> sourceDiagnostics(ResourceLocation itemId) {
+        if (isSourceIndexingPending()) {
+            return List.of();
+        }
+
+        List<Component> diagnostics = new ArrayList<>();
+        diagnostics.add(Component.translatable("ami.sources.diagnostic.no_rows"));
+
+        if (!AmiConfig.sourceIndexLootDrops) {
+            diagnostics.add(Component.translatable("ami.sources.diagnostic.loot.disabled"));
+        }
+        if (!AmiConfig.sourceIndexSpawnBiomes) {
+            diagnostics.add(Component.translatable("ami.sources.diagnostic.spawn.disabled"));
+        }
+        if (!AmiConfig.sourceIndexLootDrops) {
+            return diagnostics;
+        }
+
+        LootTableProvider.DeferredDropIndexingResult loot = lastDeferredLootIndexResult;
+        switch (loot.emptyReason()) {
+            case SERVER_DATA_UNAVAILABLE -> diagnostics.add(Component.translatable(
+                    "ami.sources.diagnostic.loot.server_unavailable"));
+            case NO_LOOT_TABLE_RESOURCES -> diagnostics.add(Component.translatable(
+                    "ami.sources.diagnostic.loot.no_resources"));
+            case NO_ENTITY_LOOT_TABLES -> diagnostics.add(Component.translatable(
+                    "ami.sources.diagnostic.loot.no_entity_tables",
+                    loot.resourcesScanned()));
+            case NO_INDEXED_DROP_EDGES -> diagnostics.add(Component.translatable(
+                    "ami.sources.diagnostic.loot.no_edges",
+                    loot.entityTables(),
+                    loot.itemRefs()));
+            case NONE -> {
+            }
+        }
+        return diagnostics;
     }
 
     public Throwable getLastRebuildFailure() {
@@ -159,6 +228,10 @@ public final class AmiIndexerService {
         long started = System.currentTimeMillis();
         String buildLanguageCode = GlobalIndexCache.currentClientLanguageCacheKey();
         GlobalIndex index = GlobalIndex.getInstance();
+        deferredLootIndexComplete.set(!AmiConfig.sourceIndexLootDrops);
+        spawnGraphComplete.set(!AmiConfig.sourceIndexSpawnBiomes);
+        isSpawnGraphIndexing.set(false);
+        lastDeferredLootIndexResult = LootTableProvider.DeferredDropIndexingResult.empty();
 
         // Clear deletion tracker since we're rebuilding the index
         com.sanhiruzu.ami.client.results.DeletedSearchNodesTracker.clear();
@@ -178,10 +251,17 @@ public final class AmiIndexerService {
         if (!deferredNamespaceMode && !forceProviderRebuild && Services.PLATFORM.tryLoadGlobalIndexCache()) {
             beginProgress("Restoring cached item icons", "Rebuilding runtime stacks", estimatedItemTotal());
             ProviderRegistry.rehydrateSubtypeStacks(level);
+            ProviderRegistry.indexSpawnGraphDeferred(level);
+            if (level != null || !AmiConfig.sourceIndexSpawnBiomes) {
+                spawnGraphComplete.set(true);
+            }
             ensureRecipeIndexBuilt(level);
         } else {
             beginProgress("Building item index");
             ProviderRegistry.indexAll(level);
+            if (level != null || !AmiConfig.sourceIndexSpawnBiomes) {
+                spawnGraphComplete.set(true);
+            }
             if (deferredNamespaceMode) {
                 AmiCore.LOGGER.info("AMI: Deferred namespace indexing active; skipping index cache save until the experiment is disabled.");
             } else {
@@ -235,6 +315,7 @@ public final class AmiIndexerService {
             scheduleDeferredNamespaceIndex(level);
         } else {
             scheduleIconAuditIfEnabled();
+            scheduleDeferredLootIndex();
         }
         scheduleDeferredGuideIndex();
         scheduleDeferredRegistryDocumentIndex(level != null ? level.registryAccess() : null);
@@ -251,6 +332,7 @@ public final class AmiIndexerService {
 
         AmiRecipeIndex recipeIndex = AmiRecipeIndex.getInstance();
         if (recipeIndex.isBuilt()) {
+            ProviderRegistry.indexRecipeGraphDeferred(level);
             return;
         }
         rebuildRecipeIndexNow(level, recipeIndex);
@@ -265,6 +347,41 @@ public final class AmiIndexerService {
         if (pendingRecipeIndexRebuild.compareAndSet(true, false)) {
             scheduleRecipeIndexRebuild(level);
         }
+    }
+
+    private void ensureSpawnGraphBuilt() {
+        if (!AmiConfig.sourceIndexSpawnBiomes) {
+            spawnGraphComplete.set(true);
+            return;
+        }
+        if (spawnGraphComplete.get() || isSpawnGraphIndexing.get()) {
+            return;
+        }
+
+        Level level = com.sanhiruzu.ami.util.DistUtils.getClientLevel();
+        if (level == null) {
+            return;
+        }
+
+        if (!isSpawnGraphIndexing.compareAndSet(false, true)) {
+            return;
+        }
+
+        CompletableFuture.runAsync(withIndexerClassLoader(() -> {
+            long started = System.currentTimeMillis();
+            try {
+                beginProgress("Indexing mob spawn biomes");
+                ProviderRegistry.indexSpawnGraphDeferred(level);
+                spawnGraphComplete.set(true);
+                AmiCore.LOGGER.info("AMI: Deferred spawn source indexing complete in {}ms.",
+                        System.currentTimeMillis() - started);
+            } catch (Throwable t) {
+                AmiCore.LOGGER.warn("AMI: Deferred spawn source indexing failed: {}", t.getMessage(), t);
+            } finally {
+                isSpawnGraphIndexing.set(false);
+                progress = AmiIndexProgress.idle();
+            }
+        }), Util.backgroundExecutor());
     }
 
     public void scheduleRecipeIndexRebuild(Level level) {
@@ -284,6 +401,7 @@ public final class AmiIndexerService {
         beginProgress("Rebuilding recipe index");
         try {
             recipeIndex.rebuild(level);
+            ProviderRegistry.indexRecipeGraphDeferred(level);
             AmiCore.LOGGER.debug("AMI: Recipe index rebuilt after cache restore ({} recipes)", recipeIndex.recipeCount());
         } catch (RuntimeException e) {
             AmiCore.LOGGER.warn("AMI: Recipe index rebuild after cache restore failed: {}", e.getMessage(), e);
@@ -319,6 +437,7 @@ public final class AmiIndexerService {
                 }
                 warmSuggestionsAsync(index);
                 scheduleIconAuditIfEnabled();
+                scheduleDeferredLootIndex();
                 AmiCore.LOGGER.info(
                         "AMI: Deferred namespace indexing complete in {}ms (added {} item nodes, search service: {}ms). Indexed {} items.",
                         System.currentTimeMillis() - started,
@@ -329,6 +448,36 @@ public final class AmiIndexerService {
                 AmiCore.LOGGER.warn("AMI: Deferred namespace indexing failed: {}", t.getMessage(), t);
             } finally {
                 isDeferredIndexing.set(false);
+                progress = AmiIndexProgress.idle();
+            }
+        }), Util.backgroundExecutor());
+    }
+
+    private void scheduleDeferredLootIndex() {
+        if (!AmiConfig.sourceIndexLootDrops) {
+            deferredLootIndexComplete.set(true);
+            return;
+        }
+        if (!isDeferredLootIndexing.compareAndSet(false, true)) {
+            return;
+        }
+        CompletableFuture.runAsync(withIndexerClassLoader(() -> {
+            long started = System.currentTimeMillis();
+            try {
+                beginProgress("Indexing loot sources");
+                LootTableProvider.DeferredDropIndexingResult result = ProviderRegistry.indexLootTablesDeferred();
+                lastDeferredLootIndexResult = result;
+                AmiCore.LOGGER.info(
+                        "AMI: Deferred loot source indexing complete in {}ms ({} resources, {} entity tables, {} drop edges).",
+                        System.currentTimeMillis() - started,
+                        result.resourcesScanned(),
+                        result.entityTables(),
+                        result.edgesAdded());
+            } catch (Throwable t) {
+                AmiCore.LOGGER.warn("AMI: Deferred loot source indexing failed: {}", t.getMessage(), t);
+            } finally {
+                deferredLootIndexComplete.set(true);
+                isDeferredLootIndexing.set(false);
                 progress = AmiIndexProgress.idle();
             }
         }), Util.backgroundExecutor());
