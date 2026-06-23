@@ -195,26 +195,16 @@ public final class RecipeDisplayHelper {
             outputY = bgRenderY + 18;
 
         } else if (type.toString().equals("ami:anvil_repairing")) {
-            backgroundTexture = Services.PLATFORM.rl("minecraft", "textures/gui/container/anvil.png");
-            bgX = 26;
-            bgY = 46;
-            bgW = 126;
-            bgH = 20;
-            bgRenderX = 16;
-            bgRenderY = 18;
-            drawSlotBackground = false;
-
-            if (recipe instanceof AnvilRepairRecipeView arr) {
-                inputs.add(new SlotPosition(bgRenderX, bgRenderY, List.of(arr.getTool())));
-                inputs.add(new SlotPosition(bgRenderX + 49, bgRenderY, List.of(arr.getMaterial().getItems())));
-            }
-
-            gridW = 2;
-            gridH = 1;
-            arrowX = bgRenderX + 76;
-            arrowY = bgRenderY;
-            outputX = bgRenderX + 108;
-            outputY = bgRenderY;
+            GenericFallbackLayout specialLayout = recipe instanceof AnvilRepairRecipeView arr
+                    ? createAnvilLikeLayout(List.of(arr.getTool()), List.of(arr.getMaterial().getItems()))
+                    : createAnvilLikeLayout(List.of(), List.of());
+            inputs.addAll(specialLayout.inputs());
+            gridW = specialLayout.gridWidth();
+            gridH = specialLayout.gridHeight();
+            outputX = specialLayout.outputX();
+            outputY = specialLayout.outputY();
+            arrowX = specialLayout.arrowX();
+            arrowY = specialLayout.arrowY();
 
         } else if (type.toString().equals("ami:composting")) {
             drawSlotBackground = true;
@@ -243,47 +233,28 @@ public final class RecipeDisplayHelper {
             outputY = 18;
 
         } else if (type.toString().equals("ami:disenchanting")) {
-            backgroundTexture = Services.PLATFORM.rl("minecraft", "textures/gui/container/grindstone.png");
-            bgX = 30;
-            bgY = 15;
-            bgW = 116;
-            bgH = 56;
-            bgRenderX = 20;
-            bgRenderY = 4;
-            drawSlotBackground = false;
-
-            if (recipe instanceof GrindstoneDisenchantingRecipeView gdr) {
-                inputs.add(new SlotPosition(bgRenderX + 18, bgRenderY + 3, List.of(gdr.getEnchanted())));
-            }
-
-            gridW = 1;
-            gridH = 1;
-            arrowX = bgRenderX + 50;
-            arrowY = bgRenderY + 18;
-            outputX = bgRenderX + 98;
-            outputY = bgRenderY + 18;
+            GenericFallbackLayout specialLayout = recipe instanceof GrindstoneDisenchantingRecipeView gdr
+                    ? createSingleInputStationLayout(List.of(gdr.getEnchanted()))
+                    : createSingleInputStationLayout(List.of());
+            inputs.addAll(specialLayout.inputs());
+            gridW = specialLayout.gridWidth();
+            gridH = specialLayout.gridHeight();
+            outputX = specialLayout.outputX();
+            outputY = specialLayout.outputY();
+            arrowX = specialLayout.arrowX();
+            arrowY = specialLayout.arrowY();
 
         } else if (type.toString().equals("ami:enchanting")) {
-            backgroundTexture = Services.PLATFORM.rl("minecraft", "textures/gui/container/anvil.png");
-            bgX = 26;
-            bgY = 46;
-            bgW = 126;
-            bgH = 20;
-            bgRenderX = 16;
-            bgRenderY = 18;
-            drawSlotBackground = false;
-
-            if (recipe instanceof AnvilEnchantingRecipeView aer) {
-                inputs.add(new SlotPosition(bgRenderX, bgRenderY, List.of(aer.getTool())));
-                inputs.add(new SlotPosition(bgRenderX + 49, bgRenderY, List.of(aer.getBook())));
-            }
-
-            gridW = 2;
-            gridH = 1;
-            arrowX = bgRenderX + 76;
-            arrowY = bgRenderY;
-            outputX = bgRenderX + 108;
-            outputY = bgRenderY;
+            GenericFallbackLayout specialLayout = recipe instanceof AnvilEnchantingRecipeView aer
+                    ? createAnvilLikeLayout(List.of(aer.getTool()), List.of(aer.getBook()))
+                    : createAnvilLikeLayout(List.of(), List.of());
+            inputs.addAll(specialLayout.inputs());
+            gridW = specialLayout.gridWidth();
+            gridH = specialLayout.gridHeight();
+            outputX = specialLayout.outputX();
+            outputY = specialLayout.outputY();
+            arrowX = specialLayout.arrowX();
+            arrowY = specialLayout.arrowY();
 
         } else {
             // Generic fallback for unknown/mod recipe types.
@@ -343,6 +314,33 @@ public final class RecipeDisplayHelper {
         int outputY = Math.max(0, (inputAreaHeight - 18) / 2);
 
         return new GenericFallbackLayout(inputs, cols, rows, outputX, outputY, arrowX, arrowY);
+    }
+
+    static GenericFallbackLayout createAnvilLikeLayout(List<ItemStack> leftInputAlternatives, List<ItemStack> rightInputAlternatives) {
+        return new GenericFallbackLayout(
+                List.of(
+                        new SlotPosition(0, 0, leftInputAlternatives),
+                        new SlotPosition(36, 0, rightInputAlternatives)
+                ),
+                2,
+                1,
+                84,
+                0,
+                58,
+                1
+        );
+    }
+
+    static GenericFallbackLayout createSingleInputStationLayout(List<ItemStack> inputAlternatives) {
+        return new GenericFallbackLayout(
+                List.of(new SlotPosition(0, 0, inputAlternatives)),
+                1,
+                1,
+                48,
+                0,
+                22,
+                1
+        );
     }
 
     /** Returns true for recipe types that have a dedicated bespoke renderer (no generic fallback). */
@@ -525,4 +523,3 @@ public final class RecipeDisplayHelper {
     ) {
     }
 }
-
