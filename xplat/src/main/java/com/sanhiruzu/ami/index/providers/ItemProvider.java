@@ -418,9 +418,6 @@ public class ItemProvider implements IAmiDataProvider {
         if (namespaceIs(id, "datanessence")) {
             ItemProviderCompatHooks.runCompatSafely("DatanessenceCompat", () -> DatanessenceCompat.enrichItem(id, meta));
         }
-        if (namespaceIs(id, "eternal_starlight")) {
-            ItemProviderCompatHooks.runCompatSafely("EternalStarlightCompat", () -> EternalStarlightCompat.enrichItem(id, meta));
-        }
         if (namespaceIs(id, "silentgear", "tconstruct") || hasCompatFamily(meta, CompatFamilyDetector.MODULAR_GEAR)
                 || hasCompatFamily(meta, CompatFamilyDetector.TINKERS) || hasCompatFamily(meta, CompatFamilyDetector.SILENT_GEAR)) {
             ItemProviderCompatHooks.runCompatSafely("ModularGearCompat", () -> ModularGearCompat.enrichItem(id, meta));
