@@ -1,7 +1,6 @@
 package com.sanhiruzu.ami.index;
 
 import com.sanhiruzu.ami.compat.DatanessenceCompat;
-import com.sanhiruzu.ami.compat.EternalStarlightCompat;
 import com.sanhiruzu.ami.compat.GeneratedVariantCollapseCompat;
 import com.sanhiruzu.ami.compat.MalumCompat;
 import com.sanhiruzu.ami.compat.PastelCompat;
@@ -152,42 +151,6 @@ class SynesthesiaCompatTest {
         assertTrue(meta.get(SearchNodeKeys.FACETS).contains(ItemFacet.GUIDE_BOOK.id()));
         assertEquals("utility", assignment.categoryId());
         assertEquals("books", assignment.subcategoryId());
-    }
-
-    @Test
-    @Disabled("intended routing pending override layer; see docs/superpowers/specs/2026-06-22-classification-override-and-curation-design.md")
-    void eternalStarlightUnknownFamiliesGainSemanticFacts() {
-        Map<String, String> painting = meta("eternal_starlight", "cn.leolezury.eternalstarlight.common.item.misc.ESPaintingItem");
-        painting.put(SearchNodeKeys.SUBTYPE_OF, "eternal_starlight:starlit_painting");
-        EternalStarlightCompat.enrichItem(new ResourceLocation("eternal_starlight", "starlit_painting/variant/starlit_painting_27b7fa141554"), painting);
-        CategoryAssignment paintingAssignment = resolve("eternal_starlight:starlit_painting/variant/starlit_painting_27b7fa141554", painting);
-
-        Map<String, String> pendant = meta("eternal_starlight", "net.minecraft.world.item.Item");
-        pendant.put(SearchNodeKeys.TAGS, "eternal_starlight:accessories");
-        EternalStarlightCompat.enrichItem(new ResourceLocation("eternal_starlight", "battleaxe_pendant"), pendant);
-        CategoryAssignment pendantAssignment = resolve("eternal_starlight:battleaxe_pendant", pendant);
-
-        Map<String, String> soulDew = meta("eternal_starlight", "net.minecraft.world.item.Item");
-        EternalStarlightCompat.enrichItem(new ResourceLocation("eternal_starlight", "soul_dew"), soulDew);
-        CategoryAssignment soulDewAssignment = resolve("eternal_starlight:soul_dew", soulDew);
-
-        Map<String, String> brick = meta("eternal_starlight", "net.minecraft.world.item.Item");
-        EternalStarlightCompat.enrichItem(new ResourceLocation("eternal_starlight", "cinder_brick"), brick);
-        CategoryAssignment brickAssignment = resolve("eternal_starlight:cinder_brick", brick);
-
-        assertEquals("paintings", painting.get("eternalStarlightItemKind"));
-        assertEquals("eternal_starlight:starlit_painting", painting.get(SearchNodeKeys.COLLAPSE_FAMILY));
-        assertEquals("eternal_starlight", paintingAssignment.categoryId());
-        assertEquals("paintings", paintingAssignment.subcategoryId());
-        assertEquals("accessories", pendant.get("eternalStarlightItemKind"));
-        assertEquals("eternal_starlight", pendantAssignment.categoryId());
-        assertEquals("accessories", pendantAssignment.subcategoryId());
-        assertEquals("reagents", soulDew.get("eternalStarlightItemKind"));
-        assertEquals("eternal_starlight", soulDewAssignment.categoryId());
-        assertEquals("reagents", soulDewAssignment.subcategoryId());
-        assertEquals("materials", brick.get("eternalStarlightItemKind"));
-        assertEquals("eternal_starlight", brickAssignment.categoryId());
-        assertEquals("materials", brickAssignment.subcategoryId());
     }
 
     @Test
