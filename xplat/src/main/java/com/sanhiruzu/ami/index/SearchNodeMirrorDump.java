@@ -65,6 +65,7 @@ public final class SearchNodeMirrorDump {
             Map<String, String> metadata = new LinkedHashMap<>(node.metadata());
             removeClassifierDiagnostics(metadata);
             normalizeConnectingVariantMaterial(metadata);
+            enrichReplayClassificationFacts(node.id(), metadata);
             FacetProfile profile = new FacetProfile(
                     FacetCodec.decode(metadata.get(SearchNodeKeys.FACETS)),
                     metadata
@@ -103,6 +104,92 @@ public final class SearchNodeMirrorDump {
     private static void normalizeConnectingVariantMaterial(Map<String, String> metadata) {
         canonicalizeResourcePathSuffix(metadata, SearchNodeKeys.MATERIAL_GROUP, "_connecting");
         canonicalizeResourcePathSuffix(metadata, SearchNodeKeys.SUBTYPE_OF, "_connecting");
+    }
+
+    private static void enrichReplayClassificationFacts(ResourceLocation id, Map<String, String> metadata) {
+        String componentFacts = metadata.getOrDefault(SearchNodeKeys.COMPONENT_FACTS, "");
+        if (hasToken(componentFacts, "container")) {
+            SemanticVerbCodec.add(metadata, SemanticVerb.STORES_ITEMS, "replay:component:container");
+        }
+        if (hasToken(componentFacts, "bundle_contents")) {
+            SemanticVerbCodec.add(metadata, SemanticVerb.STORES_ITEMS, "replay:component:bundle_contents");
+        }
+
+        if (hasToken(metadata.getOrDefault(SearchNodeKeys.BLOCK_TAGS, ""), "minecraft:beds")) {
+            SemanticVerbCodec.add(metadata, SemanticVerb.SLEEP_REST, "replay:block_tag:minecraft:beds");
+        }
+
+        String normalizedBlockClass = metadata.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "").toLowerCase(Locale.ROOT);
+        if (containsAny(normalizedBlockClass,
+                "bedblock", "petbedblock", "dogbedblock", "sleepingbagblock", "bedrollblock")) {
+            SemanticVerbCodec.add(metadata, SemanticVerb.SLEEP_REST, "replay:block_class:" + normalizedBlockClass);
+        }
+        if (isMagicStructureBlockClass(metadata.getOrDefault(SearchNodeKeys.BLOCK_CLASS, ""))) {
+            addReplayFacet(metadata, ItemFacet.MAGIC_ARTIFACT);
+        }
+        if (containsAny(normalizedBlockClass, "storageterminalblock", "lockerblock", "cofferblock")) {
+            SemanticVerbCodec.add(metadata, SemanticVerb.STORES_ITEMS, "replay:block_class:" + normalizedBlockClass);
+        }
+        if ("minecolonies".equals(id.getNamespace()) && containsAny(normalizedBlockClass, "blockhut")) {
+            SemanticVerbCodec.add(metadata, SemanticVerb.SETTLEMENT_WORKSITE, "replay:block_class:" + normalizedBlockClass);
+        }
+
+        if (containsStorageTerminalPhrase(id.getPath())
+                || containsStorageTerminalPhrase(resourcePath(metadata.get(SearchNodeKeys.SUBTYPE_OF)))
+                || containsStorageTerminalPhrase(resourcePath(metadata.get(SearchNodeKeys.MATERIAL_GROUP)))) {
+            SemanticVerbCodec.add(metadata, SemanticVerb.STORES_ITEMS, "replay:path_phrase:storage_terminal");
+        }
+    }
+
+    private static boolean isMagicStructureBlockClass(String blockClass) {
+        return "net.minecraft.world.level.block.ConduitBlock".equals(blockClass)
+                || "net.minecraft.world.level.block.BeaconBlock".equals(blockClass)
+                || "net.minecraft.world.level.block.EnchantmentTableBlock".equals(blockClass)
+                || "net.minecraft.world.level.block.EnchantingTableBlock".equals(blockClass)
+                || "net.minecraft.world.level.block.EndPortalFrameBlock".equals(blockClass);
+    }
+
+    private static void addReplayFacet(Map<String, String> metadata, ItemFacet facet) {
+        EnumSet<ItemFacet> facets = FacetCodec.decode(metadata.get(SearchNodeKeys.FACETS));
+        if (facets.add(facet)) {
+            metadata.put(SearchNodeKeys.FACETS, FacetCodec.encode(facets));
+        }
+    }
+
+    private static boolean hasToken(String encoded, String token) {
+        if (encoded == null || encoded.isBlank() || token == null || token.isBlank()) {
+            return false;
+        }
+        for (String raw : encoded.split(",")) {
+            if (raw.trim().equalsIgnoreCase(token)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsAny(String value, String... needles) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        for (String needle : needles) {
+            if (needle != null && !needle.isBlank() && value.contains(needle)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsStorageTerminalPhrase(String path) {
+        return path != null && path.toLowerCase(Locale.ROOT).contains("storage_terminal");
+    }
+
+    private static String resourcePath(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        int separator = value.indexOf(':');
+        return separator >= 0 && separator + 1 < value.length() ? value.substring(separator + 1) : value;
     }
 
     private static void canonicalizeResourcePathSuffix(Map<String, String> metadata, String key, String suffix) {

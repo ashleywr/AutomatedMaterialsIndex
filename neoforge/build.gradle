@@ -144,6 +144,11 @@ tasks.named('test', Test).configure {
     useJUnitPlatform()
     workingDir = xplatProject.projectDir
     dependsOn ':forge:compileJava'
+    ['ami.searchNodesDump', 'ami.classificationGoldStrict'].each { propertyName ->
+        if (System.getProperty(propertyName) != null) {
+            systemProperty propertyName, System.getProperty(propertyName)
+        }
+    }
 }
 
 def registerRecipeViewerModCleanup = { String taskName, String runDirName ->

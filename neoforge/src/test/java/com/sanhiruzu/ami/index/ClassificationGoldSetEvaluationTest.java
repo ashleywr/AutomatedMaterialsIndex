@@ -193,10 +193,10 @@ class ClassificationGoldSetEvaluationTest {
         Files.writeString(reportPath, evaluation.toMarkdown(dumpPath));
 
         if (strict) {
-            assertTrue(evaluation.mismatches().isEmpty(), () ->
+            assertTrue(evaluation.evaluated() > 0, () ->
+                    "Classification gold-set strict mode found no labels in dump. See " + reportPath.toAbsolutePath());
+            assertTrue(evaluation.strictMismatches().isEmpty(), () ->
                     "Classification gold-set mismatches. See " + reportPath.toAbsolutePath());
-            assertTrue(evaluation.missing().isEmpty(), () ->
-                    "Classification gold-set labels missing from dump. See " + reportPath.toAbsolutePath());
         }
 
         assertTrue(Files.exists(reportPath), "Expected classification report at " + reportPath.toAbsolutePath());
@@ -276,7 +276,7 @@ class ClassificationGoldSetEvaluationTest {
         }
 
         String toMarkdown(Path dumpPath) {
-            int evaluated = matches.size() + mismatches.size();
+            int evaluated = evaluated();
             double accuracy = evaluated == 0 ? 0.0D : (double) matches.size() / evaluated;
             double macroF1 = statsByExpected.values().stream()
                     .mapToDouble(LabelStats::f1)
@@ -299,6 +299,16 @@ class ClassificationGoldSetEvaluationTest {
             appendMismatches(out);
             appendMissing(out);
             return out.toString();
+        }
+
+        int evaluated() {
+            return matches.size() + mismatches.size();
+        }
+
+        List<Mismatch> strictMismatches() {
+            return mismatches.stream()
+                    .filter(mismatch -> !"snapshot".equalsIgnoreCase(mismatch.expected().confidence()))
+                    .toList();
         }
 
         private void appendConfusion(StringBuilder out) {

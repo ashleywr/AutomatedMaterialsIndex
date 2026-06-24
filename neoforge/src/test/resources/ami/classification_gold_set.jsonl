@@ -27,7 +27,7 @@
 {"id":"alexsmobs:rocky_shell","category":"ingredients","subcategory":"organic","confidence":"certain","notes":"Natural shell/mob drop, not ammunition."}
 {"id":"createbigcannons:drop_mortar_shell","category":"tools","subcategory":"ammo","confidence":"certain","notes":"Mortar shell has explicit ammo context and should remain ammunition."}
 {"id":"mcwbiomesoplenty:maple_japanese_door","category":"masonry","subcategory":"functional","confidence":"certain","notes":"Door block/tag should be a functional building shape."}
-{"id":"silentgear:leggings_blueprint","category":"tech","subcategory":"templates","confidence":"certain","notes":"Blueprint/template; leggings token must not produce organic or armor classification."}
+{"id":"silentgear:leggings_blueprint","category":"modular_gear","subcategory":"blueprints","confidence":"certain","notes":"Blueprint/template in the modular gear compat bucket; leggings token must not produce organic or armor classification."}
 {"id":"powergrid:integrated_circuit","category":"tech","subcategory":"circuits","confidence":"certain","notes":"Integrated circuit is a tech circuit component."}
 {"id":"createfood:fish_taco_kelp_plate_block","category":"nature","subcategory":"meals","confidence":"certain","notes":"Food display plate should be a prepared meal, not flora from kelp token."}
 {"id":"displaydelight:nd_warped_moldy_meat","category":"nature","subcategory":"meals","confidence":"certain","notes":"FoodBlockItem/WideFoodBlock should beat template facet noise."}
