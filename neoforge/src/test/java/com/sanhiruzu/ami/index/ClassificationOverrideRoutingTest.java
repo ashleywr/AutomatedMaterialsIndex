@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -118,8 +119,27 @@ class ClassificationOverrideRoutingTest {
 
         assertEquals("decoration", a.categoryId());
         assertEquals("furniture", a.subcategoryId());
-        assertTrue(a.attributes().getOrDefault(SearchNodeKeys.SEMANTIC_VERBS, "").contains("sleep_rest"));
+        assertTrue(SemanticVerbCodec.has(a.attributes(), SemanticVerb.SLEEP_REST));
         assertEquals("semantic_verb", a.attributes().get(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE));
+    }
+
+    @Test
+    void perItemRemoveVerbPreventsSemanticVerbRouting() {
+        ClassificationOverrides.install(
+                Map.of("examplemod:plain_cube", new ClassificationOverride(
+                        EnumSet.noneOf(ItemFacet.class), EnumSet.noneOf(ItemFacet.class),
+                        EnumSet.noneOf(SemanticVerb.class), EnumSet.of(SemanticVerb.SLEEP_REST),
+                        null, null)),
+                Map.of());
+
+        CategoryAssignment a = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("examplemod:plain_cube"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE),
+                        Map.of(SearchNodeKeys.SEMANTIC_VERBS, "sleep_rest")));
+
+        assertNotEquals("semantic_verb", a.attributes().get(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE));
+        assertFalse("decoration".equals(a.categoryId()) && "furniture".equals(a.subcategoryId()));
+        assertFalse(SemanticVerbCodec.has(a.attributes(), SemanticVerb.SLEEP_REST));
     }
 
     @Test
@@ -139,6 +159,6 @@ class ClassificationOverrideRoutingTest {
 
         assertEquals("utility", a.categoryId());
         assertEquals("workstations", a.subcategoryId());
-        assertTrue(a.attributes().getOrDefault(SearchNodeKeys.SEMANTIC_VERBS, "").contains("settlement_worksite"));
+        assertTrue(SemanticVerbCodec.has(a.attributes(), SemanticVerb.SETTLEMENT_WORKSITE));
     }
 }
