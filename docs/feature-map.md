@@ -150,6 +150,32 @@
   - Search suggestions/help treat `?entity:` and `?mob:` as route syntax, not source graph warmup. Typing after the colon
     suggests canonical entity route targets and namespace filters from a dedicated cached visible-entity route index.
 
+## Classification Semantic Verbs
+
+- User surface: item search results route ambiguous placeable items by concrete runtime use, so beds, storage terminals,
+  and colony huts do not fall into generic decoration/building buckets when AMI sees stronger verb facts.
+- Main files:
+  - `xplat/src/main/java/com/sanhiruzu/ami/index/SemanticVerb.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/index/SemanticVerbCodec.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/index/FacetIndexer.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/index/ClassificationOverrides.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/index/PrimaryCategoryResolver.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/index/SearchNodeMirrorDump.java`
+  - `xplat/src/main/resources/assets/ami/classification_overrides.json`
+- Tests:
+  - `.\gradlew.bat :neoforge:test --tests "*SemanticVerbCodecTest" --tests "*ClassificationOverridesParseTest" --tests "*ClassificationOverrideRoutingTest" --tests "*ClassificationOverrideReplayGateTest" --tests "*FacetIndexerTest" --tests "*PrimaryCategoryResolverTest" --tests "*SearchNodeMirrorDumpTest" --tests "*ClassificationGoldSetEvaluationTest" --tests "*ClassificationReplayDiffReportTest" --tests "*ClassificationArchitectureGuardrailTest"`
+- State contract:
+  - `semanticVerbs` is a comma-separated list of stable verb IDs on item node metadata; `semanticVerbEvidence` stores
+    compact evidence strings.
+  - Runtime facts, compat hooks, and bundled classification overrides may add or remove verbs.
+  - Resolver order is hard identity first; semantic verbs route before generic placeable/scorer fallback.
+  - First verbs/routes are `stores_items` -> `storage/misc`, `settlement_worksite` -> `utility/workstations`, and
+    `sleep_rest` -> `decoration/furniture`.
+  - Weak lexical or color evidence such as `light_gray` must not create semantic verb routes. Storage, worksite, and
+    sleep verbs require trusted evidence such as components, tags, classes, capabilities, recipes, compat, or
+    override evidence.
+  - Runtime dump replay/report tests are the maintenance path for checking broad movement from old dumps.
+
 ## Release Artifact Metadata
 
 - User surface: launchers and mod managers should show AMI's icon, description, author, homepage/source links, and issue

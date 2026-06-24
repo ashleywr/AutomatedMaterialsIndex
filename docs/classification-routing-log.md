@@ -58,6 +58,15 @@ applies those mutations before routing, then checks the `semantic_verb` phase af
 slice maps `stores_items` to `storage/misc`, `settlement_worksite` to
 `utility/workstations`, and `sleep_rest` to `decoration/furniture`.
 
+Runtime facts, compat hooks, and bundled overrides may add or remove verbs, but weak
+lexical/color evidence must not create a semantic verb route on its own. Replay/gold
+labels are the maintenance path for guarding broad movement and inspecting semantic
+verb routing across old dumps.
+
+Known precision follow-up: replay can surface `spawn:tropical_wildflowers` /
+`FloatingFlowerbedBlock` as a `sleep_rest` false positive. Treat that as a targeted
+precision issue, not a reason to remove the verb layer.
+
 ### 2026-06-09: Partial light-source blocks → decoration/lighting; dragon egg fix; amethyst buds fix
 
 **Partial non-functional LIGHT_SOURCE blocks → decoration/lighting.**
