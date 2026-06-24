@@ -74,7 +74,30 @@ class ClassificationOverrideReplayGateTest {
     private static boolean explained(SearchNode node) {
         ResourceLocation id = node.id();
         return ClassificationOverrides.forItem(id).isPresent()
-                || ClassificationOverrides.patternFor(id.getNamespace(), id.getPath()).isPresent();
+                || ClassificationOverrides.patternFor(
+                        id.getNamespace(), id.getPath(), node.meta(SearchNodeKeys.ITEM_CLASS, "")).isPresent();
+    }
+
+    @Test
+    void explainsMatchAllModPatternWhenItemClassMatches() {
+        try {
+            ClassificationOverrides.clear();
+            ClassificationOverrides.parseAndInstall(
+                    "{\"items\":{},\"modPatterns\":[{\"mod\":\"minecolonies\",\"match\":\"all\","
+                  + "\"pathTokens\":[\"blockhut\"],\"classTokens\":[\"itemblockhut\"],"
+                  + "\"addVerbs\":[\"settlement_worksite\"]}]}");
+            SearchNode node = new SearchNode(
+                    new ResourceLocation("minecolonies:blockhutbuilder"),
+                    NodeType.ITEM,
+                    "Builder Hut",
+                    0xFFFFFF,
+                    0,
+                    Map.of(SearchNodeKeys.ITEM_CLASS, "com.minecolonies.core.items.ItemBlockHut"));
+
+            assertTrue(explained(node));
+        } finally {
+            ClassificationOverrides.loadBundledDefaults();
+        }
     }
 
     @Test
