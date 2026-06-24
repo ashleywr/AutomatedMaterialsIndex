@@ -47,6 +47,22 @@ class SearchNodeMirrorDumpTest {
     }
 
     @Test
+    void replayStorageTerminalPhraseMatchesSuffixTokenSequence() {
+        SearchNode node = item("example:wireless_storage_terminal", Map.of(
+                SearchNodeKeys.FACETS, "placeable",
+                "blockShape", "partial",
+                SearchNodeKeys.BLOCKS_MATERIAL, "other_building"
+        ));
+
+        SearchNode reclassified = SearchNodeMirrorDump.reclassifyItemOntology(List.of(node)).get(0);
+
+        assertTrue(SemanticVerbCodec.has(reclassified.metadata(), SemanticVerb.STORES_ITEMS));
+        assertEquals("storage", reclassified.meta(SearchNodeKeys.ONTOLOGY_CATEGORY));
+        assertEquals("misc", reclassified.meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY));
+        assertEquals("semantic_verb", reclassified.meta(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE));
+    }
+
+    @Test
     void replayReconstructsSemanticVerbsFromStableBedMetadata() {
         SearchNode node = item("doggytalents:dog_bed/variant/dog_bed_271e6c3a5908", Map.of(
                 SearchNodeKeys.FACETS, "placeable,decorative_block",

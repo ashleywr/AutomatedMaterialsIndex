@@ -188,24 +188,12 @@ public final class SearchNodeMirrorDump {
         if (path == null || path.isBlank() || phrase == null || phrase.isBlank()) {
             return false;
         }
-        String[] phraseTokens = phrase.toLowerCase(Locale.ROOT).split("_");
-        for (String segment : path.toLowerCase(Locale.ROOT).split("/")) {
-            String[] segmentTokens = segment.split("_");
-            if (segmentTokens.length != phraseTokens.length) {
-                continue;
-            }
-            boolean matches = true;
-            for (int i = 0; i < phraseTokens.length; i++) {
-                if (!segmentTokens[i].equals(phraseTokens[i])) {
-                    matches = false;
-                    break;
-                }
-            }
-            if (matches) {
-                return true;
-            }
-        }
-        return false;
+        String normalizedPath = path.toLowerCase(Locale.ROOT);
+        String normalizedPhrase = phrase.toLowerCase(Locale.ROOT);
+        return normalizedPath.equals(normalizedPhrase)
+                || normalizedPath.endsWith("_" + normalizedPhrase)
+                || normalizedPath.endsWith("/" + normalizedPhrase)
+                || normalizedPath.contains("/" + normalizedPhrase + "/");
     }
 
     private static String resourcePath(String value) {
