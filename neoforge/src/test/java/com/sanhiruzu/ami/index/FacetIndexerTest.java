@@ -370,6 +370,32 @@ class FacetIndexerTest {
     }
 
     @Test
+    void bedAndPetBedClassesAddSleepRestVerb() {
+        Item vanillaBedItem = register("white_bed", new BlockItem("White Bed",
+                new TestEntityBlock(new BlockState().withTag(net.minecraft.tags.BlockTags.BEDS))));
+        Item petBed = register("pet_bed", new BlockItem("Pet Bed", new TestPetBedBlock(new BlockState())));
+
+        FacetProfile vanillaBed = index(vanillaBedItem);
+        FacetProfile petBedProfile = index(petBed);
+
+        assertTrue(SemanticVerbCodec.has(vanillaBed.attributes(), SemanticVerb.SLEEP_REST));
+        assertTrue(SemanticVerbCodec.has(petBedProfile.attributes(), SemanticVerb.SLEEP_REST));
+    }
+
+    @Test
+    void storageComponentAndTerminalClassAddStoresItemsVerb() {
+        Item componentContainer = register("verb_container", new Item("Verb Container")
+                .withComponent(DataComponents.CONTAINER));
+        Item storageTerminal = register("storage_terminal", new BlockItem(
+                "Storage Terminal",
+                new TestStorageTerminalBlock(new BlockState())
+        ));
+
+        assertTrue(SemanticVerbCodec.has(index(componentContainer).attributes(), SemanticVerb.STORES_ITEMS));
+        assertTrue(SemanticVerbCodec.has(index(storageTerminal).attributes(), SemanticVerb.STORES_ITEMS));
+    }
+
+    @Test
     void composterGetsMachineFacet() {
         Item composter = register("composter", new BlockItem("Composter", new Block(new BlockState())));
 
@@ -833,6 +859,18 @@ class FacetIndexerTest {
 
     private static final class TestGrapeBushStage2Block extends Block implements EntityBlock {
         private TestGrapeBushStage2Block(BlockState defaultState) {
+            super(defaultState);
+        }
+    }
+
+    private static final class TestPetBedBlock extends Block {
+        private TestPetBedBlock(BlockState defaultState) {
+            super(defaultState);
+        }
+    }
+
+    private static final class TestStorageTerminalBlock extends Block implements EntityBlock {
+        private TestStorageTerminalBlock(BlockState defaultState) {
             super(defaultState);
         }
     }

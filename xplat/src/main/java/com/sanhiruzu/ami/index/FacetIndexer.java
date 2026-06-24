@@ -107,10 +107,12 @@ public final class FacetIndexer {
         if (defaultComponents.contains("CONTAINER")) {
             facts.add("container");
             facets.add(ItemFacet.STORAGE);
+            SemanticVerbCodec.add(attributes, SemanticVerb.STORES_ITEMS, "component:container");
         }
         if (defaultComponents.contains("BUNDLE_CONTENTS")) {
             facts.add("bundle_contents");
             facets.add(ItemFacet.STORAGE);
+            SemanticVerbCodec.add(attributes, SemanticVerb.STORES_ITEMS, "component:bundle_contents");
         }
         if (defaultComponents.contains("CUSTOM_DATA")) {
             facts.add("custom_data");
@@ -976,6 +978,7 @@ public final class FacetIndexer {
         String blockClass = blockItem.getBlock().getClass().getName();
         attributes.put(SearchNodeKeys.BLOCK_CLASS, blockClass);
         String normalizedBlockClass = blockClass.toLowerCase(Locale.ROOT);
+        applySemanticBlockVerbFacts(path, normalizedBlockClass, attributes);
         if ("net.minecraft.world.level.block.ConduitBlock".equals(blockClass)
                 || "net.minecraft.world.level.block.BeaconBlock".equals(blockClass)
                 || "net.minecraft.world.level.block.EnchantmentTableBlock".equals(blockClass)
@@ -1043,6 +1046,7 @@ public final class FacetIndexer {
         }
         if (state.is(BlockTags.BEDS)) {
             facets.add(ItemFacet.DECORATIVE_BLOCK);
+            SemanticVerbCodec.add(attributes, SemanticVerb.SLEEP_REST, "block_tag:minecraft:beds");
         }
         if (isDecorativeNaturePlaceable(path)) {
             facets.add(ItemFacet.NATURE_MISC);
@@ -1178,6 +1182,18 @@ public final class FacetIndexer {
         String requiredTool = determineRequiredTool(state);
         if (requiredTool != null) {
             attributes.put(SearchNodeKeys.REQUIRED_TOOL, requiredTool);
+        }
+    }
+
+    private static void applySemanticBlockVerbFacts(String path, String normalizedBlockClass, Map<String, String> attributes) {
+        if (containsAny(normalizedBlockClass, "bedblock", "petbedblock", "dogbedblock", "sleepingbagblock", "bedrollblock")) {
+            SemanticVerbCodec.add(attributes, SemanticVerb.SLEEP_REST, "block_class:" + normalizedBlockClass);
+        }
+        if (containsAny(normalizedBlockClass, "storageterminalblock", "lockerblock", "cofferblock")) {
+            SemanticVerbCodec.add(attributes, SemanticVerb.STORES_ITEMS, "block_class:" + normalizedBlockClass);
+        }
+        if (path != null && containsPathToken(path, "storage_terminal")) {
+            SemanticVerbCodec.add(attributes, SemanticVerb.STORES_ITEMS, "path_token:storage_terminal");
         }
     }
 
