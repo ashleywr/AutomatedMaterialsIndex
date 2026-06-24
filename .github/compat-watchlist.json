@@ -19,6 +19,158 @@
       ]
     },
     {
+      "name": "Patchouli",
+      "source": "modrinth",
+      "project_id": "nU0bVIaL",
+      "project_slug": "patchouli",
+      "support_level": "best_effort",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "1.20.1-85-forge",
+          "exact_tested_version": null
+        },
+        {
+          "key": "neoforge-1.21.1",
+          "loader": "neoforge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "1.21.1-93-neoforge",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "GuideME",
+      "source": "modrinth",
+      "project_id": "Ck4E7v7R",
+      "project_slug": "guideme",
+      "support_level": "best_effort",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "20.1.15",
+          "exact_tested_version": null
+        },
+        {
+          "key": "neoforge-1.21.1",
+          "loader": "neoforge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "21.1.16",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "Modonomicon",
+      "source": "modrinth",
+      "project_id": "692GClaE",
+      "project_slug": "modonomicon",
+      "support_level": "best_effort",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "1.20.1-1.79.3",
+          "exact_tested_version": null
+        },
+        {
+          "key": "forge-1.21.1",
+          "loader": "forge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "1.21.1-1.120.1",
+          "exact_tested_version": null
+        },
+        {
+          "key": "neoforge-1.20.1",
+          "loader": "neoforge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "1.20.1-1.79.3",
+          "exact_tested_version": null
+        },
+        {
+          "key": "neoforge-1.21.1",
+          "loader": "neoforge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "1.21.1-1.120.1",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "Apotheosis",
+      "source": "modrinth",
+      "project_id": "rqFWfVlz",
+      "project_slug": "apotheosis",
+      "support_level": "family_tested",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "7.4.8",
+          "exact_tested_version": null
+        },
+        {
+          "key": "neoforge-1.21.1",
+          "loader": "neoforge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "1.21.1-8.5.4",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "Malum",
+      "source": "modrinth",
+      "project_id": "jgzwYsAN",
+      "project_slug": "malum",
+      "support_level": "family_tested",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "1.20.1-1.6.7",
+          "exact_tested_version": null
+        },
+        {
+          "key": "neoforge-1.21.1",
+          "loader": "neoforge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "1.8.2",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
+      "name": "Critters and Crawlers",
+      "source": "modrinth",
+      "project_id": "JxyIfnWu",
+      "project_slug": "critters-n-crawlers",
+      "support_level": "best_effort",
+      "channels": [
+        {
+          "key": "forge-1.20.1",
+          "loader": "forge",
+          "game_version": "1.20.1",
+          "last_known_upstream_version": "2.2.5",
+          "exact_tested_version": null
+        },
+        {
+          "key": "neoforge-1.21.1",
+          "loader": "neoforge",
+          "game_version": "1.21.1",
+          "last_known_upstream_version": "2.2.5",
+          "exact_tested_version": null
+        }
+      ]
+    },
+    {
       "name": "GregTech CEu Modern",
       "source": "modrinth",
       "project_id": "7tG215v7",
