@@ -770,6 +770,15 @@ public final class FacetIndexer {
         return false;
     }
 
+    private static boolean containsPathPhrase(String path, String phrase) {
+        if (path == null || path.isBlank() || phrase == null || phrase.isBlank()) {
+            return false;
+        }
+        return path.equals(phrase)
+                || path.endsWith("_" + phrase)
+                || path.contains("/" + phrase);
+    }
+
     private static boolean isFurnitureTag(String tag) {
         return tag.endsWith(":bathroom")
                 || tag.endsWith("/bathroom")
@@ -1192,7 +1201,7 @@ public final class FacetIndexer {
         if (containsAny(normalizedBlockClass, "storageterminalblock", "lockerblock", "cofferblock")) {
             SemanticVerbCodec.add(attributes, SemanticVerb.STORES_ITEMS, "block_class:" + normalizedBlockClass);
         }
-        if (path != null && containsPathToken(path, "storage_terminal")) {
+        if (containsPathPhrase(path, "storage_terminal")) {
             SemanticVerbCodec.add(attributes, SemanticVerb.STORES_ITEMS, "path_token:storage_terminal");
         }
     }

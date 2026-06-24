@@ -396,6 +396,16 @@ class FacetIndexerTest {
     }
 
     @Test
+    void storageTerminalPathAddsStoresItemsVerbWithoutClassMatch() {
+        Item pathOnlyStorageTerminal = register("storage_terminal", new BlockItem(
+                "Storage Terminal",
+                new Block(new BlockState())
+        ));
+
+        assertTrue(SemanticVerbCodec.has(index(pathOnlyStorageTerminal).attributes(), SemanticVerb.STORES_ITEMS));
+    }
+
+    @Test
     void composterGetsMachineFacet() {
         Item composter = register("composter", new BlockItem("Composter", new Block(new BlockState())));
 
