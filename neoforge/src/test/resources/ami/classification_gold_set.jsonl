@@ -18,20 +18,20 @@
 {"id":"reactive:soul_bottle","category":"magic","subcategory":"artifacts","confidence":"certain","notes":"Reactive power bottle tag/class should beat the uncraftable terrain fallback."}
 {"id":"farmersdelight:stove","category":"tech","subcategory":"machines","confidence":"certain","notes":"Cooking workstation/block entity, not prepared food."}
 {"id":"farmersdelight:skillet","category":"tech","subcategory":"machines","confidence":"certain","notes":"Placeable cooking vessel/block entity; combat stats should not make it primarily a melee weapon."}
-{"id":"farmersdelight:apple_pie","category":"nature","subcategory":"meals","confidence":"certain","notes":"Placeable prepared food should stay with meals."}
+{"id":"farmersdelight:apple_pie","category":"food","subcategory":"prepared","confidence":"certain","notes":"Placeable prepared food should route to food/prepared."}
 {"id":"minecraft:red_carpet","category":"decoration","subcategory":"textiles","confidence":"certain","notes":"Decorative textile; body equipment slot noise must not make it armor."}
 {"id":"alexsmobs:spawn_egg_snow_leopard","category":"bestiary","subcategory":"passive","confidence":"certain","notes":"Actual spawn egg item should follow the entity into Bestiary."}
 {"id":"fruitsdelight:durian_sapling","category":"nature","subcategory":"seeds","confidence":"certain","notes":"Sapling block/item should be Seeds & Saplings, not Flora or Full Blocks."}
-{"id":"create_winery:red_grape_bush_stage_2","category":"nature","subcategory":"crops","confidence":"certain","notes":"Crop-like hidden stage block with grape bush class."}
+{"id":"create_winery:red_grape_bush_stage_2","category":"nature","subcategory":"flora","confidence":"certain","notes":"Crop-like hidden stage block is a world-growth stage, so it should stay under nature/flora."}
 {"id":"railways:track_incomplete_jungle_narrow","category":"tech","subcategory":"transport","confidence":"certain","notes":"Track item should be transport even if stale projectile facets appear."}
 {"id":"alexsmobs:rocky_shell","category":"ingredients","subcategory":"organic","confidence":"certain","notes":"Natural shell/mob drop, not ammunition."}
 {"id":"createbigcannons:drop_mortar_shell","category":"tools","subcategory":"ammo","confidence":"certain","notes":"Mortar shell has explicit ammo context and should remain ammunition."}
 {"id":"mcwbiomesoplenty:maple_japanese_door","category":"masonry","subcategory":"functional","confidence":"certain","notes":"Door block/tag should be a functional building shape."}
 {"id":"silentgear:leggings_blueprint","category":"modular_gear","subcategory":"blueprints","confidence":"certain","notes":"Blueprint/template in the modular gear compat bucket; leggings token must not produce organic or armor classification."}
 {"id":"powergrid:integrated_circuit","category":"tech","subcategory":"circuits","confidence":"certain","notes":"Integrated circuit is a tech circuit component."}
-{"id":"createfood:fish_taco_kelp_plate_block","category":"nature","subcategory":"meals","confidence":"certain","notes":"Food display plate should be a prepared meal, not flora from kelp token."}
-{"id":"displaydelight:nd_warped_moldy_meat","category":"nature","subcategory":"meals","confidence":"certain","notes":"FoodBlockItem/WideFoodBlock should beat template facet noise."}
-{"id":"createfood:potato_chip_bowl_block","category":"nature","subcategory":"meals","confidence":"certain","notes":"Food chip token should not become a tech circuit."}
+{"id":"createfood:fish_taco_kelp_plate_block","category":"food","subcategory":"prepared","confidence":"certain","notes":"Food display plate should be prepared food, not flora from kelp token."}
+{"id":"displaydelight:nd_warped_moldy_meat","category":"food","subcategory":"prepared","confidence":"certain","notes":"FoodBlockItem/WideFoodBlock should beat template facet noise."}
+{"id":"createfood:potato_chip_bowl_block","category":"food","subcategory":"prepared","confidence":"certain","notes":"Food chip token should not become a tech circuit."}
 {"id":"dndesires:roll_table","category":"decoration","subcategory":"furniture","confidence":"certain","notes":"Furniture table; roll token should not classify as food."}
 {"id":"quark:magenta_shard","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"Glass shard in the Ingredients tab; generic shard material evidence should not create or preserve magic reagent routing."}
 {"id":"minecraft:spider_eye","category":"magic","subcategory":"reagents","confidence":"certain","notes":"Spider Eye is edible, but its brewing reagent role should be the primary bucket; edible remains searchable as a facet."}
@@ -42,7 +42,7 @@
 {"id":"minecraft:coal","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"coal is a mineral ingredient; INGREDIENT_MINERAL facet replaces DUST"}
 {"id":"minecraft:charcoal","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"charcoal is a mineral/organic ingredient; INGREDIENT_MINERAL facet replaces DUST"}
 {"id":"minecraft:rose_bush","category":"nature","subcategory":"flora","confidence":"certain","notes":"Tall flower (TallFlowerBlock): flower facet should beat the _bush path heuristic in isCropLikePlaceable"}
-{"id":"minecraft:golden_carrot","category":"nature","subcategory":"snacks","confidence":"certain","notes":"Crafted food (carrot+gold): not a farmable crop; CROP facet came from isProduceFoodTag c:foods/vegetable which was too broad"}
+{"id":"minecraft:golden_carrot","category":"food","subcategory":"prepared","confidence":"certain","notes":"Crafted food (carrot+gold) should live under food/prepared, not crop semantics."}
 {"id":"minecraft:ominous_bottle/variant/ominous_bottle_75a9abdfd088","category":"utility","subcategory":"misc","confidence":"certain","notes":"Bad-omen effect item; c:drinks/ominous tag marks it non-nutritional; utility/misc should beat EDIBLE"}
 {"id":"minecraft:candle","category":"decoration","subcategory":"lighting","confidence":"certain","notes":"plain candle is the root of the colorized candle family; should share collapseFamily with colored candles"}
 {"id":"minecraft:oak_sign","category":"decoration","subcategory":"furniture","confidence":"certain","notes":"flammable-wood sign; fuel rule removed, DECORATIVE_BLOCK facet routes to decoration/furniture"}
@@ -52,8 +52,8 @@
 {"id":"minecraft:ominous_bottle/variant/ominous_bottle_edef36c3bc89","category":"utility","subcategory":"misc","confidence":"certain","notes":"Bad-omen effect item, all variants must not land in nature/drinks"}
 {"id":"minecraft:ominous_bottle/variant/ominous_bottle_2b4a92e4074a","category":"utility","subcategory":"misc","confidence":"certain","notes":"Bad-omen effect item, all variants must not land in nature/drinks"}
 {"id":"minecraft:ominous_bottle/variant/ominous_bottle_516bae682f8e","category":"utility","subcategory":"misc","confidence":"certain","notes":"Bad-omen effect item, all variants must not land in nature/drinks"}
-{"id":"minecraft:carrot","category":"nature","subcategory":"crops","confidence":"certain","notes":"Farmable crop with c:crops tag; must survive isProduceFoodTag removal and stay in nature/crops"}
-{"id":"minecraft:honey_bottle","category":"nature","subcategory":"drinks","confidence":"certain","notes":"Legitimate nutritional drink; must not be caught by the ominous_bottle c:drinks/ominous gate"}
+{"id":"minecraft:carrot","category":"food","subcategory":"prepared","confidence":"certain","notes":"Edible raw produce should route to food/prepared under the use-first ontology."}
+{"id":"minecraft:honey_bottle","category":"food","subcategory":"prepared","confidence":"certain","notes":"Legitimate nutritional drink should live under food/prepared and avoid the ominous bottle gate."}
 {"id":"minecraft:end_rod","category":"decoration","subcategory":"lighting","confidence":"certain","notes":"partial non-functional light source; LIGHT_SOURCE facet now routes partial blocks to decoration/lighting"}
 {"id":"minecraft:amethyst_cluster","category":"decoration","subcategory":"lighting","confidence":"certain","notes":"partial light-emitting crystal; LIGHT_SOURCE + partial routes to decoration/lighting"}
 {"id":"minecraft:small_amethyst_bud","category":"decoration","subcategory":"lighting","confidence":"certain","notes":"partial light-emitting crystal growth stage"}
@@ -69,3 +69,13 @@
 {"id":"toms_storage:storage_terminal","category":"storage","subcategory":"misc","confidence":"certain","notes":"Storage terminal runtime verb should beat partial-placeable decoration fallback."}
 {"id":"minecolonies:blockhutbuilder","category":"utility","subcategory":"workstations","confidence":"certain","notes":"Colony hut worksite verb should beat partial-placeable decoration fallback."}
 {"id":"doggytalents:dog_bed/variant/dog_bed_271e6c3a5908","category":"decoration","subcategory":"furniture","confidence":"certain","notes":"DogBedBlock sleep/rest verb should beat micro partial-placeable decoration/other_building."}
+{"id":"industrialforegoing:range_addon_tier_5","category":"tech","subcategory":"upgrades","confidence":"certain","notes":"Machine addon class should produce an upgrade facet instead of falling back to visible Misc."}
+{"id":"industrialforegoing:fertilizer","category":"ingredients","subcategory":"organic","confidence":"certain","notes":"c:fertilizers should route as organic ingredient support material rather than visible Misc"}
+{"id":"industrialforegoing:white_laser_lens","category":"tech","subcategory":"parts","confidence":"certain","notes":"LaserLensItem is a machine-support lens family that uses dyes only for recolor recipes, not as primary dye items"}
+{"id":"industrialforegoing:item_transporter_type","category":"tech","subcategory":"transport","confidence":"certain","notes":"ItemTransporterType is a machine transport-domain module family, not visible Misc"}
+{"id":"industrialforegoing:speed_addon_tier_1","category":"tech","subcategory":"upgrades","confidence":"certain","notes":"SpeedAddonItem should route as machine upgrade rather than visible Misc fallback"}
+{"id":"industrialforegoing:processing_addon_tier_1","category":"tech","subcategory":"upgrades","confidence":"certain","notes":"ProcessingAddonItem is an addon family and should route to upgrades rather than tech machines"}
+{"id":"industrialforegoing:infinity_drill/variant/infinity_drill_6d5026d69ce9","category":"tools","subcategory":"harvest","confidence":"certain","notes":"InfinityDrill is a fluid-powered harvest tool family; harvest identity should beat standalone fluid-container misc fallback"}
+{"id":"industrialforegoing:infinity_launcher/variant/infinity_launcher_b2d7442f23fe","category":"tools","subcategory":"ranged","confidence":"certain","notes":"InfinityLauncher is a powered ranged weapon family and should not stay in utility/misc just because it stores fuel"}
+{"id":"structurize:sceptergold","category":"minecolonies","subcategory":"buildings","confidence":"certain","notes":"Structurize build workflow tools are part of the MineColonies building ecosystem and should stay on that browsing surface"}
+{"id":"structurize:caliper","category":"minecolonies","subcategory":"buildings","confidence":"certain","notes":"Structurize measurement tools belong with the MineColonies building workflow rather than visible Misc"}

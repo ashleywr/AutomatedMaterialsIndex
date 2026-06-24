@@ -33,7 +33,7 @@
     { "mod": "doggytalents", "classTokens": ["doggytalents.common.entity.accessory.", "accessoryitem", "dualaccessoryitem", "dyeableaccessoryitem", "doggycontactsitem", "demonhornsitem", "deerantlersitem", "bunnyearsitem", "dogpresentcostumeitem"], "addFacets": ["curio"] },
     { "mod": "doggytalents", "classTokens": ["whistleitem", "caninetrackeritem", "locatororbitem", "dyableorbitem", "emptylocatororbitem"], "pathTokens": ["tracker", "orb", "whistle"], "addFacets": ["utility_navigation"] },
     { "mod": "doggytalents", "classTokens": ["throwableitem", "frisbeeitem", "droolboneitem", "frisbeedroolitem", "energizerstickitem"], "pathTokens": ["frisbee"], "addFacets": ["utility_tool"] },
-    { "mod": "doggytalents", "classTokens": ["treatitem", "scenttreatitem", "droolscenttreatitem"], "pathTokens": ["treat"], "category": "nature", "subcategory": "snacks" },
+    { "mod": "doggytalents", "classTokens": ["treatitem", "scenttreatitem", "droolscenttreatitem"], "pathTokens": ["treat"], "category": "food", "subcategory": "prepared" },
     { "mod": "doggytalents", "classTokens": ["pianoitem", "dogplushieitem", "samoyedplushieitem"], "pathTokens": ["plushie", "piano"], "category": "decoration", "subcategory": "furniture" },
 
     { "mod": "enigmaticlegacyplus", "classTokens": ["antiquebag"], "pathTokens": ["bag"], "addFacets": ["storage"] },
@@ -150,6 +150,7 @@
     { "mod": "minecolonies", "classTokens": ["itemcompost", "itemmistletoe"], "addFacets": ["ingredient_organic"] },
     { "mod": "minecolonies", "classTokens": ["itemsiftermesh"], "addFacets": ["tech_component"] },
     { "mod": "minecolonies", "classTokens": ["itemadventuretoken"], "addFacets": ["utility_misc"] },
+    { "mod": "structurize", "classTokens": ["itembuildtool", "itemshapetool", "itemscantool", "itemtagtool", "itemcaliper", "itemtagsubstitution"], "category": "minecolonies", "subcategory": "buildings" },
 
     { "mod": "mowziesmobs", "classTokens": ["itemdart"], "addFacets": ["projectile"] },
     { "mod": "mowziesmobs", "classTokens": ["itembluffrod", "itemsandrake", "itemmobremover"], "addFacets": ["utility_tool"] },
@@ -166,6 +167,7 @@
     { "mod": "pastel", "pathTokens": ["brush", "roller", "tool"], "addFacets": ["utility_tool"], "category": "pastel", "subcategory": "tools" },
     { "mod": "pastel", "classTokens": ["PastelDyeItem"], "addFacets": ["ingredient_dye"], "category": "pastel", "subcategory": "dyes" },
     { "mod": "pastel", "pathTokens": ["dye"], "addFacets": ["ingredient_dye"], "category": "pastel", "subcategory": "dyes" },
+    { "mod": "pastel", "pathTokens": ["azurite", "malachite", "bloodstone", "bismuth"], "category": "pastel", "subcategory": "resources" },
     { "mod": "pastel", "classTokens": ["CatalogueItem", "PatternItem"], "addFacets": ["book"], "category": "pastel", "subcategory": "misc" },
     { "mod": "pastel", "pathTokens": ["catalogue", "pattern"], "category": "pastel", "subcategory": "misc" },
     { "mod": "pastel", "pathTokens": ["slab", "stairs", "wall", "fence", "pillar", "column"], "category": "pastel", "subcategory": "building" },

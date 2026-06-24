@@ -230,10 +230,18 @@ class FacetIndexerTest {
     void taggedBoneGetsOrganicIngredientFacet() {
         Item boneMeal = register("test_bone", new Item("Test Bone")
                 .withTag(TagKey.create(null, new ResourceLocation("c", "bones"))));
+        Item fertilizer = register("test_fertilizer", new Item("Test Fertilizer")
+                .withTag(TagKey.create(null, new ResourceLocation("c", "fertilizers"))));
+        Item plastic = register("test_plastic", new Item("Test Plastic")
+                .withTag(TagKey.create(null, new ResourceLocation("c", "plastics"))));
 
         FacetProfile profile = index(boneMeal);
+        FacetProfile fertilizerProfile = index(fertilizer);
+        FacetProfile plasticProfile = index(plastic);
 
         assertTrue(profile.facets().contains(ItemFacet.INGREDIENT_ORGANIC));
+        assertTrue(fertilizerProfile.facets().contains(ItemFacet.INGREDIENT_ORGANIC));
+        assertTrue(plasticProfile.facets().contains(ItemFacet.INGREDIENT_MINERAL));
     }
 
     @Test
@@ -426,6 +434,26 @@ class FacetIndexerTest {
         ));
 
         assertTrue(SemanticVerbCodec.read(index(lightGrayPanel).attributes()).isEmpty());
+    }
+
+    @Test
+    void climbableAndBarrierRuntimeFactsAddSemanticVerbs() {
+        Item ladder = register("rope_ladder", new BlockItem(
+                "Rope Ladder",
+                new Block(new BlockState().withTag(TagKey.create(null, new ResourceLocation("minecraft", "climbable"))))
+        ));
+        Item bars = register("bronze_bars", new BlockItem(
+                "Bronze Bars",
+                new Block(new BlockState().withTag(TagKey.create(null, new ResourceLocation("minecraft", "bars"))))
+        ));
+        Item chain = register("hanging_chain", new BlockItem(
+                "Hanging Chain",
+                new TestChainBlock(new BlockState().withTag(TagKey.create(null, new ResourceLocation("c", "chains"))))
+        ));
+
+        assertTrue(SemanticVerbCodec.has(index(ladder).attributes(), SemanticVerb.CLIMB_ACCESS));
+        assertTrue(SemanticVerbCodec.has(index(bars).attributes(), SemanticVerb.BARRIER_GRATE));
+        assertTrue(SemanticVerbCodec.has(index(chain).attributes(), SemanticVerb.BARRIER_GRATE));
     }
 
     @Test
@@ -798,6 +826,41 @@ class FacetIndexerTest {
     }
 
     @Test
+    void addonItemClassesProduceUpgradeFacet() {
+        Item rangeAddon = register("industrialforegoing", "range_addon_tier_5", new TestRangeAddonItem("Addon: Range Tier 6"));
+
+        assertTrue(index(rangeAddon).facets().contains(ItemFacet.UPGRADE));
+    }
+
+    @Test
+    void laserLensItemClassesProduceTechComponentFacet() {
+        Item lens = register("industrialforegoing", "white_laser_lens", new TestLaserLensItem("White Laser Lens"));
+
+        assertTrue(index(lens).facets().contains(ItemFacet.TECH_COMPONENT));
+    }
+
+    @Test
+    void transporterTypeItemClassesProduceTransportFacet() {
+        Item transporter = register("industrialforegoing", "item_transporter_type", new TestItemTransporterType("Item Transporter"));
+
+        assertTrue(index(transporter).facets().contains(ItemFacet.TRANSPORT));
+    }
+
+    @Test
+    void industrialForegoingInfinityItemClassesProduceHarvestAndRangedFacets() {
+        Item infinityDrill = register("industrialforegoing", "infinity_drill", new TestInfinityDrillItem("Infinity Drill"));
+        Item infinityLauncher = register("industrialforegoing", "infinity_launcher", new TestInfinityLauncherItem("Infinity Launcher"));
+
+        FacetProfile drillProfile = index(infinityDrill);
+        FacetProfile launcherProfile = index(infinityLauncher);
+
+        assertTrue(drillProfile.facets().contains(ItemFacet.HARVEST_TOOL));
+        assertFalse(drillProfile.facets().contains(ItemFacet.UTILITY_MISC));
+        assertTrue(launcherProfile.facets().contains(ItemFacet.RANGED_WEAPON));
+        assertFalse(launcherProfile.facets().contains(ItemFacet.UTILITY_MISC));
+    }
+
+    @Test
     void splinterspawnPathDoesNotLookMedical() {
         Item splinterspawn = register("splinterspawn_infested_pyrite",
                 new BlockItem("Splinterspawn Infested Pyrite", new Block(new BlockState())));
@@ -904,6 +967,12 @@ class FacetIndexerTest {
 
     private static final class TestStorageTerminalBlock extends Block implements EntityBlock {
         private TestStorageTerminalBlock(BlockState defaultState) {
+            super(defaultState);
+        }
+    }
+
+    private static final class TestChainBlock extends Block {
+        private TestChainBlock(BlockState defaultState) {
             super(defaultState);
         }
     }
@@ -1021,6 +1090,26 @@ class FacetIndexerTest {
 
     private static final class TestLureItem extends Item {
         private TestLureItem(String name) { super(name); }
+    }
+
+    private static final class TestRangeAddonItem extends Item {
+        private TestRangeAddonItem(String name) { super(name); }
+    }
+
+    private static final class TestLaserLensItem extends Item {
+        private TestLaserLensItem(String name) { super(name); }
+    }
+
+    private static final class TestItemTransporterType extends Item {
+        private TestItemTransporterType(String name) { super(name); }
+    }
+
+    private static final class TestInfinityDrillItem extends Item {
+        private TestInfinityDrillItem(String name) { super(name); }
+    }
+
+    private static final class TestInfinityLauncherItem extends Item {
+        private TestInfinityLauncherItem(String name) { super(name); }
     }
 
     private static final class PowerBottleBlock extends Block {

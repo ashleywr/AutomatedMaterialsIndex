@@ -10,7 +10,7 @@ Classification has three separate concerns:
 1. Family ownership: which compat ecosystem owns or strongly contextualizes the
    item, such as `cobblemon`, `create`, `ae2`, or `mekanism`.
 2. Semantic ontology: what the item objectively is, such as `tools/melee`,
-   `geology/stone`, `tech/machines`, `ingredients/ingots`, or `nature/meals`.
+   `geology/stone`, `tech/machines`, `ingredients/ingots`, or `food/prepared`.
 3. Family enrichment: extra metadata, search tokens, grouping, tooltips, and row
    fields that apply after ownership is established.
 
@@ -18,6 +18,38 @@ These concerns must not collapse into one score. A family can add metadata
 without winning the ontology category.
 
 Representative stack variants are an indexing/presentation concern, not a
+
+### 2026-06-24: Industrial Foregoing Infinity Tools Stop Losing To Fluid-Container Misc
+
+`industrialforegoing` still had a repeated visible-`Misc` family in the Cobblemon
+Colonies dump: the `Infinity` tool and weapon variants (`infinity_drill`,
+`infinity_saw`, `infinity_launcher`, `infinity_nuke`, and `infinity_trident`) all
+carried `fluid_container`, so evidence scoring kept treating them as generic
+fuel-holding miscellany. Their stable item classes already expose stronger
+gameplay identity.
+
+AMI now promotes those `ItemInfinity*` classes to concrete tool facets before the
+misc fallback:
+
+- `InfinityDrill` and `InfinitySaw` -> `HARVEST_TOOL`
+- `InfinityLauncher`, `InfinityNuke`, and `InfinityTrident` -> `RANGED_WEAPON`
+
+This is intentionally class-based and namespace-scoped rather than display-name
+driven. The same promotion is mirrored in `SearchNodeMirrorDump` so old runtime
+dumps replay into the same `tools/*` buckets during strict gold-set validation.
+
+### 2026-06-24: Structurize Workflow Tools Prefer The MineColonies Building Surface
+
+The Cobblemon Colonies dump also showed a tiny but very coherent `structurize`
+tail in visible `Misc`: build, shape, scan, tag, and measurement tools such as
+`sceptergold` and `caliper`. These are not generic handheld tools in practice;
+they are the colony building workflow that MineColonies depends on.
+
+Bundled classification overrides now route the stable Structurize workflow item
+classes (`ItemBuildTool`, `ItemShapeTool`, `ItemScanTool`, `ItemTagTool`,
+`ItemCaliper`, and `ItemTagSubstitution`) to `minecolonies/buildings`. This is
+an intentionally focused compat-family policy: the classes are mod-owned and the
+user-facing value comes from keeping the colony-building toolchain together.
 family ownership signal. When one registered item advertises multiple creative
 tab stacks with different components, AMI may index those stacks as subtype
 nodes and mark them with `variantSource=creative_tab` plus
@@ -30,6 +62,25 @@ Creative-tab variants should only be generated when the base item is visible for
 the current access settings. Admin/creative-only base items such as
 `creative_*` tanks, batteries, or bins should not leak hundreds of component
 variants into normal survival results.
+
+### 2026-06-24: Use-First Food Ontology
+
+Food now has its own top-level ontology category instead of living under
+`nature/*`. The primary tree is intentionally use-first:
+
+- `food/prepared` is for directly consumable items, drinks, placeable food
+  blocks, served meals, and other items whose main player-facing role is eating
+  or drinking.
+- `food/ingredients` is for food-semantic ingredients and prep items that are
+  not primarily served/consumed in their indexed form, including raw proteins,
+  produce inputs, doughs, and similar cooking materials.
+- `nature/*` is narrowed to non-food world organics such as seeds, flora,
+  fungi, and wood.
+
+This removes the old duplicate-fruit problem created by trying to represent both
+biology and player-use in one branch. Ambiguous items now get one primary home
+based on dominant player use, while plant/fungi identity remains available
+through facets, search tokens, and lower-level kinding.
 
 ## Routing Gates
 
@@ -66,6 +117,113 @@ verb routing across old dumps.
 Known precision follow-up: replay can surface `spawn:tropical_wildflowers` /
 `FloatingFlowerbedBlock` as a `sleep_rest` false positive. Treat that as a targeted
 precision issue, not a reason to remove the verb layer.
+
+### 2026-06-24: Decoration partials split by climb/barrier verbs and decal identity
+
+The fresh Synesthesia dump still had `864` rows under `decoration/other_building`, dominated by
+`primary_rule:partial placeables` and `primary_rule:micro partial placeables`. The first follow-up
+slice targets families that already expose stable runtime evidence rather than broad path guesses.
+
+Added two new semantic verbs:
+
+- `climb_access` -> `decoration/access`
+- `barrier_grate` -> `decoration/barriers`
+
+`FacetIndexer` now derives these only from trusted block facts already present in dump metadata:
+
+- `minecraft:climbable` block tag, or ladder/scaffolding block classes for `climb_access`
+- `minecraft:bars`, `c:chains`, or iron-bars/chain block classes for `barrier_grate`
+
+This moves ladders, scaffolding, ropes, bars, and chain-style partials ahead of the generic
+partial-placeable fallback without hardcoding item ids.
+
+Createdeco decals were handled separately because they already expose a tight mod-owned semantic
+surface: `createdeco:decals`, `createdeco:weightless`, and `DecalBlock`. Those route through
+`hard_identity` to `decoration/signage` rather than through a generic verb.
+
+Failed approaches to avoid:
+
+- do not add new climb/barrier verbs from plain path tokens like `ladder`, `bars`, `chain`, `rope`,
+  or `catwalk` alone
+- do not sweep broader partial families like supports/catwalks/flags into new buckets until they
+  expose equally strong cross-mod runtime evidence
+
+### 2026-06-24: Supplementaries textile partials route to decoration/textiles by identity metadata
+
+The same Synesthesia `decoration/other_building` dump still contained a concentrated block of
+Supplementaries decorative fabric families:
+
+- `supplementaries:flags`
+- `supplementaries:awnings`
+- `supplementaries:buntings`
+
+These were not missing a new cross-mod semantic verb. They already expose stable mod-owned runtime
+identity through dedicated item/block tags and block classes, and AMI already has a suitable
+semantic destination: `decoration/textiles`.
+
+AMI now routes those families through `hard_identity` to `decoration/textiles` when replay/runtime
+metadata exposes the `supplementaries:*` textile tags or the matching block classes. This keeps the
+change narrow and evidence-first while shrinking the generic partial-placeable bucket further.
+
+Failed approaches to avoid:
+
+- do not create a broad `flag` or `awning` lexical rule for every mod
+- do not let dyed color tags alone imply textiles; the owning family tags/classes are the trusted fact
+
+### 2026-06-24: Structural support/catwalk partials move to masonry and display boards move to signage
+
+The same dump still contained a repeated cluster of structural decorative partials that were not well described by
+`decoration/other_building`:
+
+- support families (`SupportBlock`, `createdeco:supports`)
+- catwalk families (`CatwalkBlock`, `createdeco:catwalks`)
+- display board families (`c:create/display_boards`, `FlapDisplayTypeBlock`)
+
+These do not need another semantic verb layer. They already expose stable class/tag identity and can be moved directly
+into existing ontology buckets:
+
+- support/catwalk families -> `masonry/decorative`
+- display board families -> `decoration/signage`
+
+This keeps the batch fast and minimizes ontology churn while shrinking the large partial-placeable bucket further.
+
+Failed approaches to avoid:
+
+- do not route generic `support` or `catwalk` path tokens globally without the matching class/tag evidence
+- do not claim every display-like block is signage; use the dedicated display-board tags/classes
+
+### 2026-06-24: Ribbon/tent textiles, sparklers, spore blossoms, and animal egg blocks move by identity metadata
+
+Another high-yield pass over the same bucket showed several repeated families that already had stable block identity and
+clear existing ontology homes:
+
+- `RibbonBlock` and `TentMainBlock` families -> `decoration/textiles`
+- `SparklerBlock` families -> `decoration/lighting`
+- colored spore blossom families -> `nature/flora`
+- explicit animal egg block families -> `bestiary/passive`
+
+These were handled as hard-identity moves, not as new verbs. The goal here is speed and precision: use stable class/tag
+evidence when a family is already obviously describing cloth decor, decorative light, flora, or creature eggs.
+
+Animal egg routing is intentionally narrow. Only explicit animal-egg tags/classes such as `primal:animal_egg`,
+`TurtleEggBlock`, `SnifferEggBlock`, or `BlockReptileEgg` move in this batch. Ambiguous fantasy/special eggs such as
+`InfinityEggBlock` or `EggClusterBlock` stay out until they expose stronger semantic evidence.
+
+### 2026-06-24: Repeated decorative furniture and structural trim classes move by stable class identity
+
+One more repeated tail in the bucket was not really an ontology-design problem so much as missing direct identity:
+
+- furniture-style decorative blocks such as `PouffeBlock`, `MirrorBlock`, `WheelBarrowBlock`, `SeparatorBlock`,
+  and `FreeSpinBlock`
+- structural trim blocks such as `PillarBlock` and `WindowCasingBlock`
+
+These now move directly by stable block class:
+
+- furniture-style decorative classes -> `decoration/furniture`
+- structural trim classes -> `masonry/decorative`
+
+This is intentionally a class-identity cleanup pass. It is not permission to add broad global lexical rules for
+`mirror`, `pillar`, `separator`, `fan`, or `window` without the matching runtime class evidence.
 
 ### 2026-06-09: Partial light-source blocks → decoration/lighting; dragon egg fix; amethyst buds fix
 

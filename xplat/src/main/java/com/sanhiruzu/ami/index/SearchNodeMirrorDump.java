@@ -108,6 +108,7 @@ public final class SearchNodeMirrorDump {
 
     private static void enrichReplayClassificationFacts(ResourceLocation id, Map<String, String> metadata) {
         String componentFacts = metadata.getOrDefault(SearchNodeKeys.COMPONENT_FACTS, "");
+        String tags = metadata.getOrDefault(SearchNodeKeys.TAGS, "");
         if (hasToken(componentFacts, "container")) {
             SemanticVerbCodec.add(metadata, SemanticVerb.STORES_ITEMS, "replay:component:container");
         }
@@ -120,9 +121,53 @@ public final class SearchNodeMirrorDump {
         }
 
         String normalizedBlockClass = metadata.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "").toLowerCase(Locale.ROOT);
+        String normalizedItemClass = metadata.getOrDefault(SearchNodeKeys.ITEM_CLASS, "").toLowerCase(Locale.ROOT);
         if (containsAny(normalizedBlockClass,
                 "bedblock", "petbedblock", "dogbedblock", "sleepingbagblock", "bedrollblock")) {
             SemanticVerbCodec.add(metadata, SemanticVerb.SLEEP_REST, "replay:block_class:" + normalizedBlockClass);
+        }
+        if (containsAny(normalizedItemClass,
+                "rangeaddonitem",
+                "speedaddonitem",
+                "efficiencyaddonitem",
+                "processingaddonitem",
+                "addonitem",
+                "upgradeitem")) {
+            addReplayFacet(metadata, ItemFacet.UPGRADE);
+        }
+        if (containsAny(normalizedItemClass, "laserlensitem")) {
+            addReplayFacet(metadata, ItemFacet.TECH_COMPONENT);
+        }
+        if (containsAny(normalizedItemClass, "itemtransportertype")) {
+            addReplayFacet(metadata, ItemFacet.TRANSPORT);
+        }
+        if ("industrialforegoing".equals(id.getNamespace())) {
+            if (containsAny(normalizedItemClass, "infinitydrill", "infinitysaw")) {
+                addReplayFacet(metadata, ItemFacet.HARVEST_TOOL);
+            }
+            if (containsAny(normalizedItemClass, "infinitylauncher", "infinitynuke", "infinitytrident")) {
+                addReplayFacet(metadata, ItemFacet.RANGED_WEAPON);
+            }
+        }
+        if ("structurize".equals(id.getNamespace())
+                && containsAny(normalizedItemClass,
+                "itembuildtool",
+                "itemshapetool",
+                "itemscantool",
+                "itemtagtool",
+                "itemcaliper",
+                "itemtagsubstitution")) {
+            metadata.put(SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "minecolonies");
+            metadata.put(SearchNodeKeys.COMPAT_FAMILY, "minecolonies");
+            metadata.put(SearchNodeKeys.COMPAT_FAMILIES, "minecolonies");
+            metadata.put(SearchNodeKeys.COMPAT_ROUTE_CATEGORY, "minecolonies");
+            metadata.put(SearchNodeKeys.COMPAT_ROUTE_SUBCATEGORY, "buildings");
+        }
+        if (hasToken(tags, "c:fertilizers")) {
+            addReplayFacet(metadata, ItemFacet.INGREDIENT_ORGANIC);
+        }
+        if (hasToken(tags, "c:plastics")) {
+            addReplayFacet(metadata, ItemFacet.INGREDIENT_MINERAL);
         }
         if (isMagicStructureBlockClass(metadata.getOrDefault(SearchNodeKeys.BLOCK_CLASS, ""))) {
             addReplayFacet(metadata, ItemFacet.MAGIC_ARTIFACT);
@@ -132,6 +177,26 @@ public final class SearchNodeMirrorDump {
         }
         if ("minecolonies".equals(id.getNamespace()) && containsAny(normalizedBlockClass, "blockhut")) {
             SemanticVerbCodec.add(metadata, SemanticVerb.SETTLEMENT_WORKSITE, "replay:block_class:" + normalizedBlockClass);
+        }
+        if (hasToken(metadata.getOrDefault(SearchNodeKeys.BLOCK_TAGS, ""), "minecraft:climbable")
+                || containsAny(normalizedBlockClass, "ladderblock", "scaffoldingblock")) {
+            String evidence = hasToken(metadata.getOrDefault(SearchNodeKeys.BLOCK_TAGS, ""), "minecraft:climbable")
+                    ? "replay:block_tag:minecraft:climbable"
+                    : "replay:block_class:" + normalizedBlockClass;
+            SemanticVerbCodec.add(metadata, SemanticVerb.CLIMB_ACCESS, evidence);
+        }
+        if (hasToken(metadata.getOrDefault(SearchNodeKeys.BLOCK_TAGS, ""), "minecraft:bars")
+                || hasToken(metadata.getOrDefault(SearchNodeKeys.BLOCK_TAGS, ""), "c:chains")
+                || containsAny(normalizedBlockClass, "ironbarsblock", "chainblock")) {
+            String evidence;
+            if (hasToken(metadata.getOrDefault(SearchNodeKeys.BLOCK_TAGS, ""), "minecraft:bars")) {
+                evidence = "replay:block_tag:minecraft:bars";
+            } else if (hasToken(metadata.getOrDefault(SearchNodeKeys.BLOCK_TAGS, ""), "c:chains")) {
+                evidence = "replay:block_tag:c:chains";
+            } else {
+                evidence = "replay:block_class:" + normalizedBlockClass;
+            }
+            SemanticVerbCodec.add(metadata, SemanticVerb.BARRIER_GRATE, evidence);
         }
 
         if (containsStorageTerminalPhrase(id.getPath())

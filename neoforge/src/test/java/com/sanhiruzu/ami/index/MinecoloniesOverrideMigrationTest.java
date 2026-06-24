@@ -102,6 +102,19 @@ class MinecoloniesOverrideMigrationTest {
     }
 
     @Test
+    void structurizeBuildWorkflowToolsRouteToMinecoloniesBuildings() {
+        CategoryAssignment buildTool = resolveBare("structurize:sceptergold",
+                meta("structurize", "com.ldtteam.structurize.items.ItemBuildTool"));
+        CategoryAssignment caliper = resolveBare("structurize:caliper",
+                meta("structurize", "com.ldtteam.structurize.items.ItemCaliper"));
+
+        assertEquals("minecolonies", buildTool.categoryId());
+        assertEquals("buildings", buildTool.subcategoryId());
+        assertEquals("minecolonies", caliper.categoryId());
+        assertEquals("buildings", caliper.subcategoryId());
+    }
+
+    @Test
     void unmatchedMinecoloniesItemsGainNoOverrideFacets() {
         CategoryAssignment a = resolveBare("minecolonies:stone_sword",
                 meta("minecolonies", "net.minecraft.world.item.Item"));

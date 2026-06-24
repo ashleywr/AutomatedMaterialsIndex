@@ -139,6 +139,29 @@ public final class FacetIndexer {
         if (containsAny(itemClass, "bottleitem", "flaskitem")) {
             facets.add(ItemFacet.UTILITY_MISC);
         }
+        if (containsAny(itemClass,
+                "rangeaddonitem",
+                "speedaddonitem",
+                "efficiencyaddonitem",
+                "processingaddonitem",
+                "addonitem",
+                "upgradeitem")) {
+            facets.add(ItemFacet.UPGRADE);
+        }
+        if (containsAny(itemClass, "laserlensitem")) {
+            facets.add(ItemFacet.TECH_COMPONENT);
+        }
+        if (containsAny(itemClass, "itemtransportertype")) {
+            facets.add(ItemFacet.TRANSPORT);
+        }
+        if ("industrialforegoing".equals(id.getNamespace())) {
+            if (containsAny(itemClass, "infinitydrill", "infinitysaw")) {
+                facets.add(ItemFacet.HARVEST_TOOL);
+            }
+            if (containsAny(itemClass, "infinitylauncher", "infinitynuke", "infinitytrident")) {
+                facets.add(ItemFacet.RANGED_WEAPON);
+            }
+        }
         if ("tconstruct".equals(id.getNamespace())) {
             if (containsAny(itemClass, "coppercanitem")) {
                 facets.add(ItemFacet.FLUID_CONTAINER);
@@ -609,9 +632,13 @@ public final class FacetIndexer {
             if (tag.startsWith("c:crops")) facets.add(ItemFacet.CROP);
             if (tag.startsWith("c:eggs") || tag.startsWith("c:feathers") || tag.startsWith("c:string")
                     || tag.startsWith("c:leathers") || tag.startsWith("c:bones")
+                    || tag.startsWith("c:fertilizers")
                     || tag.equals("spore:body_parts")
                     || tag.equals("spore:inf_parts")) {
                 facets.add(ItemFacet.INGREDIENT_ORGANIC);
+            }
+            if (tag.startsWith("c:plastics")) {
+                facets.add(ItemFacet.INGREDIENT_MINERAL);
             }
             if (tag.startsWith("c:foods/drink") || tag.endsWith(":drinks") || tag.endsWith("/drinks")) {
                 facets.add(ItemFacet.FOOD_DRINK);
@@ -988,7 +1015,6 @@ public final class FacetIndexer {
         String blockClass = blockItem.getBlock().getClass().getName();
         attributes.put(SearchNodeKeys.BLOCK_CLASS, blockClass);
         String normalizedBlockClass = blockClass.toLowerCase(Locale.ROOT);
-        applySemanticBlockVerbFacts(path, normalizedBlockClass, attributes);
         if ("net.minecraft.world.level.block.ConduitBlock".equals(blockClass)
                 || "net.minecraft.world.level.block.BeaconBlock".equals(blockClass)
                 || "net.minecraft.world.level.block.EnchantmentTableBlock".equals(blockClass)
@@ -1020,6 +1046,7 @@ public final class FacetIndexer {
         if (!blockProperties.isBlank()) {
             attributes.put(SearchNodeKeys.BLOCK_STATE_PROPERTIES, blockProperties);
         }
+        applySemanticBlockVerbFacts(path, normalizedBlockClass, blockTags, attributes);
         if (hasInteractiveStateProperty(blockProperties)) {
             facets.add(ItemFacet.INTERACTIVE_BLOCK);
         }
@@ -1195,7 +1222,8 @@ public final class FacetIndexer {
         }
     }
 
-    private static void applySemanticBlockVerbFacts(String path, String normalizedBlockClass, Map<String, String> attributes) {
+    private static void applySemanticBlockVerbFacts(String path, String normalizedBlockClass, String blockTags,
+                                                    Map<String, String> attributes) {
         if (containsAny(normalizedBlockClass, "bedblock", "petbedblock", "dogbedblock", "sleepingbagblock", "bedrollblock")) {
             SemanticVerbCodec.add(attributes, SemanticVerb.SLEEP_REST, "block_class:" + normalizedBlockClass);
         }
@@ -1205,6 +1233,31 @@ public final class FacetIndexer {
         if (containsPathPhrase(path, "storage_terminal")) {
             SemanticVerbCodec.add(attributes, SemanticVerb.STORES_ITEMS, "path_token:storage_terminal");
         }
+        if (hasBlockTag(blockTags, "minecraft:climbable")) {
+            SemanticVerbCodec.add(attributes, SemanticVerb.CLIMB_ACCESS, "block_tag:minecraft:climbable");
+        } else if (containsAny(normalizedBlockClass, "ladderblock", "scaffoldingblock")) {
+            SemanticVerbCodec.add(attributes, SemanticVerb.CLIMB_ACCESS, "block_class:" + normalizedBlockClass);
+        }
+        if (hasBlockTag(blockTags, "minecraft:bars")) {
+            SemanticVerbCodec.add(attributes, SemanticVerb.BARRIER_GRATE, "block_tag:minecraft:bars");
+        } else if (hasBlockTag(blockTags, "c:chains") || containsAny(normalizedBlockClass, "ironbarsblock", "chainblock")) {
+            String evidence = hasBlockTag(blockTags, "c:chains")
+                    ? "block_tag:c:chains"
+                    : "block_class:" + normalizedBlockClass;
+            SemanticVerbCodec.add(attributes, SemanticVerb.BARRIER_GRATE, evidence);
+        }
+    }
+
+    private static boolean hasBlockTag(String blockTags, String expectedTag) {
+        if (blockTags == null || blockTags.isBlank() || expectedTag == null || expectedTag.isBlank()) {
+            return false;
+        }
+        for (String rawTag : blockTags.split(",")) {
+            if (expectedTag.equals(rawTag.trim())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static List<String> collectTags(Item item) {
