@@ -776,7 +776,8 @@ public final class FacetIndexer {
         }
         return path.equals(phrase)
                 || path.endsWith("_" + phrase)
-                || path.contains("/" + phrase);
+                || path.endsWith("/" + phrase)
+                || path.contains("/" + phrase + "/");
     }
 
     private static boolean isFurnitureTag(String tag) {

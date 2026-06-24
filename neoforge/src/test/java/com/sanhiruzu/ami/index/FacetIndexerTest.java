@@ -386,12 +386,15 @@ class FacetIndexerTest {
     void storageComponentAndTerminalClassAddStoresItemsVerb() {
         Item componentContainer = register("verb_container", new Item("Verb Container")
                 .withComponent(DataComponents.CONTAINER));
-        Item storageTerminal = register("storage_terminal", new BlockItem(
+        Item bundleContainer = register("verb_bundle", new Item("Verb Bundle")
+                .withComponent(DataComponents.BUNDLE_CONTENTS));
+        Item storageTerminal = register("network_console", new BlockItem(
                 "Storage Terminal",
                 new TestStorageTerminalBlock(new BlockState())
         ));
 
         assertTrue(SemanticVerbCodec.has(index(componentContainer).attributes(), SemanticVerb.STORES_ITEMS));
+        assertTrue(SemanticVerbCodec.has(index(bundleContainer).attributes(), SemanticVerb.STORES_ITEMS));
         assertTrue(SemanticVerbCodec.has(index(storageTerminal).attributes(), SemanticVerb.STORES_ITEMS));
     }
 
@@ -403,6 +406,16 @@ class FacetIndexerTest {
         ));
 
         assertTrue(SemanticVerbCodec.has(index(pathOnlyStorageTerminal).attributes(), SemanticVerb.STORES_ITEMS));
+    }
+
+    @Test
+    void storageTerminalFramePathDoesNotAddStoresItemsVerb() {
+        Item pathOnlyStorageTerminalFrame = register("foo/storage_terminal_frame", new BlockItem(
+                "Storage Terminal Frame",
+                new Block(new BlockState())
+        ));
+
+        assertFalse(SemanticVerbCodec.has(index(pathOnlyStorageTerminalFrame).attributes(), SemanticVerb.STORES_ITEMS));
     }
 
     @Test
