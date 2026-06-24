@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SearchNodeMirrorDumpTest {
@@ -26,6 +28,22 @@ class SearchNodeMirrorDumpTest {
         assertEquals("storage", reclassified.meta(SearchNodeKeys.ONTOLOGY_CATEGORY));
         assertEquals("misc", reclassified.meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY));
         assertEquals("semantic_verb", reclassified.meta(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE));
+    }
+
+    @Test
+    void replayStorageTerminalPhraseDoesNotMatchPartialSegmentTokens() {
+        SearchNode node = item("example:storage_terminal_frame", Map.of(
+                SearchNodeKeys.FACETS, "placeable",
+                "blockShape", "partial",
+                SearchNodeKeys.BLOCKS_MATERIAL, "other_building",
+                SearchNodeKeys.SUBTYPE_OF, "example:storage_terminal_frame",
+                SearchNodeKeys.MATERIAL_GROUP, "example:storage_terminal_frame"
+        ));
+
+        SearchNode reclassified = SearchNodeMirrorDump.reclassifyItemOntology(List.of(node)).get(0);
+
+        assertFalse(SemanticVerbCodec.has(reclassified.metadata(), SemanticVerb.STORES_ITEMS));
+        assertNotEquals("semantic_verb", reclassified.meta(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE));
     }
 
     @Test

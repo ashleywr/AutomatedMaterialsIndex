@@ -181,7 +181,31 @@ public final class SearchNodeMirrorDump {
     }
 
     private static boolean containsStorageTerminalPhrase(String path) {
-        return path != null && path.toLowerCase(Locale.ROOT).contains("storage_terminal");
+        return containsPathPhrase(path, "storage_terminal");
+    }
+
+    private static boolean containsPathPhrase(String path, String phrase) {
+        if (path == null || path.isBlank() || phrase == null || phrase.isBlank()) {
+            return false;
+        }
+        String[] phraseTokens = phrase.toLowerCase(Locale.ROOT).split("_");
+        for (String segment : path.toLowerCase(Locale.ROOT).split("/")) {
+            String[] segmentTokens = segment.split("_");
+            if (segmentTokens.length != phraseTokens.length) {
+                continue;
+            }
+            boolean matches = true;
+            for (int i = 0; i < phraseTokens.length; i++) {
+                if (!segmentTokens[i].equals(phraseTokens[i])) {
+                    matches = false;
+                    break;
+                }
+            }
+            if (matches) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String resourcePath(String value) {
