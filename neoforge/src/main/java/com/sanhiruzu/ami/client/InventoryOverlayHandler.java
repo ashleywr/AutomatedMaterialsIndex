@@ -511,9 +511,12 @@ public class InventoryOverlayHandler {
             int availableWidth = screen.width - renderX;
             if (availableWidth < 32) return false;
 
-            int effectCount = mc.player.getActiveEffects().size();
+            int effectCount = (int) mc.player.getActiveEffects().stream()
+                    .filter(ClientHooks::shouldRenderEffect)
+                    .count();
+            if (effectCount == 0) return false;
             int rowStep = effectCount > 5 ? 132 / Math.max(1, effectCount - 1) : 33;
-            int stripWidth = availableWidth >= 120 ? 120 : 33;
+            int stripWidth = 33;
             int stripHeight = 32 + Math.max(0, effectCount - 1) * rowStep;
             return mouseX >= renderX && mouseX <= renderX + stripWidth
                     && mouseY >= topPos && mouseY <= topPos + stripHeight;
