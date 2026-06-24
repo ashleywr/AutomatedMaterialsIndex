@@ -419,6 +419,16 @@ class FacetIndexerTest {
     }
 
     @Test
+    void lightGrayPathTokenDoesNotAddSemanticVerb() {
+        Item lightGrayPanel = register("light_gray_panel", new BlockItem(
+                "Light Gray Panel",
+                new Block(new BlockState())
+        ));
+
+        assertTrue(SemanticVerbCodec.read(index(lightGrayPanel).attributes()).isEmpty());
+    }
+
+    @Test
     void composterGetsMachineFacet() {
         Item composter = register("composter", new BlockItem("Composter", new Block(new BlockState())));
 

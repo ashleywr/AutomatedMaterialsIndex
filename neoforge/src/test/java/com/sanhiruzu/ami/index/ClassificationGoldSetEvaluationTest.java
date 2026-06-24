@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ClassificationGoldSetEvaluationTest {
@@ -146,13 +147,31 @@ class ClassificationGoldSetEvaluationTest {
         writeClassificationGoldSetReport(VANILLA_GOLD_SET_RESOURCE, "vanilla-gold-set.md");
     }
 
+    @Test
+    void strictModeFailsWhenConfiguredSearchNodeDumpIsMissing() {
+        Path missingDump = repoRoot().resolve(Path.of(
+                "neoforge", "build", "reports", "ami-classification", "missing-strict-dump.jsonl"));
+
+        AssertionError error = assertThrows(AssertionError.class, () ->
+                writeClassificationGoldSetReport(GOLD_SET_RESOURCE, "missing-strict-gold-set.md", missingDump, true));
+        assertTrue(error.getMessage().contains(missingDump.toString()));
+        assertTrue(error.getMessage().contains("missing-strict-gold-set.md"));
+    }
+
     private static void writeClassificationGoldSetReport(String resource, String reportName) throws IOException {
+        writeClassificationGoldSetReport(resource, reportName, locateDump(), Boolean.getBoolean("ami.classificationGoldStrict"));
+    }
+
+    private static void writeClassificationGoldSetReport(
+            String resource,
+            String reportName,
+            Path dumpPath,
+            boolean strict) throws IOException {
         Path reportPath = repoRoot().resolve(Path.of(
                 "neoforge", "build", "reports", "ami-classification", reportName));
         Files.createDirectories(reportPath.getParent());
 
         List<GoldLabel> labels = readGoldLabels(resource);
-        Path dumpPath = locateDump();
         if (!Files.exists(dumpPath)) {
             Files.writeString(reportPath, "# AMI Classification Gold Set\n\n"
                     + "No runtime search-node dump found at `" + dumpPath + "`.\n\n"
@@ -160,6 +179,12 @@ class ClassificationGoldSetEvaluationTest {
                     + "`-Dami.searchNodesDump=...`.\n\n"
                     + "Gold labels available: " + labels.size() + "\n");
             assertTrue(Files.exists(reportPath), "Expected classification report at " + reportPath.toAbsolutePath());
+            assertTrue(!strict, () ->
+                    "Strict classification gold-set requested, but no runtime search-node dump exists at "
+                            + dumpPath.toAbsolutePath()
+                            + ". Wrote no-data report to "
+                            + reportPath.toAbsolutePath()
+                            + ". Generate a dump with /ami dump-search-nodes or set -Dami.searchNodesDump=...");
             return;
         }
 
@@ -167,7 +192,7 @@ class ClassificationGoldSetEvaluationTest {
         Evaluation evaluation = evaluate(labels, nodes);
         Files.writeString(reportPath, evaluation.toMarkdown(dumpPath));
 
-        if (Boolean.getBoolean("ami.classificationGoldStrict")) {
+        if (strict) {
             assertTrue(evaluation.mismatches().isEmpty(), () ->
                     "Classification gold-set mismatches. See " + reportPath.toAbsolutePath());
             assertTrue(evaluation.missing().isEmpty(), () ->
