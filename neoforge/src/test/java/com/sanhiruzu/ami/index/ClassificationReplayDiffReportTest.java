@@ -75,6 +75,8 @@ class ClassificationReplayDiffReportTest {
         appendCounts(report, "Replay Categories", categoryCounts(pairs, false), 40);
         appendCounts(report, "Runtime Route Rules", routeCounts(pairs, true), 40);
         appendCounts(report, "Replay Route Rules", routeCounts(pairs, false), 40);
+        appendCounts(report, "Semantic Verb Replay Destinations", semanticVerbDestinations(pairs), 80);
+        appendSemanticVerbAuditBucketExamples(report, semanticVerbAuditBucketMovements(pairs), 40);
         appendCounts(report, "Old Remaining Placeables Replayed To", oldRemainingPlaceablesDestinations(pairs), 80);
         appendCounts(report, "Replay Remaining Placeables By Mod And Block Class", replayRemainingPlaceablesByModAndClass(pairs), 80);
         appendExamples(report, "Old Remaining Placeables Changed", changedOldRemainingPlaceables(pairs), 120);
@@ -82,8 +84,14 @@ class ClassificationReplayDiffReportTest {
         appendCounts(report, "Replay Masonry Full Blocks By Mod And Block Class", replayMasonryFullBlocksByModAndClass(pairs), 80);
         appendExamples(report, "Old Masonry Full Blocks Changed", changedOldMasonryFullBlocks(pairs), 120);
 
-        Files.writeString(reportPath, report.toString());
+        String reportText = report.toString();
+        Files.writeString(reportPath, reportText);
         assertTrue(Files.exists(reportPath), "Expected replay diff report at " + reportPath.toAbsolutePath());
+        assertTrue(reportText.contains("## Semantic Verb Replay Movements"),
+                "Expected replay diff report to expose semantic verb movement");
+        assertTrue(reportText.contains("### `storage/misc`"), "Expected storage semantic verb audit examples");
+        assertTrue(reportText.contains("### `utility/workstations`"), "Expected workstation semantic verb audit examples");
+        assertTrue(reportText.contains("### `decoration/furniture`"), "Expected furniture semantic verb audit examples");
     }
 
     private static void appendSummary(StringBuilder report, List<Pair> pairs) {
@@ -139,6 +147,30 @@ class ClassificationReplayDiffReportTest {
                 pair -> modAndClass(pair.newNode()));
     }
 
+    private static Map<String, Long> semanticVerbDestinations(List<Pair> pairs) {
+        return countBy(pairs.stream()
+                        .filter(pair -> "semantic_verb".equals(pair.newNode().meta(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE, "")))
+                        .toList(),
+                pair -> categoryKey(pair.oldNode()) + " -> " + categoryKey(pair.newNode())
+                        + " via " + nodeSemanticVerbs(pair.newNode()));
+    }
+
+    private static List<Pair> semanticVerbAuditBucketMovements(List<Pair> pairs) {
+        return pairs.stream()
+                .filter(pair -> "semantic_verb".equals(pair.newNode().meta(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE, "")))
+                .filter(pair -> isSemanticVerbAuditBucket(categoryKey(pair.newNode())))
+                .filter(pair -> !categoryKey(pair.oldNode()).equals(categoryKey(pair.newNode()))
+                        || !routeKey(pair.oldNode()).equals(routeKey(pair.newNode())))
+                .sorted(Comparator.comparing(pair -> categoryKey(pair.newNode()) + "/" + pair.oldNode().id()))
+                .toList();
+    }
+
+    private static boolean isSemanticVerbAuditBucket(String categoryKey) {
+        return "storage/misc".equals(categoryKey)
+                || "utility/workstations".equals(categoryKey)
+                || "decoration/furniture".equals(categoryKey);
+    }
+
     private static List<Pair> changedOldRemainingPlaceables(List<Pair> pairs) {
         return pairs.stream()
                 .filter(pair -> "remaining placeables".equals(rule(pair.oldNode())))
@@ -184,20 +216,41 @@ class ClassificationReplayDiffReportTest {
             report.append("No changed rows.\n\n");
             return;
         }
-        pairs.stream().limit(limit).forEach(pair -> {
-            SearchNode oldNode = pair.oldNode();
-            SearchNode newNode = pair.newNode();
-            report.append("- `").append(oldNode.id()).append("` ")
-                    .append(oldNode.displayName()).append(": ")
-                    .append(categoryKey(oldNode)).append(" / ").append(routeKey(oldNode))
-                    .append(" -> ")
-                    .append(categoryKey(newNode)).append(" / ").append(routeKey(newNode))
-                    .append(" [").append(evidence(newNode)).append("]\n");
-        });
+        pairs.stream().limit(limit).forEach(pair -> appendExampleRow(report, pair));
         if (pairs.size() > limit) {
             report.append("- ... ").append(pairs.size() - limit).append(" more\n");
         }
         report.append("\n");
+    }
+
+    private static void appendSemanticVerbAuditBucketExamples(StringBuilder report, List<Pair> pairs, int limitPerBucket) {
+        report.append("## Semantic Verb Replay Movements Into Audit Buckets\n\n");
+        for (String bucket : List.of("storage/misc", "utility/workstations", "decoration/furniture")) {
+            report.append("### `").append(bucket).append("`\n\n");
+            List<Pair> bucketPairs = pairs.stream()
+                    .filter(pair -> bucket.equals(categoryKey(pair.newNode())))
+                    .toList();
+            if (bucketPairs.isEmpty()) {
+                report.append("No changed semantic-verb rows.\n\n");
+                continue;
+            }
+            bucketPairs.stream().limit(limitPerBucket).forEach(pair -> appendExampleRow(report, pair));
+            if (bucketPairs.size() > limitPerBucket) {
+                report.append("- ... ").append(bucketPairs.size() - limitPerBucket).append(" more\n");
+            }
+            report.append("\n");
+        }
+    }
+
+    private static void appendExampleRow(StringBuilder report, Pair pair) {
+        SearchNode oldNode = pair.oldNode();
+        SearchNode newNode = pair.newNode();
+        report.append("- `").append(oldNode.id()).append("` ")
+                .append(oldNode.displayName()).append(": ")
+                .append(categoryKey(oldNode)).append(" / ").append(routeKey(oldNode))
+                .append(" -> ")
+                .append(categoryKey(newNode)).append(" / ").append(routeKey(newNode))
+                .append(" [").append(evidence(newNode)).append("]\n");
     }
 
     private static String evidence(SearchNode node) {
@@ -206,6 +259,8 @@ class ClassificationReplayDiffReportTest {
         addEvidence(parts, "shape", node.meta("blockShape", ""));
         addEvidence(parts, "blockClass", node.meta(SearchNodeKeys.BLOCK_CLASS, ""));
         addEvidence(parts, "props", node.meta(SearchNodeKeys.BLOCK_STATE_PROPERTIES, ""));
+        addEvidence(parts, "semanticVerbs", nodeSemanticVerbs(node));
+        addEvidence(parts, "semanticVerbEvidence", node.meta(SearchNodeKeys.SEMANTIC_VERB_EVIDENCE, ""));
         return String.join("; ", parts);
     }
 
@@ -238,6 +293,11 @@ class ClassificationReplayDiffReportTest {
             blockClass = node.meta(SearchNodeKeys.ITEM_CLASS, "");
         }
         return node.id().getNamespace() + " / " + simpleClassName(blockClass);
+    }
+
+    private static String nodeSemanticVerbs(SearchNode node) {
+        String verbs = node.meta(SearchNodeKeys.SEMANTIC_VERBS, "");
+        return verbs.isBlank() ? "(none)" : verbs;
     }
 
     private static String simpleClassName(String className) {
