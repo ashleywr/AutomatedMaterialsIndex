@@ -27,6 +27,8 @@ public final class SearchNodeKeys {
     public static final String MATERIAL_GROUP = "materialGroup";
     public static final String TAGS = "tags";  // Comma-separated tag paths
     public static final String FACETS = "facets"; // Comma-separated stable facet ids
+    public static final String SEMANTIC_VERBS = "semanticVerbs"; // Comma-separated stable verb ids.
+    public static final String SEMANTIC_VERB_EVIDENCE = "semanticVerbEvidence"; // verb=evidence|verb=evidence.
     public static final String ITEM_CLASS = "itemClass"; // concrete item class
     public static final String IS_BUCKET_ITEM = "isBucketItem"; // "true" for items that hold fluids in buckets
     public static final String ESM_CAPACITY = "emsCapacity";  // Equivalent Stack Metric
