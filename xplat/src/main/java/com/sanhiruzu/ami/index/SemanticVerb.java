@@ -5,7 +5,9 @@ import java.util.Locale;
 public enum SemanticVerb {
     SLEEP_REST("sleep_rest"),
     STORES_ITEMS("stores_items"),
-    SETTLEMENT_WORKSITE("settlement_worksite");
+    SETTLEMENT_WORKSITE("settlement_worksite"),
+    CLIMB_ACCESS("climb_access"),
+    BARRIER_GRATE("barrier_grate");
 
     private final String id;
 

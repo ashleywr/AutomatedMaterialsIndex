@@ -324,10 +324,11 @@ public final class PrimaryCategoryResolver {
                     c -> assignment("nature", "seeds", c.attributes)),
             rule("crop-like placeables",
                     c -> isCropLikePlaceable(c.path, c.facets, c.attributes),
-                    c -> assignment("nature", "crops", c.attributes)),
+                    c -> assignment(classifyCropLikePlaceableCategory(c.path, c.facets, c.attributes),
+                            classifyCropLikePlaceableSubcategory(c.path, c.facets, c.attributes), c.attributes)),
             rule("food family placeables",
-                    c -> shouldBiasFoodFamilyPlaceableToNature(c.modFamily, c.facets, c.path, c.attributes),
-                    c -> assignment("nature", classifyFoodFamilyNatureSubcategory(c.path, c.facets), c.attributes)),
+                    c -> shouldBiasFoodFamilyPlaceableToFood(c.modFamily, c.facets, c.path, c.attributes),
+                    c -> assignment("food", classifyFoodFamilySubcategory(c.path, c.facets), c.attributes)),
             rule("magic facets",
                     c -> hasAny(c.facets, ItemFacet.POTION, ItemFacet.ENCHANTED_BOOK, ItemFacet.MAGIC_ARTIFACT, ItemFacet.MAGIC_REAGENT),
                     c -> assignment("magic", classifyMagicSubcategory(c.facets), c.attributes)),
@@ -350,7 +351,7 @@ public final class PrimaryCategoryResolver {
                     c -> assignment("tools", classifyWeaponSubcategory(c.facets), c.attributes)),
             rule("food before passive redstone",
                     c -> shouldResolveFoodLikeBeforePassiveRedstone(c.modFamily, c.facets, c.path),
-                    c -> assignment("nature", classifyFoodFamilyPreparedSubcategory(c.path, c.facets), c.attributes)),
+                    c -> assignment("food", classifyFoodSubcategory(c.path, c.facets), c.attributes)),
             rule("decoration before passive redstone",
                     c -> shouldResolveDecorLikeBeforePassiveRedstone(c.modFamily, c.facets, c.attributes),
                     c -> assignment("decoration", classifyDecorationSubcategory(c.facets), c.attributes)),
@@ -380,8 +381,11 @@ public final class PrimaryCategoryResolver {
                             ItemFacet.RAW_MATERIAL,
                             ItemFacet.DUST),
                     c -> assignment("tech", classifyTechSubcategory(c.path, c.facets), c.attributes)),
+            rule("food facets",
+                    c -> hasAny(c.facets, ItemFacet.EDIBLE, ItemFacet.PLACEABLE_FOOD, ItemFacet.FOOD_MEAL, ItemFacet.FOOD_DRINK, ItemFacet.FOOD_PROTEIN),
+                    c -> assignment("food", classifyFoodSubcategory(c.path, c.facets), c.attributes)),
             rule("nature facets",
-                    c -> hasAny(c.facets, ItemFacet.EDIBLE, ItemFacet.PLACEABLE_FOOD, ItemFacet.FOOD_MEAL, ItemFacet.FOOD_DRINK, ItemFacet.FOOD_PROTEIN, ItemFacet.COMPOSTABLE, ItemFacet.SEED, ItemFacet.CROP, ItemFacet.NATURE_MISC, ItemFacet.FUNGI, ItemFacet.LOG, ItemFacet.LEAVES, ItemFacet.FLOWER),
+                    c -> hasAny(c.facets, ItemFacet.COMPOSTABLE, ItemFacet.SEED, ItemFacet.CROP, ItemFacet.NATURE_MISC, ItemFacet.FUNGI, ItemFacet.LOG, ItemFacet.LEAVES, ItemFacet.FLOWER),
                     c -> assignment("nature", classifyNatureSubcategory(c.path, c.facets), c.attributes)),
             rule("ingredient facets",
                     c -> hasAny(c.facets, ItemFacet.INGREDIENT_ORGANIC, ItemFacet.INGREDIENT_MINERAL, ItemFacet.INGREDIENT_DYE),
@@ -418,7 +422,7 @@ public final class PrimaryCategoryResolver {
                     c -> assignment("ingredients", classifyFoodFamilyIngredientSubcategory(c.path, c.facets), c.attributes)),
             rule("food family prepared food",
                     c -> shouldBiasFoodFamilyToPreparedFood(c.modFamily, c.facets, c.path),
-                    c -> assignment("nature", classifyFoodFamilyPreparedSubcategory(c.path, c.facets), c.attributes)),
+                    c -> assignment("food", classifyFoodFamilySubcategory(c.path, c.facets), c.attributes)),
             rule("decor family decoration",
                     c -> shouldBiasDecorFamilyToDecoration(c.modFamily, c.facets, c.path, c.attributes),
                     c -> assignment("decoration", classifyDecorationSubcategory(c.facets), c.attributes)),
@@ -440,7 +444,7 @@ public final class PrimaryCategoryResolver {
             rule("create family tech",
                     c -> shouldBiasCreateFamilyToTech(c.modFamily, c.facets, c.path, c.attributes),
                     c -> assignment("tech", classifyCreateFamilyTechSubcategory(c.modId, c.path, c.facets), c.attributes)),
-            rule("food family nature",
+            rule("food family organics",
                     c -> shouldBiasFoodFamilyToNature(c.modFamily, c.facets, c.path, c.attributes),
                     c -> assignment("nature", classifyFoodFamilyNatureSubcategory(c.path, c.facets), c.attributes)),
             rule("organic surface blocks",
@@ -627,6 +631,12 @@ public final class PrimaryCategoryResolver {
         if (SemanticVerbCodec.has(context.attributes, SemanticVerb.SLEEP_REST)) {
             return Optional.of(new CategoryAssignment("decoration", "furniture", context.attributes));
         }
+        if (SemanticVerbCodec.has(context.attributes, SemanticVerb.CLIMB_ACCESS)) {
+            return Optional.of(new CategoryAssignment("decoration", "access", context.attributes));
+        }
+        if (SemanticVerbCodec.has(context.attributes, SemanticVerb.BARRIER_GRATE)) {
+            return Optional.of(new CategoryAssignment("decoration", "barriers", context.attributes));
+        }
         return Optional.empty();
     }
 
@@ -678,6 +688,97 @@ public final class PrimaryCategoryResolver {
         Optional<CategoryAssignment> vanilla = resolveVanillaIdentity(context);
         if (vanilla.isPresent()) {
             return vanilla;
+        }
+
+        if (isDecalMarkerBlock(context.attributes)) {
+            return Optional.of(identityAssignment(
+                    "decoration",
+                    "signage",
+                    context.attributes,
+                    "identity.decorative_marker",
+                    "decal block tag/class"
+            ));
+        }
+        if (isTextileDisplayBlock(context.attributes)) {
+            return Optional.of(identityAssignment(
+                    "decoration",
+                    "textiles",
+                    context.attributes,
+                    "identity.decorative_textile_block",
+                    "textile block tag/class"
+            ));
+        }
+        if (isDisplayBoardBlock(context.attributes)) {
+            return Optional.of(identityAssignment(
+                    "decoration",
+                    "signage",
+                    context.attributes,
+                    "identity.display_board_block",
+                    "display board tag/class"
+            ));
+        }
+        if (isStructuralDecorBlock(context.attributes)) {
+            return Optional.of(identityAssignment(
+                    "masonry",
+                    "decorative",
+                    context.attributes,
+                    "identity.structural_decor_block",
+                    "support or catwalk tag/class"
+            ));
+        }
+        if (isTextileIdentityBlock(context.attributes)) {
+            return Optional.of(identityAssignment(
+                    "decoration",
+                    "textiles",
+                    context.attributes,
+                    "identity.textile_block",
+                    "ribbon or tent block class"
+            ));
+        }
+        if (isSparklerLightingBlock(context.attributes)) {
+            return Optional.of(identityAssignment(
+                    "decoration",
+                    "lighting",
+                    context.attributes,
+                    "identity.sparkler_block",
+                    "sparkler tag/class"
+            ));
+        }
+        if (isSporeBlossomNatureBlock(context.attributes)) {
+            return Optional.of(identityAssignment(
+                    "nature",
+                    "flora",
+                    context.attributes,
+                    "identity.spore_blossom_block",
+                    "spore blossom tag/class"
+            ));
+        }
+        if (isAnimalEggBlock(context.attributes)) {
+            return Optional.of(identityAssignment(
+                    "bestiary",
+                    "passive",
+                    context.attributes,
+                    "identity.animal_egg_block",
+                    "animal egg tag/class"
+            ));
+        }
+        if (isDecorativeFurnitureClassBlock(context.attributes)) {
+            return Optional.of(identityAssignment(
+                    "decoration",
+                    "furniture",
+                    context.attributes,
+                    "identity.decorative_furniture_block",
+                    "furniture-class decorative block"
+            ));
+        }
+        if (isStructuralTrimBlock(context.attributes)) {
+            return Optional.of(identityAssignment(
+                    "masonry",
+                    "decorative",
+                    context.attributes,
+                    "identity.structural_trim_block",
+                    "pillar or casing-style block class"
+            ));
         }
 
         if (hasAny(context.facets, ItemFacet.SPAWN_EGG, ItemFacet.MOB_BUCKET)) {
@@ -864,8 +965,8 @@ public final class PrimaryCategoryResolver {
 
         if (hasActualFoodIdentity(context.facets, context.attributes)) {
             return Optional.of(identityAssignment(
-                    "nature",
-                    classifyNatureSubcategory(context.path, context.facets),
+                    "food",
+                    classifyFoodSubcategory(context.path, context.facets),
                     context.attributes,
                     "identity.food",
                     "food data component or edible facet"
@@ -914,8 +1015,8 @@ public final class PrimaryCategoryResolver {
 
         if (isCropLikePlaceable(context.path, context.facets, context.attributes)) {
             return Optional.of(identityAssignment(
-                    "nature",
-                    "crops",
+                    classifyCropLikePlaceableCategory(context.path, context.facets, context.attributes),
+                    classifyCropLikePlaceableSubcategory(context.path, context.facets, context.attributes),
                     context.attributes,
                     "identity.crop",
                     "crop block identity"
@@ -1974,8 +2075,8 @@ public final class PrimaryCategoryResolver {
                 subcategory = "organic";
             }
             case "protein_foods" -> {
-                category = "nature";
-                subcategory = "proteins";
+                category = "food";
+                subcategory = classifyFoodSubcategory(context.path, context.facets);
             }
             case "navigation_tools" -> {
                 category = "utility";
@@ -2040,12 +2141,12 @@ public final class PrimaryCategoryResolver {
                 subcategory = "reagents";
             }
             case "protein_foods" -> {
-                category = "nature";
-                subcategory = "proteins";
+                category = "food";
+                subcategory = classifyFoodSubcategory(context.path, context.facets);
             }
             case "snacks" -> {
-                category = "nature";
-                subcategory = "snacks";
+                category = "food";
+                subcategory = "prepared";
             }
             case "organic_drops", "ingredients" -> {
                 category = "ingredients";
@@ -2354,20 +2455,30 @@ public final class PrimaryCategoryResolver {
     }
 
     private static String classifyNatureSubcategory(String path, Set<ItemFacet> facets) {
-        if (hasPreparedMealPath(path)) return "meals";
-        if (facets.contains(ItemFacet.FOOD_MEAL)) return "meals";
-        if (facets.contains(ItemFacet.FOOD_DRINK)) return "drinks";
-        if (facets.contains(ItemFacet.FOOD_PROTEIN)) return "proteins";
-        if (facets.contains(ItemFacet.PLACEABLE_FOOD)) return "meals";
         if (facets.contains(ItemFacet.SEED)) return "seeds";
-        if (facets.contains(ItemFacet.CROP)) return "crops";
-        if (facets.contains(ItemFacet.EDIBLE)) return "snacks";
-        if (facets.contains(ItemFacet.NATURE_MISC)) return "flora";
         if (facets.contains(ItemFacet.FUNGI)) return "fungi";
+        if (facets.contains(ItemFacet.CROP)) return "flora";
+        if (facets.contains(ItemFacet.NATURE_MISC)) return "flora";
         if (facets.contains(ItemFacet.FLOWER)) return "flora";
         if (facets.contains(ItemFacet.LOG)) return "wood";
         if (facets.contains(ItemFacet.LEAVES)) return "flora";
         return "flora";
+    }
+
+    private static String classifyFoodSubcategory(String path, Set<ItemFacet> facets) {
+        if (facets.contains(ItemFacet.PLACEABLE_FOOD)
+                || facets.contains(ItemFacet.FOOD_MEAL)
+                || facets.contains(ItemFacet.FOOD_DRINK)
+                || hasPreparedFoodPath(path)) {
+            return "prepared";
+        }
+        if (facets.contains(ItemFacet.FOOD_PROTEIN)) {
+            return "ingredients";
+        }
+        if (facets.contains(ItemFacet.EDIBLE)) {
+            return "prepared";
+        }
+        return "ingredients";
     }
 
     private static boolean isSapling(String path, Map<String, String> attributes) {
@@ -2460,6 +2571,20 @@ public final class PrimaryCategoryResolver {
                 || PathTokens.of(path).containsAny("crop", "bush")
                 || blockClass.contains("crop")
                 || blockClass.contains("bush");
+    }
+
+    private static String classifyCropLikePlaceableCategory(String path, Set<ItemFacet> facets, Map<String, String> attributes) {
+        if (hasFoodUseSemantics(path, facets, attributes)) {
+            return "food";
+        }
+        return "nature";
+    }
+
+    private static String classifyCropLikePlaceableSubcategory(String path, Set<ItemFacet> facets, Map<String, String> attributes) {
+        if (hasFoodUseSemantics(path, facets, attributes)) {
+            return classifyFoodSubcategory(path, facets);
+        }
+        return classifyNatureSubcategory(path, facets);
     }
 
     private static String classifyIngredientSubcategory(Set<ItemFacet> facets) {
@@ -2784,7 +2909,7 @@ public final class PrimaryCategoryResolver {
                 && !shouldBiasUncraftableFullBlockToTerrain(facets, attributes);
     }
 
-    private static boolean shouldBiasFoodFamilyPlaceableToNature(PrimaryCategoryModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
+    private static boolean shouldBiasFoodFamilyPlaceableToFood(PrimaryCategoryModFamily modFamily, Set<ItemFacet> facets, String path, Map<String, String> attributes) {
         return modFamily == PrimaryCategoryModFamily.FOOD
                 && facets.contains(ItemFacet.PLACEABLE)
                 && !hasAny(facets,
@@ -2816,8 +2941,13 @@ public final class PrimaryCategoryResolver {
     }
 
     private static String classifyFoodFamilyNatureSubcategory(String path, Set<ItemFacet> facets) {
-        if (isFoodStorageBlockPath(path)) return "crops";
+        if (isFoodStorageBlockPath(path)) return "flora";
         return classifyNatureSubcategory(path, facets);
+    }
+
+    private static String classifyFoodFamilySubcategory(String path, Set<ItemFacet> facets) {
+        if (isFoodStorageBlockPath(path)) return "ingredients";
+        return classifyFoodSubcategory(path, facets);
     }
 
     private static boolean shouldBiasFoodFamilyToIngredients(PrimaryCategoryModFamily modFamily, Set<ItemFacet> facets, String path) {
@@ -2851,6 +2981,22 @@ public final class PrimaryCategoryResolver {
                         || facets.contains(ItemFacet.EDIBLE)
                         || hasPreparedFoodPath(path)
         );
+    }
+
+    private static boolean hasFoodUseSemantics(String path, Set<ItemFacet> facets, Map<String, String> attributes) {
+        if (hasAny(facets,
+                ItemFacet.EDIBLE,
+                ItemFacet.PLACEABLE_FOOD,
+                ItemFacet.FOOD_MEAL,
+                ItemFacet.FOOD_DRINK,
+                ItemFacet.FOOD_PROTEIN)) {
+            return true;
+        }
+        if (isFoodStorageBlockPath(path) || hasPreparedFoodPath(path)) {
+            return true;
+        }
+        String modId = attributes.getOrDefault(SearchNodeKeys.MOD_ID, "");
+        return !modId.isBlank() && PrimaryCategoryModFamilies.classify(modId) == PrimaryCategoryModFamily.FOOD;
     }
 
     private static boolean shouldResolveFoodLikeBeforePassiveRedstone(PrimaryCategoryModFamily modFamily, Set<ItemFacet> facets, String path) {
@@ -3091,7 +3237,8 @@ public final class PrimaryCategoryResolver {
         return PathTokens.of(path).containsAny(
                 "plate", "plated", "bowl", "pie", "tart", "pudding", "calzone", "sandwich",
                 "parmesan", "sausage", "burger", "pasta", "dessert", "patty", "pizza",
-                "noodle", "rice", "kebab", "canned", "mre", "macandcheese", "on_a_stick", "soup", "stew");
+                "noodle", "rice", "kebab", "canned", "mre", "macandcheese", "on_a_stick", "soup", "stew",
+                "cooked", "grilled", "fried", "roasted", "smoked", "baked");
     }
 
     private static boolean isFoodStorageBlockPath(String path) {
@@ -3369,6 +3516,90 @@ public final class PrimaryCategoryResolver {
     private static boolean isNaturalCableFalsePositivePath(String path) {
         PathTokens tokens = PathTokens.of(path);
         return tokens.containsAny("coral", "cobweb", "dead_bush", "frogspawn", "sculk");
+    }
+
+    private static boolean isDecalMarkerBlock(Map<String, String> attributes) {
+        return PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "createdeco:decals")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "createdeco:weightless")
+                || attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "").toLowerCase(Locale.ROOT).contains("decalblock");
+    }
+
+    private static boolean isTextileDisplayBlock(Map<String, String> attributes) {
+        if (PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.TAGS, "supplementaries:flags")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "supplementaries:flags")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.TAGS, "supplementaries:awnings")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "supplementaries:awnings")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.TAGS, "supplementaries:buntings")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "supplementaries:buntings")) {
+            return true;
+        }
+        String blockClass = attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "").toLowerCase(Locale.ROOT);
+        return blockClass.contains("flagblock")
+                || blockClass.contains("awningblock")
+                || blockClass.contains("buntingceilingblock");
+    }
+
+    private static boolean isDisplayBoardBlock(Map<String, String> attributes) {
+        return PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.TAGS, "c:create/display_boards")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.TAGS, "c:create/dyed_display_boards")
+                || attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "").toLowerCase(Locale.ROOT).contains("flapdisplaytypeblock");
+    }
+
+    private static boolean isStructuralDecorBlock(Map<String, String> attributes) {
+        if (PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "createdeco:supports")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "createdeco:catwalks")) {
+            return true;
+        }
+        String blockClass = attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "").toLowerCase(Locale.ROOT);
+        return blockClass.contains("supportblock")
+                || blockClass.contains("catwalkblock");
+    }
+
+    private static boolean isTextileIdentityBlock(Map<String, String> attributes) {
+        String blockClass = attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "").toLowerCase(Locale.ROOT);
+        return blockClass.contains("ribbonblock")
+                || blockClass.contains("tentmainblock");
+    }
+
+    private static boolean isSparklerLightingBlock(Map<String, String> attributes) {
+        return PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.TAGS, "caverns_and_chasms:sparklers")
+                || PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "caverns_and_chasms:sparklers")
+                || attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "").toLowerCase(Locale.ROOT).contains("sparklerblock");
+    }
+
+    private static boolean isSporeBlossomNatureBlock(Map<String, String> attributes) {
+        return PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "pastel:colored_spore_blossoms")
+                || attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "").toLowerCase(Locale.ROOT).contains("sporeblossomblock");
+    }
+
+    private static boolean isAnimalEggBlock(Map<String, String> attributes) {
+        String blockClass = attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "").toLowerCase(Locale.ROOT);
+        if (blockClass.contains("dragoneggblock")) {
+            return false;
+        }
+        if (PrimaryCategoryTextMatchers.hasMetadataToken(attributes, SearchNodeKeys.BLOCK_TAGS, "primal:animal_egg")) {
+            return blockClass.contains("turtleeggblock")
+                    || blockClass.contains("sniffereggblock")
+                    || blockClass.contains("blockreptileegg");
+        }
+        return blockClass.contains("turtleeggblock")
+                || blockClass.contains("sniffereggblock")
+                || blockClass.contains("blockreptileegg");
+    }
+
+    private static boolean isDecorativeFurnitureClassBlock(Map<String, String> attributes) {
+        String blockClass = attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "").toLowerCase(Locale.ROOT);
+        return blockClass.contains("pouffeblock")
+                || blockClass.contains("mirrorblock")
+                || blockClass.contains("wheelbarrowblock")
+                || blockClass.contains("separatorblock")
+                || blockClass.contains("freespinblock");
+    }
+
+    private static boolean isStructuralTrimBlock(Map<String, String> attributes) {
+        String blockClass = attributes.getOrDefault(SearchNodeKeys.BLOCK_CLASS, "").toLowerCase(Locale.ROOT);
+        return blockClass.contains("pillarblock")
+                || blockClass.contains("windowcasingblock");
     }
 
     private static boolean isTemplatePath(String path) {

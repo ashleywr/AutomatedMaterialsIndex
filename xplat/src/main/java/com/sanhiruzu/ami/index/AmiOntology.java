@@ -42,6 +42,7 @@ public final class AmiOntology {
     public static final Category ARMOR;
     public static final Category TOOLS;
     public static final Category TECH;
+    public static final Category FOOD;
     public static final Category NATURE;
     public static final Category INGREDIENTS;
     public static final Category DECORATION;
@@ -474,16 +475,27 @@ public final class AmiOntology {
                         "daylight_detector", "note_block", "lightning_rod", "jigsaw", "structure_block")
         );
 
+        FOOD = new Category(
+                "food", "ami.category.food", "Food",
+                "minecraft:cake", 0xFFD68C52,
+                List.of(
+                        new SubCategory("prepared", "ami.subcategory.food.prepared"),
+                        new SubCategory("ingredients", "ami.subcategory.food.ingredients")
+                ),
+                List.of(":foods", ":food", "cooked_", "stew", "soup", "apple",
+                        "sweet_berries", "glow_berries", "cake", "cookie", "bread",
+                        "honey_bottle", "dried_kelp", "chorus_fruit",
+                        "raw_beef", "raw_chicken", "raw_porkchop", "raw_cod",
+                        "raw_salmon", "raw_rabbit", "raw_mutton", "milk", "juice",
+                        "tea", "coffee", "wine", "beer", "cider", "dough", "flour",
+                        "cheese", "butter", "rice", "tomato", "cabbage", "onion")
+        );
+
         NATURE = new Category(
                 "nature", "ami.category.nature", "Nature",
-                "minecraft:apple", 0xFF66CC44,
+                "minecraft:oak_sapling", 0xFF66CC44,
                 List.of(
-                        new SubCategory("meals", "ami.subcategory.food.meals"),
-                        new SubCategory("snacks", "ami.subcategory.food.snacks"),
-                        new SubCategory("drinks", "ami.subcategory.food.drinks"),
-                        new SubCategory("proteins", "ami.subcategory.food.proteins"),
                         new SubCategory("seeds", "ami.subcategory.nature.seeds"),
-                        new SubCategory("crops", "ami.subcategory.nature.crops"),
                         new SubCategory("flora", "ami.subcategory.nature.flora"),
                         new SubCategory("fungi", "ami.subcategory.nature.fungi"),
                         new SubCategory("wood", "ami.subcategory.nature.wood")
@@ -491,13 +503,7 @@ public final class AmiOntology {
                 List.of("saplings", "sapling", "seeds", ":seed",
                         "flowers", ":flower", "mushroom", "leaves", ":log", "logs",
                         "kelp", "seagrass", "bamboo", "vine",
-                        "wheat", "carrot", "potato", "beetroot",
-                        "pumpkin", "melon", "cocoa", "cactus", "sugar_cane",
-                        ":foods", ":food", "cooked_", "stew", "soup", "apple",
-                        "sweet_berries", "glow_berries", "cake", "cookie", "bread",
-                        "honey_bottle", "dried_kelp", "chorus_fruit",
-                        "raw_beef", "raw_chicken", "raw_porkchop", "raw_cod",
-                        "raw_salmon", "raw_rabbit", "raw_mutton",
+                        "cactus", "sugar_cane",
                         "coral", "fungus", "fern", "dead_bush", "moss", "honey", "slime",
                         "short_grass", "tall_grass", "dripleaf", "lily_pad", "chorus_plant", "mycelium", "roots", "stem")
         );
@@ -521,7 +527,10 @@ public final class AmiOntology {
                 List.of(
                         new SubCategory("furniture", "ami.subcategory.decoration.furniture"),
                         new SubCategory("lighting", "ami.subcategory.decoration.lighting"),
-                        new SubCategory("textiles", "ami.subcategory.decoration.textiles")
+                        new SubCategory("textiles", "ami.subcategory.decoration.textiles"),
+                        new SubCategory("access", "ami.subcategory.decoration.access"),
+                        new SubCategory("barriers", "ami.subcategory.decoration.barriers"),
+                        new SubCategory("signage", "ami.subcategory.decoration.signage")
                 ),
                 List.of("carpet", "bed", "torch", "lantern", "candle", "froglight", "banner", "item_frame",
                         "painting", "head", "skull", "glass_pane", "iron_bars", "chain", "flower_pot",
@@ -587,7 +596,7 @@ public final class AmiOntology {
         CATEGORIES = List.of(
                 COBBLEMON, CREATE, AE2, MEKANISM, GREGTECH, MINECOLONIES, APOTHEOSIS, BOTANIA, ARS_NOUVEAU,
                 PASTEL, MALUM, SWEM, CATACLYSM, SOPHISTICATED, MAPPING,
-                MODULAR_GEAR, SOCIETY, TACZ, UTILITY, BESTIARY, MAGIC, ARMOR, TOOLS, TECH, LOOKUP_HISTORY, NATURE, INGREDIENTS, DECORATION, ENVIRONMENT, SOCIAL,
+                MODULAR_GEAR, SOCIETY, TACZ, UTILITY, BESTIARY, MAGIC, ARMOR, TOOLS, TECH, FOOD, LOOKUP_HISTORY, NATURE, INGREDIENTS, DECORATION, ENVIRONMENT, SOCIAL,
                 GEOLOGY, MASONRY, MISC
         );
     }

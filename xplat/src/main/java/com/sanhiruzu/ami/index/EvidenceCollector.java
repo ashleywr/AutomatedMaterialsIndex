@@ -76,7 +76,7 @@ final class EvidenceCollector {
             evidence.add(e("facet.seed", "facet", "nature", "seeds", 80, "seed facet"));
         }
         if (facets.contains(ItemFacet.CROP)) {
-            evidence.add(e("facet.crop", "facet", "nature", "crops", 80, "crop facet"));
+            evidence.add(e("facet.crop", "facet", "food", "ingredients", 70, "crop facet"));
         }
         if (facets.contains(ItemFacet.LEAVES)) {
             evidence.add(e("facet.leaves", "facet", "nature", "flora", 85, "leaves facet"));
@@ -92,7 +92,7 @@ final class EvidenceCollector {
             evidence.add(e("facet.fungi", "facet", "nature", "fungi", 80, "fungi facet"));
         }
         if (hasAny(facets, ItemFacet.EDIBLE, ItemFacet.PLACEABLE_FOOD, ItemFacet.FOOD_MEAL, ItemFacet.FOOD_DRINK, ItemFacet.FOOD_PROTEIN)) {
-            evidence.add(e("facet.food", "facet", "nature", foodSubcategory(path, facets), 80, "food facet"));
+            evidence.add(e("facet.food", "facet", "food", foodSubcategory(path, facets), 80, "food facet"));
         }
         if (facets.contains(ItemFacet.NATURE_MISC) || facets.contains(ItemFacet.COMPOSTABLE)) {
             evidence.add(e("facet.nature_misc", "facet", "nature", "flora", 45, "nature misc/compostable facet"));
@@ -164,7 +164,7 @@ final class EvidenceCollector {
     private static void addComponentEvidence(Map<String, String> attributes, List<ClassificationEvidence> evidence) {
         String componentFacts = attributes.getOrDefault(SearchNodeKeys.COMPONENT_FACTS, "");
         if (hasCsvToken(componentFacts, "food")) {
-            evidence.add(e("component.food", "component", "nature", "snacks", 95, "FOOD data component"));
+            evidence.add(e("component.food", "component", "food", "prepared", 95, "FOOD data component"));
         }
         if (hasCsvToken(componentFacts, "potion_contents")) {
             evidence.add(e("component.potion_contents", "component", "magic", "potions", 100, "POTION_CONTENTS data component"));
@@ -196,10 +196,10 @@ final class EvidenceCollector {
         if (combined.contains("foodblock") || combined.contains("platefood")
                 || combined.contains("bowlfood") || combined.contains("bottlefood")
                 || combined.contains("simpleplatedfood") || combined.contains("smallplatedfood")) {
-            evidence.add(e("class.food_block", "class", "nature", "meals", 110, "food block class"));
+            evidence.add(e("class.food_block", "class", "food", "prepared", 110, "food block class"));
         } else if (combined.contains("plateblock")
                 && containsAny(creativeContext, "food", "delight", "cuisine", "farm", "crop")) {
-            evidence.add(e("class.food_plate", "class", "nature", "meals", 95, "food display plate class"));
+            evidence.add(e("class.food_plate", "class", "food", "prepared", 95, "food display plate class"));
         }
         if (combined.contains("trellis")) {
             evidence.add(e("class.trellis", "class", "nature", "flora", 80, "trellis class"));
@@ -263,7 +263,7 @@ final class EvidenceCollector {
             evidence.add(e("creative_tab.building", "creative_tab", "masonry", "full_block", 35, "creative tab=" + tabLabel));
         }
         if (containsAny(combined, "food", "delight", "cuisine", "farm", "crop")) {
-            evidence.add(e("creative_tab.food", "creative_tab", "nature", "snacks", 45, "creative tab=" + tabLabel));
+            evidence.add(e("creative_tab.food", "creative_tab", "food", "prepared", 45, "creative tab=" + tabLabel));
         }
         if (containsAny(combined, "track", "tracks", "rail", "rails", "train")) {
             evidence.add(e("creative_tab.rail", "creative_tab", "tech", "transport", 55, "creative tab=" + tabLabel));
@@ -301,13 +301,13 @@ final class EvidenceCollector {
         String tags = attributes.getOrDefault(SearchNodeKeys.TAGS, "");
         String blockTags = attributes.getOrDefault(SearchNodeKeys.BLOCK_TAGS, "");
         if (hasTrustedTag(tags, "c:foods") || hasTrustedTag(tags, "forge:foods")) {
-            evidence.add(e("tag.foods", "trusted_tag", "nature", "snacks", 70, "c/forge foods tag"));
+            evidence.add(e("tag.foods", "trusted_tag", "food", "prepared", 70, "c/forge foods tag"));
         }
         if (hasTrustedTag(tags, "c:seeds") || hasTrustedTag(tags, "forge:seeds")) {
             evidence.add(e("tag.seeds", "trusted_tag", "nature", "seeds", 80, "c/forge seeds tag"));
         }
         if (hasTrustedTag(tags, "c:crops") || hasTrustedTag(tags, "forge:crops")) {
-            evidence.add(e("tag.crops", "trusted_tag", "nature", "crops", 80, "c/forge crops tag"));
+            evidence.add(e("tag.crops", "trusted_tag", "food", "ingredients", 80, "c/forge crops tag"));
         }
         if (hasTrustedTag(tags, "c:ingots") || hasTrustedTag(tags, "forge:ingots")
                 || hasTrustedTag(tags, "c:gems") || hasTrustedTag(tags, "forge:gems")
@@ -523,13 +523,14 @@ final class EvidenceCollector {
                 || path.contains("sandwich")
                 || path.contains("meatball")
                 || path.contains("soup")
-                || path.contains("stew")) {
-            return "meals";
+                || path.contains("stew")
+                || facets.contains(ItemFacet.PLACEABLE_FOOD)
+                || facets.contains(ItemFacet.FOOD_MEAL)
+                || facets.contains(ItemFacet.FOOD_DRINK)) {
+            return "prepared";
         }
-        if (facets.contains(ItemFacet.FOOD_MEAL)) return "meals";
-        if (facets.contains(ItemFacet.FOOD_DRINK)) return "drinks";
-        if (facets.contains(ItemFacet.FOOD_PROTEIN)) return "proteins";
-        return "snacks";
+        if (facets.contains(ItemFacet.FOOD_PROTEIN)) return "ingredients";
+        return facets.contains(ItemFacet.EDIBLE) ? "prepared" : "ingredients";
     }
 
     private static String toolSubcategory(EnumSet<ItemFacet> facets) {

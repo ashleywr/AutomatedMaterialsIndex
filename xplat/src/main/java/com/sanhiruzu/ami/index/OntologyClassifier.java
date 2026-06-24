@@ -90,9 +90,9 @@ public final class OntologyClassifier {
         if (is(item, TAG_DRINKS_MAGIC)) return magic("potions");
         // Catches food blocks (e.g. cake, modded block foods) before the BlockItem gate.
         if (Services.PLATFORM.hasFood(new ItemStack(item))) return classifyFood(item);
-        if (is(item, TAG_FOODS_PLACED)) return nature("snacks");  // placed/block foods (cake, etc.)
+        if (is(item, TAG_FOODS_PLACED)) return food("prepared");  // placed/block foods (cake, etc.)
         if (is(item, TAG_SEEDS)) return nature("seeds");
-        if (is(item, TAG_CROPS)) return nature("crops");
+        if (is(item, TAG_CROPS)) return food("ingredients");
         if (isCompostable(item)) return nature("flora");
 
         // ── Pass 2: Non-block items by Java type and tags ─────────────────────
@@ -232,7 +232,7 @@ public final class OntologyClassifier {
         }
         // Consumable fluids (have FOOD component like honey) → Nature
         if (item instanceof BucketItem && Services.PLATFORM.hasFood(new ItemStack(item))) {
-            return nature("drinks");
+            return food("prepared");
         }
         // Utility buckets (water, lava, powder snow, milk) → Utility
         if (item instanceof BucketItem) {
@@ -300,7 +300,7 @@ public final class OntologyClassifier {
 
         // ── Nature (non-block) ────────────────────────────────────────────────
         if (is(item, TAG_SEEDS)) return nature("seeds");
-        if (is(item, TAG_CROPS)) return nature("crops");
+        if (is(item, TAG_CROPS)) return food("ingredients");
         if (item == Items.BAMBOO || item == Items.STICK) return nature("wood");
         if (item == Items.BONE_MEAL) return nature("flora");
         if (item == Items.RED_MUSHROOM || item == Items.BROWN_MUSHROOM) return nature("fungi");
@@ -335,12 +335,12 @@ public final class OntologyClassifier {
         if (item == Items.MUSHROOM_STEW || item == Items.BEETROOT_SOUP
                 || item == Items.RABBIT_STEW || item == Items.SUSPICIOUS_STEW
                 || item == Items.HONEY_BOTTLE || is(item, TAG_FOODS_DRINK)) {
-            return nature("drinks");
+            return food("prepared");
         }
-        if (is(item, TAG_FOODS_COOKED_MEAT) || is(item, TAG_FOODS_COOKED_FISH)) return nature("meals");
-        if (is(item, TAG_FOODS_MEAT) || is(item, TAG_FOODS_FISH)) return nature("proteins");
-        if (is(item, TAG_FOODS_VEGETABLE) || is(item, TAG_FOODS_FRUIT)) return nature("crops");
-        return nature("snacks");
+        if (is(item, TAG_FOODS_COOKED_MEAT) || is(item, TAG_FOODS_COOKED_FISH)) return food("prepared");
+        if (is(item, TAG_FOODS_MEAT) || is(item, TAG_FOODS_FISH)) return food("ingredients");
+        if (is(item, TAG_FOODS_VEGETABLE) || is(item, TAG_FOODS_FRUIT)) return food("prepared");
+        return food("prepared");
     }
 
     private static boolean isMagicArtifact(Item item) {
@@ -411,6 +411,10 @@ public final class OntologyClassifier {
 
     private static String[] tech(String sub) {
         return new String[]{"tech", sub};
+    }
+
+    private static String[] food(String sub) {
+        return new String[]{"food", sub};
     }
 
     private static String[] nature(String sub) {
