@@ -169,11 +169,27 @@
     compact evidence strings.
   - Runtime facts, compat hooks, and bundled classification overrides may add or remove verbs.
   - Resolver order is hard identity first; semantic verbs route before generic placeable/scorer fallback.
-  - First verbs/routes are `stores_items` -> `storage/misc`, `settlement_worksite` -> `utility/workstations`, and
-    `sleep_rest` -> `decoration/furniture`.
+  - The primary ontology is use-first for food semantics: directly consumable or served food routes to `food/prepared`,
+    food-semantic non-served inputs route to `food/ingredients`, and `nature/*` is reserved for non-food world organics
+    such as seeds, flora, fungi, and wood.
+  - Current verbs/routes are `stores_items` -> `storage/misc`, `settlement_worksite` -> `utility/workstations`,
+    `sleep_rest` -> `decoration/furniture`, `climb_access` -> `decoration/access`, and
+    `barrier_grate` -> `decoration/barriers`.
+  - `createdeco:decals`-style runtime marker blocks route by hard identity metadata to `decoration/signage` instead of
+    falling into the generic partial-placeable bucket.
+  - `supplementaries:flags`, `supplementaries:awnings`, and `supplementaries:buntings` route by hard identity metadata
+    to `decoration/textiles` instead of falling into the generic partial-placeable bucket.
+  - `SupportBlock` / `CatwalkBlock` families with stable runtime tags/classes route by hard identity metadata to
+    `masonry/decorative`, and `c:create/display_boards` families route to `decoration/signage`.
+  - `RibbonBlock` and `TentMainBlock` families route by hard identity metadata to `decoration/textiles`,
+    `SparklerBlock` families route to `decoration/lighting`, colored spore blossom families route to `nature/flora`,
+    and explicit animal egg block families route to `bestiary/passive`.
+  - Repeated decorative-furniture class families such as `PouffeBlock`, `MirrorBlock`, `WheelBarrowBlock`,
+    `SeparatorBlock`, and `FreeSpinBlock` route to `decoration/furniture`, while structural trim classes such as
+    `PillarBlock` and `WindowCasingBlock` route to `masonry/decorative`.
   - Weak lexical or color evidence such as `light_gray` must not create semantic verb routes. Storage, worksite, and
-    sleep verbs require trusted evidence such as components, tags, classes, capabilities, recipes, compat, or
-    override evidence.
+    sleep/access/barrier verbs require trusted evidence such as components, tags, classes, capabilities, recipes,
+    compat, or override evidence.
   - Runtime dump replay/report tests are the maintenance path for checking broad movement from old dumps.
 
 ## Release Artifact Metadata
