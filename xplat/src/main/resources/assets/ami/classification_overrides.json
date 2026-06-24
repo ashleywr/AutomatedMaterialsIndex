@@ -135,7 +135,7 @@
       "addFacets": ["ingredient_mineral"],
       "category": "malum", "subcategory": "materials" },
 
-    { "mod": "mctradepost", "pathTokens": ["blockhut"], "classTokens": ["itemblockhut"], "addVerbs": ["settlement_worksite"] },
+    { "mod": "mctradepost", "match": "all", "pathTokens": ["blockhut"], "classTokens": ["itemblockhut"], "addVerbs": ["settlement_worksite"] },
     { "mod": "mctradepost", "classTokens": ["advancedclipboarditem", "currencyexchangeitem", "outpostclaimmarkeritem"], "addFacets": ["utility_tool"] },
     { "mod": "mctradepost", "classTokens": ["souveniritem"], "addFacets": ["utility_misc"] },
     { "mod": "mctradepost", "pathTokens": ["wish"], "addFacets": ["magic_artifact"] },
@@ -143,7 +143,7 @@
     { "mod": "mctradepost", "pathTokens": ["nugget"], "addFacets": ["utility_currency"] },
 
     { "mod": "minecolonies", "classTokens": ["supplychestdeployer", "supplycampdeployer"], "category": "minecolonies", "subcategory": "settlements" },
-    { "mod": "minecolonies", "pathTokens": ["blockhut"], "classTokens": ["itemblockhut"], "addVerbs": ["settlement_worksite"] },
+    { "mod": "minecolonies", "match": "all", "pathTokens": ["blockhut"], "classTokens": ["itemblockhut"], "addVerbs": ["settlement_worksite"] },
     { "mod": "minecolonies", "classTokens": ["itemscananalyzer", "itemscepterpermission", "itemscepterguard", "itemscepterlumberjack", "itemscepterbeekeeper", "itemassistanthammer"], "addFacets": ["utility_tool"] },
     { "mod": "minecolonies", "classTokens": ["itemfirearrow"], "addFacets": ["projectile"] },
     { "mod": "minecolonies", "classTokens": ["itemmagicpotion"], "addFacets": ["potion"] },
@@ -221,7 +221,7 @@
     { "mod": "witchery", "pathTokens": ["jar"], "addFacets": ["utility_misc"] },
 
     { "mod": "zen_colony", "pathTokens": ["pack"], "category": "minecolonies", "subcategory": "supply_packs", "addFacets": ["storage"] },
-    { "mod": "zen_colony", "pathTokens": ["blockhut"], "classTokens": ["itemblockhut"], "addVerbs": ["settlement_worksite"] },
+    { "mod": "zen_colony", "match": "all", "pathTokens": ["blockhut"], "classTokens": ["itemblockhut"], "addVerbs": ["settlement_worksite"] },
     { "mod": "zen_colony", "pathTokens": ["focus"], "addFacets": ["magic_artifact"] },
     { "mod": "zen_colony", "pathTokens": ["material"], "addFacets": ["ingredient_mineral"] }
   ]

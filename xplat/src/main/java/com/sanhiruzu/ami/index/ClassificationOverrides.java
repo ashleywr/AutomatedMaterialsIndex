@@ -70,14 +70,25 @@ public final class ClassificationOverrides {
         if (rule.pathTokens().isEmpty() && rule.classTokens().isEmpty()) {
             return false;
         }
-        if (!rule.pathTokens().isEmpty() && !matchesPathToken(rule, pathTokens)) {
+        if (rule.requiresAllCriteria()) {
+            return matchesAllCriteria(rule, pathTokens, lowerClass);
+        }
+        return matchesAnyCriteria(rule, pathTokens, lowerClass);
+    }
+
+    private static boolean matchesAllCriteria(ModPatternRule rule, String[] pathTokens, String lowerClass) {
+        if (!rule.pathTokens().isEmpty() && !matchesPathToken(rule, pathTokens, true)) {
             return false;
         }
         return rule.classTokens().isEmpty() || matchesClassToken(rule, lowerClass);
     }
 
-    private static boolean matchesPathToken(ModPatternRule rule, String[] pathTokens) {
-        boolean allowCompoundPathToken = !rule.classTokens().isEmpty();
+    private static boolean matchesAnyCriteria(ModPatternRule rule, String[] pathTokens, String lowerClass) {
+        return (!rule.pathTokens().isEmpty() && matchesPathToken(rule, pathTokens, false))
+                || (!rule.classTokens().isEmpty() && matchesClassToken(rule, lowerClass));
+    }
+
+    private static boolean matchesPathToken(ModPatternRule rule, String[] pathTokens, boolean allowCompoundPathToken) {
         for (String token : pathTokens) {
             for (String ruleToken : rule.pathTokens()) {
                 if (token.equals(ruleToken) || (allowCompoundPathToken && token.contains(ruleToken))) {
@@ -190,7 +201,7 @@ public final class ClassificationOverrides {
                             parseVerbs(entry, "addVerbs"), parseVerbs(entry, "removeVerbs"),
                             optString(entry, "category"), optString(entry, "subcategory"),
                             optString(entry, "collapseFamily"), optString(entry, "collapseLabel"),
-                            optString(entry, "collapseMode")));
+                            optString(entry, "collapseMode"), optString(entry, "match")));
         }
     }
 

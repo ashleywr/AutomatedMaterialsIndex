@@ -7,7 +7,19 @@ public record ModPatternRule(String modId, Set<String> pathTokens, Set<String> c
                              EnumSet<ItemFacet> addFacets, EnumSet<ItemFacet> removeFacets,
                              EnumSet<SemanticVerb> addVerbs, EnumSet<SemanticVerb> removeVerbs,
                              String category, String subcategory,
-                             String collapseFamily, String collapseLabel, String collapseMode) {
+                             String collapseFamily, String collapseLabel, String collapseMode,
+                             String match) {
+
+    public static final String MATCH_ALL = "all";
+
+    public ModPatternRule(String modId, Set<String> pathTokens, Set<String> classTokens,
+                          EnumSet<ItemFacet> addFacets, EnumSet<ItemFacet> removeFacets,
+                          EnumSet<SemanticVerb> addVerbs, EnumSet<SemanticVerb> removeVerbs,
+                          String category, String subcategory,
+                          String collapseFamily, String collapseLabel, String collapseMode) {
+        this(modId, pathTokens, classTokens, addFacets, removeFacets, addVerbs, removeVerbs,
+                category, subcategory, collapseFamily, collapseLabel, collapseMode, null);
+    }
 
     public ModPatternRule(String modId, Set<String> pathTokens, Set<String> classTokens,
                           EnumSet<ItemFacet> addFacets, EnumSet<ItemFacet> removeFacets,
@@ -15,7 +27,7 @@ public record ModPatternRule(String modId, Set<String> pathTokens, Set<String> c
                           String collapseFamily, String collapseLabel, String collapseMode) {
         this(modId, pathTokens, classTokens, addFacets, removeFacets,
                 EnumSet.noneOf(SemanticVerb.class), EnumSet.noneOf(SemanticVerb.class),
-                category, subcategory, collapseFamily, collapseLabel, collapseMode);
+                category, subcategory, collapseFamily, collapseLabel, collapseMode, null);
     }
 
     public ModPatternRule(String modId, Set<String> pathTokens, String category, String subcategory) {
@@ -29,5 +41,9 @@ public record ModPatternRule(String modId, Set<String> pathTokens, Set<String> c
 
     public boolean hasCollapse() {
         return collapseFamily != null && !collapseFamily.isBlank();
+    }
+
+    public boolean requiresAllCriteria() {
+        return MATCH_ALL.equalsIgnoreCase(match == null ? "" : match.trim());
     }
 }
