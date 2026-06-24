@@ -126,6 +126,8 @@ public final class ClassificationOverrides {
             out.put(id.toLowerCase(Locale.ROOT), new ClassificationOverride(
                     parseFacets(entry, "addFacets"),
                     parseFacets(entry, "removeFacets"),
+                    parseVerbs(entry, "addVerbs"),
+                    parseVerbs(entry, "removeVerbs"),
                     category,
                     subcategory));
         }
@@ -160,6 +162,7 @@ public final class ClassificationOverrides {
             out.computeIfAbsent(mod.toLowerCase(Locale.ROOT), ignored -> new ArrayList<>())
                     .add(new ModPatternRule(mod.toLowerCase(Locale.ROOT), tokens, classTokens,
                             parseFacets(entry, "addFacets"), parseFacets(entry, "removeFacets"),
+                            parseVerbs(entry, "addVerbs"), parseVerbs(entry, "removeVerbs"),
                             optString(entry, "category"), optString(entry, "subcategory"),
                             optString(entry, "collapseFamily"), optString(entry, "collapseLabel"),
                             optString(entry, "collapseMode")));
@@ -173,6 +176,19 @@ public final class ClassificationOverrides {
                 ItemFacet facet = ItemFacet.byId(element.getAsString().trim().toLowerCase(Locale.ROOT));
                 if (facet != null) {
                     result.add(facet);
+                }
+            }
+        }
+        return result;
+    }
+
+    private static EnumSet<SemanticVerb> parseVerbs(JsonObject entry, String key) {
+        EnumSet<SemanticVerb> result = EnumSet.noneOf(SemanticVerb.class);
+        if (entry.has(key) && entry.get(key).isJsonArray()) {
+            for (JsonElement element : entry.getAsJsonArray(key)) {
+                SemanticVerb verb = SemanticVerb.byId(element.getAsString());
+                if (verb != null) {
+                    result.add(verb);
                 }
             }
         }

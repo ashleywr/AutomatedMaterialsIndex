@@ -102,4 +102,43 @@ class ClassificationOverrideRoutingTest {
         assertEquals("furniture", a.subcategoryId());
         assertEquals("classification_override", a.attributes().get(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE));
     }
+
+    @Test
+    void perItemAddVerbChangesRouting() {
+        ClassificationOverrides.install(
+                Map.of("examplemod:pet_bed", new ClassificationOverride(
+                        EnumSet.noneOf(ItemFacet.class), EnumSet.noneOf(ItemFacet.class),
+                        EnumSet.of(SemanticVerb.SLEEP_REST), EnumSet.noneOf(SemanticVerb.class),
+                        null, null)),
+                Map.of());
+
+        CategoryAssignment a = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("examplemod:pet_bed"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE), Map.of()));
+
+        assertEquals("decoration", a.categoryId());
+        assertEquals("furniture", a.subcategoryId());
+        assertTrue(a.attributes().getOrDefault(SearchNodeKeys.SEMANTIC_VERBS, "").contains("sleep_rest"));
+        assertEquals("semantic_verb", a.attributes().get(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE));
+    }
+
+    @Test
+    void modPatternAddVerbChangesRoutingWithoutForceCategory() {
+        ClassificationOverrides.install(
+                Map.of(),
+                Map.of("minecolonies", List.of(new ModPatternRule(
+                        "minecolonies", Set.of("blockhut"), Set.of("itemblockhut"),
+                        EnumSet.noneOf(ItemFacet.class), EnumSet.noneOf(ItemFacet.class),
+                        EnumSet.of(SemanticVerb.SETTLEMENT_WORKSITE), EnumSet.noneOf(SemanticVerb.class),
+                        null, null, null, null, null))));
+
+        CategoryAssignment a = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecolonies:blockhutbuilder"),
+                new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY),
+                        Map.of(SearchNodeKeys.ITEM_CLASS, "com.minecolonies.core.items.ItemBlockHut")));
+
+        assertEquals("utility", a.categoryId());
+        assertEquals("workstations", a.subcategoryId());
+        assertTrue(a.attributes().getOrDefault(SearchNodeKeys.SEMANTIC_VERBS, "").contains("settlement_worksite"));
+    }
 }

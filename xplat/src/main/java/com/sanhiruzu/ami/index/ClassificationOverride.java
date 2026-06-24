@@ -8,8 +8,18 @@ import java.util.EnumSet;
  */
 public record ClassificationOverride(EnumSet<ItemFacet> addFacets,
                                      EnumSet<ItemFacet> removeFacets,
+                                     EnumSet<SemanticVerb> addVerbs,
+                                     EnumSet<SemanticVerb> removeVerbs,
                                      String forceCategory,
                                      String forceSubcategory) {
+    public ClassificationOverride(EnumSet<ItemFacet> addFacets,
+                                  EnumSet<ItemFacet> removeFacets,
+                                  String forceCategory,
+                                  String forceSubcategory) {
+        this(addFacets, removeFacets, EnumSet.noneOf(SemanticVerb.class), EnumSet.noneOf(SemanticVerb.class),
+                forceCategory, forceSubcategory);
+    }
+
     public boolean hasForcedCategory() {
         return forceCategory != null && !forceCategory.isBlank();
     }

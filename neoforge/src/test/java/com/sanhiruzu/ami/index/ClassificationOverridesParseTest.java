@@ -20,10 +20,12 @@ class ClassificationOverridesParseTest {
             {
               "items": {
                 "examplemod:widget": { "category": "magic", "subcategory": "reagents",
-                                       "addFacets": ["magic_reagent"], "removeFacets": ["decorative_block"] }
+                                       "addFacets": ["magic_reagent"], "removeFacets": ["decorative_block"],
+                                       "addVerbs": ["stores_items"], "removeVerbs": ["sleep_rest"] }
               },
               "modPatterns": [
-                { "mod": "botania", "pathTokens": ["mana", "spreader"], "category": "magic", "subcategory": "reagents" }
+                { "mod": "botania", "pathTokens": ["mana", "spreader"], "category": "magic", "subcategory": "reagents",
+                  "addVerbs": ["settlement_worksite"], "removeVerbs": ["stores_items"] }
               ]
             }
             """;
@@ -35,9 +37,13 @@ class ClassificationOverridesParseTest {
         assertEquals("reagents", item.forceSubcategory());
         assertTrue(item.addFacets().contains(ItemFacet.MAGIC_REAGENT));
         assertTrue(item.removeFacets().contains(ItemFacet.DECORATIVE_BLOCK));
+        assertTrue(item.addVerbs().contains(SemanticVerb.STORES_ITEMS));
+        assertTrue(item.removeVerbs().contains(SemanticVerb.SLEEP_REST));
 
         ModPatternRule rule = ClassificationOverrides.patternFor("botania", "mana_spreader").orElseThrow();
         assertEquals("magic", rule.category());
+        assertTrue(rule.addVerbs().contains(SemanticVerb.SETTLEMENT_WORKSITE));
+        assertTrue(rule.removeVerbs().contains(SemanticVerb.STORES_ITEMS));
     }
 
     @Test

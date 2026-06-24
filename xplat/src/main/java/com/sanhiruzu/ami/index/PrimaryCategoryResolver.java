@@ -515,11 +515,23 @@ public final class PrimaryCategoryResolver {
             ClassificationOverride o = itemOverride.get();
             facets.addAll(o.addFacets());
             facets.removeAll(o.removeFacets());
+            for (SemanticVerb verb : o.addVerbs()) {
+                SemanticVerbCodec.add(attributes, verb, "override:item");
+            }
+            for (SemanticVerb verb : o.removeVerbs()) {
+                SemanticVerbCodec.remove(attributes, verb);
+            }
         }
         if (patternRule.isPresent()) {
             ModPatternRule r = patternRule.get();
             facets.addAll(r.addFacets());
             facets.removeAll(r.removeFacets());
+            for (SemanticVerb verb : r.addVerbs()) {
+                SemanticVerbCodec.add(attributes, verb, "override:mod_pattern");
+            }
+            for (SemanticVerb verb : r.removeVerbs()) {
+                SemanticVerbCodec.remove(attributes, verb);
+            }
             if (r.hasCollapse()) {
                 attributes.putIfAbsent(SearchNodeKeys.COLLAPSE_FAMILY, r.collapseFamily());
                 attributes.putIfAbsent(SearchNodeKeys.COLLAPSE_LABEL,
@@ -574,6 +586,12 @@ public final class PrimaryCategoryResolver {
         }
         route.skipped("hard_identity", "no hard identity matched");
 
+        Optional<CategoryAssignment> semanticVerb = resolveSemanticVerb(context);
+        if (semanticVerb.isPresent()) {
+            return route.finish("semantic_verb", "semantic verb", semanticVerb.get());
+        }
+        route.skipped("semantic_verb", "no semantic verb matched");
+
         Optional<CategoryAssignment> scored = CategoryScorer.resolveStrong(id, routedProfile);
         if (scored.isPresent()) {
             return route.finish("evidence_strong", "category_scorer", scored.get());
@@ -597,6 +615,19 @@ public final class PrimaryCategoryResolver {
         }
         route.skipped("compat_fallback", "no recognized compat fallback");
         return route.finish("fallback", "unknown", new CategoryAssignment("misc", "unknown", attributes));
+    }
+
+    private static Optional<CategoryAssignment> resolveSemanticVerb(ResolveContext context) {
+        if (SemanticVerbCodec.has(context.attributes, SemanticVerb.STORES_ITEMS)) {
+            return Optional.of(new CategoryAssignment("storage", "misc", context.attributes));
+        }
+        if (SemanticVerbCodec.has(context.attributes, SemanticVerb.SETTLEMENT_WORKSITE)) {
+            return Optional.of(new CategoryAssignment("utility", "workstations", context.attributes));
+        }
+        if (SemanticVerbCodec.has(context.attributes, SemanticVerb.SLEEP_REST)) {
+            return Optional.of(new CategoryAssignment("decoration", "furniture", context.attributes));
+        }
+        return Optional.empty();
     }
 
     private static Optional<CategoryAssignment> resolveVanillaIdentity(ResolveContext context) {
