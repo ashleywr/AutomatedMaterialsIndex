@@ -2,6 +2,8 @@ package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.index.ItemFacet;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.index.SemanticVerb;
+import com.sanhiruzu.ami.index.SemanticVerbCodec;
 
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -25,6 +27,10 @@ final class CompatMetaUtil {
             }
         }
         meta.put(SearchNodeKeys.FACETS, encoded + "," + facet.id());
+    }
+
+    static void addVerb(Map<String, String> meta, SemanticVerb verb, String evidence) {
+        SemanticVerbCodec.add(meta, verb, evidence);
     }
 
     static void addSearchToken(Map<String, String> meta, String token) {

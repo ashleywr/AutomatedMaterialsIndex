@@ -53,6 +53,20 @@ class ZenColonyOverrideMigrationTest {
     }
 
     @Test
+    void hutBlocksExposeSettlementWorksiteVerb() {
+        Map<String, String> meta = meta("zen_colony", "com.minecolonies.core.items.ItemBlockHut");
+
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("zen_colony:blockhutminer"),
+                EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY),
+                meta);
+
+        assertTrue(SemanticVerbCodec.has(assignment.attributes(), SemanticVerb.SETTLEMENT_WORKSITE));
+        assertEquals("utility", assignment.categoryId());
+        assertEquals("workstations", assignment.subcategoryId());
+    }
+
+    @Test
     void unmatchedItemsGainNoFacet() {
         CategoryAssignment a = resolveBare("zen_colony:colony_key",
                 meta("zen_colony", "net.minecraft.world.item.Item"));

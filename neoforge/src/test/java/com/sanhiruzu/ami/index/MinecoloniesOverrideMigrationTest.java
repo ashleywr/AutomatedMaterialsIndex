@@ -73,6 +73,20 @@ class MinecoloniesOverrideMigrationTest {
     }
 
     @Test
+    void hutBlocksExposeSettlementWorksiteVerb() {
+        Map<String, String> meta = meta("minecolonies", "com.minecolonies.core.items.ItemBlockHut");
+
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecolonies:blockhutbuilder"),
+                EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY),
+                meta);
+
+        assertTrue(SemanticVerbCodec.has(assignment.attributes(), SemanticVerb.SETTLEMENT_WORKSITE));
+        assertEquals("utility", assignment.categoryId());
+        assertEquals("workstations", assignment.subcategoryId());
+    }
+
+    @Test
     void unmatchedMinecoloniesItemsGainNoOverrideFacets() {
         CategoryAssignment a = resolveBare("minecolonies:stone_sword",
                 meta("minecolonies", "net.minecraft.world.item.Item"));

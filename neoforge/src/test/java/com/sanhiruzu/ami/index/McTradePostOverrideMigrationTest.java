@@ -73,6 +73,20 @@ class McTradePostOverrideMigrationTest {
     }
 
     @Test
+    void hutBlocksExposeSettlementWorksiteVerb() {
+        Map<String, String> meta = meta("mctradepost", "com.minecolonies.core.items.ItemBlockHut");
+
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("mctradepost:blockhutwarehouse"),
+                EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY),
+                meta);
+
+        assertTrue(SemanticVerbCodec.has(assignment.attributes(), SemanticVerb.SETTLEMENT_WORKSITE));
+        assertEquals("utility", assignment.categoryId());
+        assertEquals("workstations", assignment.subcategoryId());
+    }
+
+    @Test
     void unmatchedItemsGainNoOverrideFacets() {
         CategoryAssignment a = resolveBare("mctradepost:table",
                 meta("mctradepost", "net.minecraft.world.item.Item"));
