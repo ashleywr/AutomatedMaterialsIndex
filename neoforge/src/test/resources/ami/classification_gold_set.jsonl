@@ -66,3 +66,6 @@
 {"id":"minecraft:netherite_scrap","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"path match now also sets INGREDIENT_MINERAL alongside RAW_MATERIAL"}
 {"id":"minecraft:gold_nugget","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"c:nuggets tag now also sets INGREDIENT_MINERAL"}
 {"id":"minecraft:iron_nugget","category":"ingredients","subcategory":"mineral","confidence":"certain","notes":"c:nuggets tag"}
+{"id":"toms_storage:storage_terminal","category":"storage","subcategory":"misc","confidence":"certain","notes":"Storage terminal runtime verb should beat partial-placeable decoration fallback."}
+{"id":"minecolonies:blockhutbuilder","category":"utility","subcategory":"workstations","confidence":"certain","notes":"Colony hut worksite verb should beat partial-placeable decoration fallback."}
+{"id":"doggytalents:dog_bed/variant/dog_bed_271e6c3a5908","category":"decoration","subcategory":"furniture","confidence":"certain","notes":"DogBedBlock sleep/rest verb should beat micro partial-placeable decoration/other_building."}

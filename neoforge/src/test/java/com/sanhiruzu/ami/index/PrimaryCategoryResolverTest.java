@@ -4,6 +4,7 @@ import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -202,6 +203,77 @@ class PrimaryCategoryResolverTest {
         assertEquals("misc", lightBlock.subcategoryId());
         assertEquals("geology", dirtLike.categoryId());
         assertEquals("terrain", dirtLike.subcategoryId());
+    }
+
+    @Test
+    void storageSemanticVerbRoutesBeforeGenericPlaceableFallback() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("toms_storage:storage_terminal"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY, ItemFacet.LIGHT_SOURCE),
+                        metadataWithVerb(SemanticVerb.STORES_ITEMS, Map.of(
+                                "blockShape", "partial",
+                                SearchNodeKeys.BLOCKS_MATERIAL, "other_building"
+                        ))
+                )
+        );
+
+        assertEquals("storage", assignment.categoryId());
+        assertEquals("misc", assignment.subcategoryId());
+        assertEquals("semantic_verb", assignment.attributes().get(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE));
+    }
+
+    @Test
+    void hardFoodIdentityBeatsSleepRestSemanticVerb() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("example:bedtime_cookie"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.EDIBLE),
+                        metadataWithVerb(SemanticVerb.SLEEP_REST, Map.of())
+                )
+        );
+
+        assertEquals("nature", assignment.categoryId());
+        assertEquals("snacks", assignment.subcategoryId());
+        assertEquals("hard_identity", assignment.attributes().get(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE));
+    }
+
+    @Test
+    void lightGrayTokenNoiseDoesNotCreateSemanticVerbRoute() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("example:light_gray_panel"),
+                new FacetProfile(
+                        EnumSet.noneOf(ItemFacet.class),
+                        Map.of(
+                                SearchNodeKeys.COLOR_BUCKET, "light_gray",
+                                SearchNodeKeys.SEARCH_TOKENS, "light gray panel"
+                        )
+                )
+        );
+
+        assertNotEquals("semantic_verb", assignment.attributes().get(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE));
+        assertNotBucket(assignment, "decoration", "furniture");
+        assertNotBucket(assignment, "storage", "misc");
+        assertNotBucket(assignment, "utility", "workstations");
+    }
+
+    @Test
+    void settlementWorksiteSemanticVerbRoutesToWorkstations() {
+        CategoryAssignment assignment = PrimaryCategoryResolver.resolve(
+                new ResourceLocation("minecolonies:blockhutbuilder"),
+                new FacetProfile(
+                        EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.HAS_BLOCK_ENTITY),
+                        metadataWithVerb(SemanticVerb.SETTLEMENT_WORKSITE, Map.of(
+                                SearchNodeKeys.ITEM_CLASS, "com.minecolonies.core.items.ItemBlockHut",
+                                SearchNodeKeys.BLOCK_CLASS, "com.minecolonies.core.blocks.huts.BlockHutBuilder",
+                                SearchNodeKeys.BLOCKS_MATERIAL, "other_building"
+                        ))
+                )
+        );
+
+        assertEquals("utility", assignment.categoryId());
+        assertEquals("workstations", assignment.subcategoryId());
+        assertEquals("semantic_verb", assignment.attributes().get(SearchNodeKeys.CLASSIFICATION_ROUTE_PHASE));
     }
 
     @Test
@@ -1666,5 +1738,15 @@ class PrimaryCategoryResolverTest {
 
         assertEquals("utility", assignment.categoryId());
         assertEquals("misc", assignment.subcategoryId());
+    }
+
+    private static Map<String, String> metadataWithVerb(SemanticVerb verb, Map<String, String> attributes) {
+        Map<String, String> metadata = new HashMap<>(attributes);
+        SemanticVerbCodec.add(metadata, verb, "test");
+        return metadata;
+    }
+
+    private static void assertNotBucket(CategoryAssignment assignment, String category, String subcategory) {
+        assertNotEquals(category + "/" + subcategory, assignment.categoryId() + "/" + assignment.subcategoryId());
     }
 }
