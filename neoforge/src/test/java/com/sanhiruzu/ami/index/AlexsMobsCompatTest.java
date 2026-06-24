@@ -38,7 +38,7 @@ class AlexsMobsCompatTest {
     }
 
     @Test
-    void alexsMobsFoodTagsRouteToProteins() {
+    void alexsMobsFoodTagsRouteToFoodIngredients() {
         Map<String, String> meta = meta("net.minecraft.world.item.Item");
         meta.put(SearchNodeKeys.TAGS, "alexsmobs:platypus_foodstuffs,alexsmobs:seal_breedables");
 
@@ -47,8 +47,8 @@ class AlexsMobsCompatTest {
 
         assertEquals("protein_foods", meta.get(SearchNodeKeys.ALEXS_MOBS_ITEM_KIND));
         assertTrue(meta.getOrDefault(SearchNodeKeys.FACETS, "").contains(ItemFacet.FOOD_PROTEIN.id()));
-        assertEquals("nature", assignment.categoryId());
-        assertEquals("proteins", assignment.subcategoryId());
+        assertEquals("food", assignment.categoryId());
+        assertEquals("ingredients", assignment.subcategoryId());
     }
 
     @Test

@@ -216,7 +216,7 @@ public class DashboardLogicTest {
                 "minecolonies", "apotheosis", "botania", "ars_nouveau", "pastel",
                 "malum", "swem", "cataclysm", "sophisticated", "mapping",
                 "modular_gear", "society", "tacz", "utility", "bestiary",
-                "magic", "armor", "tools", "tech", "lookup_history", "nature", "ingredients",
+                "magic", "armor", "tools", "tech", "food", "lookup_history", "nature", "ingredients",
                 "decoration", "environment", "social", "geology", "masonry",
                 "misc"
         ), original.stream().map(category -> category.id).toList());

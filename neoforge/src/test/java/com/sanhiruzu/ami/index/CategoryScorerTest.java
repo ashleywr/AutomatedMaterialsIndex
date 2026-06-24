@@ -20,8 +20,8 @@ class CategoryScorerTest {
                 )
         );
 
-        assertEquals("nature", assignment.categoryId());
-        assertEquals("meals", assignment.subcategoryId());
+        assertEquals("food", assignment.categoryId());
+        assertEquals("prepared", assignment.subcategoryId());
         assertEquals("hard_identity", assignment.attributes().get("classificationMode"));
         assertTrue(assignment.attributes().getOrDefault("classificationEvidence", "").contains("identity.food"));
     }
@@ -78,8 +78,8 @@ class CategoryScorerTest {
                 )
         );
 
-        assertEquals("nature", assignment.categoryId());
-        assertEquals("drinks", assignment.subcategoryId());
+        assertEquals("food", assignment.categoryId());
+        assertEquals("prepared", assignment.subcategoryId());
         assertTrue(!assignment.attributes().getOrDefault("classificationEvidence", "").contains("utility_container"));
         assertTrue(!assignment.attributes().getOrDefault("classificationEvidence", "").contains("class.bottle_container"));
     }
@@ -138,7 +138,7 @@ class CategoryScorerTest {
         );
 
         assertEquals("armor", assignment.categoryId());
-        assertTrue(!assignment.attributes().getOrDefault("classificationScores", "").contains("nature/proteins"));
+        assertTrue(!assignment.attributes().getOrDefault("classificationScores", "").contains("food/ingredients"));
     }
 
     @Test
@@ -171,7 +171,7 @@ class CategoryScorerTest {
 
         assertEquals("decoration", assignment.categoryId());
         assertEquals("furniture", assignment.subcategoryId());
-        assertTrue(!assignment.attributes().getOrDefault("classificationScores", "").contains("nature/drinks"));
+        assertTrue(!assignment.attributes().getOrDefault("classificationScores", "").contains("food/prepared"));
     }
 
     @Test
@@ -215,8 +215,8 @@ class CategoryScorerTest {
                 )
         );
 
-        assertEquals("nature", assignment.categoryId());
-        assertEquals("meals", assignment.subcategoryId());
+        assertEquals("food", assignment.categoryId());
+        assertEquals("prepared", assignment.subcategoryId());
     }
 
     @Test
@@ -381,8 +381,8 @@ class CategoryScorerTest {
                 new FacetProfile(EnumSet.of(ItemFacet.PLACEABLE, ItemFacet.PASSIVE_COMPARATOR_OUTPUT), Map.of())
         );
 
-        assertEquals("nature", assignment.categoryId());
-        assertEquals("meals", assignment.subcategoryId());
+        assertEquals("food", assignment.categoryId());
+        assertEquals("prepared", assignment.subcategoryId());
     }
 
     @Test
@@ -495,8 +495,8 @@ class CategoryScorerTest {
                 )
         );
 
-        assertEquals("nature", assignment.categoryId());
-        assertEquals("meals", assignment.subcategoryId());
+        assertEquals("food", assignment.categoryId());
+        assertEquals("prepared", assignment.subcategoryId());
         assertTrue(assignment.attributes().getOrDefault("classificationEvidence", "").contains("class.food_plate"));
     }
 
@@ -510,8 +510,8 @@ class CategoryScorerTest {
                 )
         );
 
-        assertEquals("nature", assignment.categoryId());
-        assertEquals("meals", assignment.subcategoryId());
+        assertEquals("food", assignment.categoryId());
+        assertEquals("prepared", assignment.subcategoryId());
         assertTrue(!assignment.attributes().getOrDefault("classificationScores", "").contains("tech/circuits"));
     }
 
@@ -528,9 +528,9 @@ class CategoryScorerTest {
                 )
         );
 
-        assertEquals("nature", assignment.categoryId());
-        assertEquals("meals", assignment.subcategoryId());
-        assertTrue(assignment.attributes().getOrDefault("classificationScores", "").contains("nature/meals=110"));
+        assertEquals("food", assignment.categoryId());
+        assertEquals("prepared", assignment.subcategoryId());
+        assertTrue(assignment.attributes().getOrDefault("classificationScores", "").contains("food/prepared=110"));
     }
 
     @Test
@@ -542,7 +542,7 @@ class CategoryScorerTest {
 
         assertEquals("decoration", assignment.categoryId());
         assertEquals("furniture", assignment.subcategoryId());
-        assertTrue(!assignment.attributes().getOrDefault("classificationScores", "").contains("nature/meals"));
+        assertTrue(!assignment.attributes().getOrDefault("classificationScores", "").contains("food/prepared"));
     }
 
     @Test

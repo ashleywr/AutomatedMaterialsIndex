@@ -40,11 +40,11 @@ class DoggyTalentsOverrideMigrationTest {
     }
 
     @Test
-    void treatItemsRouteToNatureSnacks() {
+    void treatItemsRouteToFoodPrepared() {
         CategoryAssignment a = resolveBare("doggytalents:training_treat",
                 meta("doggytalents", "doggytalents.common.item.TreatItem"));
-        assertEquals("nature", a.categoryId());
-        assertEquals("snacks", a.subcategoryId());
+        assertEquals("food", a.categoryId());
+        assertEquals("prepared", a.subcategoryId());
     }
 
     @Test

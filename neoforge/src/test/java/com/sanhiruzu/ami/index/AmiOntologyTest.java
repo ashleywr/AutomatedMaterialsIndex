@@ -36,7 +36,7 @@ public class AmiOntologyTest {
         );
 
         AmiOntology.Category cat = AmiOntology.classifyNode(apple);
-        assertEquals(AmiOntology.NATURE, cat);
+        assertEquals(AmiOntology.FOOD, cat);
     }
 
     @Test

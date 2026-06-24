@@ -85,6 +85,14 @@ class PastelOverrideMigrationTest {
     }
 
     @Test
+    void resourceFamilyRoutesToPastelResources() {
+        var meta = meta("pastel", "earth.terrarium.pastel.items.ItemWithLoomPattern");
+        var a = resolve("pastel:raw_azurite", meta);
+        assertEquals("pastel", a.categoryId());
+        assertEquals("resources", a.subcategoryId());
+    }
+
+    @Test
     void catalogueClassRoutesToMisc() {
         var meta = meta("pastel", "me.iris.pastel.item.CatalogueItem");
         var a = resolve("pastel:pastel_catalogue", meta);

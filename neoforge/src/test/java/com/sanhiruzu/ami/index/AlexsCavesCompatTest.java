@@ -71,7 +71,7 @@ class AlexsCavesCompatTest {
     }
 
     @Test
-    void foodFamiliesRouteToNatureBuckets() {
+    void foodFamiliesRouteToFoodBuckets() {
         Map<String, String> protein = meta("net.minecraft.world.item.Item");
         protein.put(SearchNodeKeys.TAGS, "minecraft:fishes");
         AlexsCavesCompat.enrichItem(new ResourceLocation("alexscaves", "cooked_radgill"), protein);
@@ -83,11 +83,11 @@ class AlexsCavesCompatTest {
         CategoryAssignment snackAssignment = resolve("alexscaves:gelatin_red", snack);
 
         assertEquals("protein_foods", protein.get(SearchNodeKeys.ALEXS_CAVES_ITEM_KIND));
-        assertEquals("nature", proteinAssignment.categoryId());
-        assertEquals("proteins", proteinAssignment.subcategoryId());
+        assertEquals("food", proteinAssignment.categoryId());
+        assertEquals("prepared", proteinAssignment.subcategoryId());
         assertEquals("snacks", snack.get(SearchNodeKeys.ALEXS_CAVES_ITEM_KIND));
-        assertEquals("nature", snackAssignment.categoryId());
-        assertEquals("snacks", snackAssignment.subcategoryId());
+        assertEquals("food", snackAssignment.categoryId());
+        assertEquals("prepared", snackAssignment.subcategoryId());
     }
 
     @Test

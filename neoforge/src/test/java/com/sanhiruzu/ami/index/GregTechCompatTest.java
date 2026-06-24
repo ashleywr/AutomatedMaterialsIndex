@@ -210,7 +210,7 @@ class GregTechCompatTest {
         CompatFamilyDetector.detect(new ResourceLocation("gtceu", "lv_drill"), tool);
         GregTechCompat.enrichItem(new ResourceLocation("gtceu", "lv_drill"), tool);
 
-        assertEquals("nature", resolve("gtceu:chocolate_bar", food, ItemFacet.EDIBLE).categoryId());
+        assertEquals("food", resolve("gtceu:chocolate_bar", food, ItemFacet.EDIBLE).categoryId());
         assertEquals("armor", resolve("gtceu:nano_chestplate", armor, ItemFacet.ARMOR_CHEST).categoryId());
         assertEquals("tools", resolve("gtceu:nano_saber", weapon, ItemFacet.MELEE_WEAPON).categoryId());
         assertEquals("melee", resolve("gtceu:nano_saber", weapon, ItemFacet.MELEE_WEAPON).subcategoryId());

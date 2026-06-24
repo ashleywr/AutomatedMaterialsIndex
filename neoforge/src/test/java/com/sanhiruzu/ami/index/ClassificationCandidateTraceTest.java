@@ -19,6 +19,6 @@ class ClassificationCandidateTraceTest {
 
         String candidates = assignment.attributes().get(SearchNodeKeys.CLASSIFICATION_CANDIDATES);
         assertNotNull(candidates);
-        assertTrue(candidates.contains("nature/"), "expected a nature/* candidate, got: " + candidates);
+        assertTrue(candidates.contains("food/"), "expected a food/* candidate, got: " + candidates);
     }
 }

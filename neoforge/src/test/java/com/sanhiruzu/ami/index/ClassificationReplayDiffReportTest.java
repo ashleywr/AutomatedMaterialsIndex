@@ -168,7 +168,9 @@ class ClassificationReplayDiffReportTest {
     private static boolean isSemanticVerbAuditBucket(String categoryKey) {
         return "storage/misc".equals(categoryKey)
                 || "utility/workstations".equals(categoryKey)
-                || "decoration/furniture".equals(categoryKey);
+                || "decoration/furniture".equals(categoryKey)
+                || "decoration/access".equals(categoryKey)
+                || "decoration/barriers".equals(categoryKey);
     }
 
     private static List<Pair> changedOldRemainingPlaceables(List<Pair> pairs) {
@@ -225,7 +227,8 @@ class ClassificationReplayDiffReportTest {
 
     private static void appendSemanticVerbAuditBucketExamples(StringBuilder report, List<Pair> pairs, int limitPerBucket) {
         report.append("## Semantic Verb Replay Movements Into Audit Buckets\n\n");
-        for (String bucket : List.of("storage/misc", "utility/workstations", "decoration/furniture")) {
+        for (String bucket : List.of("storage/misc", "utility/workstations", "decoration/furniture",
+                "decoration/access", "decoration/barriers")) {
             report.append("### `").append(bucket).append("`\n\n");
             List<Pair> bucketPairs = pairs.stream()
                     .filter(pair -> bucket.equals(categoryKey(pair.newNode())))

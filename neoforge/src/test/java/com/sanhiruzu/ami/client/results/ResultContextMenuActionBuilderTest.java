@@ -1210,7 +1210,6 @@ class ResultContextMenuActionBuilderTest {
         );
         assertTrue(taxonomy.contains("\"ids\""));
         assertTrue(taxonomy.contains("\"category\": \"food\""));
-        assertTrue(taxonomy.contains("\"label\": \"Food\""));
     }
 
     @Test
@@ -1293,7 +1292,7 @@ class ResultContextMenuActionBuilderTest {
         Method categoriesAccessor = profile.getClass().getDeclaredMethod("categories");
         categoriesAccessor.setAccessible(true);
         Map<?, ?> categories = (Map<?, ?>) categoriesAccessor.invoke(profile);
-        assertTrue(categories.containsKey("food"));
+        assertTrue(!categories.containsKey("food"));
 
         Method rulesAccessor = profile.getClass().getDeclaredMethod("rules");
         rulesAccessor.setAccessible(true);
