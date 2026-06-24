@@ -1,17 +1,17 @@
 package com.sanhiruzu.ami.index;
 
-import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringJoiner;
 
 public final class SemanticVerbCodec {
     private SemanticVerbCodec() {
     }
 
-    public static EnumSet<SemanticVerb> read(Map<String, String> meta) {
-        EnumSet<SemanticVerb> result = EnumSet.noneOf(SemanticVerb.class);
+    public static Set<SemanticVerb> read(Map<String, String> meta) {
+        Set<SemanticVerb> result = new LinkedHashSet<>();
         if (meta == null) {
             return result;
         }
