@@ -59,20 +59,45 @@ public final class ClassificationOverrides {
         String[] tokens = path.toLowerCase(Locale.ROOT).split("[_/]");
         String lowerClass = itemClass == null ? "" : itemClass.toLowerCase(Locale.ROOT);
         for (ModPatternRule rule : rules) {
-            for (String token : tokens) {
-                if (rule.pathTokens().contains(token)) {
-                    return Optional.of(rule);
-                }
-            }
-            if (!lowerClass.isEmpty()) {
-                for (String classToken : rule.classTokens()) {
-                    if (lowerClass.contains(classToken)) {
-                        return Optional.of(rule);
-                    }
-                }
+            if (matches(rule, tokens, lowerClass)) {
+                return Optional.of(rule);
             }
         }
         return Optional.empty();
+    }
+
+    private static boolean matches(ModPatternRule rule, String[] pathTokens, String lowerClass) {
+        if (rule.pathTokens().isEmpty() && rule.classTokens().isEmpty()) {
+            return false;
+        }
+        if (!rule.pathTokens().isEmpty() && !matchesPathToken(rule, pathTokens)) {
+            return false;
+        }
+        return rule.classTokens().isEmpty() || matchesClassToken(rule, lowerClass);
+    }
+
+    private static boolean matchesPathToken(ModPatternRule rule, String[] pathTokens) {
+        boolean allowCompoundPathToken = !rule.classTokens().isEmpty();
+        for (String token : pathTokens) {
+            for (String ruleToken : rule.pathTokens()) {
+                if (token.equals(ruleToken) || (allowCompoundPathToken && token.contains(ruleToken))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean matchesClassToken(ModPatternRule rule, String lowerClass) {
+        if (lowerClass.isEmpty()) {
+            return false;
+        }
+        for (String classToken : rule.classTokens()) {
+            if (lowerClass.contains(classToken)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static void loadBundledDefaults() {

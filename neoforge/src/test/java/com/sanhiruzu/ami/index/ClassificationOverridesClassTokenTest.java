@@ -45,8 +45,21 @@ class ClassificationOverridesClassTokenTest {
     }
 
     @Test
-    void pathTokensAndClassTokensAreIndependent() {
-        // Install a rule with both pathTokens and classTokens
+    void pathOnlyRuleStillMatchesByPathToken() {
+        ClassificationOverrides.parseAndInstall("""
+                {
+                  "modPatterns": [
+                    { "mod": "testmod", "pathTokens": ["bow"], "addFacets": ["projectile"] }
+                  ]
+                }
+                """);
+
+        var rule = ClassificationOverrides.patternFor("testmod", "testmod_bow", "com.example.GenericItem");
+        assertTrue(rule.isPresent());
+    }
+
+    @Test
+    void pathTokensAndClassTokensBothRequiredWhenBothAreSpecified() {
         ClassificationOverrides.parseAndInstall("""
                 {
                   "modPatterns": [
@@ -55,11 +68,15 @@ class ClassificationOverridesClassTokenTest {
                   ]
                 }
                 """);
-        // Fires via path token
+
         var byPath = ClassificationOverrides.patternFor("testmod", "testmod_bow", "com.example.GenericItem");
-        assertTrue(byPath.isPresent());
-        // Fires via class token
+        assertFalse(byPath.isPresent());
+
         var byClass = ClassificationOverrides.patternFor("testmod", "wooden_stick", "com.example.testmod.ArrowItem");
-        assertTrue(byClass.isPresent());
+        assertFalse(byClass.isPresent());
+
+        var byPathAndClass = ClassificationOverrides.patternFor("testmod", "testmod_bow",
+                "com.example.testmod.ArrowItem");
+        assertTrue(byPathAndClass.isPresent());
     }
 }
