@@ -27,6 +27,16 @@ public final class GeneratedVariantCollapseCompat {
             return;
         }
 
+        Optional<String> generatedCandleHolderFamily = candleHolderFamily(id, meta);
+        if (generatedCandleHolderFamily.isPresent()) {
+            String family = generatedCandleHolderFamily.get();
+            meta.put(SearchNodeKeys.COLLAPSE_FAMILY, family);
+            meta.put(SearchNodeKeys.COLLAPSE_LABEL, "Candle Holders");
+            meta.put(SearchNodeKeys.VARIANT_COLLAPSE_MODE, "default_collapsed");
+            CompatMetaUtil.addSearchToken(meta, "candle_holders");
+            return;
+        }
+
         Optional<String> generatedBase = generatedVariantBase(id, meta);
         if (generatedBase.isEmpty()) {
             return;
@@ -57,6 +67,19 @@ public final class GeneratedVariantCollapseCompat {
             return Optional.empty();
         }
         return Optional.of(id.getNamespace() + ":" + basePath);
+    }
+
+    private static Optional<String> candleHolderFamily(ResourceLocation id, Map<String, String> meta) {
+        String path = id.getPath().toLowerCase(Locale.ROOT);
+        if (!path.contains("candle_holder")) {
+            return Optional.empty();
+        }
+        String tags = meta.getOrDefault(SearchNodeKeys.TAGS, "");
+        String namespaceToken = id.getNamespace() + ":candle_holders";
+        if (CompatMetaUtil.hasToken(tags, namespaceToken) || path.startsWith("candle_holder")) {
+            return Optional.of(namespaceToken);
+        }
+        return Optional.empty();
     }
 
     private static String stripVisualStateSuffix(String path) {

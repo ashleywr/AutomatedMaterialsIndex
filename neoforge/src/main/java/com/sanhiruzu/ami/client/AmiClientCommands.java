@@ -74,19 +74,17 @@ public class AmiClientCommands {
                         })
                 );
 
-        if (AmiDebugSettings.debugCommandsEnabled()) {
-            cmd.then(Commands.literal("dump-results-tree")
-                    .executes(context -> {
-                        exportResultsTree(context.getSource(), "");
-                        return 1;
-                    })
-                    .then(Commands.argument("query", StringArgumentType.greedyString())
-                            .executes(context -> {
-                                exportResultsTree(context.getSource(), StringArgumentType.getString(context, "query"));
-                                return 1;
-                            }))
-            );
-        }
+        cmd.then(Commands.literal("dump-results-tree")
+                .executes(context -> {
+                    exportResultsTree(context.getSource(), "");
+                    return 1;
+                })
+                .then(Commands.argument("query", StringArgumentType.greedyString())
+                        .executes(context -> {
+                            exportResultsTree(context.getSource(), StringArgumentType.getString(context, "query"));
+                            return 1;
+                        }))
+        );
 
         dispatcher.register(cmd);
     }
