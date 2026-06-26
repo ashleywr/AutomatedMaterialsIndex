@@ -110,7 +110,20 @@ function openSingleEdit(item) {
   if (!item) return;
   currentEditItem = item;
   el("se-title").textContent = `${item.displayName} — ${item.id}`;
-  el("single-edit").hidden = false;
+
+  const dialog = el("single-edit");
+  if (dialogPos.left !== null) {
+    dialog.style.transform = "none";
+    dialog.style.left = dialogPos.left + "px";
+    dialog.style.top  = dialogPos.top  + "px";
+  }
+
+  // Populated by plain <select> until Task 6 adds Tom Select
+  el("se-cat").value     = item.edited.category    ?? "";
+  el("se-sub").value     = item.edited.subcategory ?? "";
+  el("se-tooltip").value = (item.edited.tooltipLines ?? []).join("\n");
+
+  dialog.hidden = false;
 }
 
 // ── Filters ───────────────────────────────────────────────
@@ -147,3 +160,54 @@ function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"]/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
+
+// ── Dialog drag ───────────────────────────────────────────
+const dialogPos = { left: null, top: null };
+
+function initDialog() {
+  const dialog   = el("single-edit");
+  const titlebar = el("se-titlebar");
+
+  titlebar.addEventListener("mousedown", e => {
+    if (e.target === el("se-close")) return;
+    e.preventDefault();
+    const rect = dialog.getBoundingClientRect();
+    const ox = e.clientX - rect.left;
+    const oy = e.clientY - rect.top;
+    dialog.style.transform = "none";
+
+    function onMove(ev) {
+      let left = ev.clientX - ox;
+      let top  = ev.clientY - oy;
+      left = Math.max(0, Math.min(left, window.innerWidth  - dialog.offsetWidth));
+      top  = Math.max(0, Math.min(top,  window.innerHeight - dialog.offsetHeight));
+      dialog.style.left = left + "px";
+      dialog.style.top  = top  + "px";
+      dialogPos.left = left;
+      dialogPos.top  = top;
+    }
+
+    function onUp() {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup",   onUp);
+    }
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup",   onUp);
+  });
+
+  el("se-close").addEventListener("click", () => { dialog.hidden = true; });
+
+  el("se-apply").addEventListener("click", () => {
+    if (!currentEditItem) return;
+    currentEditItem.edited.category    = el("se-cat").value    || null;
+    currentEditItem.edited.subcategory = el("se-sub").value    || null;
+    setTooltipLines(currentEditItem, el("se-tooltip").value);
+    currentEditItem.dirty =
+      JSON.stringify(currentEditItem.baseline) !== JSON.stringify(currentEditItem.edited);
+    refreshGrid();
+    refreshIssues();
+  });
+}
+
+initDialog();
