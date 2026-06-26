@@ -1,36 +1,54 @@
-// Initial implementation renders all rows; if performance is poor with 20k items,
-// swap renderAll for windowed rendering (track scrollTop, only render visible slice).
-export function renderGrid(host, items, { onSelect }) {
-  const tbody = document.createElement("tbody");
-  for (const it of items) {
-    const tr = document.createElement("tr");
-    tr.dataset.id = it.id;
-    if (it.dirty) tr.classList.add("dirty");
-    if (it.missingFromDump) tr.classList.add("missing-dump");
-    tr.innerHTML = `
-      <td><input type="checkbox" class="select" ${it._selected ? "checked" : ""}></td>
-      <td>${escapeHtml(it.id)}</td>
-      <td>${escapeHtml(it.displayName)}</td>
-      <td>${escapeHtml(it.mod)}</td>
-      <td>${escapeHtml(it.edited.category ?? "")}</td>
-      <td>${escapeHtml(it.edited.subcategory ?? "")}</td>
-      <td>${escapeHtml((it.edited.facets ?? []).join(", "))}</td>
-      <td>${(it.edited.tooltipLines ?? []).length}</td>`;
-    tr.querySelector(".select").addEventListener("change", e => {
-      it._selected = e.target.checked;
-    });
-    tr.addEventListener("click", e => {
-      if (e.target.tagName !== "INPUT") onSelect(it);
-    });
-    tbody.appendChild(tr);
-  }
-  host.innerHTML = `<table>
-    <thead><tr><th></th><th>id</th><th>name</th><th>mod</th>
-      <th>category</th><th>subcategory</th><th>facets</th><th>tooltipLines</th></tr></thead></table>`;
-  host.querySelector("table").appendChild(tbody);
+export function createGrid(host, { onSelect, onSelectionChange }) {
+  const table = new Tabulator(host, {
+    data: [],
+    height: "100%",
+    layout: "fitDataFill",
+    renderVertical: "virtual",
+    selectable: true,
+    rowFormatter(row) {
+      const d = row.getData();
+      const el = row.getElement();
+      el.classList.toggle("row-dirty",   !!d._dirty);
+      el.classList.toggle("row-missing", !!d._missing);
+    },
+    rowClick(e, row) {
+      if (e.target.type === "checkbox") return;
+      onSelect(row.getData()._id);
+    },
+    rowSelectionChanged(_data, _rows) {
+      onSelectionChange();
+    },
+    columns: [
+      {
+        formatter: "rowSelection",
+        titleFormatter: "rowSelection",
+        hozAlign: "center",
+        headerSort: false,
+        width: 40,
+      },
+      { title: "ID",          field: "id",               sorter: "string", width: 220 },
+      { title: "Name",        field: "displayName",      sorter: "string", width: 180 },
+      { title: "Mod",         field: "mod",              sorter: "string", width: 100 },
+      { title: "Category",    field: "editedCategory",   sorter: "string", width: 130 },
+      { title: "Subcategory", field: "editedSubcategory",sorter: "string", width: 130 },
+      { title: "Facets",      field: "editedFacets",     sorter: "string", minWidth: 180 },
+      { title: "Tips",        field: "tooltipCount",     sorter: "number", width: 55, hozAlign: "center" },
+    ],
+  });
+  return { table };
 }
 
-function escapeHtml(s) {
-  return String(s ?? "").replace(/[&<>"]/g, c =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+export function toRow(item) {
+  return {
+    _id:              item.id,
+    _dirty:           item.dirty,
+    _missing:         item.missingFromDump,
+    id:               item.id,
+    displayName:      item.displayName,
+    mod:              item.mod,
+    editedCategory:   item.edited.category    ?? "",
+    editedSubcategory:item.edited.subcategory ?? "",
+    editedFacets:     (item.edited.facets ?? []).join(", "),
+    tooltipCount:     (item.edited.tooltipLines ?? []).length,
+  };
 }
