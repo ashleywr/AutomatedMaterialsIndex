@@ -65,8 +65,6 @@ h1 {
   flex-shrink: 0;
   flex-wrap: wrap;
 }
-
-/* Load strip */
 #load label {
   display: flex;
   align-items: center;
@@ -74,18 +72,8 @@ h1 {
   font-size: 12px;
   color: var(--fg2);
 }
-#load input[type="file"] {
-  font-size: 12px;
-  color: var(--fg);
-}
-
-/* Filter strip */
-#filters {
-  gap: 0.5rem;
-}
-#filter-text {
-  width: 220px;
-}
+#load input[type="file"] { font-size: 12px; color: var(--fg); }
+#filter-text { width: 220px; }
 #filters label {
   display: flex;
   align-items: center;
@@ -93,12 +81,6 @@ h1 {
   font-size: 12px;
   color: var(--fg2);
   white-space: nowrap;
-}
-
-/* Bulk edit strip */
-#bulk {
-  gap: 0.6rem;
-  align-items: flex-end;
 }
 #bulk > strong {
   font-size: 11px;
@@ -108,13 +90,8 @@ h1 {
   letter-spacing: 0.06em;
   white-space: nowrap;
   align-self: center;
-  padding-bottom: 1px;
 }
-.bulk-field {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+.bulk-field { display: flex; flex-direction: column; gap: 2px; }
 .bulk-field > label {
   font-size: 10px;
   color: var(--fg2);
@@ -124,35 +101,18 @@ h1 {
 .bulk-field .ts-wrapper { min-width: 130px; }
 
 /* ── Shared form controls ────────────────────────────────── */
-input[type="search"],
-input[type="text"],
-select {
+input[type="search"], input[type="text"], select, textarea {
   background: var(--bg3);
   color: var(--fg);
   border: 1px solid var(--border);
   padding: 0.28rem 0.5rem;
   border-radius: var(--radius);
   font: inherit;
-  height: 28px;
   outline: none;
   transition: border-color 0.15s;
 }
-input[type="search"]:focus,
-input[type="text"]:focus,
-select:focus {
-  border-color: var(--accent);
-}
-textarea {
-  background: var(--bg3);
-  color: var(--fg);
-  border: 1px solid var(--border);
-  padding: 0.35rem 0.5rem;
-  border-radius: var(--radius);
-  font: inherit;
-  outline: none;
-  transition: border-color 0.15s;
-}
-textarea:focus { border-color: var(--accent); }
+input[type="search"], input[type="text"], select { height: 28px; }
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 
 button {
   background: var(--bg4);
@@ -167,12 +127,8 @@ button {
   white-space: nowrap;
   transition: border-color 0.15s, background 0.15s;
 }
-button:hover {
-  border-color: #666;
-  background: #363636;
-}
+button:hover { border-color: #666; background: #363636; }
 
-/* Primary action buttons */
 #bulk-apply, #download {
   background: #1a3a2a;
   border-color: var(--accent);
@@ -188,11 +144,12 @@ button:hover {
 }
 
 /* ── Grid ────────────────────────────────────────────────── */
-#grid-host {
-  flex: 1;
-  min-height: 0;
-  border-top: none;
-}
+#grid-host { flex: 1; min-height: 0; }
+
+/* Tabulator midnight tweaks — colours only, layout handled by the theme */
+.tabulator-row.row-dirty   { background: #2e2008 !important; }
+.tabulator-row.row-missing { color: var(--error) !important; opacity: 0.8; }
+.tabulator-row.tabulator-selected { background: #1b3248 !important; }
 
 /* ── Footer bar ──────────────────────────────────────────── */
 footer {
@@ -214,152 +171,84 @@ footer {
 .issue-warn  { color: var(--dirty); }
 .issue-error { color: var(--error); }
 
-/* ── Tabulator dark overrides ─────────────────────────────── */
-.tabulator {
-  background: var(--bg);
-  color: var(--fg);
-  border: none;
-  font-size: 13px;
-  height: 100% !important;
-}
-.tabulator .tabulator-header {
-  background: var(--bg2);
-  border-bottom: 2px solid var(--border);
-  color: var(--fg2);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.tabulator .tabulator-header .tabulator-col {
-  background: var(--bg2);
-  border-right: 1px solid var(--border);
-}
-.tabulator .tabulator-header .tabulator-col:hover  { background: var(--bg3); }
-.tabulator .tabulator-header .tabulator-col.tabulator-col-sorter-element { color: var(--fg); }
-.tabulator-row {
-  background: var(--bg);
-  border-bottom: 1px solid #252525;
-  color: var(--fg);
-  transition: background 0.08s;
-}
-.tabulator-row.tabulator-row-even        { background: #202020; }
-.tabulator-row:hover,
-.tabulator-row.tabulator-row-even:hover  { background: var(--bg3); }
-.tabulator-row.tabulator-selected        { background: #1b3248 !important; }
-.tabulator-row.tabulator-selected:hover  { background: #1f3a52 !important; }
-.tabulator-row.row-dirty                 { background: #2e2008; }
-.tabulator-row.row-dirty:hover           { background: #3a2a10; }
-.tabulator-row.row-missing               { color: var(--error); opacity: 0.75; }
-.tabulator-cell {
-  border-right: none;
-  padding: 0.25rem 0.5rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.tabulator-col-title { font-weight: 600; }
-/* Scrollbar */
-.tabulator-tableHolder::-webkit-scrollbar { width: 8px; height: 8px; }
-.tabulator-tableHolder::-webkit-scrollbar-track { background: var(--bg); }
-.tabulator-tableHolder::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
-.tabulator-tableHolder::-webkit-scrollbar-thumb:hover { background: #555; }
+/* ── Tom Select — dark from scratch (no vendor CSS loaded) ── */
+.ts-wrapper { display: inline-block; position: relative; }
 
-/* ── Tom Select dark overrides ───────────────────────────── */
-.ts-wrapper { display: inline-block; }
-
-/* Control box */
-.ts-wrapper .ts-control {
-  background: var(--bg3) !important;
-  color: var(--fg) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: var(--radius) !important;
-  padding: 2px 6px !important;
-  min-height: 28px !important;
+.ts-control {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px;
+  background: var(--bg3);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 3px 6px;
+  min-height: 28px;
   cursor: text;
   transition: border-color 0.15s;
-  box-shadow: none !important;
 }
-.ts-wrapper.focus .ts-control,
-.ts-wrapper.input-active .ts-control {
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 0 2px rgba(119,204,187,0.12) !important;
-}
-/* Text typed into the control */
+.ts-wrapper.focus .ts-control { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(119,204,187,0.1); }
 .ts-control input {
-  color: var(--fg) !important;
-  background: transparent !important;
+  flex: 1;
+  min-width: 60px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--fg);
+  font: inherit;
+  padding: 0;
+  margin: 0;
 }
-/* Selected value in single-select */
-.ts-wrapper.single .ts-control .item {
-  color: var(--fg) !important;
-  background: transparent !important;
-}
-/* Placeholder */
-.ts-control > input::placeholder { color: #555 !important; }
-.ts-wrapper .placeholder         { color: #555 !important; }
-
-/* Dropdown panel */
-.ts-dropdown {
-  background: var(--bg2) !important;
-  border: 1px solid #555 !important;
-  border-top: none !important;
-  color: var(--fg) !important;
-  z-index: 2000;
-  border-radius: 0 0 var(--radius) var(--radius);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.55);
-  font-size: 13px;
-}
-.ts-dropdown-content { background: transparent !important; }
-.ts-dropdown .option {
-  padding: 0.3rem 0.6rem;
-  color: var(--fg) !important;
-  background: transparent !important;
-}
-/* Keyboard-highlighted or hovered option */
-.ts-dropdown .option:hover,
-.ts-dropdown .option.active {
-  background: #1f3a30 !important;
-  color: var(--fg) !important;
-}
-/* Already-selected option shown in dropdown */
-.ts-dropdown .option.selected {
-  background: var(--bg3) !important;
-  color: var(--fg2) !important;
-}
-.ts-dropdown .option.selected.active,
-.ts-dropdown .option.selected:hover {
-  background: #1f3a30 !important;
-  color: var(--fg) !important;
-}
-.ts-dropdown .create       { color: var(--accent) !important; font-style: italic; }
-.ts-dropdown .no-results   { color: var(--fg2); padding: 0.3rem 0.6rem; }
-.ts-dropdown .optgroup-header {
-  background: var(--bg) !important;
-  color: var(--fg2) !important;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-/* Multi-select tags */
+.ts-control input::placeholder { color: #555; }
+/* Single select: show chosen value */
+.ts-wrapper.single .ts-control .item { color: var(--fg); }
+/* Multi select: tags */
 .ts-wrapper.multi .ts-control .item {
-  background: #1f3a30 !important;
-  color: var(--accent) !important;
-  border: 1px solid #2e5444 !important;
+  background: #1f3a30;
+  color: var(--accent);
+  border: 1px solid #2e5444;
   border-radius: 3px;
   padding: 0 5px;
-  line-height: 20px;
   font-size: 12px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 .ts-wrapper.multi .ts-control .item .remove {
   color: #5a9a88;
-  border-left: 1px solid #2e5444;
-  padding-left: 4px;
-  margin-left: 3px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
 }
-.ts-wrapper.multi .ts-control .item .remove:hover { color: var(--error) !important; }
-.ts-wrapper .clear-button       { color: #666 !important; }
-.ts-wrapper .clear-button:hover { color: var(--fg) !important; }
+.ts-wrapper.multi .ts-control .item .remove:hover { color: var(--error); }
+
+/* Dropdown */
+.ts-dropdown {
+  position: absolute;
+  z-index: 2000;
+  background: var(--bg2);
+  border: 1px solid #555;
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  font-size: 13px;
+  overflow: hidden;
+}
+.ts-dropdown-content { max-height: 220px; overflow-y: auto; }
+.ts-dropdown-content::-webkit-scrollbar { width: 6px; }
+.ts-dropdown-content::-webkit-scrollbar-track { background: var(--bg2); }
+.ts-dropdown-content::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+.ts-dropdown .option {
+  padding: 0.3rem 0.6rem;
+  color: var(--fg);
+  cursor: pointer;
+}
+.ts-dropdown .option.active  { background: #1f3a30; }
+.ts-dropdown .option.selected { color: var(--fg2); }
+.ts-dropdown .create { color: var(--accent); font-style: italic; padding: 0.3rem 0.6rem; }
+.ts-dropdown .no-results { color: var(--fg2); padding: 0.3rem 0.6rem; }
 
 /* ── Floating single-edit dialog ─────────────────────────── */
 #single-edit {
@@ -409,8 +298,8 @@ footer {
   cursor: pointer;
   border-radius: 3px;
   flex-shrink: 0;
-  transition: color 0.1s, background 0.1s;
   height: auto;
+  transition: color 0.1s, background 0.1s;
 }
 #se-close:hover { color: var(--fg); background: rgba(255,255,255,0.07); border-color: transparent; }
 
@@ -429,11 +318,6 @@ footer {
   font-weight: 500;
 }
 .se-row .ts-wrapper { width: 100%; }
-#se-tooltip {
-  width: 100%;
-  resize: vertical;
-  min-height: 64px;
-}
 
 #se-footer {
   padding: 0.6rem 0.85rem;
