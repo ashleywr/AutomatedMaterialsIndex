@@ -165,7 +165,8 @@ public final class ClassificationOverrides {
                     parseVerbs(entry, "addVerbs"),
                     parseVerbs(entry, "removeVerbs"),
                     category,
-                    subcategory));
+                    subcategory,
+                    parseStringList(entry, "tooltipLines")));
         }
     }
 
@@ -203,6 +204,19 @@ public final class ClassificationOverrides {
                             optString(entry, "collapseFamily"), optString(entry, "collapseLabel"),
                             optString(entry, "collapseMode"), optString(entry, "match")));
         }
+    }
+
+    private static java.util.List<String> parseStringList(JsonObject entry, String key) {
+        if (!entry.has(key) || !entry.get(key).isJsonArray()) {
+            return java.util.List.of();
+        }
+        java.util.List<String> out = new java.util.ArrayList<>();
+        for (JsonElement el : entry.getAsJsonArray(key)) {
+            if (el.isJsonPrimitive()) {
+                out.add(el.getAsString());
+            }
+        }
+        return java.util.List.copyOf(out);
     }
 
     private static EnumSet<ItemFacet> parseFacets(JsonObject entry, String key) {
