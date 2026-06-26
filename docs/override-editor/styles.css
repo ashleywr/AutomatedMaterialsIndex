@@ -266,50 +266,86 @@ footer {
 
 /* ── Tom Select dark overrides ───────────────────────────── */
 .ts-wrapper { display: inline-block; }
-.ts-wrapper.single .ts-control,
-.ts-wrapper.multi  .ts-control {
-  background: var(--bg3);
-  color: var(--fg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 2px 6px;
-  min-height: 28px;
+
+/* Control box */
+.ts-wrapper .ts-control {
+  background: var(--bg3) !important;
+  color: var(--fg) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  padding: 2px 6px !important;
+  min-height: 28px !important;
   cursor: text;
   transition: border-color 0.15s;
+  box-shadow: none !important;
 }
 .ts-wrapper.focus .ts-control,
 .ts-wrapper.input-active .ts-control {
-  border-color: var(--accent);
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(119,204,187,0.12);
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px rgba(119,204,187,0.12) !important;
 }
+/* Text typed into the control */
 .ts-control input {
   color: var(--fg) !important;
   background: transparent !important;
 }
+/* Selected value in single-select */
+.ts-wrapper.single .ts-control .item {
+  color: var(--fg) !important;
+  background: transparent !important;
+}
+/* Placeholder */
+.ts-control > input::placeholder { color: #555 !important; }
+.ts-wrapper .placeholder         { color: #555 !important; }
+
+/* Dropdown panel */
 .ts-dropdown {
-  background: var(--bg2);
-  border: 1px solid #555;
-  border-top: none;
-  color: var(--fg);
+  background: var(--bg2) !important;
+  border: 1px solid #555 !important;
+  border-top: none !important;
+  color: var(--fg) !important;
   z-index: 2000;
   border-radius: 0 0 var(--radius) var(--radius);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.55);
   font-size: 13px;
 }
+.ts-dropdown-content { background: transparent !important; }
 .ts-dropdown .option {
   padding: 0.3rem 0.6rem;
+  color: var(--fg) !important;
+  background: transparent !important;
 }
+/* Keyboard-highlighted or hovered option */
 .ts-dropdown .option:hover,
 .ts-dropdown .option.active {
-  background: #1f3a30;
-  color: var(--fg);
+  background: #1f3a30 !important;
+  color: var(--fg) !important;
 }
-.ts-dropdown .create { color: var(--accent); font-style: italic; }
+/* Already-selected option shown in dropdown */
+.ts-dropdown .option.selected {
+  background: var(--bg3) !important;
+  color: var(--fg2) !important;
+}
+.ts-dropdown .option.selected.active,
+.ts-dropdown .option.selected:hover {
+  background: #1f3a30 !important;
+  color: var(--fg) !important;
+}
+.ts-dropdown .create       { color: var(--accent) !important; font-style: italic; }
+.ts-dropdown .no-results   { color: var(--fg2); padding: 0.3rem 0.6rem; }
+.ts-dropdown .optgroup-header {
+  background: var(--bg) !important;
+  color: var(--fg2) !important;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Multi-select tags */
 .ts-wrapper.multi .ts-control .item {
-  background: #1f3a30;
-  color: var(--accent);
-  border: 1px solid #2e5444;
+  background: #1f3a30 !important;
+  color: var(--accent) !important;
+  border: 1px solid #2e5444 !important;
   border-radius: 3px;
   padding: 0 5px;
   line-height: 20px;
@@ -321,12 +357,9 @@ footer {
   padding-left: 4px;
   margin-left: 3px;
 }
-.ts-wrapper.multi .ts-control .item .remove:hover { color: var(--error); }
-.ts-wrapper .clear-button { color: #666; }
-.ts-wrapper .clear-button:hover { color: var(--fg); }
-/* Placeholder text */
-.ts-control > input::placeholder,
-.ts-wrapper .placeholder { color: #555; }
+.ts-wrapper.multi .ts-control .item .remove:hover { color: var(--error) !important; }
+.ts-wrapper .clear-button       { color: #666 !important; }
+.ts-wrapper .clear-button:hover { color: var(--fg) !important; }
 
 /* ── Floating single-edit dialog ─────────────────────────── */
 #single-edit {
