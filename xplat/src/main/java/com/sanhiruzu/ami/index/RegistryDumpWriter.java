@@ -4,10 +4,16 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.Level;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 /** Builds and writes the registry-dump JSON consumed by the override editor tool. */
@@ -59,19 +65,16 @@ public final class RegistryDumpWriter {
      *
      * @param level unused — kept for API symmetry with other dump collectors
      */
-    public static List<Row> collectFromRuntime(net.minecraft.world.level.Level level) {
-        java.util.List<Row> rows = new java.util.ArrayList<>();
+    public static List<Row> collectFromRuntime(Level level) {
+        List<Row> rows = new ArrayList<>();
         for (SearchNode node : GlobalIndex.getInstance().getNodes(NodeType.ITEM)) {
-            net.minecraft.resources.ResourceLocation id =
-                    net.minecraft.resources.ResourceLocation.tryParse(node.id().toString());
-            if (id == null) continue;
+            ResourceLocation id = node.id();
 
             String displayName = node.displayName();
             String className = node.meta(SearchNodeKeys.ITEM_CLASS, "");
             if (className.isBlank()) {
                 // Fall back to looking up the item class from the registry
-                net.minecraft.world.item.Item item =
-                        net.minecraft.core.registries.BuiltInRegistries.ITEM.get(id);
+                Item item = BuiltInRegistries.ITEM.get(id);
                 if (item != null) {
                     className = item.getClass().getName();
                 }
@@ -82,18 +85,18 @@ public final class RegistryDumpWriter {
             String subcategory = emptyToNull(node.meta(SearchNodeKeys.ONTOLOGY_SUBCATEGORY));
 
             // FACETS is comma-separated
-            java.util.List<String> facets = splitComma(node.meta(SearchNodeKeys.FACETS));
+            List<String> facets = splitComma(node.meta(SearchNodeKeys.FACETS));
 
             // Creative tabs: prefer CREATIVE_TAB_LABEL, fall back to CREATIVE_TAB_ID
             String tabLabel = node.meta(SearchNodeKeys.CREATIVE_TAB_LABEL);
             String tabId = node.meta(SearchNodeKeys.CREATIVE_TAB_ID);
-            java.util.List<String> tabs;
+            List<String> tabs;
             if (!tabLabel.isBlank()) {
-                tabs = java.util.List.of(tabLabel);
+                tabs = List.of(tabLabel);
             } else if (!tabId.isBlank()) {
-                tabs = java.util.List.of(tabId);
+                tabs = List.of(tabId);
             } else {
-                tabs = java.util.List.of();
+                tabs = List.of();
             }
 
             rows.add(new Row(id.toString(), mod, className, displayName, tabs,
@@ -106,9 +109,9 @@ public final class RegistryDumpWriter {
         return (s == null || s.isBlank()) ? null : s;
     }
 
-    private static java.util.List<String> splitComma(String s) {
-        if (s == null || s.isBlank()) return java.util.List.of();
-        java.util.List<String> result = new java.util.ArrayList<>();
+    private static List<String> splitComma(String s) {
+        if (s == null || s.isBlank()) return List.of();
+        List<String> result = new ArrayList<>();
         for (String part : s.split(",")) {
             String trimmed = part.trim();
             if (!trimmed.isEmpty()) result.add(trimmed);
