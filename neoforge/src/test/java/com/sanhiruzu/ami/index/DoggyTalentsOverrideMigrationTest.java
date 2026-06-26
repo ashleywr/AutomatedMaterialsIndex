@@ -70,11 +70,33 @@ class DoggyTalentsOverrideMigrationTest {
     }
 
     @Test
-    void accessoryItemsGainCurioFacet() {
+    void accessoryItemsRouteToAnimalArmor() {
         // class contains the accessory package path token
         CategoryAssignment a = resolveBare("doggytalents:flatcap",
                 meta("doggytalents", "doggytalents.common.entity.accessory.FlatCap$FlatCapItem"));
-        assertTrue(hasFacet(a, ItemFacet.CURIO));
+        assertEquals("armor", a.categoryId());
+        assertEquals("animal", a.subcategoryId());
+        assertTrue(hasFacet(a, ItemFacet.ARMOR_ANIMAL));
+        assertFalse(hasFacet(a, ItemFacet.CURIO));
+    }
+
+    @Test
+    void dogAccessoriesRouteToAnimalArmor() {
+        CategoryAssignment a = resolveBare("doggytalents:snorkel",
+                meta("doggytalents", "doggytalents.common.item.SnorkelAccessoryItem"));
+        assertEquals("armor", a.categoryId());
+        assertEquals("animal", a.subcategoryId());
+        assertTrue(hasFacet(a, ItemFacet.ARMOR_ANIMAL));
+    }
+
+    @Test
+    void dogHeadgearAlsoRoutesToAnimalArmor() {
+        CategoryAssignment a = resolveBare("doggytalents:plague_doctor_mask",
+                meta("doggytalents", "doggytalents.common.item.PlagueDoctorMaskItem"));
+        assertEquals("armor", a.categoryId());
+        assertEquals("animal", a.subcategoryId());
+        assertTrue(hasFacet(a, ItemFacet.ARMOR_ANIMAL));
+        assertFalse(hasFacet(a, ItemFacet.ARMOR_HEAD));
     }
 
     @Test
