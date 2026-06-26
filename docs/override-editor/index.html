@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>AMI Override Editor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>AMI Override Editor</h1>
+    <div id="status">No files loaded.</div>
+  </header>
+
+  <section id="load">
+    <label>Registry dump (registry-dump.json):
+      <input type="file" id="dump-input" accept="application/json">
+    </label>
+    <label>Existing overrides (optional, overrides.json):
+      <input type="file" id="overrides-input" accept="application/json">
+    </label>
+  </section>
+
+  <section id="filters">
+    <input id="filter-text" type="search" placeholder="Filter by id / display name / mod">
+    <select id="filter-mod"><option value="">(all mods)</option></select>
+    <select id="filter-category"><option value="">(all categories)</option></select>
+    <label><input type="checkbox" id="filter-dirty-only"> Show edited only</label>
+  </section>
+
+  <section id="bulk">
+    <strong>Bulk edit selected:</strong>
+    <input id="bulk-category" placeholder="Set category">
+    <input id="bulk-subcategory" placeholder="Set subcategory">
+    <input id="bulk-add-facet" placeholder="Add facet">
+    <input id="bulk-remove-facet" placeholder="Remove facet">
+    <button id="bulk-apply">Apply to selected</button>
+  </section>
+
+  <main id="grid-host"></main>
+
+  <aside id="single-edit" hidden>
+    <h2>Edit item</h2>
+    <div id="single-edit-body"></div>
+  </aside>
+
+  <footer>
+    <button id="download" disabled>Download overrides.json</button>
+    <div id="issues"></div>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
