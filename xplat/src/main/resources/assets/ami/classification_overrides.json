@@ -30,7 +30,7 @@
     { "mod": "cnc", "pathTokens": ["potofmouse", "kill"], "addFacets": ["magic_artifact"] },
     { "mod": "cnc", "pathTokens": ["buckskin", "antler", "tusk", "wishbone"], "addFacets": ["ingredient_organic"] },
 
-    { "mod": "doggytalents", "classTokens": ["doggytalents.common.entity.accessory.", "accessoryitem", "dualaccessoryitem", "dyeableaccessoryitem", "doggycontactsitem", "demonhornsitem", "deerantlersitem", "bunnyearsitem", "dogpresentcostumeitem"], "addFacets": ["curio"] },
+    { "mod": "doggytalents", "classTokens": ["doggytalents.common.entity.accessory.", "accessoryitem", "dualaccessoryitem", "dualdyableaccessoryitem", "dyeableaccessoryitem", "doggycharmitem", "doggycontactsitem", "demonhornsitem", "deerantlersitem", "bunnyearsitem", "dogpresentcostumeitem", "headbanditem", "witchhatitem", "christmashatitem", "dyablebirthdayhatitem", "plaguedoctormaskitem"], "addFacets": ["armor_animal"], "removeFacets": ["curio", "armor_head", "armor_chest", "armor_legs", "armor_feet"] },
     { "mod": "doggytalents", "classTokens": ["whistleitem", "caninetrackeritem", "locatororbitem", "dyableorbitem", "emptylocatororbitem"], "pathTokens": ["tracker", "orb", "whistle"], "addFacets": ["utility_navigation"] },
     { "mod": "doggytalents", "classTokens": ["throwableitem", "frisbeeitem", "droolboneitem", "frisbeedroolitem", "energizerstickitem"], "pathTokens": ["frisbee"], "addFacets": ["utility_tool"] },
     { "mod": "doggytalents", "classTokens": ["treatitem", "scenttreatitem", "droolscenttreatitem"], "pathTokens": ["treat"], "category": "food", "subcategory": "prepared" },

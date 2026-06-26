@@ -19,6 +19,22 @@ without winning the ontology category.
 
 Representative stack variants are an indexing/presentation concern, not a
 
+### 2026-06-26: Doggy Talents Dog Wearables Prefer Animal Armor Over Player Curios
+
+Follow-up review of the Synesthesia `doggytalents` dump showed the earlier
+focused compat rule was still too weak for the style/accessory family. Items
+such as `snorkel`, `flatcap`, `radio_collar`, `plague_doctor_mask`, and the
+other DTN style costumes are wearable by dogs, not by players, but they were
+resolving into `armor/curios` or `armor/head` because the mod-owned classes
+exposed generic curio/equipment facts.
+
+AMI now treats the stable Doggy Talents dog-wearable classes as
+`ARMOR_ANIMAL`, and the compat override removes conflicting player-armor facets
+such as `CURIO` and `ARMOR_HEAD`. This keeps the fix scoped to the mod-owned
+Doggy Talents API surface instead of broadening global Curios logic. Utility
+items, treats, furniture, and artifacts continue to use their focused compat
+rules.
+
 ### 2026-06-24: Industrial Foregoing Infinity Tools Stop Losing To Fluid-Container Misc
 
 `industrialforegoing` still had a repeated visible-`Misc` family in the Cobblemon
