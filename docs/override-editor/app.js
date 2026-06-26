@@ -62,6 +62,8 @@ function rebuild() {
   state.items = mergeForEditing(state.dump, state.overrides);
   if (!table) initGrid();
   populateFilterOptions();
+  initTomSelect();
+  refreshTomSelectOptions();
   refreshGrid();
   refreshIssues();
   el("download").disabled = false;
@@ -118,9 +120,14 @@ function openSingleEdit(item) {
     dialog.style.top  = dialogPos.top  + "px";
   }
 
-  // Populated by plain <select> until Task 6 adds Tom Select
-  el("se-cat").value     = item.edited.category    ?? "";
-  el("se-sub").value     = item.edited.subcategory ?? "";
+  if (tsCat) {
+    tsCat.setValue(item.edited.category    ?? "", true);
+    tsSub.setValue(item.edited.subcategory ?? "", true);
+    tsFacets.setValue(item.edited.facets   ?? [], true);
+  } else {
+    el("se-cat").value = item.edited.category    ?? "";
+    el("se-sub").value = item.edited.subcategory ?? "";
+  }
   el("se-tooltip").value = (item.edited.tooltipLines ?? []).join("\n");
 
   dialog.hidden = false;
@@ -132,14 +139,14 @@ el("filter-mod").addEventListener("change",  e => { state.filter.mod       = e.t
 el("filter-category").addEventListener("change", e => { state.filter.category = e.target.value; refreshGrid(); });
 el("filter-dirty-only").addEventListener("change", e => { state.filter.dirtyOnly = e.target.checked; refreshGrid(); });
 
-// ── Bulk edit (Tom Select values wired in Task 6) ─────────
+// ── Bulk edit ─────────────────────────────────────────────
 el("bulk-apply").addEventListener("click", () => {
   const selected = table ? table.getSelectedData().map(r => r._id) : [];
   applyBulkEdit(state.items, selected, {
-    category:    el("bulk-category").value    || null,
-    subcategory: el("bulk-subcategory").value || null,
-    addFacet:    el("bulk-add-facet").value   || null,
-    removeFacet: el("bulk-remove-facet").value || null,
+    category:    tsBulkCat         ? (tsBulkCat.getValue()         || null) : null,
+    subcategory: tsBulkSub         ? (tsBulkSub.getValue()         || null) : null,
+    addFacet:    tsBulkAddFacet    ? (tsBulkAddFacet.getValue()    || null) : null,
+    removeFacet: tsBulkRemoveFacet ? (tsBulkRemoveFacet.getValue() || null) : null,
   });
   refreshGrid();
   refreshIssues();
@@ -159,6 +166,54 @@ el("download").addEventListener("click", () => {
 function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"]/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+// ── Tom Select helpers ────────────────────────────────────
+function makeSingleTS(id, opts = []) {
+  return new TomSelect(`#${id}`, {
+    options: opts.map(v => ({ value: v, text: v })),
+    create: true,
+    allowEmptyOption: true,
+    maxOptions: 600,
+  });
+}
+
+function makeMultiTS(id, opts = []) {
+  return new TomSelect(`#${id}`, {
+    options: opts.map(v => ({ value: v, text: v })),
+    create: true,
+    plugins: ["remove_button"],
+    maxOptions: 600,
+  });
+}
+
+let tsCat = null, tsSub = null, tsFacets = null;
+let tsBulkCat = null, tsBulkSub = null, tsBulkAddFacet = null, tsBulkRemoveFacet = null;
+
+function dumpCategories()    { return [...new Set(state.items.map(i => i.edited.category).filter(Boolean))].sort(); }
+function dumpSubcategories() { return [...new Set(state.items.map(i => i.edited.subcategory).filter(Boolean))].sort(); }
+
+function initTomSelect() {
+  if (tsCat) return;
+  tsCat             = makeSingleTS("se-cat",            dumpCategories());
+  tsSub             = makeSingleTS("se-sub",            dumpSubcategories());
+  tsFacets          = makeMultiTS("se-facets",           KNOWN_FACETS);
+  tsBulkCat         = makeSingleTS("bulk-category",     dumpCategories());
+  tsBulkSub         = makeSingleTS("bulk-subcategory",  dumpSubcategories());
+  tsBulkAddFacet    = makeSingleTS("bulk-add-facet",    KNOWN_FACETS);
+  tsBulkRemoveFacet = makeSingleTS("bulk-remove-facet", KNOWN_FACETS);
+}
+
+function refreshTomSelectOptions() {
+  if (!tsCat) return;
+  const cats = dumpCategories();
+  const subs = dumpSubcategories();
+  [tsCat, tsBulkCat].forEach(ts => {
+    cats.forEach(v => { if (!ts.options[v]) ts.addOption({ value: v, text: v }); });
+  });
+  [tsSub, tsBulkSub].forEach(ts => {
+    subs.forEach(v => { if (!ts.options[v]) ts.addOption({ value: v, text: v }); });
+  });
 }
 
 // ── Dialog drag ───────────────────────────────────────────
@@ -200,8 +255,9 @@ function initDialog() {
 
   el("se-apply").addEventListener("click", () => {
     if (!currentEditItem) return;
-    currentEditItem.edited.category    = el("se-cat").value    || null;
-    currentEditItem.edited.subcategory = el("se-sub").value    || null;
+    currentEditItem.edited.category    = tsCat    ? (tsCat.getValue()    || null) : (el("se-cat").value    || null);
+    currentEditItem.edited.subcategory = tsSub    ? (tsSub.getValue()    || null) : (el("se-sub").value    || null);
+    if (tsFacets) currentEditItem.edited.facets = tsFacets.getValue();
     setTooltipLines(currentEditItem, el("se-tooltip").value);
     currentEditItem.dirty =
       JSON.stringify(currentEditItem.baseline) !== JSON.stringify(currentEditItem.edited);
