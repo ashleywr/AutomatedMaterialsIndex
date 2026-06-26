@@ -11,6 +11,18 @@ Browser-based editor for the `overrides.json` file that AMI loads from a modpack
 5. Click **Download overrides.json**, place it in `<instance>/config/ami/overrides.json`.
 6. In-game: `/ami reindex` (or restart) to apply.
 
+## Local development
+
+The tool uses ES modules and must be served over HTTP — opening `index.html` directly via `file://` is blocked by Chrome's CORS policy. Use a local server:
+
+```bash
+# from the repo root
+python -m http.server 8080 --directory docs/override-editor
+# then open http://localhost:8080
+```
+
+Or `npx serve docs/override-editor`. The GitHub Pages URL works without any extra steps.
+
 ## Notes
 
 - Pack overrides win over mod-shipped defaults — your file is the highest-priority layer.
