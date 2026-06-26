@@ -18,11 +18,13 @@ const setStatus = m => el("status").textContent = m;
 
 // ── Grid ──────────────────────────────────────────────────
 let table = null;
+let tableReady = false;
 
 function initGrid() {
   ({ table } = createGrid(el("grid-host"), {
     onSelect: id => openSingleEdit(state.items.find(i => i.id === id)),
     onSelectionChange: () => {},
+    onBuilt: () => { tableReady = true; refreshGrid(); },
   }));
 }
 
@@ -93,7 +95,7 @@ function applyFilters() {
 }
 
 function refreshGrid() {
-  if (!table) return;
+  if (!table || !tableReady) return;
   table.setData(applyFilters().map(toRow));
 }
 

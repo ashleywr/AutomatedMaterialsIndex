@@ -1,10 +1,11 @@
-export function createGrid(host, { onSelect, onSelectionChange }) {
+export function createGrid(host, { onSelect, onSelectionChange, onBuilt }) {
   const table = new Tabulator(host, {
     data: [],
     height: "100%",
     layout: "fitDataFill",
     renderVertical: "virtual",
     selectable: true,
+    tableBuilt() { if (onBuilt) onBuilt(); },
     rowFormatter(row) {
       const d = row.getData();
       const el = row.getElement();
