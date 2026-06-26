@@ -18,10 +18,14 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class ClassificationOverrides {
+    public static final int SUPPORTED_SCHEMA_VERSION = 1;
+
     private static volatile Map<String, ClassificationOverride> itemOverrides = Map.of();
     private static volatile Map<String, List<ModPatternRule>> modPatternRules = Map.of();
+    private static final Set<Integer> WARNED_VERSIONS = ConcurrentHashMap.newKeySet();
 
     private ClassificationOverrides() {
     }
@@ -35,6 +39,24 @@ public final class ClassificationOverrides {
     public static void clear() {
         itemOverrides = Map.of();
         modPatternRules = Map.of();
+        WARNED_VERSIONS.clear();
+    }
+
+    private static void warnIfFutureSchemaVersion(JsonObject root) {
+        if (!root.has("schemaVersion") || !root.get("schemaVersion").isJsonPrimitive()) {
+            return;
+        }
+        int version;
+        try {
+            version = root.get("schemaVersion").getAsInt();
+        } catch (RuntimeException ignored) {
+            return;
+        }
+        if (version > SUPPORTED_SCHEMA_VERSION && WARNED_VERSIONS.add(version)) {
+            org.slf4j.LoggerFactory.getLogger("ami").warn(
+                    "Classification override file declares schemaVersion={} but this AMI build supports up to {}; unknown fields will be ignored. Update AMI to pick up newer override features.",
+                    version, SUPPORTED_SCHEMA_VERSION);
+        }
     }
 
     public static Optional<ClassificationOverride> forItem(ResourceLocation id) {
@@ -141,6 +163,7 @@ public final class ClassificationOverrides {
             JsonElement parsed = JsonParser.parseString(json);
             if (parsed.isJsonObject()) {
                 JsonObject root = parsed.getAsJsonObject();
+                warnIfFutureSchemaVersion(root);
                 Map<String, ClassificationOverride> newItems = new LinkedHashMap<>();
                 Map<String, List<ModPatternRule>> newPatterns = new LinkedHashMap<>();
                 parseItems(root, newItems);
@@ -164,6 +187,7 @@ public final class ClassificationOverrides {
             JsonElement parsed = JsonParser.parseString(json);
             if (parsed.isJsonObject()) {
                 JsonObject root = parsed.getAsJsonObject();
+                warnIfFutureSchemaVersion(root);
                 parseItems(root, items);
                 parsePatterns(root, patterns);
             }
