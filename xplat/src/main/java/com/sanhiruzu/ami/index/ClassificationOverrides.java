@@ -131,6 +131,32 @@ public final class ClassificationOverrides {
         }
     }
 
+    public static void mergeAndInstall(String json) {
+        Map<String, ClassificationOverride> items = new LinkedHashMap<>(itemOverrides);
+        Map<String, List<ModPatternRule>> patterns = new LinkedHashMap<>();
+        for (Map.Entry<String, List<ModPatternRule>> e : modPatternRules.entrySet()) {
+            patterns.put(e.getKey(), new ArrayList<>(e.getValue()));
+        }
+        try {
+            JsonElement parsed = JsonParser.parseString(json);
+            if (parsed.isJsonObject()) {
+                JsonObject root = parsed.getAsJsonObject();
+                Map<String, ClassificationOverride> newItems = new LinkedHashMap<>();
+                Map<String, List<ModPatternRule>> newPatterns = new LinkedHashMap<>();
+                parseItems(root, newItems);
+                parsePatterns(root, newPatterns);
+                items.putAll(newItems);
+                for (Map.Entry<String, List<ModPatternRule>> e : newPatterns.entrySet()) {
+                    List<ModPatternRule> existing = patterns.computeIfAbsent(e.getKey(), k -> new ArrayList<>());
+                    existing.addAll(0, e.getValue());  // prepend: pack patterns win
+                }
+            }
+        } catch (RuntimeException ignored) {
+            // Malformed pack override JSON must never break indexing; bundled state is preserved.
+        }
+        install(items, patterns);
+    }
+
     public static void parseAndInstall(String json) {
         Map<String, ClassificationOverride> items = new LinkedHashMap<>();
         Map<String, List<ModPatternRule>> patterns = new LinkedHashMap<>();
