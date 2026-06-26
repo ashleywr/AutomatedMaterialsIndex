@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "items": {
+    "modid:gizmo": { "category": "tools", "subcategory": "fancy", "tooltipLines": ["Crafted with love"] }
+  },
+  "modPatterns": []
+}

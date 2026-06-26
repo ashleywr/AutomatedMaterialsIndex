@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "id": "minecraft:diamond_sword",
+      "mod": "minecraft",
+      "className": "net.minecraft.world.item.SwordItem",
+      "displayName": "Diamond Sword",
+      "creativeTabs": ["Combat"],
+      "currentCategory": "weapons",
+      "currentSubcategory": "melee",
+      "currentFacets": ["melee_weapon"]
+    },
+    {
+      "id": "modid:gizmo",
+      "mod": "modid",
+      "className": "modid.GizmoItem",
+      "displayName": "Gizmo",
+      "creativeTabs": ["Tools"],
+      "currentCategory": "tools",
+      "currentSubcategory": "misc",
+      "currentFacets": []
+    }
+  ]
+}
