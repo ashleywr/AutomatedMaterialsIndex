@@ -4,7 +4,7 @@ Browser-based editor for the `overrides.json` file that AMI loads from a modpack
 
 ## Use it
 
-1. In-game: run `/ami dump-registry`. Look in `<instance>/ami_dumps/registry/registry-dump.json`.
+1. In-game: run `/ami dump`. Look in `<instance>/ami_dumps/registry/registry-dump.json`.
 2. Open https://<your-github-username>.github.io/<repo>/override-editor/.
 3. Drop in `registry-dump.json`. Optionally drop in an existing `overrides.json` to keep editing.
 4. Filter / select / bulk-edit. Per-item edits via row click.
