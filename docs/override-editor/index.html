@@ -3,7 +3,11 @@
 <head>
   <meta charset="utf-8">
   <title>AMI Override Editor</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tabulator-tables@6.2.5/dist/css/tabulator.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.min.css">
   <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 </head>
 <body>
   <header>
@@ -29,19 +33,30 @@
 
   <section id="bulk">
     <strong>Bulk edit selected:</strong>
-    <input id="bulk-category" placeholder="Set category">
-    <input id="bulk-subcategory" placeholder="Set subcategory">
-    <input id="bulk-add-facet" placeholder="Add facet">
-    <input id="bulk-remove-facet" placeholder="Remove facet">
+    <div class="bulk-field"><label>Category</label><select id="bulk-category"></select></div>
+    <div class="bulk-field"><label>Subcategory</label><select id="bulk-subcategory"></select></div>
+    <div class="bulk-field"><label>Add facet</label><select id="bulk-add-facet"></select></div>
+    <div class="bulk-field"><label>Remove facet</label><select id="bulk-remove-facet"></select></div>
     <button id="bulk-apply">Apply to selected</button>
   </section>
 
   <main id="grid-host"></main>
 
-  <aside id="single-edit" hidden>
-    <h2>Edit item</h2>
-    <div id="single-edit-body"></div>
-  </aside>
+  <div id="single-edit" hidden>
+    <div id="se-titlebar">
+      <span id="se-title">Edit item</span>
+      <button id="se-close" aria-label="Close">&#x2715;</button>
+    </div>
+    <div id="se-body">
+      <div class="se-row"><label>Category</label><select id="se-cat"></select></div>
+      <div class="se-row"><label>Subcategory</label><select id="se-sub"></select></div>
+      <div class="se-row"><label>Facets</label><select id="se-facets" multiple></select></div>
+      <div class="se-row"><label>Tooltip lines (one per line)</label><textarea id="se-tooltip" rows="4"></textarea></div>
+    </div>
+    <div id="se-footer">
+      <button id="se-apply">Apply</button>
+    </div>
+  </div>
 
   <footer>
     <button id="download" disabled>Download overrides.json</button>
