@@ -1,7 +1,19 @@
 package net.minecraft.network.chat;
 
-public interface MutableComponent extends Component {
-    MutableComponent copy();
+public abstract class MutableComponent implements Component {
+    public abstract MutableComponent copy();
 
-    MutableComponent withStyle(java.util.function.UnaryOperator<Style> style);
+    public abstract MutableComponent withStyle(java.util.function.UnaryOperator<Style> style);
+
+    public MutableComponent withStyle(net.minecraft.ChatFormatting... formats) {
+        return this;
+    }
+
+    public MutableComponent withStyle(net.minecraft.ChatFormatting format) {
+        return this;
+    }
+
+    public MutableComponent withStyle(Style style) {
+        return this;
+    }
 }

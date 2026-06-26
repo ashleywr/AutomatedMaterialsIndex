@@ -274,7 +274,7 @@ public class ResultsProcessorTest {
                 item("stone", "Stone", Map.of())
         ));
 
-        assertEquals(List.of("Bulbasaur", "Charizard", "Aardvark", "Stone"), leafLabels(root));
+        assertEquals(List.of("Stone", "Bulbasaur", "Charizard", "Aardvark"), leafLabels(root));
     }
 
     @Test

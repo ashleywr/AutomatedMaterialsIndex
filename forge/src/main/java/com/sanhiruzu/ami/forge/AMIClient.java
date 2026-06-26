@@ -104,6 +104,7 @@ public class AMIClient {
         @SubscribeEvent(priority = EventPriority.LOWEST)
         public static void onItemTooltip(net.minecraftforge.event.entity.player.ItemTooltipEvent event) {
             com.sanhiruzu.ami.client.AmiTooltipHandler.appendTooltip(event.getItemStack(), event.getToolTip());
+            com.sanhiruzu.ami.client.ClassificationOverrideTooltipAppender.appendTo(event.getItemStack(), event.getToolTip());
         }
     }
 }
