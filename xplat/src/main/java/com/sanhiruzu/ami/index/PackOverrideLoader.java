@@ -18,6 +18,10 @@ public final class PackOverrideLoader {
 
     private PackOverrideLoader() {}
 
+    public static LoadResult load() {
+        return loadFrom(com.sanhiruzu.ami.platform.Services.PLATFORM.getGameDir().resolve("config"));
+    }
+
     public static LoadResult loadFrom(Path configDir) {
         Path file = configDir.resolve(RELATIVE_PATH);
         if (!Files.exists(file)) {

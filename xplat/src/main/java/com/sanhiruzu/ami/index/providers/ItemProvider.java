@@ -661,6 +661,12 @@ public class ItemProvider implements IAmiDataProvider {
 
     private void populateItems(GlobalIndex index, @Nullable Level level, ItemIndexPass pass) {
         ClassificationOverrides.loadBundledDefaults();
+        PackOverrideLoader.LoadResult packResult = PackOverrideLoader.load();
+        if (packResult.fileFound() && !packResult.parseOk()) {
+            // Surface bad pack-override JSON in the log without breaking indexing.
+            org.slf4j.LoggerFactory.getLogger("ami").warn(
+                "Pack override file at config/ami/overrides.json failed to parse: {}", packResult.errorMessage());
+        }
         long started = System.currentTimeMillis();
         long setupStart = started;
         ItemProviderCompatHooks.clearDisabledCompatHooks();
