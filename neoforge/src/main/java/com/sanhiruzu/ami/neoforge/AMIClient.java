@@ -123,6 +123,7 @@ public class AMIClient {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     static void onItemTooltip(net.neoforged.neoforge.event.entity.player.ItemTooltipEvent event) {
         com.sanhiruzu.ami.client.AmiTooltipHandler.appendTooltip(event.getItemStack(), event.getToolTip());
+        com.sanhiruzu.ami.client.ClassificationOverrideTooltipAppender.appendTo(event.getItemStack(), event.getToolTip());
     }
 
     @SubscribeEvent

@@ -23,7 +23,7 @@ public interface Component {
         return Style.EMPTY;
     }
 
-    class DummyComponent implements MutableComponent {
+    class DummyComponent extends MutableComponent {
         private final String text;
 
         public DummyComponent(String text) {

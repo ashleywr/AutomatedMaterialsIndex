@@ -67,6 +67,12 @@ public class AmiClientCommands {
                             return 1;
                         })
                 )
+                .then(Commands.literal("dump-registry")
+                        .executes(context -> {
+                            exportRegistryDump(context.getSource());
+                            return 1;
+                        })
+                )
                 .then(Commands.literal("reindex")
                         .executes(context -> {
                             invalidateAndRebuildIndex(context.getSource());
@@ -208,6 +214,23 @@ public class AmiClientCommands {
         } catch (Exception e) {
             AMI.LOGGER.error("Failed to export AMI recipe viewer item audit", e);
             source.sendSystemMessage(Component.literal("Failed to export AMI recipe viewer item audit: " + e.getMessage())
+                    .withStyle(ChatFormatting.RED));
+        }
+    }
+
+    private static void exportRegistryDump(CommandSourceStack source) {
+        Path dumpDir = dumpDir("registry");
+        try {
+            Files.createDirectories(dumpDir);
+            Path out = dumpDir.resolve("registry-dump.json");
+            int count = RegistryDumpWriter.writeJson(out,
+                    RegistryDumpWriter.collectFromRuntime(net.minecraft.client.Minecraft.getInstance().level));
+            source.sendSystemMessage(Component.literal(
+                    "AMI registry dump written to " + out.toAbsolutePath() + " (" + count + " items)")
+                    .withStyle(ChatFormatting.GREEN));
+        } catch (Exception e) {
+            AMI.LOGGER.error("Failed to export AMI registry dump", e);
+            source.sendSystemMessage(Component.literal("Failed to export AMI registry dump: " + e.getMessage())
                     .withStyle(ChatFormatting.RED));
         }
     }

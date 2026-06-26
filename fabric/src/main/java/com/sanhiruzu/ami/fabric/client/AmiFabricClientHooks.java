@@ -146,6 +146,10 @@ public final class AmiFabricClientHooks {
 
     private static void registerTooltipEvents() {
         ItemTooltipCallback.EVENT.register((stack, tooltipContext, tooltipType, lines) -> {
+            com.sanhiruzu.ami.client.ClassificationOverrideTooltipAppender.appendTo(stack, lines);
+        });
+
+        ItemTooltipCallback.EVENT.register((stack, tooltipContext, tooltipType, lines) -> {
             if (!AmiConfig.devMode && !AmiConfig.showTooltipTags) return;
             if (stack.isEmpty()) return;
 
