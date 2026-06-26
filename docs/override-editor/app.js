@@ -121,18 +121,15 @@ function openSingleEdit(item) {
     dialog.style.left = dialogPos.left + "px";
     dialog.style.top  = dialogPos.top  + "px";
   }
-
-  if (tsCat) {
-    tsCat.setValue(item.edited.category    ?? "", true);
-    tsSub.setValue(item.edited.subcategory ?? "", true);
-    tsFacets.setValue(item.edited.facets   ?? [], true);
-  } else {
-    el("se-cat").value = item.edited.category    ?? "";
-    el("se-sub").value = item.edited.subcategory ?? "";
-  }
-  el("se-tooltip").value = (item.edited.tooltipLines ?? []).join("\n");
-
   dialog.hidden = false;
+
+  // Tom Select needs the element visible before init
+  initDialogTomSelect();
+
+  tsCat.setValue(item.edited.category    ?? "", true);
+  tsSub.setValue(item.edited.subcategory ?? "", true);
+  tsFacets.setValue(item.edited.facets   ?? [], true);
+  el("se-tooltip").value = (item.edited.tooltipLines ?? []).join("\n");
 }
 
 // ── Filters ───────────────────────────────────────────────
@@ -196,25 +193,29 @@ function dumpCategories()    { return [...new Set(state.items.map(i => i.edited.
 function dumpSubcategories() { return [...new Set(state.items.map(i => i.edited.subcategory).filter(Boolean))].sort(); }
 
 function initTomSelect() {
-  if (tsCat) return;
-  tsCat             = makeSingleTS("se-cat",            dumpCategories());
-  tsSub             = makeSingleTS("se-sub",            dumpSubcategories());
-  tsFacets          = makeMultiTS("se-facets",           KNOWN_FACETS);
+  if (tsBulkCat) return;
   tsBulkCat         = makeSingleTS("bulk-category",     dumpCategories());
   tsBulkSub         = makeSingleTS("bulk-subcategory",  dumpSubcategories());
   tsBulkAddFacet    = makeSingleTS("bulk-add-facet",    KNOWN_FACETS);
   tsBulkRemoveFacet = makeSingleTS("bulk-remove-facet", KNOWN_FACETS);
 }
 
+function initDialogTomSelect() {
+  if (tsCat) return;
+  tsCat    = makeSingleTS("se-cat",    dumpCategories());
+  tsSub    = makeSingleTS("se-sub",    dumpSubcategories());
+  tsFacets = makeMultiTS("se-facets",  KNOWN_FACETS);
+}
+
 function refreshTomSelectOptions() {
-  if (!tsCat) return;
+  if (!tsBulkCat) return;
   const cats = dumpCategories();
   const subs = dumpSubcategories();
-  [tsCat, tsBulkCat].forEach(ts => {
+  [tsBulkCat, ...(tsCat ? [tsCat] : [])].forEach(ts => {
     ts.clearOptions();
     cats.forEach(v => ts.addOption({ value: v, text: v }));
   });
-  [tsSub, tsBulkSub].forEach(ts => {
+  [tsBulkSub, ...(tsSub ? [tsSub] : [])].forEach(ts => {
     ts.clearOptions();
     subs.forEach(v => ts.addOption({ value: v, text: v }));
   });
@@ -259,9 +260,9 @@ function initDialog() {
 
   el("se-apply").addEventListener("click", () => {
     if (!currentEditItem) return;
-    currentEditItem.edited.category    = tsCat    ? (tsCat.getValue()    || null) : (el("se-cat").value    || null);
-    currentEditItem.edited.subcategory = tsSub    ? (tsSub.getValue()    || null) : (el("se-sub").value    || null);
-    if (tsFacets) currentEditItem.edited.facets = tsFacets.getValue();
+    currentEditItem.edited.category    = tsCat.getValue()    || null;
+    currentEditItem.edited.subcategory = tsSub.getValue()    || null;
+    currentEditItem.edited.facets      = tsFacets.getValue();
     setTooltipLines(currentEditItem, el("se-tooltip").value);
     const b = currentEditItem.baseline, e = currentEditItem.edited;
     const bFacets = [...(b.facets ?? [])].sort().join("\0");
