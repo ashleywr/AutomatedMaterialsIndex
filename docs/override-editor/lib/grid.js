@@ -5,7 +5,6 @@ export function createGrid(host, { onSelect, onSelectionChange, onBuilt }) {
     layout: "fitDataFill",
     renderVertical: "virtual",
     selectable: true,
-    tableBuilt() { if (onBuilt) onBuilt(); },
     rowFormatter(row) {
       const d = row.getData();
       const el = row.getElement();
@@ -36,6 +35,7 @@ export function createGrid(host, { onSelect, onSelectionChange, onBuilt }) {
       { title: "Tips",        field: "tooltipCount",     sorter: "number", width: 55, hozAlign: "center" },
     ],
   });
+  if (onBuilt) table.on("tableBuilt", onBuilt);
   return { table };
 }
 
