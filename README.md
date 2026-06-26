@@ -71,6 +71,10 @@ If dependencies stop resolving cleanly, refresh them and rebuild:
 We use Mojang's official mappings. You can find the license for those here:
 https://github.com/NeoForged/NeoForm/blob/main/Mojang.md
 
+## Pack Override Editor
+
+A browser-based editor for `overrides.json` lives in [`docs/override-editor/`](docs/override-editor/README.md) and is served via GitHub Pages.
+
 ## Resources
 
 - [NeoForged Docs](https://docs.neoforged.net/)
