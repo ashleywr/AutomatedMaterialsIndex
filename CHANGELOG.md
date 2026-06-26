@@ -4,6 +4,13 @@ User-facing changes are recorded here.
 
 ## 1.8.0 - Unreleased
 
+### Added
+
+- Added `/ami dump-registry` command emitting `registry-dump.json` for tooling.
+- Added pack override layer: drop `config/ami/overrides.json` into a modpack; its edits win over mod-shipped defaults and survive reindex.
+- Added custom tooltip lines to the classification override schema.
+- Added browser-based override editor served via GitHub Pages (`docs/override-editor/`).
+
 ### Changed
 
 - Bumped the AMI minor release line to 1.8.0 for upcoming cross-loader feature and compat work.
