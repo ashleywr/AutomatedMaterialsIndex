@@ -105,7 +105,7 @@ function refreshIssues() {
   ).join("");
 }
 
-// ── Single-edit dialog (stub — Tom Select wired in Task 6) ─
+// ── Single-edit dialog ────────────────────────────────────
 let currentEditItem = null;
 
 function openSingleEdit(item) {
@@ -209,10 +209,12 @@ function refreshTomSelectOptions() {
   const cats = dumpCategories();
   const subs = dumpSubcategories();
   [tsCat, tsBulkCat].forEach(ts => {
-    cats.forEach(v => { if (!ts.options[v]) ts.addOption({ value: v, text: v }); });
+    ts.clearOptions();
+    cats.forEach(v => ts.addOption({ value: v, text: v }));
   });
   [tsSub, tsBulkSub].forEach(ts => {
-    subs.forEach(v => { if (!ts.options[v]) ts.addOption({ value: v, text: v }); });
+    ts.clearOptions();
+    subs.forEach(v => ts.addOption({ value: v, text: v }));
   });
 }
 
@@ -259,8 +261,14 @@ function initDialog() {
     currentEditItem.edited.subcategory = tsSub    ? (tsSub.getValue()    || null) : (el("se-sub").value    || null);
     if (tsFacets) currentEditItem.edited.facets = tsFacets.getValue();
     setTooltipLines(currentEditItem, el("se-tooltip").value);
+    const b = currentEditItem.baseline, e = currentEditItem.edited;
+    const bFacets = [...(b.facets ?? [])].sort().join("\0");
+    const eFacets = [...(e.facets ?? [])].sort().join("\0");
     currentEditItem.dirty =
-      JSON.stringify(currentEditItem.baseline) !== JSON.stringify(currentEditItem.edited);
+      (b.category ?? null) !== (e.category ?? null) ||
+      (b.subcategory ?? null) !== (e.subcategory ?? null) ||
+      bFacets !== eFacets ||
+      JSON.stringify(b.tooltipLines ?? []) !== JSON.stringify(e.tooltipLines ?? []);
     refreshGrid();
     refreshIssues();
   });
