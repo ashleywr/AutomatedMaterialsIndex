@@ -30,67 +30,74 @@ public class AmiClientCommands {
     public static void onClientCommandsRegister(RegisterClientCommandsEvent event) {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
 
-        LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("ami")
-                .then(Commands.literal("dump-search-nodes")
+        LiteralArgumentBuilder<CommandSourceStack> dumpCmd = Commands.literal("dump")
+                .executes(context -> {
+                    exportRegistryDump(context.getSource());
+                    return 1;
+                })
+                .then(Commands.literal("all")
+                        .executes(context -> {
+                            dumpAll(context.getSource());
+                            return 1;
+                        })
+                )
+                .then(Commands.literal("tree")
+                        .executes(context -> {
+                            exportResultsTree(context.getSource(), "");
+                            return 1;
+                        })
+                        .then(Commands.argument("query", StringArgumentType.greedyString())
+                                .executes(context -> {
+                                    exportResultsTree(context.getSource(), StringArgumentType.getString(context, "query"));
+                                    return 1;
+                                })
+                        )
+                )
+                .then(Commands.literal("search-nodes")
                         .executes(context -> {
                             exportSearchNodes(context.getSource());
                             return 1;
                         })
                 )
-                .then(Commands.literal("dump-guide-docs")
+                .then(Commands.literal("guide-docs")
                         .executes(context -> {
                             exportGuideDocs(context.getSource());
                             return 1;
                         })
                 )
-                .then(Commands.literal("dump-recipes")
+                .then(Commands.literal("recipes")
                         .executes(context -> {
                             exportRuntimeRecipes(context.getSource());
                             return 1;
                         })
                 )
-                .then(Commands.literal("dump-loot-tables")
+                .then(Commands.literal("loot-tables")
                         .executes(context -> {
                             exportLootTables(context.getSource());
                             return 1;
                         })
                 )
-                .then(Commands.literal("dump-recipe-viewer-items")
+                .then(Commands.literal("recipe-viewer-items")
                         .executes(context -> {
                             exportRecipeViewerItemAudit(context.getSource());
                             return 1;
                         })
                 )
-                .then(Commands.literal("dump-recipe-viewer-recipes")
+                .then(Commands.literal("recipe-viewer-recipes")
                         .executes(context -> {
                             exportRecipeViewerRecipes(context.getSource());
                             return 1;
                         })
-                )
-                .then(Commands.literal("dump-registry")
-                        .executes(context -> {
-                            exportRegistryDump(context.getSource());
-                            return 1;
-                        })
-                )
+                );
+
+        LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("ami")
+                .then(dumpCmd)
                 .then(Commands.literal("reindex")
                         .executes(context -> {
                             invalidateAndRebuildIndex(context.getSource());
                             return 1;
                         })
                 );
-
-        cmd.then(Commands.literal("dump-results-tree")
-                .executes(context -> {
-                    exportResultsTree(context.getSource(), "");
-                    return 1;
-                })
-                .then(Commands.argument("query", StringArgumentType.greedyString())
-                        .executes(context -> {
-                            exportResultsTree(context.getSource(), StringArgumentType.getString(context, "query"));
-                            return 1;
-                        }))
-        );
 
         dispatcher.register(cmd);
     }
@@ -289,6 +296,17 @@ public class AmiClientCommands {
     private static void invalidateRuntimeCaches() {
         RendererRegistry.invalidateAll();
         EntityIconCache.invalidateAndPurgePersistentCache();
+    }
+
+    private static void dumpAll(CommandSourceStack source) {
+        exportRegistryDump(source);
+        exportSearchNodes(source);
+        exportGuideDocs(source);
+        exportRuntimeRecipes(source);
+        exportLootTables(source);
+        exportRecipeViewerItemAudit(source);
+        exportRecipeViewerRecipes(source);
+        exportResultsTree(source, "");
     }
 
     private static String buildResultsTreeDump(String query) {

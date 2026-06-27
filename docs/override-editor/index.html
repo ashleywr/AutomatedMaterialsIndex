@@ -11,56 +11,49 @@
 <body>
   <header>
     <h1>AMI Override Editor</h1>
+    <label class="file-label">Dump <input type="file" id="dump-input" accept="application/json"></label>
+    <label class="file-label">Overrides <input type="file" id="overrides-input" accept="application/json"></label>
     <div id="status">No files loaded.</div>
+    <button id="download" disabled>Download overrides.json</button>
   </header>
 
-  <section id="load">
-    <label>Registry dump (registry-dump.json):
-      <input type="file" id="dump-input" accept="application/json">
-    </label>
-    <label>Existing overrides (optional, overrides.json):
-      <input type="file" id="overrides-input" accept="application/json">
-    </label>
-  </section>
+  <div id="main">
+    <nav id="tree-panel">
+      <p class="tree-empty">Load a dump to see the classification tree.</p>
+    </nav>
 
-  <section id="filters">
-    <input id="filter-text" type="search" placeholder="Filter by id / display name / mod">
-    <select id="filter-mod"><option value="">(all mods)</option></select>
-    <select id="filter-category"><option value="">(all categories)</option></select>
-    <label><input type="checkbox" id="filter-dirty-only"> Show edited only</label>
-  </section>
-
-  <section id="bulk">
-    <strong>Bulk edit selected:</strong>
-    <div class="bulk-field"><label>Category</label><select id="bulk-category"></select></div>
-    <div class="bulk-field"><label>Subcategory</label><select id="bulk-subcategory"></select></div>
-    <div class="bulk-field"><label>Add facet</label><select id="bulk-add-facet"></select></div>
-    <div class="bulk-field"><label>Remove facet</label><select id="bulk-remove-facet"></select></div>
-    <button id="bulk-apply">Apply to selected</button>
-  </section>
-
-  <main id="grid-host"></main>
-
-  <div id="single-edit" hidden>
-    <div id="se-titlebar">
-      <span id="se-title">Edit item</span>
-      <button id="se-close" aria-label="Close">&#x2715;</button>
-    </div>
-    <div id="se-body">
-      <div class="se-row"><label>Category</label><select id="se-cat"></select></div>
-      <div class="se-row"><label>Subcategory</label><select id="se-sub"></select></div>
-      <div class="se-row"><label>Facets</label><select id="se-facets" multiple></select></div>
-      <div class="se-row"><label>Tooltip lines (one per line)</label><textarea id="se-tooltip" rows="4"></textarea></div>
-    </div>
-    <div id="se-footer">
-      <button id="se-apply">Apply</button>
+    <div id="content-panel">
+      <div id="toolbar">
+        <input id="filter-text" type="search" placeholder="Search id / name / mod…">
+        <label class="check-label"><input type="checkbox" id="filter-dirty-only"> Edited only</label>
+        <div id="issues"></div>
+      </div>
+      <div id="grid-host"></div>
+      <div id="action-bar" hidden>
+        <span id="sel-count"></span>
+        <span class="action-sep">→ Move to:</span>
+        <select id="move-cat"></select>
+        <select id="move-sub"></select>
+        <button id="move-apply">Move</button>
+        <button id="sel-clear">Clear</button>
+      </div>
     </div>
   </div>
 
-  <footer>
-    <button id="download" disabled>Download overrides.json</button>
-    <div id="issues"></div>
-  </footer>
+  <!-- Facets + tooltip edit dialog (rare; opened via ✎ button) -->
+  <div id="item-edit" hidden>
+    <div id="ie-titlebar">
+      <span id="ie-title">Edit item</span>
+      <button id="ie-close">&#x2715;</button>
+    </div>
+    <div id="ie-body">
+      <div class="ie-row"><label>Facets</label><select id="ie-facets" multiple></select></div>
+      <div class="ie-row"><label>Tooltip lines (one per line)</label><textarea id="ie-tooltip" rows="5"></textarea></div>
+    </div>
+    <div id="ie-footer">
+      <button id="ie-apply">Apply</button>
+    </div>
+  </div>
 
   <script type="module" src="app.js"></script>
 </body>

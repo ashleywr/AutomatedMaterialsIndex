@@ -2,11 +2,11 @@
 
 User-facing changes are recorded here.
 
-## 1.8.0 - Unreleased
+## 1.8.0 - 2026-06-27
 
 ### Added
 
-- Added `/ami dump-registry` command emitting `registry-dump.json` for tooling.
+- Added `/ami dump` command (exports registry dump for override editor) and subcommands: `/ami dump [tree|search-nodes|guide-docs|recipe-viewer-items|all]`.
 - Added pack override layer: drop `config/ami/overrides.json` into a modpack; its edits win over mod-shipped defaults and survive reindex.
 - Added custom tooltip lines to the classification override schema.
 - Added browser-based override editor served via GitHub Pages (`docs/override-editor/`).
