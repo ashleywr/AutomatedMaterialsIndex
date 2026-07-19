@@ -2,6 +2,12 @@
 
 User-facing changes are recorded here.
 
+## 1.8.1 - 2026-07-19
+
+### Fixed
+
+- Fixed `/ami dump` commands (`recipe-viewer-items`, `recipe-viewer-recipes`, and `all`) crashing with `NoClassDefFoundError` when only one of EMI or JEI was installed instead of both. Each recipe viewer's dump code is now isolated so it's only touched when that specific mod is present.
+
 ## 1.8.0 - 2026-06-27
 
 ### Added
