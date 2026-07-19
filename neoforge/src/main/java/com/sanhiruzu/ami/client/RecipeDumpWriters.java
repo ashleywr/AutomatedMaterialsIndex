@@ -6,19 +6,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.sanhiruzu.ami.compat.JeiRuntimeAccessor;
 import com.sanhiruzu.ami.index.providers.CreativeStackVariantExpander;
 import com.sanhiruzu.ami.platform.Services;
-import dev.emi.emi.api.EmiApi;
-import dev.emi.emi.api.recipe.EmiRecipe;
-import dev.emi.emi.api.recipe.EmiRecipeCategory;
-import dev.emi.emi.api.stack.EmiIngredient;
-import dev.emi.emi.api.stack.EmiStack;
-import mezz.jei.api.ingredients.IIngredientSupplier;
-import mezz.jei.api.ingredients.ITypedIngredient;
-import mezz.jei.api.recipe.IRecipeManager;
-import mezz.jei.api.recipe.RecipeIngredientRole;
-import mezz.jei.api.recipe.category.IRecipeCategory;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
@@ -98,8 +87,12 @@ final class RecipeDumpWriters {
         Files.createDirectories(dumpDir);
 
         List<ViewerDatasetOutput> outputs = new ArrayList<>();
-        outputs.addAll(writeEmiViewerRecipes(dumpDir, level));
-        outputs.addAll(writeJeiViewerRecipes(dumpDir, level));
+        if (Services.PLATFORM.isModLoaded("emi")) {
+            outputs.addAll(EmiRecipeDumpBridge.writeRecipes(dumpDir, level));
+        }
+        if (Services.PLATFORM.isModLoaded("jei")) {
+            outputs.addAll(JeiRecipeDumpBridge.writeRecipes(dumpDir, level));
+        }
 
         int total = outputs.stream().mapToInt(ViewerDatasetOutput::recipeCount).sum();
         Path meta = dumpDir.resolve(VIEWER_META_FILE);
@@ -177,24 +170,6 @@ final class RecipeDumpWriters {
         return snapshots;
     }
 
-    private static List<ViewerDatasetOutput> writeEmiViewerRecipes(Path dumpDir, Level level) throws IOException {
-        if (!Services.PLATFORM.isModLoaded("emi")) {
-            return List.of();
-        }
-
-        List<ViewerRecipeSnapshot> snapshots = new ArrayList<>();
-        for (EmiRecipe recipe : EmiApi.getRecipeManager().getRecipes()) {
-            snapshots.add(emiRecipeSnapshot(recipe, level));
-        }
-        snapshots.sort(Comparator.comparing(ViewerRecipeSnapshot::categoryId)
-                .thenComparing(ViewerRecipeSnapshot::recipeId)
-                .thenComparing(ViewerRecipeSnapshot::recipeClass));
-
-        Path out = dumpDir.resolve(viewerDumpFileName("emi", "all"));
-        writeJsonl(out, snapshots);
-        return List.of(new ViewerDatasetOutput("emi", "all", out.getFileName().toString(), snapshots.size()));
-    }
-
     private static List<LootTableSnapshot> collectLootTables() {
         ResourceManager resourceManager = resourceManager();
         if (resourceManager == null) {
@@ -244,189 +219,7 @@ final class RecipeDumpWriters {
         }
     }
 
-    private static List<ViewerDatasetOutput> writeJeiViewerRecipes(Path dumpDir, Level level) throws IOException {
-        return JeiRuntimeAccessor.withRuntime(runtime -> {
-            try {
-                IRecipeManager recipeManager = runtime.getRecipeManager();
-                List<ViewerDatasetOutput> outputs = new ArrayList<>();
-
-                List<ViewerRecipeSnapshot> visible = collectJeiRecipes(recipeManager, level, false);
-                Path visibleOut = dumpDir.resolve(viewerDumpFileName("jei", "visible"));
-                writeJsonl(visibleOut, visible);
-                outputs.add(new ViewerDatasetOutput("jei", "visible", visibleOut.getFileName().toString(), visible.size()));
-
-                List<ViewerRecipeSnapshot> all = collectJeiRecipes(recipeManager, level, true);
-                Path allOut = dumpDir.resolve(viewerDumpFileName("jei", "all"));
-                writeJsonl(allOut, all);
-                outputs.add(new ViewerDatasetOutput("jei", "all", allOut.getFileName().toString(), all.size()));
-
-                return outputs;
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }, List.of());
-    }
-
-    private static List<ViewerRecipeSnapshot> collectJeiRecipes(IRecipeManager recipeManager, Level level,
-                                                               boolean includeHidden) {
-        var categoryLookup = recipeManager.createRecipeCategoryLookup();
-        if (includeHidden) {
-            categoryLookup.includeHidden();
-        }
-
-        List<ViewerRecipeSnapshot> snapshots = new ArrayList<>();
-        for (IRecipeCategory<?> category : categoryLookup.get().toList()) {
-            snapshots.addAll(collectJeiCategoryRecipes(recipeManager, category, level, includeHidden));
-        }
-        snapshots.sort(Comparator.comparing(ViewerRecipeSnapshot::categoryId)
-                .thenComparing(ViewerRecipeSnapshot::recipeId)
-                .thenComparing(ViewerRecipeSnapshot::recipeClass));
-        return snapshots;
-    }
-
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    private static List<ViewerRecipeSnapshot> collectJeiCategoryRecipes(IRecipeManager recipeManager,
-                                                                        IRecipeCategory category,
-                                                                        Level level,
-                                                                        boolean includeHidden) {
-        var lookup = recipeManager.createRecipeLookup(category.getRecipeType());
-        if (includeHidden) {
-            lookup.includeHidden();
-        }
-
-        List<ViewerRecipeSnapshot> snapshots = new ArrayList<>();
-        for (Object recipe : lookup.get().toList()) {
-            snapshots.add(jeiRecipeSnapshot(recipeManager, category, recipe, level, includeHidden));
-        }
-        return snapshots;
-    }
-
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    private static ViewerRecipeSnapshot jeiRecipeSnapshot(IRecipeManager recipeManager,
-                                                          IRecipeCategory category,
-                                                          Object recipe,
-                                                          Level level,
-                                                          boolean includeHidden) {
-        String categoryId = category.getRecipeType().getUid().toString();
-        String categoryTitle = safeComponentString(category.getTitle());
-        String recipeId = resourceLocationString(category.getRegistryName(recipe));
-        List<IngredientSnapshot> inputs = List.of();
-        List<IngredientSnapshot> catalysts = List.of();
-        List<IngredientSnapshot> outputs = List.of();
-        String backingRecipeId = "";
-
-        if (recipe instanceof RecipeHolder<?> holder) {
-            backingRecipeId = holder.id().toString();
-            if (recipeId.isBlank()) {
-                recipeId = backingRecipeId;
-            }
-            try {
-                inputs = holder.value().getIngredients().stream()
-                        .map(ingredient -> new IngredientSnapshot(
-                                "minecraft_ingredient",
-                                "",
-                                stackSnapshots(ingredient.getItems(), level)
-                        ))
-                        .toList();
-                ItemStack output = holder.value().getResultItem(level.registryAccess());
-                outputs = output.isEmpty()
-                        ? List.of()
-                        : List.of(new IngredientSnapshot("item_stack", output.getHoverName().getString(), List.of(stackSnapshot(output, level))));
-            } catch (RuntimeException | LinkageError ignored) {
-            }
-        }
-
-        return new ViewerRecipeSnapshot(
-                "jei",
-                includeHidden ? "all" : "visible",
-                recipeId,
-                categoryId,
-                categoryTitle,
-                recipe.getClass().getName(),
-                backingRecipeId,
-                inputs,
-                catalysts,
-                outputs,
-                0,
-                0
-        );
-    }
-
-    private static ViewerRecipeSnapshot emiRecipeSnapshot(EmiRecipe recipe, Level level) {
-        EmiRecipeCategory category = recipe.getCategory();
-        String categoryId = category == null ? "" : category.getId().toString();
-        String categoryTitle = category == null ? "" : safeComponentString(category.getName());
-        String backingRecipeId = "";
-        try {
-            RecipeHolder<?> backing = recipe.getBackingRecipe();
-            if (backing != null) {
-                backingRecipeId = backing.id().toString();
-            }
-        } catch (RuntimeException | LinkageError ignored) {
-        }
-
-        return new ViewerRecipeSnapshot(
-                "emi",
-                "all",
-                resourceLocationString(recipe.getId()),
-                categoryId,
-                categoryTitle,
-                recipe.getClass().getName(),
-                backingRecipeId,
-                emiIngredients(recipe.getInputs(), level),
-                emiIngredients(recipe.getCatalysts(), level),
-                emiStacks(recipe.getOutputs(), level),
-                recipe.getDisplayWidth(),
-                recipe.getDisplayHeight()
-        );
-    }
-
-    private static List<IngredientSnapshot> jeiIngredients(List<ITypedIngredient<?>> typedIngredients, Level level) {
-        List<IngredientSnapshot> snapshots = new ArrayList<>();
-        for (ITypedIngredient<?> typed : typedIngredients) {
-            ItemStack stack = typed.getItemStack().orElse(ItemStack.EMPTY);
-            snapshots.add(new IngredientSnapshot(
-                    typed.getType().getUid(),
-                    stack.isEmpty() ? String.valueOf(typed.getIngredient()) : stack.getHoverName().getString(),
-                    stack.isEmpty() ? List.of() : List.of(stackSnapshot(stack, level))
-            ));
-        }
-        return snapshots;
-    }
-
-    private static List<IngredientSnapshot> emiIngredients(List<EmiIngredient> ingredients, Level level) {
-        List<IngredientSnapshot> snapshots = new ArrayList<>();
-        for (EmiIngredient ingredient : ingredients) {
-            snapshots.add(new IngredientSnapshot(
-                    ingredient.getClass().getName(),
-                    "",
-                    emiStackSnapshots(ingredient.getEmiStacks(), level)
-            ));
-        }
-        return snapshots;
-    }
-
-    private static List<IngredientSnapshot> emiStacks(List<EmiStack> stacks, Level level) {
-        return stacks.stream()
-                .map(stack -> stack.getItemStack())
-                .filter(stack -> !stack.isEmpty())
-                .map(stack -> new IngredientSnapshot("item_stack", stack.getHoverName().getString(), List.of(stackSnapshot(stack, level))))
-                .toList();
-    }
-
-    private static List<StackSnapshot> emiStackSnapshots(List<EmiStack> stacks, Level level) {
-        List<StackSnapshot> snapshots = new ArrayList<>();
-        Set<String> seen = new LinkedHashSet<>();
-        for (EmiStack emiStack : stacks) {
-            StackSnapshot snapshot = stackSnapshot(emiStack.getItemStack(), level);
-            if (!snapshot.itemId().isBlank() && seen.add(snapshot.exactKey())) {
-                snapshots.add(snapshot);
-            }
-        }
-        return snapshots;
-    }
-
-    private static List<StackSnapshot> stackSnapshots(ItemStack[] stacks, Level level) {
+    static List<StackSnapshot> stackSnapshots(ItemStack[] stacks, Level level) {
         List<StackSnapshot> snapshots = new ArrayList<>();
         Set<String> seen = new LinkedHashSet<>();
         for (ItemStack stack : stacks) {
@@ -438,7 +231,7 @@ final class RecipeDumpWriters {
         return snapshots;
     }
 
-    private static StackSnapshot stackSnapshot(ItemStack stack, Level level) {
+    static StackSnapshot stackSnapshot(ItemStack stack, Level level) {
         if (stack == null || stack.isEmpty()) {
             return StackSnapshot.empty();
         }
@@ -650,7 +443,7 @@ final class RecipeDumpWriters {
         return resourceId.getNamespace() + ":" + path;
     }
 
-    private static String viewerDumpFileName(String source, String scope) {
+    static String viewerDumpFileName(String source, String scope) {
         return "recipe_viewer_recipes_"
                 + source.toLowerCase(Locale.ROOT)
                 + "_"
@@ -658,11 +451,11 @@ final class RecipeDumpWriters {
                 + ".jsonl";
     }
 
-    private static String resourceLocationString(ResourceLocation id) {
+    static String resourceLocationString(ResourceLocation id) {
         return id == null ? "" : id.toString();
     }
 
-    private static String safeComponentString(net.minecraft.network.chat.Component component) {
+    static String safeComponentString(net.minecraft.network.chat.Component component) {
         return component == null ? "" : component.getString();
     }
 
@@ -675,7 +468,7 @@ final class RecipeDumpWriters {
         return value == null ? "" : value.replace("|", "\\|").replace("\n", " ");
     }
 
-    private static void writeJsonl(Path path, List<?> rows) throws IOException {
+    static void writeJsonl(Path path, List<?> rows) throws IOException {
         Files.createDirectories(Objects.requireNonNull(path.getParent()));
         List<String> lines = new ArrayList<>(rows.size());
         for (Object row : rows) {

@@ -144,7 +144,7 @@ public class AmiClientCommands {
                                     + " and "
                                     + outputs.reportJson().toAbsolutePath())
                     .withStyle(ChatFormatting.GREEN));
-        } catch (Exception e) {
+        } catch (Exception | LinkageError e) {
             AMI.LOGGER.error("Failed to export AMI recipe viewer item audit", e);
             source.sendSystemMessage(Component.literal("Failed to export AMI recipe viewer item audit: " + e.getMessage())
                     .withStyle(ChatFormatting.RED));

@@ -4,16 +4,13 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sanhiruzu.ami.client.AmiDebugSettings;
 import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
-import com.sanhiruzu.ami.compat.JeiRuntimeAccessor;
+import com.sanhiruzu.ami.compat.EmiRecipeViewerItemAuditBridge;
+import com.sanhiruzu.ami.compat.JeiRecipeViewerItemAuditBridge;
 import com.sanhiruzu.ami.index.GlobalIndex;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
 import com.sanhiruzu.ami.platform.Services;
-import dev.emi.emi.api.EmiApi;
-import dev.emi.emi.registry.EmiStackList;
-import mezz.jei.api.constants.VanillaTypes;
-import mezz.jei.api.runtime.IIngredientVisibility;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -178,50 +175,33 @@ public final class RecipeViewerItemAudit {
         List<DatasetCapture> datasets = new ArrayList<>();
 
         if (Services.PLATFORM.isModLoaded("emi")) {
-            List<ViewerItemSnapshot> emiAll = dedupeViewerStacks("emi", "all", EmiApi.getIndexStacks(), level);
-            if (!emiAll.isEmpty()) {
-                datasets.add(new DatasetCapture("emi", "all", emiAll, dumpFileName("emi", "all")));
-            }
-
-            List<ViewerItemSnapshot> emiVisible = dedupeViewerStacks("emi", "visible", EmiStackList.filteredStacks, level);
-            if (!emiVisible.isEmpty()) {
-                datasets.add(new DatasetCapture("emi", "visible", emiVisible, dumpFileName("emi", "visible")));
-            }
+            addDataset(datasets, "emi", "all", EmiRecipeViewerItemAuditBridge.indexStacks(), level);
+            addDataset(datasets, "emi", "visible", EmiRecipeViewerItemAuditBridge.filteredStacks(), level);
         }
 
-        JeiRuntimeAccessor.withRuntime(runtime -> {
-            Collection<ItemStack> allStacks = runtime.getIngredientManager().getAllItemStacks();
-            List<ViewerItemSnapshot> jeiAll = dedupeViewerStacks("jei", "all", allStacks, level);
-            if (!jeiAll.isEmpty()) {
-                datasets.add(new DatasetCapture("jei", "all", jeiAll, dumpFileName("jei", "all")));
-            }
-
-            IIngredientVisibility visibility = runtime.getJeiHelpers().getIngredientVisibility();
-            List<ItemStack> visibleStacks = new ArrayList<>();
-            for (ItemStack stack : allStacks) {
-                try {
-                    if (visibility.isIngredientVisible(VanillaTypes.ITEM_STACK, stack)) {
-                        visibleStacks.add(stack);
-                    }
-                } catch (RuntimeException ignored) {
-                }
-            }
-            List<ViewerItemSnapshot> jeiVisible = dedupeViewerStacks("jei", "visible", visibleStacks, level);
-            if (!jeiVisible.isEmpty()) {
-                datasets.add(new DatasetCapture("jei", "visible", jeiVisible, dumpFileName("jei", "visible")));
-            }
-        });
+        if (Services.PLATFORM.isModLoaded("jei")) {
+            addDataset(datasets, "jei", "all", JeiRecipeViewerItemAuditBridge.allItemStacks(), level);
+            addDataset(datasets, "jei", "visible", JeiRecipeViewerItemAuditBridge.visibleItemStacks(), level);
+        }
 
         return datasets;
     }
 
+    private static void addDataset(List<DatasetCapture> datasets, String source, String scope,
+                                    Collection<ItemStack> rawStacks, Level level) {
+        List<ViewerItemSnapshot> items = dedupeViewerStacks(source, scope, rawStacks, level);
+        if (!items.isEmpty()) {
+            datasets.add(new DatasetCapture(source, scope, items, dumpFileName(source, scope)));
+        }
+    }
+
     private static List<ViewerItemSnapshot> dedupeViewerStacks(String source, String scope,
-                                                               Collection<?> rawStacks, Level level) {
+                                                               Collection<ItemStack> rawStacks, Level level) {
         Map<String, ViewerItemSnapshot> unique = new LinkedHashMap<>();
         if (rawStacks == null) {
             return List.of();
         }
-        for (Object raw : rawStacks) {
+        for (ItemStack raw : rawStacks) {
             ItemStack stack = toItemStack(raw);
             if (stack.isEmpty()) {
                 continue;
@@ -248,22 +228,13 @@ public final class RecipeViewerItemAudit {
                 .toList();
     }
 
-    private static ItemStack toItemStack(Object raw) {
-        if (raw instanceof ItemStack stack) {
-            ItemStack copy = stack.copy();
-            copy.setCount(1);
-            return copy;
+    private static ItemStack toItemStack(ItemStack raw) {
+        if (raw == null || raw.isEmpty()) {
+            return ItemStack.EMPTY;
         }
-        if (raw instanceof dev.emi.emi.api.stack.EmiStack emiStack) {
-            ItemStack stack = emiStack.getItemStack();
-            if (stack.isEmpty()) {
-                return ItemStack.EMPTY;
-            }
-            ItemStack copy = stack.copy();
-            copy.setCount(1);
-            return copy;
-        }
-        return ItemStack.EMPTY;
+        ItemStack copy = raw.copy();
+        copy.setCount(1);
+        return copy;
     }
 
     private static String itemIdOf(ItemStack stack) {
