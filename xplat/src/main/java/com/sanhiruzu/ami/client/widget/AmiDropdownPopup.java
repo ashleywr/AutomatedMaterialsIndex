@@ -9,7 +9,7 @@ public interface AmiDropdownPopup {
 
     void renderDropdownList(GuiGraphics g, int mouseX, int mouseY, float partialTick);
 
-    boolean mouseClicked(double mouseX, double mouseY, int button);
+    boolean handlePopupClick(double mouseX, double mouseY, int button);
 
     boolean isMouseOverPopup(double mouseX, double mouseY);
 }

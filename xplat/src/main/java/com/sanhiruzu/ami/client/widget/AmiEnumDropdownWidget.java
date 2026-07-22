@@ -103,7 +103,7 @@ public class AmiEnumDropdownWidget extends AbstractWidget implements AmiDropdown
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean handlePopupClick(double mouseX, double mouseY, int button) {
         if (!active || button != 0) return false;
 
         if (open && isMouseOverPopup(mouseX, mouseY)) {

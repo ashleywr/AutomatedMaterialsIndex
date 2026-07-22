@@ -19,7 +19,7 @@ public final class AmiDropdownPopupController {
             return false;
         }
 
-        if (dropdown.mouseClicked(mouseX, mouseY, button)) {
+        if (dropdown.handlePopupClick(mouseX, mouseY, button)) {
             if (openDropdown.get() == dropdown && !dropdown.isOpen()) {
                 setOpenDropdown.accept(null);
             }
