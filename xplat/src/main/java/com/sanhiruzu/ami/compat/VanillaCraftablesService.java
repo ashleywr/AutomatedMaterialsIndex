@@ -4,7 +4,6 @@ import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.client.ClientRecipeBook;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.recipebook.RecipeCollection;
-import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.StackedContents;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.RecipeBookMenu;
@@ -68,18 +67,13 @@ public class VanillaCraftablesService {
         return result;
     }
 
-    private static void accountMenuContents(StackedContents stackedContents, AbstractContainerMenu menu) {
+    static void accountMenuContents(StackedContents stackedContents, AbstractContainerMenu menu) {
         if (menu == null) {
             return;
         }
-        if (menu instanceof RecipeBookMenu recipeBookMenu) {
+        if (CraftablesScopePolicy.shouldAccountMenuContents(menu instanceof RecipeBookMenu)
+                && menu instanceof RecipeBookMenu recipeBookMenu) {
             recipeBookMenu.fillCraftSlotsStackedContents(stackedContents);
-            return;
-        }
-        for (Slot slot : menu.slots) {
-            if (shouldAccountOpenContainerSlot(slot)) {
-                stackedContents.accountStack(slot.getItem());
-            }
         }
     }
 
@@ -89,38 +83,29 @@ public class VanillaCraftablesService {
             return signature;
         }
         signature = mix(signature, menu.containerId);
-        signature = mix(signature, menu instanceof RecipeBookMenu ? 1 : 0);
+        if (!CraftablesScopePolicy.shouldAccountMenuContents(menu instanceof RecipeBookMenu)) {
+            return mix(signature, 0);
+        }
+        signature = mix(signature, 1);
         for (Slot slot : menu.slots) {
-            ItemStack stack = slot.getItem();
-            boolean empty = stack.isEmpty();
-            boolean accountable = CraftableSlotPolicy.shouldAccountOpenContainerSlot(
-                    slot.isActive(),
-                    slot.container instanceof Inventory,
-                    empty,
-                    !empty && slot.mayPlace(stack)
-            );
-            signature = mix(signature, accountable ? 1 : 0);
-            if (!accountable) {
+            if (!shouldAccountRecipeBookSlot(slot)) {
+                signature = mix(signature, 0);
                 continue;
             }
+            signature = mix(signature, 1);
+            ItemStack stack = slot.getItem();
             signature = mix(signature, System.identityHashCode(stack.getItem()));
             signature = mix(signature, stack.getCount());
         }
         return signature;
     }
 
-    private static boolean shouldAccountOpenContainerSlot(Slot slot) {
+    private static boolean shouldAccountRecipeBookSlot(Slot slot) {
         if (slot == null) {
             return false;
         }
         ItemStack stack = slot.getItem();
-        boolean empty = stack.isEmpty();
-        return CraftableSlotPolicy.shouldAccountOpenContainerSlot(
-                slot.isActive(),
-                slot.container instanceof Inventory,
-                empty,
-                !empty && slot.mayPlace(stack)
-        );
+        return CraftablesScopePolicy.shouldAccountRecipeBookSlot(slot.isActive(), stack.isEmpty(), slot.mayPlace(stack));
     }
 
     private static long mix(long signature, int value) {

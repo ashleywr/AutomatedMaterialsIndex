@@ -8,12 +8,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class VanillaCraftablesServiceTest {
 
     @Test
-    void openContainerCraftabilityCountsOnlyUsableNonPlayerSlots() {
-        assertTrue(CraftableSlotPolicy.shouldAccountOpenContainerSlot(true, false, false, true));
+    void nonRecipeBookMenusDoNotContributeContainerContents() {
+        assertFalse(CraftablesScopePolicy.shouldAccountMenuContents(false));
+        assertTrue(CraftablesScopePolicy.shouldAccountMenuContents(true));
+    }
 
-        assertFalse(CraftableSlotPolicy.shouldAccountOpenContainerSlot(false, false, false, true));
-        assertFalse(CraftableSlotPolicy.shouldAccountOpenContainerSlot(true, true, false, true));
-        assertFalse(CraftableSlotPolicy.shouldAccountOpenContainerSlot(true, false, true, true));
-        assertFalse(CraftableSlotPolicy.shouldAccountOpenContainerSlot(true, false, false, false));
+    @Test
+    void recipeBookSlotPolicyCountsOnlyUsableCraftInputs() {
+        assertTrue(CraftablesScopePolicy.shouldAccountRecipeBookSlot(true, false, true));
+        assertFalse(CraftablesScopePolicy.shouldAccountRecipeBookSlot(false, false, true));
+        assertFalse(CraftablesScopePolicy.shouldAccountRecipeBookSlot(true, true, true));
+        assertFalse(CraftablesScopePolicy.shouldAccountRecipeBookSlot(true, false, false));
     }
 }

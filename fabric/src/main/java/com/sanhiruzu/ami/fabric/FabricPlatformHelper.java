@@ -414,6 +414,11 @@ public class FabricPlatformHelper implements IPlatformHelper {
         return (List<AmiRecipeHolder<?>>) (List<?>) AmiRecipeIndex.getInstance().getAllRecipesOfType((RecipeType) type);
     }
 
+    @Override
+    public List<AmiRecipeHolder<?>> getAllRecipes() {
+        return AmiRecipeIndex.getInstance().getAllRecipes();
+    }
+
     // -------------------------------------------------------------------------
     // Item metadata extraction (direct 1.21.1 API calls; the xplat defaults use
     // reflection-by-Mojmap-name which silently fails on Fabric's intermediary

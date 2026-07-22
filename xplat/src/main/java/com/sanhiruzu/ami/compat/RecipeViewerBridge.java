@@ -655,7 +655,7 @@ public class RecipeViewerBridge {
     }
 
     public static java.util.List<ItemStack> getCraftables() {
-        return VanillaCraftablesService.getCraftables();
+        return CraftablesService.getCraftables();
     }
 
     public static java.util.List<ItemStack> getLookupHistory() {

@@ -613,6 +613,11 @@ public class ForgePlatformHelper implements IPlatformHelper {
     }
 
     @Override
+    public List<AmiRecipeHolder<?>> getAllRecipes() {
+        return AmiRecipeIndex.getInstance().getAllRecipes();
+    }
+
+    @Override
     public boolean tryLoadGlobalIndexCache() {
         return GlobalIndexCache.tryLoad();
     }

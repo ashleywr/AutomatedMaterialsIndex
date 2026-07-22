@@ -419,17 +419,25 @@
 - User surface: the Craftables sidebar should behave like a practical "what can I make now?" list, not a creative/dev
   catalog.
 - Main files:
+  - `xplat/src/main/java/com/sanhiruzu/ami/compat/CraftablesService.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/compat/CraftablesProvider.java`
   - `xplat/src/main/java/com/sanhiruzu/ami/client/overlay/AmiSidebarSyncHandler.java`
   - `xplat/src/main/java/com/sanhiruzu/ami/compat/VanillaCraftablesService.java`
   - `neoforge/src/main/java/com/sanhiruzu/ami/client/overlay/OverlayWidgetManager.java`
   - `neoforge/src/main/java/com/sanhiruzu/ami/client/overlay/SidebarPanelWidget.java`
 - Tests:
-  - `.\gradlew.bat :neoforge:test --tests "*AmiSidebarSyncHandlerTest" --tests "*VanillaCraftablesServiceTest" --tests "*ResultContextMenuActionBuilderTest"`
+  - `.\gradlew.bat :neoforge:test --tests "*CraftablesServiceTest" --tests "*AmiSidebarSyncHandlerTest" --tests "*VanillaCraftablesServiceTest" --tests "*ResultContextMenuActionBuilderTest"`
 - State contract:
-  - The craftable source is Minecraft's current client recipe-book craftability state, resolved from the local player's
-    actual inventory contents plus the open menu's recipe-book craft slots. For non-recipe-book container screens, AMI
-    also accounts active, non-player slots that contain an item accepted by that slot, so nearby chest/storage contents
-    can affect the Craftables scope without double-counting the player's inventory or output-only slots.
+  - Craftables are resolved through an AMI-owned provider chain. The active external viewer can supply the first
+    screen-aware answer, and vanilla recipe-book craftability is the fallback.
+  - When EMI is the selected viewer, AMI mirrors EMI's live craftables view for the open screen so recipe handlers can
+    expose connected-storage/workstation craftability without AMI scanning arbitrary container slots itself.
+  - When JEI is the selected viewer, AMI derives craftables by walking the AMI recipe index and asking JEI's transfer
+    manager which indexed recipes are currently transferable on the open screen. Results are cached per screen and menu
+    signature so the sidebar does not rescan every recipe each tick.
+  - Vanilla fallback remains Minecraft's current client recipe-book craftability state, resolved from the local player's
+    actual inventory contents plus the open menu's recipe-book craft slots. Non-recipe-book container slots do not
+    otherwise expand this scope, so nearby chest/storage contents alone must not populate Craftables.
   - AMI filters craftable outputs to survival-visible item nodes only; creative, cheat, dev, and hidden indexed nodes are
     not shown in Craftables even while the player is in Creative mode or AMI cheat/dev visibility is enabled.
   - Blank Craftables output order is deterministic and alphabetical by display name.

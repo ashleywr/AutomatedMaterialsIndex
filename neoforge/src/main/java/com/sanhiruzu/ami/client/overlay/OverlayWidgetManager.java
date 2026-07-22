@@ -75,6 +75,10 @@ public class OverlayWidgetManager {
     private int lastLayoutSignature = Integer.MIN_VALUE;
     private boolean layoutDirty = true;
     private int lastThirdPartyMarginSignature = 0;
+    private long cachedThirdPartySignatureTick = Long.MIN_VALUE;
+    private int cachedThirdPartySignatureValue = 0;
+    private List<PanelSlot> activeSlotsView = List.of();
+    private long lastTickedGameTime = Long.MIN_VALUE;
     private int lastAdaptiveLeftPanelWidth = -1;
     private int lastAdaptiveRightPanelWidth = -1;
     // Layout mode & dragging
@@ -694,6 +698,17 @@ public class OverlayWidgetManager {
     private void rememberLayout(Screen screen, int screenW, int screenH) {
         lastLayoutSignature = layoutSignature(screen, screenW, screenH);
         layoutDirty = false;
+        activeSlotsView = List.copyOf(activeSlots);
+    }
+
+    private int getCachedThirdPartyMarginSignature(Screen screen) {
+        Minecraft mc = Minecraft.getInstance();
+        long tick = mc.level != null ? mc.level.getGameTime() : -1;
+        if (tick != cachedThirdPartySignatureTick) {
+            cachedThirdPartySignatureTick = tick;
+            cachedThirdPartySignatureValue = thirdPartyMarginSignature(screen);
+        }
+        return cachedThirdPartySignatureValue;
     }
 
     private int layoutSignature(Screen screen, int screenW, int screenH) {
@@ -730,7 +745,7 @@ public class OverlayWidgetManager {
                 rightAlternateActive,
                 panelVisible,
                 AmiConfig.pinnedPositionsJson,
-                thirdPartyMarginSignature(screen),
+                getCachedThirdPartyMarginSignature(screen),
                 lastThirdPartyMarginSignature
         );
     }
@@ -821,7 +836,17 @@ public class OverlayWidgetManager {
         if (!panelVisible) return;
 
         ensureWidgets();
+        // flushPendingSearch must run every render frame to honour the debounce deadline.
         flushPendingSearch(false);
+
+        // All remaining work is fine at game-tick rate (20/s). Running it every render
+        // frame (60-120/s) wastes CPU on index-revision checks, recipe-viewer sync, and
+        // sidebar refreshes that cannot possibly change faster than a game tick.
+        Minecraft mc = Minecraft.getInstance();
+        long gameTime = mc.level != null ? mc.level.getGameTime() : 0;
+        if (gameTime == lastTickedGameTime) return;
+        lastTickedGameTime = gameTime;
+
         if (!AmiConfig.enableAutoIndexing) return;
 
         var indexer = AmiIndexerService.getInstance();
@@ -830,35 +855,38 @@ public class OverlayWidgetManager {
             long searchRevision = indexer.searchServiceRevision();
             long runtimeRevision = indexer.runtimeSearchRevision();
             boolean needsRefresh = false;
-            for (ResultsPanelWidget panel : getResultPanels()) {
-                var inner = panel.getInnerPanel();
-                if (inner != null && indexer.indexedItemCount() > 0
-                        && inner.setSearchServiceIfChanged(service, searchRevision)) {
+            for (PanelSlot slot : leftSlotPool) {
+                var inner = slot.results.getInnerPanel();
+                if (inner != null && indexer.indexedItemCount() > 0 && inner.setSearchServiceIfChanged(service, searchRevision)) {
                     needsRefresh = true;
-                    continue;
-                }
-                if (inner != null) {
+                } else if (inner != null) {
                     inner.setRuntimeSearchRevisionIfChanged(runtimeRevision);
                 }
             }
-            for (SidebarPanelWidget panel : getSidebarPanels()) {
-                var inner = panel.getInnerPanel();
-                if (inner != null && indexer.indexedItemCount() > 0
-                        && inner.setSearchServiceIfChanged(service, searchRevision)) {
-                    continue;
-                }
-                if (inner != null) {
+            for (PanelSlot slot : rightSlotPool) {
+                var inner = slot.results.getInnerPanel();
+                if (inner != null && indexer.indexedItemCount() > 0 && inner.setSearchServiceIfChanged(service, searchRevision)) {
+                    needsRefresh = true;
+                } else if (inner != null) {
                     inner.setRuntimeSearchRevisionIfChanged(runtimeRevision);
                 }
+            }
+            for (PanelSlot slot : leftSlotPool) {
+                var inner = slot.sidebar.getInnerPanel();
+                if (inner != null && indexer.indexedItemCount() > 0) inner.setSearchServiceIfChanged(service, searchRevision);
+                else if (inner != null) inner.setRuntimeSearchRevisionIfChanged(runtimeRevision);
+            }
+            for (PanelSlot slot : rightSlotPool) {
+                var inner = slot.sidebar.getInnerPanel();
+                if (inner != null && indexer.indexedItemCount() > 0) inner.setSearchServiceIfChanged(service, searchRevision);
+                else if (inner != null) inner.setRuntimeSearchRevisionIfChanged(runtimeRevision);
             }
             if (needsRefresh) refreshEntries();
         }
 
         syncFromRecipeViewer();
 
-        if (Minecraft.getInstance().level != null && Minecraft.getInstance().level.getGameTime() % 20 == 0) {
-            refreshSidebars();
-        }
+        refreshSidebars();
     }
 
     public void renderAll(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
@@ -994,7 +1022,7 @@ public class OverlayWidgetManager {
     }
 
     private List<PanelSlot> activeSlotsSnapshot() {
-        return new ArrayList<>(activeSlots);
+        return activeSlotsView;
     }
 
     private void renderCheatDeleteHint(net.minecraft.client.gui.GuiGraphics g, int mx, int my, List<PanelSlot> slots) {

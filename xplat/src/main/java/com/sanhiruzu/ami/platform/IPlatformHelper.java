@@ -627,6 +627,8 @@ public interface IPlatformHelper {
 
     List<AmiRecipeHolder<?>> getAllRecipesOfType(RecipeType<?> type);
 
+    List<AmiRecipeHolder<?>> getAllRecipes();
+
     default boolean tryLoadGlobalIndexCache() {
         return false;
     }

@@ -110,6 +110,19 @@ public abstract class AmiRecipeIndexBase {
         return Set.copyOf(recipesByInput.keySet());
     }
 
+    public List<AmiRecipeHolder<?>> getAllRecipes() {
+        List<AmiRecipeHolder<?>> result = new ArrayList<>();
+        Set<ResourceLocation> seen = new HashSet<>();
+        for (List<AmiRecipeHolder<?>> holders : recipesByOutput.values()) {
+            for (AmiRecipeHolder<?> holder : holders) {
+                if (holder != null && seen.add(holder.id())) {
+                    result.add(holder);
+                }
+            }
+        }
+        return result;
+    }
+
     @SuppressWarnings("unchecked")
     public <T extends Recipe<?>> List<AmiRecipeHolder<T>> getAllRecipesOfType(RecipeType<T> type) {
         List<AmiRecipeHolder<T>> result = new ArrayList<>();

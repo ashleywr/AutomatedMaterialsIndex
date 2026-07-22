@@ -669,9 +669,7 @@ public class OverlayWidgetManager {
 
         syncFromRecipeViewer();
 
-        if (Minecraft.getInstance().level != null && Minecraft.getInstance().level.getGameTime() % 20 == 0) {
-            refreshSidebars();
-        }
+        refreshSidebars();
     }
 
     public void renderAll(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
