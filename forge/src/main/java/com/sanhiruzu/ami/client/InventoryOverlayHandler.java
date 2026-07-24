@@ -300,10 +300,14 @@ public class InventoryOverlayHandler {
     // the external tooltip as it is drawn, suppresses the external draw, and re-hosts it above AMI in
     // renderPendingExternalTooltip(). Scoped to external recipe screens only — container tooltips are
     // handled by the foreground/post split and are never replayed.
+    //
+    // Empty ItemStacks are skipped: EMI fluid (and other non-item) tooltips use an empty stack with
+    // prebuilt ClientTooltipComponents. Re-hosting from ItemStack gather elements drops the name line.
     @SubscribeEvent
     static void onGatherTooltip(RenderTooltipEvent.GatherComponents event) {
         net.minecraft.client.gui.screens.Screen screen = Minecraft.getInstance().screen;
         if (screen == null || !isExternalRecipeScreen(screen)) return;
+        if (event.getItemStack().isEmpty()) return;
         if (com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer.isRenderingAmiTooltip()) return;
         if (renderingExternalTooltip) return;
         if (currentLayer != VisibleLayer.AMI || !manager.isPanelVisible() || AmiApi.shouldSuppressAmi(screen)) return;
@@ -316,6 +320,7 @@ public class InventoryOverlayHandler {
     static void onRenderTooltip(RenderTooltipEvent.Pre event) {
         net.minecraft.client.gui.screens.Screen screen = Minecraft.getInstance().screen;
         if (screen == null || !isExternalRecipeScreen(screen)) return;
+        if (event.getItemStack().isEmpty()) return;
         if (com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer.isRenderingAmiTooltip()) return;
         if (renderingExternalTooltip) return;
         if (currentLayer != VisibleLayer.AMI || !manager.isPanelVisible() || AmiApi.shouldSuppressAmi(screen)) return;
