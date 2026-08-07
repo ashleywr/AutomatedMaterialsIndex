@@ -10,6 +10,7 @@ import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.sanhiruzu.ami.fabric.client.FabricAmiKeyMappings;
+import com.sanhiruzu.ami.fabric.compat.ReiRecipeBridge;
 import com.sanhiruzu.ami.index.GlobalIndexCache;
 import com.sanhiruzu.ami.index.metrics.FoodStats;
 import com.sanhiruzu.ami.platform.IAmiKeyMappings;
@@ -269,7 +270,7 @@ public class FabricPlatformHelper implements IPlatformHelper {
 
     /**
      * Routes AMI's recipe/usage open requests to REI, which ships only on Fabric. The
-     * {@code roughlyenoughitems} guard means {@link com.sanhiruzu.ami.fabric.compat.ReiRecipeBridge}
+     * {@code roughlyenoughitems} guard means {@link ReiRecipeBridge}
      * (and therefore the {@code me.shedaniel.rei.*} types it references) is never linked when REI is
      * absent — mirrors how RecipeViewerBridge guards the EMI/JEI bridges.
      */
@@ -278,7 +279,7 @@ public class FabricPlatformHelper implements IPlatformHelper {
         if (stack == null || stack.isEmpty() || !isModLoaded("roughlyenoughitems")) {
             return false;
         }
-        return com.sanhiruzu.ami.fabric.compat.ReiRecipeBridge.open(stack, uses);
+        return ReiRecipeBridge.open(stack, uses);
     }
 
     // -------------------------------------------------------------------------

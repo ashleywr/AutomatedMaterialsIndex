@@ -1,10 +1,15 @@
 package com.sanhiruzu.ami.compat;
 
-import com.sanhiruzu.ami.config.AmiConfig;
+import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+import com.sanhiruzu.ami.client.RecipeViewerScreen;
+import com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler;
+import com.sanhiruzu.ami.client.favorites.AmiHistoryHandler;
 import com.sanhiruzu.ami.client.recipe.RecipeTransferHandler;
+import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.platform.Services;
+import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.resources.ResourceLocation;
@@ -105,7 +110,7 @@ public class RecipeViewerBridge {
     public static boolean hasRecipes(SearchNode node) {
         if (node == null) return false;
         if (node.type() == NodeType.ITEM) {
-            return hasRecipes(com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node));
+            return hasRecipes(AmiFavoritesHandler.resolveStack(node));
         }
         if (isJeiSelectedExternalViewer()) {
             return JeiRecipeBridge.hasRecipes(node);
@@ -116,7 +121,7 @@ public class RecipeViewerBridge {
     public static boolean hasUses(SearchNode node) {
         if (node == null) return false;
         if (node.type() == NodeType.ITEM) {
-            return hasUses(com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node));
+            return hasUses(AmiFavoritesHandler.resolveStack(node));
         }
         if (isJeiSelectedExternalViewer()) {
             return JeiRecipeBridge.hasUses(node);
@@ -194,7 +199,7 @@ public class RecipeViewerBridge {
     public static void openRecipes(SearchNode node) {
         if (node == null) return;
         if (node.type() == NodeType.ITEM) {
-            openRecipes(com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node));
+            openRecipes(AmiFavoritesHandler.resolveStack(node));
             return;
         }
         if (!isJeiSelectedExternalViewer()) {
@@ -229,7 +234,7 @@ public class RecipeViewerBridge {
     public static void openUses(SearchNode node) {
         if (node == null) return;
         if (node.type() == NodeType.ITEM) {
-            openUses(com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.resolveStack(node));
+            openUses(AmiFavoritesHandler.resolveStack(node));
             return;
         }
         if (!isJeiSelectedExternalViewer()) {
@@ -255,7 +260,7 @@ public class RecipeViewerBridge {
         if (isJeiSelectedExternalViewer() && JeiRecipeBridge.canStartDrag(screen, stack)) return true;
 
         try {
-            var manager = com.sanhiruzu.ami.client.InventoryOverlayHandler.getManager();
+            var manager = InventoryOverlayHandler.getManager();
             return manager != null && manager.hasVisibleFavoritesPanel();
         } catch (RuntimeException | LinkageError ignored) {
             return false;
@@ -403,7 +408,7 @@ public class RecipeViewerBridge {
 
     private static RecipeViewerBounds readNativeRecipeViewerBounds() {
         Screen screen = Minecraft.getInstance().screen;
-        if (!(screen instanceof com.sanhiruzu.ami.client.RecipeViewerScreen rvs)) {
+        if (!(screen instanceof RecipeViewerScreen rvs)) {
             return RecipeViewerBounds.EMPTY;
         }
         return rvs.getViewerBounds();
@@ -618,7 +623,7 @@ public class RecipeViewerBridge {
         return false;
     }
 
-    public static boolean transferRecipe(com.sanhiruzu.ami.util.AmiRecipeHolder<?> recipe, Screen screen, Minecraft mc,
+    public static boolean transferRecipe(AmiRecipeHolder<?> recipe, Screen screen, Minecraft mc,
                                          boolean maxTransfer, boolean toCursor) {
         if (recipe == null || screen == null || mc == null) {
             return false;
@@ -634,7 +639,7 @@ public class RecipeViewerBridge {
                 && RecipeTransferHandler.transfer(recipe, screen, mc, maxTransfer);
     }
 
-    public static boolean canTransferRecipe(com.sanhiruzu.ami.util.AmiRecipeHolder<?> recipe, Screen screen) {
+    public static boolean canTransferRecipe(AmiRecipeHolder<?> recipe, Screen screen) {
         if (recipe == null || screen == null) {
             return false;
         }
@@ -663,11 +668,11 @@ public class RecipeViewerBridge {
             var emiHistory = EmiRecipeBridge.getLookupHistory();
             if (!emiHistory.isEmpty()) return emiHistory;
         }
-        return com.sanhiruzu.ami.client.favorites.AmiHistoryHandler.getInstance().getLookupHistory();
+        return AmiHistoryHandler.getInstance().getLookupHistory();
     }
 
     public static java.util.List<ItemStack> getCraftHistory() {
         if (Services.PLATFORM.isModLoaded("emi")) return EmiRecipeBridge.getCraftHistory();
-        return com.sanhiruzu.ami.client.favorites.AmiHistoryHandler.getInstance().getCraftHistory();
+        return AmiHistoryHandler.getInstance().getCraftHistory();
     }
 }

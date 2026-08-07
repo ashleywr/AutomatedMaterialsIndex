@@ -1,6 +1,11 @@
 package com.sanhiruzu.ami.recipe;
 
 import com.sanhiruzu.ami.forge.AMI;
+import com.sanhiruzu.ami.forge.recipe.special.AnvilRepairRecipe;
+import com.sanhiruzu.ami.forge.recipe.special.CompostingRecipe;
+import com.sanhiruzu.ami.forge.recipe.special.FuelRecipe;
+import com.sanhiruzu.ami.forge.recipe.special.GrindstoneRepairRecipe;
+import com.sanhiruzu.ami.forge.recipe.special.PotionBrewingRecipe;
 import com.sanhiruzu.ami.util.AmiRecipeHolder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
@@ -27,31 +32,31 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public final class AmiRecipeIndex {
-    public static final RecipeType<com.sanhiruzu.ami.forge.recipe.special.PotionBrewingRecipe> BREWING = new RecipeType<>() {
+    public static final RecipeType<PotionBrewingRecipe> BREWING = new RecipeType<>() {
         @Override
         public String toString() {
             return "ami:brewing";
         }
     };
-    public static final RecipeType<com.sanhiruzu.ami.forge.recipe.special.GrindstoneRepairRecipe> GRINDING = new RecipeType<>() {
+    public static final RecipeType<GrindstoneRepairRecipe> GRINDING = new RecipeType<>() {
         @Override
         public String toString() {
             return "ami:grinding";
         }
     };
-    public static final RecipeType<com.sanhiruzu.ami.forge.recipe.special.AnvilRepairRecipe> ANVIL_REPAIRING = new RecipeType<>() {
+    public static final RecipeType<AnvilRepairRecipe> ANVIL_REPAIRING = new RecipeType<>() {
         @Override
         public String toString() {
             return "ami:anvil_repairing";
         }
     };
-    public static final RecipeType<com.sanhiruzu.ami.forge.recipe.special.CompostingRecipe> COMPOSTING = new RecipeType<>() {
+    public static final RecipeType<CompostingRecipe> COMPOSTING = new RecipeType<>() {
         @Override
         public String toString() {
             return "ami:composting";
         }
     };
-    public static final RecipeType<com.sanhiruzu.ami.forge.recipe.special.FuelRecipe> FUEL = new RecipeType<>() {
+    public static final RecipeType<FuelRecipe> FUEL = new RecipeType<>() {
         @Override
         public String toString() {
             return "ami:fuel";
@@ -324,14 +329,14 @@ public final class AmiRecipeIndex {
 
     private int indexBrewingRecipe(int idCounter, ItemStack inputStack, Ingredient ingredient, ItemStack outputStack) {
         ResourceLocation id = ResourceLocation.fromNamespaceAndPath("ami", "brewing/" + idCounter++);
-        var recipe = new com.sanhiruzu.ami.forge.recipe.special.PotionBrewingRecipe(
+        var recipe = new PotionBrewingRecipe(
                 id,
                 inputStack.copy(),
                 ingredient,
                 outputStack.copy(),
                 BREWING
         );
-        AmiRecipeHolder<com.sanhiruzu.ami.forge.recipe.special.PotionBrewingRecipe> holder = new AmiRecipeHolder<>(id, recipe);
+        AmiRecipeHolder<PotionBrewingRecipe> holder = new AmiRecipeHolder<>(id, recipe);
 
         addOutput(outputStack, holder);
         addInput(inputStack, holder);
@@ -353,8 +358,8 @@ public final class AmiRecipeIndex {
                     ItemStack result = stack.copy();
                     result.setDamageValue(0);
 
-                    var recipe = new com.sanhiruzu.ami.forge.recipe.special.AnvilRepairRecipe(id, stack, ingredient, result, ANVIL_REPAIRING);
-                    AmiRecipeHolder<com.sanhiruzu.ami.forge.recipe.special.AnvilRepairRecipe> holder = new AmiRecipeHolder<>(id, recipe);
+                    var recipe = new AnvilRepairRecipe(id, stack, ingredient, result, ANVIL_REPAIRING);
+                    AmiRecipeHolder<AnvilRepairRecipe> holder = new AmiRecipeHolder<>(id, recipe);
 
                     addOutput(result, holder);
                     addInput(item, holder);

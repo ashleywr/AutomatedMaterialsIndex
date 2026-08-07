@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.client.widget;
 
 import com.sanhiruzu.ami.client.AMITheme;
+import com.sanhiruzu.ami.client.overlay.OverlayLayers;
 import com.sanhiruzu.ami.config.AmiConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -52,7 +53,7 @@ public class AmiPanelContentDropdownWidget extends AbstractWidget implements Ami
         int listY = dropdownY(listH);
 
         g.pose().pushPose();
-        g.pose().translate(0, 0, com.sanhiruzu.ami.client.overlay.OverlayLayers.DROPDOWN);
+        g.pose().translate(0, 0, OverlayLayers.DROPDOWN);
         AMITheme.fillPixelPopup(g, listX, listY, listW, listH,
                 AMITheme.DROPDOWN_LIST_BG, AMITheme.BORDER_LIGHT, AMITheme.CONTROL_SHADOW, 0);
 

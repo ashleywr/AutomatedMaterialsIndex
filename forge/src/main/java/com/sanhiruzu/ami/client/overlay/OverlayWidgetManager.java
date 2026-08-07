@@ -1,10 +1,18 @@
 package com.sanhiruzu.ami.client.overlay;
 
 import com.sanhiruzu.ami.api.AmiPluginRegistry;
+import com.sanhiruzu.ami.client.AMICheatMode;
+import com.sanhiruzu.ami.client.AMITheme;
+import com.sanhiruzu.ami.client.AmiGuiIcons;
 import com.sanhiruzu.ami.client.AmiRenderProfiler;
 import com.sanhiruzu.ami.client.AmiRenderPhase;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
 import com.sanhiruzu.ami.client.UniversalResultsPanel;
+import com.sanhiruzu.ami.client.entitydetails.EntityDetailsQuery;
+import com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler;
+import com.sanhiruzu.ami.client.icon.ItemIconRenderer;
+import com.sanhiruzu.ami.client.screen.AmiConfigScreen;
+import com.sanhiruzu.ami.client.sources.ItemSourceQuery;
 import com.sanhiruzu.ami.compat.FtbLibrarySidebarCompat;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.config.AmiConfig;
@@ -115,10 +123,10 @@ public class OverlayWidgetManager {
         });
         this.amiButton = new AmiButtonWidget(() -> {
             var mc = Minecraft.getInstance();
-            mc.setScreen(new com.sanhiruzu.ami.client.screen.AmiConfigScreen(mc.screen));
+            mc.setScreen(new AmiConfigScreen(mc.screen));
         }, InventoryOverlayHandler::toggleAmi, () -> panelVisible);
 
-        com.sanhiruzu.ami.client.favorites.AmiFavoritesHandler.getInstance().setOnChange(this::refreshSidebarsAndLayout);
+        AmiFavoritesHandler.getInstance().setOnChange(this::refreshSidebarsAndLayout);
 
         pinnedPositions = PinnedWidgetPositions.load();
         widgetsReady = true;
@@ -425,8 +433,8 @@ public class OverlayWidgetManager {
         // Use the actual recipe viewer bounds when it is open; fall back to a
         // screen-fraction estimate for other modal screens (EMI, etc.).
         int centerLeft, centerRight;
-        com.sanhiruzu.ami.compat.RecipeViewerBridge.RecipeViewerBounds viewerBounds =
-                com.sanhiruzu.ami.compat.RecipeViewerBridge.getActiveRecipeViewerBounds();
+        RecipeViewerBridge.RecipeViewerBounds viewerBounds =
+                RecipeViewerBridge.getActiveRecipeViewerBounds();
         if (viewerBounds.isValid()) {
             centerLeft  = viewerBounds.left();
             centerRight = viewerBounds.right() + PANEL_MARGIN;
@@ -700,7 +708,7 @@ public class OverlayWidgetManager {
     public void renderBase(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
         try (AmiRenderPhase.Scope phase = AmiRenderPhase.enter(AmiRenderPhase.Phase.BASE);
              AmiRenderProfiler.Section ignored = AmiRenderProfiler.section("overlay.renderBase")) {
-            com.sanhiruzu.ami.client.AMITheme.sync();
+            AMITheme.sync();
             g.flush();
             com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
             g.pose().pushPose();
@@ -809,8 +817,8 @@ public class OverlayWidgetManager {
     }
 
     private void renderCheatDeleteHint(net.minecraft.client.gui.GuiGraphics g, int mx, int my, List<PanelSlot> slots) {
-        if (!com.sanhiruzu.ami.client.AMICheatMode.isEnabled()) return;
-        if (!com.sanhiruzu.ami.client.AMICheatMode.hasCarriedItem()) return;
+        if (!AMICheatMode.isEnabled()) return;
+        if (!AMICheatMode.hasCarriedItem()) return;
         for (PanelSlot slot : slots) {
             if (slot.results.visible && slot.results.isMouseOver(mx, my)) {
                 var font = net.minecraft.client.Minecraft.getInstance().font;
@@ -824,21 +832,21 @@ public class OverlayWidgetManager {
     private void renderLeftPanelBar(net.minecraft.client.gui.GuiGraphics g, int mx, int my) {
         int bx = leftPanelBarBounds.x(), by = leftPanelBarBounds.y();
         int bw = leftPanelBarBounds.width(), bh = leftPanelBarBounds.height();
-        com.sanhiruzu.ami.client.AMITheme.fillPanelChrome(g, bx, by, bw, bh);
+        AMITheme.fillPanelChrome(g, bx, by, bw, bh);
 
         List<AmiConfig.PanelContent> conts = leftContents();
         if (!conts.isEmpty()) {
-            List<com.sanhiruzu.ami.index.SearchNode> nodes =
-                    com.sanhiruzu.ami.client.overlay.AmiSidebarSyncHandler.getNodesForContent(conts.get(0));
+            List<SearchNode> nodes =
+                    AmiSidebarSyncHandler.getNodesForContent(conts.get(0));
             int btnRight = leftPanelExpandBtnBounds != null ? leftPanelExpandBtnBounds.x() : bx + bw;
             int iconAreaW = btnRight - bx - 4;
             int maxIcons = Math.max(0, iconAreaW / BAR_ICON_CELL);
             int count = Math.min(nodes.size(), maxIcons);
             int iconX = bx + 4;
-            int iconY = by + (bh - com.sanhiruzu.ami.client.AMITheme.ICON_SIZE) / 2;
+            int iconY = by + (bh - AMITheme.ICON_SIZE) / 2;
             for (int i = 0; i < count; i++) {
                 net.minecraft.world.item.ItemStack stack =
-                        com.sanhiruzu.ami.client.icon.ItemIconRenderer.resolveStack(nodes.get(i).id());
+                        ItemIconRenderer.resolveStack(nodes.get(i).id());
                 if (!stack.isEmpty()) {
                     g.renderItem(stack, iconX + i * BAR_ICON_CELL, iconY);
                 }
@@ -849,12 +857,12 @@ public class OverlayWidgetManager {
             int ebx = leftPanelExpandBtnBounds.x(), eby = leftPanelExpandBtnBounds.y();
             int ebw = leftPanelExpandBtnBounds.width(), ebh = leftPanelExpandBtnBounds.height();
             boolean hov = mx >= ebx && mx < ebx + ebw && my >= eby && my < eby + ebh;
-            int bg = hov ? com.sanhiruzu.ami.client.AMITheme.DROPDOWN_BG_ACTIVE
-                         : com.sanhiruzu.ami.client.AMITheme.DROPDOWN_BG;
-            com.sanhiruzu.ami.client.AMITheme.fillControlChrome(g, ebx, eby, ebw, ebh, bg, false);
-            int ic = hov ? com.sanhiruzu.ami.client.AMITheme.TEXT_HEADER
-                         : com.sanhiruzu.ami.client.AMITheme.TEXT_SUBTLE;
-            com.sanhiruzu.ami.client.AmiGuiIcons.sidebarExpand(g, ebx + ebw / 2, eby + ebh / 2, ic);
+            int bg = hov ? AMITheme.DROPDOWN_BG_ACTIVE
+                         : AMITheme.DROPDOWN_BG;
+            AMITheme.fillControlChrome(g, ebx, eby, ebw, ebh, bg, false);
+            int ic = hov ? AMITheme.TEXT_HEADER
+                         : AMITheme.TEXT_SUBTLE;
+            AmiGuiIcons.sidebarExpand(g, ebx + ebw / 2, eby + ebh / 2, ic);
         }
     }
 
@@ -910,8 +918,8 @@ public class OverlayWidgetManager {
             searchBar.setInventoryVisualFilterActive(inventorySearchHighlighter.isActive());
         }
         if (SEARCH_DEBOUNCE_MS <= 0L || query == null || query.isBlank()
-                || com.sanhiruzu.ami.client.sources.ItemSourceQuery.isRoute(query)
-                || com.sanhiruzu.ami.client.entitydetails.EntityDetailsQuery.isRoute(query)) {
+                || ItemSourceQuery.isRoute(query)
+                || EntityDetailsQuery.isRoute(query)) {
             pendingSearchQuery = null;
             pendingSearchDeadlineMs = -1L;
             applySearchQuery(query == null ? "" : query);
@@ -940,8 +948,8 @@ public class OverlayWidgetManager {
             if (panel.getInnerPanel() != null) panel.getInnerPanel().getState().setQuery(query);
         }
         if (RecipeViewerBridge.supportsSearchSync()
-                && !com.sanhiruzu.ami.client.sources.ItemSourceQuery.isRoute(query)
-                && !com.sanhiruzu.ami.client.entitydetails.EntityDetailsQuery.isRoute(query)
+                && !ItemSourceQuery.isRoute(query)
+                && !EntityDetailsQuery.isRoute(query)
                 && !query.equals(lastSyncedQuery)) {
             lastSyncedQuery = query;
             RecipeViewerBridge.setSearchText(query);
@@ -1513,7 +1521,7 @@ public class OverlayWidgetManager {
     }
 
     private void renderLayoutDragHandles(net.minecraft.client.gui.GuiGraphics g) {
-        int accent = com.sanhiruzu.ami.client.AMITheme.ACCENT_BLUE;
+        int accent = AMITheme.ACCENT_BLUE;
         int accentDim = 0x88_4A90D9;
 
         if (searchBar != null && searchBar.visible) {

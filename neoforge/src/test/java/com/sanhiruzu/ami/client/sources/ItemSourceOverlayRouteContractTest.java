@@ -31,8 +31,8 @@ class ItemSourceOverlayRouteContractTest {
             String source = Files.readString(manager);
             int applySearch = source.indexOf("private void applySearchQuery(String query)");
             assertTrue(applySearch >= 0, manager + " should own recipe-viewer search sync.");
-            int sourceRouteGuard = source.indexOf("!com.sanhiruzu.ami.client.sources.ItemSourceQuery.isRoute(query)", applySearch);
-            int entityRouteGuard = source.indexOf("!com.sanhiruzu.ami.client.entitydetails.EntityDetailsQuery.isRoute(query)", applySearch);
+            int sourceRouteGuard = source.indexOf("!ItemSourceQuery.isRoute(query)", applySearch);
+            int entityRouteGuard = source.indexOf("!EntityDetailsQuery.isRoute(query)", applySearch);
             int syncAssignment = source.indexOf("lastSyncedQuery = query", applySearch);
             assertTrue(sourceRouteGuard > applySearch && sourceRouteGuard < syncAssignment,
                     manager + " should avoid syncing source route text into the recipe viewer search box.");

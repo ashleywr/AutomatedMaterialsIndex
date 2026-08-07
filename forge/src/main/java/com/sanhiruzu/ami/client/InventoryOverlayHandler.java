@@ -2,7 +2,11 @@ package com.sanhiruzu.ami.client;
 
 import com.sanhiruzu.ami.api.AmiApi;
 import com.sanhiruzu.ami.client.RecipeViewerSuppressionPolicy.VisibleLayer;
+import com.sanhiruzu.ami.client.overlay.DisplayStateManager;
+import com.sanhiruzu.ami.client.overlay.OverlayLayers;
 import com.sanhiruzu.ami.client.overlay.OverlayWidgetManager;
+import com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer;
+import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.forge.AMI;
 import com.sanhiruzu.ami.index.AmiIndexerService;
@@ -61,7 +65,7 @@ public class InventoryOverlayHandler {
     private static void setLayer(VisibleLayer layer) {
         if (currentLayer == layer) return;
         currentLayer = layer;
-        com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
+        RecipeViewerBridge.clearRecipeView();
         if (layer == VisibleLayer.AMI && !manager.isPanelVisible()) {
             manager.setPanelVisible(true);
         } else if (layer != VisibleLayer.AMI && manager.isPanelVisible()) {
@@ -76,7 +80,7 @@ public class InventoryOverlayHandler {
     }
 
     private static boolean isRecipeScreen(net.minecraft.client.gui.screens.Screen screen) {
-        if (screen instanceof com.sanhiruzu.ami.client.RecipeViewerScreen) return true;
+        if (screen instanceof RecipeViewerScreen) return true;
         String name = screen.getClass().getName();
         return name.equals("dev.emi.emi.screen.RecipeScreen")
                 || name.equals("mezz.jei.gui.recipes.RecipesGui");
@@ -89,7 +93,7 @@ public class InventoryOverlayHandler {
     // External recipe viewers (JEI/EMI) own their own screen and draw their own tooltips; AMI's
     // own RecipeViewerScreen does not need tooltip re-hosting because AMI controls its render order.
     private static boolean isExternalRecipeScreen(net.minecraft.client.gui.screens.Screen screen) {
-        return isRecipeScreen(screen) && !(screen instanceof com.sanhiruzu.ami.client.RecipeViewerScreen);
+        return isRecipeScreen(screen) && !(screen instanceof RecipeViewerScreen);
     }
 
     /**
@@ -154,7 +158,7 @@ public class InventoryOverlayHandler {
     static void onScreenInit(ScreenEvent.Init.Post event) {
         if (!isAmiScreen(event.getScreen())) return;
 
-        com.sanhiruzu.ami.compat.RecipeViewerBridge.clearRecipeView();
+        RecipeViewerBridge.clearRecipeView();
 
         net.minecraft.client.gui.screens.Screen previousScreen = initializedScreen;
         boolean shouldStartHidden = AmiConfig.startHidden;
@@ -308,7 +312,7 @@ public class InventoryOverlayHandler {
         net.minecraft.client.gui.screens.Screen screen = Minecraft.getInstance().screen;
         if (screen == null || !isExternalRecipeScreen(screen)) return;
         if (event.getItemStack().isEmpty()) return;
-        if (com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer.isRenderingAmiTooltip()) return;
+        if (AmiTooltipRenderer.isRenderingAmiTooltip()) return;
         if (renderingExternalTooltip) return;
         if (currentLayer != VisibleLayer.AMI || !manager.isPanelVisible() || AmiApi.shouldSuppressAmi(screen)) return;
         pendingGatheredTooltip = new PendingGatheredTooltip(
@@ -321,7 +325,7 @@ public class InventoryOverlayHandler {
         net.minecraft.client.gui.screens.Screen screen = Minecraft.getInstance().screen;
         if (screen == null || !isExternalRecipeScreen(screen)) return;
         if (event.getItemStack().isEmpty()) return;
-        if (com.sanhiruzu.ami.client.tooltip.AmiTooltipRenderer.isRenderingAmiTooltip()) return;
+        if (AmiTooltipRenderer.isRenderingAmiTooltip()) return;
         if (renderingExternalTooltip) return;
         if (currentLayer != VisibleLayer.AMI || !manager.isPanelVisible() || AmiApi.shouldSuppressAmi(screen)) return;
 
@@ -341,11 +345,11 @@ public class InventoryOverlayHandler {
         pendingExternalTooltip = null;
         if (tooltip == null || (tooltip.stack().isEmpty() && tooltip.elements().isEmpty())) return;
 
-        com.sanhiruzu.ami.client.RenderStateSnapshot state = com.sanhiruzu.ami.client.RenderStateSnapshot.capture();
+        RenderStateSnapshot state = RenderStateSnapshot.capture();
         try {
             renderingExternalTooltip = true;
             graphics.pose().pushPose();
-            graphics.pose().translate(0, 0, com.sanhiruzu.ami.client.overlay.OverlayLayers.TRANSIENT_TOOLTIP);
+            graphics.pose().translate(0, 0, OverlayLayers.TRANSIENT_TOOLTIP);
             if (tooltip.elements().isEmpty()) {
                 graphics.renderTooltip(tooltip.font(), tooltip.stack(), tooltip.x(), tooltip.y());
             } else {
@@ -552,11 +556,11 @@ public class InventoryOverlayHandler {
      */
     public static void refreshOverlayResults() {
         if (currentLayer == VisibleLayer.AMI) {
-            com.sanhiruzu.ami.client.overlay.DisplayStateManager.saveState(manager);
+            DisplayStateManager.saveState(manager);
             try {
                 manager.refreshEntriesForRuntimeIndexUpdate();
             } finally {
-                com.sanhiruzu.ami.client.overlay.DisplayStateManager.restoreState(manager);
+                DisplayStateManager.restoreState(manager);
             }
         }
     }

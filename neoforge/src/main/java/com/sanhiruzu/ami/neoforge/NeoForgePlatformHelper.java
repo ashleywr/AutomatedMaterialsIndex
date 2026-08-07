@@ -9,6 +9,7 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.sanhiruzu.ami.AmiCore;
 import com.sanhiruzu.ami.index.GlobalIndexCache;
 import com.sanhiruzu.ami.neoforge.client.AMIKeyMappings;
 import com.sanhiruzu.ami.platform.IAmiKeyMappings;
@@ -628,7 +629,7 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
                     T plugin = (T) cls.getDeclaredConstructor().newInstance();
                     result.add(plugin);
                 } catch (Throwable t) {
-                    com.sanhiruzu.ami.AmiCore.LOGGER.warn("Failed to instantiate @{} plugin class {}", annotationClass.getSimpleName(), className, t);
+                    AmiCore.LOGGER.warn("Failed to instantiate @{} plugin class {}", annotationClass.getSimpleName(), className, t);
                 }
             }
         }
