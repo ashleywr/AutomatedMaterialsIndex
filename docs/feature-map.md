@@ -150,6 +150,26 @@
   - Search suggestions/help treat `?entity:` and `?mob:` as route syntax, not source graph warmup. Typing after the colon
     suggests canonical entity route targets and namespace filters from a dedicated cached visible-entity route index.
 
+## Pokemon Coverage Export
+
+- User surface: NeoForge clients can run `/ami dump pokemon-coverage` to write pack-author/player-facing Cobblemon
+  species coverage files under `ami_dumps/pokemon_coverage/`: `pokemon_coverage.json`, `pokemon_coverage.csv`, and
+  `pokemon_coverage.html`.
+- Main files:
+  - `xplat/src/main/java/com/sanhiruzu/ami/index/PokemonCoverageDumpWriter.java`
+  - `neoforge/src/main/java/com/sanhiruzu/ami/client/AmiClientCommands.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/compat/CobblemonSpeciesProvider.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/index/SearchNodeKeys.java`
+- Tests:
+  - `.\gradlew.bat :neoforge:compileJava`
+- State contract:
+  - The export is generated from AMI's live Cobblemon species `SearchNode`s, so it reflects the species metadata AMI
+    has already indexed: dex number, species id, name, implemented flag, type, generation, abilities, egg groups, and
+    Pokemon drop item metadata.
+  - Wild biome coverage is reported only when AMI has `SPAWNS_IN` edges on the species node. The first version does not
+    directly parse Cobblemon spawn-pool datapack JSON, so "No indexed biomes" means AMI has no biome edges for that
+    species, not necessarily that the server has no Cobblemon spawn rule.
+
 ## Classification Semantic Verbs
 
 - User surface: item search results route ambiguous placeable items by concrete runtime use, so beds, storage terminals,
@@ -530,12 +550,22 @@
   - `xplat/src/main/java/com/sanhiruzu/ami/client/tooltip/AmiResultTooltipElements.java`
   - `xplat/src/main/java/com/sanhiruzu/ami/client/tooltip/AmiTooltipRenderer.java`
   - `xplat/src/main/java/com/sanhiruzu/ami/platform/IPlatformHelper.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/mixin/JeiGuiEventHandlerMixin.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/mixin/JeiIngredientListOverlayMixin.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/mixin/JeiBookmarkOverlayMixin.java`
+  - `forge/src/main/resources/ami.mixins.json`
+  - `neoforge/src/main/resources/ami.mixins.json`
 - Tests:
   - `neoforge/src/test/java/com/sanhiruzu/ami/client/ContainerTooltipOwnershipPolicyTest.java`
   - `neoforge/src/test/java/com/sanhiruzu/ami/client/results/ItemResultTooltipPolicyTest.java`
+  - `neoforge/src/test/java/com/sanhiruzu/ami/mixin/MixinsJsonTest.java` asserts the neoforge client mixin list stays in parity with forge's JEI-suppression set.
   - Runtime visual smoke through AutoMine Testing is preferred for tooltip/panel z-order because vanilla tooltip timing depends on the live screen render path.
   - Compile all loaders after shared tooltip/platform render changes: `.\gradlew.bat :neoforge:compileJava :forge:compileJava :fabric:compileJava`.
 - State contract:
+  - JEI's own overlay rendering (ingredient list, bookmarks) is suppressed via mixin, not render-order timing, because JEI owns its own `GuiEventHandler`-driven draw calls outside AMI's render hooks. `JeiGuiEventHandlerMixin` cancels `GuiEventHandler`'s draw entry point at `@At("HEAD")` when `InventoryOverlayHandler.shouldSuppressRecipeViewerChrome()` is true, but this alone was empirically **not fully effective** (commit `78bff331`, "JeiGuiEventHandlerMixin suppression wasn't fully effective"). `JeiIngredientListOverlayMixin`/`JeiBookmarkOverlayMixin` inject a second, direct cancellation into `IngredientListOverlay`/`BookmarkOverlay`'s own draw methods as a backstop — both mixin layers must be registered together per loader.
+  - Both `forge/src/main/resources/ami.mixins.json` and `neoforge/src/main/resources/ami.mixins.json` must list all three JEI overlay-suppression mixins (`JeiGuiEventHandlerMixin`, `JeiIngredientListOverlayMixin`, `JeiBookmarkOverlayMixin`). These previously drifted out of parity: a same-day 2026-05-27 refactor (`fae5d583`, migrating neoforge off its local xplat copy) silently reintroduced a stale pre-fix neoforge mixins.json that dropped the two backstop mixins, while forge kept them — causing JEI's sidebar/bookmark overlay to intermittently still draw alongside AMI on NeoForge. Check both loaders' `ami.mixins.json` client arrays match on JEI mixins whenever touching this suppression path.
+  - **JEI's internal draw method names/signatures are not a stable target and drift across JEI releases independent of AMI's compile-time JEI pin** (`neoforge_jei_version` in `gradle.properties`, snapshotted in `vendor-sources/resolved/jei/neoforge-1.21.1`). Confirmed via `javap` against a real player's installed jar: JEI 19.27.0.340 (AMI's compile-time pin) has `GuiEventHandler.onDrawForeground`/`onDrawScreenPost` calling `IngredientListOverlay`/`BookmarkOverlay.drawScreen(...)` as one call; JEI 19.43.0.393 (a real modpack's installed version, only ~2 months newer) renamed those `GuiEventHandler` entry points to `drawForContainerScreen`/`drawForScreen` and split the overlays' rendering into separate `drawBackground(GuiGraphics)` + `drawForeground(Minecraft, GuiGraphics, int, int, float)` calls — neither method AMI's mixins previously targeted. Suppression silently degrades to partial (tooltips/on-foreground icons hidden, but the visible sidebar/bookmark/search-bar body still draws) with **no crash and no log signal**, because `@Pseudo` + `require = 0` make missing injection targets a silent no-op by design.
+  - Because of that drift, all three JEI mixins (`JeiGuiEventHandlerMixin`, `JeiIngredientListOverlayMixin`, `JeiBookmarkOverlayMixin`) use **string-based `@Mixin(targets = "mezz.jei...")` references, not typed `@Mixin(SomeJeiClass.class)` references**, and every `@Inject` sets `require = 0`. A typed reference forces the Mixin annotation processor to validate every `@Inject` target against the compile-time JEI jar's real bytecode, which would fail to compile the moment a targeted method doesn't exist in that pinned version — string targets defer all validation to runtime, and `require = 0` makes each injection independently optional so old-version-only and new-version-only method names can coexist in the same mixin class without either failing the other. When JEI's overlay rendering appears to only partially suppress (some elements hidden, others not) on a specific player's pack, suspect a JEI version newer than AMI's compile-time pin before suspecting a config/parity issue — diff the installed JEI jar's `mezz/jei/gui/overlay/*.class` and `mezz/jei/gui/events/GuiEventHandler.class` against `vendor-sources/resolved/jei/neoforge-1.21.1` with `javap -p -c` to confirm the actual current call chain before changing suppression code.
   - Container screens split ownership by render timing, not z-fighting. AMI's durable body (panels, result icons, search bar, buttons) renders from `ContainerScreenEvent.Render.Foreground` — before vanilla/status tooltips — so those tooltips win wherever they overlap AMI. AMI-owned transient UI (AMI tooltips, dropdowns, context menus, hints) renders from `ScreenEvent.Render.Post` — after vanilla tooltips — so it wins over AMI's own body.
   - The foreground handler translates by `-getGuiLeft(), -getGuiTop()` to undo the container's `leftPos/topPos` translation, restoring the screen-space coordinates AMI layouts are computed in. Partial tick is captured in `ScreenEvent.Render.Pre` (the foreground event carries none).
   - Durable z values (`OverlayLayers`: panels 200, search bar 201, icons ~350 via the item GUI offset) stay below `VANILLA_TOOLTIP = 400`, so the later-drawn vanilla tooltip wins by paint order. Note that `g.renderItem` writes real 3D model depth — block-item icons reach past z=400 — so paint order alone is not enough: `renderBase` clears `GL_DEPTH_BUFFER_BIT` after its final flush to leave no depth residue. This is residue cleanup of AMI's own layer (generalizing `IconRenderState`'s promise), not the forbidden practice of clearing depth to reorder vanilla tooltips.

@@ -10,8 +10,10 @@
     "EmiRecipeScreenFavoriteMixin",
     "EmiScreenManagerMixin",
     "JeiBookmarkListMixin",
+    "JeiBookmarkOverlayMixin",
     "JeiClientInputHandlerMixin",
     "JeiGuiEventHandlerMixin",
+    "JeiIngredientListOverlayMixin",
     "RecipeBookComponentMixin"
   ]
 }

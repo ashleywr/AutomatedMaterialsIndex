@@ -32,8 +32,6 @@ public class MixinsJsonTest {
     void doesNotContainDeletedJeiMixinClasses() throws Exception {
         String content = Files.readString(JSON_PATH);
         String[] deletedMixins = {
-                "JeiIngredientListOverlayMixin",
-                "JeiBookmarkOverlayMixin",
                 "JeiScreenPropertiesCacheMixin",
                 "RecipeViewerMixinSupport",
                 "JeiPluginCallerMixin",
@@ -44,6 +42,17 @@ public class MixinsJsonTest {
             assertFalse(content.contains("\"" + deleted + "\""),
                     "ami.mixins.json must not contain deleted mixin: " + deleted);
         }
+    }
+
+    @Test
+    void containsJeiOverlayBackstopMixinsInClientArray() throws Exception {
+        String content = Files.readString(JSON_PATH);
+        assertTrue(content.contains("\"JeiIngredientListOverlayMixin\""),
+                "ami.mixins.json must contain JeiIngredientListOverlayMixin in client array — "
+                        + "JeiGuiEventHandlerMixin suppression alone was not fully effective (see commit 78bff331)");
+        assertTrue(content.contains("\"JeiBookmarkOverlayMixin\""),
+                "ami.mixins.json must contain JeiBookmarkOverlayMixin in client array — "
+                        + "JeiGuiEventHandlerMixin suppression alone was not fully effective (see commit 78bff331)");
     }
 
     @Test
