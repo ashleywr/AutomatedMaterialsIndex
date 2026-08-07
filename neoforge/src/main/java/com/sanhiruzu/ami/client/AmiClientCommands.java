@@ -88,6 +88,12 @@ public class AmiClientCommands {
                             exportRecipeViewerRecipes(context.getSource());
                             return 1;
                         })
+                )
+                .then(Commands.literal("pokemon-coverage")
+                        .executes(context -> {
+                            exportPokemonCoverage(context.getSource());
+                            return 1;
+                        })
                 );
 
         LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("ami")
@@ -266,6 +272,29 @@ public class AmiClientCommands {
         }
     }
 
+    private static void exportPokemonCoverage(CommandSourceStack source) {
+        Path dumpDir = dumpDir("pokemon_coverage");
+        try {
+            Files.createDirectories(dumpDir);
+            PokemonCoverageDumpWriter.Outputs outputs = PokemonCoverageDumpWriter.writeDump(dumpDir);
+            source.sendSystemMessage(Component.literal(
+                            "AMI Pokemon coverage written to "
+                                    + outputs.html().toAbsolutePath()
+                                    + ", "
+                                    + outputs.csv().toAbsolutePath()
+                                    + ", and "
+                                    + outputs.json().toAbsolutePath()
+                                    + " ("
+                                    + outputs.pokemonCount()
+                                    + " Pokemon rows)")
+                    .withStyle(ChatFormatting.GREEN));
+        } catch (Exception e) {
+            AMI.LOGGER.error("Failed to export AMI Pokemon coverage", e);
+            source.sendSystemMessage(Component.literal("Failed to export AMI Pokemon coverage: " + e.getMessage())
+                    .withStyle(ChatFormatting.RED));
+        }
+    }
+
     private static Path dumpDir(String category) {
         return FMLPaths.GAMEDIR.get().resolve("ami_dumps").resolve(category);
     }
@@ -306,6 +335,7 @@ public class AmiClientCommands {
         exportLootTables(source);
         exportRecipeViewerItemAudit(source);
         exportRecipeViewerRecipes(source);
+        exportPokemonCoverage(source);
         exportResultsTree(source, "");
     }
 
