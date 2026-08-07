@@ -2,6 +2,19 @@
 
 User-facing changes are recorded here.
 
+## 1.8.3 - 2026-08-07
+
+### Added
+
+- Added `/ami dump pokemon-coverage`, writing pack-author/player-facing Cobblemon species coverage as JSON, CSV, and HTML under `ami_dumps/pokemon_coverage/`.
+
+### Fixed
+
+- Made craftable filtering use the active recipe viewer and the current container state, so JEI/EMI craftable results stay accurate across open inventories.
+- Stabilized AMI dropdown popup click handling for Forge compatibility.
+- Preserved EMI fluid tooltip names when AMI is layered over external recipe screens.
+- Fixed JEI's ingredient list, bookmarks, and search bar sometimes still drawing alongside AMI when a pack's installed JEI build is newer than AMI's own JEI version — JEI's overlay draw methods are now targeted by name rather than by a version-pinned class reference, so suppression survives JEI renaming or splitting its internal rendering methods across releases.
+
 ## 1.8.1 - 2026-07-19
 
 ### Fixed
