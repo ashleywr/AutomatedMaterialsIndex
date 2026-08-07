@@ -818,12 +818,13 @@ public class AmiConfigScreen extends Screen {
                 if (font.width(labelStr) > maxLabelW) {
                     labelStr = font.plainSubstrByWidth(labelStr, maxLabelW - 8) + "..";
                 }
-                renderTextWithHighlight(g, Component.literal(labelStr), x + 10, y + 6, textColor);
+                int labelY = y + (height - font.lineHeight) / 2;
+                renderTextWithHighlight(g, Component.literal(labelStr), x + 10, labelY, textColor);
 
                 if (widget != null) {
                     widget.active = enabled;
                     widget.setX(widgetX);
-                    widget.setY(y + 3);
+                    widget.setY(y + (height - widget.getHeight()) / 2);
                     widget.setWidth(widgetW);
                     widget.render(g, mouseX, mouseY, partialTick);
 

@@ -91,6 +91,18 @@ public class AmiPanelContentDropdownWidget extends AbstractWidget implements Ami
         g.drawString(font, arrow, getX() + width - arrowW - 4, textY, AMITheme.CONFIG_TEXT_SECONDARY, false);
     }
 
+    /**
+     * {@code AmiDropdownPopupController} calls {@link #handlePopupClick} directly while a
+     * dropdown is already open, but the initial click that opens a closed dropdown reaches this
+     * widget through the normal {@link AbstractWidget} click dispatch (e.g.
+     * {@code OverlayWidgetManager}'s row {@code widget.mouseClicked(...)}), so that path must also
+     * route into the same popup-click contract.
+     */
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        return handlePopupClick(mouseX, mouseY, button);
+    }
+
     @Override
     public boolean handlePopupClick(double mouseX, double mouseY, int button) {
         if (!active || button != 0) return false;

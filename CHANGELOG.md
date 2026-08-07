@@ -11,7 +11,8 @@ User-facing changes are recorded here.
 ### Fixed
 
 - Made craftable filtering use the active recipe viewer and the current container state, so JEI/EMI craftable results stay accurate across open inventories.
-- Stabilized AMI dropdown popup click handling for Forge compatibility.
+- Fixed AMI config and panel-content dropdowns (e.g. "AMI Mode") not opening when clicked — the earlier Forge-compatibility click-ABI rename left the initial open click falling through to a no-op default handler instead of the popup logic.
+- Centered AMI config row labels and controls vertically within their rows; they previously used fixed offsets that left them sitting low relative to their labels.
 - Preserved EMI fluid tooltip names when AMI is layered over external recipe screens.
 - Fixed JEI's ingredient list, bookmarks, and search bar sometimes still drawing alongside AMI when a pack's installed JEI build is newer than AMI's own JEI version — JEI's overlay draw methods are now targeted by name rather than by a version-pinned class reference, so suppression survives JEI renaming or splitting its internal rendering methods across releases.
 
