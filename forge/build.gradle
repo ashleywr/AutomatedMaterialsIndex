@@ -382,6 +382,7 @@ if (System.getenv('CURSEFORGE_TOKEN')) {
             changelog = changelogText()
             addGameVersion forge_minecraft_version
             addGameVersion 'Forge'
+            addGameVersion 'Client'
             mainArtifact(forgeReleaseJarFile) {
                 displayName = "AMI ${mod_version} (Forge ${forge_minecraft_version})"
             }

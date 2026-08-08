@@ -165,6 +165,7 @@ if (System.getenv('CURSEFORGE_TOKEN')) {
             changelog = changelogText()
             addGameVersion fabric_minecraft_version
             addGameVersion 'Fabric'
+            addGameVersion 'Client'
             mainArtifact(tasks.remapJar) {
                 displayName = "AMI ${mod_version} (Fabric ${fabric_minecraft_version})"
             }

@@ -2,6 +2,12 @@
 
 User-facing changes are recorded here.
 
+## 1.8.4 - 2026-08-08
+
+### Changed
+
+- No functional changes from 1.8.3. Re-published as 1.8.4 after fixing a CurseForge publishing config issue (missing environment/side tag) that blocked the 1.8.3 CurseForge and GitHub releases; 1.8.3 had already published successfully to Modrinth.
+
 ## 1.8.3 - 2026-08-07
 
 ### Added

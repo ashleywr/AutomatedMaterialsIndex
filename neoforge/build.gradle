@@ -313,6 +313,7 @@ if (System.getenv('CURSEFORGE_TOKEN')) {
             changelog = changelogText()
             addGameVersion neoforge_minecraft_version
             addGameVersion 'NeoForge'
+            addGameVersion 'Client'
             mainArtifact(tasks.named('jar').get().archiveFile.get().asFile) {
                 displayName = "AMI ${mod_version} (NeoForge ${neoforge_minecraft_version})"
             }
