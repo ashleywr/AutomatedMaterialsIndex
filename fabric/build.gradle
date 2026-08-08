@@ -3,7 +3,9 @@ plugins {
     id 'maven-publish'
     id 'fabric-loom' version "${fabric_loom_version}"
     id 'com.modrinth.minotaur' version '2.8.7'
-    id 'com.matthewprenger.cursegradle' version '1.4.0'
+    // Pinned below 1.2.x: newer releases are compiled with Java 25 bytecode, which Gradle 8.8's
+    // artifact-instrumentation transform can't parse ("Unsupported class file major version 69").
+    id 'net.darkhax.curseforgegradle' version '1.1.28'
 }
 
 base {
@@ -156,29 +158,18 @@ modrinth {
 }
 
 if (System.getenv('CURSEFORGE_TOKEN')) {
-    curseforge {
-        apiKey = System.getenv('CURSEFORGE_TOKEN')
-        project {
-            id = '1558643'
-            releaseType = 'release'
-            changelogType = 'markdown'
-            changelog = changelogText()
-            addGameVersion fabric_minecraft_version
-            addGameVersion 'Fabric'
-            addGameVersion 'Client'
-            mainArtifact(tasks.remapJar) {
-                displayName = "AMI ${mod_version} (Fabric ${fabric_minecraft_version})"
-            }
-            relations {
-                requiredDependency 'fabric-api'
-                optionalDependency 'jei'
-                optionalDependency 'emi'
-            }
-        }
-        options {
-            javaIntegration = false
-            forgeGradleIntegration = false
-            javaVersionAutoDetect = false
-        }
+    task curseforge(type: net.darkhax.curseforgegradle.TaskPublishCurseForge) {
+        apiToken = System.getenv('CURSEFORGE_TOKEN')
+        def mainFile = upload('1558643', tasks.remapJar)
+        mainFile.releaseType = 'release'
+        mainFile.changelogType = 'markdown'
+        mainFile.changelog = changelogText()
+        mainFile.displayName = "AMI ${mod_version} (Fabric ${fabric_minecraft_version})"
+        mainFile.addGameVersion(fabric_minecraft_version)
+        mainFile.addModLoader('Fabric')
+        mainFile.addEnvironment('Client')
+        mainFile.addRequirement('fabric-api')
+        mainFile.addOptional('jei')
+        mainFile.addOptional('emi')
     }
 }

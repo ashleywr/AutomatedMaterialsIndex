@@ -2,6 +2,17 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      skip_modrinth:
+        description: 'Skip Modrinth publish steps (use when Modrinth already has this version from a prior partial run)'
+        required: false
+        type: boolean
+        default: false
+      skip_curseforge:
+        description: 'Skip CurseForge publish steps (use when CurseForge already has this version from a prior partial run)'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -85,31 +96,37 @@ jobs:
         run: ./gradlew verifyReleaseArtifacts
 
       - name: Publish NeoForge to Modrinth
+        if: ${{ !inputs.skip_modrinth }}
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
         run: ./gradlew --no-configuration-cache :neoforge:modrinth
 
       - name: Publish Fabric to Modrinth
+        if: ${{ !inputs.skip_modrinth }}
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
         run: ./gradlew --no-configuration-cache :fabric:modrinth
 
       - name: Publish Forge to Modrinth
+        if: ${{ !inputs.skip_modrinth }}
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
         run: ./gradlew --no-configuration-cache :forge:modrinth
 
       - name: Publish NeoForge to CurseForge
+        if: ${{ !inputs.skip_curseforge }}
         env:
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
         run: ./gradlew --no-configuration-cache :neoforge:curseforge
 
       - name: Publish Fabric to CurseForge
+        if: ${{ !inputs.skip_curseforge }}
         env:
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
         run: ./gradlew --no-configuration-cache :fabric:curseforge
 
       - name: Publish Forge to CurseForge
+        if: ${{ !inputs.skip_curseforge }}
         env:
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
         run: ./gradlew --no-configuration-cache :forge:curseforge
