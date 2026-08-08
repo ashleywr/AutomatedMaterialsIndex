@@ -10,6 +10,7 @@ User-facing changes are recorded here.
 
 ### Fixed
 
+- Prewarmed AMI's cached result view ahead of a survival/creative gamemode switch made while the inventory is closed, instead of rebuilding it synchronously the next time the inventory opens. Fixes a stall/hang on opening the inventory shortly after a gamemode switch on large modpacks with limited heap headroom (e.g. Steam Deck).
 - Made craftable filtering use the active recipe viewer and the current container state, so JEI/EMI craftable results stay accurate across open inventories.
 - Fixed AMI config and panel-content dropdowns (e.g. "AMI Mode") not opening when clicked — the earlier Forge-compatibility click-ABI rename left the initial open click falling through to a no-op default handler instead of the popup logic.
 - Centered AMI config row labels and controls vertically within their rows; they previously used fixed offsets that left them sitting low relative to their labels.
