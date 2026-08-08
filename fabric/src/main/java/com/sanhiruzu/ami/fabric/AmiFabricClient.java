@@ -223,6 +223,7 @@ public class AmiFabricClient implements ClientModInitializer {
                 AmiDiscoveryState.getInstance().clientTick();
                 AmiIndexerService.getInstance().ensurePendingRecipeIndexBuild();
                 InventoryOverlayHandler.tickAutoIndexBootstrap();
+                InventoryOverlayHandler.getManager().tickBackgroundPlayerStatePrewarm();
                 EntityIconRenderer.tickAtlasWarmup();
             } finally {
                 AmiClientTelemetry.endClientTick();

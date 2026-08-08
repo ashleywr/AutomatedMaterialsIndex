@@ -1119,6 +1119,25 @@ public class OverlayWidgetManager {
         }
     }
 
+    // Warms each panel's cached result projection for the player's current game mode/dev-visibility state while
+    // the overlay is off screen, so a gamemode switch made mid-game doesn't force a full rebuild on the frame the
+    // player next opens their inventory. Skipped while visible (render already owns that case) or while the
+    // indexer is busy (avoid competing with a bigger in-flight rebuild).
+    public void tickBackgroundPlayerStatePrewarm() {
+        if (!widgetsReady || panelVisible) {
+            return;
+        }
+        if (AmiIndexerService.getInstance().isBusy()) {
+            return;
+        }
+        for (ResultsPanelWidget panel : getResultPanels()) {
+            if (panel.getInnerPanel() != null) panel.getInnerPanel().prewarmPlayerStateProjection();
+        }
+        for (SidebarPanelWidget panel : getSidebarPanels()) {
+            if (panel.getInnerPanel() != null) panel.getInnerPanel().prewarmPlayerStateProjection();
+        }
+    }
+
     private void triggerSearch(String query) {
         inventorySearchHighlighter.updateQuery(query);
         if (searchBar != null) {

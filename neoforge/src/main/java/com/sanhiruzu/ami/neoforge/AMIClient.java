@@ -109,6 +109,7 @@ public class AMIClient {
             com.sanhiruzu.ami.client.discovery.AmiDiscoveryState.getInstance().clientTick();
             AmiIndexerService.getInstance().ensurePendingRecipeIndexBuild();
             InventoryOverlayHandler.tickAutoIndexBootstrap();
+            InventoryOverlayHandler.getManager().tickBackgroundPlayerStatePrewarm();
             EntityIconRenderer.tickAtlasWarmup();
         } finally {
             AmiClientTelemetry.endClientTick();

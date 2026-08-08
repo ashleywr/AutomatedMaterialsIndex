@@ -1545,29 +1545,62 @@ public class UniversalResultsPanel implements SearchState.Listener {
 
     // ── Tree refresh ──────────────────────────────────────────────────────────
 
+    private record PlayerStateSnapshot(net.minecraft.world.level.GameType mode, boolean devMode,
+                                        boolean showCreativeItems, boolean discoveryChecklist, long discoveryRevision) {
+        static PlayerStateSnapshot current() {
+            Minecraft mc = Minecraft.getInstance();
+            net.minecraft.world.level.GameType mode = mc.gameMode == null ? null : mc.gameMode.getPlayerMode();
+            return new PlayerStateSnapshot(mode, AmiConfig.devMode, AmiConfig.shouldShowCreativeItems(mode),
+                    AmiConfig.enableDiscoveryChecklist,
+                    com.sanhiruzu.ami.client.discovery.AmiDiscoveryState.getInstance().revision());
+        }
+    }
+
+    private boolean hasPlayerContextChange(PlayerStateSnapshot now) {
+        return now.mode() != lastPlayerMode || now.devMode() != lastDevMode
+                || now.showCreativeItems() != lastShowCreativeItems;
+    }
+
+    private boolean hasDiscoveryChange(PlayerStateSnapshot now) {
+        return now.discoveryChecklist() != lastDiscoveryChecklist || now.discoveryRevision() != lastDiscoveryRevision;
+    }
+
     private void checkPlayerStateChanged() {
-        Minecraft mc = Minecraft.getInstance();
-        net.minecraft.world.level.GameType mode = mc.gameMode == null ? null : mc.gameMode.getPlayerMode();
-        boolean devMode = AmiConfig.devMode;
-        boolean showCreativeItems = AmiConfig.shouldShowCreativeItems(mode);
-        boolean discoveryChecklist = AmiConfig.enableDiscoveryChecklist;
-        long discoveryRevision = com.sanhiruzu.ami.client.discovery.AmiDiscoveryState.getInstance().revision();
-        boolean playerContextChanged = mode != lastPlayerMode
-                || devMode != lastDevMode
-                || showCreativeItems != lastShowCreativeItems;
-        boolean discoveryChanged = discoveryChecklist != lastDiscoveryChecklist
-                || discoveryRevision != lastDiscoveryRevision;
+        PlayerStateSnapshot now = PlayerStateSnapshot.current();
+        boolean playerContextChanged = hasPlayerContextChange(now);
+        boolean discoveryChanged = hasDiscoveryChange(now);
         if (playerContextChanged || discoveryChanged) {
-            lastPlayerMode = mode;
-            lastDevMode = devMode;
-            lastShowCreativeItems = showCreativeItems;
-            lastDiscoveryChecklist = discoveryChecklist;
-            lastDiscoveryRevision = discoveryRevision;
+            lastPlayerMode = now.mode();
+            lastDevMode = now.devMode();
+            lastShowCreativeItems = now.showCreativeItems();
+            lastDiscoveryChecklist = now.discoveryChecklist();
+            lastDiscoveryRevision = now.discoveryRevision();
             invalidateProjectionCache();
             forceLensRecompute();
             refreshAvailableListLenses();
             refreshTree(!playerContextChanged);
         }
+    }
+
+    // Warms the empty-query projection cache for the player's live state without updating lastPlayerMode and
+    // friends, so checkPlayerStateChanged still detects the change (and pushes it into the visible tree) next
+    // render — it just hits a warm cache instead of rebuilding cold on that frame. Safe to call while hidden.
+    public void prewarmPlayerStateProjection() {
+        if (!state.getQuery().isBlank()) {
+            return;
+        }
+        PlayerStateSnapshot now = PlayerStateSnapshot.current();
+        if (!hasPlayerContextChange(now) && !hasDiscoveryChange(now)) {
+            return;
+        }
+
+        String key = emptyQueryProjectionCacheKey(now.mode());
+        if (key == null || (key.equals(emptyQueryProjectionCacheKey) && emptyQueryProjectionCache != null)) {
+            return;
+        }
+
+        emptyQueryProjectionCacheKey = key;
+        emptyQueryProjectionCache = buildProjection();
     }
 
 
@@ -1628,7 +1661,17 @@ public class UniversalResultsPanel implements SearchState.Listener {
             return emptyQueryProjectionCache;
         }
 
-        ResultsViewProjector.Projection projection = ResultsViewProjector.project(
+        ResultsViewProjector.Projection projection = buildProjection();
+
+        if (cacheKey != null) {
+            emptyQueryProjectionCacheKey = cacheKey;
+            emptyQueryProjectionCache = projection;
+        }
+        return projection;
+    }
+
+    private ResultsViewProjector.Projection buildProjection() {
+        return ResultsViewProjector.project(
                 resolveSource(),
                 state,
                 searchService,
@@ -1639,15 +1682,15 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 isCompactLayout() && !isFavoritesPanel,
                 isFavoritesPanel
         );
-
-        if (cacheKey != null) {
-            emptyQueryProjectionCacheKey = cacheKey;
-            emptyQueryProjectionCache = projection;
-        }
-        return projection;
     }
 
     private String emptyQueryProjectionCacheKey() {
+        return emptyQueryProjectionCacheKey(lastPlayerMode);
+    }
+
+    // effectivePlayerMode is normally lastPlayerMode; prewarmPlayerStateProjection passes the live mode instead
+    // to predict the key a future rebuild will use.
+    private String emptyQueryProjectionCacheKey(net.minecraft.world.level.GameType effectivePlayerMode) {
         if (!state.getQuery().isBlank()) {
             return null;
         }
@@ -1666,7 +1709,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 + "|dev=" + AmiConfig.devMode
                 + "|cheat=" + AmiConfig.cheatMode
                 + "|hidden=" + AmiConfig.showHiddenModItems
-                + "|creative=" + AmiConfig.shouldShowCreativeItems(lastPlayerMode)
+                + "|creative=" + AmiConfig.shouldShowCreativeItems(effectivePlayerMode)
                 + "|searchGuides=" + AmiConfig.searchIncludeGuides
                 + "|searchQuests=" + AmiConfig.searchIncludeQuests
                 + "|searchAdvancements=" + AmiConfig.searchIncludeAdvancements

@@ -94,6 +94,7 @@ public class AMIClient {
                 try {
                     FtbQuestsRuntimeCompat.clientTick();
                     InventoryOverlayHandler.tickAutoIndexBootstrap();
+                    InventoryOverlayHandler.getManager().tickBackgroundPlayerStatePrewarm();
                     EntityIconRenderer.tickAtlasWarmup();
                 } finally {
                     AmiClientTelemetry.endClientTick();
