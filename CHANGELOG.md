@@ -2,6 +2,12 @@
 
 User-facing changes are recorded here.
 
+## 1.8.5 - 2026-08-08
+
+### Fixed
+
+- Fixed a real hang after switching gamemode with the inventory closed on large modpacks: the 1.8.3 gamemode-switch prewarm re-checked the full indexed item list every client tick instead of once, and its warmed cache was then discarded right before it would have been used. Both fixed; the background prewarm now only recomputes when the live player state actually changes, and its result is reused on the next inventory open instead of rebuilt cold.
+
 ## 1.8.4 - 2026-08-08
 
 ### Changed

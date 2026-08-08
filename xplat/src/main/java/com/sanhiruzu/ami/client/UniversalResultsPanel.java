@@ -141,6 +141,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
     private boolean lastShowCreativeItems = false;
     private boolean lastDiscoveryChecklist = false;
     private long lastDiscoveryRevision = Long.MIN_VALUE;
+    // Cheap gate for the background prewarm tick, separate from last*: lets it skip repeat work once it has
+    // already reacted to the current live snapshot, without disturbing the render-visible baseline above.
+    private PlayerStateSnapshot lastPrewarmedSnapshot = null;
     private long lastIndexProgressRefreshMs = 0L;
 
     public UniversalResultsPanel(int x, int y, int width, int height) {
@@ -1575,7 +1578,11 @@ public class UniversalResultsPanel implements SearchState.Listener {
             lastShowCreativeItems = now.showCreativeItems();
             lastDiscoveryChecklist = now.discoveryChecklist();
             lastDiscoveryRevision = now.discoveryRevision();
-            invalidateProjectionCache();
+            // Deliberately not invalidating the cache here: projectResults() below already recomputes the key
+            // from the state we just captured and compares it against emptyQueryProjectionCacheKey, so a cache
+            // that prewarmPlayerStateProjection() already warmed for this exact state is reused instead of
+            // rebuilt cold on this render frame. A key mismatch (nothing prewarmed, or something else changed
+            // too) still forces projectResults() to rebuild, same as before.
             forceLensRecompute();
             refreshAvailableListLenses();
             refreshTree(!playerContextChanged);
@@ -1585,11 +1592,23 @@ public class UniversalResultsPanel implements SearchState.Listener {
     // Warms the empty-query projection cache for the player's live state without updating lastPlayerMode and
     // friends, so checkPlayerStateChanged still detects the change (and pushes it into the visible tree) next
     // render — it just hits a warm cache instead of rebuilding cold on that frame. Safe to call while hidden.
+    //
+    // lastPrewarmedSnapshot is a separate, cheap-to-compare baseline from last*: those stay frozen at whatever
+    // the visible tree reflects (so checkPlayerStateChanged can detect the gap and push a refresh once the panel
+    // is shown again), but without a baseline of our own here, a gamemode switch made while hidden would leave
+    // hasPlayerContextChange() true on every single tick until the player next opens their inventory — forcing
+    // this method past the early return and into resolveSource()/sourceSignature() (a full walk of the indexed
+    // item list) every tick, indefinitely. Comparing against lastPrewarmedSnapshot first turns that into a cheap
+    // record-equality check once the current live state has already been handled.
     public void prewarmPlayerStateProjection() {
         if (!state.getQuery().isBlank()) {
             return;
         }
         PlayerStateSnapshot now = PlayerStateSnapshot.current();
+        if (now.equals(lastPrewarmedSnapshot)) {
+            return;
+        }
+        lastPrewarmedSnapshot = now;
         if (!hasPlayerContextChange(now) && !hasDiscoveryChange(now)) {
             return;
         }
