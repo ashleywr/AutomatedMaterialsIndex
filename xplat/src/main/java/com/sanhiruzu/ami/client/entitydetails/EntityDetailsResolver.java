@@ -37,7 +37,7 @@ public final class EntityDetailsResolver {
 
     public EntityDetailsReport resolve(SearchNode target) {
         if (target == null) {
-            return new EntityDetailsReport(Component.literal("Mob"), List.of());
+            return new EntityDetailsReport(Component.translatable("ami.entity_details.title"), List.of());
         }
         target = canonicalNode(target);
 
@@ -45,7 +45,7 @@ public final class EntityDetailsResolver {
         rows.addAll(statRows(target));
         rows.addAll(spawnRows(target));
         rows.addAll(dropRows(target));
-        return new EntityDetailsReport(Component.literal("Mob: " + target.displayName()), rows);
+        return new EntityDetailsReport(Component.translatable("ami.entity_details.title.named", target.displayName()), rows);
     }
 
     private SearchNode canonicalNode(SearchNode target) {

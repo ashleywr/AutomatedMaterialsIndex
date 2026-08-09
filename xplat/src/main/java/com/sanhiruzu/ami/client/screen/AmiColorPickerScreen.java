@@ -25,7 +25,7 @@ public class AmiColorPickerScreen extends Screen {
     private Slider rSlider, gSlider, bSlider, aSlider;
 
     public AmiColorPickerScreen(Screen parent, Field field, int initialColor, Consumer<Integer> onApply) {
-        super(Component.literal("Color Picker"));
+        super(Component.translatable("ami.color_picker.title"));
         this.parent = parent;
         this.field = field;
         this.currentColor = initialColor;
@@ -43,12 +43,12 @@ public class AmiColorPickerScreen extends Screen {
         int g = (currentColor >> 8) & 0xFF;
         int b = currentColor & 0xFF;
 
-        rSlider = addRenderableWidget(new Slider(centerX - 100, centerY - 60, 200, 20, Component.literal("Red"), r / 255.0, v -> updateFromSliders()));
-        gSlider = addRenderableWidget(new Slider(centerX - 100, centerY - 35, 200, 20, Component.literal("Green"), g / 255.0, v -> updateFromSliders()));
-        bSlider = addRenderableWidget(new Slider(centerX - 100, centerY - 10, 200, 20, Component.literal("Blue"), b / 255.0, v -> updateFromSliders()));
-        aSlider = addRenderableWidget(new Slider(centerX - 100, centerY + 15, 200, 20, Component.literal("Alpha"), a / 255.0, v -> updateFromSliders()));
+        rSlider = addRenderableWidget(new Slider(centerX - 100, centerY - 60, 200, 20, Component.translatable("ami.color_picker.red"), r / 255.0, v -> updateFromSliders()));
+        gSlider = addRenderableWidget(new Slider(centerX - 100, centerY - 35, 200, 20, Component.translatable("ami.color_picker.green"), g / 255.0, v -> updateFromSliders()));
+        bSlider = addRenderableWidget(new Slider(centerX - 100, centerY - 10, 200, 20, Component.translatable("ami.color_picker.blue"), b / 255.0, v -> updateFromSliders()));
+        aSlider = addRenderableWidget(new Slider(centerX - 100, centerY + 15, 200, 20, Component.translatable("ami.color_picker.alpha"), a / 255.0, v -> updateFromSliders()));
 
-        hexInput = new EditBox(font, centerX - 40, centerY + 45, 80, 20, Component.literal("Hex"));
+        hexInput = new EditBox(font, centerX - 40, centerY + 45, 80, 20, Component.translatable("ami.color_picker.hex"));
         hexInput.setFilter(TextInputFilter::isAllowedInput);
         hexInput.setValue(String.format("%08X", currentColor));
         hexInput.setResponder(this::updateFromHex);

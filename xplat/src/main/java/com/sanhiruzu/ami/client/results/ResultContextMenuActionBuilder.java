@@ -641,7 +641,7 @@ public class ResultContextMenuActionBuilder {
             case MENU_QUESTS -> Component.translatable("ami.context.menu.quests");
             case MENU_PACK_AUTHOR -> Component.translatable("ami.context.menu.pack_author");
             case MENU_DEVELOPER -> Component.translatable("ami.context.menu.developer");
-            default -> Component.literal("More");
+            default -> Component.translatable("ami.context.menu.more");
         };
     }
 
@@ -768,7 +768,7 @@ public class ResultContextMenuActionBuilder {
         if (!waypointText.isBlank()) {
             actions.add(ResultContextMenu.Action.enabled(
                     CHAT_WAYPOINT,
-                    Component.literal("Send Waypoint to Chat"),
+                    Component.translatable("ami.context.send_waypoint_to_chat"),
                     's',
                     () -> openChatDraft(waypointText)
             ));
@@ -777,7 +777,7 @@ public class ResultContextMenuActionBuilder {
         if (canCheat && hasWaypointCoordinates(node)) {
             actions.add(ResultContextMenu.Action.enabled(
                     TELEPORT_TO_WAYPOINT,
-                    Component.literal("Teleport to Waypoint"),
+                    Component.translatable("ami.context.teleport_to_waypoint"),
                     't',
                     () -> AMICheatMode.runCommand("tp @s "
                             + node.meta(SearchNodeKeys.WAYPOINT_X, "0") + " "

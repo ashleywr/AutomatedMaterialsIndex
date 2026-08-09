@@ -2164,7 +2164,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                     return report.withState(loading, diagnostics);
                 })
                 .orElseGet(() -> new ItemSourceReport(
-                        Component.literal("Sources: " + targetText.get()),
+                        Component.translatable("ami.sources.title.named", targetText.get()),
                         List.of(),
                         AmiIndexerService.getInstance().isSourceIndexingPending(),
                         List.of(Component.translatable("ami.sources.diagnostic.target_not_found", targetText.get()))
@@ -2188,7 +2188,7 @@ public class UniversalResultsPanel implements SearchState.Listener {
                     return report.withState(loading, diagnostics);
                 })
                 .orElseGet(() -> new EntityDetailsReport(
-                        Component.literal("Mob: " + targetText.get()),
+                        Component.translatable("ami.entity_details.title.named", targetText.get()),
                         List.of(),
                         AmiIndexerService.getInstance().isSourceIndexingPending(),
                         List.of(Component.translatable("ami.entity_details.diagnostic.target_not_found", targetText.get()))

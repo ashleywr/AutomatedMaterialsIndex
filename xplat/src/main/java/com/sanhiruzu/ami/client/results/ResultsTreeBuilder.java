@@ -527,7 +527,7 @@ final class ResultsTreeBuilder {
                     .findFirst()
                     .orElse(Component.literal(ResultsGroupLabels.formatGroupLabel(ResultsGroupLabels.formatGroupKey(catId, true))));
 
-            TreeNode catNode = new TreeNode("misc:" + catId, Component.literal("Misc: ").append(label));
+            TreeNode catNode = new TreeNode("misc:" + catId, Component.translatable("ami.group.misc_named", label));
             catNode.setExpanded(false);
             addLeaves(catNode, catEntry.getValue());
             miscNode.addChild(catNode);

@@ -69,7 +69,7 @@ public final class PlayerTooltipFact implements AmiTooltipFact {
             String location = dimension.isBlank()
                     ? String.format(Locale.ROOT, "%s, %s, %s", x, y, z)
                     : dimension + " @ " + String.format(Locale.ROOT, "%s, %s, %s", x, y, z);
-            lines.add(Component.literal("Location: " + location));
+            lines.add(Component.translatable("ami.tooltip.location", location));
             return;
         }
         String x = entry.meta(SearchNodeKeys.PLAYER_X, "");
@@ -92,18 +92,18 @@ public final class PlayerTooltipFact implements AmiTooltipFact {
                     entry.meta(SearchNodeKeys.WAYPOINT_PROVIDER_LABEL, "")
             );
             if (!primaryProvider.isBlank()) {
-                lines.add(Component.literal("Primary provider: " + primaryProvider));
+                lines.add(Component.translatable("ami.tooltip.primary_provider", primaryProvider));
             }
 
             String mergedProviders = entry.meta(WAYPOINT_MERGED_PROVIDER_LABELS, "");
             if (!mergedProviders.isBlank()) {
-                lines.add(Component.literal("Waypoint providers: " + mergedProviders));
+                lines.add(Component.translatable("ami.tooltip.waypoint_providers", mergedProviders));
             }
             if ("true".equals(entry.meta("waypointDeathpoint", ""))) {
-                lines.add(Component.literal("Deathpoint"));
+                lines.add(Component.translatable("ami.tooltip.deathpoint"));
             }
             if ("true".equals(entry.meta("waypointTransient", ""))) {
-                lines.add(Component.literal("Transient waypoint"));
+                lines.add(Component.translatable("ami.tooltip.transient_waypoint"));
             }
             return;
         }

@@ -48,7 +48,7 @@ public final class ItemSourceResolver {
 
     public ItemSourceReport resolve(SearchNode target) {
         if (target == null) {
-            return new ItemSourceReport(Component.literal("Sources"), List.of());
+            return new ItemSourceReport(Component.translatable("ami.sources.title"), List.of());
         }
         target = canonicalNode(target);
 
@@ -56,7 +56,7 @@ public final class ItemSourceResolver {
         Set<String> emitted = new LinkedHashSet<>();
         rows.addAll(directMobDrops(target, emitted));
         rows.addAll(recipeSources(target, emitted));
-        return new ItemSourceReport(Component.literal("Sources: " + target.displayName()), rows);
+        return new ItemSourceReport(Component.translatable("ami.sources.title.named", target.displayName()), rows);
     }
 
     private SearchNode canonicalNode(SearchNode target) {
