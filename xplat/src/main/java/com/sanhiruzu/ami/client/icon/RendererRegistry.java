@@ -5,7 +5,8 @@ import com.sanhiruzu.ami.index.NodeType;
 /**
  * Central factory: maps NodeType → IIconRenderer.
  * All renderer instances are singletons held here so caches survive across frames.
- * Call invalidateAll() on world unload.
+ * invalidateAll() is called on world unload and on every resource reload (see
+ * ThemeResourceLoader), so packs added/changed/removed mid-session take effect promptly.
  */
 public final class RendererRegistry {
 

@@ -3,6 +3,7 @@ package com.sanhiruzu.ami.client;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.sanhiruzu.ami.AmiCore;
+import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.config.AmiConfig;
 import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.resources.ResourceLocation;
@@ -51,5 +52,12 @@ public final class ThemeResourceLoader extends SimpleJsonResourceReloadListener 
         THEMES.putAll(parsed);
         AMITheme.sync();
         AmiCore.LOGGER.info("Loaded {} AMI resource theme(s)", THEMES.size());
+
+        // This listener is registered on every loader for every resource reload (initial load,
+        // F3+T, and live resource-pack toggles from the Options menu), unlike RendererRegistry's
+        // other invalidateAll() call site which only fires on world unload. Piggyback icon-cache
+        // invalidation here so packs added/changed/removed mid-session (e.g. a Cobblemon sprite
+        // pack) take effect without needing to leave and rejoin the world.
+        RendererRegistry.invalidateAll();
     }
 }

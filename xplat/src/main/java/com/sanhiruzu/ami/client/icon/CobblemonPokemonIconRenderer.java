@@ -339,7 +339,11 @@ public final class CobblemonPokemonIconRenderer {
                 ResourceLocation.fromNamespaceAndPath("xaerominimap", "entity/icon/sprite/cobblemon/" + dexSpecies + ".png"),
                 ResourceLocation.fromNamespaceAndPath("xaerominimap", "entity/icon/sprite/cobblemon/" + species + ".png"),
                 ResourceLocation.fromNamespaceAndPath("journeymap", "icon/entity/2d/cobblemon/" + dexSpecies + ".png"),
-                ResourceLocation.fromNamespaceAndPath("journeymap", "icon/entity/2d/cobblemon/" + species + ".png")
+                ResourceLocation.fromNamespaceAndPath("journeymap", "icon/entity/2d/cobblemon/" + species + ".png"),
+                // Maxii_x3's "JM+CM Pixel" icon pack (e.g. Maxi's-JM+CM_Pixel-Uxx.zip).
+                ResourceLocation.fromNamespaceAndPath("cobblemon", "textures/entity_icon/" + dexSpecies + "/" + species + ".png"),
+                // Some entries in that pack only ship gendered icons (no genderless base); default to female.
+                ResourceLocation.fromNamespaceAndPath("cobblemon", "textures/entity_icon/" + dexSpecies + "/" + species + "_female.png")
         };
 
         var resources = Minecraft.getInstance().getResourceManager();
