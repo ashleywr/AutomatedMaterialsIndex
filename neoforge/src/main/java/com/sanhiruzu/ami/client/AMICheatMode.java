@@ -238,9 +238,11 @@ public final class AMICheatMode {
     private static void giveCursorStack(ItemStack stack) {
         var mc = Minecraft.getInstance();
         if (mc.player == null) return;
-        mc.player.containerMenu.setCarried(stack.copy());
+        ItemStack copy = stack.copy();
         if (AmiNetworkState.onServer || mc.hasSingleplayerServer()) {
-            PacketDistributor.sendToServer(new AmiCheatGivePacket(stack.copy()));
+            PacketDistributor.sendToServer(new AmiCheatGivePacket(copy));
+        } else {
+            mc.player.containerMenu.setCarried(copy);
         }
     }
 
