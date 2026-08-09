@@ -22,6 +22,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffectUtil;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -432,7 +433,13 @@ public class InventoryOverlayHandler {
         return true;
     }
 
-    @SubscribeEvent
+    // HIGHEST: JEI (and other recipe viewers) register these same Pre events at NORMAL priority to
+    // drive their own bookmark/click handling. Without an explicit priority, whichever mod's listener
+    // happens to run first (an artifact of mod load order) wins the input for that frame, so AMI's own
+    // handling of a hovered AMI element was sometimes silently pre-empted by JEI/EMI in large modpacks.
+    // Running first and canceling when AMI actually consumes the input keeps AMI authoritative over its
+    // own panels while still letting other mods see input AMI doesn't want.
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
     static void onMouseScroll(ScreenEvent.MouseScrolled.Pre event) {
         if (!isAmiScreen(event.getScreen())) return;
 
@@ -442,7 +449,7 @@ public class InventoryOverlayHandler {
         }
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
     static void onMouseButtonPressed(ScreenEvent.MouseButtonPressed.Pre event) {
         if (!isAmiScreen(event.getScreen())) return;
 
@@ -452,7 +459,7 @@ public class InventoryOverlayHandler {
         }
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
     static void onMouseDragged(ScreenEvent.MouseDragged.Pre event) {
         if (!isAmiScreen(event.getScreen())) return;
 
@@ -462,7 +469,7 @@ public class InventoryOverlayHandler {
         }
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
     static void onMouseButtonReleased(ScreenEvent.MouseButtonReleased.Pre event) {
         if (!isAmiScreen(event.getScreen())) return;
 
@@ -472,7 +479,7 @@ public class InventoryOverlayHandler {
         }
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
     static void onCharTyped(ScreenEvent.CharacterTyped.Pre event) {
         if (!isAmiScreen(event.getScreen())) return;
 
@@ -482,7 +489,7 @@ public class InventoryOverlayHandler {
         }
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
     static void onKeyPressed(ScreenEvent.KeyPressed.Pre event) {
         if (!isAmiScreen(event.getScreen())) return;
 

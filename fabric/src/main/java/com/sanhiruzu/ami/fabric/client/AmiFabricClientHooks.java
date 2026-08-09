@@ -18,6 +18,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
+import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
@@ -46,6 +47,15 @@ import java.util.List;
  * Called once from AmiFabricClient.onInitializeClient().
  */
 public final class AmiFabricClientHooks {
+
+    // JEI (and other recipe viewers) register their own allow-input listeners on these same per-screen
+    // Fabric events in the default phase. Fabric's array-backed "allow" events short-circuit on the first
+    // listener that returns false, so without an explicit phase, whichever mod's listener happens to be
+    // registered first (an artifact of mod load order) silently wins the input for that frame — AMI's own
+    // handling of a hovered AMI element was sometimes pre-empted by JEI in large modpacks. Running AMI's
+    // listeners in a phase ordered before the default phase keeps AMI authoritative over its own panels.
+    private static final net.minecraft.resources.ResourceLocation AMI_INPUT_PHASE =
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("ami", "overlay_input");
 
     private AmiFabricClientHooks() {}
 
@@ -87,7 +97,9 @@ public final class AmiFabricClientHooks {
         });
 
         // Mouse scroll: return false to cancel (consume) the event.
-        ScreenMouseEvents.allowMouseScroll(screen).register((s, mouseX, mouseY, scrollX, scrollY) -> {
+        Event<ScreenMouseEvents.AllowMouseScroll> mouseScrollEvent = ScreenMouseEvents.allowMouseScroll(screen);
+        mouseScrollEvent.addPhaseOrdering(AMI_INPUT_PHASE, Event.DEFAULT_PHASE);
+        mouseScrollEvent.register(AMI_INPUT_PHASE, (s, mouseX, mouseY, scrollX, scrollY) -> {
             if (!InventoryOverlayHandler.isAmiEnabled()) return true;
             boolean consumed = com.sanhiruzu.ami.client.OverlayInputController.mouseScrolled(
                     s, InventoryOverlayHandler.getManager(), true,
@@ -96,7 +108,9 @@ public final class AmiFabricClientHooks {
         });
 
         // Mouse click: return false to cancel.
-        ScreenMouseEvents.allowMouseClick(screen).register((s, mouseX, mouseY, button) -> {
+        Event<ScreenMouseEvents.AllowMouseClick> mouseClickEvent = ScreenMouseEvents.allowMouseClick(screen);
+        mouseClickEvent.addPhaseOrdering(AMI_INPUT_PHASE, Event.DEFAULT_PHASE);
+        mouseClickEvent.register(AMI_INPUT_PHASE, (s, mouseX, mouseY, button) -> {
             if (!InventoryOverlayHandler.isAmiEnabled()) return true;
             boolean consumed = com.sanhiruzu.ami.client.OverlayInputController.mouseButtonPressed(
                     s, InventoryOverlayHandler.getManager(), true,
@@ -105,7 +119,9 @@ public final class AmiFabricClientHooks {
         });
 
         // Mouse release: return false to cancel.
-        ScreenMouseEvents.allowMouseRelease(screen).register((s, mouseX, mouseY, button) -> {
+        Event<ScreenMouseEvents.AllowMouseRelease> mouseReleaseEvent = ScreenMouseEvents.allowMouseRelease(screen);
+        mouseReleaseEvent.addPhaseOrdering(AMI_INPUT_PHASE, Event.DEFAULT_PHASE);
+        mouseReleaseEvent.register(AMI_INPUT_PHASE, (s, mouseX, mouseY, button) -> {
             if (!InventoryOverlayHandler.isAmiEnabled()) return true;
             boolean consumed = com.sanhiruzu.ami.client.OverlayInputController.mouseButtonReleased(
                     s, InventoryOverlayHandler.getManager(), true,
@@ -118,7 +134,9 @@ public final class AmiFabricClientHooks {
         // an external viewer (e.g. REI) so the user can toggle AMI back. OverlayInputController forwards to
         // AmiKeybindHandler, which handles the toggle regardless of the active layer; non-AMI keys return
         // unconsumed and pass through to the viewer/screen.
-        ScreenKeyboardEvents.allowKeyPress(screen).register((s, key, scancode, modifiers) -> {
+        Event<ScreenKeyboardEvents.AllowKeyPress> keyPressEvent = ScreenKeyboardEvents.allowKeyPress(screen);
+        keyPressEvent.addPhaseOrdering(AMI_INPUT_PHASE, Event.DEFAULT_PHASE);
+        keyPressEvent.register(AMI_INPUT_PHASE, (s, key, scancode, modifiers) -> {
             boolean consumed = com.sanhiruzu.ami.client.OverlayInputController.keyPressed(
                     s, InventoryOverlayHandler.getManager(), InventoryOverlayHandler.isAmiEnabled(),
                     key, scancode, modifiers);

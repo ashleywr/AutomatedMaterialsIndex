@@ -155,8 +155,8 @@ class AmiTooltipComposerTest {
         List<Component> tooltip = new com.sanhiruzu.ami.util.tooltip.PlayerTooltipFact().build(waypoint);
         List<String> lines = tooltip.stream().map(Component::getString).toList();
 
-        assertTrue(lines.stream().anyMatch(line -> line.contains("Primary provider")));
-        assertTrue(lines.stream().anyMatch(line -> line.contains("FTB Chunks,JourneyMap")));
+        assertTrue(lines.stream().anyMatch(line -> line.contains("ami.tooltip.primary_provider")));
+        assertTrue(lines.stream().anyMatch(line -> line.contains("ami.tooltip.waypoint_providers")));
     }
 
     @Test

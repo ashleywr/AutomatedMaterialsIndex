@@ -42,7 +42,7 @@ class EntityDetailsResolverTest {
 
         EntityDetailsReport report = resolver(cow, plains, meadow, leather, beef).resolve(cow);
 
-        assertEquals("Mob: Cow", report.title().getString());
+        assertEquals("ami.entity_details.title.named", report.title().getString());
         assertEquals(List.of(
                 EntityDetailsSection.STATS,
                 EntityDetailsSection.SPAWNS,

@@ -33,7 +33,7 @@ class ItemSourceResolverTest {
 
         ItemSourceReport report = resolver(leather, cow, plains, meadow).resolve(leather);
 
-        assertEquals("Sources: Leather", report.title().getString());
+        assertEquals("ami.sources.title.named", report.title().getString());
         assertEquals(List.of(ItemSourceType.MOB_DROP), report.groupOrder());
         assertEquals(
                 List.of("Cow -> drops Leather -> spawns in Plains, Meadow"),
