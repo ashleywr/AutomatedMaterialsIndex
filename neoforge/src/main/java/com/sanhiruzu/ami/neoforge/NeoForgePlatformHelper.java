@@ -218,6 +218,11 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     }
 
     @Override
+    public net.minecraft.server.MinecraftServer getCurrentServer() {
+        return net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+    }
+
+    @Override
     public ResourceLocation rl(String namespace, String path) {
         return ResourceLocation.fromNamespaceAndPath(namespace, path);
     }

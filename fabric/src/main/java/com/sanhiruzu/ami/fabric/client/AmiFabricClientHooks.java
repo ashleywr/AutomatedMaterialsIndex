@@ -1,25 +1,15 @@
 package com.sanhiruzu.ami.fabric.client;
 
-import com.mojang.brigadier.CommandDispatcher;
-import com.sanhiruzu.ami.client.EntityIconCache;
+import com.sanhiruzu.ami.client.AmiClientCommands;
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
-import com.sanhiruzu.ami.client.icon.RendererRegistry;
 import com.sanhiruzu.ami.config.AmiConfig;
-import com.sanhiruzu.ami.fabric.AmiFabric;
-import com.sanhiruzu.ami.index.AmiIndexerService;
 import com.sanhiruzu.ami.index.GlobalIndex;
-import com.sanhiruzu.ami.index.GlobalIndexCache;
-import com.sanhiruzu.ami.index.SearchNode;
-import com.sanhiruzu.ami.index.SearchNodeMirrorDump;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
-import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.fabricmc.fabric.api.event.Event;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -27,8 +17,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -221,80 +209,10 @@ public final class AmiFabricClientHooks {
 
     // -------------------------------------------------------------------------
     // Client commands — /ami [subcommand]
-    // Mirrors NeoForge AmiClientCommands (dump commands requiring RecipeDumpWriters skipped)
+    // Mirrors NeoForge/Forge AmiClientCommands via Fabric's client-only command dispatcher.
     // -------------------------------------------------------------------------
 
     private static void registerClientCommands() {
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
-                registerAmiCommand(dispatcher));
-    }
-
-    private static void registerAmiCommand(
-            CommandDispatcher<FabricClientCommandSource> dispatcher) {
-        var cmd = net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("ami")
-                .then(net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("dump-search-nodes")
-                        .executes(context -> {
-                            exportSearchNodes(context.getSource());
-                            return 1;
-                        })
-                )
-                .then(net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("reindex")
-                        .executes(context -> {
-                            invalidateAndRebuildIndex(context.getSource());
-                            return 1;
-                        })
-                );
-
-        dispatcher.register(cmd);
-    }
-
-    private static void exportSearchNodes(FabricClientCommandSource source) {
-        Path dumpDir = dumpDir("search");
-        try {
-            Files.createDirectories(dumpDir);
-            Path out = dumpDir.resolve("search_nodes.jsonl");
-            Path meta = dumpDir.resolve("search_nodes.meta.json");
-            List<SearchNode> nodes = SearchNodeMirrorDump.runtimeAtlasNodes();
-            int count = SearchNodeMirrorDump.writeJsonl(out, nodes);
-            SearchNodeMirrorDump.writeMeta(meta);
-            source.sendFeedback(Component.literal(
-                    "AMI search node mirror written to " + out.toAbsolutePath()
-                            + " (" + count + " nodes) + metadata at " + meta.toAbsolutePath())
-                    .withStyle(ChatFormatting.GREEN));
-        } catch (Exception e) {
-            AmiFabric.LOGGER.error("Failed to export search node mirror", e);
-            source.sendFeedback(Component.literal(
-                    "Failed to export AMI search node mirror: " + e.getMessage())
-                    .withStyle(ChatFormatting.RED));
-        }
-    }
-
-    private static void invalidateAndRebuildIndex(FabricClientCommandSource source) {
-        try {
-            boolean deleted = GlobalIndexCache.invalidateCurrent();
-            boolean accepted = AmiIndexerService.getInstance().rebuild(true);
-            if (accepted) {
-                RendererRegistry.invalidateAll();
-                EntityIconCache.invalidateAndPurgePersistentCache();
-                source.sendFeedback(Component.literal("AMI index cache "
-                        + (deleted ? "deleted" : "was already absent")
-                        + "; forced reindex and icon cache reset started")
-                        .withStyle(ChatFormatting.GREEN));
-            } else {
-                source.sendFeedback(Component.literal("AMI index cache "
-                        + (deleted ? "deleted" : "was already absent")
-                        + ", but a reindex is already running")
-                        .withStyle(ChatFormatting.YELLOW));
-            }
-        } catch (Exception e) {
-            AmiFabric.LOGGER.error("Failed to invalidate AMI index cache", e);
-            source.sendFeedback(Component.literal(
-                    "Failed to invalidate AMI index cache: " + e.getMessage())
-                    .withStyle(ChatFormatting.RED));
-        }
-    }
-
-    private static Path dumpDir(String category) {
-        return FabricLoader.getInstance().getGameDir().resolve("ami_dumps").resolve(category);
+        AmiClientCommands.register();
     }
 }

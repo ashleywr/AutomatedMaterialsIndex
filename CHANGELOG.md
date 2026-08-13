@@ -2,6 +2,12 @@
 
 User-facing changes are recorded here.
 
+## 1.8.6 - 2026-08-13
+
+### Added
+
+- Ported the full `/ami dump` command tree (`all`, `tree`, `search-nodes`, `guide-docs`, `recipes`, `loot-tables`, `recipe-viewer-items`, `recipe-viewer-recipes`, `pokemon-coverage`) and `/ami reindex` to Fabric, matching NeoForge. Previously Fabric only exposed a partial `dump-search-nodes`/`reindex` stub.
+
 ## 1.8.5 - 2026-08-08
 
 ### Fixed

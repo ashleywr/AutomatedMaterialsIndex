@@ -178,6 +178,16 @@ public interface IPlatformHelper {
 
     Path getGameDir();
 
+    /**
+     * Returns the currently running {@link net.minecraft.server.MinecraftServer} in this JVM, if any is reachable
+     * outside the normal {@code Minecraft.getInstance().getSingleplayerServer()} path (e.g. NeoForge/Forge's
+     * {@code ServerLifecycleHooks}). Loaders without such a hook return {@code null}; callers should already have a
+     * {@code getSingleplayerServer()} fallback.
+     */
+    default net.minecraft.server.MinecraftServer getCurrentServer() {
+        return null;
+    }
+
     default boolean isModLoaded(String modId) {
         return getModName(modId).isPresent();
     }

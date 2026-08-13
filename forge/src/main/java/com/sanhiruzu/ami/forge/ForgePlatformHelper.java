@@ -221,6 +221,11 @@ public class ForgePlatformHelper implements IPlatformHelper {
     }
 
     @Override
+    public net.minecraft.server.MinecraftServer getCurrentServer() {
+        return net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+    }
+
+    @Override
     public ResourceLocation rl(String namespace, String path) {
         return ResourceLocation.fromNamespaceAndPath(namespace, path);
     }
