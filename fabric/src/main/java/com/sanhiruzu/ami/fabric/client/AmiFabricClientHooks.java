@@ -74,14 +74,25 @@ public final class AmiFabricClientHooks {
     }
 
     private static void registerPerScreenEvents(Screen screen) {
-        // afterRender: both base and top layer in screen-space coordinates.
-        // On Fabric there is no container-foreground hook, so AMI renders after vanilla.
-        ScreenEvents.afterRender(screen).register((s, guiGraphics, mouseX, mouseY, tickDelta) -> {
-            // Apply any screen reinit queued by a layer change (alt-V toggle, recipe-book button, recipe
-            // transition) before rendering. Without this, pendingScreenReinit stays set and
-            // prepareOverlayFrame skips every frame, so AMI never re-renders after a toggle.
+        // beforeRender: apply any pending reinit and capture partial tick before the screen (and
+        // any tooltip mod hooking the normal vanilla tooltip point) renders this frame. Mirrors
+        // NeoForge/Forge's ScreenEvent.Render.Pre.
+        ScreenEvents.beforeRender(screen).register((s, guiGraphics, mouseX, mouseY, tickDelta) -> {
             InventoryOverlayHandler.consumePendingScreenReinit();
-            InventoryOverlayHandler.renderOverlayFrame(s, guiGraphics, mouseX, mouseY, tickDelta);
+            InventoryOverlayHandler.onScreenBeforeRender(s, tickDelta);
+        });
+
+        // afterRender: container screens already rendered their durable body from
+        // FabricContainerForegroundMixin (before the screen's own tooltip drew), so only AMI's
+        // transient UI (tooltips, dropdowns, context menus) renders here. AMI-owned recipe/custom
+        // screens have no container-foreground hook to fire from and no vanilla tooltip to
+        // protect, so they still render both layers together here.
+        ScreenEvents.afterRender(screen).register((s, guiGraphics, mouseX, mouseY, tickDelta) -> {
+            if (InventoryOverlayHandler.isContainerScreen(s)) {
+                InventoryOverlayHandler.renderTopLayerForContainerScreen(s, guiGraphics, mouseX, mouseY);
+            } else {
+                InventoryOverlayHandler.renderOverlayFrame(s, guiGraphics, mouseX, mouseY, tickDelta);
+            }
         });
 
         // Mouse scroll: return false to cancel (consume) the event.

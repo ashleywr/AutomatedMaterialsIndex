@@ -290,7 +290,8 @@ public class InventoryOverlayHandler {
 
     /**
      * Render both the base and top overlay layers in screen-space coordinates.
-     * Used for all AMI screens on Fabric (container + recipe screens).
+     * Used for AMI-owned recipe/custom screens on Fabric, where AMI owns the whole screen and
+     * there is no vanilla/mod tooltip to protect from being painted over.
      */
     public static void renderOverlayFrame(Screen screen,
                                           net.minecraft.client.gui.GuiGraphics guiGraphics,
@@ -303,6 +304,75 @@ public class InventoryOverlayHandler {
         int amiMouseX = statusEffectsHovered ? Integer.MIN_VALUE : mouseX;
         int amiMouseY = statusEffectsHovered ? Integer.MIN_VALUE : mouseY;
         manager.renderBase(guiGraphics, amiMouseX, amiMouseY, partialTick);
+        manager.renderTopLayer(guiGraphics, amiMouseX, amiMouseY);
+    }
+
+    // -------------------------------------------------------------------------
+    // Render ownership split (container screens) — mirrors NeoForge/Forge.
+    //
+    // AMI's durable body (panels, result icons, search bar, buttons) renders from
+    // FabricContainerForegroundMixin, which fires right before AbstractContainerScreen draws its
+    // tooltip (vanilla, JEI, or a third-party tooltip mod) — so that tooltip wins wherever it
+    // overlaps AMI. AMI-owned transient UI (AMI tooltips, dropdowns, context menus, hints) renders
+    // afterward from ScreenEvents.afterRender, so it wins over AMI's own body. Without this split,
+    // AMI previously rendered both layers together in afterRender for every AMI screen, which for
+    // container screens runs after the screen (and any tooltip mod hooking the normal vanilla
+    // tooltip point) has already drawn — letting AMI's result icons paint over third-party
+    // tooltips instead of the other way around.
+    //
+    // AMI-owned recipe/custom screens keep rendering both layers together in afterRender via
+    // renderOverlayFrame() above, since AMI owns the whole screen there.
+    // -------------------------------------------------------------------------
+
+    private static float lastContainerPartialTick = 0f;
+    private static boolean frameStatusEffectsHovered = false;
+    private static boolean frameBaseRendered = false;
+
+    /**
+     * Called from the per-screen {@code ScreenEvents.beforeRender} hook, mirroring NeoForge's
+     * {@code ScreenEvent.Render.Pre}: the container-foreground mixin hook fires from inside
+     * {@code renderTooltip}, which carries no partial tick, so it is captured here instead.
+     */
+    public static void onScreenBeforeRender(Screen screen, float partialTick) {
+        if (!isAmiScreen(screen)) return;
+        if (isContainerScreen(screen)) {
+            lastContainerPartialTick = partialTick;
+        }
+        frameBaseRendered = false;
+    }
+
+    /**
+     * Called from {@link com.sanhiruzu.ami.mixin.FabricContainerForegroundMixin} right before the
+     * container screen renders its tooltip.
+     */
+    public static void onContainerForeground(AbstractContainerScreen<?> screen,
+                                             net.minecraft.client.gui.GuiGraphics guiGraphics,
+                                             int mouseX,
+                                             int mouseY) {
+        if (!isAmiScreen(screen) || !prepareOverlayFrame(screen) || currentLayer != VisibleLayer.AMI) {
+            return;
+        }
+
+        manager.tick();
+        frameStatusEffectsHovered = updateStatusEffectsHoverOwnership(screen, mouseX, mouseY);
+        int amiMouseX = frameStatusEffectsHovered ? Integer.MIN_VALUE : mouseX;
+        int amiMouseY = frameStatusEffectsHovered ? Integer.MIN_VALUE : mouseY;
+
+        manager.renderBase(guiGraphics, amiMouseX, amiMouseY, lastContainerPartialTick);
+        frameBaseRendered = true;
+    }
+
+    /**
+     * Called from {@code ScreenEvents.afterRender} for container screens only: the durable body
+     * already drew in the foreground hook, so only AMI-owned transient UI renders here.
+     */
+    public static void renderTopLayerForContainerScreen(Screen screen,
+                                                         net.minecraft.client.gui.GuiGraphics guiGraphics,
+                                                         int mouseX,
+                                                         int mouseY) {
+        if (!frameBaseRendered || currentLayer != VisibleLayer.AMI) return;
+        int amiMouseX = frameStatusEffectsHovered ? Integer.MIN_VALUE : mouseX;
+        int amiMouseY = frameStatusEffectsHovered ? Integer.MIN_VALUE : mouseY;
         manager.renderTopLayer(guiGraphics, amiMouseX, amiMouseY);
     }
 
@@ -342,6 +412,20 @@ public class InventoryOverlayHandler {
         int stripHeight = 32 + Math.max(0, effectCount - 1) * rowStep;
         return mouseX >= renderX && mouseX <= renderX + stripWidth
                 && mouseY >= topPos && mouseY <= topPos + stripHeight;
+    }
+
+    /**
+     * Called from {@link com.sanhiruzu.ami.mixin.FabricScreenMouseDraggedMixin}. Fabric API's
+     * {@code ScreenMouseEvents} has click/release/scroll hooks but no drag hook, so AMI's
+     * scrollbar and other drag-driven widgets never saw continued mouse movement while a button
+     * was held — the initial click registered (starting the drag) but nothing updated afterward.
+     * Mirrors NeoForge/Forge's {@code ScreenEvent.MouseDragged.Pre}.
+     */
+    public static boolean onScreenMouseDragged(Screen screen, double mouseX, double mouseY, int button,
+                                               double dragX, double dragY) {
+        if (!isAmiScreen(screen)) return false;
+        return OverlayInputController.mouseDragged(screen, manager, currentLayer == VisibleLayer.AMI,
+                mouseX, mouseY, button, dragX, dragY);
     }
 
     // -------------------------------------------------------------------------

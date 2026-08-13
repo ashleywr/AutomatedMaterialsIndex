@@ -9,11 +9,16 @@
   "client": [
     "EmiRecipeScreenFavoriteMixin",
     "EmiScreenManagerMixin",
+    "FabricContainerForegroundMixin",
     "FabricContainerTooltipMixin",
     "FabricRecipeBookComponentMixin",
     "FabricScreenCharTypedMixin",
+    "FabricScreenMouseDraggedMixin",
     "JeiBookmarkListMixin",
+    "JeiBookmarkOverlayMixin",
     "JeiClientInputHandlerMixin",
-    "JeiGuiEventHandlerMixin"
+    "JeiGuiEventHandlerMixin",
+    "JeiIngredientListOverlayMixin",
+    "KeyMappingConflictMixin"
   ]
 }
