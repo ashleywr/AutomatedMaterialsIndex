@@ -37,4 +37,12 @@ class CobblemonSpeciesProviderTest {
         assertTrue(node.meta(SearchNodeKeys.POKEMON_MOVE, "").contains("solar_beam"));
         assertEquals("minecraft:apple,minecraft:redstone", node.meta(SearchNodeKeys.POKEMON_DROP_ITEM, ""));
     }
+
+    @Test
+    void cobbledexIngredientUidDropsTheCobblemonNamespaceButKeepsOthers() {
+        assertEquals("bulbasaur", CobblemonSpeciesProvider.cobbledexIngredientUid(
+                ResourceLocation.fromNamespaceAndPath("cobblemon", "bulbasaur")));
+        assertEquals("customaddon:mewtwo_ex", CobblemonSpeciesProvider.cobbledexIngredientUid(
+                ResourceLocation.fromNamespaceAndPath("customaddon", "mewtwo_ex")));
+    }
 }

@@ -1,7 +1,6 @@
 package com.sanhiruzu.ami.compat;
 
 import com.sanhiruzu.ami.client.icon.CobblemonPokemonIconRenderer;
-import com.sanhiruzu.ami.index.SearchNode;
 
 public final class CobblemonCompatModule implements ModCompatModule {
     @Override
@@ -14,10 +13,10 @@ public final class CobblemonCompatModule implements ModCompatModule {
         return "com.cobblemon.mod.common.api.pokemon.PokemonSpecies";
     }
 
-    @Override
-    public boolean handleResultClick(SearchNode node, int button) {
-        return button == 0 && CobblemonPokedexOpener.handlePrimaryClick(node);
-    }
+    // Primary click intentionally does NOT open the Pokedex anymore — it falls through to AMI's
+    // normal item-click handling, which opens the recipe viewer (JEI/EMI) for the clicked
+    // species, matching every other result type. Opening the Pokedex is still available via the
+    // "Open Pokedex" right-click context menu action (ResultContextMenuActionBuilder).
 
     @Override
     public void invalidateCaches() {

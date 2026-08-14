@@ -6,6 +6,8 @@ import com.sanhiruzu.ami.index.IAmiDataProvider;
 import com.sanhiruzu.ami.index.NodeType;
 import com.sanhiruzu.ami.index.SearchNode;
 import com.sanhiruzu.ami.index.SearchNodeKeys;
+import com.sanhiruzu.ami.index.providers.IngredientIndexProvider;
+import com.sanhiruzu.ami.platform.Services;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -79,6 +81,7 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
         putDrops(api, species, meta);
         putFloat(api.getHeight.invoke(species), SearchNodeKeys.POKEMON_HEIGHT, meta);
         putFloat(api.getWeight.invoke(species), SearchNodeKeys.POKEMON_WEIGHT, meta);
+        putCobbledexJeiFocus(speciesId, meta);
 
         String typeTokens = buildTypeTokens(meta);
         meta.put(SearchNodeKeys.SEARCH_TOKENS, "pokemon species pokedex " + speciesPath.replace('_', ' ')
@@ -286,6 +289,39 @@ public final class CobblemonSpeciesProvider implements IAmiDataProvider {
         if (value instanceof Number number) {
             meta.put(key, Float.toString(number.floatValue()));
         }
+    }
+
+    // Cobbledex (mod id "cobbledex-rei-emi-jei") registers a JEI ingredient type for Pokemon
+    // species so its own JEI recipe categories (spawn locations, drops, evolution, etc.) can be
+    // looked up like any other recipe. Wiring AMI's species nodes to that same ingredient type/UID
+    // lets clicking a species in AMI open Cobbledex's JEI view directly — the properly maintained,
+    // detailed source for that information — instead of AMI's own bundled Pokedex opener.
+    //
+    // Both values are read from Cobbledex 2.0.4's JEI plugin classes (not a published API, so this
+    // is best-effort and silently does nothing if Cobbledex changes them in a future version):
+    //   - Type UID: mezz.jei.api.ingredients.IIngredientType#getUid() defaults to
+    //     getIngredientClass().getName(); com.cobbledex.jei.PokemonIngredientType never overrides
+    //     it, so the UID is the ingredient class's fully-qualified name.
+    //   - Ingredient UID: com.cobbledex.jei.PokemonIngredientHelper#getUniqueId() returns
+    //     PokemonIngredient.species verbatim, which com.cobbledex.PokemonRef#getIdentifier()
+    //     parses as "namespace:path" if it contains a colon, else defaults the namespace to
+    //     "cobblemon" and uses the whole string as the path.
+    private static final String COBBLEDEX_MOD_ID = "cobbledex-rei-emi-jei";
+    private static final String COBBLEDEX_JEI_INGREDIENT_TYPE_UID = "com.cobbledex.jei.PokemonIngredient";
+
+    private static void putCobbledexJeiFocus(ResourceLocation speciesId, Map<String, String> meta) {
+        if (!Services.PLATFORM.isModLoaded(COBBLEDEX_MOD_ID)) {
+            return;
+        }
+        meta.put(IngredientIndexProvider.TYPE_UID_KEY, COBBLEDEX_JEI_INGREDIENT_TYPE_UID);
+        meta.put(IngredientIndexProvider.INGREDIENT_UID_KEY, cobbledexIngredientUid(speciesId));
+    }
+
+    // Mirrors com.cobbledex.PokemonRef#getIdentifier(): a species string with no colon defaults
+    // to the "cobblemon" namespace, so round-tripping a cobblemon-namespaced id back into
+    // Cobbledex's species-string form drops the namespace; anything else keeps it.
+    static String cobbledexIngredientUid(ResourceLocation speciesId) {
+        return "cobblemon".equals(speciesId.getNamespace()) ? speciesId.getPath() : speciesId.toString();
     }
 
     private static void putJoined(Map<String, String> meta, String key, Collection<String> values) {
