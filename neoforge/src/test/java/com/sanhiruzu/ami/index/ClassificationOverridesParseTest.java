@@ -102,4 +102,22 @@ class ClassificationOverridesParseTest {
         assertEquals("hidden", rule.visibility());
         assertTrue(ClassificationOverrides.patternFor("othermod", "anything").isEmpty());
     }
+
+    @Test
+    void narrowerRuleWinsOverPrecedingModWideWildcard() {
+        ClassificationOverrides.parseAndInstall("""
+            {
+              "modPatterns": [
+                { "mod": "examplemod", "match": "all", "visibility": "hidden" },
+                { "mod": "examplemod", "pathTokens": ["ore"], "visibility": "visible" }
+              ]
+            }
+            """);
+
+        ModPatternRule oreRule = ClassificationOverrides.patternFor("examplemod", "raw_ore").orElseThrow();
+        assertEquals("visible", oreRule.visibility());
+
+        ModPatternRule fallbackRule = ClassificationOverrides.patternFor("examplemod", "widget").orElseThrow();
+        assertEquals("hidden", fallbackRule.visibility());
+    }
 }

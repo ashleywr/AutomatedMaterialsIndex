@@ -80,12 +80,26 @@ public final class ClassificationOverrides {
         }
         String[] tokens = path.toLowerCase(Locale.ROOT).split("[_/]");
         String lowerClass = itemClass == null ? "" : itemClass.toLowerCase(Locale.ROOT);
+
+        // Rules with actual criteria (pathTokens/classTokens) always take priority over an
+        // unconditional mod-wide wildcard ("match: all" with no criteria), regardless of
+        // declaration order — otherwise a blanket rule listed before a narrower exception for
+        // the same mod would permanently shadow it.
         for (ModPatternRule rule : rules) {
-            if (matches(rule, tokens, lowerClass)) {
+            if (!isWildcard(rule) && matches(rule, tokens, lowerClass)) {
+                return Optional.of(rule);
+            }
+        }
+        for (ModPatternRule rule : rules) {
+            if (isWildcard(rule) && matches(rule, tokens, lowerClass)) {
                 return Optional.of(rule);
             }
         }
         return Optional.empty();
+    }
+
+    private static boolean isWildcard(ModPatternRule rule) {
+        return rule.pathTokens().isEmpty() && rule.classTokens().isEmpty();
     }
 
     private static boolean matches(ModPatternRule rule, String[] pathTokens, String lowerClass) {

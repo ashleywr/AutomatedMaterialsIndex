@@ -813,8 +813,9 @@ public class ItemProvider implements IAmiDataProvider {
                 accessLevel = ItemFilter.ACCESS_SURVIVAL;
             }
             accessLevel = applyPackAccessLevelOverride(id, null, itemClass, accessLevel);
-            // For strict survival mode, only include items with recipes
-            if (strictSurvival && !hasRecipe) continue;
+            // For strict survival mode, only include items with recipes — unless a pack override
+            // explicitly set this item's access/visibility, matching the gates below.
+            if (strictSurvival && !hasRecipe && !hasPackVisibilityOverrideForBase) continue;
 
             if (IndexingHotItemPolicy.shouldUseFastFacadeIndex(id)) {
                 if (!ItemFilter.shouldShowAccessLevel(accessLevel) && !hasPackVisibilityOverrideForBase) continue;
@@ -1174,6 +1175,7 @@ public class ItemProvider implements IAmiDataProvider {
                 meta.put(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_CHEAT);
                 meta.put(SearchNodeKeys.VARIANT_SOURCE, "plugin_hero_stack");
                 meta.put("variantAccessReason", "modular_generated_stack");
+                applyPackVisibilityOverrides(syntheticId, baseId, stack.getItem().getClass().getName(), meta);
                 foodMetricSniffer.sniff(stack).ifPresent(stats -> addFoodStats(meta, stats));
                 powerMetricSniffer.sniff(stack, syntheticId, level).ifPresent(stats -> addPowerStats(meta, stats));
                 fluidMetricSniffer.sniff(stack, syntheticId, level).ifPresent(stats -> addFluidStats(meta, stats));
@@ -1233,6 +1235,7 @@ public class ItemProvider implements IAmiDataProvider {
                 meta.put(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_CHEAT);
                 meta.put(SearchNodeKeys.VARIANT_SOURCE, "provider_representative_stack");
                 meta.put("variantAccessReason", "modular_generated_stack");
+                applyPackVisibilityOverrides(syntheticId, baseId, stack.getItem().getClass().getName(), meta);
                 foodMetricSniffer.sniff(stack).ifPresent(stats -> addFoodStats(meta, stats));
                 powerMetricSniffer.sniff(stack, syntheticId, level).ifPresent(stats -> addPowerStats(meta, stats));
                 fluidMetricSniffer.sniff(stack, syntheticId, level).ifPresent(stats -> addFluidStats(meta, stats));
