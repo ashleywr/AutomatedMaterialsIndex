@@ -193,8 +193,6 @@
   "ami.context.filter_pokemon_generation_named": "Фильтр: поколение %s",
   "ami.context.filter_pokemon_egg_group_named": "Фильтр: группа яиц %s",
   "ami.context.filter_pokemon_ability_named": "Фильтр: способность %s",
-  "ami.context.search_pokemon_drop_item_named": "Найти дроп %s",
-  "ami.context.recipes_pokemon_drop_item_named": "Рецепты с дропом %s",
   "ami.context.copy_pokemon_species": "Скопировать ID вида",
   "ami.context.copy_pokemon_dex_number": "Скопировать номер покедекса",
   "ami.context.filter_gregtech_tier_named": "Фильтр: уровень %s",

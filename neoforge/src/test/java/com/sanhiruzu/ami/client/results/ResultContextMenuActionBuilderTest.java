@@ -811,7 +811,7 @@ class ResultContextMenuActionBuilderTest {
     }
 
     @Test
-    void pokemonContextActionsAddClientSideFiltersAndDropRoutes() {
+    void pokemonContextActionsAddClientSideFilters() {
         AtomicReference<String> token = new AtomicReference<>();
         ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder();
         SearchNode node = new SearchNode(
@@ -828,8 +828,7 @@ class ResultContextMenuActionBuilderTest {
                         SearchNodeKeys.POKEMON_PRIMARY_TYPE, "grass",
                         SearchNodeKeys.POKEMON_SECONDARY_TYPE, "poison",
                         SearchNodeKeys.POKEMON_EGG_GROUPS, "monster,grass",
-                        SearchNodeKeys.POKEMON_ABILITIES, "overgrow,chlorophyll",
-                        SearchNodeKeys.POKEMON_DROP_ITEM, "minecraft:apple,minecraft:redstone"
+                        SearchNodeKeys.POKEMON_ABILITIES, "overgrow,chlorophyll"
                 )
         );
 
@@ -840,8 +839,6 @@ class ResultContextMenuActionBuilderTest {
         assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.FILTER_POKEMON_GENERATION));
         assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.FILTER_POKEMON_EGG_GROUP));
         assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.FILTER_POKEMON_ABILITY));
-        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.SEARCH_POKEMON_DROP_ITEM));
-        assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.RECIPES_POKEMON_DROP_ITEM));
         assertTrue(ids(actions).contains(ResultContextMenuActionBuilder.COPY_POKEMON_DEX_NUMBER));
 
         firstAction(actions, ResultContextMenuActionBuilder.FILTER_POKEMON_GENERATION).onClick().run();
@@ -850,39 +847,6 @@ class ResultContextMenuActionBuilderTest {
         assertEquals("%egg:monster", token.get());
         firstAction(actions, ResultContextMenuActionBuilder.FILTER_POKEMON_ABILITY).onClick().run();
         assertEquals("?ability:overgrow", token.get());
-        firstAction(actions, ResultContextMenuActionBuilder.SEARCH_POKEMON_DROP_ITEM).onClick().run();
-        assertEquals("apple", token.get());
-    }
-
-    @Test
-    void pokemonDropContextActionsIgnoreInvalidDropItems() {
-        AtomicReference<String> token = new AtomicReference<>();
-        ResultContextMenuActionBuilder builder = new ResultContextMenuActionBuilder();
-        SearchNode node = new SearchNode(
-                new ResourceLocation("cobblemon", "species/bulbasaur"),
-                NodeType.ENTITY,
-                "Bulbasaur",
-                0,
-                0,
-                Map.of(
-                        SearchNodeKeys.ENTITY_CATEGORY, "pokemon_species",
-                        SearchNodeKeys.POKEMON_DROP_ITEM, "minecraft:,minecraft:air,minecraft:missing_item,minecraft:apple"
-                )
-        );
-
-        List<ResultContextMenu.Action> actions = builder.forItem(
-                new ResultContextMenuActionBuilder.ItemContext(node, ItemStack.EMPTY, null, token::set)
-        );
-
-        assertEquals(1, ids(actions).stream()
-                .filter(id -> id.equals(ResultContextMenuActionBuilder.SEARCH_POKEMON_DROP_ITEM))
-                .count());
-        assertEquals(1, ids(actions).stream()
-                .filter(id -> id.equals(ResultContextMenuActionBuilder.RECIPES_POKEMON_DROP_ITEM))
-                .count());
-
-        firstAction(actions, ResultContextMenuActionBuilder.SEARCH_POKEMON_DROP_ITEM).onClick().run();
-        assertEquals("apple", token.get());
     }
 
     @Test
@@ -1056,7 +1020,6 @@ class ResultContextMenuActionBuilderTest {
 
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.SOURCES));
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.FILTER_POKEMON_GENERATION));
-        assertTrue(enabled.contains(ResultContextMenuActionBuilder.RECIPES_POKEMON_DROP_ITEM));
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_TIER));
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_CIRCUIT_GRADE));
     }
@@ -1091,8 +1054,6 @@ class ResultContextMenuActionBuilderTest {
 
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.SOURCES));
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.OPEN_POKEDEX));
-        assertTrue(enabled.contains(ResultContextMenuActionBuilder.SEARCH_POKEMON_DROP_ITEM));
-        assertTrue(enabled.contains(ResultContextMenuActionBuilder.RECIPES_POKEMON_DROP_ITEM));
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.COPY_POKEMON_DEX_NUMBER));
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_KIND));
         assertTrue(enabled.contains(ResultContextMenuActionBuilder.FILTER_GREGTECH_CIRCUIT_GRADE));

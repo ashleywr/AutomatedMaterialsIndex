@@ -212,8 +212,6 @@
   "ami.context.filter_pokemon_generation_named": "篩選第%s世代(G)",
   "ami.context.filter_pokemon_egg_group_named": "篩選%s蛋群(E)",
   "ami.context.filter_pokemon_ability_named": "篩選%s特性(A)",
-  "ami.context.search_pokemon_drop_item_named": "搜尋%s掉落(D)",
-  "ami.context.recipes_pokemon_drop_item_named": "顯示%s掉落配方(R)",
   "ami.context.copy_pokemon_species": "複製物種ID(I)",
   "ami.context.copy_pokemon_dex_number": "複製编号(X)",
   "ami.context.filter_gregtech_tier_named": "篩選%s等級(V)",

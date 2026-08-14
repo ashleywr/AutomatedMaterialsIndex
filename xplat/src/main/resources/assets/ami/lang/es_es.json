@@ -193,8 +193,6 @@
   "ami.context.filter_pokemon_generation_named": "Filtrar Gen %s",
   "ami.context.filter_pokemon_egg_group_named": "Filtrar grupo huevo %s",
   "ami.context.filter_pokemon_ability_named": "Filtrar habilidad %s",
-  "ami.context.search_pokemon_drop_item_named": "Buscar objeto botín %s",
-  "ami.context.recipes_pokemon_drop_item_named": "Mostrar recetas de botín %s",
   "ami.context.copy_pokemon_species": "Copiar ID de especie",
   "ami.context.copy_pokemon_dex_number": "Copiar número de Pokédex",
   "ami.context.filter_gregtech_tier_named": "Filtrar nivel %s",

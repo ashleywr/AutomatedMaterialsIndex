@@ -212,8 +212,6 @@
   "ami.context.filter_pokemon_generation_named": "第%s世代で絞り込み",
   "ami.context.filter_pokemon_egg_group_named": "%sタマゴグループで絞り込み",
   "ami.context.filter_pokemon_ability_named": "%sの特性で絞り込み",
-  "ami.context.search_pokemon_drop_item_named": "Search %s Drop",
-  "ami.context.recipes_pokemon_drop_item_named": "表示 %s Drop レシピs",
   "ami.context.copy_pokemon_species": "コピー Species ID",
   "ami.context.copy_pokemon_dex_number": "コピー Dex Number",
   "ami.context.filter_gregtech_tier_named": "絞り込み %s Tier",

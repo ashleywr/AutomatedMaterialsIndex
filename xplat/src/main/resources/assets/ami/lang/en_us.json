@@ -212,8 +212,6 @@
   "ami.context.filter_pokemon_generation_named": "Filter Gen %s",
   "ami.context.filter_pokemon_egg_group_named": "Filter %s Egg Group",
   "ami.context.filter_pokemon_ability_named": "Filter %s Ability",
-  "ami.context.search_pokemon_drop_item_named": "Search %s Drop",
-  "ami.context.recipes_pokemon_drop_item_named": "Show %s Drop Recipes",
   "ami.context.copy_pokemon_species": "Copy Species ID",
   "ami.context.copy_pokemon_dex_number": "Copy Dex Number",
   "ami.context.filter_gregtech_tier_named": "Filter %s Tier",

@@ -100,8 +100,6 @@ public class ResultContextMenuActionBuilder {
     public static final String FILTER_POKEMON_GENERATION = "ami:filter_pokemon_generation";
     public static final String FILTER_POKEMON_EGG_GROUP = "ami:filter_pokemon_egg_group";
     public static final String FILTER_POKEMON_ABILITY = "ami:filter_pokemon_ability";
-    public static final String SEARCH_POKEMON_DROP_ITEM = "ami:search_pokemon_drop_item";
-    public static final String RECIPES_POKEMON_DROP_ITEM = "ami:recipes_pokemon_drop_item";
     public static final String COPY_POKEMON_SPECIES = "ami:copy_pokemon_species";
     public static final String COPY_POKEMON_DEX_NUMBER = "ami:copy_pokemon_dex_number";
     public static final String FILTER_GREGTECH_TIER = "ami:filter_gregtech_tier";
@@ -160,7 +158,6 @@ public class ResultContextMenuActionBuilder {
             CHEAT_SPAWN_POKEMON, CHEAT_POKEMON_PARTY,
             OPEN_POKEDEX, FILTER_POKEMON_TYPE, FILTER_POKEMON_SECONDARY_TYPE,
             FILTER_POKEMON_GENERATION, FILTER_POKEMON_EGG_GROUP, FILTER_POKEMON_ABILITY,
-            SEARCH_POKEMON_DROP_ITEM, RECIPES_POKEMON_DROP_ITEM,
             COPY_POKEMON_SPECIES, COPY_POKEMON_DEX_NUMBER,
             FILTER_GREGTECH_TIER, FILTER_GREGTECH_KIND, FILTER_GREGTECH_FACT, FILTER_GREGTECH_CIRCUIT_GRADE,
             FILTER_MOD, COPY_ID, COPY_PLAYER_NAME, CHEAT_GIVE_PLAYER_HEAD, COPY_PLAYER_WAYPOINT, ADD_PLAYER_WAYPOINT,
@@ -199,8 +196,6 @@ public class ResultContextMenuActionBuilder {
             FILTER_POKEMON_GENERATION,
             FILTER_POKEMON_EGG_GROUP,
             FILTER_POKEMON_ABILITY,
-            SEARCH_POKEMON_DROP_ITEM,
-            RECIPES_POKEMON_DROP_ITEM,
             COPY_POKEMON_SPECIES,
             COPY_POKEMON_DEX_NUMBER,
             FILTER_GREGTECH_TIER,
@@ -425,27 +420,6 @@ public class ResultContextMenuActionBuilder {
                         () -> context.tokenInject().accept("?ability:" + ability)
                 ));
             }
-            for (ResourceLocation dropItemId : pokemonDropItemIds(node)) {
-                String itemName = itemDisplayName(dropItemId);
-                if (policy.allows(node, SEARCH_POKEMON_DROP_ITEM) && context.tokenInject() != null) {
-                    actions.add(ResultContextMenu.Action.enabled(
-                            SEARCH_POKEMON_DROP_ITEM,
-                            Component.translatable("ami.context.search_pokemon_drop_item_named", itemName),
-                            'd',
-                            () -> context.tokenInject().accept(dropSearchQuery(dropItemId))
-                    ));
-                }
-
-                ItemStack dropStack = stackForItem(dropItemId);
-                if (policy.allows(node, RECIPES_POKEMON_DROP_ITEM) && !dropStack.isEmpty()) {
-                    actions.add(ResultContextMenu.Action.enabled(
-                            RECIPES_POKEMON_DROP_ITEM,
-                            Component.translatable("ami.context.recipes_pokemon_drop_item_named", itemName),
-                            'r',
-                            () -> openRecipesLater(dropStack)
-                    ));
-                }
-            }
             if (policy.allows(node, COPY_POKEMON_SPECIES)) {
                 ResourceLocation speciesId = pokemonSpeciesId(node);
                 if (speciesId != null) {
@@ -612,12 +586,12 @@ public class ResultContextMenuActionBuilder {
         }
         return switch (action.id()) {
             case CRAFT_ONE, CRAFT_STACK -> MENU_CRAFTING;
-            case RECIPES, USES, RECIPES_POKEMON_DROP_ITEM -> MENU_RECIPES;
+            case RECIPES, USES -> MENU_RECIPES;
             case CHEAT_GIVE_ONE, CHEAT_GIVE_STACK, CHEAT_SPAWN_EGG, CHEAT_SPAWN_EGG_STACK,
                  CHEAT_SPAWN_POKEMON, CHEAT_POKEMON_PARTY -> MENU_CHEAT;
             case FILTER_MOD -> MENU_FILTERS;
             case OPEN_POKEDEX, FILTER_POKEMON_TYPE, FILTER_POKEMON_SECONDARY_TYPE, FILTER_POKEMON_GENERATION,
-                 FILTER_POKEMON_EGG_GROUP, FILTER_POKEMON_ABILITY, SEARCH_POKEMON_DROP_ITEM,
+                 FILTER_POKEMON_EGG_GROUP, FILTER_POKEMON_ABILITY,
                  COPY_POKEMON_SPECIES, COPY_POKEMON_DEX_NUMBER -> MENU_POKEMON;
             case FILTER_GREGTECH_TIER, FILTER_GREGTECH_KIND, FILTER_GREGTECH_FACT,
                  FILTER_GREGTECH_CIRCUIT_GRADE -> MENU_GREGTECH;
@@ -1997,87 +1971,6 @@ public class ResultContextMenuActionBuilder {
             }
         }
         return List.copyOf(values);
-    }
-
-    private static List<ResourceLocation> pokemonDropItemIds(SearchNode node) {
-        if (node == null) {
-            return List.of();
-        }
-
-        LinkedHashSet<ResourceLocation> values = new LinkedHashSet<>();
-        for (String raw : node.meta(SearchNodeKeys.POKEMON_DROP_ITEM, "").split(",")) {
-            ResourceLocation itemId = ResourceLocation.tryParse(raw.trim());
-            if (isUsableItemId(itemId)) {
-                values.add(itemId);
-            }
-        }
-        return List.copyOf(values);
-    }
-
-    private static ItemStack stackForItem(ResourceLocation itemId) {
-        if (!isUsableItemId(itemId)) {
-            return ItemStack.EMPTY;
-        }
-
-        try {
-            var item = BuiltInRegistries.ITEM.get(itemId);
-            if (item == Items.AIR) {
-                return ItemStack.EMPTY;
-            }
-            return defaultStackForItem(item, itemId);
-        } catch (RuntimeException e) {
-            LOGGER.log(Level.FINE, "AMI: Failed to resolve Pokemon drop item " + itemId, e);
-            return ItemStack.EMPTY;
-        }
-    }
-
-    private static ItemStack defaultStackForItem(Object item, ResourceLocation itemId) {
-        try {
-            Object stack = item.getClass().getMethod("getDefaultInstance").invoke(item);
-            if (stack instanceof ItemStack itemStack) {
-                return itemStack;
-            }
-        } catch (ReflectiveOperationException ignored) {
-        }
-
-        try {
-            for (var constructor : ItemStack.class.getConstructors()) {
-                Class<?>[] parameterTypes = constructor.getParameterTypes();
-                if (parameterTypes.length == 1 && parameterTypes[0].isAssignableFrom(item.getClass())) {
-                    Object stack = constructor.newInstance(item);
-                    return stack instanceof ItemStack itemStack ? itemStack : ItemStack.EMPTY;
-                }
-            }
-        } catch (ReflectiveOperationException e) {
-            LOGGER.log(Level.FINE, "AMI: Failed to create Pokemon drop stack for " + itemId, e);
-        }
-        return ItemStack.EMPTY;
-    }
-
-    private static String itemDisplayName(ResourceLocation itemId) {
-        return itemId == null ? "" : titleCaseUnderscorePath(itemId.getPath());
-    }
-
-    private static String dropSearchQuery(ResourceLocation itemId) {
-        if (itemId == null) {
-            return "";
-        }
-        if ("minecraft".equals(itemId.getNamespace())) {
-            return itemId.getPath().replace('_', ' ');
-        }
-        return itemId.toString();
-    }
-
-    private static boolean isUsableItemId(ResourceLocation itemId) {
-        if (itemId == null || itemId.getPath().isBlank()) {
-            return false;
-        }
-        try {
-            return BuiltInRegistries.ITEM.get(itemId) != Items.AIR;
-        } catch (RuntimeException e) {
-            LOGGER.log(Level.FINE, "AMI: Ignoring unresolved item id " + itemId, e);
-            return false;
-        }
     }
 
     private static boolean hasSpawnEgg(ResourceLocation entityId) {
