@@ -1,6 +1,7 @@
 package com.sanhiruzu.ami.mixin;
 
 import com.sanhiruzu.ami.client.InventoryOverlayHandler;
+import com.sanhiruzu.ami.compat.JeiClientInputHandlerMixinSupport;
 import com.sanhiruzu.ami.compat.RecipeViewerBridge;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -38,16 +39,23 @@ public class JeiGuiEventHandlerMixin {
                 && InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
     }
 
+    // Screen-init hooks are gated separately: cancelling them on JEI's own RecipesGui leaves that
+    // screen rendered but unclickable, since this is where JEI wires up its per-screen handling.
+    // See JeiClientInputHandlerMixinSupport.shouldSuppressJeiScreenInit().
+    private static boolean shouldSuppressJeiScreenInit() {
+        return JeiClientInputHandlerMixinSupport.shouldSuppressJeiScreenInit();
+    }
+
     @Inject(method = "onGuiInit", at = @At("HEAD"), cancellable = true, remap = false, require = 0)
     private void suppressOnGuiInit(Screen screen, CallbackInfo ci) {
-        if (shouldSuppressJeiChrome()) {
+        if (shouldSuppressJeiScreenInit()) {
             ci.cancel();
         }
     }
 
     @Inject(method = "onGuiOpen", at = @At("HEAD"), cancellable = true, remap = false, require = 0)
     private void suppressOnGuiOpen(Screen screen, CallbackInfo ci) {
-        if (shouldSuppressJeiChrome()) {
+        if (shouldSuppressJeiScreenInit()) {
             ci.cancel();
         }
     }

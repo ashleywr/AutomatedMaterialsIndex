@@ -17,8 +17,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Pseudo
 @Mixin(ClientInputHandler.class)
 public class JeiClientInputHandlerMixin {
-    private static boolean ami$shouldSuppressJeiChrome() {
-        return ami$invokeBooleanSupport("shouldSuppressJeiChrome");
+    private static boolean ami$shouldSuppressJeiScreenInit() {
+        return ami$invokeBooleanSupport("shouldSuppressJeiScreenInit");
     }
 
     private static boolean ami$shouldSuppressJeiInput() {
@@ -38,7 +38,7 @@ public class JeiClientInputHandlerMixin {
 
     @Inject(method = "onInitGui", at = @At("HEAD"), cancellable = true, remap = false)
     private void suppressOnInitGui(CallbackInfo ci) {
-        if (ami$shouldSuppressJeiChrome()) {
+        if (ami$shouldSuppressJeiScreenInit()) {
             ci.cancel();
         }
     }

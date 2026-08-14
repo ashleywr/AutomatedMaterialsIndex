@@ -185,9 +185,6 @@ public class RecipeViewerBridge {
             RecipeViewerBridgeCommon.openNative(stack, true);
             return;
         }
-        // Hand the layer off to the external viewer before marking the view active — setLayer()
-        // clears the active flag as part of the transition, so it must run first.
-        InventoryOverlayHandler.enterExternalRecipeViewer();
         markRecipeViewActive();
         if (isEmiSelectedExternalViewer()) {
             EmiRecipeBridge.openRecipes(stack);
@@ -209,7 +206,6 @@ public class RecipeViewerBridge {
         if (!isJeiSelectedExternalViewer()) {
             return;
         }
-        InventoryOverlayHandler.enterExternalRecipeViewer();
         markRecipeViewActive();
         JeiRecipeBridge.openRecipes(node);
     }
@@ -225,7 +221,6 @@ public class RecipeViewerBridge {
             RecipeViewerBridgeCommon.openNative(stack, false);
             return;
         }
-        InventoryOverlayHandler.enterExternalRecipeViewer();
         markRecipeViewActive();
         if (isEmiSelectedExternalViewer()) {
             EmiRecipeBridge.openUses(stack);
@@ -247,7 +242,6 @@ public class RecipeViewerBridge {
         if (!isJeiSelectedExternalViewer()) {
             return;
         }
-        InventoryOverlayHandler.enterExternalRecipeViewer();
         markRecipeViewActive();
         JeiRecipeBridge.openUses(node);
     }

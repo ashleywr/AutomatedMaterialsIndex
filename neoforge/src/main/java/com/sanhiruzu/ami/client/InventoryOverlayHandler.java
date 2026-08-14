@@ -122,19 +122,6 @@ public class InventoryOverlayHandler {
     }
 
     /**
-     * Transitions to the external-viewer layer when a recipe view is opened by clicking an item
-     * directly, mirroring the layer change toggleAmi() performs for the recipe-book icon path.
-     * Without this, currentLayer stayed AMI while JEI/EMI's own recipe screen was on top, leaving
-     * AMI's panel rendering over it and JEI's own screen-lifecycle hooks suppressed. Only fires
-     * from the AMI layer — TOGGLE_AMI's "hide everything" NONE state is left alone.
-     */
-    public static void enterExternalRecipeViewer() {
-        Minecraft mc = Minecraft.getInstance();
-        if (!RECIPE_VIEWER_PRESENT || currentLayer != VisibleLayer.AMI || !isAmiScreen(mc.screen)) return;
-        setLayer(VisibleLayer.EXTERNAL_RECIPE_VIEWER);
-    }
-
-    /**
      * Recipe-book TOGGLE_AMI mode: toggle between AMI and NONE. Suppresses external viewers
      * even when AMI is off — the recipe book acts as "hide everything".
      */

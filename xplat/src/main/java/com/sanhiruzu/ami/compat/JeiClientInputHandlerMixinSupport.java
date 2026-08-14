@@ -13,6 +13,21 @@ public final class JeiClientInputHandlerMixinSupport {
         return InventoryOverlayHandler.shouldSuppressRecipeViewerChrome();
     }
 
+    /**
+     * Whether to cancel JEI's per-screen init hooks ({@code ClientInputHandler.onInitGui},
+     * {@code GuiEventHandler.onGuiInit}/{@code onGuiOpen}).
+     *
+     * <p>Deliberately more permissive than {@link #shouldSuppressJeiChrome()}: on JEI's own
+     * RecipesGui, those hooks are what wire up that screen's input handling, so cancelling them
+     * leaves the recipe view rendered but completely unclickable. AMI keeps its panel visible
+     * over the recipe screen (only the toggle keybind / recipe-book icon hide it), so chrome
+     * suppression is still true there — suppressing the drawing is fine, suppressing the init is
+     * not.
+     */
+    public static boolean shouldSuppressJeiScreenInit() {
+        return shouldSuppressJeiChrome() && !isJeiRecipeScreenActive();
+    }
+
     public static boolean shouldSuppressJeiInput() {
         if (!RecipeViewerBridge.isJeiLoaded()) return false;
         if (!InventoryOverlayHandler.shouldSuppressRecipeViewerChrome()) return false;
