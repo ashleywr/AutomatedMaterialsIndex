@@ -82,7 +82,7 @@ public final class AMICheatMode {
         } else if (AmiNetworkState.onServer) {
             // Survival OP with AMI on server: use the give-mode preference.
             if (AmiConfig.cheatGiveMode == CheatGiveMode.CURSOR) {
-                ClientPlayNetworking.send(new AmiCheatGivePacket(stack.copy()));
+                ClientPlayNetworking.send(new AmiCheatGivePacket(stack.copy(), !hasCarriedItem()));
             } else {
                 sendCommand("give @s " + itemId);
             }
@@ -125,7 +125,7 @@ public final class AMICheatMode {
             giveCursorStack(stack.copy());
         } else if (AmiNetworkState.onServer) {
             if (AmiConfig.cheatGiveMode == CheatGiveMode.CURSOR) {
-                ClientPlayNetworking.send(new AmiCheatGivePacket(stack.copy()));
+                ClientPlayNetworking.send(new AmiCheatGivePacket(stack.copy(), !hasCarriedItem()));
             } else {
                 sendCommand("give @s " + itemId + " 64");
             }
@@ -243,7 +243,7 @@ public final class AMICheatMode {
         if (mc.player == null) return;
         ItemStack copy = stack.copy();
         if (AmiNetworkState.onServer || mc.hasSingleplayerServer()) {
-            ClientPlayNetworking.send(new AmiCheatGivePacket(copy));
+            ClientPlayNetworking.send(new AmiCheatGivePacket(copy, !hasCarriedItem()));
         } else {
             mc.player.containerMenu.setCarried(copy);
         }

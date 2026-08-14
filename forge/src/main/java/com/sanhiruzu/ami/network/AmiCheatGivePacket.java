@@ -14,17 +14,20 @@ import java.util.function.Supplier;
  */
 public class AmiCheatGivePacket {
     private final ItemStack stack;
+    private final boolean cursorEmpty;
 
-    public AmiCheatGivePacket(ItemStack stack) {
+    public AmiCheatGivePacket(ItemStack stack, boolean cursorEmpty) {
         this.stack = stack;
+        this.cursorEmpty = cursorEmpty;
     }
 
     public static void encode(AmiCheatGivePacket packet, FriendlyByteBuf buf) {
         buf.writeItem(packet.stack);
+        buf.writeBoolean(packet.cursorEmpty);
     }
 
     public static AmiCheatGivePacket decode(FriendlyByteBuf buf) {
-        return new AmiCheatGivePacket(buf.readItem());
+        return new AmiCheatGivePacket(buf.readItem(), buf.readBoolean());
     }
 
     public static void handle(AmiCheatGivePacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
@@ -48,9 +51,13 @@ public class AmiCheatGivePacket {
                     player.getName().getString(),
                     toSet.getItem().getDescriptionId(),
                     toSet.getCount());
-            // Cursor first, then inventory, then drop at the player's feet as a last resort —
-            // never silently overwrite/discard whatever the player is already carrying.
-            if (serverPlayer.containerMenu.getCarried().isEmpty()) {
+            // Cursor first, then inventory, then drop at the player's feet as a last resort — never
+            // silently overwrite/discard whatever the player is already carrying. Whether the cursor
+            // is free is decided by the client (cursorEmpty), not re-derived from
+            // containerMenu.getCarried() here: creative-mode slot interactions largely bypass the
+            // normal click protocol the server tracks that field through, so it can't be trusted as
+            // a live "what's on the cursor right now" signal.
+            if (packet.cursorEmpty) {
                 serverPlayer.containerMenu.setCarried(toSet);
             } else if (!serverPlayer.getInventory().add(toSet)) {
                 serverPlayer.drop(toSet, false);

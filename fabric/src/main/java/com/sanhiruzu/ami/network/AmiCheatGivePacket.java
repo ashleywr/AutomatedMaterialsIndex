@@ -10,14 +10,18 @@ import net.minecraft.world.item.ItemStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public record AmiCheatGivePacket(ItemStack stack) implements CustomPacketPayload {
+public record AmiCheatGivePacket(ItemStack stack, boolean cursorEmpty) implements CustomPacketPayload {
     private static final Logger LOGGER = LoggerFactory.getLogger("AMI");
 
     public static final Type<AmiCheatGivePacket> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath("ami", "cheat_give"));
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, AmiCheatGivePacket> STREAM_CODEC =
-            ItemStack.OPTIONAL_STREAM_CODEC.map(AmiCheatGivePacket::new, AmiCheatGivePacket::stack);
+    public static final StreamCodec<RegistryFriendlyByteBuf, AmiCheatGivePacket> STREAM_CODEC = StreamCodec.of(
+            (buf, packet) -> {
+                ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, packet.stack());
+                buf.writeBoolean(packet.cursorEmpty());
+            },
+            buf -> new AmiCheatGivePacket(ItemStack.OPTIONAL_STREAM_CODEC.decode(buf), buf.readBoolean()));
 
     /**
      * Server-side handler. Called on the server thread via Fabric's
@@ -40,9 +44,13 @@ public record AmiCheatGivePacket(ItemStack stack) implements CustomPacketPayload
                 serverPlayer.getName().getString(),
                 toSet.getItem().getDescriptionId(),
                 toSet.getCount());
-        // Cursor first, then inventory, then drop at the player's feet as a last resort —
-        // never silently overwrite/discard whatever the player is already carrying.
-        if (serverPlayer.containerMenu.getCarried().isEmpty()) {
+        // Cursor first, then inventory, then drop at the player's feet as a last resort — never
+        // silently overwrite/discard whatever the player is already carrying. Whether the cursor
+        // is free is decided by the client (cursorEmpty), not re-derived from
+        // containerMenu.getCarried() here: creative-mode slot interactions largely bypass the
+        // normal click protocol the server tracks that field through, so it can't be trusted as
+        // a live "what's on the cursor right now" signal.
+        if (cursorEmpty()) {
             serverPlayer.containerMenu.setCarried(toSet);
         } else if (!serverPlayer.getInventory().add(toSet)) {
             serverPlayer.drop(toSet, false);
