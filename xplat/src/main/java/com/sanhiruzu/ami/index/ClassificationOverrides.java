@@ -90,7 +90,7 @@ public final class ClassificationOverrides {
 
     private static boolean matches(ModPatternRule rule, String[] pathTokens, String lowerClass) {
         if (rule.pathTokens().isEmpty() && rule.classTokens().isEmpty()) {
-            return false;
+            return rule.requiresAllCriteria();
         }
         if (rule.requiresAllCriteria()) {
             return matchesAllCriteria(rule, pathTokens, lowerClass);
@@ -216,6 +216,8 @@ public final class ClassificationOverrides {
                     parseVerbs(entry, "removeVerbs"),
                     category,
                     subcategory,
+                    parseAccessLevel(entry),
+                    parseVisibility(entry),
                     parseStringList(entry, "tooltipLines")));
         }
     }
@@ -252,7 +254,8 @@ public final class ClassificationOverrides {
                             parseVerbs(entry, "addVerbs"), parseVerbs(entry, "removeVerbs"),
                             optString(entry, "category"), optString(entry, "subcategory"),
                             optString(entry, "collapseFamily"), optString(entry, "collapseLabel"),
-                            optString(entry, "collapseMode"), optString(entry, "match")));
+                            optString(entry, "collapseMode"), parseAccessLevel(entry),
+                            parseVisibility(entry), optString(entry, "match")));
         }
     }
 
@@ -297,5 +300,29 @@ public final class ClassificationOverrides {
 
     private static String optString(JsonObject entry, String key) {
         return entry.has(key) && entry.get(key).isJsonPrimitive() ? entry.get(key).getAsString() : null;
+    }
+
+    private static String parseAccessLevel(JsonObject entry) {
+        String raw = optString(entry, "accessLevel");
+        if (raw == null) {
+            return null;
+        }
+        String value = raw.trim().toLowerCase(Locale.ROOT);
+        return switch (value) {
+            case ItemFilter.ACCESS_SURVIVAL, ItemFilter.ACCESS_CREATIVE, ItemFilter.ACCESS_CHEAT, ItemFilter.ACCESS_DEV -> value;
+            default -> null;
+        };
+    }
+
+    private static String parseVisibility(JsonObject entry) {
+        String raw = optString(entry, "visibility");
+        if (raw == null) {
+            return null;
+        }
+        String value = raw.trim().toLowerCase(Locale.ROOT);
+        return switch (value) {
+            case "hidden", "visible" -> value;
+            default -> null;
+        };
     }
 }

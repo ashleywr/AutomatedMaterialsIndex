@@ -38,15 +38,23 @@ public class AmiCheatGivePacket {
                 return;
             }
             ItemStack toSet = packet.stack.isEmpty() ? ItemStack.EMPTY : packet.stack.copy();
-            if (!toSet.isEmpty()) {
-                AMI.LOGGER.debug("AMI cheat give: {} → {} x{}",
-                        player.getName().getString(),
-                        toSet.getItem().getDescriptionId(),
-                        toSet.getCount());
-            } else {
+            if (toSet.isEmpty()) {
                 AMI.LOGGER.debug("AMI cheat delete cursor: {}", player.getName().getString());
+                serverPlayer.containerMenu.setCarried(ItemStack.EMPTY);
+                serverPlayer.containerMenu.broadcastChanges();
+                return;
             }
-            serverPlayer.containerMenu.setCarried(toSet);
+            AMI.LOGGER.debug("AMI cheat give: {} → {} x{}",
+                    player.getName().getString(),
+                    toSet.getItem().getDescriptionId(),
+                    toSet.getCount());
+            // Cursor first, then inventory, then drop at the player's feet as a last resort —
+            // never silently overwrite/discard whatever the player is already carrying.
+            if (serverPlayer.containerMenu.getCarried().isEmpty()) {
+                serverPlayer.containerMenu.setCarried(toSet);
+            } else if (!serverPlayer.getInventory().add(toSet)) {
+                serverPlayer.drop(toSet, false);
+            }
             serverPlayer.containerMenu.broadcastChanges();
         });
         context.setPacketHandled(true);

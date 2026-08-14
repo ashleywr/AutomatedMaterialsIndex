@@ -28,6 +28,16 @@ test("parseOverrides parses fixture", () => {
   assert.equal(r.items.get("modid:gizmo").subcategory, "fancy");
 });
 
+test("parseOverrides keeps visibility fields", () => {
+  const r = parseOverrides(JSON.stringify({
+    items: {
+      "modid:gizmo": { accessLevel: "dev", visibility: "hidden" },
+    },
+  }));
+  assert.equal(r.items.get("modid:gizmo").accessLevel, "dev");
+  assert.equal(r.items.get("modid:gizmo").visibility, "hidden");
+});
+
 test("parseOverrides treats missing schemaVersion as 1", () => {
   const r = parseOverrides(JSON.stringify({ items: {} }));
   assert.equal(r.schemaVersion, 1);

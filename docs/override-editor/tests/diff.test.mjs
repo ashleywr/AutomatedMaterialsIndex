@@ -59,3 +59,12 @@ test("passes modPatterns through unchanged", () => {
   assert.equal(patch.modPatterns.length, 1);
   assert.equal(patch.modPatterns[0].mod, "m");
 });
+
+test("keeps unchanged visibility fields in item patches", () => {
+  const items = [editable("a:x", [],
+    { category: null, subcategory: null, facets: [], tooltipLines: [], accessLevel: "dev", visibility: "hidden" },
+    { category: null, subcategory: null, facets: [], tooltipLines: [], accessLevel: "dev", visibility: "hidden" })];
+  const patch = computeSparsePatch(items, { modPatterns: [] });
+  assert.equal(patch.items["a:x"].accessLevel, "dev");
+  assert.equal(patch.items["a:x"].visibility, "hidden");
+});

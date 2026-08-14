@@ -29,3 +29,18 @@ Or `npx serve docs/override-editor`. The GitHub Pages URL works without any extr
 - Tool refuses to load files with a `schemaVersion` newer than it supports.
 - Stale-id warnings show which override entries reference items not in your current dump.
 - v1 lets you edit per-item category / subcategory / facets / custom tooltip lines. `modPatterns` are passed through unchanged.
+- Manual item entries can also set `accessLevel` (`survival`, `creative`, `cheat`, `dev`) and `visibility`
+  (`hidden`, `visible`). The editor preserves these fields when round-tripping an override file.
+- To hide a whole mod from normal-player results while keeping it visible in dev/show-hidden views:
+
+```json
+{
+  "schemaVersion": 1,
+  "items": {
+    "examplemod:kept_item": { "visibility": "visible" }
+  },
+  "modPatterns": [
+    { "mod": "examplemod", "match": "all", "visibility": "hidden" }
+  ]
+}
+```

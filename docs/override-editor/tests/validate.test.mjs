@@ -9,6 +9,13 @@ test("warns on unknown facet ids", () => {
   assert.ok(issues.some(i => i.severity === "warn" && i.message.includes("totally_made_up")));
 });
 
+test("warns on unknown access and visibility values", () => {
+  const sample = { schemaVersion: 1, items: { "m:x": { accessLevel: "admin", visibility: "dimmed" } }, modPatterns: [] };
+  const issues = validate(sample, /* dump */ null);
+  assert.ok(issues.some(i => i.severity === "warn" && i.message.includes("admin")));
+  assert.ok(issues.some(i => i.severity === "warn" && i.message.includes("dimmed")));
+});
+
 test("warns on item ids missing from dump", () => {
   const sample = { schemaVersion: 1, items: { "m:ghost": { category: "x" } }, modPatterns: [] };
   const dump = { items: [{ id: "m:alive" }] };

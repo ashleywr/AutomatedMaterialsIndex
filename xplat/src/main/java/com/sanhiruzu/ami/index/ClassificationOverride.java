@@ -14,6 +14,8 @@ public record ClassificationOverride(EnumSet<ItemFacet> addFacets,
                                      EnumSet<SemanticVerb> removeVerbs,
                                      String forceCategory,
                                      String forceSubcategory,
+                                     String accessLevel,
+                                     String visibility,
                                      List<String> tooltipLines) {
     public ClassificationOverride {
         tooltipLines = tooltipLines == null ? List.of() : List.copyOf(tooltipLines);
@@ -25,7 +27,17 @@ public record ClassificationOverride(EnumSet<ItemFacet> addFacets,
                                   EnumSet<SemanticVerb> removeVerbs,
                                   String forceCategory,
                                   String forceSubcategory) {
-        this(addFacets, removeFacets, addVerbs, removeVerbs, forceCategory, forceSubcategory, List.of());
+        this(addFacets, removeFacets, addVerbs, removeVerbs, forceCategory, forceSubcategory, null, null, List.of());
+    }
+
+    public ClassificationOverride(EnumSet<ItemFacet> addFacets,
+                                  EnumSet<ItemFacet> removeFacets,
+                                  EnumSet<SemanticVerb> addVerbs,
+                                  EnumSet<SemanticVerb> removeVerbs,
+                                  String forceCategory,
+                                  String forceSubcategory,
+                                  List<String> tooltipLines) {
+        this(addFacets, removeFacets, addVerbs, removeVerbs, forceCategory, forceSubcategory, null, null, tooltipLines);
     }
 
     public ClassificationOverride(EnumSet<ItemFacet> addFacets,
@@ -33,11 +45,19 @@ public record ClassificationOverride(EnumSet<ItemFacet> addFacets,
                                   String forceCategory,
                                   String forceSubcategory) {
         this(addFacets, removeFacets, EnumSet.noneOf(SemanticVerb.class), EnumSet.noneOf(SemanticVerb.class),
-                forceCategory, forceSubcategory, List.of());
+                forceCategory, forceSubcategory, null, null, List.of());
     }
 
     public boolean hasForcedCategory() {
         return forceCategory != null && !forceCategory.isBlank();
+    }
+
+    public boolean hasAccessLevel() {
+        return accessLevel != null && !accessLevel.isBlank();
+    }
+
+    public boolean hasVisibility() {
+        return visibility != null && !visibility.isBlank();
     }
 
     public String subcategoryOrEmpty() {

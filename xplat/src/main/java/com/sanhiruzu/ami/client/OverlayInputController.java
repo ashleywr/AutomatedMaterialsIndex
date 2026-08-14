@@ -86,7 +86,14 @@ public final class OverlayInputController {
         }
 
         var searchBar = manager.getSearchBar();
-        return searchBar.isFocused() && searchBar.mouseReleased(mouseX, mouseY, button);
+        if (searchBar.isFocused() && searchBar.mouseReleased(mouseX, mouseY, button)) {
+            return true;
+        }
+
+        // The matching press for this release was consumed by AMI (context menu, or a click
+        // anywhere over the panel) whenever either is true — mirror that here so the release
+        // doesn't leak through to the underlying vanilla screen's own slot/drag bookkeeping.
+        return manager.hasOpenContextMenu() || manager.isMouseOverPanel(mouseX, mouseY);
     }
 
     public static boolean charTyped(Screen screen, OverlayWidgetManager manager, boolean amiEnabled,

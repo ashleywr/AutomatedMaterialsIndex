@@ -581,6 +581,62 @@ public class ItemProvider implements IAmiDataProvider {
         }
     }
 
+    static String applyPackAccessLevelOverride(ResourceLocation id, @Nullable ResourceLocation baseId,
+                                               String itemClass, String accessLevel) {
+        Map<String, String> metadata = new HashMap<>(1);
+        metadata.put(SearchNodeKeys.ACCESS_LEVEL, accessLevel);
+        applyPackVisibilityOverrides(id, baseId, itemClass, metadata);
+        return metadata.getOrDefault(SearchNodeKeys.ACCESS_LEVEL, accessLevel);
+    }
+
+    static boolean hasPackVisibilityOverride(ResourceLocation id, @Nullable ResourceLocation baseId,
+                                             String itemClass) {
+        return hasVisibilityOverrideFor(id, itemClass)
+                || (baseId != null && !baseId.equals(id) && hasVisibilityOverrideFor(baseId, itemClass));
+    }
+
+    static void applyPackVisibilityOverrides(ResourceLocation id, @Nullable ResourceLocation baseId,
+                                             String itemClass, Map<String, String> meta) {
+        if (id == null || meta == null) {
+            return;
+        }
+        if (baseId != null && !baseId.equals(id)) {
+            applyPackVisibilityOverrideFor(baseId, itemClass, meta);
+        }
+        applyPackVisibilityOverrideFor(id, itemClass, meta);
+    }
+
+    private static boolean hasVisibilityOverrideFor(ResourceLocation id, String itemClass) {
+        if (id == null) {
+            return false;
+        }
+        Optional<ModPatternRule> pattern = ClassificationOverrides.patternFor(
+                id.getNamespace(), id.getPath(), itemClass);
+        if (pattern.isPresent() && (pattern.get().hasAccessLevel() || pattern.get().hasVisibility())) {
+            return true;
+        }
+        Optional<ClassificationOverride> item = ClassificationOverrides.forItem(id);
+        return item.isPresent() && (item.get().hasAccessLevel() || item.get().hasVisibility());
+    }
+
+    private static void applyPackVisibilityOverrideFor(ResourceLocation id, String itemClass, Map<String, String> meta) {
+        ClassificationOverrides.patternFor(id.getNamespace(), id.getPath(), itemClass)
+                .ifPresent(rule -> applyAccessAndVisibility(rule.accessLevel(), rule.visibility(), meta));
+        ClassificationOverrides.forItem(id)
+                .ifPresent(item -> applyAccessAndVisibility(item.accessLevel(), item.visibility(), meta));
+    }
+
+    private static void applyAccessAndVisibility(String accessLevel, String visibility, Map<String, String> meta) {
+        if (accessLevel != null && !accessLevel.isBlank()) {
+            meta.put(SearchNodeKeys.ACCESS_LEVEL, accessLevel);
+        }
+        if ("hidden".equals(visibility)) {
+            meta.put(SearchNodeKeys.VISIBILITY, "hidden");
+        } else if ("visible".equals(visibility)) {
+            meta.remove(SearchNodeKeys.VISIBILITY);
+        }
+    }
+
     private static void applyCreativeTabMeta(Map<String, String> meta, @Nullable ItemFilter.CreativeTabInfo creativeTab) {
         if (creativeTab == null) {
             return;
@@ -746,6 +802,9 @@ public class ItemProvider implements IAmiDataProvider {
             // Layer 2: creative-tab membership
             boolean inCreative = !hasCreativeData || creativeItems.contains(item);
             String accessLevel = ItemFilter.classifyAccessLevel(id, item, inCreative);
+            String itemClass = item.getClass().getName();
+            accessLevel = applyPackAccessLevelOverride(id, null, itemClass, accessLevel);
+            boolean hasPackVisibilityOverrideForBase = hasPackVisibilityOverride(id, null, itemClass);
 
             // Layer 3: recipe availability - items with recipes should be shown as SURVIVAL even if not in creative tabs
             boolean hasRecipe = !hasRecipeData || recipeOutputs.contains(item);
@@ -753,11 +812,12 @@ public class ItemProvider implements IAmiDataProvider {
                 // Items with recipes that aren't shown in creative tabs should still appear in SURVIVAL mode
                 accessLevel = ItemFilter.ACCESS_SURVIVAL;
             }
+            accessLevel = applyPackAccessLevelOverride(id, null, itemClass, accessLevel);
             // For strict survival mode, only include items with recipes
             if (strictSurvival && !hasRecipe) continue;
 
             if (IndexingHotItemPolicy.shouldUseFastFacadeIndex(id)) {
-                if (!ItemFilter.shouldShowAccessLevel(accessLevel)) continue;
+                if (!ItemFilter.shouldShowAccessLevel(accessLevel) && !hasPackVisibilityOverrideForBase) continue;
                 indexFastFacadeItem(index, item, id, creativeStackMap, creativeTabs.get(item), accessLevel, inCreative);
                 baseItemNodes++;
                 fastFacadeNodes++;
@@ -819,8 +879,12 @@ public class ItemProvider implements IAmiDataProvider {
                     inferAmmoType(entry.id(), subtypeMeta);
                     markGeneratedModularGearVariantCheatOnly(entry.id(), subtypeMeta);
                     applyPrimaryCategoryMeta(id, item, null, subtypeMeta);
+                    applyPackVisibilityOverrides(entry.id(), id,
+                            subtypeMeta.getOrDefault(SearchNodeKeys.ITEM_CLASS, itemClass), subtypeMeta);
                     if (!ItemFilter.shouldShowAccessLevel(subtypeMeta.getOrDefault(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL))
-                            && !isHiddenComponentDuplicateVariant(subtypeMeta)) {
+                            && !isHiddenComponentDuplicateVariant(subtypeMeta)
+                            && !hasPackVisibilityOverride(entry.id(), id,
+                                    subtypeMeta.getOrDefault(SearchNodeKeys.ITEM_CLASS, itemClass))) {
                         continue;
                     }
                     index.addNode(new SearchNode(entry.id(), NodeType.ITEM,
@@ -832,7 +896,9 @@ public class ItemProvider implements IAmiDataProvider {
                 continue;
             }
 
-            if (!ItemFilter.shouldShowAccessLevel(accessLevel) && !ItemFilter.ACCESS_DEV.equals(accessLevel)) continue;
+            if (!ItemFilter.shouldShowAccessLevel(accessLevel)
+                    && !ItemFilter.ACCESS_DEV.equals(accessLevel)
+                    && !hasPackVisibilityOverrideForBase) continue;
 
             long basePreRecipeStart = System.nanoTime();
             long baseStageStart = System.nanoTime();
@@ -986,6 +1052,8 @@ public class ItemProvider implements IAmiDataProvider {
 
             basePostStageStart = System.nanoTime();
             applyPrimaryCategoryMeta(id, item, facetProfile, meta);
+            applyPackVisibilityOverrides(id, null,
+                    meta.getOrDefault(SearchNodeKeys.ITEM_CLASS, itemClass), meta);
             basePostCategoryNs += System.nanoTime() - basePostStageStart;
 
             basePostStageStart = System.nanoTime();
@@ -1040,6 +1108,7 @@ public class ItemProvider implements IAmiDataProvider {
         if (!inCreative) {
             meta.put(SearchNodeKeys.VISIBILITY, "hidden");
         }
+        applyPackVisibilityOverrides(id, null, item.getClass().getName(), meta);
         if ("ae2".equals(id.getNamespace()) || "appliedenergistics2".equals(id.getNamespace())) {
             meta.put(SearchNodeKeys.PRIMARY_COMPAT_FAMILY, "ae2");
             meta.put(SearchNodeKeys.COMPAT_FAMILIES, "ae2");

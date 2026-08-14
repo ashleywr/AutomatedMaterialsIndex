@@ -58,3 +58,18 @@ test("override-only items get missingFromDump=true", () => {
   const ghost = merged.find(i => i.id === "modid:ghost");
   assert.equal(ghost.missingFromDump, true);
 });
+
+test("visibility fields round-trip into the editable baseline", () => {
+  const ovWithVisibility = {
+    schemaVersion: 1,
+    items: new Map([["minecraft:diamond_sword", {
+      category: null, subcategory: null, addFacets: [], removeFacets: [], tooltipLines: [],
+      accessLevel: "dev", visibility: "hidden",
+    }]]),
+    modPatterns: [],
+  };
+  const merged = mergeForEditing(dump, ovWithVisibility);
+  const sword = merged.find(i => i.id === "minecraft:diamond_sword");
+  assert.equal(sword.baseline.accessLevel, "dev");
+  assert.equal(sword.baseline.visibility, "hidden");
+});

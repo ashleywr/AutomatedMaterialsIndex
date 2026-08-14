@@ -535,6 +535,35 @@
   - Marker appears only while `AmiConfig.devMode` is true.
   - Normal-player hidden status is inferred from `accessLevel != survival` or `visibility = hidden`.
 
+## Pack-Author Visibility Overrides
+
+- User surface: pack authors can place `config/ami/overrides.json` in a modpack to adjust item visibility without
+  rebuilding AMI. Per-item entries and `modPatterns` can set `visibility` (`hidden` or `visible`) and `accessLevel`
+  (`survival`, `creative`, `cheat`, or `dev`). A `modPatterns` entry with `"match": "all"` and no path/class tokens
+  applies to every item in that mod namespace; per-item entries are applied after matching mod-pattern rules so they can
+  act as exceptions.
+- Main files:
+  - `xplat/src/main/java/com/sanhiruzu/ami/index/ClassificationOverride.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/index/ClassificationOverrides.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/index/ModPatternRule.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/index/PackOverrideLoader.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/index/providers/ItemProvider.java`
+  - `docs/override-editor/`
+- Tests:
+  - `.\gradlew.bat :neoforge:test --tests "*ClassificationOverrides*Test" --tests "*ClassificationOverride*Test" --tests "*PackOverrideLoaderTest" --tests "*AccessLevelVisualsTest"`
+  - `node --test docs/override-editor/tests/*.mjs`
+- State contract:
+  - Pack overrides merge on top of bundled classification overrides during item indexing. Malformed pack override JSON is
+    logged and ignored without breaking indexing.
+  - `visibility: hidden` keeps a node indexed but hides it from normal-player search/results unless dev mode or
+    show-hidden-mod-items is enabled. `visibility: visible` removes AMI's hidden marker, including for items missing from
+    creative tabs.
+  - `accessLevel` changes the normal access gate. Items with pack visibility/access overrides are retained in the index
+    even when the current visibility config would hide that access level, so toggling dev/show-hidden/cheat visibility
+    can reveal them without needing a second reindex.
+  - Generated subtype nodes inherit a base item visibility/access override, and an exact generated-node override can
+    refine it.
+
 ## Inventory Overlay Render Order
 
 - User surface: AMI side panels, search bar, bottom-left AMI button, result icons, AMI tooltips, context menus, and vanilla container tooltips/status-effect tooltips.

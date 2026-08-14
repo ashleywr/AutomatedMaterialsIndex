@@ -21,6 +21,21 @@ export function computeSparsePatch(editableItems, originalOverrides) {
     const tb = b.tooltipLines ?? [], te = e.tooltipLines ?? [];
     if (JSON.stringify(tb) !== JSON.stringify(te)) delta.tooltipLines = te;
 
+    if ((b.accessLevel ?? null) !== null || (e.accessLevel ?? null) !== null) {
+      if ((b.accessLevel ?? null) !== (e.accessLevel ?? null)) {
+        if (e.accessLevel != null) delta.accessLevel = e.accessLevel;
+      } else if (e.accessLevel != null) {
+        delta.accessLevel = e.accessLevel;
+      }
+    }
+    if ((b.visibility ?? null) !== null || (e.visibility ?? null) !== null) {
+      if ((b.visibility ?? null) !== (e.visibility ?? null)) {
+        if (e.visibility != null) delta.visibility = e.visibility;
+      } else if (e.visibility != null) {
+        delta.visibility = e.visibility;
+      }
+    }
+
     if (Object.keys(delta).length > 0) items[it.id] = delta;
   }
   return {

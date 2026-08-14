@@ -24,6 +24,8 @@ export function parseOverrides(text) {
         addFacets: entry.addFacets ?? [],
         removeFacets: entry.removeFacets ?? [],
         tooltipLines: entry.tooltipLines ?? [],
+        accessLevel: entry.accessLevel ?? null,
+        visibility: entry.visibility ?? null,
       });
     }
   }

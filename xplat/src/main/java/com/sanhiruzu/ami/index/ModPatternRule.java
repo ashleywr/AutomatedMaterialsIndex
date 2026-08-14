@@ -8,6 +8,7 @@ public record ModPatternRule(String modId, Set<String> pathTokens, Set<String> c
                              EnumSet<SemanticVerb> addVerbs, EnumSet<SemanticVerb> removeVerbs,
                              String category, String subcategory,
                              String collapseFamily, String collapseLabel, String collapseMode,
+                             String accessLevel, String visibility,
                              String match) {
 
     public static final String MATCH_ALL = "all";
@@ -18,7 +19,7 @@ public record ModPatternRule(String modId, Set<String> pathTokens, Set<String> c
                           String category, String subcategory,
                           String collapseFamily, String collapseLabel, String collapseMode) {
         this(modId, pathTokens, classTokens, addFacets, removeFacets, addVerbs, removeVerbs,
-                category, subcategory, collapseFamily, collapseLabel, collapseMode, null);
+                category, subcategory, collapseFamily, collapseLabel, collapseMode, null, null, null);
     }
 
     public ModPatternRule(String modId, Set<String> pathTokens, Set<String> classTokens,
@@ -27,7 +28,7 @@ public record ModPatternRule(String modId, Set<String> pathTokens, Set<String> c
                           String collapseFamily, String collapseLabel, String collapseMode) {
         this(modId, pathTokens, classTokens, addFacets, removeFacets,
                 EnumSet.noneOf(SemanticVerb.class), EnumSet.noneOf(SemanticVerb.class),
-                category, subcategory, collapseFamily, collapseLabel, collapseMode, null);
+                category, subcategory, collapseFamily, collapseLabel, collapseMode, null, null, null);
     }
 
     public ModPatternRule(String modId, Set<String> pathTokens, String category, String subcategory) {
@@ -41,6 +42,14 @@ public record ModPatternRule(String modId, Set<String> pathTokens, Set<String> c
 
     public boolean hasCollapse() {
         return collapseFamily != null && !collapseFamily.isBlank();
+    }
+
+    public boolean hasAccessLevel() {
+        return accessLevel != null && !accessLevel.isBlank();
+    }
+
+    public boolean hasVisibility() {
+        return visibility != null && !visibility.isBlank();
     }
 
     public boolean requiresAllCriteria() {

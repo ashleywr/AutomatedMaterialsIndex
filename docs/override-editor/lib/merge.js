@@ -12,6 +12,8 @@ export function mergeForEditing(dump, overrides) {
       facets:       Array.from(new Set([...runtimeFacets, ...(ov?.addFacets ?? [])]))
                        .filter(f => !(ov?.removeFacets ?? []).includes(f)),
       tooltipLines: ov?.tooltipLines ?? [],
+      accessLevel:  ov?.accessLevel ?? null,
+      visibility:   ov?.visibility ?? null,
     };
     merged.push({
       id: row.id, mod: row.mod, className: row.className,
@@ -27,6 +29,7 @@ export function mergeForEditing(dump, overrides) {
     const baseline = {
       category: ov.category ?? null, subcategory: ov.subcategory ?? null,
       facets: [...(ov.addFacets ?? [])], tooltipLines: ov.tooltipLines ?? [],
+      accessLevel: ov.accessLevel ?? null, visibility: ov.visibility ?? null,
     };
     merged.push({
       id, mod: id.split(":")[0], className: "", displayName: id, creativeTabs: [],
