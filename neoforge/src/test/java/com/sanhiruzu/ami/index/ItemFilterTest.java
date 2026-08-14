@@ -74,6 +74,25 @@ public class ItemFilterTest {
     }
 
     @Test
+    void testShouldIndexAccessLevel() {
+        // CHEAT and DEV are always indexed regardless of the live toggle — ResultsFilter hides
+        // them from non-cheat/non-dev players at query time instead, so toggling cheat/dev mode
+        // never needs a reindex to reveal items that were previously excluded from the index.
+        assertTrue(ItemFilter.shouldIndexAccessLevel(ItemFilter.ACCESS_CHEAT));
+        assertTrue(ItemFilter.shouldIndexAccessLevel(ItemFilter.ACCESS_DEV));
+
+        AmiConfig.cheatMode = true;
+        AmiConfig.devMode = true;
+        assertTrue(ItemFilter.shouldIndexAccessLevel(ItemFilter.ACCESS_CHEAT));
+        assertTrue(ItemFilter.shouldIndexAccessLevel(ItemFilter.ACCESS_DEV));
+
+        // SURVIVAL/CREATIVE indexing behavior is unchanged from shouldShowAccessLevel.
+        AmiConfig.resetToDefaults();
+        assertTrue(ItemFilter.shouldIndexAccessLevel(ItemFilter.ACCESS_SURVIVAL));
+        assertTrue(ItemFilter.shouldIndexAccessLevel(ItemFilter.ACCESS_CREATIVE));
+    }
+
+    @Test
     void appendCreativeStackKeepsSearchOnlyVariantsAndDedupesOverlap() {
         Item plastic = new Item("Plastic Sheet");
         Item soulVial = new Item("Soul Vial");

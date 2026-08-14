@@ -818,7 +818,7 @@ public class ItemProvider implements IAmiDataProvider {
             if (strictSurvival && !hasRecipe && !hasPackVisibilityOverrideForBase) continue;
 
             if (IndexingHotItemPolicy.shouldUseFastFacadeIndex(id)) {
-                if (!ItemFilter.shouldShowAccessLevel(accessLevel) && !hasPackVisibilityOverrideForBase) continue;
+                if (!ItemFilter.shouldIndexAccessLevel(accessLevel) && !hasPackVisibilityOverrideForBase) continue;
                 indexFastFacadeItem(index, item, id, creativeStackMap, creativeTabs.get(item), accessLevel, inCreative);
                 baseItemNodes++;
                 fastFacadeNodes++;
@@ -832,7 +832,7 @@ public class ItemProvider implements IAmiDataProvider {
             List<ItemFilter.CreativeStackInfo> creativeStacks = creativeStackMap.get(item);
             boolean preferCreativeStackParity = SubtypeExpander.shouldPreferCreativeStackParity(id);
             if ((subtypes.isEmpty() || preferCreativeStackParity)
-                    && ItemFilter.shouldShowAccessLevel(accessLevel)
+                    && ItemFilter.shouldIndexAccessLevel(accessLevel)
                     && hasMultipleCreativeStacks(creativeStacks)) {
                 creativeVariantCandidates++;
                 String suppressionReason = IndexingHotItemPolicy.componentBackedVariantSuppressionReason(id);
@@ -882,7 +882,7 @@ public class ItemProvider implements IAmiDataProvider {
                     applyPrimaryCategoryMeta(id, item, null, subtypeMeta);
                     applyPackVisibilityOverrides(entry.id(), id,
                             subtypeMeta.getOrDefault(SearchNodeKeys.ITEM_CLASS, itemClass), subtypeMeta);
-                    if (!ItemFilter.shouldShowAccessLevel(subtypeMeta.getOrDefault(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL))
+                    if (!ItemFilter.shouldIndexAccessLevel(subtypeMeta.getOrDefault(SearchNodeKeys.ACCESS_LEVEL, ItemFilter.ACCESS_SURVIVAL))
                             && !isHiddenComponentDuplicateVariant(subtypeMeta)
                             && !hasPackVisibilityOverride(entry.id(), id,
                                     subtypeMeta.getOrDefault(SearchNodeKeys.ITEM_CLASS, itemClass))) {
@@ -897,9 +897,7 @@ public class ItemProvider implements IAmiDataProvider {
                 continue;
             }
 
-            if (!ItemFilter.shouldShowAccessLevel(accessLevel)
-                    && !ItemFilter.ACCESS_DEV.equals(accessLevel)
-                    && !hasPackVisibilityOverrideForBase) continue;
+            if (!ItemFilter.shouldIndexAccessLevel(accessLevel) && !hasPackVisibilityOverrideForBase) continue;
 
             long basePreRecipeStart = System.nanoTime();
             long baseStageStart = System.nanoTime();
@@ -1124,9 +1122,9 @@ public class ItemProvider implements IAmiDataProvider {
     private int indexHeroItems(GlobalIndex index, @Nullable RegistryAccess registryAccess,
                                Map<Item, ItemFilter.CreativeTabInfo> creativeTabs,
                                @Nullable Level level) {
-        if (!ItemFilter.shouldShowAccessLevel(ItemFilter.ACCESS_CHEAT)) {
-            return 0;
-        }
+        // Hero items are always ACCESS_CHEAT, which is always indexed now (see
+        // ItemFilter.shouldIndexAccessLevel) — no early-out needed; ResultsFilter hides them from
+        // non-cheat players at query time instead.
         int emittedTotal = 0;
         Map<String, String> modNameCache = new HashMap<>();
         for (var plugin : AmiPluginRegistry.getPlugins()) {

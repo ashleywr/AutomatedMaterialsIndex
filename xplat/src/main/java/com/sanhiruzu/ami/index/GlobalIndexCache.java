@@ -247,7 +247,12 @@ public final class GlobalIndexCache {
                     + "_lang=" + currentClientLanguageCacheKey()
                     + "_hidden=" + AmiConfig.showHiddenModItems
                     + "_strictSurvival=" + AmiConfig.strictSurvivalMode
-                    + "_cheat=" + AmiConfig.cheatMode
+                    // cheatMode intentionally excluded: ItemFilter.shouldIndexAccessLevel() always
+                    // indexes ACCESS_CHEAT nodes regardless of the toggle now (ResultsFilter hides
+                    // them from non-cheat players at query time instead), so the cached index content
+                    // no longer depends on cheatMode — keying on it would force an avoidable rebuild
+                    // on every cheat-mode toggle. devMode stays: it also changes indexing depth
+                    // (fast-facade vs. full detail), not just visibility.
                     + "_dev=" + AmiConfig.devMode
                     + "_searchEntities=" + AmiConfig.searchIncludeEntities
                     + "_searchPlayers=" + AmiConfig.searchIncludePlayers

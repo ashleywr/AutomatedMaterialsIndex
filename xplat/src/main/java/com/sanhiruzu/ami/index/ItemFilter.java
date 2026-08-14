@@ -224,6 +224,22 @@ public final class ItemFilter {
         };
     }
 
+    /**
+     * Indexing-time gate: whether an item at this access level should be added to the index at
+     * all. Deliberately more permissive than {@link #shouldShowAccessLevel} for CHEAT/DEV — those
+     * are always indexed regardless of the current cheatMode/devMode toggle, since the query-time
+     * filter (ResultsFilter) already re-checks the live toggle on every search; excluding them
+     * here would mean flipping cheat/dev mode on requires a full reindex before those items can
+     * appear at all. CREATIVE/SURVIVAL keep their existing indexing behavior — those are gated by
+     * game mode, not a simple always-visible-eventually toggle, and are far higher volume.
+     */
+    public static boolean shouldIndexAccessLevel(String accessLevel) {
+        return switch (accessLevel) {
+            case ACCESS_CHEAT, ACCESS_DEV -> true;
+            default -> shouldShowAccessLevel(accessLevel);
+        };
+    }
+
     public record CreativeTabInfo(String id, String label) {
     }
 
