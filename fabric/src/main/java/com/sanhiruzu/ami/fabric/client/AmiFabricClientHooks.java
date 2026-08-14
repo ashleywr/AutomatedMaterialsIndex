@@ -172,7 +172,7 @@ public final class AmiFabricClientHooks {
 
             // 1. Registry Name
             ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
-            if (AmiConfig.devMode) {
+            if (AmiConfig.devMode && itemId != null) {
                 lines.add(Component.translatable("ami.dev.id", itemId.toString())
                         .withStyle(ChatFormatting.DARK_GRAY));
             }
@@ -190,7 +190,9 @@ public final class AmiFabricClientHooks {
             List<String> components = new java.util.ArrayList<>();
             for (var typed : stack.getComponents()) {
                 ResourceLocation compId = BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(typed.type());
-                components.add(compId.toString());
+                if (compId != null) {
+                    components.add(compId.toString());
+                }
             }
             appendMetadataLines(lines, "ami.dev.comp", components.stream().sorted().toList());
 

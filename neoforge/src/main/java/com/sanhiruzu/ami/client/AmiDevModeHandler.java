@@ -27,7 +27,7 @@ public class AmiDevModeHandler {
 
         // 1. Registry Name
         ResourceLocation itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
-        if (AmiConfig.devMode) {
+        if (AmiConfig.devMode && itemId != null) {
             event.getToolTip().add(Component.translatable("ami.dev.id", itemId.toString()).withStyle(ChatFormatting.DARK_GRAY));
         }
 

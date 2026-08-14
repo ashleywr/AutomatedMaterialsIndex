@@ -14,6 +14,24 @@ public final class OverlayInputController {
     private OverlayInputController() {
     }
 
+    // Tracks whether AMI consumed the press for each mouse button, so the matching release can
+    // mirror that decision instead of guessing from the release position (a drag that starts on
+    // a real vanilla slot can end up over the AMI panel before the button comes up).
+    private static final boolean[] pressConsumedByButton = new boolean[8];
+
+    private static void recordPressConsumed(int button, boolean consumed) {
+        if (button >= 0 && button < pressConsumedByButton.length) {
+            pressConsumedByButton[button] = consumed;
+        }
+    }
+
+    private static boolean consumePressConsumed(int button) {
+        if (button < 0 || button >= pressConsumedByButton.length) return false;
+        boolean value = pressConsumedByButton[button];
+        pressConsumedByButton[button] = false;
+        return value;
+    }
+
     public static boolean mouseScrolled(Screen screen, OverlayWidgetManager manager, boolean amiEnabled,
                                         double mouseX, double mouseY, double scrollX, double scrollY) {
         if (!panelInputAllowed(screen, manager, amiEnabled)) return false;
@@ -30,6 +48,13 @@ public final class OverlayInputController {
 
     public static boolean mouseButtonPressed(Screen screen, OverlayWidgetManager manager, boolean amiEnabled,
                                              double mouseX, double mouseY, int button) {
+        boolean consumed = computeMouseButtonPressed(screen, manager, amiEnabled, mouseX, mouseY, button);
+        recordPressConsumed(button, consumed);
+        return consumed;
+    }
+
+    private static boolean computeMouseButtonPressed(Screen screen, OverlayWidgetManager manager, boolean amiEnabled,
+                                                      double mouseX, double mouseY, int button) {
         if (AmiApi.shouldSuppressAmi(screen)) return false;
 
         var searchBar = manager.getSearchBar();
@@ -76,6 +101,8 @@ public final class OverlayInputController {
 
     public static boolean mouseButtonReleased(Screen screen, OverlayWidgetManager manager, boolean amiEnabled,
                                               double mouseX, double mouseY, int button) {
+        boolean pressWasConsumed = consumePressConsumed(button);
+
         if (!panelInputAllowed(screen, manager, amiEnabled)) return false;
         boolean inLayoutMode = manager.isInLayoutMode();
 
@@ -90,10 +117,11 @@ public final class OverlayInputController {
             return true;
         }
 
-        // The matching press for this release was consumed by AMI (context menu, or a click
-        // anywhere over the panel) whenever either is true — mirror that here so the release
-        // doesn't leak through to the underlying vanilla screen's own slot/drag bookkeeping.
-        return manager.hasOpenContextMenu() || manager.isMouseOverPanel(mouseX, mouseY);
+        // Only consume the release if AMI actually owned the matching press for this button (or
+        // a context menu is open right now, which only AMI can do) — checking release *position*
+        // would swallow releases for drags that started on a real vanilla slot and happened to
+        // end up over the AMI panel by the time the button comes up.
+        return manager.hasOpenContextMenu() || pressWasConsumed;
     }
 
     public static boolean charTyped(Screen screen, OverlayWidgetManager manager, boolean amiEnabled,
