@@ -20,6 +20,9 @@ import java.util.List;
  * cache while still reducing per-icon lighting switches and buffer flushes.
  */
 public final class ItemIconBatchRenderer {
+    // ItemRenderer#getModel may invoke expensive third-party model overrides. Keep the result only
+    // briefly so animated models still refresh while stationary inventory grids avoid re-resolving.
+    private static final TimedIdentityCache<ItemStack, BakedModel> MODEL_CACHE = new TimedIdentityCache<>(2048, 250);
     private final List<Entry> useBlockLight = new ArrayList<>();
     private final List<Entry> noBlockLight = new ArrayList<>();
     private final List<CustomEntry> customRender = new ArrayList<>();
@@ -37,6 +40,11 @@ public final class ItemIconBatchRenderer {
         return useBlockLightCount == 0 && noBlockLightCount == 0 && customRenderCount == 0;
     }
 
+    /** Clears cached models after a resource reload or client-world transition. */
+    public static void clearModelCache() {
+        MODEL_CACHE.clear();
+    }
+
     public void add(ItemStack stack, int x, int y) {
         if (stack.isEmpty()) {
             return;
@@ -44,7 +52,8 @@ public final class ItemIconBatchRenderer {
 
         Minecraft minecraft = Minecraft.getInstance();
         ItemRenderer itemRenderer = minecraft.getItemRenderer();
-        BakedModel model = itemRenderer.getModel(stack, minecraft.level, null, 0);
+        BakedModel model = MODEL_CACHE.getOrCompute(stack,
+                () -> itemRenderer.getModel(stack, minecraft.level, null, 0));
 
         if (model.isCustomRenderer()) {
             addCustomEntry(stack, x, y);

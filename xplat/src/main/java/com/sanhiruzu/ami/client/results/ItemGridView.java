@@ -94,7 +94,7 @@ public class ItemGridView {
     }
 
     public static void clearStackCache() {
-        // The default item path batches only within the current frame.
+        ItemIconBatchRenderer.clearModelCache();
     }
 
     private ItemIconBatchRenderer itemIconBatchRenderer() {
@@ -385,9 +385,8 @@ public class ItemGridView {
                     String baseIdStr = key.substring(12);
                     ResourceLocation baseLoc = ResourceLocation.tryParse(baseIdStr);
                     if (baseLoc != null) {
-                        net.minecraft.world.item.Item baseItem = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(baseLoc);
-                        if (baseItem != null && baseItem != net.minecraft.world.item.Items.AIR) {
-                            overrideStack = new ItemStack(baseItem);
+                        overrideStack = ItemIconRenderer.resolveStack(baseLoc);
+                        if (!overrideStack.isEmpty()) {
                             overrideId = baseLoc;
                         }
                     }

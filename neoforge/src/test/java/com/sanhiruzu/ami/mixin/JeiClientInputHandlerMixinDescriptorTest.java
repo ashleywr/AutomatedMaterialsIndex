@@ -72,6 +72,27 @@ public class JeiClientInputHandlerMixinDescriptorTest {
     }
 
     @Test
+    void neoForgeInputInjectorsDoNotDependOnJeisRelocatedUserInputClass() throws Exception {
+        String callbackOnlyDescriptor =
+                "(Lorg/spongepowered/asm/mixin/injection/callback/CallbackInfoReturnable;)V";
+        for (String injector : new String[]{
+                "suppressKeyPressedPre",
+                "suppressKeyPressedPost",
+                "suppressMouseClicked",
+                "suppressMouseReleased"
+        }) {
+            ClassNode node = readClassNode(Paths.get("../neoforge/build/classes/java/main/" + MIXIN_CLASS_FILE));
+            MethodNode method = node.methods.stream()
+                    .filter(candidate -> injector.equals(candidate.name))
+                    .findFirst()
+                    .orElse(null);
+            assertNotNull(method, "Missing " + injector);
+            assertEquals(callbackOnlyDescriptor, method.desc,
+                    "Input injector must not name JEI UserInput, which JEI 19.56 relocated");
+        }
+    }
+
+    @Test
     void mixinPackageDoesNotContainDirectlyReferencedSupportClasses() throws Exception {
         Path mixinPackage = Paths.get("../xplat/src/main/java/com/sanhiruzu/ami/mixin");
         try (Stream<Path> files = Files.list(mixinPackage)) {

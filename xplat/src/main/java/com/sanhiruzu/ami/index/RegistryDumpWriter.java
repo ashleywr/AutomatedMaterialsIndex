@@ -105,6 +105,44 @@ public final class RegistryDumpWriter {
         return rows;
     }
 
+    /**
+     * Collects every registered item straight from {@link BuiltInRegistries#ITEM}.
+     *
+     * <p>For dedicated servers. {@link #collectFromRuntime(Level)} reads
+     * {@code GlobalIndex}, which is AMI's own client-side index and is empty on a server -
+     * it returns zero rows there rather than failing, which looks like a working dump of
+     * an empty game. This walks the real registry instead.
+     *
+     * <p>What you lose relative to the client dump: ontology category, subcategory,
+     * facets and creative tabs are all classification AMI computes while indexing, so they
+     * come back empty. {@code displayName} is the item's translation key rather than a
+     * translated name - lang files live under {@code assets/}, which a dedicated server
+     * never loads, so {@code item.exposure.camera} is genuinely the best it can do.
+     *
+     * <p>What you gain: the id list is authoritative and cannot go stale, which is the
+     * property you want when checking whether an id you are about to write down exists.
+     */
+    public static List<Row> collectFromRegistry() {
+        List<Row> rows = new ArrayList<>();
+        for (ResourceLocation id : BuiltInRegistries.ITEM.keySet()) {
+            Item item = BuiltInRegistries.ITEM.get(id);
+            if (item == null) {
+                continue;
+            }
+            rows.add(new Row(
+                    id.toString(),
+                    id.getNamespace(),
+                    item.getClass().getName(),
+                    item.getDescriptionId(),
+                    List.of(),
+                    null,
+                    null,
+                    List.of()));
+        }
+        rows.sort(java.util.Comparator.comparing(Row::id));
+        return rows;
+    }
+
     private static String emptyToNull(String s) {
         return (s == null || s.isBlank()) ? null : s;
     }

@@ -288,12 +288,44 @@ public final class CreativeStackVariantExpander {
         if (stack == null || stack.isEmpty()) {
             return shortHash(String.valueOf(baseId));
         }
+        if (!Services.PLATFORM.isClient()) {
+            return serverStackIdentityHash(baseId, stack);
+        }
         return stackIdentityHash(
                 baseId,
                 stack,
                 normalizedDisplayName(stack.getHoverName().getString()),
                 hasPositiveStoredResource(stack, level),
                 tooltipSignature(stack, level)
+        );
+    }
+
+    /**
+     * Identity hash for a dedicated server, computed without touching display names or
+     * tooltips.
+     *
+     * <p>All three client-facing inputs are useless or actively expensive here.
+     * {@code getHoverName()} dispatches to {@code Item#getName(ItemStack)}, which mods
+     * routinely override with client code; the tooltip calls go through
+     * {@code getTooltipLines}, which is the client tooltip path outright. The existing
+     * {@code catch (RuntimeException | LinkageError)} guards keep those from failing, but
+     * they do not stop RuntimeDistCleaner LOGGING each attempt - a single
+     * {@code /ami dump all} over this pack's recipes emitted 6,306 dist errors and spent
+     * most of its time producing them.
+     *
+     * <p>Nothing is lost that was there to begin with. Mod {@code assets/} are not loaded
+     * on a dedicated server, so modded names never resolved anyway - they came back as
+     * raw translation keys. That means a server hash and a client hash for the same stack
+     * ALREADY disagreed; this only makes the server side cheap and explicit rather than
+     * expensive and accidental. Do not compare {@code exactKey} across sides.
+     */
+    private static String serverStackIdentityHash(ResourceLocation baseId, ItemStack stack) {
+        return stackIdentityHash(
+                baseId,
+                stack,
+                normalizedDisplayName(stack.getItem().getDescriptionId()),
+                hasStoredEnergyOrFluid(stack),
+                List.of()
         );
     }
 
@@ -366,11 +398,13 @@ public final class CreativeStackVariantExpander {
         return String.join(",", axes);
     }
 
+    /** Capability-only check, safe on any side: no names, no tooltips. */
+    private static boolean hasStoredEnergyOrFluid(ItemStack stack) {
+        return safeItemEnergyStored(stack) > 0 || safeItemFluidAmount(stack) > 0L;
+    }
+
     private static boolean hasPositiveStoredResource(ItemStack stack, @Nullable Level level) {
-        if (safeItemEnergyStored(stack) > 0) {
-            return true;
-        }
-        if (safeItemFluidAmount(stack) > 0L) {
+        if (hasStoredEnergyOrFluid(stack)) {
             return true;
         }
 

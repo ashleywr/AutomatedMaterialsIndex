@@ -1,7 +1,6 @@
 package com.sanhiruzu.ami.mixin;
 
 import mezz.jei.gui.input.ClientInputHandler;
-import mezz.jei.gui.input.UserInput;
 import net.minecraft.client.gui.screens.Screen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
@@ -44,14 +43,14 @@ public class JeiClientInputHandlerMixin {
     }
 
     @Inject(method = "onKeyboardKeyPressedPre", at = @At("HEAD"), cancellable = true, remap = false)
-    private void suppressKeyPressedPre(Screen screen, UserInput input, CallbackInfoReturnable<Boolean> cir) {
+    private void suppressKeyPressedPre(CallbackInfoReturnable<Boolean> cir) {
         if (ami$shouldSuppressJeiInput()) {
             cir.setReturnValue(false);
         }
     }
 
     @Inject(method = "onKeyboardKeyPressedPost", at = @At("HEAD"), cancellable = true, remap = false)
-    private void suppressKeyPressedPost(Screen screen, UserInput input, CallbackInfoReturnable<Boolean> cir) {
+    private void suppressKeyPressedPost(CallbackInfoReturnable<Boolean> cir) {
         if (ami$shouldSuppressJeiInput()) {
             cir.setReturnValue(false);
         }
@@ -72,14 +71,14 @@ public class JeiClientInputHandlerMixin {
     }
 
     @Inject(method = "onGuiMouseClicked", at = @At("HEAD"), cancellable = true, remap = false)
-    private void suppressMouseClicked(Screen screen, UserInput input, CallbackInfoReturnable<Boolean> cir) {
+    private void suppressMouseClicked(CallbackInfoReturnable<Boolean> cir) {
         if (ami$shouldSuppressJeiInput()) {
             cir.setReturnValue(false);
         }
     }
 
     @Inject(method = "onGuiMouseReleased", at = @At("HEAD"), cancellable = true, remap = false)
-    private void suppressMouseReleased(Screen screen, UserInput input, CallbackInfoReturnable<Boolean> cir) {
+    private void suppressMouseReleased(CallbackInfoReturnable<Boolean> cir) {
         if (ami$shouldSuppressJeiInput()) {
             cir.setReturnValue(false);
         }

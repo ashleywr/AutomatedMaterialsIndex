@@ -78,8 +78,6 @@ import java.util.UUID;
 
 public class FabricPlatformHelper implements IPlatformHelper {
 
-    private static final IAmiKeyMappings KEY_MAPPINGS = new FabricAmiKeyMappings();
-
     /**
      * Maps the {@code DataComponents} field-name string literals that AMI's xplat code passes to
      * {@link #hasDefaultItemComponent}, {@link #hasStackComponent}, {@link #getDefaultItemComponentNames}
@@ -182,7 +180,16 @@ public class FabricPlatformHelper implements IPlatformHelper {
 
     @Override
     public IAmiKeyMappings keyMappings() {
-        return KEY_MAPPINGS;
+        return ClientKeyMappingsHolder.INSTANCE;
+    }
+
+    /**
+     * Keeps Fabric's client-only {@link FabricAmiKeyMappings} out of this service provider's
+     * class-initialization path. Dedicated-server tooling loads {@code FabricPlatformHelper}
+     * through {@link java.util.ServiceLoader}, but it never asks for key mappings.
+     */
+    private static final class ClientKeyMappingsHolder {
+        private static final IAmiKeyMappings INSTANCE = new FabricAmiKeyMappings();
     }
 
     @Override

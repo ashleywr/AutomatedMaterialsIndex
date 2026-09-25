@@ -28,12 +28,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * AMI-owned canonical favorites store.
@@ -47,6 +49,7 @@ public class AmiFavoritesHandler {
     private static final int FORMAT_VERSION = 2;
 
     private final List<FavoriteRecord> records = new ArrayList<>();
+    private final Set<String> unresolvedFavoriteWarningKeys = new HashSet<>();
     private Runnable onChange;
 
     private AmiFavoritesHandler() {
@@ -64,6 +67,7 @@ public class AmiFavoritesHandler {
 
     public static void clearForTests() {
         INSTANCE.records.clear();
+        INSTANCE.unresolvedFavoriteWarningKeys.clear();
         if (persistenceEnabled) {
             Path file = resolveFile();
             if (file != null) {
@@ -213,8 +217,9 @@ public class AmiFavoritesHandler {
         for (FavoriteRecord record : records) {
             SearchNode node = toDisplayNode(record);
             if (node != null) {
+                unresolvedFavoriteWarningKeys.remove(record.recordKey());
                 out.add(node);
-            } else {
+            } else if (unresolvedFavoriteWarningKeys.add(record.recordKey())) {
                 AmiCore.LOGGER.warn("AMI favorites getFavorites: record did not resolve to a display node (kind={} itemId={} nodeId={})",
                         record.kind(), record.itemId(), record.nodeId());
             }
@@ -226,6 +231,7 @@ public class AmiFavoritesHandler {
         int existing = findRecordIndexByKey(key);
         if (existing < 0) return;
         FavoriteRecord removed = records.remove(existing);
+        unresolvedFavoriteWarningKeys.remove(removed.recordKey());
         if (syncExternal) {
             syncRemove(removed);
         }

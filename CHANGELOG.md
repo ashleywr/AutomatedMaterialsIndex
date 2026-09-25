@@ -2,6 +2,23 @@
 
 User-facing changes are recorded here.
 
+## 1.8.7 - 2026-09-03
+
+### Added
+
+- Added a server-side `/ami dump` (`all`, `items`, `recipes`, `loot-tables`, `trades`, `worldgen`) that works from a dedicated server console. The existing dump tree registers through client command events, which do not exist on a dedicated server, so none of it could be produced headlessly - the one place that loads a full mod set with no GPU, no resource packs and no human clicking. Registered at permission level 2 rather than behind `-Dami.debugCommands`, because needing a JVM flag on a server you did not launch yourself makes it unusable in exactly the case it exists for. Search nodes, guide docs, the results tree and recipe-viewer dumps are deliberately not included: they read the client index or a viewer plugin and have no meaning without a client.
+- Added `/ami dump worldgen`, writing every biome, structure and dimension with its tags to `ami_dumps/worldgen/worldgen-dump.json`. This is new data rather than a port: the registry dump has only items. Taking it from the live registry is also the only complete source - modded biomes and structures are datapack JSON and can be scanned from jars, but vanilla's are registered in code, so a data scan silently misses `minecraft:deep_ocean` and every other vanilla entry.
+- Added Fabric and NeoForge `/ami dump trades`, which resolves the active villager and wandering-trader listing factories against a deterministic server-side sample and writes costs, results, limits, XP, listing classes, and unresolved reasons to `ami_dumps/trades/trades_runtime.json`. Map-dependent offers can remain unresolved in an isolated world with no discoverable structures.
+
+### Changed
+
+- Stack snapshots and `CreativeStackVariantExpander.stackIdentityHash` no longer read display names or tooltips on a dedicated server. `getHoverName()` dispatches to `Item#getName(ItemStack)`, which mods routinely override with client code, and the tooltip inputs go through `getTooltipLines` outright; the existing catch guards stopped those from failing but not from being logged, so a single `/ami dump all` over a 333-mod pack emitted 6,306 RuntimeDistCleaner errors and spent most of its runtime producing them. Nothing is lost: mod `assets/` are never loaded on a dedicated server, so those names only ever resolved to raw translation keys. Server and client identity hashes already disagreed for that reason - `exactKey` was never comparable across sides and still is not.
+- `RecipeDumpWriters.writeLootTables` gained an overload taking an explicit `ResourceManager`. The existing no-arg path falls back to `Minecraft.getInstance()`, and merely executing that branch on a dedicated server trips RuntimeDistCleaner.
+
+### Fixed
+
+- Fixed Fabric dedicated servers crashing during AMI startup because `FabricPlatformHelper` eagerly constructed client key mappings from its common static initializer. Key mappings now initialize only when the client accessor is actually used.
+
 ## 1.8.6 - 2026-08-13
 
 ### Added

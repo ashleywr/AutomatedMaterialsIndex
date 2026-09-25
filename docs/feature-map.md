@@ -150,6 +150,31 @@
   - Search suggestions/help treat `?entity:` and `?mob:` as route syntax, not source graph warmup. Typing after the colon
     suggests canonical entity route targets and namespace filters from a dedicated cached visible-entity route index.
 
+## Headless Runtime Export
+
+- User surface: a Fabric or NeoForge dedicated-server console or permission-level-2 operator can run `/ami dump all`, `items`,
+  `recipes`, `loot-tables`, `trades`, or `worldgen` without loading any client classes.
+- Main files:
+  - `fabric/src/main/java/com/sanhiruzu/ami/command/AmiServerDumpCommand.java`
+  - `fabric/src/main/java/com/sanhiruzu/ami/command/TradeDumpWriter.java`
+  - `fabric/src/main/java/com/sanhiruzu/ami/client/RecipeDumpWriters.java`
+  - `neoforge/src/main/java/com/sanhiruzu/ami/command/AmiServerDumpCommand.java`
+  - `neoforge/src/main/java/com/sanhiruzu/ami/command/TradeDumpWriter.java`
+  - `neoforge/src/main/java/com/sanhiruzu/ami/client/RecipeDumpWriters.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/index/RegistryDumpWriter.java`
+  - `xplat/src/main/java/com/sanhiruzu/ami/index/WorldgenDumpWriter.java`
+- State contract:
+  - `all` writes five server-meaningful sections: registry items, recipes, loot tables, live trades, and worldgen.
+    Client search trees, guide documents, and recipe-viewer exports remain client-only.
+  - Loot export receives the server resource manager explicitly and must never fall back to `Minecraft.getInstance()`.
+  - Fabric common startup must not initialize key mappings or any other client-only class. Client key mappings are held
+    behind a lazy nested holder reached only by the client platform accessor.
+  - Trade export reads the active `VillagerTrades` tables, including mod registrations made during startup. It resolves
+    each listing once with a deterministic random source and records unresolved factories instead of aborting the dump.
+    Structure-map listings may legitimately return no offer in an isolated no-structure world.
+  - Runtime output lives under `ami_dumps/`; `trades/trades_runtime.json` records source, profession, level, listing
+    index/class, costs, result, uses, XP, price multiplier, experience behavior, and status.
+
 ## Pokemon Coverage Export
 
 - User surface: NeoForge clients can run `/ami dump pokemon-coverage` to write pack-author/player-facing Cobblemon

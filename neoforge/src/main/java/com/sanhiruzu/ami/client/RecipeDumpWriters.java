@@ -33,7 +33,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 
-final class RecipeDumpWriters {
+public final class RecipeDumpWriters {
     private static final Gson GSON = new Gson();
     private static final Gson PRETTY_GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String RUNTIME_RECIPES_FILE = "recipes_runtime.jsonl";
@@ -49,7 +49,7 @@ final class RecipeDumpWriters {
     private RecipeDumpWriters() {
     }
 
-    static RuntimeRecipeDumpOutputs writeRuntimeRecipes(Path dumpDir, Level level) throws IOException {
+    public static RuntimeRecipeDumpOutputs writeRuntimeRecipes(Path dumpDir, Level level) throws IOException {
         if (level == null) {
             throw new IllegalStateException("No client level is loaded");
         }
@@ -107,10 +107,21 @@ final class RecipeDumpWriters {
         return new ViewerRecipeDumpOutputs(meta, outputs, total);
     }
 
-    static LootTableDumpOutputs writeLootTables(Path dumpDir) throws IOException {
+    public static LootTableDumpOutputs writeLootTables(Path dumpDir) throws IOException {
+        return writeLootTables(dumpDir, resourceManager());
+    }
+
+    /**
+     * Overload taking the {@link ResourceManager} explicitly, for callers on a dedicated
+     * server. The no-arg {@link #resourceManager()} reaches for {@code Minecraft.getInstance()}
+     * as its last fallback, and merely executing that branch on a dedicated server trips
+     * RuntimeDistCleaner. Passing the server's own manager keeps that code path unreached.
+     */
+    public static LootTableDumpOutputs writeLootTables(Path dumpDir, ResourceManager resourceManager)
+            throws IOException {
         Files.createDirectories(dumpDir);
 
-        List<LootTableSnapshot> snapshots = collectLootTables();
+        List<LootTableSnapshot> snapshots = collectLootTables(resourceManager);
         Path out = dumpDir.resolve(LOOT_TABLES_FILE);
         writeJsonl(out, snapshots);
 
@@ -170,8 +181,7 @@ final class RecipeDumpWriters {
         return snapshots;
     }
 
-    private static List<LootTableSnapshot> collectLootTables() {
-        ResourceManager resourceManager = resourceManager();
+    private static List<LootTableSnapshot> collectLootTables(ResourceManager resourceManager) {
         if (resourceManager == null) {
             return List.of();
         }
@@ -239,7 +249,23 @@ final class RecipeDumpWriters {
         String itemIdString = itemId == null ? "" : itemId.toString();
         String exactHash = itemId == null ? "" : CreativeStackVariantExpander.stackIdentityHash(itemId, stack, level);
         String exactKey = itemIdString.isBlank() || exactHash.isBlank() ? "" : itemIdString + "|" + exactHash;
-        return new StackSnapshot(itemIdString, stack.getHoverName().getString(), stack.getCount(), exactHash, exactKey);
+        return new StackSnapshot(itemIdString, stackName(stack), stack.getCount(), exactHash, exactKey);
+    }
+
+    /**
+     * Stack name, without asking a dedicated server for something it cannot answer.
+     *
+     * <p>{@code getHoverName()} dispatches to {@code Item#getName(ItemStack)}, which mods
+     * commonly override with client code. On a server that trips RuntimeDistCleaner once
+     * per stack - thousands of logged errors across a recipe dump - and the result is
+     * still only a translation key, because mod {@code assets/} are never loaded there.
+     * Read the description id directly instead: same answer, none of the cost.
+     */
+    private static String stackName(ItemStack stack) {
+        if (!Services.PLATFORM.isClient()) {
+            return stack.getItem().getDescriptionId();
+        }
+        return stack.getHoverName().getString();
     }
 
     private static ResourceManager resourceManager() {
@@ -477,13 +503,13 @@ final class RecipeDumpWriters {
         Files.write(path, lines, StandardCharsets.UTF_8);
     }
 
-    record RuntimeRecipeDumpOutputs(Path dump, Path csv, Path markdown, Path meta, int recipeCount) {
+    public record RuntimeRecipeDumpOutputs(Path dump, Path csv, Path markdown, Path meta, int recipeCount) {
     }
 
     record ViewerRecipeDumpOutputs(Path meta, List<ViewerDatasetOutput> datasets, int totalRecipes) {
     }
 
-    record LootTableDumpOutputs(Path dump, Path csv, Path markdown, Path meta, int tableCount) {
+    public record LootTableDumpOutputs(Path dump, Path csv, Path markdown, Path meta, int tableCount) {
     }
 
     record RuntimeRecipeSnapshot(

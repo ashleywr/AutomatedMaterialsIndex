@@ -1696,7 +1696,9 @@ public class UniversalResultsPanel implements SearchState.Listener {
                 searchService,
                 AmiConfig.searchIncludeGuides ? AmiIndexerService.getInstance().getGuideSearchIndex() : null,
                 AmiConfig.searchIncludeQuests ? AmiQuestsApi.getQuestSearchIndex() : null,
-                AmiConfig.searchIncludeAdvancements ? AdvancementRuntimeDocuments.searchIndex() : null,
+                ResultsViewProjector.requiresAdvancementIndex(state.getQuery(), isCompactLayout() && !isFavoritesPanel, isFavoritesPanel)
+                        ? AdvancementRuntimeDocuments.searchIndex()
+                        : null,
                 AmiIndexerService.getInstance().getRegistryDocumentIndex(),
                 isCompactLayout() && !isFavoritesPanel,
                 isFavoritesPanel

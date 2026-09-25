@@ -29,6 +29,13 @@ public class MixinsJsonTest {
     }
 
     @Test
+    void containsClientAdvancementsCacheInvalidationMixin() throws Exception {
+        String content = Files.readString(JSON_PATH);
+        assertTrue(content.contains("\"ClientAdvancementsMixin\""),
+                "ami.mixins.json must invalidate the cached advancement index when the server updates advancements");
+    }
+
+    @Test
     void doesNotContainDeletedJeiMixinClasses() throws Exception {
         String content = Files.readString(JSON_PATH);
         String[] deletedMixins = {

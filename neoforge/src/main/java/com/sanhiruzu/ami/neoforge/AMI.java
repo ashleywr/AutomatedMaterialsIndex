@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.neoforge;
 
+import com.sanhiruzu.ami.command.AmiServerDumpCommand;
 import com.sanhiruzu.ami.command.AmiStructureCommand;
 import com.sanhiruzu.ami.network.AmiCheatGivePacket;
 import com.sanhiruzu.ami.network.AmiCheatPokemonPacket;
@@ -66,6 +67,11 @@ public class AMI {
 
     @SubscribeEvent
     public void onRegisterCommands(RegisterCommandsEvent event) {
+        // Always available: /ami dump is an operator tool, not a debug toy, and it is the
+        // only way to get a registry/recipe/worldgen dump off a dedicated server - where
+        // the client dump commands do not exist at all. It gates on permission level 2.
+        AmiServerDumpCommand.register(event.getDispatcher());
+
         if (!Boolean.getBoolean(DEBUG_COMMANDS_PROPERTY)) {
             return;
         }

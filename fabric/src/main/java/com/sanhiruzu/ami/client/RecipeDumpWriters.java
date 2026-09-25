@@ -33,7 +33,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 
-final class RecipeDumpWriters {
+public final class RecipeDumpWriters {
     private static final Gson GSON = new Gson();
     private static final Gson PRETTY_GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String RUNTIME_RECIPES_FILE = "recipes_runtime.jsonl";
@@ -49,7 +49,7 @@ final class RecipeDumpWriters {
     private RecipeDumpWriters() {
     }
 
-    static RuntimeRecipeDumpOutputs writeRuntimeRecipes(Path dumpDir, Level level) throws IOException {
+    public static RuntimeRecipeDumpOutputs writeRuntimeRecipes(Path dumpDir, Level level) throws IOException {
         if (level == null) {
             throw new IllegalStateException("No client level is loaded");
         }
@@ -107,10 +107,18 @@ final class RecipeDumpWriters {
         return new ViewerRecipeDumpOutputs(meta, outputs, total);
     }
 
-    static LootTableDumpOutputs writeLootTables(Path dumpDir) throws IOException {
+    public static LootTableDumpOutputs writeLootTables(Path dumpDir) throws IOException {
+        return writeLootTables(dumpDir, resourceManager());
+    }
+
+    /**
+     * Dedicated-server overload that avoids loading the client-only Minecraft singleton.
+     */
+    public static LootTableDumpOutputs writeLootTables(Path dumpDir, ResourceManager resourceManager)
+            throws IOException {
         Files.createDirectories(dumpDir);
 
-        List<LootTableSnapshot> snapshots = collectLootTables();
+        List<LootTableSnapshot> snapshots = collectLootTables(resourceManager);
         Path out = dumpDir.resolve(LOOT_TABLES_FILE);
         writeJsonl(out, snapshots);
 
@@ -170,8 +178,7 @@ final class RecipeDumpWriters {
         return snapshots;
     }
 
-    private static List<LootTableSnapshot> collectLootTables() {
-        ResourceManager resourceManager = resourceManager();
+    private static List<LootTableSnapshot> collectLootTables(ResourceManager resourceManager) {
         if (resourceManager == null) {
             return List.of();
         }
@@ -239,7 +246,14 @@ final class RecipeDumpWriters {
         String itemIdString = itemId == null ? "" : itemId.toString();
         String exactHash = itemId == null ? "" : CreativeStackVariantExpander.stackIdentityHash(itemId, stack, level);
         String exactKey = itemIdString.isBlank() || exactHash.isBlank() ? "" : itemIdString + "|" + exactHash;
-        return new StackSnapshot(itemIdString, stack.getHoverName().getString(), stack.getCount(), exactHash, exactKey);
+        return new StackSnapshot(itemIdString, stackName(stack), stack.getCount(), exactHash, exactKey);
+    }
+
+    private static String stackName(ItemStack stack) {
+        if (!Services.PLATFORM.isClient()) {
+            return stack.getItem().getDescriptionId();
+        }
+        return stack.getHoverName().getString();
     }
 
     private static ResourceManager resourceManager() {
@@ -477,13 +491,13 @@ final class RecipeDumpWriters {
         Files.write(path, lines, StandardCharsets.UTF_8);
     }
 
-    record RuntimeRecipeDumpOutputs(Path dump, Path csv, Path markdown, Path meta, int recipeCount) {
+    public record RuntimeRecipeDumpOutputs(Path dump, Path csv, Path markdown, Path meta, int recipeCount) {
     }
 
     record ViewerRecipeDumpOutputs(Path meta, List<ViewerDatasetOutput> datasets, int totalRecipes) {
     }
 
-    record LootTableDumpOutputs(Path dump, Path csv, Path markdown, Path meta, int tableCount) {
+    public record LootTableDumpOutputs(Path dump, Path csv, Path markdown, Path meta, int tableCount) {
     }
 
     record RuntimeRecipeSnapshot(

@@ -93,6 +93,17 @@ class ResultsViewProjectorAdvancementTest {
     }
 
     @Test
+    void onlySearchesAdvancementsForVisibleNonBlankMainResults() {
+        assertTrue(ResultsViewProjector.requiresAdvancementIndex("stone", false, false));
+        assertTrue(!ResultsViewProjector.requiresAdvancementIndex("", false, false));
+        assertTrue(!ResultsViewProjector.requiresAdvancementIndex("stone", true, false));
+        assertTrue(!ResultsViewProjector.requiresAdvancementIndex("stone", false, true));
+
+        AmiConfig.searchIncludeAdvancements = false;
+        assertTrue(!ResultsViewProjector.requiresAdvancementIndex("stone", false, false));
+    }
+
+    @Test
     void configCanSuppressEntityPlayerAndWaypointNodes() {
         SearchState state = new SearchState();
         state.setQuery("");

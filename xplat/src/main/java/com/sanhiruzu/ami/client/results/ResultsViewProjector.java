@@ -161,7 +161,7 @@ public final class ResultsViewProjector {
         List<QuestResultRow> questRows = favoritesPanel || compactMainPanel || !AmiConfig.searchIncludeQuests
                 ? List.of()
                 : QuestResultsProjector.project(query, questSearchIndex);
-        List<AdvancementResultRow> advancementRows = favoritesPanel || compactMainPanel || !AmiConfig.searchIncludeAdvancements
+        List<AdvancementResultRow> advancementRows = !requiresAdvancementIndex(query, compactMainPanel, favoritesPanel)
                 ? List.of()
                 : AdvancementResultsProjector.project(query, advancementSearchIndex);
 
@@ -186,6 +186,15 @@ public final class ResultsViewProjector {
                 effectiveSource.size(),
                 summary(state, source.size(), effectiveSource.size(), guideRows.size(), questRows.size(), advancementRows.size(), compactMainPanel, favoritesPanel)
         );
+    }
+
+    /** Whether a projection can display advancement rows and therefore needs the runtime index. */
+    public static boolean requiresAdvancementIndex(String query, boolean compactMainPanel, boolean favoritesPanel) {
+        return AmiConfig.searchIncludeAdvancements
+                && !compactMainPanel
+                && !favoritesPanel
+                && query != null
+                && !query.isBlank();
     }
 
     public static List<SearchNode> applyRuntimeMetadataForLens(List<SearchNode> nodes) {

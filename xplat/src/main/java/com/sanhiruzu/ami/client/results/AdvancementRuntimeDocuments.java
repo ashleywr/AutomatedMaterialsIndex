@@ -29,22 +29,52 @@ import java.util.concurrent.ConcurrentMap;
 public final class AdvancementRuntimeDocuments {
     private static final ConcurrentMap<MethodKey, Optional<Method>> METHOD_CACHE = new ConcurrentHashMap<>();
     private static final ConcurrentMap<Class<?>, List<Method>> PROGRESS_METHODS_CACHE = new ConcurrentHashMap<>();
+    private static volatile Object cachedAdvancements;
+    private static volatile AmiAdvancementSearchIndex cachedSearchIndex;
+    private static volatile boolean searchIndexDirty = true;
 
     private AdvancementRuntimeDocuments() {
     }
 
     public static AmiAdvancementSearchIndex searchIndex() {
-        return new AmiAdvancementSearchIndex(documents());
-    }
-
-    static List<AmiAdvancementDocument> documents() {
         Minecraft minecraft = Minecraft.getInstance();
         ClientPacketListener connection = minecraft.getConnection();
         if (connection == null) {
-            return List.of();
+            clearSearchIndex();
+            return new AmiAdvancementSearchIndex(List.of());
         }
 
         Object advancements = connection.getAdvancements();
+        AmiAdvancementSearchIndex current = cachedSearchIndex;
+        if (!searchIndexDirty && cachedAdvancements == advancements && current != null) {
+            return current;
+        }
+
+        synchronized (AdvancementRuntimeDocuments.class) {
+            current = cachedSearchIndex;
+            if (!searchIndexDirty && cachedAdvancements == advancements && current != null) {
+                return current;
+            }
+            current = new AmiAdvancementSearchIndex(documents(advancements));
+            cachedAdvancements = advancements;
+            cachedSearchIndex = current;
+            searchIndexDirty = false;
+            return current;
+        }
+    }
+
+    /** Invalidates the cached index after Minecraft receives an advancement update packet. */
+    public static void invalidateSearchIndex() {
+        searchIndexDirty = true;
+    }
+
+    private static void clearSearchIndex() {
+        cachedAdvancements = null;
+        cachedSearchIndex = null;
+        searchIndexDirty = true;
+    }
+
+    static List<AmiAdvancementDocument> documents(Object advancements) {
         List<AmiAdvancementDocument> documents = new ArrayList<>();
         for (Object node : advancementNodes(advancements)) {
             Object advancement = advancement(node);

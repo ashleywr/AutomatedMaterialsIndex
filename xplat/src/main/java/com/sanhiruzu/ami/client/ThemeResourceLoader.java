@@ -59,5 +59,6 @@ public final class ThemeResourceLoader extends SimpleJsonResourceReloadListener 
         // invalidation here so packs added/changed/removed mid-session (e.g. a Cobblemon sprite
         // pack) take effect without needing to leave and rejoin the world.
         RendererRegistry.invalidateAll();
+        ItemIconBatchRenderer.clearModelCache();
     }
 }

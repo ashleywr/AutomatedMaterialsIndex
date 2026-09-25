@@ -1,5 +1,6 @@
 package com.sanhiruzu.ami.fabric;
 
+import com.sanhiruzu.ami.command.AmiServerDumpCommand;
 import com.sanhiruzu.ami.command.AmiStructureCommand;
 import com.sanhiruzu.ami.network.AmiCheatGivePacket;
 import com.sanhiruzu.ami.network.AmiCheatPokemonPacket;
@@ -38,6 +39,9 @@ public class AmiFabric implements ModInitializer {
 
         registerPayloads();
         registerServerEvents();
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
+                AmiServerDumpCommand.register(dispatcher));
 
         if (Boolean.getBoolean(DEBUG_COMMANDS_PROPERTY)) {
             CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
