@@ -116,7 +116,7 @@ AMI 1.6.0 adds advancement search, expands document-result controls, and improve
 - Added configurable search-source toggles for advancement, guide, quest, player, and waypoint document/runtime rows.
 - Added localized advancement-result labels and configuration text across supported languages.
 - Added a reusable adaptive client-work scheduler for expensive render-thread background tasks.
-- Added Synesthesia-scale profiling tooling that captures indexing duration, entity icon warmup, FPS/tick telemetry, memory/process samples, screenshots, logs, and optional JFR recordings.
+- Added large modpack profiling tooling that captures indexing duration, entity icon warmup, FPS/tick telemetry, memory/process samples, screenshots, logs, and optional JFR recordings.
 - Added a release benchmark exporter for compact GitHub release benchmark Markdown/JSON assets.
 - Added Spanish localization and translation delimiter sentinels for localization maintenance.
 
@@ -136,7 +136,7 @@ AMI 1.6.0 adds advancement search, expands document-result controls, and improve
 - Fixed visible entity icon requests churning the bounded bake queue when the queue is already full of visible-priority work.
 - Fixed entity icon warmup competing with AMI indexing by pausing atlas work while high-impact indexing phases are busy.
 - Fixed retained entity-renderer memory pressure by bounding cached `LivingEntity` instances and pending bake tasks.
-- Fixed the Synesthesia profiler harness to tolerate optional status fields and to pass `jcmd` JFR arguments correctly.
+- Fixed the modpack profiler harness to tolerate optional status fields and to pass `jcmd` JFR arguments correctly.
 - Fixed runtime result-debug projection so guide, quest, and advancement row counts respect their config toggles.
 
 ## 1.5.1 - 2026-06-12

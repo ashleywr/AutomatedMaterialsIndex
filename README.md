@@ -86,9 +86,9 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 
 <!-- ashley-release-information -->
 
-## Ashley's builds
+## My builds
 
-This is an original project by Ashley Wijnen-Riems. Original project code is offered under the [MIT License](LICENSE). Third-party material retains its own license and attribution.
+This is my original project. Original project code is offered under the [MIT License](LICENSE). Third-party material retains its own license and attribution.
 
 Provided **AS IS**, without warranty of any kind. Maintenance, updates and support are best effort; compatibility with every modpack is not guaranteed.
 
